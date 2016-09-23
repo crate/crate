@@ -71,28 +71,6 @@ public class NodeStatsCollectSource implements CollectSource {
         this.functions = functions;
     }
 
-    @Override
-    public Collection<CrateCollector> getCollectors(CollectPhase phase, RowReceiver downstream, JobCollectContext jobCollectContext) {
-        RoutedCollectPhase collectPhase = (RoutedCollectPhase) phase;
-        if (collectPhase.whereClause().noMatch()) {
-            return ImmutableList.<CrateCollector>of(RowsCollector.empty(downstream));
-        }
-        Collection<DiscoveryNode> nodes = nodeIds(collectPhase.whereClause(),
-                                                  Lists.newArrayList(clusterService.state().getNodes().iterator()),
-                                                  functions);
-        if (nodes.isEmpty()) {
-            return ImmutableList.<CrateCollector>of(RowsCollector.empty(downstream));
-        }
-        return ImmutableList.<CrateCollector>of(new NodeStatsCollector(
-                transportActionProvider.transportStatTablesActionProvider(),
-                downstream,
-                collectPhase,
-                nodes,
-                inputSymbolVisitor
-            )
-        );
-    }
-
     @Nullable
     protected static Collection<DiscoveryNode> nodeIds(WhereClause whereClause, Collection<DiscoveryNode> nodes,
                                                        Functions functions) {
@@ -121,5 +99,27 @@ public class NodeStatsCollectSource implements CollectSource {
             }
         }
         return newNodes;
+    }
+
+    @Override
+    public Collection<CrateCollector> getCollectors(CollectPhase phase, RowReceiver downstream, JobCollectContext jobCollectContext) {
+        RoutedCollectPhase collectPhase = (RoutedCollectPhase) phase;
+        if (collectPhase.whereClause().noMatch()) {
+            return ImmutableList.<CrateCollector>of(RowsCollector.empty(downstream));
+        }
+        Collection<DiscoveryNode> nodes = nodeIds(collectPhase.whereClause(),
+            Lists.newArrayList(clusterService.state().getNodes().iterator()),
+            functions);
+        if (nodes.isEmpty()) {
+            return ImmutableList.<CrateCollector>of(RowsCollector.empty(downstream));
+        }
+        return ImmutableList.<CrateCollector>of(new NodeStatsCollector(
+                transportActionProvider.transportStatTablesActionProvider(),
+                downstream,
+                collectPhase,
+                nodes,
+                inputSymbolVisitor
+            )
+        );
     }
 }

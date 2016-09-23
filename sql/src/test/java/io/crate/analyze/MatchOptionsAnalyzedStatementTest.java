@@ -41,8 +41,8 @@ public class MatchOptionsAnalyzedStatementTest extends CrateUnitTest {
         props.add(new GenericProperty("fuzziness", new ParameterExpression(1)));
         Map<String, Object> processed = MatchOptionsAnalysis.process(props, new Row1(12));
         assertThat(
-                mapToSortedString(processed),
-                is("analyzer=english, fuzziness=12, operator=and"));
+            mapToSortedString(processed),
+            is("analyzer=english, fuzziness=12, operator=and"));
     }
 
     @Test

@@ -60,10 +60,9 @@ public class ExecutionPhasesTask extends JobTask {
     private final TransportKillJobsNodeAction transportKillJobsNodeAction;
     private final List<NodeOperationTree> nodeOperationTrees;
     private final ClusterService clusterService;
-    private ContextPreparer contextPreparer;
     private final JobContextService jobContextService;
     private final IndicesService indicesService;
-
+    private ContextPreparer contextPreparer;
     private boolean hasDirectResponse;
 
     public ExecutionPhasesTask(UUID jobId,

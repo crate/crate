@@ -113,9 +113,9 @@ public class FetchPushDownTest {
         assertThat(sub.querySpec(), isSQL("SELECT s.t._docid, s.t.i ORDER BY s.t.i DESC NULLS LAST"));
     }
 
-    private Function abs(Symbol symbol){
+    private Function abs(Symbol symbol) {
         return new Function(new AbsFunction(symbol.valueType()).info(),
-                Lists.newArrayList(symbol));
+            Lists.newArrayList(symbol));
     }
 
     @Test
@@ -152,7 +152,7 @@ public class FetchPushDownTest {
         Function funcOfI = abs(REF_I);
         qs.outputs(Lists.newArrayList(REF_A, REF_I, funcOfI));
         qs.orderBy(new OrderBy(
-                Lists.<Symbol>newArrayList(REF_I), new boolean[]{true}, new Boolean[]{false}));
+            Lists.<Symbol>newArrayList(REF_I), new boolean[]{true}, new Boolean[]{false}));
         FetchPushDown pd = new FetchPushDown(qs, TABLE_REL);
         QueriedDocTable sub = pd.pushDown();
         assertThat(qs, isSQL("SELECT FETCH(INPUT(0), s.t._doc['a']), INPUT(1), abs(INPUT(1)) ORDER BY INPUT(1) DESC NULLS LAST"));

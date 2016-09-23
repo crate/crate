@@ -170,8 +170,8 @@ public class QuerySpec {
             if (!sourceType.equals(targetType)) {
                 if (sourceType.isConvertableTo(targetType)) {
                     Function castFunction = new Function(
-                            CastFunctionResolver.functionInfo(sourceType, targetType, false),
-                            Arrays.asList(output));
+                        CastFunctionResolver.functionInfo(sourceType, targetType, false),
+                        Arrays.asList(output));
                     if (groupBy().isPresent()) {
                         Collections.replaceAll(groupBy().get(), output, castFunction);
                     }
@@ -198,8 +198,8 @@ public class QuerySpec {
         }
 
         QuerySpec newSpec = new QuerySpec()
-                .limit(limit.orNull())
-                .offset(offset);
+            .limit(limit.orNull())
+            .offset(offset);
         if (traverseFunctions) {
             newSpec.outputs(SubsetVisitor.filter(outputs, predicate));
         } else {
@@ -219,42 +219,15 @@ public class QuerySpec {
         return newSpec;
     }
 
-    private static class SubsetVisitor extends DefaultTraversalSymbolVisitor<SubsetVisitor.SubsetContext, Void> {
-
-        public static class SubsetContext {
-            Predicate<? super Symbol> predicate;
-            List<Symbol> outputs = new ArrayList<>();
-        }
-
-        public static List<Symbol> filter(List<Symbol> outputs, Predicate<? super Symbol> predicate) {
-            SubsetVisitor.SubsetContext ctx = new SubsetVisitor.SubsetContext();
-            ctx.predicate = predicate;
-            SubsetVisitor visitor = new SubsetVisitor();
-            for (Symbol output : outputs) {
-                visitor.process(output, ctx);
-            }
-            return ctx.outputs;
-        }
-
-        @Override
-        public Void visitRelationColumn(RelationColumn relationColumn, SubsetContext context) {
-            if(context.predicate.apply(relationColumn)) {
-                context.outputs.add(relationColumn);
-            }
-            return null;
-        }
-    }
-
-
     public QuerySpec copyAndReplace(com.google.common.base.Function<? super Symbol, Symbol> replaceFunction) {
         if (groupBy.isPresent() || having.isPresent()) {
             throw new UnsupportedOperationException("Replacing group by or having symbols is not implemented");
         }
 
         QuerySpec newSpec = new QuerySpec()
-                .limit(limit.orNull())
-                .offset(offset)
-                .outputs(Lists.transform(outputs, replaceFunction));
+            .limit(limit.orNull())
+            .offset(offset)
+            .outputs(Lists.transform(outputs, replaceFunction));
         if (!where.hasQuery()) {
             newSpec.where(where);
         } else {
@@ -282,7 +255,33 @@ public class QuerySpec {
     @Override
     public String toString() {
         return String.format(Locale.ENGLISH,
-                "QS{ SELECT %s WHERE %s GROUP BY %s HAVING %s ORDER BY %s LIMIT %s OFFSET %s}",
-                outputs, where, groupBy, having, orderBy, limit, offset);
+            "QS{ SELECT %s WHERE %s GROUP BY %s HAVING %s ORDER BY %s LIMIT %s OFFSET %s}",
+            outputs, where, groupBy, having, orderBy, limit, offset);
+    }
+
+    private static class SubsetVisitor extends DefaultTraversalSymbolVisitor<SubsetVisitor.SubsetContext, Void> {
+
+        public static List<Symbol> filter(List<Symbol> outputs, Predicate<? super Symbol> predicate) {
+            SubsetVisitor.SubsetContext ctx = new SubsetVisitor.SubsetContext();
+            ctx.predicate = predicate;
+            SubsetVisitor visitor = new SubsetVisitor();
+            for (Symbol output : outputs) {
+                visitor.process(output, ctx);
+            }
+            return ctx.outputs;
+        }
+
+        @Override
+        public Void visitRelationColumn(RelationColumn relationColumn, SubsetContext context) {
+            if (context.predicate.apply(relationColumn)) {
+                context.outputs.add(relationColumn);
+            }
+            return null;
+        }
+
+        public static class SubsetContext {
+            Predicate<? super Symbol> predicate;
+            List<Symbol> outputs = new ArrayList<>();
+        }
     }
 }

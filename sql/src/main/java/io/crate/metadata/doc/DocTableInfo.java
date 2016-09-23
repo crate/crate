@@ -114,7 +114,8 @@ public class DocTableInfo implements TableInfo, ShardedTable {
                         Set<Operation> supportedOperations,
                         ExecutorService executorService) {
         this.indexNameExpressionResolver = indexNameExpressionResolver;
-        assert (partitionedBy.size() == partitionedByColumns.size()) : "partitionedBy and partitionedByColumns must have same amount of items in list";
+        assert (partitionedBy.size() ==
+                partitionedByColumns.size()) : "partitionedBy and partitionedByColumns must have same amount of items in list";
         this.clusterService = clusterService;
         this.columns = columns;
         this.partitionedByColumns = partitionedByColumns;
@@ -203,13 +204,13 @@ public class DocTableInfo implements TableInfo, ShardedTable {
         Map<String, Set<String>> routingMap = null;
         if (whereClause.clusteredBy().isPresent()) {
             routingMap = indexNameExpressionResolver.resolveSearchRouting(
-                    clusterState, whereClause.routingValues(), routingIndices);
+                clusterState, whereClause.routingValues(), routingIndices);
         }
         return clusterService.operationRouting().searchShards(
-                clusterState,
-                routingIndices,
-                routingMap,
-                preference
+            clusterState,
+            routingIndices,
+            routingMap,
+            preference
         );
     }
 
@@ -240,36 +241,36 @@ public class DocTableInfo implements TableInfo, ShardedTable {
         ClusterStateObserver observer = new ClusterStateObserver(clusterService, routingFetchTimeout, logger);
         final SettableFuture<Routing> routingSettableFuture = SettableFuture.create();
         observer.waitForNextChange(
-                new FetchRoutingListener(routingSettableFuture, whereClause, preference),
-                new ClusterStateObserver.ChangePredicate() {
+            new FetchRoutingListener(routingSettableFuture, whereClause, preference),
+            new ClusterStateObserver.ChangePredicate() {
 
-                    @Override
-                    public boolean apply(ClusterState previousState, ClusterState.ClusterStateStatus previousStatus, ClusterState newState, ClusterState.ClusterStateStatus newStatus) {
-                        return validate(newState);
+                @Override
+                public boolean apply(ClusterState previousState, ClusterState.ClusterStateStatus previousStatus, ClusterState newState, ClusterState.ClusterStateStatus newStatus) {
+                    return validate(newState);
+                }
+
+                @Override
+                public boolean apply(ClusterChangedEvent changedEvent) {
+                    return validate(changedEvent.state());
+                }
+
+                private boolean validate(ClusterState state) {
+                    final Map<String, Map<String, List<Integer>>> locations = new TreeMap<>();
+
+                    GroupShardsIterator shardIterators;
+                    try {
+                        shardIterators = getShardIterators(whereClause, preference, state);
+                    } catch (IndexNotFoundException e) {
+                        return true;
                     }
 
-                    @Override
-                    public boolean apply(ClusterChangedEvent changedEvent) {
-                        return validate(changedEvent.state());
-                    }
+                    final List<ShardId> missingShards = new ArrayList<>(0);
+                    fillLocationsFromShardIterators(locations, shardIterators, missingShards);
 
-                    private boolean validate(ClusterState state) {
-                        final Map<String, Map<String, List<Integer>>> locations = new TreeMap<>();
+                    return missingShards.isEmpty();
+                }
 
-                        GroupShardsIterator shardIterators;
-                        try {
-                            shardIterators = getShardIterators(whereClause, preference, state);
-                        } catch (IndexNotFoundException e) {
-                            return true;
-                        }
-
-                        final List<ShardId> missingShards = new ArrayList<>(0);
-                        fillLocationsFromShardIterators(locations, shardIterators, missingShards);
-
-                        return missingShards.isEmpty();
-                    }
-
-                });
+            });
 
         try {
             return routingSettableFuture.get();
@@ -339,8 +340,9 @@ public class DocTableInfo implements TableInfo, ShardedTable {
 
     /**
      * columns this table is partitioned by.
-     *
+     * <p>
      * guaranteed to be in the same order as defined in CREATE TABLE statement
+     *
      * @return always a list, never null
      */
     public List<Reference> partitionedByColumns() {
@@ -349,8 +351,9 @@ public class DocTableInfo implements TableInfo, ShardedTable {
 
     /**
      * column names of columns this table is partitioned by (in dotted syntax).
-     *
+     * <p>
      * guaranteed to be in the same order as defined in CREATE TABLE statement
+     *
      * @return always a list, never null
      */
     public List<ColumnIdent> partitionedBy() {
@@ -364,7 +367,7 @@ public class DocTableInfo implements TableInfo, ShardedTable {
     /**
      * returns <code>true</code> if this table is a partitioned table,
      * <code>false</code> otherwise
-     *
+     * <p>
      * if so, {@linkplain #partitions()} returns infos about the concrete indices that make
      * up this virtual partitioned table
      */
@@ -399,7 +402,7 @@ public class DocTableInfo implements TableInfo, ShardedTable {
         return columnPolicy;
     }
 
-    public TableParameterInfo tableParameterInfo () {
+    public TableParameterInfo tableParameterInfo() {
         return tableParameterInfo;
     }
 
@@ -414,6 +417,52 @@ public class DocTableInfo implements TableInfo, ShardedTable {
 
     public String getAnalyzerForColumnIdent(ColumnIdent ident) {
         return analyzers.get(ident);
+    }
+
+    @Nullable
+    public DynamicReference getDynamic(ColumnIdent ident, boolean forWrite) {
+        boolean parentIsIgnored = false;
+        ColumnPolicy parentPolicy = columnPolicy();
+        if (!ident.isColumn()) {
+            // see if parent is strict object
+            ColumnIdent parentIdent = ident.getParent();
+            Reference parentInfo = null;
+
+            while (parentIdent != null) {
+                parentInfo = getReference(parentIdent);
+                if (parentInfo != null) {
+                    break;
+                }
+                parentIdent = parentIdent.getParent();
+            }
+
+            if (parentInfo != null) {
+                parentPolicy = parentInfo.columnPolicy();
+            }
+        }
+
+        switch (parentPolicy) {
+            case DYNAMIC:
+                if (!forWrite) return null;
+                break;
+            case STRICT:
+                if (forWrite) throw new ColumnUnknownException(ident.sqlFqn());
+                return null;
+            case IGNORED:
+                parentIsIgnored = true;
+                break;
+            default:
+                break;
+        }
+        if (parentIsIgnored) {
+            return new DynamicReference(new ReferenceIdent(ident(), ident), rowGranularity(), ColumnPolicy.IGNORED);
+        }
+        return new DynamicReference(new ReferenceIdent(ident(), ident), rowGranularity());
+    }
+
+    @Override
+    public String toString() {
+        return ident.fqn();
     }
 
     private class FetchRoutingListener implements ClusterStateObserver.Listener {
@@ -464,51 +513,5 @@ public class DocTableInfo implements TableInfo, ShardedTable {
             }
             routingFuture.setException(new IllegalStateException("Fetching table info routing timed out."));
         }
-    }
-
-    @Nullable
-    public DynamicReference getDynamic(ColumnIdent ident, boolean forWrite) {
-        boolean parentIsIgnored = false;
-        ColumnPolicy parentPolicy = columnPolicy();
-        if (!ident.isColumn()) {
-            // see if parent is strict object
-            ColumnIdent parentIdent = ident.getParent();
-            Reference parentInfo = null;
-
-            while (parentIdent != null) {
-                parentInfo = getReference(parentIdent);
-                if (parentInfo != null) {
-                    break;
-                }
-                parentIdent = parentIdent.getParent();
-            }
-
-            if (parentInfo != null) {
-                parentPolicy = parentInfo.columnPolicy();
-            }
-        }
-
-        switch (parentPolicy) {
-            case DYNAMIC:
-                if (!forWrite) return null;
-                break;
-            case STRICT:
-                if (forWrite) throw new ColumnUnknownException(ident.sqlFqn());
-                return null;
-            case IGNORED:
-                parentIsIgnored = true;
-                break;
-            default:
-                break;
-        }
-        if (parentIsIgnored) {
-            return new DynamicReference(new ReferenceIdent(ident(), ident), rowGranularity(), ColumnPolicy.IGNORED);
-        }
-        return new DynamicReference(new ReferenceIdent(ident(), ident), rowGranularity());
-    }
-
-    @Override
-    public String toString() {
-        return ident.fqn();
     }
 }

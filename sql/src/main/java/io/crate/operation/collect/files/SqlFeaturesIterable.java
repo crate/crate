@@ -25,14 +25,19 @@ package io.crate.operation.collect.files;
 import com.google.common.base.Splitter;
 import org.elasticsearch.ResourceNotFoundException;
 
-import java.io.*;
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
 
 public class SqlFeaturesIterable implements Iterable<SqlFeatureContext> {
 
-    private static List<SqlFeatureContext> featuresList;
     private static final Splitter TAB_SPLITTER = Splitter.on("\t");
+    private static List<SqlFeatureContext> featuresList;
 
     public SqlFeaturesIterable() throws IOException {
         try (InputStream sqlFeatures = SqlFeaturesIterable.class.getResourceAsStream("/sql_features.tsv")) {

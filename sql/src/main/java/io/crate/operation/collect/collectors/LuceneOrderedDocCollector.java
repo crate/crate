@@ -87,14 +87,60 @@ public class LuceneOrderedDocCollector extends OrderedDocCollector {
         this.scorer = new DummyScorer();
         this.expressions = expressions;
         this.rowFunction = new ScoreDocRowFunction(
-                searcher.getIndexReader(),
-                inputs,
-                expressions,
-                scorer
+            searcher.getIndexReader(),
+            inputs,
+            expressions,
+            scorer
         );
         missingValues = new Object[orderBy.orderBySymbols().size()];
         for (int i = 0; i < orderBy.orderBySymbols().size(); i++) {
             missingValues[i] = LuceneMissingValue.missingValue(orderBy, i);
+        }
+    }
+
+    @Nullable
+    @VisibleForTesting
+    static Query nextPageQuery(FieldDoc lastCollected, OrderBy orderBy, Object[] missingValues) {
+        BooleanQuery.Builder queryBuilder = new BooleanQuery.Builder();
+        for (int i = 0; i < orderBy.orderBySymbols().size(); i++) {
+            Symbol order = orderBy.orderBySymbols().get(i);
+            Object value = lastCollected.fields[i];
+            if (order instanceof Reference) {
+                boolean nullsFirst = orderBy.nullsFirst()[i] == null ? false : orderBy.nullsFirst()[i];
+                value = value == null || value.equals(missingValues[i]) ? null : value;
+                if (nullsFirst && value == null) {
+                    // no filter needed
+                    continue;
+                }
+                QueryBuilderHelper helper = QueryBuilderHelper.forType(order.valueType());
+                String columnName = ((Reference) order).ident().columnIdent().fqn();
+
+                Query orderQuery;
+                // nulls already gone, so they should be excluded
+                if (nullsFirst) {
+                    BooleanQuery.Builder booleanQuery = new BooleanQuery.Builder();
+                    booleanQuery.add(new MatchAllDocsQuery(), BooleanClause.Occur.MUST);
+                    if (orderBy.reverseFlags()[i]) {
+                        booleanQuery.add(helper.rangeQuery(columnName, null, value, false, true), BooleanClause.Occur.MUST_NOT);
+                    } else {
+                        booleanQuery.add(helper.rangeQuery(columnName, value, null, true, false), BooleanClause.Occur.MUST_NOT);
+                    }
+                    orderQuery = booleanQuery.build();
+                } else {
+                    if (orderBy.reverseFlags()[i]) {
+                        orderQuery = helper.rangeQuery(columnName, value, null, false, false);
+                    } else {
+                        orderQuery = helper.rangeQuery(columnName, null, value, false, false);
+                    }
+                }
+                queryBuilder.add(orderQuery, BooleanClause.Occur.MUST);
+            }
+        }
+        BooleanQuery query = queryBuilder.build();
+        if (query.clauses().size() > 0) {
+            return query;
+        } else {
+            return null;
         }
     }
 
@@ -165,51 +211,5 @@ public class LuceneOrderedDocCollector extends OrderedDocCollector {
         searchAfterQuery.add(searchContext.query(), BooleanClause.Occur.MUST);
         searchAfterQuery.add(query, BooleanClause.Occur.MUST_NOT);
         return searchAfterQuery.build();
-    }
-
-    @Nullable
-    @VisibleForTesting
-    static Query nextPageQuery(FieldDoc lastCollected, OrderBy orderBy, Object[] missingValues) {
-        BooleanQuery.Builder queryBuilder = new BooleanQuery.Builder();
-        for (int i = 0; i < orderBy.orderBySymbols().size(); i++) {
-            Symbol order = orderBy.orderBySymbols().get(i);
-            Object value = lastCollected.fields[i];
-            if (order instanceof Reference) {
-                boolean nullsFirst = orderBy.nullsFirst()[i] == null ? false : orderBy.nullsFirst()[i];
-                value = value == null || value.equals(missingValues[i]) ? null : value;
-                if (nullsFirst && value == null) {
-                    // no filter needed
-                    continue;
-                }
-                QueryBuilderHelper helper = QueryBuilderHelper.forType(order.valueType());
-                String columnName = ((Reference) order).ident().columnIdent().fqn();
-
-                Query orderQuery;
-                // nulls already gone, so they should be excluded
-                if (nullsFirst) {
-                    BooleanQuery.Builder booleanQuery = new BooleanQuery.Builder();
-                    booleanQuery.add(new MatchAllDocsQuery(), BooleanClause.Occur.MUST);
-                    if (orderBy.reverseFlags()[i]) {
-                        booleanQuery.add(helper.rangeQuery(columnName, null, value, false, true), BooleanClause.Occur.MUST_NOT);
-                    } else {
-                        booleanQuery.add(helper.rangeQuery(columnName, value, null, true, false), BooleanClause.Occur.MUST_NOT);
-                    }
-                    orderQuery = booleanQuery.build();
-                } else {
-                    if (orderBy.reverseFlags()[i]) {
-                        orderQuery = helper.rangeQuery(columnName, value, null, false, false);
-                    } else {
-                        orderQuery = helper.rangeQuery(columnName, null, value, false, false);
-                    }
-                }
-                queryBuilder.add(orderQuery, BooleanClause.Occur.MUST);
-            }
-        }
-        BooleanQuery query = queryBuilder.build();
-        if (query.clauses().size() > 0) {
-            return query;
-        } else {
-            return null;
-        }
     }
 }

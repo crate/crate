@@ -77,15 +77,13 @@ public class TablesSettingsExpression extends AbstractTablesSettingsExpression {
     static class TablesSettingsBlocksExpression extends AbstractTablesSettingsExpression {
 
         public static final String NAME = "blocks";
-
-        public TablesSettingsBlocksExpression() {
-            addChildImplementations();
-        }
-
         public static final String READ_ONLY = "read_only";
         public static final String READ = "read";
         public static final String WRITE = "write";
         public static final String METADATA = "metadata";
+        public TablesSettingsBlocksExpression() {
+            addChildImplementations();
+        }
 
         private void addChildImplementations() {
             childImplementations.put(READ_ONLY, new TableParameterExpression(TableParameterInfo.READ_ONLY));
@@ -111,13 +109,11 @@ public class TablesSettingsExpression extends AbstractTablesSettingsExpression {
     static class TablesSettingsRoutingAllocationExpression extends AbstractTablesSettingsExpression {
 
         public static final String NAME = "allocation";
-
+        public static final String ENABLE = "enable";
+        public static final String TOTAL_SHARDS_PER_NODE = "total_shards_per_node";
         public TablesSettingsRoutingAllocationExpression() {
             addChildImplementations();
         }
-
-        public static final String ENABLE = "enable";
-        public static final String TOTAL_SHARDS_PER_NODE="total_shards_per_node";
 
         private void addChildImplementations() {
             childImplementations.put(ENABLE, new BytesRefTableParameterExpression(TableParameterInfo.ROUTING_ALLOCATION_ENABLE));
@@ -128,12 +124,11 @@ public class TablesSettingsExpression extends AbstractTablesSettingsExpression {
     static class TablesSettingsRecoveryExpression extends AbstractTablesSettingsExpression {
 
         public static final String NAME = "recovery";
+        public static final String INITIAL_SHARDS = "initial_shards";
 
         public TablesSettingsRecoveryExpression() {
             addChildImplementations();
         }
-
-        public static final String INITIAL_SHARDS = "initial_shards";
 
         private void addChildImplementations() {
             childImplementations.put(INITIAL_SHARDS, new BytesRefTableParameterExpression(TableParameterInfo.RECOVERY_INITIAL_SHARDS));
@@ -143,12 +138,11 @@ public class TablesSettingsExpression extends AbstractTablesSettingsExpression {
     static class TablesSettingsWarmerExpression extends AbstractTablesSettingsExpression {
 
         public static final String NAME = "warmer";
+        public static final String ENABLED = "enabled";
 
         public TablesSettingsWarmerExpression() {
             addChildImplementations();
         }
-
-        public static final String ENABLED = "enabled";
 
         private void addChildImplementations() {
             childImplementations.put(ENABLED, new TableParameterExpression(TableParameterInfo.WARMER_ENABLED));
@@ -158,17 +152,15 @@ public class TablesSettingsExpression extends AbstractTablesSettingsExpression {
     static class TablesSettingsTranslogExpression extends AbstractTablesSettingsExpression {
 
         public static final String NAME = "translog";
-
-        public TablesSettingsTranslogExpression() {
-            addChildImplementations();
-        }
-
         public static final String FLUSH_THRESHOLD_OPS = "flush_threshold_ops";
         public static final String FLUSH_THRESHOLD_SIZE = "flush_threshold_size";
         public static final String FLUSH_THRESHOLD_PERIOD = "flush_threshold_period";
         public static final String DISABLE_FLUSH = "disable_flush";
         public static final String INTERVAL = "interval";
         public static final String SYNC_INTERVAL = "sync_interval";
+        public TablesSettingsTranslogExpression() {
+            addChildImplementations();
+        }
 
         private void addChildImplementations() {
             childImplementations.put(FLUSH_THRESHOLD_OPS, new TableParameterExpression(TableParameterInfo.FLUSH_THRESHOLD_OPS));
@@ -190,19 +182,18 @@ public class TablesSettingsExpression extends AbstractTablesSettingsExpression {
 
         private void addChildImplementations() {
             childImplementations.put(TablesSettingsNodeLeftExpression.NAME,
-                    new TablesSettingsNodeLeftExpression());
+                new TablesSettingsNodeLeftExpression());
         }
     }
 
     static class TablesSettingsNodeLeftExpression extends AbstractTablesSettingsExpression {
 
         public static final String NAME = "node_left";
+        public static final String DELAYED_TIMEOUT = "delayed_timeout";
 
         public TablesSettingsNodeLeftExpression() {
             addChildImplementations();
         }
-
-        public static final String DELAYED_TIMEOUT = "delayed_timeout";
 
         private void addChildImplementations() {
             childImplementations.put(DELAYED_TIMEOUT, new TableParameterExpression(TableParameterInfo.UNASSIGNED_NODE_LEFT_DELAYED_TIMEOUT));

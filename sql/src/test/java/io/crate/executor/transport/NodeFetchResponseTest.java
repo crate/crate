@@ -22,17 +22,17 @@
 
 package io.crate.executor.transport;
 
-import com.google.common.collect.Iterables;
 import com.carrotsearch.hppc.IntContainer;
-import com.carrotsearch.hppc.IntObjectMap;
-import com.carrotsearch.hppc.IntObjectHashMap;
 import com.carrotsearch.hppc.IntHashSet;
+import com.carrotsearch.hppc.IntObjectHashMap;
+import com.carrotsearch.hppc.IntObjectMap;
+import com.google.common.collect.Iterables;
 import io.crate.Streamer;
 import io.crate.core.collections.Row;
 import io.crate.core.collections.RowN;
 import io.crate.types.DataTypes;
-import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
+import org.elasticsearch.common.io.stream.StreamInput;
 import org.junit.Test;
 
 import static io.crate.testing.TestingHelpers.isRow;

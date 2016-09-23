@@ -37,17 +37,9 @@ import javax.annotation.Nullable;
 public class SysRepositoriesTableInfo extends StaticTableInfo {
 
     public static final TableIdent IDENT = new TableIdent(SysSchemaInfo.NAME, "repositories");
-    private final ClusterService clusterService;
-
-    public static class Columns {
-        public static final ColumnIdent NAME = new ColumnIdent("name");
-        public static final ColumnIdent TYPE = new ColumnIdent("type");
-        public static final ColumnIdent SETTINGS = new ColumnIdent("settings");
-    }
-
     private static final ImmutableList<ColumnIdent> PRIMARY_KEY = ImmutableList.of(Columns.NAME);
     private static final RowGranularity GRANULARITY = RowGranularity.DOC;
-
+    private final ClusterService clusterService;
     public SysRepositoriesTableInfo(ClusterService clusterService) {
         super(IDENT, new ColumnRegistrar(IDENT, GRANULARITY)
             .register(Columns.NAME, DataTypes.STRING)
@@ -64,5 +56,11 @@ public class SysRepositoriesTableInfo extends StaticTableInfo {
     @Override
     public Routing getRouting(WhereClause whereClause, @Nullable String preference) {
         return Routing.forTableOnSingleNode(IDENT, clusterService.localNode().id());
+    }
+
+    public static class Columns {
+        public static final ColumnIdent NAME = new ColumnIdent("name");
+        public static final ColumnIdent TYPE = new ColumnIdent("type");
+        public static final ColumnIdent SETTINGS = new ColumnIdent("settings");
     }
 }

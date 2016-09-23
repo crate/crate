@@ -40,10 +40,14 @@ public abstract class MaximumAggregation extends AggregationFunction<Comparable,
 
     private final FunctionInfo info;
 
+    MaximumAggregation(FunctionInfo info) {
+        this.info = info;
+    }
+
     public static void register(AggregationImplModule mod) {
         for (final DataType dataType : DataTypes.PRIMITIVE_TYPES) {
             FunctionInfo functionInfo = new FunctionInfo(
-                    new FunctionIdent(NAME, ImmutableList.of(dataType)), dataType, FunctionInfo.Type.AGGREGATE);
+                new FunctionIdent(NAME, ImmutableList.of(dataType)), dataType, FunctionInfo.Type.AGGREGATE);
 
             if (dataType instanceof FixedWidthType) {
                 mod.register(new FixedMaximumAggregation(functionInfo));
@@ -51,6 +55,27 @@ public abstract class MaximumAggregation extends AggregationFunction<Comparable,
                 mod.register(new VariableMaximumAggregation(functionInfo));
             }
         }
+    }
+
+    @Override
+    public FunctionInfo info() {
+        return info;
+    }
+
+    @Override
+    public DataType partialType() {
+        return info().returnType();
+    }
+
+    @Override
+    public Comparable iterate(RamAccountingContext ramAccountingContext, Comparable state, Input... args) throws CircuitBreakingException {
+        Object value = args[0].value();
+        return reduce(ramAccountingContext, state, (Comparable) value);
+    }
+
+    @Override
+    public Comparable terminatePartial(RamAccountingContext ramAccountingContext, Comparable state) {
+        return state;
     }
 
     private static class FixedMaximumAggregation extends MaximumAggregation {
@@ -114,30 +139,5 @@ public abstract class MaximumAggregation extends AggregationFunction<Comparable,
             }
             return state1;
         }
-    }
-
-    MaximumAggregation(FunctionInfo info) {
-        this.info = info;
-    }
-
-    @Override
-    public FunctionInfo info() {
-        return info;
-    }
-
-    @Override
-    public DataType partialType() {
-        return info().returnType();
-    }
-
-    @Override
-    public Comparable iterate(RamAccountingContext ramAccountingContext, Comparable state, Input... args) throws CircuitBreakingException {
-        Object value = args[0].value();
-        return reduce(ramAccountingContext, state, (Comparable) value);
-    }
-
-    @Override
-    public Comparable terminatePartial(RamAccountingContext ramAccountingContext, Comparable state) {
-        return state;
     }
 }

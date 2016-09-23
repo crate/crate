@@ -31,6 +31,19 @@ public class AnyLtOperator extends AnyOperator {
 
     public static final String NAME = OPERATOR_PREFIX + ComparisonExpression.Type.LESS_THAN.getValue();
 
+    protected AnyLtOperator(FunctionInfo functionInfo) {
+        super(functionInfo);
+    }
+
+    public static void register(OperatorModule module) {
+        module.registerDynamicOperatorFunction(NAME, new AnyLtResolver());
+    }
+
+    @Override
+    protected boolean compare(int comparisonResult) {
+        return comparisonResult < 0;
+    }
+
     static class AnyLtResolver extends AnyResolver {
 
         @Override
@@ -42,18 +55,5 @@ public class AnyLtOperator extends AnyOperator {
         public String name() {
             return NAME;
         }
-    }
-
-    public static void register(OperatorModule module) {
-        module.registerDynamicOperatorFunction(NAME, new AnyLtResolver());
-    }
-
-    protected AnyLtOperator(FunctionInfo functionInfo) {
-        super(functionInfo);
-    }
-
-    @Override
-    protected boolean compare(int comparisonResult) {
-        return comparisonResult < 0;
     }
 }

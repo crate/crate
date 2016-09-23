@@ -34,31 +34,6 @@ import static org.hamcrest.Matchers.*;
 
 public class SysExpressionsBytesRefTest extends CrateUnitTest {
 
-    static class BytesRefNullSysExpression extends SimpleObjectExpression<BytesRef> {
-
-        @Override
-        public BytesRef value() {
-            return null;
-        }
-
-    }
-
-    static class NullFieldSysObjectReference extends NestedObjectExpression {
-
-        protected NullFieldSysObjectReference() {
-            childImplementations.put("n", new BytesRefNullSysExpression());
-        }
-
-    }
-
-
-    static class NullSysObjectArrayReference extends SysStaticObjectArrayReference {
-
-        protected NullSysObjectArrayReference() {
-            childImplementations.add(new NullFieldSysObjectReference());
-        }
-    }
-
     @Test
     public void testSysObjectReferenceNull() throws Exception {
         NullFieldSysObjectReference nullRef = new NullFieldSysObjectReference();
@@ -82,6 +57,30 @@ public class SysExpressionsBytesRefTest extends CrateUnitTest {
         assertThat(mapValue.size(), is(1));
         assertThat(mapValue, hasKey("n"));
         assertThat(mapValue.get("n"), is(nullValue()));
+    }
+
+    static class BytesRefNullSysExpression extends SimpleObjectExpression<BytesRef> {
+
+        @Override
+        public BytesRef value() {
+            return null;
+        }
+
+    }
+
+    static class NullFieldSysObjectReference extends NestedObjectExpression {
+
+        protected NullFieldSysObjectReference() {
+            childImplementations.put("n", new BytesRefNullSysExpression());
+        }
+
+    }
+
+    static class NullSysObjectArrayReference extends SysStaticObjectArrayReference {
+
+        protected NullSysObjectArrayReference() {
+            childImplementations.add(new NullFieldSysObjectReference());
+        }
     }
 
 }

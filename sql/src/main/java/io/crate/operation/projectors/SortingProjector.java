@@ -32,7 +32,7 @@ import java.util.*;
 
 /**
  * Sort rows by ordering criteria and process given offset before emitting.
- *
+ * <p>
  * Compared to {@link SortingTopNProjector} this projector does not support limiting,
  * while the {@link SortingTopNProjector} does not work WITHOUT a limit.
  */
@@ -40,12 +40,11 @@ class SortingProjector extends AbstractProjector {
 
     private final Collection<? extends Input<?>> inputs;
     private final Iterable<? extends CollectExpression<Row, ?>> collectExpressions;
-    private Set<Requirement> requirements;
-
     private final Ordering<Object[]> ordering;
     private final int offset;
     private final int numOutputs;
     private final List<Object[]> rows = new ArrayList<>();
+    private Set<Requirement> requirements;
     private IterableRowEmitter rowEmitter = null;
 
     /**

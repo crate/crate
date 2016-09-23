@@ -63,6 +63,7 @@ class SymbolPrinterContext {
         }
         return false;
     }
+
     boolean maxDepthReached() {
         return depth >= maxDepth;
     }

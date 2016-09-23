@@ -48,15 +48,6 @@ public class FilterProjection extends Projection {
     public FilterProjection() {
     }
 
-    @Override
-    public RowGranularity requiredGranularity() {
-        return requiredGranularity;
-    }
-
-    public void requiredGranularity(RowGranularity requiredRowGranularity) {
-        this.requiredGranularity = requiredRowGranularity;
-    }
-
     public FilterProjection(Symbol query) {
         this.query = query;
     }
@@ -66,6 +57,14 @@ public class FilterProjection extends Projection {
         this.query = query;
     }
 
+    @Override
+    public RowGranularity requiredGranularity() {
+        return requiredGranularity;
+    }
+
+    public void requiredGranularity(RowGranularity requiredRowGranularity) {
+        this.requiredGranularity = requiredRowGranularity;
+    }
 
     public void query(Symbol query) {
         this.query = query;

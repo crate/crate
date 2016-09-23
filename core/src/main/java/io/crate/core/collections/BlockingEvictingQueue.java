@@ -35,7 +35,7 @@ public class BlockingEvictingQueue<E> extends ArrayBlockingQueue<E> implements B
     @Override
     public boolean offer(E e) {
         while (true) {
-            if (!super.offer(e)){
+            if (!super.offer(e)) {
                 try {
                     super.remove();
                 } catch (NoSuchElementException ex) {

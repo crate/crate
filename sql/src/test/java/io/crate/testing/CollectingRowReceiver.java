@@ -49,15 +49,15 @@ public class CollectingRowReceiver implements RowReceiver {
     private ResumeHandle resumeable;
     private RepeatHandle repeatHandle;
 
+    public CollectingRowReceiver() {
+    }
+
     public static CollectingRowReceiver withPauseAfter(int pauseAfter) {
         return new PausingReceiver(pauseAfter);
     }
 
     public static CollectingRowReceiver withLimit(int limit) {
         return new LimitingReceiver(limit);
-    }
-
-    public CollectingRowReceiver() {
     }
 
     @Override

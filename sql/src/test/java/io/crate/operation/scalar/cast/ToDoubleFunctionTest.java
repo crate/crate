@@ -43,22 +43,21 @@ import static org.hamcrest.core.Is.is;
 public class ToDoubleFunctionTest extends AbstractScalarFunctionsTest {
 
     private final String functionName = CastFunctionResolver.FunctionNames.TO_DOUBLE;
+    private final StmtCtx stmtCtx = new StmtCtx();
 
     private ToPrimitiveFunction getFunction(DataType type) {
         return (ToPrimitiveFunction) functions.get(new FunctionIdent(functionName, Collections.singletonList(type)));
     }
 
     private Double evaluate(Object value, DataType type) {
-        Input[] input = {(Input)Literal.newLiteral(type, value)};
+        Input[] input = {(Input) Literal.newLiteral(type, value)};
         return (Double) getFunction(type).evaluate(input);
     }
-
-    private final StmtCtx stmtCtx = new StmtCtx();
 
     private Symbol normalize(Object value, DataType type) {
         ToPrimitiveFunction function = getFunction(type);
         return function.normalizeSymbol(new Function(function.info(),
-                Collections.<Symbol>singletonList(Literal.newLiteral(type, value))), stmtCtx);
+            Collections.<Symbol>singletonList(Literal.newLiteral(type, value))), stmtCtx);
     }
 
     @Test

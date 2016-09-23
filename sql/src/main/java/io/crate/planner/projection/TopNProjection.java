@@ -42,16 +42,13 @@ public class TopNProjection extends Projection {
             return new TopNProjection();
         }
     };
-
-    private int limit;
-    private int offset;
-
     List<Symbol> outputs = ImmutableList.of();
-
     @Nullable
     List<Symbol> orderBy;
     @Nullable
     boolean[] reverseFlags;
+    private int limit;
+    private int offset;
     @Nullable
     private Boolean[] nullsFirst;
 
@@ -69,7 +66,8 @@ public class TopNProjection extends Projection {
         this.orderBy = MoreObjects.firstNonNull(orderBy, ImmutableList.<Symbol>of());
         this.reverseFlags = MoreObjects.firstNonNull(reverseFlags, new boolean[0]);
         this.nullsFirst = MoreObjects.firstNonNull(nullsFirst, new Boolean[0]);
-        assert this.orderBy.size() == this.reverseFlags.length : "reverse flags length does not match orderBy items count";
+        assert
+            this.orderBy.size() == this.reverseFlags.length : "reverse flags length does not match orderBy items count";
         assert this.nullsFirst.length == this.reverseFlags.length;
     }
 
@@ -200,12 +198,12 @@ public class TopNProjection extends Projection {
     @Override
     public String toString() {
         return "TopNProjection{" +
-                "outputs=" + outputs +
-                ", limit=" + limit +
-                ", offset=" + offset +
-                ", orderBy=" + orderBy +
-                ", reverseFlags=" + Arrays.toString(reverseFlags) +
-                ", nullsFirst=" + Arrays.toString(nullsFirst) +
-                '}';
+               "outputs=" + outputs +
+               ", limit=" + limit +
+               ", offset=" + offset +
+               ", orderBy=" + orderBy +
+               ", reverseFlags=" + Arrays.toString(reverseFlags) +
+               ", nullsFirst=" + Arrays.toString(nullsFirst) +
+               '}';
     }
 }

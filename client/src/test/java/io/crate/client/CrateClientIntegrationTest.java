@@ -46,14 +46,12 @@ public abstract class CrateClientIntegrationTest extends Assert {
 
     private static final String SQL_REQUEST_TIMEOUT_ENV = "CRATE_TESTS_SQL_REQUEST_TIMEOUT";
     protected static final TimeValue SQL_REQUEST_TIMEOUT = new TimeValue(Long.parseLong(
-            MoreObjects.firstNonNull(System.getenv(SQL_REQUEST_TIMEOUT_ENV), "5")), TimeUnit.SECONDS);
-
-    @Rule
-    public ExpectedException expectedException = ExpectedException.none();
-
+        MoreObjects.firstNonNull(System.getenv(SQL_REQUEST_TIMEOUT_ENV), "5")), TimeUnit.SECONDS);
     private static Path distributionsDir = Paths.get(System.getProperty("project_root") + "/app/build/distributions");
-
     private static String tarBallPath = null;
+    @ClassRule
+    public static final CrateTestCluster testCluster = CrateTestCluster.fromFile(tarBallPath)
+        .workingDir(Paths.get(System.getProperty("project_build_dir"), "crate-testing")).numberOfNodes(1).build();
 
     static {
         try {
@@ -65,12 +63,9 @@ public abstract class CrateClientIntegrationTest extends Assert {
         assert tarBallPath != null;
     }
 
+    @Rule
+    public ExpectedException expectedException = ExpectedException.none();
     protected CrateClient client;
-
-
-    @ClassRule
-    public static final CrateTestCluster testCluster = CrateTestCluster.fromFile(tarBallPath)
-            .workingDir(Paths.get(System.getProperty("project_build_dir"), "crate-testing")).numberOfNodes(1).build();
 
     protected String serverAddress() {
         CrateTestServer server = testCluster.randomServer();

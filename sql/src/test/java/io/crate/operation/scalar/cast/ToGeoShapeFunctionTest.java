@@ -38,45 +38,45 @@ import java.util.Map;
 
 import static org.hamcrest.Matchers.*;
 
-public class ToGeoShapeFunctionTest extends AbstractScalarFunctionsTest{
+public class ToGeoShapeFunctionTest extends AbstractScalarFunctionsTest {
 
     public static final String FUNCTION_NAME = CastFunctionResolver.FunctionNames.TO_GEO_SHAPE;
 
     public static final String VALID_STR = "POINT (0.0 0.1)";
     public static final String INVALID_STR = "POINTE ()";
     public static final Map<String, Object> VALID_OBJECT = ImmutableMap.of(
-            "type", "Polygon",
-            "coordinates", Collections.singletonList(
-                    Arrays.asList(
-                        Arrays.asList(0.0d, 0.0d),
-                        Arrays.asList(42.0d, 0.0d),
-                        Arrays.asList(42.0d, 1.0d),
-                        Arrays.asList(42.0d, 42.0d),
-                        Arrays.asList(1.0d, 42.0d),
-                        Arrays.asList(0.0d, 0.0d)
-                    )
+        "type", "Polygon",
+        "coordinates", Collections.singletonList(
+            Arrays.asList(
+                Arrays.asList(0.0d, 0.0d),
+                Arrays.asList(42.0d, 0.0d),
+                Arrays.asList(42.0d, 1.0d),
+                Arrays.asList(42.0d, 42.0d),
+                Arrays.asList(1.0d, 42.0d),
+                Arrays.asList(0.0d, 0.0d)
             )
+        )
     );
     public static final Map<String, Object> INVALID_OBJECT = ImmutableMap.<String, Object>of(
-            "type", "Polygon",
-            "coordinates", new double[][] {
-                    {0, 0},
-                    {42, 0},
-                    {42, 1},
-                    {42, 42},
-                    {1, 42},
-                    {0, 0}
-            }
-        );
+        "type", "Polygon",
+        "coordinates", new double[][]{
+            {0, 0},
+            {42, 0},
+            {42, 1},
+            {42, 42},
+            {1, 42},
+            {0, 0}
+        }
+    );
 
     @Test
     public void testEvaluateCastFromString() throws Exception {
         ToGeoFunction fn = getFunction(FUNCTION_NAME, DataTypes.STRING);
         Object val = fn.evaluate(Literal.newLiteral(DataTypes.STRING, VALID_STR));
         assertThat(val, instanceOf(Map.class));
-        assertThat((Map<String, Object>)val, allOf(
-                hasEntry("type", (Object)"Point"),
-                hasEntry("coordinates", (Object)new double[]{0.0, 0.1})));
+        assertThat((Map<String, Object>) val, allOf(
+            hasEntry("type", (Object) "Point"),
+            hasEntry("coordinates", (Object) new double[]{0.0, 0.1})));
     }
 
     @Test
@@ -93,11 +93,11 @@ public class ToGeoShapeFunctionTest extends AbstractScalarFunctionsTest{
 
         Object val = fn.evaluate(Literal.newLiteral(DataTypes.OBJECT, VALID_OBJECT));
         assertThat(val, instanceOf(Map.class));
-        Map<String, Object> valMap = (Map<String, Object>)val;
+        Map<String, Object> valMap = (Map<String, Object>) val;
         assertThat(valMap.size(), is(2));
         assertThat(valMap, Matchers.allOf(
-                Matchers.<String, Object>hasEntry("type", "Polygon"),
-                Matchers.hasEntry("coordinates", VALID_OBJECT.get("coordinates"))));
+            Matchers.<String, Object>hasEntry("type", "Polygon"),
+            Matchers.hasEntry("coordinates", VALID_OBJECT.get("coordinates"))));
     }
 
     @Test
@@ -113,11 +113,11 @@ public class ToGeoShapeFunctionTest extends AbstractScalarFunctionsTest{
     public void testNormalizeFromString() throws Exception {
         Symbol normalized = normalize(FUNCTION_NAME, VALID_STR, DataTypes.STRING);
         assertThat(normalized, instanceOf(Literal.class));
-        assertThat(normalized.valueType(), is((DataType)DataTypes.GEO_SHAPE));
-        Map<String, Object> value = ((Literal<Map<String, Object>>)normalized).value();
-        assertThat(value, hasEntry("type", (Object)"Point"));
+        assertThat(normalized.valueType(), is((DataType) DataTypes.GEO_SHAPE));
+        Map<String, Object> value = ((Literal<Map<String, Object>>) normalized).value();
+        assertThat(value, hasEntry("type", (Object) "Point"));
         assertThat(value, hasKey("coordinates"));
-        double[] coords = (double[])value.get("coordinates");
+        double[] coords = (double[]) value.get("coordinates");
         assertThat(coords.length, is(2));
         assertThat(coords[0], is(0.0d));
         assertThat(coords[1], is(0.1d));
@@ -127,9 +127,9 @@ public class ToGeoShapeFunctionTest extends AbstractScalarFunctionsTest{
     public void testNormalizeFromObject() throws Exception {
         Symbol normalized = normalize(FUNCTION_NAME, VALID_OBJECT, DataTypes.OBJECT);
         assertThat(normalized, instanceOf(Literal.class));
-        assertThat(normalized.valueType(), is((DataType)DataTypes.GEO_SHAPE));
-        Map<String, Object> value = ((Literal<Map<String, Object>>)normalized).value();
-        assertThat(value, hasEntry("type", (Object)"Polygon"));
+        assertThat(normalized.valueType(), is((DataType) DataTypes.GEO_SHAPE));
+        Map<String, Object> value = ((Literal<Map<String, Object>>) normalized).value();
+        assertThat(value, hasEntry("type", (Object) "Polygon"));
         assertThat(value, hasEntry("coordinates", VALID_OBJECT.get("coordinates")));
     }
 

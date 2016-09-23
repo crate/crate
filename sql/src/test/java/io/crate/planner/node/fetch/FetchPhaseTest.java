@@ -61,11 +61,11 @@ public class FetchPhaseTest {
         Reference name = new Reference(nameIdent, RowGranularity.DOC, DataTypes.STRING);
 
         FetchPhase orig = new FetchPhase(
-                1,
-                ImmutableSet.<String>of("node1", "node2"),
-                bases,
-                tableIndices,
-                ImmutableList.of(name)
+            1,
+            ImmutableSet.<String>of("node1", "node2"),
+            bases,
+            tableIndices,
+            ImmutableList.of(name)
         );
 
         BytesStreamOutput out = new BytesStreamOutput();

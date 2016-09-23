@@ -30,14 +30,14 @@ public interface Task {
 
     /**
      * execute the task if it represents a single operation.
-     *
+     * <p>
      * The result will be fed into the RowReceiver.
      */
     void execute(RowReceiver rowReceiver);
 
     /**
      * execute the task if it represents a bulk operation.
-     *
+     * <p>
      * The result will be a List containing the row-counts per operation.
      * Elements of the list cannot be null, but will be -1 if unknown and -2 if an error occurred.
      *

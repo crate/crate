@@ -53,21 +53,15 @@ public class ManyTableConsumer implements Consumer {
         this.visitor = new Visitor(consumingPlanner, rewriter);
     }
 
-    @Override
-    public PlannedAnalyzedRelation consume(AnalyzedRelation relation, ConsumerContext context) {
-        return visitor.process(relation, context);
-    }
-
     /**
      * returns a new collection with the same items as relations contains but in an order which
      * allows the most join condition push downs (assuming that a left-based tree is built later on)
      *
-     *
-     * @param relations all relations, e.g. [t1, t2, t3, t3]
+     * @param relations               all relations, e.g. [t1, t2, t3, t3]
      * @param implicitJoinedRelations contains all relations that have a join condition e.g. {{t1, t2}, {t2, t3}}
-     * @param joinPairs contains a list of {@link JoinPair}.
-     * @param preSorted a ordered subset of the relations. The result will start with those relations.
-     *                  E.g. [t3] - This would cause the result to start with [t3]
+     * @param joinPairs               contains a list of {@link JoinPair}.
+     * @param preSorted               a ordered subset of the relations. The result will start with those relations.
+     *                                E.g. [t3] - This would cause the result to start with [t3]
      */
     static Collection<QualifiedName> orderByJoinConditions(Collection<QualifiedName> relations,
                                                            Set<? extends Set<QualifiedName>> implicitJoinedRelations,
@@ -157,35 +151,35 @@ public class ManyTableConsumer implements Consumer {
      * build a TwoTableJoin tree.
      * E.g. given a MSS with 3 tables:
      * <code>
-     *     select t1.a, t2.b, t3.c from t1, t2, t3
+     * select t1.a, t2.b, t3.c from t1, t2, t3
      * </code>
-     *
+     * <p>
      * a TwoTableJoin tree is built:
-     *
+     * <p>
      * </code>
-     *      join(
-     *          join(t1, t2),
-     *          t3
-     *      )
+     * join(
+     * join(t1, t2),
+     * t3
+     * )
      * </code>
-     *
+     * <p>
      * Where:
      * <code>
-     *      join(t1, t2)
-     *      has:
-     *       QS: [ RC(t1, 0), RC(t2, 0) ]
-     *       t1: select a from t1
-     *       t2: select b from t2
+     * join(t1, t2)
+     * has:
+     * QS: [ RC(t1, 0), RC(t2, 0) ]
+     * t1: select a from t1
+     * t2: select b from t2
      * </code>
-     *
+     * <p>
      * and
      * <code>
-     *      join(join(t1, t2), t3)
+     * join(join(t1, t2), t3)
      * has:
-     *      QS: [ RC(join(t1, t2), 0), RC(join(t1, t2), 1),  RC(t3, 0) ]
-     *      join(t1, t2) -
-     *      t3: select c from t3
-     *
+     * QS: [ RC(join(t1, t2), 0), RC(join(t1, t2), 1),  RC(t3, 0) ]
+     * join(t1, t2) -
+     * t3: select c from t3
+     * <p>
      * </code>
      */
     static TwoTableJoin buildTwoTableJoinTree(MultiSourceSelect mss) {
@@ -278,10 +272,10 @@ public class ManyTableConsumer implements Consumer {
     }
 
     private static Map<Set<QualifiedName>, Symbol> rewriteSplitQueryNames(Map<Set<QualifiedName>, Symbol> splitQuery,
-                                                                    QualifiedName leftName,
-                                                                    QualifiedName rightName,
-                                                                    QualifiedName newName,
-                                                                    Function<? super Symbol, Symbol> replaceFunction) {
+                                                                          QualifiedName leftName,
+                                                                          QualifiedName rightName,
+                                                                          QualifiedName newName,
+                                                                          Function<? super Symbol, Symbol> replaceFunction) {
         Map<Set<QualifiedName>, Symbol> newMap = new HashMap<>(splitQuery.size());
         for (Map.Entry<Set<QualifiedName>, Symbol> entry : splitQuery.entrySet()) {
             Set<QualifiedName> key = entry.getKey();
@@ -330,7 +324,8 @@ public class ManyTableConsumer implements Consumer {
         JoinPairs.removeOrderByOnOuterRelation(left, right, leftSource.querySpec(), rightSource.querySpec(), joinPair);
 
         Optional<OrderBy> remainingOrderByToApply = Optional.absent();
-        if (mss.remainingOrderBy().isPresent() && mss.remainingOrderBy().get().validForRelations(Sets.newHashSet(left, right))) {
+        if (mss.remainingOrderBy().isPresent() &&
+            mss.remainingOrderBy().get().validForRelations(Sets.newHashSet(left, right))) {
             remainingOrderByToApply = Optional.of(mss.remainingOrderBy().get().orderBy());
         }
 
@@ -341,49 +336,6 @@ public class ManyTableConsumer implements Consumer {
             remainingOrderByToApply,
             joinPair
         );
-    }
-
-    private static class Visitor extends RelationPlanningVisitor {
-
-        private final ConsumingPlanner consumingPlanner;
-        private final Rewriter rewriter;
-
-        public Visitor(ConsumingPlanner consumingPlanner, Rewriter rewriter) {
-            this.consumingPlanner = consumingPlanner;
-            this.rewriter = rewriter;
-        }
-
-        @Override
-        public PlannedAnalyzedRelation visitMultiSourceSelect(MultiSourceSelect mss, ConsumerContext context) {
-            if (isUnsupportedStatement(mss, context)) return null;
-            replaceFieldsWithRelationColumns(mss);
-            if (mss.sources().size() == 2) {
-                return planSubRelation(context, twoTableJoin(rewriter, mss));
-            }
-            return planSubRelation(context, buildTwoTableJoinTree(mss));
-        }
-
-
-        private static boolean isUnsupportedStatement(MultiSourceSelect statement, ConsumerContext context) {
-            if (statement.querySpec().groupBy().isPresent()) {
-                context.validationException(new ValidationException("GROUP BY on JOINS is not supported"));
-                return true;
-            }
-            if (statement.querySpec().hasAggregates()) {
-                context.validationException(new ValidationException("AGGREGATIONS on JOINS is not supported"));
-                return true;
-            }
-
-            return false;
-        }
-
-        private PlannedAnalyzedRelation planSubRelation(ConsumerContext context, AnalyzedRelation relation) {
-            if (context.isRoot()) {
-                return consumingPlanner.plan(relation, context);
-            }
-            return context.plannerContext().planSubRelation(relation, context);
-        }
-
     }
 
     static void replaceFieldsWithRelationColumns(MultiSourceSelect mss) {
@@ -406,6 +358,53 @@ public class ManyTableConsumer implements Consumer {
             joinPair.replaceCondition(replaceFunction);
         }
         mss.querySpec().replace(replaceFunction);
+    }
+
+    @Override
+    public PlannedAnalyzedRelation consume(AnalyzedRelation relation, ConsumerContext context) {
+        return visitor.process(relation, context);
+    }
+
+    private static class Visitor extends RelationPlanningVisitor {
+
+        private final ConsumingPlanner consumingPlanner;
+        private final Rewriter rewriter;
+
+        public Visitor(ConsumingPlanner consumingPlanner, Rewriter rewriter) {
+            this.consumingPlanner = consumingPlanner;
+            this.rewriter = rewriter;
+        }
+
+        private static boolean isUnsupportedStatement(MultiSourceSelect statement, ConsumerContext context) {
+            if (statement.querySpec().groupBy().isPresent()) {
+                context.validationException(new ValidationException("GROUP BY on JOINS is not supported"));
+                return true;
+            }
+            if (statement.querySpec().hasAggregates()) {
+                context.validationException(new ValidationException("AGGREGATIONS on JOINS is not supported"));
+                return true;
+            }
+
+            return false;
+        }
+
+        @Override
+        public PlannedAnalyzedRelation visitMultiSourceSelect(MultiSourceSelect mss, ConsumerContext context) {
+            if (isUnsupportedStatement(mss, context)) return null;
+            replaceFieldsWithRelationColumns(mss);
+            if (mss.sources().size() == 2) {
+                return planSubRelation(context, twoTableJoin(rewriter, mss));
+            }
+            return planSubRelation(context, buildTwoTableJoinTree(mss));
+        }
+
+        private PlannedAnalyzedRelation planSubRelation(ConsumerContext context, AnalyzedRelation relation) {
+            if (context.isRoot()) {
+                return consumingPlanner.plan(relation, context);
+            }
+            return context.plannerContext().planSubRelation(relation, context);
+        }
+
     }
 
     private static class SubSetOfQualifiedNamesPredicate implements Predicate<Symbol> {
@@ -470,7 +469,8 @@ public class ManyTableConsumer implements Consumer {
                 return new RelationColumn(context.newName, relationColumn.index(), relationColumn.valueType());
             }
             if (relationColumn.relationName().equals(context.right)) {
-                return new RelationColumn(context.newName, relationColumn.index() + context.rightOffset, relationColumn.valueType());
+                return new RelationColumn(context.newName,
+                    relationColumn.index() + context.rightOffset, relationColumn.valueType());
             }
             return super.visitRelationColumn(relationColumn, context);
         }

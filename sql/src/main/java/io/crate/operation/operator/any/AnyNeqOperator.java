@@ -31,6 +31,19 @@ public class AnyNeqOperator extends AnyOperator {
 
     public static final String NAME = OPERATOR_PREFIX + ComparisonExpression.Type.NOT_EQUAL.getValue();
 
+    protected AnyNeqOperator(FunctionInfo info) {
+        super(info);
+    }
+
+    public static void register(OperatorModule module) {
+        module.registerDynamicOperatorFunction(NAME, new AnyNeqResolver());
+    }
+
+    @Override
+    protected boolean compare(int comparisonResult) {
+        return comparisonResult != 0;
+    }
+
     static class AnyNeqResolver extends AnyResolver {
 
         @Override
@@ -42,18 +55,5 @@ public class AnyNeqOperator extends AnyOperator {
         public String name() {
             return NAME;
         }
-    }
-
-    public static void register(OperatorModule module) {
-        module.registerDynamicOperatorFunction(NAME, new AnyNeqResolver());
-    }
-
-    protected AnyNeqOperator(FunctionInfo info) {
-        super(info);
-    }
-
-    @Override
-    protected boolean compare(int comparisonResult) {
-        return comparisonResult != 0;
     }
 }

@@ -57,7 +57,7 @@ public class CollectionBucket implements Bucket {
     @Override
     public String toString() {
         return MoreObjects.toStringHelper(this)
-                .add("numRows", rows.size())
-                .toString();
+            .add("numRows", rows.size())
+            .toString();
     }
 }

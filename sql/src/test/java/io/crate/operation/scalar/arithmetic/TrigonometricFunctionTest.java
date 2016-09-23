@@ -41,6 +41,9 @@ import static org.hamcrest.Matchers.nullValue;
 
 public class TrigonometricFunctionTest extends AbstractScalarFunctionsTest {
 
+    @Rule
+    public ExpectedException expectedException = ExpectedException.none();
+
     private TrigonometricFunction getFunction(String name, DataType type) {
         return (TrigonometricFunction) functions.get(new FunctionIdent(name, Arrays.asList(type)));
     }
@@ -72,9 +75,6 @@ public class TrigonometricFunctionTest extends AbstractScalarFunctionsTest {
     private Number evaluateAtan(Number number, DataType type) {
         return evaluate(number, TrigonometricFunction.AtanFunction.NAME, type);
     }
-
-    @Rule
-    public ExpectedException expectedException = ExpectedException.none();
 
     @Test
     public void testEvaluate() throws Exception {

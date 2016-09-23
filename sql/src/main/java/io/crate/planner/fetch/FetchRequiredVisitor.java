@@ -37,33 +37,6 @@ public class FetchRequiredVisitor extends SymbolVisitor<FetchRequiredVisitor.Con
     private FetchRequiredVisitor() {
     }
 
-    public static class Context {
-
-        private Set<Symbol> querySymbols;
-
-        public Context(){};
-
-        public Context(Set<Symbol> querySymbols) {
-            this.querySymbols = querySymbols;
-        }
-
-        boolean isQuerySymbol(Symbol symbol) {
-            return querySymbols != null && querySymbols.contains(symbol);
-        }
-
-        void allocateQuerySymbol(Symbol symbol) {
-            if (querySymbols == null) {
-                querySymbols = new HashSet<>(1);
-            }
-            querySymbols.add(symbol);
-        }
-
-        public Set<Symbol> querySymbols() {
-            return querySymbols;
-        }
-
-    }
-
     public boolean process(List<Symbol> symbols, Context context) {
         boolean result = false;
         for (Symbol symbol : symbols) {
@@ -114,5 +87,35 @@ public class FetchRequiredVisitor extends SymbolVisitor<FetchRequiredVisitor.Con
     @Override
     public Boolean visitFunction(Function symbol, Context context) {
         return !context.isQuerySymbol(symbol) && process(symbol.arguments(), context);
+    }
+
+    public static class Context {
+
+        private Set<Symbol> querySymbols;
+
+        public Context() {
+        }
+
+        ;
+
+        public Context(Set<Symbol> querySymbols) {
+            this.querySymbols = querySymbols;
+        }
+
+        boolean isQuerySymbol(Symbol symbol) {
+            return querySymbols != null && querySymbols.contains(symbol);
+        }
+
+        void allocateQuerySymbol(Symbol symbol) {
+            if (querySymbols == null) {
+                querySymbols = new HashSet<>(1);
+            }
+            querySymbols.add(symbol);
+        }
+
+        public Set<Symbol> querySymbols() {
+            return querySymbols;
+        }
+
     }
 }

@@ -24,9 +24,11 @@ import io.crate.operation.Input;
 
 public class ObjectInput implements Input<Object> {
     private Object object;
+
     public ObjectInput(Object object) {
         this.object = object;
     }
+
     @Override
     public Object value() {
         return object;

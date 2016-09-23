@@ -56,15 +56,15 @@ public class OdbcIntegrationTest extends SQLTransportIntegrationTest {
     @Test
     public void testSelectDynamicQuotedObjectLiteral() throws Exception {
         execute(quotedRequest("select \"author['name']['first_name']\", \"author['name']['last_name']\" " +
-                "from ot"));
+                              "from ot"));
         assertEquals(1L, response.rowCount());
     }
 
     @Test
     public void testSelectDynamicQuotedObjectLiteralWithTableAlias() throws Exception {
         execute(quotedRequest("select \"authors\".\"author['name']['first_name']\", " +
-                                    "\"authors\".\"author['name']['last_name']\" " +
-                                "from \"ot\" \"authors\""));
+                              "\"authors\".\"author['name']['last_name']\" " +
+                              "from \"ot\" \"authors\""));
         assertEquals(1L, response.rowCount());
     }
 }

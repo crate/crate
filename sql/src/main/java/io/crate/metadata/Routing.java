@@ -17,23 +17,40 @@ public class Routing implements Streamable {
     private Map<String, Map<String, List<Integer>>> locations;
     private volatile int numShards = -1;
 
-    public static abstract class RoutingLocationVisitor {
+    private Routing() {
+    }
 
-        public boolean visitLocations(Map<String, Map<String, List<Integer>>> locations){
-            return true;
-        }
+    public Routing(Map<String, Map<String, List<Integer>>> locations) {
+        assert locations != null : "locations must not be null";
+        assert assertLocationsAllTreeMap(locations) : "locations must be a TreeMap only and must contain only TreeMap's";
+        this.locations = locations;
+    }
 
-        public boolean visitNode(String nodeId, Map<String, List<Integer>> nodeRouting) {
-            return true;
-        }
+    public static Routing fromStream(StreamInput in) throws IOException {
+        Routing routing = new Routing();
+        routing.readFrom(in);
+        return routing;
+    }
 
-        public boolean visitIndex(String nodeId, String index, List<Integer> shardIds) {
-            return true;
-        }
+    /**
+     * Return a routing for the given table on the given node id.
+     */
+    public static Routing forTableOnSingleNode(TableIdent tableIdent, String nodeId) {
+        Map<String, Map<String, List<Integer>>> locations = new TreeMap<>();
+        Map<String, List<Integer>> tableLocation = new TreeMap<>();
+        tableLocation.put(tableIdent.fqn(), Collections.<Integer>emptyList());
+        locations.put(nodeId, tableLocation);
+        return new Routing(locations);
+    }
 
-        public boolean visitShard(String nodeId, String index, Integer shardId) {
-            return false;
+    public static Routing forTableOnAllNodes(TableIdent tableIdent, DiscoveryNodes nodes) {
+        TreeMapBuilder<String, Map<String, List<Integer>>> nodesMapBuilder = TreeMapBuilder.newMapBuilder();
+        Map<String, List<Integer>> tableMap = TreeMapBuilder.<String, List<Integer>>newMapBuilder()
+            .put(tableIdent.fqn(), Collections.<Integer>emptyList()).map();
+        for (DiscoveryNode node : nodes) {
+            nodesMapBuilder.put(node.id(), tableMap);
         }
+        return new Routing(nodesMapBuilder.map());
     }
 
     public void walkLocations(RoutingLocationVisitor visitor) {
@@ -57,21 +74,6 @@ public class Routing implements Streamable {
             }
         }
     }
-
-    private Routing() {}
-
-    public static Routing fromStream(StreamInput in) throws IOException {
-        Routing routing = new Routing();
-        routing.readFrom(in);
-        return routing;
-    }
-
-    public Routing(Map<String, Map<String, List<Integer>>> locations) {
-        assert locations != null : "locations must not be null";
-        assert assertLocationsAllTreeMap(locations) : "locations must be a TreeMap only and must contain only TreeMap's";
-        this.locations = locations;
-    }
-
 
     /**
      * @return a map with the locations in the following format: <p>
@@ -199,32 +201,11 @@ public class Routing implements Streamable {
             return false;
         }
         for (Map<String, List<Integer>> innerMap : locations.values()) {
-            if (innerMap.size() > 1 &&  !(innerMap instanceof TreeMap)) {
+            if (innerMap.size() > 1 && !(innerMap instanceof TreeMap)) {
                 return false;
             }
         }
         return true;
-    }
-
-    /**
-     * Return a routing for the given table on the given node id.
-     */
-    public static Routing forTableOnSingleNode(TableIdent tableIdent, String nodeId) {
-        Map<String, Map<String, List<Integer>>> locations = new TreeMap<>();
-        Map<String, List<Integer>> tableLocation = new TreeMap<>();
-        tableLocation.put(tableIdent.fqn(), Collections.<Integer>emptyList());
-        locations.put(nodeId, tableLocation);
-        return new Routing(locations);
-    }
-
-    public static Routing forTableOnAllNodes(TableIdent tableIdent, DiscoveryNodes nodes) {
-        TreeMapBuilder<String, Map<String, List<Integer>>> nodesMapBuilder = TreeMapBuilder.newMapBuilder();
-        Map<String, List<Integer>> tableMap = TreeMapBuilder.<String, List<Integer>>newMapBuilder()
-                .put(tableIdent.fqn(), Collections.<Integer>emptyList()).map();
-        for (DiscoveryNode node : nodes) {
-            nodesMapBuilder.put(node.id(), tableMap);
-        }
-        return new Routing(nodesMapBuilder.map());
     }
 
     @Override
@@ -233,11 +214,30 @@ public class Routing implements Streamable {
         if (o == null || getClass() != o.getClass()) return false;
         Routing routing = (Routing) o;
         return Objects.equals(numShards, routing.numShards) &&
-                Objects.equals(locations, routing.locations);
+               Objects.equals(locations, routing.locations);
     }
 
     @Override
     public int hashCode() {
         return Objects.hash(locations, numShards);
+    }
+
+    public static abstract class RoutingLocationVisitor {
+
+        public boolean visitLocations(Map<String, Map<String, List<Integer>>> locations) {
+            return true;
+        }
+
+        public boolean visitNode(String nodeId, Map<String, List<Integer>> nodeRouting) {
+            return true;
+        }
+
+        public boolean visitIndex(String nodeId, String index, List<Integer> shardIds) {
+            return true;
+        }
+
+        public boolean visitShard(String nodeId, String index, Integer shardId) {
+            return false;
+        }
     }
 }

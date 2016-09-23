@@ -48,6 +48,12 @@ public class DistributionInfo implements Streamable {
         this(distributionType, 0);
     }
 
+    public static DistributionInfo fromStream(StreamInput in) throws IOException {
+        DistributionInfo distributionInfo = new DistributionInfo();
+        distributionInfo.readFrom(in);
+        return distributionInfo;
+    }
+
     public DistributionType distributionType() {
         return distributionType;
     }
@@ -76,9 +82,9 @@ public class DistributionInfo implements Streamable {
     @Override
     public String toString() {
         return "DistributionInfo{" +
-                "distributionType=" + distributionType +
-                ", distributeByColumn=" + distributeByColumn +
-                '}';
+               "distributionType=" + distributionType +
+               ", distributeByColumn=" + distributeByColumn +
+               '}';
     }
 
     @Override
@@ -91,11 +97,5 @@ public class DistributionInfo implements Streamable {
     public void writeTo(StreamOutput out) throws IOException {
         out.writeVInt(distributionType.ordinal());
         out.writeVInt(distributeByColumn);
-    }
-
-    public static DistributionInfo fromStream(StreamInput in) throws IOException {
-        DistributionInfo distributionInfo = new DistributionInfo();
-        distributionInfo.readFrom(in);
-        return distributionInfo;
     }
 }

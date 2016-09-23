@@ -140,8 +140,8 @@ public class PingTask extends TimerTask {
         String query = Joiner.on('&').join(params);
 
         return new URI(
-                uri.getScheme(), uri.getUserInfo(), uri.getHost(), uri.getPort(),
-                uri.getPath(), query, uri.getFragment()
+            uri.getScheme(), uri.getUserInfo(), uri.getHost(), uri.getPort(),
+            uri.getPath(), query, uri.getFragment()
         ).toURL();
     }
 

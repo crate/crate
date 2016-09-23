@@ -37,7 +37,8 @@ public class JobRequest extends TransportRequest {
     private String coordinatorNodeId;
     private Collection<? extends NodeOperation> nodeOperations;
 
-    public JobRequest() {}
+    public JobRequest() {
+    }
 
     public JobRequest(UUID jobId, String coordinatorNodeId, Collection<? extends NodeOperation> nodeOperations) {
         this.jobId = jobId;

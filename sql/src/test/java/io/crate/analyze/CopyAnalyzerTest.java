@@ -61,26 +61,14 @@ public class CopyAnalyzerTest extends BaseAnalyzerTest {
     @Rule
     public ExpectedException expectedException = ExpectedException.none();
 
-    static class TestMetaDataModule extends MetaDataModule {
-        @Override
-        protected void bindSchemas() {
-            super.bindSchemas();
-            SchemaInfo schemaInfo = mock(SchemaInfo.class);
-            when(schemaInfo.name()).thenReturn(Schemas.DEFAULT_SCHEMA_NAME);
-            when(schemaInfo.getTableInfo(USER_TABLE_IDENT.name())).thenReturn(USER_TABLE_INFO);
-            when(schemaInfo.getTableInfo(TEST_PARTITIONED_TABLE_IDENT.name())).thenReturn(TEST_PARTITIONED_TABLE_INFO);
-            schemaBinder.addBinding(Schemas.DEFAULT_SCHEMA_NAME).toInstance(schemaInfo);
-        }
-    }
-
     @Override
     protected List<Module> getModules() {
         List<Module> modules = super.getModules();
         modules.addAll(Arrays.<Module>asList(
-                new MockedClusterServiceModule(),
-                new TestMetaDataModule(),
-                new MetaDataSysModule(),
-                new OperatorModule())
+            new MockedClusterServiceModule(),
+            new TestMetaDataModule(),
+            new MetaDataSysModule(),
+            new OperatorModule())
         );
         return modules;
     }
@@ -99,7 +87,7 @@ public class CopyAnalyzerTest extends BaseAnalyzerTest {
         assertThat(analysis.uri(), isLiteral("/some/distant/file.ext"));
     }
 
-    @Test (expected = IllegalArgumentException.class)
+    @Test(expected = IllegalArgumentException.class)
     public void testCopyFromPartitionedTablePARTITIONKeywordTooManyArgs() throws Exception {
         analyze("copy parted partition (a=1, b=2, c=3) from '/some/distant/file.ext'");
     }
@@ -107,22 +95,22 @@ public class CopyAnalyzerTest extends BaseAnalyzerTest {
     @Test
     public void testCopyFromPartitionedTablePARTITIONKeywordValidArgs() throws Exception {
         CopyFromAnalyzedStatement analysis = analyze(
-                "copy parted partition (date=1395874800000) from '/some/distant/file.ext'");
+            "copy parted partition (date=1395874800000) from '/some/distant/file.ext'");
         String parted = new PartitionName("parted", Collections.singletonList(new BytesRef("1395874800000"))).ident();
         assertThat(analysis.partitionIdent(), equalTo(parted));
     }
 
-    @Test( expected = TableUnknownException.class)
+    @Test(expected = TableUnknownException.class)
     public void testCopyFromNonExistingTable() throws Exception {
         analyze("copy unknown from '/some/distant/file.ext'");
     }
 
-    @Test( expected = UnsupportedOperationException.class)
+    @Test(expected = UnsupportedOperationException.class)
     public void testCopyFromSystemTable() throws Exception {
         analyze("copy sys.shards from '/nope/nope/still.nope'");
     }
 
-    @Test( expected = SchemaUnknownException.class)
+    @Test(expected = SchemaUnknownException.class)
     public void testCopyFromUnknownSchema() throws Exception {
         analyze("copy suess.shards from '/nope/nope/still.nope'");
     }
@@ -227,7 +215,7 @@ public class CopyAnalyzerTest extends BaseAnalyzerTest {
     @Test
     public void testCopyToWithPartitionIdentAndPartitionInWhereClause() throws Exception {
         CopyToAnalyzedStatement analysis = analyze(
-                "copy parted partition (date=1395874800000) where date = 1395874800000 to directory '/tmp/foo'");
+            "copy parted partition (date=1395874800000) where date = 1395874800000 to directory '/tmp/foo'");
         String parted = new PartitionName("parted", Collections.singletonList(new BytesRef("1395874800000"))).asIndexName();
         QuerySpec querySpec = analysis.subQueryRelation().querySpec();
         assertThat(querySpec.where().partitions(), contains(parted));
@@ -236,7 +224,7 @@ public class CopyAnalyzerTest extends BaseAnalyzerTest {
     @Test
     public void testCopyToWithPartitionInWhereClause() throws Exception {
         CopyToAnalyzedStatement analysis = analyze(
-                "copy parted where date = 1395874800000 to directory '/tmp/foo'");
+            "copy parted where date = 1395874800000 to directory '/tmp/foo'");
         String parted = new PartitionName("parted", Collections.singletonList(new BytesRef("1395874800000"))).asIndexName();
         QuerySpec querySpec = analysis.subQueryRelation().querySpec();
         assertThat(querySpec.where().partitions(), contains(parted));
@@ -246,7 +234,7 @@ public class CopyAnalyzerTest extends BaseAnalyzerTest {
     @Test
     public void testCopyToWithPartitionIdentAndWhereClause() throws Exception {
         CopyToAnalyzedStatement analysis = analyze(
-                "copy parted partition (date=1395874800000) where id = 1 to directory '/tmp/foo'");
+            "copy parted partition (date=1395874800000) where id = 1 to directory '/tmp/foo'");
         String parted = new PartitionName("parted", Collections.singletonList(new BytesRef("1395874800000"))).asIndexName();
         QuerySpec querySpec = analysis.subQueryRelation().querySpec();
         assertThat(querySpec.where().partitions(), contains(parted));
@@ -295,7 +283,7 @@ public class CopyAnalyzerTest extends BaseAnalyzerTest {
     @Test
     public void testCopyFromFileUriArray() throws Exception {
         Object[] files = $("/f1.json", "/f2.json");
-        CopyFromAnalyzedStatement copyFrom = analyze("copy users from ?", new Object[] { files });
+        CopyFromAnalyzedStatement copyFrom = analyze("copy users from ?", new Object[]{files});
         assertThat(copyFrom.uri(), isLiteral($(new BytesRef("/f1.json"), new BytesRef("/f2.json")), new ArrayType(DataTypes.STRING)));
     }
 
@@ -304,7 +292,7 @@ public class CopyAnalyzerTest extends BaseAnalyzerTest {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("fileUri must be of type STRING or STRING ARRAY. Got integer_array");
         Object[] files = $(1, 2, 3);
-        analyze("copy users from ?", new Object[] { files });
+        analyze("copy users from ?", new Object[]{files});
     }
 
     @Test
@@ -327,5 +315,17 @@ public class CopyAnalyzerTest extends BaseAnalyzerTest {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("node_filters argument 'name' must be a String, not 20 (Long)");
         analyze("copy users from '/' with (node_filters={name=20})");
+    }
+
+    static class TestMetaDataModule extends MetaDataModule {
+        @Override
+        protected void bindSchemas() {
+            super.bindSchemas();
+            SchemaInfo schemaInfo = mock(SchemaInfo.class);
+            when(schemaInfo.name()).thenReturn(Schemas.DEFAULT_SCHEMA_NAME);
+            when(schemaInfo.getTableInfo(USER_TABLE_IDENT.name())).thenReturn(USER_TABLE_INFO);
+            when(schemaInfo.getTableInfo(TEST_PARTITIONED_TABLE_IDENT.name())).thenReturn(TEST_PARTITIONED_TABLE_INFO);
+            schemaBinder.addBinding(Schemas.DEFAULT_SCHEMA_NAME).toInstance(schemaInfo);
+        }
     }
 }

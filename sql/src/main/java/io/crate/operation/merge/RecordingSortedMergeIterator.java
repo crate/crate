@@ -44,11 +44,10 @@ class RecordingSortedMergeIterator<TKey, TRow> extends UnmodifiableIterator<TRow
         }
     };
     private final Queue<Indexed<TKey, PeekingIterator<TRow>>> queue;
-    private Indexed<TKey, PeekingIterator<TRow>> lastUsedIter = null;
-    private boolean leastExhausted = false;
-
     private final IntArrayList sortRecording = new IntArrayList();
     private final List<Iterable<TRow>> storedIterables = new ArrayList<>();
+    private Indexed<TKey, PeekingIterator<TRow>> lastUsedIter = null;
+    private boolean leastExhausted = false;
     private TKey exhausted;
 
     public RecordingSortedMergeIterator(Iterable<? extends KeyIterable<TKey, TRow>> iterables, final Comparator<? super TRow> itemComparator) {
@@ -134,9 +133,9 @@ class RecordingSortedMergeIterator<TKey, TRow> extends UnmodifiableIterator<TRow
 
     static class ReplayingIterator<T> extends AbstractIterator<T> {
         private final int[] sorting;
-        private int index = 0;
         private final List<Iterator<T>> iters;
         private final int itersSize;
+        private int index = 0;
 
         ReplayingIterator(int[] sorting, Iterable<? extends Iterator<T>> iterators) {
             this.sorting = sorting;

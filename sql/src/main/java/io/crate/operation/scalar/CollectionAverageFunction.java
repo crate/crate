@@ -40,18 +40,18 @@ public class CollectionAverageFunction extends Scalar<Double, Set<Number>> {
     public static final String NAME = "collection_avg";
     private final FunctionInfo info;
 
+    public CollectionAverageFunction(FunctionInfo info) {
+        this.info = info;
+    }
+
     public static void register(ScalarFunctionModule mod) {
         for (DataType t : DataTypes.NUMERIC_PRIMITIVE_TYPES) {
             mod.register(
-                    new CollectionAverageFunction(
-                            new FunctionInfo(new FunctionIdent(
-                                    NAME, ImmutableList.<DataType>of(new SetType(t))), DataTypes.DOUBLE))
+                new CollectionAverageFunction(
+                    new FunctionInfo(new FunctionIdent(
+                        NAME, ImmutableList.<DataType>of(new SetType(t))), DataTypes.DOUBLE))
             );
         }
-    }
-
-    public CollectionAverageFunction(FunctionInfo info) {
-        this.info = info;
     }
 
     @Override

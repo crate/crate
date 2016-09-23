@@ -54,6 +54,21 @@ public class ModuloBucketBuilder implements MultiBucketBuilder {
         }
     }
 
+    private static int hashCode(@Nullable Object value) {
+        if (value == null) {
+            return 0;
+        }
+        if (value instanceof BytesRef) {
+            // since lucene 4.8
+            // BytesRef.hashCode() uses a random seed across different jvm
+            // which causes the hashCode / routing to be different on each node
+            // this breaks the group by redistribution logic - need to use a fixed seed here
+            // to be consistent.
+            return StringHelper.murmurhash3_x86_32(((BytesRef) value), 1);
+        }
+        return value.hashCode();
+    }
+
     @Override
     public void add(Row row) {
         final StreamBucket.Builder builder = bucketBuilders.get(getBucket(row));
@@ -96,20 +111,5 @@ public class ModuloBucketBuilder implements MultiBucketBuilder {
             hash = 0; // Math.abs(Integer.MIN_VALUE) == Integer.MIN_VALUE
         }
         return Math.abs(hash) % numBuckets;
-    }
-
-    private static int hashCode(@Nullable Object value) {
-        if (value == null) {
-            return 0;
-        }
-        if (value instanceof BytesRef) {
-            // since lucene 4.8
-            // BytesRef.hashCode() uses a random seed across different jvm
-            // which causes the hashCode / routing to be different on each node
-            // this breaks the group by redistribution logic - need to use a fixed seed here
-            // to be consistent.
-            return StringHelper.murmurhash3_x86_32(((BytesRef) value), 1);
-        }
-        return value.hashCode();
     }
 }

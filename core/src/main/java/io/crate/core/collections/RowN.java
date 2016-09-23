@@ -28,7 +28,7 @@ public class RowN implements Row {
     private final int size;
     private Object[] cells;
 
-    public RowN(int size){
+    public RowN(int size) {
         this.size = size;
     }
 
@@ -42,7 +42,7 @@ public class RowN implements Row {
         return size;
     }
 
-    public void cells(Object[] cells){
+    public void cells(Object[] cells) {
         assert cells != null;
         this.cells = cells;
     }

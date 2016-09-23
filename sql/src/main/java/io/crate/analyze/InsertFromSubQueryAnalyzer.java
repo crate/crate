@@ -50,73 +50,10 @@ public class InsertFromSubQueryAnalyzer {
     private final RelationAnalyzer relationAnalyzer;
 
 
-    private static class ValuesResolver implements ValuesAwareExpressionAnalyzer.ValuesResolver {
-
-        private final DocTableRelation targetTableRelation;
-        private final List<Reference> targetColumns;
-
-        ValuesResolver(DocTableRelation targetTableRelation, List<Reference> targetColumns) {
-            this.targetTableRelation = targetTableRelation;
-            this.targetColumns = targetColumns;
-        }
-
-        @Override
-        public Symbol allocateAndResolve(Field argumentColumn) {
-            Reference reference = targetTableRelation.resolveField(argumentColumn);
-            int i = targetColumns.indexOf(reference);
-            if (i < 0) {
-                throw new IllegalArgumentException(SymbolFormatter.format(
-                        "Column '%s' that is used in the VALUES() expression is not part of the target column list",
-                        argumentColumn));
-            }
-            assert reference != null;
-            return new InputColumn(i, argumentColumn.valueType());
-        }
-    }
-
     @Inject
     public InsertFromSubQueryAnalyzer(AnalysisMetaData analysisMetaData, RelationAnalyzer relationAnalyzer) {
         this.analysisMetaData = analysisMetaData;
         this.relationAnalyzer = relationAnalyzer;
-    }
-
-
-    public AnalyzedStatement analyze(InsertFromSubquery node, Analysis analysis) {
-        DocTableInfo tableInfo = analysisMetaData.schemas().getWritableTable(
-                TableIdent.of(node.table(), analysis.parameterContext().defaultSchema()));
-        Operation.blockedRaiseException(tableInfo, Operation.INSERT);
-
-        DocTableRelation tableRelation = new DocTableRelation(tableInfo);
-        FieldProvider fieldProvider = new NameFieldProvider(tableRelation);
-
-        QueriedRelation source = (QueriedRelation) relationAnalyzer.analyze(node.subQuery(), analysis);
-
-        // We forbid using limit/offset or order by until we've implemented ES paging support (aka 'scroll')
-        // TODO: move this to the consumer
-        if (source.querySpec().isLimited() || source.querySpec().orderBy().isPresent()) {
-            throw new UnsupportedFeatureException("Using limit, offset or order by is not " +
-                    "supported on insert using a sub-query");
-        }
-
-        List<Reference> targetColumns = new ArrayList<>(resolveTargetColumns(node.columns(), tableInfo, source.fields().size()));
-        validateColumnsAndAddCastsIfNecessary(targetColumns, source.querySpec());
-
-        Map<Reference, Symbol> onDuplicateKeyAssignments = null;
-        if (!node.onDuplicateKeyAssignments().isEmpty()) {
-            onDuplicateKeyAssignments = processUpdateAssignments(
-                tableRelation,
-                targetColumns,
-                analysis.parameterContext(),
-                analysis.statementContext(),
-                fieldProvider,
-                node.onDuplicateKeyAssignments());
-        }
-
-        return new InsertFromSubQueryAnalyzedStatement(
-                source,
-                tableInfo,
-                targetColumns,
-                onDuplicateKeyAssignments);
     }
 
     private static Collection<Reference> resolveTargetColumns(Collection<String> targetColumnNames,
@@ -146,7 +83,6 @@ public class InsertFromSubQueryAnalyzer {
         return columns;
     }
 
-
     private static Collection<Reference> targetColumnsFromTargetTable(DocTableInfo targetTable, int numSourceColumns) {
         List<Reference> columns = new ArrayList<>(targetTable.columns().size());
         int idx = 0;
@@ -169,8 +105,8 @@ public class InsertFromSubQueryAnalyzer {
         if (targetColumns.size() != querySpec.outputs().size()) {
             Joiner commaJoiner = Joiner.on(", ");
             throw new IllegalArgumentException(String.format("Number of target columns (%s) of insert statement doesn't match number of source columns (%s)",
-                    commaJoiner.join(Iterables.transform(targetColumns, Reference.TO_COLUMN_NAME)),
-                    commaJoiner.join(Iterables.transform(querySpec.outputs(), SymbolPrinter.FUNCTION))));
+                commaJoiner.join(Iterables.transform(targetColumns, Reference.TO_COLUMN_NAME)),
+                commaJoiner.join(Iterables.transform(querySpec.outputs(), SymbolPrinter.FUNCTION))));
         }
 
         int failedCastPosition = querySpec.castOutputs(Iterators.transform(targetColumns.iterator(), Symbols.TYPES_FUNCTION));
@@ -178,13 +114,51 @@ public class InsertFromSubQueryAnalyzer {
             Symbol failedSource = querySpec.outputs().get(failedCastPosition);
             Reference failedTarget = targetColumns.get(failedCastPosition);
             throw new IllegalArgumentException(String.format(Locale.ENGLISH,
-                    "Type of subquery column %s (%s) does not match is not convertable to the type of table column %s (%s)",
-                    failedSource,
-                    failedSource.valueType(),
-                    failedTarget.ident().columnIdent().fqn(),
-                    failedTarget.valueType()
+                "Type of subquery column %s (%s) does not match is not convertable to the type of table column %s (%s)",
+                failedSource,
+                failedSource.valueType(),
+                failedTarget.ident().columnIdent().fqn(),
+                failedTarget.valueType()
             ));
         }
+    }
+
+    public AnalyzedStatement analyze(InsertFromSubquery node, Analysis analysis) {
+        DocTableInfo tableInfo = analysisMetaData.schemas().getWritableTable(
+            TableIdent.of(node.table(), analysis.parameterContext().defaultSchema()));
+        Operation.blockedRaiseException(tableInfo, Operation.INSERT);
+
+        DocTableRelation tableRelation = new DocTableRelation(tableInfo);
+        FieldProvider fieldProvider = new NameFieldProvider(tableRelation);
+
+        QueriedRelation source = (QueriedRelation) relationAnalyzer.analyze(node.subQuery(), analysis);
+
+        // We forbid using limit/offset or order by until we've implemented ES paging support (aka 'scroll')
+        // TODO: move this to the consumer
+        if (source.querySpec().isLimited() || source.querySpec().orderBy().isPresent()) {
+            throw new UnsupportedFeatureException("Using limit, offset or order by is not " +
+                                                  "supported on insert using a sub-query");
+        }
+
+        List<Reference> targetColumns = new ArrayList<>(resolveTargetColumns(node.columns(), tableInfo, source.fields().size()));
+        validateColumnsAndAddCastsIfNecessary(targetColumns, source.querySpec());
+
+        Map<Reference, Symbol> onDuplicateKeyAssignments = null;
+        if (!node.onDuplicateKeyAssignments().isEmpty()) {
+            onDuplicateKeyAssignments = processUpdateAssignments(
+                tableRelation,
+                targetColumns,
+                analysis.parameterContext(),
+                analysis.statementContext(),
+                fieldProvider,
+                node.onDuplicateKeyAssignments());
+        }
+
+        return new InsertFromSubQueryAnalyzedStatement(
+            source,
+            tableInfo,
+            targetColumns,
+            onDuplicateKeyAssignments);
     }
 
     private Map<Reference, Symbol> processUpdateAssignments(DocTableRelation tableRelation,
@@ -194,7 +168,7 @@ public class InsertFromSubQueryAnalyzer {
                                                             FieldProvider fieldProvider,
                                                             List<Assignment> assignments) {
         ExpressionAnalyzer expressionAnalyzer = new ExpressionAnalyzer(
-                analysisMetaData, parameterContext, fieldProvider, tableRelation);
+            analysisMetaData, parameterContext, fieldProvider, tableRelation);
         ExpressionAnalysisContext expressionAnalysisContext = new ExpressionAnalysisContext(stmtCtx);
 
         ValueNormalizer valuesNormalizer = new ValueNormalizer(analysisMetaData.schemas(),
@@ -207,12 +181,12 @@ public class InsertFromSubQueryAnalyzer {
 
         ValuesResolver valuesResolver = new ValuesResolver(tableRelation, targetColumns);
         ValuesAwareExpressionAnalyzer valuesAwareExpressionAnalyzer = new ValuesAwareExpressionAnalyzer(
-                analysisMetaData, parameterContext, fieldProvider, valuesResolver);
+            analysisMetaData, parameterContext, fieldProvider, valuesResolver);
 
         Map<Reference, Symbol> updateAssignments = new HashMap<>(assignments.size());
         for (Assignment assignment : assignments) {
             Reference columnName = tableRelation.resolveField(
-                    (Field) expressionAnalyzer.convert(assignment.columnName(), expressionAnalysisContext));
+                (Field) expressionAnalyzer.convert(assignment.columnName(), expressionAnalysisContext));
             assert columnName != null;
 
             Symbol assignmentExpression = valuesNormalizer.normalizeInputForReference(
@@ -224,5 +198,29 @@ public class InsertFromSubQueryAnalyzer {
         }
 
         return updateAssignments;
+    }
+
+    private static class ValuesResolver implements ValuesAwareExpressionAnalyzer.ValuesResolver {
+
+        private final DocTableRelation targetTableRelation;
+        private final List<Reference> targetColumns;
+
+        ValuesResolver(DocTableRelation targetTableRelation, List<Reference> targetColumns) {
+            this.targetTableRelation = targetTableRelation;
+            this.targetColumns = targetColumns;
+        }
+
+        @Override
+        public Symbol allocateAndResolve(Field argumentColumn) {
+            Reference reference = targetTableRelation.resolveField(argumentColumn);
+            int i = targetColumns.indexOf(reference);
+            if (i < 0) {
+                throw new IllegalArgumentException(SymbolFormatter.format(
+                    "Column '%s' that is used in the VALUES() expression is not part of the target column list",
+                    argumentColumn));
+            }
+            assert reference != null;
+            return new InputColumn(i, argumentColumn.valueType());
+        }
     }
 }

@@ -40,10 +40,14 @@ public abstract class MinimumAggregation extends AggregationFunction<Comparable,
 
     private final FunctionInfo info;
 
+    MinimumAggregation(FunctionInfo info) {
+        this.info = info;
+    }
+
     public static void register(AggregationImplModule mod) {
         for (final DataType dataType : DataTypes.PRIMITIVE_TYPES) {
             FunctionInfo functionInfo = new FunctionInfo(new FunctionIdent(NAME, ImmutableList.of(dataType)),
-                    dataType, FunctionInfo.Type.AGGREGATE);
+                dataType, FunctionInfo.Type.AGGREGATE);
 
             if (dataType instanceof FixedWidthType) {
                 mod.register(new FixedMinimumAggregation(functionInfo));
@@ -51,6 +55,26 @@ public abstract class MinimumAggregation extends AggregationFunction<Comparable,
                 mod.register(new VariableMinimumAggregation(functionInfo));
             }
         }
+    }
+
+    @Override
+    public FunctionInfo info() {
+        return info;
+    }
+
+    @Override
+    public DataType partialType() {
+        return info().returnType();
+    }
+
+    @Override
+    public Comparable terminatePartial(RamAccountingContext ramAccountingContext, Comparable state) {
+        return state;
+    }
+
+    @Override
+    public Comparable iterate(RamAccountingContext ramAccountingContext, Comparable state, Input... args) throws CircuitBreakingException {
+        return reduce(ramAccountingContext, state, (Comparable) args[0].value());
     }
 
     private static class VariableMinimumAggregation extends MinimumAggregation {
@@ -114,29 +138,5 @@ public abstract class MinimumAggregation extends AggregationFunction<Comparable,
             }
             return state1;
         }
-    }
-
-    MinimumAggregation(FunctionInfo info) {
-        this.info = info;
-    }
-
-    @Override
-    public FunctionInfo info() {
-        return info;
-    }
-
-    @Override
-    public DataType partialType() {
-        return info().returnType();
-    }
-
-    @Override
-    public Comparable terminatePartial(RamAccountingContext ramAccountingContext, Comparable state) {
-        return state;
-    }
-
-    @Override
-    public Comparable iterate(RamAccountingContext ramAccountingContext, Comparable state, Input... args) throws CircuitBreakingException {
-        return reduce(ramAccountingContext, state, (Comparable) args[0].value());
     }
 }

@@ -35,20 +35,20 @@ public class AbstractReferenceResolverTest {
 
     static final TableIdent USERS_TI = new TableIdent(null, "users");
 
+    @Test
+    public void testGetImplementation() throws Exception {
+        RefResolver refResolver = new RefResolver();
+        ReferenceImplementation implementation = refResolver.getImplementation(new Reference(
+            new ReferenceIdent(USERS_TI, new ColumnIdent("obj", Arrays.asList("x", "z"))), RowGranularity.DOC, DataTypes.STRING));
+
+        assertThat(implementation, Matchers.nullValue());
+    }
+
     static class RefResolver extends AbstractReferenceResolver {
 
         public RefResolver() {
             ReferenceIdent ident = new ReferenceIdent(USERS_TI, new ColumnIdent("obj"));
             implementations.put(ident, mock(ReferenceImplementation.class));
         }
-    }
-
-    @Test
-    public void testGetImplementation() throws Exception {
-        RefResolver refResolver = new RefResolver();
-        ReferenceImplementation implementation = refResolver.getImplementation(new Reference(
-                new ReferenceIdent(USERS_TI, new ColumnIdent("obj", Arrays.asList("x", "z"))), RowGranularity.DOC, DataTypes.STRING));
-
-        assertThat(implementation, Matchers.nullValue());
     }
 }

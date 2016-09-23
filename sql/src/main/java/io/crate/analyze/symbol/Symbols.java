@@ -37,24 +37,22 @@ import java.util.*;
 
 public class Symbols {
 
-    private static final HasColumnVisitor HAS_COLUMN_VISITOR = new HasColumnVisitor();
-
     public static final com.google.common.base.Function<Symbol, DataType> TYPES_FUNCTION =
-            new com.google.common.base.Function<Symbol, DataType>() {
-                @Nullable
-                @Override
-                public DataType apply(@Nullable Symbol input) {
-                    assert input != null : "can't convert null symbol to dataType";
-                    return input.valueType();
-                }
-            };
-
+        new com.google.common.base.Function<Symbol, DataType>() {
+            @Nullable
+            @Override
+            public DataType apply(@Nullable Symbol input) {
+                assert input != null : "can't convert null symbol to dataType";
+                return input.valueType();
+            }
+        };
     public static final Predicate<Symbol> IS_GENERATED_COLUMN = new Predicate<Symbol>() {
         @Override
         public boolean apply(@Nullable Symbol input) {
             return input instanceof GeneratedReference;
         }
     };
+    private static final HasColumnVisitor HAS_COLUMN_VISITOR = new HasColumnVisitor();
 
     public static List<DataType> extractTypes(List<? extends Symbol> symbols) {
         return Lists.transform(symbols, TYPES_FUNCTION);
@@ -136,6 +134,11 @@ public class Symbols {
         return symbol;
     }
 
+    public static Symbol replaceRelationColumn(Symbol symbol,
+                                               com.google.common.base.Function<? super RelationColumn, ? extends Symbol> replaceFunction) {
+        return RCReplaceVisitor.INSTANCE.process(symbol, replaceFunction);
+    }
+
     private static class HasColumnVisitor extends SymbolVisitor<ColumnIdent, Boolean> {
 
         @Override
@@ -181,10 +184,5 @@ public class Symbols {
                                           com.google.common.base.Function<? super RelationColumn, ? extends Symbol> replaceFunction) {
             return replaceFunction.apply(relationColumn);
         }
-    }
-
-    public static Symbol replaceRelationColumn(Symbol symbol,
-                                               com.google.common.base.Function<? super RelationColumn, ? extends Symbol> replaceFunction) {
-        return RCReplaceVisitor.INSTANCE.process(symbol, replaceFunction);
     }
 }

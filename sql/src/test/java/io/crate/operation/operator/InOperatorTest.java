@@ -43,12 +43,11 @@ import static io.crate.testing.TestingHelpers.isLiteral;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 
-public class InOperatorTest extends CrateUnitTest{
-
-    private final StmtCtx stmtCtx = new StmtCtx();
+public class InOperatorTest extends CrateUnitTest {
 
     private static final DataType INTEGER_SET_TYPE = new SetType(DataTypes.INTEGER);
     private static final DataType STRING_SET_TYPE = new SetType(DataTypes.STRING);
+    private final StmtCtx stmtCtx = new StmtCtx();
 
     @Test
     public void testNormalizeSymbolSetLiteralIntegerIncluded() {
@@ -120,13 +119,13 @@ public class InOperatorTest extends CrateUnitTest{
     public void testNormalizeSymbolSetLiteralStringIncluded() {
         Literal inValue = Literal.newLiteral("charlie");
         Literal inListValues = Literal.newLiteral(
-                STRING_SET_TYPE,
-                Sets.newHashSet(
-                        new BytesRef("alpha"),
-                        new BytesRef("bravo"),
-                        new BytesRef("charlie"),
-                        new BytesRef("delta")
-                )
+            STRING_SET_TYPE,
+            Sets.newHashSet(
+                new BytesRef("alpha"),
+                new BytesRef("bravo"),
+                new BytesRef("charlie"),
+                new BytesRef("delta")
+            )
         );
 
         List<Symbol> arguments = new ArrayList<>();
@@ -144,13 +143,13 @@ public class InOperatorTest extends CrateUnitTest{
     public void testNormalizeSymbolSetLiteralStringNotIncluded() {
         Literal inValue = Literal.newLiteral("not included");
         Literal inListValues = Literal.newLiteral(
-                STRING_SET_TYPE,
-                Sets.newHashSet(
-                        new BytesRef("alpha"),
-                        new BytesRef("bravo"),
-                        new BytesRef("charlie"),
-                        new BytesRef("delta")
-                )
+            STRING_SET_TYPE,
+            Sets.newHashSet(
+                new BytesRef("alpha"),
+                new BytesRef("bravo"),
+                new BytesRef("charlie"),
+                new BytesRef("delta")
+            )
         );
 
         List<Symbol> arguments = new ArrayList<>();
@@ -176,7 +175,7 @@ public class InOperatorTest extends CrateUnitTest{
 
     @Test
     public void testEvaluateInOperator() {
-        assertTrue(in(1, 1,2,4,8));
+        assertTrue(in(1, 1, 2, 4, 8));
         assertFalse(in(128, 1, 2, 4, 8));
         assertTrue(in("charlie", "alpha", "bravo", "charlie", "delta"));
         assertFalse(in("not included", "alpha", "bravo", "charlie", "delta"));

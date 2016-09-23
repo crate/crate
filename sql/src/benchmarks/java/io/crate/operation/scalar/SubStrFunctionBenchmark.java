@@ -39,19 +39,16 @@ import java.util.Random;
 import static org.junit.Assert.assertEquals;
 
 @AxisRange(min = 0)
-@BenchmarkHistoryChart(filePrefix="benchmark-substr-history", labelWith = LabelType.CUSTOM_KEY)
+@BenchmarkHistoryChart(filePrefix = "benchmark-substr-history", labelWith = LabelType.CUSTOM_KEY)
 @BenchmarkMethodChart(filePrefix = "benchmark-substr")
 public class SubStrFunctionBenchmark {
 
+    static final BytesRef[] bytesRefs = toBytesRefs(strings);
+    private static final Random RANDOM = new Random();
+    static CharsetEncoder utf8Encoder = StandardCharsets.UTF_8.newEncoder();
+    static final String[] strings = getStrings(10_000, 100);
     @Rule
     public TestRule benchmarkRun = new BenchmarkRule();
-
-    static CharsetEncoder utf8Encoder = StandardCharsets.UTF_8.newEncoder();
-
-    private static final Random RANDOM = new Random();
-
-    static final String[] strings = getStrings(10_000, 100);
-    static final BytesRef[] bytesRefs = toBytesRefs(strings);
 
     // helpers
 

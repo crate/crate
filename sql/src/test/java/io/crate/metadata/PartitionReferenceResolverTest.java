@@ -34,6 +34,12 @@ import static org.mockito.Mockito.when;
 
 public class PartitionReferenceResolverTest extends CrateUnitTest {
 
+    public static boolean assertionsEnabled() {
+        boolean assertsEnabled = false;
+        assert assertsEnabled = true; // Intentional side effect!!!
+        return assertsEnabled;
+    }
+
     @Test
     public void testClusterExpressionsNotAllowed() throws Exception {
         NestedReferenceResolver fallbackRefResolver = mock(NestedReferenceResolver.class);
@@ -50,8 +56,8 @@ public class PartitionReferenceResolverTest extends CrateUnitTest {
             }
         });
         PartitionReferenceResolver referenceResolver = new PartitionReferenceResolver(
-                fallbackRefResolver,
-                ImmutableList.<PartitionExpression>of()
+            fallbackRefResolver,
+            ImmutableList.<PartitionExpression>of()
         );
 
         if (assertionsEnabled()) {
@@ -66,12 +72,6 @@ public class PartitionReferenceResolverTest extends CrateUnitTest {
         }
 
 
-    }
-
-    public static boolean assertionsEnabled() {
-        boolean assertsEnabled = false;
-        assert assertsEnabled = true; // Intentional side effect!!!
-        return assertsEnabled;
     }
 
 

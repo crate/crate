@@ -39,7 +39,40 @@ import java.util.*;
  * that might be treated in a special way
  */
 public class ImplementationSymbolVisitor extends
-        AbstractImplementationSymbolVisitor<ImplementationSymbolVisitor.Context> {
+    AbstractImplementationSymbolVisitor<ImplementationSymbolVisitor.Context> {
+
+    public ImplementationSymbolVisitor(Functions functions) {
+        super(functions);
+    }
+
+    @Override
+    protected Context newContext() {
+        return new Context();
+    }
+
+    @Override
+    public Input<?> visitInputColumn(InputColumn inputColumn, Context context) {
+        return context.collectExpressionFor(inputColumn);
+    }
+
+    @Override
+    public Input<?> visitAggregation(Aggregation symbol, Context context) {
+        FunctionImplementation impl = functions.get(symbol.functionIdent());
+        if (impl == null) {
+            throw new UnsupportedOperationException(
+                SymbolFormatter.format("Can't load aggregation impl for symbol %s", symbol));
+        }
+
+        AggregationContext aggregationContext = new AggregationContext((AggregationFunction) impl, symbol);
+        for (Symbol aggInput : symbol.inputs()) {
+            aggregationContext.addInput(process(aggInput, context));
+        }
+        context.aggregations.add(aggregationContext);
+
+        // can't generate an input from an aggregation.
+        // since they cannot/shouldn't be nested this should be okay.
+        return null;
+    }
 
     public static class Context extends AbstractImplementationSymbolVisitor.Context {
 
@@ -64,38 +97,5 @@ public class ImplementationSymbolVisitor extends
             collectExpressions.add(collectExpression);
             return collectExpression;
         }
-    }
-
-    public ImplementationSymbolVisitor(Functions functions) {
-        super(functions);
-    }
-
-    @Override
-    protected Context newContext() {
-        return new Context();
-    }
-
-    @Override
-    public Input<?> visitInputColumn(InputColumn inputColumn, Context context) {
-        return context.collectExpressionFor(inputColumn);
-    }
-
-    @Override
-    public Input<?> visitAggregation(Aggregation symbol, Context context) {
-        FunctionImplementation impl = functions.get(symbol.functionIdent());
-        if (impl == null) {
-            throw new UnsupportedOperationException(
-                    SymbolFormatter.format("Can't load aggregation impl for symbol %s", symbol));
-        }
-
-        AggregationContext aggregationContext = new AggregationContext((AggregationFunction) impl, symbol);
-        for (Symbol aggInput : symbol.inputs()) {
-            aggregationContext.addInput(process(aggInput, context));
-        }
-        context.aggregations.add(aggregationContext);
-
-        // can't generate an input from an aggregation.
-        // since they cannot/shouldn't be nested this should be okay.
-        return null;
     }
 }

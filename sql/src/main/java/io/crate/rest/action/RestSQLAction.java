@@ -50,41 +50,6 @@ public class RestSQLAction extends BaseRestHandler {
         controller.registerHandler(RestRequest.Method.POST, "/_sql", this);
     }
 
-    @Override
-    public void handleRequest(final RestRequest request, final RestChannel channel, Client client) throws Exception {
-        if (!request.hasContent()) {
-            channel.sendResponse(new CrateThrowableRestResponse(channel,
-                    new SQLActionException("missing request body", 4000, RestStatus.BAD_REQUEST)));
-            return;
-        }
-
-        SQLXContentSourceContext context = new SQLXContentSourceContext();
-        SQLXContentSourceParser parser = new SQLXContentSourceParser(context);
-        try {
-            parser.parseSource(request.content());
-        } catch (SQLParseException e) {
-            StringWriter stackTrace = new StringWriter();
-            e.printStackTrace(new PrintWriter(stackTrace));
-            channel.sendResponse(new CrateThrowableRestResponse(channel,
-                    new SQLActionException(e.getMessage(), 4000, RestStatus.BAD_REQUEST, e.getStackTrace())));
-            return;
-        }
-
-        Object[] args = context.args();
-        Object[][] bulkArgs = context.bulkArgs();
-        if(args != null && args.length > 0 && bulkArgs != null && bulkArgs.length > 0){
-            channel.sendResponse(new CrateThrowableRestResponse(channel,
-                    new SQLActionException("request body contains args and bulk_args. It's forbidden to provide both",
-                            4000, RestStatus.BAD_REQUEST)));
-            return;
-        }
-        if (bulkArgs != null && bulkArgs.length > 0) {
-            executeBulkRequest(context, request, channel, client);
-        } else {
-            executeSimpleRequest(context, request, channel, client);
-        }
-    }
-
     private static void addFlags(SQLRequestBuilder requestBuilder, RestRequest request) {
         String user = request.header(REQUEST_HEADER_USER);
         if (isOdbc(user)) {
@@ -101,6 +66,46 @@ public class RestSQLAction extends BaseRestHandler {
 
     private static boolean isOdbc(String user) {
         return user != null && !user.isEmpty() && user.toLowerCase(Locale.ENGLISH).contains("odbc");
+    }
+
+    private static <TResponse extends SQLBaseResponse> ActionListener<TResponse> newListener(
+        RestRequest request, RestChannel channel) {
+        return new SQLResponseListener<>(request, channel);
+    }
+
+    @Override
+    public void handleRequest(final RestRequest request, final RestChannel channel, Client client) throws Exception {
+        if (!request.hasContent()) {
+            channel.sendResponse(new CrateThrowableRestResponse(channel,
+                new SQLActionException("missing request body", 4000, RestStatus.BAD_REQUEST)));
+            return;
+        }
+
+        SQLXContentSourceContext context = new SQLXContentSourceContext();
+        SQLXContentSourceParser parser = new SQLXContentSourceParser(context);
+        try {
+            parser.parseSource(request.content());
+        } catch (SQLParseException e) {
+            StringWriter stackTrace = new StringWriter();
+            e.printStackTrace(new PrintWriter(stackTrace));
+            channel.sendResponse(new CrateThrowableRestResponse(channel,
+                new SQLActionException(e.getMessage(), 4000, RestStatus.BAD_REQUEST, e.getStackTrace())));
+            return;
+        }
+
+        Object[] args = context.args();
+        Object[][] bulkArgs = context.bulkArgs();
+        if (args != null && args.length > 0 && bulkArgs != null && bulkArgs.length > 0) {
+            channel.sendResponse(new CrateThrowableRestResponse(channel,
+                new SQLActionException("request body contains args and bulk_args. It's forbidden to provide both",
+                    4000, RestStatus.BAD_REQUEST)));
+            return;
+        }
+        if (bulkArgs != null && bulkArgs.length > 0) {
+            executeBulkRequest(context, request, channel, client);
+        } else {
+            executeSimpleRequest(context, request, channel, client);
+        }
     }
 
     private void executeSimpleRequest(SQLXContentSourceContext context, final RestRequest request, final RestChannel channel, Client client) {
@@ -121,11 +126,6 @@ public class RestSQLAction extends BaseRestHandler {
         addFlags(requestBuilder, request);
         requestBuilder.setSchema(request.header(REQUEST_HEADER_SCHEMA));
         requestBuilder.execute(RestSQLAction.<SQLBulkResponse>newListener(request, channel));
-    }
-
-    private static <TResponse extends SQLBaseResponse> ActionListener<TResponse> newListener(
-            RestRequest request, RestChannel channel) {
-        return new SQLResponseListener<>(request, channel);
     }
 
     private static class SQLResponseListener<TResponse extends SQLBaseResponse> implements ActionListener<TResponse> {

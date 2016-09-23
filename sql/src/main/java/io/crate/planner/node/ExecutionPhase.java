@@ -34,9 +34,15 @@ public interface ExecutionPhase extends Streamable {
 
     int NO_EXECUTION_PHASE = Integer.MAX_VALUE;
 
-    interface ExecutionPhaseFactory<T extends ExecutionPhase> {
-        T create();
-    }
+    Type type();
+
+    String name();
+
+    int executionPhaseId();
+
+    Collection<String> executionNodes();
+
+    <C, R> R accept(ExecutionPhaseVisitor<C, R> visitor, C context);
 
     enum Type {
         COLLECT(RoutedCollectPhase.FACTORY),
@@ -58,13 +64,7 @@ public interface ExecutionPhase extends Streamable {
         }
     }
 
-    Type type();
-
-    String name();
-
-    int executionPhaseId();
-
-    Collection<String> executionNodes();
-
-    <C, R> R accept(ExecutionPhaseVisitor<C, R> visitor, C context);
+    interface ExecutionPhaseFactory<T extends ExecutionPhase> {
+        T create();
+    }
 }

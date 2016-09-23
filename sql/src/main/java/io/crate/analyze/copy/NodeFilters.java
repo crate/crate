@@ -36,6 +36,18 @@ public class NodeFilters implements Predicate<DiscoveryNode> {
     public static final String NAME = "node_filters";
     private final Predicate<DiscoveryNode> innerPredicate;
 
+    NodeFilters(@Nullable String name, @Nullable String id) {
+        if (name == null && id == null) {
+            innerPredicate = Predicates.alwaysTrue();
+        } else {
+            Predicate<DiscoveryNode> namesPredicate =
+                name == null ? Predicates.<DiscoveryNode>alwaysTrue() : new NamesPredicate(name);
+            Predicate<DiscoveryNode> idsPredicate =
+                id == null ? Predicates.<DiscoveryNode>alwaysTrue() : new IdsPredicate(id);
+            innerPredicate = Predicates.and(namesPredicate, idsPredicate);
+        }
+    }
+
     public static NodeFilters fromMap(Map map) {
         String name = stringOrIllegalArgument(map, "name");
         String id = stringOrIllegalArgument(map, "id");
@@ -51,17 +63,7 @@ public class NodeFilters implements Predicate<DiscoveryNode> {
             return (String) obj;
         } catch (ClassCastException e) {
             throw new IllegalArgumentException(String.format(Locale.ENGLISH,
-                    "%s argument '%s' must be a String, not %s (%s)", NAME, key, obj, obj.getClass().getSimpleName()));
-        }
-    }
-
-    NodeFilters(@Nullable String name, @Nullable String id) {
-        if (name == null && id == null) {
-            innerPredicate = Predicates.alwaysTrue();
-        } else {
-            Predicate<DiscoveryNode> namesPredicate = name == null ? Predicates.<DiscoveryNode>alwaysTrue() : new NamesPredicate(name);
-            Predicate<DiscoveryNode> idsPredicate = id == null ? Predicates.<DiscoveryNode>alwaysTrue() : new IdsPredicate(id);
-            innerPredicate = Predicates.and(namesPredicate, idsPredicate);
+                "%s argument '%s' must be a String, not %s (%s)", NAME, key, obj, obj.getClass().getSimpleName()));
         }
     }
 

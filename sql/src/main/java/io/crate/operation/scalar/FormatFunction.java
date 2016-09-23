@@ -23,16 +23,12 @@ package io.crate.operation.scalar;
 
 import com.google.common.base.Preconditions;
 import io.crate.analyze.symbol.Function;
-import io.crate.analyze.symbol.Literal;
-import io.crate.analyze.symbol.Symbol;
-import io.crate.analyze.symbol.SymbolType;
 import io.crate.metadata.*;
 import io.crate.operation.Input;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 
@@ -41,18 +37,19 @@ public class FormatFunction extends Scalar<BytesRef, Object> implements DynamicF
     public static final String NAME = "format";
     private FunctionInfo info;
 
+    FormatFunction() {
+    }
+
+    FormatFunction(FunctionInfo info) {
+        this.info = info;
+    }
+
     public static void register(ScalarFunctionModule module) {
         module.register(NAME, new FormatFunction());
     }
 
     private static FunctionInfo createInfo(List<DataType> types) {
         return new FunctionInfo(new FunctionIdent(NAME, types), DataTypes.STRING);
-    }
-
-    FormatFunction() {}
-
-    FormatFunction(FunctionInfo info) {
-        this.info = info;
     }
 
     @Override

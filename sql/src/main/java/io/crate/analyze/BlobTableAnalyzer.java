@@ -31,11 +31,7 @@ import io.crate.sql.tree.Table;
 import java.util.List;
 
 public abstract class BlobTableAnalyzer<StatementType extends AnalyzedStatement>
-        extends DefaultTraversalVisitor<StatementType, Analysis> {
-
-    public StatementType analyze(Node node, Analysis analysis) {
-        return super.process(node, analysis);
-    }
+    extends DefaultTraversalVisitor<StatementType, Analysis> {
 
     protected static TableIdent tableToIdent(Table table) {
         List<String> tableNameParts = table.getName().getParts();
@@ -43,12 +39,16 @@ public abstract class BlobTableAnalyzer<StatementType extends AnalyzedStatement>
 
         if (tableNameParts.size() == 2) {
             Preconditions.checkArgument(tableNameParts.get(0).equalsIgnoreCase(BlobSchemaInfo.NAME),
-                    "The Schema \"%s\" isn't valid in a [CREATE | ALTER] BLOB TABLE clause",
-                    tableNameParts.get(0));
+                "The Schema \"%s\" isn't valid in a [CREATE | ALTER] BLOB TABLE clause",
+                tableNameParts.get(0));
 
             return new TableIdent(tableNameParts.get(0), tableNameParts.get(1));
         }
         assert tableNameParts.size() == 1;
         return new TableIdent(BlobSchemaInfo.NAME, tableNameParts.get(0));
+    }
+
+    public StatementType analyze(Node node, Analysis analysis) {
+        return super.process(node, analysis);
     }
 }

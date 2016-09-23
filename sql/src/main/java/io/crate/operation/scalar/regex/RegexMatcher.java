@@ -31,6 +31,16 @@ import java.util.regex.Pattern;
 
 public class RegexMatcher {
 
+    // PCRE features
+    public static final String character_classes = "dDsSwW";
+    public static final String boundary_matchers = "bBAGZz";
+    public static final String embedded_flags = "idmsuxU";
+    // recognize pcre escaped sequences anywhere inside the pattern
+    public static final String escape_sequences_pattern = ".*\\\\[" + character_classes + boundary_matchers + "].*";
+    // recognize pcre embedded flags at the beginning of the pattern
+    public static final String embedded_flags_pattern = "^\\(\\?[" + embedded_flags + "]\\).*";
+    // final precompiled java.util.regex.Pattern
+    public static final Pattern pcre_pattern = Pattern.compile(escape_sequences_pattern + "|" + embedded_flags_pattern);
     private final Matcher matcher;
     private final CharsRef utf16 = new CharsRef(10);
     private final boolean globalFlag;
@@ -54,43 +64,6 @@ public class RegexMatcher {
             charsRef.chars = new char[bytes.length];
         }
         charsRef.length = UnicodeUtil.UTF8toUTF16(bytes, charsRef.chars);
-    }
-
-    public boolean match(BytesRef term) {
-        UTF8toUTF16(term, utf16);
-        return matcher.reset().find();
-    }
-
-    @Nullable
-    public BytesRef[] groups() {
-        try {
-            if (matcher.groupCount() == 0) {
-                return new BytesRef[]{ new BytesRef(matcher.group()) };
-            }
-            BytesRef[] groups = new BytesRef[matcher.groupCount()];
-            // skip first group (the original string)
-            for (int i = 1; i <= matcher.groupCount(); i++) {
-                String group = matcher.group(i);
-                if (group != null) {
-                    groups[i - 1] = new BytesRef(group);
-                } else {
-                    groups[i - 1] = null;
-                }
-            }
-            return groups;
-        } catch (IllegalStateException e) {
-            // no match -> no groups
-        }
-        return null;
-    }
-
-    public BytesRef replace(BytesRef term, BytesRef replacement) {
-        UTF8toUTF16(term, utf16);
-        if (globalFlag) {
-            return new BytesRef(matcher.replaceAll(replacement.utf8ToString()));
-        } else {
-            return new BytesRef(matcher.replaceFirst(replacement.utf8ToString()));
-        }
     }
 
     public static int parseFlags(@Nullable BytesRef flagsString) {
@@ -136,32 +109,52 @@ public class RegexMatcher {
         return flags.utf8ToString().indexOf('g') != -1;
     }
 
-
-    // PCRE features
-    public static final String character_classes = "dDsSwW";
-    public static final String boundary_matchers = "bBAGZz";
-    public static final String embedded_flags = "idmsuxU";
-
-    // recognize pcre escaped sequences anywhere inside the pattern
-    public static final String escape_sequences_pattern = ".*\\\\[" + character_classes + boundary_matchers + "].*";
-
-    // recognize pcre embedded flags at the beginning of the pattern
-    public static final String embedded_flags_pattern = "^\\(\\?[" + embedded_flags + "]\\).*";
-
-    // final precompiled java.util.regex.Pattern
-    public static final Pattern pcre_pattern = Pattern.compile(escape_sequences_pattern + "|" + embedded_flags_pattern);
-
     /**
-     *
      * Determine whether regex pattern contains PCRE features, e.g.
      * - predefined character classes like \d, \D, \s, \S, \w, \W
      * - boundary matchers like \b, \B, \A, \G, \Z, \z
      * - embedded flag expressions like (?i), (?d), etc.
      *
      * @see java.util.regex.Pattern
-     *
      */
     public static boolean isPcrePattern(String pattern) {
         return pcre_pattern.matcher(pattern).matches();
+    }
+
+    public boolean match(BytesRef term) {
+        UTF8toUTF16(term, utf16);
+        return matcher.reset().find();
+    }
+
+    @Nullable
+    public BytesRef[] groups() {
+        try {
+            if (matcher.groupCount() == 0) {
+                return new BytesRef[]{new BytesRef(matcher.group())};
+            }
+            BytesRef[] groups = new BytesRef[matcher.groupCount()];
+            // skip first group (the original string)
+            for (int i = 1; i <= matcher.groupCount(); i++) {
+                String group = matcher.group(i);
+                if (group != null) {
+                    groups[i - 1] = new BytesRef(group);
+                } else {
+                    groups[i - 1] = null;
+                }
+            }
+            return groups;
+        } catch (IllegalStateException e) {
+            // no match -> no groups
+        }
+        return null;
+    }
+
+    public BytesRef replace(BytesRef term, BytesRef replacement) {
+        UTF8toUTF16(term, utf16);
+        if (globalFlag) {
+            return new BytesRef(matcher.replaceAll(replacement.utf8ToString()));
+        } else {
+            return new BytesRef(matcher.replaceFirst(replacement.utf8ToString()));
+        }
     }
 }

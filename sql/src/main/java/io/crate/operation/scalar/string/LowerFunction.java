@@ -40,15 +40,15 @@ public class LowerFunction extends Scalar<BytesRef, Object> {
 
     private final FunctionInfo info;
 
-    public static void register(ScalarFunctionModule module) {
-        module.register(new LowerFunction(new FunctionInfo(
-                new FunctionIdent(NAME, ImmutableList.<DataType>of(DataTypes.STRING)),
-                DataTypes.STRING)
-        ));
-    }
-
     public LowerFunction(FunctionInfo info) {
         this.info = info;
+    }
+
+    public static void register(ScalarFunctionModule module) {
+        module.register(new LowerFunction(new FunctionInfo(
+            new FunctionIdent(NAME, ImmutableList.<DataType>of(DataTypes.STRING)),
+            DataTypes.STRING)
+        ));
     }
 
     @Override

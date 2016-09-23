@@ -43,7 +43,7 @@ import java.util.UUID;
 
 /**
  * visitor that dispatches requests based on Analysis class to different actions.
- *
+ * <p>
  * Its methods return a future returning a Long containing the response rowCount.
  * If the future returns <code>null</code>, no row count shall be created.
  */
@@ -79,6 +79,16 @@ public class DDLStatementDispatcher {
         return innerVisitor.process(analyzedStatement, jobId);
     }
 
+    private ListenableFuture<Long> wrapRowCountFuture(ListenableFuture<?> wrappedFuture, final Long rowCount) {
+        return Futures.transform(wrappedFuture, new Function<Object, Long>() {
+            @Nullable
+            @Override
+            public Long apply(@Nullable Object input) {
+                return rowCount;
+            }
+        });
+    }
+
     private class InnerVisitor extends AnalyzedStatementVisitor<UUID, ListenableFuture<Long>> {
 
         @Override
@@ -108,11 +118,11 @@ public class DDLStatementDispatcher {
 
             // Pass parameters to ES request
             request.maxNumSegments(analysis.settings().getAsInt(OptimizeSettings.MAX_NUM_SEGMENTS.name(),
-                                                                ForceMergeRequest.Defaults.MAX_NUM_SEGMENTS));
+                ForceMergeRequest.Defaults.MAX_NUM_SEGMENTS));
             request.onlyExpungeDeletes(analysis.settings().getAsBoolean(OptimizeSettings.ONLY_EXPUNGE_DELETES.name(),
-                                                                      ForceMergeRequest.Defaults.ONLY_EXPUNGE_DELETES));
+                ForceMergeRequest.Defaults.ONLY_EXPUNGE_DELETES));
             request.flush(analysis.settings().getAsBoolean(OptimizeSettings.FLUSH.name(),
-                                                           ForceMergeRequest.Defaults.FLUSH));
+                ForceMergeRequest.Defaults.FLUSH));
 
             request.indicesOptions(IndicesOptions.lenientExpandOpen());
 
@@ -128,7 +138,7 @@ public class DDLStatementDispatcher {
                 return Futures.immediateFuture(null);
             }
             RefreshRequest request = new RefreshRequest(analysis.indexNames().toArray(
-                    new String[analysis.indexNames().size()]));
+                new String[analysis.indexNames().size()]));
             request.indicesOptions(IndicesOptions.lenientExpandOpen());
 
             FutureActionListener<RefreshResponse, Long> listener =
@@ -140,21 +150,21 @@ public class DDLStatementDispatcher {
 
         @Override
         public ListenableFuture<Long> visitCreateBlobTableStatement(
-                CreateBlobTableAnalyzedStatement analysis, UUID jobId) {
+            CreateBlobTableAnalyzedStatement analysis, UUID jobId) {
             return wrapRowCountFuture(
-                    blobIndices.createBlobTable(
-                            analysis.tableName(),
-                            analysis.tableParameter().settings()
-                    ),
-                    1L
+                blobIndices.createBlobTable(
+                    analysis.tableName(),
+                    analysis.tableParameter().settings()
+                ),
+                1L
             );
         }
 
         @Override
         public ListenableFuture<Long> visitAlterBlobTableStatement(AlterBlobTableAnalyzedStatement analysis, UUID jobId) {
             return wrapRowCountFuture(
-                    blobIndices.alterBlobTable(analysis.table().ident().name(), analysis.tableParameter().settings()),
-                    1L);
+                blobIndices.alterBlobTable(analysis.table().ident().name(), analysis.tableParameter().settings()),
+                1L);
         }
 
         @Override
@@ -185,15 +195,5 @@ public class DDLStatementDispatcher {
         public ListenableFuture<Long> visitRestoreSnapshotAnalyzedStatement(RestoreSnapshotAnalyzedStatement analysis, UUID context) {
             return snapshotRestoreDDLDispatcher.dispatch(analysis);
         }
-    }
-
-    private ListenableFuture<Long> wrapRowCountFuture(ListenableFuture<?> wrappedFuture, final Long rowCount) {
-        return Futures.transform(wrappedFuture, new Function<Object, Long>() {
-            @Nullable
-            @Override
-            public Long apply(@Nullable Object input) {
-                return rowCount;
-            }
-        });
     }
 }

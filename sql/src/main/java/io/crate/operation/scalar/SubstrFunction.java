@@ -37,10 +37,12 @@ import java.util.List;
 public class SubstrFunction extends Scalar<BytesRef, Object> implements DynamicFunctionResolver {
 
     public static final String NAME = "substr";
-    private FunctionInfo info;
     private static final BytesRef EMPTY_BYTES_REF = new BytesRef("");
+    private FunctionInfo info;
 
-    public SubstrFunction() {}
+    public SubstrFunction() {
+    }
+
     public SubstrFunction(FunctionInfo info) {
         this.info = info;
     }
@@ -51,27 +53,6 @@ public class SubstrFunction extends Scalar<BytesRef, Object> implements DynamicF
 
     private static FunctionInfo createInfo(List<DataType> types) {
         return new FunctionInfo(new FunctionIdent(NAME, types), DataTypes.STRING);
-    }
-
-    @Override
-    public FunctionInfo info() {
-        return info;
-    }
-
-    @Override
-    public BytesRef evaluate(Input[] args) {
-        assert (args.length >= 2 && args.length <= 3);
-        if (hasNullInputs(args)) {
-            return null;
-        }
-        final Object val = args[0].value();
-        if (args.length == 3) {
-            return evaluate(BytesRefs.toBytesRef(val),
-                    ((Number) args[1].value()).intValue(),
-                    ((Number) args[2].value()).intValue());
-
-        }
-        return evaluate(BytesRefs.toBytesRef(val), ((Number) args[1].value()).intValue());
     }
 
     private static BytesRef evaluate(@Nonnull BytesRef inputStr, int beginIdx) {
@@ -143,8 +124,30 @@ public class SubstrFunction extends Scalar<BytesRef, Object> implements DynamicF
     }
 
     @Override
+    public FunctionInfo info() {
+        return info;
+    }
+
+    @Override
+    public BytesRef evaluate(Input[] args) {
+        assert (args.length >= 2 && args.length <= 3);
+        if (hasNullInputs(args)) {
+            return null;
+        }
+        final Object val = args[0].value();
+        if (args.length == 3) {
+            return evaluate(BytesRefs.toBytesRef(val),
+                ((Number) args[1].value()).intValue(),
+                ((Number) args[2].value()).intValue());
+
+        }
+        return evaluate(BytesRefs.toBytesRef(val), ((Number) args[1].value()).intValue());
+    }
+
+    @Override
     public FunctionImplementation<Function> getForTypes(List<DataType> dataTypes) throws IllegalArgumentException {
-        Preconditions.checkArgument(dataTypes.size() > 1 && dataTypes.size() < 4 && dataTypes.get(0) == DataTypes.STRING);
+        Preconditions.checkArgument(
+            dataTypes.size() > 1 && dataTypes.size() < 4 && dataTypes.get(0) == DataTypes.STRING);
         return new SubstrFunction(createInfo(dataTypes));
     }
 }

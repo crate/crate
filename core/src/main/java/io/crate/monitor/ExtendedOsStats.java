@@ -38,17 +38,17 @@ public class ExtendedOsStats implements Streamable {
     private long uptime = -1;
     private double[] loadAverage = new double[0];
 
-    public static ExtendedOsStats readExtendedOsStat(StreamInput in) throws IOException {
-        ExtendedOsStats stat = new ExtendedOsStats();
-        stat.readFrom(in);
-        return stat;
-    }
-
     public ExtendedOsStats() {
     }
 
     public ExtendedOsStats(Cpu cpu) {
         this.cpu = cpu;
+    }
+
+    public static ExtendedOsStats readExtendedOsStat(StreamInput in) throws IOException {
+        ExtendedOsStats stat = new ExtendedOsStats();
+        stat.readFrom(in);
+        return stat;
     }
 
     public long timestamp() {
@@ -106,12 +106,6 @@ public class ExtendedOsStats implements Streamable {
         private short idle;
         private short stolen;
 
-        public static Cpu readCpu(StreamInput in) throws IOException {
-            Cpu cpu = new Cpu();
-            cpu.readFrom(in);
-            return cpu;
-        }
-
         public Cpu() {
             this((short) -1, (short) -1, (short) -1, (short) -1);
         }
@@ -121,6 +115,12 @@ public class ExtendedOsStats implements Streamable {
             this.user = user;
             this.idle = idle;
             this.stolen = stolen;
+        }
+
+        public static Cpu readCpu(StreamInput in) throws IOException {
+            Cpu cpu = new Cpu();
+            cpu.readFrom(in);
+            return cpu;
         }
 
         public short sys() {

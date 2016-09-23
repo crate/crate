@@ -79,6 +79,11 @@ public class CauseMatcher {
             fMatcher = matcher;
         }
 
+        @Factory
+        public static <T extends Throwable> org.hamcrest.Matcher<T> hasCause(final org.hamcrest.Matcher<T> matcher) {
+            return new CauseOfCauseMatcher<T>(matcher);
+        }
+
         public void describeTo(Description description) {
             description.appendText("exception with cause of cause ");
             description.appendDescriptionOf(fMatcher);
@@ -94,11 +99,6 @@ public class CauseMatcher {
         protected void describeMismatchSafely(T item, Description description) {
             description.appendText("cause of cause ");
             fMatcher.describeMismatch(item.getCause().getCause(), description);
-        }
-
-        @Factory
-        public static <T extends Throwable> org.hamcrest.Matcher<T> hasCause(final org.hamcrest.Matcher<T> matcher) {
-            return new CauseOfCauseMatcher<T>(matcher);
         }
     }
 }

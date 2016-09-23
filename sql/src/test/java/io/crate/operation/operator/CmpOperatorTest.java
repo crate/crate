@@ -18,13 +18,12 @@ import static org.hamcrest.CoreMatchers.instanceOf;
 
 public class CmpOperatorTest extends CrateUnitTest {
 
+    private final StmtCtx stmtCtx = new StmtCtx();
     private GtOperator op_gt_string;
     private GteOperator op_gte_double;
     private LtOperator op_lt_int;
     private LteOperator op_lte_long;
     private LtOperator op_lt_string;
-
-    private final StmtCtx stmtCtx = new StmtCtx();
 
     @Before
     public void prepare() {
@@ -103,7 +102,7 @@ public class CmpOperatorTest extends CrateUnitTest {
 
     @Test
     public void testNormalizeSymbolWithNull() throws Exception {
-        Literal literal = (Literal)normalize(op_gt_string, Literal.NULL, Literal.newLiteral("aa"));
+        Literal literal = (Literal) normalize(op_gt_string, Literal.NULL, Literal.newLiteral("aa"));
         assertThat(literal, isLiteral(null, DataTypes.BOOLEAN));
     }
 

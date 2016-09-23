@@ -32,7 +32,9 @@ import java.util.Locale;
 public class ExpressionToStringVisitor extends AstVisitor<String, Row> {
 
     private final static ExpressionToStringVisitor INSTANCE = new ExpressionToStringVisitor();
-    private ExpressionToStringVisitor() {}
+
+    private ExpressionToStringVisitor() {
+    }
 
     public static String convert(Node node, @Nullable Row context) {
         return INSTANCE.process(node, context);

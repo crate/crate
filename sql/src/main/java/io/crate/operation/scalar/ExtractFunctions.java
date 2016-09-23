@@ -23,8 +23,6 @@ package io.crate.operation.scalar;
 
 import com.google.common.collect.ImmutableList;
 import io.crate.analyze.symbol.Function;
-import io.crate.analyze.symbol.Literal;
-import io.crate.analyze.symbol.Symbol;
 import io.crate.analyze.symbol.format.FunctionFormatSpec;
 import io.crate.analyze.symbol.format.SymbolPrinter;
 import io.crate.metadata.FunctionIdent;
@@ -42,9 +40,6 @@ import java.util.Locale;
 
 public class ExtractFunctions {
 
-    private final static ImmutableList<DataType> ARGUMENT_TYPES = ImmutableList.<DataType>of(DataTypes.TIMESTAMP);
-    private final static String NAME_TMPL = "extract_%s";
-
     public static final String EXTRACT_CENTURY_PREFIX = "extract(century from ";
     public static final String EXTRACT_YEAR_PREFIX = "extract(year from ";
     public static final String EXTRACT_QUARTER_PREFIX = "extract(quarter from ";
@@ -56,6 +51,8 @@ public class ExtractFunctions {
     public static final String EXTRACT_MINUTE_PREFIX = "extract(minute from ";
     public static final String EXTRACT_HOUR_PREFIX = "extract(hour from ";
     public static final String EXTRACT_DAY_OF_YEAR_PREFIX = "extract(day_of_year from ";
+    private final static ImmutableList<DataType> ARGUMENT_TYPES = ImmutableList.<DataType>of(DataTypes.TIMESTAMP);
+    private final static String NAME_TMPL = "extract_%s";
 
     public static void register(ScalarFunctionModule scalarFunctionModule) {
         scalarFunctionModule.register(new ExtractCentury());
@@ -108,9 +105,9 @@ public class ExtractFunctions {
 
     private static FunctionInfo createFunctionInfo(Extract.Field field) {
         return new FunctionInfo(
-                new FunctionIdent(String.format(Locale.ENGLISH, NAME_TMPL, field.toString()), ARGUMENT_TYPES),
-                DataTypes.INTEGER,
-                FunctionInfo.Type.SCALAR
+            new FunctionIdent(String.format(Locale.ENGLISH, NAME_TMPL, field.toString()), ARGUMENT_TYPES),
+            DataTypes.INTEGER,
+            FunctionInfo.Type.SCALAR
         );
     }
 

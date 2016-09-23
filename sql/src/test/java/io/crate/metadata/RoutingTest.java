@@ -23,8 +23,8 @@ package io.crate.metadata;
 
 import com.google.common.collect.ImmutableMap;
 import io.crate.test.integration.CrateUnitTest;
-import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
+import org.elasticsearch.common.io.stream.StreamInput;
 import org.junit.Test;
 
 import java.util.Arrays;
@@ -48,7 +48,7 @@ public class RoutingTest extends CrateUnitTest {
         routing1.writeTo(out);
 
         StreamInput in = StreamInput.wrap(out.bytes());
-        Routing routing2 = new Routing(ImmutableMap.<String, Map<String,List<Integer>>>of());
+        Routing routing2 = new Routing(ImmutableMap.<String, Map<String, List<Integer>>>of());
         routing2.readFrom(in);
 
         assertThat(routing1.locations(), is(routing2.locations()));
@@ -57,7 +57,7 @@ public class RoutingTest extends CrateUnitTest {
     @Test
     public void testStreamingWithoutLocations() throws Exception {
         BytesStreamOutput out = new BytesStreamOutput();
-        Routing routing1 = new Routing(ImmutableMap.<String, Map<String,List<Integer>>>of());
+        Routing routing1 = new Routing(ImmutableMap.<String, Map<String, List<Integer>>>of());
         routing1.writeTo(out);
 
         StreamInput in = StreamInput.wrap(out.bytes());

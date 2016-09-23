@@ -36,91 +36,16 @@ import java.util.UUID;
 
 public class UpsertById extends PlanAndPlannedAnalyzedRelation {
 
-    @Override
-    public void addProjection(Projection projection) {
-        throw new UnsupportedOperationException("Adding a projection to upsertById is not supported");
-    }
-
-    @Override
-    public boolean resultIsDistributed() {
-        return false;
-    }
-
-    @Override
-    public UpstreamPhase resultPhase() {
-        throw new UnsupportedOperationException("UpsertById doesn't have a resultPhase");
-    }
-
-    /**
-     * A single update item.
-     */
-    public static class Item {
-
-        private final String index;
-        private final String id;
-        private final String routing;
-        private long version = Versions.MATCH_ANY;
-        @Nullable
-        private final Symbol[] updateAssignments;
-        @Nullable
-        private Object[] insertValues;
-
-        Item(String index,
-                    String id,
-                    String routing,
-                    @Nullable Symbol[] updateAssignments,
-                    @Nullable Long version,
-                    @Nullable Object[] insertValues) {
-            this.index = index;
-            this.id = id;
-            this.routing = routing;
-            this.updateAssignments = updateAssignments;
-            if (version != null) {
-                this.version = version;
-            }
-            this.insertValues = insertValues;
-        }
-
-        public String index() {
-            return index;
-        }
-
-        public String id() {
-            return id;
-        }
-
-        public String routing() {
-            return routing;
-        }
-
-        public long version() {
-            return version;
-        }
-
-        @Nullable
-        public Symbol[] updateAssignments() {
-            return updateAssignments;
-        }
-
-        @Nullable
-        public Object[] insertValues() {
-            return insertValues;
-        }
-    }
-
-
     private final UUID jobId;
     private final boolean partitionedTable;
     private final int numBulkResponses;
     private final List<Item> items;
     private final int executionPhaseId;
     private final List<Integer> bulkIndices;
-
     @Nullable
     private final String[] updateColumns;
     @Nullable
     private final Reference[] insertColumns;
-
     public UpsertById(UUID jobId,
                       int executionPhaseId,
                       boolean partitionedTable,
@@ -137,7 +62,6 @@ public class UpsertById extends PlanAndPlannedAnalyzedRelation {
         this.items = new ArrayList<>();
         this.executionPhaseId = executionPhaseId;
     }
-
     public UpsertById(UUID jobId,
                       int executionPhaseId,
                       boolean partitionedTable,
@@ -146,6 +70,21 @@ public class UpsertById extends PlanAndPlannedAnalyzedRelation {
                       @Nullable Reference[] insertColumns) {
         this(jobId, executionPhaseId, partitionedTable, numBulkResponses, new ArrayList<Integer>(),
             updateColumns, insertColumns);
+    }
+
+    @Override
+    public void addProjection(Projection projection) {
+        throw new UnsupportedOperationException("Adding a projection to upsertById is not supported");
+    }
+
+    @Override
+    public boolean resultIsDistributed() {
+        return false;
+    }
+
+    @Override
+    public UpstreamPhase resultPhase() {
+        throw new UnsupportedOperationException("UpsertById doesn't have a resultPhase");
     }
 
     @Nullable
@@ -203,5 +142,62 @@ public class UpsertById extends PlanAndPlannedAnalyzedRelation {
     @Override
     public UUID jobId() {
         return jobId;
+    }
+
+    /**
+     * A single update item.
+     */
+    public static class Item {
+
+        private final String index;
+        private final String id;
+        private final String routing;
+        @Nullable
+        private final Symbol[] updateAssignments;
+        private long version = Versions.MATCH_ANY;
+        @Nullable
+        private Object[] insertValues;
+
+        Item(String index,
+             String id,
+             String routing,
+             @Nullable Symbol[] updateAssignments,
+             @Nullable Long version,
+             @Nullable Object[] insertValues) {
+            this.index = index;
+            this.id = id;
+            this.routing = routing;
+            this.updateAssignments = updateAssignments;
+            if (version != null) {
+                this.version = version;
+            }
+            this.insertValues = insertValues;
+        }
+
+        public String index() {
+            return index;
+        }
+
+        public String id() {
+            return id;
+        }
+
+        public String routing() {
+            return routing;
+        }
+
+        public long version() {
+            return version;
+        }
+
+        @Nullable
+        public Symbol[] updateAssignments() {
+            return updateAssignments;
+        }
+
+        @Nullable
+        public Object[] insertValues() {
+            return insertValues;
+        }
     }
 }

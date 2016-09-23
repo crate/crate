@@ -33,6 +33,21 @@ public class InformationRoutinesTableInfo extends InformationTableInfo {
     public static final String NAME = "routines";
     public static final TableIdent IDENT = new TableIdent(InformationSchemaInfo.NAME, NAME);
 
+    protected InformationRoutinesTableInfo(ClusterService clusterService) {
+        super(clusterService,
+            IDENT,
+            ImmutableList.<ColumnIdent>of(),
+            ImmutableSortedMap.<ColumnIdent, Reference>naturalOrder()
+                .put(Columns.ROUTINE_NAME, References.ROUTINE_NAME)
+                .put(Columns.ROUTINE_TYPE, References.ROUTINE_TYPE)
+                .build()
+        );
+    }
+
+    private static Reference info(ColumnIdent columnIdent, DataType dataType) {
+        return new Reference(new ReferenceIdent(IDENT, columnIdent), RowGranularity.DOC, dataType);
+    }
+
     public static class Columns {
         public static final ColumnIdent ROUTINE_NAME = new ColumnIdent("routine_name");
         public static final ColumnIdent ROUTINE_TYPE = new ColumnIdent("routine_type");
@@ -41,20 +56,5 @@ public class InformationRoutinesTableInfo extends InformationTableInfo {
     public static class References {
         public static final Reference ROUTINE_NAME = info(Columns.ROUTINE_NAME, DataTypes.STRING);
         public static final Reference ROUTINE_TYPE = info(Columns.ROUTINE_TYPE, DataTypes.STRING);
-    }
-
-    private static Reference info(ColumnIdent columnIdent, DataType dataType) {
-        return new Reference(new ReferenceIdent(IDENT, columnIdent), RowGranularity.DOC, dataType);
-    }
-
-    protected InformationRoutinesTableInfo(ClusterService clusterService) {
-        super(clusterService,
-                IDENT,
-                ImmutableList.<ColumnIdent>of(),
-                ImmutableSortedMap.<ColumnIdent, Reference>naturalOrder()
-                    .put(Columns.ROUTINE_NAME, References.ROUTINE_NAME)
-                    .put(Columns.ROUTINE_TYPE, References.ROUTINE_TYPE)
-                    .build()
-        );
     }
 }

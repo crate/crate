@@ -33,8 +33,8 @@ import io.crate.planner.node.dql.RoutedCollectPhase;
 import io.crate.planner.projection.Projection;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.types.DataTypes;
-import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
+import org.elasticsearch.common.io.stream.StreamInput;
 import org.junit.Test;
 
 import java.util.List;
@@ -51,15 +51,15 @@ public class RoutedCollectPhaseTest extends CrateUnitTest {
         ImmutableList<Symbol> toCollect = ImmutableList.<Symbol>of(new Value(DataTypes.STRING));
         UUID jobId = UUID.randomUUID();
         RoutedCollectPhase cn = new RoutedCollectPhase(
-                jobId,
-                0,
-                "cn",
-                new Routing(ImmutableMap.<String, Map<String,List<Integer>>>of()),
-                RowGranularity.DOC,
-                toCollect,
-                ImmutableList.<Projection>of(),
-                WhereClause.MATCH_ALL,
-                DistributionInfo.DEFAULT_MODULO
+            jobId,
+            0,
+            "cn",
+            new Routing(ImmutableMap.<String, Map<String, List<Integer>>>of()),
+            RowGranularity.DOC,
+            toCollect,
+            ImmutableList.<Projection>of(),
+            WhereClause.MATCH_ALL,
+            DistributionInfo.DEFAULT_MODULO
         );
 
         BytesStreamOutput out = new BytesStreamOutput();

@@ -76,13 +76,13 @@ public class TestingTableInfo extends DocTableInfo {
         this.routing = routing;
     }
 
+    public static Builder builder(TableIdent ident, Routing routing) {
+        return new Builder(ident, routing);
+    }
+
     @Override
     public Routing getRouting(WhereClause whereClause, @Nullable String preference) {
         return routing;
-    }
-
-    public static Builder builder(TableIdent ident, Routing routing) {
-        return new Builder(ident, routing);
     }
 
     public static class Builder {
@@ -95,13 +95,11 @@ public class TestingTableInfo extends DocTableInfo {
         private final ImmutableList.Builder<ColumnIdent> partitionedBy = ImmutableList.builder();
         private final ImmutableList.Builder<PartitionName> partitions = ImmutableList.builder();
         private final ImmutableMap.Builder<ColumnIdent, IndexReference> indexColumns = ImmutableMap.builder();
-        private ColumnIdent clusteredBy;
-
         private final int numberOfShards = 1;
         private final BytesRef numberOfReplicas = new BytesRef("0");
-
         private final TableIdent ident;
         private final Routing routing;
+        private ColumnIdent clusteredBy;
         private boolean isAlias = false;
         private ColumnPolicy columnPolicy = ColumnPolicy.DYNAMIC;
 
@@ -135,39 +133,39 @@ public class TestingTableInfo extends DocTableInfo {
             initializeGeneratedExpressions(functions, references.build().values());
 
             return new TestingTableInfo(
-                    ident,
-                    columns.build(),
-                    partitionedByColumns.build(),
-                    generatedColumns.build(),
-                    indexColumns.build(),
-                    references.build(),
-                    pk,
-                    clusteredBy,
-                    isAlias,
-                    pk.isEmpty(),
-                    concreteIndices,
-                    numberOfShards,
-                    numberOfReplicas,
-                    null, // tableParameters
-                    partitionedBy.build(),
-                    partitionsList,
-                    columnPolicy,
-                    routing
+                ident,
+                columns.build(),
+                partitionedByColumns.build(),
+                generatedColumns.build(),
+                indexColumns.build(),
+                references.build(),
+                pk,
+                clusteredBy,
+                isAlias,
+                pk.isEmpty(),
+                concreteIndices,
+                numberOfShards,
+                numberOfReplicas,
+                null, // tableParameters
+                partitionedBy.build(),
+                partitionsList,
+                columnPolicy,
+                routing
             );
         }
 
         private Reference genInfo(ColumnIdent columnIdent, DataType type) {
             return new Reference(
-                    new ReferenceIdent(ident, columnIdent.name(), columnIdent.path()),
-                    RowGranularity.DOC, type
+                new ReferenceIdent(ident, columnIdent.name(), columnIdent.path()),
+                RowGranularity.DOC, type
             );
         }
 
         private void addDocSysColumns() {
             for (Map.Entry<ColumnIdent, DataType> entry : DocSysColumns.COLUMN_IDENTS.entrySet()) {
                 references.put(
-                        entry.getKey(),
-                        genInfo(entry.getKey(), entry.getValue())
+                    entry.getKey(),
+                    genInfo(entry.getKey(), entry.getValue())
                 );
             }
         }
@@ -175,19 +173,23 @@ public class TestingTableInfo extends DocTableInfo {
         public Builder add(String column, DataType type) {
             return add(column, type, null);
         }
+
         public Builder add(String column, DataType type, List<String> path) {
             return add(column, type, path, ColumnPolicy.DYNAMIC);
         }
+
         public Builder add(String column, DataType type, List<String> path, ColumnPolicy columnPolicy) {
             return add(column, type, path, columnPolicy, Reference.IndexType.NOT_ANALYZED, false, true);
         }
+
         public Builder add(String column, DataType type, List<String> path, Reference.IndexType indexType) {
             return add(column, type, path, ColumnPolicy.DYNAMIC, indexType, false, true);
         }
+
         public Builder add(String column, DataType type, List<String> path,
                            boolean partitionBy) {
             return add(column, type, path, ColumnPolicy.DYNAMIC,
-                    Reference.IndexType.NOT_ANALYZED, partitionBy, true);
+                Reference.IndexType.NOT_ANALYZED, partitionBy, true);
         }
 
         public Builder add(String column, DataType type, List<String> path,
@@ -199,7 +201,7 @@ public class TestingTableInfo extends DocTableInfo {
                 rowGranularity = RowGranularity.PARTITION;
             }
             Reference info = new Reference(new ReferenceIdent(ident, column, path),
-                    rowGranularity, type, columnPolicy, indexType, nullable);
+                rowGranularity, type, columnPolicy, indexType, nullable);
             if (info.ident().isColumn()) {
                 columns.add(info);
             }
@@ -238,10 +240,10 @@ public class TestingTableInfo extends DocTableInfo {
 
         public Builder addIndex(ColumnIdent columnIdent, Reference.IndexType indexType) {
             IndexReference info = new IndexReference(
-                    new ReferenceIdent(ident, columnIdent),
-                    indexType,
-                    Collections.<Reference>emptyList(),
-                    null);
+                new ReferenceIdent(ident, columnIdent),
+                indexType,
+                Collections.<Reference>emptyList(),
+                null);
             indexColumns.put(columnIdent, info);
             return this;
         }
@@ -272,7 +274,7 @@ public class TestingTableInfo extends DocTableInfo {
         private void initializeGeneratedExpressions(Functions functions, Collection<Reference> columns) {
             TableReferenceResolver tableReferenceResolver = new TableReferenceResolver(columns);
             ExpressionAnalyzer expressionAnalyzer = new ExpressionAnalyzer(
-                    functions, null, null, tableReferenceResolver, null);
+                functions, null, null, tableReferenceResolver, null);
             for (GeneratedReference generatedReferenceInfo : generatedColumns.build()) {
                 Expression expression = SqlParser.createExpression(generatedReferenceInfo.formattedGeneratedExpression());
                 ExpressionAnalysisContext context = new ExpressionAnalysisContext(new StmtCtx());

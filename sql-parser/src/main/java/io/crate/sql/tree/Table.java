@@ -28,8 +28,7 @@ import javax.annotation.Nullable;
 import java.util.List;
 
 public class Table
-        extends QueryBody
-{
+    extends QueryBody {
     private final QualifiedName name;
     private final boolean excludePartitions;
     private final List<Assignment> partitionProperties;
@@ -50,8 +49,7 @@ public class Table
         this.partitionProperties = MoreObjects.firstNonNull(partitionProperties, ImmutableList.<Assignment>of());
     }
 
-    public QualifiedName getName()
-    {
+    public QualifiedName getName() {
         return name;
     }
 
@@ -64,19 +62,17 @@ public class Table
     }
 
     @Override
-    public <R, C> R accept(AstVisitor<R, C> visitor, C context)
-    {
+    public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
         return visitor.visitTable(this, context);
     }
 
     @Override
-    public String toString()
-    {
+    public String toString() {
         return MoreObjects.toStringHelper(this)
-                .add("only", excludePartitions)
-                .addValue(name)
-                .add("partitionProperties", partitionProperties)
-                .toString();
+            .add("only", excludePartitions)
+            .addValue(name)
+            .add("partitionProperties", partitionProperties)
+            .toString();
     }
 
     @Override

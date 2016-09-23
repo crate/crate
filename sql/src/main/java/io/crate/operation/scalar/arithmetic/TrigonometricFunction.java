@@ -40,6 +40,11 @@ public abstract class TrigonometricFunction extends Scalar<Number, Number> {
         .addAll(DataTypes.NUMERIC_PRIMITIVE_TYPES)
         .add(DataTypes.UNDEFINED)
         .build();
+    private final FunctionInfo info;
+
+    public TrigonometricFunction(FunctionInfo info) {
+        this.info = info;
+    }
 
     public static void register(ScalarFunctionModule module) {
         SinFunction.registerFunction(module);
@@ -50,12 +55,6 @@ public abstract class TrigonometricFunction extends Scalar<Number, Number> {
 
         TanFunction.registerFunction(module);
         AtanFunction.registerFunction(module);
-    }
-
-    private final FunctionInfo info;
-
-    public TrigonometricFunction(FunctionInfo info) {
-        this.info = info;
     }
 
     @Override
@@ -79,16 +78,16 @@ public abstract class TrigonometricFunction extends Scalar<Number, Number> {
 
         public static final String NAME = "sin";
 
+        public SinFunction(FunctionInfo info) {
+            super(info);
+        }
+
         protected static void registerFunction(ScalarFunctionModule module) {
             // sin(dataType) : double
             for (DataType dt : ALLOWED_TYPES) {
                 FunctionInfo info = new FunctionInfo(new FunctionIdent(NAME, Arrays.asList(dt)), DataTypes.DOUBLE);
                 module.register(new SinFunction(info));
             }
-        }
-
-        public SinFunction(FunctionInfo info) {
-            super(info);
         }
 
         protected Number evaluate(double value) {
@@ -101,16 +100,16 @@ public abstract class TrigonometricFunction extends Scalar<Number, Number> {
 
         public static final String NAME = "asin";
 
+        public AsinFunction(FunctionInfo info) {
+            super(info);
+        }
+
         protected static void registerFunction(ScalarFunctionModule module) {
             // asin(dataType) : double
             for (DataType dt : ALLOWED_TYPES) {
                 FunctionInfo info = new FunctionInfo(new FunctionIdent(NAME, Arrays.asList(dt)), DataTypes.DOUBLE);
                 module.register(new AsinFunction(info));
             }
-        }
-
-        public AsinFunction(FunctionInfo info) {
-            super(info);
         }
 
         protected Number evaluate(double value) {
@@ -127,16 +126,16 @@ public abstract class TrigonometricFunction extends Scalar<Number, Number> {
 
         public static final String NAME = "cos";
 
+        public CosFunction(FunctionInfo info) {
+            super(info);
+        }
+
         protected static void registerFunction(ScalarFunctionModule module) {
             // cos(dataType) : double
             for (DataType dt : ALLOWED_TYPES) {
                 FunctionInfo info = new FunctionInfo(new FunctionIdent(NAME, Arrays.asList(dt)), DataTypes.DOUBLE);
                 module.register(new CosFunction(info));
             }
-        }
-
-        public CosFunction(FunctionInfo info) {
-            super(info);
         }
 
         protected Number evaluate(double value) {
@@ -149,16 +148,16 @@ public abstract class TrigonometricFunction extends Scalar<Number, Number> {
 
         public static final String NAME = "acos";
 
+        public AcosFunction(FunctionInfo info) {
+            super(info);
+        }
+
         protected static void registerFunction(ScalarFunctionModule module) {
             // acos(dataType) : double
             for (DataType dt : ALLOWED_TYPES) {
                 FunctionInfo info = new FunctionInfo(new FunctionIdent(NAME, Arrays.asList(dt)), DataTypes.DOUBLE);
                 module.register(new AcosFunction(info));
             }
-        }
-
-        public AcosFunction(FunctionInfo info) {
-            super(info);
         }
 
         protected Number evaluate(double value) {
@@ -175,16 +174,16 @@ public abstract class TrigonometricFunction extends Scalar<Number, Number> {
 
         public static final String NAME = "tan";
 
+        public TanFunction(FunctionInfo info) {
+            super(info);
+        }
+
         protected static void registerFunction(ScalarFunctionModule module) {
             // tan(dataType) : double
             for (DataType dt : ALLOWED_TYPES) {
                 FunctionInfo info = new FunctionInfo(new FunctionIdent(NAME, Arrays.asList(dt)), DataTypes.DOUBLE);
                 module.register(new TanFunction(info));
             }
-        }
-
-        public TanFunction(FunctionInfo info) {
-            super(info);
         }
 
         protected Number evaluate(double value) {
@@ -197,16 +196,16 @@ public abstract class TrigonometricFunction extends Scalar<Number, Number> {
 
         public static final String NAME = "atan";
 
+        public AtanFunction(FunctionInfo info) {
+            super(info);
+        }
+
         protected static void registerFunction(ScalarFunctionModule module) {
             // tan(dataType) : double
             for (DataType dt : ALLOWED_TYPES) {
                 FunctionInfo info = new FunctionInfo(new FunctionIdent(NAME, Arrays.asList(dt)), DataTypes.DOUBLE);
                 module.register(new AtanFunction(info));
             }
-        }
-
-        public AtanFunction(FunctionInfo info) {
-            super(info);
         }
 
         protected Number evaluate(double value) {

@@ -18,45 +18,20 @@ import java.util.*;
 
 
 public class Literal<ReturnType>
-        extends Symbol
-        implements Input<ReturnType>, Comparable<Literal> {
-
-    protected Object value;
-    protected DataType type;
+    extends Symbol
+    implements Input<ReturnType>, Comparable<Literal> {
 
     public final static Literal<Void> NULL = new Literal<>(DataTypes.UNDEFINED, null);
     public final static Literal<Boolean> BOOLEAN_TRUE = new Literal<>(DataTypes.BOOLEAN, true);
     public final static Literal<Boolean> BOOLEAN_FALSE = new Literal<>(DataTypes.BOOLEAN, false);
-
     public static final SymbolFactory<Literal> FACTORY = new SymbolFactory<Literal>() {
         @Override
         public Literal newInstance() {
             return new Literal();
         }
     };
-
-    public static Collection<Literal> explodeCollection(Literal collectionLiteral) {
-        Preconditions.checkArgument(DataTypes.isCollectionType(collectionLiteral.valueType()));
-        Iterable values;
-        int size;
-        Object literalValue = collectionLiteral.value();
-        if (literalValue instanceof Collection) {
-            values = (Iterable)literalValue;
-            size = ((Collection)literalValue).size();
-        } else {
-            values = FluentIterable.of((Object[])literalValue);
-            size = ((Object[])literalValue).length;
-        }
-
-        List<Literal> literals = new ArrayList<>(size);
-        for (Object value : values) {
-            literals.add(new Literal<>(
-                    ((CollectionType)collectionLiteral.valueType()).innerType(),
-                    value
-            ));
-        }
-        return literals;
-    }
+    protected Object value;
+    protected DataType type;
 
     private Literal() {
     }
@@ -65,6 +40,29 @@ public class Literal<ReturnType>
         assert typeMatchesValue(type, value) : String.format(Locale.ENGLISH, "value %s is not of type %s", value, type.getName());
         this.type = type;
         this.value = value;
+    }
+
+    public static Collection<Literal> explodeCollection(Literal collectionLiteral) {
+        Preconditions.checkArgument(DataTypes.isCollectionType(collectionLiteral.valueType()));
+        Iterable values;
+        int size;
+        Object literalValue = collectionLiteral.value();
+        if (literalValue instanceof Collection) {
+            values = (Iterable) literalValue;
+            size = ((Collection) literalValue).size();
+        } else {
+            values = FluentIterable.of((Object[]) literalValue);
+            size = ((Object[]) literalValue).length;
+        }
+
+        List<Literal> literals = new ArrayList<>(size);
+        for (Object value : values) {
+            literals.add(new Literal<>(
+                ((CollectionType) collectionLiteral.valueType()).innerType(),
+                value
+            ));
+        }
+        return literals;
     }
 
     private static boolean typeMatchesValue(DataType type, Object value) {
@@ -79,7 +77,7 @@ public class Literal<ReturnType>
             while (innerType instanceof ArrayType && value.getClass().isArray()) {
                 type = innerType;
                 innerType = ((ArrayType) innerType).innerType();
-                value = ((Object[])value)[0];
+                value = ((Object[]) value)[0];
             }
             if (innerType.equals(DataTypes.STRING)) {
                 for (Object o : ((Object[]) value)) {
@@ -89,7 +87,7 @@ public class Literal<ReturnType>
                 }
                 return true;
             } else {
-                return Arrays.equals((Object[]) value, ((ArrayType)type).value(value));
+                return Arrays.equals((Object[]) value, ((ArrayType) type).value(value));
             }
         }
         // types like GeoPoint are represented as arrays
@@ -97,72 +95,6 @@ public class Literal<ReturnType>
             return true;
         }
         return type.value(value).equals(value);
-    }
-
-    @Override
-    @SuppressWarnings("unchecked")
-    public int compareTo(Literal o) {
-        return type.compareValueTo(value, o.value);
-    }
-
-    @Override
-    @SuppressWarnings("unchecked")
-    public ReturnType value() {
-        return (ReturnType)value;
-    }
-
-    @Override
-    public DataType valueType() {
-        return type;
-    }
-
-    @Override
-    public SymbolType symbolType() {
-        return SymbolType.LITERAL;
-    }
-
-    @Override
-    public <C, R> R accept(SymbolVisitor<C, R> visitor, C context) {
-        return visitor.visitLiteral(this, context);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hashCode(value());
-    }
-
-    @Override
-    public boolean equals(Object obj) {
-        if (this == obj) return true;
-        if (obj == null || getClass() != obj.getClass()) return false;
-        Literal literal = (Literal) obj;
-        if (valueType().equals(literal.valueType())) {
-            if (valueType().compareValueTo(value, literal.value) == 0) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    @Override
-    public String toString() {
-        return "Literal{" +
-                "value=" + BytesRefs.toString(value) +
-                ", type=" + type +
-                '}';
-    }
-
-    @Override
-    @SuppressWarnings("unchecked")
-    public void readFrom(StreamInput in) throws IOException {
-        type = DataTypes.fromStream(in);
-        value = type.streamer().readValueFrom(in);
-    }
-
-    @Override
-    public void writeTo(StreamOutput out) throws IOException {
-        DataTypes.toStream(type, out);
-        type.streamer().writeValueTo(out, value);
     }
 
     public static Literal<Map<String, Object>> newLiteral(Map<String, Object> value) {
@@ -224,7 +156,7 @@ public class Literal<ReturnType>
      * in which case the symbol will be returned as is.
      *
      * @param symbol that is expected to be a literal
-     * @param type type that the literal should have
+     * @param type   type that the literal should have
      * @return converted literal
      * @throws ConversionException if symbol cannot be converted to the given type
      */
@@ -239,6 +171,72 @@ public class Literal<ReturnType>
         } catch (IllegalArgumentException | ClassCastException e) {
             throw new ConversionException(symbol, type);
         }
+    }
+
+    @Override
+    @SuppressWarnings("unchecked")
+    public int compareTo(Literal o) {
+        return type.compareValueTo(value, o.value);
+    }
+
+    @Override
+    @SuppressWarnings("unchecked")
+    public ReturnType value() {
+        return (ReturnType) value;
+    }
+
+    @Override
+    public DataType valueType() {
+        return type;
+    }
+
+    @Override
+    public SymbolType symbolType() {
+        return SymbolType.LITERAL;
+    }
+
+    @Override
+    public <C, R> R accept(SymbolVisitor<C, R> visitor, C context) {
+        return visitor.visitLiteral(this, context);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hashCode(value());
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj) return true;
+        if (obj == null || getClass() != obj.getClass()) return false;
+        Literal literal = (Literal) obj;
+        if (valueType().equals(literal.valueType())) {
+            if (valueType().compareValueTo(value, literal.value) == 0) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    @Override
+    public String toString() {
+        return "Literal{" +
+               "value=" + BytesRefs.toString(value) +
+               ", type=" + type +
+               '}';
+    }
+
+    @Override
+    @SuppressWarnings("unchecked")
+    public void readFrom(StreamInput in) throws IOException {
+        type = DataTypes.fromStream(in);
+        value = type.streamer().readValueFrom(in);
+    }
+
+    @Override
+    public void writeTo(StreamOutput out) throws IOException {
+        DataTypes.toStream(type, out);
+        type.streamer().writeValueTo(out, value);
     }
 
 }

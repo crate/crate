@@ -26,7 +26,7 @@ import org.elasticsearch.action.support.replication.ReplicationRequestBuilder;
 import org.elasticsearch.client.ElasticsearchClient;
 
 public class PutChunkRequestBuilder extends ReplicationRequestBuilder<PutChunkRequest, PutChunkResponse,
-        PutChunkRequestBuilder> {
+    PutChunkRequestBuilder> {
 
     protected PutChunkRequestBuilder(ElasticsearchClient client, PutChunkAction action) {
         super(client, action, new PutChunkRequest());

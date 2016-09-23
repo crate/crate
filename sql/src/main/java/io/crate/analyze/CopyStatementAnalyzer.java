@@ -63,37 +63,55 @@ import java.util.*;
 @Singleton
 public class CopyStatementAnalyzer {
 
-    private final AnalysisMetaData analysisMetaData;
-
     private static final StringSetting COMPRESSION_SETTINGS =
-            new StringSetting("compression", ImmutableSet.of("gzip"), true);
-
+        new StringSetting("compression", ImmutableSet.of("gzip"), true);
     private static final StringSetting OUTPUT_FORMAT_SETTINGS =
-            new StringSetting("format", ImmutableSet.of("json_object", "json_array"), true);
-
+        new StringSetting("format", ImmutableSet.of("json_object", "json_array"), true);
     private static final ImmutableMap<String, SettingsApplier> SETTINGS_APPLIERS =
-            ImmutableMap.<String, SettingsApplier>builder()
-                    .put(COMPRESSION_SETTINGS.name(), new SettingsAppliers.StringSettingsApplier(COMPRESSION_SETTINGS))
-                    .put(OUTPUT_FORMAT_SETTINGS.name(), new SettingsAppliers.StringSettingsApplier(OUTPUT_FORMAT_SETTINGS))
-                    .build();
+        ImmutableMap.<String, SettingsApplier>builder()
+            .put(COMPRESSION_SETTINGS.name(), new SettingsAppliers.StringSettingsApplier(COMPRESSION_SETTINGS))
+            .put(OUTPUT_FORMAT_SETTINGS.name(), new SettingsAppliers.StringSettingsApplier(OUTPUT_FORMAT_SETTINGS))
+            .build();
+    private final AnalysisMetaData analysisMetaData;
 
     @Inject
     public CopyStatementAnalyzer(AnalysisMetaData analysisMetaData) {
         this.analysisMetaData = analysisMetaData;
     }
 
+    private static Predicate<DiscoveryNode> discoveryNodePredicate(Row parameters, @Nullable Expression nodeFiltersExpression) {
+        if (nodeFiltersExpression == null) {
+            return Predicates.alwaysTrue();
+        }
+        Object nodeFiltersObj = ExpressionToObjectVisitor.convert(nodeFiltersExpression, parameters);
+        try {
+            return NodeFilters.fromMap((Map) nodeFiltersObj);
+        } catch (ClassCastException e) {
+            throw new IllegalArgumentException(String.format(Locale.ENGLISH,
+                "Invalid parameter passed to %s. Expected an object with name or id keys and string values. Got '%s'",
+                NodeFilters.NAME, nodeFiltersObj));
+        }
+    }
+
+    private static <E extends Enum<E>> E settingAsEnum(Class<E> settingsEnum, String settingValue) {
+        if (settingValue == null || settingValue.isEmpty()) {
+            return null;
+        }
+        return Enum.valueOf(settingsEnum, settingValue.toUpperCase(Locale.ENGLISH));
+    }
+
     public CopyFromAnalyzedStatement convertCopyFrom(CopyFrom node, Analysis analysis) {
         DocTableInfo tableInfo = analysisMetaData.schemas().getWritableTable(
-                TableIdent.of(node.table(), analysis.parameterContext().defaultSchema()));
+            TableIdent.of(node.table(), analysis.parameterContext().defaultSchema()));
         DocTableRelation tableRelation = new DocTableRelation(tableInfo);
         Operation.blockedRaiseException(tableInfo, Operation.INSERT);
 
         String partitionIdent = null;
         if (!node.table().partitionProperties().isEmpty()) {
             partitionIdent = PartitionPropertiesAnalyzer.toPartitionIdent(
-                    tableInfo,
-                    node.table().partitionProperties(),
-                    analysis.parameterContext().parameters());
+                tableInfo,
+                node.table().partitionProperties(),
+                analysis.parameterContext().parameters());
         }
 
         Context context = new Context(
@@ -110,25 +128,12 @@ public class CopyStatementAnalyzer {
         Symbol uri = context.processExpression(node.path());
 
         if (!(uri.valueType() == DataTypes.STRING ||
-             uri.valueType() instanceof CollectionType && ((CollectionType) uri.valueType()).innerType() == DataTypes.STRING)) {
+              uri.valueType() instanceof CollectionType &&
+              ((CollectionType) uri.valueType()).innerType() == DataTypes.STRING)) {
             throw CopyFromAnalyzedStatement.raiseInvalidType(uri.valueType());
         }
 
         return new CopyFromAnalyzedStatement(tableInfo, settings, uri, partitionIdent, nodeFilters);
-    }
-
-    private static Predicate<DiscoveryNode> discoveryNodePredicate(Row parameters, @Nullable Expression nodeFiltersExpression) {
-        if (nodeFiltersExpression == null) {
-            return Predicates.alwaysTrue();
-        }
-        Object nodeFiltersObj = ExpressionToObjectVisitor.convert(nodeFiltersExpression, parameters);
-        try {
-            return NodeFilters.fromMap((Map) nodeFiltersObj);
-        } catch (ClassCastException e) {
-            throw new IllegalArgumentException(String.format(Locale.ENGLISH,
-                    "Invalid parameter passed to %s. Expected an object with name or id keys and string values. Got '%s'",
-                    NodeFilters.NAME, nodeFiltersObj));
-        }
     }
 
     public CopyToAnalyzedStatement convertCopyTo(CopyTo node, Analysis analysis) {
@@ -137,10 +142,10 @@ public class CopyStatementAnalyzer {
         }
 
         TableInfo tableInfo = analysisMetaData.schemas().getTableInfo(
-                TableIdent.of(node.table(), analysis.parameterContext().defaultSchema()));
+            TableIdent.of(node.table(), analysis.parameterContext().defaultSchema()));
         if (!(tableInfo instanceof DocTableInfo)) {
             throw new UnsupportedOperationException(String.format(Locale.ENGLISH,
-                    "Cannot COPY %s TO. COPY TO only supports user tables", tableInfo.ident()));
+                "Cannot COPY %s TO. COPY TO only supports user tables", tableInfo.ident()));
         }
         Operation.blockedRaiseException(tableInfo, Operation.READ);
         DocTableRelation tableRelation = new DocTableRelation((DocTableInfo) tableInfo);
@@ -148,7 +153,7 @@ public class CopyStatementAnalyzer {
         Context context = new Context(
             analysisMetaData, analysis.parameterContext(), analysis.statementContext(), tableRelation, Operation.READ);
         Settings settings = GenericPropertiesConverter.settingsFromProperties(
-                node.genericProperties(), analysis.parameterContext(), SETTINGS_APPLIERS).build();
+            node.genericProperties(), analysis.parameterContext(), SETTINGS_APPLIERS).build();
 
         WriterProjection.CompressionType compressionType = settingAsEnum(WriterProjection.CompressionType.class, settings.get(COMPRESSION_SETTINGS.name()));
         WriterProjection.OutputFormat outputFormat = settingAsEnum(WriterProjection.OutputFormat.class, settings.get(OUTPUT_FORMAT_SETTINGS.name()));
@@ -204,20 +209,13 @@ public class CopyStatementAnalyzer {
         return new CopyToAnalyzedStatement(subRelation, settings, uri, compressionType, outputFormat, outputNames, columnsDefined, overwrites);
     }
 
-    private static <E extends Enum<E>> E settingAsEnum(Class<E> settingsEnum, String settingValue) {
-        if (settingValue == null || settingValue.isEmpty()) {
-            return null;
-        }
-        return Enum.valueOf(settingsEnum, settingValue.toUpperCase(Locale.ENGLISH));
-    }
-
     private List<String> resolvePartitions(CopyTo node, Analysis analysis, DocTableRelation tableRelation) {
         List<String> partitions = ImmutableList.of();
         if (!node.table().partitionProperties().isEmpty()) {
             PartitionName partitionName = PartitionPropertiesAnalyzer.toPartitionName(
-                    tableRelation.tableInfo(),
-                    node.table().partitionProperties(),
-                    analysis.parameterContext().parameters());
+                tableRelation.tableInfo(),
+                node.table().partitionProperties(),
+                analysis.parameterContext().parameters());
 
             if (!partitionExists(tableRelation.tableInfo(), partitionName)) {
                 throw new PartitionUnknownException(tableRelation.tableInfo().ident().fqn(), partitionName.ident());
@@ -251,7 +249,7 @@ public class CopyStatementAnalyzer {
             }
 
             return new WhereClause(whereClause.query(), whereClause.docKeys().orNull(),
-                    partitions.isEmpty() ? whereClause.partitions() : partitions);
+                partitions.isEmpty() ? whereClause.partitions() : partitions);
         }
     }
 
@@ -279,9 +277,9 @@ public class CopyStatementAnalyzer {
             }
             if (expression instanceof QualifiedNameReference) {
                 throw new IllegalArgumentException(String.format(Locale.ENGLISH,
-                        "Can't use column reference in property assignment \"%s = %s\". Use literals instead.",
-                        key,
-                        ((QualifiedNameReference) expression).getName().toString()));
+                    "Can't use column reference in property assignment \"%s = %s\". Use literals instead.",
+                    key,
+                    ((QualifiedNameReference) expression).getName().toString()));
             }
 
             Symbol v = expressionAnalyzer.convert(expression, expressionAnalysisContext);
@@ -308,10 +306,10 @@ public class CopyStatementAnalyzer {
             expressionAnalysisContext = new ExpressionAnalysisContext(stmtCtx);
             this.stmtCtx = stmtCtx;
             expressionAnalyzer = new ExpressionAnalyzer(
-                    analysisMetaData,
-                    parameterContext,
-                    new NameFieldProvider(tableRelation),
-                    tableRelation);
+                analysisMetaData,
+                parameterContext,
+                new NameFieldProvider(tableRelation),
+                tableRelation);
             expressionAnalyzer.setResolveFieldsOperation(operation);
         }
 

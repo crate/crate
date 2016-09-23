@@ -30,7 +30,7 @@ public class CreateSnapshotException extends UnhandledServerException {
 
     public CreateSnapshotException(SnapshotId snapshotId, String message) {
         super(String.format(Locale.ENGLISH, "Error creating snapshot '%s.%s': %s",
-                        snapshotId.getRepository(), snapshotId.getSnapshot(), message));
+            snapshotId.getRepository(), snapshotId.getSnapshot(), message));
     }
 
     @Override

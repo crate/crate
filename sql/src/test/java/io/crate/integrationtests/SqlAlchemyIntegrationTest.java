@@ -39,8 +39,8 @@ public class SqlAlchemyIntegrationTest extends SQLTransportIntegrationTest {
         refresh();
 
         execute(
-                "SELECT count(?) AS count_1 FROM test WHERE test.col2 = ?",
-                new Object[]{"*", "foo"}
+            "SELECT count(?) AS count_1 FROM test WHERE test.col2 = ?",
+            new Object[]{"*", "foo"}
         );
         assertEquals(1L, response.rows()[0][0]);
     }
@@ -57,8 +57,8 @@ public class SqlAlchemyIntegrationTest extends SQLTransportIntegrationTest {
         refresh();
 
         execute(
-                "SELECT count(test.col1) AS count_1 FROM test WHERE test.col2 = ?",
-                new Object[]{"foo"}
+            "SELECT count(test.col1) AS count_1 FROM test WHERE test.col2 = ?",
+            new Object[]{"foo"}
         );
         assertEquals(1L, response.rows()[0][0]);
     }
@@ -76,9 +76,9 @@ public class SqlAlchemyIntegrationTest extends SQLTransportIntegrationTest {
         refresh();
 
         execute(
-                "SELECT count(?) AS count_1, test.col2 AS test_col2 FROM test " +
-                        "GROUP BY test.col2 order by count_1 desc",
-                new Object[]{"*"}
+            "SELECT count(?) AS count_1, test.col2 AS test_col2 FROM test " +
+            "GROUP BY test.col2 order by count_1 desc",
+            new Object[]{"*"}
         );
 
         assertEquals(2L, response.rows()[0][0]);
@@ -98,8 +98,8 @@ public class SqlAlchemyIntegrationTest extends SQLTransportIntegrationTest {
         refresh();
 
         execute(
-                "SELECT count(test.col1) AS count_1, test.col2 AS test_col2 FROM test " +
-                        "GROUP BY test.col2 order by count_1 desc"
+            "SELECT count(test.col1) AS count_1, test.col2 AS test_col2 FROM test " +
+            "GROUP BY test.col2 order by count_1 desc"
         );
 
         assertEquals(2L, response.rows()[0][0]);

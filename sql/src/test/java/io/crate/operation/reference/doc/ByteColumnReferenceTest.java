@@ -40,7 +40,7 @@ import static org.hamcrest.core.Is.is;
 public class ByteColumnReferenceTest extends DocLevelExpressionsTest {
     @Override
     protected void insertValues(IndexWriter writer) throws Exception {
-        for (byte b = -10; b<10; b++) {
+        for (byte b = -10; b < 10; b++) {
             Document doc = new Document();
             doc.add(new StringField("_id", Byte.toString(b), Field.Store.NO));
             doc.add(new IntField(fieldName().indexName(), b, Field.Store.NO));

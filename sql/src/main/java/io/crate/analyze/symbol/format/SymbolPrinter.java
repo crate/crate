@@ -46,7 +46,13 @@ import static io.crate.analyze.symbol.format.SymbolPrinter.Strings.*;
 public class SymbolPrinter {
 
     public static final SymbolPrinter INSTANCE = new SymbolPrinter(null);
-
+    public static final com.google.common.base.Function<? super Symbol, String> FUNCTION = new com.google.common.base.Function<Symbol, String>() {
+        @Nullable
+        @Override
+        public String apply(@Nullable Symbol input) {
+            return input == null ? null : INSTANCE.printSimple(input);
+        }
+    };
     private static final FunctionFormatSpec SIMPLE_FUNCTION_FORMAT_SPEC = new FunctionFormatSpec() {
         @Override
         public boolean formatArgs(Function function) {
@@ -63,7 +69,6 @@ public class SymbolPrinter {
             return PAREN_CLOSE;
         }
     };
-
     private static final OperatorFormatSpec SIMPLE_OPERATOR_FORMAT_SPEC = new OperatorFormatSpec() {
         @Override
         public String operator(Function function) {
@@ -71,14 +76,42 @@ public class SymbolPrinter {
             return function.info().ident().name().substring(3).toUpperCase(Locale.ENGLISH);
         }
     };
+    private final SymbolPrintVisitor symbolPrintVisitor;
 
-    public static final com.google.common.base.Function<? super Symbol, String> FUNCTION = new com.google.common.base.Function<Symbol, String>() {
-        @Nullable
-        @Override
-        public String apply(@Nullable Symbol input) {
-            return input == null ? null : INSTANCE.printSimple(input);
-        }
-    };
+    @Inject
+    public SymbolPrinter(@Nullable Functions functions) {
+        this.symbolPrintVisitor = new SymbolPrintVisitor(functions);
+    }
+
+    public String printSimple(Symbol symbol) {
+        return print(symbol, Style.SIMPLE);
+    }
+
+    public String printFullQualified(Symbol symbol) {
+        return print(symbol, Style.FULL_QUALIFIED);
+    }
+
+    /**
+     * format the given symbol
+     *
+     * @param symbol        the symbol to format
+     * @param maxDepth      the max depth to print, if maxDepth is reached, "..." is printed for the rest
+     * @param fullQualified if references should be fully qualified (contain schema and table name)
+     */
+    public String print(Symbol symbol, int maxDepth, boolean fullQualified, boolean failIfMaxDepthReached) {
+        SymbolPrinterContext context = new SymbolPrinterContext(maxDepth, fullQualified, failIfMaxDepthReached);
+        symbolPrintVisitor.process(symbol, context);
+        return context.formatted();
+    }
+
+    /**
+     * format a symbol with the given style
+     */
+    public String print(Symbol symbol, Style formatStyle) {
+        SymbolPrinterContext context = formatStyle.context();
+        symbolPrintVisitor.process(symbol, context);
+        return context.formatted();
+    }
 
     public enum Style {
         SIMPLE(SymbolPrinterContext.DEFAULT_MAX_DEPTH, SymbolPrinterContext.DEFAULT_FULL_QUALIFIED, SymbolPrinterContext.DEFAULT_FAIL_IF_MAX_DEPTH_REACHED),
@@ -99,43 +132,6 @@ public class SymbolPrinter {
         SymbolPrinterContext context() {
             return new SymbolPrinterContext(maxDepth, fullQualified, failIfMaxDepthReached);
         }
-    }
-
-    private final SymbolPrintVisitor symbolPrintVisitor;
-
-    @Inject
-    public SymbolPrinter(@Nullable Functions functions) {
-        this.symbolPrintVisitor = new SymbolPrintVisitor(functions);
-    }
-
-    public String printSimple(Symbol symbol) {
-        return print(symbol, Style.SIMPLE);
-    }
-
-    public String printFullQualified(Symbol symbol) {
-        return print(symbol, Style.FULL_QUALIFIED);
-    }
-
-    /**
-     * format the given symbol
-     *
-     * @param symbol the symbol to format
-     * @param maxDepth the max depth to print, if maxDepth is reached, "..." is printed for the rest
-     * @param fullQualified if references should be fully qualified (contain schema and table name)
-     */
-    public String print(Symbol symbol, int maxDepth, boolean fullQualified, boolean failIfMaxDepthReached) {
-        SymbolPrinterContext context = new SymbolPrinterContext(maxDepth, fullQualified, failIfMaxDepthReached);
-        symbolPrintVisitor.process(symbol, context);
-        return context.formatted();
-    }
-
-    /**
-     * format a symbol with the given style
-     */
-    public String print(Symbol symbol, Style formatStyle) {
-        SymbolPrinterContext context = formatStyle.context();
-        symbolPrintVisitor.process(symbol, context);
-        return context.formatted();
     }
 
     private static final class SymbolPrintVisitor extends SymbolVisitor<SymbolPrinterContext, Void> {
@@ -193,9 +189,9 @@ public class SymbolPrinter {
             if (functions != null) {
                 FunctionImplementation<?> impl = functions.get(function.info().ident());
                 if (impl instanceof FunctionFormatSpec) {
-                    functionFormatSpec = (FunctionFormatSpec)impl;
+                    functionFormatSpec = (FunctionFormatSpec) impl;
                 } else if (impl instanceof OperatorFormatSpec) {
-                    operatorFormatSpec = (OperatorFormatSpec)impl;
+                    operatorFormatSpec = (OperatorFormatSpec) impl;
                 }
             } else if (function.info().ident().name().startsWith("op_")) {
                 operatorFormatSpec = SIMPLE_OPERATOR_FORMAT_SPEC;
@@ -222,16 +218,16 @@ public class SymbolPrinter {
             // print operator
             String operatorName = anyOperatorName(function.info().ident().name());
             context.builder
-                    .append(WS)
-                    .append(operatorName)
-                    .append(WS);
+                .append(WS)
+                .append(operatorName)
+                .append(WS);
 
             context.builder.append(ANY).append(PAREN_OPEN);
             context.down();
             process(args.get(1), context);
             context.up();
             context.builder.append(PAREN_CLOSE)
-                           .append(PAREN_CLOSE);
+                .append(PAREN_CLOSE);
         }
 
         private String anyOperatorName(String functionName) {
@@ -248,15 +244,15 @@ public class SymbolPrinter {
             process(args.get(0), context);
             context.up();
             context.builder.append(WS)
-                    .append(IN)
-                    .append(WS)
-                    .append(PAREN_OPEN);
+                .append(IN)
+                .append(WS)
+                .append(PAREN_OPEN);
             Symbol setArg = args.get(1);
 
             context.down();
             if (!context.verifyMaxDepthReached()) {
                 assert setArg instanceof Literal && setArg.valueType() instanceof SetType;
-                Set setValue = (Set)((Literal) setArg).value();
+                Set setValue = (Set) ((Literal) setArg).value();
                 for (Iterator iterator = setValue.iterator(); iterator.hasNext(); ) {
                     Object elem = iterator.next();
                     LiteralValueFormatter.INSTANCE.format(elem, context.builder);
@@ -267,7 +263,7 @@ public class SymbolPrinter {
             }
             context.up();
             context.builder.append(PAREN_CLOSE)
-                           .append(PAREN_CLOSE);
+                .append(PAREN_CLOSE);
         }
 
         @Override
@@ -278,7 +274,7 @@ public class SymbolPrinter {
 
             if (context.isFullQualified()) {
                 context.builder.append(symbol.ident().tableIdent().sqlFqn())
-                        .append(DOT);
+                    .append(DOT);
             }
             context.builder.append(symbol.ident().columnIdent().quotedOutputName());
             return null;
@@ -297,7 +293,7 @@ public class SymbolPrinter {
 
             if (context.isFullQualified()) {
                 context.builder.append(RelationPrinter.INSTANCE.process(field.relation(), null))
-                        .append(DOT);
+                    .append(DOT);
             }
             if (field.path() instanceof ColumnIdent) {
                 context.builder.append(((ColumnIdent) field.path()).quotedOutputName());
@@ -314,10 +310,10 @@ public class SymbolPrinter {
             }
 
             context.builder.append("RELCOL(")
-                    .append(relationColumn.relationName())
-                    .append(", ")
-                    .append(relationColumn.index())
-                    .append(")");
+                .append(relationColumn.relationName())
+                .append(", ")
+                .append(relationColumn.index())
+                .append(")");
             return null;
         }
 
@@ -327,8 +323,8 @@ public class SymbolPrinter {
                 return null;
             }
             context.builder.append("INPUT(")
-                    .append(inputColumn.index())
-                    .append(")");
+                .append(inputColumn.index())
+                .append(")");
             return null;
         }
 
@@ -362,7 +358,7 @@ public class SymbolPrinter {
             switch (numArgs) {
                 case 1:
                     context.builder.append(formatter.operator(function))
-                            .append(" ");
+                        .append(" ");
                     context.down();
                     function.arguments().get(0).accept(this, context);
                     context.up();
@@ -372,8 +368,8 @@ public class SymbolPrinter {
                     function.arguments().get(0).accept(this, context);
                     context.up();
                     context.builder.append(WS)
-                            .append(formatter.operator(function))
-                            .append(WS);
+                        .append(formatter.operator(function))
+                        .append(WS);
                     context.down();
                     function.arguments().get(1).accept(this, context);
                     context.up();
@@ -396,9 +392,9 @@ public class SymbolPrinter {
         private void printArgs(List<Symbol> args, SymbolPrinterContext context) {
             context.down();
             try {
-                for (int i = 0, size=args.size(); i < size; i++) {
+                for (int i = 0, size = args.size(); i < size; i++) {
                     args.get(i).accept(this, context);
-                    if (i < size-1) {
+                    if (i < size - 1) {
                         context.builder.append(COMMA).append(WS);
                     }
                 }

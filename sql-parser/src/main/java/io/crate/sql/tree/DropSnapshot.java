@@ -51,8 +51,8 @@ public class DropSnapshot extends Statement {
     @Override
     public String toString() {
         return MoreObjects.toStringHelper(this)
-                .add("name", name)
-                .toString();
+            .add("name", name)
+            .toString();
     }
 
     @Override

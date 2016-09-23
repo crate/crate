@@ -46,6 +46,11 @@ public class SymbolToFieldExtractor<T> {
         this.visitor = new Visitor<>(extractorFactory);
     }
 
+    private static <T> Function<T, Object> constant(Object value) {
+        //noinspection unchecked
+        return (Function<T, Object>) Functions.constant(value);
+    }
+
     public Function<T, Object> convert(Symbol symbol, Context context) {
         return visitor.process(symbol, context);
     }
@@ -73,12 +78,6 @@ public class SymbolToFieldExtractor<T> {
         public Object referenceValue(Reference reference) {
             return null;
         }
-    }
-
-
-    private static <T> Function<T, Object> constant(Object value) {
-        //noinspection unchecked
-        return (Function<T, Object>) Functions.constant(value);
     }
 
     static class Visitor<T> extends SymbolVisitor<Context, Function<T, Object>> {
@@ -126,7 +125,7 @@ public class SymbolToFieldExtractor<T> {
         @Override
         protected Function<T, Object> visitSymbol(Symbol symbol, Context context) {
             throw new UnsupportedOperationException(
-                    SymbolFormatter.format("Operation not supported with symbol %s", symbol));
+                SymbolFormatter.format("Operation not supported with symbol %s", symbol));
         }
     }
 

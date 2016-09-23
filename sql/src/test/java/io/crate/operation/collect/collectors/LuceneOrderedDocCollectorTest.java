@@ -61,6 +61,20 @@ public class LuceneOrderedDocCollectorTest extends RandomizedTest {
 
     private static final Reference REFERENCE = new Reference(new ReferenceIdent(new TableIdent(null, "table"), "value"), RowGranularity.DOC, DataTypes.LONG);
 
+    private static void addDocToLucene(IndexWriter w, Long value) throws IOException {
+        Document doc = new Document();
+        if (value != null) {
+            MappedFieldType fieldType = new LongFieldMapper.LongFieldType();
+            fieldType.setNames(new MappedFieldType.Names("value"));
+            doc.add(new LongFieldMapper.CustomLongNumericField(value, fieldType));
+            doc.add(new SortedNumericDocValuesField("value", value));
+        } else {
+            // Create a placeholder field
+            doc.add(new SortedDocValuesField("null_value", new BytesRef("null")));
+        }
+        w.addDocument(doc);
+    }
+
     private Directory createLuceneIndex() throws IOException {
         Path tmpDir = newTempDir();
         Directory index = FSDirectory.open(tmpDir);
@@ -79,20 +93,6 @@ public class LuceneOrderedDocCollectorTest extends RandomizedTest {
         return index;
     }
 
-    private static void addDocToLucene(IndexWriter w, Long value) throws IOException {
-        Document doc = new Document();
-        if (value != null) {
-            MappedFieldType fieldType = new LongFieldMapper.LongFieldType();
-            fieldType.setNames(new MappedFieldType.Names("value"));
-            doc.add(new LongFieldMapper.CustomLongNumericField(value, fieldType));
-            doc.add(new SortedNumericDocValuesField("value", value));
-        } else {
-            // Create a placeholder field
-            doc.add(new SortedDocValuesField("null_value", new BytesRef("null")));
-        }
-        w.addDocument(doc);
-    }
-
     private TopFieldDocs search(IndexReader reader, Query searchAfterQuery, Sort sort) throws IOException {
         IndexSearcher searcher = new IndexSearcher(reader);
 
@@ -109,8 +109,8 @@ public class LuceneOrderedDocCollectorTest extends RandomizedTest {
 
     private Long[] nextPageQuery(IndexReader reader, FieldDoc lastCollected, boolean reverseFlag, @Nullable Boolean nullFirst) throws IOException {
         OrderBy orderBy = new OrderBy(ImmutableList.<Symbol>of(REFERENCE),
-                new boolean[]{reverseFlag},
-                new Boolean[]{nullFirst});
+            new boolean[]{reverseFlag},
+            new Boolean[]{nullFirst});
 
         SortField sortField = new SortedNumericSortField("value", SortField.Type.LONG, reverseFlag);
         Long missingValue = (Long) LuceneMissingValue.missingValue(orderBy, 0);

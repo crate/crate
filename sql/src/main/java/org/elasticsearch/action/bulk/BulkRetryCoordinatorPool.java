@@ -34,9 +34,9 @@ import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.index.shard.ShardNotFoundException;
-import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.index.IndexNotFoundException;
+import org.elasticsearch.index.shard.ShardId;
+import org.elasticsearch.index.shard.ShardNotFoundException;
 import org.elasticsearch.threadpool.ThreadPool;
 
 import java.util.HashMap;
@@ -68,7 +68,7 @@ public class BulkRetryCoordinatorPool extends AbstractLifecycleComponent<BulkRet
             BulkRetryCoordinator coordinator = coordinatorsByShardId.get(shardId);
             if (coordinator == null) {
                 IndexRoutingTable indexRoutingTable = clusterService.state().routingTable()
-                        .index(shardId.getIndex());
+                    .index(shardId.getIndex());
                 if (indexRoutingTable == null) {
                     throw new IndexNotFoundException("cannot find index " + shardId.index());
                 }

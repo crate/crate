@@ -51,17 +51,23 @@ public class WithinFunction extends Scalar<Boolean, Object> {
     public static final String NAME = "within";
 
     private static final Set<DataType> LEFT_TYPES = ImmutableSet.<DataType>of(
-            DataTypes.GEO_POINT,
-            DataTypes.GEO_SHAPE,
-            DataTypes.OBJECT,
-            DataTypes.STRING
+        DataTypes.GEO_POINT,
+        DataTypes.GEO_SHAPE,
+        DataTypes.OBJECT,
+        DataTypes.STRING
     );
 
     private static final Set<DataType> RIGHT_TYPES = ImmutableSet.<DataType>of(
-            DataTypes.GEO_SHAPE,
-            DataTypes.OBJECT,
-            DataTypes.STRING
+        DataTypes.GEO_SHAPE,
+        DataTypes.OBJECT,
+        DataTypes.STRING
     );
+    private static final FunctionInfo SHAPE_INFO = info(DataTypes.GEO_POINT, DataTypes.GEO_SHAPE);
+    private final FunctionInfo info;
+
+    private WithinFunction(FunctionInfo info) {
+        this.info = info;
+    }
 
     public static void register(ScalarFunctionModule scalarFunctionModule) {
         for (DataType left : LEFT_TYPES) {
@@ -73,17 +79,16 @@ public class WithinFunction extends Scalar<Boolean, Object> {
 
     private static FunctionInfo info(DataType pointType, DataType shapeType) {
         return new FunctionInfo(
-                new FunctionIdent(NAME, ImmutableList.of(pointType, shapeType)),
-                DataTypes.BOOLEAN
+            new FunctionIdent(NAME, ImmutableList.of(pointType, shapeType)),
+            DataTypes.BOOLEAN
         );
     }
 
-    private static final FunctionInfo SHAPE_INFO = info(DataTypes.GEO_POINT, DataTypes.GEO_SHAPE);
-
-    private final FunctionInfo info;
-
-    private WithinFunction(FunctionInfo info) {
-        this.info = info;
+    private static Symbol convertTo(DataType toType, Literal convertMe) {
+        if (convertMe.valueType().equals(toType)) {
+            return convertMe;
+        }
+        return Literal.convert(convertMe, toType);
     }
 
     @Override
@@ -125,8 +130,8 @@ public class WithinFunction extends Scalar<Boolean, Object> {
     @SuppressWarnings("unchecked")
     private Shape parseRightShape(Object right) {
         return (right instanceof BytesRef) ?
-                GeoJSONUtils.wkt2Shape(BytesRefs.toString(right)) :
-                GeoJSONUtils.map2Shape((Map<String, Object>) right);
+            GeoJSONUtils.wkt2Shape(BytesRefs.toString(right)) :
+            GeoJSONUtils.map2Shape((Map<String, Object>) right);
     }
 
     @Override
@@ -169,12 +174,5 @@ public class WithinFunction extends Scalar<Boolean, Object> {
         }
 
         return symbol;
-    }
-
-    private static Symbol convertTo(DataType toType, Literal convertMe) {
-        if (convertMe.valueType().equals(toType)) {
-            return convertMe;
-        }
-        return Literal.convert(convertMe, toType);
     }
 }

@@ -39,9 +39,9 @@ public class SleepScalarFunction extends Scalar<Boolean, Long> {
     public static final String NAME = "sleep";
 
     protected final static FunctionInfo INFO = new FunctionInfo(
-            new FunctionIdent(NAME, Collections.<DataType>singletonList(DataTypes.LONG)),
-            DataTypes.BOOLEAN,
-            FunctionInfo.Type.SCALAR, false, false);
+        new FunctionIdent(NAME, Collections.<DataType>singletonList(DataTypes.LONG)),
+        DataTypes.BOOLEAN,
+        FunctionInfo.Type.SCALAR, false, false);
 
     @Override
     public FunctionInfo info() {

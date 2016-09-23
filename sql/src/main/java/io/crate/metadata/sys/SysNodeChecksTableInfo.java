@@ -46,18 +46,8 @@ public class SysNodeChecksTableInfo extends StaticTableInfo {
     public static final TableIdent IDENT = new TableIdent(SysSchemaInfo.NAME, "node_checks");
     private static final ImmutableList<ColumnIdent> PRIMARY_KEYS = ImmutableList.of(SysNodeChecksTableInfo.Columns.ID);
     private static final RowGranularity GRANULARITY = RowGranularity.DOC;
-
-    private final ClusterService clusterService;
     private final static Set<Operation> SUPPORTED_OPERATIONS = EnumSet.of(Operation.READ, Operation.UPDATE);
-
-    public static class Columns {
-        public static final ColumnIdent ID = new ColumnIdent("id");
-        public static final ColumnIdent NODE_ID = new ColumnIdent("node_id");
-        public static final ColumnIdent SEVERITY = new ColumnIdent("severity");
-        public static final ColumnIdent DESCRIPTION = new ColumnIdent("description");
-        public static final ColumnIdent PASSED = new ColumnIdent("passed");
-        public static final ColumnIdent ACKNOWLEDGED = new ColumnIdent("acknowledged");
-    }
+    private final ClusterService clusterService;
 
     @Inject
     protected SysNodeChecksTableInfo(ClusterService clusterService) {
@@ -85,5 +75,14 @@ public class SysNodeChecksTableInfo extends StaticTableInfo {
     @Override
     public Set<Operation> supportedOperations() {
         return SUPPORTED_OPERATIONS;
+    }
+
+    public static class Columns {
+        public static final ColumnIdent ID = new ColumnIdent("id");
+        public static final ColumnIdent NODE_ID = new ColumnIdent("node_id");
+        public static final ColumnIdent SEVERITY = new ColumnIdent("severity");
+        public static final ColumnIdent DESCRIPTION = new ColumnIdent("description");
+        public static final ColumnIdent PASSED = new ColumnIdent("passed");
+        public static final ColumnIdent ACKNOWLEDGED = new ColumnIdent("acknowledged");
     }
 }

@@ -39,33 +39,19 @@ import java.util.Locale;
 
 @Singleton
 public class CreateTableStatementAnalyzer extends DefaultTraversalVisitor<CreateTableAnalyzedStatement,
-        CreateTableStatementAnalyzer.Context> {
-
-    private static final TablePropertiesAnalyzer TABLE_PROPERTIES_ANALYZER = new TablePropertiesAnalyzer();
-    private static final String CLUSTERED_BY_IN_PARTITIONED_ERROR = "Cannot use CLUSTERED BY column in PARTITIONED BY clause";
-    private final Schemas schemas;
-    private final FulltextAnalyzerResolver fulltextAnalyzerResolver;
-    private final AnalysisMetaData analysisMetaData;
-    private final NumberOfShards numberOfShards;
+    CreateTableStatementAnalyzer.Context> {
 
     static final Collection<String> READ_ONLY_SCHEMAS = ImmutableList.of(
         SysSchemaInfo.NAME,
         InformationSchemaInfo.NAME,
         PgCatalogSchemaInfo.NAME
     );
-
-    static class Context {
-        Analysis analysis;
-        CreateTableAnalyzedStatement statement;
-
-        public Context(Analysis analysis) {
-            this.analysis = analysis;
-        }
-    }
-
-    public CreateTableAnalyzedStatement analyze(Node node, Analysis analysis) {
-        return super.process(node, new Context(analysis));
-    }
+    private static final TablePropertiesAnalyzer TABLE_PROPERTIES_ANALYZER = new TablePropertiesAnalyzer();
+    private static final String CLUSTERED_BY_IN_PARTITIONED_ERROR = "Cannot use CLUSTERED BY column in PARTITIONED BY clause";
+    private final Schemas schemas;
+    private final FulltextAnalyzerResolver fulltextAnalyzerResolver;
+    private final AnalysisMetaData analysisMetaData;
+    private final NumberOfShards numberOfShards;
 
     @Inject
     public CreateTableStatementAnalyzer(Schemas schemas,
@@ -78,10 +64,14 @@ public class CreateTableStatementAnalyzer extends DefaultTraversalVisitor<Create
         this.numberOfShards = numberOfShards;
     }
 
+    public CreateTableAnalyzedStatement analyze(Node node, Analysis analysis) {
+        return super.process(node, new Context(analysis));
+    }
+
     @Override
     protected CreateTableAnalyzedStatement visitNode(Node node, Context context) {
         throw new RuntimeException(
-                String.format(Locale.ENGLISH, "Encountered node %s but expected a CreateTable node", node));
+            String.format(Locale.ENGLISH, "Encountered node %s but expected a CreateTable node", node));
     }
 
     @Override
@@ -93,13 +83,13 @@ public class CreateTableStatementAnalyzer extends DefaultTraversalVisitor<Create
         // apply default in case it is not specified in the genericProperties,
         // if it is it will get overwritten afterwards.
         TABLE_PROPERTIES_ANALYZER.analyze(
-                context.statement.tableParameter(), new TableParameterInfo(),
-                node.properties(), context.analysis.parameterContext().parameters(), true);
+            context.statement.tableParameter(), new TableParameterInfo(),
+            node.properties(), context.analysis.parameterContext().parameters(), true);
 
         context.statement.analyzedTableElements(TableElementsAnalyzer.analyze(
-                node.tableElements(),
-                context.analysis.parameterContext(),
-                context.statement.fulltextAnalyzerResolver()));
+            node.tableElements(),
+            context.analysis.parameterContext(),
+            context.statement.fulltextAnalyzerResolver()));
 
         // validate table elements
         context.statement.analyzedTableElements().finalizeAndValidate(
@@ -112,8 +102,8 @@ public class CreateTableStatementAnalyzer extends DefaultTraversalVisitor<Create
         // update table settings
         context.statement.tableParameter().settingsBuilder().put(context.statement.analyzedTableElements().settings());
         context.statement.tableParameter().settingsBuilder().put(
-                IndexMetaData.SETTING_NUMBER_OF_SHARDS,
-                numberOfShards.defaultNumberOfShards()
+            IndexMetaData.SETTING_NUMBER_OF_SHARDS,
+            numberOfShards.defaultNumberOfShards()
         );
 
         for (CrateTableOption option : node.crateTableOptions()) {
@@ -137,7 +127,7 @@ public class CreateTableStatementAnalyzer extends DefaultTraversalVisitor<Create
     public CreateTableAnalyzedStatement visitClusteredBy(ClusteredBy clusteredBy, Context context) {
         if (clusteredBy.column().isPresent()) {
             ColumnIdent routingColumn = ColumnIdent.fromPath(
-                    ExpressionToStringVisitor.convert(clusteredBy.column().get(), context.analysis.parameterContext().parameters()));
+                ExpressionToStringVisitor.convert(clusteredBy.column().get(), context.analysis.parameterContext().parameters()));
 
             for (AnalyzedColumnDefinition column : context.statement.analyzedTableElements().partitionedByColumns) {
                 if (column.ident().equals(routingColumn)) {
@@ -146,18 +136,19 @@ public class CreateTableStatementAnalyzer extends DefaultTraversalVisitor<Create
             }
             if (!context.statement.hasColumnDefinition(routingColumn)) {
                 throw new IllegalArgumentException(
-                        String.format(Locale.ENGLISH, "Invalid or non-existent routing column \"%s\"",
-                                routingColumn));
+                    String.format(Locale.ENGLISH, "Invalid or non-existent routing column \"%s\"",
+                        routingColumn));
             }
-            if (context.statement.primaryKeys().size() > 0 && !context.statement.primaryKeys().contains(routingColumn.fqn())) {
+            if (context.statement.primaryKeys().size() > 0 &&
+                !context.statement.primaryKeys().contains(routingColumn.fqn())) {
                 throw new IllegalArgumentException("Clustered by column must be part of primary keys");
             }
 
             context.statement.routing(routingColumn);
         }
         context.statement.tableParameter().settingsBuilder().put(
-                IndexMetaData.SETTING_NUMBER_OF_SHARDS,
-                numberOfShards.fromClusteredByClause(clusteredBy, context.analysis.parameterContext().parameters())
+            IndexMetaData.SETTING_NUMBER_OF_SHARDS,
+            numberOfShards.fromClusteredByClause(clusteredBy, context.analysis.parameterContext().parameters())
         );
         return context.statement;
     }
@@ -166,7 +157,7 @@ public class CreateTableStatementAnalyzer extends DefaultTraversalVisitor<Create
     public CreateTableAnalyzedStatement visitPartitionedBy(PartitionedBy node, Context context) {
         for (Expression partitionByColumn : node.columns()) {
             ColumnIdent partitionedByIdent = ColumnIdent.fromPath(
-                    ExpressionToStringVisitor.convert(partitionByColumn, context.analysis.parameterContext().parameters()));
+                ExpressionToStringVisitor.convert(partitionByColumn, context.analysis.parameterContext().parameters()));
             context.statement.analyzedTableElements().changeToPartitionedByColumn(partitionedByIdent, false);
             ColumnIdent routing = context.statement.routing();
             if (routing != null && routing.equals(partitionedByIdent)) {
@@ -174,5 +165,14 @@ public class CreateTableStatementAnalyzer extends DefaultTraversalVisitor<Create
             }
         }
         return null;
+    }
+
+    static class Context {
+        Analysis analysis;
+        CreateTableAnalyzedStatement statement;
+
+        public Context(Analysis analysis) {
+            this.analysis = analysis;
+        }
     }
 }

@@ -28,18 +28,12 @@ import java.util.Set;
 
 public interface RowReceiver {
 
-    enum Result {
-        CONTINUE,
-        PAUSE,
-        STOP
-    }
-
     /**
      * Feed the downstream with the next input row.
-     *
+     * <p>
      * If setNextRow returns PAUSE a upstream must call {@link #pauseProcessed(ResumeHandle)} and immediately return afterwards.
      * A Upstream MUST NOT make any other calls until it receives a resume call.
-     *
+     * <p>
      * If setNextRow returns STOP a upstream has to call finish/fail
      *
      * @param row the next row - the row is usually a shared object and the instances content change after the
@@ -58,7 +52,7 @@ public interface RowReceiver {
 
     /**
      * Called from the upstream to indicate that all rows are sent.
-     *
+     * <p>
      * NOTE: This method must not throw any exceptions!
      */
     void finish(RepeatHandle repeatable);
@@ -68,15 +62,15 @@ public interface RowReceiver {
      * This is the equivalent to finish and indicates that the upstream is finished
      *
      * @param throwable the cause of the fail
-     *
-     * NOTE: This method must not throw any exceptions!
+     *                  <p>
+     *                  NOTE: This method must not throw any exceptions!
      */
     void fail(Throwable throwable);
 
     /**
      * kill a RowReceiver to stop it's execution.
      * kill can be called from a different thread and can be called after/during finish/fail operations
-     *
+     * <p>
      * If a RowReceiver doesn't delegate the kill to another RowReceiver the rowReceiver has to return false on the
      * next setNextRow call in order to stop collect operations.
      */
@@ -89,8 +83,14 @@ public interface RowReceiver {
 
     /**
      * specifies which requirements a downstream requires from an upstream in order to work correctly.
-     *
+     * <p>
      * This can be used to switch to optimized implementations if something isn't/is requirement
      */
     Set<Requirement> requirements();
+
+    enum Result {
+        CONTINUE,
+        PAUSE,
+        STOP
+    }
 }

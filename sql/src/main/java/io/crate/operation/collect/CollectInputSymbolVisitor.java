@@ -42,28 +42,9 @@ import java.util.List;
  * that might be treated in a special way
  */
 public class CollectInputSymbolVisitor<E extends Input<?>>
-        extends AbstractImplementationSymbolVisitor<CollectInputSymbolVisitor.Context> {
+    extends AbstractImplementationSymbolVisitor<CollectInputSymbolVisitor.Context> {
 
     private final ReferenceResolver<E> referenceResolver;
-
-    public static class Context<E> extends AbstractImplementationSymbolVisitor.Context {
-
-        protected ArrayList<E> docLevelExpressions = new ArrayList<>();
-
-        private @Nullable OrderBy orderBy = null;
-
-        public List<E> docLevelExpressions() {
-            return docLevelExpressions;
-        }
-
-        public void orderBy(@Nullable OrderBy orderBy) {
-            this.orderBy = orderBy;
-        }
-
-        public @Nullable OrderBy orderBy() {
-            return this.orderBy;
-        }
-    }
 
     public CollectInputSymbolVisitor(Functions functions, ReferenceResolver<E> referenceResolver) {
         super(functions);
@@ -101,6 +82,29 @@ public class CollectInputSymbolVisitor<E extends Input<?>>
             }
             context.docLevelExpressions.add(docLevelExpression);
             return docLevelExpression;
+        }
+    }
+
+    public static class Context<E> extends AbstractImplementationSymbolVisitor.Context {
+
+        protected ArrayList<E> docLevelExpressions = new ArrayList<>();
+
+        private
+        @Nullable
+        OrderBy orderBy = null;
+
+        public List<E> docLevelExpressions() {
+            return docLevelExpressions;
+        }
+
+        public void orderBy(@Nullable OrderBy orderBy) {
+            this.orderBy = orderBy;
+        }
+
+        public
+        @Nullable
+        OrderBy orderBy() {
+            return this.orderBy;
         }
     }
 }

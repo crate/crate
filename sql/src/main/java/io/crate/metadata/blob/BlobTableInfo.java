@@ -46,6 +46,12 @@ import java.util.*;
 
 public class BlobTableInfo implements TableInfo, ShardedTable {
 
+    private static final Map<ColumnIdent, Reference> INFOS = new LinkedHashMap<>();
+    private static final ImmutableList<ColumnIdent> PRIMARY_KEY = ImmutableList.of(new ColumnIdent("digest"));
+    private final static List<Tuple<String, DataType>> STATIC_COLUMNS = ImmutableList.<Tuple<String, DataType>>builder()
+        .add(new Tuple<String, DataType>("digest", DataTypes.STRING))
+        .add(new Tuple<String, DataType>("last_modified", DataTypes.TIMESTAMP))
+        .build();
     private final TableIdent ident;
     private final int numberOfShards;
     private final BytesRef numberOfReplicas;
@@ -54,15 +60,7 @@ public class BlobTableInfo implements TableInfo, ShardedTable {
     private final LinkedHashSet<Reference> columns = new LinkedHashSet<>();
     private final BytesRef blobsPath;
     private final TableParameterInfo tableParameterInfo;
-    private final ImmutableMap<String,Object> tableParameters;
-
-    private static final Map<ColumnIdent, Reference> INFOS = new LinkedHashMap<>();
-
-    private static final ImmutableList<ColumnIdent> PRIMARY_KEY = ImmutableList.of(new ColumnIdent("digest"));
-    private final static List<Tuple<String, DataType>> STATIC_COLUMNS = ImmutableList.<Tuple<String,DataType>>builder()
-                .add(new Tuple<String, DataType>("digest", DataTypes.STRING))
-                .add(new Tuple<String, DataType>("last_modified", DataTypes.TIMESTAMP))
-                .build();
+    private final ImmutableMap<String, Object> tableParameters;
 
     public BlobTableInfo(TableIdent ident,
                          String index,
@@ -128,10 +126,10 @@ public class BlobTableInfo implements TableInfo, ShardedTable {
     public Routing getRouting(WhereClause whereClause, @Nullable String preference) {
         Map<String, Map<String, List<Integer>>> locations = new TreeMap<>();
         GroupShardsIterator shardIterators = clusterService.operationRouting().searchShards(
-                clusterService.state(),
-                new String[]{index},
-                null,
-                preference
+            clusterService.state(),
+            new String[]{index},
+            null,
+            preference
         );
         ShardRouting shardRouting;
         for (ShardIterator shardIterator : shardIterators) {

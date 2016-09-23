@@ -36,12 +36,6 @@ public class ExtendedProcessCpuStats implements Streamable {
     private TimeValue user;
     private TimeValue total;
 
-    public static ExtendedProcessCpuStats readExtendedProcessCpuStats(StreamInput in) throws IOException {
-        ExtendedProcessCpuStats stat = new ExtendedProcessCpuStats();
-        stat.readFrom(in);
-        return stat;
-    }
-
     public ExtendedProcessCpuStats() {
         this((short) -1, -1L, -1L, -1L);
     }
@@ -51,6 +45,12 @@ public class ExtendedProcessCpuStats implements Streamable {
         this.sys = new TimeValue(sys);
         this.user = new TimeValue(user);
         this.total = new TimeValue(total);
+    }
+
+    public static ExtendedProcessCpuStats readExtendedProcessCpuStats(StreamInput in) throws IOException {
+        ExtendedProcessCpuStats stat = new ExtendedProcessCpuStats();
+        stat.readFrom(in);
+        return stat;
     }
 
     /**

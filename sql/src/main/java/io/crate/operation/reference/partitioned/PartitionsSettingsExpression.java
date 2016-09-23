@@ -74,15 +74,13 @@ public class PartitionsSettingsExpression extends AbstractPartitionsSettingsExpr
     static class PartitionsSettingsBlocksExpression extends AbstractPartitionsSettingsExpression {
 
         public static final String NAME = "blocks";
-
-        public PartitionsSettingsBlocksExpression() {
-            addChildImplementations();
-        }
-
         public static final String READ_ONLY = "read_only";
         public static final String READ = "read";
         public static final String WRITE = "write";
         public static final String METADATA = "metadata";
+        public PartitionsSettingsBlocksExpression() {
+            addChildImplementations();
+        }
 
         private void addChildImplementations() {
             childImplementations.put(READ_ONLY, new PartitionTableParameterExpression(TableParameterInfo.READ_ONLY));
@@ -108,13 +106,11 @@ public class PartitionsSettingsExpression extends AbstractPartitionsSettingsExpr
     static class PartitionsSettingsRoutingAllocationExpression extends AbstractPartitionsSettingsExpression {
 
         public static final String NAME = "allocation";
-
+        public static final String ENABLE = "enable";
+        public static final String TOTAL_SHARDS_PER_NODE = "total_shards_per_node";
         public PartitionsSettingsRoutingAllocationExpression() {
             addChildImplementations();
         }
-
-        public static final String ENABLE = "enable";
-        public static final String TOTAL_SHARDS_PER_NODE="total_shards_per_node";
 
         private void addChildImplementations() {
             childImplementations.put(ENABLE, new BytesRefPartitionTableParameterExpression(TableParameterInfo.ROUTING_ALLOCATION_ENABLE));
@@ -125,12 +121,11 @@ public class PartitionsSettingsExpression extends AbstractPartitionsSettingsExpr
     static class PartitionsSettingsRecoveryExpression extends AbstractPartitionsSettingsExpression {
 
         public static final String NAME = "recovery";
+        public static final String INITIAL_SHARDS = "initial_shards";
 
         public PartitionsSettingsRecoveryExpression() {
             addChildImplementations();
         }
-
-        public static final String INITIAL_SHARDS = "initial_shards";
 
         private void addChildImplementations() {
             childImplementations.put(INITIAL_SHARDS, new PartitionTableParameterExpression(TableParameterInfo.RECOVERY_INITIAL_SHARDS));
@@ -140,12 +135,11 @@ public class PartitionsSettingsExpression extends AbstractPartitionsSettingsExpr
     static class PartitionsSettingsWarmerExpression extends AbstractPartitionsSettingsExpression {
 
         public static final String NAME = "warmer";
+        public static final String ENABLED = "enabled";
 
         public PartitionsSettingsWarmerExpression() {
             addChildImplementations();
         }
-
-        public static final String ENABLED = "enabled";
 
         private void addChildImplementations() {
             childImplementations.put(ENABLED, new PartitionTableParameterExpression(TableParameterInfo.WARMER_ENABLED));
@@ -155,17 +149,15 @@ public class PartitionsSettingsExpression extends AbstractPartitionsSettingsExpr
     static class PartitionsSettingsTranslogExpression extends AbstractPartitionsSettingsExpression {
 
         public static final String NAME = "translog";
-
-        public PartitionsSettingsTranslogExpression() {
-            addChildImplementations();
-        }
-
         public static final String FLUSH_THRESHOLD_OPS = "flush_threshold_ops";
         public static final String FLUSH_THRESHOLD_SIZE = "flush_threshold_size";
         public static final String FLUSH_THRESHOLD_PERIOD = "flush_threshold_period";
         public static final String DISABLE_FLUSH = "disable_flush";
         public static final String INTERVAL = "interval";
         public static final String SYNC_INTERVAL = "sync_interval";
+        public PartitionsSettingsTranslogExpression() {
+            addChildImplementations();
+        }
 
         private void addChildImplementations() {
             childImplementations.put(FLUSH_THRESHOLD_OPS, new PartitionTableParameterExpression(TableParameterInfo.FLUSH_THRESHOLD_OPS));
@@ -187,19 +179,18 @@ public class PartitionsSettingsExpression extends AbstractPartitionsSettingsExpr
 
         private void addChildImplementations() {
             childImplementations.put(PartitionsSettingsNodeLeftExpression.NAME,
-                    new PartitionsSettingsNodeLeftExpression());
+                new PartitionsSettingsNodeLeftExpression());
         }
     }
 
     static class PartitionsSettingsNodeLeftExpression extends AbstractPartitionsSettingsExpression {
 
         public static final String NAME = "node_left";
+        public static final String DELAYED_TIMEOUT = "delayed_timeout";
 
         public PartitionsSettingsNodeLeftExpression() {
             addChildImplementations();
         }
-
-        public static final String DELAYED_TIMEOUT = "delayed_timeout";
 
         private void addChildImplementations() {
             childImplementations.put(DELAYED_TIMEOUT, new PartitionTableParameterExpression(TableParameterInfo.UNASSIGNED_NODE_LEFT_DELAYED_TIMEOUT));

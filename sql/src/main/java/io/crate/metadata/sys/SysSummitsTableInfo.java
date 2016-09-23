@@ -44,18 +44,6 @@ public class SysSummitsTableInfo extends StaticTableInfo {
 
     private final ClusterService clusterService;
 
-    public static class Columns {
-        public static final ColumnIdent MOUNTAIN = new ColumnIdent("mountain");
-        public static final ColumnIdent HEIGHT = new ColumnIdent("height");
-        public static final ColumnIdent PROMINENCE = new ColumnIdent("prominence");
-        public static final ColumnIdent COORDINATES = new ColumnIdent("coordinates");
-        public static final ColumnIdent RANGE = new ColumnIdent("range");
-        public static final ColumnIdent CLASSIFICATION = new ColumnIdent("classification");
-        public static final ColumnIdent REGION = new ColumnIdent("region");
-        public static final ColumnIdent COUNTRY = new ColumnIdent("country");
-        public static final ColumnIdent FIRST_ASCENT = new ColumnIdent("first_ascent");
-    }
-
     SysSummitsTableInfo(ClusterService clusterService) {
         super(IDENT, new ColumnRegistrar(IDENT, GRANULARITY)
             .register(Columns.MOUNTAIN, DataTypes.STRING)
@@ -78,5 +66,17 @@ public class SysSummitsTableInfo extends StaticTableInfo {
     @Override
     public Routing getRouting(WhereClause whereClause, @Nullable String preference) {
         return Routing.forTableOnSingleNode(IDENT, clusterService.localNode().id());
+    }
+
+    public static class Columns {
+        public static final ColumnIdent MOUNTAIN = new ColumnIdent("mountain");
+        public static final ColumnIdent HEIGHT = new ColumnIdent("height");
+        public static final ColumnIdent PROMINENCE = new ColumnIdent("prominence");
+        public static final ColumnIdent COORDINATES = new ColumnIdent("coordinates");
+        public static final ColumnIdent RANGE = new ColumnIdent("range");
+        public static final ColumnIdent CLASSIFICATION = new ColumnIdent("classification");
+        public static final ColumnIdent REGION = new ColumnIdent("region");
+        public static final ColumnIdent COUNTRY = new ColumnIdent("country");
+        public static final ColumnIdent FIRST_ASCENT = new ColumnIdent("first_ascent");
     }
 }

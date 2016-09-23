@@ -63,7 +63,7 @@ abstract class DiskWatermarkNodesSysCheck extends AbstractSysNodeCheck {
     public boolean validate() {
         try {
             return !thresholdEnabled() ||
-                    validate(fsProbe.stats(), thresholdPercentageFromWatermark(), thresholdBytesFromWatermark());
+                   validate(fsProbe.stats(), thresholdPercentageFromWatermark(), thresholdBytesFromWatermark());
         } catch (IOException e) {
             LOGGER.error("Unable to determine the node disk usage while validating high/low disk watermark check: ", e);
             return false;
@@ -77,7 +77,7 @@ abstract class DiskWatermarkNodesSysCheck extends AbstractSysNodeCheck {
             // Byte values refer to free disk space
             // Percentage values refer to used disk space
             if ((usedDiskAsPercentage > diskWatermarkPercents)
-                    || (path.getFree().bytes() < diskWatermarkBytes)) {
+                || (path.getFree().bytes() < diskWatermarkBytes)) {
                 return false;
             }
         }
@@ -95,8 +95,8 @@ abstract class DiskWatermarkNodesSysCheck extends AbstractSysNodeCheck {
     private long thresholdBytesFromWatermark() {
         try {
             return ByteSizeValue.parseBytesSizeValue(
-                    watermarkSetting.extract(settings),
-                    watermarkSetting.name()
+                watermarkSetting.extract(settings),
+                watermarkSetting.name()
             ).bytes();
         } catch (ElasticsearchParseException ex) {
             return ByteSizeValue.parseBytesSizeValue("0b", watermarkSetting.name()).bytes();

@@ -38,7 +38,7 @@ public class RowGenerator {
      * Both increasing (e.g. 0 -> 10) and decreasing ranges (10 -> 0) are supported.
      *
      * @param from start (inclusive)
-     * @param to end (exclusive)
+     * @param to   end (exclusive)
      */
     public static Iterable<Row> range(final long from, final long to) {
         return new Iterable<Row>() {
@@ -76,7 +76,7 @@ public class RowGenerator {
         };
     }
 
-    public static List<Row> singleColRows(Object ...rows) {
+    public static List<Row> singleColRows(Object... rows) {
         List<Row> result = new ArrayList<>(rows.length);
         for (Object row : rows) {
             result.add(new Row1(row));

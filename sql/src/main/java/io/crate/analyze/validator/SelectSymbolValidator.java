@@ -49,10 +49,10 @@ public class SelectSymbolValidator {
                     break;
                 case PREDICATE:
                     throw new UnsupportedOperationException(String.format(Locale.ENGLISH,
-                            "%s predicate cannot be selected", symbol.info().ident().name()));
+                        "%s predicate cannot be selected", symbol.info().ident().name()));
                 default:
-                    throw new UnsupportedOperationException(String.format(Locale.ENGLISH, 
-                            "FunctionInfo.Type %s not handled", symbol.info().type()));
+                    throw new UnsupportedOperationException(String.format(Locale.ENGLISH,
+                        "FunctionInfo.Type %s not handled", symbol.info().type()));
             }
             for (Symbol arg : symbol.arguments()) {
                 process(arg, context);

@@ -31,10 +31,10 @@ import java.util.*;
 
 public abstract class StaticTableInfo implements TableInfo {
 
+    protected final Map<ColumnIdent, Reference> columnMap;
     private final TableIdent ident;
     private final List<ColumnIdent> primaryKey;
     private final Collection<Reference> columns;
-    protected final Map<ColumnIdent, Reference> columnMap;
 
     /**
      * @param columns top level columns. If null the values of columnMap are used.

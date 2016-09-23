@@ -57,9 +57,9 @@ public class TransportKillJobsNodeAction extends AbstractComponent implements No
         this.transportService = transportService;
 
         transportService.registerRequestHandler(TRANSPORT_ACTION,
-                KillJobsRequest.class,
-                ThreadPool.Names.GENERIC,
-                new NodeActionRequestHandler<KillJobsRequest, KillResponse>(this) { });
+            KillJobsRequest.class,
+            ThreadPool.Names.GENERIC,
+            new NodeActionRequestHandler<KillJobsRequest, KillResponse>(this) {});
     }
 
     public void executeKillOnAllNodes(KillJobsRequest request, ActionListener<KillResponse> listener) {
@@ -67,12 +67,12 @@ public class TransportKillJobsNodeAction extends AbstractComponent implements No
         listener = new MultiActionListener<>(nodes.size(), KillResponse.MERGE_FUNCTION, listener);
 
         DefaultTransportResponseHandler<KillResponse> transportResponseHandler =
-                new DefaultTransportResponseHandler<KillResponse>(listener) {
-            @Override
-            public KillResponse newInstance() {
-                return new KillResponse(0);
-            }
-        };
+            new DefaultTransportResponseHandler<KillResponse>(listener) {
+                @Override
+                public KillResponse newInstance() {
+                    return new KillResponse(0);
+                }
+            };
 
         logger.trace("Sending {} to {}", request, nodes);
         for (DiscoveryNode node : nodes) {

@@ -42,7 +42,7 @@ import static org.hamcrest.Matchers.instanceOf;
 public class ToGeoPointFunctionTest extends AbstractScalarFunctionsTest {
 
     private ToGeoFunction getFunction(DataType argType) {
-        return (ToGeoFunction)functions.get(new FunctionIdent(CastFunctionResolver.FunctionNames.TO_GEO_POINT, Collections.singletonList(argType)));
+        return (ToGeoFunction) functions.get(new FunctionIdent(CastFunctionResolver.FunctionNames.TO_GEO_POINT, Collections.singletonList(argType)));
     }
 
     @Test
@@ -50,14 +50,14 @@ public class ToGeoPointFunctionTest extends AbstractScalarFunctionsTest {
         ToGeoFunction fn = getFunction(DataTypes.STRING);
         Object val = fn.evaluate(Literal.newLiteral(DataTypes.STRING, "POINT (0.0 0.1)"));
         assertThat(val, instanceOf(Double[].class));
-        assertThat((Double[])val, arrayContaining(0.0d, 0.1d));
+        assertThat((Double[]) val, arrayContaining(0.0d, 0.1d));
     }
 
     @Test
     public void testNormalizeCastFromString() throws Exception {
         ToGeoFunction fn = getFunction(DataTypes.STRING);
         Symbol normalized = fn.normalizeSymbol(new Function(fn.info(),
-                Collections.<Symbol>singletonList(Literal.newLiteral(DataTypes.STRING, "POINT (0 0)"))), new StmtCtx());
+            Collections.<Symbol>singletonList(Literal.newLiteral(DataTypes.STRING, "POINT (0 0)"))), new StmtCtx());
         assertThat(normalized, TestingHelpers.isLiteral(new Double[]{0.0, 0.0}));
     }
 

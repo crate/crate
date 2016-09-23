@@ -32,7 +32,7 @@ import org.elasticsearch.common.collect.Tuple;
 
 /**
  * Projector that executes in-memory updates on the given assignmentExpressions.
- *
+ * <p>
  * The rows it receives must be of type {@link ValueAndInputRow}.
  */
 class SysUpdateProjector extends AbstractProjector {
@@ -46,13 +46,12 @@ class SysUpdateProjector extends AbstractProjector {
      * @param assignmentExpressions iterable of tuples
      *                              the tuples contain a writeable expression (target column)
      *                              and the value for the assignment (the source "source")
-     *
+     *                              <p>
      *                              e.g. [ x = (y + 1) ]
      *                              where
-     *                                  WriteExpression: x
-     *                                  Input: (y + 1)
-     *
-     * @param collectExpressions expressions that are linked to the "source" inputs of the assignmentExpressions
+     *                              WriteExpression: x
+     *                              Input: (y + 1)
+     * @param collectExpressions    expressions that are linked to the "source" inputs of the assignmentExpressions
      */
     SysUpdateProjector(Iterable<Tuple<WritableExpression, Input<?>>> assignmentExpressions,
                        Iterable<? extends CollectExpression<Row, ?>> collectExpressions) {
@@ -79,7 +78,8 @@ class SysUpdateProjector extends AbstractProjector {
     @Override
     public void finish(RepeatHandle repeatHandle) {
         downstream.setNextRow(new Row1(rowCount));
-        downstream.finish(RepeatHandle.UNSUPPORTED);;
+        downstream.finish(RepeatHandle.UNSUPPORTED);
+        ;
     }
 
     @Override

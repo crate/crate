@@ -63,7 +63,7 @@ public class DistributingDownstreamFactory extends AbstractComponent {
                               int pageSize) {
         Streamer<?>[] streamers = StreamerVisitor.streamersFromOutputs(nodeOperation.executionPhase());
         assert !ExecutionPhases.hasDirectResponseDownstream(nodeOperation.downstreamNodes())
-                : "trying to build a DistributingDownstream but nodeOperation has a directResponse downstream";
+            : "trying to build a DistributingDownstream but nodeOperation has a directResponse downstream";
         assert nodeOperation.downstreamNodes().size() > 0 : "must have at least one downstream";
 
         // TODO: set bucketIdx properly
@@ -78,7 +78,7 @@ public class DistributingDownstreamFactory extends AbstractComponent {
                     multiBucketBuilder = new BroadcastingBucketBuilder(streamers, nodeOperation.downstreamNodes().size());
                 } else {
                     multiBucketBuilder = new ModuloBucketBuilder(streamers,
-                            nodeOperation.downstreamNodes().size(), distributionInfo.distributeByColumn());
+                        nodeOperation.downstreamNodes().size(), distributionInfo.distributeByColumn());
                 }
                 break;
             case BROADCAST:
@@ -89,16 +89,16 @@ public class DistributingDownstreamFactory extends AbstractComponent {
         }
 
         return new DistributingDownstream(
-                distributingDownstreamLogger,
-                jobId,
-                multiBucketBuilder,
-                nodeOperation.downstreamExecutionPhaseId(),
-                nodeOperation.downstreamExecutionPhaseInputId(),
-                bucketIdx,
-                nodeOperation.downstreamNodes(),
-                transportDistributedResultAction,
-                streamers,
-                pageSize
+            distributingDownstreamLogger,
+            jobId,
+            multiBucketBuilder,
+            nodeOperation.downstreamExecutionPhaseId(),
+            nodeOperation.downstreamExecutionPhaseInputId(),
+            bucketIdx,
+            nodeOperation.downstreamNodes(),
+            transportDistributedResultAction,
+            streamers,
+            pageSize
         );
     }
 }

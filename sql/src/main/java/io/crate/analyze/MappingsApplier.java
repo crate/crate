@@ -59,12 +59,12 @@ public abstract class MappingsApplier {
 
     public IllegalArgumentException invalidException(Exception cause) {
         return new IllegalArgumentException(
-                String.format(Locale.ENGLISH, "Invalid value for argument '%s'", publicName), cause);
+            String.format(Locale.ENGLISH, "Invalid value for argument '%s'", publicName), cause);
     }
 
     public IllegalArgumentException invalidException() {
         return new IllegalArgumentException(
-                String.format(Locale.ENGLISH, "Invalid value for argument '%s'", publicName));
+            String.format(Locale.ENGLISH, "Invalid value for argument '%s'", publicName));
     }
 
     @Override

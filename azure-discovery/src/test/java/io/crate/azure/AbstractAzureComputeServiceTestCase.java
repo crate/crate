@@ -22,8 +22,9 @@
 
 package io.crate.azure;
 
+import io.crate.azure.management.AzureComputeService.Discovery;
+import io.crate.azure.management.AzureComputeService.Management;
 import org.elasticsearch.action.admin.cluster.node.info.NodesInfoResponse;
-import io.crate.azure.management.AzureComputeService.*;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.test.ESIntegTestCase;
 

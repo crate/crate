@@ -47,6 +47,9 @@ public class DocReferenceConverter {
         }
     };
 
+    private DocReferenceConverter() {
+    }
+
     /**
      * will convert any references that are analyzed or not indexed to doc-references
      */
@@ -61,7 +64,7 @@ public class DocReferenceConverter {
         }
         if (reference.granularity() == RowGranularity.DOC) {
             return reference.getRelocated(
-                    new ReferenceIdent(ident.tableIdent(), ident.columnIdent().prepend(DocSysColumns.DOC.name())));
+                new ReferenceIdent(ident.tableIdent(), ident.columnIdent().prepend(DocSysColumns.DOC.name())));
         }
         return reference;
     }
@@ -79,8 +82,5 @@ public class DocReferenceConverter {
             }
             return symbol;
         }
-    }
-
-    private DocReferenceConverter() {
     }
 }

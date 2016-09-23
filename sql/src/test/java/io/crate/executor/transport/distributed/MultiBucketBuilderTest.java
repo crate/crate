@@ -40,8 +40,8 @@ public class MultiBucketBuilderTest {
 
     @Before
     public void setUp() throws Exception {
-        builders.add(new ModuloBucketBuilder(new Streamer[] {DataTypes.INTEGER.streamer() }, 1, 0));
-        builders.add(new BroadcastingBucketBuilder(new Streamer[] {DataTypes.INTEGER.streamer()}, 1));
+        builders.add(new ModuloBucketBuilder(new Streamer[]{DataTypes.INTEGER.streamer()}, 1, 0));
+        builders.add(new BroadcastingBucketBuilder(new Streamer[]{DataTypes.INTEGER.streamer()}, 1));
     }
 
     @Test

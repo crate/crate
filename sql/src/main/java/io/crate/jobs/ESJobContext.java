@@ -38,13 +38,12 @@ public class ESJobContext extends AbstractExecutionSubContext {
     private static final ESLogger LOGGER = Loggers.getLogger(ESJobContext.class);
 
     private final List<? extends ActionListener> listeners;
-    private String operationName;
     private final List<? extends ActionRequest> requests;
     private final List<SettableFuture<Long>> resultFutures;
     private final TransportAction transportAction;
-
     @Nullable
     private final FlatProjectorChain projectorChain;
+    private String operationName;
 
     public ESJobContext(int id,
                         String operationName,

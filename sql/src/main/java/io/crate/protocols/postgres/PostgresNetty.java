@@ -63,13 +63,11 @@ public class PostgresNetty extends AbstractLifecycleComponent {
 
     private final boolean enabled;
     private final String port;
-
+    private final List<InetSocketTransportAddress> boundAddresses = new ArrayList<>();
     private ServerBootstrap bootstrap;
     private ExecutorService bossExecutor;
     private ExecutorService workerExecutor;
-
     private volatile List<Channel> serverChannels = new ArrayList<>();
-    private final List<InetSocketTransportAddress> boundAddresses = new ArrayList<>();
 
     @Inject
     public PostgresNetty(Settings settings, SQLOperations sqlOperations, NetworkService networkService) {

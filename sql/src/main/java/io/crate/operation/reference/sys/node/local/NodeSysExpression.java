@@ -57,21 +57,21 @@ public class NodeSysExpression extends NestedObjectExpression {
         this.jvmService = jvmService;
         this.extendedNodeInfo = extendedNodeInfo;
         childImplementations.put(SysNodesTableInfo.SYS_COL_HOSTNAME,
-                new NodeHostnameExpression());
+            new NodeHostnameExpression());
         childImplementations.put(SysNodesTableInfo.SYS_COL_REST_URL,
-                new NodeRestUrlExpression(clusterService));
+            new NodeRestUrlExpression(clusterService));
         childImplementations.put(SysNodesTableInfo.SYS_COL_ID,
-                new NodeIdExpression(clusterService));
+            new NodeIdExpression(clusterService));
         childImplementations.put(SysNodesTableInfo.SYS_COL_NODE_NAME,
-                new NodeNameExpression(discovery));
+            new NodeNameExpression(discovery));
         childImplementations.put(SysNodesTableInfo.SYS_COL_PORT,
-                new NodePortExpression(nodeService));
+            new NodePortExpression(nodeService));
         childImplementations.put(SysNodesTableInfo.SYS_COL_VERSION,
-                new NodeVersionExpression());
+            new NodeVersionExpression());
         childImplementations.put(SysNodesTableInfo.SYS_COL_THREAD_POOLS,
-                new NodeThreadPoolsExpression(threadPool));
+            new NodeThreadPoolsExpression(threadPool));
         childImplementations.put(SysNodesTableInfo.SYS_COL_OS_INFO,
-                new NodeOsInfoExpression(osService.info()));
+            new NodeOsInfoExpression(osService.info()));
     }
 
     @Override

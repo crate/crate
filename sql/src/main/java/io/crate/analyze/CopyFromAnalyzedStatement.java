@@ -49,6 +49,10 @@ public class CopyFromAnalyzedStatement extends AbstractCopyAnalyzedStatement {
         this.nodePredicate = nodePredicate;
     }
 
+    public static IllegalArgumentException raiseInvalidType(DataType dataType) {
+        throw new IllegalArgumentException("fileUri must be of type STRING or STRING ARRAY. Got " + dataType);
+    }
+
     public DocTableInfo table() {
         return table;
     }
@@ -61,10 +65,6 @@ public class CopyFromAnalyzedStatement extends AbstractCopyAnalyzedStatement {
     @Override
     public <C, R> R accept(AnalyzedStatementVisitor<C, R> analyzedStatementVisitor, C context) {
         return analyzedStatementVisitor.visitCopyFromStatement(this, context);
-    }
-
-    public static IllegalArgumentException raiseInvalidType(DataType dataType) {
-        throw new IllegalArgumentException("fileUri must be of type STRING or STRING ARRAY. Got " + dataType);
     }
 
     public Predicate<DiscoveryNode> nodePredicate() {

@@ -42,13 +42,13 @@ public class MappingDefaultsTest extends SQLTransportIntegrationTest {
 
 
         byte[] searchSource = XContentFactory.jsonBuilder()
-                .startObject()
-                .startObject("query")
-                    .startObject("query_string")
-                        .field("query", "foo")
-                    .endObject()
-                .endObject()
-                .endObject().bytes().toBytes();
+            .startObject()
+            .startObject("query")
+            .startObject("query_string")
+            .field("query", "foo")
+            .endObject()
+            .endObject()
+            .endObject().bytes().toBytes();
 
         SearchRequest searchRequest = new SearchRequest("test");
         searchRequest.source(searchSource);

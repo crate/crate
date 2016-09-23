@@ -33,7 +33,8 @@ public class FloatType extends DataType<Float> implements Streamer<Float>, DataT
     public static final FloatType INSTANCE = new FloatType();
     public static final int ID = 7;
 
-    private FloatType() {}
+    private FloatType() {
+    }
 
     @Override
     public int id() {
@@ -59,16 +60,16 @@ public class FloatType extends DataType<Float> implements Streamer<Float>, DataT
             return (Float) value;
         }
         if (value instanceof String) {
-            return Float.parseFloat((String)value);
+            return Float.parseFloat((String) value);
         }
         if (value instanceof BytesRef) {
-            return Float.parseFloat(((BytesRef)value).utf8ToString());
+            return Float.parseFloat(((BytesRef) value).utf8ToString());
         }
-        double doubleValue = ((Number)value).doubleValue();
+        double doubleValue = ((Number) value).doubleValue();
         if (doubleValue < -Float.MAX_VALUE || Float.MAX_VALUE < doubleValue) {
             throw new IllegalArgumentException("float value out of range: " + doubleValue);
         }
-        return ((Number)value).floatValue();
+        return ((Number) value).floatValue();
     }
 
     @Override

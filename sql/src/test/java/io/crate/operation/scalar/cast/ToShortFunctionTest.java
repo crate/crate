@@ -47,7 +47,7 @@ public class ToShortFunctionTest extends AbstractScalarFunctionsTest {
     private final StmtCtx stmtCtx = new StmtCtx();
 
     private Short evaluate(Object value, DataType type) {
-        Input[] input = {(Input)Literal.newLiteral(type, value)};
+        Input[] input = {(Input) Literal.newLiteral(type, value)};
         ToPrimitiveFunction fn = getFunction(functionName, type);
         return (Short) fn.evaluate(input);
     }
@@ -55,24 +55,24 @@ public class ToShortFunctionTest extends AbstractScalarFunctionsTest {
     private Symbol normalize(Object value, DataType type) {
         ToPrimitiveFunction function = getFunction(functionName, type);
         return function.normalizeSymbol(new Function(function.info(),
-                Collections.<Symbol>singletonList(Literal.newLiteral(type, value))), stmtCtx);
+            Collections.<Symbol>singletonList(Literal.newLiteral(type, value))), stmtCtx);
     }
 
     @Test
     @SuppressWarnings("unchecked")
     public void testNormalizeSymbol() throws Exception {
-        assertThat(normalize("123", DataTypes.STRING), isLiteral((short)123));
-        assertThat(normalize(12.5f, DataTypes.FLOAT), isLiteral((short)12));
+        assertThat(normalize("123", DataTypes.STRING), isLiteral((short) 123));
+        assertThat(normalize(12.5f, DataTypes.FLOAT), isLiteral((short) 12));
     }
 
     @Test
     public void testEvaluate() throws Exception {
-        assertThat(evaluate("123", DataTypes.STRING), is((short)123));
+        assertThat(evaluate("123", DataTypes.STRING), is((short) 123));
         assertThat(evaluate(null, DataTypes.STRING), nullValue());
-        assertThat(evaluate(123.5f, DataTypes.FLOAT), is((short)123));
+        assertThat(evaluate(123.5f, DataTypes.FLOAT), is((short) 123));
         assertThat(evaluate(123.5d, DataTypes.DOUBLE), is((short) 123));
         assertThat(evaluate(null, DataTypes.FLOAT), nullValue());
-        assertThat(evaluate(42L, DataTypes.LONG), is((short)42));
+        assertThat(evaluate(42L, DataTypes.LONG), is((short) 42));
         assertThat(evaluate(null, DataTypes.INTEGER), nullValue());
     }
 

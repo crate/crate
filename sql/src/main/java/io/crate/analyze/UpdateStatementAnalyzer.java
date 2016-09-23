@@ -56,17 +56,17 @@ import java.util.List;
 public class UpdateStatementAnalyzer extends DefaultTraversalVisitor<AnalyzedStatement, Analysis> {
 
     public static final String VERSION_SEARCH_EX_MSG =
-            "_version is not allowed in update queries without specifying a primary key";
+        "_version is not allowed in update queries without specifying a primary key";
     private static final UnsupportedFeatureException VERSION_SEARCH_EX = new UnsupportedFeatureException(
-            VERSION_SEARCH_EX_MSG);
+        VERSION_SEARCH_EX_MSG);
 
 
     private static final Predicate<Reference> IS_OBJECT_ARRAY = new Predicate<Reference>() {
         @Override
         public boolean apply(@Nullable Reference input) {
             return input != null
-                    && input.valueType().id() == ArrayType.ID
-                    && ((ArrayType)input.valueType()).innerType().equals(DataTypes.OBJECT);
+                   && input.valueType().id() == ArrayType.ID
+                   && ((ArrayType) input.valueType()).innerType().equals(DataTypes.OBJECT);
         }
     };
 
@@ -82,7 +82,7 @@ public class UpdateStatementAnalyzer extends DefaultTraversalVisitor<AnalyzedSta
         this.analysisMetaData = analysisMetaData;
         this.relationAnalyzer = relationAnalyzer;
         this.valueNormalizer = new ValueNormalizer(analysisMetaData.schemas(), new EvaluatingNormalizer(
-                analysisMetaData.functions(), RowGranularity.CLUSTER, analysisMetaData.referenceResolver()));
+            analysisMetaData.functions(), RowGranularity.CLUSTER, analysisMetaData.referenceResolver()));
     }
 
     public AnalyzedStatement analyze(Node node, Analysis analysis) {
@@ -93,20 +93,20 @@ public class UpdateStatementAnalyzer extends DefaultTraversalVisitor<AnalyzedSta
     @Override
     public AnalyzedStatement visitUpdate(Update node, Analysis analysis) {
         StatementAnalysisContext statementAnalysisContext = new StatementAnalysisContext(
-                analysis.parameterContext(), analysis.statementContext(), analysisMetaData, Operation.UPDATE);
+            analysis.parameterContext(), analysis.statementContext(), analysisMetaData, Operation.UPDATE);
         RelationAnalysisContext currentRelationContext = statementAnalysisContext.startRelation();
         AnalyzedRelation analyzedRelation = relationAnalyzer.analyze(node.relation(), statementAnalysisContext);
 
         FieldResolver fieldResolver = (FieldResolver) analyzedRelation;
         FieldProvider columnFieldProvider = new NameFieldProvider(analyzedRelation);
         ExpressionAnalyzer columnExpressionAnalyzer =
-                new ExpressionAnalyzer(analysisMetaData, analysis.parameterContext(), columnFieldProvider, fieldResolver);
+            new ExpressionAnalyzer(analysisMetaData, analysis.parameterContext(), columnFieldProvider, fieldResolver);
         columnExpressionAnalyzer.setResolveFieldsOperation(Operation.UPDATE);
 
         assert Iterables.getOnlyElement(currentRelationContext.sources().values()) == analyzedRelation;
         ExpressionAnalyzer expressionAnalyzer =
-                new ExpressionAnalyzer(analysisMetaData, analysis.parameterContext(),
-                    currentRelationContext.fieldProvider(), fieldResolver);
+            new ExpressionAnalyzer(analysisMetaData, analysis.parameterContext(),
+                currentRelationContext.fieldProvider(), fieldResolver);
         ExpressionAnalysisContext expressionAnalysisContext = new ExpressionAnalysisContext(analysis.statementContext());
 
         int numNested = 1;
@@ -129,21 +129,22 @@ public class UpdateStatementAnalyzer extends DefaultTraversalVisitor<AnalyzedSta
                 whereClause = whereClauseAnalyzer.analyze(whereClause, analysis.statementContext());
             }
 
-            if (!whereClause.docKeys().isPresent() && Symbols.containsColumn(whereClause.query(), DocSysColumns.VERSION)) {
+            if (!whereClause.docKeys().isPresent() &&
+                Symbols.containsColumn(whereClause.query(), DocSysColumns.VERSION)) {
                 throw VERSION_SEARCH_EX;
             }
 
             UpdateAnalyzedStatement.NestedAnalyzedStatement nestedAnalyzedStatement =
-                    new UpdateAnalyzedStatement.NestedAnalyzedStatement(whereClause);
+                new UpdateAnalyzedStatement.NestedAnalyzedStatement(whereClause);
 
             for (Assignment assignment : node.assignements()) {
                 analyzeAssignment(
-                        assignment,
-                        nestedAnalyzedStatement,
-                        tableInfo,
-                        expressionAnalyzer,
-                        columnExpressionAnalyzer,
-                        expressionAnalysisContext
+                    assignment,
+                    nestedAnalyzedStatement,
+                    tableInfo,
+                    expressionAnalyzer,
+                    columnExpressionAnalyzer,
+                    expressionAnalysisContext
                 );
             }
             nestedAnalyzedStatements.add(nestedAnalyzedStatement);

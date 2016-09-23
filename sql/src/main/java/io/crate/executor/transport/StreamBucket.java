@@ -46,12 +46,75 @@ public class StreamBucket implements Bucket, Streamable {
     private int size = -1;
     private BytesReference bytes;
 
+    public StreamBucket(@Nullable Streamer<?>[] streamers) {
+        assert validStreamers(streamers) : "streamers must not be null and they shouldn't be of undefinedType";
+        this.streamers = streamers;
+    }
+
+    private static boolean validStreamers(Streamer<?>[] streamers) {
+        if (streamers == null || streamers.length == 0) {
+            return true;
+        }
+        return !Iterables.all(FluentIterable.of(streamers), Predicates.isNull());
+    }
+
+    public static void writeBucket(StreamOutput out, @Nullable Streamer<?>[] streamers, @Nullable Bucket bucket) throws IOException {
+        if (bucket == null || bucket.size() == 0) {
+            out.writeVInt(0);
+        } else if (bucket instanceof Streamable) {
+            ((Streamable) bucket).writeTo(out);
+        } else {
+            assert streamers != null : "Need streamers for non-streamable bucket implementation";
+            StreamBucket.Builder builder = new StreamBucket.Builder(streamers);
+            for (Row row : bucket) {
+                builder.add(row);
+            }
+            builder.writeToStream(out);
+        }
+    }
+
+    @Override
+    public int size() {
+        return size;
+    }
+
+    public void streamers(Streamer<?>[] streamers) {
+        assert validStreamers(streamers) : "streamers must not be null and they shouldn't be of undefinedType";
+        this.streamers = streamers;
+    }
+
+    @Override
+    public Iterator<Row> iterator() {
+        if (size < 1) {
+            return Collections.emptyIterator();
+        }
+        assert streamers != null;
+        return new RowIterator();
+    }
+
+    @Override
+    public void readFrom(StreamInput in) throws IOException {
+        size = in.readVInt();
+        if (size > 0) {
+            bytes = in.readBytesReference();
+        }
+    }
+
+    @Override
+    public void writeTo(StreamOutput out) throws IOException {
+        assert size > -1;
+        out.writeVInt(size);
+        if (size > 0) {
+            out.writeBytesReference(bytes);
+        }
+    }
+
     public static class Builder {
 
 
         private static final int INITIAL_PAGE_SIZE = 1024;
-        private int size = 0;
         private final Streamer<?>[] streamers;
+        private int size = 0;
         private BytesStreamOutput out;
 
         public Builder(Streamer<?>[] streamers) {
@@ -89,49 +152,12 @@ public class StreamBucket implements Bucket, Streamable {
         }
     }
 
-    public StreamBucket(@Nullable Streamer<?>[] streamers) {
-        assert validStreamers(streamers) : "streamers must not be null and they shouldn't be of undefinedType";
-        this.streamers = streamers;
-    }
-
-    @Override
-    public int size() {
-        return size;
-    }
-
-    public void streamers(Streamer<?>[] streamers) {
-        assert validStreamers(streamers) : "streamers must not be null and they shouldn't be of undefinedType";
-        this.streamers = streamers;
-    }
-
-    private static boolean validStreamers(Streamer<?>[] streamers) {
-        if (streamers == null || streamers.length == 0) {
-            return true;
-        }
-        return !Iterables.all(FluentIterable.of(streamers), Predicates.isNull());
-    }
-
-    public static void writeBucket(StreamOutput out, @Nullable Streamer<?>[] streamers, @Nullable Bucket bucket) throws IOException {
-        if (bucket == null || bucket.size() == 0) {
-            out.writeVInt(0);
-        } else if (bucket instanceof Streamable) {
-            ((Streamable) bucket).writeTo(out);
-        } else {
-            assert streamers != null : "Need streamers for non-streamable bucket implementation";
-            StreamBucket.Builder builder = new StreamBucket.Builder(streamers);
-            for (Row row : bucket) {
-                builder.add(row);
-            }
-            builder.writeToStream(out);
-        }
-    }
-
     private class RowIterator implements Iterator<Row> {
 
         private final StreamInput input = bytes.streamInput();
-        private int pos = 0;
         private final Object[] current = new Object[streamers.length];
         private final Row row = new RowN(current);
+        private int pos = 0;
 
         @Override
         public boolean hasNext() {
@@ -154,32 +180,6 @@ public class StreamBucket implements Bucket, Streamable {
         @Override
         public void remove() {
 
-        }
-    }
-
-    @Override
-    public Iterator<Row> iterator() {
-        if (size < 1) {
-            return Collections.emptyIterator();
-        }
-        assert streamers != null;
-        return new RowIterator();
-    }
-
-    @Override
-    public void readFrom(StreamInput in) throws IOException {
-        size = in.readVInt();
-        if (size > 0) {
-            bytes = in.readBytesReference();
-        }
-    }
-
-    @Override
-    public void writeTo(StreamOutput out) throws IOException {
-        assert size > -1;
-        out.writeVInt(size);
-        if (size > 0) {
-            out.writeBytesReference(bytes);
         }
     }
 }

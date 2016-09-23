@@ -44,67 +44,67 @@ import java.util.*;
 public class TablePropertiesAnalyzer {
 
     private static final ImmutableBiMap<String, String> CRATE_TO_ES_SETTINGS_MAP =
-            ImmutableBiMap.<String, String>builder()
-                    .put(stripIndexPrefix(TableParameterInfo.NUMBER_OF_REPLICAS), TableParameterInfo.NUMBER_OF_REPLICAS)
-                    .put(stripIndexPrefix(TableParameterInfo.REFRESH_INTERVAL), TableParameterInfo.REFRESH_INTERVAL)
-                    .put(stripIndexPrefix(TableParameterInfo.READ_ONLY), TableParameterInfo.READ_ONLY)
-                    .put(stripIndexPrefix(TableParameterInfo.BLOCKS_READ), TableParameterInfo.BLOCKS_READ)
-                    .put(stripIndexPrefix(TableParameterInfo.BLOCKS_WRITE), TableParameterInfo.BLOCKS_WRITE)
-                    .put(stripIndexPrefix(TableParameterInfo.BLOCKS_METADATA), TableParameterInfo.BLOCKS_METADATA)
-                    .put(stripIndexPrefix(TableParameterInfo.FLUSH_THRESHOLD_OPS), TableParameterInfo.FLUSH_THRESHOLD_OPS)
-                    .put(stripIndexPrefix(TableParameterInfo.FLUSH_THRESHOLD_SIZE), TableParameterInfo.FLUSH_THRESHOLD_SIZE)
-                    .put(stripIndexPrefix(TableParameterInfo.FLUSH_THRESHOLD_PERIOD), TableParameterInfo.FLUSH_THRESHOLD_PERIOD)
-                    .put(stripIndexPrefix(TableParameterInfo.FLUSH_DISABLE), TableParameterInfo.FLUSH_DISABLE)
-                    .put(stripIndexPrefix(TableParameterInfo.TRANSLOG_INTERVAL), TableParameterInfo.TRANSLOG_INTERVAL)
-                    .put(stripIndexPrefix(TableParameterInfo.ROUTING_ALLOCATION_ENABLE), TableParameterInfo.ROUTING_ALLOCATION_ENABLE)
-                    .put(stripIndexPrefix(TableParameterInfo.TRANSLOG_SYNC_INTERVAL), TableParameterInfo.TRANSLOG_SYNC_INTERVAL)
-                    .put(stripIndexPrefix(TableParameterInfo.TOTAL_SHARDS_PER_NODE), TableParameterInfo.TOTAL_SHARDS_PER_NODE)
-                    .put(stripIndexPrefix(TableParameterInfo.RECOVERY_INITIAL_SHARDS), TableParameterInfo.RECOVERY_INITIAL_SHARDS)
-                    .put(stripIndexPrefix(TableParameterInfo.WARMER_ENABLED), TableParameterInfo.WARMER_ENABLED)
-                    .put(stripIndexPrefix(TableParameterInfo.UNASSIGNED_NODE_LEFT_DELAYED_TIMEOUT), TableParameterInfo.UNASSIGNED_NODE_LEFT_DELAYED_TIMEOUT)
-                    .put(stripIndexPrefix(TableParameterInfo.NUMBER_OF_SHARDS), TableParameterInfo.NUMBER_OF_SHARDS)
-                    .put("blobs_path", TableParameterInfo.BLOBS_PATH)
-                    .build();
+        ImmutableBiMap.<String, String>builder()
+            .put(stripIndexPrefix(TableParameterInfo.NUMBER_OF_REPLICAS), TableParameterInfo.NUMBER_OF_REPLICAS)
+            .put(stripIndexPrefix(TableParameterInfo.REFRESH_INTERVAL), TableParameterInfo.REFRESH_INTERVAL)
+            .put(stripIndexPrefix(TableParameterInfo.READ_ONLY), TableParameterInfo.READ_ONLY)
+            .put(stripIndexPrefix(TableParameterInfo.BLOCKS_READ), TableParameterInfo.BLOCKS_READ)
+            .put(stripIndexPrefix(TableParameterInfo.BLOCKS_WRITE), TableParameterInfo.BLOCKS_WRITE)
+            .put(stripIndexPrefix(TableParameterInfo.BLOCKS_METADATA), TableParameterInfo.BLOCKS_METADATA)
+            .put(stripIndexPrefix(TableParameterInfo.FLUSH_THRESHOLD_OPS), TableParameterInfo.FLUSH_THRESHOLD_OPS)
+            .put(stripIndexPrefix(TableParameterInfo.FLUSH_THRESHOLD_SIZE), TableParameterInfo.FLUSH_THRESHOLD_SIZE)
+            .put(stripIndexPrefix(TableParameterInfo.FLUSH_THRESHOLD_PERIOD), TableParameterInfo.FLUSH_THRESHOLD_PERIOD)
+            .put(stripIndexPrefix(TableParameterInfo.FLUSH_DISABLE), TableParameterInfo.FLUSH_DISABLE)
+            .put(stripIndexPrefix(TableParameterInfo.TRANSLOG_INTERVAL), TableParameterInfo.TRANSLOG_INTERVAL)
+            .put(stripIndexPrefix(TableParameterInfo.ROUTING_ALLOCATION_ENABLE), TableParameterInfo.ROUTING_ALLOCATION_ENABLE)
+            .put(stripIndexPrefix(TableParameterInfo.TRANSLOG_SYNC_INTERVAL), TableParameterInfo.TRANSLOG_SYNC_INTERVAL)
+            .put(stripIndexPrefix(TableParameterInfo.TOTAL_SHARDS_PER_NODE), TableParameterInfo.TOTAL_SHARDS_PER_NODE)
+            .put(stripIndexPrefix(TableParameterInfo.RECOVERY_INITIAL_SHARDS), TableParameterInfo.RECOVERY_INITIAL_SHARDS)
+            .put(stripIndexPrefix(TableParameterInfo.WARMER_ENABLED), TableParameterInfo.WARMER_ENABLED)
+            .put(stripIndexPrefix(TableParameterInfo.UNASSIGNED_NODE_LEFT_DELAYED_TIMEOUT), TableParameterInfo.UNASSIGNED_NODE_LEFT_DELAYED_TIMEOUT)
+            .put(stripIndexPrefix(TableParameterInfo.NUMBER_OF_SHARDS), TableParameterInfo.NUMBER_OF_SHARDS)
+            .put("blobs_path", TableParameterInfo.BLOBS_PATH)
+            .build();
 
     private static final ImmutableBiMap<String, String> ES_TO_CRATE_SETTINGS_MAP =
-            CRATE_TO_ES_SETTINGS_MAP.inverse();
+        CRATE_TO_ES_SETTINGS_MAP.inverse();
 
     private static final ImmutableBiMap<String, String> CRATE_TO_ES_MAPPINGS_MAP =
-            ImmutableBiMap.<String, String>builder()
-                    .put("column_policy", TableParameterInfo.COLUMN_POLICY)
-                    .build();
+        ImmutableBiMap.<String, String>builder()
+            .put("column_policy", TableParameterInfo.COLUMN_POLICY)
+            .build();
 
     private static final ImmutableBiMap<String, String> ES_TO_CRATE_MAPPINGS_MAP =
-            CRATE_TO_ES_MAPPINGS_MAP.inverse();
+        CRATE_TO_ES_MAPPINGS_MAP.inverse();
 
 
     private static final ImmutableMap<String, SettingsApplier> SETTINGS_APPLIER =
-            ImmutableMap.<String, SettingsApplier>builder()
-                    .put(TableParameterInfo.NUMBER_OF_REPLICAS, new NumberOfReplicasSettingApplier())
-                    .put(TableParameterInfo.REFRESH_INTERVAL, new RefreshIntervalSettingApplier())
-                    .put(TableParameterInfo.READ_ONLY, new SettingsAppliers.BooleanSettingsApplier(CrateTableSettings.READ_ONLY))
-                    .put(TableParameterInfo.BLOCKS_READ, new SettingsAppliers.BooleanSettingsApplier(CrateTableSettings.BLOCKS_READ))
-                    .put(TableParameterInfo.BLOCKS_WRITE, new SettingsAppliers.BooleanSettingsApplier(CrateTableSettings.BLOCKS_WRITE))
-                    .put(TableParameterInfo.BLOCKS_METADATA, new SettingsAppliers.BooleanSettingsApplier(CrateTableSettings.BLOCKS_METADATA))
-                    .put(TableParameterInfo.FLUSH_THRESHOLD_OPS, new SettingsAppliers.IntSettingsApplier(CrateTableSettings.FLUSH_THRESHOLD_OPS))
-                    .put(TableParameterInfo.FLUSH_THRESHOLD_SIZE, new SettingsAppliers.ByteSizeSettingsApplier(CrateTableSettings.FLUSH_THRESHOLD_SIZE))
-                    .put(TableParameterInfo.FLUSH_THRESHOLD_PERIOD, new SettingsAppliers.TimeSettingsApplier(CrateTableSettings.FLUSH_THRESHOLD_PERIOD))
-                    .put(TableParameterInfo.FLUSH_DISABLE, new SettingsAppliers.BooleanSettingsApplier(CrateTableSettings.FLUSH_DISABLE))
-                    .put(TableParameterInfo.TRANSLOG_INTERVAL, new SettingsAppliers.TimeSettingsApplier(CrateTableSettings.TRANSLOG_INTERVAL))
-                    .put(TableParameterInfo.ROUTING_ALLOCATION_ENABLE, new SettingsAppliers.StringSettingsApplier(CrateTableSettings.ROUTING_ALLOCATION_ENABLE))
-                    .put(TableParameterInfo.TRANSLOG_SYNC_INTERVAL, new SettingsAppliers.TimeSettingsApplier(CrateTableSettings.TRANSLOG_SYNC_INTERVAL))
-                    .put(TableParameterInfo.TOTAL_SHARDS_PER_NODE, new SettingsAppliers.IntSettingsApplier(CrateTableSettings.TOTAL_SHARDS_PER_NODE))
-                    .put(TableParameterInfo.RECOVERY_INITIAL_SHARDS, new RecoveryInitialShardsApplier())
-                    .put(TableParameterInfo.WARMER_ENABLED, new SettingsAppliers.BooleanSettingsApplier(CrateTableSettings.WARMER_ENABLED))
-                    .put(TableParameterInfo.UNASSIGNED_NODE_LEFT_DELAYED_TIMEOUT, new SettingsAppliers.TimeSettingsApplier(CrateTableSettings.UNASSIGNED_NODE_LEFT_DELAYED_TIMEOUT))
-                    .put(TableParameterInfo.NUMBER_OF_SHARDS, new NumberOfShardsSettingsApplier())
-                    .put(TableParameterInfo.BLOBS_PATH, new BlobPathSettingApplier())
-                    .build();
+        ImmutableMap.<String, SettingsApplier>builder()
+            .put(TableParameterInfo.NUMBER_OF_REPLICAS, new NumberOfReplicasSettingApplier())
+            .put(TableParameterInfo.REFRESH_INTERVAL, new RefreshIntervalSettingApplier())
+            .put(TableParameterInfo.READ_ONLY, new SettingsAppliers.BooleanSettingsApplier(CrateTableSettings.READ_ONLY))
+            .put(TableParameterInfo.BLOCKS_READ, new SettingsAppliers.BooleanSettingsApplier(CrateTableSettings.BLOCKS_READ))
+            .put(TableParameterInfo.BLOCKS_WRITE, new SettingsAppliers.BooleanSettingsApplier(CrateTableSettings.BLOCKS_WRITE))
+            .put(TableParameterInfo.BLOCKS_METADATA, new SettingsAppliers.BooleanSettingsApplier(CrateTableSettings.BLOCKS_METADATA))
+            .put(TableParameterInfo.FLUSH_THRESHOLD_OPS, new SettingsAppliers.IntSettingsApplier(CrateTableSettings.FLUSH_THRESHOLD_OPS))
+            .put(TableParameterInfo.FLUSH_THRESHOLD_SIZE, new SettingsAppliers.ByteSizeSettingsApplier(CrateTableSettings.FLUSH_THRESHOLD_SIZE))
+            .put(TableParameterInfo.FLUSH_THRESHOLD_PERIOD, new SettingsAppliers.TimeSettingsApplier(CrateTableSettings.FLUSH_THRESHOLD_PERIOD))
+            .put(TableParameterInfo.FLUSH_DISABLE, new SettingsAppliers.BooleanSettingsApplier(CrateTableSettings.FLUSH_DISABLE))
+            .put(TableParameterInfo.TRANSLOG_INTERVAL, new SettingsAppliers.TimeSettingsApplier(CrateTableSettings.TRANSLOG_INTERVAL))
+            .put(TableParameterInfo.ROUTING_ALLOCATION_ENABLE, new SettingsAppliers.StringSettingsApplier(CrateTableSettings.ROUTING_ALLOCATION_ENABLE))
+            .put(TableParameterInfo.TRANSLOG_SYNC_INTERVAL, new SettingsAppliers.TimeSettingsApplier(CrateTableSettings.TRANSLOG_SYNC_INTERVAL))
+            .put(TableParameterInfo.TOTAL_SHARDS_PER_NODE, new SettingsAppliers.IntSettingsApplier(CrateTableSettings.TOTAL_SHARDS_PER_NODE))
+            .put(TableParameterInfo.RECOVERY_INITIAL_SHARDS, new RecoveryInitialShardsApplier())
+            .put(TableParameterInfo.WARMER_ENABLED, new SettingsAppliers.BooleanSettingsApplier(CrateTableSettings.WARMER_ENABLED))
+            .put(TableParameterInfo.UNASSIGNED_NODE_LEFT_DELAYED_TIMEOUT, new SettingsAppliers.TimeSettingsApplier(CrateTableSettings.UNASSIGNED_NODE_LEFT_DELAYED_TIMEOUT))
+            .put(TableParameterInfo.NUMBER_OF_SHARDS, new NumberOfShardsSettingsApplier())
+            .put(TableParameterInfo.BLOBS_PATH, new BlobPathSettingApplier())
+            .build();
 
     private static final ImmutableMap<String, MappingsApplier> MAPPINGS_APPLIER =
-            ImmutableMap.<String, MappingsApplier>builder()
-                    .put(TableParameterInfo.COLUMN_POLICY, new ColumnPolicyMappingApplier())
-                    .build();
+        ImmutableMap.<String, MappingsApplier>builder()
+            .put(TableParameterInfo.COLUMN_POLICY, new ColumnPolicyMappingApplier())
+            .build();
 
     private static String stripIndexPrefix(String setting) {
         if (setting.startsWith("index.")) {
@@ -190,17 +190,17 @@ public class TablePropertiesAnalyzer {
                 esName = CRATE_TO_ES_MAPPINGS_MAP.get(propertyName);
             }
             Preconditions.checkArgument(supportedParameters.contains(esName),
-                    String.format(Locale.ENGLISH, "Invalid property \"%s\" passed to [ALTER | CREATE] TABLE statement",
-                            propertyName));
+                String.format(Locale.ENGLISH, "Invalid property \"%s\" passed to [ALTER | CREATE] TABLE statement",
+                    propertyName));
         }
     }
 
     protected static class NumberOfReplicasSettingApplier extends SettingsAppliers.AbstractSettingsApplier {
 
         private static final Settings DEFAULT = Settings.builder()
-                .put(TableParameterInfo.NUMBER_OF_REPLICAS, 1)
-                .put(TableParameterInfo.AUTO_EXPAND_REPLICAS, false)
-                .build();
+            .put(TableParameterInfo.NUMBER_OF_REPLICAS, 1)
+            .put(TableParameterInfo.AUTO_EXPAND_REPLICAS, false)
+            .build();
 
         public NumberOfReplicasSettingApplier() {
             super(ES_TO_CRATE_SETTINGS_MAP.get(TableParameterInfo.NUMBER_OF_REPLICAS), DEFAULT);
@@ -211,7 +211,7 @@ public class TablePropertiesAnalyzer {
                           Row parameters,
                           Expression expression) {
             Preconditions.checkArgument(!(expression instanceof ArrayLiteral),
-                    String.format(Locale.ENGLISH, "array literal not allowed for \"%s\"", ES_TO_CRATE_SETTINGS_MAP.get(TableParameterInfo.NUMBER_OF_REPLICAS)));
+                String.format(Locale.ENGLISH, "array literal not allowed for \"%s\"", ES_TO_CRATE_SETTINGS_MAP.get(TableParameterInfo.NUMBER_OF_REPLICAS)));
 
             NumberOfReplicas numberOfReplicas;
             try {
@@ -241,7 +241,8 @@ public class TablePropertiesAnalyzer {
     private static class RefreshIntervalSettingApplier extends SettingsAppliers.AbstractSettingsApplier {
 
         public static final Settings DEFAULT = Settings.builder()
-                .put(TableParameterInfo.REFRESH_INTERVAL, CrateTableSettings.REFRESH_INTERVAL.defaultValue().millis() + "ms").build();
+            .put(TableParameterInfo.REFRESH_INTERVAL,
+                CrateTableSettings.REFRESH_INTERVAL.defaultValue().millis() + "ms").build();
 
         private RefreshIntervalSettingApplier() {
             super(ES_TO_CRATE_SETTINGS_MAP.get(TableParameterInfo.REFRESH_INTERVAL), DEFAULT);
@@ -273,17 +274,16 @@ public class TablePropertiesAnalyzer {
 
     private static class RecoveryInitialShardsApplier extends SettingsAppliers.AbstractSettingsApplier {
 
-        public ImmutableSet<String> ALLOWED_VALUES = ImmutableSet.of(
-                "quorum",
-                "quorum-1",
-                "full",
-                "full-1",
-                "half"
-        );
-
         public static final Settings DEFAULT = Settings.builder()
-                .put(TableParameterInfo.RECOVERY_INITIAL_SHARDS, CrateTableSettings.RECOVERY_INITIAL_SHARDS.defaultValue())
-                .build();
+            .put(TableParameterInfo.RECOVERY_INITIAL_SHARDS, CrateTableSettings.RECOVERY_INITIAL_SHARDS.defaultValue())
+            .build();
+        public ImmutableSet<String> ALLOWED_VALUES = ImmutableSet.of(
+            "quorum",
+            "quorum-1",
+            "full",
+            "full-1",
+            "half"
+        );
 
         private RecoveryInitialShardsApplier() {
             super(ES_TO_CRATE_SETTINGS_MAP.get(TableParameterInfo.RECOVERY_INITIAL_SHARDS), DEFAULT);
@@ -308,7 +308,7 @@ public class TablePropertiesAnalyzer {
     private static class NumberOfShardsSettingsApplier extends SettingsAppliers.AbstractSettingsApplier {
 
         public static final Settings DEFAULT = Settings.builder()
-                .put(TableParameterInfo.NUMBER_OF_SHARDS, 5).build();
+            .put(TableParameterInfo.NUMBER_OF_SHARDS, 5).build();
 
         private NumberOfShardsSettingsApplier() {
             super(ES_TO_CRATE_SETTINGS_MAP.get(TableParameterInfo.NUMBER_OF_SHARDS), DEFAULT);
@@ -371,8 +371,8 @@ public class TablePropertiesAnalyzer {
 
         private ColumnPolicyMappingApplier() {
             super(TableParameterInfo.COLUMN_POLICY,
-                    ES_TO_CRATE_MAPPINGS_MAP.get(TableParameterInfo.COLUMN_POLICY),
-                    true);
+                ES_TO_CRATE_MAPPINGS_MAP.get(TableParameterInfo.COLUMN_POLICY),
+                true);
         }
 
         @Override

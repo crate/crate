@@ -32,12 +32,12 @@ public class DoubleTypeTest extends BasePGTypeTest<Double> {
 
     @Test
     public void testWriteValue() throws Exception {
-        assertBytesWritten(Double.MIN_VALUE, new byte[]{ 0, 0, 0, 8, 0, 0, 0, 0, 0, 0, 0, 1 });
+        assertBytesWritten(Double.MIN_VALUE, new byte[]{0, 0, 0, 8, 0, 0, 0, 0, 0, 0, 0, 1});
     }
 
     @Test
     public void testReadValueBinary() throws Exception {
-        assertBytesReadBinary(new byte[]{ 127, -17, -1, -1, -1, -1, -1, -1 }, Double.MAX_VALUE);
+        assertBytesReadBinary(new byte[]{127, -17, -1, -1, -1, -1, -1, -1}, Double.MAX_VALUE);
     }
 
     @Test

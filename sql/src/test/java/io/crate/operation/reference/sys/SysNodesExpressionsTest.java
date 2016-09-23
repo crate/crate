@@ -24,7 +24,10 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.net.InetAddresses;
 import io.crate.Build;
 import io.crate.Version;
-import io.crate.metadata.*;
+import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.Reference;
+import io.crate.metadata.RowGranularity;
+import io.crate.metadata.SimpleObjectExpression;
 import io.crate.monitor.DummyExtendedNodeInfo;
 import io.crate.monitor.MonitorModule;
 import io.crate.operation.Input;
@@ -74,135 +77,18 @@ import java.util.Map;
 
 import static io.crate.testing.TestingHelpers.mapToSortedString;
 import static io.crate.testing.TestingHelpers.refInfo;
-import static org.hamcrest.Matchers.instanceOf;
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.notNullValue;
+import static org.hamcrest.Matchers.*;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 public class SysNodesExpressionsTest extends CrateUnitTest {
 
     private static final Settings NODE_SETTINGS = Settings.builder()
-            .put(MonitorModule.NODE_INFO_EXTENDED_TYPE, "dummy")
-            .build();
+        .put(MonitorModule.NODE_INFO_EXTENDED_TYPE, "dummy")
+        .build();
 
     private Injector injector;
     private NodeSysExpression resolver;
-
-    static class TestModule extends AbstractModule {
-
-        private final boolean isDataNode;
-
-        TestModule(boolean isDataNode) {
-            this.isDataNode = isDataNode;
-        }
-
-        @Override
-        protected void configure() {
-            bind(Settings.class).toInstance(Settings.EMPTY);
-
-            ClusterService clusterService = mock(ClusterService.class);
-            bind(ClusterService.class).toInstance(clusterService);
-
-            OsService osService = mock(OsService.class);
-            OsStats osStats = mock(OsStats.class);
-            when(osService.stats()).thenReturn(osStats);
-
-            ByteSizeValue byteSizeValue = mock(ByteSizeValue.class);
-            when(byteSizeValue.bytes()).thenReturn(12345342234L);
-            when(byteSizeValue.toString()).thenReturn("11.4gb");
-
-            OsStats.Mem mem = mock(OsStats.Mem.class);
-            when(osStats.getMem()).thenReturn(mem);
-            when(mem.getFree()).thenReturn(byteSizeValue);
-            when(mem.getUsed()).thenReturn(byteSizeValue);
-            when(mem.getUsedPercent()).thenReturn((short) 22);
-            when(mem.getFreePercent()).thenReturn((short) 78);
-
-            OsInfo osInfo = mock(OsInfo.class);
-            when(osService.info()).thenReturn(osInfo);
-            when(osInfo.getAvailableProcessors()).thenReturn(4);
-
-            bind(OsService.class).toInstance(osService);
-
-            NodeService nodeService = mock(NodeService.class);
-            NodeStats nodeStats = mock(NodeStats.class);
-            try {
-                when(nodeService.stats()).thenReturn(nodeStats);
-            } catch (IOException e) {
-                // wrong signature, IOException will never be thrown
-            }
-
-            DiscoveryNode node = mock(DiscoveryNode.class);
-            when(node.getHostAddress()).thenReturn("127.0.0.1");
-            when(nodeStats.getNode()).thenReturn(node);
-            when(clusterService.localNode()).thenReturn(node);
-
-            when(nodeStats.getOs()).thenReturn(osStats);
-
-            ProcessStats processStats = mock(ProcessStats.class);
-            when(nodeStats.getProcess()).thenReturn(processStats);
-            when(processStats.getOpenFileDescriptors()).thenReturn(42L);
-            when(processStats.getMaxFileDescriptors()).thenReturn(1000L);
-
-            NodeInfo nodeInfo = mock(NodeInfo.class);
-            when(nodeService.info()).thenReturn(nodeInfo);
-
-            Discovery discovery = mock(Discovery.class);
-            bind(Discovery.class).toInstance(discovery);
-            when(discovery.localNode()).thenReturn(node);
-            when(node.getId()).thenReturn("node-id-1");
-            when(node.getName()).thenReturn("node 1");
-
-            InetAddress localhost = null;
-            try {
-                localhost = InetAddress.getByName("localhost");
-            } catch (UnknownHostException e) {
-                fail(e.getMessage());
-            }
-
-            TransportAddress transportAddress = new InetSocketTransportAddress(localhost, 44300);
-            when(node.address()).thenReturn(transportAddress);
-            when(node.attributes()).thenReturn(
-                    ImmutableMap.<String, String>builder().put("http_address", "http://localhost:44200").build()
-            );
-
-
-            bind(NodeService.class).toInstance(nodeService);
-
-            NodeEnvironment nodeEnv = mock(NodeEnvironment.class);
-            Path[] dataLocations = new Path[]{new File("/foo").toPath(), new File("/bar").toPath()};
-            when(nodeEnv.hasNodeFile()).then(new Answer<Boolean>() {
-                @Override
-                public Boolean answer(InvocationOnMock invocation) throws Throwable {
-                    return isDataNode;
-                }
-            });
-            when(nodeEnv.nodeDataPaths()).thenReturn(dataLocations);
-            bind(NodeEnvironment.class).toInstance(nodeEnv);
-
-            HttpInfo httpInfo = mock(HttpInfo.class);
-            when(nodeInfo.getHttp()).thenReturn(httpInfo);
-            TransportAddress[] boundAddresses = new TransportAddress[]{new InetSocketTransportAddress(localhost, 44200)};
-            BoundTransportAddress boundTransportAddress = new BoundTransportAddress(boundAddresses, boundAddresses[0]);
-            when(httpInfo.address()).thenReturn(boundTransportAddress);
-
-            JvmService jvmService = mock(JvmService.class);
-            JvmStats jvmStats = mock(JvmStats.class);
-            JvmStats.Mem jvmStatsMem = mock(JvmStats.Mem.class);
-            ByteSizeValue heapByteSizeValueMax = mock(ByteSizeValue.class);
-            when(heapByteSizeValueMax.bytes()).thenReturn(123456L);
-            when(jvmStatsMem.getHeapMax()).thenReturn(heapByteSizeValueMax);
-            when(jvmStatsMem.getHeapUsed()).thenReturn(heapByteSizeValueMax);
-
-            when(jvmStats.getMem()).thenReturn(jvmStatsMem);
-            when(jvmService.stats()).thenReturn(jvmStats);
-            bind(JvmService.class).toInstance(jvmService);
-
-            ThreadPool threadPool = new ThreadPool(getClass().getName());
-            bind(ThreadPool.class).toInstance(threadPool);
-        }
-    }
 
     /**
      * Resolve canonical path (platform independent)
@@ -225,9 +111,9 @@ public class SysNodesExpressionsTest extends CrateUnitTest {
         monitorModule.addExtendedNodeInfoType("dummy", DummyExtendedNodeInfo.class);
 
         injector = new ModulesBuilder().add(
-                new TestModule(true),
-                monitorModule,
-                new SysNodeExpressionModule()
+            new TestModule(true),
+            monitorModule,
+            new SysNodeExpressionModule()
         ).createInjector();
         resolver = injector.getInstance(NodeSysExpression.class);
     }
@@ -394,10 +280,10 @@ public class SysNodesExpressionsTest extends CrateUnitTest {
 
         Map<String, Object> networkStats = networkRef.value();
         assertThat(mapToSortedString(networkStats),
-                is("probe_timestamp=0, tcp={" +
-                   "connections={accepted=42, curr_established=42, dropped=42, embryonic_dropped=42, initiated=42}, " +
-                   "packets={errors_received=42, received=42, retransmitted=42, rst_sent=42, sent=42}" +
-                   "}"));
+            is("probe_timestamp=0, tcp={" +
+               "connections={accepted=42, curr_established=42, dropped=42, embryonic_dropped=42, initiated=42}, " +
+               "packets={errors_received=42, received=42, retransmitted=42, rst_sent=42, sent=42}" +
+               "}"));
     }
 
     @Test
@@ -410,8 +296,8 @@ public class SysNodesExpressionsTest extends CrateUnitTest {
 
         assertThat(tcpStats, instanceOf(Map.class));
         assertThat(mapToSortedString(tcpStats),
-                is("connections={accepted=42, curr_established=42, dropped=42, embryonic_dropped=42, initiated=42}, " +
-                   "packets={errors_received=42, received=42, retransmitted=42, rst_sent=42, sent=42}"));
+            is("connections={accepted=42, curr_established=42, dropped=42, embryonic_dropped=42, initiated=42}, " +
+               "packets={errors_received=42, received=42, retransmitted=42, rst_sent=42, sent=42}"));
     }
 
     @Test
@@ -468,5 +354,120 @@ public class SysNodesExpressionsTest extends CrateUnitTest {
             (io.crate.operation.reference.NestedObjectExpression) resolver.getChildImplementation(versionColIdent.name());
 
         assertThat(version.value().get("number"), instanceOf(String.class));
+    }
+
+    static class TestModule extends AbstractModule {
+
+        private final boolean isDataNode;
+
+        TestModule(boolean isDataNode) {
+            this.isDataNode = isDataNode;
+        }
+
+        @Override
+        protected void configure() {
+            bind(Settings.class).toInstance(Settings.EMPTY);
+
+            ClusterService clusterService = mock(ClusterService.class);
+            bind(ClusterService.class).toInstance(clusterService);
+
+            OsService osService = mock(OsService.class);
+            OsStats osStats = mock(OsStats.class);
+            when(osService.stats()).thenReturn(osStats);
+
+            ByteSizeValue byteSizeValue = mock(ByteSizeValue.class);
+            when(byteSizeValue.bytes()).thenReturn(12345342234L);
+            when(byteSizeValue.toString()).thenReturn("11.4gb");
+
+            OsStats.Mem mem = mock(OsStats.Mem.class);
+            when(osStats.getMem()).thenReturn(mem);
+            when(mem.getFree()).thenReturn(byteSizeValue);
+            when(mem.getUsed()).thenReturn(byteSizeValue);
+            when(mem.getUsedPercent()).thenReturn((short) 22);
+            when(mem.getFreePercent()).thenReturn((short) 78);
+
+            OsInfo osInfo = mock(OsInfo.class);
+            when(osService.info()).thenReturn(osInfo);
+            when(osInfo.getAvailableProcessors()).thenReturn(4);
+
+            bind(OsService.class).toInstance(osService);
+
+            NodeService nodeService = mock(NodeService.class);
+            NodeStats nodeStats = mock(NodeStats.class);
+            try {
+                when(nodeService.stats()).thenReturn(nodeStats);
+            } catch (IOException e) {
+                // wrong signature, IOException will never be thrown
+            }
+
+            DiscoveryNode node = mock(DiscoveryNode.class);
+            when(node.getHostAddress()).thenReturn("127.0.0.1");
+            when(nodeStats.getNode()).thenReturn(node);
+            when(clusterService.localNode()).thenReturn(node);
+
+            when(nodeStats.getOs()).thenReturn(osStats);
+
+            ProcessStats processStats = mock(ProcessStats.class);
+            when(nodeStats.getProcess()).thenReturn(processStats);
+            when(processStats.getOpenFileDescriptors()).thenReturn(42L);
+            when(processStats.getMaxFileDescriptors()).thenReturn(1000L);
+
+            NodeInfo nodeInfo = mock(NodeInfo.class);
+            when(nodeService.info()).thenReturn(nodeInfo);
+
+            Discovery discovery = mock(Discovery.class);
+            bind(Discovery.class).toInstance(discovery);
+            when(discovery.localNode()).thenReturn(node);
+            when(node.getId()).thenReturn("node-id-1");
+            when(node.getName()).thenReturn("node 1");
+
+            InetAddress localhost = null;
+            try {
+                localhost = InetAddress.getByName("localhost");
+            } catch (UnknownHostException e) {
+                fail(e.getMessage());
+            }
+
+            TransportAddress transportAddress = new InetSocketTransportAddress(localhost, 44300);
+            when(node.address()).thenReturn(transportAddress);
+            when(node.attributes()).thenReturn(
+                ImmutableMap.<String, String>builder().put("http_address", "http://localhost:44200").build()
+            );
+
+
+            bind(NodeService.class).toInstance(nodeService);
+
+            NodeEnvironment nodeEnv = mock(NodeEnvironment.class);
+            Path[] dataLocations = new Path[]{new File("/foo").toPath(), new File("/bar").toPath()};
+            when(nodeEnv.hasNodeFile()).then(new Answer<Boolean>() {
+                @Override
+                public Boolean answer(InvocationOnMock invocation) throws Throwable {
+                    return isDataNode;
+                }
+            });
+            when(nodeEnv.nodeDataPaths()).thenReturn(dataLocations);
+            bind(NodeEnvironment.class).toInstance(nodeEnv);
+
+            HttpInfo httpInfo = mock(HttpInfo.class);
+            when(nodeInfo.getHttp()).thenReturn(httpInfo);
+            TransportAddress[] boundAddresses = new TransportAddress[]{new InetSocketTransportAddress(localhost, 44200)};
+            BoundTransportAddress boundTransportAddress = new BoundTransportAddress(boundAddresses, boundAddresses[0]);
+            when(httpInfo.address()).thenReturn(boundTransportAddress);
+
+            JvmService jvmService = mock(JvmService.class);
+            JvmStats jvmStats = mock(JvmStats.class);
+            JvmStats.Mem jvmStatsMem = mock(JvmStats.Mem.class);
+            ByteSizeValue heapByteSizeValueMax = mock(ByteSizeValue.class);
+            when(heapByteSizeValueMax.bytes()).thenReturn(123456L);
+            when(jvmStatsMem.getHeapMax()).thenReturn(heapByteSizeValueMax);
+            when(jvmStatsMem.getHeapUsed()).thenReturn(heapByteSizeValueMax);
+
+            when(jvmStats.getMem()).thenReturn(jvmStatsMem);
+            when(jvmService.stats()).thenReturn(jvmStats);
+            bind(JvmService.class).toInstance(jvmService);
+
+            ThreadPool threadPool = new ThreadPool(getClass().getName());
+            bind(ThreadPool.class).toInstance(threadPool);
+        }
     }
 }

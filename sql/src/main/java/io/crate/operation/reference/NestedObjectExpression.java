@@ -42,7 +42,7 @@ public abstract class NestedObjectExpression implements ReferenceImplementation<
     }
 
     @Override
-    public Map<String,Object> value() {
+    public Map<String, Object> value() {
         Map<String, Object> map = new HashMap<>(childImplementations.size());
         for (Map.Entry<String, ReferenceImplementation> e : childImplementations.entrySet()) {
             Object value = e.getValue().value();
@@ -50,7 +50,7 @@ public abstract class NestedObjectExpression implements ReferenceImplementation<
             // convert nested columns of type e.getValue().value() to String here
             // as we do not want to convert them when building the response
             if (value instanceof BytesRef) {
-                value = ((BytesRef)value).utf8ToString();
+                value = ((BytesRef) value).utf8ToString();
             }
             map.put(e.getKey(), value);
         }

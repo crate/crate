@@ -65,36 +65,58 @@ public class TableParameterInfo {
     public static final String COLUMN_POLICY = ColumnPolicy.ES_MAPPING_NAME;
 
     protected static final ImmutableList<String> SUPPORTED_SETTINGS =
-            ImmutableList.<String>builder()
-                    .add(NUMBER_OF_REPLICAS)
-                    .add(REFRESH_INTERVAL)
-                    .add(READ_ONLY)
-                    .add(BLOCKS_READ)
-                    .add(BLOCKS_WRITE)
-                    .add(BLOCKS_METADATA)
-                    .add(FLUSH_THRESHOLD_OPS)
-                    .add(FLUSH_THRESHOLD_SIZE)
-                    .add(FLUSH_THRESHOLD_PERIOD)
-                    .add(FLUSH_DISABLE)
-                    .add(TRANSLOG_INTERVAL)
-                    .add(ROUTING_ALLOCATION_ENABLE)
-                    .add(TRANSLOG_SYNC_INTERVAL)
-                    .add(TOTAL_SHARDS_PER_NODE)
-                    .add(RECOVERY_INITIAL_SHARDS)
-                    .add(WARMER_ENABLED)
-                    .add(UNASSIGNED_NODE_LEFT_DELAYED_TIMEOUT)
-                    .build();
+        ImmutableList.<String>builder()
+            .add(NUMBER_OF_REPLICAS)
+            .add(REFRESH_INTERVAL)
+            .add(READ_ONLY)
+            .add(BLOCKS_READ)
+            .add(BLOCKS_WRITE)
+            .add(BLOCKS_METADATA)
+            .add(FLUSH_THRESHOLD_OPS)
+            .add(FLUSH_THRESHOLD_SIZE)
+            .add(FLUSH_THRESHOLD_PERIOD)
+            .add(FLUSH_DISABLE)
+            .add(TRANSLOG_INTERVAL)
+            .add(ROUTING_ALLOCATION_ENABLE)
+            .add(TRANSLOG_SYNC_INTERVAL)
+            .add(TOTAL_SHARDS_PER_NODE)
+            .add(RECOVERY_INITIAL_SHARDS)
+            .add(WARMER_ENABLED)
+            .add(UNASSIGNED_NODE_LEFT_DELAYED_TIMEOUT)
+            .build();
 
     protected static final ImmutableList<String> SUPPORTED_INTERNAL_SETTINGS =
-            ImmutableList.<String>builder()
-                    .addAll(SUPPORTED_SETTINGS)
-                    .add(AUTO_EXPAND_REPLICAS)
-                    .build();
+        ImmutableList.<String>builder()
+            .addAll(SUPPORTED_SETTINGS)
+            .add(AUTO_EXPAND_REPLICAS)
+            .build();
 
     protected static final ImmutableList<String> SUPPORTED_MAPPINGS =
-            ImmutableList.<String>builder()
-                    .add(COLUMN_POLICY)
-                    .build();
+        ImmutableList.<String>builder()
+            .add(COLUMN_POLICY)
+            .build();
+
+    public static ImmutableMap<String, Object> tableParametersFromIndexMetaData(IndexMetaData metaData) {
+        Settings settings = metaData.getSettings();
+        return ImmutableMap.<String, Object>builder()
+            .put(TableParameterInfo.READ_ONLY, CrateTableSettings.READ_ONLY.extract(settings))
+            .put(TableParameterInfo.BLOCKS_READ, CrateTableSettings.BLOCKS_READ.extract(settings))
+            .put(TableParameterInfo.BLOCKS_WRITE, CrateTableSettings.BLOCKS_WRITE.extract(settings))
+            .put(TableParameterInfo.BLOCKS_METADATA, CrateTableSettings.BLOCKS_METADATA.extract(settings))
+            .put(TableParameterInfo.FLUSH_THRESHOLD_OPS, CrateTableSettings.FLUSH_THRESHOLD_OPS.extract(settings))
+            .put(TableParameterInfo.FLUSH_THRESHOLD_PERIOD, CrateTableSettings.FLUSH_THRESHOLD_PERIOD.extractMillis(settings))
+            .put(TableParameterInfo.FLUSH_THRESHOLD_SIZE, CrateTableSettings.FLUSH_THRESHOLD_SIZE.extractBytes(settings))
+            .put(TableParameterInfo.FLUSH_DISABLE, CrateTableSettings.FLUSH_DISABLE.extract(settings))
+            .put(TableParameterInfo.TRANSLOG_INTERVAL, CrateTableSettings.TRANSLOG_INTERVAL.extractMillis(settings))
+            .put(TableParameterInfo.ROUTING_ALLOCATION_ENABLE, CrateTableSettings.ROUTING_ALLOCATION_ENABLE.extract(settings))
+            .put(TableParameterInfo.TOTAL_SHARDS_PER_NODE, CrateTableSettings.TOTAL_SHARDS_PER_NODE.extract(settings))
+            .put(TableParameterInfo.RECOVERY_INITIAL_SHARDS, CrateTableSettings.RECOVERY_INITIAL_SHARDS.extract(settings))
+            .put(TableParameterInfo.WARMER_ENABLED, CrateTableSettings.WARMER_ENABLED.extract(settings))
+            .put(TableParameterInfo.TRANSLOG_SYNC_INTERVAL, CrateTableSettings.TRANSLOG_SYNC_INTERVAL.extractMillis(settings))
+            .put(TableParameterInfo.REFRESH_INTERVAL, CrateTableSettings.REFRESH_INTERVAL.extractMillis(settings))
+            .put(TableParameterInfo.UNASSIGNED_NODE_LEFT_DELAYED_TIMEOUT, CrateTableSettings.UNASSIGNED_NODE_LEFT_DELAYED_TIMEOUT.extractMillis(settings))
+            .build();
+    }
 
     /**
      * Returns list of public settings names supported by this table
@@ -115,27 +137,5 @@ public class TableParameterInfo {
      */
     public ImmutableList<String> supportedMappings() {
         return SUPPORTED_MAPPINGS;
-    }
-
-    public static ImmutableMap<String,Object> tableParametersFromIndexMetaData(IndexMetaData metaData) {
-        Settings settings = metaData.getSettings();
-        return ImmutableMap.<String,Object>builder()
-                .put(TableParameterInfo.READ_ONLY, CrateTableSettings.READ_ONLY.extract(settings))
-                .put(TableParameterInfo.BLOCKS_READ, CrateTableSettings.BLOCKS_READ.extract(settings))
-                .put(TableParameterInfo.BLOCKS_WRITE, CrateTableSettings.BLOCKS_WRITE.extract(settings))
-                .put(TableParameterInfo.BLOCKS_METADATA, CrateTableSettings.BLOCKS_METADATA.extract(settings))
-                .put(TableParameterInfo.FLUSH_THRESHOLD_OPS, CrateTableSettings.FLUSH_THRESHOLD_OPS.extract(settings))
-                .put(TableParameterInfo.FLUSH_THRESHOLD_PERIOD, CrateTableSettings.FLUSH_THRESHOLD_PERIOD.extractMillis(settings))
-                .put(TableParameterInfo.FLUSH_THRESHOLD_SIZE, CrateTableSettings.FLUSH_THRESHOLD_SIZE.extractBytes(settings))
-                .put(TableParameterInfo.FLUSH_DISABLE, CrateTableSettings.FLUSH_DISABLE.extract(settings))
-                .put(TableParameterInfo.TRANSLOG_INTERVAL, CrateTableSettings.TRANSLOG_INTERVAL.extractMillis(settings))
-                .put(TableParameterInfo.ROUTING_ALLOCATION_ENABLE, CrateTableSettings.ROUTING_ALLOCATION_ENABLE.extract(settings))
-                .put(TableParameterInfo.TOTAL_SHARDS_PER_NODE, CrateTableSettings.TOTAL_SHARDS_PER_NODE.extract(settings))
-                .put(TableParameterInfo.RECOVERY_INITIAL_SHARDS, CrateTableSettings.RECOVERY_INITIAL_SHARDS.extract(settings))
-                .put(TableParameterInfo.WARMER_ENABLED, CrateTableSettings.WARMER_ENABLED.extract(settings))
-                .put(TableParameterInfo.TRANSLOG_SYNC_INTERVAL, CrateTableSettings.TRANSLOG_SYNC_INTERVAL.extractMillis(settings))
-                .put(TableParameterInfo.REFRESH_INTERVAL, CrateTableSettings.REFRESH_INTERVAL.extractMillis(settings))
-                .put(TableParameterInfo.UNASSIGNED_NODE_LEFT_DELAYED_TIMEOUT, CrateTableSettings.UNASSIGNED_NODE_LEFT_DELAYED_TIMEOUT.extractMillis(settings))
-                .build();
     }
 }

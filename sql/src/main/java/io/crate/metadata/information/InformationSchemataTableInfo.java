@@ -33,24 +33,24 @@ public class InformationSchemataTableInfo extends InformationTableInfo {
     public static final String NAME = "schemata";
     public static final TableIdent IDENT = new TableIdent(InformationSchemaInfo.NAME, NAME);
 
-    public static class Columns {
-        public static final ColumnIdent SCHEMA_NAME = new ColumnIdent("schema_name");
-    }
-
-    public static class References {
-        public static final Reference SCHEMA_NAME = info(Columns.SCHEMA_NAME, DataTypes.STRING);
+    protected InformationSchemataTableInfo(ClusterService clusterService) {
+        super(clusterService, IDENT,
+            ImmutableList.of(Columns.SCHEMA_NAME),
+            ImmutableSortedMap.<ColumnIdent, Reference>naturalOrder()
+                .put(Columns.SCHEMA_NAME, References.SCHEMA_NAME)
+                .build()
+        );
     }
 
     private static Reference info(ColumnIdent columnIdent, DataType dataType) {
         return new Reference(new ReferenceIdent(IDENT, columnIdent), RowGranularity.DOC, dataType);
     }
 
-    protected InformationSchemataTableInfo(ClusterService clusterService) {
-        super(clusterService, IDENT,
-                ImmutableList.of(Columns.SCHEMA_NAME),
-                ImmutableSortedMap.<ColumnIdent, Reference>naturalOrder ()
-                        .put(Columns.SCHEMA_NAME, References.SCHEMA_NAME)
-                        .build()
-        );
+    public static class Columns {
+        public static final ColumnIdent SCHEMA_NAME = new ColumnIdent("schema_name");
+    }
+
+    public static class References {
+        public static final Reference SCHEMA_NAME = info(Columns.SCHEMA_NAME, DataTypes.STRING);
     }
 }

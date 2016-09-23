@@ -50,22 +50,12 @@ public class CreateDropRepositoryAnalyzerTest extends BaseAnalyzerTest {
     @Mock
     private RepositoriesMetaData repositoriesMetaData;
 
-
-    private class MyMockedClusterServiceModule extends MockedClusterServiceModule {
-
-        @Override
-        protected void configureMetaData(MetaData metaData) {
-            when(metaData.custom(RepositoriesMetaData.TYPE)).thenReturn(repositoriesMetaData);
-        }
-
-    }
-
     @Override
     protected List<Module> getModules() {
         List<Module> modules = super.getModules();
         modules.addAll(Arrays.<Module>asList(
-                        new MyMockedClusterServiceModule(),
-                        new MetaDataModule())
+            new MyMockedClusterServiceModule(),
+            new MetaDataModule())
         );
         return modules;
     }
@@ -128,22 +118,22 @@ public class CreateDropRepositoryAnalyzerTest extends BaseAnalyzerTest {
         assertThat(analysis.repositoryName(), is("foo"));
         Map<String, String> sortedSettingsMap = ImmutableSortedMap.copyOf(analysis.settings().getAsMap());
         assertThat(
-                Joiner.on(",").withKeyValueSeparator(":")
-                        .join(sortedSettingsMap),
-                is("access_key:0xAFFE," +
-                   "base_path:/holz/," +
-                   "bucket:abc," +
-                   "buffer_size:128," +
-                   "canned_acl:false," +
-                   "chunk_size:12," +
-                   "compress:true," +
-                   "concurrent_streams:4," +
-                   "endpoint:www.example.com," +
-                   "max_retries:2," +
-                   "protocol:arp," +
-                   "region:us-north-42," +
-                   "secret_key:0xCAFEE," +
-                   "server_side_encryption:false"));
+            Joiner.on(",").withKeyValueSeparator(":")
+                .join(sortedSettingsMap),
+            is("access_key:0xAFFE," +
+               "base_path:/holz/," +
+               "bucket:abc," +
+               "buffer_size:128," +
+               "canned_acl:false," +
+               "chunk_size:12," +
+               "compress:true," +
+               "concurrent_streams:4," +
+               "endpoint:www.example.com," +
+               "max_retries:2," +
+               "protocol:arp," +
+               "region:us-north-42," +
+               "secret_key:0xCAFEE," +
+               "server_side_encryption:false"));
     }
 
     @Test
@@ -160,5 +150,14 @@ public class CreateDropRepositoryAnalyzerTest extends BaseAnalyzerTest {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("setting 'wrong' not supported");
         analyze("CREATE REPOSITORY foo TYPE s3 WITH (wrong=true)");
+    }
+
+    private class MyMockedClusterServiceModule extends MockedClusterServiceModule {
+
+        @Override
+        protected void configureMetaData(MetaData metaData) {
+            when(metaData.custom(RepositoriesMetaData.TYPE)).thenReturn(repositoriesMetaData);
+        }
+
     }
 }

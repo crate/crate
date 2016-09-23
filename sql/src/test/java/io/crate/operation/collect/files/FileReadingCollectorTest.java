@@ -84,7 +84,7 @@ public class FileReadingCollectorTest extends CrateUnitTest {
         tmpFile = File.createTempFile("fileReadingCollector", ".json", copy_from.toFile());
         tmpFileEmptyLine = File.createTempFile("emptyLine", ".json", copy_from_empty.toFile());
         try (BufferedWriter writer =
-                     new BufferedWriter(new OutputStreamWriter(new GZIPOutputStream(new FileOutputStream(tmpFileGz))))) {
+                 new BufferedWriter(new OutputStreamWriter(new GZIPOutputStream(new FileOutputStream(tmpFileGz))))) {
             writer.write("{\"name\": \"Arthur\", \"id\": 4, \"details\": {\"age\": 38}}\n");
             writer.write("{\"id\": 5, \"name\": \"Trillian\", \"details\": {\"age\": 33}}\n");
         }
@@ -99,22 +99,40 @@ public class FileReadingCollectorTest extends CrateUnitTest {
         }
     }
 
-    @Before
-    public void prepare() throws Exception {
-        Functions functions = new Functions(
-                ImmutableMap.<FunctionIdent, FunctionImplementation>of(),
-                ImmutableMap.<String, DynamicFunctionResolver>of(),
-                Collections.<String, TableFunctionImplementation>emptyMap()
-        );
-        inputSymbolVisitor =
-                new FileCollectInputSymbolVisitor(functions, FileLineReferenceResolver.INSTANCE);
-    }
-
     @AfterClass
     public static void tearDownClass() throws Exception {
         tmpFile.delete();
         tmpFileGz.delete();
         tmpFileEmptyLine.delete();
+    }
+
+    /**
+     * Resolves file path to URI<br/>
+     * Note: Per URI specification, the only allowed format is file:///foo/bar.json (or for windows file:///C:/foo/bar.json)
+     *
+     * @param path the path (directory) that contains the file
+     * @param file the file name
+     * @return uri
+     */
+    public static String resolveURI(File path, String file) {
+        String uri = null != file ?
+            Joiner.on("").join(path.toURI().toString(), file) : path.toURI().toString();
+        // matching against regex "file:\/[^\/].*"
+        if (uri.matches("file:\\/[^\\/].*")) {
+            uri = uri.replace("file:/", "file:///");
+        }
+        return uri;
+    }
+
+    @Before
+    public void prepare() throws Exception {
+        Functions functions = new Functions(
+            ImmutableMap.<FunctionIdent, FunctionImplementation>of(),
+            ImmutableMap.<String, DynamicFunctionResolver>of(),
+            Collections.<String, TableFunctionImplementation>emptyMap()
+        );
+        inputSymbolVisitor =
+            new FileCollectInputSymbolVisitor(functions, FileLineReferenceResolver.INSTANCE);
     }
 
     @Test
@@ -139,7 +157,7 @@ public class FileReadingCollectorTest extends CrateUnitTest {
         getObjects("/some/path/that/shouldnt/exist/*");
     }
 
-    @Test (expected = IllegalArgumentException.class)
+    @Test(expected = IllegalArgumentException.class)
     public void testRelativeImport() throws Throwable {
         CollectingRowReceiver projector = getObjects("xy");
         assertCorrectResult(projector.result());
@@ -180,11 +198,11 @@ public class FileReadingCollectorTest extends CrateUnitTest {
         S3ObjectInputStream inputStream = mock(S3ObjectInputStream.class);
 
         when(inputStream.read(new byte[anyInt()], anyInt(), anyByte()))
-                .thenAnswer(new WriteBufferAnswer(new byte[] { 102, 111, 111, 10}))  // first line: foo
-                .thenThrow(new SocketTimeoutException())  // exception causes retry
-                .thenAnswer(new WriteBufferAnswer(new byte[] { 102, 111, 111, 10}))  // first line again, because of retry
-                .thenAnswer(new WriteBufferAnswer(new byte[] { 98, 97, 114, 10 }))  // second line: bar
-                .thenReturn(-1);
+            .thenAnswer(new WriteBufferAnswer(new byte[]{102, 111, 111, 10}))  // first line: foo
+            .thenThrow(new SocketTimeoutException())  // exception causes retry
+            .thenAnswer(new WriteBufferAnswer(new byte[]{102, 111, 111, 10}))  // first line again, because of retry
+            .thenAnswer(new WriteBufferAnswer(new byte[]{98, 97, 114, 10}))  // second line: bar
+            .thenReturn(-1);
 
 
         CollectingRowReceiver projector = getObjects(Collections.singletonList("s3://fakebucket/foo"), null, inputStream);
@@ -249,17 +267,17 @@ public class FileReadingCollectorTest extends CrateUnitTest {
 
     private void getObjects(Collection<String> fileUris, String compression, final S3ObjectInputStream s3InputStream, RowReceiver rowReceiver) throws Throwable {
         FileCollectInputSymbolVisitor.Context context =
-                inputSymbolVisitor.extractImplementations(createReference("_raw", DataTypes.STRING));
+            inputSymbolVisitor.extractImplementations(createReference("_raw", DataTypes.STRING));
         FileReadingCollector collector = new FileReadingCollector(
-                fileUris,
-                context.topLevelInputs(),
-                context.expressions(),
-                rowReceiver,
-                FileReadingCollector.FileFormat.JSON,
-                compression,
-                ImmutableMap.of(
-                        LocalFsFileInputFactory.NAME, new LocalFsFileInputFactory(),
-                        S3FileInputFactory.NAME, new FileInputFactory() {
+            fileUris,
+            context.topLevelInputs(),
+            context.expressions(),
+            rowReceiver,
+            FileReadingCollector.FileFormat.JSON,
+            compression,
+            ImmutableMap.of(
+                LocalFsFileInputFactory.NAME, new LocalFsFileInputFactory(),
+                S3FileInputFactory.NAME, new FileInputFactory() {
                     @Override
                     public FileInput create() throws IOException {
                         return new S3FileInput(new S3ClientHelper() {
@@ -283,29 +301,12 @@ public class FileReadingCollectorTest extends CrateUnitTest {
                         });
                     }
                 }),
-                false,
-                1,
-                0
+            false,
+            1,
+            0
         );
         rowReceiver.prepare();
         collector.doCollect();
-    }
-
-    /**
-     * Resolves file path to URI<br/>
-     * Note: Per URI specification, the only allowed format is file:///foo/bar.json (or for windows file:///C:/foo/bar.json)
-     * @param path the path (directory) that contains the file
-     * @param file the file name
-     * @return uri
-     */
-    public static String resolveURI(File path, String file){
-        String uri = null != file ?
-                Joiner.on("").join(path.toURI().toString(), file) : path.toURI().toString();
-        // matching against regex "file:\/[^\/].*"
-        if(uri.matches("file:\\/[^\\/].*")){
-            uri = uri.replace("file:/", "file:///");
-        }
-        return uri;
     }
 
     private static class WriteBufferAnswer implements Answer<Integer> {

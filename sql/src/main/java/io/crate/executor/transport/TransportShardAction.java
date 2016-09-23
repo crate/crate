@@ -47,7 +47,7 @@ import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 public abstract class TransportShardAction<R extends ShardRequest>
-        extends TransportReplicationAction<R, R, ShardResponse> implements KillAllListener {
+    extends TransportReplicationAction<R, R, ShardResponse> implements KillAllListener {
 
     private final Multimap<UUID, KillableCallable> activeOperations = Multimaps.synchronizedMultimap(HashMultimap.<UUID, KillableCallable>create());
 
@@ -63,7 +63,7 @@ public abstract class TransportShardAction<R extends ShardRequest>
                                 ActionFilters actionFilters,
                                 Class<R> requestClass) {
         super(settings, actionName, transportService, clusterService, indicesService, threadPool, shardStateAction,
-                mappingUpdatedAction, actionFilters, indexNameExpressionResolver, requestClass, requestClass, ThreadPool.Names.BULK);
+            mappingUpdatedAction, actionFilters, indexNameExpressionResolver, requestClass, requestClass, ThreadPool.Names.BULK);
     }
 
     @Override

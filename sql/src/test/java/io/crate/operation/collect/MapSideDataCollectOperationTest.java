@@ -79,13 +79,13 @@ public class MapSideDataCollectOperationTest extends CrateUnitTest {
         };
         CollectSourceResolver collectSourceResolver = mock(CollectSourceResolver.class);
         when(collectSourceResolver.getService(any(RoutedCollectPhase.class)))
-                .thenReturn(new FileCollectSource(functions, clusterService, Collections.<String, FileInputFactory>emptyMap()));
+            .thenReturn(new FileCollectSource(functions, clusterService, Collections.<String, FileInputFactory>emptyMap()));
         MapSideDataCollectOperation collectOperation = new MapSideDataCollectOperation(
-                functions,
-                referenceResolver,
-                mock(NodeSysExpression.class),
-                collectSourceResolver,
-                threadPool
+            functions,
+            referenceResolver,
+            mock(NodeSysExpression.class),
+            collectSourceResolver,
+            threadPool
         );
         File tmpFile = temporaryFolder.newFile("fileUriCollectOperation.json");
         try (FileWriter writer = new FileWriter(tmpFile)) {
@@ -94,18 +94,18 @@ public class MapSideDataCollectOperationTest extends CrateUnitTest {
         }
 
         FileUriCollectPhase collectNode = new FileUriCollectPhase(
-                UUID.randomUUID(),
-                0,
-                "test",
-                Collections.singletonList("noop_id"),
-                Literal.newLiteral(Paths.get(tmpFile.toURI()).toUri().toString()),
-                Arrays.<Symbol>asList(
-                        createReference("name", DataTypes.STRING),
-                        createReference(new ColumnIdent("details", "age"), DataTypes.INTEGER)
-                ),
-                Arrays.<Projection>asList(),
-                null,
-                false
+            UUID.randomUUID(),
+            0,
+            "test",
+            Collections.singletonList("noop_id"),
+            Literal.newLiteral(Paths.get(tmpFile.toURI()).toUri().toString()),
+            Arrays.<Symbol>asList(
+                createReference("name", DataTypes.STRING),
+                createReference(new ColumnIdent("details", "age"), DataTypes.INTEGER)
+            ),
+            Arrays.<Projection>asList(),
+            null,
+            false
         );
         String threadPoolName = JobCollectContext.threadPoolName(collectNode, "noop_id");
 
@@ -115,8 +115,8 @@ public class MapSideDataCollectOperationTest extends CrateUnitTest {
         Collection<CrateCollector> collectors = collectOperation.createCollectors(collectNode, cd, jobCollectContext);
         collectOperation.launchCollectors(collectors, threadPoolName);
         assertThat(cd.result(), contains(
-                isRow("Arthur", 38),
-                isRow("Trillian", 33)
+            isRow("Arthur", 38),
+            isRow("Trillian", 33)
         ));
     }
 }

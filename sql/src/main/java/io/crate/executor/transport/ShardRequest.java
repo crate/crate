@@ -40,13 +40,13 @@ import java.util.List;
 import java.util.UUID;
 
 public abstract class ShardRequest<T extends ReplicationRequest<T>, I extends ShardRequest.Item>
-        extends ReplicationRequest<T> implements Iterable<I> {
+    extends ReplicationRequest<T> implements Iterable<I> {
 
+    protected IntArrayList locations;
     @Nullable
     private String routing;
     private UUID jobId;
     private List<I> items;
-    protected IntArrayList locations;
 
     public ShardRequest() {
     }

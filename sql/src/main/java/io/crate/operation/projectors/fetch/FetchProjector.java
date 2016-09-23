@@ -56,60 +56,23 @@ import java.util.concurrent.atomic.AtomicReference;
 
 public class FetchProjector extends AbstractProjector {
 
+    private static final ESLogger LOGGER = Loggers.getLogger(FetchProjector.class);
     private final int fetchSize;
     private final FetchProjectorContext context;
     private final FetchOperation fetchOperation;
     private final AtomicBoolean finishCalled = new AtomicBoolean(false);
     private final AtomicInteger resumeLatch = new AtomicInteger(2);
-    private int currentRowCount = 0;
-    private ResumeHandle resumeHandle = ResumeHandle.INVALID;
-
-    enum Stage {
-        INIT,
-        COLLECT,
-        FETCH,
-        EMIT,
-        FINALIZE
-    }
-
     private final AtomicReference<Stage> stage = new AtomicReference<>(Stage.INIT);
     private final Object failureLock = new Object();
-
     private final AtomicReference<Throwable> failure = new AtomicReference<>();
     private final FetchRowInputSymbolVisitor.Context collectRowContext;
-
     // TODO: add an estimate to the constructor
     private final ArrayList<Object[]> inputValues = new ArrayList<>();
     private final Executor resultExecutor;
-
     private final Row outputRow;
     private final AtomicInteger remainingRequests = new AtomicInteger(0);
-
-    private static final ESLogger LOGGER = Loggers.getLogger(FetchProjector.class);
-
-    /**
-     * An array backed row, which returns the inner array upon materialize
-     */
-    public static class ArrayBackedRow implements Row {
-
-        private Object[] cells;
-
-        @Override
-        public int size() {
-            return cells.length;
-        }
-
-        @Override
-        public Object get(int index) {
-            assert cells != null;
-            return cells[index];
-        }
-
-        @Override
-        public Object[] materialize() {
-            return cells;
-        }
-    }
+    private int currentRowCount = 0;
+    private ResumeHandle resumeHandle = ResumeHandle.INVALID;
 
     public FetchProjector(FetchOperation fetchOperation,
                           Executor resultExecutor,
@@ -247,7 +210,7 @@ public class FetchProjector extends AbstractProjector {
                 if (docObject == null) {
                     // can be null on outer joins
                     fetchRows[j].cells = nullCells[j];
-                    continue ;
+                    continue;
                 }
                 long doc = (long) docObject;
                 int readerId = (int) (doc >> 32);
@@ -293,7 +256,6 @@ public class FetchProjector extends AbstractProjector {
             finishDownstream();
         }
     }
-
 
     @Override
     public void pauseProcessed(ResumeHandle resumeHandle) {
@@ -375,6 +337,38 @@ public class FetchProjector extends AbstractProjector {
     @Override
     public Set<Requirement> requirements() {
         return downstream.requirements();
+    }
+
+    enum Stage {
+        INIT,
+        COLLECT,
+        FETCH,
+        EMIT,
+        FINALIZE
+    }
+
+    /**
+     * An array backed row, which returns the inner array upon materialize
+     */
+    public static class ArrayBackedRow implements Row {
+
+        private Object[] cells;
+
+        @Override
+        public int size() {
+            return cells.length;
+        }
+
+        @Override
+        public Object get(int index) {
+            assert cells != null;
+            return cells[index];
+        }
+
+        @Override
+        public Object[] materialize() {
+            return cells;
+        }
     }
 
     private class SendToDownstreamRunnable extends AbstractRunnable {

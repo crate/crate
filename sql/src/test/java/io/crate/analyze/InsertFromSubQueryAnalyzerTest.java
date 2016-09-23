@@ -61,25 +61,15 @@ public class InsertFromSubQueryAnalyzerTest extends BaseAnalyzerTest {
     @Mock
     private SchemaInfo schemaInfo;
 
-    private class TestMetaDataModule extends MetaDataModule {
-
-        @Override
-        protected void bindSchemas() {
-            super.bindSchemas();
-            when(schemaInfo.getTableInfo(USER_TABLE_IDENT.name())).thenReturn(USER_TABLE_INFO);
-            schemaBinder.addBinding(Schemas.DEFAULT_SCHEMA_NAME).toInstance(schemaInfo);
-        }
-    }
-
     @Before
     public void initGeneratedColumnTable() throws Exception {
         TableIdent usersGeneratedIdent = new TableIdent(null, "users_generated");
         DocTableInfo usersGenerated = new TestingTableInfo.Builder(usersGeneratedIdent, SHARD_ROUTING)
-                .add("id", DataTypes.LONG)
-                .add("firstname", DataTypes.STRING)
-                .add("lastname", DataTypes.STRING)
-                .addGeneratedColumn("name", DataTypes.STRING, "firstname || ' ' || lastname", false)
-                .addPrimaryKey("id").build(injector.getInstance(Functions.class));
+            .add("id", DataTypes.LONG)
+            .add("firstname", DataTypes.STRING)
+            .add("lastname", DataTypes.STRING)
+            .addGeneratedColumn("name", DataTypes.STRING, "firstname || ' ' || lastname", false)
+            .addPrimaryKey("id").build(injector.getInstance(Functions.class));
         when(schemaInfo.getTableInfo(usersGeneratedIdent.name())).thenReturn(usersGenerated);
     }
 
@@ -87,20 +77,20 @@ public class InsertFromSubQueryAnalyzerTest extends BaseAnalyzerTest {
     protected List<Module> getModules() {
         List<Module> modules = super.getModules();
         modules.addAll(Arrays.<Module>asList(
-                new MockedClusterServiceModule(),
-                new TestMetaDataModule(),
-                new MetaDataSysModule(),
-                new OperatorModule(),
-                new AggregationImplModule(),
-                new PredicateModule(),
-                new ScalarFunctionModule()
+            new MockedClusterServiceModule(),
+            new TestMetaDataModule(),
+            new MetaDataSysModule(),
+            new OperatorModule(),
+            new AggregationImplModule(),
+            new PredicateModule(),
+            new ScalarFunctionModule()
         ));
         return modules;
     }
 
     private void assertCompatibleColumns(InsertFromSubQueryAnalyzedStatement statement) {
 
-        List<Symbol> outputSymbols = ((QueriedDocTable)statement.subQueryRelation()).querySpec().outputs();
+        List<Symbol> outputSymbols = ((QueriedDocTable) statement.subQueryRelation()).querySpec().outputs();
         assertThat(statement.columns().size(), is(outputSymbols.size()));
 
         for (int i = 0; i < statement.columns().size(); i++) {
@@ -108,8 +98,8 @@ public class InsertFromSubQueryAnalyzerTest extends BaseAnalyzerTest {
             assertThat(subQueryColumn, instanceOf(Symbol.class));
             Reference insertColumn = statement.columns().get(i);
             assertThat(
-                    subQueryColumn.valueType().isConvertableTo(insertColumn.valueType()),
-                    is(true)
+                subQueryColumn.valueType().isConvertableTo(insertColumn.valueType()),
+                is(true)
             );
         }
 
@@ -118,19 +108,19 @@ public class InsertFromSubQueryAnalyzerTest extends BaseAnalyzerTest {
     @Test
     public void testFromQueryWithoutColumns() throws Exception {
         InsertFromSubQueryAnalyzedStatement analysis =
-                analyze("insert into users (select * from users where name = 'Trillian')");
+            analyze("insert into users (select * from users where name = 'Trillian')");
         assertCompatibleColumns(analysis);
     }
 
     @Test
     public void testFromQueryWithSubQueryColumns() throws Exception {
         InsertFromSubQueryAnalyzedStatement analysis =
-                analyze("insert into users (" +
-                        "  select id, other_id, name, text, no_index, details, " +
-                        "      awesome, counters, friends, tags, bytes, shorts, shape, ints, floats " +
-                        "  from users " +
-                        "  where name = 'Trillian'" +
-                        ")");
+            analyze("insert into users (" +
+                    "  select id, other_id, name, text, no_index, details, " +
+                    "      awesome, counters, friends, tags, bytes, shorts, shape, ints, floats " +
+                    "  from users " +
+                    "  where name = 'Trillian'" +
+                    ")");
         assertCompatibleColumns(analysis);
     }
 
@@ -155,7 +145,6 @@ public class InsertFromSubQueryAnalyzerTest extends BaseAnalyzerTest {
                 ")");
     }
 
-
     @Test
     public void testFromQueryWithInsertColumns() throws Exception {
         InsertFromSubQueryAnalyzedStatement analysis =
@@ -179,9 +168,9 @@ public class InsertFromSubQueryAnalyzerTest extends BaseAnalyzerTest {
     public void testFromQueryWithConvertableInsertColumns() throws Exception {
         InsertFromSubQueryAnalyzedStatement analysis =
             analyze("insert into users (id, name) (" +
-                "  select id, other_id from users " +
-                "  where name = 'Trillian'" +
-                ")");
+                    "  select id, other_id from users " +
+                    "  where name = 'Trillian'" +
+                    ")");
         assertCompatibleColumns(analysis);
     }
 
@@ -189,34 +178,34 @@ public class InsertFromSubQueryAnalyzerTest extends BaseAnalyzerTest {
     public void testFromQueryWithFunctionSubQuery() throws Exception {
         InsertFromSubQueryAnalyzedStatement analysis =
             analyze("insert into users (id) (" +
-                "  select count(*) from users " +
-                "  where name = 'Trillian'" +
-                ")");
+                    "  select count(*) from users " +
+                    "  where name = 'Trillian'" +
+                    ")");
         assertCompatibleColumns(analysis);
     }
 
     @Test
     public void testImplicitTypeCasting() throws Exception {
         InsertFromSubQueryAnalyzedStatement statement =
-                analyze("insert into users (id, name, shape) (" +
-                        "  select id, other_id, name from users " +
-                        "  where name = 'Trillian'" +
-                        ")");
+            analyze("insert into users (id, name, shape) (" +
+                    "  select id, other_id, name from users " +
+                    "  where name = 'Trillian'" +
+                    ")");
 
-        List<Symbol> outputSymbols = ((QueriedDocTable)statement.subQueryRelation()).querySpec().outputs();
+        List<Symbol> outputSymbols = ((QueriedDocTable) statement.subQueryRelation()).querySpec().outputs();
         assertThat(statement.columns().size(), is(outputSymbols.size()));
         assertThat(outputSymbols.get(1), instanceOf(Function.class));
-        Function castFunction = (Function)outputSymbols.get(1);
+        Function castFunction = (Function) outputSymbols.get(1);
         assertThat(castFunction, TestingHelpers.isFunction(CastFunctionResolver.FunctionNames.TO_STRING));
-        Function geoCastFunction = (Function)outputSymbols.get(2);
+        Function geoCastFunction = (Function) outputSymbols.get(2);
         assertThat(geoCastFunction, TestingHelpers.isFunction(CastFunctionResolver.FunctionNames.TO_GEO_SHAPE));
     }
 
     @Test
     public void testFromQueryWithOnDuplicateKey() throws Exception {
         InsertFromSubQueryAnalyzedStatement statement =
-                analyze("insert into users (id, name) (select id, name from users) " +
-                        "on duplicate key update name = 'Arthur'");
+            analyze("insert into users (id, name) (select id, name from users) " +
+                    "on duplicate key update name = 'Arthur'");
 
         Assert.assertThat(statement.onDuplicateKeyAssignments().size(), is(1));
 
@@ -229,9 +218,9 @@ public class InsertFromSubQueryAnalyzerTest extends BaseAnalyzerTest {
     @Test
     public void testFromQueryWithOnDuplicateKeyParameter() throws Exception {
         InsertFromSubQueryAnalyzedStatement statement =
-                analyze("insert into users (id, name) (select id, name from users) " +
-                        "on duplicate key update name = ?",
-                        new Object[]{ "Arthur" });
+            analyze("insert into users (id, name) (select id, name from users) " +
+                    "on duplicate key update name = ?",
+                new Object[]{"Arthur"});
 
         Assert.assertThat(statement.onDuplicateKeyAssignments().size(), is(1));
 
@@ -244,8 +233,8 @@ public class InsertFromSubQueryAnalyzerTest extends BaseAnalyzerTest {
     @Test
     public void testFromQueryWithOnDuplicateKeyValues() throws Exception {
         InsertFromSubQueryAnalyzedStatement statement =
-                analyze("insert into users (id, name) (select id, name from users) " +
-                        "on duplicate key update name = substr(values (name), 1, 1)");
+            analyze("insert into users (id, name) (select id, name from users) " +
+                    "on duplicate key update name = substr(values (name), 1, 1)");
 
         Assert.assertThat(statement.onDuplicateKeyAssignments().size(), is(1));
 
@@ -285,5 +274,15 @@ public class InsertFromSubQueryAnalyzerTest extends BaseAnalyzerTest {
         expectedException.expectMessage("Number of target columns (id, firstname, lastname, name) " +
                                         "of insert statement doesn't match number of source columns (id, firstname, lastname)");
         analyze("insert into users_generated (select id, firstname, lastname from users_generated)");
+    }
+
+    private class TestMetaDataModule extends MetaDataModule {
+
+        @Override
+        protected void bindSchemas() {
+            super.bindSchemas();
+            when(schemaInfo.getTableInfo(USER_TABLE_IDENT.name())).thenReturn(USER_TABLE_INFO);
+            schemaBinder.addBinding(Schemas.DEFAULT_SCHEMA_NAME).toInstance(schemaInfo);
+        }
     }
 }

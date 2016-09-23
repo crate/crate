@@ -54,15 +54,7 @@ public class NumberOfReplicas {
 
     private static void validateExpandReplicaSetting(String replicas) {
         Preconditions.checkArgument(EXPAND_REPLICA_PATTERN.matcher(replicas).matches(),
-                "The \"number_of_replicas\" range \"%s\" isn't valid", replicas);
-    }
-
-    public String esSettingKey() {
-        return esSettingKey;
-    }
-
-    public String esSettingValue() {
-        return esSettingsValue;
+            "The \"number_of_replicas\" range \"%s\" isn't valid", replicas);
     }
 
     public static BytesRef fromSettings(Settings settings) {
@@ -75,5 +67,13 @@ public class NumberOfReplicas {
             numberOfReplicas = new BytesRef(MoreObjects.firstNonNull(settings.get(NUMBER_OF_REPLICAS), "1"));
         }
         return numberOfReplicas;
+    }
+
+    public String esSettingKey() {
+        return esSettingKey;
+    }
+
+    public String esSettingValue() {
+        return esSettingsValue;
     }
 }

@@ -57,16 +57,6 @@ public class BulkRetryCoordinatorTest extends CrateUnitTest {
         new ReferenceIdent(charactersIdent, "bar"), RowGranularity.DOC, DataTypes.STRING);
     private static ShardId shardId = new ShardId("foo", 1);
 
-    abstract class MockShardUpsertActionDelegate extends TransportShardUpsertActionDelegate {
-        public MockShardUpsertActionDelegate() {
-            super(mock(TransportShardUpsertAction.class));
-        }
-    }
-
-    @Before
-    public void prepare() throws Exception {
-    }
-
     private static ShardUpsertRequest shardRequest() {
         return new ShardUpsertRequest.Builder(
             TimeValue.timeValueMillis(10),
@@ -76,6 +66,10 @@ public class BulkRetryCoordinatorTest extends CrateUnitTest {
             new Reference[]{fooRef},
             UUID.randomUUID()
         ).newRequest(shardId, "node-1");
+    }
+
+    @Before
+    public void prepare() throws Exception {
     }
 
     @Test
@@ -94,14 +88,15 @@ public class BulkRetryCoordinatorTest extends CrateUnitTest {
             @Override
             public void onResponse(ShardResponse shardResponse) {
             }
+
             @Override
             public void onFailure(Throwable e) {
             }
         });
 
         verify(threadPool).schedule(eq(TimeValue.timeValueMillis(0)),
-                                    eq(ThreadPool.Names.SAME),
-                                    any(Runnable.class));
+            eq(ThreadPool.Names.SAME),
+            any(Runnable.class));
     }
 
     @Test
@@ -121,6 +116,7 @@ public class BulkRetryCoordinatorTest extends CrateUnitTest {
             @Override
             public void onResponse(ShardResponse shardResponse) {
             }
+
             @Override
             public void onFailure(Throwable e) {
                 future.set(null);
@@ -155,6 +151,7 @@ public class BulkRetryCoordinatorTest extends CrateUnitTest {
                         public void onResponse(ShardResponse shardResponse) {
                             latch.countDown();
                         }
+
                         @Override
                         public void onFailure(Throwable e) {
                         }
@@ -166,5 +163,11 @@ public class BulkRetryCoordinatorTest extends CrateUnitTest {
         assertEquals(0, coordinator.numPendingOperations());
         executorService.awaitTermination(5, TimeUnit.SECONDS);
         executorService.shutdown();
+    }
+
+    abstract class MockShardUpsertActionDelegate extends TransportShardUpsertActionDelegate {
+        public MockShardUpsertActionDelegate() {
+            super(mock(TransportShardUpsertAction.class));
+        }
     }
 }

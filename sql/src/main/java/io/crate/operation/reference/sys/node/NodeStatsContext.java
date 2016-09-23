@@ -71,10 +71,6 @@ public class NodeStatsContext implements Streamable {
     private BytesRef jvmVendor;
     private BytesRef jvmVersion;
 
-    public static NodeStatsContext newInstance() {
-        return new NodeStatsContext(true);
-    }
-
     public NodeStatsContext(String id, String name) {
         this(false);
         this.id = BytesRefs.toBytesRef(id);
@@ -92,6 +88,10 @@ public class NodeStatsContext implements Streamable {
             jvmVendor = BytesRefs.toBytesRef(Constants.JVM_VENDOR);
             jvmVersion = BytesRefs.toBytesRef(Constants.JVM_VERSION);
         }
+    }
+
+    public static NodeStatsContext newInstance() {
+        return new NodeStatsContext(true);
     }
 
     public boolean isComplete() {

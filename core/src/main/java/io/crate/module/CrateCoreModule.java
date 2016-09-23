@@ -78,30 +78,6 @@ public class CrateCoreModule extends AbstractModule {
         bind(ClusterIdService.class).asEagerSingleton();
     }
 
-    private class RestMainActionListener implements TypeListener {
-
-        private final SettableFuture<CrateRestMainAction> instanceFuture;
-
-        RestMainActionListener(SettableFuture<CrateRestMainAction> instanceFuture) {
-            this.instanceFuture = instanceFuture;
-        }
-
-        @Override
-        public <I> void hear(TypeLiteral<I> type, TypeEncounter<I> encounter) {
-            encounter.register(new InjectionListener<I>() {
-                @Override
-                public void afterInjection(I injectee) {
-                    try {
-                        CrateRestMainAction crateRestMainAction = instanceFuture.get(10, TimeUnit.SECONDS);
-                        crateRestMainAction.registerHandler();
-                    } catch (Exception e) {
-                        logger.error("Could not register CrateRestMainAction handler", e);
-                    }
-                }
-            });
-        }
-    }
-
     private static class SubclassOfMatcher extends AbstractMatcher<TypeLiteral<?>> {
 
         private final Class<?> klass;
@@ -130,7 +106,31 @@ public class CrateCoreModule extends AbstractModule {
             encounter.register(new InjectionListener<I>() {
                 @Override
                 public void afterInjection(I injectee) {
-                    instanceFuture.set((CrateRestMainAction)injectee);
+                    instanceFuture.set((CrateRestMainAction) injectee);
+                }
+            });
+        }
+    }
+
+    private class RestMainActionListener implements TypeListener {
+
+        private final SettableFuture<CrateRestMainAction> instanceFuture;
+
+        RestMainActionListener(SettableFuture<CrateRestMainAction> instanceFuture) {
+            this.instanceFuture = instanceFuture;
+        }
+
+        @Override
+        public <I> void hear(TypeLiteral<I> type, TypeEncounter<I> encounter) {
+            encounter.register(new InjectionListener<I>() {
+                @Override
+                public void afterInjection(I injectee) {
+                    try {
+                        CrateRestMainAction crateRestMainAction = instanceFuture.get(10, TimeUnit.SECONDS);
+                        crateRestMainAction.registerHandler();
+                    } catch (Exception e) {
+                        logger.error("Could not register CrateRestMainAction handler", e);
+                    }
                 }
             });
         }

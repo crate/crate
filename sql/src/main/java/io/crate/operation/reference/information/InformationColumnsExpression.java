@@ -26,7 +26,7 @@ import org.apache.lucene.util.BytesRef;
 
 
 public abstract class InformationColumnsExpression<T>
-        extends RowContextCollectorExpression<ColumnContext, T> {
+    extends RowContextCollectorExpression<ColumnContext, T> {
 
     public static class ColumnsSchemaNameExpression extends InformationColumnsExpression<BytesRef> {
 
@@ -67,7 +67,8 @@ public abstract class InformationColumnsExpression<T>
 
         @Override
         public BytesRef value() {
-            assert row.info.valueType() != null && row.info.valueType().getName() != null : "columns must always have a type and the type must have a name";
+            assert row.info.valueType() != null && row.info.valueType().getName() !=
+                                                   null : "columns must always have a type and the type must have a name";
             return new BytesRef(row.info.valueType().getName());
         }
     }

@@ -37,12 +37,12 @@ public class ESGetStatementPlanner {
 
     public static Plan convert(QueriedDocTable table, Planner.Context context) {
         assert !(table.querySpec().hasAggregates()
-                || table.querySpec().groupBy().isPresent()
-                || !table.querySpec().where().docKeys().isPresent());
+                 || table.querySpec().groupBy().isPresent()
+                 || !table.querySpec().where().docKeys().isPresent());
 
         DocTableInfo tableInfo = table.tableRelation().tableInfo();
         DocKeys docKeys = table.querySpec().where().docKeys().get();
-        if (docKeys.withVersions()){
+        if (docKeys.withVersions()) {
             throw new VersionInvalidException();
         }
         if (docKeys.size() == 1 && docKeys.iterator().next().id() == null) {
@@ -50,7 +50,7 @@ public class ESGetStatementPlanner {
             return new NoopPlan(context.jobId());
         }
         Optional<Integer> limit = table.querySpec().limit();
-        if (limit.isPresent() && limit.get() == 0){
+        if (limit.isPresent() && limit.get() == 0) {
             return new NoopPlan(context.jobId());
         }
         table.tableRelation().validateOrderBy(table.querySpec().orderBy());

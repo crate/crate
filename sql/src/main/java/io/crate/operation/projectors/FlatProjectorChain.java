@@ -30,10 +30,10 @@ import java.util.*;
 
 /**
  * A chain of connected projectors rows will flow through.
- *
+ * <p>
  * Will be constructed from a list of projections which will be transformed to
  * projectors which will be connected.
- *
+ * <p>
  * Usage:
  * <ul>
  * <li> construct it,
@@ -50,6 +50,38 @@ public class FlatProjectorChain {
     private FlatProjectorChain(List<? extends RowReceiver> rowReceivers) {
         Preconditions.checkArgument(!rowReceivers.isEmpty(), "no projectors given");
         this.rowReceivers = rowReceivers;
+    }
+
+    public static FlatProjectorChain withAttachedDownstream(final ProjectorFactory projectorFactory,
+                                                            final RamAccountingContext ramAccountingContext,
+                                                            Collection<? extends Projection> projections,
+                                                            RowReceiver downstream,
+                                                            UUID jobId) {
+        if (projections.isEmpty()) {
+            return new FlatProjectorChain(Collections.singletonList(downstream));
+        }
+        List<RowReceiver> rowReceivers = new ArrayList<>(projections.size() + 1);
+        Projector previousProjector = null;
+        for (Projection projection : projections) {
+            Projector projector = projectorFactory.create(projection, ramAccountingContext, jobId);
+            rowReceivers.add(projector);
+            if (previousProjector != null) {
+                previousProjector.downstream(projector);
+            }
+            previousProjector = projector;
+        }
+        if (previousProjector != null) {
+            rowReceivers.add(downstream);
+            previousProjector.downstream(downstream);
+        }
+        return new FlatProjectorChain(rowReceivers);
+    }
+
+    /**
+     * Create a task from a list of rowReceivers (which are already chained).
+     */
+    public static FlatProjectorChain withReceivers(List<? extends RowReceiver> rowReceivers) {
+        return new FlatProjectorChain(rowReceivers);
     }
 
     public void prepare() {
@@ -87,38 +119,5 @@ public class FlatProjectorChain {
                 jobId
             );
         }
-    }
-
-    public static FlatProjectorChain withAttachedDownstream(final ProjectorFactory projectorFactory,
-                                                            final RamAccountingContext ramAccountingContext,
-                                                            Collection<? extends Projection> projections,
-                                                            RowReceiver downstream,
-                                                            UUID jobId) {
-        if (projections.isEmpty()) {
-            return new FlatProjectorChain(Collections.singletonList(downstream));
-        }
-        List<RowReceiver> rowReceivers = new ArrayList<>(projections.size() + 1);
-        Projector previousProjector = null;
-        for (Projection projection : projections) {
-            Projector projector = projectorFactory.create(projection, ramAccountingContext, jobId);
-            rowReceivers.add(projector);
-            if (previousProjector != null) {
-                previousProjector.downstream(projector);
-            }
-            previousProjector = projector;
-        }
-        if (previousProjector != null) {
-            rowReceivers.add(downstream);
-            previousProjector.downstream(downstream);
-        }
-        return new FlatProjectorChain(rowReceivers);
-    }
-
-
-    /**
-     * Create a task from a list of rowReceivers (which are already chained).
-     */
-    public static FlatProjectorChain withReceivers(List<? extends RowReceiver> rowReceivers) {
-        return new FlatProjectorChain(rowReceivers);
     }
 }

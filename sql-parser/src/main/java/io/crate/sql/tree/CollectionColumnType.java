@@ -32,17 +32,17 @@ public class CollectionColumnType extends ColumnType {
 
     private final ColumnType innerType;
 
+    private CollectionColumnType(ColumnType innerType, Type type) {
+        super(type.name().toUpperCase(Locale.ENGLISH), type);
+        this.innerType = innerType;
+    }
+
     public static CollectionColumnType array(ColumnType innerType) {
         return new CollectionColumnType(innerType, Type.ARRAY);
     }
 
     public static CollectionColumnType set(ColumnType innerType) {
         return new CollectionColumnType(innerType, Type.SET);
-    }
-
-    private CollectionColumnType(ColumnType innerType, Type type) {
-        super(type.name().toUpperCase(Locale.ENGLISH), type);
-        this.innerType = innerType;
     }
 
     public ColumnType innerType() {

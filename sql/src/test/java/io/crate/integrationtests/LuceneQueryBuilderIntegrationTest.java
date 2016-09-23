@@ -29,7 +29,7 @@ import static com.carrotsearch.randomizedtesting.RandomizedTest.$;
 import static com.carrotsearch.randomizedtesting.RandomizedTest.$$;
 import static org.hamcrest.core.Is.is;
 
-@ESIntegTestCase.ClusterScope (randomDynamicTemplates = false, transportClientRatio = 0)
+@ESIntegTestCase.ClusterScope(randomDynamicTemplates = false, transportClientRatio = 0)
 @UseJdbc
 public class LuceneQueryBuilderIntegrationTest extends SQLTransportIntegrationTest {
 
@@ -50,9 +50,9 @@ public class LuceneQueryBuilderIntegrationTest extends SQLTransportIntegrationTe
         execute("create table t (a array(integer)) with (number_of_replicas = 0)");
         ensureYellow();
         execute("insert into t (a) values (?)", new Object[][]{
-                new Object[]{new Object[] {10, 10, 20}},
-                new Object[]{new Object[] {40, 50, 60}},
-                new Object[]{new Object[] {null, null}}
+            new Object[]{new Object[]{10, 10, 20}},
+            new Object[]{new Object[]{40, 50, 60}},
+            new Object[]{new Object[]{null, null}}
         });
         execute("refresh table t");
 
@@ -113,7 +113,7 @@ public class LuceneQueryBuilderIntegrationTest extends SQLTransportIntegrationTe
 
         StringBuilder sb = new StringBuilder("select i from t where i in (");
 
-        int i=0;
+        int i = 0;
         for (; i < 1500; i++) {
             sb.append(i);
             sb.append(',');
@@ -130,8 +130,8 @@ public class LuceneQueryBuilderIntegrationTest extends SQLTransportIntegrationTe
         execute("create table shaped (id int, point geo_point, shape geo_shape) with (number_of_replicas=0)");
         ensureYellow();
         execute("insert into shaped (id, point, shape) VALUES (?, ?, ?)", $$(
-                $(1, "POINT (15 15)", "polygon (( 10 10, 10 20, 20 20, 20 15, 10 10))"),
-                $(1, "POINT (-10 -10)", "polygon (( 10 10, 10 20, 20 20, 20 15, 10 10))")
+            $(1, "POINT (15 15)", "polygon (( 10 10, 10 20, 20 20, 20 15, 10 10))"),
+            $(1, "POINT (-10 -10)", "polygon (( 10 10, 10 20, 20 20, 20 15, 10 10))")
         ));
         execute("refresh table shaped");
 

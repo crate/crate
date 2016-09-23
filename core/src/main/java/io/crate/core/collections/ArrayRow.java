@@ -26,7 +26,7 @@ import java.util.Arrays;
 
 /**
  * A Row that is similar to {@link RowN} in that is uses a backing array which can be changed.
- *
+ * <p>
  * The only difference is that size is always derived from the backing array and not changeable.
  */
 public class ArrayRow implements Row {
@@ -57,7 +57,7 @@ public class ArrayRow implements Row {
     @Override
     public String toString() {
         return "ArrayRow{" +
-                "cells=" + Arrays.toString(cells) +
-                '}';
+               "cells=" + Arrays.toString(cells) +
+               '}';
     }
 }

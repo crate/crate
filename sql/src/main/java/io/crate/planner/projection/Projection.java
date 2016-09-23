@@ -43,30 +43,6 @@ public abstract class Projection implements Streamable {
     };
     public static final Predicate<Projection> IS_NODE_PROJECTION = Predicates.not(IS_SHARD_PROJECTION);
 
-    /**
-     * The granularity required to run this projection
-     *
-     * For example:
-     *
-     *  CLUSTER - projection may run in any context on the cluster and receive any rows.
-     *
-     *  SHARD - projection must be run in a shard-context and it must only receive rows from a
-     *  single shard.
-     */
-    public RowGranularity requiredGranularity() {
-        return RowGranularity.CLUSTER;
-    }
-
-    public interface ProjectionFactory<T extends Projection> {
-        T newInstance();
-    }
-
-    public abstract ProjectionType projectionType();
-
-    public abstract <C, R> R accept(ProjectionVisitor<C, R> visitor, C context);
-
-    public abstract List<? extends Symbol> outputs();
-
     public static void toStream(Projection projection, StreamOutput out) throws IOException {
         out.writeVInt(projection.projectionType().ordinal());
         projection.writeTo(out);
@@ -79,6 +55,26 @@ public abstract class Projection implements Streamable {
         return projection;
     }
 
+    /**
+     * The granularity required to run this projection
+     * <p>
+     * For example:
+     * <p>
+     * CLUSTER - projection may run in any context on the cluster and receive any rows.
+     * <p>
+     * SHARD - projection must be run in a shard-context and it must only receive rows from a
+     * single shard.
+     */
+    public RowGranularity requiredGranularity() {
+        return RowGranularity.CLUSTER;
+    }
+
+    public abstract ProjectionType projectionType();
+
+    public abstract <C, R> R accept(ProjectionVisitor<C, R> visitor, C context);
+
+    public abstract List<? extends Symbol> outputs();
+
     // force subclasses to implement equality
     @Override
     public abstract boolean equals(Object obj);
@@ -86,5 +82,9 @@ public abstract class Projection implements Streamable {
     @Override
     public int hashCode() {
         return projectionType().hashCode();
+    }
+
+    public interface ProjectionFactory<T extends Projection> {
+        T newInstance();
     }
 }

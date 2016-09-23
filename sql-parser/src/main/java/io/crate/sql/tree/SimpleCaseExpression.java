@@ -27,14 +27,12 @@ import com.google.common.collect.ImmutableList;
 import java.util.List;
 
 public class SimpleCaseExpression
-        extends Expression
-{
+    extends Expression {
     private final Expression operand;
     private final List<WhenClause> whenClauses;
     private final Expression defaultValue;
 
-    public SimpleCaseExpression(Expression operand, List<WhenClause> whenClauses, Expression defaultValue)
-    {
+    public SimpleCaseExpression(Expression operand, List<WhenClause> whenClauses, Expression defaultValue) {
         Preconditions.checkNotNull(operand, "operand is null");
         Preconditions.checkNotNull(whenClauses, "whenClauses is null");
 
@@ -43,30 +41,25 @@ public class SimpleCaseExpression
         this.defaultValue = defaultValue;
     }
 
-    public Expression getOperand()
-    {
+    public Expression getOperand() {
         return operand;
     }
 
-    public List<WhenClause> getWhenClauses()
-    {
+    public List<WhenClause> getWhenClauses() {
         return whenClauses;
     }
 
-    public Expression getDefaultValue()
-    {
+    public Expression getDefaultValue() {
         return defaultValue;
     }
 
     @Override
-    public <R, C> R accept(AstVisitor<R, C> visitor, C context)
-    {
+    public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
         return visitor.visitSimpleCaseExpression(this, context);
     }
 
     @Override
-    public boolean equals(Object o)
-    {
+    public boolean equals(Object o) {
         if (this == o) {
             return true;
         }
@@ -90,8 +83,7 @@ public class SimpleCaseExpression
     }
 
     @Override
-    public int hashCode()
-    {
+    public int hashCode() {
         int result = operand.hashCode();
         result = 31 * result + whenClauses.hashCode();
         result = 31 * result + (defaultValue != null ? defaultValue.hashCode() : 0);

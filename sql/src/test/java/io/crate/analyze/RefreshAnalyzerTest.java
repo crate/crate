@@ -48,39 +48,17 @@ import static org.mockito.Mockito.when;
 
 public class RefreshAnalyzerTest extends BaseAnalyzerTest {
 
+    private final static TableIdent TEST_BLOB_TABLE_IDENT = new TableIdent("blob", "blobs");
     @Rule
     public ExpectedException expectedException = ExpectedException.none();
-
-
-    private final static TableIdent TEST_BLOB_TABLE_IDENT = new TableIdent("blob", "blobs");
-
-    static class TestMetaDataModule extends MetaDataModule {
-
-        @Override
-        protected void bindSchemas() {
-            super.bindSchemas();
-            SchemaInfo schemaInfo = mock(SchemaInfo.class);
-            BlobTableInfo blobTableInfo = mock(BlobTableInfo.class);
-            when(blobTableInfo.ident()).thenReturn(TEST_BLOB_TABLE_IDENT);
-            when(schemaInfo.getTableInfo(TEST_BLOB_TABLE_IDENT.name())).thenReturn(blobTableInfo);
-            schemaBinder.addBinding(BlobSchemaInfo.NAME).toInstance(schemaInfo);
-
-            SchemaInfo docSchemaInfo = mock(SchemaInfo.class);
-            when(docSchemaInfo.getTableInfo(TEST_PARTITIONED_TABLE_IDENT.name()))
-                    .thenReturn(TEST_PARTITIONED_TABLE_INFO);
-            when(docSchemaInfo.getTableInfo(USER_TABLE_IDENT.name())).thenReturn(USER_TABLE_INFO);
-
-            schemaBinder.addBinding(Schemas.DEFAULT_SCHEMA_NAME).toInstance(docSchemaInfo);
-        }
-    }
 
     @Override
     protected List<Module> getModules() {
         List<Module> modules = super.getModules();
         modules.addAll(Arrays.<Module>asList(
-                new MockedClusterServiceModule(),
-                new TestMetaDataModule(),
-                new MetaDataSysModule()
+            new MockedClusterServiceModule(),
+            new TestMetaDataModule(),
+            new MetaDataSysModule()
         ));
         return modules;
     }
@@ -100,16 +78,16 @@ public class RefreshAnalyzerTest extends BaseAnalyzerTest {
     @Test
     public void testRefreshPartition() throws Exception {
         PartitionName partition = new PartitionName("parted", Arrays.asList(new BytesRef("1395874800000")));
-        RefreshTableAnalyzedStatement analysis = (RefreshTableAnalyzedStatement)analyze("refresh table parted PARTITION (date=1395874800000)");
+        RefreshTableAnalyzedStatement analysis = (RefreshTableAnalyzedStatement) analyze("refresh table parted PARTITION (date=1395874800000)");
         assertThat(analysis.indexNames(), contains(".partitioned.parted.04732cpp6ks3ed1o60o30c1g"));
     }
 
     @Test(expected = TableUnknownException.class)
     public void testRefreshMultipleTablesUnknown() throws Exception {
-        RefreshTableAnalyzedStatement analysis = (RefreshTableAnalyzedStatement)analyze("refresh table parted, foo, bar");
+        RefreshTableAnalyzedStatement analysis = (RefreshTableAnalyzedStatement) analyze("refresh table parted, foo, bar");
 
         assertThat(analysis.indexNames().size(), is(1));
-        assertThat(analysis.indexNames(),contains(Matchers.hasToString("doc.parted")));
+        assertThat(analysis.indexNames(), contains(Matchers.hasToString("doc.parted")));
     }
 
     @Test
@@ -141,5 +119,25 @@ public class RefreshAnalyzerTest extends BaseAnalyzerTest {
         RefreshTableAnalyzedStatement analysis = (RefreshTableAnalyzedStatement) analyze("refresh table parted PARTITION (date=null)");
         assertThat(analysis.indexNames(), contains(Matchers.hasToString(".partitioned.parted.0400"))
         );
+    }
+
+    static class TestMetaDataModule extends MetaDataModule {
+
+        @Override
+        protected void bindSchemas() {
+            super.bindSchemas();
+            SchemaInfo schemaInfo = mock(SchemaInfo.class);
+            BlobTableInfo blobTableInfo = mock(BlobTableInfo.class);
+            when(blobTableInfo.ident()).thenReturn(TEST_BLOB_TABLE_IDENT);
+            when(schemaInfo.getTableInfo(TEST_BLOB_TABLE_IDENT.name())).thenReturn(blobTableInfo);
+            schemaBinder.addBinding(BlobSchemaInfo.NAME).toInstance(schemaInfo);
+
+            SchemaInfo docSchemaInfo = mock(SchemaInfo.class);
+            when(docSchemaInfo.getTableInfo(TEST_PARTITIONED_TABLE_IDENT.name()))
+                .thenReturn(TEST_PARTITIONED_TABLE_INFO);
+            when(docSchemaInfo.getTableInfo(USER_TABLE_IDENT.name())).thenReturn(USER_TABLE_INFO);
+
+            schemaBinder.addBinding(Schemas.DEFAULT_SCHEMA_NAME).toInstance(docSchemaInfo);
+        }
     }
 }

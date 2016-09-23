@@ -33,16 +33,17 @@ public class ExtendedNetworkStats implements Streamable {
     private Tcp tcp;
     private long timestamp;
 
+    public ExtendedNetworkStats() {
+    }
+
+    public ExtendedNetworkStats(Tcp tcp) {
+        this.tcp = tcp;
+    }
+
     public static ExtendedNetworkStats readExtendedNetworkStats(StreamInput in) throws IOException {
         ExtendedNetworkStats stat = new ExtendedNetworkStats();
         stat.readFrom(in);
         return stat;
-    }
-
-    public ExtendedNetworkStats() {}
-
-    public ExtendedNetworkStats(Tcp tcp) {
-        this.tcp = tcp;
     }
 
     public long timestamp() {
@@ -86,12 +87,6 @@ public class ExtendedNetworkStats implements Streamable {
         private long inErrs;
         private long outRsts;
 
-        public static Tcp readTcp(StreamInput in) throws IOException {
-            Tcp tcp = new Tcp();
-            tcp.readFrom(in);
-            return tcp;
-        }
-
         public Tcp() {
         }
 
@@ -115,6 +110,12 @@ public class ExtendedNetworkStats implements Streamable {
             this.retransSegs = retransSegs;
             this.inErrs = inErrs;
             this.outRsts = outRsts;
+        }
+
+        public static Tcp readTcp(StreamInput in) throws IOException {
+            Tcp tcp = new Tcp();
+            tcp.readFrom(in);
+            return tcp;
         }
 
         public long activeOpens() {

@@ -40,46 +40,35 @@ import java.util.*;
 
 public class WriterProjection extends Projection {
 
+    public static final ProjectionFactory<WriterProjection> FACTORY = new ProjectionFactory<WriterProjection>() {
+        @Override
+        public WriterProjection newInstance() {
+            return new WriterProjection();
+        }
+    };
     private static final List<Symbol> OUTPUTS = ImmutableList.<Symbol>of(
-            new Value(DataTypes.LONG) // number of lines written
+        new Value(DataTypes.LONG) // number of lines written
     );
-
     private final static Reference SHARD_ID_REF = new Reference(SysShardsTableInfo.ReferenceIdents.ID, RowGranularity.SHARD, IntegerType.INSTANCE);
     private final static Reference TABLE_NAME_REF = new Reference(SysShardsTableInfo.ReferenceIdents.TABLE_NAME, RowGranularity.SHARD, StringType.INSTANCE);
     private final static Reference PARTITION_IDENT_REF = new Reference(SysShardsTableInfo.ReferenceIdents.PARTITION_IDENT, RowGranularity.SHARD, StringType.INSTANCE);
-
-
     public static final Symbol DIRECTORY_TO_FILENAME = new Function(new FunctionInfo(
-            new FunctionIdent(FormatFunction.NAME, Arrays.<DataType>asList(StringType.INSTANCE,
-                    StringType.INSTANCE, StringType.INSTANCE, StringType.INSTANCE)),
-            StringType.INSTANCE),
-            Arrays.<Symbol>asList(Literal.newLiteral("%s_%s_%s.json"), TABLE_NAME_REF, SHARD_ID_REF, PARTITION_IDENT_REF)
+        new FunctionIdent(FormatFunction.NAME, Arrays.<DataType>asList(StringType.INSTANCE,
+            StringType.INSTANCE, StringType.INSTANCE, StringType.INSTANCE)),
+        StringType.INSTANCE),
+        Arrays.<Symbol>asList(Literal.newLiteral("%s_%s_%s.json"), TABLE_NAME_REF, SHARD_ID_REF, PARTITION_IDENT_REF)
     );
-
     private Symbol uri;
     private List<Symbol> inputs;
-
     @Nullable
     private List<String> outputNames;
-
     /*
      * add values that should be added or overwritten
      * all symbols must normalize to literals on the shard level.
      */
     private Map<ColumnIdent, Symbol> overwrites;
-
     private OutputFormat outputFormat;
-
-    public enum OutputFormat {
-        JSON_OBJECT,
-        JSON_ARRAY
-    }
-
     private CompressionType compressionType;
-
-    public enum CompressionType {
-        GZIP
-    }
 
     public WriterProjection() {
     }
@@ -97,13 +86,6 @@ public class WriterProjection extends Projection {
         this.outputFormat = outputFormat;
         this.compressionType = compressionType;
     }
-
-    public static final ProjectionFactory<WriterProjection> FACTORY = new ProjectionFactory<WriterProjection>() {
-        @Override
-        public WriterProjection newInstance() {
-            return new WriterProjection();
-        }
-    };
 
     @Override
     public RowGranularity requiredGranularity() {
@@ -132,13 +114,17 @@ public class WriterProjection extends Projection {
         return this.overwrites;
     }
 
-    public List<String> outputNames() { return this.outputNames; }
+    public List<String> outputNames() {
+        return this.outputNames;
+    }
 
     public OutputFormat outputFormat() {
         return outputFormat;
     }
 
-    public CompressionType compressionType() { return compressionType; }
+    public CompressionType compressionType() {
+        return compressionType;
+    }
 
     @Override
     public <C, R> R accept(ProjectionVisitor<C, R> visitor, C context) {
@@ -199,7 +185,8 @@ public class WriterProjection extends Projection {
             return false;
         if (!uri.equals(that.uri)) return false;
         if (!overwrites.equals(that.overwrites)) return false;
-        if (compressionType != null ? !compressionType.equals(that.compressionType) : that.compressionType != null) return false;
+        if (compressionType != null ? !compressionType.equals(that.compressionType) : that.compressionType != null)
+            return false;
         if (!outputFormat.equals(that.outputFormat)) return false;
 
         return true;
@@ -219,16 +206,16 @@ public class WriterProjection extends Projection {
     @Override
     public String toString() {
         return "WriterProjection{" +
-                "uri=" + uri +
-                ", outputNames=" + outputNames +
-                ", compressionType=" + compressionType +
-                ", outputFormat=" + outputFormat +
-                '}';
+               "uri=" + uri +
+               ", outputNames=" + outputNames +
+               ", compressionType=" + compressionType +
+               ", outputFormat=" + outputFormat +
+               '}';
     }
 
     public WriterProjection normalize(EvaluatingNormalizer normalizer, StmtCtx stmtCtx) {
         Symbol nUri = normalizer.normalize(uri, stmtCtx);
-        if (uri != nUri){
+        if (uri != nUri) {
             WriterProjection p = new WriterProjection();
             p.uri = nUri;
             p.outputNames = outputNames;
@@ -237,5 +224,14 @@ public class WriterProjection extends Projection {
             return p;
         }
         return this;
+    }
+
+    public enum OutputFormat {
+        JSON_OBJECT,
+        JSON_ARRAY
+    }
+
+    public enum CompressionType {
+        GZIP
     }
 }

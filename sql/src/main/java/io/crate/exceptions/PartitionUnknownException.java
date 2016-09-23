@@ -23,13 +23,13 @@ package io.crate.exceptions;
 
 import java.util.Locale;
 
-public class PartitionUnknownException extends ResourceUnknownException{
+public class PartitionUnknownException extends ResourceUnknownException {
 
     public PartitionUnknownException(String tableName, String partitionIdent) {
         super(String.format(Locale.ENGLISH,
-                "No partition for table '%s' with ident '%s' exists",
-                tableName,
-                partitionIdent));
+            "No partition for table '%s' with ident '%s' exists",
+            tableName,
+            partitionIdent));
     }
 
     @Override

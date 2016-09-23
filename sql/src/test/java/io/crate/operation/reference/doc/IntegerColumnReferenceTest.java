@@ -41,7 +41,7 @@ public class IntegerColumnReferenceTest extends DocLevelExpressionsTest {
 
     @Override
     protected void insertValues(IndexWriter writer) throws Exception {
-        for (int i = -10; i<10; i++) {
+        for (int i = -10; i < 10; i++) {
             Document doc = new Document();
             doc.add(new StringField("_id", Integer.toString(i), Field.Store.NO));
             doc.add(new IntField(fieldName().indexName(), i, Field.Store.NO));

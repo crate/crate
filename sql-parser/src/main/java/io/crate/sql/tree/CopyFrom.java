@@ -78,10 +78,10 @@ public class CopyFrom extends Statement {
     @Override
     public String toString() {
         return MoreObjects.toStringHelper(this)
-                .add("table", table)
-                .add("path", path)
-                .add("properties", genericProperties)
-                .toString();
+            .add("table", table)
+            .add("path", path)
+            .add("properties", genericProperties)
+            .toString();
     }
 
     @Override

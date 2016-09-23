@@ -41,7 +41,7 @@ public class BytesRefColumnReferenceTest extends DocLevelExpressionsTest {
     @Override
     protected void insertValues(IndexWriter writer) throws Exception {
         StringBuilder builder = new StringBuilder();
-        for (int i = 0; i<10; i++) {
+        for (int i = 0; i < 10; i++) {
             builder.append(i);
             Document doc = new Document();
             doc.add(new StringField("_id", Integer.toString(i), Field.Store.NO));

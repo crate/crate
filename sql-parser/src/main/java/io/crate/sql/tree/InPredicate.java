@@ -22,36 +22,30 @@
 package io.crate.sql.tree;
 
 public class InPredicate
-        extends Expression
-{
+    extends Expression {
     private final Expression value;
     private final Expression valueList;
 
-    public InPredicate(Expression value, Expression valueList)
-    {
+    public InPredicate(Expression value, Expression valueList) {
         this.value = value;
         this.valueList = valueList;
     }
 
-    public Expression getValue()
-    {
+    public Expression getValue() {
         return value;
     }
 
-    public Expression getValueList()
-    {
+    public Expression getValueList() {
         return valueList;
     }
 
     @Override
-    public <R, C> R accept(AstVisitor<R, C> visitor, C context)
-    {
+    public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
         return visitor.visitInPredicate(this, context);
     }
 
     @Override
-    public boolean equals(Object o)
-    {
+    public boolean equals(Object o) {
         if (this == o) {
             return true;
         }
@@ -72,8 +66,7 @@ public class InPredicate
     }
 
     @Override
-    public int hashCode()
-    {
+    public int hashCode() {
         int result = value.hashCode();
         result = 31 * result + valueList.hashCode();
         return result;

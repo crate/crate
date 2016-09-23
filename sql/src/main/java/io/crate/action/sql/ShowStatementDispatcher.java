@@ -33,7 +33,7 @@ import java.util.Locale;
 import java.util.UUID;
 
 @Singleton
-public class ShowStatementDispatcher extends AnalyzedStatementVisitor<UUID, String>  {
+public class ShowStatementDispatcher extends AnalyzedStatementVisitor<UUID, String> {
 
     @Override
     protected String visitAnalyzedStatement(AnalyzedStatement analysis, UUID job) {

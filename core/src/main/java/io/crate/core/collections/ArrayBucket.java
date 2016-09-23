@@ -34,7 +34,7 @@ public class ArrayBucket implements Bucket {
     /**
      * Cosntructs a new ArrayBucket with rows of the given size, regardless of what length the row arrays is.
      *
-     * @param rows    the backing array of this bucket
+     * @param rows       the backing array of this bucket
      * @param numColumns the size of rows emitted from this bucket
      */
     public ArrayBucket(Object[][] rows, int numColumns) {
@@ -59,8 +59,8 @@ public class ArrayBucket implements Bucket {
     @Override
     public Iterator<Row> iterator() {
         return new Iterator<Row>() {
-            int pos = 0;
             final RowN row = new RowN(numColumns);
+            int pos = 0;
 
             @Override
             public boolean hasNext() {
@@ -83,8 +83,8 @@ public class ArrayBucket implements Bucket {
     @Override
     public String toString() {
         return MoreObjects.toStringHelper(this)
-                .add("numRows", size())
-                .add("numColumns", numColumns)
-                .toString();
+            .add("numRows", size())
+            .add("numColumns", numColumns)
+            .toString();
     }
 }

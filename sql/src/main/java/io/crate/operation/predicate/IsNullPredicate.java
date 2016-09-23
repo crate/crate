@@ -39,6 +39,10 @@ public class IsNullPredicate<T> extends Scalar<Boolean, T> implements FunctionFo
     public static final String NAME = "op_isnull";
     private final FunctionInfo info;
 
+    IsNullPredicate(FunctionInfo info) {
+        this.info = info;
+    }
+
     public static void register(PredicateModule module) {
         module.register(NAME, new Resolver());
     }
@@ -46,11 +50,6 @@ public class IsNullPredicate<T> extends Scalar<Boolean, T> implements FunctionFo
     private static FunctionInfo generateInfo(List<DataType> types) {
         return new FunctionInfo(new FunctionIdent(NAME, types), DataTypes.BOOLEAN, FunctionInfo.Type.PREDICATE);
     }
-
-    IsNullPredicate(FunctionInfo info) {
-        this.info = info;
-    }
-
 
     @Override
     public FunctionInfo info() {

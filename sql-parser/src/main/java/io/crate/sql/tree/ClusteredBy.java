@@ -66,8 +66,8 @@ public class ClusteredBy extends CrateTableOption {
     @Override
     public String toString() {
         return MoreObjects.toStringHelper(this)
-                .add("column", column)
-                .add("number of shards", numberOfShards).toString();
+            .add("column", column)
+            .add("number of shards", numberOfShards).toString();
     }
 
     @Override

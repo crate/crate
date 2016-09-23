@@ -42,8 +42,8 @@ public class CreateTableIntegrationTest extends SQLTransportIntegrationTest {
     @Test
     public void testCreatePartitionedTableIfNotExistsConcurrently() throws Throwable {
         executeCreateTableThreaded("create table if not exists t " +
-                "(name string, p string) partitioned by (p) " +
-                "with (number_of_replicas = 0)");
+                                   "(name string, p string) partitioned by (p) " +
+                                   "with (number_of_replicas = 0)");
     }
 
     private void executeCreateTableThreaded(final String statement) throws Throwable {

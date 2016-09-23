@@ -27,13 +27,13 @@ public class ShowCreateTable extends Statement {
 
     private final Table table;
 
+    public ShowCreateTable(Table table) {
+        this.table = table;
+    }
+
     @Override
     public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
         return visitor.visitShowCreateTable(this, context);
-    }
-
-    public ShowCreateTable(Table table) {
-        this.table = table;
     }
 
     @Override
@@ -55,8 +55,8 @@ public class ShowCreateTable extends Statement {
     @Override
     public String toString() {
         return MoreObjects.toStringHelper(this)
-                .add("table", table)
-                .toString();
+            .add("table", table)
+            .toString();
     }
 
     public Table table() {

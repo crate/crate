@@ -37,17 +37,17 @@ public class LikeOperatorTest extends CrateUnitTest {
 
     private static Symbol normalizeSymbol(String expression, String pattern) {
         LikeOperator op = new LikeOperator(
-                LikeOperator.generateInfo(LikeOperator.NAME, DataTypes.STRING)
+            LikeOperator.generateInfo(LikeOperator.NAME, DataTypes.STRING)
         );
         Function function = new Function(
-                op.info(),
-                Arrays.<Symbol>asList(Literal.newLiteral(expression), Literal.newLiteral(pattern))
+            op.info(),
+            Arrays.<Symbol>asList(Literal.newLiteral(expression), Literal.newLiteral(pattern))
         );
         return op.normalizeSymbol(function, new StmtCtx());
     }
 
     private Boolean likeNormalize(String expression, String pattern) {
-        return (Boolean)((Literal)normalizeSymbol(expression, pattern)).value();
+        return (Boolean) ((Literal) normalizeSymbol(expression, pattern)).value();
     }
 
     @Test
@@ -102,9 +102,9 @@ public class LikeOperatorTest extends CrateUnitTest {
     @Test
     public void testLikeOnMultilineStatement() throws Exception {
         String stmt = "SELECT date_trunc('day', ts), sum(num_steps) as num_steps, count(*) as num_records \n" +
-                "FROM steps\n" +
-                "WHERE month_partition = '201409'\n" +
-                "GROUP BY 1 ORDER BY 1 DESC limit 100";
+                      "FROM steps\n" +
+                      "WHERE month_partition = '201409'\n" +
+                      "GROUP BY 1 ORDER BY 1 DESC limit 100";
 
         assertFalse(likeNormalize(stmt, "  SELECT%"));
         assertTrue(likeNormalize(stmt, "SELECT%"));
@@ -152,7 +152,7 @@ public class LikeOperatorTest extends CrateUnitTest {
 
     private Boolean like(String expression, String pattern) {
         LikeOperator op = new LikeOperator(
-                LikeOperator.generateInfo(LikeOperator.NAME, DataTypes.STRING)
+            LikeOperator.generateInfo(LikeOperator.NAME, DataTypes.STRING)
         );
         return op.evaluate(Literal.newLiteral(expression), Literal.newLiteral(pattern));
     }
@@ -165,7 +165,7 @@ public class LikeOperatorTest extends CrateUnitTest {
 
         // set the Input.value() to null.
         LikeOperator op = new LikeOperator(
-                LikeOperator.generateInfo(LikeOperator.NAME, DataTypes.STRING)
+            LikeOperator.generateInfo(LikeOperator.NAME, DataTypes.STRING)
         );
         BytesRef nullValue = null;
         Literal<BytesRef> brNullValue = Literal.newLiteral(nullValue);

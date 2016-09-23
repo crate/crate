@@ -41,6 +41,7 @@ import java.util.concurrent.atomic.AtomicLong;
 
 public class DigestBlob {
 
+    private static final ESLogger logger = Loggers.getLogger(DigestBlob.class);
     private final String digest;
     private final BlobContainer container;
     private final UUID transferId;
@@ -53,13 +54,42 @@ public class DigestBlob {
     private MessageDigest md;
     private long chunks;
     private CountDownLatch headCatchedUpLatch;
-    private static final ESLogger logger = Loggers.getLogger(DigestBlob.class);
 
     public DigestBlob(BlobContainer container, String digest, UUID transferId) {
         this.digest = digest;
         this.container = container;
         this.size = 0;
         this.transferId = transferId;
+    }
+
+    private static File getTmpFilePath(BlobContainer blobContainer, String digest, UUID transferId) {
+        return new File(blobContainer.getTmpDirectory(), String.format("%s.%s", digest, transferId.toString()));
+    }
+
+    public static DigestBlob resumeTransfer(BlobContainer blobContainer, String digest,
+                                            UUID transferId, long currentPos) {
+        DigestBlob digestBlob = new DigestBlob(blobContainer, digest, transferId);
+        digestBlob.file = getTmpFilePath(blobContainer, digest, transferId);
+
+        try {
+            logger.trace("Resuming DigestBlob {}. CurrentPos {}", digest, currentPos);
+            digestBlob.headFileChannel = new FileOutputStream(digestBlob.file, false).getChannel();
+            digestBlob.headLength = currentPos;
+            digestBlob.headSize = new AtomicLong();
+            digestBlob.headCatchedUpLatch = new CountDownLatch(1);
+
+            RandomAccessFile raf = new RandomAccessFile(digestBlob.file, "rw");
+            raf.setLength(currentPos);
+            raf.close();
+
+            FileOutputStream outputStream = new FileOutputStream(digestBlob.file, true);
+            digestBlob.fileChannel = outputStream.getChannel();
+        } catch (IOException ex) {
+            logger.error("error resuming transfer of {}, id: {}", ex, digest, transferId);
+            return null;
+        }
+
+        return digestBlob;
     }
 
     public String getDigest() {
@@ -74,10 +104,6 @@ public class DigestBlob {
         return file;
     }
 
-    private static File getTmpFilePath(BlobContainer blobContainer, String digest, UUID transferId) {
-       return new File(blobContainer.getTmpDirectory(), String.format("%s.%s", digest, transferId.toString()));
-    }
-
     private File createTmpFile() throws IOException {
         File tmpFile = getTmpFilePath(container, digest, transferId);
         tmpFile.createNewFile();
@@ -86,7 +112,7 @@ public class DigestBlob {
     }
 
     private void updateDigest(ByteBuffer bbf) throws IOException {
-        if (md == null){
+        if (md == null) {
             try {
                 md = MessageDigest.getInstance("SHA-1");
             } catch (NoSuchAlgorithmException e) {
@@ -117,7 +143,7 @@ public class DigestBlob {
             } while (written < readableBytes);
             size += readableBytes;
             buffer.readerIndex(buffer.readerIndex() + written);
-            chunks ++;
+            chunks++;
         }
         if (last) {
             if (file == null) {
@@ -176,7 +202,7 @@ public class DigestBlob {
         return container.getFile(digest);
     }
 
-    public void addContent(BytesReference content, boolean last){
+    public void addContent(BytesReference content, boolean last) {
         try {
             addContent(content.toChannelBuffer(), last);
         } catch (IOException e) {
@@ -211,33 +237,6 @@ public class DigestBlob {
 
     public BlobContainer container() {
         return this.container;
-    }
-
-    public static DigestBlob resumeTransfer(BlobContainer blobContainer, String digest,
-                                            UUID transferId, long currentPos)
-    {
-        DigestBlob digestBlob = new DigestBlob(blobContainer, digest, transferId);
-        digestBlob.file = getTmpFilePath(blobContainer, digest, transferId);
-
-        try {
-            logger.trace("Resuming DigestBlob {}. CurrentPos {}", digest, currentPos);
-            digestBlob.headFileChannel = new FileOutputStream(digestBlob.file, false).getChannel();
-            digestBlob.headLength = currentPos;
-            digestBlob.headSize = new AtomicLong();
-            digestBlob.headCatchedUpLatch = new CountDownLatch(1);
-
-            RandomAccessFile raf = new RandomAccessFile(digestBlob.file, "rw");
-            raf.setLength(currentPos);
-            raf.close();
-
-            FileOutputStream outputStream = new FileOutputStream(digestBlob.file, true);
-            digestBlob.fileChannel = outputStream.getChannel();
-        } catch (IOException ex) {
-            logger.error("error resuming transfer of {}, id: {}", ex, digest, transferId);
-            return null;
-        }
-
-        return digestBlob;
     }
 
     public void waitForHead() {

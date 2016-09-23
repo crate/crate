@@ -61,18 +61,18 @@ public class NumberOfShardsTest extends CrateUnitTest {
         when(clusterState.nodes()).thenReturn(discoveryNodes);
     }
 
-    @Before
-    public void before() {
-        when(discoveryNodes.dataNodes()).thenReturn(createDataNodes(3));
-        numberOfShards = new NumberOfShards(clusterService);
-    }
-
     private static ImmutableOpenMap<String, DiscoveryNode> createDataNodes(int numNodes) {
         ImmutableOpenMap.Builder<String, DiscoveryNode> dataNodesBuilder = ImmutableOpenMap.builder();
         for (int i = 0; i < numNodes; i++) {
             dataNodesBuilder.put(String.format(Locale.ENGLISH, "node%s", i), mock(DiscoveryNode.class));
         }
         return dataNodesBuilder.build();
+    }
+
+    @Before
+    public void before() {
+        when(discoveryNodes.dataNodes()).thenReturn(createDataNodes(3));
+        numberOfShards = new NumberOfShards(clusterService);
     }
 
     @Test
@@ -98,7 +98,7 @@ public class NumberOfShardsTest extends CrateUnitTest {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("num_shards in CLUSTERED clause must be greater than 0");
         numberOfShards.fromClusteredByClause(
-                new ClusteredBy(QNAME_REF, LongLiteral.fromObject(0)), Row.EMPTY);
+            new ClusteredBy(QNAME_REF, LongLiteral.fromObject(0)), Row.EMPTY);
     }
 
 }

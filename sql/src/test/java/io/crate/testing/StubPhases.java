@@ -36,11 +36,11 @@ import java.util.List;
 
 public class StubPhases {
 
-    public static UpstreamPhase newUpstreamPhase(int phaseId, DistributionInfo distributionInfo, String ... executionNodes) {
+    public static UpstreamPhase newUpstreamPhase(int phaseId, DistributionInfo distributionInfo, String... executionNodes) {
         return new UpstreamStubPhase(phaseId, ExecutionPhase.Type.COLLECT, distributionInfo, executionNodes);
     }
 
-    public static ExecutionPhase newPhase(int phaseId, String ... executionNodes) {
+    public static ExecutionPhase newPhase(int phaseId, String... executionNodes) {
         return new StubPhase(phaseId, ExecutionPhase.Type.COLLECT, executionNodes);
     }
 
@@ -50,7 +50,7 @@ public class StubPhases {
         private final Type type;
         private final List<String> executionNodes;
 
-        public StubPhase(int phaseId, Type type, String ... executionNodes) {
+        public StubPhase(int phaseId, Type type, String... executionNodes) {
             this.phaseId = phaseId;
             this.type = type;
             this.executionNodes = Arrays.asList(executionNodes);

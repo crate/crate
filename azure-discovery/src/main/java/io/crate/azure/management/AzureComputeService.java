@@ -29,6 +29,12 @@ import org.elasticsearch.common.component.LifecycleComponent;
  */
 public interface AzureComputeService extends LifecycleComponent<AzureComputeService> {
 
+    public Configuration configuration();
+
+    public ComputeManagementClient computeManagementClient();
+
+    public NetworkResourceProviderClient networkResourceClient();
+
     static public final class Management {
         public static final String API_IMPLEMENTATION = "cloud.azure.management.api.impl";
 
@@ -45,8 +51,4 @@ public interface AzureComputeService extends LifecycleComponent<AzureComputeServ
         public static final String HOST_TYPE = "discovery.azure.host.type";
         public static final String DISCOVERY_METHOD = "discovery.azure.method";
     }
-
-    public Configuration configuration();
-    public ComputeManagementClient computeManagementClient();
-    public NetworkResourceProviderClient networkResourceClient();
 }

@@ -69,6 +69,22 @@ public class CopyStatementPlanner {
         this.clusterService = clusterService;
     }
 
+    private static Collection<String> getExecutionNodes(DiscoveryNodes allNodes,
+                                                        int maxNodes,
+                                                        final Predicate<DiscoveryNode> nodeFilters) {
+        final AtomicInteger counter = new AtomicInteger(maxNodes);
+        final List<String> nodes = new ArrayList<>(allNodes.size());
+        allNodes.dataNodes().values().forEach(new ObjectProcedure<DiscoveryNode>() {
+            @Override
+            public void apply(DiscoveryNode value) {
+                if (nodeFilters.apply(value) && counter.getAndDecrement() > 0) {
+                    nodes.add(value.id());
+                }
+            }
+        });
+        return nodes;
+    }
+
     public Plan planCopyFrom(CopyFromAnalyzedStatement analysis, Planner.Context context) {
         /**
          * copy from has two "modes":
@@ -146,7 +162,8 @@ public class CopyStatementPlanner {
             toCollect.add(symbol);
         }
         // add clusteredBy column (if not part of primaryKey)
-        if (clusteredByPrimaryKeyIdx == -1 && table.clusteredBy() != null && !DocSysColumns.ID.equals(table.clusteredBy())) {
+        if (clusteredByPrimaryKeyIdx == -1 && table.clusteredBy() != null &&
+            !DocSysColumns.ID.equals(table.clusteredBy())) {
             toCollect.add(table.getReference(table.clusteredBy()));
         }
         // add _raw or _doc
@@ -215,21 +232,5 @@ public class CopyStatementPlanner {
             Symbols.extractTypes(projection.outputs()));
 
         return new CopyTo(context.jobId(), plannedSubQuery.plan(), mergePhase);
-    }
-
-    private static Collection<String> getExecutionNodes(DiscoveryNodes allNodes,
-                                                        int maxNodes,
-                                                        final Predicate<DiscoveryNode> nodeFilters) {
-        final AtomicInteger counter = new AtomicInteger(maxNodes);
-        final List<String> nodes = new ArrayList<>(allNodes.size());
-        allNodes.dataNodes().values().forEach(new ObjectProcedure<DiscoveryNode>() {
-            @Override
-            public void apply(DiscoveryNode value) {
-                if (nodeFilters.apply(value) && counter.getAndDecrement() > 0) {
-                    nodes.add(value.id());
-                }
-            }
-        });
-        return nodes;
     }
 }

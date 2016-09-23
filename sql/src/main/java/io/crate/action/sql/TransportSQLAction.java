@@ -48,13 +48,11 @@ import java.util.*;
 @Singleton
 public class TransportSQLAction extends TransportAction<SQLRequest, SQLResponse> {
 
+    final static int DEFAULT_SOFT_LIMIT = 10_000;
     private static final DataType[] EMPTY_TYPES = new DataType[0];
     private static final String[] EMPTY_NAMES = new String[0];
     private static final Object[][] EMPTY_ROWS = new Object[0][];
-
     private final static String UNNAMED = "";
-    final static int DEFAULT_SOFT_LIMIT = 10_000;
-
     private final SQLOperations sqlOperations;
 
     @Inject
@@ -159,7 +157,7 @@ public class TransportSQLAction extends TransportAction<SQLRequest, SQLResponse>
 
             Object[][] rowsArr = rows.toArray(new Object[0][]);
             BytesRefUtils.ensureStringTypesAreStrings(outputTypes, rowsArr);
-            float duration = (float)((System.nanoTime() - startTime) / 1_000_000.0);
+            float duration = (float) ((System.nanoTime() - startTime) / 1_000_000.0);
             return new SQLResponse(
                 outputNames,
                 rowsArr,
@@ -202,7 +200,7 @@ public class TransportSQLAction extends TransportAction<SQLRequest, SQLResponse>
 
         @Override
         public void allFinished() {
-            float duration = (float)((System.nanoTime() - startTime) / 1_000_000.0);
+            float duration = (float) ((System.nanoTime() - startTime) / 1_000_000.0);
             SQLResponse sqlResponse = new SQLResponse(
                 EMPTY_NAMES,
                 EMPTY_ROWS,

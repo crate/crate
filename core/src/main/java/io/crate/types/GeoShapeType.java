@@ -39,7 +39,8 @@ public class GeoShapeType extends DataType<Map<String, Object>> implements Strea
     public static final int ID = 14;
     public static final GeoShapeType INSTANCE = new GeoShapeType();
 
-    private GeoShapeType() {}
+    private GeoShapeType() {
+    }
 
     @Override
     public int id() {
@@ -83,7 +84,6 @@ public class GeoShapeType extends DataType<Map<String, Object>> implements Strea
     }
 
 
-
     @Override
     public int compareValueTo(Map<String, Object> val1, Map<String, Object> val2) {
         // TODO: compare without converting to shape
@@ -111,6 +111,6 @@ public class GeoShapeType extends DataType<Map<String, Object>> implements Strea
 
     @Override
     public void writeValueTo(StreamOutput out, Object v) throws IOException {
-        out.writeMap((Map<String, Object>)v);
+        out.writeMap((Map<String, Object>) v);
     }
 }

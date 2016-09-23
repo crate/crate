@@ -58,7 +58,7 @@ public class OperationContextLog {
     }
 
     public long usedBytes() {
-        return  operationContext.usedBytes;
+        return operationContext.usedBytes;
     }
 
     @Override

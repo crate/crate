@@ -23,8 +23,6 @@
 package io.crate.monitor;
 
 import com.google.common.collect.Iterators;
-import com.sun.org.apache.xalan.internal.xsltc.compiler.util.StringType;
-import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.Nullable;
@@ -40,6 +38,83 @@ import java.util.Set;
 
 public class ExtendedFsStats implements Iterable<ExtendedFsStats.Info>, Streamable {
 
+    private Info[] infos = new Info[0];
+    private Info total;
+    public ExtendedFsStats() {
+    }
+
+    public ExtendedFsStats(Info total) {
+        this.total = total;
+    }
+
+    public ExtendedFsStats(Info[] infos) {
+        this.infos = infos;
+        this.total = null;
+    }
+
+    public static ExtendedFsStats readExtendedFsStats(StreamInput in) throws IOException {
+        ExtendedFsStats stat = new ExtendedFsStats();
+        stat.readFrom(in);
+        return stat;
+    }
+
+    public Info total() {
+        if (total != null) {
+            return total;
+        }
+        Info res = new Info();
+        Set<BytesRef> seenDevices = new HashSet<>(infos.length);
+        for (Info subInfo : infos) {
+            if (subInfo.dev != null) {
+                if (!seenDevices.add(subInfo.dev)) {
+                    continue; // already added numbers for this device;
+                }
+            }
+            res.add(subInfo);
+        }
+        total = res;
+        return res;
+    }
+
+    public void total(Info total) {
+        this.total = total;
+    }
+
+    public Info[] infos() {
+        return infos;
+    }
+
+    public void infos(Info[] infos) {
+        this.infos = infos;
+    }
+
+    @Override
+    public Iterator<Info> iterator() {
+        return Iterators.forArray(infos);
+    }
+
+    public int size() {
+        return infos.length;
+    }
+
+    @Override
+    public void readFrom(StreamInput in) throws IOException {
+        total = in.readOptionalStreamable(new Info());
+        infos = new Info[in.readVInt()];
+        for (int i = 0; i < infos.length; i++) {
+            infos[i] = Info.readInfo(in);
+        }
+    }
+
+    @Override
+    public void writeTo(StreamOutput out) throws IOException {
+        out.writeOptionalStreamable(total);
+        out.writeVInt(infos.length);
+        for (Info info : infos) {
+            info.writeTo(out);
+        }
+    }
+
     public static class Info implements Streamable {
 
         private BytesRef path;
@@ -53,12 +128,6 @@ public class ExtendedFsStats implements Iterable<ExtendedFsStats.Info>, Streamab
         private long diskWrites = -1;
         private long diskReadBytes = -1;
         private long diskWriteBytes = -1;
-
-        public static Info readInfo(StreamInput in) throws IOException {
-            Info info = new Info();
-            info.readFrom(in);
-            return info;
-        }
 
         public Info() {
         }
@@ -83,6 +152,12 @@ public class ExtendedFsStats implements Iterable<ExtendedFsStats.Info>, Streamab
             this.diskWrites = diskWrites;
             this.diskReadBytes = diskReadBytes;
             this.diskWriteBytes = diskWriteBytes;
+        }
+
+        public static Info readInfo(StreamInput in) throws IOException {
+            Info info = new Info();
+            info.readFrom(in);
+            return info;
         }
 
         public BytesRef path() {
@@ -210,84 +285,6 @@ public class ExtendedFsStats implements Iterable<ExtendedFsStats.Info>, Streamab
             out.writeLong(diskWriteBytes);
             DataTypes.STRING.writeValueTo(out, path);
             DataTypes.STRING.writeValueTo(out, dev);
-        }
-    }
-
-    private Info[] infos = new Info[0];
-    private Info total;
-
-    public ExtendedFsStats() {
-    }
-
-    public ExtendedFsStats(Info total) {
-        this.total = total;
-    }
-
-    public ExtendedFsStats(Info[] infos) {
-        this.infos = infos;
-        this.total = null;
-    }
-
-    public Info total() {
-        if (total != null) {
-            return total;
-        }
-        Info res = new Info();
-        Set<BytesRef> seenDevices = new HashSet<>(infos.length);
-        for (Info subInfo : infos) {
-            if (subInfo.dev != null) {
-                if (!seenDevices.add(subInfo.dev)) {
-                    continue; // already added numbers for this device;
-                }
-            }
-            res.add(subInfo);
-        }
-        total = res;
-        return res;
-    }
-
-    public void total(Info total) {
-        this.total = total;
-    }
-
-    public Info[] infos() {
-        return infos;
-    }
-
-    public void infos(Info[] infos) {
-        this.infos = infos;
-    }
-
-    @Override
-    public Iterator<Info> iterator() {
-        return Iterators.forArray(infos);
-    }
-
-    public int size() {
-        return infos.length;
-    }
-
-    public static ExtendedFsStats readExtendedFsStats(StreamInput in) throws IOException {
-        ExtendedFsStats stat = new ExtendedFsStats();
-        stat.readFrom(in);
-        return stat;
-    }
-
-    @Override
-    public void readFrom(StreamInput in) throws IOException {
-        total = in.readOptionalStreamable(new Info());
-        infos = new Info[in.readVInt()];
-        for (int i = 0; i < infos.length; i++) {
-            infos[i] = Info.readInfo(in);
-        }
-    }
-
-    @Override
-    public void writeTo(StreamOutput out) throws IOException {
-        out.writeOptionalStreamable(total);
-        out.writeVInt(infos.length);
-        for (Info info : infos) {
-            info.writeTo(out);
         }
     }
 }

@@ -34,13 +34,11 @@ import java.io.IOException;
 /**
  * ComparatorSource for fields that don't have a backing FieldMapper and FieldCache.
  * This always returns the appropriate <code>missingValue</code>.
- *
+ * <p>
  * Only used on shards with no values for the compared field.
  */
 class NullFieldComparatorSource extends IndexFieldData.XFieldComparatorSource {
 
-    private final SortField.Type sortFieldType;
-    private final Object missingValue;
     private final static LeafFieldComparator LEAF_FIELD_COMPARATOR = new LeafFieldComparator() {
         @Override
         public void setBottom(int slot) {
@@ -64,6 +62,8 @@ class NullFieldComparatorSource extends IndexFieldData.XFieldComparatorSource {
         public void setScorer(Scorer scorer) {
         }
     };
+    private final SortField.Type sortFieldType;
+    private final Object missingValue;
 
     NullFieldComparatorSource(SortField.Type sortFieldType, boolean reversed, Boolean nullsFirst) {
         this.sortFieldType = sortFieldType;

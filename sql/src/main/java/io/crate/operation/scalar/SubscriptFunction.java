@@ -35,14 +35,6 @@ import java.util.List;
 public class SubscriptFunction extends Scalar<Object, Object[]> implements DynamicFunctionResolver {
 
     public static final String NAME = "subscript";
-
-    private static FunctionInfo createInfo(List<DataType> argumentTypes, DataType returnType) {
-        return new FunctionInfo(new FunctionIdent(NAME, argumentTypes), returnType);
-    }
-    public static void register(ScalarFunctionModule module) {
-        module.register(NAME, new SubscriptFunction());
-    }
-
     private FunctionInfo info;
 
     private SubscriptFunction() {
@@ -50,6 +42,14 @@ public class SubscriptFunction extends Scalar<Object, Object[]> implements Dynam
 
     public SubscriptFunction(FunctionInfo info) {
         this.info = info;
+    }
+
+    private static FunctionInfo createInfo(List<DataType> argumentTypes, DataType returnType) {
+        return new FunctionInfo(new FunctionIdent(NAME, argumentTypes), returnType);
+    }
+
+    public static void register(ScalarFunctionModule module) {
+        module.register(NAME, new SubscriptFunction());
     }
 
     @Override
@@ -69,7 +69,7 @@ public class SubscriptFunction extends Scalar<Object, Object[]> implements Dynam
             return null;
         }
         assert (element instanceof Object[] || element instanceof List)
-                : "first argument must be of type array or list";
+            : "first argument must be of type array or list";
         assert index instanceof Integer : "second argument must be of type integer";
 
         // 1 based arrays as SQL standard says
@@ -87,9 +87,9 @@ public class SubscriptFunction extends Scalar<Object, Object[]> implements Dynam
     @Override
     public FunctionImplementation<Function> getForTypes(List<DataType> dataTypes) throws IllegalArgumentException {
         Preconditions.checkArgument(dataTypes.size() == 2
-                && dataTypes.get(0).id() == ArrayType.ID
-                && dataTypes.get(1) == DataTypes.INTEGER);
-        DataType returnType = ((CollectionType)dataTypes.get(0)).innerType();
+                                    && dataTypes.get(0).id() == ArrayType.ID
+                                    && dataTypes.get(1) == DataTypes.INTEGER);
+        DataType returnType = ((CollectionType) dataTypes.get(0)).innerType();
         return new SubscriptFunction(createInfo(dataTypes, returnType));
     }
 

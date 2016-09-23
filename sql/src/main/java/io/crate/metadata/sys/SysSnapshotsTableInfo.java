@@ -43,21 +43,9 @@ import java.util.Random;
 public class SysSnapshotsTableInfo extends StaticTableInfo {
 
     public static final TableIdent IDENT = new TableIdent(SysSchemaInfo.NAME, "snapshots");
-    private final ClusterService clusterService;
-
-    public static class Columns {
-        public static final ColumnIdent NAME = new ColumnIdent("name");
-        public static final ColumnIdent REPOSITORY = new ColumnIdent("repository");
-        public static final ColumnIdent CONCRETE_INDICES = new ColumnIdent("concrete_indices");
-        public static final ColumnIdent STARTED = new ColumnIdent("started");
-        public static final ColumnIdent FINISHED = new ColumnIdent("finished");
-        public static final ColumnIdent VERSION = new ColumnIdent("version");
-        public static final ColumnIdent STATE = new ColumnIdent("state");
-    }
-
     private static final ImmutableList<ColumnIdent> PRIMARY_KEY = ImmutableList.of(Columns.NAME, Columns.REPOSITORY);
     private static final RowGranularity GRANULARITY = RowGranularity.DOC;
-
+    private final ClusterService clusterService;
     private Random random = new Random();
 
     public SysSnapshotsTableInfo(ClusterService clusterService) {
@@ -69,7 +57,7 @@ public class SysSnapshotsTableInfo extends StaticTableInfo {
                 .register(Columns.FINISHED, DataTypes.TIMESTAMP)
                 .register(Columns.VERSION, DataTypes.STRING)
                 .register(Columns.STATE, DataTypes.STRING),
-                PRIMARY_KEY);
+            PRIMARY_KEY);
         this.clusterService = clusterService;
     }
 
@@ -102,6 +90,16 @@ public class SysSnapshotsTableInfo extends StaticTableInfo {
             currIdx++;
         }
         throw new AssertionError(String.format(Locale.ENGLISH,
-                "Cannot find a master or data node with given random index %d", randomIdx));
+            "Cannot find a master or data node with given random index %d", randomIdx));
+    }
+
+    public static class Columns {
+        public static final ColumnIdent NAME = new ColumnIdent("name");
+        public static final ColumnIdent REPOSITORY = new ColumnIdent("repository");
+        public static final ColumnIdent CONCRETE_INDICES = new ColumnIdent("concrete_indices");
+        public static final ColumnIdent STARTED = new ColumnIdent("started");
+        public static final ColumnIdent FINISHED = new ColumnIdent("finished");
+        public static final ColumnIdent VERSION = new ColumnIdent("version");
+        public static final ColumnIdent STATE = new ColumnIdent("state");
     }
 }

@@ -84,7 +84,7 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
 
     private final static String ACTION_NAME = "indices:crate/data/write/upsert";
     private final static SymbolToFieldExtractor<GetResult> SYMBOL_TO_FIELD_EXTRACTOR =
-            new SymbolToFieldExtractor<>(new GetResultFieldExtractorFactory());
+        new SymbolToFieldExtractor<>(new GetResultFieldExtractorFactory());
 
     private final IndicesService indicesService;
     private final Functions functions;
@@ -104,11 +104,68 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                                       MappingUpdatedAction mappingUpdatedAction,
                                       IndexNameExpressionResolver indexNameExpressionResolver) {
         super(settings, ACTION_NAME, transportService, mappingUpdatedAction, indexNameExpressionResolver, clusterService,
-                indicesService, threadPool, shardStateAction, actionFilters, ShardUpsertRequest.class);
+            indicesService, threadPool, shardStateAction, actionFilters, ShardUpsertRequest.class);
         this.indicesService = indicesService;
         this.functions = functions;
         this.schemas = schemas;
         jobContextService.addListener(this);
+    }
+
+    /**
+     * Overwrite given values on the source. If the value is a map,
+     * it will not be merged but overwritten. The keys of the changes map representing a path of
+     * the source map tree.
+     * If the path doesn't exists, a new tree will be inserted.
+     * <p/>
+     * TODO: detect NOOP
+     */
+    @SuppressWarnings("unchecked")
+    static void updateSourceByPaths(@Nonnull Map<String, Object> source, @Nonnull Map<String, Object> changes) {
+        for (Map.Entry<String, Object> changesEntry : changes.entrySet()) {
+            String key = changesEntry.getKey();
+            int dotIndex = key.indexOf(".");
+            if (dotIndex > -1) {
+                // sub-path detected, dive recursive to the wanted tree element
+                String currentKey = key.substring(0, dotIndex);
+                if (!source.containsKey(currentKey)) {
+                    // insert parent tree element
+                    source.put(currentKey, new HashMap<String, Object>());
+                }
+                Map<String, Object> subChanges = new HashMap<>();
+                subChanges.put(key.substring(dotIndex + 1, key.length()), changesEntry.getValue());
+
+                Map<String, Object> innerSource = (Map<String, Object>) source.get(currentKey);
+                if (innerSource == null) {
+                    throw new NullPointerException(String.format(Locale.ENGLISH,
+                        "Object %s is null, cannot write %s onto it", currentKey, subChanges));
+                }
+                updateSourceByPaths(innerSource, subChanges);
+            } else {
+                // overwrite or insert the field
+                source.put(key, changesEntry.getValue());
+            }
+        }
+    }
+
+    public static Collection<ColumnIdent> getNotUsedNonGeneratedColumns(Reference[] targetColumns,
+                                                                        DocTableInfo tableInfo) {
+        Set<String> targetColumnsSet = new HashSet<>();
+        Collection<ColumnIdent> columnsNotUsed = new ArrayList<>();
+
+        if (targetColumns != null) {
+            for (Reference targetColumn : targetColumns) {
+                targetColumnsSet.add(targetColumn.ident().columnIdent().fqn());
+            }
+        }
+
+        for (Reference reference : tableInfo.columns()) {
+            if (!(reference instanceof GeneratedReference) && !reference.isNullable()) {
+                if (!targetColumnsSet.contains(reference.ident().columnIdent().fqn())) {
+                    columnsNotUsed.add(reference.ident().columnIdent());
+                }
+            }
+        }
+        return columnsNotUsed;
     }
 
     @Override
@@ -143,20 +200,20 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
             }
             try {
                 translogLocation = indexItem(
-                        tableInfo,
-                        request,
-                        item,
-                        indexShard,
-                        item.insertValues() != null, // try insert first
-                        notUsedNonGeneratedColumns,
-                        0);
+                    tableInfo,
+                    request,
+                    item,
+                    indexShard,
+                    item.insertValues() != null, // try insert first
+                    notUsedNonGeneratedColumns,
+                    0);
                 shardResponse.add(location);
             } catch (Throwable t) {
                 if (retryPrimaryException(t)) {
                     Throwables.propagate(t);
                 }
                 logger.debug("{} failed to execute upsert for [{}]/[{}]",
-                        t, request.shardId(), request.type(), item.id());
+                    t, request.shardId(), request.type(), item.id());
 
                 // *mark* the item as failed by setting the source to null
                 // to prevent the replica operation from processing this concrete item
@@ -167,10 +224,10 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                     break;
                 }
                 shardResponse.add(location,
-                        new ShardResponse.Failure(
-                                item.id(),
-                                ExceptionsHelper.detailedMessage(t),
-                                (t instanceof VersionConflictEngineException)));
+                    new ShardResponse.Failure(
+                        item.id(),
+                        ExceptionsHelper.detailedMessage(t),
+                        (t instanceof VersionConflictEngineException)));
             }
         }
         if (indexShard.getTranslogDurability() == Translog.Durabilty.REQUEST && translogLocation != null) {
@@ -187,7 +244,7 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
             if (item.source() == null) {
                 if (logger.isTraceEnabled()) {
                     logger.trace("[{} (R)] Document with id {}, has no source, primary operation must have failed",
-                            indexShard.shardId(), item.id());
+                        indexShard.shardId(), item.id());
                 }
                 continue;
             }
@@ -227,7 +284,7 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
             if (item.retryOnConflict()) {
                 if (logger.isTraceEnabled()) {
                     logger.trace("[{}] VersionConflict, retrying operation for document id {}, retry count: {}",
-                            indexShard.shardId(), item.id(), retryCount);
+                        indexShard.shardId(), item.id(), retryCount);
                 }
                 return indexItem(tableInfo, request, item, indexShard, false, notUsedNonGeneratedColumns,
                     retryCount + 1);
@@ -253,8 +310,8 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                                            ShardUpsertRequest.Item item,
                                            IndexShard indexShard) throws ElasticsearchException {
         final GetResult getResult = indexShard.getService().get(request.type(), item.id(),
-                new String[]{RoutingFieldMapper.NAME, ParentFieldMapper.NAME, TTLFieldMapper.NAME},
-                true, Versions.MATCH_ANY, VersionType.INTERNAL, FetchSourceContext.FETCH_SOURCE, false);
+            new String[]{RoutingFieldMapper.NAME, ParentFieldMapper.NAME, TTLFieldMapper.NAME},
+            true, Versions.MATCH_ANY, VersionType.INTERNAL, FetchSourceContext.FETCH_SOURCE, false);
 
         if (!getResult.isExists()) {
             throw new DocumentMissingException(new ShardId(request.index(), request.shardId().id()), request.type(), item.id());
@@ -267,7 +324,7 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
 
         if (item.version() != Versions.MATCH_ANY && item.version() != getResult.getVersion()) {
             throw new VersionConflictEngineException(
-                    indexShard.shardId(), Constants.DEFAULT_MAPPING_TYPE, item.id(), getResult.getVersion(), item.version());
+                indexShard.shardId(), Constants.DEFAULT_MAPPING_TYPE, item.id(), getResult.getVersion(), item.version());
         }
 
         Tuple<XContentType, Map<String, Object>> sourceAndContent = XContentHelper.convertToMap(getResult.internalSourceRef(), true);
@@ -361,7 +418,7 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
             (generatedReferencesWithValue.size() > 0 && request.validateConstraints())) {
             // we need to evaluate some generated column expressions
             Map<String, Object> sourceMap = processGeneratedColumnsOnInsert(tableInfo, request.insertColumns(), item.insertValues(),
-                    request.isRawSourceInsert(), request.validateConstraints());
+                request.isRawSourceInsert(), request.validateConstraints());
             source = XContentFactory.jsonBuilder().map(sourceMap).bytes();
         }
 
@@ -373,19 +430,19 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                                                            ShardUpsertRequest request,
                                                            ShardUpsertRequest.Item item) {
         SourceToParse sourceToParse = SourceToParse.source(SourceToParse.Origin.PRIMARY, item.source())
-                .type(request.type())
-                .id(item.id())
-                .routing(request.routing());
+            .type(request.type())
+            .id(item.id())
+            .routing(request.routing());
 
         if (logger.isTraceEnabled()) {
             logger.trace("[{}] shard operation with opType={} id={} version={}  source={}",
-                    indexShard.shardId(), item.opType(), item.id(), version, item.source().toUtf8());
+                indexShard.shardId(), item.opType(), item.id(), version, item.source().toUtf8());
         }
         if (item.opType() == IndexRequest.OpType.INDEX) {
             return indexShard.prepareIndexOnPrimary(sourceToParse, version, item.versionType(), request.canHaveDuplicates());
         }
         return indexShard.prepareCreateOnPrimary(
-                sourceToParse, version, item.versionType(), request.canHaveDuplicates(), false);
+            sourceToParse, version, item.versionType(), request.canHaveDuplicates(), false);
     }
 
     private Translog.Location shardIndexOperation(ShardUpsertRequest request,
@@ -413,12 +470,12 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
         Mapping update = operation.parsedDoc().dynamicMappingsUpdate();
         if (update != null) {
             mappingUpdatedAction.updateMappingOnMasterSynchronously(
-                    request.shardId().getIndex(), request.type(), update);
+                request.shardId().getIndex(), request.type(), update);
 
             operation = prepareIndexOnPrimary(indexShard, version, request, item);
             if (operation.parsedDoc().dynamicMappingsUpdate() != null) {
                 throw new RetryOnPrimaryException(request.shardId(),
-                        "Dynamics mappings are not available on the node that holds the primary yet");
+                    "Dynamics mappings are not available on the node that holds the primary yet");
             }
         }
         return operation;
@@ -428,9 +485,9 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                                               ShardUpsertRequest.Item item,
                                               IndexShard indexShard) {
         SourceToParse sourceToParse = SourceToParse.source(SourceToParse.Origin.REPLICA, item.source())
-                .type(request.type())
-                .id(item.id())
-                .routing(request.routing());
+            .type(request.type())
+            .id(item.id())
+            .routing(request.routing());
 
         try {
             if (item.opType() == IndexRequest.OpType.INDEX) {
@@ -438,14 +495,14 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                     logger.trace("[{} (R)] Updating document with id {}, source: {}", indexShard.shardId(), item.id(), item.source().toUtf8());
                 }
                 Engine.Index index = indexShard.prepareIndexOnReplica(
-                        sourceToParse, item.version(), item.versionType(), request.canHaveDuplicates());
+                    sourceToParse, item.version(), item.versionType(), request.canHaveDuplicates());
                 indexShard.index(index);
             } else {
                 if (logger.isTraceEnabled()) {
                     logger.trace("[{} (R)] Creating document with id {}, source: {}", indexShard.shardId(), item.id(), item.source().toUtf8());
                 }
                 Engine.Create create = indexShard.prepareCreateOnReplica(
-                        sourceToParse, item.version(), item.versionType(), request.canHaveDuplicates(), false);
+                    sourceToParse, item.version(), item.versionType(), request.canHaveDuplicates(), false);
                 indexShard.create(create);
             }
         } catch (Throwable t) {
@@ -517,10 +574,11 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                     if (userSuppliedValue == null) {
                         // add column & value
                         updatedColumns.put(reference.ident().columnIdent().fqn(), generatedValue);
-                    } else if (validateConstraints && reference.valueType().compareValueTo(generatedValue, userSuppliedValue) != 0) {
+                    } else if (validateConstraints &&
+                               reference.valueType().compareValueTo(generatedValue, userSuppliedValue) != 0) {
                         throw new IllegalArgumentException(String.format(Locale.ENGLISH,
-                                "Given value %s for generated column does not match defined generated expression value %s",
-                                userSuppliedValue, generatedValue));
+                            "Given value %s for generated column does not match defined generated expression value %s",
+                            userSuppliedValue, generatedValue));
                     }
                 }
             }
@@ -539,63 +597,6 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
         }
 
         return false;
-    }
-
-    /**
-     * Overwrite given values on the source. If the value is a map,
-     * it will not be merged but overwritten. The keys of the changes map representing a path of
-     * the source map tree.
-     * If the path doesn't exists, a new tree will be inserted.
-     * <p/>
-     * TODO: detect NOOP
-     */
-    @SuppressWarnings("unchecked")
-    static void updateSourceByPaths(@Nonnull Map<String, Object> source, @Nonnull Map<String, Object> changes) {
-        for (Map.Entry<String, Object> changesEntry : changes.entrySet()) {
-            String key = changesEntry.getKey();
-            int dotIndex = key.indexOf(".");
-            if (dotIndex > -1) {
-                // sub-path detected, dive recursive to the wanted tree element
-                String currentKey = key.substring(0, dotIndex);
-                if (!source.containsKey(currentKey)) {
-                    // insert parent tree element
-                    source.put(currentKey, new HashMap<String, Object>());
-                }
-                Map<String, Object> subChanges = new HashMap<>();
-                subChanges.put(key.substring(dotIndex + 1, key.length()), changesEntry.getValue());
-
-                Map<String, Object> innerSource = (Map<String, Object>) source.get(currentKey);
-                if (innerSource == null) {
-                    throw new NullPointerException(String.format(Locale.ENGLISH,
-                            "Object %s is null, cannot write %s onto it", currentKey, subChanges));
-                }
-                updateSourceByPaths(innerSource, subChanges);
-            } else {
-                // overwrite or insert the field
-                source.put(key, changesEntry.getValue());
-            }
-        }
-    }
-
-    public static Collection<ColumnIdent> getNotUsedNonGeneratedColumns(Reference[] targetColumns,
-                                                                       DocTableInfo tableInfo) {
-        Set<String> targetColumnsSet = new HashSet<>();
-        Collection<ColumnIdent> columnsNotUsed = new ArrayList<>();
-
-        if (targetColumns != null) {
-            for (Reference targetColumn : targetColumns) {
-                targetColumnsSet.add(targetColumn.ident().columnIdent().fqn());
-            }
-        }
-
-        for (Reference reference : tableInfo.columns()) {
-            if (!(reference instanceof GeneratedReference) && !reference.isNullable()) {
-                if (!targetColumnsSet.contains(reference.ident().columnIdent().fqn())) {
-                    columnsNotUsed.add(reference.ident().columnIdent());
-                }
-            }
-        }
-        return columnsNotUsed;
     }
 
     private static class SymbolToFieldExtractorContext extends SymbolToFieldExtractor.Context {
@@ -652,7 +653,7 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                         return null;
                     }
                     return reference.valueType().value(XContentMapValues.extractValue(
-                            reference.ident().columnIdent().fqn(), getResult.sourceAsMap()));
+                        reference.ident().columnIdent().fqn(), getResult.sourceAsMap()));
                 }
             };
         }

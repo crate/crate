@@ -32,57 +32,14 @@ import java.util.UUID;
 
 public class RemoteDigestBlob {
 
-    private final String index;
-    private Status status;
-
-    public enum Status {
-        FULL((byte) 0),
-        PARTIAL((byte) 1),
-        MISMATCH((byte) 2),
-        EXISTS((byte) 3),
-        FAILED((byte) 4);
-
-
-        private final byte id;
-
-        Status(byte id) {
-            this.id = id;
-        }
-
-        /**
-         * The internal representation of the status.
-         */
-        public byte id() {
-            return id;
-        }
-
-        public static Status fromId(byte id) {
-            switch (id) {
-                case 0:
-                    return FULL;
-                case 1:
-                    return PARTIAL;
-                case 2:
-                    return MISMATCH;
-                case 3:
-                    return EXISTS;
-                case 4:
-                    return FAILED;
-            }
-            throw new IllegalArgumentException("No status match for [" + id + "]");
-        }
-    }
-
-
     private final static ESLogger logger = Loggers.getLogger(RemoteDigestBlob.class);
-
+    private final String index;
     private final String digest;
     private final Client client;
+    private Status status;
     private long size;
     private StartBlobResponse startResponse;
     private UUID transferId;
-
-
     public RemoteDigestBlob(BlobService blobService, String index, String digest) {
         this.digest = digest;
         this.client = blobService.getInjector().getInstance(Client.class);
@@ -90,7 +47,7 @@ public class RemoteDigestBlob {
         this.index = index;
     }
 
-    public Status status(){
+    public Status status() {
         return status;
     }
 
@@ -98,8 +55,8 @@ public class RemoteDigestBlob {
         logger.trace("delete");
         assert (transferId == null);
         DeleteBlobRequest request = new DeleteBlobRequest(
-                index,
-                Hex.decodeHex(digest)
+            index,
+            Hex.decodeHex(digest)
         );
 
         return client.execute(DeleteBlobAction.INSTANCE, request).actionGet().deleted;
@@ -109,10 +66,10 @@ public class RemoteDigestBlob {
         logger.trace("start blob upload");
         assert (transferId == null);
         StartBlobRequest request = new StartBlobRequest(
-                index,
-                Hex.decodeHex(digest),
-                new BytesArray(buffer.array()),
-                last
+            index,
+            Hex.decodeHex(digest),
+            new BytesArray(buffer.array()),
+            last
         );
         transferId = request.transferId();
         size += buffer.readableBytes();
@@ -145,7 +102,7 @@ public class RemoteDigestBlob {
             // client probably doesn't support 100-continue and is sending chunked requests
             // need to ignore the content.
             return status;
-        } else if (status != Status.PARTIAL){
+        } else if (status != Status.PARTIAL) {
             throw new IllegalStateException("Expected Status.PARTIAL for chunk but got: " + status);
         } else {
             return chunk(buffer, last);
@@ -154,5 +111,43 @@ public class RemoteDigestBlob {
 
     public long size() {
         return size;
+    }
+
+    public enum Status {
+        FULL((byte) 0),
+        PARTIAL((byte) 1),
+        MISMATCH((byte) 2),
+        EXISTS((byte) 3),
+        FAILED((byte) 4);
+
+
+        private final byte id;
+
+        Status(byte id) {
+            this.id = id;
+        }
+
+        public static Status fromId(byte id) {
+            switch (id) {
+                case 0:
+                    return FULL;
+                case 1:
+                    return PARTIAL;
+                case 2:
+                    return MISMATCH;
+                case 3:
+                    return EXISTS;
+                case 4:
+                    return FAILED;
+            }
+            throw new IllegalArgumentException("No status match for [" + id + "]");
+        }
+
+        /**
+         * The internal representation of the status.
+         */
+        public byte id() {
+            return id;
+        }
     }
 }

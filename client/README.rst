@@ -1,8 +1,8 @@
 .. image:: https://cdn.crate.io/web/2.0/img/crate-avatar_100x100.png
-    :width: 100px
+:width: 100px
     :height: 100px
-    :alt: Crate
-    :target: https://crate.io
+        :alt: Crate
+        :target: https://crate.io
 
 =================
 Crate Java Client

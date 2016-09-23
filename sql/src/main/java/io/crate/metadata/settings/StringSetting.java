@@ -32,8 +32,8 @@ import java.util.Set;
 
 public class StringSetting extends Setting<String, String> {
 
-    private final String name;
     protected final Set<String> allowedValues;
+    private final String name;
     private final boolean isRuntime;
 
     @Nullable
@@ -45,7 +45,7 @@ public class StringSetting extends Setting<String, String> {
                          @Nullable Set<String> allowedValues,
                          boolean isRuntime,
                          @Nullable String defaultValue,
-                         @Nullable  Setting<?, ?> parent) {
+                         @Nullable Setting<?, ?> parent) {
 
         this.name = name;
         this.allowedValues = allowedValues;
@@ -99,7 +99,7 @@ public class StringSetting extends Setting<String, String> {
     public String validate(String value) {
         if (allowedValues != null && !allowedValues.contains(value)) {
             return String.format(Locale.ENGLISH, "'%s' is not an allowed value. Allowed values are: %s",
-                    value, Joiner.on(", ").join(allowedValues)
+                value, Joiner.on(", ").join(allowedValues)
 
             );
         }

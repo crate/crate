@@ -40,7 +40,7 @@ public class OptimizeTableAnalyzedStatement extends AbstractDDLAnalyzedStatement
         return indexNames;
     }
 
-    public Settings settings(){
+    public Settings settings() {
         return settings;
     }
 

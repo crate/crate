@@ -42,24 +42,24 @@ public class IntersectsFunctionTest extends AbstractScalarFunctionsTest {
     @Test
     public void testNormalizeFromStringLiterals() throws Exception {
         Symbol normalized = normalize(FUNCTION_NAME,
-                Literal.newLiteral("LINESTRING (0 0, 10 10)"),
-                Literal.newLiteral("LINESTRING (0 2, 0 -2)"));
+            Literal.newLiteral("LINESTRING (0 0, 10 10)"),
+            Literal.newLiteral("LINESTRING (0 2, 0 -2)"));
         assertThat(normalized, isLiteral(Boolean.TRUE));
     }
 
     @Test
     public void testNormalizeFromGeoShapeLiterals() throws Exception {
         Symbol normalized = normalize(FUNCTION_NAME,
-                Literal.newGeoShape("POLYGON ((0 0, 10 10, 10 0, 0 0), (5 1, 7 1, 7 2, 5 2, 5 1))"),
-                Literal.newGeoShape("LINESTRING (0 2, 0 -2)"));
+            Literal.newGeoShape("POLYGON ((0 0, 10 10, 10 0, 0 0), (5 1, 7 1, 7 2, 5 2, 5 1))"),
+            Literal.newGeoShape("LINESTRING (0 2, 0 -2)"));
         assertThat(normalized, isLiteral(Boolean.TRUE));
     }
 
     @Test
     public void testNormalizeFromMixedLiterals() throws Exception {
         Symbol normalized = normalize(FUNCTION_NAME,
-                Literal.newLiteral(DataTypes.OBJECT, jsonMap("{type:\"LineString\", coordinates:[[0, 0], [10, 10]]}")),
-                Literal.newLiteral("LINESTRING (0 2, 0 -2)"));
+            Literal.newLiteral(DataTypes.OBJECT, jsonMap("{type:\"LineString\", coordinates:[[0, 0], [10, 10]]}")),
+            Literal.newLiteral("LINESTRING (0 2, 0 -2)"));
         assertThat(normalized, isLiteral(Boolean.TRUE));
     }
 
@@ -68,24 +68,24 @@ public class IntersectsFunctionTest extends AbstractScalarFunctionsTest {
         expectedException.expect(ConversionException.class);
         expectedException.expectMessage(stringContainsInOrder(Arrays.asList("cannot cast", "to type geo_shape")));
         Symbol normalized = normalize(FUNCTION_NAME,
-                Literal.newLiteral(DataTypes.OBJECT, jsonMap("{type:\"LineString\", coordinates:[0, 0]}")),
-                Literal.newLiteral("LINESTRING (0 2, 0 -2)"));
+            Literal.newLiteral(DataTypes.OBJECT, jsonMap("{type:\"LineString\", coordinates:[0, 0]}")),
+            Literal.newLiteral("LINESTRING (0 2, 0 -2)"));
         assertThat(normalized, isLiteral(Boolean.TRUE));
     }
 
     @Test
     public void testNormalizeWithReference() throws Exception {
         Symbol normalized = normalize(FUNCTION_NAME,
-                Literal.newGeoShape("POLYGON ((0 0, 10 10, 10 0, 0 0), (5 1, 7 1, 7 2, 5 2, 5 1))"),
-                sqlExpressions.asSymbol("shape"));
+            Literal.newGeoShape("POLYGON ((0 0, 10 10, 10 0, 0 0), (5 1, 7 1, 7 2, 5 2, 5 1))"),
+            sqlExpressions.asSymbol("shape"));
         assertThat(normalized, isFunction(FUNCTION_NAME));
     }
 
     @Test
     public void testNormalizeWithNull() throws Exception {
         Symbol normalized = normalize(FUNCTION_NAME,
-                Literal.newLiteral(DataTypes.GEO_SHAPE, null),
-                sqlExpressions.asSymbol("shape"));
+            Literal.newLiteral(DataTypes.GEO_SHAPE, null),
+            sqlExpressions.asSymbol("shape"));
         assertThat(normalized, isLiteral(null));
 
     }
@@ -100,27 +100,27 @@ public class IntersectsFunctionTest extends AbstractScalarFunctionsTest {
     public void testEvaluateFromString() throws Exception {
         IntersectsFunction stringFn = getFunction(FUNCTION_NAME, DataTypes.STRING, DataTypes.STRING);
         Object value = stringFn.evaluate(
-                Literal.newLiteral(DataTypes.STRING, "POINT (0 0)"),
-                Literal.newLiteral(DataTypes.STRING, "POLYGON ((1 1, 1 -1, -1 -1, -1 1, 1 1))"));
-        assertThat(value, is((Object)Boolean.TRUE));
+            Literal.newLiteral(DataTypes.STRING, "POINT (0 0)"),
+            Literal.newLiteral(DataTypes.STRING, "POLYGON ((1 1, 1 -1, -1 -1, -1 1, 1 1))"));
+        assertThat(value, is((Object) Boolean.TRUE));
     }
 
     @Test
     public void testEvaluateMixed() throws Exception {
         IntersectsFunction stringFn = getFunction(FUNCTION_NAME, DataTypes.STRING, DataTypes.GEO_SHAPE); // actual types don't matter here
         Object value = stringFn.evaluate(
-                Literal.newLiteral(DataTypes.STRING, "POINT (100 0)"),
-                Literal.newLiteral(DataTypes.GEO_SHAPE, GeoJSONUtils.wkt2Map("POLYGON ((1 1, 1 -1, -1 -1, -1 1, 1 1))")));
-        assertThat(value, is((Object)Boolean.FALSE));
+            Literal.newLiteral(DataTypes.STRING, "POINT (100 0)"),
+            Literal.newLiteral(DataTypes.GEO_SHAPE, GeoJSONUtils.wkt2Map("POLYGON ((1 1, 1 -1, -1 -1, -1 1, 1 1))")));
+        assertThat(value, is((Object) Boolean.FALSE));
     }
 
     @Test
     public void testEvaluateLowercaseGeoJSON() throws Exception {
         IntersectsFunction stringFn = getFunction(FUNCTION_NAME, DataTypes.STRING, DataTypes.GEO_SHAPE); // actual types don't matter here
         Object value = stringFn.evaluate(
-                Literal.newLiteral(DataTypes.STRING, "POINT (100 0)"),
-                Literal.newLiteral(DataTypes.GEO_SHAPE, jsonMap("{type:\"linestring\", coordinates:[[0, 0], [10, 10]]}")));
-        assertThat(value, is((Object)Boolean.FALSE));
+            Literal.newLiteral(DataTypes.STRING, "POINT (100 0)"),
+            Literal.newLiteral(DataTypes.GEO_SHAPE, jsonMap("{type:\"linestring\", coordinates:[[0, 0], [10, 10]]}")));
+        assertThat(value, is((Object) Boolean.FALSE));
     }
 
     @Test
@@ -128,14 +128,14 @@ public class IntersectsFunctionTest extends AbstractScalarFunctionsTest {
         // validate how exact the intersection detection is
         IntersectsFunction stringFn = getFunction(FUNCTION_NAME, DataTypes.STRING, DataTypes.GEO_SHAPE); // actual types don't matter here
         Object value = stringFn.evaluate(
-                Literal.newLiteral(DataTypes.STRING, "POINT (100.00000000000001 0.0)"),
-                Literal.newLiteral(DataTypes.GEO_SHAPE, jsonMap("{type:\"linestring\", coordinates:[[100.00000000000001, 0.0], [10, 10]]}")));
-        assertThat(value, is((Object)Boolean.TRUE));
+            Literal.newLiteral(DataTypes.STRING, "POINT (100.00000000000001 0.0)"),
+            Literal.newLiteral(DataTypes.GEO_SHAPE, jsonMap("{type:\"linestring\", coordinates:[[100.00000000000001, 0.0], [10, 10]]}")));
+        assertThat(value, is((Object) Boolean.TRUE));
 
         Object value2 = stringFn.evaluate(
-                Literal.newLiteral(DataTypes.STRING, "POINT (100.00000000000001 0.0)"),
-                Literal.newLiteral(DataTypes.GEO_SHAPE, jsonMap("{type:\"linestring\", coordinates:[[100.00000000000003, 0.0], [10, 10]]}")));
-        assertThat(value2, is((Object)Boolean.FALSE));
+            Literal.newLiteral(DataTypes.STRING, "POINT (100.00000000000001 0.0)"),
+            Literal.newLiteral(DataTypes.GEO_SHAPE, jsonMap("{type:\"linestring\", coordinates:[[100.00000000000003, 0.0], [10, 10]]}")));
+        assertThat(value2, is((Object) Boolean.FALSE));
 
     }
 }

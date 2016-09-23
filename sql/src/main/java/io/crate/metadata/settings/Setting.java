@@ -62,7 +62,9 @@ public abstract class Setting<T, E> {
      */
     private List<String> chain() {
         Setting parentSetting = parent();
-        if (parentSetting == null) { return ImmutableList.of(name()); }
+        if (parentSetting == null) {
+            return ImmutableList.of(name());
+        }
         ImmutableList.Builder<String> builder = ImmutableList.builder();
         builder.add(name());
         while (parentSetting != null) {

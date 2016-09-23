@@ -75,17 +75,17 @@ import static org.elasticsearch.common.settings.Settings.settingsBuilder;
 
 /**
  * creates one or more indices within one cluster-state-update-task
- *
+ * <p>
  * This is more or less a more optimized version of {@link MetaDataCreateIndexService}
- *
+ * <p>
  * It also has some limitations:
- *
- *  - all indices must actually have the same name pattern (only the first index is used to figure out which templates to use)
- *  - and alias / mappings / etc. are not taken from the request
+ * <p>
+ * - all indices must actually have the same name pattern (only the first index is used to figure out which templates to use)
+ * - and alias / mappings / etc. are not taken from the request
  */
 @Singleton
 public class TransportBulkCreateIndicesAction
-        extends TransportMasterNodeAction<BulkCreateIndicesRequest, BulkCreateIndicesResponse> {
+    extends TransportMasterNodeAction<BulkCreateIndicesRequest, BulkCreateIndicesResponse> {
 
     public static final String NAME = "indices:admin/bulk_create";
 
@@ -172,7 +172,7 @@ public class TransportBulkCreateIndicesAction
         final ActionListener<ClusterStateUpdateResponse> stateUpdateListener = new ActionListener<ClusterStateUpdateResponse>() {
             @Override
             public void onResponse(ClusterStateUpdateResponse clusterStateUpdateResponse) {
-                    listener.onResponse(new BulkCreateIndicesResponse(true));
+                listener.onResponse(new BulkCreateIndicesResponse(true));
             }
 
             @Override
@@ -257,7 +257,7 @@ public class TransportBulkCreateIndicesAction
             MetaData.Builder newMetaDataBuilder = MetaData.builder(currentState.metaData());
             for (String index : indicesToCreate) {
                 final IndexMetaData.Builder indexMetaDataBuilder =
-                        IndexMetaData.builder(index).settings(indexSettings);
+                    IndexMetaData.builder(index).settings(indexSettings);
 
                 for (MappingMetaData mappingMd : mappingsMetaData.values()) {
                     indexMetaDataBuilder.putMapping(mappingMd);
@@ -278,7 +278,7 @@ public class TransportBulkCreateIndicesAction
                     throw e;
                 }
                 logger.info("[{}] creating index, cause [bulk], templates {}, shards [{}]/[{}], mappings {}",
-                        index, templateNames, indexMetaData.getNumberOfShards(), indexMetaData.getNumberOfReplicas(), mappings.keySet());
+                    index, templateNames, indexMetaData.getNumberOfShards(), indexMetaData.getNumberOfReplicas(), mappings.keySet());
 
                 indexService.indicesLifecycle().beforeIndexAddedToCluster(new Index(index), indexMetaData.getSettings());
                 newMetaDataBuilder.put(indexMetaData, false);
@@ -291,7 +291,7 @@ public class TransportBulkCreateIndicesAction
                 routingTableBuilder.addAsNew(updatedState.metaData().index(index));
             }
             RoutingAllocation.Result routingResult = allocationService.reroute(
-                    ClusterState.builder(updatedState).routingTable(routingTableBuilder).build(), "bulk-index-creation");
+                ClusterState.builder(updatedState).routingTable(routingTableBuilder).build(), "bulk-index-creation");
             updatedState = ClusterState.builder(updatedState).routingResult(routingResult).build();
 
             removalReason = "cleaning up after validating index on master";
@@ -361,16 +361,16 @@ public class TransportBulkCreateIndicesAction
         }
         if (indexSettingsBuilder.get(IndexMetaData.SETTING_NUMBER_OF_SHARDS) == null) {
             indexSettingsBuilder.put(IndexMetaData.SETTING_NUMBER_OF_SHARDS,
-                    settings.getAsInt(IndexMetaData.SETTING_NUMBER_OF_SHARDS, 5));
+                settings.getAsInt(IndexMetaData.SETTING_NUMBER_OF_SHARDS, 5));
         }
         if (indexSettingsBuilder.get(IndexMetaData.SETTING_NUMBER_OF_REPLICAS) == null) {
             indexSettingsBuilder.put(IndexMetaData.SETTING_NUMBER_OF_REPLICAS,
-                    settings.getAsInt(IndexMetaData.SETTING_NUMBER_OF_REPLICAS, 1));
+                settings.getAsInt(IndexMetaData.SETTING_NUMBER_OF_REPLICAS, 1));
         }
         if (settings.get(IndexMetaData.SETTING_AUTO_EXPAND_REPLICAS) != null
-                && indexSettingsBuilder.get(IndexMetaData.SETTING_AUTO_EXPAND_REPLICAS) == null) {
+            && indexSettingsBuilder.get(IndexMetaData.SETTING_AUTO_EXPAND_REPLICAS) == null) {
             indexSettingsBuilder.put(IndexMetaData.SETTING_AUTO_EXPAND_REPLICAS,
-                    settings.get(IndexMetaData.SETTING_AUTO_EXPAND_REPLICAS));
+                settings.get(IndexMetaData.SETTING_AUTO_EXPAND_REPLICAS));
         }
 
         if (indexSettingsBuilder.get(IndexMetaData.SETTING_VERSION_CREATED) == null) {
@@ -395,7 +395,8 @@ public class TransportBulkCreateIndicesAction
                 continue;
             }
             int lastDotIndex = mappingFile.getName().lastIndexOf('.');
-            String mappingType = lastDotIndex != -1 ? mappingFile.getName().substring(0, lastDotIndex) : mappingFile.getName();
+            String mappingType =
+                lastDotIndex != -1 ? mappingFile.getName().substring(0, lastDotIndex) : mappingFile.getName();
             try {
                 String mappingSource = Streams.copyToString(new InputStreamReader(new FileInputStream(mappingFile), Charsets.UTF_8));
                 if (mappings.containsKey(mappingType)) {
@@ -404,7 +405,8 @@ public class TransportBulkCreateIndicesAction
                     mappings.put(mappingType, parseMapping(mappingSource));
                 }
             } catch (Exception e) {
-                logger.warn("failed to read / parse mapping [" + mappingType + "] from location [" + mappingFile + "], ignoring...", e);
+                logger.warn("failed to read / parse mapping [" + mappingType + "] from location [" + mappingFile +
+                            "], ignoring...", e);
             }
         }
     }
@@ -449,7 +451,7 @@ public class TransportBulkCreateIndicesAction
                                                       IndexTemplateFilter indexTemplateFilter) {
         List<IndexTemplateMetaData> templates = new ArrayList<>();
         CreateIndexClusterStateUpdateRequest dummyRequest =
-                new CreateIndexClusterStateUpdateRequest(request, "bulk-create", request.indices().iterator().next(), false);
+            new CreateIndexClusterStateUpdateRequest(request, "bulk-create", request.indices().iterator().next(), false);
 
         // note: only use the first index name to see if template matches.
         // this means

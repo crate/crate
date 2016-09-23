@@ -35,7 +35,8 @@ public class PutBlobHeadChunkRequest extends TransportRequest {
     public UUID transferId;
     public BytesReference content;
 
-    public PutBlobHeadChunkRequest() {}
+    public PutBlobHeadChunkRequest() {
+    }
 
     public PutBlobHeadChunkRequest(UUID transferId, BytesArray bytesArray) {
         this.transferId = transferId;

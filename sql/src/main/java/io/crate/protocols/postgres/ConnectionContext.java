@@ -51,8 +51,8 @@ import static io.crate.protocols.postgres.FormatCodes.getFormatCode;
 /**
  * ConnectionContext for the Postgres wire protocol.<br />
  * This class handles the message flow and dispatching
- *
- *
+ * <p>
+ * <p>
  * <pre>
  *      Client                              Server
  *
@@ -136,9 +136,9 @@ import static io.crate.protocols.postgres.FormatCodes.getFormatCode;
  *          |  ReadyForQuery                   |
  *          |<---------------------------------|
  * </pre>
- *
+ * <p>
  * Take a look at {@link Messages} to see how the messages are structured.
- *
+ * <p>
  * See https://www.postgresql.org/docs/current/static/protocol-flow.html for a more detailed description of the message flow
  */
 
@@ -154,15 +154,6 @@ class ConnectionContext {
     private byte msgType;
     private SQLOperations.Session session;
     private boolean ignoreTillSync = false;
-
-    enum State {
-        SSL_NEG,
-        STARTUP_HEADER,
-        STARTUP_BODY,
-        MSG_HEADER,
-        MSG_BODY
-    }
-
     private State state = STARTUP_HEADER;
 
     ConnectionContext(SQLOperations sqlOperations) {
@@ -188,6 +179,19 @@ class ConnectionContext {
         return new String(bytes, 0, bytes.length - 1, StandardCharsets.UTF_8);
     }
 
+    private static ResultReceiver createResultReceiver(Channel channel,
+                                                       String query,
+                                                       @Nullable List<? extends DataType> outputTypes,
+                                                       @Nullable FormatCodes.FormatCode[] formatCodes) {
+        if (outputTypes == null) {
+            // this is a DML query:
+            return new RowCountReceiver(query, channel);
+        } else {
+            // query with resultSet
+            return new ResultSetReceiver(query, channel, outputTypes, formatCodes);
+        }
+    }
+
     private SQLOperations.Session readStartupMessage(ChannelBuffer buffer) {
         ChannelBuffer channelBuffer = buffer.readBytes(msgLength);
         String defaultSchema = null;
@@ -203,6 +207,209 @@ class ConnectionContext {
             }
         }
         return sqlOperations.createSession(defaultSchema, SQLOperations.Option.NONE, 0);
+    }
+
+    /**
+     * Parse Message
+     * header:
+     * | 'P' | int32 len
+     * <p>
+     * body:
+     * | string statementName | string query | int16 numParamTypes |
+     * foreach param:
+     * | int32 type_oid (zero = unspecified)
+     */
+    private void handleParseMessage(ChannelBuffer buffer, final Channel channel) {
+        String statementName = readCString(buffer);
+        final String query = readCString(buffer);
+        short numParams = buffer.readShort();
+        List<DataType> paramTypes = new ArrayList<>(numParams);
+        for (int i = 0; i < numParams; i++) {
+            int oid = buffer.readInt();
+            DataType dataType = PGTypes.fromOID(oid);
+            if (dataType == null) {
+                throw new IllegalArgumentException(
+                    String.format(Locale.ENGLISH, "Can't map PGType with oid=%d to Crate type", oid));
+            }
+            paramTypes.add(dataType);
+        }
+        session.parse(statementName, query, paramTypes);
+        Messages.sendParseComplete(channel);
+    }
+
+    /**
+     * Bind Message
+     * Header:
+     * | 'B' | int32 len
+     * <p>
+     * Body:
+     * | string portalName | string statementName
+     * | int16 numFormatCodes
+     * foreach
+     * | int16 formatCode
+     * | int16 numParams
+     * foreach
+     * | int32 valueLength
+     * | byteN value
+     * | int16 numResultColumnFormatCodes
+     * foreach
+     * | int16 formatCode
+     */
+    private void handleBindMessage(ChannelBuffer buffer, Channel channel) {
+        String portalName = readCString(buffer);
+        String statementName = readCString(buffer);
+
+        FormatCodes.FormatCode[] formatCodes = FormatCodes.fromBuffer(buffer);
+
+        short numParams = buffer.readShort();
+        List<Object> params = createList(numParams);
+        for (int i = 0; i < numParams; i++) {
+            int valueLength = buffer.readInt();
+            if (valueLength == -1) {
+                params.add(null);
+            } else {
+                DataType paramType = session.getParamType(statementName, i);
+                PGType pgType = PGTypes.get(paramType);
+                FormatCodes.FormatCode formatCode = getFormatCode(formatCodes, i);
+                switch (formatCode) {
+                    case TEXT:
+                        params.add(pgType.readTextValue(buffer, valueLength));
+                        break;
+
+                    case BINARY:
+                        params.add(pgType.readBinaryValue(buffer, valueLength));
+                        break;
+
+                    default:
+                        Messages.sendErrorResponse(channel, new UnsupportedOperationException(
+                            String.format(Locale.ENGLISH, "Unsupported format code '%d' for param '%s'",
+                                formatCode.ordinal(), paramType.getName())));
+                        return;
+                }
+            }
+        }
+
+        FormatCodes.FormatCode[] resultFormatCodes = FormatCodes.fromBuffer(buffer);
+        session.bind(portalName, statementName, params, resultFormatCodes);
+        Messages.sendBindComplete(channel);
+    }
+
+    private <T> List<T> createList(short size) {
+        return size == 0 ? Collections.<T>emptyList() : new ArrayList<T>(size);
+    }
+
+    /**
+     * Describe Message
+     * Header:
+     * | 'D' | int32 len
+     * <p>
+     * Body:
+     * | 'S' = prepared statement or 'P' = portal
+     * | string nameOfPortalOrStatement
+     */
+    private void handleDescribeMessage(ChannelBuffer buffer, Channel channel) {
+        byte type = buffer.readByte();
+        String portalOrStatement = readCString(buffer);
+        Collection<Field> fields = session.describe((char) type, portalOrStatement);
+        if (fields == null) {
+            Messages.sendNoData(channel);
+        } else {
+            Messages.sendRowDescription(channel, fields, session.getResultFormatCodes(portalOrStatement));
+        }
+    }
+
+    /**
+     * Execute Message
+     * Header:
+     * | 'E' | int32 len
+     * <p>
+     * Body:
+     * | string portalName
+     * | int32 maxRows (0 = unlimited)
+     */
+    private void handleExecute(ChannelBuffer buffer, Channel channel) {
+        String portalName = readCString(buffer);
+        int maxRows = buffer.readInt();
+        String query = session.getQuery(portalName);
+        if (query.isEmpty()) {
+            // remove portal so that it doesn't stick around and no attempt to batch it with follow up statement is made
+            session.close((byte) 'P', portalName);
+            Messages.sendEmptyQueryResponse(channel);
+            return;
+        }
+        ResultReceiver resultReceiver = createResultReceiver(
+            channel,
+            query,
+            session.getOutputTypes(portalName),
+            session.getResultFormatCodes(portalName));
+        session.execute(portalName, maxRows, resultReceiver);
+    }
+
+    private void handleSync(final Channel channel) {
+        if (ignoreTillSync) {
+            ignoreTillSync = false;
+            session.clearState();
+            Messages.sendReadyForQuery(channel);
+            return;
+        }
+        try {
+            session.sync(new ReadyForQueryListener(channel));
+        } catch (Throwable t) {
+            Messages.sendErrorResponse(channel, t);
+            Messages.sendReadyForQuery(channel);
+        }
+    }
+
+    /**
+     * | 'C' | int32 len | byte portalOrStatement | string portalOrStatementName |
+     */
+    private void handleClose(ChannelBuffer buffer, Channel channel) {
+        byte b = buffer.readByte();
+        String portalOrStatementName = readCString(buffer);
+        session.close(b, portalOrStatementName);
+        Messages.sendCloseComplete(channel);
+    }
+
+    @VisibleForTesting
+    void handleSimpleQuery(ChannelBuffer buffer, final Channel channel) {
+        String query = readCString(buffer);
+        assert query != null : "query must not be nulL";
+
+        if (query.isEmpty() || ";".equals(query)) {
+            Messages.sendEmptyQueryResponse(channel);
+            Messages.sendReadyForQuery(channel);
+            return;
+        }
+        // TODO: support multiple statements
+        if (query.endsWith(";")) {
+            query = query.substring(0, query.length() - 1);
+        }
+        try {
+            session.parse("", query, Collections.<DataType>emptyList());
+            session.bind("", "", Collections.emptyList(), null);
+            List<Field> fields = session.describe('P', "");
+            if (fields == null) {
+                RowCountReceiver rowCountReceiver = new RowCountReceiver(query, channel);
+                session.execute("", 1, rowCountReceiver);
+            } else {
+                Messages.sendRowDescription(channel, fields, null);
+                ResultSetReceiver resultSetReceiver = new ResultSetReceiver(query, channel, Symbols.extractTypes(fields), null);
+                session.execute("", 0, resultSetReceiver);
+            }
+            session.sync(new ReadyForQueryListener(channel));
+        } catch (Throwable t) {
+            session.clearState();
+            Messages.sendErrorResponse(channel, t);
+            Messages.sendReadyForQuery(channel);
+        }
+    }
+
+    enum State {
+        SSL_NEG,
+        STARTUP_HEADER,
+        STARTUP_BODY,
+        MSG_HEADER,
+        MSG_BODY
     }
 
     private static class ReadyForQueryListener implements CompletionListener {
@@ -298,7 +505,8 @@ class ConnectionContext {
                             channel.close();
                             return;
                         default:
-                            Messages.sendErrorResponse(channel, new UnsupportedOperationException("Unsupported messageType: " + msgType));
+                            Messages.sendErrorResponse(channel, new UnsupportedOperationException(
+                                "Unsupported messageType: " + msgType));
                             return;
                     }
             }
@@ -337,216 +545,6 @@ class ConnectionContext {
             super.channelDisconnected(ctx, e);
         }
     }
-
-    /**
-     * Parse Message
-     * header:
-     * | 'P' | int32 len
-     *
-     * body:
-     * | string statementName | string query | int16 numParamTypes |
-     *      foreach param:
-     *      | int32 type_oid (zero = unspecified)
-     */
-    private void handleParseMessage(ChannelBuffer buffer, final Channel channel) {
-        String statementName = readCString(buffer);
-        final String query = readCString(buffer);
-        short numParams = buffer.readShort();
-        List<DataType> paramTypes = new ArrayList<>(numParams);
-        for (int i = 0; i < numParams; i++) {
-            int oid = buffer.readInt();
-            DataType dataType = PGTypes.fromOID(oid);
-            if (dataType == null) {
-                throw new IllegalArgumentException(
-                    String.format(Locale.ENGLISH, "Can't map PGType with oid=%d to Crate type", oid));
-            }
-            paramTypes.add(dataType);
-        }
-        session.parse(statementName, query, paramTypes);
-        Messages.sendParseComplete(channel);
-    }
-
-    /**
-     * Bind Message
-     * Header:
-     * | 'B' | int32 len
-     *
-     * Body:
-     * | string portalName | string statementName
-     * | int16 numFormatCodes
-     *      foreach
-     *      | int16 formatCode
-     * | int16 numParams
-     *      foreach
-     *      | int32 valueLength
-     *      | byteN value
-     * | int16 numResultColumnFormatCodes
-     *      foreach
-     *      | int16 formatCode
-     */
-    private void handleBindMessage(ChannelBuffer buffer, Channel channel) {
-        String portalName = readCString(buffer);
-        String statementName = readCString(buffer);
-
-        FormatCodes.FormatCode[] formatCodes = FormatCodes.fromBuffer(buffer);
-
-        short numParams = buffer.readShort();
-        List<Object> params = createList(numParams);
-        for (int i = 0; i < numParams; i++) {
-            int valueLength = buffer.readInt();
-            if (valueLength == -1) {
-                params.add(null);
-            } else {
-                DataType paramType = session.getParamType(statementName, i);
-                PGType pgType = PGTypes.get(paramType);
-                FormatCodes.FormatCode formatCode = getFormatCode(formatCodes, i);
-                switch (formatCode) {
-                    case TEXT:
-                        params.add(pgType.readTextValue(buffer, valueLength));
-                        break;
-
-                    case BINARY:
-                        params.add(pgType.readBinaryValue(buffer, valueLength));
-                        break;
-
-                    default:
-                        Messages.sendErrorResponse(channel, new UnsupportedOperationException(
-                            String.format(Locale.ENGLISH, "Unsupported format code '%d' for param '%s'",
-                                formatCode.ordinal(), paramType.getName())));
-                        return;
-                }
-            }
-        }
-
-        FormatCodes.FormatCode[] resultFormatCodes = FormatCodes.fromBuffer(buffer);
-        session.bind(portalName, statementName, params, resultFormatCodes);
-        Messages.sendBindComplete(channel);
-    }
-
-    private <T> List<T> createList(short size) {
-        return size == 0 ? Collections.<T>emptyList() : new ArrayList<T>(size);
-    }
-
-
-    /**
-     * Describe Message
-     * Header:
-     *  | 'D' | int32 len
-     *
-     * Body:
-     *  | 'S' = prepared statement or 'P' = portal
-     *  | string nameOfPortalOrStatement
-     */
-    private void handleDescribeMessage(ChannelBuffer buffer, Channel channel) {
-        byte type = buffer.readByte();
-        String portalOrStatement = readCString(buffer);
-        Collection<Field> fields = session.describe((char) type, portalOrStatement);
-        if (fields == null) {
-            Messages.sendNoData(channel);
-        } else {
-            Messages.sendRowDescription(channel, fields, session.getResultFormatCodes(portalOrStatement));
-        }
-    }
-
-    /**
-     * Execute Message
-     * Header:
-     *  | 'E' | int32 len
-     *
-     * Body:
-     *  | string portalName
-     *  | int32 maxRows (0 = unlimited)
-     */
-    private void handleExecute(ChannelBuffer buffer, Channel channel) {
-        String portalName = readCString(buffer);
-        int maxRows = buffer.readInt();
-        String query = session.getQuery(portalName);
-        if (query.isEmpty()) {
-             // remove portal so that it doesn't stick around and no attempt to batch it with follow up statement is made
-            session.close((byte)'P', portalName);
-            Messages.sendEmptyQueryResponse(channel);
-            return;
-        }
-        ResultReceiver resultReceiver = createResultReceiver(
-            channel,
-            query,
-            session.getOutputTypes(portalName),
-            session.getResultFormatCodes(portalName));
-        session.execute(portalName, maxRows, resultReceiver);
-    }
-
-    private static ResultReceiver createResultReceiver(Channel channel,
-                                                       String query,
-                                                       @Nullable List<? extends DataType> outputTypes,
-                                                       @Nullable FormatCodes.FormatCode[] formatCodes) {
-        if (outputTypes == null) {
-            // this is a DML query:
-            return new RowCountReceiver(query, channel);
-        } else {
-            // query with resultSet
-            return new ResultSetReceiver(query, channel, outputTypes, formatCodes);
-        }
-    }
-
-    private void handleSync(final Channel channel) {
-        if (ignoreTillSync) {
-            ignoreTillSync = false;
-            session.clearState();
-            Messages.sendReadyForQuery(channel);
-            return;
-        }
-        try {
-            session.sync(new ReadyForQueryListener(channel));
-        } catch (Throwable t) {
-            Messages.sendErrorResponse(channel, t);
-            Messages.sendReadyForQuery(channel);
-        }
-    }
-
-    /**
-     * | 'C' | int32 len | byte portalOrStatement | string portalOrStatementName |
-     */
-    private void handleClose(ChannelBuffer buffer, Channel channel) {
-        byte b = buffer.readByte();
-        String portalOrStatementName = readCString(buffer);
-        session.close(b, portalOrStatementName);
-        Messages.sendCloseComplete(channel);
-    }
-
-    @VisibleForTesting
-    void handleSimpleQuery(ChannelBuffer buffer, final Channel channel) {
-        String query = readCString(buffer);
-        assert query != null : "query must not be nulL";
-
-        if (query.isEmpty() || ";".equals(query)) {
-            Messages.sendEmptyQueryResponse(channel);
-            Messages.sendReadyForQuery(channel);
-            return;
-        }
-        // TODO: support multiple statements
-        if (query.endsWith(";")) {
-            query = query.substring(0, query.length() - 1);
-        }
-        try {
-            session.parse("", query, Collections.<DataType>emptyList());
-            session.bind("", "", Collections.emptyList(), null);
-            List<Field> fields = session.describe('P', "");
-            if (fields == null) {
-                RowCountReceiver rowCountReceiver = new RowCountReceiver(query, channel);
-                session.execute("", 1, rowCountReceiver);
-            } else {
-                Messages.sendRowDescription(channel, fields, null);
-                ResultSetReceiver resultSetReceiver = new ResultSetReceiver(query, channel, Symbols.extractTypes(fields), null);
-                session.execute("", 0, resultSetReceiver);
-            }
-            session.sync(new ReadyForQueryListener(channel));
-        } catch (Throwable t) {
-            session.clearState();
-            Messages.sendErrorResponse(channel, t);
-            Messages.sendReadyForQuery(channel);
-        }
-    }
-
 
     /**
      * FrameDecoder that makes sure that a full message is in the buffer before delegating work to the MessageHandler
@@ -597,7 +595,7 @@ class ConnectionContext {
 
         /**
          * return null if there aren't enough bytes to read the whole message. Otherwise returns the buffer.
-         *
+         * <p>
          * If null is returned the decoder will be called again, otherwise the MessageHandler will be called next.
          */
         private ChannelBuffer nullOrBuffer(ChannelBuffer buffer, State nextState) {

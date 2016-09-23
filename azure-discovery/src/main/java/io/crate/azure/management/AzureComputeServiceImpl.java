@@ -41,23 +41,16 @@ import java.net.URI;
 import static io.crate.azure.management.AzureComputeService.Management.*;
 
 public class AzureComputeServiceImpl extends AbstractLifecycleComponent<AzureComputeService>
-        implements AzureComputeService {
+    implements AzureComputeService {
 
     private final String resourceGroupName;
     private final String subscriptionId;
     private final String tenantId;
     private final String appId;
     private final String appSecret;
-
-    static final class Azure {
-        private static final String ENDPOINT = "https://management.core.windows.net/";
-        private static final String AUTH_ENDPOINT = "https://login.windows.net/";
-    }
-
     private ComputeManagementClient computeManagementClient;
     private NetworkResourceProviderClient networkResourceClient;
     private Configuration configuration;
-
     @Inject
     public AzureComputeServiceImpl(Settings settings) {
         super(settings);
@@ -148,5 +141,10 @@ public class AzureComputeServiceImpl extends AbstractLifecycleComponent<AzureCom
                 logger.error("Error while closing Azure networkResourceClient", e);
             }
         }
+    }
+
+    static final class Azure {
+        private static final String ENDPOINT = "https://management.core.windows.net/";
+        private static final String AUTH_ENDPOINT = "https://login.windows.net/";
     }
 }

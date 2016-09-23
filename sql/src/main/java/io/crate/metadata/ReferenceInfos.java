@@ -85,17 +85,35 @@ public class ReferenceInfos implements ClusterStateListener, Schemas {
         clusterService.add(this);
     }
 
+    /**
+     * Checks if a given schema name string is a user defined schema or the default one.
+     *
+     * @param schemaName The schema name as a string.
+     */
+    public static boolean isDefaultOrCustomSchema(@Nullable String schemaName) {
+        if (schemaName == null) {
+            return true;
+        }
+        if (schemaName.equalsIgnoreCase(InformationSchemaInfo.NAME)
+            || schemaName.equalsIgnoreCase(SysSchemaInfo.NAME)
+            || schemaName.equalsIgnoreCase(BlobSchemaInfo.NAME)
+            ) {
+            return false;
+        }
+        return true;
+    }
+
     @Override
     public DocTableInfo getDropableTable(TableIdent tableIdent) {
         TableInfo tableInfo = getTableInfo(tableIdent);
         if (!(tableInfo instanceof DocTableInfo)) {
             throw new UnsupportedOperationException(String.format(Locale.ENGLISH,
-                    "The table %s is not dropable.", tableInfo.ident()));
+                "The table %s is not dropable.", tableInfo.ident()));
         }
         DocTableInfo docTableInfo = (DocTableInfo) tableInfo;
         if (docTableInfo.isAlias() && !docTableInfo.isPartitioned() && !isOrphanedAlias(docTableInfo)) {
             throw new UnsupportedOperationException(String.format(Locale.ENGLISH,
-                    "%s is an alias and hence not dropable.", tableInfo.ident()));
+                "%s is an alias and hence not dropable.", tableInfo.ident()));
         }
         return docTableInfo;
     }
@@ -105,12 +123,12 @@ public class ReferenceInfos implements ClusterStateListener, Schemas {
         TableInfo tableInfo = getTableInfo(tableIdent);
         if (!(tableInfo instanceof DocTableInfo)) {
             throw new UnsupportedOperationException(String.format(Locale.ENGLISH,
-                    "The table %s is read-only. Write, Drop or Alter operations are not supported", tableInfo.ident()));
+                "The table %s is read-only. Write, Drop or Alter operations are not supported", tableInfo.ident()));
         }
         DocTableInfo docTableInfo = (DocTableInfo) tableInfo;
         if (docTableInfo.isAlias() && !docTableInfo.isPartitioned()) {
             throw new UnsupportedOperationException(String.format(Locale.ENGLISH,
-                    "%s is an alias. Write, Drop or Alter operations are not supported", tableInfo.ident()));
+                "%s is an alias. Write, Drop or Alter operations are not supported", tableInfo.ident()));
         }
         return docTableInfo;
     }
@@ -200,25 +218,7 @@ public class ReferenceInfos implements ClusterStateListener, Schemas {
      */
     private SchemaInfo getCustomSchemaInfo(String name) {
         return new DocSchemaInfo(name, executorService, clusterService, indexNameExpressionResolver,
-                transportPutIndexTemplateAction, functions);
-    }
-
-    /**
-     * Checks if a given schema name string is a user defined schema or the default one.
-     *
-     * @param schemaName The schema name as a string.
-     */
-    public static boolean isDefaultOrCustomSchema(@Nullable String schemaName) {
-        if (schemaName == null) {
-            return true;
-        }
-        if (schemaName.equalsIgnoreCase(InformationSchemaInfo.NAME)
-                || schemaName.equalsIgnoreCase(SysSchemaInfo.NAME)
-                || schemaName.equalsIgnoreCase(BlobSchemaInfo.NAME)
-                ) {
-            return false;
-        }
-        return true;
+            transportPutIndexTemplateAction, functions);
     }
 
     @Override
@@ -243,7 +243,7 @@ public class ReferenceInfos implements ClusterStateListener, Schemas {
      */
     public boolean isOrphanedAlias(DocTableInfo table) {
         if (table.isPartitioned() && table.isAlias()
-                && table.concreteIndices().length >= 1) {
+            && table.concreteIndices().length >= 1) {
             String templateName = PartitionName.templateName(table.ident().schema(), table.ident().name());
             MetaData metaData = clusterService.state().metaData();
             if (!metaData.templates().containsKey(templateName)) {

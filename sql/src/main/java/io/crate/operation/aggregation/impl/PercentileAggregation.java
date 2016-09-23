@@ -28,7 +28,8 @@ import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
 import io.crate.operation.Input;
 import io.crate.operation.aggregation.AggregationFunction;
-import io.crate.types.*;
+import io.crate.types.DataType;
+import io.crate.types.DataTypes;
 
 import javax.annotation.Nullable;
 import java.util.Arrays;
@@ -39,19 +40,41 @@ public class PercentileAggregation extends AggregationFunction<TDigestState, Obj
     private static final int COMPRESSION = 100;
     private final FunctionInfo info;
 
+    public PercentileAggregation(FunctionInfo info) {
+        this.info = info;
+    }
+
     public static void register(AggregationImplModule mod) {
         for (DataType<?> t : DataTypes.NUMERIC_PRIMITIVE_TYPES) {
             mod.register(new PercentileAggregation(new FunctionInfo(
-                    new FunctionIdent(NAME, ImmutableList.<DataType>of(t, DataTypes.DOUBLE)), DataTypes.DOUBLE,
-                    FunctionInfo.Type.AGGREGATE)));
+                new FunctionIdent(NAME, ImmutableList.<DataType>of(t, DataTypes.DOUBLE)), DataTypes.DOUBLE,
+                FunctionInfo.Type.AGGREGATE)));
             mod.register(new PercentileAggregation(new FunctionInfo(
-                    new FunctionIdent(NAME, ImmutableList.of(t, DataTypes.DOUBLE_ARRAY)), DataTypes.DOUBLE_ARRAY,
-                    FunctionInfo.Type.AGGREGATE)));
+                new FunctionIdent(NAME, ImmutableList.of(t, DataTypes.DOUBLE_ARRAY)), DataTypes.DOUBLE_ARRAY,
+                FunctionInfo.Type.AGGREGATE)));
         }
     }
 
-    public PercentileAggregation(FunctionInfo info) {
-        this.info = info;
+    private static double[] toDoubleArray(Object[] array) {
+        Object value;
+        double[] values = new double[array.length];
+        for (int i = 0; i < array.length; i++) {
+            value = array[i];
+            values[i] = DataTypes.DOUBLE.value(value);
+        }
+        return values;
+    }
+
+    private static void validateFraction(double[] fractions) {
+        if (fractions != null) {
+            double fraction;
+            for (int i = 0; i < fractions.length; i++) {
+                fraction = fractions[i];
+                if (fraction < 0 || fraction > 1) {
+                    throw new IllegalArgumentException("fraction should be in range [0,1], got " + fraction);
+                }
+            }
+        }
     }
 
     @Override
@@ -97,16 +120,6 @@ public class PercentileAggregation extends AggregationFunction<TDigestState, Obj
         }
     }
 
-    private static double[] toDoubleArray(Object[] array) {
-        Object value;
-        double[] values = new double[array.length];
-        for (int i=0; i < array.length; i++) {
-            value = array[i];
-            values[i] = DataTypes.DOUBLE.value(value);
-        }
-        return values;
-    }
-
     @Override
     public TDigestState reduce(RamAccountingContext ramAccountingContext, TDigestState state1, TDigestState state2) {
         if (state1 == null) {
@@ -150,17 +163,5 @@ public class PercentileAggregation extends AggregationFunction<TDigestState, Obj
     @Override
     public DataType partialType() {
         return TDigestStateType.INSTANCE;
-    }
-
-    private static void validateFraction(double[] fractions) {
-        if (fractions != null) {
-            double fraction;
-            for (int i = 0; i < fractions.length; i++) {
-                fraction = fractions[i];
-                if (fraction < 0 || fraction > 1) {
-                    throw new IllegalArgumentException("fraction should be in range [0,1], got " + fraction);
-                }
-            }
-        }
     }
 }

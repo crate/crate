@@ -38,10 +38,6 @@ public class SysNodesTableInfo extends StaticTableInfo {
     public static final ColumnIdent SYS_COL_IDENT = new ColumnIdent(SYS_COL_NAME);
 
     public static final TableIdent IDENT = new TableIdent(SysSchemaInfo.NAME, "nodes");
-    private static final ImmutableList<ColumnIdent> PRIMARY_KEY = ImmutableList.of(new ColumnIdent("id"));
-
-    private static final RowGranularity GRANULARITY = RowGranularity.DOC;
-
     public static final String SYS_COL_ID = "id";
     public static final String SYS_COL_NODE_NAME = "name";
     public static final String SYS_COL_HOSTNAME = "hostname";
@@ -57,8 +53,152 @@ public class SysNodesTableInfo extends StaticTableInfo {
     public static final String SYS_COL_OS_INFO = "os_info";
     public static final String SYS_COL_PROCESS = "process";
     public static final String SYS_COL_FS = "fs";
-
+    private static final ImmutableList<ColumnIdent> PRIMARY_KEY = ImmutableList.of(new ColumnIdent("id"));
+    private static final RowGranularity GRANULARITY = RowGranularity.DOC;
     private static final DataType OBJECT_ARRAY_TYPE = new ArrayType(DataTypes.OBJECT);
+    private final TableColumn tableColumn;
+    private final ClusterService clusterService;
+    public SysNodesTableInfo(ClusterService clusterService) {
+        super(IDENT, new ColumnRegistrar(IDENT, GRANULARITY)
+                .register(Columns.ID, DataTypes.STRING)
+                .register(Columns.NAME, DataTypes.STRING)
+                .register(Columns.HOSTNAME, DataTypes.STRING)
+                .register(Columns.REST_URL, DataTypes.STRING)
+
+                .register(Columns.PORT, DataTypes.OBJECT)
+                .register(Columns.PORT_HTTP, DataTypes.INTEGER)
+                .register(Columns.PORT_TRANSPORT, DataTypes.INTEGER)
+
+                .register(Columns.LOAD, DataTypes.OBJECT)
+                .register(Columns.LOAD_1, DataTypes.DOUBLE)
+                .register(Columns.LOAD_5, DataTypes.DOUBLE)
+                .register(Columns.LOAD_15, DataTypes.DOUBLE)
+                .register(Columns.LOAD_PROBE_TS, DataTypes.TIMESTAMP)
+
+                .register(Columns.MEM, DataTypes.OBJECT)
+                .register(Columns.MEM_FREE, DataTypes.LONG)
+                .register(Columns.MEM_USED, DataTypes.LONG)
+                .register(Columns.MEM_FREE_PERCENT, DataTypes.SHORT)
+                .register(Columns.MEM_USED_PERCENT, DataTypes.SHORT)
+                .register(Columns.MEM_PROBE_TS, DataTypes.TIMESTAMP)
+
+                .register(Columns.HEAP, DataTypes.OBJECT)
+                .register(Columns.HEAP_FREE, DataTypes.LONG)
+                .register(Columns.HEAP_USED, DataTypes.LONG)
+                .register(Columns.HEAP_MAX, DataTypes.LONG)
+                .register(Columns.HEAP_PROBE_TS, DataTypes.TIMESTAMP)
+
+                .register(Columns.VERSION, DataTypes.OBJECT)
+                .register(Columns.VERSION_NUMBER, StringType.INSTANCE)
+                .register(Columns.VERSION_BUILD_HASH, StringType.INSTANCE)
+                .register(Columns.VERSION_BUILD_SNAPSHOT, DataTypes.BOOLEAN)
+
+                .register(Columns.THREAD_POOLS, OBJECT_ARRAY_TYPE)
+                .register(Columns.THREAD_POOLS_NAME, DataTypes.STRING)
+                .register(Columns.THREAD_POOLS_ACTIVE, DataTypes.INTEGER)
+                .register(Columns.THREAD_POOLS_REJECTED, DataTypes.LONG)
+                .register(Columns.THREAD_POOLS_LARGEST, DataTypes.INTEGER)
+                .register(Columns.THREAD_POOLS_COMPLETED, DataTypes.LONG)
+                .register(Columns.THREAD_POOLS_THREADS, DataTypes.INTEGER)
+                .register(Columns.THREAD_POOLS_QUEUE, DataTypes.INTEGER)
+
+                .register(Columns.NETWORK, DataTypes.OBJECT)
+                .register(Columns.NETWORK_PROBE_TS, DataTypes.TIMESTAMP)
+                .register(Columns.NETWORK_TCP, DataTypes.OBJECT)
+                .register(Columns.NETWORK_TCP_CONNECTIONS, DataTypes.OBJECT)
+                .register(Columns.NETWORK_TCP_CONNECTIONS_INITIATED, DataTypes.LONG)
+                .register(Columns.NETWORK_TCP_CONNECTIONS_ACCEPTED, DataTypes.LONG)
+                .register(Columns.NETWORK_TCP_CONNECTIONS_CURR_ESTABLISHED, DataTypes.LONG)
+                .register(Columns.NETWORK_TCP_CONNECTIONS_DROPPED, DataTypes.LONG)
+                .register(Columns.NETWORK_TCP_CONNECTIONS_EMBRYONIC_DROPPED, DataTypes.LONG)
+                .register(Columns.NETWORK_TCP_PACKETS, DataTypes.OBJECT)
+                .register(Columns.NETWORK_TCP_PACKETS_SENT, DataTypes.LONG)
+                .register(Columns.NETWORK_TCP_PACKETS_RECEIVED, DataTypes.LONG)
+                .register(Columns.NETWORK_TCP_PACKETS_RETRANSMITTED, DataTypes.LONG)
+                .register(Columns.NETWORK_TCP_PACKETS_ERRORS_RECEIVED, DataTypes.LONG)
+                .register(Columns.NETWORK_TCP_PACKETS_RST_SENT, DataTypes.LONG)
+
+                .register(Columns.OS, DataTypes.OBJECT)
+                .register(Columns.OS_UPTIME, DataTypes.LONG)
+                .register(Columns.OS_TIMESTAMP, DataTypes.TIMESTAMP)
+                .register(Columns.OS_PROBE_TS, DataTypes.TIMESTAMP)
+                .register(Columns.OS_CPU, DataTypes.OBJECT)
+                .register(Columns.OS_CPU_SYSTEM, DataTypes.SHORT)
+                .register(Columns.OS_CPU_USER, DataTypes.SHORT)
+                .register(Columns.OS_CPU_IDLE, DataTypes.SHORT)
+                .register(Columns.OS_CPU_USED, DataTypes.SHORT)
+                .register(Columns.OS_CPU_STOLEN, DataTypes.SHORT)
+
+                .register(Columns.OS_INFO, DataTypes.OBJECT)
+                .register(Columns.OS_INFO_AVAIL_PROCESSORS, DataTypes.INTEGER)
+                .register(Columns.OS_INFO_NAME, DataTypes.STRING)
+                .register(Columns.OS_INFO_ARCH, DataTypes.STRING)
+                .register(Columns.OS_INFO_VERSION, DataTypes.STRING)
+                .register(Columns.OS_INFO_JVM, DataTypes.OBJECT)
+                .register(Columns.OS_INFO_JVM_VERSION, DataTypes.STRING)
+                .register(Columns.OS_INFO_JVM_NAME, DataTypes.STRING)
+                .register(Columns.OS_INFO_JVM_VENDOR, DataTypes.STRING)
+                .register(Columns.OS_INFO_JVM_VM_VERSION, DataTypes.STRING)
+
+                .register(Columns.PROCESS, DataTypes.OBJECT)
+                .register(Columns.PROCESS_OPEN_FILE_DESCR, DataTypes.LONG)
+                .register(Columns.PROCESS_MAX_OPEN_FILE_DESCR, DataTypes.LONG)
+                .register(Columns.PROCESS_PROBE_TS, DataTypes.TIMESTAMP)
+                .register(Columns.PROCESS_CPU, DataTypes.OBJECT)
+                .register(Columns.PROCESS_CPU_PERCENT, DataTypes.SHORT)
+                .register(Columns.PROCESS_CPU_USER, DataTypes.LONG)
+                .register(Columns.PROCESS_CPU_SYSTEM, DataTypes.LONG)
+
+                .register(Columns.FS, DataTypes.OBJECT)
+                .register(Columns.FS_TOTAL, DataTypes.OBJECT)
+                .register(Columns.FS_TOTAL_SIZE, DataTypes.LONG)
+                .register(Columns.FS_TOTAL_USED, DataTypes.LONG)
+                .register(Columns.FS_TOTAL_AVAILABLE, DataTypes.LONG)
+                .register(Columns.FS_TOTAL_READS, DataTypes.LONG)
+                .register(Columns.FS_TOTAL_BYTES_READ, DataTypes.LONG)
+                .register(Columns.FS_TOTAL_WRITES, DataTypes.LONG)
+                .register(Columns.FS_TOTAL_BYTES_WRITTEN, DataTypes.LONG)
+                .register(Columns.FS_DISKS, OBJECT_ARRAY_TYPE)
+                .register(Columns.FS_DISKS_DEV, DataTypes.STRING)
+                .register(Columns.FS_DISKS_SIZE, DataTypes.LONG)
+                .register(Columns.FS_DISKS_USED, DataTypes.LONG)
+                .register(Columns.FS_DISKS_AVAILABLE, DataTypes.LONG)
+                .register(Columns.FS_DISKS_READS, DataTypes.LONG)
+                .register(Columns.FS_DISKS_BYTES_READ, DataTypes.LONG)
+                .register(Columns.FS_DISKS_WRITES, DataTypes.LONG)
+                .register(Columns.FS_DISKS_BYTES_WRITTEN, DataTypes.LONG)
+                .register(Columns.FS_DATA, OBJECT_ARRAY_TYPE)
+                .register(Columns.FS_DATA_DEV, DataTypes.STRING)
+                .register(Columns.FS_DATA_PATH, DataTypes.STRING),
+            PRIMARY_KEY);
+        this.clusterService = clusterService;
+        this.tableColumn = new TableColumn(SYS_COL_IDENT, columnMap);
+    }
+
+    public static Reference tableColumnInfo(TableIdent tableIdent) {
+        return new Reference(
+            new ReferenceIdent(tableIdent, SYS_COL_IDENT),
+            RowGranularity.NODE,
+            ObjectType.INSTANCE,
+            ColumnPolicy.STRICT,
+            Reference.IndexType.NOT_ANALYZED,
+            true
+        );
+    }
+
+    public TableColumn tableColumn() {
+        return tableColumn;
+    }
+
+    @Override
+    public RowGranularity rowGranularity() {
+        return GRANULARITY;
+    }
+
+    @Override
+    public Routing getRouting(WhereClause whereClause, @Nullable String preference) {
+        return Routing.forTableOnSingleNode(IDENT, clusterService.localNode().id());
+    }
 
     public static class Columns {
         public static final ColumnIdent ID = new ColumnIdent(SYS_COL_ID);
@@ -171,150 +311,5 @@ public class SysNodesTableInfo extends StaticTableInfo {
         public static final ColumnIdent FS_DATA = new ColumnIdent(SYS_COL_FS, ImmutableList.of("data"));
         public static final ColumnIdent FS_DATA_DEV = new ColumnIdent(SYS_COL_FS, ImmutableList.of("data", "dev"));
         public static final ColumnIdent FS_DATA_PATH = new ColumnIdent(SYS_COL_FS, ImmutableList.of("data", "path"));
-    }
-
-    private final TableColumn tableColumn;
-    private final ClusterService clusterService;
-
-    public SysNodesTableInfo(ClusterService clusterService) {
-        super(IDENT, new ColumnRegistrar(IDENT, GRANULARITY)
-                        .register(Columns.ID, DataTypes.STRING)
-                        .register(Columns.NAME, DataTypes.STRING)
-                        .register(Columns.HOSTNAME, DataTypes.STRING)
-                        .register(Columns.REST_URL, DataTypes.STRING)
-
-                        .register(Columns.PORT, DataTypes.OBJECT)
-                        .register(Columns.PORT_HTTP, DataTypes.INTEGER)
-                        .register(Columns.PORT_TRANSPORT, DataTypes.INTEGER)
-
-                        .register(Columns.LOAD, DataTypes.OBJECT)
-                        .register(Columns.LOAD_1, DataTypes.DOUBLE)
-                        .register(Columns.LOAD_5, DataTypes.DOUBLE)
-                        .register(Columns.LOAD_15, DataTypes.DOUBLE)
-                        .register(Columns.LOAD_PROBE_TS, DataTypes.TIMESTAMP)
-
-                        .register(Columns.MEM, DataTypes.OBJECT)
-                        .register(Columns.MEM_FREE, DataTypes.LONG)
-                        .register(Columns.MEM_USED, DataTypes.LONG)
-                        .register(Columns.MEM_FREE_PERCENT, DataTypes.SHORT)
-                        .register(Columns.MEM_USED_PERCENT, DataTypes.SHORT)
-                        .register(Columns.MEM_PROBE_TS, DataTypes.TIMESTAMP)
-
-                        .register(Columns.HEAP, DataTypes.OBJECT)
-                        .register(Columns.HEAP_FREE, DataTypes.LONG)
-                        .register(Columns.HEAP_USED, DataTypes.LONG)
-                        .register(Columns.HEAP_MAX, DataTypes.LONG)
-                        .register(Columns.HEAP_PROBE_TS, DataTypes.TIMESTAMP)
-
-                        .register(Columns.VERSION, DataTypes.OBJECT)
-                        .register(Columns.VERSION_NUMBER, StringType.INSTANCE)
-                        .register(Columns.VERSION_BUILD_HASH, StringType.INSTANCE)
-                        .register(Columns.VERSION_BUILD_SNAPSHOT, DataTypes.BOOLEAN)
-
-                        .register(Columns.THREAD_POOLS, OBJECT_ARRAY_TYPE)
-                        .register(Columns.THREAD_POOLS_NAME, DataTypes.STRING)
-                        .register(Columns.THREAD_POOLS_ACTIVE, DataTypes.INTEGER)
-                        .register(Columns.THREAD_POOLS_REJECTED, DataTypes.LONG)
-                        .register(Columns.THREAD_POOLS_LARGEST, DataTypes.INTEGER)
-                        .register(Columns.THREAD_POOLS_COMPLETED, DataTypes.LONG)
-                        .register(Columns.THREAD_POOLS_THREADS, DataTypes.INTEGER)
-                        .register(Columns.THREAD_POOLS_QUEUE, DataTypes.INTEGER)
-
-                        .register(Columns.NETWORK, DataTypes.OBJECT)
-                        .register(Columns.NETWORK_PROBE_TS, DataTypes.TIMESTAMP)
-                        .register(Columns.NETWORK_TCP, DataTypes.OBJECT)
-                        .register(Columns.NETWORK_TCP_CONNECTIONS, DataTypes.OBJECT)
-                        .register(Columns.NETWORK_TCP_CONNECTIONS_INITIATED, DataTypes.LONG)
-                        .register(Columns.NETWORK_TCP_CONNECTIONS_ACCEPTED, DataTypes.LONG)
-                        .register(Columns.NETWORK_TCP_CONNECTIONS_CURR_ESTABLISHED, DataTypes.LONG)
-                        .register(Columns.NETWORK_TCP_CONNECTIONS_DROPPED, DataTypes.LONG)
-                        .register(Columns.NETWORK_TCP_CONNECTIONS_EMBRYONIC_DROPPED, DataTypes.LONG)
-                        .register(Columns.NETWORK_TCP_PACKETS, DataTypes.OBJECT)
-                        .register(Columns.NETWORK_TCP_PACKETS_SENT, DataTypes.LONG)
-                        .register(Columns.NETWORK_TCP_PACKETS_RECEIVED, DataTypes.LONG)
-                        .register(Columns.NETWORK_TCP_PACKETS_RETRANSMITTED, DataTypes.LONG)
-                        .register(Columns.NETWORK_TCP_PACKETS_ERRORS_RECEIVED, DataTypes.LONG)
-                        .register(Columns.NETWORK_TCP_PACKETS_RST_SENT, DataTypes.LONG)
-
-                        .register(Columns.OS, DataTypes.OBJECT)
-                        .register(Columns.OS_UPTIME, DataTypes.LONG)
-                        .register(Columns.OS_TIMESTAMP, DataTypes.TIMESTAMP)
-                        .register(Columns.OS_PROBE_TS, DataTypes.TIMESTAMP)
-                        .register(Columns.OS_CPU, DataTypes.OBJECT)
-                        .register(Columns.OS_CPU_SYSTEM, DataTypes.SHORT)
-                        .register(Columns.OS_CPU_USER, DataTypes.SHORT)
-                        .register(Columns.OS_CPU_IDLE, DataTypes.SHORT)
-                        .register(Columns.OS_CPU_USED, DataTypes.SHORT)
-                        .register(Columns.OS_CPU_STOLEN, DataTypes.SHORT)
-
-                        .register(Columns.OS_INFO, DataTypes.OBJECT)
-                        .register(Columns.OS_INFO_AVAIL_PROCESSORS, DataTypes.INTEGER)
-                        .register(Columns.OS_INFO_NAME, DataTypes.STRING)
-                        .register(Columns.OS_INFO_ARCH, DataTypes.STRING)
-                        .register(Columns.OS_INFO_VERSION, DataTypes.STRING)
-                        .register(Columns.OS_INFO_JVM, DataTypes.OBJECT)
-                        .register(Columns.OS_INFO_JVM_VERSION, DataTypes.STRING)
-                        .register(Columns.OS_INFO_JVM_NAME, DataTypes.STRING)
-                        .register(Columns.OS_INFO_JVM_VENDOR, DataTypes.STRING)
-                        .register(Columns.OS_INFO_JVM_VM_VERSION, DataTypes.STRING)
-
-                        .register(Columns.PROCESS, DataTypes.OBJECT)
-                        .register(Columns.PROCESS_OPEN_FILE_DESCR, DataTypes.LONG)
-                        .register(Columns.PROCESS_MAX_OPEN_FILE_DESCR, DataTypes.LONG)
-                        .register(Columns.PROCESS_PROBE_TS, DataTypes.TIMESTAMP)
-                        .register(Columns.PROCESS_CPU, DataTypes.OBJECT)
-                        .register(Columns.PROCESS_CPU_PERCENT, DataTypes.SHORT)
-                        .register(Columns.PROCESS_CPU_USER, DataTypes.LONG)
-                        .register(Columns.PROCESS_CPU_SYSTEM, DataTypes.LONG)
-
-                        .register(Columns.FS, DataTypes.OBJECT)
-                        .register(Columns.FS_TOTAL, DataTypes.OBJECT)
-                        .register(Columns.FS_TOTAL_SIZE, DataTypes.LONG)
-                        .register(Columns.FS_TOTAL_USED, DataTypes.LONG)
-                        .register(Columns.FS_TOTAL_AVAILABLE, DataTypes.LONG)
-                        .register(Columns.FS_TOTAL_READS, DataTypes.LONG)
-                        .register(Columns.FS_TOTAL_BYTES_READ, DataTypes.LONG)
-                        .register(Columns.FS_TOTAL_WRITES, DataTypes.LONG)
-                        .register(Columns.FS_TOTAL_BYTES_WRITTEN, DataTypes.LONG)
-                        .register(Columns.FS_DISKS, OBJECT_ARRAY_TYPE)
-                        .register(Columns.FS_DISKS_DEV, DataTypes.STRING)
-                        .register(Columns.FS_DISKS_SIZE, DataTypes.LONG)
-                        .register(Columns.FS_DISKS_USED, DataTypes.LONG)
-                        .register(Columns.FS_DISKS_AVAILABLE, DataTypes.LONG)
-                        .register(Columns.FS_DISKS_READS, DataTypes.LONG)
-                        .register(Columns.FS_DISKS_BYTES_READ, DataTypes.LONG)
-                        .register(Columns.FS_DISKS_WRITES, DataTypes.LONG)
-                        .register(Columns.FS_DISKS_BYTES_WRITTEN, DataTypes.LONG)
-                        .register(Columns.FS_DATA, OBJECT_ARRAY_TYPE)
-                        .register(Columns.FS_DATA_DEV, DataTypes.STRING)
-                        .register(Columns.FS_DATA_PATH, DataTypes.STRING),
-            PRIMARY_KEY);
-        this.clusterService = clusterService;
-        this.tableColumn = new TableColumn(SYS_COL_IDENT, columnMap);
-    }
-
-    public static Reference tableColumnInfo(TableIdent tableIdent) {
-        return new Reference(
-            new ReferenceIdent(tableIdent, SYS_COL_IDENT),
-            RowGranularity.NODE,
-            ObjectType.INSTANCE,
-            ColumnPolicy.STRICT,
-            Reference.IndexType.NOT_ANALYZED,
-            true
-        );
-    }
-
-    public TableColumn tableColumn() {
-        return tableColumn;
-    }
-
-    @Override
-    public RowGranularity rowGranularity() {
-        return GRANULARITY;
-    }
-
-    @Override
-    public Routing getRouting(WhereClause whereClause, @Nullable String preference) {
-        return Routing.forTableOnSingleNode(IDENT, clusterService.localNode().id());
     }
 }

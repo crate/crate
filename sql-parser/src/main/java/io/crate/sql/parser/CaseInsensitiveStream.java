@@ -24,68 +24,57 @@ package io.crate.sql.parser;
 import org.antlr.runtime.CharStream;
 
 public class CaseInsensitiveStream
-        implements CharStream
-{
+    implements CharStream {
     private CharStream stream;
 
-    public CaseInsensitiveStream(CharStream stream)
-    {
+    public CaseInsensitiveStream(CharStream stream) {
         this.stream = stream;
     }
 
     /**
      * @return the LA value without case transformation
      */
-    public int rawLA(int i)
-    {
+    public int rawLA(int i) {
         return stream.LA(i);
     }
 
     @Override
-    public String substring(int start, int stop)
-    {
+    public String substring(int start, int stop) {
         return stream.substring(start, stop);
     }
 
     @Override
-    public int LT(int i)
-    {
+    public int LT(int i) {
         return LA(i);
     }
 
     @Override
-    public int getLine()
-    {
+    public int getLine() {
         return stream.getLine();
     }
 
     @Override
-    public void setLine(int line)
-    {
+    public void setLine(int line) {
         stream.setLine(line);
     }
 
     @Override
-    public void setCharPositionInLine(int pos)
-    {
-        stream.setCharPositionInLine(pos);
-    }
-
-    @Override
-    public int getCharPositionInLine()
-    {
+    public int getCharPositionInLine() {
         return stream.getCharPositionInLine();
     }
 
     @Override
-    public void consume()
-    {
+    public void setCharPositionInLine(int pos) {
+        stream.setCharPositionInLine(pos);
+    }
+
+    @Override
+    public void consume() {
         stream.consume();
     }
 
     @Override
-    public int LA(int i)
-    {
+    public int LA(int i) {
         int result = stream.LT(i);
 
         switch (result) {
@@ -98,50 +87,42 @@ public class CaseInsensitiveStream
     }
 
     @Override
-    public int mark()
-    {
+    public int mark() {
         return stream.mark();
     }
 
     @Override
-    public int index()
-    {
+    public int index() {
         return stream.index();
     }
 
     @Override
-    public void rewind(int marker)
-    {
+    public void rewind(int marker) {
         stream.rewind(marker);
     }
 
     @Override
-    public void rewind()
-    {
+    public void rewind() {
         stream.rewind();
     }
 
     @Override
-    public void release(int marker)
-    {
+    public void release(int marker) {
         stream.release(marker);
     }
 
     @Override
-    public void seek(int index)
-    {
+    public void seek(int index) {
         stream.seek(index);
     }
 
     @Override
-    public int size()
-    {
+    public int size() {
         return stream.size();
     }
 
     @Override
-    public String getSourceName()
-    {
+    public String getSourceName() {
         return stream.getSourceName();
     }
 }

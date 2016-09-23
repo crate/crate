@@ -94,19 +94,19 @@ public class BlobTableInfoBuilder {
     public BlobTableInfo build() {
         DocIndexMetaData md = docIndexMetaData();
         return new BlobTableInfo(
-                ident,
-                concreteIndices[0],
-                clusterService,
-                md.numberOfShards(),
-                md.numberOfReplicas(),
-                md.tableParameters(),
-                blobsPath(md));
+            ident,
+            concreteIndices[0],
+            clusterService,
+            md.numberOfShards(),
+            md.numberOfReplicas(),
+            md.tableParameters(),
+            blobsPath(md));
     }
 
     private BytesRef blobsPath(DocIndexMetaData md) {
         BytesRef blobsPath;
         String blobsPathStr = metaData.index(md.concreteIndexName())
-                .getSettings().get(BlobIndices.SETTING_INDEX_BLOBS_PATH);
+            .getSettings().get(BlobIndices.SETTING_INDEX_BLOBS_PATH);
         if (blobsPathStr != null) {
             blobsPath = new BytesRef(blobsPathStr);
         } else {

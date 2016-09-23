@@ -52,10 +52,8 @@ import java.util.Locale;
 @Singleton
 public class TableCreator {
 
-    private static final Long SUCCESS_RESULT = 1L;
-
     protected static final ESLogger logger = Loggers.getLogger(TableCreator.class);
-
+    private static final Long SUCCESS_RESULT = 1L;
     private final ClusterService clusterService;
     private final IndexNameExpressionResolver indexNameExpressionResolver;
     private final TransportActionProvider transportActionProvider;
@@ -80,7 +78,7 @@ public class TableCreator {
 
     private CreateIndexRequest createIndexRequest(CreateTableAnalyzedStatement statement) {
         return new CreateIndexRequest(statement.tableIdent().indexName(), settings(statement))
-                .mapping(Constants.DEFAULT_MAPPING_TYPE, statement.mapping());
+            .mapping(Constants.DEFAULT_MAPPING_TYPE, statement.mapping());
     }
 
     private Settings settings(CreateTableAnalyzedStatement statement) {
@@ -89,12 +87,12 @@ public class TableCreator {
 
     private PutIndexTemplateRequest createTemplateRequest(CreateTableAnalyzedStatement statement) {
         return new PutIndexTemplateRequest(statement.templateName())
-                .mapping(Constants.DEFAULT_MAPPING_TYPE, statement.mapping())
-                .create(true)
-                .settings(settings(statement))
-                .template(statement.templatePrefix())
-                .order(100)
-                .alias(new Alias(statement.tableIdent().indexName()));
+            .mapping(Constants.DEFAULT_MAPPING_TYPE, statement.mapping())
+            .create(true)
+            .settings(settings(statement))
+            .template(statement.templatePrefix())
+            .order(100)
+            .alias(new Alias(statement.tableIdent().indexName()));
     }
 
     private void createTable(final SettableFuture<Long> result, final CreateTableAnalyzedStatement statement) {
@@ -151,7 +149,7 @@ public class TableCreator {
     private void deleteOrphans(final CreateTableResponseListener listener, final CreateTableAnalyzedStatement statement) {
         if (clusterService.state().metaData().hasAlias(statement.tableIdent().fqn())
             && PartitionName.isPartition(
-                clusterService.state().metaData().getAliasAndIndexLookup().get(statement.tableIdent().fqn()).getIndices().iterator().next().getIndex())) {
+            clusterService.state().metaData().getAliasAndIndexLookup().get(statement.tableIdent().fqn()).getIndices().iterator().next().getIndex())) {
             logger.debug("Deleting orphaned partitions with alias: {}", statement.tableIdent().fqn());
             transportActionProvider.transportDeleteIndexAction().execute(new DeleteIndexRequest(statement.tableIdent().fqn()), new ActionListener<DeleteIndexResponse>() {
                 @Override
@@ -176,7 +174,7 @@ public class TableCreator {
      * if some orphaned partition with the same table name still exist,
      * delete them beforehand as they would create unwanted and maybe invalid
      * initial data.
-     *
+     * <p>
      * should never delete partitions of existing partitioned tables
      */
     private void deleteOrphanedPartitions(final CreateTableResponseListener listener, TableIdent tableIdent) {
@@ -207,7 +205,7 @@ public class TableCreator {
 
     protected void warnNotAcknowledged(String operationName) {
         logger.warn("{} was not acknowledged. This could lead to inconsistent state.",
-                operationName);
+            operationName);
     }
 
     class CreateTableResponseListener implements ActionListener<Long> {

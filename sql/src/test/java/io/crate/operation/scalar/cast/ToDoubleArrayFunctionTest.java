@@ -33,7 +33,7 @@ public class ToDoubleArrayFunctionTest extends AbstractScalarFunctionsTest {
 
     @Test
     public void testArrayDifferentTypesToDouble() throws Exception {
-        Object[] expected = new Double[] { 10.1d, 20.3d, 30.4d };
+        Object[] expected = new Double[]{10.1d, 20.3d, 30.4d};
         Object[] actual;
 
         actual = eval(new String[]{"10.1", "20.3", "30.4"}, DataTypes.STRING);
@@ -41,8 +41,8 @@ public class ToDoubleArrayFunctionTest extends AbstractScalarFunctionsTest {
         actual = eval(new BytesRef[]{new BytesRef("10.1"), new BytesRef("20.3"), new BytesRef("30.4")}, DataTypes.STRING);
         assertThat(actual, is(expected));
 
-        expected = new Double[] { 10.0d, 20.0d, 30.0d };
-        actual = eval(new Long[] { 10L, 20L, 30L }, DataTypes.LONG);
+        expected = new Double[]{10.0d, 20.0d, 30.0d};
+        actual = eval(new Long[]{10L, 20L, 30L}, DataTypes.LONG);
         assertThat(actual, is(expected));
     }
 

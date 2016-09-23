@@ -26,7 +26,7 @@ import org.elasticsearch.action.support.replication.ReplicationRequestBuilder;
 import org.elasticsearch.client.ElasticsearchClient;
 
 public class StartBlobRequestBuilder extends ReplicationRequestBuilder<StartBlobRequest, StartBlobResponse,
-        StartBlobRequestBuilder> {
+    StartBlobRequestBuilder> {
 
     protected StartBlobRequestBuilder(ElasticsearchClient client, StartBlobAction action) {
         super(client, action, new StartBlobRequest());

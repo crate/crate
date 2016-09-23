@@ -71,288 +71,6 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
     private final DeleteStatementPlanner deleteStatementPlanner;
 
 
-    public static class Context {
-
-        //index, shardId, node
-        private Map<String, Map<Integer, String>> shardNodes;
-
-        private final ClusterService clusterService;
-        private final UUID jobId;
-        private final ConsumingPlanner consumingPlanner;
-        private final StmtCtx stmtCtx;
-        private final int softLimit;
-        private final int fetchSize;
-        private int executionPhaseId = 0;
-        private final Multimap<TableIdent, TableRouting> tableRoutings = HashMultimap.create();
-        private ReaderAllocations readerAllocations;
-        private HashMultimap<TableIdent, String> tableIndices;
-
-        public Context(ClusterService clusterService,
-                       UUID jobId,
-                       ConsumingPlanner consumingPlanner,
-                       StmtCtx stmtCtx,
-                       int softLimit,
-                       int fetchSize) {
-            this.clusterService = clusterService;
-            this.jobId = jobId;
-            this.consumingPlanner = consumingPlanner;
-            this.stmtCtx = stmtCtx;
-            this.softLimit = softLimit;
-            this.fetchSize = fetchSize;
-        }
-
-        private static int finalLimit(@Nullable Integer queryLimit, int softLimit) {
-            if (queryLimit == null) {
-                return softLimit > 0 ? softLimit : TopN.NO_LIMIT;
-            }
-            return queryLimit;
-        }
-
-        public Limits getLimits(boolean isRootRelation, QuerySpec querySpec) {
-            Optional<Integer> optLimit = querySpec.limit();
-            if (!isRootRelation) {
-                /**
-                 * Don't apply softLimit or maxRows on child-relations,
-                 * The parent-relations might need more data to produce the correct result.
-                 * If the limit is present on the query it means the parent relation wanted it there, so keep it.
-                 */
-
-                if (optLimit.isPresent()) {
-                    //noinspection OptionalGetWithoutIsPresent it's present!
-                    Integer limit = optLimit.get();
-                    return new Limits(limit, querySpec.offset());
-                } else {
-                    return new Limits(TopN.NO_LIMIT, TopN.NO_OFFSET);
-                }
-            }
-            int finalLimit = finalLimit(optLimit.orNull(), softLimit);
-            return new Limits(finalLimit, querySpec.offset());
-        }
-
-        public int fetchSize() {
-            return fetchSize;
-        }
-
-        public StmtCtx statementContext() {
-            return stmtCtx;
-        }
-
-        public static class Limits {
-            public int finalLimit() {
-                return finalLimit;
-            }
-
-            public int limitAndOffset() {
-                return limitAndOffset;
-            }
-
-            public boolean hasLimit() {
-                return finalLimit != TopN.NO_LIMIT;
-            }
-
-            final int finalLimit;
-            final int limitAndOffset;
-
-            Limits(int finalLimit, int offset) {
-                this.finalLimit = finalLimit;
-                if (finalLimit > TopN.NO_LIMIT) {
-                    this.limitAndOffset = finalLimit + offset;
-                } else {
-                    this.limitAndOffset = TopN.NO_LIMIT;
-                }
-            }
-        }
-
-        public static class ReaderAllocations {
-
-            private final TreeMap<Integer, String> readerIndices = new TreeMap<>();
-            private final Map<String, IntSet> nodeReaders = new HashMap<>();
-            private final TreeMap<String, Integer> bases;
-            private final Multimap<TableIdent, String> tableIndices;
-            private final Map<String, TableIdent> indicesToIdents;
-
-
-            ReaderAllocations(TreeMap<String, Integer> bases,
-                              Map<String, Map<Integer, String>> shardNodes,
-                              Multimap<TableIdent, String> tableIndices) {
-                this.bases = bases;
-                this.tableIndices = tableIndices;
-                this.indicesToIdents = new HashMap<>(tableIndices.values().size());
-                for (Map.Entry<TableIdent, String> entry : tableIndices.entries()) {
-                    indicesToIdents.put(entry.getValue(), entry.getKey());
-                }
-                for (Map.Entry<String, Integer> entry : bases.entrySet()) {
-                    readerIndices.put(entry.getValue(), entry.getKey());
-                }
-                for (Map.Entry<String, Map<Integer, String>> entry : shardNodes.entrySet()) {
-                    Integer base = bases.get(entry.getKey());
-                    if (base == null) {
-                        continue;
-                    }
-                    for (Map.Entry<Integer, String> nodeEntries : entry.getValue().entrySet()) {
-                        int readerId = base + nodeEntries.getKey();
-                        IntSet readerIds = nodeReaders.get(nodeEntries.getValue());
-                        if (readerIds == null){
-                            readerIds = new IntHashSet();
-                            nodeReaders.put(nodeEntries.getValue(), readerIds);
-                        }
-                        readerIds.add(readerId);
-                    }
-                }
-            }
-
-            public Multimap<TableIdent, String> tableIndices() {
-                return tableIndices;
-            }
-
-            public TreeMap<Integer, String> indices() {
-                return readerIndices;
-            }
-
-            public Map<String, IntSet> nodeReaders() {
-                return nodeReaders;
-            }
-
-            public TreeMap<String, Integer> bases() {
-                return bases;
-            }
-
-            public Map<String, TableIdent> indicesToIdents() {
-                return indicesToIdents;
-            }
-        }
-
-        public ReaderAllocations buildReaderAllocations() {
-            if (readerAllocations != null) {
-                return readerAllocations;
-            }
-
-            IndexBaseVisitor visitor = new IndexBaseVisitor();
-
-            // tableIdent -> indexName
-            final Multimap<TableIdent, String> usedTableIndices = HashMultimap.create();
-            for (final Map.Entry<TableIdent, Collection<TableRouting>> tableRoutingEntry : tableRoutings.asMap().entrySet()) {
-                for (TableRouting tr : tableRoutingEntry.getValue()) {
-                    if (!tr.nodesAllocated) {
-                        allocateRoutingNodes(tableRoutingEntry.getKey(), tr.routing.locations());
-                        tr.nodesAllocated = true;
-                    }
-                    tr.routing.walkLocations(visitor);
-                    tr.routing.walkLocations(new Routing.RoutingLocationVisitor() {
-                        @Override
-                        public boolean visitNode(String nodeId, Map<String, List<Integer>> nodeRouting) {
-                            usedTableIndices.putAll(tableRoutingEntry.getKey(), nodeRouting.keySet());
-                            return super.visitNode(nodeId, nodeRouting);
-                        }
-                    });
-
-                }
-            }
-            readerAllocations = new ReaderAllocations(visitor.build(), shardNodes, usedTableIndices);
-            return readerAllocations;
-        }
-
-        public ClusterService clusterService() {
-            return clusterService;
-        }
-
-        public PlannedAnalyzedRelation planSubRelation(AnalyzedRelation relation, ConsumerContext consumerContext) {
-            assert consumingPlanner != null;
-            boolean isRoot = consumerContext.isRoot();
-            consumerContext.isRoot(false);
-            PlannedAnalyzedRelation subPlan = consumingPlanner.plan(relation, consumerContext);
-            consumerContext.isRoot(isRoot);
-            return subPlan;
-        }
-
-        public UUID jobId() {
-            return jobId;
-        }
-
-        public int nextExecutionPhaseId() {
-            return executionPhaseId++;
-        }
-
-        private boolean allocateRoutingNodes(TableIdent tableIdent, Map<String, Map<String, List<Integer>>> locations) {
-            boolean success = true;
-            if (tableIndices == null){
-                tableIndices = HashMultimap.create();
-            }
-            if (shardNodes == null) {
-                shardNodes = new HashMap<>();
-            }
-            for (Map.Entry<String, Map<String, List<Integer>>> location : locations.entrySet()) {
-                for (Map.Entry<String, List<Integer>> indexEntry : location.getValue().entrySet()) {
-                    Map<Integer, String> shardsOnIndex = shardNodes.get(indexEntry.getKey());
-                    tableIndices.put(tableIdent, indexEntry.getKey());
-                    List<Integer> shards = indexEntry.getValue();
-                    if (shardsOnIndex == null) {
-                        shardsOnIndex = new HashMap<>(shards.size());
-                        shardNodes.put(indexEntry.getKey(), shardsOnIndex);
-                        for (Integer id : shards) {
-                            shardsOnIndex.put(id, location.getKey());
-                        }
-                    } else {
-                        for (Integer id : shards) {
-                            String allocatedNodeId = shardsOnIndex.get(id);
-                            if (allocatedNodeId != null) {
-                                if (!allocatedNodeId.equals(location.getKey())) {
-                                    success = false;
-                                }
-                            } else {
-                                shardsOnIndex.put(id, location.getKey());
-                            }
-                        }
-                    }
-                }
-            }
-            return success;
-        }
-
-        public Routing allocateRouting(TableInfo tableInfo, WhereClause where, @Nullable String preference) {
-            Collection<TableRouting> existingRoutings = tableRoutings.get(tableInfo.ident());
-            // allocate routing nodes only if we have more than one table routings
-            Routing routing;
-            if (existingRoutings.isEmpty()) {
-                routing = tableInfo.getRouting(where, preference);
-            } else {
-                for (TableRouting existing : existingRoutings) {
-                    assert preference == null || preference.equals(existing.preference);
-                    if (Objects.equals(existing.where, where)) {
-                        return existing.routing;
-                    }
-                }
-                // ensure all routings of this table are allocated
-                for (TableRouting existingRouting : existingRoutings) {
-                    if (!existingRouting.nodesAllocated) {
-                        allocateRoutingNodes(tableInfo.ident(), existingRouting.routing.locations());
-                        existingRouting.nodesAllocated = true;
-                    }
-                }
-                routing = tableInfo.getRouting(where, preference);
-                if (!allocateRoutingNodes(tableInfo.ident(), routing.locations())) {
-                    throw new UnsupportedOperationException(
-                            "Nodes of existing routing are not allocated, routing rebuild needed");
-                }
-            }
-            tableRoutings.put(tableInfo.ident(), new TableRouting(where, preference, routing));
-            return routing;
-        }
-    }
-
-    private static class TableRouting {
-        final WhereClause where;
-        final String preference;
-        final Routing routing;
-        boolean nodesAllocated = false;
-
-        public TableRouting(WhereClause where, String preference, Routing routing) {
-            this.where = where;
-            this.preference = preference;
-            this.routing = routing;
-        }
-    }
-
     @Inject
     public Planner(ClusterService clusterService,
                    ConsumingPlanner consumingPlanner,
@@ -369,15 +87,44 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
     }
 
     /**
+     * return the ES index names the query should go to
+     */
+    public static String[] indices(DocTableInfo tableInfo, WhereClause whereClause) {
+        String[] indices;
+
+        if (whereClause.noMatch()) {
+            indices = org.elasticsearch.common.Strings.EMPTY_ARRAY;
+        } else if (!tableInfo.isPartitioned()) {
+            // table name for non-partitioned tables
+            indices = new String[]{tableInfo.ident().indexName()};
+        } else if (whereClause.partitions().isEmpty()) {
+            if (whereClause.noMatch()) {
+                return new String[0];
+            }
+
+            // all partitions
+            indices = new String[tableInfo.partitions().size()];
+            int i = 0;
+            for (PartitionName partitionName : tableInfo.partitions()) {
+                indices[i] = partitionName.asIndexName();
+                i++;
+            }
+        } else {
+            indices = whereClause.partitions().toArray(new String[whereClause.partitions().size()]);
+        }
+        return indices;
+    }
+
+    /**
      * dispatch plan creation based on analysis type
      *
-     * @param analysis analysis to create plan from
+     * @param analysis  analysis to create plan from
      * @param softLimit A soft limit will be applied if there is no explicit limit within the query.
      *                  0 for unlimited (query limit or maxRows will still apply)
      *                  If the type of query doesn't have a resultSet this has no effect.
      * @param fetchSize Limit the number of rows that should be returned to a client.
-     *                If > 0 this overrides the limit that might be part of a query.
-     *                0 for unlimited (soft limit or query limit may still apply)
+     *                  If > 0 this overrides the limit that might be part of a query.
+     *                  0 for unlimited (soft limit or query limit may still apply)
      * @return plan
      */
     public Plan plan(Analysis analysis, UUID jobId, int softLimit, int fetchSize) {
@@ -490,7 +237,7 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
             return new NoopPlan(context.jobId());
         }
         return new ESClusterUpdateSettingsPlan(context.jobId(),
-                resetStatement.settingsToRemove(), resetStatement.settingsToRemove());
+            resetStatement.settingsToRemove(), resetStatement.settingsToRemove());
     }
 
     @Override
@@ -509,8 +256,8 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
     @Override
     public Plan visitKillAnalyzedStatement(KillAnalyzedStatement analysis, Context context) {
         return analysis.jobId().isPresent() ?
-                new KillPlan(context.jobId(), analysis.jobId().get()) :
-                new KillPlan(context.jobId());
+            new KillPlan(context.jobId(), analysis.jobId().get()) :
+            new KillPlan(context.jobId());
     }
 
     @Override
@@ -541,12 +288,12 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
                     onDuplicateKeyAssignments = analysis.onDuplicateKeyAssignments().get(i);
                 }
                 upsertById.add(
-                        indices[i],
-                        analysis.ids().get(i),
-                        analysis.routingValues().get(i),
-                        onDuplicateKeyAssignments,
-                        null,
-                        analysis.sourceMaps().get(i));
+                    indices[i],
+                    analysis.ids().get(i),
+                    analysis.routingValues().get(i),
+                    onDuplicateKeyAssignments,
+                    null,
+                    analysis.sourceMaps().get(i));
             }
         } else {
             for (int i = 0; i < analysis.ids().size(); i++) {
@@ -555,45 +302,297 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
                     onDuplicateKeyAssignments = analysis.onDuplicateKeyAssignments().get(i);
                 }
                 upsertById.add(
-                        analysis.tableInfo().ident().indexName(),
-                        analysis.ids().get(i),
-                        analysis.routingValues().get(i),
-                        onDuplicateKeyAssignments,
-                        null,
-                        analysis.sourceMaps().get(i));
+                    analysis.tableInfo().ident().indexName(),
+                    analysis.ids().get(i),
+                    analysis.routingValues().get(i),
+                    onDuplicateKeyAssignments,
+                    null,
+                    analysis.sourceMaps().get(i));
             }
         }
 
         return upsertById;
     }
 
-    /**
-     * return the ES index names the query should go to
-     */
-    public static String[] indices(DocTableInfo tableInfo, WhereClause whereClause) {
-        String[] indices;
+    public static class Context {
 
-        if (whereClause.noMatch()) {
-            indices = org.elasticsearch.common.Strings.EMPTY_ARRAY;
-        } else if (!tableInfo.isPartitioned()) {
-            // table name for non-partitioned tables
-            indices = new String[]{tableInfo.ident().indexName()};
-        } else if (whereClause.partitions().isEmpty()) {
-            if (whereClause.noMatch()) {
-                return new String[0];
-            }
+        private final ClusterService clusterService;
+        private final UUID jobId;
+        private final ConsumingPlanner consumingPlanner;
+        private final StmtCtx stmtCtx;
+        private final int softLimit;
+        private final int fetchSize;
+        private final Multimap<TableIdent, TableRouting> tableRoutings = HashMultimap.create();
+        //index, shardId, node
+        private Map<String, Map<Integer, String>> shardNodes;
+        private int executionPhaseId = 0;
+        private ReaderAllocations readerAllocations;
+        private HashMultimap<TableIdent, String> tableIndices;
 
-            // all partitions
-            indices = new String[tableInfo.partitions().size()];
-            int i = 0;
-            for (PartitionName partitionName : tableInfo.partitions()) {
-                indices[i] = partitionName.asIndexName();
-                i++;
-            }
-        } else {
-            indices = whereClause.partitions().toArray(new String[whereClause.partitions().size()]);
+        public Context(ClusterService clusterService,
+                       UUID jobId,
+                       ConsumingPlanner consumingPlanner,
+                       StmtCtx stmtCtx,
+                       int softLimit,
+                       int fetchSize) {
+            this.clusterService = clusterService;
+            this.jobId = jobId;
+            this.consumingPlanner = consumingPlanner;
+            this.stmtCtx = stmtCtx;
+            this.softLimit = softLimit;
+            this.fetchSize = fetchSize;
         }
-        return indices;
+
+        private static int finalLimit(@Nullable Integer queryLimit, int softLimit) {
+            if (queryLimit == null) {
+                return softLimit > 0 ? softLimit : TopN.NO_LIMIT;
+            }
+            return queryLimit;
+        }
+
+        public Limits getLimits(boolean isRootRelation, QuerySpec querySpec) {
+            Optional<Integer> optLimit = querySpec.limit();
+            if (!isRootRelation) {
+                /**
+                 * Don't apply softLimit or maxRows on child-relations,
+                 * The parent-relations might need more data to produce the correct result.
+                 * If the limit is present on the query it means the parent relation wanted it there, so keep it.
+                 */
+
+                if (optLimit.isPresent()) {
+                    //noinspection OptionalGetWithoutIsPresent it's present!
+                    Integer limit = optLimit.get();
+                    return new Limits(limit, querySpec.offset());
+                } else {
+                    return new Limits(TopN.NO_LIMIT, TopN.NO_OFFSET);
+                }
+            }
+            int finalLimit = finalLimit(optLimit.orNull(), softLimit);
+            return new Limits(finalLimit, querySpec.offset());
+        }
+
+        public int fetchSize() {
+            return fetchSize;
+        }
+
+        public StmtCtx statementContext() {
+            return stmtCtx;
+        }
+
+        public ReaderAllocations buildReaderAllocations() {
+            if (readerAllocations != null) {
+                return readerAllocations;
+            }
+
+            IndexBaseVisitor visitor = new IndexBaseVisitor();
+
+            // tableIdent -> indexName
+            final Multimap<TableIdent, String> usedTableIndices = HashMultimap.create();
+            for (final Map.Entry<TableIdent, Collection<TableRouting>> tableRoutingEntry : tableRoutings.asMap().entrySet()) {
+                for (TableRouting tr : tableRoutingEntry.getValue()) {
+                    if (!tr.nodesAllocated) {
+                        allocateRoutingNodes(tableRoutingEntry.getKey(), tr.routing.locations());
+                        tr.nodesAllocated = true;
+                    }
+                    tr.routing.walkLocations(visitor);
+                    tr.routing.walkLocations(new Routing.RoutingLocationVisitor() {
+                        @Override
+                        public boolean visitNode(String nodeId, Map<String, List<Integer>> nodeRouting) {
+                            usedTableIndices.putAll(tableRoutingEntry.getKey(), nodeRouting.keySet());
+                            return super.visitNode(nodeId, nodeRouting);
+                        }
+                    });
+
+                }
+            }
+            readerAllocations = new ReaderAllocations(visitor.build(), shardNodes, usedTableIndices);
+            return readerAllocations;
+        }
+
+        public ClusterService clusterService() {
+            return clusterService;
+        }
+
+        public PlannedAnalyzedRelation planSubRelation(AnalyzedRelation relation, ConsumerContext consumerContext) {
+            assert consumingPlanner != null;
+            boolean isRoot = consumerContext.isRoot();
+            consumerContext.isRoot(false);
+            PlannedAnalyzedRelation subPlan = consumingPlanner.plan(relation, consumerContext);
+            consumerContext.isRoot(isRoot);
+            return subPlan;
+        }
+
+        public UUID jobId() {
+            return jobId;
+        }
+
+        public int nextExecutionPhaseId() {
+            return executionPhaseId++;
+        }
+
+        private boolean allocateRoutingNodes(TableIdent tableIdent, Map<String, Map<String, List<Integer>>> locations) {
+            boolean success = true;
+            if (tableIndices == null) {
+                tableIndices = HashMultimap.create();
+            }
+            if (shardNodes == null) {
+                shardNodes = new HashMap<>();
+            }
+            for (Map.Entry<String, Map<String, List<Integer>>> location : locations.entrySet()) {
+                for (Map.Entry<String, List<Integer>> indexEntry : location.getValue().entrySet()) {
+                    Map<Integer, String> shardsOnIndex = shardNodes.get(indexEntry.getKey());
+                    tableIndices.put(tableIdent, indexEntry.getKey());
+                    List<Integer> shards = indexEntry.getValue();
+                    if (shardsOnIndex == null) {
+                        shardsOnIndex = new HashMap<>(shards.size());
+                        shardNodes.put(indexEntry.getKey(), shardsOnIndex);
+                        for (Integer id : shards) {
+                            shardsOnIndex.put(id, location.getKey());
+                        }
+                    } else {
+                        for (Integer id : shards) {
+                            String allocatedNodeId = shardsOnIndex.get(id);
+                            if (allocatedNodeId != null) {
+                                if (!allocatedNodeId.equals(location.getKey())) {
+                                    success = false;
+                                }
+                            } else {
+                                shardsOnIndex.put(id, location.getKey());
+                            }
+                        }
+                    }
+                }
+            }
+            return success;
+        }
+
+        public Routing allocateRouting(TableInfo tableInfo, WhereClause where, @Nullable String preference) {
+            Collection<TableRouting> existingRoutings = tableRoutings.get(tableInfo.ident());
+            // allocate routing nodes only if we have more than one table routings
+            Routing routing;
+            if (existingRoutings.isEmpty()) {
+                routing = tableInfo.getRouting(where, preference);
+            } else {
+                for (TableRouting existing : existingRoutings) {
+                    assert preference == null || preference.equals(existing.preference);
+                    if (Objects.equals(existing.where, where)) {
+                        return existing.routing;
+                    }
+                }
+                // ensure all routings of this table are allocated
+                for (TableRouting existingRouting : existingRoutings) {
+                    if (!existingRouting.nodesAllocated) {
+                        allocateRoutingNodes(tableInfo.ident(), existingRouting.routing.locations());
+                        existingRouting.nodesAllocated = true;
+                    }
+                }
+                routing = tableInfo.getRouting(where, preference);
+                if (!allocateRoutingNodes(tableInfo.ident(), routing.locations())) {
+                    throw new UnsupportedOperationException(
+                        "Nodes of existing routing are not allocated, routing rebuild needed");
+                }
+            }
+            tableRoutings.put(tableInfo.ident(), new TableRouting(where, preference, routing));
+            return routing;
+        }
+
+        public static class Limits {
+            final int finalLimit;
+            final int limitAndOffset;
+
+            Limits(int finalLimit, int offset) {
+                this.finalLimit = finalLimit;
+                if (finalLimit > TopN.NO_LIMIT) {
+                    this.limitAndOffset = finalLimit + offset;
+                } else {
+                    this.limitAndOffset = TopN.NO_LIMIT;
+                }
+            }
+
+            public int finalLimit() {
+                return finalLimit;
+            }
+
+            public int limitAndOffset() {
+                return limitAndOffset;
+            }
+
+            public boolean hasLimit() {
+                return finalLimit != TopN.NO_LIMIT;
+            }
+        }
+
+        public static class ReaderAllocations {
+
+            private final TreeMap<Integer, String> readerIndices = new TreeMap<>();
+            private final Map<String, IntSet> nodeReaders = new HashMap<>();
+            private final TreeMap<String, Integer> bases;
+            private final Multimap<TableIdent, String> tableIndices;
+            private final Map<String, TableIdent> indicesToIdents;
+
+
+            ReaderAllocations(TreeMap<String, Integer> bases,
+                              Map<String, Map<Integer, String>> shardNodes,
+                              Multimap<TableIdent, String> tableIndices) {
+                this.bases = bases;
+                this.tableIndices = tableIndices;
+                this.indicesToIdents = new HashMap<>(tableIndices.values().size());
+                for (Map.Entry<TableIdent, String> entry : tableIndices.entries()) {
+                    indicesToIdents.put(entry.getValue(), entry.getKey());
+                }
+                for (Map.Entry<String, Integer> entry : bases.entrySet()) {
+                    readerIndices.put(entry.getValue(), entry.getKey());
+                }
+                for (Map.Entry<String, Map<Integer, String>> entry : shardNodes.entrySet()) {
+                    Integer base = bases.get(entry.getKey());
+                    if (base == null) {
+                        continue;
+                    }
+                    for (Map.Entry<Integer, String> nodeEntries : entry.getValue().entrySet()) {
+                        int readerId = base + nodeEntries.getKey();
+                        IntSet readerIds = nodeReaders.get(nodeEntries.getValue());
+                        if (readerIds == null) {
+                            readerIds = new IntHashSet();
+                            nodeReaders.put(nodeEntries.getValue(), readerIds);
+                        }
+                        readerIds.add(readerId);
+                    }
+                }
+            }
+
+            public Multimap<TableIdent, String> tableIndices() {
+                return tableIndices;
+            }
+
+            public TreeMap<Integer, String> indices() {
+                return readerIndices;
+            }
+
+            public Map<String, IntSet> nodeReaders() {
+                return nodeReaders;
+            }
+
+            public TreeMap<String, Integer> bases() {
+                return bases;
+            }
+
+            public Map<String, TableIdent> indicesToIdents() {
+                return indicesToIdents;
+            }
+        }
+    }
+
+    private static class TableRouting {
+        final WhereClause where;
+        final String preference;
+        final Routing routing;
+        boolean nodesAllocated = false;
+
+        public TableRouting(WhereClause where, String preference, Routing routing) {
+            this.where = where;
+            this.preference = preference;
+            this.routing = routing;
+        }
     }
 }
 

@@ -35,7 +35,8 @@ import org.elasticsearch.action.admin.cluster.settings.TransportClusterUpdateSet
 
 public class ESClusterUpdateSettingsTask extends JobTask {
 
-    private static final Function<Object, Row> TO_ONE_ROW = Functions.<Row>constant(new Row1(1L));;
+    private static final Function<Object, Row> TO_ONE_ROW = Functions.<Row>constant(new Row1(1L));
+    ;
     private final TransportClusterUpdateSettingsAction transport;
     private final ClusterUpdateSettingsRequest request;
 

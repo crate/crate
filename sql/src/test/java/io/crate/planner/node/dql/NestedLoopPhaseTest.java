@@ -50,13 +50,13 @@ public class NestedLoopPhaseTest extends CrateUnitTest {
         TopNProjection topNProjection = new TopNProjection(10, 0);
         UUID jobId = UUID.randomUUID();
         MergePhase mp1 = new MergePhase(jobId, 2, "merge", 1,
-                ImmutableList.<DataType>of(DataTypes.STRING),
-                ImmutableList.<Projection>of(),
-                DistributionInfo.DEFAULT_BROADCAST);
+            ImmutableList.<DataType>of(DataTypes.STRING),
+            ImmutableList.<Projection>of(),
+            DistributionInfo.DEFAULT_BROADCAST);
         MergePhase mp2 = new MergePhase(jobId, 3, "merge", 1,
-                ImmutableList.<DataType>of(DataTypes.STRING),
-                ImmutableList.<Projection>of(),
-                DistributionInfo.DEFAULT_BROADCAST);
+            ImmutableList.<DataType>of(DataTypes.STRING),
+            ImmutableList.<Projection>of(),
+            DistributionInfo.DEFAULT_BROADCAST);
         SqlExpressions sqlExpressions = new SqlExpressions(T3.SOURCES, T3.TR_1);
         Symbol joinCondition = sqlExpressions.normalize(sqlExpressions.asSymbol("t1.x = t1.i"));
         NestedLoopPhase node = new NestedLoopPhase(
@@ -71,7 +71,7 @@ public class NestedLoopPhaseTest extends CrateUnitTest {
             joinCondition,
             1,
             1
-            );
+        );
 
         BytesStreamOutput output = new BytesStreamOutput();
         node.writeTo(output);

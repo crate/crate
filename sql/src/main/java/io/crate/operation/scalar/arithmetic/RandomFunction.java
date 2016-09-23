@@ -41,12 +41,12 @@ public class RandomFunction extends Scalar<Double, Void> {
     public static final String NAME = "random";
 
     protected final static FunctionInfo info = new FunctionInfo(
-            new FunctionIdent(NAME, Collections.<DataType>emptyList()), DataTypes.DOUBLE,
-            FunctionInfo.Type.SCALAR, false, false);
+        new FunctionIdent(NAME, Collections.<DataType>emptyList()), DataTypes.DOUBLE,
+        FunctionInfo.Type.SCALAR, false, false);
 
     private final Random random = new Random();
 
-    public static void register(ScalarFunctionModule module){
+    public static void register(ScalarFunctionModule module) {
         module.register(new RandomFunction());
     }
 

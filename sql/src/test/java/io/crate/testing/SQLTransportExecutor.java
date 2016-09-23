@@ -65,94 +65,13 @@ public class SQLTransportExecutor {
     private static final String SQL_REQUEST_TIMEOUT = "CRATE_TESTS_SQL_REQUEST_TIMEOUT";
 
     public static final TimeValue REQUEST_TIMEOUT = new TimeValue(Long.parseLong(
-            MoreObjects.firstNonNull(System.getenv(SQL_REQUEST_TIMEOUT), "5")), TimeUnit.SECONDS);
+        MoreObjects.firstNonNull(System.getenv(SQL_REQUEST_TIMEOUT), "5")), TimeUnit.SECONDS);
 
     private static final ESLogger LOGGER = Loggers.getLogger(SQLTransportExecutor.class);
     private final ClientProvider clientProvider;
 
     public SQLTransportExecutor(ClientProvider clientProvider) {
         this.clientProvider = clientProvider;
-    }
-
-    public SQLResponse exec(String statement) {
-        return exec(new SQLRequest(statement));
-    }
-
-    public SQLResponse exec(String statement, Object... params) {
-        return exec(new SQLRequest(statement, params));
-    }
-
-    public SQLResponse exec(String statement, Object[] params, TimeValue timeout) {
-        return exec(new SQLRequest(statement, params), timeout);
-    }
-
-    public SQLBulkResponse execBulk(String statement, Object[][] bulkArgs) {
-        return exec(new SQLBulkRequest(statement, bulkArgs), REQUEST_TIMEOUT);
-    }
-
-    public SQLBulkResponse execBulk(String statement, Object[][] bulkArgs, TimeValue timeout) {
-        return exec(new SQLBulkRequest(statement, bulkArgs), timeout);
-    }
-
-    public SQLResponse exec(SQLRequest request) {
-        return exec(request, REQUEST_TIMEOUT);
-    }
-
-    public SQLResponse exec(SQLRequest request, TimeValue timeout) {
-        String pgUrl = clientProvider.pgUrl();
-        Random random = RandomizedContext.current().getRandom();
-        if (pgUrl != null && random.nextBoolean() && isJdbcCompatible()) {
-            return executeWithPg(request, pgUrl, random);
-        }
-        try {
-            return execute(request).actionGet(timeout);
-        } catch (ElasticsearchTimeoutException e) {
-            LOGGER.error("Timeout on SQL statement: {}", e, request.stmt());
-            throw e;
-        }
-    }
-
-    /**
-     * @return true if a class or method in the stacktrace contains a @UseJdbc(true) annotation.
-     *
-     * Method annotations have higher priority than class annotations.
-     */
-    private boolean isJdbcCompatible() {
-        StackTraceElement[] stackTrace = Thread.currentThread().getStackTrace();
-        for (StackTraceElement element : stackTrace) {
-            try {
-                Class<?> ar = Class.forName(element.getClassName());
-                Method method = ar.getMethod(element.getMethodName());
-                UseJdbc annotation = method.getAnnotation(UseJdbc.class);
-                if (annotation == null) {
-                    annotation = ar.getAnnotation(UseJdbc.class);
-                    if (annotation == null) {
-                        continue;
-                    }
-                }
-                return annotation.value();
-            } catch (NoSuchMethodException | ClassNotFoundException ignored) {
-            }
-        }
-        return false;
-    }
-
-    private SQLResponse executeWithPg(SQLRequest request, String pgUrl, Random random) {
-        try {
-            Properties properties = new Properties();
-            properties.setProperty("prepareThreshold", "0"); // disable prepared statements
-            try (Connection conn = DriverManager.getConnection(pgUrl, properties)) {
-                conn.setAutoCommit(true);
-                PreparedStatement preparedStatement = conn.prepareStatement(request.stmt());
-                Object[] args = request.args();
-                for (int i = 0; i < args.length; i++) {
-                    preparedStatement.setObject(i + 1, toJdbcCompatObject(conn, args[i]));
-                }
-                return executeAndConvertResult(preparedStatement);
-            }
-        } catch (SQLException e) {
-            throw new SQLActionException(e.getMessage(), 0, RestStatus.BAD_REQUEST);
-        }
     }
 
     private static Object toJdbcCompatObject(Connection connection, Object arg) {
@@ -224,6 +143,103 @@ public class SQLTransportExecutor {
         pGobject.setType("json");
         pGobject.setValue(json);
         return pGobject;
+    }
+
+    private static Object getCharArray(ResultSet resultSet, int i) throws SQLException {
+        Object value;
+        Array array = resultSet.getArray(i + 1);
+        if (array == null) {
+            value = null;
+        } else {
+            ResultSet arrRS = array.getResultSet();
+            List<Object> values = new ArrayList<>();
+            while (arrRS.next()) {
+                values.add(arrRS.getByte(2));
+            }
+            value = values.toArray(new Object[0]);
+        }
+        return value;
+    }
+
+    public SQLResponse exec(String statement) {
+        return exec(new SQLRequest(statement));
+    }
+
+    public SQLResponse exec(String statement, Object... params) {
+        return exec(new SQLRequest(statement, params));
+    }
+
+    public SQLResponse exec(String statement, Object[] params, TimeValue timeout) {
+        return exec(new SQLRequest(statement, params), timeout);
+    }
+
+    public SQLBulkResponse execBulk(String statement, Object[][] bulkArgs) {
+        return exec(new SQLBulkRequest(statement, bulkArgs), REQUEST_TIMEOUT);
+    }
+
+    public SQLBulkResponse execBulk(String statement, Object[][] bulkArgs, TimeValue timeout) {
+        return exec(new SQLBulkRequest(statement, bulkArgs), timeout);
+    }
+
+    public SQLResponse exec(SQLRequest request) {
+        return exec(request, REQUEST_TIMEOUT);
+    }
+
+    public SQLResponse exec(SQLRequest request, TimeValue timeout) {
+        String pgUrl = clientProvider.pgUrl();
+        Random random = RandomizedContext.current().getRandom();
+        if (pgUrl != null && random.nextBoolean() && isJdbcCompatible()) {
+            return executeWithPg(request, pgUrl, random);
+        }
+        try {
+            return execute(request).actionGet(timeout);
+        } catch (ElasticsearchTimeoutException e) {
+            LOGGER.error("Timeout on SQL statement: {}", e, request.stmt());
+            throw e;
+        }
+    }
+
+    /**
+     * @return true if a class or method in the stacktrace contains a @UseJdbc(true) annotation.
+     * <p>
+     * Method annotations have higher priority than class annotations.
+     */
+    private boolean isJdbcCompatible() {
+        StackTraceElement[] stackTrace = Thread.currentThread().getStackTrace();
+        for (StackTraceElement element : stackTrace) {
+            try {
+                Class<?> ar = Class.forName(element.getClassName());
+                Method method = ar.getMethod(element.getMethodName());
+                UseJdbc annotation = method.getAnnotation(UseJdbc.class);
+                if (annotation == null) {
+                    annotation = ar.getAnnotation(UseJdbc.class);
+                    if (annotation == null) {
+                        continue;
+                    }
+                }
+                return annotation.value();
+            } catch (NoSuchMethodException | ClassNotFoundException ignored) {
+            }
+        }
+        return false;
+    }
+
+    private SQLResponse executeWithPg(SQLRequest request, String pgUrl, Random random) {
+        try {
+            Properties properties = new Properties();
+            properties.setProperty("prepareThreshold", "0"); // disable prepared statements
+            try (Connection conn = DriverManager.getConnection(pgUrl, properties)) {
+                conn.setAutoCommit(true);
+                PreparedStatement preparedStatement = conn.prepareStatement(request.stmt());
+                Object[] args = request.args();
+                for (int i = 0; i < args.length; i++) {
+                    preparedStatement.setObject(i + 1, toJdbcCompatObject(conn, args[i]));
+                }
+                return executeAndConvertResult(preparedStatement);
+            }
+        } catch (SQLException e) {
+            throw new SQLActionException(e.getMessage(), 0, RestStatus.BAD_REQUEST);
+        }
     }
 
     private SQLResponse executeAndConvertResult(PreparedStatement preparedStatement) throws SQLException {
@@ -333,22 +349,6 @@ public class SQLTransportExecutor {
         }
     }
 
-    private static Object getCharArray(ResultSet resultSet, int i) throws SQLException {
-        Object value;
-        Array array = resultSet.getArray(i + 1);
-        if (array == null) {
-            value = null;
-        } else {
-            ResultSet arrRS = array.getResultSet();
-            List<Object> values = new ArrayList<>();
-            while (arrRS.next()) {
-                values.add(arrRS.getByte(2));
-            }
-            value = values.toArray(new Object[0]);
-        }
-        return value;
-    }
-
     public SQLBulkResponse exec(SQLBulkRequest request) {
         return exec(request, REQUEST_TIMEOUT);
     }
@@ -384,9 +384,9 @@ public class SQLTransportExecutor {
 
     private ClusterHealthStatus ensureState(ClusterHealthStatus state) {
         ClusterHealthResponse actionGet = client().admin().cluster().health(
-                Requests.clusterHealthRequest()
-                        .waitForStatus(state)
-                        .waitForEvents(Priority.LANGUID).waitForRelocatingShards(0)
+            Requests.clusterHealthRequest()
+                .waitForStatus(state)
+                .waitForEvents(Priority.LANGUID).waitForRelocatingShards(0)
         ).actionGet();
 
         if (actionGet.isTimedOut()) {

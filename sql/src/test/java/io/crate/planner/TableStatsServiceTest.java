@@ -55,7 +55,7 @@ import static org.hamcrest.Matchers.is;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-public class TableStatsServiceTest extends CrateUnitTest  {
+public class TableStatsServiceTest extends CrateUnitTest {
 
     private ThreadPool threadPool;
 
@@ -83,14 +83,14 @@ public class TableStatsServiceTest extends CrateUnitTest  {
             protected void doExecute(SQLRequest request, ActionListener<SQLResponse> listener) {
                 Object[] row;
                 if (numRequests.get() == 0) {
-                    row = new Object[] { 2L, "foo", "bar"};
+                    row = new Object[]{2L, "foo", "bar"};
                 } else {
-                    row = new Object[] { 4L, "foo", "bar"};
+                    row = new Object[]{4L, "foo", "bar"};
                 }
                 listener.onResponse(new SQLResponse(
-                    new String[] {"cast(sum(num_docs) as long)", "schema_name", "table_name"},
-                    new Object[][] { row },
-                    new DataType[] {DataTypes.LONG, DataTypes.STRING, DataTypes.STRING},
+                    new String[]{"cast(sum(num_docs) as long)", "schema_name", "table_name"},
+                    new Object[][]{row},
+                    new DataType[]{DataTypes.LONG, DataTypes.STRING, DataTypes.STRING},
                     1L,
                     1,
                     false
@@ -137,15 +137,15 @@ public class TableStatsServiceTest extends CrateUnitTest  {
         when(clusterService.localNode()).thenReturn(mock(DiscoveryNode.class));
 
         final TableStatsService statsService = new TableStatsService(Settings.EMPTY,
-                                                               threadPool,
-                                                               clusterService,
-                                                               TimeValue.timeValueHours(1),
-                                                               new Provider<TransportSQLAction>() {
-            @Override
-            public TransportSQLAction get() {
-                return transportSQLAction;
-            }
-        });
+            threadPool,
+            clusterService,
+            TimeValue.timeValueHours(1),
+            new Provider<TransportSQLAction>() {
+                @Override
+                public TransportSQLAction get() {
+                    return transportSQLAction;
+                }
+            });
         // 1st Periodic Update
         statsService.run();
         assertBusy(new Runnable() {

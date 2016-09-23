@@ -29,22 +29,12 @@ import java.util.List;
 
 public class SetStatement extends Statement {
 
-    public enum Scope {
-        GLOBAL, SESSION
-    }
-
-    public enum SettingType {
-        TRANSIENT, PERSISTENT
-    }
-
     private final Scope scope;
     private final SettingType settingType;
     private final List<Assignment> assignments;
-
     public SetStatement(Scope scope, List<Assignment> assignments) {
         this(scope, SettingType.TRANSIENT, assignments);
     }
-
     public SetStatement(Scope scope, SettingType settingType, List<Assignment> assignments) {
         Preconditions.checkNotNull(assignments, "assignments are null");
         this.scope = scope;
@@ -72,10 +62,10 @@ public class SetStatement extends Statement {
     @Override
     public String toString() {
         return MoreObjects.toStringHelper(this)
-                .add("scope", scope)
-                .add("assignments", assignments)
-                .add("settingType", settingType)
-                .toString();
+            .add("scope", scope)
+            .add("assignments", assignments)
+            .add("settingType", settingType)
+            .toString();
     }
 
     @Override
@@ -95,5 +85,13 @@ public class SetStatement extends Statement {
     @Override
     public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
         return visitor.visitSetStatement(this, context);
+    }
+
+    public enum Scope {
+        GLOBAL, SESSION
+    }
+
+    public enum SettingType {
+        TRANSIENT, PERSISTENT
     }
 }

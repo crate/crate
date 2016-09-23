@@ -26,7 +26,7 @@ import io.crate.metadata.SimpleObjectExpression;
 import io.crate.operation.reference.NestedObjectExpression;
 import org.elasticsearch.indices.recovery.RecoveryState;
 
-public class ShardRecoveryFilesExpression extends NestedObjectExpression  {
+public class ShardRecoveryFilesExpression extends NestedObjectExpression {
 
     private static final String USED = "used";
     private static final String REUSED = "reused";

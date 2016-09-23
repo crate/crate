@@ -29,12 +29,10 @@ import java.nio.charset.StandardCharsets;
 
 class IntegerType extends PGType {
 
+    public static final IntegerType INSTANCE = new IntegerType();
     static final int OID = 23;
-
     private static final int TYPE_LEN = 4;
     private static final int TYPE_MOD = -1;
-
-    public static final IntegerType INSTANCE = new IntegerType();
 
     private IntegerType() {
         super(OID, TYPE_LEN, TYPE_MOD, "int4");

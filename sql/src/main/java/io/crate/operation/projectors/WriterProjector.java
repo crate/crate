@@ -50,7 +50,7 @@ import java.util.concurrent.atomic.AtomicLong;
 public class WriterProjector extends AbstractProjector {
 
     private static final byte NEW_LINE = (byte) '\n';
-
+    protected final AtomicLong counter = new AtomicLong();
     private final URI uri;
     private final Set<CollectExpression<Row, ?>> collectExpressions;
     private final List<Input<?>> inputs;
@@ -60,8 +60,6 @@ public class WriterProjector extends AbstractProjector {
     private final WriterProjection.OutputFormat outputFormat;
     private final WriterProjection.CompressionType compressionType;
     private Output output;
-
-    protected final AtomicLong counter = new AtomicLong();
     private RowWriter rowWriter;
 
     /**
@@ -143,7 +141,7 @@ public class WriterProjector extends AbstractProjector {
         try {
             if (!overwrites.isEmpty()) {
                 rowWriter = new DocWriter(
-                        output.acquireOutputStream(), collectExpressions, overwrites);
+                    output.acquireOutputStream(), collectExpressions, overwrites);
             } else if (outputFormat.equals(WriterProjection.OutputFormat.JSON_ARRAY)) {
                 rowWriter = new ColumnRowWriter(output.acquireOutputStream(), collectExpressions, inputs);
             } else if (outputNames != null && outputFormat.equals(WriterProjection.OutputFormat.JSON_OBJECT)) {
@@ -263,10 +261,10 @@ public class WriterProjector extends AbstractProjector {
 
     static class ColumnRowWriter implements RowWriter {
 
-        private final Set<CollectExpression<Row, ?>> collectExpressions;
-        private final OutputStream outputStream;
         protected final List<Input<?>> inputs;
         protected final XContentBuilder builder;
+        private final Set<CollectExpression<Row, ?>> collectExpressions;
+        private final OutputStream outputStream;
 
         ColumnRowWriter(OutputStream outputStream,
                         Set<CollectExpression<Row, ?>> collectExpressions,

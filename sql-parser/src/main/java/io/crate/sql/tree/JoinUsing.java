@@ -31,25 +31,21 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 public class JoinUsing
-        extends JoinCriteria
-{
+    extends JoinCriteria {
     private final List<String> columns;
 
-    public JoinUsing(List<String> columns)
-    {
+    public JoinUsing(List<String> columns) {
         checkNotNull(columns, "columns is null");
         checkArgument(!columns.isEmpty(), "columns is empty");
         this.columns = ImmutableList.copyOf(columns);
     }
 
-    public List<String> getColumns()
-    {
+    public List<String> getColumns() {
         return columns;
     }
 
     @Override
-    public boolean equals(Object obj)
-    {
+    public boolean equals(Object obj) {
         if (this == obj) {
             return true;
         }
@@ -61,16 +57,14 @@ public class JoinUsing
     }
 
     @Override
-    public int hashCode()
-    {
+    public int hashCode() {
         return Objects.hashCode(columns);
     }
 
     @Override
-    public String toString()
-    {
+    public String toString() {
         return MoreObjects.toStringHelper(this)
-                .addValue(columns)
-                .toString();
+            .addValue(columns)
+            .toString();
     }
 }

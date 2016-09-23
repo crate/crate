@@ -61,11 +61,20 @@ public class MultiSourceSelect implements QueriedRelation {
         }
     }
 
+    private static HashMap<QualifiedName, Source> initializeSources(Map<QualifiedName, AnalyzedRelation> originalSources) {
+        HashMap<QualifiedName, Source> sources = new LinkedHashMap<>(originalSources.size());
+        for (Map.Entry<QualifiedName, AnalyzedRelation> entry : originalSources.entrySet()) {
+            Source source = new Source(entry.getValue());
+            sources.put(entry.getKey(), source);
+        }
+        return sources;
+    }
+
     public Set<Symbol> requiredForQuery() {
         return splitter.requiredForQuery();
     }
 
-    public Set<Field> canBeFetched(){
+    public Set<Field> canBeFetched() {
         return splitter.canBeFetched();
     }
 
@@ -107,15 +116,6 @@ public class MultiSourceSelect implements QueriedRelation {
 
     public QuerySpec querySpec() {
         return querySpec;
-    }
-
-    private static HashMap<QualifiedName, Source> initializeSources(Map<QualifiedName, AnalyzedRelation> originalSources) {
-        HashMap<QualifiedName, Source> sources = new LinkedHashMap<>(originalSources.size());
-        for (Map.Entry<QualifiedName, AnalyzedRelation> entry : originalSources.entrySet()) {
-            Source source = new Source(entry.getValue());
-            sources.put(entry.getKey(), source);
-        }
-        return sources;
     }
 
     public void pushDownQuerySpecs() {

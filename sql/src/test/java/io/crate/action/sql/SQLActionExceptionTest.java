@@ -30,13 +30,13 @@ import org.junit.Test;
 import static org.hamcrest.core.IsEqual.equalTo;
 import static org.hamcrest.core.IsInstanceOf.instanceOf;
 
-public class SQLActionExceptionTest extends CrateUnitTest{
+public class SQLActionExceptionTest extends CrateUnitTest {
 
     @Test
     public void testFromSerializationWrapper() throws Exception {
         try {
-            throw  new SQLActionException("hello", 7, RestStatus.BAD_GATEWAY);
-        } catch (SQLActionException cause){
+            throw new SQLActionException("hello", 7, RestStatus.BAD_GATEWAY);
+        } catch (SQLActionException cause) {
             NotSerializableExceptionWrapper wrapper = new NotSerializableExceptionWrapper(cause);
             SQLActionException unwrapped = SQLActionException.fromSerializationWrapper(wrapper);
             assertThat(unwrapped, instanceOf(SQLActionException.class));

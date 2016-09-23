@@ -34,80 +34,10 @@ import java.util.List;
 
 public abstract class OrderingByPosition<T> extends Ordering<T> {
 
-    public static Ordering<Object[]> arrayOrdering(RoutedCollectPhase collectPhase) {
-        OrderBy orderBy = collectPhase.orderBy();
-        assert orderBy != null : "collectPhase must have an orderBy clause to generate an ordering";
-        return arrayOrdering(
-                OrderByPositionVisitor.orderByPositions(orderBy.orderBySymbols(), collectPhase.toCollect()),
-                orderBy.reverseFlags(),
-                orderBy.nullsFirst()
-        );
-    }
-
-    public static Ordering<Row> rowOrdering(int[] positions, boolean[] reverseFlags, Boolean[] nullsFirst) {
-        List<Comparator<Row>> comparators = new ArrayList<>(positions.length);
-        for (int i = 0; i < positions.length; i++) {
-            OrderingByPosition<Row> rowOrdering = OrderingByPosition.rowOrdering(
-                    positions[i], reverseFlags[i], nullsFirst[i]);
-            comparators.add(rowOrdering.reverse());
-        }
-        return Ordering.compound(comparators);
-    }
-
-    public static OrderingByPosition<Row> rowOrdering(int position, boolean reverse, Boolean nullsFirst) {
-        return new RowOrdering(position, reverse, nullsFirst);
-    }
-
-    private static class RowOrdering extends OrderingByPosition<Row> {
-
-        public RowOrdering(int position, boolean reverse, Boolean nullsFirst) {
-            super(position, reverse, nullsFirst);
-        }
-
-        @Override
-        public int compare(@Nullable Row left, @Nullable Row right) {
-            Comparable l = left != null ? (Comparable) left.get(position) : null;
-            Comparable r = right != null ? (Comparable) right.get(position) : null;
-            return ordering.compare(l, r);
-        }
-    }
-
-    public static Ordering<Object[]> arrayOrdering(int[] position, boolean[] reverse, Boolean[] nullsFirst) {
-        if (position.length == 0) {
-            return arrayOrdering(position[0], reverse[0], nullsFirst[0]);
-        }
-
-        // TODO: if the reverse/nullsFirst flags are the same for all positions this could be optimized
-        // to use just one single "inner" Ordering instance that is re-used for all positions
-        List<Comparator<Object[]>> comparators = new ArrayList<>(position.length);
-        for (int i = 0, positionLength = position.length; i < positionLength; i++) {
-            comparators.add(arrayOrdering(position[i], reverse[i], nullsFirst[i]));
-        }
-        return Ordering.compound(comparators);
-    }
-
-    public static OrderingByPosition<Object[]> arrayOrdering(int position, boolean reverse, Boolean nullsFirst) {
-        return new ArrayOrdering(position, reverse, nullsFirst);
-    }
-
-    private static class ArrayOrdering extends OrderingByPosition<Object[]> {
-
-        private ArrayOrdering(int position, boolean reverse, Boolean nullsFirst) {
-            super(position, reverse, nullsFirst);
-        }
-
-        @Override
-        public int compare(@Nullable Object[] left, @Nullable Object[] right) {
-            Comparable l = left != null ? (Comparable) left[position] : null;
-            Comparable r = right != null ? (Comparable) right[position] : null;
-            return ordering.compare(l, r);
-        }
-    }
-
     protected final int position;
     protected final Ordering<Comparable> ordering;
 
-    private OrderingByPosition (int position, boolean reverse, @Nullable Boolean nullFirst) {
+    private OrderingByPosition(int position, boolean reverse, @Nullable Boolean nullFirst) {
         this.position = position;
 
         // note, that we are reverse for the queue so this conditional is by intent
@@ -129,5 +59,75 @@ public abstract class OrderingByPosition<T> extends Ordering<T> {
             }
         }
         this.ordering = ordering;
+    }
+
+    public static Ordering<Object[]> arrayOrdering(RoutedCollectPhase collectPhase) {
+        OrderBy orderBy = collectPhase.orderBy();
+        assert orderBy != null : "collectPhase must have an orderBy clause to generate an ordering";
+        return arrayOrdering(
+            OrderByPositionVisitor.orderByPositions(orderBy.orderBySymbols(), collectPhase.toCollect()),
+            orderBy.reverseFlags(),
+            orderBy.nullsFirst()
+        );
+    }
+
+    public static Ordering<Row> rowOrdering(int[] positions, boolean[] reverseFlags, Boolean[] nullsFirst) {
+        List<Comparator<Row>> comparators = new ArrayList<>(positions.length);
+        for (int i = 0; i < positions.length; i++) {
+            OrderingByPosition<Row> rowOrdering = OrderingByPosition.rowOrdering(
+                positions[i], reverseFlags[i], nullsFirst[i]);
+            comparators.add(rowOrdering.reverse());
+        }
+        return Ordering.compound(comparators);
+    }
+
+    public static OrderingByPosition<Row> rowOrdering(int position, boolean reverse, Boolean nullsFirst) {
+        return new RowOrdering(position, reverse, nullsFirst);
+    }
+
+    public static Ordering<Object[]> arrayOrdering(int[] position, boolean[] reverse, Boolean[] nullsFirst) {
+        if (position.length == 0) {
+            return arrayOrdering(position[0], reverse[0], nullsFirst[0]);
+        }
+
+        // TODO: if the reverse/nullsFirst flags are the same for all positions this could be optimized
+        // to use just one single "inner" Ordering instance that is re-used for all positions
+        List<Comparator<Object[]>> comparators = new ArrayList<>(position.length);
+        for (int i = 0, positionLength = position.length; i < positionLength; i++) {
+            comparators.add(arrayOrdering(position[i], reverse[i], nullsFirst[i]));
+        }
+        return Ordering.compound(comparators);
+    }
+
+    public static OrderingByPosition<Object[]> arrayOrdering(int position, boolean reverse, Boolean nullsFirst) {
+        return new ArrayOrdering(position, reverse, nullsFirst);
+    }
+
+    private static class RowOrdering extends OrderingByPosition<Row> {
+
+        public RowOrdering(int position, boolean reverse, Boolean nullsFirst) {
+            super(position, reverse, nullsFirst);
+        }
+
+        @Override
+        public int compare(@Nullable Row left, @Nullable Row right) {
+            Comparable l = left != null ? (Comparable) left.get(position) : null;
+            Comparable r = right != null ? (Comparable) right.get(position) : null;
+            return ordering.compare(l, r);
+        }
+    }
+
+    private static class ArrayOrdering extends OrderingByPosition<Object[]> {
+
+        private ArrayOrdering(int position, boolean reverse, Boolean nullsFirst) {
+            super(position, reverse, nullsFirst);
+        }
+
+        @Override
+        public int compare(@Nullable Object[] left, @Nullable Object[] right) {
+            Comparable l = left != null ? (Comparable) left[position] : null;
+            Comparable r = right != null ? (Comparable) right[position] : null;
+            return ordering.compare(l, r);
+        }
     }
 }

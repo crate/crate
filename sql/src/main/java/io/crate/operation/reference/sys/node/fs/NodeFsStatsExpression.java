@@ -29,13 +29,8 @@ import java.util.Map;
 
 public class NodeFsStatsExpression extends SimpleNodeStatsExpression<Map<String, Object>> {
 
-    private static final String TOTAL = "total";
-    private static final String DISKS = "disks";
-    private static final String DATA = "data";
-
     static final String DEV = "dev";
     static final String PATH = "path";
-
     static final String SIZE = "size";
     static final String USED = "used";
     static final String AVAILABLE = "available";
@@ -43,7 +38,9 @@ public class NodeFsStatsExpression extends SimpleNodeStatsExpression<Map<String,
     static final String BYTES_READ = "bytes_read";
     static final String WRITES = "writes";
     static final String BYTES_WRITTEN = "bytes_written";
-
+    private static final String TOTAL = "total";
+    private static final String DISKS = "disks";
+    private static final String DATA = "data";
     private final NodeFsTotalStatsExpression total;
     private final NodeStatsFsDisksExpression disks;
     private final NodeStatsFsDataExpression data;

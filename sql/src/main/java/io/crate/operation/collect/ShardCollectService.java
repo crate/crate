@@ -127,21 +127,21 @@ public class ShardCollectService {
         this.shardImplementationSymbolVisitor = new ImplementationSymbolVisitor(functions);
 
         this.shardNormalizer = new EvaluatingNormalizer(
-                functions,
-                RowGranularity.SHARD,
-                shardResolver
+            functions,
+            RowGranularity.SHARD,
+            shardResolver
         );
         this.projectorFactory = new ProjectionToProjectorVisitor(
-                clusterService,
-                functions,
-                indexNameExpressionResolver,
-                threadPool,
-                settings,
-                transportActionProvider,
-                bulkRetryCoordinatorPool,
-                shardImplementationSymbolVisitor,
-                shardNormalizer,
-                shardId
+            clusterService,
+            functions,
+            indexNameExpressionResolver,
+            threadPool,
+            settings,
+            transportActionProvider,
+            bulkRetryCoordinatorPool,
+            shardImplementationSymbolVisitor,
+            shardNormalizer,
+            shardId
         );
     }
 
@@ -150,16 +150,16 @@ public class ShardCollectService {
         assert collectPhase.maxRowGranularity() == RowGranularity.SHARD : "granularity must be SHARD";
 
         EvaluatingNormalizer shardNormalizer = new EvaluatingNormalizer(
-                functions,
-                RowGranularity.SHARD,
-                new RecoveryShardReferenceResolver(shardResolver, indexShard)
+            functions,
+            RowGranularity.SHARD,
+            new RecoveryShardReferenceResolver(shardResolver, indexShard)
         );
-        collectPhase =  collectPhase.normalize(shardNormalizer, null);
+        collectPhase = collectPhase.normalize(shardNormalizer, null);
         if (collectPhase.whereClause().noMatch()) {
             return null;
         }
         assert !collectPhase.whereClause().hasQuery()
-                : "whereClause shouldn't have a query after normalize. Should be NO_MATCH or MATCH_ALL";
+            : "whereClause shouldn't have a query after normalize. Should be NO_MATCH or MATCH_ALL";
 
         List<Input<?>> inputs = shardImplementationSymbolVisitor.extractImplementations(collectPhase.toCollect()).topLevelInputs();
         Object[] row = new Object[inputs.size()];
@@ -171,7 +171,7 @@ public class ShardCollectService {
 
     /**
      * Create a CrateCollector.Builder to collect rows from a shard.
-     *
+     * <p>
      * This also creates all shard-level projectors.
      * The RowReceiver that is used for {@link CrateCollector.Builder#build(RowReceiver)}
      * should be the first node-level projector.
@@ -179,7 +179,8 @@ public class ShardCollectService {
     public CrateCollector.Builder getCollectorBuilder(RoutedCollectPhase collectPhase,
                                                       Set<Requirement> downstreamRequirements,
                                                       JobCollectContext jobCollectContext) throws Exception {
-        assert collectPhase.orderBy() == null : "getDocCollector shouldn't be called if there is an orderBy on the collectPhase";
+        assert collectPhase.orderBy() ==
+               null : "getDocCollector shouldn't be called if there is an orderBy on the collectPhase";
         RoutedCollectPhase normalizedCollectNode = collectPhase.normalize(shardNormalizer, null);
 
 
@@ -235,11 +236,11 @@ public class ShardCollectService {
         IndexShard indexShard = sharedShardContext.indexShard();
         CrateSearchContext searchContext = null;
         try {
-             searchContext = searchContextFactory.createContext(
-                    sharedShardContext.readerId(),
-                    indexShard,
-                    searcher,
-                    collectPhase.whereClause()
+            searchContext = searchContextFactory.createContext(
+                sharedShardContext.readerId(),
+                indexShard,
+                searcher,
+                collectPhase.whereClause()
             );
             jobCollectContext.addSearchContext(sharedShardContext.readerId(), searchContext);
             CollectInputSymbolVisitor.Context docCtx = docInputSymbolVisitor.extractImplementations(collectPhase);
@@ -286,19 +287,19 @@ public class ShardCollectService {
         CollectInputSymbolVisitor.Context ctx;
         try {
             searchContext = searchContextFactory.createContext(
-                    sharedShardContext.readerId(),
-                    sharedShardContext.indexShard(),
-                    sharedShardContext.searcher(),
-                    collectPhase.whereClause()
+                sharedShardContext.readerId(),
+                sharedShardContext.indexShard(),
+                sharedShardContext.searcher(),
+                collectPhase.whereClause()
             );
             jobCollectContext.addSearchContext(sharedShardContext.readerId(), searchContext);
             ctx = docInputSymbolVisitor.extractImplementations(collectPhase);
 
             collectorContext = new CollectorContext(
-                    mapperService,
-                    indexFieldDataService,
-                    new CollectorFieldsVisitor(ctx.docLevelExpressions().size()),
-                    sharedShardContext.readerId()
+                mapperService,
+                indexFieldDataService,
+                new CollectorFieldsVisitor(ctx.docLevelExpressions().size()),
+                sharedShardContext.readerId()
             );
         } catch (Throwable t) {
             if (searchContext != null) {
@@ -314,14 +315,14 @@ public class ShardCollectService {
                 batchSize);
         }
         return new LuceneOrderedDocCollector(
-                searchContext,
-                Symbols.containsColumn(collectPhase.toCollect(), DocSysColumns.SCORE),
-                batchSize,
-                collectorContext,
-                collectPhase.orderBy(),
-                LuceneSortGenerator.generateLuceneSort(collectorContext, collectPhase.orderBy(), docInputSymbolVisitor),
-                ctx.topLevelInputs(),
-                ctx.docLevelExpressions()
+            searchContext,
+            Symbols.containsColumn(collectPhase.toCollect(), DocSysColumns.SCORE),
+            batchSize,
+            collectorContext,
+            collectPhase.orderBy(),
+            LuceneSortGenerator.generateLuceneSort(collectorContext, collectPhase.orderBy(), docInputSymbolVisitor),
+            ctx.topLevelInputs(),
+            ctx.docLevelExpressions()
         );
     }
 }

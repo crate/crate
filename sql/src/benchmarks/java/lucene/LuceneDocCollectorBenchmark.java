@@ -56,54 +56,36 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
 
-@BenchmarkHistoryChart(filePrefix="benchmark-lucenedoccollector-history", labelWith = LabelType.CUSTOM_KEY)
+@BenchmarkHistoryChart(filePrefix = "benchmark-lucenedoccollector-history", labelWith = LabelType.CUSTOM_KEY)
 @BenchmarkMethodChart(filePrefix = "benchmark-lucenedoccollector")
 @TimeoutSuite(millis = TimeUnits.HOUR) // 1 hour
 @ThreadLeakLingering(linger = 5000 * 60) // 5 minutes
-@ThreadLeakFilters(defaultFilters = true, filters = { LuceneDocCollectorBenchmark.BenchmarkThreadFilter.class })
+@ThreadLeakFilters(defaultFilters = true, filters = {LuceneDocCollectorBenchmark.BenchmarkThreadFilter.class})
 @ESIntegTestCase.ClusterScope(numDataNodes = 1)
 public class LuceneDocCollectorBenchmark extends SQLTransportIntegrationTest {
-
-    public static final class BenchmarkThreadFilter implements ThreadFilter {
-
-        @Override
-        public boolean reject(Thread t) {
-            return t.getName().contains("H2");
-        }
-    }
-
-    @Rule
-    public BenchmarkRule benchmarkRun = new BenchmarkRule();
 
     public static final int NUMBER_OF_DOCUMENTS = 100_000;
     public static final int BENCHMARK_ROUNDS = 100;
     public static final int WARMUP_ROUNDS = 10;
-
     public final static ESLogger logger = Loggers.getLogger(LuceneDocCollectorBenchmark.class);
+    @Rule
+    public BenchmarkRule benchmarkRun = new BenchmarkRule();
     private CollectingRowReceiver collectingRowReceiver = new CollectingRowReceiver();
     private LuceneDocCollectorProvider collectorProvider;
-
-    public class PausingCollectingRowReceiver extends CollectingRowReceiver {
-
-        @Override
-        public Result setNextRow(Row row) {
-            return Result.PAUSE;
-        }
-    }
 
     private byte[] generateRowSource() throws IOException {
         Random random = RandomizedTest.getRandom();
         byte[] buffer = new byte[32];
         random.nextBytes(buffer);
         return XContentFactory.jsonBuilder()
-                .startObject()
-                .field("areaInSqKm", random.nextFloat())
-                .field("continent", new BytesArray(buffer, 0, 4).toUtf8())
-                .field("countryCode", new BytesArray(buffer, 4, 8).toUtf8())
-                .field("countryName", new BytesArray(buffer, 8, 24).toUtf8())
-                .field("population", random.nextInt(Integer.MAX_VALUE))
-                .endObject()
-                .bytes().toBytes();
+            .startObject()
+            .field("areaInSqKm", random.nextFloat())
+            .field("continent", new BytesArray(buffer, 0, 4).toUtf8())
+            .field("countryCode", new BytesArray(buffer, 4, 8).toUtf8())
+            .field("countryName", new BytesArray(buffer, 8, 24).toUtf8())
+            .field("population", random.nextInt(Integer.MAX_VALUE))
+            .endObject()
+            .bytes().toBytes();
     }
 
     @Override
@@ -145,21 +127,22 @@ public class LuceneDocCollectorBenchmark extends SQLTransportIntegrationTest {
     private void doGenerateData() throws Exception {
         logger.info("generating {} documents...", NUMBER_OF_DOCUMENTS);
         ExecutorService executor = Executors.newFixedThreadPool(4);
-        for (int i=0; i<4; i++) {
+        for (int i = 0; i < 4; i++) {
             executor.submit(new Runnable() {
                 @Override
                 public void run() {
-                    int numDocsToCreate = NUMBER_OF_DOCUMENTS/4;
+                    int numDocsToCreate = NUMBER_OF_DOCUMENTS / 4;
                     logger.info("Generating {} Documents in Thread {}", numDocsToCreate, Thread.currentThread().getName());
                     Client client = internalCluster().client();
                     BulkRequest bulkRequest = new BulkRequest();
 
-                    for (int i=0; i < numDocsToCreate; i+=1000) {
+                    for (int i = 0; i < numDocsToCreate; i += 1000) {
                         bulkRequest.requests().clear();
                         try {
                             byte[] source = generateRowSource();
-                            for (int j=0; j<1000;j++) {
-                                IndexRequest indexRequest = new IndexRequest("countries", "default", String.valueOf(i+j) + String.valueOf(Thread.currentThread().getId()));
+                            for (int j = 0; j < 1000; j++) {
+                                IndexRequest indexRequest = new IndexRequest("countries", "default",
+                                    String.valueOf(i + j) + String.valueOf(Thread.currentThread().getId()));
                                 indexRequest.source(source);
                                 bulkRequest.add(indexRequest);
                             }
@@ -180,20 +163,18 @@ public class LuceneDocCollectorBenchmark extends SQLTransportIntegrationTest {
         logger.info("{} documents generated.", NUMBER_OF_DOCUMENTS);
     }
 
-
-    private CrateCollector createCollector(String stmt, RowReceiver downstream, Integer pageSizeHint, Object ... args) throws Exception {
+    private CrateCollector createCollector(String stmt, RowReceiver downstream, Integer pageSizeHint, Object... args) throws Exception {
         return collectorProvider.createCollector(stmt, downstream, pageSizeHint, args);
     }
 
-
     @BenchmarkOptions(benchmarkRounds = BENCHMARK_ROUNDS, warmupRounds = WARMUP_ROUNDS)
     @Test
-    public void testLuceneDocCollectorOrderedWithScrollingPerformance() throws Exception{
+    public void testLuceneDocCollectorOrderedWithScrollingPerformance() throws Exception {
         collectingRowReceiver.rows.clear();
         CrateCollector docCollector = createCollector(
-                "SELECT continent FROM countries ORDER by continent",
-                collectingRowReceiver,
-                NUMBER_OF_DOCUMENTS / 2
+            "SELECT continent FROM countries ORDER by continent",
+            collectingRowReceiver,
+            NUMBER_OF_DOCUMENTS / 2
         );
         docCollector.doCollect();
         collectingRowReceiver.result(); // call result to make sure there were no errors
@@ -201,12 +182,12 @@ public class LuceneDocCollectorBenchmark extends SQLTransportIntegrationTest {
 
     @BenchmarkOptions(benchmarkRounds = BENCHMARK_ROUNDS, warmupRounds = WARMUP_ROUNDS)
     @Test
-    public void testLuceneDocCollectorOrderedWithScrollingStartStopPerformance() throws Exception{
+    public void testLuceneDocCollectorOrderedWithScrollingStartStopPerformance() throws Exception {
         PausingCollectingRowReceiver rowReceiver = new PausingCollectingRowReceiver();
         CrateCollector docCollector = createCollector(
-                "SELECT continent FROM countries ORDER BY continent",
-                rowReceiver,
-                NUMBER_OF_DOCUMENTS / 2
+            "SELECT continent FROM countries ORDER BY continent",
+            rowReceiver,
+            NUMBER_OF_DOCUMENTS / 2
         );
         docCollector.doCollect();
         while (!rowReceiver.isFinished()) {
@@ -217,27 +198,26 @@ public class LuceneDocCollectorBenchmark extends SQLTransportIntegrationTest {
 
     @BenchmarkOptions(benchmarkRounds = BENCHMARK_ROUNDS, warmupRounds = WARMUP_ROUNDS)
     @Test
-    public void testLuceneDocCollectorOrderedWithoutScrollingPerformance() throws Exception{
+    public void testLuceneDocCollectorOrderedWithoutScrollingPerformance() throws Exception {
         CollectingRowReceiver rowReceiver = new CollectingRowReceiver();
         CrateCollector docCollector = createCollector(
-                "select continent from countries order by continent limit ?",
-                rowReceiver,
-                NUMBER_OF_DOCUMENTS,
-                NUMBER_OF_DOCUMENTS);
+            "select continent from countries order by continent limit ?",
+            rowReceiver,
+            NUMBER_OF_DOCUMENTS,
+            NUMBER_OF_DOCUMENTS);
         docCollector.doCollect();
         rowReceiver.result(); // call result to make sure there were no errors
     }
 
-
     @BenchmarkOptions(benchmarkRounds = BENCHMARK_ROUNDS, warmupRounds = WARMUP_ROUNDS)
     @Test
-    public void testLuceneDocCollectorOrderedWithoutScrollingStartStopPerformance() throws Exception{
+    public void testLuceneDocCollectorOrderedWithoutScrollingStartStopPerformance() throws Exception {
         PausingCollectingRowReceiver rowReceiver = new PausingCollectingRowReceiver();
         CrateCollector docCollector = createCollector(
-                "select continent from countries order by continent limit ?",
-                rowReceiver,
-                NUMBER_OF_DOCUMENTS,
-                NUMBER_OF_DOCUMENTS);
+            "select continent from countries order by continent limit ?",
+            rowReceiver,
+            NUMBER_OF_DOCUMENTS,
+            NUMBER_OF_DOCUMENTS);
         docCollector.doCollect();
         while (!rowReceiver.isFinished()) {
             rowReceiver.resumeUpstream(false);
@@ -247,7 +227,7 @@ public class LuceneDocCollectorBenchmark extends SQLTransportIntegrationTest {
 
     @BenchmarkOptions(benchmarkRounds = BENCHMARK_ROUNDS, warmupRounds = WARMUP_ROUNDS)
     @Test
-    public void testLuceneDocCollectorUnorderedPerformance() throws Exception{
+    public void testLuceneDocCollectorUnorderedPerformance() throws Exception {
         CrateCollector docCollector = createCollector("SELECT continent FROM countries", collectingRowReceiver, NUMBER_OF_DOCUMENTS);
         docCollector.doCollect();
         collectingRowReceiver.result(); // call result to make sure there were no errors
@@ -255,7 +235,7 @@ public class LuceneDocCollectorBenchmark extends SQLTransportIntegrationTest {
 
     @BenchmarkOptions(benchmarkRounds = BENCHMARK_ROUNDS, warmupRounds = WARMUP_ROUNDS)
     @Test
-    public void testLuceneDocCollectorUnorderedStartStopPerformance() throws Exception{
+    public void testLuceneDocCollectorUnorderedStartStopPerformance() throws Exception {
         PausingCollectingRowReceiver rowReceiver = new PausingCollectingRowReceiver();
         CrateCollector docCollector = createCollector("SELECT continent FROM countries", rowReceiver, NUMBER_OF_DOCUMENTS);
         docCollector.doCollect();
@@ -263,5 +243,21 @@ public class LuceneDocCollectorBenchmark extends SQLTransportIntegrationTest {
             rowReceiver.resumeUpstream(false);
         }
         rowReceiver.result();
+    }
+
+    public static final class BenchmarkThreadFilter implements ThreadFilter {
+
+        @Override
+        public boolean reject(Thread t) {
+            return t.getName().contains("H2");
+        }
+    }
+
+    public class PausingCollectingRowReceiver extends CollectingRowReceiver {
+
+        @Override
+        public Result setNextRow(Row row) {
+            return Result.PAUSE;
+        }
     }
 }

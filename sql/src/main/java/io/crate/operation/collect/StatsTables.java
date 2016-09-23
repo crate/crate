@@ -48,7 +48,7 @@ import java.util.concurrent.atomic.AtomicReference;
 /**
  * Stats tables that are globally available on each node and contain meta data of the cluster
  * like active jobs
- *
+ * <p>
  * injected via guice instead of using static so that if two nodes run
  * in the same jvm the memoryTables aren't shared between the nodes.
  */
@@ -58,24 +58,21 @@ public class StatsTables {
 
     private final static BlockingQueue<OperationContextLog> NOOP_OPERATIONS_LOG = NoopQueue.instance();
     private final static BlockingQueue<JobContextLog> NOOP_JOBS_LOG = NoopQueue.instance();
-
-    private final Map<UUID, JobContext> jobsTable = new ConcurrentHashMap<>();
-    private final Map<Tuple<Integer, UUID>, OperationContext> operationsTable = new ConcurrentHashMap<>();
+    protected final NodeSettingsService.Listener listener = new NodeSettingListener();
     final AtomicReference<BlockingQueue<JobContextLog>> jobsLog = new AtomicReference<>(NOOP_JOBS_LOG);
     final AtomicReference<BlockingQueue<OperationContextLog>> operationsLog = new AtomicReference<>(NOOP_OPERATIONS_LOG);
-
+    private final Map<UUID, JobContext> jobsTable = new ConcurrentHashMap<>();
+    private final Map<Tuple<Integer, UUID>, OperationContext> operationsTable = new ConcurrentHashMap<>();
     private final JobsLogIterableGetter jobsLogIterableGetter;
     private final JobsIterableGetter jobsIterableGetter;
     private final OperationsIterableGetter operationsIterableGetter;
     private final OperationsLogIterableGetter operationsLogIterableGetter;
     private final LongAdder activeRequests = new LongAdder();
-
-    protected final NodeSettingsService.Listener listener = new NodeSettingListener();
+    volatile int lastOperationsLogSize;
+    volatile int lastJobsLogSize;
     private int initialOperationsLogSize;
     private int initialJobsLogSize;
     private boolean initialIsEnabled;
-    volatile int lastOperationsLogSize;
-    volatile int lastJobsLogSize;
     private volatile boolean lastIsEnabled;
 
     @Inject
@@ -107,6 +104,13 @@ public class StatsTables {
     }
 
     /**
+     * Generate a unique ID for an operation based on jobId and operationId.
+     */
+    private static Tuple<Integer, UUID> uniqueOperationId(int operationId, UUID jobId) {
+        return Tuple.tuple(operationId, jobId);
+    }
+
+    /**
      * Indicates if statistics are gathered.
      * This result will change if the cluster settings is updated.
      */
@@ -115,16 +119,9 @@ public class StatsTables {
     }
 
     /**
-     * Generate a unique ID for an operation based on jobId and operationId.
-     */
-    private static Tuple<Integer, UUID> uniqueOperationId(int operationId, UUID jobId) {
-        return Tuple.tuple(operationId, jobId);
-    }
-
-    /**
      * Track a job. If the job has finished {@link #logExecutionEnd(java.util.UUID, String)}
      * must be called.
-     *
+     * <p>
      * If {@link #isEnabled()} is false this method won't do anything.
      */
     public void logExecutionStart(UUID jobId, String statement) {
@@ -137,7 +134,7 @@ public class StatsTables {
 
     /**
      * mark a job as finished.
-     *
+     * <p>
      * If {@link #isEnabled()} is false this method won't do anything.
      */
     public void logExecutionEnd(UUID jobId, @Nullable String errorMessage) {
@@ -157,7 +154,7 @@ public class StatsTables {
      * Create a entry into `sys.jobs_log`
      * This method can be used instead of {@link #logExecutionEnd(UUID, String)} if there was no {@link #logExecutionStart(UUID, String)}
      * Call because an error happened during parse, analysis or plan.
-     *
+     * <p>
      * {@link #logExecutionStart(UUID, String)} is only called after a Plan has been created and execution starts.
      */
     public void logPreExecutionFailure(UUID jobId, String stmt, String errorMessage) {
@@ -168,8 +165,8 @@ public class StatsTables {
     public void operationStarted(int operationId, UUID jobId, String name) {
         if (isEnabled()) {
             operationsTable.put(
-                    uniqueOperationId(operationId, jobId),
-                    new OperationContext(operationId, jobId, name, System.currentTimeMillis()));
+                uniqueOperationId(operationId, jobId),
+                new OperationContext(operationId, jobId, name, System.currentTimeMillis()));
         }
     }
 
@@ -209,6 +206,40 @@ public class StatsTables {
         return activeRequests.longValue();
     }
 
+    private void setOperationsLog(int size) {
+        if (size == 0) {
+            operationsLog.set(NOOP_OPERATIONS_LOG);
+        } else {
+            Queue<OperationContextLog> oldQ = operationsLog.get();
+            BlockingEvictingQueue<OperationContextLog> newQ = new BlockingEvictingQueue<>(size);
+            newQ.addAll(oldQ);
+            operationsLog.set(newQ);
+        }
+    }
+
+    private void setJobsLog(int size) {
+        if (size == 0) {
+            jobsLog.set(NOOP_JOBS_LOG);
+        } else {
+            Queue<JobContextLog> oldQ = jobsLog.get();
+            BlockingEvictingQueue<JobContextLog> newQ = new BlockingEvictingQueue<>(size);
+            newQ.addAll(oldQ);
+            jobsLog.set(newQ);
+        }
+    }
+
+    private Integer extractJobsLogSize(Settings settings) {
+        return CrateSettings.STATS_JOBS_LOG_SIZE.extract(settings, initialJobsLogSize);
+    }
+
+    private Boolean extractIsEnabled(Settings settings) {
+        return CrateSettings.STATS_ENABLED.extract(settings, initialIsEnabled);
+    }
+
+    private Integer extractOperationsLogSize(Settings settings) {
+        return CrateSettings.STATS_OPERATIONS_LOG_SIZE.extract(settings, initialOperationsLogSize);
+    }
+
     private class JobsLogIterableGetter implements Supplier<Iterable<?>> {
 
         @Override
@@ -238,28 +269,6 @@ public class StatsTables {
         @Override
         public Iterable<?> get() {
             return operationsLog.get();
-        }
-    }
-
-    private void setOperationsLog(int size) {
-        if (size == 0) {
-            operationsLog.set(NOOP_OPERATIONS_LOG);
-        } else {
-            Queue<OperationContextLog> oldQ = operationsLog.get();
-            BlockingEvictingQueue<OperationContextLog> newQ = new BlockingEvictingQueue<>(size);
-            newQ.addAll(oldQ);
-            operationsLog.set(newQ);
-        }
-    }
-
-    private void setJobsLog(int size) {
-        if (size == 0) {
-            jobsLog.set(NOOP_JOBS_LOG);
-        } else {
-            Queue<JobContextLog> oldQ = jobsLog.get();
-            BlockingEvictingQueue<JobContextLog> newQ = new BlockingEvictingQueue<>(size);
-            newQ.addAll(oldQ);
-            jobsLog.set(newQ);
         }
     }
 
@@ -303,17 +312,5 @@ public class StatsTables {
                 setJobsLog(jobSize);
             }
         }
-    }
-
-    private Integer extractJobsLogSize(Settings settings) {
-        return CrateSettings.STATS_JOBS_LOG_SIZE.extract(settings, initialJobsLogSize);
-    }
-
-    private Boolean extractIsEnabled(Settings settings) {
-        return CrateSettings.STATS_ENABLED.extract(settings, initialIsEnabled);
-    }
-
-    private Integer extractOperationsLogSize(Settings settings) {
-        return CrateSettings.STATS_OPERATIONS_LOG_SIZE.extract(settings, initialOperationsLogSize);
     }
 }

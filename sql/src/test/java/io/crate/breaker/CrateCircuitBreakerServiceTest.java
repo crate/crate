@@ -24,7 +24,6 @@ package io.crate.breaker;
 import io.crate.test.integration.CrateUnitTest;
 import org.elasticsearch.common.breaker.CircuitBreaker;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.ByteSizeValue;
 import org.elasticsearch.indices.breaker.CircuitBreakerService;
 import org.elasticsearch.indices.breaker.CircuitBreakerStats;
@@ -43,7 +42,7 @@ public class CrateCircuitBreakerServiceTest extends CrateUnitTest {
         NodeSettingsService settingsService = new NodeSettingsService(Settings.EMPTY);
         CircuitBreakerService esBreakerService = new HierarchyCircuitBreakerService(Settings.EMPTY, settingsService);
         CrateCircuitBreakerService breakerService = new CrateCircuitBreakerService(
-                Settings.EMPTY, settingsService, esBreakerService);
+            Settings.EMPTY, settingsService, esBreakerService);
 
         CircuitBreaker breaker = breakerService.getBreaker(CrateCircuitBreakerService.QUERY);
         assertThat(breaker, notNullValue());
@@ -63,11 +62,11 @@ public class CrateCircuitBreakerServiceTest extends CrateUnitTest {
         };
         CircuitBreakerService esBreakerService = new HierarchyCircuitBreakerService(Settings.EMPTY, settingsService);
         CrateCircuitBreakerService breakerService = new CrateCircuitBreakerService(
-                Settings.EMPTY, settingsService, esBreakerService);
+            Settings.EMPTY, settingsService, esBreakerService);
 
         Settings newSettings = Settings.settingsBuilder()
-                .put(CrateCircuitBreakerService.QUERY_CIRCUIT_BREAKER_OVERHEAD_SETTING, 2.0)
-                .build();
+            .put(CrateCircuitBreakerService.QUERY_CIRCUIT_BREAKER_OVERHEAD_SETTING, 2.0)
+            .build();
 
         listeners[0].onRefreshSettings(newSettings);
 
@@ -88,7 +87,7 @@ public class CrateCircuitBreakerServiceTest extends CrateUnitTest {
         NodeSettingsService settingsService = new NodeSettingsService(Settings.EMPTY);
         CircuitBreakerService esBreakerService = new HierarchyCircuitBreakerService(Settings.EMPTY, settingsService);
         CrateCircuitBreakerService breakerService = new CrateCircuitBreakerService(
-                Settings.EMPTY, settingsService, esBreakerService);
+            Settings.EMPTY, settingsService, esBreakerService);
 
         CircuitBreakerStats[] stats = breakerService.stats().getAllStats();
         assertThat(stats.length, is(4));

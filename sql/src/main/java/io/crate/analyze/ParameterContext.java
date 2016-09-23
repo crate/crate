@@ -65,6 +65,15 @@ public class ParameterContext {
         this(parameters, bulkParameters, defaultSchema, SQLOperations.Option.NONE);
     }
 
+    private static DataType guessTypeSafe(Object value) throws IllegalArgumentException {
+        DataType guessedType = DataTypes.guessType(value);
+        if (guessedType == null) {
+            throw new IllegalArgumentException(String.format(Locale.ENGLISH,
+                "Got an argument \"%s\" that couldn't be recognized", value));
+        }
+        return guessedType;
+    }
+
     public Set<SQLOperations.Option> options() {
         return options;
     }
@@ -81,15 +90,6 @@ public class ParameterContext {
                 throw new IllegalArgumentException("mixed number of arguments inside bulk arguments");
             }
         }
-    }
-
-    private static DataType guessTypeSafe(Object value) throws IllegalArgumentException {
-        DataType guessedType = DataTypes.guessType(value);
-        if (guessedType == null) {
-            throw new IllegalArgumentException(String.format(Locale.ENGLISH,
-                    "Got an argument \"%s\" that couldn't be recognized", value));
-        }
-        return guessedType;
     }
 
     public boolean hasBulkParams() {
@@ -119,8 +119,8 @@ public class ParameterContext {
             return newLiteral(type, type.value(value));
         } catch (ArrayIndexOutOfBoundsException e) {
             throw new IllegalArgumentException(String.format(Locale.ENGLISH,
-                    "Tried to resolve a parameter but the arguments provided with the " +
-                            "SQLRequest don't contain a parameter at position %d", index), e);
+                "Tried to resolve a parameter but the arguments provided with the " +
+                "SQLRequest don't contain a parameter at position %d", index), e);
         }
     }
 }

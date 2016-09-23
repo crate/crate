@@ -39,10 +39,62 @@ public class DocKeys implements Iterable<DocKeys.DocKey> {
 
     private final int width;
     private final Function<List<BytesRef>, String> idFunction;
-    private int clusteredByIdx;
     private final boolean withVersions;
     private final List<List<Symbol>> docKeys;
     private final List<Integer> partitionIdx;
+    private int clusteredByIdx;
+
+    public DocKeys(List<List<Symbol>> docKeys,
+                   boolean withVersions,
+                   int clusteredByIdx,
+                   @Nullable List<Integer> partitionIdx) {
+        this.partitionIdx = partitionIdx;
+        assert ((docKeys != null) && (!docKeys.isEmpty()));
+        if (withVersions) {
+            this.width = docKeys.get(0).size() - 1;
+        } else {
+            this.width = docKeys.get(0).size();
+        }
+        this.withVersions = withVersions;
+        this.docKeys = docKeys;
+        this.clusteredByIdx = clusteredByIdx;
+        this.idFunction = Id.compile(width, clusteredByIdx);
+    }
+
+    public boolean withVersions() {
+        return withVersions;
+    }
+
+    public DocKey getOnlyKey() {
+        Preconditions.checkState(size() == 1);
+        return new DocKey(0);
+    }
+
+    public int size() {
+        return docKeys.size();
+    }
+
+    @Override
+    public Iterator<DocKey> iterator() {
+        return new Iterator<DocKey>() {
+            int i = 0;
+
+            @Override
+            public boolean hasNext() {
+                return i < docKeys.size();
+            }
+
+            @Override
+            public DocKey next() {
+                return new DocKey(i++);
+            }
+
+            @Override
+            public void remove() {
+                throw new UnsupportedOperationException();
+            }
+        };
+    }
 
     public class DocKey {
 
@@ -97,57 +149,5 @@ public class DocKeys implements Iterable<DocKeys.DocKey> {
         public List<Symbol> values() {
             return key;
         }
-    }
-
-    public DocKeys(List<List<Symbol>> docKeys,
-                   boolean withVersions,
-                   int clusteredByIdx,
-                   @Nullable List<Integer> partitionIdx) {
-        this.partitionIdx = partitionIdx;
-        assert ((docKeys != null) && (!docKeys.isEmpty()));
-        if (withVersions) {
-            this.width = docKeys.get(0).size() - 1;
-        } else {
-            this.width = docKeys.get(0).size();
-        }
-        this.withVersions = withVersions;
-        this.docKeys = docKeys;
-        this.clusteredByIdx = clusteredByIdx;
-        this.idFunction = Id.compile(width, clusteredByIdx);
-    }
-
-    public boolean withVersions() {
-        return withVersions;
-    }
-
-    public DocKey getOnlyKey() {
-        Preconditions.checkState(size() == 1);
-        return new DocKey(0);
-    }
-
-    public int size() {
-        return docKeys.size();
-    }
-
-    @Override
-    public Iterator<DocKey> iterator() {
-        return new Iterator<DocKey>() {
-            int i = 0;
-
-            @Override
-            public boolean hasNext() {
-                return i < docKeys.size();
-            }
-
-            @Override
-            public DocKey next() {
-                return new DocKey(i++);
-            }
-
-            @Override
-            public void remove() {
-                throw new UnsupportedOperationException();
-            }
-        };
     }
 }

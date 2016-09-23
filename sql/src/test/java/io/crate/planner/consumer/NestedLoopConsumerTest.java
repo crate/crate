@@ -79,68 +79,40 @@ import static org.mockito.Mockito.when;
 
 public class NestedLoopConsumerTest extends CrateUnitTest {
 
-    private Analyzer analyzer;
-    private Planner planner;
-
+    private static final TableInfo EMPTY_ROUTING_TABLE = TestingTableInfo.builder(new TableIdent(DocSchemaInfo.NAME, "empty"),
+        new Routing(ImmutableMap.<String, Map<String, List<Integer>>>of()))
+        .add("nope", DataTypes.BOOLEAN)
+        .build();
+    private final ClusterService clusterService = mock(ClusterService.class);
+    private final Planner.Context plannerContext = new Planner.Context(clusterService, UUID.randomUUID(), null, new StmtCtx(), 0, 0);
     @Rule
     public ExpectedException expectedException = ExpectedException.none();
-
-    private final ClusterService clusterService = mock(ClusterService.class);
+    private Analyzer analyzer;
+    private Planner planner;
     private NestedLoopConsumer consumer;
-    private final Planner.Context plannerContext = new Planner.Context(clusterService, UUID.randomUUID(), null, new StmtCtx(), 0, 0);
     private TableStatsService statsService;
 
     @Before
     public void initPlanner() throws Exception {
         Injector injector = new ModulesBuilder()
-                .add(new MockedClusterServiceModule())
-                .add(new TestModule())
-                .add(new MetaDataInformationModule())
-                .add(new AggregationImplModule())
-                .add(new ScalarFunctionModule())
-                .add(new PredicateModule())
-                .add(new OperatorModule())
-                .add(new RepositorySettingsModule())
-                .createInjector();
+            .add(new MockedClusterServiceModule())
+            .add(new TestModule())
+            .add(new MetaDataInformationModule())
+            .add(new AggregationImplModule())
+            .add(new ScalarFunctionModule())
+            .add(new PredicateModule())
+            .add(new OperatorModule())
+            .add(new RepositorySettingsModule())
+            .createInjector();
         analyzer = injector.getInstance(Analyzer.class);
         planner = injector.getInstance(Planner.class);
         consumer = new NestedLoopConsumer(clusterService, mock(AnalysisMetaData.class), statsService);
     }
 
-    private static final TableInfo EMPTY_ROUTING_TABLE = TestingTableInfo.builder(new TableIdent(DocSchemaInfo.NAME, "empty"),
-            new Routing(ImmutableMap.<String, Map<String, List<Integer>>>of()))
-            .add("nope", DataTypes.BOOLEAN)
-            .build();
-
-
-    private class TestModule extends MetaDataModule {
-
-        @Override
-        protected void configure() {
-            super.configure();
-            bind(ThreadPool.class).toInstance(newMockedThreadPool());
-            statsService = mock(TableStatsService.class);
-            when(statsService.numDocs(eq(BaseAnalyzerTest.USER_TABLE_IDENT))).thenReturn(10L);
-            when(statsService.numDocs(eq(BaseAnalyzerTest.USER_TABLE_IDENT_MULTI_PK))).thenReturn(5000L);
-            when(statsService.numDocs(eq(EMPTY_ROUTING_TABLE.ident()))).thenReturn(0L);
-            bind(TableStatsService.class).toInstance(statsService);
-        }
-
-        @Override
-        protected void bindSchemas() {
-            super.bindSchemas();
-            SchemaInfo schemaInfo = mock(SchemaInfo.class);
-            when(schemaInfo.getTableInfo(BaseAnalyzerTest.USER_TABLE_IDENT.name())).thenReturn(BaseAnalyzerTest.USER_TABLE_INFO);
-            when(schemaInfo.getTableInfo(BaseAnalyzerTest.USER_TABLE_IDENT_MULTI_PK.name())).thenReturn(BaseAnalyzerTest.USER_TABLE_INFO_MULTI_PK);
-            when(schemaInfo.getTableInfo(EMPTY_ROUTING_TABLE.ident().name())).thenReturn(EMPTY_ROUTING_TABLE);
-            schemaBinder.addBinding(Schemas.DEFAULT_SCHEMA_NAME).toInstance(schemaInfo);
-        }
-    }
-
     public <T> T plan(String statement) {
         Analysis analysis = analyzer.analyze(
-                SqlParser.createStatement(statement),
-                ParameterContext.EMPTY);
+            SqlParser.createStatement(statement),
+            ParameterContext.EMPTY);
         //noinspection unchecked
         return (T) planner.plan(analysis, UUID.randomUUID(), 0, 0);
     }
@@ -157,7 +129,7 @@ public class NestedLoopConsumerTest extends CrateUnitTest {
     public void testInvalidRelation() throws Exception {
         QueriedTable queriedTable = mock(QueriedTable.class);
         PlannedAnalyzedRelation relation = consumer.consume(
-                queriedTable, new ConsumerContext(queriedTable, plannerContext));
+            queriedTable, new ConsumerContext(queriedTable, plannerContext));
 
         assertThat(relation, Matchers.nullValue());
     }
@@ -168,7 +140,6 @@ public class NestedLoopConsumerTest extends CrateUnitTest {
         NestedLoopPhase nlp = (NestedLoopPhase) ((NestedLoop) plan.subPlan()).resultPhase();
         assertThat(nlp.projections().get(0).outputs(), isSQL("INPUT(1), INPUT(0)"));
     }
-
 
     @Test
     public void testFunctionWithJoinCondition() throws Exception {
@@ -191,7 +162,7 @@ public class NestedLoopConsumerTest extends CrateUnitTest {
 
         NestedLoop nestedLoop = (NestedLoop) plan.subPlan();
         assertThat(nestedLoop.nestedLoopPhase().projections(),
-                Matchers.contains(instanceOf(FilterProjection.class), instanceOf(TopNProjection.class)));
+            Matchers.contains(instanceOf(FilterProjection.class), instanceOf(TopNProjection.class)));
 
         TopNProjection topN = ((TopNProjection) nestedLoop.nestedLoopPhase().projections().get(1));
         assertThat(topN.limit(), is(TopN.NO_LIMIT));
@@ -201,7 +172,7 @@ public class NestedLoopConsumerTest extends CrateUnitTest {
         assertThat(plan.localMerge(), nullValue()); // NL Plan is non-distributed and contains localMerge
         MergePhase localMergePhase = ((MergePhase) ((NestedLoop) plan.subPlan()).resultPhase());
         assertThat(localMergePhase.projections(),
-                Matchers.contains(instanceOf(TopNProjection.class), instanceOf(FetchProjection.class)));
+            Matchers.contains(instanceOf(TopNProjection.class), instanceOf(FetchProjection.class)));
 
         TopNProjection finalTopN = ((TopNProjection) localMergePhase.projections().get(0));
         assertThat(finalTopN.limit(), is(TopN.NO_LIMIT));
@@ -220,13 +191,12 @@ public class NestedLoopConsumerTest extends CrateUnitTest {
         assertThat(plan.left().resultPhase().distributionInfo().distributionType(), is(DistributionType.BROADCAST));
     }
 
-
     @Test
     public void testExplicitCrossJoinWithoutLimitOrOrderBy() throws Exception {
         QueryThenFetch plan = plan("select u1.name, u2.name from users u1 cross join users u2");
         NestedLoop nestedLoop = (NestedLoop) plan.subPlan();
         assertThat(nestedLoop.nestedLoopPhase().projections(),
-                Matchers.contains(instanceOf(TopNProjection.class), instanceOf(FetchProjection.class)));
+            Matchers.contains(instanceOf(TopNProjection.class), instanceOf(FetchProjection.class)));
         TopNProjection topN = ((TopNProjection) nestedLoop.nestedLoopPhase().projections().get(0));
         assertThat(topN.limit(), is(TopN.NO_LIMIT));
         assertThat(topN.offset(), is(0));
@@ -238,7 +208,6 @@ public class NestedLoopConsumerTest extends CrateUnitTest {
         MergePhase rightMerge = nestedLoop.nestedLoopPhase().rightMergePhase();
         assertThat(rightMerge.projections().size(), is(0));
     }
-
 
     @Test
     public void testNoLimitPushDownWithJoinCondition() throws Exception {
@@ -333,5 +302,29 @@ public class NestedLoopConsumerTest extends CrateUnitTest {
     public void testEmptyRoutingSource() throws Exception {
         Plan plan = plan("select e.nope, u.name from empty e, users u order by e.nope, u.name");
         assertThat(plan, instanceOf(NoopPlan.class));
+    }
+
+    private class TestModule extends MetaDataModule {
+
+        @Override
+        protected void configure() {
+            super.configure();
+            bind(ThreadPool.class).toInstance(newMockedThreadPool());
+            statsService = mock(TableStatsService.class);
+            when(statsService.numDocs(eq(BaseAnalyzerTest.USER_TABLE_IDENT))).thenReturn(10L);
+            when(statsService.numDocs(eq(BaseAnalyzerTest.USER_TABLE_IDENT_MULTI_PK))).thenReturn(5000L);
+            when(statsService.numDocs(eq(EMPTY_ROUTING_TABLE.ident()))).thenReturn(0L);
+            bind(TableStatsService.class).toInstance(statsService);
+        }
+
+        @Override
+        protected void bindSchemas() {
+            super.bindSchemas();
+            SchemaInfo schemaInfo = mock(SchemaInfo.class);
+            when(schemaInfo.getTableInfo(BaseAnalyzerTest.USER_TABLE_IDENT.name())).thenReturn(BaseAnalyzerTest.USER_TABLE_INFO);
+            when(schemaInfo.getTableInfo(BaseAnalyzerTest.USER_TABLE_IDENT_MULTI_PK.name())).thenReturn(BaseAnalyzerTest.USER_TABLE_INFO_MULTI_PK);
+            when(schemaInfo.getTableInfo(EMPTY_ROUTING_TABLE.ident().name())).thenReturn(EMPTY_ROUTING_TABLE);
+            schemaBinder.addBinding(Schemas.DEFAULT_SCHEMA_NAME).toInstance(schemaInfo);
+        }
     }
 }

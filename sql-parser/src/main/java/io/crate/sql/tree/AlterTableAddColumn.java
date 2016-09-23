@@ -64,8 +64,8 @@ public class AlterTableAddColumn extends Statement {
     @Override
     public String toString() {
         return MoreObjects.toStringHelper(this)
-                .add("table", table)
-                .add("element", addColumnDefinition).toString();
+            .add("table", table)
+            .add("element", addColumnDefinition).toString();
     }
 
     @Override

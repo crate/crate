@@ -43,22 +43,21 @@ public class MatchesFunction extends Scalar<BytesRef[], Object> implements Dynam
     public static final String NAME = "regexp_matches";
 
     private static final DataType arrayStringType = new ArrayType(DataTypes.STRING);
-
-    private static FunctionInfo createInfo(List<DataType> types) {
-        return new FunctionInfo(new FunctionIdent(NAME, types), new ArrayType(types.get(0)));
-    }
-    public static void register(ScalarFunctionModule module) {
-        module.register(NAME, new MatchesFunction());
-    }
-
     private FunctionInfo info;
     private RegexMatcher regexMatcher;
 
     private MatchesFunction() {
     }
-
     public MatchesFunction(FunctionInfo info) {
         this.info = info;
+    }
+
+    private static FunctionInfo createInfo(List<DataType> types) {
+        return new FunctionInfo(new FunctionIdent(NAME, types), new ArrayType(types.get(0)));
+    }
+
+    public static void register(ScalarFunctionModule module) {
+        module.register(NAME, new MatchesFunction());
     }
 
     @Override
@@ -92,7 +91,7 @@ public class MatchesFunction extends Scalar<BytesRef[], Object> implements Dynam
         args[1] = (Input) pattern;
 
         if (size == 3) {
-            args[2] = (Input)symbol.arguments().get(2);
+            args[2] = (Input) symbol.arguments().get(2);
         }
         return Literal.newLiteral(evaluate(args), arrayStringType);
     }
@@ -134,7 +133,7 @@ public class MatchesFunction extends Scalar<BytesRef[], Object> implements Dynam
         assert patternValue instanceof BytesRef;
         // value can be a string if e.g. result is retrieved by ESSearchTask
         if (val instanceof String) {
-            val = new BytesRef((String)val);
+            val = new BytesRef((String) val);
         }
 
         RegexMatcher matcher;
@@ -149,7 +148,7 @@ public class MatchesFunction extends Scalar<BytesRef[], Object> implements Dynam
             matcher = regexMatcher;
         }
 
-        if (matcher.match((BytesRef)val)) {
+        if (matcher.match((BytesRef) val)) {
             return matcher.groups();
         }
         return null;
@@ -158,10 +157,10 @@ public class MatchesFunction extends Scalar<BytesRef[], Object> implements Dynam
     @Override
     public FunctionImplementation<Function> getForTypes(List<DataType> dataTypes) throws IllegalArgumentException {
         Preconditions.checkArgument(dataTypes.size() > 1 && dataTypes.size() < 4
-                && dataTypes.get(0) == DataTypes.STRING && dataTypes.get(1) == DataTypes.STRING,
-                String.format(Locale.ENGLISH,
-                        "[%s] Function implementation not found for argument types %s",
-                        NAME, Arrays.toString(dataTypes.toArray())));
+                                    && dataTypes.get(0) == DataTypes.STRING && dataTypes.get(1) == DataTypes.STRING,
+            String.format(Locale.ENGLISH,
+                "[%s] Function implementation not found for argument types %s",
+                NAME, Arrays.toString(dataTypes.toArray())));
         if (dataTypes.size() == 3) {
             Preconditions.checkArgument(dataTypes.get(2) == DataTypes.STRING, "flags must be of type string");
         }

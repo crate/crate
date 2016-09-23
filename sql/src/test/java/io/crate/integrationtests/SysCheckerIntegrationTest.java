@@ -70,8 +70,8 @@ public class SysCheckerIntegrationTest extends SQLTransportIntegrationTest {
     public void testNumberOfPartitionCheckPassedForDocTablesCustomAndDefaultSchemas() {
         execute("create table foo.bar (id int) partitioned by (id)");
         execute("create table bar (id int) partitioned by (id)");
-        execute("insert into foo.bar (id) values (?)", new Object[] {1});
-        execute("insert into bar (id) values (?)", new Object[] {1});
+        execute("insert into foo.bar (id) values (?)", new Object[]{1});
+        execute("insert into bar (id) values (?)", new Object[]{1});
         SQLResponse response = execute("select severity, passed from sys.checks where id=?", new Object[]{2});
         assertThat(TestingHelpers.printedTable(response.rows()), is("2| true\n"));
     }

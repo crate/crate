@@ -31,7 +31,7 @@ public class MergeCountProjector extends AbstractProjector {
 
     @Override
     public Result setNextRow(Row row) {
-        Long count = (Long)row.get(0);
+        Long count = (Long) row.get(0);
         sum += count;
         return Result.CONTINUE;
     }

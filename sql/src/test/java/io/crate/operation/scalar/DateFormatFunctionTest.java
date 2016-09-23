@@ -114,68 +114,68 @@ public class DateFormatFunctionTest extends AbstractScalarFunctionsTest {
     @Test
     public void testMySQLCompatibilityForWeeks() throws Exception {
         Map<String, Map<String, String>> dateToInputOutputMap = ImmutableMap.<String, Map<String, String>>builder()
-                .put("1970-01-30", ImmutableMap.<String, String>builder()
-                        .put("%u", "05")
-                        .put("%U", "04")
-                        .put("%v", "05")
-                        .put("%V", "04")
-                        .put("%x", "1970")
-                        .put("%X", "1970")
-                        .build())
-                .put("1996-01-01", ImmutableMap.of(
-                        "%X %V", "1995 53",
-                        "%x %v", "1996 01",
-                        "%u", "01",
-                        "%U", "00"
-                ))
-                .put("2000-01-01", ImmutableMap.<String, String>builder()
-                        .put("%u", "00")
-                        .put("%U", "00")
-                        .put("%v", "52")
-                        .put("%V", "52")
-                        .put("%x", "1999")
-                        .put("%X", "1999")
-                        .build())
-                .put("2004-01-01", ImmutableMap.<String, String>builder()
-                        .put("%u", "01")
-                        .put("%U", "00")
-                        .put("%v", "01")
-                        .put("%V", "52")
-                        .put("%x", "2004")
-                        .put("%X", "2003")
-                        .build())
-                .put("2008-02-20", ImmutableMap.<String, String>builder()
-                        .put("%u", "08")
-                        .put("%U", "07")
-                        .put("%v", "08")
-                        .put("%V", "07")
-                        .put("%x", "2008")
-                        .put("%X", "2008")
-                        .build())
-                .put("2008-12-31", ImmutableMap.<String, String>builder()
-                        .put("%u", "53")
-                        .put("%U", "52")
-                        .put("%v", "01")
-                        .put("%V", "52")
-                        .put("%x", "2009")
-                        .put("%X", "2008")
-                        .build())
-                .put("2009-01-01", ImmutableMap.<String, String>builder()
-                        .put("%u", "01")
-                        .put("%U", "00")
-                        .put("%v", "01")
-                        .put("%V", "52")
-                        .put("%x", "2009")
-                        .put("%X", "2008")
-                        .build())
-                .build();
+            .put("1970-01-30", ImmutableMap.<String, String>builder()
+                .put("%u", "05")
+                .put("%U", "04")
+                .put("%v", "05")
+                .put("%V", "04")
+                .put("%x", "1970")
+                .put("%X", "1970")
+                .build())
+            .put("1996-01-01", ImmutableMap.of(
+                "%X %V", "1995 53",
+                "%x %v", "1996 01",
+                "%u", "01",
+                "%U", "00"
+            ))
+            .put("2000-01-01", ImmutableMap.<String, String>builder()
+                .put("%u", "00")
+                .put("%U", "00")
+                .put("%v", "52")
+                .put("%V", "52")
+                .put("%x", "1999")
+                .put("%X", "1999")
+                .build())
+            .put("2004-01-01", ImmutableMap.<String, String>builder()
+                .put("%u", "01")
+                .put("%U", "00")
+                .put("%v", "01")
+                .put("%V", "52")
+                .put("%x", "2004")
+                .put("%X", "2003")
+                .build())
+            .put("2008-02-20", ImmutableMap.<String, String>builder()
+                .put("%u", "08")
+                .put("%U", "07")
+                .put("%v", "08")
+                .put("%V", "07")
+                .put("%x", "2008")
+                .put("%X", "2008")
+                .build())
+            .put("2008-12-31", ImmutableMap.<String, String>builder()
+                .put("%u", "53")
+                .put("%U", "52")
+                .put("%v", "01")
+                .put("%V", "52")
+                .put("%x", "2009")
+                .put("%X", "2008")
+                .build())
+            .put("2009-01-01", ImmutableMap.<String, String>builder()
+                .put("%u", "01")
+                .put("%U", "00")
+                .put("%v", "01")
+                .put("%V", "52")
+                .put("%x", "2009")
+                .put("%X", "2008")
+                .build())
+            .build();
         for (Map.Entry<String, Map<String, String>> entry : dateToInputOutputMap.entrySet()) {
             for (Map.Entry<String, String> ioEntry : entry.getValue().entrySet()) {
                 Symbol result = sqlExpressions.normalize(sqlExpressions.asSymbol(String.format(Locale.ENGLISH,
                     "date_format('%s', '%s')", ioEntry.getKey(), entry.getKey())));
                 assertThat(String.format(Locale.ENGLISH, "Format String '%s' returned wrong result for date '%s'", ioEntry.getKey(), entry.getKey()),
-                        result,
-                        isLiteral(ioEntry.getValue()));
+                    result,
+                    isLiteral(ioEntry.getValue()));
             }
         }
     }

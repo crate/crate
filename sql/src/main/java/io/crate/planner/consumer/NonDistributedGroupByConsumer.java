@@ -106,13 +106,12 @@ public class NonDistributedGroupByConsumer implements Consumer {
         /**
          * Group by on System Tables (never needs distribution)
          * or Group by on user tables (RowGranulariy.DOC) with only one node.
-         *
+         * <p>
          * produces:
-         *
+         * <p>
          * SELECT:
          * Collect ( GroupProjection ITER -> PARTIAL )
          * LocalMerge ( GroupProjection PARTIAL -> FINAL, [FilterProjection], TopN )
-         *
          */
         private PlannedAnalyzedRelation nonDistributedGroupBy(QueriedTableRelation table,
                                                               ConsumerContext context,
@@ -124,24 +123,24 @@ public class NonDistributedGroupByConsumer implements Consumer {
 
             // mapper / collect
             GroupProjection groupProjection = projectionBuilder.groupProjection(
-                    splitPoints.leaves(),
-                    table.querySpec().groupBy().get(),
-                    splitPoints.aggregates(),
-                    Aggregation.Step.ITER,
-                    Aggregation.Step.PARTIAL);
+                splitPoints.leaves(),
+                table.querySpec().groupBy().get(),
+                splitPoints.aggregates(),
+                Aggregation.Step.ITER,
+                Aggregation.Step.PARTIAL);
             groupProjection.setRequiredGranularity(groupProjectionGranularity);
 
             RoutedCollectPhase collectPhase = RoutedCollectPhase.forQueriedTable(
-                    context.plannerContext(),
-                    table,
-                    splitPoints.leaves(),
-                    ImmutableList.<Projection>of(groupProjection)
+                context.plannerContext(),
+                table,
+                splitPoints.leaves(),
+                ImmutableList.<Projection>of(groupProjection)
             );
 
             // handler
             List<Symbol> collectOutputs = new ArrayList<>(
-                    groupBy.size() +
-                            splitPoints.aggregates().size());
+                groupBy.size() +
+                splitPoints.aggregates().size());
             collectOutputs.addAll(groupBy);
             collectOutputs.addAll(splitPoints.aggregates());
 
@@ -150,21 +149,21 @@ public class NonDistributedGroupByConsumer implements Consumer {
 
             List<Projection> projections = new ArrayList<>();
             projections.add(projectionBuilder.groupProjection(
-                    collectOutputs,
-                    table.querySpec().groupBy().get(),
-                    splitPoints.aggregates(),
-                    Aggregation.Step.PARTIAL,
-                    Aggregation.Step.FINAL
+                collectOutputs,
+                table.querySpec().groupBy().get(),
+                splitPoints.aggregates(),
+                Aggregation.Step.PARTIAL,
+                Aggregation.Step.FINAL
             ));
 
             Optional<HavingClause> havingClause = table.querySpec().having();
             if (havingClause.isPresent()) {
                 if (havingClause.get().noMatch()) {
                     return new NoopPlannedAnalyzedRelation(table, context.plannerContext().jobId());
-                } else if (havingClause.get().hasQuery()){
+                } else if (havingClause.get().hasQuery()) {
                     projections.add(ProjectionBuilder.filterProjection(
-                            collectOutputs,
-                            havingClause.get().query()
+                        collectOutputs,
+                        havingClause.get().query()
                     ));
                 }
             }
@@ -179,24 +178,24 @@ public class NonDistributedGroupByConsumer implements Consumer {
              */
             boolean isRootRelation = context.rootRelation() == table;
             boolean outputsMatch = table.querySpec().outputs().size() == collectOutputs.size() &&
-                                    collectOutputs.containsAll(table.querySpec().outputs());
+                                   collectOutputs.containsAll(table.querySpec().outputs());
             if (isRootRelation || !outputsMatch) {
                 Planner.Context.Limits limits = context.plannerContext().getLimits(context.isRoot(), table.querySpec());
                 Integer offset = (isRootRelation ? table.querySpec().offset() : TopN.NO_OFFSET);
                 projections.add(ProjectionBuilder.topNProjection(
-                        collectOutputs,
-                        table.querySpec().orderBy().orNull(),
-                        offset,
-                        isRootRelation ? limits.finalLimit() : limits.limitAndOffset(),
-                        table.querySpec().outputs()
+                    collectOutputs,
+                    table.querySpec().orderBy().orNull(),
+                    offset,
+                    isRootRelation ? limits.finalLimit() : limits.limitAndOffset(),
+                    table.querySpec().outputs()
                 ));
             }
             MergePhase localMergeNode = MergePhase.localMerge(
-                    context.plannerContext().jobId(),
-                    context.plannerContext().nextExecutionPhaseId(),
-                    projections,
-                    collectPhase.executionNodes().size(),
-                    collectPhase.outputTypes());
+                context.plannerContext().jobId(),
+                context.plannerContext().nextExecutionPhaseId(),
+                projections,
+                collectPhase.executionNodes().size(),
+                collectPhase.outputTypes());
             return new CollectAndMerge(collectPhase, localMergeNode);
         }
     }

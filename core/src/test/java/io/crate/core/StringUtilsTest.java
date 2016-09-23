@@ -34,9 +34,9 @@ public class StringUtilsTest extends CrateUnitTest {
         assertEquals(ImmutableSet.of("a"), StringUtils.commonAncestors(Arrays.asList("a", "a.b")));
 
         assertEquals(ImmutableSet.of("d", "a", "b"),
-                StringUtils.commonAncestors(Arrays.asList("a.c", "b", "b.c.d", "a", "a.b", "d")));
+            StringUtils.commonAncestors(Arrays.asList("a.c", "b", "b.c.d", "a", "a.b", "d")));
 
         assertEquals(ImmutableSet.of("d", "a", "b.c"),
-                StringUtils.commonAncestors(Arrays.asList("a.c", "b.c", "b.c.d", "a", "a.b", "d")));
+            StringUtils.commonAncestors(Arrays.asList("a.c", "b.c", "b.c.d", "a", "a.b", "d")));
     }
 }

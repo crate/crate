@@ -43,37 +43,23 @@ import java.util.List;
 public class CountAggregation extends AggregationFunction<CountAggregation.LongState, Long> {
 
     public static final String NAME = "count";
-    private final FunctionInfo info;
-    private final boolean hasArgs;
+    public static final FunctionInfo COUNT_STAR_FUNCTION = new FunctionInfo(new FunctionIdent(NAME,
+        ImmutableList.<DataType>of()), DataTypes.LONG, FunctionInfo.Type.AGGREGATE);
 
     static {
         DataTypes.register(CountAggregation.LongStateType.ID, CountAggregation.LongStateType.INSTANCE);
     }
 
-    public static final FunctionInfo COUNT_STAR_FUNCTION = new FunctionInfo(new FunctionIdent(NAME,
-        ImmutableList.<DataType>of()), DataTypes.LONG, FunctionInfo.Type.AGGREGATE);
-
-    public static void register(AggregationImplModule mod) {
-        mod.register(NAME, new CountAggregationFunctionResolver());
-    }
-
-    private static class CountAggregationFunctionResolver implements DynamicFunctionResolver {
-
-        @Override
-        public FunctionImplementation<Function> getForTypes(List<DataType> dataTypes) throws IllegalArgumentException {
-            if (dataTypes.size() == 0) {
-                return new CountAggregation(COUNT_STAR_FUNCTION, false);
-            } else {
-                return new CountAggregation(
-                    new FunctionInfo(new FunctionIdent(NAME, dataTypes),
-                        DataTypes.LONG, FunctionInfo.Type.AGGREGATE), true);
-            }
-        }
-    }
+    private final FunctionInfo info;
+    private final boolean hasArgs;
 
     private CountAggregation(FunctionInfo info, boolean hasArgs) {
         this.info = info;
         this.hasArgs = hasArgs;
+    }
+
+    public static void register(AggregationImplModule mod) {
+        mod.register(NAME, new CountAggregationFunctionResolver());
     }
 
     @Override
@@ -124,6 +110,20 @@ public class CountAggregation extends AggregationFunction<CountAggregation.LongS
     @Override
     public Long terminatePartial(RamAccountingContext ramAccountingContext, LongState state) {
         return state.value;
+    }
+
+    private static class CountAggregationFunctionResolver implements DynamicFunctionResolver {
+
+        @Override
+        public FunctionImplementation<Function> getForTypes(List<DataType> dataTypes) throws IllegalArgumentException {
+            if (dataTypes.size() == 0) {
+                return new CountAggregation(COUNT_STAR_FUNCTION, false);
+            } else {
+                return new CountAggregation(
+                    new FunctionInfo(new FunctionIdent(NAME, dataTypes),
+                        DataTypes.LONG, FunctionInfo.Type.AGGREGATE), true);
+            }
+        }
     }
 
     public static class LongState implements Comparable<CountAggregation.LongState> {

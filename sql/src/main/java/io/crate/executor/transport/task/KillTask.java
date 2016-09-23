@@ -36,7 +36,7 @@ import java.util.UUID;
 
 public class KillTask extends JobTask {
 
-    static final Function<KillResponse,Row> KILL_RESPONSE_TO_ROW_FUNCTION = new Function<KillResponse, Row>() {
+    static final Function<KillResponse, Row> KILL_RESPONSE_TO_ROW_FUNCTION = new Function<KillResponse, Row>() {
         @Nullable
         @Override
         public Row apply(@Nullable KillResponse input) {

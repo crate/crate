@@ -40,6 +40,8 @@ import java.util.UUID;
 
 public class ESGet extends PlanAndPlannedAnalyzedRelation {
 
+    private final static boolean[] EMPTY_REVERSE_FLAGS = new boolean[0];
+    private final static Boolean[] EMPTY_NULLS_FIRST = new Boolean[0];
     private final DocTableInfo tableInfo;
     private final QuerySpec querySpec;
     private final List<Symbol> sortSymbols;
@@ -47,9 +49,6 @@ public class ESGet extends PlanAndPlannedAnalyzedRelation {
     private final Boolean[] nullsFirst;
     private final int executionPhaseId;
     private final UUID jobId;
-
-    private final static boolean[] EMPTY_REVERSE_FLAGS = new boolean[0];
-    private final static Boolean[] EMPTY_NULLS_FIRST = new Boolean[0];
     private final DocKeys docKeys;
     private final List<Symbol> outputs;
     private final List<DataType> outputTypes;
@@ -72,7 +71,7 @@ public class ESGet extends PlanAndPlannedAnalyzedRelation {
 
         outputTypes = Symbols.extractTypes(outputs);
 
-        if (querySpec.orderBy().isPresent()){
+        if (querySpec.orderBy().isPresent()) {
             this.sortSymbols = querySpec.orderBy().get().orderBySymbols();
             this.reverseFlags = querySpec.orderBy().get().reverseFlags();
             this.nullsFirst = querySpec.orderBy().get().nullsFirst();
@@ -130,9 +129,9 @@ public class ESGet extends PlanAndPlannedAnalyzedRelation {
     @Override
     public String toString() {
         return MoreObjects.toStringHelper(this)
-                .add("docKeys", docKeys)
-                .add("outputs", outputs)
-                .toString();
+            .add("docKeys", docKeys)
+            .add("outputs", outputs)
+            .toString();
     }
 
     @Override

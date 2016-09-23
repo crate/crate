@@ -22,14 +22,14 @@
 
 package org.apache.lucene.index;
 
-import java.io.IOException;
-import java.util.Iterator;
-
 import org.apache.lucene.search.DocIdSetIterator;
 import org.apache.lucene.util.Bits;
 import org.apache.lucene.util.BytesRef;
 import org.apache.lucene.util.VirtualMethod;
 import org.apache.lucene.util.automaton.CompiledAutomaton;
+
+import java.io.IOException;
+import java.util.Iterator;
 
 /**
  * A {@link FilterLeafReader} that can be used to apply
@@ -37,16 +37,7 @@ import org.apache.lucene.util.automaton.CompiledAutomaton;
  */
 public class AssertingLeafReader extends FilterLeafReader {
 
-    private static void assertThread(String object, Thread creationThread) {
-        // CRATE PATCH: pause/resume logic in crate can cause thread switches 
-        /*
-        if (creationThread != Thread.currentThread()) {
-            throw new AssertionError(object + " are only supposed to be consumed in "
-                                     + "the thread in which they have been acquired. But was acquired in "
-                                     + creationThread + " and consumed in " + Thread.currentThread() + ".");
-        }
-        */
-    }
+    static final VirtualMethod<TermsEnum> SEEK_EXACT = new VirtualMethod<>(TermsEnum.class, "seekExact", BytesRef.class);
 
     public AssertingLeafReader(LeafReader in) {
         super(in);
@@ -66,6 +57,17 @@ public class AssertingLeafReader extends FilterLeafReader {
         });
     }
 
+    private static void assertThread(String object, Thread creationThread) {
+        // CRATE PATCH: pause/resume logic in crate can cause thread switches 
+        /*
+        if (creationThread != Thread.currentThread()) {
+            throw new AssertionError(object + " are only supposed to be consumed in "
+                                     + "the thread in which they have been acquired. But was acquired in "
+                                     + creationThread + " and consumed in " + Thread.currentThread() + ".");
+        }
+        */
+    }
+
     @Override
     public Fields fields() throws IOException {
         return new AssertingFields(super.fields());
@@ -76,6 +78,136 @@ public class AssertingLeafReader extends FilterLeafReader {
         Fields fields = super.getTermVectors(docID);
         return fields == null ? null : new AssertingFields(fields);
     }
+
+    @Override
+    public NumericDocValues getNumericDocValues(String field) throws IOException {
+        NumericDocValues dv = super.getNumericDocValues(field);
+        FieldInfo fi = getFieldInfos().fieldInfo(field);
+        if (dv != null) {
+            assert fi != null;
+            assert fi.getDocValuesType() == DocValuesType.NUMERIC;
+            return new AssertingNumericDocValues(dv, maxDoc());
+        } else {
+            assert fi == null || fi.getDocValuesType() != DocValuesType.NUMERIC;
+            return null;
+        }
+    }
+
+    @Override
+    public BinaryDocValues getBinaryDocValues(String field) throws IOException {
+        BinaryDocValues dv = super.getBinaryDocValues(field);
+        FieldInfo fi = getFieldInfos().fieldInfo(field);
+        if (dv != null) {
+            assert fi != null;
+            assert fi.getDocValuesType() == DocValuesType.BINARY;
+            return new AssertingBinaryDocValues(dv, maxDoc());
+        } else {
+            assert fi == null || fi.getDocValuesType() != DocValuesType.BINARY;
+            return null;
+        }
+    }
+
+    @Override
+    public SortedDocValues getSortedDocValues(String field) throws IOException {
+        SortedDocValues dv = super.getSortedDocValues(field);
+        FieldInfo fi = getFieldInfos().fieldInfo(field);
+        if (dv != null) {
+            assert fi != null;
+            assert fi.getDocValuesType() == DocValuesType.SORTED;
+            return new AssertingSortedDocValues(dv, maxDoc());
+        } else {
+            assert fi == null || fi.getDocValuesType() != DocValuesType.SORTED;
+            return null;
+        }
+    }
+
+    @Override
+    public SortedNumericDocValues getSortedNumericDocValues(String field) throws IOException {
+        SortedNumericDocValues dv = super.getSortedNumericDocValues(field);
+        FieldInfo fi = getFieldInfos().fieldInfo(field);
+        if (dv != null) {
+            assert fi != null;
+            assert fi.getDocValuesType() == DocValuesType.SORTED_NUMERIC;
+            return new AssertingSortedNumericDocValues(dv, maxDoc());
+        } else {
+            assert fi == null || fi.getDocValuesType() != DocValuesType.SORTED_NUMERIC;
+            return null;
+        }
+    }
+
+    ;
+
+    @Override
+    public SortedSetDocValues getSortedSetDocValues(String field) throws IOException {
+        SortedSetDocValues dv = super.getSortedSetDocValues(field);
+        FieldInfo fi = getFieldInfos().fieldInfo(field);
+        if (dv != null) {
+            assert fi != null;
+            assert fi.getDocValuesType() == DocValuesType.SORTED_SET;
+            if (dv instanceof RandomAccessOrds) {
+                return new AssertingRandomAccessOrds((RandomAccessOrds) dv, maxDoc());
+            } else {
+                return new AssertingSortedSetDocValues(dv, maxDoc());
+            }
+        } else {
+            assert fi == null || fi.getDocValuesType() != DocValuesType.SORTED_SET;
+            return null;
+        }
+    }
+
+    @Override
+    public NumericDocValues getNormValues(String field) throws IOException {
+        NumericDocValues dv = super.getNormValues(field);
+        FieldInfo fi = getFieldInfos().fieldInfo(field);
+        if (dv != null) {
+            assert fi != null;
+            assert fi.hasNorms();
+            return new AssertingNumericDocValues(dv, maxDoc());
+        } else {
+            assert fi == null || fi.hasNorms() == false;
+            return null;
+        }
+    }
+
+    @Override
+    public Bits getLiveDocs() {
+        Bits liveDocs = super.getLiveDocs();
+        if (liveDocs != null) {
+            assert maxDoc() == liveDocs.length();
+            liveDocs = new AssertingBits(liveDocs);
+        } else {
+            assert maxDoc() == numDocs();
+            assert !hasDeletions();
+        }
+        return liveDocs;
+    }
+
+    @Override
+    public Bits getDocsWithField(String field) throws IOException {
+        Bits docsWithField = super.getDocsWithField(field);
+        FieldInfo fi = getFieldInfos().fieldInfo(field);
+        if (docsWithField != null) {
+            assert fi != null;
+            assert fi.getDocValuesType() != DocValuesType.NONE;
+            assert maxDoc() == docsWithField.length();
+            docsWithField = new AssertingBits(docsWithField);
+        } else {
+            assert fi == null || fi.getDocValuesType() == DocValuesType.NONE;
+        }
+        return docsWithField;
+    }
+
+    @Override
+    public Object getCoreCacheKey() {
+        return in.getCoreCacheKey();
+    }
+
+    @Override
+    public Object getCombinedCoreAndDeletesKey() {
+        return in.getCombinedCoreAndDeletesKey();
+    }
+
+    static enum DocsEnumState {START, ITERATING, FINISHED}
 
     /**
      * Wraps a Fields but with additional asserts
@@ -137,14 +269,12 @@ public class AssertingLeafReader extends FilterLeafReader {
         }
     }
 
-    static final VirtualMethod<TermsEnum> SEEK_EXACT = new VirtualMethod<>(TermsEnum.class, "seekExact", BytesRef.class);
-
     static class AssertingTermsEnum extends FilterTermsEnum {
         private final Thread creationThread = Thread.currentThread();
-        private enum State {INITIAL, POSITIONED, UNPOSITIONED};
-        private State state = State.INITIAL;
         private final boolean delegateOverridesSeekExact;
 
+        ;
+        private State state = State.INITIAL;
         public AssertingTermsEnum(TermsEnum in) {
             super(in);
             delegateOverridesSeekExact = SEEK_EXACT.isOverriddenAsOf(in.getClass());
@@ -153,7 +283,7 @@ public class AssertingLeafReader extends FilterLeafReader {
         @Override
         public PostingsEnum postings(PostingsEnum reuse, int flags) throws IOException {
             assertThread("Terms enums", creationThread);
-            assert state == State.POSITIONED: "docs(...) called on unpositioned TermsEnum";
+            assert state == State.POSITIONED : "docs(...) called on unpositioned TermsEnum";
 
             // reuse if the codec reused
             final PostingsEnum actualReuse;
@@ -169,7 +299,7 @@ public class AssertingLeafReader extends FilterLeafReader {
             }
             if (docs == actualReuse) {
                 // codec reused, reset asserting state
-                ((AssertingPostingsEnum)reuse).reset();
+                ((AssertingPostingsEnum) reuse).reset();
                 return reuse;
             } else {
                 return new AssertingPostingsEnum(docs);
@@ -181,7 +311,7 @@ public class AssertingLeafReader extends FilterLeafReader {
         @Override
         public BytesRef next() throws IOException {
             assertThread("Terms enums", creationThread);
-            assert state == State.INITIAL || state == State.POSITIONED: "next() called on unpositioned TermsEnum";
+            assert state == State.INITIAL || state == State.POSITIONED : "next() called on unpositioned TermsEnum";
             BytesRef result = super.next();
             if (result == null) {
                 state = State.UNPOSITIONED;
@@ -283,16 +413,18 @@ public class AssertingLeafReader extends FilterLeafReader {
         void reset() {
             state = State.INITIAL;
         }
+
+        private enum State {INITIAL, POSITIONED, UNPOSITIONED}
     }
 
-    static enum DocsEnumState { START, ITERATING, FINISHED };
-
-    /** Wraps a docsenum with additional checks */
+    /**
+     * Wraps a docsenum with additional checks
+     */
     public static class AssertingPostingsEnum extends FilterPostingsEnum {
         private final Thread creationThread = Thread.currentThread();
-        private DocsEnumState state = DocsEnumState.START;
         int positionCount = 0;
         int positionMax = 0;
+        private DocsEnumState state = DocsEnumState.START;
         private int doc;
 
         public AssertingPostingsEnum(PostingsEnum in) {
@@ -340,7 +472,9 @@ public class AssertingLeafReader extends FilterLeafReader {
         @Override
         public int docID() {
             assertThread("Docs enums", creationThread);
-            assert doc == super.docID() : " invalid docID() in " + in.getClass() + " " + super.docID() + " instead of " + doc;
+            assert
+                doc == super.docID() :
+                " invalid docID() in " + in.getClass() + " " + super.docID() + " instead of " + doc;
             return doc;
         }
 
@@ -398,7 +532,9 @@ public class AssertingLeafReader extends FilterLeafReader {
         }
     }
 
-    /** Wraps a NumericDocValues but with additional asserts */
+    /**
+     * Wraps a NumericDocValues but with additional asserts
+     */
     public static class AssertingNumericDocValues extends NumericDocValues {
         private final Thread creationThread = Thread.currentThread();
         private final NumericDocValues in;
@@ -417,7 +553,9 @@ public class AssertingLeafReader extends FilterLeafReader {
         }
     }
 
-    /** Wraps a BinaryDocValues but with additional asserts */
+    /**
+     * Wraps a BinaryDocValues but with additional asserts
+     */
     public static class AssertingBinaryDocValues extends BinaryDocValues {
         private final Thread creationThread = Thread.currentThread();
         private final BinaryDocValues in;
@@ -438,7 +576,9 @@ public class AssertingLeafReader extends FilterLeafReader {
         }
     }
 
-    /** Wraps a SortedDocValues but with additional asserts */
+    /**
+     * Wraps a SortedDocValues but with additional asserts
+     */
     public static class AssertingSortedDocValues extends SortedDocValues {
         private final Thread creationThread = Thread.currentThread();
         private final SortedDocValues in;
@@ -498,7 +638,9 @@ public class AssertingLeafReader extends FilterLeafReader {
         }
     }
 
-    /** Wraps a SortedSetDocValues but with additional asserts */
+    /**
+     * Wraps a SortedSetDocValues but with additional asserts
+     */
     public static class AssertingSortedNumericDocValues extends SortedNumericDocValues {
         private final Thread creationThread = Thread.currentThread();
         private final SortedNumericDocValues in;
@@ -537,7 +679,9 @@ public class AssertingLeafReader extends FilterLeafReader {
         }
     }
 
-    /** Wraps a RandomAccessOrds but with additional asserts */
+    /**
+     * Wraps a RandomAccessOrds but with additional asserts
+     */
     public static class AssertingRandomAccessOrds extends RandomAccessOrds {
         private final Thread creationThread = Thread.currentThread();
         private final RandomAccessOrds in;
@@ -616,7 +760,11 @@ public class AssertingLeafReader extends FilterLeafReader {
         }
     }
 
-    /** Wraps a SortedSetDocValues but with additional asserts */
+    // we don't change behavior of the reader: just validate the API.
+
+    /**
+     * Wraps a SortedSetDocValues but with additional asserts
+     */
     public static class AssertingSortedSetDocValues extends SortedSetDocValues {
         private final Thread creationThread = Thread.currentThread();
         private final SortedSetDocValues in;
@@ -678,98 +826,12 @@ public class AssertingLeafReader extends FilterLeafReader {
         }
     }
 
-    @Override
-    public NumericDocValues getNumericDocValues(String field) throws IOException {
-        NumericDocValues dv = super.getNumericDocValues(field);
-        FieldInfo fi = getFieldInfos().fieldInfo(field);
-        if (dv != null) {
-            assert fi != null;
-            assert fi.getDocValuesType() == DocValuesType.NUMERIC;
-            return new AssertingNumericDocValues(dv, maxDoc());
-        } else {
-            assert fi == null || fi.getDocValuesType() != DocValuesType.NUMERIC;
-            return null;
-        }
-    }
-
-    @Override
-    public BinaryDocValues getBinaryDocValues(String field) throws IOException {
-        BinaryDocValues dv = super.getBinaryDocValues(field);
-        FieldInfo fi = getFieldInfos().fieldInfo(field);
-        if (dv != null) {
-            assert fi != null;
-            assert fi.getDocValuesType() == DocValuesType.BINARY;
-            return new AssertingBinaryDocValues(dv, maxDoc());
-        } else {
-            assert fi == null || fi.getDocValuesType() != DocValuesType.BINARY;
-            return null;
-        }
-    }
-
-    @Override
-    public SortedDocValues getSortedDocValues(String field) throws IOException {
-        SortedDocValues dv = super.getSortedDocValues(field);
-        FieldInfo fi = getFieldInfos().fieldInfo(field);
-        if (dv != null) {
-            assert fi != null;
-            assert fi.getDocValuesType() == DocValuesType.SORTED;
-            return new AssertingSortedDocValues(dv, maxDoc());
-        } else {
-            assert fi == null || fi.getDocValuesType() != DocValuesType.SORTED;
-            return null;
-        }
-    }
-
-    @Override
-    public SortedNumericDocValues getSortedNumericDocValues(String field) throws IOException {
-        SortedNumericDocValues dv = super.getSortedNumericDocValues(field);
-        FieldInfo fi = getFieldInfos().fieldInfo(field);
-        if (dv != null) {
-            assert fi != null;
-            assert fi.getDocValuesType() == DocValuesType.SORTED_NUMERIC;
-            return new AssertingSortedNumericDocValues(dv, maxDoc());
-        } else {
-            assert fi == null || fi.getDocValuesType() != DocValuesType.SORTED_NUMERIC;
-            return null;
-        }
-    }
-
-    @Override
-    public SortedSetDocValues getSortedSetDocValues(String field) throws IOException {
-        SortedSetDocValues dv = super.getSortedSetDocValues(field);
-        FieldInfo fi = getFieldInfos().fieldInfo(field);
-        if (dv != null) {
-            assert fi != null;
-            assert fi.getDocValuesType() == DocValuesType.SORTED_SET;
-            if (dv instanceof RandomAccessOrds) {
-                return new AssertingRandomAccessOrds((RandomAccessOrds) dv, maxDoc());
-            } else {
-                return new AssertingSortedSetDocValues(dv, maxDoc());
-            }
-        } else {
-            assert fi == null || fi.getDocValuesType() != DocValuesType.SORTED_SET;
-            return null;
-        }
-    }
-
-    @Override
-    public NumericDocValues getNormValues(String field) throws IOException {
-        NumericDocValues dv = super.getNormValues(field);
-        FieldInfo fi = getFieldInfos().fieldInfo(field);
-        if (dv != null) {
-            assert fi != null;
-            assert fi.hasNorms();
-            return new AssertingNumericDocValues(dv, maxDoc());
-        } else {
-            assert fi == null || fi.hasNorms() == false;
-            return null;
-        }
-    }
-
-    /** Wraps a Bits but with additional asserts */
+    /**
+     * Wraps a Bits but with additional asserts
+     */
     public static class AssertingBits implements Bits {
-        private final Thread creationThread = Thread.currentThread();
         final Bits in;
+        private final Thread creationThread = Thread.currentThread();
 
         public AssertingBits(Bits in) {
             this.in = in;
@@ -787,45 +849,5 @@ public class AssertingLeafReader extends FilterLeafReader {
             assertThread("Bits", creationThread);
             return in.length();
         }
-    }
-
-    @Override
-    public Bits getLiveDocs() {
-        Bits liveDocs = super.getLiveDocs();
-        if (liveDocs != null) {
-            assert maxDoc() == liveDocs.length();
-            liveDocs = new AssertingBits(liveDocs);
-        } else {
-            assert maxDoc() == numDocs();
-            assert !hasDeletions();
-        }
-        return liveDocs;
-    }
-
-    @Override
-    public Bits getDocsWithField(String field) throws IOException {
-        Bits docsWithField = super.getDocsWithField(field);
-        FieldInfo fi = getFieldInfos().fieldInfo(field);
-        if (docsWithField != null) {
-            assert fi != null;
-            assert fi.getDocValuesType() != DocValuesType.NONE;
-            assert maxDoc() == docsWithField.length();
-            docsWithField = new AssertingBits(docsWithField);
-        } else {
-            assert fi == null || fi.getDocValuesType() == DocValuesType.NONE;
-        }
-        return docsWithField;
-    }
-
-    // we don't change behavior of the reader: just validate the API.
-
-    @Override
-    public Object getCoreCacheKey() {
-        return in.getCoreCacheKey();
-    }
-
-    @Override
-    public Object getCombinedCoreAndDeletesKey() {
-        return in.getCombinedCoreAndDeletesKey();
     }
 }

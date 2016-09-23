@@ -55,41 +55,41 @@ public class GeoJSONUtils {
     public static final String MULTI_POLYGON = "MultiPolygon";
 
     public static final ImmutableMap<String, String> GEOSJON_TYPES = ImmutableMap.<String, String>builder()
-            .put(GEOMETRY_COLLECTION, GEOMETRY_COLLECTION)
-            .put(GEOMETRY_COLLECTION.toLowerCase(Locale.ENGLISH), GEOMETRY_COLLECTION)
-            .put(POINT, POINT)
-            .put(POINT.toLowerCase(Locale.ENGLISH), POINT)
-            .put(MULTI_POINT, MULTI_POINT)
-            .put(MULTI_POINT.toLowerCase(Locale.ENGLISH), MULTI_POINT)
-            .put(LINE_STRING, LINE_STRING)
-            .put(LINE_STRING.toLowerCase(Locale.ENGLISH), LINE_STRING)
-            .put(MULTI_LINE_STRING, MULTI_LINE_STRING)
-            .put(MULTI_LINE_STRING.toLowerCase(Locale.ENGLISH), MULTI_LINE_STRING)
-            .put(POLYGON, POLYGON)
-            .put(POLYGON.toLowerCase(Locale.ENGLISH), POLYGON)
-            .put(MULTI_POLYGON, MULTI_POLYGON)
-            .put(MULTI_POLYGON.toLowerCase(Locale.ENGLISH), MULTI_POLYGON)
-            .build();
+        .put(GEOMETRY_COLLECTION, GEOMETRY_COLLECTION)
+        .put(GEOMETRY_COLLECTION.toLowerCase(Locale.ENGLISH), GEOMETRY_COLLECTION)
+        .put(POINT, POINT)
+        .put(POINT.toLowerCase(Locale.ENGLISH), POINT)
+        .put(MULTI_POINT, MULTI_POINT)
+        .put(MULTI_POINT.toLowerCase(Locale.ENGLISH), MULTI_POINT)
+        .put(LINE_STRING, LINE_STRING)
+        .put(LINE_STRING.toLowerCase(Locale.ENGLISH), LINE_STRING)
+        .put(MULTI_LINE_STRING, MULTI_LINE_STRING)
+        .put(MULTI_LINE_STRING.toLowerCase(Locale.ENGLISH), MULTI_LINE_STRING)
+        .put(POLYGON, POLYGON)
+        .put(POLYGON.toLowerCase(Locale.ENGLISH), POLYGON)
+        .put(MULTI_POLYGON, MULTI_POLYGON)
+        .put(MULTI_POLYGON.toLowerCase(Locale.ENGLISH), MULTI_POLYGON)
+        .build();
 
     private static final GeoJSONMapConverter GEOJSON_CONVERTER = new GeoJSONMapConverter();
 
     public static Map<String, Object> shape2Map(Shape shape) {
         if (shape instanceof ShapeCollection) {
-            ShapeCollection<?> shapeCollection = (ShapeCollection<?>)shape;
+            ShapeCollection<?> shapeCollection = (ShapeCollection<?>) shape;
             List<Map<String, Object>> geometries = new ArrayList<>(shapeCollection.size());
-            for(Shape collShape : shapeCollection) {
+            for (Shape collShape : shapeCollection) {
                 geometries.add(shape2Map(collShape));
             }
             return ImmutableMap.of(
-                    TYPE_FIELD, GEOMETRY_COLLECTION,
-                    GEOMETRIES_FIELD, geometries
-                    );
+                TYPE_FIELD, GEOMETRY_COLLECTION,
+                GEOMETRIES_FIELD, geometries
+            );
         } else {
             try {
                 return GEOJSON_CONVERTER.convert(JtsSpatialContext.GEO.getGeometryFrom(shape));
             } catch (InvalidShapeException e) {
                 throw new IllegalArgumentException(
-                        String.format(Locale.ENGLISH, "Cannot convert shape %s to Map", shape), e);
+                    String.format(Locale.ENGLISH, "Cannot convert shape %s to Map", shape), e);
             }
         }
     }
@@ -99,7 +99,7 @@ public class GeoJSONUtils {
             return JtsSpatialContext.GEO.readShapeFromWkt(wkt);
         } catch (Throwable e) {
             throw new IllegalArgumentException(String.format(Locale.ENGLISH,
-                    "Cannot convert WKT \"%s\" to shape", wkt), e);
+                "Cannot convert WKT \"%s\" to shape", wkt), e);
         }
     }
 
@@ -118,7 +118,7 @@ public class GeoJSONUtils {
             return geoJSONString2Shape(XContentFactory.jsonBuilder().map(geoJSONMap).string());
         } catch (Throwable e) {
             throw new IllegalArgumentException(String.format(Locale.ENGLISH,
-                    "Cannot convert Map \"%s\" to shape", geoJSONMap), e);
+                "Cannot convert Map \"%s\" to shape", geoJSONMap), e);
         }
     }
 
@@ -129,7 +129,7 @@ public class GeoJSONUtils {
             return ShapeBuilder.parse(parser).build();
         } catch (Throwable t) {
             throw new IllegalArgumentException(String.format(Locale.ENGLISH,
-                    "Cannot convert GeoJSON \"%s\" to shape", geoJSON), t);
+                "Cannot convert GeoJSON \"%s\" to shape", geoJSON), t);
         }
     }
 
@@ -156,7 +156,7 @@ public class GeoJSONUtils {
                     if (!(input instanceof Map)) {
                         throw new IllegalArgumentException(invalidGeoJSON("invalid GeometryCollection"));
                     } else {
-                        validateGeoJson((Map)input);
+                        validateGeoJson((Map) input);
                     }
                 }
             });
@@ -165,7 +165,7 @@ public class GeoJSONUtils {
             if (coordinates == null) {
                 throw new IllegalArgumentException(invalidGeoJSON("coordinates field missing"));
             }
-            switch(type) {
+            switch (type) {
                 case POINT:
                     validateCoordinate(coordinates);
                     break;
@@ -192,7 +192,7 @@ public class GeoJSONUtils {
             @Override
             public void accept(Object input) {
                 if (depth > 1) {
-                    validateCoordinates(input, depth-1);
+                    validateCoordinates(input, depth - 1);
                 } else {
                     // at coordinate level
                     validateCoordinate(input);
@@ -207,19 +207,20 @@ public class GeoJSONUtils {
             double y;
             if (coordinate.getClass().isArray()) {
                 Preconditions.checkArgument(Array.getLength(coordinate) == 2, invalidGeoJSON("invalid coordinate"));
-                x = ((Number)Array.get(coordinate, 0)).doubleValue();
-                y = ((Number)Array.get(coordinate, 1)).doubleValue();
+                x = ((Number) Array.get(coordinate, 0)).doubleValue();
+                y = ((Number) Array.get(coordinate, 1)).doubleValue();
             } else if (coordinate instanceof Collection) {
-                Preconditions.checkArgument(((Collection) coordinate).size() == 2, invalidGeoJSON("invalid coordinate"));
+                Preconditions.checkArgument(
+                    ((Collection) coordinate).size() == 2, invalidGeoJSON("invalid coordinate"));
                 Iterator iter = ((Collection) coordinate).iterator();
-                x = ((Number)iter.next()).doubleValue();
-                y = ((Number)iter.next()).doubleValue();
+                x = ((Number) iter.next()).doubleValue();
+                y = ((Number) iter.next()).doubleValue();
             } else {
                 throw new IllegalArgumentException(invalidGeoJSON("invalid coordinate"));
             }
             JtsSpatialContext.GEO.verifyX(x);
             JtsSpatialContext.GEO.verifyY(y);
-        } catch (InvalidShapeException|ClassCastException e) {
+        } catch (InvalidShapeException | ClassCastException e) {
             throw new IllegalArgumentException(invalidGeoJSON("invalid coordinate"), e);
         }
     }
@@ -238,22 +239,22 @@ public class GeoJSONUtils {
 
             if (geometry instanceof Point) {
                 builder.put(TYPE_FIELD, POINT)
-                        .put(COORDINATES_FIELD, extract((Point)geometry));
+                    .put(COORDINATES_FIELD, extract((Point) geometry));
             } else if (geometry instanceof MultiPoint) {
                 builder.put(TYPE_FIELD, MULTI_POINT)
-                        .put(COORDINATES_FIELD, extract((MultiPoint)geometry));
+                    .put(COORDINATES_FIELD, extract((MultiPoint) geometry));
             } else if (geometry instanceof LineString) {
                 builder.put(TYPE_FIELD, LINE_STRING)
-                        .put(COORDINATES_FIELD, extract((LineString)geometry));
+                    .put(COORDINATES_FIELD, extract((LineString) geometry));
             } else if (geometry instanceof MultiLineString) {
                 builder.put(TYPE_FIELD, MULTI_LINE_STRING)
-                        .put(COORDINATES_FIELD, extract((MultiLineString)geometry));
+                    .put(COORDINATES_FIELD, extract((MultiLineString) geometry));
             } else if (geometry instanceof Polygon) {
                 builder.put(TYPE_FIELD, POLYGON)
-                        .put(COORDINATES_FIELD, extract((Polygon)geometry));
+                    .put(COORDINATES_FIELD, extract((Polygon) geometry));
             } else if (geometry instanceof MultiPolygon) {
                 builder.put(TYPE_FIELD, MULTI_POLYGON)
-                        .put(COORDINATES_FIELD, extract((MultiPolygon)geometry));
+                    .put(COORDINATES_FIELD, extract((MultiPolygon) geometry));
             } else if (geometry instanceof GeometryCollection) {
                 GeometryCollection geometryCollection = (GeometryCollection) geometry;
                 int size = geometryCollection.getNumGeometries();
@@ -262,10 +263,10 @@ public class GeoJSONUtils {
                     geometries.add(convert(geometryCollection.getGeometryN(i)));
                 }
                 builder.put(TYPE_FIELD, GEOMETRY_COLLECTION)
-                        .put(GEOMETRIES_FIELD, geometries);
+                    .put(GEOMETRIES_FIELD, geometries);
             } else {
                 throw new IllegalArgumentException(String.format(Locale.ENGLISH,
-                        "Cannot extract coordinates from geometry %s", geometry.getGeometryType()));
+                    "Cannot extract coordinates from geometry %s", geometry.getGeometryType()));
             }
             return builder.build();
         }
@@ -311,7 +312,7 @@ public class GeoJSONUtils {
         }
 
         double[] toArray(Coordinate coordinate) {
-            return new double[] { coordinate.x, coordinate.y };
+            return new double[]{coordinate.x, coordinate.y};
         }
 
         double[][] toArray(Coordinate[] coordinates) {

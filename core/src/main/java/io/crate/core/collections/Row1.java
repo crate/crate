@@ -37,7 +37,7 @@ public class Row1 implements Row {
     @Override
     public Object get(int index) {
         if (index != 0)
-            throw new IndexOutOfBoundsException("Index: "+index+", Size: 1");
+            throw new IndexOutOfBoundsException("Index: " + index + ", Size: 1");
         return value;
     }
 

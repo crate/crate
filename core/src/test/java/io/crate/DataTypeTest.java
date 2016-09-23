@@ -72,7 +72,7 @@ public class DataTypeTest extends CrateUnitTest {
 
     @Test
     public void testForValueWithArray() {
-        Boolean[] booleans = new Boolean[] {true, false};
+        Boolean[] booleans = new Boolean[]{true, false};
         DataType dataType = DataTypes.guessType(booleans);
         assertEquals(dataType, new ArrayType(DataTypes.BOOLEAN));
     }
@@ -110,8 +110,8 @@ public class DataTypeTest extends CrateUnitTest {
     @Test
     public void testForValueNestedList() {
         List<List<String>> nestedStrings = Arrays.asList(
-                Arrays.asList("foo", "bar"),
-                Arrays.asList("f", "b"));
+            Arrays.asList("foo", "bar"),
+            Arrays.asList("f", "b"));
         assertEquals(new ArrayType(new ArrayType(DataTypes.STRING)), DataTypes.guessType(nestedStrings));
     }
 

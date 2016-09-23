@@ -40,7 +40,7 @@ import static org.hamcrest.core.Is.is;
 public class LongColumnReferenceTest extends DocLevelExpressionsTest {
     @Override
     protected void insertValues(IndexWriter writer) throws Exception {
-        for (long l = Long.MIN_VALUE; l< Long.MIN_VALUE + 10; l++) {
+        for (long l = Long.MIN_VALUE; l < Long.MIN_VALUE + 10; l++) {
             Document doc = new Document();
             doc.add(new StringField("_id", Long.toString(l), Field.Store.NO));
             doc.add(new LongField(fieldName().indexName(), l, Field.Store.NO));

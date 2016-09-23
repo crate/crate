@@ -43,16 +43,14 @@ import static org.mockito.Mockito.when;
 
 public class S3FileInputTest extends CrateUnitTest {
 
+    private static final String BUCKET_NAME = "fakeBucket";
+    private static final String PREFIX = "prefix";
     private static S3FileInput s3FileInput;
     private static List<S3ObjectSummary> listObjectSummaries;
-
     private static ObjectListing objectListing = mock(ObjectListing.class);
     private static S3ClientHelper clientBuilder = mock(S3ClientHelper.class);
     private static AmazonS3 amazonS3 = mock(AmazonS3.class);
     private static Predicate<URI> uriPredicate = mock(Predicate.class);
-
-    private static final String BUCKET_NAME = "fakeBucket";
-    private static final String PREFIX = "prefix";
     private static URI uri;
 
 

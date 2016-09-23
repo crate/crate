@@ -52,8 +52,8 @@ public class PartitionInfos implements Iterable<PartitionInfo> {
         @Override
         public boolean apply(@Nullable ObjectObjectCursor<String, IndexMetaData> input) {
             return input != null
-                    && input.value.getState() == IndexMetaData.State.OPEN
-                    && PartitionName.isPartition(input.key);
+                   && input.value.getState() == IndexMetaData.State.OPEN
+                   && PartitionName.isPartition(input.key);
         }
     };
 
@@ -67,7 +67,7 @@ public class PartitionInfos implements Iterable<PartitionInfo> {
                 Map<String, Object> valuesMap = buildValuesMap(partitionName, input.value.mapping(Constants.DEFAULT_MAPPING_TYPE));
                 BytesRef numberOfReplicas = NumberOfReplicas.fromSettings(input.value.getSettings());
                 return new PartitionInfo(partitionName, input.value.getNumberOfShards(), numberOfReplicas, valuesMap,
-                        TableParameterInfo.tableParametersFromIndexMetaData(input.value));
+                    TableParameterInfo.tableParametersFromIndexMetaData(input.value));
             } catch (Exception e) {
                 Loggers.getLogger(PartitionInfos.class).trace("error extracting partition infos from index {}", e, input.key);
                 return null; // must filter on null
@@ -82,18 +82,8 @@ public class PartitionInfos implements Iterable<PartitionInfo> {
         this.clusterService = clusterService;
     }
 
-    @Override
-    public Iterator<PartitionInfo> iterator() {
-        // get a fresh one for each iteration
-        return FluentIterable.from(clusterService.state().metaData().indices())
-                .filter(PARTITION_INDICES_PREDICATE)
-                .transform(CREATE_PARTITION_INFO_FUNCTION)
-                .filter(Predicates.notNull())
-                .iterator();
-    }
-
     @Nullable
-    private static Map<String, Object> buildValuesMap(PartitionName partitionName, MappingMetaData mappingMetaData) throws Exception{
+    private static Map<String, Object> buildValuesMap(PartitionName partitionName, MappingMetaData mappingMetaData) throws Exception {
         int i = 0;
         Map<String, Object> valuesMap = new HashMap<>();
         Iterable<Tuple<ColumnIdent, DataType>> partitionColumnInfoIterable = PartitionedByMappingExtractor.extractPartitionedByColumns(mappingMetaData.sourceAsMap());
@@ -108,5 +98,15 @@ public class PartitionInfos implements Iterable<PartitionInfo> {
             i++;
         }
         return valuesMap;
+    }
+
+    @Override
+    public Iterator<PartitionInfo> iterator() {
+        // get a fresh one for each iteration
+        return FluentIterable.from(clusterService.state().metaData().indices())
+            .filter(PARTITION_INDICES_PREDICATE)
+            .transform(CREATE_PARTITION_INFO_FUNCTION)
+            .filter(Predicates.notNull())
+            .iterator();
     }
 }

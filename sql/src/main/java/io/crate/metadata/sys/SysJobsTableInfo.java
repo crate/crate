@@ -41,12 +41,6 @@ public class SysJobsTableInfo extends StaticTableInfo {
     private static final ImmutableList<ColumnIdent> PRIMARY_KEY = ImmutableList.of(Columns.ID);
     private final ClusterService service;
 
-    public static class Columns {
-        public static final ColumnIdent ID = new ColumnIdent("id");
-        public static final ColumnIdent STMT = new ColumnIdent("stmt");
-        public static final ColumnIdent STARTED = new ColumnIdent("started");
-    }
-
     @Inject
     public SysJobsTableInfo(ClusterService service) {
         super(IDENT, new ColumnRegistrar(IDENT, RowGranularity.DOC)
@@ -69,5 +63,11 @@ public class SysJobsTableInfo extends StaticTableInfo {
     @Override
     public Routing getRouting(WhereClause whereClause, @Nullable String preference) {
         return Routing.forTableOnAllNodes(IDENT, service.state().nodes());
+    }
+
+    public static class Columns {
+        public static final ColumnIdent ID = new ColumnIdent("id");
+        public static final ColumnIdent STMT = new ColumnIdent("stmt");
+        public static final ColumnIdent STARTED = new ColumnIdent("started");
     }
 }
