@@ -31,7 +31,6 @@ import org.elasticsearch.rest.RestModule;
 
 /**
  * Crate Admin-UI Plugin
- *
  */
 public class AdminUIPlugin extends Plugin {
 
