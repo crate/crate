@@ -43,7 +43,7 @@ import static org.hamcrest.core.Is.is;
 public class SortingTopNProjectorTest extends CrateUnitTest {
 
     private static final InputCollectExpression INPUT = new InputCollectExpression(0);
-    private static final Literal<Boolean> TRUE_LITERAL = Literal.newLiteral(true);
+    private static final Literal<Boolean> TRUE_LITERAL = Literal.of(true);
     private static final List<Input<?>> INPUT_LITERAL_LIST = ImmutableList.of(INPUT, TRUE_LITERAL);
     private static final List<CollectExpression<Row, ?>> COLLECT_EXPRESSIONS = ImmutableList.<CollectExpression<Row, ?>>of(INPUT);
     private static final Ordering<Object[]> FIRST_CELL_ORDERING = OrderingByPosition.arrayOrdering(0, false, null);

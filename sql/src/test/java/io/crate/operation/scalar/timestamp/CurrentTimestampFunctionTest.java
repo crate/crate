@@ -39,25 +39,25 @@ public class CurrentTimestampFunctionTest extends AbstractScalarFunctionsTest {
 
     @Test
     public void precisionOfZeroDropsAllFractionsOfSeconds() {
-        Long timestamp = timestampFunction.evaluate(Literal.newLiteral(0));
+        Long timestamp = timestampFunction.evaluate(Literal.of(0));
         assertThat(timestamp, is(EXPECTED_TIMESTAMP - EXPECTED_TIMESTAMP % 1000));
     }
 
     @Test
     public void precisionOfOneDropsLastTwoDigitsOfFractionsOfSecond() {
-        Long timestamp = timestampFunction.evaluate(Literal.newLiteral(1));
+        Long timestamp = timestampFunction.evaluate(Literal.of(1));
         assertThat(timestamp, is(EXPECTED_TIMESTAMP - (EXPECTED_TIMESTAMP % 100)));
     }
 
     @Test
     public void precisionOfTwoDropsLastDigitOfFractionsOfSecond() {
-        Long timestamp = timestampFunction.evaluate(Literal.newLiteral(2));
+        Long timestamp = timestampFunction.evaluate(Literal.of(2));
         assertThat(timestamp, is(EXPECTED_TIMESTAMP - (EXPECTED_TIMESTAMP % 10)));
     }
 
     @Test
     public void precisionOfThreeKeepsAllFractionsOfSeconds() {
-        Long timestamp = timestampFunction.evaluate(Literal.newLiteral(2));
+        Long timestamp = timestampFunction.evaluate(Literal.of(2));
         assertThat(timestamp, is(EXPECTED_TIMESTAMP - (EXPECTED_TIMESTAMP % 10)));
     }
 
@@ -65,21 +65,21 @@ public class CurrentTimestampFunctionTest extends AbstractScalarFunctionsTest {
     public void precisionLessThanZeroRaisesException() {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("Precision must be between 0 and 3");
-        timestampFunction.evaluate(Literal.newLiteral(-1));
+        timestampFunction.evaluate(Literal.of(-1));
     }
 
     @Test
     public void precisionLargerThan3RaisesException() {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("Precision must be between 0 and 3");
-        timestampFunction.evaluate(Literal.newLiteral(4));
+        timestampFunction.evaluate(Literal.of(4));
     }
 
     @Test
     public void precisionOfNullLRaisesException() {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("NULL precision not supported for current_timestamp");
-        timestampFunction.evaluate(Literal.newLiteral((Integer) null));
+        timestampFunction.evaluate(Literal.of((Integer) null));
     }
 
     @Test

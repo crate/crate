@@ -189,7 +189,7 @@ public class TransportExecutorUpsertTest extends BaseTransportExecutorTest {
             0,
             new String[]{nameRef.ident().columnIdent().fqn()},
             null);
-        upsertById.add("characters", "1", "1", new Symbol[]{Literal.newLiteral("Vogon lyric fan")}, null);
+        upsertById.add("characters", "1", "1", new Symbol[]{Literal.of("Vogon lyric fan")}, null);
 
         CollectingRowReceiver rowReceiver = new CollectingRowReceiver();
         executor.execute(upsertById, rowReceiver);
@@ -218,7 +218,7 @@ public class TransportExecutorUpsertTest extends BaseTransportExecutorTest {
             new String[]{nameRef.ident().columnIdent().fqn()},
             new Reference[]{idRef, nameRef, femaleRef});
 
-        upsertById.add("characters", "5", "5", new Symbol[]{Literal.newLiteral("Zaphod Beeblebrox")}, null, missingAssignments);
+        upsertById.add("characters", "5", "5", new Symbol[]{Literal.of("Zaphod Beeblebrox")}, null, missingAssignments);
         CollectingRowReceiver rowReceiver = new CollectingRowReceiver();
         executor.execute(upsertById, rowReceiver);
         assertThat(rowReceiver.result(), contains(isRow(1L)));
@@ -245,7 +245,7 @@ public class TransportExecutorUpsertTest extends BaseTransportExecutorTest {
             0,
             new String[]{femaleRef.ident().columnIdent().fqn()},
             new Reference[]{idRef, nameRef, femaleRef});
-        upsertById.add("characters", "1", "1", new Symbol[]{Literal.newLiteral(true)}, null, missingAssignments);
+        upsertById.add("characters", "1", "1", new Symbol[]{Literal.of(true)}, null, missingAssignments);
         CollectingRowReceiver rowReceiver = new CollectingRowReceiver();
         executor.execute(upsertById, rowReceiver);
         assertThat(rowReceiver.result(), contains(isRow(1L)));
@@ -278,12 +278,12 @@ public class TransportExecutorUpsertTest extends BaseTransportExecutorTest {
         Function query = new Function(new FunctionInfo(
             new FunctionIdent(EqOperator.NAME, Arrays.<DataType>asList(DataTypes.BOOLEAN, DataTypes.BOOLEAN)),
             DataTypes.BOOLEAN),
-            Arrays.asList(femaleRef, Literal.newLiteral(true)));
+            Arrays.asList(femaleRef, Literal.of(true)));
 
         UpdateProjection updateProjection = new UpdateProjection(
             new InputColumn(0, DataTypes.STRING),
             new String[]{"name"},
-            new Symbol[]{Literal.newLiteral("Zaphod Beeblebrox")},
+            new Symbol[]{Literal.of("Zaphod Beeblebrox")},
             null);
 
         WhereClause whereClause = new WhereClause(query);
@@ -310,7 +310,7 @@ public class TransportExecutorUpsertTest extends BaseTransportExecutorTest {
         Function query2 = new Function(new FunctionInfo(
             new FunctionIdent(EqOperator.NAME, Arrays.<DataType>asList(DataTypes.BOOLEAN, DataTypes.BOOLEAN)),
             DataTypes.BOOLEAN),
-            Arrays.asList(femaleRef, Literal.newLiteral(true)));
+            Arrays.asList(femaleRef, Literal.of(true)));
 
         final WhereClause whereClause1 = new WhereClause(query2);
         RoutedCollectPhase collectPhase2 = new RoutedCollectPhase(

@@ -64,7 +64,7 @@ public abstract class ConcatFunction extends Scalar<BytesRef, BytesRef> {
             inputs[i] = ((Input) function.arguments().get(i));
         }
         //noinspection unchecked
-        return Literal.newLiteral(functionInfo.returnType(), evaluate(inputs));
+        return Literal.of(functionInfo.returnType(), evaluate(inputs));
     }
 
     private static class StringConcatFunction extends ConcatFunction {

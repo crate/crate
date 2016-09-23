@@ -71,7 +71,7 @@ public class ShardUpsertRequestTest extends CrateUnitTest {
                 null));
         request.add(5, new ShardUpsertRequest.Item(
                 "42",
-                new Symbol[]{Literal.newLiteral(42), Literal.newLiteral("Deep Thought") },
+                new Symbol[]{Literal.of(42), Literal.of("Deep Thought") },
                 null,
                 2L));
 

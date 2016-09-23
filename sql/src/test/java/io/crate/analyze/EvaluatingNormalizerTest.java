@@ -61,7 +61,7 @@ public class EvaluatingNormalizerTest extends CrateUnitTest {
     private Function prepareFunctionTree() {
 
         Reference load_1 = dummyLoadInfo;
-        Literal<Double> d01 = Literal.newLiteral(0.08);
+        Literal<Double> d01 = Literal.of(0.08);
         Function load_eq_01 = new Function(
                 functionInfo(EqOperator.NAME, DataTypes.DOUBLE), Arrays.<Symbol>asList(load_1, d01));
 
@@ -69,8 +69,8 @@ public class EvaluatingNormalizerTest extends CrateUnitTest {
                         new ReferenceIdent(new TableIdent(null, "foo"), "name"),
                         RowGranularity.DOC,
                         DataTypes.STRING);
-        Symbol x_literal = Literal.newLiteral("x");
-        Symbol y_literal = Literal.newLiteral("y");
+        Symbol x_literal = Literal.of("x");
+        Symbol y_literal = Literal.of("y");
 
         Function name_eq_x = new Function(
                 functionInfo(EqOperator.NAME, DataTypes.STRING), Arrays.<Symbol>asList(name_ref, x_literal));

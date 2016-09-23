@@ -181,7 +181,7 @@ public class WhereClauseAnalyzer {
                     partitions = new ArrayList<>();
                     queryPartitionMap.put(normalized, partitions);
                 }
-                partitions.add(Literal.newLiteral(partitionName.asIndexName()));
+                partitions.add(Literal.of(partitionName.asIndexName()));
             }
         }
 

@@ -1588,7 +1588,7 @@ public class PlannerTest extends AbstractPlannerTest {
                         DataTypes.BOOLEAN),
                         Arrays.asList(
                                 tableInfo.getReference(new ColumnIdent("id")),
-                                Literal.newLiteral(2))
+                                Literal.of(2))
                 ));
 
         plannerContext.allocateRouting(tableInfo, WhereClause.MATCH_ALL, null);

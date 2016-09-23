@@ -156,7 +156,7 @@ public class DocLevelCollectTest extends SQLTransportIntegrationTest {
         List<Symbol> toCollect = Collections.<Symbol>singletonList(testDocLevelReference);
         WhereClause whereClause = new WhereClause(new Function(
                 op.info(),
-                Arrays.<Symbol>asList(testDocLevelReference, Literal.newLiteral(2)))
+                Arrays.<Symbol>asList(testDocLevelReference, Literal.of(2)))
         );
         RoutedCollectPhase collectNode = getCollectNode(toCollect, whereClause);
 

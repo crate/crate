@@ -85,8 +85,8 @@ public class DistanceFunctionTest extends AbstractScalarFunctionsTest {
     @Test
     public void testEvaluateWithTwoGeoPointLiterals() throws Exception {
         Double distance = evaluate(Arrays.<Literal>asList(
-                Literal.newLiteral(DataTypes.GEO_POINT, new Double[]{10.04, 28.02}),
-                Literal.newLiteral(DataTypes.GEO_POINT, DataTypes.GEO_POINT.value("POINT(10.30 29.3)"))));
+                Literal.of(DataTypes.GEO_POINT, new Double[]{10.04, 28.02}),
+                Literal.of(DataTypes.GEO_POINT, DataTypes.GEO_POINT.value("POINT(10.30 29.3)"))));
         assertThat(distance, is(144623.6842773458));
     }
 
@@ -94,8 +94,8 @@ public class DistanceFunctionTest extends AbstractScalarFunctionsTest {
     @SuppressWarnings("unchecked")
     public void testNormalizeWithStringTypes() throws Exception {
         Symbol symbol = normalize(Arrays.<Symbol>asList(
-                Literal.newLiteral("POINT (10 20)"),
-                Literal.newLiteral("POINT (11 21)")
+                Literal.of("POINT (10 20)"),
+                Literal.of("POINT (11 21)")
         ));
         assertThat(symbol, isLiteral(152462.70754934277));
     }
@@ -104,8 +104,8 @@ public class DistanceFunctionTest extends AbstractScalarFunctionsTest {
     public void testNormalizeWithDoubleArray() throws Exception {
         DataType type = new ArrayType(DataTypes.DOUBLE);
         Symbol symbol = normalize(Arrays.<Symbol>asList(
-                Literal.newLiteral(type, new Double[]{10.0, 20.0}),
-                Literal.newLiteral(type, new Double[]{11.0, 21.0})
+                Literal.of(type, new Double[]{10.0, 20.0}),
+                Literal.of(type, new Double[]{11.0, 21.0})
         ));
         assertThat(symbol, isLiteral(152462.70754934277));
     }
@@ -118,7 +118,7 @@ public class DistanceFunctionTest extends AbstractScalarFunctionsTest {
 
         normalize(Arrays.<Symbol>asList(
                 createReference("foo", DataTypes.STRING),
-                Literal.newLiteral(DataTypes.GEO_POINT, new Double[]{10.04, 28.02})
+                Literal.of(DataTypes.GEO_POINT, new Double[]{10.04, 28.02})
         ));
     }
 
@@ -126,14 +126,14 @@ public class DistanceFunctionTest extends AbstractScalarFunctionsTest {
     public void testNormalizeWithValidRefAndStringLiteral() throws Exception {
         Function symbol = (Function) normalize(Arrays.<Symbol>asList(
                 createReference("foo", DataTypes.GEO_POINT),
-                Literal.newLiteral("POINT(10 20)")
+                Literal.of("POINT(10 20)")
         ));
         assertThat(symbol.arguments().get(1),
                 isLiteral(new Double[]{10.0d, 20.0d}, DataTypes.GEO_POINT));
 
         // args reversed
         symbol = (Function) normalize(Arrays.<Symbol>asList(
-                Literal.newLiteral("POINT(10 20)"),
+                Literal.of("POINT(10 20)"),
                 createReference("foo", DataTypes.GEO_POINT)
         ));
         assertThat(symbol.arguments().get(1),
@@ -144,14 +144,14 @@ public class DistanceFunctionTest extends AbstractScalarFunctionsTest {
     public void testNormalizeWithValidRefAndGeoPointLiteral() throws Exception {
         Function symbol = (Function) normalize(Arrays.<Symbol>asList(
                 createReference("foo", DataTypes.GEO_POINT),
-                Literal.newLiteral(DataTypes.GEO_POINT, DataTypes.GEO_POINT.value("POINT (10 20)"))
+                Literal.of(DataTypes.GEO_POINT, DataTypes.GEO_POINT.value("POINT (10 20)"))
         ));
         assertThat(symbol.arguments().get(1),
                 isLiteral(new Double[]{10.0d, 20.0d}, DataTypes.GEO_POINT));
 
         // args reversed
         symbol = (Function) normalize(Arrays.<Symbol>asList(
-                Literal.newLiteral(DataTypes.GEO_POINT, DataTypes.GEO_POINT.value("POINT (10 20)")),
+                Literal.of(DataTypes.GEO_POINT, DataTypes.GEO_POINT.value("POINT (10 20)")),
                 createReference("foo", DataTypes.GEO_POINT)
         ));
         assertThat(symbol.arguments().get(1),
@@ -161,15 +161,15 @@ public class DistanceFunctionTest extends AbstractScalarFunctionsTest {
     @Test
     public void testNormalizeWithValidGeoPointLiterals() throws Exception {
         Literal symbol = (Literal) normalize(Arrays.<Symbol>asList(
-                Literal.newLiteral(DataTypes.GEO_POINT, DataTypes.GEO_POINT.value("POINT (10 20)")),
-                Literal.newLiteral(DataTypes.GEO_POINT, DataTypes.GEO_POINT.value("POINT (30 40)"))
+                Literal.of(DataTypes.GEO_POINT, DataTypes.GEO_POINT.value("POINT (10 20)")),
+                Literal.of(DataTypes.GEO_POINT, DataTypes.GEO_POINT.value("POINT (30 40)"))
         ));
         assertThat(symbol.value(), instanceOf(Double.class));
 
         // args reversed
         symbol = (Literal) normalize(Arrays.<Symbol>asList(
-                Literal.newLiteral(DataTypes.GEO_POINT, DataTypes.GEO_POINT.value("POINT (30 40)")),
-                Literal.newLiteral(DataTypes.GEO_POINT, DataTypes.GEO_POINT.value("POINT (10 20)"))
+                Literal.of(DataTypes.GEO_POINT, DataTypes.GEO_POINT.value("POINT (30 40)")),
+                Literal.of(DataTypes.GEO_POINT, DataTypes.GEO_POINT.value("POINT (10 20)"))
         ));
         assertThat(symbol.value(), instanceOf(Double.class));
     }
@@ -188,8 +188,8 @@ public class DistanceFunctionTest extends AbstractScalarFunctionsTest {
     @Test
     public void testWithNullValue() throws Exception {
         List<Literal> args = Arrays.<Literal>asList(
-                Literal.newLiteral(DataTypes.GEO_POINT, null),
-                Literal.newLiteral(DataTypes.GEO_POINT, DataTypes.GEO_POINT.value("POINT (10 20)"))
+                Literal.of(DataTypes.GEO_POINT, null),
+                Literal.of(DataTypes.GEO_POINT, DataTypes.GEO_POINT.value("POINT (10 20)"))
         );
         Double distance = evaluate(args);
         assertNull(distance);

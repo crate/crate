@@ -45,71 +45,71 @@ public class CmpOperatorTest extends CrateUnitTest {
 
     @Test
     public void testLteNormalizeSymbolTwoLiteral() throws Exception {
-        Symbol symbol = normalize(op_lte_long, Literal.newLiteral(8L), Literal.newLiteral(200L));
+        Symbol symbol = normalize(op_lte_long, Literal.of(8L), Literal.of(200L));
         assertThat(symbol, isLiteral(true));
 
-        symbol = normalize(op_lte_long, Literal.newLiteral(8L), Literal.newLiteral(8L));
+        symbol = normalize(op_lte_long, Literal.of(8L), Literal.of(8L));
         assertThat(symbol, isLiteral(true));
 
-        symbol = normalize(op_lte_long, Literal.newLiteral(16L), Literal.newLiteral(8L));
+        symbol = normalize(op_lte_long, Literal.of(16L), Literal.of(8L));
         assertThat(symbol, isLiteral(false));
     }
 
     @Test
     public void testGteNormalizeSymbolTwoLiteral() throws Exception {
-        Symbol symbol = normalize(op_gte_double, Literal.newLiteral(0.03), Literal.newLiteral(0.4));
+        Symbol symbol = normalize(op_gte_double, Literal.of(0.03), Literal.of(0.4));
         assertThat(symbol, isLiteral(false));
 
-        symbol = normalize(op_gte_double, Literal.newLiteral(0.4), Literal.newLiteral(0.4));
+        symbol = normalize(op_gte_double, Literal.of(0.4), Literal.of(0.4));
         assertThat(symbol, isLiteral(true));
 
-        symbol = normalize(op_gte_double, Literal.newLiteral(0.6), Literal.newLiteral(0.4));
+        symbol = normalize(op_gte_double, Literal.of(0.6), Literal.of(0.4));
         assertThat(symbol, isLiteral(true));
     }
 
     @Test
     public void testLtNormalizeSymbolTwoLiteralTrue() throws Exception {
-        Symbol symbol = normalize(op_lt_int, Literal.newLiteral(2), Literal.newLiteral(4));
+        Symbol symbol = normalize(op_lt_int, Literal.of(2), Literal.of(4));
         assertThat(symbol, isLiteral(true));
     }
 
     @Test
     public void testLtNormalizeSymbolTwoLiteralFalse() throws Exception {
-        Symbol symbol = normalize(op_lt_int, Literal.newLiteral(4), Literal.newLiteral(2));
+        Symbol symbol = normalize(op_lt_int, Literal.of(4), Literal.of(2));
         assertThat(symbol, isLiteral(false));
     }
 
     @Test
     public void testLtNormalizeSymbolTwoLiteralFalseEq() throws Exception {
-        Symbol symbol = normalize(op_lt_int, Literal.newLiteral(4), Literal.newLiteral(4));
+        Symbol symbol = normalize(op_lt_int, Literal.of(4), Literal.of(4));
         assertThat(symbol, isLiteral(false));
     }
 
     @Test
     public void testGtNormalizeSymbolTwoLiteralFalse() throws Exception {
-        Symbol symbol = normalize(op_gt_string, Literal.newLiteral("aa"), Literal.newLiteral("bbb"));
+        Symbol symbol = normalize(op_gt_string, Literal.of("aa"), Literal.of("bbb"));
         assertThat(symbol, isLiteral(false));
     }
 
     @Test
     public void testCisGtThanA() throws Exception {
-        assertTrue(op_gt_string.evaluate((Input) Literal.newLiteral("c"), (Input) Literal.newLiteral("a")));
+        assertTrue(op_gt_string.evaluate((Input) Literal.of("c"), (Input) Literal.of("a")));
     }
 
     @Test
     public void testAisLtThanC() throws Exception {
-        assertTrue(op_lt_string.evaluate((Input) Literal.newLiteral("a"), (Input) Literal.newLiteral("c")));
+        assertTrue(op_lt_string.evaluate((Input) Literal.of("a"), (Input) Literal.of("c")));
     }
 
     @Test
     public void testNormalizeSymbolWithNull() throws Exception {
-        Literal literal = (Literal)normalize(op_gt_string, Literal.NULL, Literal.newLiteral("aa"));
+        Literal literal = (Literal)normalize(op_gt_string, Literal.NULL, Literal.of("aa"));
         assertThat(literal, isLiteral(null, DataTypes.BOOLEAN));
     }
 
     @Test
     public void testNormalizeSymbolNonLiteral() throws Exception {
-        Symbol symbol = normalize(op_gt_string, Literal.newLiteral("a"), new Value(DataTypes.STRING));
+        Symbol symbol = normalize(op_gt_string, Literal.of("a"), new Value(DataTypes.STRING));
         assertThat(symbol, instanceOf(Function.class));
     }
 }

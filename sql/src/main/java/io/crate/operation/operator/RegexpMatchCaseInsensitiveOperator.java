@@ -77,7 +77,7 @@ public class RegexpMatchCaseInsensitiveOperator extends Operator<BytesRef> {
             return Literal.NULL;
         }
 
-        return Literal.newLiteral(
+        return Literal.of(
                 evaluate(
                         (Literal) symbol.arguments().get(0),
                         (Literal) symbol.arguments().get(1)

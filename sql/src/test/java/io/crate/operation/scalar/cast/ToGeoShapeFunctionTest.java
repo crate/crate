@@ -72,7 +72,7 @@ public class ToGeoShapeFunctionTest extends AbstractScalarFunctionsTest{
     @Test
     public void testEvaluateCastFromString() throws Exception {
         ToGeoFunction fn = getFunction(FUNCTION_NAME, DataTypes.STRING);
-        Object val = fn.evaluate(Literal.newLiteral(DataTypes.STRING, VALID_STR));
+        Object val = fn.evaluate(Literal.of(DataTypes.STRING, VALID_STR));
         assertThat(val, instanceOf(Map.class));
         assertThat((Map<String, Object>)val, allOf(
                 hasEntry("type", (Object)"Point"),
@@ -84,14 +84,14 @@ public class ToGeoShapeFunctionTest extends AbstractScalarFunctionsTest{
         expectedException.expect(ConversionException.class);
         expectedException.expectMessage("cannot cast 'POINTE ()' to type geo_shape");
         ToGeoFunction fn = getFunction(FUNCTION_NAME, DataTypes.STRING);
-        fn.evaluate(Literal.newLiteral(DataTypes.STRING, INVALID_STR));
+        fn.evaluate(Literal.of(DataTypes.STRING, INVALID_STR));
     }
 
     @Test
     public void testEvaluateCastFromObject() throws Exception {
         ToGeoFunction fn = getFunction(FUNCTION_NAME, DataTypes.OBJECT);
 
-        Object val = fn.evaluate(Literal.newLiteral(DataTypes.OBJECT, VALID_OBJECT));
+        Object val = fn.evaluate(Literal.of(DataTypes.OBJECT, VALID_OBJECT));
         assertThat(val, instanceOf(Map.class));
         Map<String, Object> valMap = (Map<String, Object>)val;
         assertThat(valMap.size(), is(2));
@@ -106,7 +106,7 @@ public class ToGeoShapeFunctionTest extends AbstractScalarFunctionsTest{
 
         expectedException.expect(ConversionException.class);
         expectedException.expectMessage(allOf(startsWith("cannot cast"), endsWith("to type geo_shape")));
-        fn.evaluate(Literal.newLiteral(DataTypes.OBJECT, INVALID_OBJECT));
+        fn.evaluate(Literal.of(DataTypes.OBJECT, INVALID_OBJECT));
     }
 
     @Test

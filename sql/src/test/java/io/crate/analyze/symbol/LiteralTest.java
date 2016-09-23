@@ -49,7 +49,7 @@ public class LiteralTest extends CrateUnitTest {
             Object nestedValue = new Object[][] {
                     new Object[] { value }
             };
-            Literal nestedLiteral = Literal.newLiteral(nestedType, nestedValue);
+            Literal nestedLiteral = Literal.of(nestedType, nestedValue);
             assertThat(nestedLiteral.valueType(), is(nestedType));
             assertThat(nestedLiteral.value(), is(nestedValue));
         }

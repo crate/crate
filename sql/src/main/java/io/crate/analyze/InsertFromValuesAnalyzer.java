@@ -82,7 +82,7 @@ public class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
             assert columnReference != null;
             DataType returnType = columnReference.valueType();
             assignmentColumns.add(columnReference.ident().columnIdent().fqn());
-            return Literal.newLiteral(returnType, returnType.value(insertValues[columns.indexOf(columnReference)]));
+            return Literal.of(returnType, returnType.value(insertValues[columns.indexOf(columnReference)]));
         }
     }
 

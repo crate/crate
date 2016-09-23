@@ -140,7 +140,7 @@ public class PercentileAggregationTest extends AggregationTest {
         PercentileAggregation percAggr = new PercentileAggregation(new FunctionInfo(
                 new FunctionIdent(NAME, ImmutableList.<DataType>of(DataTypes.INTEGER, DataTypes.DOUBLE)), DataTypes.DOUBLE,
                 FunctionInfo.Type.AGGREGATE));
-        TDigestState state = percAggr.iterate(null, null, Literal.newLiteral(1), Literal.newLiteral(0.5));
+        TDigestState state = percAggr.iterate(null, null, Literal.of(1), Literal.of(0.5));
         assertNotNull(state);
         assertThat(0.5, is(state.fractions()[0]));
 

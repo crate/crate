@@ -41,7 +41,7 @@ public class LikeOperatorTest extends CrateUnitTest {
         );
         Function function = new Function(
                 op.info(),
-                Arrays.<Symbol>asList(Literal.newLiteral(expression), Literal.newLiteral(pattern))
+                Arrays.<Symbol>asList(Literal.of(expression), Literal.of(pattern))
         );
         return op.normalizeSymbol(function, new StmtCtx());
     }
@@ -154,7 +154,7 @@ public class LikeOperatorTest extends CrateUnitTest {
         LikeOperator op = new LikeOperator(
                 LikeOperator.generateInfo(LikeOperator.NAME, DataTypes.STRING)
         );
-        return op.evaluate(Literal.newLiteral(expression), Literal.newLiteral(pattern));
+        return op.evaluate(Literal.of(expression), Literal.of(pattern));
     }
 
     @Test
@@ -168,9 +168,9 @@ public class LikeOperatorTest extends CrateUnitTest {
                 LikeOperator.generateInfo(LikeOperator.NAME, DataTypes.STRING)
         );
         BytesRef nullValue = null;
-        Literal<BytesRef> brNullValue = Literal.newLiteral(nullValue);
-        assertNull(op.evaluate(brNullValue, Literal.newLiteral("foobarbaz")));
-        assertNull(op.evaluate(Literal.newLiteral("foobarbaz"), brNullValue));
+        Literal<BytesRef> brNullValue = Literal.of(nullValue);
+        assertNull(op.evaluate(brNullValue, Literal.of("foobarbaz")));
+        assertNull(op.evaluate(Literal.of("foobarbaz"), brNullValue));
     }
 
 }

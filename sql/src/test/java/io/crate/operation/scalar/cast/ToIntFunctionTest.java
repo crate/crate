@@ -51,13 +51,13 @@ public class ToIntFunctionTest extends AbstractScalarFunctionsTest {
 
         ToPrimitiveFunction castStringToInteger = getFunction(functionName, DataTypes.STRING);
 
-        Function function = new Function(castStringToInteger.info(), Collections.<Symbol>singletonList(Literal.newLiteral("123")));
+        Function function = new Function(castStringToInteger.info(), Collections.<Symbol>singletonList(Literal.of("123")));
         Symbol result = castStringToInteger.normalizeSymbol(function, stmtCtx);
         assertThat(result, isLiteral(123));
 
         ToPrimitiveFunction castFloatToInteger = getFunction(functionName, DataTypes.FLOAT);
 
-        function = new Function(castFloatToInteger.info(), Collections.<Symbol>singletonList(Literal.newLiteral(12.5f)));
+        function = new Function(castFloatToInteger.info(), Collections.<Symbol>singletonList(Literal.of(12.5f)));
         result = castStringToInteger.normalizeSymbol(function, stmtCtx);
         assertThat(result, isLiteral(12));
     }
@@ -74,7 +74,7 @@ public class ToIntFunctionTest extends AbstractScalarFunctionsTest {
         expectedException.expect(ConversionException.class);
         expectedException.expectMessage("cannot cast 'hello' to type integer");
         ToPrimitiveFunction castStringToInteger = getFunction(functionName, DataTypes.STRING);
-        Function function = new Function(castStringToInteger.info(), Collections.<Symbol>singletonList(Literal.newLiteral("hello")));
+        Function function = new Function(castStringToInteger.info(), Collections.<Symbol>singletonList(Literal.of("hello")));
         castStringToInteger.normalizeSymbol(function, stmtCtx);
     }
 
@@ -82,12 +82,12 @@ public class ToIntFunctionTest extends AbstractScalarFunctionsTest {
     @SuppressWarnings("unchecked")
     public void testEvaluate() throws Exception {
         ToPrimitiveFunction stringFn = getFunction(functionName, DataTypes.STRING);
-        Literal arg1 = Literal.newLiteral("123");
+        Literal arg1 = Literal.of("123");
         Object result = stringFn.evaluate(arg1);
         assertThat((Integer)result, is(123));
 
         ToPrimitiveFunction floatFn = getFunction(functionName, DataTypes.FLOAT);
-        arg1 = Literal.newLiteral(42.5f);
+        arg1 = Literal.of(42.5f);
         result = floatFn.evaluate(arg1);
         assertThat((Integer)result, is(42));
     }
@@ -98,7 +98,7 @@ public class ToIntFunctionTest extends AbstractScalarFunctionsTest {
         expectedException.expect(ConversionException.class);
         expectedException.expectMessage("cannot cast 'hello' to type integer");
         ToPrimitiveFunction stringFn = getFunction(functionName, DataTypes.STRING);
-        Literal arg1 = Literal.newLiteral("hello");
+        Literal arg1 = Literal.of("hello");
 
         stringFn.evaluate(arg1);
     }
@@ -109,7 +109,7 @@ public class ToIntFunctionTest extends AbstractScalarFunctionsTest {
         expectedException.expect(ConversionException.class);
         expectedException.expectMessage("cannot cast 'hello' to type integer");
         ToPrimitiveFunction stringFn = getFunction(functionName, DataTypes.STRING);
-        Literal arg1 = Literal.newLiteral(new BytesRef("hello"));
+        Literal arg1 = Literal.of(new BytesRef("hello"));
 
         stringFn.evaluate(arg1);
     }

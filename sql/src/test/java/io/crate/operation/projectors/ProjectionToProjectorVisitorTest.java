@@ -119,7 +119,7 @@ public class ProjectionToProjectorVisitorTest extends CrateUnitTest {
     @Test
     public void testSimpleTopNProjection() throws Exception {
         TopNProjection projection = new TopNProjection(10, 2);
-        projection.outputs(Arrays.<Symbol>asList(Literal.newLiteral("foo"), new InputColumn(0)));
+        projection.outputs(Arrays.<Symbol>asList(Literal.of("foo"), new InputColumn(0)));
 
         CollectingRowReceiver collectingProjector = new CollectingRowReceiver();
         Projector projector = visitor.create(projection, RAM_ACCOUNTING_CONTEXT, UUID.randomUUID());
@@ -141,7 +141,7 @@ public class ProjectionToProjectorVisitorTest extends CrateUnitTest {
                 new boolean[]{false, false},
                 new Boolean[]{null, null}
         );
-        projection.outputs(Arrays.<Symbol>asList(Literal.newLiteral("foo"), new InputColumn(0), new InputColumn(1)));
+        projection.outputs(Arrays.<Symbol>asList(Literal.of("foo"), new InputColumn(0), new InputColumn(1)));
         Projector projector = visitor.create(projection, RAM_ACCOUNTING_CONTEXT, UUID.randomUUID());
         assertThat(projector, instanceOf(SortingTopNProjector.class));
     }
@@ -153,7 +153,7 @@ public class ProjectionToProjectorVisitorTest extends CrateUnitTest {
                 new boolean[]{false, false},
                 new Boolean[]{null, null}
         );
-        projection.outputs(Arrays.<Symbol>asList(Literal.newLiteral("foo"), new InputColumn(0), new InputColumn(1)));
+        projection.outputs(Arrays.<Symbol>asList(Literal.of("foo"), new InputColumn(0), new InputColumn(1)));
         Projector projector = visitor.create(projection, RAM_ACCOUNTING_CONTEXT, UUID.randomUUID());
         assertThat(projector, instanceOf(SortingProjector.class));
     }
@@ -237,7 +237,7 @@ public class ProjectionToProjectorVisitorTest extends CrateUnitTest {
         EqOperator op = (EqOperator) functions.get(
                 new FunctionIdent(EqOperator.NAME, ImmutableList.<DataType>of(DataTypes.INTEGER, DataTypes.INTEGER)));
         Function function = new Function(
-                op.info(), Arrays.<Symbol>asList(Literal.newLiteral(2), new InputColumn(1)));
+                op.info(), Arrays.<Symbol>asList(Literal.of(2), new InputColumn(1)));
         FilterProjection projection = new FilterProjection(function);
         projection.outputs(Arrays.<Symbol>asList(new InputColumn(0), new InputColumn(1)));
 

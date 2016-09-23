@@ -138,7 +138,7 @@ public class DistanceFunction extends Scalar<Double, Object> {
         }
 
         if (numLiterals == 2) {
-            return Literal.newLiteral(evaluate((Input) arg1, (Input) arg2));
+            return Literal.of(evaluate((Input) arg1, (Input) arg2));
         }
 
         // ensure reference is the first argument.

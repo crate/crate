@@ -65,27 +65,27 @@ public class LogFunctionTest extends AbstractScalarFunctionsTest {
 
     private Symbol normalize(Number value, DataType valueType, LogFunction function) {
         return function.normalizeSymbol(new Function(function.info(),
-                        Arrays.<Symbol>asList(Literal.newLiteral(valueType, value))), stmtCtx);
+                        Arrays.<Symbol>asList(Literal.of(valueType, value))), stmtCtx);
     }
 
     private Symbol normalizeLog(Number value, DataType valueType, Number base, DataType baseType) {
         LogFunction function = getFunction(LogFunction.NAME, valueType, baseType);
         return function.normalizeSymbol(new Function(function.info(),
-                Arrays.<Symbol>asList(Literal.newLiteral(valueType, value), Literal.newLiteral(baseType, base))), stmtCtx);
+                Arrays.<Symbol>asList(Literal.of(valueType, value), Literal.of(baseType, base))), stmtCtx);
     }
 
     private Number evaluateLog(Number value, DataType valueType) {
-        return getFunction(LogFunction.NAME, valueType).evaluate((Input) Literal.newLiteral(valueType, value));
+        return getFunction(LogFunction.NAME, valueType).evaluate((Input) Literal.of(valueType, value));
     }
 
     private Number evaluateLn(Number value, DataType valueType) {
-        return getFunction(LogFunction.LnFunction.NAME, valueType).evaluate((Input) Literal.newLiteral(valueType, value));
+        return getFunction(LogFunction.LnFunction.NAME, valueType).evaluate((Input) Literal.of(valueType, value));
     }
 
     private Number evaluateLog(Number value, DataType valueType, Number base, DataType baseType) {
         return getFunction(LogFunction.NAME, valueType, baseType).evaluate(
-                (Input) Literal.newLiteral(valueType, value),
-                (Input) Literal.newLiteral(baseType, base)
+                (Input) Literal.of(valueType, value),
+                (Input) Literal.of(baseType, base)
         );
     }
 
@@ -177,7 +177,7 @@ public class LogFunctionTest extends AbstractScalarFunctionsTest {
         assertThat(normalized, Matchers.sameInstance(function));
 
         LogFunction logBase = getFunction(LogFunction.NAME, DataTypes.DOUBLE, DataTypes.LONG);
-        function = new Function(logBase.info(), Arrays.<Symbol>asList(dB, Literal.newLiteral(10L)));
+        function = new Function(logBase.info(), Arrays.<Symbol>asList(dB, Literal.of(10L)));
         normalized = (Function) logBase.normalizeSymbol(function, stmtCtx);
         assertThat(normalized, Matchers.sameInstance(function));
 

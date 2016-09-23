@@ -111,7 +111,7 @@ public class SourceIndexWriterProjection extends AbstractIndexWriterProjection {
                 if (idx > -1) {
                     // copy from into partition where partitioned column is a primary key
                     // set partition value as primary key input
-                    idSymbols.set(idx, Literal.newLiteral(partitionValues.get(i)));
+                    idSymbols.set(idx, Literal.of(partitionValues.get(i)));
                 }
                 continue;
             }

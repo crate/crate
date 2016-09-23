@@ -38,10 +38,10 @@ public class WriterProjectionTest extends CrateUnitTest {
     public void testStreaming() throws Exception {
         WriterProjection p = new WriterProjection(
                 ImmutableList.<Symbol>of(new InputColumn(1)),
-                Literal.newLiteral("/foo.json"),
+                Literal.of("/foo.json"),
             WriterProjection.CompressionType.GZIP,
                 MapBuilder.<ColumnIdent, Symbol>newMapBuilder().put(
-                        new ColumnIdent("partitionColumn"), Literal.newLiteral(1)).map(),
+                        new ColumnIdent("partitionColumn"), Literal.of(1)).map(),
                 ImmutableList.of("foo"),
                 WriterProjection.OutputFormat.JSON_OBJECT
         );

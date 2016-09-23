@@ -39,12 +39,12 @@ public class FormatFunctionTest extends AbstractScalarFunctionsTest {
     public void testEvaluate() throws Exception {
         assertEvaluate("format('%s bla %s', name, age)",
                 "Arthur bla 38",
-                Literal.newLiteral("Arthur"),
-                Literal.newLiteral(38L));
+                Literal.of("Arthur"),
+                Literal.of(38L));
 
         assertEvaluate("format('%s bla %s', name, age)",
                 "Arthur bla 42",
-                Literal.newLiteral("Arthur"),
-                Literal.newLiteral(42L));
+                Literal.of("Arthur"),
+                Literal.of(42L));
     }
 }

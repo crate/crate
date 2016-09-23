@@ -88,7 +88,7 @@ public class ReplaceFunction extends Scalar<BytesRef, Object> implements Dynamic
         if (size == 4) {
             args[3] = (Input)symbol.arguments().get(3);
         }
-        return Literal.newLiteral(evaluate(args));
+        return Literal.of(evaluate(args));
     }
 
     @Override

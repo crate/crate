@@ -94,7 +94,7 @@ public class MatchesFunction extends Scalar<BytesRef[], Object> implements Dynam
         if (size == 3) {
             args[2] = (Input)symbol.arguments().get(2);
         }
-        return Literal.newLiteral(evaluate(args), arrayStringType);
+        return Literal.of(evaluate(args), arrayStringType);
     }
 
     @Override

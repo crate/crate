@@ -50,14 +50,14 @@ public class ToByteFunctionTest extends AbstractScalarFunctionsTest {
     }
 
     private Byte evaluate(Object value, DataType type) {
-        Input[] input = {(Input)Literal.newLiteral(type, value)};
+        Input[] input = {(Input)Literal.of(type, value)};
         return (Byte) getFunction(type).evaluate(input);
     }
 
     private Symbol normalize(Object value, DataType type) {
         ToPrimitiveFunction function = getFunction(type);
         return function.normalizeSymbol(new Function(function.info(),
-                Collections.<Symbol>singletonList(Literal.newLiteral(type, value))), new StmtCtx());
+                Collections.<Symbol>singletonList(Literal.of(type, value))), new StmtCtx());
     }
 
     @Test

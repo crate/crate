@@ -76,7 +76,7 @@ public class ConditionalFunctionTest extends AbstractScalarFunctionsTest {
     @Test
     public void testNullIf() throws Exception {
         assertEvaluate("nullif(10, 12)", 10L);
-        assertEvaluate("nullif(name, 'foo')", null, Literal.newLiteral("foo"));
+        assertEvaluate("nullif(name, 'foo')", null, Literal.of("foo"));
         assertEvaluate("nullif(null, 'foo')", null);
     }
 

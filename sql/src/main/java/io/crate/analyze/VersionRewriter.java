@@ -75,7 +75,7 @@ public class VersionRewriter {
                 if (DocSysColumns.VERSION.equals(columnIdent)) {
                     assert context.version == null;
                     context.version = right;
-                    return Literal.newLiteral(true);
+                    return Literal.of(true);
                 }
             }
             return function;

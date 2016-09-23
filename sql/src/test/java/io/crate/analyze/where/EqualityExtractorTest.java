@@ -133,14 +133,14 @@ public class EqualityExtractorTest extends BaseAnalyzerTest {
     }
 
     private Function Eq(String name, Integer i) {
-        return Eq(Ref(name), Literal.newLiteral(i));
+        return Eq(Ref(name), Literal.of(i));
     }
 
     @Test
     public void testNoExtract2ColPKWithOr() throws Exception {
         Symbol query = Or(
-                Eq(Ref("x"), Literal.newLiteral(1)),
-                Eq(Ref("y"), Literal.newLiteral(2))
+                Eq(Ref("x"), Literal.of(1)),
+                Eq(Ref("y"), Literal.of(2))
         );
 
         List<List<Symbol>> matches = analyzeExactXY(query);
@@ -297,10 +297,10 @@ public class EqualityExtractorTest extends BaseAnalyzerTest {
     @Test
     public void testNoExtract2ColPKFromAndEq1PartAnd2ForeignColumns() throws Exception {
         Symbol query = And(
-                Eq(Ref("x"), Literal.newLiteral(1)),
+                Eq(Ref("x"), Literal.of(1)),
                 Or(
-                        Eq(Ref("a"), Literal.newLiteral(2)),
-                        Eq(Ref("z"), Literal.newLiteral(3))
+                        Eq(Ref("a"), Literal.of(2)),
+                        Eq(Ref("z"), Literal.of(3))
                 ));
 
         List<List<Symbol>> matches = analyzeExactXY(query);
@@ -342,10 +342,10 @@ public class EqualityExtractorTest extends BaseAnalyzerTest {
     @Test
     public void testExtract2ColPKFrom1PartAndOtherPart2EqOr() throws Exception {
         Symbol query = And(
-                Eq(Ref("x"), Literal.newLiteral(1)),
+                Eq(Ref("x"), Literal.of(1)),
                 Or(
-                        Eq(Ref("y"), Literal.newLiteral(2)),
-                        Eq(Ref("y"), Literal.newLiteral(3))
+                        Eq(Ref("y"), Literal.of(2)),
+                        Eq(Ref("y"), Literal.of(3))
                 ));
 
         List<List<Symbol>> matches = analyzeExactXY(query);
@@ -358,14 +358,14 @@ public class EqualityExtractorTest extends BaseAnalyzerTest {
 
     @Test
     public void testNoExtract2ColPKFromOnly1Part() throws Exception {
-        Symbol query = Eq(Ref("x"), Literal.newLiteral(1));
+        Symbol query = Eq(Ref("x"), Literal.of(1));
         List<List<Symbol>> matches = analyzeExactXY(query);
         assertNull(matches);
     }
 
     @Test
     public void testExtractSinglePKFromAnyEq() throws Exception {
-        Symbol query = AnyEq(Ref("x"), Literal.newLiteral(new ArrayType(DataTypes.STRING), new Object[]{new BytesRef("a"), new BytesRef("b"), new BytesRef("c")}));
+        Symbol query = AnyEq(Ref("x"), Literal.of(new ArrayType(DataTypes.STRING), new Object[]{new BytesRef("a"), new BytesRef("b"), new BytesRef("c")}));
         List<List<Symbol>> matches = analyzeExactX(query);
         assertThat(matches.size(), is(3));
         assertThat(matches, containsInAnyOrder(
@@ -378,7 +378,7 @@ public class EqualityExtractorTest extends BaseAnalyzerTest {
     @Test
     public void testExtract2ColPKFromAnyEq() throws Exception {
         Symbol query = And(
-                AnyEq(Ref("x"), Literal.newLiteral(new ArrayType(DataTypes.STRING), new Object[]{new BytesRef("a"), new BytesRef("b"), new BytesRef("c")})),
+                AnyEq(Ref("x"), Literal.of(new ArrayType(DataTypes.STRING), new Object[]{new BytesRef("a"), new BytesRef("b"), new BytesRef("c")})),
                 Eq("y", 4));
         List<List<Symbol>> matches = analyzeExactXY(query);
         assertThat(matches.size(), is(3));
@@ -394,8 +394,8 @@ public class EqualityExtractorTest extends BaseAnalyzerTest {
     @Test
     public void testExtractSinglePKFromAnyEqInOr() throws Exception {
         Symbol query = Or(
-                AnyEq(Ref("x"), Literal.newLiteral(new ArrayType(DataTypes.STRING), new Object[]{new BytesRef("a"), new BytesRef("b"), new BytesRef("c")})),
-                AnyEq(Ref("x"), Literal.newLiteral(new ArrayType(DataTypes.STRING), new Object[]{new BytesRef("d"), new BytesRef("e"), new BytesRef("c")}))
+                AnyEq(Ref("x"), Literal.of(new ArrayType(DataTypes.STRING), new Object[]{new BytesRef("a"), new BytesRef("b"), new BytesRef("c")})),
+                AnyEq(Ref("x"), Literal.of(new ArrayType(DataTypes.STRING), new Object[]{new BytesRef("d"), new BytesRef("e"), new BytesRef("c")}))
                 );
         List<List<Symbol>> matches = analyzeExactX(query);
         assertThat(matches.size(), is(5));
@@ -425,8 +425,8 @@ public class EqualityExtractorTest extends BaseAnalyzerTest {
     @Test
     public void testExtractSinglePK1FromAndAnyEq() throws Exception {
         Symbol query = And(
-                AnyEq(Ref("x"), Literal.newLiteral(new ArrayType(DataTypes.STRING), new Object[]{new BytesRef("a"), new BytesRef("b"), new BytesRef("c")})),
-                AnyEq(Ref("x"), Literal.newLiteral(new ArrayType(DataTypes.STRING), new Object[]{new BytesRef("d"), new BytesRef("e"), new BytesRef("c")}))
+                AnyEq(Ref("x"), Literal.of(new ArrayType(DataTypes.STRING), new Object[]{new BytesRef("a"), new BytesRef("b"), new BytesRef("c")})),
+                AnyEq(Ref("x"), Literal.of(new ArrayType(DataTypes.STRING), new Object[]{new BytesRef("d"), new BytesRef("e"), new BytesRef("c")}))
         );
         List<List<Symbol>> matches = analyzeExactX(query);
         assertThat(matches, is(notNullValue()));
@@ -439,8 +439,8 @@ public class EqualityExtractorTest extends BaseAnalyzerTest {
     @Test
     public void testExtract2ColPKFromAnyEqAnd() throws Exception {
         Symbol query = And(
-                AnyEq(Ref("x"), Literal.newLiteral(new ArrayType(DataTypes.STRING), new Object[]{new BytesRef("a"), new BytesRef("b"), new BytesRef("c")})),
-                AnyEq(Ref("y"), Literal.newLiteral(new ArrayType(DataTypes.STRING), new Object[]{new BytesRef("a"), new BytesRef("b"), new BytesRef("c")}))
+                AnyEq(Ref("x"), Literal.of(new ArrayType(DataTypes.STRING), new Object[]{new BytesRef("a"), new BytesRef("b"), new BytesRef("c")})),
+                AnyEq(Ref("y"), Literal.of(new ArrayType(DataTypes.STRING), new Object[]{new BytesRef("a"), new BytesRef("b"), new BytesRef("c")}))
         );
         List<List<Symbol>> matches = analyzeExactXY(query);
         assertThat(matches.size(), is(9)); // cartesian product: 3 * 3

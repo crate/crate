@@ -138,7 +138,7 @@ public class DateTruncFunction extends Scalar<Long, Object> {
             tsSymbol = (Literal)symbol.arguments().get(2);
         }
 
-        return Literal.newLiteral(
+        return Literal.of(
                 DataTypes.TIMESTAMP,
                 evaluate(new Input[]{interval, timezone, tsSymbol})
         );

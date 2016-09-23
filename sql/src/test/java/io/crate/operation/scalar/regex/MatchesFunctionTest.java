@@ -41,7 +41,7 @@ public class MatchesFunctionTest extends AbstractScalarFunctionsTest {
 
     @Test
     public void testCompile() throws Exception {
-        final Literal<BytesRef> pattern = Literal.newLiteral(".*(ba).*");
+        final Literal<BytesRef> pattern = Literal.of(".*(ba).*");
 
         List<Symbol> arguments = Arrays.asList(
                 createReference("name", DataTypes.STRING),
@@ -60,7 +60,7 @@ public class MatchesFunctionTest extends AbstractScalarFunctionsTest {
         arguments = Arrays.asList(
                 createReference("name", DataTypes.STRING),
                 pattern,
-                Literal.newLiteral("usn")
+                Literal.of("usn")
         );
         regexpImpl.compile(arguments);
 
@@ -71,7 +71,7 @@ public class MatchesFunctionTest extends AbstractScalarFunctionsTest {
 
     @Test
     public void testEvaluateWithCompile() throws Exception {
-        final Literal<BytesRef> pattern = Literal.newLiteral(".*(ba).*");
+        final Literal<BytesRef> pattern = Literal.of(".*(ba).*");
 
         List<Symbol> arguments = Arrays.asList(
                 createReference("name", DataTypes.STRING),
@@ -133,7 +133,7 @@ public class MatchesFunctionTest extends AbstractScalarFunctionsTest {
 
     @Test
     public void testEvaluateWithFlags() throws Exception {
-        final Literal<BytesRef> flags = Literal.newLiteral("usn");
+        final Literal<BytesRef> flags = Literal.of("usn");
         List<Symbol> arguments = Arrays.<Symbol>asList(
                 createReference("text", DataTypes.STRING),
                 createReference("regex_pattern", DataTypes.STRING)

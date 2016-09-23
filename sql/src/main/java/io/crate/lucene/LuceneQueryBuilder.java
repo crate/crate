@@ -1124,7 +1124,7 @@ public class LuceneQueryBuilder {
                     Reference ref = (Reference) left;
                     if (ref.ident().columnIdent().equals(DocSysColumns.ID)) {
                         function.setArgument(0, DocSysColumns.forTable(ref.ident().tableIdent(), DocSysColumns.UID));
-                        function.setArgument(1, Literal.newLiteral(Uid.createUid(Constants.DEFAULT_MAPPING_TYPE,
+                        function.setArgument(1, Literal.of(Uid.createUid(Constants.DEFAULT_MAPPING_TYPE,
                                 ValueSymbolVisitor.STRING.process(right))));
                     } else {
                         String unsupportedMessage = context.unsupportedMessage(ref.ident().columnIdent().name());

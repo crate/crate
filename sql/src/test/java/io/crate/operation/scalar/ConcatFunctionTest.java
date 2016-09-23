@@ -71,8 +71,8 @@ public class ConcatFunctionTest extends AbstractScalarFunctionsTest {
         Scalar scalar = ((Scalar) functions.get(new FunctionIdent(ConcatFunction.NAME, argumentTypes)));
 
         Input[] inputs = new Input[2];
-        inputs[0] = Literal.newLiteral(arg1);
-        inputs[1] = Literal.newLiteral(arg2);
+        inputs[0] = Literal.of(arg1);
+        inputs[1] = Literal.of(arg2);
         @SuppressWarnings("unchecked")
 
         BytesRef evaluate = (BytesRef) scalar.evaluate(inputs);
@@ -112,11 +112,11 @@ public class ConcatFunctionTest extends AbstractScalarFunctionsTest {
         Scalar scalar = ((Scalar) functions.get(new FunctionIdent(ConcatFunction.NAME, argumentTypes)));
 
         Symbol symbol = scalar.normalizeSymbol(new Function(scalar.info(),
-                Arrays.<Symbol>asList(Literal.newLiteral("foo"), Literal.newLiteral("bar"))), stmtCtx);
+                Arrays.<Symbol>asList(Literal.of("foo"), Literal.of("bar"))), stmtCtx);
         assertThat(symbol, isLiteral("foobar"));
 
         symbol = scalar.normalizeSymbol(new Function(scalar.info(),
-                Arrays.<Symbol>asList(createReference("col1", DataTypes.STRING), Literal.newLiteral("bar"))), stmtCtx);
+                Arrays.<Symbol>asList(createReference("col1", DataTypes.STRING), Literal.of("bar"))), stmtCtx);
         assertThat(symbol, isFunction(ConcatFunction.NAME));
     }
 
@@ -166,8 +166,8 @@ public class ConcatFunctionTest extends AbstractScalarFunctionsTest {
         Scalar scalar = ((Scalar) functions.get(new FunctionIdent(ConcatFunction.NAME, argumentTypes)));
 
         Input[] inputs = new Input[2];
-        inputs[0] = Literal.newLiteral(new Object[]{1, 2}, arrayType);
-        inputs[1] = Literal.newLiteral(new Object[]{2, 3}, arrayType);
+        inputs[0] = Literal.of(new Object[]{1, 2}, arrayType);
+        inputs[1] = Literal.of(new Object[]{2, 3}, arrayType);
 
         Object[] evaluate = (Object[]) scalar.evaluate(inputs);
         assertThat(evaluate, is(new Object[]{1, 2, 2, 3}));
@@ -182,8 +182,8 @@ public class ConcatFunctionTest extends AbstractScalarFunctionsTest {
         Scalar scalar = ((Scalar) functions.get(new FunctionIdent(ConcatFunction.NAME, argumentTypes)));
 
         Input[] inputs = new Input[2];
-        inputs[0] = Literal.newLiteral(new Object[]{},     arrayType0);
-        inputs[1] = Literal.newLiteral(new Object[]{1, 2}, arrayType1);
+        inputs[0] = Literal.of(new Object[]{},     arrayType0);
+        inputs[1] = Literal.of(new Object[]{1, 2}, arrayType1);
 
         Object[] evaluate = (Object[]) scalar.evaluate(inputs);
         assertThat(evaluate, is(new Object[]{1, 2}));

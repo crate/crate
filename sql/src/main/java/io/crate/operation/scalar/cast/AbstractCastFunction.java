@@ -73,7 +73,7 @@ public abstract class AbstractCastFunction<From, To> extends Scalar<To,From> imp
         if (argument.symbolType().isValueSymbol()) {
             Object value = ((Input) argument).value();
             try {
-                return Literal.newLiteral(returnType, returnType.value(value));
+                return Literal.of(returnType, returnType.value(value));
             } catch (ClassCastException | IllegalArgumentException | ConversionException e) {
                 return onNormalizeException(argument);
             }

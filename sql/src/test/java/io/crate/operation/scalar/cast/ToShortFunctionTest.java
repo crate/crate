@@ -47,7 +47,7 @@ public class ToShortFunctionTest extends AbstractScalarFunctionsTest {
     private final StmtCtx stmtCtx = new StmtCtx();
 
     private Short evaluate(Object value, DataType type) {
-        Input[] input = {(Input)Literal.newLiteral(type, value)};
+        Input[] input = {(Input)Literal.of(type, value)};
         ToPrimitiveFunction fn = getFunction(functionName, type);
         return (Short) fn.evaluate(input);
     }
@@ -55,7 +55,7 @@ public class ToShortFunctionTest extends AbstractScalarFunctionsTest {
     private Symbol normalize(Object value, DataType type) {
         ToPrimitiveFunction function = getFunction(functionName, type);
         return function.normalizeSymbol(new Function(function.info(),
-                Collections.<Symbol>singletonList(Literal.newLiteral(type, value))), stmtCtx);
+                Collections.<Symbol>singletonList(Literal.of(type, value))), stmtCtx);
     }
 
     @Test

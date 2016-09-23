@@ -31,7 +31,7 @@ import io.crate.types.DataTypes
 import org.junit.Before
 import org.junit.Test
 
-import static io.crate.analyze.symbol.Literal.newLiteral
+import static io.crate.analyze.symbol.Literal.of
 
 class UnnestTest extends RandomizedTest {
 
@@ -48,8 +48,8 @@ class UnnestTest extends RandomizedTest {
 
     @Test
     void testExecute() {
-        Literal numbers = newLiteral(longArray, $(1L, 2L))
-        Literal names = newLiteral(stringArray, $("Marvin", "Trillian"))
+        Literal numbers = of(longArray, $(1L, 2L))
+        Literal names = of(stringArray, $("Marvin", "Trillian"))
         Bucket bucket = unnest.execute([numbers, names])
 
         assert TestingHelpers.printedTable(bucket) == "1| Marvin\n" +
@@ -58,8 +58,8 @@ class UnnestTest extends RandomizedTest {
 
     @Test
     public void testExecuteFirstArrayShorter() throws Exception {
-        Literal numbers = newLiteral(longArray, $(1L))
-        Literal names = newLiteral(stringArray, $("Marvin", "Trillian"))
+        Literal numbers = of(longArray, $(1L))
+        Literal names = of(stringArray, $("Marvin", "Trillian"))
 
         Bucket bucket = unnest.execute([numbers, names])
         def table = TestingHelpers.printedTable(bucket)
@@ -68,8 +68,8 @@ class UnnestTest extends RandomizedTest {
 
     @Test
     public void testExecuteSecondArrayShorter() throws Exception {
-        Literal numbers = newLiteral(longArray, $(1L, 2L, 3L))
-        Literal names = newLiteral(stringArray, $("Marvin"))
+        Literal numbers = of(longArray, $(1L, 2L, 3L))
+        Literal names = of(stringArray, $("Marvin"))
 
         Bucket bucket = unnest.execute([numbers, names])
         def table = TestingHelpers.printedTable(bucket)

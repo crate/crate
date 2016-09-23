@@ -43,7 +43,7 @@ public class NotPredicateTest extends CrateUnitTest {
     @Test
     public void testNormalizeSymbolBoolean() throws Exception {
         NotPredicate predicate = new NotPredicate();
-        Function not = new Function(predicate.info(), Arrays.<Symbol>asList(Literal.newLiteral(true)));
+        Function not = new Function(predicate.info(), Arrays.<Symbol>asList(Literal.of(true)));
 
         assertThat(predicate.normalizeSymbol(not, stmtCtx), isLiteral(false));
     }
@@ -61,7 +61,7 @@ public class NotPredicateTest extends CrateUnitTest {
                                 Arrays.<DataType>asList(DataTypes.STRING, DataTypes.STRING)),
                         DataTypes.BOOLEAN
                 ),
-                Arrays.<Symbol>asList(name_ref, Literal.newLiteral("foo"))
+                Arrays.<Symbol>asList(name_ref, Literal.of("foo"))
         );
 
         Function not = new Function(notPredicate.info(), Arrays.<Symbol>asList(eqName));

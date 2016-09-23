@@ -66,7 +66,7 @@ public class BaseTransportExecutorTest extends SQLTransportIntegrationTest {
         querySpec.outputs(outputs);
         List<List<Symbol>> keys = new ArrayList<>(singleStringKeys.size());
         for (String v : singleStringKeys) {
-            keys.add(ImmutableList.<Symbol>of(Literal.newLiteral(v)));
+            keys.add(ImmutableList.<Symbol>of(Literal.of(v)));
         }
         WhereClause whereClause = new WhereClause(null, new DocKeys(keys, false, -1, null), null);
         querySpec.where(whereClause);

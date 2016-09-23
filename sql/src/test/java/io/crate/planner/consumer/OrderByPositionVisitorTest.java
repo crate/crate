@@ -36,7 +36,7 @@ public class OrderByPositionVisitorTest extends CrateUnitTest {
     public void testOrderByPositionInputs() throws Exception {
         int[] orderByPositions = OrderByPositionVisitor.orderByPositions(
                 ImmutableList.<Symbol>of(new InputColumn(0), new InputColumn(1), new InputColumn(0)),
-                ImmutableList.<Symbol>of(Literal.BOOLEAN_TRUE, Literal.newLiteral(1))
+                ImmutableList.<Symbol>of(Literal.BOOLEAN_TRUE, Literal.of(1))
         );
         assertArrayEquals(new int[]{0, 1, 0}, orderByPositions);
     }
@@ -46,7 +46,7 @@ public class OrderByPositionVisitorTest extends CrateUnitTest {
         Reference ref = TestingHelpers.createReference("column", DataTypes.STRING);
         int[] orderByPositions = OrderByPositionVisitor.orderByPositions(
                 ImmutableList.of(ref, new InputColumn(1), new InputColumn(0)),
-                ImmutableList.of(ref, Literal.newLiteral(1))
+                ImmutableList.of(ref, Literal.of(1))
         );
         assertArrayEquals(new int[]{0, 1, 0}, orderByPositions);
     }

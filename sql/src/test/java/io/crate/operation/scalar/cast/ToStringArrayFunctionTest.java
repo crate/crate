@@ -39,7 +39,7 @@ public class ToStringArrayFunctionTest extends AbstractScalarFunctionsTest {
     @Test
     public void testEvaluate() throws Exception {
         assertEvaluate("to_string_array(long_array)", new ArrayType(DataTypes.STRING).value(new Object[]{"1", "2", "3"}),
-            Literal.newLiteral(new Long[]{1L, 2L, 3L}, new ArrayType(DataTypes.LONG)));
+            Literal.of(new Long[]{1L, 2L, 3L}, new ArrayType(DataTypes.LONG)));
     }
 
     @Test

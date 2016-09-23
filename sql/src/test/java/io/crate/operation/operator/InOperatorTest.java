@@ -52,8 +52,8 @@ public class InOperatorTest extends CrateUnitTest{
 
     @Test
     public void testNormalizeSymbolSetLiteralIntegerIncluded() {
-        Literal<Integer> inValue = Literal.newLiteral(1);
-        Literal inListValues = Literal.newLiteral(INTEGER_SET_TYPE, Sets.newHashSet(1, 2, 4, 8));
+        Literal<Integer> inValue = Literal.of(1);
+        Literal inListValues = Literal.of(INTEGER_SET_TYPE, Sets.newHashSet(1, 2, 4, 8));
 
         List<Symbol> arguments = new ArrayList<>();
         arguments.add(inValue);
@@ -68,9 +68,9 @@ public class InOperatorTest extends CrateUnitTest{
 
     @Test
     public void testNormalizeSymbolSetLiteralIntegerNotIncluded() {
-        Literal<Integer> inValue = Literal.newLiteral(128);
+        Literal<Integer> inValue = Literal.of(128);
 
-        Literal inListValues = Literal.newLiteral(INTEGER_SET_TYPE, Sets.newHashSet(1, 2, 4, 8));
+        Literal inListValues = Literal.of(INTEGER_SET_TYPE, Sets.newHashSet(1, 2, 4, 8));
 
         List<Symbol> arguments = new ArrayList<>();
         arguments.add(inValue);
@@ -85,8 +85,8 @@ public class InOperatorTest extends CrateUnitTest{
 
     @Test
     public void testNormalizeSymbolSetLiteralDifferentDataTypeValue() {
-        Literal<Double> value = Literal.newLiteral(2.0);
-        Literal inListValues = Literal.newLiteral(INTEGER_SET_TYPE, Sets.newHashSet(1, 2, 4, 8));
+        Literal<Double> value = Literal.of(2.0);
+        Literal inListValues = Literal.of(INTEGER_SET_TYPE, Sets.newHashSet(1, 2, 4, 8));
 
         List<Symbol> arguments = new ArrayList<>();
         arguments.add(value);
@@ -102,7 +102,7 @@ public class InOperatorTest extends CrateUnitTest{
     @Test
     public void testNormalizeSymbolSetLiteralReference() {
         Reference reference = new Reference();
-        Literal inListValues = Literal.newLiteral(INTEGER_SET_TYPE, Sets.newHashSet(1, 2, 4, 8));
+        Literal inListValues = Literal.of(INTEGER_SET_TYPE, Sets.newHashSet(1, 2, 4, 8));
 
         List<Symbol> arguments = new ArrayList<>();
         arguments.add(reference);
@@ -118,8 +118,8 @@ public class InOperatorTest extends CrateUnitTest{
 
     @Test
     public void testNormalizeSymbolSetLiteralStringIncluded() {
-        Literal inValue = Literal.newLiteral("charlie");
-        Literal inListValues = Literal.newLiteral(
+        Literal inValue = Literal.of("charlie");
+        Literal inListValues = Literal.of(
                 STRING_SET_TYPE,
                 Sets.newHashSet(
                         new BytesRef("alpha"),
@@ -142,8 +142,8 @@ public class InOperatorTest extends CrateUnitTest{
 
     @Test
     public void testNormalizeSymbolSetLiteralStringNotIncluded() {
-        Literal inValue = Literal.newLiteral("not included");
-        Literal inListValues = Literal.newLiteral(
+        Literal inValue = Literal.of("not included");
+        Literal inListValues = Literal.of(
                 STRING_SET_TYPE,
                 Sets.newHashSet(
                         new BytesRef("alpha"),

@@ -55,7 +55,7 @@ public class AndOperator extends Operator<Boolean> {
         Symbol right = function.arguments().get(1);
 
         if (left instanceof Input && right instanceof Input) {
-            return Literal.newLiteral(evaluate((Input) left, (Input) right));
+            return Literal.of(evaluate((Input) left, (Input) right));
         }
 
         /**
@@ -71,7 +71,7 @@ public class AndOperator extends Operator<Boolean> {
             if ((Boolean) value) {
                 return right;
             } else {
-                return Literal.newLiteral(false);
+                return Literal.of(false);
             }
         }
         if (right instanceof Input) {
@@ -82,7 +82,7 @@ public class AndOperator extends Operator<Boolean> {
             if ((Boolean) value) {
                 return left;
             } else {
-                return Literal.newLiteral(false);
+                return Literal.of(false);
             }
         }
         return function;

@@ -171,7 +171,7 @@ public abstract class AbstractScalarFunctionsTest extends CrateUnitTest {
     }
 
     protected Symbol normalize(String functionName, Object value, DataType type) {
-        return normalize(functionName, Literal.newLiteral(type, value));
+        return normalize(functionName, Literal.of(type, value));
     }
 
     protected Symbol normalize(String functionName, Symbol ...args) {

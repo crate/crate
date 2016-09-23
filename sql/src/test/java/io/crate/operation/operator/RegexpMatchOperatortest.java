@@ -38,7 +38,7 @@ public class RegexpMatchOperatortest extends CrateUnitTest {
         RegexpMatchOperator op = new RegexpMatchOperator();
         Function function = new Function(
                 op.info(),
-                Arrays.<Symbol>asList(Literal.newLiteral(source), Literal.newLiteral(pattern))
+                Arrays.<Symbol>asList(Literal.of(source), Literal.of(pattern))
         );
         return op.normalizeSymbol(function, new StmtCtx());
     }
@@ -68,7 +68,7 @@ public class RegexpMatchOperatortest extends CrateUnitTest {
 
     private Boolean regexpEvaluate(String source, String pattern) {
         RegexpMatchOperator op = new RegexpMatchOperator();
-        return op.evaluate(Literal.newLiteral(source), Literal.newLiteral(pattern));
+        return op.evaluate(Literal.of(source), Literal.of(pattern));
     }
 
     @Test

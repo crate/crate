@@ -48,7 +48,7 @@ public class ToBooleanFunctionTest extends AbstractScalarFunctionsTest {
     }
 
     private Boolean evaluate(Object value, DataType type) {
-        Input[] input = {(Input)Literal.newLiteral(type, value)};
+        Input[] input = {(Input)Literal.of(type, value)};
         return (Boolean) getFunction(type).evaluate(input);
     }
 
@@ -57,7 +57,7 @@ public class ToBooleanFunctionTest extends AbstractScalarFunctionsTest {
     private Symbol normalize(Object value, DataType type) {
         ToPrimitiveFunction function = getFunction(type);
         return function.normalizeSymbol(new Function(function.info(),
-                Collections.<Symbol>singletonList(Literal.newLiteral(type, value))), stmtCtx);
+                Collections.<Symbol>singletonList(Literal.of(type, value))), stmtCtx);
     }
 
     @Test

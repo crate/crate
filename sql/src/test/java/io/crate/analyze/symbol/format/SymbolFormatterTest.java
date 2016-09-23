@@ -43,7 +43,7 @@ public class SymbolFormatterTest extends CrateUnitTest {
     public void testFormat() throws Exception {
         Function f = new Function(new FunctionInfo(
                 new FunctionIdent("foo", Arrays.<DataType>asList(DataTypes.STRING, DataTypes.UNDEFINED)), DataTypes.DOUBLE),
-                Arrays.<Symbol>asList(Literal.newLiteral("bar"), Literal.newLiteral(3.4)));
+                Arrays.<Symbol>asList(Literal.of("bar"), Literal.of(3.4)));
         assertThat(SymbolFormatter.format("This Symbol is formatted %s", f), is("This Symbol is formatted foo('bar', 3.4)"));
     }
 
@@ -51,6 +51,6 @@ public class SymbolFormatterTest extends CrateUnitTest {
     public void testFormatInvalidEscape() throws Exception {
         expectedException.expect(IllegalFormatConversionException.class);
         expectedException.expectMessage("d != java.lang.String");
-        assertThat(SymbolFormatter.format("%d", Literal.newLiteral(42L)), is(""));
+        assertThat(SymbolFormatter.format("%d", Literal.of(42L)), is(""));
     }
 }

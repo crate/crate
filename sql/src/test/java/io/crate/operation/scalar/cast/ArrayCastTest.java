@@ -46,7 +46,7 @@ public class ArrayCastTest {
         final DataType arrayType = new ArrayType(innerType);
         Scalar impl = (Scalar) functions.get(new FunctionIdent(functionName, ImmutableList.of(arrayType)));
 
-        Literal input = Literal.newLiteral(arrayType, objects);
+        Literal input = Literal.of(arrayType, objects);
         Symbol normalized = impl.normalizeSymbol(new Function(impl.info(), Arrays.<Symbol>asList(input)), new StmtCtx());
         Object[] integers = (Object[]) impl.evaluate(input);
 

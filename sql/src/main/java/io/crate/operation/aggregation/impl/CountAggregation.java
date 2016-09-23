@@ -102,7 +102,7 @@ public class CountAggregation extends AggregationFunction<CountAggregation.LongS
         if (function.arguments().size() == 1) {
             if (function.arguments().get(0).symbolType().isValueSymbol()) {
                 if ((function.arguments().get(0)).valueType() == DataTypes.UNDEFINED) {
-                    return Literal.newLiteral(0L);
+                    return Literal.of(0L);
                 } else {
                     return new Function(COUNT_STAR_FUNCTION, ImmutableList.<Symbol>of());
                 }

@@ -41,12 +41,12 @@ import static org.hamcrest.Matchers.is;
 public class AnyNotLikeOperatorTest extends CrateUnitTest {
 
     private static Symbol normalizeSymbol(String pattern, String ... expressions) {
-        Literal patternLiteral = Literal.newLiteral(pattern);
+        Literal patternLiteral = Literal.of(pattern);
         Object[] value = new Object[expressions.length];
         for (int i=0; i < expressions.length; i++) {
             value[i] = expressions[i] == null ? null : new BytesRef(expressions[i]);
         }
-        Literal valuesLiteral = Literal.newLiteral(new ArrayType(DataTypes.STRING), value);
+        Literal valuesLiteral = Literal.of(new ArrayType(DataTypes.STRING), value);
         AnyNotLikeOperator impl = (AnyNotLikeOperator)new AnyNotLikeOperator.AnyNotLikeResolver().getForTypes(
                 Arrays.asList(patternLiteral.valueType(), valuesLiteral.valueType())
         );
@@ -63,12 +63,12 @@ public class AnyNotLikeOperatorTest extends CrateUnitTest {
     }
 
     private Boolean anyNotLike(String pattern, String ... expressions) {
-        Literal patternLiteral = Literal.newLiteral(pattern);
+        Literal patternLiteral = Literal.of(pattern);
         Object[] value = new Object[expressions.length];
         for (int i=0; i < expressions.length; i++) {
             value[i] = expressions[i] == null ? null : new BytesRef(expressions[i]);
         }
-        Literal valuesLiteral = Literal.newLiteral(new ArrayType(DataTypes.STRING), value);
+        Literal valuesLiteral = Literal.of(new ArrayType(DataTypes.STRING), value);
         AnyNotLikeOperator impl = (AnyNotLikeOperator)new AnyNotLikeOperator.AnyNotLikeResolver().getForTypes(
                 Arrays.asList(DataTypes.STRING, valuesLiteral.valueType())
         );
@@ -152,8 +152,8 @@ public class AnyNotLikeOperatorTest extends CrateUnitTest {
 
     @Test
     public void testNegateNotLike() throws Exception {
-        Literal patternLiteral = Literal.newLiteral("A");
-        Literal valuesLiteral = Literal.newLiteral(new ArrayType(DataTypes.STRING),
+        Literal patternLiteral = Literal.of("A");
+        Literal valuesLiteral = Literal.of(new ArrayType(DataTypes.STRING),
                 new Object[]{new BytesRef("A"), new BytesRef("B")});
         FunctionImplementation<Function> impl = new AnyNotLikeOperator.AnyNotLikeResolver().getForTypes(
                 Arrays.asList(DataTypes.STRING, valuesLiteral.valueType())

@@ -119,7 +119,7 @@ public class HandlerSideLevelCollectTest extends SQLTransportIntegrationTest {
         FunctionImplementation eqImpl = functions.get(new FunctionIdent(EqOperator.NAME,
                 ImmutableList.<DataType>of(DataTypes.STRING, DataTypes.STRING)));
         Function whereClause = new Function(eqImpl.info(),
-                Arrays.asList(tableNameRef, Literal.newLiteral("shards")));
+                Arrays.asList(tableNameRef, Literal.of("shards")));
 
         RoutedCollectPhase collectNode = collectNode(routing, toCollect, RowGranularity.DOC, new WhereClause(whereClause));
         Bucket result = collect(collectNode);

@@ -46,7 +46,7 @@ public class TrigonometricFunctionTest extends AbstractScalarFunctionsTest {
     }
 
     private Number evaluate(Number number, String name, DataType type) {
-        return getFunction(name, type).evaluate((Input) Literal.newLiteral(type, number));
+        return getFunction(name, type).evaluate((Input) Literal.of(type, number));
     }
 
     private Number evaluateSin(Number number, DataType type) {

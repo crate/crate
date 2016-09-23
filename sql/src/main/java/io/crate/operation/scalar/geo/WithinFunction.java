@@ -161,7 +161,7 @@ public class WithinFunction extends Scalar<Boolean, Object> {
         }
 
         if (numLiterals == 2) {
-            return Literal.newLiteral(evaluate((Input) left, (Input) right));
+            return Literal.of(evaluate((Input) left, (Input) right));
         }
 
         if (literalConverted) {

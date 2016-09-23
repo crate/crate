@@ -57,10 +57,10 @@ public class ReferenceToTrueVisitor extends SymbolVisitor<Void, Symbol> {
         if (functionName.equals(NotPredicate.NAME)) {
             Symbol argument = symbol.arguments().get(0);
             if (argument instanceof Reference) {
-                return Literal.newLiteral(true);
+                return Literal.of(true);
             } else if (argument instanceof Function) {
                 if (!Operators.LOGICAL_OPERATORS.contains(((Function) argument).info().ident().name())) {
-                    return Literal.newLiteral(true);
+                    return Literal.of(true);
                 }
             }
         }
@@ -71,13 +71,13 @@ public class ReferenceToTrueVisitor extends SymbolVisitor<Void, Symbol> {
             }
             return new Function(symbol.info(), newArgs);
         } else {
-            return Literal.newLiteral(true);
+            return Literal.of(true);
         }
     }
 
     @Override
     public Symbol visitMatchPredicate(MatchPredicate matchPredicate, Void context) {
-        return Literal.newLiteral(true);
+        return Literal.of(true);
     }
 
     @Override

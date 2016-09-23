@@ -63,7 +63,6 @@ import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import static io.crate.analyze.symbol.Literal.newLiteral;
 
 /**
  * <p>This Analyzer can be used to convert Expression from the SQL AST into symbols.</p>
@@ -275,7 +274,7 @@ public class ExpressionAnalyzer {
                 visitExpression(node, context);
             }
             List<Symbol> args = Lists.<Symbol>newArrayList(
-                    Literal.newLiteral(node.getPrecision().or(CurrentTimestampFunction.DEFAULT_PRECISION))
+                    Literal.of(node.getPrecision().or(CurrentTimestampFunction.DEFAULT_PRECISION))
             );
             return context.allocateFunction(CurrentTimestampFunction.INFO, args);
         }
@@ -356,7 +355,7 @@ public class ExpressionAnalyzer {
                 Symbols.addValuesToCollection(values, targetType, symbols);
                 return context.allocateFunction(
                         AnyEqOperator.createInfo(targetType),
-                        Arrays.asList(left,Literal.newLiteral(new SetType(targetType), values)));
+                        Arrays.asList(left,Literal.of(new SetType(targetType), values)));
             }
 
             Set<Function> comparisons = new HashSet<>(expressions.size());
@@ -416,7 +415,7 @@ public class ExpressionAnalyzer {
                 FunctionIdent functionIdent = new FunctionIdent(SubscriptFunction.NAME,
                         ImmutableList.of(subscriptSymbol.valueType(), DataTypes.INTEGER));
                 return context.allocateFunction(getFunctionInfo(functionIdent),
-                        Arrays.asList(subscriptSymbol, newLiteral(index)));
+                        Arrays.asList(subscriptSymbol, Literal.of(index)));
             }
             return subscriptSymbol;
         }
@@ -600,27 +599,27 @@ public class ExpressionAnalyzer {
 
         @Override
         protected Symbol visitBooleanLiteral(BooleanLiteral node, ExpressionAnalysisContext context) {
-            return newLiteral(node.getValue());
+            return Literal.of(node.getValue());
         }
 
         @Override
         protected Symbol visitStringLiteral(StringLiteral node, ExpressionAnalysisContext context) {
-            return newLiteral(node.getValue());
+            return Literal.of(node.getValue());
         }
 
         @Override
         protected Symbol visitDoubleLiteral(DoubleLiteral node, ExpressionAnalysisContext context) {
-            return newLiteral(node.getValue());
+            return Literal.of(node.getValue());
         }
 
         @Override
         protected Symbol visitLongLiteral(LongLiteral node, ExpressionAnalysisContext context) {
-            return newLiteral(node.getValue());
+            return Literal.of(node.getValue());
         }
 
         @Override
         protected Symbol visitNullLiteral(NullLiteral node, ExpressionAnalysisContext context) {
-            return newLiteral(UndefinedType.INSTANCE, null);
+            return Literal.of(UndefinedType.INSTANCE, null);
         }
 
         @Override
@@ -631,7 +630,7 @@ public class ExpressionAnalyzer {
 
         private Literal toArrayLiteral(List<Expression> values, ExpressionAnalysisContext context) {
             if (values.isEmpty()) {
-                return newLiteral(new ArrayType(UndefinedType.INSTANCE), new Object[0]);
+                return Literal.of(new ArrayType(UndefinedType.INSTANCE), new Object[0]);
             } else {
                 DataType innerType = null;
                 Object[] innerValues = new Object[values.size()];
@@ -655,7 +654,7 @@ public class ExpressionAnalyzer {
                         innerValues[i] = innerType.value(innerValues[i]);
                     }
                 }
-                return Literal.newLiteral(new ArrayType(innerType), innerValues);
+                return Literal.of(new ArrayType(innerType), innerValues);
             }
         }
 
@@ -682,7 +681,7 @@ public class ExpressionAnalyzer {
                                     entry.getKey()));
                 }
             }
-            return newLiteral(values);
+            return Literal.of(values);
         }
 
         @Override

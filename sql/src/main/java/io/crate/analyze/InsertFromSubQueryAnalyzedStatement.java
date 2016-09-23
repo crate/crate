@@ -145,7 +145,7 @@ public class InsertFromSubQueryAnalyzedStatement implements AnalyzedRelation, An
             FunctionIdent functionIdent = new FunctionIdent(SubscriptObjectFunction.NAME,
                     ImmutableList.<DataType>of(DataTypes.OBJECT, DataTypes.STRING));
             symbol = new Function(new FunctionInfo(functionIdent, returnType),
-                    Arrays.asList(symbol, Literal.newLiteral(key)));
+                    Arrays.asList(symbol, Literal.of(key)));
         }
         return symbol;
     }

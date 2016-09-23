@@ -31,7 +31,7 @@ public class OrOperator extends Operator<Boolean> {
         Symbol right = function.arguments().get(1);
 
         if (left.symbolType().isValueSymbol() && right.symbolType().isValueSymbol()) {
-            return Literal.newLiteral(evaluate((Input) left, (Input) right));
+            return Literal.of(evaluate((Input) left, (Input) right));
         }
 
         /*
@@ -46,7 +46,7 @@ public class OrOperator extends Operator<Boolean> {
             }
             assert value instanceof Boolean;
             if ((Boolean) value) {
-                return Literal.newLiteral(true);
+                return Literal.of(true);
             } else {
                 return right;
             }
@@ -59,7 +59,7 @@ public class OrOperator extends Operator<Boolean> {
             }
             assert value instanceof Boolean;
             if ((Boolean) value) {
-                return Literal.newLiteral(true);
+                return Literal.of(true);
             } else {
                 return left;
             }

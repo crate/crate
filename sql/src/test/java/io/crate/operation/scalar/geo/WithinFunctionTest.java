@@ -50,32 +50,32 @@ public class WithinFunctionTest extends AbstractScalarFunctionsTest {
     @Test
     public void testEvaluatePointLiteralWithinPolygonLiteral() {
         assertEvaluate("within(geopoint, geoshape)", true,
-                Literal.newLiteral(DataTypes.GEO_SHAPE, DataTypes.GEO_SHAPE.value("POINT (10 10)")),
-                Literal.newLiteral(DataTypes.GEO_SHAPE, DataTypes.GEO_SHAPE.value("POLYGON ((5 5, 20 5, 30 30, 5 30, 5 5))"))
+                Literal.of(DataTypes.GEO_SHAPE, DataTypes.GEO_SHAPE.value("POINT (10 10)")),
+                Literal.of(DataTypes.GEO_SHAPE, DataTypes.GEO_SHAPE.value("POLYGON ((5 5, 20 5, 30 30, 5 30, 5 5))"))
         );
     }
 
     @Test
     public void testEvaluateShapeWithinShape() {
         assertEvaluate("within(geoshape, geoshape)", true,
-                Literal.newLiteral(DataTypes.GEO_SHAPE, DataTypes.GEO_SHAPE.value("LINESTRING (8 15, 13 24)")),
-                Literal.newLiteral(DataTypes.GEO_SHAPE, DataTypes.GEO_SHAPE.value("POLYGON ((5 5, 20 5, 30 30, 5 30, 5 5))"))
+                Literal.of(DataTypes.GEO_SHAPE, DataTypes.GEO_SHAPE.value("LINESTRING (8 15, 13 24)")),
+                Literal.of(DataTypes.GEO_SHAPE, DataTypes.GEO_SHAPE.value("POLYGON ((5 5, 20 5, 30 30, 5 30, 5 5))"))
         );
     }
 
     @Test
     public void testEvaluateShapeIsNotWithinShape() {
         assertEvaluate("within(geoshape, geoshape)", false,
-                Literal.newLiteral(DataTypes.GEO_SHAPE, DataTypes.GEO_SHAPE.value("LINESTRING (8 15, 40 74)")),
-                Literal.newLiteral(DataTypes.GEO_SHAPE, DataTypes.GEO_SHAPE.value("POLYGON ((5 5, 20 5, 30 30, 5 30, 5 5))"))
+                Literal.of(DataTypes.GEO_SHAPE, DataTypes.GEO_SHAPE.value("LINESTRING (8 15, 40 74)")),
+                Literal.of(DataTypes.GEO_SHAPE, DataTypes.GEO_SHAPE.value("POLYGON ((5 5, 20 5, 30 30, 5 30, 5 5))"))
         );
     }
 
     @Test
     public void testEvaluateObjectWithinShape() {
         assertEvaluate("within(geopoint, geoshape)", true,
-                Literal.newLiteral(ImmutableMap.<String, Object>of("type", "Point", "coordinates", new double[]{10.0, 10.0})),
-                Literal.newLiteral(DataTypes.GEO_SHAPE, DataTypes.GEO_SHAPE.value("POLYGON ((5 5, 20 5, 30 30, 5 30, 5 5))"))
+                Literal.of(ImmutableMap.<String, Object>of("type", "Point", "coordinates", new double[]{10.0, 10.0})),
+                Literal.of(DataTypes.GEO_SHAPE, DataTypes.GEO_SHAPE.value("POLYGON ((5 5, 20 5, 30 30, 5 30, 5 5))"))
         );
     }
 
@@ -89,7 +89,7 @@ public class WithinFunctionTest extends AbstractScalarFunctionsTest {
     @Test
     public void testNormalizeNull() throws Exception {
         Symbol normalizedSymbol = normalize(FNAME,
-                Literal.newLiteral(DataTypes.GEO_POINT, null),
+                Literal.of(DataTypes.GEO_POINT, null),
                 createReference("foo", DataTypes.GEO_SHAPE));
         assertThat(normalizedSymbol, isLiteral(null));
     }
@@ -111,7 +111,7 @@ public class WithinFunctionTest extends AbstractScalarFunctionsTest {
     public void testNormalizeWithStringLiteralAndReference() throws Exception {
         Symbol normalized = normalize(FNAME,
                 createReference("point", DataTypes.GEO_POINT),
-                Literal.newLiteral("POLYGON ((5 5, 20 5, 30 30, 5 30, 5 5))"));
+                Literal.of("POLYGON ((5 5, 20 5, 30 30, 5 30, 5 5))"));
         assertThat(normalized, instanceOf(Function.class));
         Function function = (Function) normalized;
         Symbol symbol = function.arguments().get(1);
@@ -129,7 +129,7 @@ public class WithinFunctionTest extends AbstractScalarFunctionsTest {
     @Test
     public void testNormalizeWithSecondArgAsStringReference() throws Exception {
         Symbol normalized = normalize(FNAME,
-                Literal.newLiteral(DataTypes.GEO_POINT, new Double[]{0.0d, 0.0d}),
+                Literal.of(DataTypes.GEO_POINT, new Double[]{0.0d, 0.0d}),
                 createReference("location", DataTypes.STRING));
         assertThat(normalized.symbolType(), is(SymbolType.FUNCTION));
         assertThat(((Function) normalized).info().ident().name(), is(WithinFunction.NAME));
@@ -148,8 +148,8 @@ public class WithinFunctionTest extends AbstractScalarFunctionsTest {
     @Test
     public void testNormalizeFromObject() throws Exception {
         Symbol normalized = normalize(FNAME,
-                Literal.newLiteral("POINT (1.0 0.0)"),
-                Literal.newLiteral(ImmutableMap.<String, Object>of("type", "Point", "coordinates", new double[]{0.0, 1.0})));
+                Literal.of("POINT (1.0 0.0)"),
+                Literal.of(ImmutableMap.<String, Object>of("type", "Point", "coordinates", new double[]{0.0, 1.0})));
         assertThat(normalized.symbolType(), is(SymbolType.LITERAL));
         assertThat(((Literal) normalized).value(), is((Object) Boolean.FALSE));
     }

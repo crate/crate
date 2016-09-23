@@ -46,7 +46,7 @@ public class ToLongFunctionTest extends AbstractScalarFunctionsTest {
     private final String functionName = CastFunctionResolver.FunctionNames.TO_LONG;
 
     private Long evaluate(Object value, DataType type) {
-        Input[] input = {(Input)Literal.newLiteral(type, value)};
+        Input[] input = {(Input)Literal.of(type, value)};
         ToPrimitiveFunction fn = getFunction(functionName, type);
         return (Long) fn.evaluate(input);
     }
@@ -54,7 +54,7 @@ public class ToLongFunctionTest extends AbstractScalarFunctionsTest {
     private Symbol normalize(Object value, DataType type) {
         ToPrimitiveFunction function = getFunction(functionName, type);
         return function.normalizeSymbol(new Function(function.info(),
-                Collections.<Symbol>singletonList(Literal.newLiteral(type, value))), new StmtCtx());
+                Collections.<Symbol>singletonList(Literal.of(type, value))), new StmtCtx());
     }
 
     @Test
@@ -106,7 +106,7 @@ public class ToLongFunctionTest extends AbstractScalarFunctionsTest {
         expectedException.expect(ConversionException.class);
         expectedException.expectMessage("cannot cast 'hello' to type long");
         ToPrimitiveFunction stringFn = getFunction(functionName, DataTypes.STRING);
-        Literal arg1 = Literal.newLiteral("hello");
+        Literal arg1 = Literal.of("hello");
 
         stringFn.evaluate(arg1);
     }
@@ -117,7 +117,7 @@ public class ToLongFunctionTest extends AbstractScalarFunctionsTest {
         expectedException.expect(ConversionException.class);
         expectedException.expectMessage("cannot cast 'hello' to type long");
         ToPrimitiveFunction stringFn = getFunction(functionName, DataTypes.STRING);
-        Literal arg1 = Literal.newLiteral(new BytesRef("hello"));
+        Literal arg1 = Literal.of(new BytesRef("hello"));
 
         stringFn.evaluate(arg1);
     }

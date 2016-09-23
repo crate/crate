@@ -165,49 +165,49 @@ public class Literal<ReturnType>
         type.streamer().writeValueTo(out, value);
     }
 
-    public static Literal<Map<String, Object>> newLiteral(Map<String, Object> value) {
+    public static Literal<Map<String, Object>> of(Map<String, Object> value) {
         return new Literal<>(DataTypes.OBJECT, value);
     }
 
-    public static Literal<Object[]> newLiteral(Object[] value, DataType dataType) {
+    public static Literal<Object[]> of(Object[] value, DataType dataType) {
         return new Literal<>(dataType, value);
     }
 
-    public static Literal<Long> newLiteral(Long value) {
+    public static Literal<Long> of(Long value) {
         return new Literal<>(DataTypes.LONG, value);
     }
 
-    public static Literal<Object> newLiteral(DataType type, Object value) {
+    public static Literal<Object> of(DataType type, Object value) {
         return new Literal<>(type, value);
     }
 
-    public static Literal<Integer> newLiteral(Integer value) {
+    public static Literal<Integer> of(Integer value) {
         return new Literal<>(DataTypes.INTEGER, value);
     }
 
-    public static Literal<BytesRef> newLiteral(String value) {
+    public static Literal<BytesRef> of(String value) {
         if (value == null) {
             return new Literal<>(DataTypes.STRING, null);
         }
         return new Literal<>(DataTypes.STRING, new BytesRef(value));
     }
 
-    public static Literal<BytesRef> newLiteral(BytesRef value) {
+    public static Literal<BytesRef> of(BytesRef value) {
         return new Literal<>(DataTypes.STRING, value);
     }
 
-    public static Literal<Boolean> newLiteral(Boolean value) {
+    public static Literal<Boolean> of(Boolean value) {
         if (value == null) {
             return new Literal<>(DataTypes.BOOLEAN, null);
         }
         return value ? BOOLEAN_TRUE : BOOLEAN_FALSE;
     }
 
-    public static Literal<Double> newLiteral(Double value) {
+    public static Literal<Double> of(Double value) {
         return new Literal<>(DataTypes.DOUBLE, value);
     }
 
-    public static Literal<Float> newLiteral(Float value) {
+    public static Literal<Float> of(Float value) {
         return new Literal<>(DataTypes.FLOAT, value);
     }
 
@@ -235,7 +235,7 @@ public class Literal<ReturnType>
             return literal;
         }
         try {
-            return newLiteral(type, type.value(literal.value()));
+            return of(type, type.value(literal.value()));
         } catch (IllegalArgumentException | ClassCastException e) {
             throw new ConversionException(symbol, type);
         }

@@ -129,10 +129,10 @@ public class EvaluatingNormalizer {
                 return new Function(
                         io.crate.operation.predicate.MatchPredicate.INFO,
                         Arrays.<Symbol>asList(
-                                Literal.newLiteral(fqnBoostMap),
-                                Literal.newLiteral(matchPredicate.columnType(), matchPredicate.queryTerm()),
-                                Literal.newLiteral(matchPredicate.matchType()),
-                                Literal.newLiteral(matchPredicate.options())));
+                                Literal.of(fqnBoostMap),
+                                Literal.of(matchPredicate.columnType(), matchPredicate.queryTerm()),
+                                Literal.of(matchPredicate.matchType()),
+                                Literal.of(matchPredicate.options())));
             }
             return matchPredicate;
         }
@@ -158,7 +158,7 @@ public class EvaluatingNormalizer {
 
             Input input = referenceResolver.getImplementation(symbol);
             if (input != null) {
-                return Literal.newLiteral(symbol.valueType(), input.value());
+                return Literal.of(symbol.valueType(), input.value());
             }
 
             if (logger.isTraceEnabled()) {

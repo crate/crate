@@ -35,7 +35,7 @@ public class ReplaceFunctionTest extends AbstractScalarFunctionsTest {
         assertEvaluate(
                 "regexp_replace(name, '(ba)', 'Crate')",
                 "fooCraterbequebaz bar",
-                Literal.newLiteral("foobarbequebaz bar"));
+                Literal.of("foobarbequebaz bar"));
     }
 
     @Test
@@ -43,7 +43,7 @@ public class ReplaceFunctionTest extends AbstractScalarFunctionsTest {
         assertEvaluate(
                 "regexp_replace(name, '(ba)', 'Crate', 'usn g')",
                 "fooCraterbequebaz bar",
-                Literal.newLiteral("foobarbequebaz bar"));
+                Literal.of("foobarbequebaz bar"));
     }
 
     @Test

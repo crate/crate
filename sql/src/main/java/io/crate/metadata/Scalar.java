@@ -100,6 +100,6 @@ public abstract class Scalar<ReturnType, InputType> implements FunctionImplement
             }
         }
         //noinspection unchecked
-        return Literal.newLiteral(function.info().returnType(), scalar.evaluate(inputs));
+        return Literal.of(function.info().returnType(), scalar.evaluate(inputs));
     }
 }

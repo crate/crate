@@ -135,15 +135,15 @@ public class ValueNormalizerTest extends CrateUnitTest {
                 RowGranularity.DOC,
                 DataTypes.BOOLEAN
         );
-        Literal<Boolean> trueLiteral = Literal.newLiteral(true);
+        Literal<Boolean> trueLiteral = Literal.of(true);
 
         assertThat(valueNormalizer.normalizeInputForReference(trueLiteral, ref, stmtCtx),
                 Matchers.<Symbol>is(trueLiteral));
 
-        assertThat(valueNormalizer.normalizeInputForReference(Literal.newLiteral("true"), ref, stmtCtx),
+        assertThat(valueNormalizer.normalizeInputForReference(Literal.of("true"), ref, stmtCtx),
                 Matchers.<Symbol>is(trueLiteral));
-        assertThat(valueNormalizer.normalizeInputForReference(Literal.newLiteral("false"), ref, stmtCtx),
-                Matchers.<Symbol>is(Literal.newLiteral(false)));
+        assertThat(valueNormalizer.normalizeInputForReference(Literal.of("false"), ref, stmtCtx),
+                Matchers.<Symbol>is(Literal.of(false)));
     }
 
     @Test
@@ -152,8 +152,8 @@ public class ValueNormalizerTest extends CrateUnitTest {
                 new ReferenceIdent(TEST_TABLE_IDENT, new ColumnIdent("double")),
                 RowGranularity.DOC,
                 DataTypes.DOUBLE);
-        Function f = new Function(TEST_FUNCTION_INFO, Arrays.<Symbol>asList(Literal.newLiteral(-9.9)));
-        assertThat(valueNormalizer.normalizeInputForReference(f, info, stmtCtx), Matchers.<Symbol>is(Literal.newLiteral(9.9)));
+        Function f = new Function(TEST_FUNCTION_INFO, Arrays.<Symbol>asList(Literal.of(-9.9)));
+        assertThat(valueNormalizer.normalizeInputForReference(f, info, stmtCtx), Matchers.<Symbol>is(Literal.of(9.9)));
     }
 
     @Test
@@ -164,7 +164,7 @@ public class ValueNormalizerTest extends CrateUnitTest {
         map.put("time", "2014-02-16T00:00:01");
         map.put("false", true);
         Literal<Map<String, Object>> normalized = (Literal)valueNormalizer.normalizeInputForReference(
-                Literal.newLiteral(map), objRef, stmtCtx);
+                Literal.of(map), objRef, stmtCtx);
         assertThat((String) normalized.value().get("time"), is("2014-02-16T00:00:01"));
         assertThat((Boolean)normalized.value().get("false"), is(true));
     }
@@ -174,7 +174,7 @@ public class ValueNormalizerTest extends CrateUnitTest {
         Reference objRef = userTableInfo.getReference(new ColumnIdent("dyn"));
         Map<String, Object> map = new HashMap<>();
         map.put("d", "2014-02-16T00:00:01");
-        valueNormalizer.normalizeInputForReference(Literal.newLiteral(map), objRef, stmtCtx);
+        valueNormalizer.normalizeInputForReference(Literal.of(map), objRef, stmtCtx);
     }
 
     @Test
@@ -184,7 +184,7 @@ public class ValueNormalizerTest extends CrateUnitTest {
         map.put("d", "2.9");
 
         Symbol normalized = valueNormalizer.normalizeInputForReference(
-                Literal.newLiteral(map), objInfo, stmtCtx);
+                Literal.of(map), objInfo, stmtCtx);
         assertThat(normalized, instanceOf(Literal.class));
         assertThat(((Literal<Map<String, Object>>)normalized).value().get("d"), Matchers.<Object>is(2.9d));
     }
@@ -198,10 +198,10 @@ public class ValueNormalizerTest extends CrateUnitTest {
                 put("double", "-88.7");
             }});
         }};
-        valueNormalizer.normalizeInputForReference(Literal.newLiteral(map), objInfo, stmtCtx);
+        valueNormalizer.normalizeInputForReference(Literal.of(map), objInfo, stmtCtx);
 
         Symbol normalized = valueNormalizer.normalizeInputForReference(
-                Literal.newLiteral(map), objInfo, stmtCtx);
+                Literal.of(map), objInfo, stmtCtx);
         assertThat(normalized, instanceOf(Literal.class));
         assertThat(((Literal<Map<String, Object>>)normalized).value().get("d"), Matchers.<Object>is(2.9d));
         assertThat(((Literal<Map<String, Object>>)normalized).value().get("inner_strict"),
@@ -218,7 +218,7 @@ public class ValueNormalizerTest extends CrateUnitTest {
         map.put("d", 2.9d);
         map.put("half", "1.45");
         Symbol normalized = valueNormalizer.normalizeInputForReference(
-                Literal.newLiteral(map), objInfo, stmtCtx);
+                Literal.of(map), objInfo, stmtCtx);
         assertThat(normalized, instanceOf(Literal.class));
         assertThat(((Literal)normalized).value(), Matchers.<Object>is(map)); // stays the same
     }
@@ -231,7 +231,7 @@ public class ValueNormalizerTest extends CrateUnitTest {
         map.put("inner_d", 2.9d);
         map.put("half", "1.45");
         valueNormalizer.normalizeInputForReference(
-                Literal.newLiteral(map), objInfo, stmtCtx);
+                Literal.of(map), objInfo, stmtCtx);
     }
 
     @Test(expected = ColumnUnknownException.class)
@@ -243,7 +243,7 @@ public class ValueNormalizerTest extends CrateUnitTest {
             put("much_inner", "yaw");
         }});
        valueNormalizer.normalizeInputForReference(
-               Literal.newLiteral(map), objInfo, stmtCtx);
+               Literal.of(map), objInfo, stmtCtx);
     }
 
     @Test(expected = ColumnUnknownException.class)
@@ -257,7 +257,7 @@ public class ValueNormalizerTest extends CrateUnitTest {
         }});
         map.put("half", "1.45");
         valueNormalizer.normalizeInputForReference(
-                Literal.newLiteral(map), objInfo, stmtCtx);
+                Literal.of(map), objInfo, stmtCtx);
     }
 
     @Test
@@ -267,7 +267,7 @@ public class ValueNormalizerTest extends CrateUnitTest {
             put("time", "1970-01-01T00:00:00");
         }};
         Literal<Map<String, Object>> literal = (Literal)valueNormalizer.normalizeInputForReference(
-                Literal.newLiteral(map),
+                Literal.of(map),
                 objInfo, stmtCtx);
         assertThat((String) literal.value().get("time"), is("1970-01-01T00:00:00"));
     }
@@ -279,7 +279,7 @@ public class ValueNormalizerTest extends CrateUnitTest {
             put("time", "1970-01-01T00:00:00");
         }};
         Literal<Map<String, Object>> literal = (Literal)valueNormalizer.normalizeInputForReference(
-                Literal.newLiteral(map),
+                Literal.of(map),
                 objInfo, stmtCtx);
         assertThat((String)literal.value().get("time"), is("1970-01-01T00:00:00"));
     }
@@ -291,7 +291,7 @@ public class ValueNormalizerTest extends CrateUnitTest {
             put("no_time", "1970");
         }};
         Literal<Map<String, Object>> literal = (Literal)valueNormalizer.normalizeInputForReference(
-                Literal.newLiteral(map),
+                Literal.of(map),
                 objInfo, stmtCtx);
         assertThat((String)literal.value().get("no_time"), is("1970"));
     }
@@ -299,7 +299,7 @@ public class ValueNormalizerTest extends CrateUnitTest {
     @Test
     public void testNormalizeStringToNumberColumn() throws Exception {
         Reference objInfo = userTableInfo.getReference(new ColumnIdent("d"));
-        Literal<BytesRef> stringDoubleLiteral = Literal.newLiteral("298.444");
+        Literal<BytesRef> stringDoubleLiteral = Literal.of("298.444");
         Literal literal = (Literal)valueNormalizer.normalizeInputForReference(
                 stringDoubleLiteral, objInfo, stmtCtx);
         assertThat(literal, isLiteral(298.444d, DataTypes.DOUBLE));

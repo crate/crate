@@ -42,7 +42,7 @@ public class SortingProjectorTest extends CrateUnitTest {
     private SortingProjector createProjector(int numOutputs, int offset, RowReceiver rowReceiver) {
         InputCollectExpression input = new InputCollectExpression(0);
         SortingProjector projector = new SortingProjector(
-            ImmutableList.of(input, Literal.newLiteral(true)),
+            ImmutableList.of(input, Literal.of(true)),
             ImmutableList.<CollectExpression<Row, ?>>of(input),
             numOutputs,
             OrderingByPosition.arrayOrdering(0, false, null),

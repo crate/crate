@@ -37,6 +37,6 @@ public class UpperFunctionTest extends AbstractScalarFunctionsTest {
 
     @Test
     public void testEvaluateNull() throws Exception {
-        assertEvaluate("upper(name)", null, Literal.newLiteral(DataTypes.STRING, null));
+        assertEvaluate("upper(name)", null, Literal.of(DataTypes.STRING, null));
     }
 }

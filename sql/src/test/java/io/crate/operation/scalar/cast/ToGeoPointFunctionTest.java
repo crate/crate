@@ -48,7 +48,7 @@ public class ToGeoPointFunctionTest extends AbstractScalarFunctionsTest {
     @Test
     public void testEvaluateCastFromString() throws Exception {
         ToGeoFunction fn = getFunction(DataTypes.STRING);
-        Object val = fn.evaluate(Literal.newLiteral(DataTypes.STRING, "POINT (0.0 0.1)"));
+        Object val = fn.evaluate(Literal.of(DataTypes.STRING, "POINT (0.0 0.1)"));
         assertThat(val, instanceOf(Double[].class));
         assertThat((Double[])val, arrayContaining(0.0d, 0.1d));
     }
@@ -57,7 +57,7 @@ public class ToGeoPointFunctionTest extends AbstractScalarFunctionsTest {
     public void testNormalizeCastFromString() throws Exception {
         ToGeoFunction fn = getFunction(DataTypes.STRING);
         Symbol normalized = fn.normalizeSymbol(new Function(fn.info(),
-                Collections.<Symbol>singletonList(Literal.newLiteral(DataTypes.STRING, "POINT (0 0)"))), new StmtCtx());
+                Collections.<Symbol>singletonList(Literal.of(DataTypes.STRING, "POINT (0 0)"))), new StmtCtx());
         assertThat(normalized, TestingHelpers.isLiteral(new Double[]{0.0, 0.0}));
     }
 
@@ -66,7 +66,7 @@ public class ToGeoPointFunctionTest extends AbstractScalarFunctionsTest {
         expectedException.expect(ConversionException.class);
         expectedException.expectMessage("cannot cast 'POINT ((0 0), (1 1))' to type geo_point");
         ToGeoFunction fn = getFunction(DataTypes.STRING);
-        fn.evaluate(Literal.newLiteral(DataTypes.STRING, "POINT ((0 0), (1 1))"));
+        fn.evaluate(Literal.of(DataTypes.STRING, "POINT ((0 0), (1 1))"));
     }
 
     @Test

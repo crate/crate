@@ -57,7 +57,7 @@ public class ToIpArrayFunctionTest extends AbstractScalarFunctionsTest {
         ToArrayFunction impl = (ToArrayFunction) functions.get(
                 new FunctionIdent(CastFunctionResolver.FunctionNames.TO_IP_ARRAY, ImmutableList.of(arrayType)));
 
-        Literal input = Literal.newLiteral(objects, arrayType);
+        Literal input = Literal.of(objects, arrayType);
         Symbol normalized = impl.normalizeSymbol(new Function(impl.info(), Collections.<Symbol>singletonList(input)), new StmtCtx());
         Object[] integers = impl.evaluate(input);
 

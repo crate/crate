@@ -20,7 +20,7 @@ public class OrOperatorTest extends CrateUnitTest {
         OrOperator operator = new OrOperator();
 
         Function function = new Function(
-                operator.info(), Arrays.<Symbol>asList(new Reference(), Literal.newLiteral(true)));
+                operator.info(), Arrays.<Symbol>asList(new Reference(), Literal.of(true)));
         Symbol normalizedSymbol = operator.normalizeSymbol(function, new StmtCtx());
         assertThat(normalizedSymbol, isLiteral(true));
     }
@@ -29,7 +29,7 @@ public class OrOperatorTest extends CrateUnitTest {
     public void testNormalizeSymbolReferenceAndLiteralFalse() throws Exception {
         OrOperator operator = new OrOperator();
         Function function = new Function(
-                operator.info(), Arrays.<Symbol>asList(new Reference(), Literal.newLiteral(false)));
+                operator.info(), Arrays.<Symbol>asList(new Reference(), Literal.of(false)));
         Symbol normalizedSymbol = operator.normalizeSymbol(function, new StmtCtx());
         assertThat(normalizedSymbol, instanceOf(Reference.class));
     }
@@ -46,7 +46,7 @@ public class OrOperatorTest extends CrateUnitTest {
 
     private Boolean or(Boolean left, Boolean right) {
         OrOperator operator = new OrOperator();
-        return operator.evaluate(Literal.newLiteral(left), Literal.newLiteral(right));
+        return operator.evaluate(Literal.of(left), Literal.of(right));
     }
 
     @Test

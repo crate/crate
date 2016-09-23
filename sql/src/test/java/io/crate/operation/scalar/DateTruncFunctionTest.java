@@ -87,9 +87,9 @@ public class DateTruncFunctionTest extends AbstractScalarFunctionsTest {
             ival = new BytesRef(interval);
         }
         Scalar<Long, Object> function = func.compile(Arrays.<Symbol>asList(
-                Literal.newLiteral(interval),
+                Literal.of(interval),
                 TimeZoneParser.DEFAULT_TZ_LITERAL,
-                Literal.newLiteral(timestamp)));
+                Literal.of(timestamp)));
         Input[] inputs = new Input[] {
                 new DateTruncInput(ival),
                 new DateTruncInput(timestamp),
@@ -107,9 +107,9 @@ public class DateTruncFunctionTest extends AbstractScalarFunctionsTest {
             tz = new BytesRef(timeZone);
         }
         Scalar<Long, Object> function = funcTZ.compile(Arrays.<Symbol>asList(
-                Literal.newLiteral(interval),
-                Literal.newLiteral(tz),
-                Literal.newLiteral(timestamp)));
+                Literal.of(interval),
+                Literal.of(tz),
+                Literal.of(timestamp)));
         Input[] inputs = new Input[] {
                 new DateTruncInput(ival),
                 new DateTruncInput(tz),
@@ -127,8 +127,8 @@ public class DateTruncFunctionTest extends AbstractScalarFunctionsTest {
         assertNotNull(implementation);
 
         Function function = new Function(implementation.info(), Arrays.<Symbol>asList(
-                Literal.newLiteral("day"),
-                Literal.newLiteral(1401777485000L)
+                Literal.of("day"),
+                Literal.of(1401777485000L)
         ));
         Literal day = (Literal)implementation.normalizeSymbol(function, stmtCtx);
         assertThat((Long) day.value(), is(1401753600000L));
@@ -142,8 +142,8 @@ public class DateTruncFunctionTest extends AbstractScalarFunctionsTest {
         assertNotNull(implementation);
 
         Function function = new Function(implementation.info(), Arrays.<Symbol>asList(
-                Literal.newLiteral("day"),
-                Literal.newLiteral("2014-06-03")
+                Literal.of("day"),
+                Literal.of("2014-06-03")
         ));
         Literal day = (Literal)implementation.normalizeSymbol(function, stmtCtx);
         assertThat((Long) day.value(), is(1401753600000L));
@@ -160,8 +160,8 @@ public class DateTruncFunctionTest extends AbstractScalarFunctionsTest {
     @Test
     public void testNormalizeSymbolTimestampLiteral() throws Exception {
         Symbol result = normalize(
-                Literal.newLiteral("day"),
-                Literal.newLiteral(DataTypes.TIMESTAMP, DataTypes.TIMESTAMP.value("2014-02-25T13:38:01.123")));
+                Literal.of("day"),
+                Literal.of(DataTypes.TIMESTAMP, DataTypes.TIMESTAMP.value("2014-02-25T13:38:01.123")));
         assertThat(result, isLiteral(1393286400000L, DataTypes.TIMESTAMP));
     }
 
@@ -169,7 +169,7 @@ public class DateTruncFunctionTest extends AbstractScalarFunctionsTest {
     public void testNullInterval() throws Exception {
         String val = null;
         assertThat(
-                normalize(Literal.newLiteral(val), Literal.newLiteral(TIMESTAMP)),
+                normalize(Literal.of(val), Literal.of(TIMESTAMP)),
                 isLiteral(null)
         );
     }
@@ -178,7 +178,7 @@ public class DateTruncFunctionTest extends AbstractScalarFunctionsTest {
     public void testInvalidInterval() throws Exception {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("invalid interval 'invalid interval' for scalar 'date_trunc'");
-        normalize(Literal.newLiteral("invalid interval"), Literal.newLiteral(TIMESTAMP));
+        normalize(Literal.of("invalid interval"), Literal.of(TIMESTAMP));
     }
 
     @Test
@@ -239,9 +239,9 @@ public class DateTruncFunctionTest extends AbstractScalarFunctionsTest {
         assertNotNull(implementation);
 
         Function function = new Function(implementation.info(), Arrays.<Symbol>asList(
-                Literal.newLiteral("day"),
-                Literal.newLiteral("Europe/Vienna"),
-                Literal.newLiteral("2014-06-03")
+                Literal.of("day"),
+                Literal.of("Europe/Vienna"),
+                Literal.of("2014-06-03")
         ));
         Literal day = (Literal)implementation.normalizeSymbol(function, stmtCtx);
         assertThat((Long) day.value(), is(1401746400000L));
@@ -250,7 +250,7 @@ public class DateTruncFunctionTest extends AbstractScalarFunctionsTest {
     @Test
     public void testNormalizeSymbolTzAwareReferenceTimestamp() throws Exception {
         Function function = new Function(funcTZ.info(),
-                Arrays.<Symbol>asList(Literal.newLiteral("day"), Literal.newLiteral("+01:00"),
+                Arrays.<Symbol>asList(Literal.of("day"), Literal.of("+01:00"),
                         new Reference(null,null,DataTypes.TIMESTAMP)));
         Symbol result = funcTZ.normalizeSymbol(function, stmtCtx);
         assertSame(function, result);
@@ -259,9 +259,9 @@ public class DateTruncFunctionTest extends AbstractScalarFunctionsTest {
     @Test
     public void testNormalizeSymbolTzAwareTimestampLiteral() throws Exception {
         Symbol result = normalize(
-                Literal.newLiteral("day"),
-                Literal.newLiteral("UTC"),
-                Literal.newLiteral(DataTypes.TIMESTAMP, DataTypes.TIMESTAMP.value("2014-02-25T13:38:01.123")));
+                Literal.of("day"),
+                Literal.of("UTC"),
+                Literal.of(DataTypes.TIMESTAMP, DataTypes.TIMESTAMP.value("2014-02-25T13:38:01.123")));
         assertThat(result, isLiteral(1393286400000L, DataTypes.TIMESTAMP));
     }
 
@@ -269,7 +269,7 @@ public class DateTruncFunctionTest extends AbstractScalarFunctionsTest {
     public void testNullTimezone() throws Exception {
         String tz = null;
         assertThat(
-                normalize(Literal.newLiteral("day"), Literal.newLiteral(tz), Literal.newLiteral(TIMESTAMP)),
+                normalize(Literal.of("day"), Literal.of(tz), Literal.of(TIMESTAMP)),
                 isLiteral(null)
         );
     }
@@ -278,7 +278,7 @@ public class DateTruncFunctionTest extends AbstractScalarFunctionsTest {
     public void testInvalidTimeZone() throws Exception {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("invalid time zone value 'no time zone'");
-        normalize(Literal.newLiteral("day"), Literal.newLiteral("no time zone"), Literal.newLiteral(TIMESTAMP));
+        normalize(Literal.of("day"), Literal.of("no time zone"), Literal.of(TIMESTAMP));
     }
 
     @Test

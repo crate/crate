@@ -72,10 +72,10 @@ public class InOperator extends Operator<Object> {
         Set values = (Set)inList.value();
 
         if (!values.contains(inValue)) {
-            return Literal.newLiteral(false);
+            return Literal.of(false);
         }
 
-        return Literal.newLiteral(true);
+        return Literal.of(true);
     }
 
     @Override

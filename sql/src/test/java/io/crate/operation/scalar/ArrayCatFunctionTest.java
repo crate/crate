@@ -81,8 +81,8 @@ public class ArrayCatFunctionTest extends AbstractScalarFunctionsTest {
         ArrayCatFunction function = getFunction(arrayOfIntegerType, arrayOfIntegerType);
 
         Symbol symbol = function.normalizeSymbol(new Function(function.info(), Arrays.<Symbol>asList(
-                Literal.newLiteral(new Integer[]{10, 20}, arrayOfIntegerType),
-                Literal.newLiteral(new Integer[]{10, 30}, arrayOfIntegerType)
+                Literal.of(new Integer[]{10, 20}, arrayOfIntegerType),
+                Literal.of(new Integer[]{10, 30}, arrayOfIntegerType)
         )), stmtCtx);
 
         assertThat(symbol, isLiteral(new Integer[]{10, 20, 10, 30}, arrayOfIntegerType));
@@ -94,7 +94,7 @@ public class ArrayCatFunctionTest extends AbstractScalarFunctionsTest {
 
         Function functionSymbol = new Function(function.info(), Arrays.<Symbol>asList(
                 TestingHelpers.createReference("foo", arrayOfIntegerType),
-                Literal.newLiteral(new Integer[]{10, 30}, arrayOfIntegerType)
+                Literal.of(new Integer[]{10, 30}, arrayOfIntegerType)
         ));
         Function symbol = (Function) function.normalizeSymbol(functionSymbol, stmtCtx);
         assertThat(symbol, Matchers.sameInstance(functionSymbol));
@@ -106,7 +106,7 @@ public class ArrayCatFunctionTest extends AbstractScalarFunctionsTest {
         expectedException.expectMessage("Argument 2 of the array_cat function cannot be converted to array");
         assertEval(
                 null,
-                Literal.newLiteral(new Object[]{1, 2, 3}, arrayOfIntegerType),
+                Literal.of(new Object[]{1, 2, 3}, arrayOfIntegerType),
                 Literal.NULL);
     }
 
@@ -135,7 +135,7 @@ public class ArrayCatFunctionTest extends AbstractScalarFunctionsTest {
     public void testOneArgument() throws Exception {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("array_cat function requires 2 arguments");
-        assertEval(new Object[]{}, Literal.newLiteral(new Object[]{1}, new ArrayType(DataTypes.INTEGER)));
+        assertEval(new Object[]{}, Literal.of(new Object[]{1}, new ArrayType(DataTypes.INTEGER)));
     }
 
     @Test
@@ -143,33 +143,33 @@ public class ArrayCatFunctionTest extends AbstractScalarFunctionsTest {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("array_cat function requires 2 arguments");
         assertEval(new Object[]{},
-                Literal.newLiteral(new Object[]{1}, new ArrayType(DataTypes.INTEGER)),
-                Literal.newLiteral(new Object[]{2}, new ArrayType(DataTypes.INTEGER)),
-                Literal.newLiteral(new Object[]{3}, new ArrayType(DataTypes.INTEGER)));
+                Literal.of(new Object[]{1}, new ArrayType(DataTypes.INTEGER)),
+                Literal.of(new Object[]{2}, new ArrayType(DataTypes.INTEGER)),
+                Literal.of(new Object[]{3}, new ArrayType(DataTypes.INTEGER)));
     }
 
     @Test
     public void testDifferentConvertableInnerTypes() throws Exception {
         assertEval(
                 new Object[]{1, 1},
-                Literal.newLiteral(new Object[]{1},  arrayOfIntegerType),
-                Literal.newLiteral(new Object[]{1L}, arrayOfLongType));
+                Literal.of(new Object[]{1},  arrayOfIntegerType),
+                Literal.of(new Object[]{1L}, arrayOfLongType));
     }
 
     @Test
     public void testStringToNumberCast() throws Exception {
         assertEval(
                 new Object[]{1, 2},
-                Literal.newLiteral(new Object[]{1},      arrayOfIntegerType),
-                Literal.newLiteral(new Object[]{"2"},    arrayOfStringType));
+                Literal.of(new Object[]{1},      arrayOfIntegerType),
+                Literal.of(new Object[]{"2"},    arrayOfStringType));
     }
 
     @Test
     public void testNumberToStringCast() throws Exception {
         assertEval(
                 new Object[]{new BytesRef("2"), new BytesRef("1")},
-                Literal.newLiteral(new Object[]{"2"},    arrayOfStringType),
-                Literal.newLiteral(new Object[]{1},      arrayOfIntegerType));
+                Literal.of(new Object[]{"2"},    arrayOfStringType),
+                Literal.of(new Object[]{1},      arrayOfIntegerType));
     }
 
     @Test
@@ -177,8 +177,8 @@ public class ArrayCatFunctionTest extends AbstractScalarFunctionsTest {
         expectedException.expect(NumberFormatException.class);
         assertEval(
                 null,
-                Literal.newLiteral(new Object[]{1},              arrayOfIntegerType),
-                Literal.newLiteral(new Object[]{"foo","bar"},    arrayOfStringType));
+                Literal.of(new Object[]{1},              arrayOfIntegerType),
+                Literal.of(new Object[]{"foo","bar"},    arrayOfStringType));
     }
 
     @Test
@@ -187,8 +187,8 @@ public class ArrayCatFunctionTest extends AbstractScalarFunctionsTest {
         expectedException.expectMessage("Second argument's inner type (ip) of the array_cat function cannot be converted to the first argument's inner type (boolean)");
         assertEval(
                 null,
-                Literal.newLiteral(new Object[]{true},                       arrayOfBooleanType),
-                Literal.newLiteral(new Object[]{new BytesRef("127.0.0.1")},  arrayOfIpType));
+                Literal.of(new Object[]{true},                       arrayOfBooleanType),
+                Literal.of(new Object[]{new BytesRef("127.0.0.1")},  arrayOfIpType));
 
     }
 
@@ -196,40 +196,40 @@ public class ArrayCatFunctionTest extends AbstractScalarFunctionsTest {
     public void testNullElements() throws Exception {
         assertEval(
                 new Object[]{1, null, 3, null, 2, 3},
-                Literal.newLiteral(new Object[]{1, null, 3}, arrayOfIntegerType),
-                Literal.newLiteral(new Object[]{null, 2, 3}, arrayOfIntegerType));
+                Literal.of(new Object[]{1, null, 3}, arrayOfIntegerType),
+                Literal.of(new Object[]{null, 2, 3}, arrayOfIntegerType));
     }
 
     @Test
     public void testTwoIntegerArguments() throws Exception {
         assertEval(
                 new Object[]{1,2,2,3},
-                Literal.newLiteral(new Object[]{1,2}, arrayOfIntegerType),
-                Literal.newLiteral(new Object[]{2,3}, arrayOfIntegerType));
+                Literal.of(new Object[]{1,2}, arrayOfIntegerType),
+                Literal.of(new Object[]{2,3}, arrayOfIntegerType));
     }
 
     @Test
     public void testTwoLongArguments() throws Exception {
         assertEval(
                 new Object[]{44L,55L,55L,66L},
-                Literal.newLiteral(new Object[]{44L, 55L}, arrayOfLongType),
-                Literal.newLiteral(new Object[]{55L, 66L}, arrayOfLongType));
+                Literal.of(new Object[]{44L, 55L}, arrayOfLongType),
+                Literal.of(new Object[]{55L, 66L}, arrayOfLongType));
     }
 
     @Test
     public void testTwoStringArguments() throws Exception {
         assertEval(
                 new Object[]{new BytesRef("foo"),new BytesRef("bar"),new BytesRef("bar"),new BytesRef("baz")},
-                Literal.newLiteral(new Object[]{"foo","bar"}, arrayOfStringType),
-                Literal.newLiteral(new Object[]{"bar","baz"}, arrayOfStringType));
+                Literal.of(new Object[]{"foo","bar"}, arrayOfStringType),
+                Literal.of(new Object[]{"bar","baz"}, arrayOfStringType));
     }
 
     @Test
     public void testEmptyArrayAndIntegerArray() throws Exception {
         assertEval(
                 new Object[]{1,2},
-                Literal.newLiteral(new Object[]{},      arrayOfUndefinedType),
-                Literal.newLiteral(new Object[]{1,2},   arrayOfIntegerType));
+                Literal.of(new Object[]{},      arrayOfUndefinedType),
+                Literal.of(new Object[]{1,2},   arrayOfIntegerType));
     }
 
     @Test
@@ -237,7 +237,7 @@ public class ArrayCatFunctionTest extends AbstractScalarFunctionsTest {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("One of the arguments of the array_cat function can be of undefined inner type, but not both");
         assertEval(null,
-                Literal.newLiteral(new Object[]{}, arrayOfUndefinedType),
-                Literal.newLiteral(new Object[]{}, arrayOfUndefinedType));
+                Literal.of(new Object[]{}, arrayOfUndefinedType),
+                Literal.of(new Object[]{}, arrayOfUndefinedType));
     }
 }

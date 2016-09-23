@@ -98,7 +98,7 @@ public class MapSideDataCollectOperationTest extends CrateUnitTest {
                 0,
                 "test",
                 Collections.singletonList("noop_id"),
-                Literal.newLiteral(Paths.get(tmpFile.toURI()).toUri().toString()),
+                Literal.of(Paths.get(tmpFile.toURI()).toUri().toString()),
                 Arrays.<Symbol>asList(
                         createReference("name", DataTypes.STRING),
                         createReference(new ColumnIdent("details", "age"), DataTypes.INTEGER)

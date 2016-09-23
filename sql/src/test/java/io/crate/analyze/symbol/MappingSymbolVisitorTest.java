@@ -36,7 +36,7 @@ public class MappingSymbolVisitorTest {
     public void testProcess() throws Exception {
         Symbol f = Literal.BOOLEAN_FALSE;
         Symbol t = Literal.BOOLEAN_TRUE;
-        Symbol one = Literal.newLiteral(1);
+        Symbol one = Literal.of(1);
 
         Map<Symbol, ? extends Symbol> fieldMap = ImmutableMap.of(f, t);
 

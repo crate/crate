@@ -63,7 +63,7 @@ public class NotPredicate extends Scalar<Boolean, Boolean> implements OperatorFo
                 return Literal.BOOLEAN_TRUE;
             }
             if (value instanceof Boolean) {
-                return Literal.newLiteral(!((Boolean) value));
+                return Literal.of(!((Boolean) value));
             }
         }
         return symbol;

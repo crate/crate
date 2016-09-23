@@ -80,8 +80,8 @@ public class ArrayDifferenceFunctionTest extends AbstractScalarFunctionsTest {
     public void testCompileWithValues() throws Exception {
         List<DataType> argumentTypes = Arrays.<DataType>asList(arrayOfIntegerType, arrayOfIntegerType);
         List<Symbol> arguments = Arrays.<Symbol>asList(
-                Literal.newLiteral(new Object[]{1, 2, 3},arrayOfIntegerType),
-                Literal.newLiteral(new Object[]{3, 4, 5}, arrayOfIntegerType)
+                Literal.of(new Object[]{1, 2, 3},arrayOfIntegerType),
+                Literal.of(new Object[]{3, 4, 5}, arrayOfIntegerType)
         );
 
         Scalar function = ((ArrayDifferenceFunction) functions.get(new FunctionIdent(ArrayDifferenceFunction.NAME, argumentTypes)));
@@ -95,7 +95,7 @@ public class ArrayDifferenceFunctionTest extends AbstractScalarFunctionsTest {
         DataType type = new ArrayType(DataTypes.INTEGER);
         List<DataType> argumentTypes = Arrays.<DataType>asList(type, type);
         List<Symbol> arguments = Arrays.<Symbol>asList(
-                Literal.newLiteral(new Object[]{1, 2, 3},type),
+                Literal.of(new Object[]{1, 2, 3},type),
                 createReference("foo", type)
         );
 
@@ -109,7 +109,7 @@ public class ArrayDifferenceFunctionTest extends AbstractScalarFunctionsTest {
     public void testCompileWithNullArgs() throws Exception {
         List<DataType> argumentTypes = Arrays.<DataType>asList(arrayOfIntegerType, arrayOfIntegerType);
         List<Symbol> arguments = Arrays.<Symbol>asList(
-                Literal.newLiteral(new Object[]{1, 2, 3},arrayOfIntegerType),
+                Literal.of(new Object[]{1, 2, 3},arrayOfIntegerType),
                 null
         );
 
@@ -123,7 +123,7 @@ public class ArrayDifferenceFunctionTest extends AbstractScalarFunctionsTest {
     public void testCompileWithNullArgValues() throws Exception {
         List<DataType> argumentTypes = Arrays.<DataType>asList(arrayOfIntegerType, arrayOfIntegerType);
         List<Symbol> arguments = Arrays.<Symbol>asList(
-                Literal.newLiteral(new Object[]{1, 2, 3}, arrayOfIntegerType),
+                Literal.of(new Object[]{1, 2, 3}, arrayOfIntegerType),
                 Literal.NULL
         );
 
@@ -135,8 +135,8 @@ public class ArrayDifferenceFunctionTest extends AbstractScalarFunctionsTest {
 
     @Test
     public void testCompiledEvaluation() throws Exception {
-        Literal arg1 = Literal.newLiteral(new Object[]{1, 2, 3},arrayOfIntegerType);
-        Literal arg2 = Literal.newLiteral(new Object[]{3, 4, 5}, arrayOfIntegerType);
+        Literal arg1 = Literal.of(new Object[]{1, 2, 3},arrayOfIntegerType);
+        Literal arg2 = Literal.of(new Object[]{3, 4, 5}, arrayOfIntegerType);
 
         List<DataType> argumentTypes = Arrays.<DataType>asList(arrayOfIntegerType, arrayOfIntegerType);
         List<Symbol>   arguments     = Arrays.<Symbol>asList(arg1, arg2);
@@ -157,8 +157,8 @@ public class ArrayDifferenceFunctionTest extends AbstractScalarFunctionsTest {
         ArrayDifferenceFunction function = getFunction(type, type);
 
         Symbol symbol = function.normalizeSymbol(new Function(function.info(), Arrays.<Symbol>asList(
-                Literal.newLiteral(new Integer[]{10, 20}, type),
-                Literal.newLiteral(new Integer[]{10, 30}, type)
+                Literal.of(new Integer[]{10, 20}, type),
+                Literal.of(new Integer[]{10, 30}, type)
         )), stmtCtx);
 
         assertThat(symbol, isLiteral(new Integer[]{20}, type));
@@ -171,7 +171,7 @@ public class ArrayDifferenceFunctionTest extends AbstractScalarFunctionsTest {
 
         Function functionSymbol = new Function(function.info(), Arrays.<Symbol>asList(
                 createReference("foo", type),
-                Literal.newLiteral(new Integer[]{10, 30}, type)
+                Literal.of(new Integer[]{10, 30}, type)
         ));
         Function symbol = (Function) function.normalizeSymbol(functionSymbol, stmtCtx);
         assertThat(symbol, Matchers.sameInstance(functionSymbol));
@@ -182,7 +182,7 @@ public class ArrayDifferenceFunctionTest extends AbstractScalarFunctionsTest {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("Argument 2 of the array_difference function cannot be converted to array");
         assertEval(null,
-                Literal.newLiteral(new Object[]{1}, arrayOfIntegerType),
+                Literal.of(new Object[]{1}, arrayOfIntegerType),
                 Literal.NULL);
     }
 
@@ -206,7 +206,7 @@ public class ArrayDifferenceFunctionTest extends AbstractScalarFunctionsTest {
 
         Input[] inputs = new Input[]{
                 null,
-                Literal.newLiteral(new Object[]{22, 33, 44}, arrayOfIntegerType)
+                Literal.of(new Object[]{22, 33, 44}, arrayOfIntegerType)
         };
 
         Object[] evaluate = function.evaluate(inputs);
@@ -219,7 +219,7 @@ public class ArrayDifferenceFunctionTest extends AbstractScalarFunctionsTest {
 
         Input[] inputs = new Input[]{
                 Literal.NULL,
-                Literal.newLiteral(new Object[]{22, 33, 44}, arrayOfIntegerType)
+                Literal.of(new Object[]{22, 33, 44}, arrayOfIntegerType)
         };
 
         Object[] evaluate = function.evaluate(inputs);
@@ -231,7 +231,7 @@ public class ArrayDifferenceFunctionTest extends AbstractScalarFunctionsTest {
         ArrayDifferenceFunction function = getFunction(arrayOfIntegerType, arrayOfIntegerType);
 
         Input[] inputs = new Input[]{
-                Literal.newLiteral(new Object[]{22, 33, 44}, arrayOfIntegerType),
+                Literal.of(new Object[]{22, 33, 44}, arrayOfIntegerType),
                 null
         };
 
@@ -244,7 +244,7 @@ public class ArrayDifferenceFunctionTest extends AbstractScalarFunctionsTest {
         ArrayDifferenceFunction function = getFunction(arrayOfIntegerType, arrayOfIntegerType);
 
         Input[] inputs = new Input[]{
-                Literal.newLiteral(new Object[]{22, 33, 44}, arrayOfIntegerType),
+                Literal.of(new Object[]{22, 33, 44}, arrayOfIntegerType),
                 Literal.NULL
         };
 
@@ -264,14 +264,14 @@ public class ArrayDifferenceFunctionTest extends AbstractScalarFunctionsTest {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("array_difference function requires 2 arguments");
         assertEval(null,
-                Literal.newLiteral(new Object[]{1}, arrayOfIntegerType));
+                Literal.of(new Object[]{1}, arrayOfIntegerType));
     }
 
     @Test
     public void testDifferentBuConvertableInnerTypes() throws Exception {
         assertEval(new Object[]{},
-                Literal.newLiteral(new Object[]{1},  arrayOfIntegerType),
-                Literal.newLiteral(new Object[]{1L}, arrayOfLongType));
+                Literal.of(new Object[]{1},  arrayOfIntegerType),
+                Literal.of(new Object[]{1L}, arrayOfLongType));
     }
 
     @Test
@@ -279,8 +279,8 @@ public class ArrayDifferenceFunctionTest extends AbstractScalarFunctionsTest {
         expectedException.expect(NumberFormatException.class);
         assertEval(
                 null,
-                Literal.newLiteral(new Object[]{1},              arrayOfIntegerType),
-                Literal.newLiteral(new Object[]{"foo","bar"},    arrayOfStringType));
+                Literal.of(new Object[]{1},              arrayOfIntegerType),
+                Literal.of(new Object[]{"foo","bar"},    arrayOfStringType));
     }
 
     @Test
@@ -289,8 +289,8 @@ public class ArrayDifferenceFunctionTest extends AbstractScalarFunctionsTest {
         expectedException.expectMessage("Second argument's inner type (ip) of the array_difference function cannot be converted to the first argument's inner type (boolean)");
         assertEval(
                 null,
-                Literal.newLiteral(new Object[]{true},                       arrayOfBooleanType),
-                Literal.newLiteral(new Object[]{new BytesRef("127.0.0.1")},  arrayOfIpType));
+                Literal.of(new Object[]{true},                       arrayOfBooleanType),
+                Literal.of(new Object[]{new BytesRef("127.0.0.1")},  arrayOfIpType));
 
     }
 
@@ -298,44 +298,44 @@ public class ArrayDifferenceFunctionTest extends AbstractScalarFunctionsTest {
     public void testNullElements() throws Exception {
         assertEval(
                 new Object[]{1},
-                Literal.newLiteral(new Object[]{1,null,3},  arrayOfIntegerType),
-                Literal.newLiteral(new Object[]{null, 2,3}, arrayOfIntegerType));
+                Literal.of(new Object[]{1,null,3},  arrayOfIntegerType),
+                Literal.of(new Object[]{null, 2,3}, arrayOfIntegerType));
         assertEval(
                 new Object[]{1, null, 2, null},
-                Literal.newLiteral(new Object[]{1, null, 3, 2, null},  arrayOfIntegerType),
-                Literal.newLiteral(new Object[]{3},                    arrayOfIntegerType));
+                Literal.of(new Object[]{1, null, 3, 2, null},  arrayOfIntegerType),
+                Literal.of(new Object[]{3},                    arrayOfIntegerType));
     }
 
     @Test
     public void testTwoIntegerArguments() throws Exception {
         assertEval(
                 new Object[]{1},
-                Literal.newLiteral(new Object[]{1,2}, arrayOfIntegerType),
-                Literal.newLiteral(new Object[]{2,3}, arrayOfIntegerType));
+                Literal.of(new Object[]{1,2}, arrayOfIntegerType),
+                Literal.of(new Object[]{2,3}, arrayOfIntegerType));
     }
 
     @Test
     public void testTwoLongArguments() throws Exception {
         assertEval(
                 new Object[]{44L},
-                Literal.newLiteral(new Object[]{44L, 55L}, arrayOfLongType),
-                Literal.newLiteral(new Object[]{55L, 66L}, arrayOfLongType));
+                Literal.of(new Object[]{44L, 55L}, arrayOfLongType),
+                Literal.of(new Object[]{55L, 66L}, arrayOfLongType));
     }
 
     @Test
     public void testTwoStringArguments() throws Exception {
         assertEval(
                 new Object[]{new BytesRef("foo")},
-                Literal.newLiteral(new Object[]{"foo","bar"}, arrayOfStringType),
-                Literal.newLiteral(new Object[]{"bar","baz"}, arrayOfStringType));
+                Literal.of(new Object[]{"foo","bar"}, arrayOfStringType),
+                Literal.of(new Object[]{"bar","baz"}, arrayOfStringType));
     }
 
     @Test
     public void testEmptyArrayAndIntegerArray() throws Exception {
         assertEval(
                 new Object[]{},
-                Literal.newLiteral(new Object[]{},    arrayOfUndefinedType),
-                Literal.newLiteral(new Object[]{1,2}, arrayOfIntegerType));
+                Literal.of(new Object[]{},    arrayOfUndefinedType),
+                Literal.of(new Object[]{1,2}, arrayOfIntegerType));
     }
 
     @Test
@@ -343,7 +343,7 @@ public class ArrayDifferenceFunctionTest extends AbstractScalarFunctionsTest {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("One of the arguments of the array_difference function can be of undefined inner type, but not both");
         assertEval(null,
-                Literal.newLiteral(new Object[]{}, arrayOfUndefinedType),
-                Literal.newLiteral(new Object[]{}, arrayOfUndefinedType));
+                Literal.of(new Object[]{}, arrayOfUndefinedType),
+                Literal.of(new Object[]{}, arrayOfUndefinedType));
     }
 }

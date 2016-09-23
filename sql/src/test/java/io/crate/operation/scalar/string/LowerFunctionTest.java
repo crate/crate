@@ -37,6 +37,6 @@ public class LowerFunctionTest extends AbstractScalarFunctionsTest {
 
     @Test
     public void testEvaluateNull() throws Exception {
-        assertEvaluate("lower(name)", null, Literal.newLiteral(DataTypes.STRING, null));
+        assertEvaluate("lower(name)", null, Literal.of(DataTypes.STRING, null));
     }
 }

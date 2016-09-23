@@ -49,7 +49,7 @@ public class IsNullPredicateTest extends CrateUnitTest {
 
     @Test
     public void testNormalizeSymbolFalse() throws Exception {
-        Function isNull = new Function(predicate.info(), Arrays.<Symbol>asList(Literal.newLiteral("a")));
+        Function isNull = new Function(predicate.info(), Arrays.<Symbol>asList(Literal.of("a")));
         Symbol symbol = predicate.normalizeSymbol(isNull, stmtCtx);
         assertThat(symbol, isLiteral(false));
     }
@@ -84,7 +84,7 @@ public class IsNullPredicateTest extends CrateUnitTest {
     @Test
     public void testNormalizeSymbolWithStringLiteralThatIsNull() throws Exception {
         Function isNull = new Function(predicate.info(),
-                Arrays.<Symbol>asList(Literal.newLiteral(DataTypes.STRING, null)));
+                Arrays.<Symbol>asList(Literal.of(DataTypes.STRING, null)));
         Symbol symbol = predicate.normalizeSymbol(isNull, stmtCtx);
         assertThat((Boolean) ((Input) symbol).value(), is(true));
     }

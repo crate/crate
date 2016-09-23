@@ -22,6 +22,7 @@
 package io.crate.analyze;
 
 import io.crate.action.sql.SQLOperations;
+import io.crate.analyze.symbol.Literal;
 import io.crate.core.collections.Row;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
@@ -32,7 +33,6 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Set;
 
-import static io.crate.analyze.symbol.Literal.newLiteral;
 
 
 public class ParameterContext {
@@ -116,7 +116,7 @@ public class ParameterContext {
             Object value = parameters().get(index);
             DataType type = guessTypeSafe(value);
             // use type.value because some types need conversion (String to BytesRef, List to Array)
-            return newLiteral(type, type.value(value));
+            return Literal.of(type, type.value(value));
         } catch (ArrayIndexOutOfBoundsException e) {
             throw new IllegalArgumentException(String.format(Locale.ENGLISH,
                     "Tried to resolve a parameter but the arguments provided with the " +

@@ -61,8 +61,8 @@ public class AnyEqOperatorTest extends CrateUnitTest {
         Function function = new Function(
                 anyEqOperator.info(),
                 Arrays.<Symbol>asList(
-                        Literal.newLiteral(DataTypes.INTEGER, value),
-                        Literal.newLiteral(new ArrayType(DataTypes.INTEGER), arrayExpr))
+                        Literal.of(DataTypes.INTEGER, value),
+                        Literal.of(new ArrayType(DataTypes.INTEGER), arrayExpr))
         );
         return (Boolean)((Literal)anyEqOperator.normalizeSymbol(function, stmtCtx)).value();
     }

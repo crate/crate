@@ -104,11 +104,11 @@ public class CurrentTimestampFunction extends Scalar<Long, Integer> implements F
     private Symbol eval(Function function, long currentTimeMillis) {
         Symbol symbol;
         if (function.arguments().isEmpty()) {
-            symbol = Literal.newLiteral(INFO.returnType(), currentTimeMillis);
+            symbol = Literal.of(INFO.returnType(), currentTimeMillis);
         } else {
             Symbol precision = function.arguments().get(0);
             if (precision.symbolType().isValueSymbol()) {
-                symbol = Literal.newLiteral(INFO.returnType(),
+                symbol = Literal.of(INFO.returnType(),
                     applyPrecision(currentTimeMillis, (Integer) ((Input) precision).value()));
             } else {
                 throw new IllegalArgumentException(String.format(Locale.ENGLISH, "Invalid argument to %s", NAME));

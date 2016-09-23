@@ -41,7 +41,7 @@ public class ToIpFunctionTest extends AbstractScalarFunctionsTest {
 
     private BytesRef evaluate(Object value, DataType type) {
         ToPrimitiveFunction fn = getFunction(functionName, type);
-        return (BytesRef) fn.evaluate(Literal.newLiteral(type, value));
+        return (BytesRef) fn.evaluate(Literal.of(type, value));
     }
 
     @Test
