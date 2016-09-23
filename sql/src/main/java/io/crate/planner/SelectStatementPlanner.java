@@ -181,7 +181,7 @@ public class SelectStatementPlanner {
 
         @Override
         public Plan visitMultiSourceSelect(MultiSourceSelect mss, Planner.Context context) {
-            if (mss.querySpec().where().noMatch()) {
+            if (mss.querySpec().where().noMatch() && !mss.querySpec().hasAggregates()) {
                 return new NoopPlan(context.jobId());
             }
             if (mss.canBeFetched().isEmpty()){

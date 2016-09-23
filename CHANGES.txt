@@ -5,6 +5,17 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fix: aggregations on no-match JOIN queries incorrectly returned empty result
+   Now these queries fail because aggregations are not supported on joins
+
+ - Updated crash to 0.18.0 which contains following changes:
+
+    - Don't show tables from ``pg_catalog`` if ``\dt`` command is used.
+
+    - Make the ``\check`` command to display both, node and cluster checks.
+      Allow ``node`` and ``cluster`` arguments for the command to display
+      node and cluster checks, respectively.
+
  - Added support for outer joins: LEFT, RIGHT and FULL.
 
  - Added `percentile` aggregate function.

@@ -60,6 +60,10 @@ task gtest (type:Exec) {
     commandLine "$projectDir/bin/test", '-1', '-t', 'process_test'
 }
 
+task logicTest (type:Exec) {
+    commandLine "$projectDir/bin/logic-test"
+}
+
 task buildDocs (type:Exec, dependsOn: bootstrap) {
     commandLine "$projectDir/bin/sphinx"
 }
@@ -69,6 +73,7 @@ hdfsTest.dependsOn(unpackDistTar, bootstrap, lessLogging, ignoreDiskThreshold, p
 sigarTest.dependsOn(unpackDistTar, bootstrap, lessLogging, ignoreDiskThreshold)
 itest.dependsOn(unpackDistTar, bootstrap, lessLogging, ignoreDiskThreshold)
 gtest.dependsOn(unpackDistTar, bootstrap, lessLogging, ignoreDiskThreshold)
+logicTest.dependsOn(unpackDistTar, bootstrap, lessLogging, ignoreDiskThreshold)
 
 task cleanDocs << {
     FileCollection toDelete = files(crateDist,
