@@ -69,19 +69,40 @@ public class SelectStatementPlanner {
         visitor = new Visitor(consumingPlanner);
     }
 
-    public Plan plan(SelectAnalyzedStatement statement, Planner.Context context) {
-        return visitor.process(statement.relation(), context);
-    }
-
     private static PlannedAnalyzedRelation subPlan(AnalyzedRelation rel, Planner.Context context) {
         ConsumerContext consumerContext = new ConsumerContext(rel, context);
-        PlannedAnalyzedRelation subPlan =  context.planSubRelation(rel, consumerContext);
+        PlannedAnalyzedRelation subPlan = context.planSubRelation(rel, consumerContext);
         assert subPlan != null;
         ValidationException validationException = consumerContext.validationException();
         if (validationException != null) {
             throw validationException;
         }
         return subPlan;
+    }
+
+    private static FetchProjection createFetchProjection(QueriedDocTable table,
+                                                         QuerySpec querySpec,
+                                                         FetchPushDown fetchPushDown,
+                                                         Planner.Context.ReaderAllocations readerAllocations,
+                                                         FetchPhase fetchPhase,
+                                                         int fetchSize) {
+        Map<TableIdent, FetchSource> fetchSources = ImmutableMap.of(table.tableRelation().tableInfo().ident(),
+            new FetchSource(table.tableRelation().tableInfo().partitionedByColumns(),
+                ImmutableList.of(fetchPushDown.docIdCol()),
+                fetchPushDown.fetchRefs()));
+
+        return new FetchProjection(
+            fetchPhase.executionPhaseId(),
+            fetchSize,
+            fetchSources,
+            querySpec.outputs(),
+            readerAllocations.nodeReaders(),
+            readerAllocations.indices(),
+            readerAllocations.indicesToIdents());
+    }
+
+    public Plan plan(SelectAnalyzedStatement statement, Planner.Context context) {
+        return visitor.process(statement.relation(), context);
     }
 
     private static class Visitor extends AnalyzedRelationVisitor<Planner.Context, Plan> {
@@ -133,11 +154,11 @@ public class SelectStatementPlanner {
             Planner.Context.ReaderAllocations readerAllocations = context.buildReaderAllocations();
 
             FetchPhase fetchPhase = new FetchPhase(
-                    context.nextExecutionPhaseId(),
-                    readerAllocations.nodeReaders().keySet(),
-                    readerAllocations.bases(),
-                    readerAllocations.tableIndices(),
-                    fetchPushDown.fetchRefs()
+                context.nextExecutionPhaseId(),
+                readerAllocations.nodeReaders().keySet(),
+                readerAllocations.bases(),
+                readerAllocations.tableIndices(),
+                fetchPushDown.fetchRefs()
             );
             FetchProjection fp = createFetchProjection(
                 table, querySpec, fetchPushDown, readerAllocations, fetchPhase, context.fetchSize());
@@ -146,35 +167,35 @@ public class SelectStatementPlanner {
             assert qaf.localMerge() == null : "subRelation shouldn't plan localMerge";
 
             TopNProjection topN = ProjectionBuilder.topNProjection(
-                    collectPhase.toCollect(),
-                    null, // orderBy = null because stuff is pre-sorted in collectPhase and sortedLocalMerge is used
-                    querySpec.offset(),
-                    limits.finalLimit,
-                    null
+                collectPhase.toCollect(),
+                null, // orderBy = null because stuff is pre-sorted in collectPhase and sortedLocalMerge is used
+                querySpec.offset(),
+                limits.finalLimit,
+                null
             );
             if (!querySpec.orderBy().isPresent()) {
                 localMergePhase = MergePhase.localMerge(
-                        context.jobId(),
-                        context.nextExecutionPhaseId(),
-                        ImmutableList.of(topN, fp),
-                        collectPhase.executionNodes().size(),
-                        collectPhase.outputTypes()
+                    context.jobId(),
+                    context.nextExecutionPhaseId(),
+                    ImmutableList.of(topN, fp),
+                    collectPhase.executionNodes().size(),
+                    collectPhase.outputTypes()
                 );
             } else {
                 localMergePhase = MergePhase.sortedMerge(
-                        context.jobId(),
-                        context.nextExecutionPhaseId(),
-                        querySpec.orderBy().get(),
-                        collectPhase.toCollect(),
-                        null,
-                        ImmutableList.of(topN, fp),
-                        collectPhase.executionNodes().size(),
-                        collectPhase.outputTypes()
+                    context.jobId(),
+                    context.nextExecutionPhaseId(),
+                    querySpec.orderBy().get(),
+                    collectPhase.toCollect(),
+                    null,
+                    ImmutableList.of(topN, fp),
+                    collectPhase.executionNodes().size(),
+                    collectPhase.outputTypes()
                 );
             }
             SimpleSelect.enablePagingIfApplicable(
-                    collectPhase, localMergePhase, querySpec.limit().orNull(), querySpec.offset(),
-                    context.clusterService().localNode().id());
+                collectPhase, localMergePhase, querySpec.limit().orNull(), querySpec.offset(),
+                context.clusterService().localNode().id());
             CollectAndMerge subPlan = new CollectAndMerge(collectPhase, null);
             return new QueryThenFetch(subPlan, fetchPhase, localMergePhase, context.jobId());
         }
@@ -184,7 +205,7 @@ public class SelectStatementPlanner {
             if (mss.querySpec().where().noMatch()) {
                 return new NoopPlan(context.jobId());
             }
-            if (mss.canBeFetched().isEmpty()){
+            if (mss.canBeFetched().isEmpty()) {
                 return consumingPlanner.plan(mss, context);
             }
             MultiSourceFetchPushDown pd = MultiSourceFetchPushDown.pushDown(mss);
@@ -206,11 +227,11 @@ public class SelectStatementPlanner {
             }
 
             FetchPhase fetchPhase = new FetchPhase(
-                    context.nextExecutionPhaseId(),
-                    readerAllocations.nodeReaders().keySet(),
-                    readerAllocations.bases(),
-                    readerAllocations.tableIndices(),
-                    docRefs
+                context.nextExecutionPhaseId(),
+                readerAllocations.nodeReaders().keySet(),
+                readerAllocations.bases(),
+                readerAllocations.tableIndices(),
+                docRefs
             );
             FetchProjection fp = new FetchProjection(
                 fetchPhase.executionPhaseId(),
@@ -229,26 +250,5 @@ public class SelectStatementPlanner {
         public Plan visitQueriedSelectRelation(QueriedSelectRelation relation, Planner.Context context) {
             throw new UnsupportedOperationException("complex sub selects are not supported");
         }
-    }
-
-    private static FetchProjection createFetchProjection(QueriedDocTable table,
-                                                         QuerySpec querySpec,
-                                                         FetchPushDown fetchPushDown,
-                                                         Planner.Context.ReaderAllocations readerAllocations,
-                                                         FetchPhase fetchPhase,
-                                                         int fetchSize) {
-        Map<TableIdent, FetchSource> fetchSources = ImmutableMap.of(table.tableRelation().tableInfo().ident(),
-                new FetchSource(table.tableRelation().tableInfo().partitionedByColumns(),
-                        ImmutableList.of(fetchPushDown.docIdCol()),
-                        fetchPushDown.fetchRefs()));
-
-        return new FetchProjection(
-            fetchPhase.executionPhaseId(),
-            fetchSize,
-            fetchSources,
-            querySpec.outputs(),
-            readerAllocations.nodeReaders(),
-            readerAllocations.indices(),
-            readerAllocations.indicesToIdents());
     }
 }

@@ -30,9 +30,9 @@ import java.util.Map;
 public class TableParameter {
 
 
+    private final Map<String, Object> mappings = new HashMap<>();
     private Settings.Builder settingsBuilder;
     private Settings settings;
-    private final Map<String, Object> mappings = new HashMap<>();
 
     public TableParameter() {
         settingsBuilder = Settings.builder();

@@ -34,7 +34,8 @@ public class SetType extends DataType implements CollectionType, Streamer<Set> {
 
     private DataType innerType;
 
-    SetType() {}
+    SetType() {
+    }
 
     public SetType(DataType innerType) {
         this.innerType = innerType;
@@ -76,13 +77,13 @@ public class SetType extends DataType implements CollectionType, Streamer<Set> {
             return new HashSet<>(Arrays.asList((Object[]) value));
         }
         throw new IllegalArgumentException(String.format(Locale.ENGLISH,
-                "Cannot convert %s to %s", value, getName()));
+            "Cannot convert %s to %s", value, getName()));
     }
 
     @Override
     public boolean isConvertableTo(DataType other) {
         return other.id() == UndefinedType.ID ||
-                ((other instanceof CollectionType)
+               ((other instanceof CollectionType)
                 && this.innerType.isConvertableTo(((CollectionType) other).innerType()));
     }
 
@@ -96,13 +97,13 @@ public class SetType extends DataType implements CollectionType, Streamer<Set> {
             return 0;
         }
 
-        return Integer.compare(((Set)val1).size(), ((Set)val2).size());
+        return Integer.compare(((Set) val1).size(), ((Set) val2).size());
     }
 
     @Override
     public int compareTo(Object o) {
         if (!(o instanceof SetType)) return -1;
-        return Integer.compare(innerType.id(), ((SetType)o).innerType().id());
+        return Integer.compare(innerType.id(), ((SetType) o).innerType().id());
     }
 
     @Override

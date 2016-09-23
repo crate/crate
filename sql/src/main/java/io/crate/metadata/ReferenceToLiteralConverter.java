@@ -32,6 +32,15 @@ import java.util.*;
 
 public class ReferenceToLiteralConverter extends ReplacingSymbolVisitor<ReferenceToLiteralConverter.Context> {
 
+    public ReferenceToLiteralConverter() {
+        super(ReplaceMode.COPY);
+    }
+
+    @Override
+    public Symbol visitReference(Reference reference, Context context) {
+        return context.resolveReferenceValue(reference);
+    }
+
     public static class Context {
         private final Map<Reference, InputColumn> referenceInputColumnMap;
         private final BitSet inputIsMap;
@@ -76,7 +85,7 @@ public class ReferenceToLiteralConverter extends ReplacingSymbolVisitor<Referenc
 
                     //noinspection unchecked
                     value = XContentMapValues.extractValue(
-                            columnIdent.fqn(), (Map) values[inputColumn.index()]);
+                        columnIdent.fqn(), (Map) values[inputColumn.index()]);
                 } else {
                     value = values[inputColumn.index()];
                 }
@@ -87,14 +96,5 @@ public class ReferenceToLiteralConverter extends ReplacingSymbolVisitor<Referenc
             return Literal.newLiteral(dataType, dataType.value(null));
         }
 
-    }
-
-    public ReferenceToLiteralConverter() {
-        super(ReplaceMode.COPY);
-    }
-
-    @Override
-    public Symbol visitReference(Reference reference, Context context) {
-        return context.resolveReferenceValue(reference);
     }
 }

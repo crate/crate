@@ -43,8 +43,8 @@ public class CrateThrowableRestResponse extends RestResponse {
 
     public CrateThrowableRestResponse(RestChannel channel, Throwable t) throws IOException {
         status = (t instanceof ElasticsearchException) ?
-                ((ElasticsearchException) t).status() :
-                RestStatus.INTERNAL_SERVER_ERROR;
+            ((ElasticsearchException) t).status() :
+            RestStatus.INTERNAL_SERVER_ERROR;
         if (channel.request().method() == RestRequest.Method.HEAD) {
             this.content = BytesArray.EMPTY;
             this.contentType = BytesRestResponse.TEXT_CONTENT_TYPE;
@@ -62,7 +62,7 @@ public class CrateThrowableRestResponse extends RestResponse {
         SQLActionException sqlActionException = null;
         builder.field("message", detailedMessage(t));
         if (t instanceof SQLActionException) {
-            sqlActionException = (SQLActionException)t;
+            sqlActionException = (SQLActionException) t;
             builder.field("code", sqlActionException.errorCode());
         } else {
             builder.field("code", 5000);
@@ -71,7 +71,7 @@ public class CrateThrowableRestResponse extends RestResponse {
         builder.endObject();
 
         if (t != null && channel.request().paramAsBoolean("error_trace", false)
-                && sqlActionException != null) {
+            && sqlActionException != null) {
             StringWriter stackTrace = new StringWriter();
             sqlActionException.printStackTrace(new PrintWriter(stackTrace));
             builder.field("error_trace", stackTrace.toString());

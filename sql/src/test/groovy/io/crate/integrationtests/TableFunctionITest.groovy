@@ -34,8 +34,8 @@ class TableFunctionITest extends SQLTransportIntegrationTest {
         execute("select * from unnest([1, 2], ['Trillian', 'Marvin'])")
         assert response.rowCount() == 2L
         assert printedTable(response.rows()) == "" +
-            "1| Trillian\n" +
-            "2| Marvin\n"
+                "1| Trillian\n" +
+                "2| Marvin\n"
     }
 
     @Test

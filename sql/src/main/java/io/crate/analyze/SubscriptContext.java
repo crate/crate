@@ -30,11 +30,9 @@ import java.util.List;
 
 public class SubscriptContext {
 
-    private QualifiedName qName;
-
-    private Expression expression;
-
     private final List<String> parts = new ArrayList<>();
+    private QualifiedName qName;
+    private Expression expression;
     private Integer index;
 
     public SubscriptContext() {

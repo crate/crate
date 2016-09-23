@@ -35,22 +35,22 @@ public class MappingSymbolVisitor extends ReplacingSymbolVisitor<Map<? extends S
     private static final MappingSymbolVisitor REPLACING = new MappingSymbolVisitor(ReplaceMode.MUTATE);
     private static final MappingSymbolVisitor COPYING = new MappingSymbolVisitor(ReplaceMode.COPY);
 
-    public static MappingSymbolVisitor inPlace(){
+    protected MappingSymbolVisitor(ReplaceMode mode) {
+        super(mode);
+    }
+
+    public static MappingSymbolVisitor inPlace() {
         return REPLACING;
     }
 
-    public static MappingSymbolVisitor copying(){
+    public static MappingSymbolVisitor copying() {
         return COPYING;
-    }
-
-    protected MappingSymbolVisitor(ReplaceMode mode) {
-        super(mode);
     }
 
     @Override
     public Symbol process(Symbol symbol, Map<? extends Symbol, ? extends Symbol> context) {
         Symbol mapped = context.get(symbol);
-        if (mapped != null){
+        if (mapped != null) {
             return mapped;
         }
         return super.process(symbol, context);

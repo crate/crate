@@ -40,37 +40,14 @@ public class Aggregation extends Symbol {
             return new Aggregation();
         }
     };
-
-    public Aggregation() {
-
-    }
-
-    public static enum Step {
-        ITER, PARTIAL, FINAL;
-
-        static void writeTo(Step step, StreamOutput out) throws IOException {
-            out.writeVInt(step.ordinal());
-        }
-
-        static Step readFrom(StreamInput in) throws IOException {
-            return values()[in.readVInt()];
-        }
-    }
-
     private FunctionInfo functionInfo;
     private List<Symbol> inputs;
     private DataType valueType;
     private Step fromStep;
     private Step toStep;
+    public Aggregation() {
 
-    public static Aggregation partialAggregation(FunctionInfo functionInfo, DataType partialType, List<Symbol> inputs) {
-        return new Aggregation(functionInfo, partialType, inputs, Step.ITER, Step.PARTIAL);
     }
-
-    public static Aggregation finalAggregation(FunctionInfo functionInfo, List<Symbol> inputs, Step fromStep) {
-        return new Aggregation(functionInfo, functionInfo.returnType(), inputs, fromStep, Step.FINAL);
-    }
-
     private Aggregation(FunctionInfo functionInfo, DataType valueType, List<Symbol> inputs, Step fromStep, Step toStep) {
         Preconditions.checkNotNull(inputs, "inputs are null");
         assert fromStep != Step.FINAL : "Can't start from FINAL";
@@ -79,6 +56,14 @@ public class Aggregation extends Symbol {
         this.inputs = inputs;
         this.fromStep = fromStep;
         this.toStep = toStep;
+    }
+
+    public static Aggregation partialAggregation(FunctionInfo functionInfo, DataType partialType, List<Symbol> inputs) {
+        return new Aggregation(functionInfo, partialType, inputs, Step.ITER, Step.PARTIAL);
+    }
+
+    public static Aggregation finalAggregation(FunctionInfo functionInfo, List<Symbol> inputs, Step fromStep) {
+        return new Aggregation(functionInfo, functionInfo.returnType(), inputs, fromStep, Step.FINAL);
     }
 
     @Override
@@ -108,7 +93,6 @@ public class Aggregation extends Symbol {
         return fromStep;
     }
 
-
     public Step toStep() {
         return toStep;
     }
@@ -134,5 +118,17 @@ public class Aggregation extends Symbol {
 
         DataTypes.toStream(valueType, out);
         Symbols.toStream(inputs, out);
+    }
+
+    public static enum Step {
+        ITER, PARTIAL, FINAL;
+
+        static void writeTo(Step step, StreamOutput out) throws IOException {
+            out.writeVInt(step.ordinal());
+        }
+
+        static Step readFrom(StreamInput in) throws IOException {
+            return values()[in.readVInt()];
+        }
     }
 }

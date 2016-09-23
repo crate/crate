@@ -45,7 +45,8 @@ public class CountPhase implements UpstreamPhase {
     private WhereClause whereClause;
     private DistributionInfo distributionInfo;
 
-    CountPhase() {}
+    CountPhase() {
+    }
 
     public CountPhase(int executionPhaseId,
                       Routing routing,

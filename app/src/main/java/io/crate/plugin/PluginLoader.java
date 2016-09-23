@@ -57,13 +57,11 @@ import static org.elasticsearch.common.io.FileSystemUtils.isAccessibleDirectory;
 public class PluginLoader {
 
     private static final String RESOURCE_PATH = "META-INF/services/";
-
+    @VisibleForTesting
+    final List<Plugin> plugins;
     private final Settings settings;
     private final ImmutableMap<Plugin, List<OnModuleReference>> onModuleReferences;
     private final ESLogger logger;
-
-    @VisibleForTesting
-    final List<Plugin> plugins;
     private final Path pluginsPath;
     private final List<URL> jarsToLoad = new ArrayList<>();
 
@@ -115,6 +113,29 @@ public class PluginLoader {
         }
     }
 
+    private static Module createModule(Class<? extends Module> moduleClass, @Nullable Settings settings) {
+        Constructor<? extends Module> constructor;
+        try {
+            constructor = moduleClass.getConstructor(Settings.class);
+            try {
+                return constructor.newInstance(settings);
+            } catch (Exception e) {
+                throw new ElasticsearchException("Failed to create module [" + moduleClass + "]", e);
+            }
+        } catch (NoSuchMethodException e) {
+            try {
+                constructor = moduleClass.getConstructor();
+                try {
+                    return constructor.newInstance();
+                } catch (Exception e1) {
+                    throw new ElasticsearchException("Failed to create module [" + moduleClass + "]", e);
+                }
+            } catch (NoSuchMethodException e1) {
+                throw new ElasticsearchException("No constructor for [" + moduleClass + "]");
+            }
+        }
+    }
+
     private Collection<Class<? extends Plugin>> findImplementations() {
         if (!isAccessibleDirectory(pluginsPath, logger)) {
             return Collections.emptyList();
@@ -152,7 +173,7 @@ public class PluginLoader {
                     checkJarHell(pluginURL);
                 } catch (Exception e) {
                     String msg = String.format(Locale.ENGLISH,
-                            "failed to load plugin %s due to jar hell", pluginURL);
+                        "failed to load plugin %s due to jar hell", pluginURL);
                     logger.error(msg, e);
                     throw new RuntimeException(msg, e);
                 }
@@ -185,7 +206,7 @@ public class PluginLoader {
                             pluginUrls.add(libURL);
                         } catch (Exception e) {
                             String msg = String.format(Locale.ENGLISH,
-                                    "Library %s of plugin %s already loaded", libURL, pluginURL);
+                                "Library %s of plugin %s already loaded", libURL, pluginURL);
                             logger.error(msg, e);
                             throw new RuntimeException(msg, e);
                         }
@@ -199,7 +220,7 @@ public class PluginLoader {
             Collection<Class<? extends Plugin>> implementations = findImplementations(pluginUrls);
             if (implementations == null || implementations.isEmpty()) {
                 String msg = String.format(Locale.ENGLISH,
-                        "Path [%s] does not contain a valid Crate or Elasticsearch plugin", plugin.getAbsolutePath());
+                    "Path [%s] does not contain a valid Crate or Elasticsearch plugin", plugin.getAbsolutePath());
                 RuntimeException e = new RuntimeException(msg);
                 logger.error(msg, e);
                 throw e;
@@ -374,28 +395,5 @@ public class PluginLoader {
         loadedJars.addAll(jarsToLoad);
         loadedJars.add(url);
         JarHell.checkJarHell(loadedJars.toArray(new URL[0]));
-    }
-
-    private static Module createModule(Class<? extends Module> moduleClass, @Nullable Settings settings) {
-        Constructor<? extends Module> constructor;
-        try {
-            constructor = moduleClass.getConstructor(Settings.class);
-            try {
-                return constructor.newInstance(settings);
-            } catch (Exception e) {
-                throw new ElasticsearchException("Failed to create module [" + moduleClass + "]", e);
-            }
-        } catch (NoSuchMethodException e) {
-            try {
-                constructor = moduleClass.getConstructor();
-                try {
-                    return constructor.newInstance();
-                } catch (Exception e1) {
-                    throw new ElasticsearchException("Failed to create module [" + moduleClass + "]", e);
-                }
-            } catch (NoSuchMethodException e1) {
-                throw new ElasticsearchException("No constructor for [" + moduleClass + "]");
-            }
-        }
     }
 }

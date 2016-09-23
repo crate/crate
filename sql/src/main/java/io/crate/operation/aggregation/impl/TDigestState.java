@@ -40,15 +40,6 @@ class TDigestState extends AVLTreeDigest {
         this.fractions = fractions;
     }
 
-    @Override
-    public double compression() {
-        return compression;
-    }
-
-    double[] fractions() {
-        return fractions;
-    }
-
     public static void write(TDigestState state, StreamOutput out) throws IOException {
         out.writeDouble(state.compression);
         out.writeDoubleArray(state.fractions);
@@ -68,6 +59,15 @@ class TDigestState extends AVLTreeDigest {
             state.add(in.readDouble(), in.readVInt());
         }
         return state;
+    }
+
+    @Override
+    public double compression() {
+        return compression;
+    }
+
+    double[] fractions() {
+        return fractions;
     }
 
 }

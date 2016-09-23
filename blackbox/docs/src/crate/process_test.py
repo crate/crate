@@ -19,14 +19,14 @@
 # with Crate these terms will supersede the license and you may use the
 # software solely pursuant to the terms of the relevant commercial agreement.
 
-import unittest
 import os
+import random
 import signal
 import time
-import random
-from crate.testing.layer import CrateLayer
-from crate.client.http import Client
+import unittest
 from crate.client.exceptions import ProgrammingError
+from crate.client.http import Client
+from crate.testing.layer import CrateLayer
 from testutils.paths import crate_path
 from testutils.ports import GLOBAL_PORT_POOL
 
@@ -58,7 +58,6 @@ def retry_sql(client, statement):
 
 
 class CascadedLayer(object):
-
     def __init__(self, name, *bases):
         self.__name__ = name
         self.__bases__ = tuple(bases)
@@ -71,7 +70,6 @@ class CascadedLayer(object):
 
 
 class GracefulStopCrateLayer(CrateLayer):
-
     MAX_RETRIES = 3
 
     def start(self, retry=0):
@@ -163,7 +161,6 @@ class TestProcessSignal(GracefulStopTest):
 
 
 class TestGracefulStopPrimaries(GracefulStopTest):
-
     NUM_SERVERS = 2
 
     def setUp(self):
@@ -194,7 +191,6 @@ class TestGracefulStopPrimaries(GracefulStopTest):
 
 
 class TestGracefulStopFull(GracefulStopTest):
-
     NUM_SERVERS = 3
 
     def setUp(self):
@@ -227,7 +223,6 @@ class TestGracefulStopFull(GracefulStopTest):
 
 
 class TestGracefulStopNone(GracefulStopTest):
-
     NUM_SERVERS = 2
 
     def setUp(self):

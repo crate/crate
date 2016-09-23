@@ -26,7 +26,8 @@ import io.crate.operation.Input;
 
 public class InputCondition {
 
-    private InputCondition() {}
+    private InputCondition() {
+    }
 
     public static <T> Predicate<T> asPredicate(final Input<Boolean> condition) {
         return new Predicate<T>() {

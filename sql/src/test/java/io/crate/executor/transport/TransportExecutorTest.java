@@ -62,7 +62,7 @@ public class TransportExecutorTest extends BaseTransportExecutorTest {
         setup.setUpCharacters();
 
         ImmutableList<Symbol> outputs = ImmutableList.<Symbol>of(idRef, new DynamicReference(
-                new ReferenceIdent(new TableIdent(null, "characters"), "foo"), RowGranularity.DOC));
+            new ReferenceIdent(new TableIdent(null, "characters"), "foo"), RowGranularity.DOC));
         Planner.Context ctx = newPlannerContext();
         Plan plan = newGetNode("characters", outputs, "2", ctx.nextExecutionPhaseId());
         CollectingRowReceiver rowReceiver = new CollectingRowReceiver();

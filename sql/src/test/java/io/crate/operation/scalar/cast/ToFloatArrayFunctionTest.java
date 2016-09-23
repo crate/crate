@@ -33,7 +33,7 @@ public class ToFloatArrayFunctionTest extends AbstractScalarFunctionsTest {
 
     @Test
     public void testArrayDifferentTypes() throws Exception {
-        Object[] expected = new Float[] { 10.1f, 20.3f, 30.4f };
+        Object[] expected = new Float[]{10.1f, 20.3f, 30.4f};
         Object[] actual;
 
         actual = eval(new String[]{"10.1", "20.3", "30.4"}, DataTypes.STRING);
@@ -41,8 +41,8 @@ public class ToFloatArrayFunctionTest extends AbstractScalarFunctionsTest {
         actual = eval(new BytesRef[]{new BytesRef("10.1"), new BytesRef("20.3"), new BytesRef("30.4")}, DataTypes.STRING);
         assertThat(actual, is(expected));
 
-        expected = new Float[] { 10.0f, 20.0f, 30.0f };
-        actual = eval(new Long[] { 10L, 20L, 30L }, DataTypes.LONG);
+        expected = new Float[]{10.0f, 20.0f, 30.0f};
+        actual = eval(new Long[]{10L, 20L, 30L}, DataTypes.LONG);
         assertThat(actual, is(expected));
     }
 

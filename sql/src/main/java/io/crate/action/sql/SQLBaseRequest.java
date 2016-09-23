@@ -31,36 +31,35 @@ import java.io.IOException;
 
 /**
  * SQL requests can be made either as bulk operation or as single operation.
- *
+ * <p>
  * The TransportActions TransportSQLAction TransportSQLBulkAction
  * are responsible to execute them.
- *
+ * <p>
  * In order to use the actions either send a
  * {@link io.crate.action.sql.SQLRequest} or
  * {@link SQLBulkRequest}
- *
+ * <p>
  * to them using the SQLAction or SQLBulkAction
- *
- *
+ * <p>
+ * <p>
  * this abstract base class provides the shared components
  * {@link #stmt()} and {@link #includeTypesOnResponse()}
  * which both concrete classes use.
- *
+ * <p>
  * (not using links for TransportSQLAction as they're not included for the client and would case an error under oraclejdk8)
  */
 public abstract class SQLBaseRequest extends ActionRequest<SQLBaseRequest> {
 
-    private static final String SCHEMA_HEADER_KEY = "_s";
     public static final String FLAGS_HEADER_KEY = "flags";
-
     // Bit flags for request header
     public static final int HEADER_FLAG_OFF = 0;
     public static final int HEADER_FLAG_ALLOW_QUOTED_SUBSCRIPT = 1;
-
+    private static final String SCHEMA_HEADER_KEY = "_s";
     private String stmt;
     private boolean includeTypesOnResponse = false;
 
-    public SQLBaseRequest() {}
+    public SQLBaseRequest() {
+    }
 
     public SQLBaseRequest(String stmt) {
         this.stmt = stmt;
@@ -73,7 +72,7 @@ public abstract class SQLBaseRequest extends ActionRequest<SQLBaseRequest> {
         return stmt;
     }
 
-    public SQLBaseRequest stmt(String stmt){
+    public SQLBaseRequest stmt(String stmt) {
         this.stmt = stmt;
         return this;
     }
@@ -81,7 +80,7 @@ public abstract class SQLBaseRequest extends ActionRequest<SQLBaseRequest> {
     /**
      * set to true if the column types should be included in the {@link io.crate.action.sql.SQLResponse}
      * or {@link SQLBulkResponse}
-     *
+     * <p>
      * if set to false (the default) the types won't be included in the response.
      */
     public void includeTypesOnResponse(boolean includeTypesOnResponse) {
@@ -90,22 +89,11 @@ public abstract class SQLBaseRequest extends ActionRequest<SQLBaseRequest> {
 
     /**
      * See also {@link #includeTypesOnResponse(boolean)}
+     *
      * @return true or false indicating if the column dataTypes will be included in the requests response.
      */
     public boolean includeTypesOnResponse() {
         return includeTypesOnResponse;
-    }
-
-
-    public void setDefaultSchema(String schemaName) {
-        if (schemaName == null) {
-            if (hasHeader(SCHEMA_HEADER_KEY)) {
-                // can't remove header but want to reset schemaName...
-                putHeader(SCHEMA_HEADER_KEY, null);
-            }
-            return; // don't set schemaName if null to avoid overhead
-        }
-        putHeader(SCHEMA_HEADER_KEY, schemaName);
     }
 
     public int getRequestFlags() {
@@ -125,10 +113,21 @@ public abstract class SQLBaseRequest extends ActionRequest<SQLBaseRequest> {
         return getHeader(SCHEMA_HEADER_KEY);
     }
 
+    public void setDefaultSchema(String schemaName) {
+        if (schemaName == null) {
+            if (hasHeader(SCHEMA_HEADER_KEY)) {
+                // can't remove header but want to reset schemaName...
+                putHeader(SCHEMA_HEADER_KEY, null);
+            }
+            return; // don't set schemaName if null to avoid overhead
+        }
+        putHeader(SCHEMA_HEADER_KEY, schemaName);
+    }
+
     @Override
     public ActionRequestValidationException validate() {
         if (stmt == null) {
-            ActionRequestValidationException e =  new ActionRequestValidationException();
+            ActionRequestValidationException e = new ActionRequestValidationException();
             e.addValidationError("Attribute 'stmt' must not be null");
             return e;
         }

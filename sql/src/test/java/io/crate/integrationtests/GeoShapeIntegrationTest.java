@@ -48,7 +48,7 @@ public class GeoShapeIntegrationTest extends SQLTransportIntegrationTest {
         "type", "LineString"
     );
     private static final Map GEO_SHAPE2 = ImmutableMap.of(
-        "coordinates", new double[][] {
+        "coordinates", new double[][]{
             {2, 2},
             {3, 3}
         },
@@ -64,7 +64,7 @@ public class GeoShapeIntegrationTest extends SQLTransportIntegrationTest {
                 ") with (number_of_replicas=0)");
         ensureGreen();
         execute("INSERT INTO shaped (id, shape) VALUES (?, ?)", $$($(1L, "POINT (13.0 52.4)"), $(2L, GEO_SHAPE1)));
-        execute("INSERT INTO shaped (id, shapes) VALUES (?, ?)", $(3, new Object[] { GEO_SHAPE1, GEO_SHAPE2 }));
+        execute("INSERT INTO shaped (id, shapes) VALUES (?, ?)", $(3, new Object[]{GEO_SHAPE1, GEO_SHAPE2}));
         execute("REFRESH TABLE shaped");
     }
 
@@ -72,8 +72,8 @@ public class GeoShapeIntegrationTest extends SQLTransportIntegrationTest {
     public void testSelectGeoShapeFromSource() throws Exception {
         execute("select shape from shaped where id in (1, 2) order by id");
         assertThat(TestingHelpers.printedTable(response.rows()), is(
-                "{coordinates=[13.0, 52.4], type=Point}\n" +
-                "{coordinates=[[0.0, 0.0], [1.0, 1.0]], type=LineString}\n"));
+            "{coordinates=[13.0, 52.4], type=Point}\n" +
+            "{coordinates=[[0.0, 0.0], [1.0, 1.0]], type=LineString}\n"));
 //TODO: Re-enable once SQLResponse also includes the data types for the columns
 //        assertThat(response.columnTypes()[0], is((DataType) DataTypes.GEO_SHAPE));
         assertThat(response.rows()[0][0], instanceOf(Map.class));
@@ -93,21 +93,21 @@ public class GeoShapeIntegrationTest extends SQLTransportIntegrationTest {
         execute("create table test (shape geo_shape)");
         ensureYellow();
         client().prepareIndex("test", "default", "test").setSource(jsonBuilder().startObject()
-                     .startObject("shape")
-                     .field("type", "polygon")
-                     .startArray("coordinates").startArray()
-                     .startArray().value(-122.83).value(48.57).endArray()
-                     .startArray().value(-122.77).value(48.56).endArray()
-                     .startArray().value(-122.79).value(48.53).endArray()
-                     .startArray().value(-122.83).value(48.57).endArray() // close the polygon
-                     .endArray().endArray()
-                     .endObject()
-                     .endObject()).execute().actionGet();
+            .startObject("shape")
+            .field("type", "polygon")
+            .startArray("coordinates").startArray()
+            .startArray().value(-122.83).value(48.57).endArray()
+            .startArray().value(-122.77).value(48.56).endArray()
+            .startArray().value(-122.79).value(48.53).endArray()
+            .startArray().value(-122.83).value(48.57).endArray() // close the polygon
+            .endArray().endArray()
+            .endObject()
+            .endObject()).execute().actionGet();
         execute("refresh table test");
         execute("select shape from test");
         assertThat(response.rowCount(), is(1L));
         assertThat(TestingHelpers.printedTable(response.rows()), is(
-                "{coordinates=[[[-122.83, 48.57], [-122.77, 48.56], [-122.79, 48.53], [-122.83, 48.57]]], type=polygon}\n"));
+            "{coordinates=[[[-122.83, 48.57], [-122.77, 48.56], [-122.79, 48.53], [-122.83, 48.57]]], type=polygon}\n"));
 //TODO: Re-enable once SQLResponse also includes the data types for the columns
 //        assertThat(response.columnTypes()[0], is((DataType) DataTypes.GEO_SHAPE));
         assertThat(response.rows()[0][0], instanceOf(Map.class));
@@ -131,10 +131,10 @@ public class GeoShapeIntegrationTest extends SQLTransportIntegrationTest {
                           "CLUSTERED INTO 1 SHARDS\n" +
                           "WITH (\n";
         assertEquals(response.rowCount(), 1L);
-        assertThat((String)response.rows()[0][0], startsWith(expected));
+        assertThat((String) response.rows()[0][0], startsWith(expected));
 
         // execute the statement again and compare it with the SHOW CREATE TABLE result
-        String stmt = (String)response.rows()[0][0];
+        String stmt = (String) response.rows()[0][0];
         execute("drop table test");
         execute(stmt);
         ensureYellow();
@@ -156,7 +156,7 @@ public class GeoShapeIntegrationTest extends SQLTransportIntegrationTest {
                           "CLUSTERED INTO 1 SHARDS\n" +
                           "WITH (\n";
         assertEquals(response.rowCount(), 1L);
-        assertThat((String)response.rows()[0][0], startsWith(expected));
+        assertThat((String) response.rows()[0][0], startsWith(expected));
     }
 
     @Test
@@ -186,16 +186,16 @@ public class GeoShapeIntegrationTest extends SQLTransportIntegrationTest {
     @Test
     public void testSelectWhereIntersects() throws Exception {
         execute("select id from shaped where intersects(shape, ?) order by id",
-                $("POLYGON(" +
-                     "(12.995452 52.417497," +
-                     " 13.051071 52.424407," +
-                     " 13.053474 52.403047," +
-                     " 13.046951 52.400743," +
-                     " 13.069953 52.391944," +
-                     " 13.024635 52.354425," +
-                     " 12.970390 52.347714," +
-                     " 12.995452 52.417497))"));
+            $("POLYGON(" +
+              "(12.995452 52.417497," +
+              " 13.051071 52.424407," +
+              " 13.053474 52.403047," +
+              " 13.046951 52.400743," +
+              " 13.069953 52.391944," +
+              " 13.024635 52.354425," +
+              " 12.970390 52.347714," +
+              " 12.995452 52.417497))"));
         assertThat(response.rowCount(), is(1L));
-        assertThat(response.rows()[0][0], is((Object)1L));
+        assertThat(response.rows()[0][0], is((Object) 1L));
     }
 }

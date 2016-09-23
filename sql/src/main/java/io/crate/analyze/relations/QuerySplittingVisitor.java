@@ -44,27 +44,6 @@ class QuerySplittingVisitor extends ReplacingSymbolVisitor<QuerySplittingVisitor
         super(ReplaceMode.MUTATE);
     }
 
-    public static class Context {
-        private AnalyzedRelation seenRelation;
-        private final Set<AnalyzedRelation> seenRelations = Collections.newSetFromMap(new IdentityHashMap<AnalyzedRelation, Boolean>());
-        private final Multimap<AnalyzedRelation, Symbol> queries = HashMultimap.create();
-        private final List<JoinPair> joinPairs;
-        private boolean multiRelation = false;
-        private Symbol query;
-
-        public Context(List<JoinPair> joinPairs) {
-            this.joinPairs = joinPairs;
-        }
-
-        public Symbol query() {
-            return query;
-        }
-
-        public Multimap<AnalyzedRelation, Symbol> queries() {
-            return queries;
-        }
-    }
-
     public Context process(Symbol query, List<JoinPair> joinPairs) {
         Context context = new Context(joinPairs);
         context.query = process(query, context);
@@ -82,7 +61,6 @@ class QuerySplittingVisitor extends ReplacingSymbolVisitor<QuerySplittingVisitor
         context.seenRelation = null;
         return super.process(symbol, context);
     }
-
 
     @Override
     public Symbol visitField(Field field, Context context) {
@@ -180,5 +158,26 @@ class QuerySplittingVisitor extends ReplacingSymbolVisitor<QuerySplittingVisitor
         }
         context.seenRelation = relation;
         return matchPredicate;
+    }
+
+    public static class Context {
+        private final Set<AnalyzedRelation> seenRelations = Collections.newSetFromMap(new IdentityHashMap<AnalyzedRelation, Boolean>());
+        private final Multimap<AnalyzedRelation, Symbol> queries = HashMultimap.create();
+        private final List<JoinPair> joinPairs;
+        private AnalyzedRelation seenRelation;
+        private boolean multiRelation = false;
+        private Symbol query;
+
+        public Context(List<JoinPair> joinPairs) {
+            this.joinPairs = joinPairs;
+        }
+
+        public Symbol query() {
+            return query;
+        }
+
+        public Multimap<AnalyzedRelation, Symbol> queries() {
+            return queries;
+        }
     }
 }

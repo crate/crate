@@ -72,7 +72,8 @@ public class EmptyStringRoutingIntegrationTest extends SQLTransportIntegrationTe
         execute("create table t (i int primary key, c string primary key) clustered by (c)");
         ensureYellow();
         execute("insert into t (i, c) values (?, ?)", new Object[]{1, ""});
-        execute("insert into t (i, c) values (?, ?)", new Object[]{2, ""});;
+        execute("insert into t (i, c) values (?, ?)", new Object[]{2, ""});
+        ;
         refresh();
         execute("select c, count(*) from t group by c");
         assertThat(response.rowCount(), is(1L));
@@ -115,13 +116,13 @@ public class EmptyStringRoutingIntegrationTest extends SQLTransportIntegrationTe
         refresh();
 
         String uri = Paths.get(folder.getRoot().toURI()).toString();
-        SQLResponse response = execute("copy t to directory ?", new Object[] { uri });
+        SQLResponse response = execute("copy t to directory ?", new Object[]{uri});
         assertThat(response.rowCount(), is(2L));
 
         execute("delete from t");
         refresh();
 
-        execute("copy t from ? with (shared=true)", new Object[] { uri + "/t_*" });
+        execute("copy t from ? with (shared=true)", new Object[]{uri + "/t_*"});
         refresh();
         response = execute("select c, count(*) from t group by c");
         assertThat(response.rowCount(), is(1L));

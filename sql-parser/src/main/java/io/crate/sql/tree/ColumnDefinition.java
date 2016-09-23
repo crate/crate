@@ -80,22 +80,21 @@ public class ColumnDefinition extends TableElement {
 
         if (!ident.equals(that.ident)) return false;
         if (generatedExpression != null ? !generatedExpression.equals(that.generatedExpression) :
-                that.generatedExpression != null) return false;
+            that.generatedExpression != null) return false;
         if (type != null ? !type.equals(that.type) : that.type != null) return false;
         return constraints.equals(that.constraints);
 
     }
 
 
-
     @Override
     public String toString() {
         return MoreObjects.toStringHelper(this)
-                .add("ident", ident)
-                .add("generatedExpression", generatedExpression)
-                .add("type", type)
-                .add("constraints", constraints)
-                .toString();
+            .add("ident", ident)
+            .add("generatedExpression", generatedExpression)
+            .add("type", type)
+            .add("constraints", constraints)
+            .toString();
     }
 
     @Override

@@ -64,38 +64,12 @@ import java.util.regex.Matcher;
 public class DocSchemaInfo implements SchemaInfo, ClusterStateListener {
 
     public static final String NAME = "doc";
-
-    private final ClusterService clusterService;
-    private final IndexNameExpressionResolver indexNameExpressionResolver;
-    private final Provider<TransportPutIndexTemplateAction> transportPutIndexTemplateAction;
-    private final Functions functions;
-
     private final static Predicate<String> DOC_SCHEMA_TABLES_FILTER = new Predicate<String>() {
         @Override
         public boolean apply(String input) {
             return !Schemas.SCHEMA_PATTERN.matcher(input).matches();
         }
     };
-
-    private final Predicate<String> tablesFilter;
-
-    private final LoadingCache<String, DocTableInfo> cache = CacheBuilder.newBuilder()
-            .maximumSize(10000)
-            .build(
-                    new CacheLoader<String, DocTableInfo>() {
-                        @Override
-                        public DocTableInfo load(@Nonnull String key) throws Exception {
-                            synchronized (DocSchemaInfo.this) {
-                                return innerGetTableInfo(key);
-                            }
-                        }
-                    }
-            );
-
-    private final Function<String, TableInfo> tableInfoFunction;
-    private final String schemaName;
-    private final ExecutorService executorService;
-    private final Function<String, String> indexToTableName;
     private final static Function<String, String> AS_IS_FUNCTION = new Function<String, String>() {
         @Nullable
         @Override
@@ -103,6 +77,27 @@ public class DocSchemaInfo implements SchemaInfo, ClusterStateListener {
             return input;
         }
     };
+    private final ClusterService clusterService;
+    private final IndexNameExpressionResolver indexNameExpressionResolver;
+    private final Provider<TransportPutIndexTemplateAction> transportPutIndexTemplateAction;
+    private final Functions functions;
+    private final Predicate<String> tablesFilter;
+    private final Function<String, TableInfo> tableInfoFunction;
+    private final String schemaName;
+    private final ExecutorService executorService;
+    private final LoadingCache<String, DocTableInfo> cache = CacheBuilder.newBuilder()
+        .maximumSize(10000)
+        .build(
+            new CacheLoader<String, DocTableInfo>() {
+                @Override
+                public DocTableInfo load(@Nonnull String key) throws Exception {
+                    synchronized (DocSchemaInfo.this) {
+                        return innerGetTableInfo(key);
+                    }
+                }
+            }
+        );
+    private final Function<String, String> indexToTableName;
 
     /**
      * DocSchemaInfo constructor for the default (doc) schema.
@@ -114,12 +109,12 @@ public class DocSchemaInfo implements SchemaInfo, ClusterStateListener {
                          IndexNameExpressionResolver indexNameExpressionResolver,
                          Functions functions) {
         this(Schemas.DEFAULT_SCHEMA_NAME,
-                clusterService,
-                indexNameExpressionResolver,
-                (ExecutorService) threadPool.executor(ThreadPool.Names.SUGGEST),
-                transportPutIndexTemplateAction, functions,
-                Predicates.and(Predicates.notNull(), DOC_SCHEMA_TABLES_FILTER),
-                AS_IS_FUNCTION);
+            clusterService,
+            indexNameExpressionResolver,
+            (ExecutorService) threadPool.executor(ThreadPool.Names.SUGGEST),
+            transportPutIndexTemplateAction, functions,
+            Predicates.and(Predicates.notNull(), DOC_SCHEMA_TABLES_FILTER),
+            AS_IS_FUNCTION);
     }
 
     /**
@@ -132,18 +127,18 @@ public class DocSchemaInfo implements SchemaInfo, ClusterStateListener {
                          Provider<TransportPutIndexTemplateAction> transportPutIndexTemplateAction,
                          Functions functions) {
         this(schemaName, clusterService, indexNameExpressionResolver,
-                executorService, transportPutIndexTemplateAction, functions,
-                createSchemaNamePredicate(schemaName), new Function<String, String>() {
-            @Nullable
-            @Override
-            public String apply(String input) {
-                Matcher matcher = Schemas.SCHEMA_PATTERN.matcher(input);
-                if (matcher.matches()) {
-                    input = matcher.group(2);
+            executorService, transportPutIndexTemplateAction, functions,
+            createSchemaNamePredicate(schemaName), new Function<String, String>() {
+                @Nullable
+                @Override
+                public String apply(String input) {
+                    Matcher matcher = Schemas.SCHEMA_PATTERN.matcher(input);
+                    if (matcher.matches()) {
+                        input = matcher.group(2);
+                    }
+                    return input;
                 }
-                return input;
-            }
-        });
+            });
     }
 
     private DocSchemaInfo(final String schemaName,
@@ -201,13 +196,13 @@ public class DocSchemaInfo implements SchemaInfo, ClusterStateListener {
     private DocTableInfo innerGetTableInfo(String name) {
         boolean checkAliasSchema = clusterService.state().metaData().settings().getAsBoolean("crate.table_alias.schema_check", true);
         DocTableInfoBuilder builder = new DocTableInfoBuilder(
-                functions,
-                new TableIdent(name(), name),
-                clusterService,
-                indexNameExpressionResolver,
-                transportPutIndexTemplateAction.get(),
-                executorService,
-                checkAliasSchema
+            functions,
+            new TableIdent(name(), name),
+            clusterService,
+            indexNameExpressionResolver,
+            transportPutIndexTemplateAction.get(),
+            executorService,
+            checkAliasSchema
         );
         return builder.build();
     }
@@ -236,7 +231,7 @@ public class DocSchemaInfo implements SchemaInfo, ClusterStateListener {
 
         Set<String> tables = new HashSet<>();
         tables.addAll(Collections2.filter(Collections2.transform(
-                Arrays.asList(clusterService.state().metaData().concreteAllOpenIndices()), indexToTableName), tablesFilter));
+            Arrays.asList(clusterService.state().metaData().concreteAllOpenIndices()), indexToTableName), tablesFilter));
 
         // Search for partitioned table templates
         UnmodifiableIterator<String> templates = clusterService.state().metaData().getTemplates().keysIt();

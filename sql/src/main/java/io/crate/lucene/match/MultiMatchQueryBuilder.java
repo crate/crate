@@ -89,6 +89,29 @@ public class MultiMatchQueryBuilder extends MatchQueryBuilder {
         return builder == null ? super.forceAnalyzeQueryString() : builder.forceAnalyzeQueryString();
     }
 
+    private static final class FieldAndFieldType {
+        final String field;
+        final MappedFieldType fieldType;
+        final float boost;
+
+        private FieldAndFieldType(String field, MappedFieldType fieldType, float boost) {
+            this.field = field;
+            this.fieldType = fieldType;
+            this.boost = boost;
+        }
+
+        public Term newTerm(String value) {
+            try {
+                final BytesRef bytesRef = fieldType.indexedValueForSearch(value);
+                return new Term(field, bytesRef);
+            } catch (Exception ex) {
+                // we can't parse it just use the incoming value -- it will
+                // just have a DF of 0 at the end of the day and will be ignored
+            }
+            return new Term(field, value);
+        }
+    }
+
     private class GroupQueryBuilder {
         protected final boolean groupDismax;
         protected final float tieBreaker;
@@ -189,7 +212,7 @@ public class MultiMatchQueryBuilder extends MatchQueryBuilder {
                 } else {
                     blendedFields = null;
                 }
-                final FieldAndFieldType fieldAndMapper= group.get(0);
+                final FieldAndFieldType fieldAndMapper = group.get(0);
                 Query q = singleQueryAndApply(
                     type.matchQueryType(), fieldAndMapper.field, queryString, fieldAndMapper.boost);
                 if (q != null) {
@@ -222,29 +245,6 @@ public class MultiMatchQueryBuilder extends MatchQueryBuilder {
                 return BlendedTermQuery.booleanBlendedQuery(terms, blendedBoost, false);
             }
             return BlendedTermQuery.dismaxBlendedQuery(terms, blendedBoost, tieBreaker);
-        }
-    }
-
-    private static final class FieldAndFieldType {
-        final String field;
-        final MappedFieldType fieldType;
-        final float boost;
-
-        private FieldAndFieldType(String field, MappedFieldType fieldType, float boost) {
-            this.field = field;
-            this.fieldType = fieldType;
-            this.boost = boost;
-        }
-
-        public Term newTerm(String value) {
-            try {
-                final BytesRef bytesRef = fieldType.indexedValueForSearch(value);
-                return new Term(field, bytesRef);
-            } catch (Exception ex) {
-                // we can't parse it just use the incoming value -- it will
-                // just have a DF of 0 at the end of the day and will be ignored
-            }
-            return new Term(field, value);
         }
     }
 }

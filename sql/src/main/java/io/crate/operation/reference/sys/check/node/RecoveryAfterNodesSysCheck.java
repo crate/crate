@@ -32,13 +32,12 @@ import org.elasticsearch.common.settings.Settings;
 @Singleton
 public class RecoveryAfterNodesSysCheck extends AbstractSysNodeCheck {
 
-    private final ClusterService clusterService;
-    private final Settings settings;
-
     private static final int ID = 2;
     private static final String DESCRIPTION = "The value of the cluster setting 'gateway.recover_after_nodes' " +
                                               "needs to be greater than half of the maximum/expected number of nodes and equal or less than " +
                                               "the maximum/expected number of nodes in the cluster.";
+    private final ClusterService clusterService;
+    private final Settings settings;
 
     @Inject
     public RecoveryAfterNodesSysCheck(ClusterService clusterService, Settings settings) {

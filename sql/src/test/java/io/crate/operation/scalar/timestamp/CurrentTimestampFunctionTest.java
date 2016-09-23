@@ -15,9 +15,9 @@ import static org.hamcrest.Matchers.is;
 
 public class CurrentTimestampFunctionTest extends AbstractScalarFunctionsTest {
 
-    private CurrentTimestampFunction timestampFunction;
     private static final String DATE_FORMAT = "yyyy-MM-dd'T'HH:mm:ss.SSS";
     private static final long EXPECTED_TIMESTAMP = 1422294644581L;
+    private CurrentTimestampFunction timestampFunction;
 
     @Before
     public void prepare() {

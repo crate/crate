@@ -46,21 +46,14 @@ public class SysChecksTableInfo extends StaticTableInfo {
 
     private final ClusterService clusterService;
 
-    public static class Columns {
-        public static final ColumnIdent ID = new ColumnIdent("id");
-        public static final ColumnIdent SEVERITY = new ColumnIdent("severity");
-        public static final ColumnIdent DESCRIPTION = new ColumnIdent("description");
-        public static final ColumnIdent PASSED = new ColumnIdent("passed");
-    }
-
     @Inject
     protected SysChecksTableInfo(ClusterService clusterService) {
         super(IDENT, new ColumnRegistrar(IDENT, GRANULARITY)
-                        .register(Columns.ID, DataTypes.INTEGER)
-                        .register(Columns.SEVERITY, DataTypes.INTEGER)
-                        .register(Columns.DESCRIPTION, DataTypes.STRING)
-                        .register(Columns.PASSED, DataTypes.BOOLEAN),
-                PRIMARY_KEYS);
+                .register(Columns.ID, DataTypes.INTEGER)
+                .register(Columns.SEVERITY, DataTypes.INTEGER)
+                .register(Columns.DESCRIPTION, DataTypes.STRING)
+                .register(Columns.PASSED, DataTypes.BOOLEAN),
+            PRIMARY_KEYS);
         this.clusterService = clusterService;
     }
 
@@ -72,5 +65,12 @@ public class SysChecksTableInfo extends StaticTableInfo {
     @Override
     public Routing getRouting(WhereClause whereClause, @Nullable String preference) {
         return Routing.forTableOnSingleNode(IDENT, clusterService.localNode().id());
+    }
+
+    public static class Columns {
+        public static final ColumnIdent ID = new ColumnIdent("id");
+        public static final ColumnIdent SEVERITY = new ColumnIdent("severity");
+        public static final ColumnIdent DESCRIPTION = new ColumnIdent("description");
+        public static final ColumnIdent PASSED = new ColumnIdent("passed");
     }
 }

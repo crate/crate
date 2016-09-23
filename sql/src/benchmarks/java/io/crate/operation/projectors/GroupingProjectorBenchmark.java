@@ -56,51 +56,31 @@ import java.util.Locale;
 public class GroupingProjectorBenchmark {
 
     private static final RamAccountingContext RAM_ACCOUNTING_CONTEXT =
-            new RamAccountingContext("dummy", new NoopCircuitBreaker(CircuitBreaker.FIELDDATA));
+        new RamAccountingContext("dummy", new NoopCircuitBreaker(CircuitBreaker.FIELDDATA));
 
     @Rule
     public BenchmarkRule benchmarkRule = new BenchmarkRule();
 
-    class SpareRow implements Row {
-
-        Object value;
-
-        @Override
-        public int size() {
-            return 1;
-        }
-
-        @Override
-        public Object get(int index) {
-            return value;
-        }
-
-        @Override
-        public Object[] materialize() {
-            return new Object[]{value};
-        }
-    }
-
     @Test
     public void testGroupByMinBytesRef() throws Exception {
         Functions functions = new ModulesBuilder().add(new AggregationImplModule())
-                .createInjector().getInstance(Functions.class);
+            .createInjector().getInstance(Functions.class);
 
         InputCollectExpression keyInput = new InputCollectExpression(0);
         List<Input<?>> keyInputs = Arrays.<Input<?>>asList(keyInput);
-        CollectExpression[] collectExpressions = new CollectExpression[] { keyInput };
+        CollectExpression[] collectExpressions = new CollectExpression[]{keyInput};
 
         FunctionIdent minStringFuncIdent = new FunctionIdent(MinimumAggregation.NAME,
-                Arrays.<DataType>asList(DataTypes.STRING));
+            Arrays.<DataType>asList(DataTypes.STRING));
         FunctionInfo minStringFuncInfo = new FunctionInfo(minStringFuncIdent, DataTypes.STRING, FunctionInfo.Type.AGGREGATE);
         AggregationFunction minAgg = (AggregationFunction) functions.get(minStringFuncIdent);
         Aggregation aggregation = Aggregation.finalAggregation(minStringFuncInfo,
-                Arrays.<Symbol>asList(new InputColumn(0)), Aggregation.Step.ITER);
+            Arrays.<Symbol>asList(new InputColumn(0)), Aggregation.Step.ITER);
         AggregationContext aggregationContext = new AggregationContext(minAgg, aggregation);
         aggregationContext.addInput(keyInput);
-        AggregationContext[] aggregations = new AggregationContext[] { aggregationContext };
+        AggregationContext[] aggregations = new AggregationContext[]{aggregationContext};
         GroupingProjector groupingProjector = new GroupingProjector(
-                Arrays.<DataType>asList(DataTypes.STRING), keyInputs, collectExpressions, aggregations, RAM_ACCOUNTING_CONTEXT);
+            Arrays.<DataType>asList(DataTypes.STRING), keyInputs, collectExpressions, aggregations, RAM_ACCOUNTING_CONTEXT);
         RowReceiver finalReceiver = new RowCountRowReceiver();
         groupingProjector.downstream(finalReceiver);
 
@@ -123,23 +103,23 @@ public class GroupingProjectorBenchmark {
     @Test
     public void testGroupBySumInteger() throws Exception {
         Functions functions = new ModulesBuilder().add(new AggregationImplModule())
-                .createInjector().getInstance(Functions.class);
+            .createInjector().getInstance(Functions.class);
 
         InputCollectExpression keyInput = new InputCollectExpression(0);
         List<Input<?>> keyInputs = Arrays.<Input<?>>asList(keyInput);
-        CollectExpression[] collectExpressions = new CollectExpression[] { keyInput };
+        CollectExpression[] collectExpressions = new CollectExpression[]{keyInput};
 
         FunctionIdent functionIdent = new FunctionIdent(SumAggregation.NAME,
-                Arrays.<DataType>asList(DataTypes.INTEGER));
+            Arrays.<DataType>asList(DataTypes.INTEGER));
         FunctionInfo functionInfo = new FunctionInfo(functionIdent, DataTypes.INTEGER, FunctionInfo.Type.AGGREGATE);
         AggregationFunction minAgg = (AggregationFunction) functions.get(functionIdent);
         Aggregation aggregation = Aggregation.finalAggregation(functionInfo,
-                Arrays.<Symbol>asList(new InputColumn(0)), Aggregation.Step.ITER);
+            Arrays.<Symbol>asList(new InputColumn(0)), Aggregation.Step.ITER);
         AggregationContext aggregationContext = new AggregationContext(minAgg, aggregation);
         aggregationContext.addInput(keyInput);
-        AggregationContext[] aggregations = new AggregationContext[] { aggregationContext };
+        AggregationContext[] aggregations = new AggregationContext[]{aggregationContext};
         GroupingProjector groupingProjector = new GroupingProjector(
-                Arrays.<DataType>asList(DataTypes.INTEGER), keyInputs, collectExpressions, aggregations, RAM_ACCOUNTING_CONTEXT);
+            Arrays.<DataType>asList(DataTypes.INTEGER), keyInputs, collectExpressions, aggregations, RAM_ACCOUNTING_CONTEXT);
         RowReceiver finalReceiver = new RowCountRowReceiver();
         groupingProjector.downstream(finalReceiver);
         groupingProjector.prepare();
@@ -151,5 +131,25 @@ public class GroupingProjectorBenchmark {
         }
 
         groupingProjector.finish(RepeatHandle.UNSUPPORTED);
+    }
+
+    class SpareRow implements Row {
+
+        Object value;
+
+        @Override
+        public int size() {
+            return 1;
+        }
+
+        @Override
+        public Object get(int index) {
+            return value;
+        }
+
+        @Override
+        public Object[] materialize() {
+            return new Object[]{value};
+        }
     }
 }

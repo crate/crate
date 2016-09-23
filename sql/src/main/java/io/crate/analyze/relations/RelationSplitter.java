@@ -41,6 +41,12 @@ import java.util.*;
 
 public final class RelationSplitter {
 
+    private static final Supplier<Set<Integer>> INT_SET_SUPPLIER = new Supplier<Set<Integer>>() {
+        @Override
+        public Set<Integer> get() {
+            return new HashSet<>();
+        }
+    };
     private final QuerySpec querySpec;
     private final Set<Symbol> requiredForQuery = new HashSet<>();
     private final Map<AnalyzedRelation, QuerySpec> specs;
@@ -48,13 +54,6 @@ public final class RelationSplitter {
     private final List<Symbol> joinConditions;
     private Set<Field> canBeFetched;
     private RemainingOrderBy remainingOrderBy;
-
-    private static final Supplier<Set<Integer>> INT_SET_SUPPLIER = new Supplier<Set<Integer>>() {
-        @Override
-        public Set<Integer> get() {
-            return new HashSet<>();
-        }
-    };
 
     public RelationSplitter(QuerySpec querySpec,
                             Collection<? extends AnalyzedRelation> relations,
@@ -123,7 +122,7 @@ public final class RelationSplitter {
 
         // add all order by symbols to context outputs
         for (Map.Entry<AnalyzedRelation, QuerySpec> entry : specs.entrySet()) {
-            if (entry.getValue().orderBy().isPresent()){
+            if (entry.getValue().orderBy().isPresent()) {
                 context.fields.putAll(entry.getKey(), entry.getValue().orderBy().get().orderBySymbols());
             }
         }
@@ -164,8 +163,8 @@ public final class RelationSplitter {
         OrderBy orderBy = querySpec.orderBy().get();
         Set<AnalyzedRelation> relations = Collections.newSetFromMap(new IdentityHashMap<AnalyzedRelation, Boolean>());
         Multimap<AnalyzedRelation, Integer> splits = Multimaps.newSetMultimap(
-                new IdentityHashMap<AnalyzedRelation, Collection<Integer>>(specs.size()),
-                INT_SET_SUPPLIER);
+            new IdentityHashMap<AnalyzedRelation, Collection<Integer>>(specs.size()),
+            INT_SET_SUPPLIER);
 
         // Detect remaining orderBy before any push down happens,
         // since if remaining orderBy is detected we need to

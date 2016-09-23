@@ -51,8 +51,8 @@ import static io.crate.action.sql.TransportSQLAction.toOptions;
 
 public class TransportSQLBulkAction extends TransportAction<SQLBulkRequest, SQLBulkResponse> {
 
-    private final SQLOperations sqlOperations;
     private final static String UNNAMED = "";
+    private final SQLOperations sqlOperations;
 
     @Inject
     public TransportSQLBulkAction(SQLOperations sqlOperations,
@@ -97,7 +97,7 @@ public class TransportSQLBulkAction extends TransportAction<SQLBulkRequest, SQLB
             session.sync(new CompletionListener() {
                 @Override
                 public void onSuccess(@Nullable CompletionState result) {
-                    float duration = (float)((System.nanoTime() - startTime) / 1_000_000.0);
+                    float duration = (float) ((System.nanoTime() - startTime) / 1_000_000.0);
                     listener.onResponse(new SQLBulkResponse(results, duration));
                 }
 

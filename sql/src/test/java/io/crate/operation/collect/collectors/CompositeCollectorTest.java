@@ -29,7 +29,6 @@ import io.crate.operation.collect.CrateCollector;
 import io.crate.operation.collect.RowsCollector;
 import io.crate.testing.CollectingRowReceiver;
 import io.crate.testing.RowGenerator;
-import io.crate.testing.RowSender;
 import io.crate.testing.TestingHelpers;
 import org.junit.Test;
 

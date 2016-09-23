@@ -25,12 +25,12 @@ package io.crate.sql.tree;
  * <pre>
  *      expression cmpOp quantifier ( arrayExpression )
  * </pre>
- *
+ * <p>
  * E.g.
  * <pre>
  *      x = ANY ([1, 2, 3])
  * </pre>
- *
+ * <p>
  * Use {@link #getLeft()} to access expression.
  * Use {@link #getRight()} to access arrayExpression
  */

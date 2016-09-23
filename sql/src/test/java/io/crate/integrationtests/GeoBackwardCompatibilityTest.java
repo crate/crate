@@ -33,7 +33,7 @@ import java.nio.file.Path;
 import static org.hamcrest.Matchers.is;
 
 @ESIntegTestCase.ClusterScope(numDataNodes = 0, numClientNodes = 0)
-public class GeoBackwardCompatibilityTest extends SQLTransportIntegrationTest{
+public class GeoBackwardCompatibilityTest extends SQLTransportIntegrationTest {
 
     @Before
     public void loadLegacy() throws IOException {

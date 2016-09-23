@@ -37,23 +37,23 @@ import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * RowDownstream/RowReceiver that acts as a bridge from multiple upstreams to a single RowReceiver.
- *
+ * <p>
  * Can handle upstreams which emit to this RowReceiver concurrently.
- *
- *      +----+     +----+
- *      | U1 |     | U2 |
- *      +----+     +----+
- *          \        /
- *           \      /
- *      +---------------------------+
- *      | synchronized              |
- *      | MultiUpstreamRowReceiver  |
- *      +---------------------------+
- *                |
- *                |
- *          +-------------+
- *          | RowReceiver |
- *          +-------------+
+ * <p>
+ * +----+     +----+
+ * | U1 |     | U2 |
+ * +----+     +----+
+ * \        /
+ * \      /
+ * +---------------------------+
+ * | synchronized              |
+ * | MultiUpstreamRowReceiver  |
+ * +---------------------------+
+ * |
+ * |
+ * +-------------+
+ * | RowReceiver |
+ * +-------------+
  */
 @ThreadSafe
 public class MultiUpstreamRowReceiver implements RowReceiver, RowDownstream {
@@ -122,21 +122,21 @@ public class MultiUpstreamRowReceiver implements RowReceiver, RowDownstream {
 
     /**
      * pause handling is tricky:
-     *
-     *
+     * <p>
+     * <p>
      * u1:                                              u2:
-     *  rw.setNextRow(r1)                                rw.setNextRow(r2)
-     *      synchronized:                                   synchronized: // < blocked until u1 is done
-     *          [...]
-     *          delegate.setNextRow()
-     *             [...]
-     *             return PAUSE
-     *      return                                         // unblocks but already *within* setNextRow
-     *  u1 pauses                                          if (paused) {
-     *                                                         pauseFifo.add(row.materialize())
-     *                                                         return
-     *                                                     }
-     *                                                     u2 pauses
+     * rw.setNextRow(r1)                                rw.setNextRow(r2)
+     * synchronized:                                   synchronized: // < blocked until u1 is done
+     * [...]
+     * delegate.setNextRow()
+     * [...]
+     * return PAUSE
+     * return                                         // unblocks but already *within* setNextRow
+     * u1 pauses                                          if (paused) {
+     * pauseFifo.add(row.materialize())
+     * return
+     * }
+     * u2 pauses
      */
     private Result synchronizedSetNextRow(Row row) {
         if (paused) {

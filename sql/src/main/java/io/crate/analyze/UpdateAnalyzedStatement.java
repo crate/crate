@@ -61,31 +61,6 @@ public class UpdateAnalyzedStatement implements AnalyzedRelation, AnalyzedStatem
         return analyzedStatementVisitor.visitUpdateStatement(this, context);
     }
 
-    public static class NestedAnalyzedStatement {
-
-        private final WhereClause whereClause;
-        private final Map<Reference, Symbol> assignments = new HashMap<>();
-
-        public NestedAnalyzedStatement(WhereClause whereClause) {
-            this.whereClause = whereClause;
-        }
-
-        public Map<Reference, Symbol> assignments() {
-            return assignments;
-        }
-
-        public WhereClause whereClause() {
-            return whereClause;
-        }
-
-        public void addAssignment(Reference reference, Symbol value) {
-            if (assignments.containsKey(reference)) {
-                throw new IllegalArgumentException(String.format(Locale.ENGLISH, "reference repeated %s", reference.ident().columnIdent().sqlFqn()));
-            }
-            assignments.put(reference, value);
-        }
-    }
-
     @Override
     public <C, R> R accept(AnalyzedRelationVisitor<C, R> visitor, C context) {
         return visitor.visitUpdateAnalyzedStatement(this, context);
@@ -114,5 +89,30 @@ public class UpdateAnalyzedStatement implements AnalyzedRelation, AnalyzedStatem
     @Override
     public void setQualifiedName(QualifiedName qualifiedName) {
         throw new UnsupportedOperationException("method not supported");
+    }
+
+    public static class NestedAnalyzedStatement {
+
+        private final WhereClause whereClause;
+        private final Map<Reference, Symbol> assignments = new HashMap<>();
+
+        public NestedAnalyzedStatement(WhereClause whereClause) {
+            this.whereClause = whereClause;
+        }
+
+        public Map<Reference, Symbol> assignments() {
+            return assignments;
+        }
+
+        public WhereClause whereClause() {
+            return whereClause;
+        }
+
+        public void addAssignment(Reference reference, Symbol value) {
+            if (assignments.containsKey(reference)) {
+                throw new IllegalArgumentException(String.format(Locale.ENGLISH, "reference repeated %s", reference.ident().columnIdent().sqlFqn()));
+            }
+            assignments.put(reference, value);
+        }
     }
 }

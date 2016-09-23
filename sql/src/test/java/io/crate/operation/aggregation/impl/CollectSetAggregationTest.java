@@ -29,8 +29,8 @@ import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.SetType;
 import org.apache.lucene.util.BytesRef;
-import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
+import org.elasticsearch.common.io.stream.StreamInput;
 import org.junit.Test;
 
 import java.util.Set;
@@ -54,8 +54,8 @@ public class CollectSetAggregationTest extends AggregationTest {
         Object[][] result = executeAggregation(DataTypes.DOUBLE, new Object[][]{{0.7d}, {0.3d}, {0.3d}});
 
         assertThat(result[0][0], instanceOf(Set.class));
-        assertEquals(2, ((Set)result[0][0]).size());
-        assertTrue(((Set)result[0][0]).contains(0.7d));
+        assertEquals(2, ((Set) result[0][0]).size());
+        assertTrue(((Set) result[0][0]).contains(0.7d));
     }
 
     @Test
@@ -77,8 +77,8 @@ public class CollectSetAggregationTest extends AggregationTest {
         Object[][] result = executeAggregation(DataTypes.FLOAT, new Object[][]{{0.7f}, {0.3f}, {0.3f}});
 
         assertThat(result[0][0], instanceOf(Set.class));
-        assertEquals(2, ((Set)result[0][0]).size());
-        assertTrue(((Set)result[0][0]).contains(0.7f));
+        assertEquals(2, ((Set) result[0][0]).size());
+        assertTrue(((Set) result[0][0]).contains(0.7f));
     }
 
     @Test
@@ -86,8 +86,8 @@ public class CollectSetAggregationTest extends AggregationTest {
         Object[][] result = executeAggregation(DataTypes.INTEGER, new Object[][]{{7}, {3}, {3}});
 
         assertThat(result[0][0], instanceOf(Set.class));
-        assertEquals(2, ((Set)result[0][0]).size());
-        assertTrue(((Set)result[0][0]).contains(7));
+        assertEquals(2, ((Set) result[0][0]).size());
+        assertTrue(((Set) result[0][0]).contains(7));
     }
 
     @Test
@@ -95,8 +95,8 @@ public class CollectSetAggregationTest extends AggregationTest {
         Object[][] result = executeAggregation(DataTypes.LONG, new Object[][]{{7L}, {3L}, {3L}});
 
         assertThat(result[0][0], instanceOf(Set.class));
-        assertEquals(2, ((Set)result[0][0]).size());
-        assertTrue(((Set)result[0][0]).contains(7L));
+        assertEquals(2, ((Set) result[0][0]).size());
+        assertTrue(((Set) result[0][0]).contains(7L));
     }
 
     @Test
@@ -104,18 +104,18 @@ public class CollectSetAggregationTest extends AggregationTest {
         Object[][] result = executeAggregation(DataTypes.SHORT, new Object[][]{{(short) 7}, {(short) 3}, {(short) 3}});
 
         assertThat(result[0][0], instanceOf(Set.class));
-        assertEquals(2, ((Set)result[0][0]).size());
-        assertTrue(((Set)result[0][0]).contains((short)7));
+        assertEquals(2, ((Set) result[0][0]).size());
+        assertTrue(((Set) result[0][0]).contains((short) 7));
     }
 
     @Test
     public void testString() throws Exception {
         Object[][] result = executeAggregation(DataTypes.STRING,
-                new Object[][]{{new BytesRef("Youri")}, {new BytesRef("Ruben")}, {new BytesRef("Ruben")}});
+            new Object[][]{{new BytesRef("Youri")}, {new BytesRef("Ruben")}, {new BytesRef("Ruben")}});
 
         assertThat(result[0][0], instanceOf(Set.class));
-        assertEquals(2, ((Set)result[0][0]).size());
-        assertTrue(((Set)result[0][0]).contains(new BytesRef("Youri")));
+        assertEquals(2, ((Set) result[0][0]).size());
+        assertTrue(((Set) result[0][0]).contains(new BytesRef("Youri")));
     }
 
     @Test
@@ -123,17 +123,17 @@ public class CollectSetAggregationTest extends AggregationTest {
         Object[][] result = executeAggregation(DataTypes.BOOLEAN, new Object[][]{{true}, {false}, {false}});
 
         assertThat(result[0][0], instanceOf(Set.class));
-        assertEquals(2, ((Set)result[0][0]).size());
-        assertTrue(((Set)result[0][0]).contains(true));
+        assertEquals(2, ((Set) result[0][0]).size());
+        assertTrue(((Set) result[0][0]).contains(true));
     }
 
     @Test
     public void testNullValue() throws Exception {
         Object[][] result = executeAggregation(DataTypes.STRING,
-                new Object[][]{{new BytesRef("Youri")}, {new BytesRef("Ruben")}, {null}});
+            new Object[][]{{new BytesRef("Youri")}, {new BytesRef("Ruben")}, {null}});
         // null values currently ignored
         assertThat(result[0][0], instanceOf(Set.class));
-        assertEquals(2, ((Set)result[0][0]).size());
-        assertFalse(((Set)result[0][0]).contains(null));
+        assertEquals(2, ((Set) result[0][0]).size());
+        assertFalse(((Set) result[0][0]).contains(null));
     }
 }

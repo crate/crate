@@ -64,12 +64,12 @@ public class CountConsumer implements Consumer {
             if (!hasOnlyGlobalCount(querySpec.outputs())) {
                 return null;
             }
-            if(querySpec.where().hasVersions()){
+            if (querySpec.where().hasVersions()) {
                 context.validationException(new VersionInvalidException());
                 return null;
             }
 
-            if (querySpec.limit().or(1) < 1 || querySpec.offset() > 0){
+            if (querySpec.limit().or(1) < 1 || querySpec.offset() > 0) {
                 return new NoopPlannedAnalyzedRelation(table, context.plannerContext().jobId());
             }
 
@@ -77,18 +77,18 @@ public class CountConsumer implements Consumer {
             Routing routing = context.plannerContext().allocateRouting(tableInfo, querySpec.where(), null);
             Planner.Context plannerContext = context.plannerContext();
             CountPhase countNode = new CountPhase(
-                    plannerContext.nextExecutionPhaseId(),
-                    routing,
-                    querySpec.where(),
-                    DistributionInfo.DEFAULT_BROADCAST);
+                plannerContext.nextExecutionPhaseId(),
+                routing,
+                querySpec.where(),
+                DistributionInfo.DEFAULT_BROADCAST);
             MergePhase mergeNode = new MergePhase(
-                    plannerContext.jobId(),
-                    plannerContext.nextExecutionPhaseId(),
-                    "count-merge",
-                    countNode.executionNodes().size(),
-                    Collections.singletonList(DataTypes.LONG),
-                    Collections.<Projection>singletonList(MergeCountProjection.INSTANCE),
-                    DistributionInfo.DEFAULT_SAME_NODE
+                plannerContext.jobId(),
+                plannerContext.nextExecutionPhaseId(),
+                "count-merge",
+                countNode.executionNodes().size(),
+                Collections.singletonList(DataTypes.LONG),
+                Collections.<Projection>singletonList(MergeCountProjection.INSTANCE),
+                DistributionInfo.DEFAULT_SAME_NODE
             );
             return new CountPlan(countNode, mergeNode, context.plannerContext().jobId());
         }

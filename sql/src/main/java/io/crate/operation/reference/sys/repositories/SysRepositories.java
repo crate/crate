@@ -53,9 +53,9 @@ public class SysRepositories implements ClusterStateListener, Supplier<Iterable<
         }
         for (RepositoryMetaData repositoryMetaData : repositoriesMetaData.repositories()) {
             SysRepository repository = new SysRepository(
-                    repositoryMetaData.name(),
-                    repositoryMetaData.type(),
-                    repositoryMetaData.settings().getAsStructuredMap());
+                repositoryMetaData.name(),
+                repositoryMetaData.type(),
+                repositoryMetaData.settings().getAsStructuredMap());
             repositoriesTable.put(repositoryMetaData.name(), repository);
         }
     }

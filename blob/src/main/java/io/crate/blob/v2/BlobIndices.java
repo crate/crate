@@ -66,27 +66,24 @@ public class BlobIndices extends AbstractComponent implements ClusterStateListen
     public static final String SETTING_INDEX_BLOBS_ENABLED = "index.blobs.enabled";
     public static final String SETTING_INDEX_BLOBS_PATH = "index.blobs.path";
     public static final String INDEX_PREFIX = ".blob_";
-
-    private final Provider<TransportUpdateSettingsAction> transportUpdateSettingsActionProvider;
-    private final Provider<TransportCreateIndexAction> transportCreateIndexActionProvider;
-    private final Provider<TransportDeleteIndexAction> transportDeleteIndexActionProvider;
-    private final IndicesService indicesService;
-    private final IndicesLifecycle indicesLifecycle;
-    private final BlobEnvironment blobEnvironment;
-
     public static final Predicate<String> indicesFilter = new Predicate<String>() {
         @Override
         public boolean apply(String indexName) {
             return isBlobIndex(indexName);
         }
     };
-
     public static final Function<String, String> STRIP_PREFIX = new Function<String, String>() {
         @Override
         public String apply(String indexName) {
             return indexName(indexName);
         }
     };
+    private final Provider<TransportUpdateSettingsAction> transportUpdateSettingsActionProvider;
+    private final Provider<TransportCreateIndexAction> transportCreateIndexActionProvider;
+    private final Provider<TransportDeleteIndexAction> transportDeleteIndexActionProvider;
+    private final IndicesService indicesService;
+    private final IndicesLifecycle indicesLifecycle;
+    private final BlobEnvironment blobEnvironment;
 
     @Inject
     public BlobIndices(Settings settings,
@@ -108,6 +105,44 @@ public class BlobIndices extends AbstractComponent implements ClusterStateListen
         logger.setLevel("debug");
     }
 
+    /**
+     * check if this index is a blob table
+     * <p>
+     * This only works for indices that were created via SQL.
+     */
+    public static boolean isBlobIndex(String indexName) {
+        return indexName.startsWith(INDEX_PREFIX);
+    }
+
+    /**
+     * check if given shard is part of an index that is a blob table
+     * <p>
+     * This only works for indices that were created via SQL.
+     */
+    public static boolean isBlobShard(ShardId shardId) {
+        return isBlobIndex(shardId.getIndex());
+    }
+
+    /**
+     * Returns the full index name, adds blob index prefix.
+     */
+    public static String fullIndexName(String indexName) {
+        if (isBlobIndex(indexName)) {
+            return indexName;
+        }
+        return INDEX_PREFIX + indexName;
+    }
+
+    /**
+     * Strips the blob index prefix from a full index name
+     */
+    public static String indexName(String indexName) {
+        if (!isBlobIndex(indexName)) {
+            return indexName;
+        }
+        return indexName.substring(INDEX_PREFIX.length());
+    }
+
     public BlobShard blobShardSafe(ShardId shardId) {
         return blobShardSafe(shardId.getIndex(), shardId.id());
     }
@@ -115,7 +150,7 @@ public class BlobIndices extends AbstractComponent implements ClusterStateListen
     /**
      * can be used to alter the number of replicas.
      *
-     * @param tableName name of the blob table
+     * @param tableName     name of the blob table
      * @param indexSettings updated index settings
      */
     public ListenableFuture<Void> alterBlobTable(String tableName, Settings indexSettings) {
@@ -192,44 +227,6 @@ public class BlobIndices extends AbstractComponent implements ClusterStateListen
 
     }
 
-    /**
-     * check if this index is a blob table
-     *
-     * This only works for indices that were created via SQL.
-     */
-    public static boolean isBlobIndex(String indexName) {
-        return indexName.startsWith(INDEX_PREFIX);
-    }
-
-    /**
-     * check if given shard is part of an index that is a blob table
-     *
-     * This only works for indices that were created via SQL.
-     */
-    public static boolean isBlobShard(ShardId shardId) {
-        return isBlobIndex(shardId.getIndex());
-    }
-
-    /**
-     * Returns the full index name, adds blob index prefix.
-     */
-    public static String fullIndexName(String indexName) {
-        if (isBlobIndex(indexName)) {
-            return indexName;
-        }
-        return INDEX_PREFIX + indexName;
-    }
-
-    /**
-     * Strips the blob index prefix from a full index name
-     */
-    public static String indexName(String indexName) {
-        if (!isBlobIndex(indexName)) {
-            return indexName;
-        }
-        return indexName.substring(INDEX_PREFIX.length());
-    }
-
     @Override
     public void clusterChanged(ClusterChangedEvent event) {
         if (event.state().blocks().disableStatePersistence()) {
@@ -283,7 +280,7 @@ public class BlobIndices extends AbstractComponent implements ClusterStateListen
         // check if custom index blobs path is empty, if so delete whole path
         if (customBlobsPath != null && blobEnvironment.isCustomBlobPathEmpty(customBlobsPath)) {
             logger.debug("[{}] Empty per table defined blobs path found, deleting leftover folders inside {}",
-                    index, customBlobsPath.getAbsolutePath());
+                index, customBlobsPath.getAbsolutePath());
             try {
                 FileSystemUtils.deleteSubDirectories(customBlobsPath.toPath());
             } catch (IOException e) {

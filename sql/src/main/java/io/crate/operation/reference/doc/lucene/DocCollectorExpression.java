@@ -37,17 +37,6 @@ public class DocCollectorExpression extends LuceneCollectorExpression<Map<String
 
     private CollectorFieldsVisitor visitor;
 
-    @Override
-    public void startCollect(CollectorContext context) {
-        context.visitor().required(true);
-        this.visitor = context.visitor();
-    }
-
-    @Override
-    public Map<String, Object> value() {
-        return XContentHelper.convertToMap(visitor.source(), false).v2();
-    }
-
     public static LuceneCollectorExpression<?> create(final Reference reference) {
         assert reference.ident().columnIdent().name().equals(DocSysColumns.DOC.name());
         if (reference.ident().columnIdent().path().size() == 0) {
@@ -74,8 +63,19 @@ public class DocCollectorExpression extends LuceneCollectorExpression<Map<String
         };
     }
 
+    @Override
+    public void startCollect(CollectorContext context) {
+        context.visitor().required(true);
+        this.visitor = context.visitor();
+    }
+
+    @Override
+    public Map<String, Object> value() {
+        return XContentHelper.convertToMap(visitor.source(), false).v2();
+    }
+
     public abstract static class ChildDocCollectorExpression<ReturnType> extends
-            LuceneCollectorExpression<ReturnType> {
+        LuceneCollectorExpression<ReturnType> {
 
         protected SourceLookup sourceLookup;
         private LeafReaderContext context;

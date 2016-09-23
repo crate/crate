@@ -51,6 +51,10 @@ public class SQLResponse extends SQLBaseResponse {
         this.rowCount = rowCount;
     }
 
+    private static String arrayToString(@Nullable Object[] array) {
+        return array == null ? null : Arrays.toString(array);
+    }
+
     @Override
     public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
         builder.startObject();
@@ -71,7 +75,7 @@ public class SQLResponse extends SQLBaseResponse {
         return builder;
     }
 
-    public Object[][] rows(){
+    public Object[][] rows() {
         return rows;
     }
 
@@ -125,18 +129,14 @@ public class SQLResponse extends SQLBaseResponse {
         }
     }
 
-    private static String arrayToString(@Nullable Object[] array) {
-        return array == null ? null : Arrays.toString(array);
-    }
-
     @Override
     public String toString() {
         return "SQLResponse{" +
-                "cols=" + arrayToString(cols()) +
-                "colTypes=" + arrayToString(columnTypes()) +
-                ", rows=" + ((rows!=null) ? rows.length: -1)  +
-                ", rowCount=" + rowCount  +
-                ", duration=" + duration()  +
-                '}';
+               "cols=" + arrayToString(cols()) +
+               "colTypes=" + arrayToString(columnTypes()) +
+               ", rows=" + ((rows != null) ? rows.length : -1) +
+               ", rowCount=" + rowCount +
+               ", duration=" + duration() +
+               '}';
     }
 }

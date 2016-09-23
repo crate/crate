@@ -228,10 +228,10 @@ public class PostgresITest extends SQLTransportIntegrationTest {
 
             PreparedStatement preparedStatement = conn.prepareStatement("insert into t (ints, strings, points) " +
                                                                         "values (?, ?, ?)");
-            preparedStatement.setArray(1, conn.createArrayOf("int4", new Integer[] { 10, 20 }));
-            preparedStatement.setArray(2, conn.createArrayOf("varchar", new String[] { "foo", "bar" }));
-            preparedStatement.setArray(3, conn.createArrayOf("float8", new Double[][] {new Double[]{1.1, 2.2},
-                                                                                       new Double[] {3.3, 4.4}}));
+            preparedStatement.setArray(1, conn.createArrayOf("int4", new Integer[]{10, 20}));
+            preparedStatement.setArray(2, conn.createArrayOf("varchar", new String[]{"foo", "bar"}));
+            preparedStatement.setArray(3, conn.createArrayOf("float8", new Double[][]{new Double[]{1.1, 2.2},
+                new Double[]{3.3, 4.4}}));
             preparedStatement.executeUpdate();
 
             conn.createStatement().executeUpdate("refresh table t");
@@ -240,13 +240,13 @@ public class PostgresITest extends SQLTransportIntegrationTest {
             assertThat(resultSet.next(), is(true));
 
             Object[] object = (Object[]) resultSet.getArray(1).getArray();
-            assertThat(object, is(new Object[] { 10, 20 }));
+            assertThat(object, is(new Object[]{10, 20}));
 
             object = (Object[]) resultSet.getArray(2).getArray();
-            assertThat(object, is(new Object[] { "foo", "bar" }));
+            assertThat(object, is(new Object[]{"foo", "bar"}));
 
             object = (Object[]) resultSet.getArray(3).getArray();
-            assertThat((Double[][]) object, is(new Double[][] {new Double[] { 1.1, 2.2 }, new Double[] { 3.3, 4.4 }}));
+            assertThat((Double[][]) object, is(new Double[][]{new Double[]{1.1, 2.2}, new Double[]{3.3, 4.4}}));
         } catch (BatchUpdateException e) {
             throw e.getNextException();
         }
@@ -311,7 +311,7 @@ public class PostgresITest extends SQLTransportIntegrationTest {
             preparedStatement.addBatch();
 
             int[] results = preparedStatement.executeBatch();
-            assertThat(results, is(new int[] {1, 1}));
+            assertThat(results, is(new int[]{1, 1}));
         }
     }
 
@@ -335,7 +335,7 @@ public class PostgresITest extends SQLTransportIntegrationTest {
                 preparedStatement.executeBatch();
                 fail("executeBatch must throw an exception");
             } catch (BatchUpdateException e) {
-                assertThat(e.getUpdateCounts(), is(new int[] { -3, -3, -3 }));
+                assertThat(e.getUpdateCounts(), is(new int[]{-3, -3, -3}));
                 SQLException nextException = e.getNextException();
                 assertThat(nextException.getMessage(), Matchers.containsString("cannot cast 'foobar' to type integer"));
             }
@@ -363,7 +363,7 @@ public class PostgresITest extends SQLTransportIntegrationTest {
             preparedStatement.setInt(2, 10);
             preparedStatement.addBatch();
 
-            assertThat(preparedStatement.executeBatch(), is(new int[] { 1, 1}));
+            assertThat(preparedStatement.executeBatch(), is(new int[]{1, 1}));
             conn.createStatement().executeUpdate("refresh table t");
 
             preparedStatement = conn.prepareStatement("update t set x = log(x) where id = ?");
@@ -372,7 +372,7 @@ public class PostgresITest extends SQLTransportIntegrationTest {
 
             preparedStatement.setInt(1, 2);
             preparedStatement.addBatch();
-            assertThat(preparedStatement.executeBatch(), is(new int[] {-3, 1}));
+            assertThat(preparedStatement.executeBatch(), is(new int[]{-3, 1}));
             conn.createStatement().executeUpdate("refresh table t");
 
             ResultSet rs = conn.createStatement().executeQuery("select x from t order by id");
@@ -397,7 +397,7 @@ public class PostgresITest extends SQLTransportIntegrationTest {
             statement.addBatch("insert into t (x) values (2)");
 
             int[] results = statement.executeBatch();
-            assertThat(results, is(new int[] {1, 1}));
+            assertThat(results, is(new int[]{1, 1}));
 
             statement.executeUpdate("refresh table t");
             ResultSet resultSet = statement.executeQuery("select * from t order by x");

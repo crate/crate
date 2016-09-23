@@ -66,14 +66,12 @@ public class RemoteCollectorTest {
 
     @Rule
     public ExpectedException expectedException = ExpectedException.none();
-
+    @Captor
+    public ArgumentCaptor<ActionListener<JobResponse>> listenerCaptor;
     private TransportJobAction transportJobAction;
     private TransportKillJobsNodeAction transportKillJobsNodeAction;
     private CollectingRowReceiver rowReceiver;
     private RemoteCollector remoteCollector;
-
-    @Captor
-    public ArgumentCaptor<ActionListener<JobResponse>> listenerCaptor;
 
     @Before
     public void setUp() throws Exception {

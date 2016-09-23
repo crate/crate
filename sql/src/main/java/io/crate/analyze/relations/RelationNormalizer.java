@@ -58,74 +58,6 @@ final class RelationNormalizer extends AnalyzedRelationVisitor<RelationNormalize
         return INSTANCE.process(relation, new Context(analysisMetaData, relation.fields(), stmtCtx));
     }
 
-    @Override
-    protected AnalyzedRelation visitAnalyzedRelation(AnalyzedRelation relation, Context context) {
-        return relation;
-    }
-
-    @Override
-    public AnalyzedRelation visitQueriedSelectRelation(QueriedSelectRelation relation, Context context) {
-        if (hasNestedAggregations(relation)) {
-            return relation;
-        }
-
-        context.querySpec = mergeQuerySpec(context.querySpec, relation.querySpec());
-        return process(relation.relation(), context);
-    }
-
-    @Override
-    public AnalyzedRelation visitQueriedTable(QueriedTable table, Context context) {
-        if (context.querySpec == null) {
-            return table;
-        }
-
-        QuerySpec querySpec = mergeAndReplaceFields(table, context.querySpec);
-        QueriedTable relation = new QueriedTable(table.tableRelation(), context.paths(), querySpec);
-        relation.normalize(context.analysisMetaData, context.stmtCtx);
-        return relation;
-    }
-
-    @Override
-    public AnalyzedRelation visitQueriedDocTable(QueriedDocTable table, Context context) {
-        QueriedDocTable relation = table;
-        if (context.querySpec != null) {
-            QuerySpec querySpec = mergeAndReplaceFields(table, context.querySpec);
-            relation = new QueriedDocTable(table.tableRelation(), context.paths(), querySpec);
-            relation.normalize(context.analysisMetaData, context.stmtCtx);
-        }
-        relation.analyzeWhereClause(context.analysisMetaData, context.stmtCtx);
-        return relation;
-    }
-
-    @Override
-    public AnalyzedRelation visitMultiSourceSelect(MultiSourceSelect multiSourceSelect, Context context) {
-        MultiSourceSelect relation = multiSourceSelect;
-        if (context.querySpec != null) {
-            QuerySpec querySpec = mergeAndReplaceFields(multiSourceSelect, context.querySpec);
-            // must create a new MultiSourceSelect because paths and query spec changed
-            relation = new MultiSourceSelect(mapSourceRelations(multiSourceSelect),
-                relation.outputSymbols(), context.paths(), querySpec,
-                multiSourceSelect.joinPairs());
-        }
-        relation.pushDownQuerySpecs();
-        return relation;
-    }
-
-    private Map<QualifiedName, AnalyzedRelation> mapSourceRelations(MultiSourceSelect multiSourceSelect) {
-        return Maps.transformValues(multiSourceSelect.sources(), new com.google.common.base.Function<MultiSourceSelect.Source, AnalyzedRelation>() {
-            @Override
-            public AnalyzedRelation apply(MultiSourceSelect.Source input) {
-                return input.relation();
-            }
-        });
-    }
-
-    private QuerySpec mergeAndReplaceFields(QueriedRelation table, QuerySpec querySpec) {
-        QuerySpec mergedQuerySpec = mergeQuerySpec(querySpec, table.querySpec());
-        replaceFieldReferences(mergedQuerySpec);
-        return mergedQuerySpec;
-    }
-
     private static QuerySpec mergeQuerySpec(@Nullable QuerySpec querySpec1, QuerySpec querySpec2) {
         if (querySpec1 == null) {
             return querySpec2;
@@ -204,6 +136,74 @@ final class RelationNormalizer extends AnalyzedRelationVisitor<RelationNormalize
             Symbol query = FieldReferenceResolver.INSTANCE.process(querySpec.having().get().query(), null);
             querySpec.having(new HavingClause(query));
         }
+    }
+
+    @Override
+    protected AnalyzedRelation visitAnalyzedRelation(AnalyzedRelation relation, Context context) {
+        return relation;
+    }
+
+    @Override
+    public AnalyzedRelation visitQueriedSelectRelation(QueriedSelectRelation relation, Context context) {
+        if (hasNestedAggregations(relation)) {
+            return relation;
+        }
+
+        context.querySpec = mergeQuerySpec(context.querySpec, relation.querySpec());
+        return process(relation.relation(), context);
+    }
+
+    @Override
+    public AnalyzedRelation visitQueriedTable(QueriedTable table, Context context) {
+        if (context.querySpec == null) {
+            return table;
+        }
+
+        QuerySpec querySpec = mergeAndReplaceFields(table, context.querySpec);
+        QueriedTable relation = new QueriedTable(table.tableRelation(), context.paths(), querySpec);
+        relation.normalize(context.analysisMetaData, context.stmtCtx);
+        return relation;
+    }
+
+    @Override
+    public AnalyzedRelation visitQueriedDocTable(QueriedDocTable table, Context context) {
+        QueriedDocTable relation = table;
+        if (context.querySpec != null) {
+            QuerySpec querySpec = mergeAndReplaceFields(table, context.querySpec);
+            relation = new QueriedDocTable(table.tableRelation(), context.paths(), querySpec);
+            relation.normalize(context.analysisMetaData, context.stmtCtx);
+        }
+        relation.analyzeWhereClause(context.analysisMetaData, context.stmtCtx);
+        return relation;
+    }
+
+    @Override
+    public AnalyzedRelation visitMultiSourceSelect(MultiSourceSelect multiSourceSelect, Context context) {
+        MultiSourceSelect relation = multiSourceSelect;
+        if (context.querySpec != null) {
+            QuerySpec querySpec = mergeAndReplaceFields(multiSourceSelect, context.querySpec);
+            // must create a new MultiSourceSelect because paths and query spec changed
+            relation = new MultiSourceSelect(mapSourceRelations(multiSourceSelect),
+                relation.outputSymbols(), context.paths(), querySpec,
+                multiSourceSelect.joinPairs());
+        }
+        relation.pushDownQuerySpecs();
+        return relation;
+    }
+
+    private Map<QualifiedName, AnalyzedRelation> mapSourceRelations(MultiSourceSelect multiSourceSelect) {
+        return Maps.transformValues(multiSourceSelect.sources(), new com.google.common.base.Function<MultiSourceSelect.Source, AnalyzedRelation>() {
+            @Override
+            public AnalyzedRelation apply(MultiSourceSelect.Source input) {
+                return input.relation();
+            }
+        });
+    }
+
+    private QuerySpec mergeAndReplaceFields(QueriedRelation table, QuerySpec querySpec) {
+        QuerySpec mergedQuerySpec = mergeQuerySpec(querySpec, table.querySpec());
+        replaceFieldReferences(mergedQuerySpec);
+        return mergedQuerySpec;
     }
 
     private boolean hasNestedAggregations(QueriedSelectRelation relation) {

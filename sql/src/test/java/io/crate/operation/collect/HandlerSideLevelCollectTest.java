@@ -69,15 +69,15 @@ public class HandlerSideLevelCollectTest extends SQLTransportIntegrationTest {
                                            RowGranularity rowGranularity,
                                            WhereClause whereClause) {
         return new RoutedCollectPhase(
-                UUID.randomUUID(),
-                0,
-                "dummy",
-                routing,
-                rowGranularity,
-                toCollect,
-                ImmutableList.<Projection>of(),
-                whereClause,
-                DistributionInfo.DEFAULT_BROADCAST
+            UUID.randomUUID(),
+            0,
+            "dummy",
+            routing,
+            rowGranularity,
+            toCollect,
+            ImmutableList.<Projection>of(),
+            whereClause,
+            DistributionInfo.DEFAULT_BROADCAST
         );
     }
 
@@ -87,7 +87,7 @@ public class HandlerSideLevelCollectTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testClusterLevel() throws Exception {
-        Schemas schemas =  internalCluster().getInstance(Schemas.class);
+        Schemas schemas = internalCluster().getInstance(Schemas.class);
         TableInfo tableInfo = schemas.getTableInfo(new TableIdent("sys", "cluster"));
         Routing routing = tableInfo.getRouting(WhereClause.MATCH_ALL, null);
         Reference clusterNameRef = new Reference(new ReferenceIdent(SysClusterTableInfo.IDENT, new ColumnIdent(ClusterNameExpression.NAME)), RowGranularity.CLUSTER, DataTypes.STRING);
@@ -107,7 +107,7 @@ public class HandlerSideLevelCollectTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testInformationSchemaTables() throws Exception {
-        InformationSchemaInfo schemaInfo =  internalCluster().getInstance(InformationSchemaInfo.class);
+        InformationSchemaInfo schemaInfo = internalCluster().getInstance(InformationSchemaInfo.class);
         TableInfo tablesTableInfo = schemaInfo.getTableInfo("tables");
         Routing routing = tablesTableInfo.getRouting(WhereClause.MATCH_ALL, null);
         List<Symbol> toCollect = new ArrayList<>();
@@ -117,9 +117,9 @@ public class HandlerSideLevelCollectTest extends SQLTransportIntegrationTest {
         Symbol tableNameRef = toCollect.get(8);
 
         FunctionImplementation eqImpl = functions.get(new FunctionIdent(EqOperator.NAME,
-                ImmutableList.<DataType>of(DataTypes.STRING, DataTypes.STRING)));
+            ImmutableList.<DataType>of(DataTypes.STRING, DataTypes.STRING)));
         Function whereClause = new Function(eqImpl.info(),
-                Arrays.asList(tableNameRef, Literal.newLiteral("shards")));
+            Arrays.asList(tableNameRef, Literal.newLiteral("shards")));
 
         RoutedCollectPhase collectNode = collectNode(routing, toCollect, RowGranularity.DOC, new WhereClause(whereClause));
         Bucket result = collect(collectNode);
@@ -128,7 +128,7 @@ public class HandlerSideLevelCollectTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testInformationSchemaColumns() throws Exception {
-        InformationSchemaInfo schemaInfo =  internalCluster().getInstance(InformationSchemaInfo.class);
+        InformationSchemaInfo schemaInfo = internalCluster().getInstance(InformationSchemaInfo.class);
         TableInfo tableInfo = schemaInfo.getTableInfo("columns");
         assert tableInfo != null;
         Routing routing = tableInfo.getRouting(WhereClause.MATCH_ALL, null);

@@ -51,9 +51,9 @@ public class SysNodesExpressionsWithDefaultExtendedStatsTest extends CrateUnitTe
 
     private void prepare(boolean isDataNode) throws Exception {
         injector = new ModulesBuilder().add(
-                new SysNodesExpressionsTest.TestModule(isDataNode),
-                new MonitorModule(Settings.EMPTY),
-                new SysNodeExpressionModule()
+            new SysNodesExpressionsTest.TestModule(isDataNode),
+            new MonitorModule(Settings.EMPTY),
+            new SysNodeExpressionModule()
         ).createInjector();
         resolver = injector.getInstance(NodeSysExpression.class);
     }
@@ -87,7 +87,7 @@ public class SysNodesExpressionsWithDefaultExtendedStatsTest extends CrateUnitTe
         Map<String, Object> v = fs.value();
         //noinspection unchecked
         assertThat(mapToSortedString((Map<String, Object>) v.get("total")),
-                is("available=-1, bytes_read=-1, bytes_written=-1, reads=-1, size=-1, used=-1, writes=-1"));
+            is("available=-1, bytes_read=-1, bytes_written=-1, reads=-1, size=-1, used=-1, writes=-1"));
         Object[] disks = (Object[]) v.get("disks");
         assertThat(disks.length, is(0));
 
@@ -120,6 +120,6 @@ public class SysNodesExpressionsWithDefaultExtendedStatsTest extends CrateUnitTe
         ColumnIdent columnIdent = refInfo.ident().columnIdent();
         NestedObjectExpression fs = (NestedObjectExpression)
             resolver.getChildImplementation(columnIdent.name());
-        assertThat(((Object[])fs.getChildImplementation(columnIdent.path().get(0)).value()).length, is(0));
+        assertThat(((Object[]) fs.getChildImplementation(columnIdent.path().get(0)).value()).length, is(0));
     }
 }

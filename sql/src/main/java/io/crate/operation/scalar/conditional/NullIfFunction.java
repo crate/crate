@@ -40,14 +40,14 @@ public class NullIfFunction extends ConditionalFunction {
         super(info);
     }
 
+    public static void register(ScalarFunctionModule module) {
+        module.register(NAME, new Resolver());
+    }
+
     @Override
     public Object evaluate(Input... args) {
         Object arg0Value = args[0].value();
         return arg0Value != null && arg0Value.equals(args[1].value()) ? null : arg0Value;
-    }
-
-    public static void register(ScalarFunctionModule module) {
-        module.register(NAME, new Resolver());
     }
 
     static class Resolver implements DynamicFunctionResolver {

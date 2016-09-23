@@ -45,42 +45,9 @@ public class IndexReference extends Reference {
             return new IndexReference();
         }
     };
-
-    public static class Builder {
-        private final ReferenceIdent ident;
-        private IndexType indexType = IndexType.ANALYZED;
-        private List<Reference> columns = new ArrayList<>();
-        private String analyzer = null;
-
-        public Builder(ReferenceIdent ident) {
-            Preconditions.checkNotNull(ident, "ident is null");
-            this.ident = ident;
-        }
-
-        public Builder indexType(IndexType indexType) {
-            this.indexType = indexType;
-            return this;
-        }
-
-        public Builder addColumn(Reference info) {
-            this.columns.add(info);
-            return this;
-        }
-
-        public Builder analyzer(String name) {
-            this.analyzer = name;
-            return this;
-        }
-
-        public IndexReference build() {
-            return new IndexReference(ident, indexType, columns, analyzer);
-        }
-    }
-
     @Nullable
     private String analyzer;
     private List<Reference> columns;
-
     private IndexReference() {
     }
 
@@ -148,6 +115,37 @@ public class IndexReference extends Reference {
         out.writeVInt(columns.size());
         for (Reference reference : columns) {
             Reference.toStream(reference, out);
+        }
+    }
+
+    public static class Builder {
+        private final ReferenceIdent ident;
+        private IndexType indexType = IndexType.ANALYZED;
+        private List<Reference> columns = new ArrayList<>();
+        private String analyzer = null;
+
+        public Builder(ReferenceIdent ident) {
+            Preconditions.checkNotNull(ident, "ident is null");
+            this.ident = ident;
+        }
+
+        public Builder indexType(IndexType indexType) {
+            this.indexType = indexType;
+            return this;
+        }
+
+        public Builder addColumn(Reference info) {
+            this.columns.add(info);
+            return this;
+        }
+
+        public Builder analyzer(String name) {
+            this.analyzer = name;
+            return this;
+        }
+
+        public IndexReference build() {
+            return new IndexReference(ident, indexType, columns, analyzer);
         }
     }
 }

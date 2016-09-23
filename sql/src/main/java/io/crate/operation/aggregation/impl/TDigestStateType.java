@@ -33,8 +33,8 @@ import java.io.IOException;
 
 class TDigestStateType extends DataType<TDigestState> implements Streamer<TDigestState>, DataTypeFactory {
 
-    private static final int ID = 5120;
     public static final TDigestStateType INSTANCE = new TDigestStateType();
+    private static final int ID = 5120;
 
     static {
         DataTypes.register(ID, INSTANCE);

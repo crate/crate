@@ -69,12 +69,10 @@ public class DistributingDownstream implements RowReceiver {
     private final Object lock = new Object();
     private final AtomicInteger finishedDownstreams = new AtomicInteger(0);
     private final Bucket[] buckets;
-
+    private final AtomicInteger resumeLatch = new AtomicInteger(2);
     private volatile Result setNextRowResult = Result.CONTINUE;
     private volatile boolean killed = false;
     private boolean hasUpstreamFinished = false;
-
-    private final AtomicInteger resumeLatch = new AtomicInteger(2);
     private ResumeHandle resumeable = ResumeHandle.INVALID;
 
     public DistributingDownstream(ESLogger logger,
@@ -226,9 +224,9 @@ public class DistributingDownstream implements RowReceiver {
         public void forwardFailure(Throwable throwable) {
             traceLog("Forwarding failure");
             transportDistributedResultAction.pushResult(
-                    targetNode,
-                    new DistributedResultRequest(jobId, targetExecutionPhaseId, inputId, bucketIdx, streamers, throwable),
-                    NO_OP_ACTION_LISTENER
+                targetNode,
+                new DistributedResultRequest(jobId, targetExecutionPhaseId, inputId, bucketIdx, streamers, throwable),
+                NO_OP_ACTION_LISTENER
             );
         }
 
@@ -239,9 +237,9 @@ public class DistributingDownstream implements RowReceiver {
             }
             traceLog("Sending result");
             transportDistributedResultAction.pushResult(
-                    targetNode,
-                    new DistributedResultRequest(jobId, targetExecutionPhaseId, inputId, bucketIdx, streamers, bucket, isLast),
-                    this
+                targetNode,
+                new DistributedResultRequest(jobId, targetExecutionPhaseId, inputId, bucketIdx, streamers, bucket, isLast),
+                this
             );
         }
 
@@ -262,7 +260,7 @@ public class DistributingDownstream implements RowReceiver {
 
             if (logger.isTraceEnabled()) {
                 logger.trace("Received response fromNode={} phase={}/{} bucket={} requiresMore={} pendingRequests={} finished={}",
-                        targetNode, targetExecutionPhaseId, inputId, bucketIdx, needMore, numPending, hasUpstreamFinished);
+                    targetNode, targetExecutionPhaseId, inputId, bucketIdx, needMore, numPending, hasUpstreamFinished);
             }
             if (numPending > 0) {
                 return;

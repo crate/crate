@@ -50,11 +50,9 @@ public class NodeStatsContextFieldResolverTest {
     private final JvmService jvmService = mock(JvmService.class);
     private final ThreadPool threadPool = mock(ThreadPool.class);
     private final ExtendedNodeInfo extendedNodeInfo = mock(ExtendedNodeInfo.class);
-
-    private NodeStatsContextFieldResolver resolver;
-
     @Rule
     public ExpectedException thrown = ExpectedException.none();
+    private NodeStatsContextFieldResolver resolver;
 
     @Before
     public void setup() {

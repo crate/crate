@@ -63,11 +63,11 @@ public class EvaluatingNormalizer {
 
 
     /**
-     * @param functions function resolver
-     * @param granularity the maximum row granularity the normalizer should try to normalize
+     * @param functions         function resolver
+     * @param granularity       the maximum row granularity the normalizer should try to normalize
      * @param referenceResolver reference resolver which is used to resolve paths
-     * @param fieldResolver optional field resolver to resolve fields
-     * @param inPlace defines if symbols like functions can be changed inplace instead of being copied when changed
+     * @param fieldResolver     optional field resolver to resolve fields
+     * @param inPlace           defines if symbols like functions can be changed inplace instead of being copied when changed
      */
     public EvaluatingNormalizer(Functions functions,
                                 RowGranularity granularity,
@@ -95,7 +95,50 @@ public class EvaluatingNormalizer {
                                 FieldResolver fieldResolver,
                                 boolean inPlace) {
         this(analysisMetaData.functions(), RowGranularity.CLUSTER,
-                analysisMetaData.referenceResolver(), fieldResolver, inPlace);
+            analysisMetaData.referenceResolver(), fieldResolver, inPlace);
+    }
+
+    /**
+     * Normalizes all symbols of a List. Does not return a new list if no changes occur.
+     *
+     * @param symbols the list to be normalized
+     * @return a list with normalized symbols
+     */
+    public List<Symbol> normalize(List<Symbol> symbols, StmtCtx context) {
+        if (symbols.size() > 0) {
+            boolean changed = false;
+            Symbol[] newArgs = new Symbol[symbols.size()];
+            int i = 0;
+            for (Symbol symbol : symbols) {
+                Symbol newArg = normalize(symbol, context);
+                changed = changed || newArg != symbol;
+                newArgs[i++] = newArg;
+            }
+            if (changed) {
+                return Arrays.asList(newArgs);
+            }
+        }
+        return symbols;
+    }
+
+    /**
+     * Normalizes all symbols of a List in place
+     *
+     * @param symbols the list to be normalized
+     */
+    public void normalizeInplace(@Nullable List<Symbol> symbols, @Nullable StmtCtx context) {
+        if (symbols != null) {
+            for (int i = 0; i < symbols.size(); i++) {
+                symbols.set(i, normalize(symbols.get(i), context));
+            }
+        }
+    }
+
+    public Symbol normalize(@Nullable Symbol symbol, @Nullable StmtCtx context) {
+        if (symbol == null) {
+            return null;
+        }
+        return visitor.process(symbol, context);
     }
 
     private abstract class BaseVisitor extends SymbolVisitor<StmtCtx, Symbol> {
@@ -127,12 +170,12 @@ public class EvaluatingNormalizer {
                 }
 
                 return new Function(
-                        io.crate.operation.predicate.MatchPredicate.INFO,
-                        Arrays.<Symbol>asList(
-                                Literal.newLiteral(fqnBoostMap),
-                                Literal.newLiteral(matchPredicate.columnType(), matchPredicate.queryTerm()),
-                                Literal.newLiteral(matchPredicate.matchType()),
-                                Literal.newLiteral(matchPredicate.options())));
+                    io.crate.operation.predicate.MatchPredicate.INFO,
+                    Arrays.<Symbol>asList(
+                        Literal.newLiteral(fqnBoostMap),
+                        Literal.newLiteral(matchPredicate.columnType(), matchPredicate.queryTerm()),
+                        Literal.newLiteral(matchPredicate.matchType()),
+                        Literal.newLiteral(matchPredicate.options())));
             }
             return matchPredicate;
         }
@@ -190,49 +233,6 @@ public class EvaluatingNormalizer {
             normalizeInplace(function.arguments(), context);
             return normalizeFunctionSymbol(function, context);
         }
-    }
-
-    /**
-     * Normalizes all symbols of a List. Does not return a new list if no changes occur.
-     *
-     * @param symbols the list to be normalized
-     * @return a list with normalized symbols
-     */
-    public List<Symbol> normalize(List<Symbol> symbols, StmtCtx context) {
-        if (symbols.size() > 0) {
-            boolean changed = false;
-            Symbol[] newArgs = new Symbol[symbols.size()];
-            int i = 0;
-            for (Symbol symbol : symbols) {
-                Symbol newArg = normalize(symbol, context);
-                changed = changed || newArg != symbol;
-                newArgs[i++] = newArg;
-            }
-            if (changed) {
-                return Arrays.asList(newArgs);
-            }
-        }
-        return symbols;
-    }
-
-    /**
-     * Normalizes all symbols of a List in place
-     *
-     * @param symbols the list to be normalized
-     */
-    public void normalizeInplace(@Nullable List<Symbol> symbols, @Nullable StmtCtx context) {
-        if (symbols != null) {
-            for (int i = 0; i < symbols.size(); i++) {
-                symbols.set(i, normalize(symbols.get(i), context));
-            }
-        }
-    }
-
-    public Symbol normalize(@Nullable Symbol symbol, @Nullable StmtCtx context) {
-        if (symbol == null) {
-            return null;
-        }
-        return visitor.process(symbol, context);
     }
 
 }

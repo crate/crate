@@ -60,12 +60,12 @@ public class JobCollectContextTest extends RandomizedTest {
         when(collectPhase.routing()).thenReturn(routing);
         when(collectPhase.maxRowGranularity()).thenReturn(RowGranularity.DOC);
         jobCollectContext = new JobCollectContext(
-                collectPhase,
-                mock(MapSideDataCollectOperation.class),
-                localNodeId,
-                ramAccountingContext,
-                new CollectingRowReceiver(),
-                mock(SharedShardContexts.class));
+            collectPhase,
+            mock(MapSideDataCollectOperation.class),
+            localNodeId,
+            ramAccountingContext,
+            new CollectingRowReceiver(),
+            mock(SharedShardContexts.class));
     }
 
     @Test
@@ -105,19 +105,19 @@ public class JobCollectContextTest extends RandomizedTest {
         CollectingRowReceiver rowReceiver = new CollectingRowReceiver();
 
         JobCollectContext jobCtx = new JobCollectContext(
-                collectPhase,
-                collectOperationMock,
-                "localNodeId",
-                ramAccountingContext,
-                rowReceiver,
-                mock(SharedShardContexts.class));
+            collectPhase,
+            collectOperationMock,
+            "localNodeId",
+            ramAccountingContext,
+            rowReceiver,
+            mock(SharedShardContexts.class));
 
         jobCtx.addSearchContext(1, mock1);
         CrateCollector collectorMock1 = mock(CrateCollector.class);
         CrateCollector collectorMock2 = mock(CrateCollector.class);
 
         when(collectOperationMock.createCollectors(eq(collectPhase), any(RowReceiver.class), eq(jobCtx)))
-                .thenReturn(ImmutableList.of(collectorMock1, collectorMock2));
+            .thenReturn(ImmutableList.of(collectorMock1, collectorMock2));
         jobCtx.prepare();
         jobCtx.start();
         jobCtx.kill(null);

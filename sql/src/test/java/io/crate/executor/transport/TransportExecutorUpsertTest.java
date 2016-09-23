@@ -94,10 +94,10 @@ public class TransportExecutorUpsertTest extends BaseTransportExecutorTest {
     @Test
     public void testInsertIntoPartitionedTableWithUpsertByIdTask() throws Exception {
         execute("create table parted (" +
-            "  id int, " +
-            "  name string, " +
-            "  date timestamp" +
-            ") partitioned by (date)");
+                "  id int, " +
+                "  name string, " +
+                "  date timestamp" +
+                ") partitioned by (date)");
         ensureGreen();
 
         /* insert into parted (id, name, date) values(0, 'Trillian', 13959981214861); */

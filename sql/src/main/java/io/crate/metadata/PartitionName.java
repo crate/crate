@@ -40,17 +40,14 @@ import java.util.Locale;
 
 public class PartitionName {
 
+    public static final String PARTITIONED_TABLE_PREFIX = ".partitioned";
     private static final Base32 BASE32 = new Base32(true);
     private static final Joiner DOT_JOINER = Joiner.on(".");
     private static final Splitter SPLITTER = Splitter.on(".").limit(5);
-
     private final TableIdent tableIdent;
-
     private List<BytesRef> values;
     private String indexName;
     private String ident;
-
-    public static final String PARTITIONED_TABLE_PREFIX = ".partitioned";
 
     public PartitionName(TableIdent tableIdent, List<BytesRef> values) {
         this.tableIdent = tableIdent;
@@ -90,7 +87,7 @@ public class PartitionName {
             return values;
         } catch (IOException e) {
             throw new IllegalArgumentException(
-                    String.format(Locale.ENGLISH, "Invalid partition ident: %s", ident), e);
+                String.format(Locale.ENGLISH, "Invalid partition ident: %s", ident), e);
         }
     }
 
@@ -130,6 +127,65 @@ public class PartitionName {
         return expectedEncodedSize;
     }
 
+    /**
+     * creates a PartitionName from an index or template Name
+     * <p>
+     * an partition index has the format [&lt;schema&gt;.].partitioned.&lt;table&gt;.[&lt;ident&gt;]
+     * a templateName has the same format but without the ident.
+     */
+    public static PartitionName fromIndexOrTemplate(String indexOrTemplate) {
+        assert indexOrTemplate != null;
+
+        List<String> parts = SPLITTER.splitToList(indexOrTemplate);
+
+        String schema;
+        String partitioned;
+        String table;
+        String ident;
+        switch (parts.size()) {
+            case 4:
+                // ""."partitioned"."table_name". ["ident"]
+                schema = null;
+                partitioned = parts.get(1);
+                table = parts.get(2);
+                ident = parts.get(3);
+                break;
+            case 5:
+                // "schema".""."partitioned"."table_name". ["ident"]
+                schema = parts.get(0);
+                partitioned = parts.get(2);
+                table = parts.get(3);
+                ident = parts.get(4);
+                break;
+            default:
+                throw new IllegalArgumentException("Invalid partition name: " + indexOrTemplate);
+        }
+        if (!partitioned.equals("partitioned")) {
+            throw new IllegalArgumentException("Invalid partition name: " + indexOrTemplate);
+        }
+
+        PartitionName partitionName = new PartitionName(schema, table, null);
+        partitionName.ident = ident;
+        return partitionName;
+    }
+
+    public static boolean isPartition(String index) {
+        return index.length() > PARTITIONED_TABLE_PREFIX.length() + 1 &&
+               (index.startsWith(PARTITIONED_TABLE_PREFIX + ".") ||
+                index.contains("." + PARTITIONED_TABLE_PREFIX + "."));
+    }
+
+    /**
+     * compute the template name (used with partitioned tables) from a given schema and table name
+     */
+    public static String templateName(@Nullable String schemaName, String tableName) {
+        if (schemaName == null || schemaName.equals(Schemas.DEFAULT_SCHEMA_NAME)) {
+            return DOT_JOINER.join(PARTITIONED_TABLE_PREFIX, tableName, "");
+        } else {
+            return DOT_JOINER.join(schemaName, PARTITIONED_TABLE_PREFIX, tableName, "");
+        }
+    }
+
     public String asIndexName() {
         if (indexName == null) {
             indexName = indexName(tableIdent, ident());
@@ -159,7 +215,7 @@ public class PartitionName {
         return values;
     }
 
-    public TableIdent tableIdent(){
+    public TableIdent tableIdent() {
         return tableIdent;
     }
 
@@ -181,63 +237,5 @@ public class PartitionName {
     @Override
     public int hashCode() {
         return asIndexName().hashCode();
-    }
-
-    /**
-     * creates a PartitionName from an index or template Name
-     *
-     * an partition index has the format [&lt;schema&gt;.].partitioned.&lt;table&gt;.[&lt;ident&gt;]
-     * a templateName has the same format but without the ident.
-     */
-    public static PartitionName fromIndexOrTemplate(String indexOrTemplate) {
-        assert indexOrTemplate != null;
-
-        List<String> parts = SPLITTER.splitToList(indexOrTemplate);
-
-        String schema;
-        String partitioned;
-        String table;
-        String ident;
-        switch(parts.size()) {
-            case 4:
-                // ""."partitioned"."table_name". ["ident"]
-                schema = null;
-                partitioned = parts.get(1);
-                table = parts.get(2);
-                ident = parts.get(3);
-                break;
-            case 5:
-                // "schema".""."partitioned"."table_name". ["ident"]
-                schema = parts.get(0);
-                partitioned = parts.get(2);
-                table = parts.get(3);
-                ident = parts.get(4);
-                break;
-            default:
-                throw new IllegalArgumentException("Invalid partition name: " + indexOrTemplate);
-        }
-        if (!partitioned.equals("partitioned")) {
-            throw new IllegalArgumentException("Invalid partition name: " + indexOrTemplate);
-        }
-
-        PartitionName partitionName = new PartitionName(schema, table, null);
-        partitionName.ident = ident;
-        return partitionName;
-    }
-
-    public static boolean isPartition(String index) {
-        return index.length() > PARTITIONED_TABLE_PREFIX.length() + 1 &&
-                (index.startsWith(PARTITIONED_TABLE_PREFIX + ".") || index.contains("." + PARTITIONED_TABLE_PREFIX + "."));
-    }
-
-    /**
-     * compute the template name (used with partitioned tables) from a given schema and table name
-     */
-    public static String templateName(@Nullable String schemaName, String tableName) {
-        if (schemaName == null || schemaName.equals(Schemas.DEFAULT_SCHEMA_NAME)) {
-            return DOT_JOINER.join(PARTITIONED_TABLE_PREFIX, tableName, "");
-        } else {
-            return DOT_JOINER.join(schemaName, PARTITIONED_TABLE_PREFIX, tableName, "");
-        }
     }
 }

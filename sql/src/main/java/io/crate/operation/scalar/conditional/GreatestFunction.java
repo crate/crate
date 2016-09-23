@@ -38,13 +38,13 @@ public class GreatestFunction extends ConditionalCompareFunction {
         super(info);
     }
 
+    public static void register(ScalarFunctionModule module) {
+        module.register(NAME, new Resolver());
+    }
+
     @Override
     public int compare(Object o1, Object o2) {
         return info().returnType().compareValueTo(o2, o1);
-    }
-
-    public static void register(ScalarFunctionModule module) {
-        module.register(NAME, new Resolver());
     }
 
     private static class Resolver implements DynamicFunctionResolver {

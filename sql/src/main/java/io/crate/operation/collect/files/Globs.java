@@ -28,10 +28,12 @@ import java.util.regex.PatternSyntaxException;
  * This is a copy of sun.nio.fs.Globs to make the methods public available.
  */
 public class Globs {
-    private Globs() { }
-
     private static final String regexMetaChars = ".^$+{[]|()";
     private static final String globMetaChars = "\\*?[{";
+    private static char EOL = 0;  //TBD
+
+    private Globs() {
+    }
 
     private static boolean isRegexMeta(char c) {
         return regexMetaChars.indexOf(c) != -1;
@@ -40,7 +42,6 @@ public class Globs {
     private static boolean isGlobMeta(char c) {
         return globMetaChars.indexOf(c) != -1;
     }
-    private static char EOL = 0;  //TBD
 
     private static char next(String glob, int i) {
         if (i < glob.length()) {
@@ -52,7 +53,7 @@ public class Globs {
     /**
      * Creates a regex pattern from the given glob expression.
      *
-     * @throws  PatternSyntaxException
+     * @throws PatternSyntaxException
      */
     private static String toRegexPattern(String globPattern, boolean isDos) {
         boolean inGroup = false;
@@ -66,7 +67,7 @@ public class Globs {
                     // escape special characters
                     if (i == globPattern.length()) {
                         throw new PatternSyntaxException("No character to escape",
-                                globPattern, i - 1);
+                            globPattern, i - 1);
                     }
                     char next = globPattern.charAt(i++);
                     if (isGlobMeta(next) || isRegexMeta(next)) {
@@ -113,11 +114,11 @@ public class Globs {
                         }
                         if (c == '/' || (isDos && c == '\\')) {
                             throw new PatternSyntaxException("Explicit 'name separator' in class",
-                                    globPattern, i - 1);
+                                globPattern, i - 1);
                         }
                         // TBD: how to specify ']' in a class?
                         if (c == '\\' || c == '[' ||
-                                c == '&' && next(globPattern, i) == '&') {
+                            c == '&' && next(globPattern, i) == '&') {
                             // escape '\', '[' or "&&" for regex class
                             regex.append('\\');
                         }
@@ -126,14 +127,14 @@ public class Globs {
                         if (c == '-') {
                             if (!hasRangeStart) {
                                 throw new PatternSyntaxException("Invalid range",
-                                        globPattern, i - 1);
+                                    globPattern, i - 1);
                             }
                             if ((c = next(globPattern, i++)) == EOL || c == ']') {
                                 break;
                             }
                             if (c < last) {
                                 throw new PatternSyntaxException("Invalid range",
-                                        globPattern, i - 3);
+                                    globPattern, i - 3);
                             }
                             regex.append(c);
                             hasRangeStart = false;
@@ -150,7 +151,7 @@ public class Globs {
                 case '{':
                     if (inGroup) {
                         throw new PatternSyntaxException("Cannot nest groups",
-                                globPattern, i - 1);
+                            globPattern, i - 1);
                     }
                     regex.append("(?:(?:");
                     inGroup = true;

@@ -27,7 +27,7 @@ package io.crate.sql.tree;
  * <p>
  * <code>&lt;PATTERN&gt; LIKE (&lt;COLUMN&gt;) [ ESCAPE &lt;ESCAPE_VALUE&gt; ]</code>
  * </p>
- *
+ * <p>
  * left is pattern <br>
  * right is the array expression
  */
@@ -37,12 +37,11 @@ public class ArrayLikePredicate extends LikePredicate implements ArrayComparison
     private final boolean inverse;
 
     /**
-     *
-     * @param quantifier quantifier of comparison operation
+     * @param quantifier      quantifier of comparison operation
      * @param arrayExpression array/set expression to apply the like operation on
-     * @param pattern the like pattern used
-     * @param escape the escape value
-     * @param inverse if true, inverse the operation for every single comparison
+     * @param pattern         the like pattern used
+     * @param escape          the escape value
+     * @param inverse         if true, inverse the operation for every single comparison
      */
     public ArrayLikePredicate(Quantifier quantifier,
                               Expression arrayExpression,

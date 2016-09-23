@@ -16,13 +16,13 @@ public abstract class Operator<I> extends Scalar<Boolean, I> implements Function
 
     public static final io.crate.types.DataType RETURN_TYPE = DataTypes.BOOLEAN;
 
+    protected static FunctionInfo generateInfo(String name, DataType type) {
+        return new FunctionInfo(new FunctionIdent(name, ImmutableList.of(type, type)), RETURN_TYPE);
+    }
+
     @Override
     public String operator(Function function) {
         // strip "op_" from function name
         return info().ident().name().substring(3).toUpperCase(Locale.ENGLISH);
-    }
-
-    protected static FunctionInfo generateInfo(String name, DataType type) {
-        return new FunctionInfo(new FunctionIdent(name, ImmutableList.of(type, type)), RETURN_TYPE);
     }
 }

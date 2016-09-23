@@ -56,36 +56,6 @@ public class NodeFetchOperation {
 
     private final Executor executor;
 
-    private static class TableFetchInfo {
-
-        private final Streamer<?>[] streamers;
-        private final Collection<Reference> refs;
-        private final FetchContext fetchContext;
-
-        TableFetchInfo(Collection<Reference> refs, FetchContext fetchContext) {
-            this.refs = refs;
-            this.fetchContext = fetchContext;
-            this.streamers = Symbols.streamerArray(refs);
-        }
-
-        FetchCollector createCollector(int readerId) {
-            IndexService indexService = fetchContext.indexService(readerId);
-            LuceneReferenceResolver resolver = new LuceneReferenceResolver(indexService.mapperService());
-            ArrayList<LuceneCollectorExpression<?>> exprs = new ArrayList<>(refs.size());
-            for (Reference reference : refs) {
-                exprs.add(resolver.getImplementation(reference));
-            }
-            return new FetchCollector(
-                exprs,
-                streamers,
-                indexService.mapperService(),
-                fetchContext.searcher(readerId),
-                indexService.fieldData(),
-                readerId
-            );
-        }
-    }
-
     @Inject
     public NodeFetchOperation(ThreadPool threadPool) {
         executor = threadPool.executor(ThreadPool.Names.SEARCH);
@@ -136,6 +106,36 @@ public class NodeFetchOperation {
             }
         }
         return resultFuture;
+    }
+
+    private static class TableFetchInfo {
+
+        private final Streamer<?>[] streamers;
+        private final Collection<Reference> refs;
+        private final FetchContext fetchContext;
+
+        TableFetchInfo(Collection<Reference> refs, FetchContext fetchContext) {
+            this.refs = refs;
+            this.fetchContext = fetchContext;
+            this.streamers = Symbols.streamerArray(refs);
+        }
+
+        FetchCollector createCollector(int readerId) {
+            IndexService indexService = fetchContext.indexService(readerId);
+            LuceneReferenceResolver resolver = new LuceneReferenceResolver(indexService.mapperService());
+            ArrayList<LuceneCollectorExpression<?>> exprs = new ArrayList<>(refs.size());
+            for (Reference reference : refs) {
+                exprs.add(resolver.getImplementation(reference));
+            }
+            return new FetchCollector(
+                exprs,
+                streamers,
+                indexService.mapperService(),
+                fetchContext.searcher(readerId),
+                indexService.fieldData(),
+                readerId
+            );
+        }
     }
 
     private static class CollectRunnable implements Runnable {

@@ -24,30 +24,25 @@ package io.crate.sql.tree;
 import com.google.common.base.Preconditions;
 
 public class IsNullPredicate
-        extends Expression
-{
+    extends Expression {
     private final Expression value;
 
-    public IsNullPredicate(Expression value)
-    {
+    public IsNullPredicate(Expression value) {
         Preconditions.checkNotNull(value, "value is null");
         this.value = value;
     }
 
-    public Expression getValue()
-    {
+    public Expression getValue() {
         return value;
     }
 
     @Override
-    public <R, C> R accept(AstVisitor<R, C> visitor, C context)
-    {
+    public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
         return visitor.visitIsNullPredicate(this, context);
     }
 
     @Override
-    public boolean equals(Object o)
-    {
+    public boolean equals(Object o) {
         if (this == o) {
             return true;
         }
@@ -65,8 +60,7 @@ public class IsNullPredicate
     }
 
     @Override
-    public int hashCode()
-    {
+    public int hashCode() {
         return value.hashCode();
     }
 }

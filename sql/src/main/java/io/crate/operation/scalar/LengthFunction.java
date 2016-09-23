@@ -22,9 +22,6 @@
 package io.crate.operation.scalar;
 
 import com.google.common.collect.ImmutableList;
-import io.crate.analyze.symbol.Function;
-import io.crate.analyze.symbol.Literal;
-import io.crate.analyze.symbol.Symbol;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Scalar;
@@ -45,11 +42,6 @@ public abstract class LengthFunction extends Scalar<Integer, BytesRef> {
         this.functionInfo = functionInfo;
     }
 
-    @Override
-    public FunctionInfo info() {
-        return functionInfo;
-    }
-
     public static void register(ScalarFunctionModule module) {
         for (DataType type : DATA_TYPES) {
             module.register(new OctetLengthFunction(createInfo(OctetLengthFunction.NAME, type)));
@@ -60,8 +52,13 @@ public abstract class LengthFunction extends Scalar<Integer, BytesRef> {
 
     protected static FunctionInfo createInfo(String functionName, DataType dataType) {
         return new FunctionInfo(
-                new FunctionIdent(functionName, ImmutableList.of(dataType)), DataTypes.INTEGER
+            new FunctionIdent(functionName, ImmutableList.of(dataType)), DataTypes.INTEGER
         );
+    }
+
+    @Override
+    public FunctionInfo info() {
+        return functionInfo;
     }
 
     protected BytesRef evaluateInput(Input[] args) {

@@ -32,11 +32,10 @@ import org.elasticsearch.common.settings.Settings;
 @Singleton
 public class RecoveryExpectedNodesSysCheck extends AbstractSysNodeCheck {
 
-    private final Settings settings;
-
     private static final int ID = 1;
     private static final String DESCRIPTION = "The value of the cluster setting 'gateway.expected_nodes' " +
                                               "must be equal to the maximum/expected number of master and data nodes in the cluster.";
+    private final Settings settings;
 
     @Inject
     public RecoveryExpectedNodesSysCheck(ClusterService clusterService, Settings settings) {

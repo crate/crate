@@ -39,13 +39,12 @@ import java.util.Set;
  */
 public abstract class AbstractInsertAnalyzedStatement implements AnalyzedStatement {
 
+    private final Set<Reference> allocatedReferences = new HashSet<>();
     protected List<Reference> columns;
+    protected DocTableInfo tableInfo;
     private IntSet primaryKeyColumnIndices = new IntHashSet();
     private IntSet partitionedByColumnsIndices = new IntHashSet();
     private int routingColumnIndex = -1;
-    protected DocTableInfo tableInfo;
-
-    private final Set<Reference> allocatedReferences = new HashSet<>();
 
     public List<Reference> columns() {
         return columns;

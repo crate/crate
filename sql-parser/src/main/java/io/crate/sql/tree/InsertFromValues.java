@@ -78,11 +78,11 @@ public class InsertFromValues extends Insert {
     @Override
     public String toString() {
         return MoreObjects.toStringHelper(this)
-                .add("table", table)
-                .add("columns", columns)
-                .add("values", valuesLists)
-                .add("assignments", onDuplicateKeyAssignments)
-                .toString();
+            .add("table", table)
+            .add("columns", columns)
+            .add("values", valuesLists)
+            .add("assignments", onDuplicateKeyAssignments)
+            .toString();
     }
 
     @Override

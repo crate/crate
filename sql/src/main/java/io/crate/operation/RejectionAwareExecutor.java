@@ -34,6 +34,11 @@ public class RejectionAwareExecutor implements Executor {
     private final Executor executor;
     private final FutureCallback<?> callback;
 
+    private RejectionAwareExecutor(Executor executorDelegate, FutureCallback<?> callback) {
+        this.executor = executorDelegate;
+        this.callback = callback;
+    }
+
     /**
      * returns an Executor that will either execute the command given the Executor delegate or
      * call the callback.onFailure if it receives a (Es)RejectedExecutionException
@@ -45,11 +50,6 @@ public class RejectionAwareExecutor implements Executor {
         }
 
         return new RejectionAwareExecutor(delegate, callback);
-    }
-
-    private RejectionAwareExecutor(Executor executorDelegate, FutureCallback<?> callback) {
-        this.executor = executorDelegate;
-        this.callback = callback;
     }
 
     @Override

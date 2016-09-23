@@ -37,12 +37,12 @@ public abstract class AddFunction extends ArithmeticFunction implements Operator
     public static final String NAME = "add";
     public static final String SQL_SYMBOL = "+";
 
-    public static void register(ScalarFunctionModule module) {
-        module.register(NAME, new Resolver());
-    }
-
     public AddFunction(FunctionInfo info) {
         super(info);
+    }
+
+    public static void register(ScalarFunctionModule module) {
+        module.register(NAME, new Resolver());
     }
 
     @Override

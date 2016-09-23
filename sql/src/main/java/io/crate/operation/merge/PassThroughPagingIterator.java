@@ -31,9 +31,9 @@ import java.util.Iterator;
 
 public class PassThroughPagingIterator<TKey, TRow> extends ForwardingIterator<TRow> implements PagingIterator<TKey, TRow> {
 
-    private Iterator<TRow> iterator = Collections.emptyIterator();
     private final ImmutableList.Builder<KeyIterable<TKey, TRow>> iterables = ImmutableList.builder();
     private final boolean repeatable;
+    private Iterator<TRow> iterator = Collections.emptyIterator();
     private Iterable<TRow> storedForRepeat = null;
 
     private PassThroughPagingIterator(boolean repeatable) {

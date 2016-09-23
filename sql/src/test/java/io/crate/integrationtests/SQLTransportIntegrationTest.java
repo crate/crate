@@ -91,19 +91,46 @@ import static org.hamcrest.Matchers.is;
 
 public abstract class SQLTransportIntegrationTest extends ESIntegTestCase {
 
-    @Rule
-    public Timeout globalTimeout = new Timeout(120000); // 2 minutes timeout
-
     private static final int ORIGINAL_PAGE_SIZE = Paging.PAGE_SIZE;
-
-    @Rule
-    public ExpectedException expectedException = ExpectedException.none();
 
     static {
         GroovyTestSanitizer.isGroovySanitized();
     }
 
     protected final SQLTransportExecutor sqlExecutor;
+    @Rule
+    public Timeout globalTimeout = new Timeout(120000); // 2 minutes timeout
+    @Rule
+    public ExpectedException expectedException = ExpectedException.none();
+    protected float responseDuration;
+    protected SQLResponse response;
+
+    public SQLTransportIntegrationTest() {
+        this(new SQLTransportExecutor(
+            new SQLTransportExecutor.ClientProvider() {
+                @Override
+                public Client client() {
+                    return ESIntegTestCase.client();
+                }
+
+                @Override
+                public String pgUrl() {
+                    PostgresNetty postgresNetty = internalCluster().getDataNodeInstance(PostgresNetty.class);
+                    Iterator<InetSocketTransportAddress> addressIter = postgresNetty.boundAddresses().iterator();
+                    if (addressIter.hasNext()) {
+                        InetSocketTransportAddress address = addressIter.next();
+                        return String.format(Locale.ENGLISH, "jdbc:postgresql://%s:%d/",
+                            address.getHost(), address.getPort());
+                    }
+                    return null;
+                }
+            }
+        ));
+    }
+
+    public SQLTransportIntegrationTest(SQLTransportExecutor sqlExecutor) {
+        this.sqlExecutor = sqlExecutor;
+    }
 
     @Override
     protected Settings nodeSettings(int nodeOrdinal) {
@@ -128,39 +155,9 @@ public abstract class SQLTransportIntegrationTest extends ESIntegTestCase {
         return pluginList(TestSQLPlugin.class);
     }
 
-    protected float responseDuration;
-    protected SQLResponse response;
-
-    public SQLTransportIntegrationTest() {
-        this(new SQLTransportExecutor(
-                new SQLTransportExecutor.ClientProvider() {
-                    @Override
-                    public Client client() {
-                        return ESIntegTestCase.client();
-                    }
-
-                    @Override
-                    public String pgUrl() {
-                        PostgresNetty postgresNetty = internalCluster().getDataNodeInstance(PostgresNetty.class);
-                        Iterator<InetSocketTransportAddress> addressIter = postgresNetty.boundAddresses().iterator();
-                        if (addressIter.hasNext()) {
-                            InetSocketTransportAddress address = addressIter.next();
-                            return String.format(Locale.ENGLISH, "jdbc:postgresql://%s:%d/",
-                                address.getHost(), address.getPort());
-                        }
-                        return null;
-                    }
-                }
-        ));
-    }
-
     @After
     public void resetPageSize() throws Exception {
         Paging.PAGE_SIZE = ORIGINAL_PAGE_SIZE;
-    }
-
-    public SQLTransportIntegrationTest(SQLTransportExecutor sqlExecutor) {
-        this.sqlExecutor = sqlExecutor;
     }
 
     @Override
@@ -252,7 +249,7 @@ public abstract class SQLTransportIntegrationTest extends ESIntegTestCase {
         }, 5, TimeUnit.SECONDS);
     }
 
-    public void waitUntilThreadPoolTasksFinished(final String name) throws Exception{
+    public void waitUntilThreadPoolTasksFinished(final String name) throws Exception {
         assertBusy(new Runnable() {
             @Override
             public void run() {
@@ -281,24 +278,14 @@ public abstract class SQLTransportIntegrationTest extends ESIntegTestCase {
     /**
      * Execute an SQL Statement on a random node of the cluster
      *
-     * @param stmt the SQL Statement
-     * @param args the arguments to replace placeholders ("?") in the statement
+     * @param stmt    the SQL Statement
+     * @param args    the arguments to replace placeholders ("?") in the statement
      * @param timeout the timeout for this request
      * @return the SQLResponse
      */
     public SQLResponse execute(String stmt, Object[] args, TimeValue timeout) {
         response = sqlExecutor.exec(stmt, args, timeout);
         return response;
-    }
-
-    public static class PlanForNode {
-        private final Plan plan;
-        private final String nodeName;
-
-        private PlanForNode(Plan plan, String nodeName) {
-            this.plan = plan;
-            this.nodeName = nodeName;
-        }
     }
 
     public PlanForNode plan(String stmt) {
@@ -323,7 +310,7 @@ public abstract class SQLTransportIntegrationTest extends ESIntegTestCase {
     /**
      * Execute an SQL Statement on a random node of the cluster
      *
-     * @param stmt the SQL Statement
+     * @param stmt     the SQL Statement
      * @param bulkArgs the bulk arguments of the statement
      * @return the SQLResponse
      */
@@ -334,14 +321,13 @@ public abstract class SQLTransportIntegrationTest extends ESIntegTestCase {
     /**
      * Execute an SQL Statement on a random node of the cluster
      *
-     * @param stmt the SQL Statement
+     * @param stmt     the SQL Statement
      * @param bulkArgs the bulk arguments of the statement
      * @return the SQLResponse
      */
     public SQLBulkResponse execute(String stmt, Object[][] bulkArgs, TimeValue timeout) {
         return sqlExecutor.execBulk(stmt, bulkArgs, timeout);
     }
-
 
     /**
      * Execute an SQL Statement on a random node of the cluster
@@ -356,7 +342,7 @@ public abstract class SQLTransportIntegrationTest extends ESIntegTestCase {
     /**
      * Execute an SQL Statement on a random node of the cluster
      *
-     * @param stmt the SQL Statement
+     * @param stmt    the SQL Statement
      * @param timeout the timeout for this query
      * @return the SQLResponse
      */
@@ -373,18 +359,18 @@ public abstract class SQLTransportIntegrationTest extends ESIntegTestCase {
      */
     protected String getIndexMapping(String index) throws IOException {
         ClusterStateRequest request = Requests.clusterStateRequest()
-                .routingTable(false)
-                .nodes(false)
-                .metaData(true)
-                .indices(index);
+            .routingTable(false)
+            .nodes(false)
+            .metaData(true)
+            .indices(index);
         ClusterStateResponse response = client().admin().cluster().state(request)
-                .actionGet();
+            .actionGet();
 
         MetaData metaData = response.getState().metaData();
         XContentBuilder builder = XContentFactory.jsonBuilder().startObject();
 
         IndexMetaData indexMetaData = metaData.iterator().next();
-        for (ObjectCursor<MappingMetaData> cursor: indexMetaData.getMappings().values()) {
+        for (ObjectCursor<MappingMetaData> cursor : indexMetaData.getMappings().values()) {
             builder.field(cursor.value.type());
             builder.map(cursor.value.sourceAsMap());
         }
@@ -393,7 +379,7 @@ public abstract class SQLTransportIntegrationTest extends ESIntegTestCase {
         return builder.string();
     }
 
-    public void waitForMappingUpdateOnAll(final TableIdent tableIdent, final String... fieldNames) throws Exception{
+    public void waitForMappingUpdateOnAll(final TableIdent tableIdent, final String... fieldNames) throws Exception {
         assertBusy(new Runnable() {
             @Override
             public void run() {
@@ -409,6 +395,7 @@ public abstract class SQLTransportIntegrationTest extends ESIntegTestCase {
             }
         }, 20L, TimeUnit.SECONDS);
     }
+
     public void waitForMappingUpdateOnAll(final String tableOrPartition, final String... fieldNames) throws Exception {
         waitForMappingUpdateOnAll(new TableIdent(null, tableOrPartition), fieldNames);
     }
@@ -422,12 +409,12 @@ public abstract class SQLTransportIntegrationTest extends ESIntegTestCase {
      */
     protected String getIndexSettings(String index) throws IOException {
         ClusterStateRequest request = Requests.clusterStateRequest()
-                .routingTable(false)
-                .nodes(false)
-                .metaData(true)
-                .indices(index);
+            .routingTable(false)
+            .nodes(false)
+            .metaData(true)
+            .indices(index);
         ClusterStateResponse response = client().admin().cluster().state(request)
-                .actionGet();
+            .actionGet();
 
         MetaData metaData = response.getState().metaData();
         XContentBuilder builder = XContentFactory.jsonBuilder().startObject();
@@ -453,9 +440,9 @@ public abstract class SQLTransportIntegrationTest extends ESIntegTestCase {
      * Execute an SQLRequest on a random client of the cluster like it would
      * be executed by an HTTP REST Request
      *
-     * @param source the body of the statement, a JSON String containing the "stmt" and the "args"
+     * @param source       the body of the statement, a JSON String containing the "stmt" and the "args"
      * @param includeTypes include data types in response
-     * @param schema default schema
+     * @param schema       default schema
      * @return the Response as JSON String
      * @throws IOException
      */
@@ -494,6 +481,16 @@ public abstract class SQLTransportIntegrationTest extends ESIntegTestCase {
 
     protected String restSQLExecute(String source) throws IOException {
         return restSQLExecute(source, false);
+    }
+
+    public static class PlanForNode {
+        private final Plan plan;
+        private final String nodeName;
+
+        private PlanForNode(Plan plan, String nodeName) {
+            this.plan = plan;
+            this.nodeName = nodeName;
+        }
     }
 
     public static class TestSQLPlugin extends Plugin {

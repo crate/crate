@@ -44,10 +44,10 @@ public class TransportKillJobsNodeActionTest {
         JobContextService jobContextService = mock(JobContextService.class);
 
         TransportKillJobsNodeAction transportKillJobsNodeAction = new TransportKillJobsNodeAction(
-                Settings.EMPTY,
-                jobContextService,
-                new NoopClusterService(),
-                transportService
+            Settings.EMPTY,
+            jobContextService,
+            new NoopClusterService(),
+            transportService
         );
 
         final CountDownLatch latch = new CountDownLatch(1);

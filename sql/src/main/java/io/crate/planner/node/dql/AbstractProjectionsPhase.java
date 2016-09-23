@@ -42,11 +42,11 @@ import java.util.UUID;
 
 public abstract class AbstractProjectionsPhase implements Streamable, ExecutionPhase {
 
+    protected List<Projection> projections = ImmutableList.of();
+    protected List<DataType> outputTypes = ImmutableList.of();
     private UUID jobId;
     private int executionPhaseId;
     private String name;
-    protected List<Projection> projections = ImmutableList.of();
-    protected List<DataType> outputTypes = ImmutableList.of();
 
     public AbstractProjectionsPhase() {
 
@@ -100,7 +100,7 @@ public abstract class AbstractProjectionsPhase implements Streamable, ExecutionP
         if (projections.size() == 0) {
             return Optional.absent();
         } else {
-            return Optional.of(projections.get(projections.size()-1));
+            return Optional.of(projections.get(projections.size() - 1));
         }
     }
 
@@ -175,9 +175,9 @@ public abstract class AbstractProjectionsPhase implements Streamable, ExecutionP
     @Override
     public String toString() {
         return MoreObjects.toStringHelper(this)
-                .add("name", name)
-                .add("projections", projections)
-                .add("outputTypes", outputTypes)
-                .toString();
+            .add("name", name)
+            .add("projections", projections)
+            .add("outputTypes", outputTypes)
+            .toString();
     }
 }

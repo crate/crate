@@ -23,10 +23,10 @@ package io.crate.sql.tree;
 
 public interface ArrayComparison {
 
+    Quantifier quantifier();
+
     enum Quantifier {
         ANY,
         ALL
     }
-
-    Quantifier quantifier();
 }

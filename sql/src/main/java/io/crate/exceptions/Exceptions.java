@@ -76,7 +76,7 @@ public class Exceptions {
             return "Unknown";
         }
         @SuppressWarnings("all") // throwable not thrown
-        Throwable unwrappedT = unwrap(t);
+            Throwable unwrappedT = unwrap(t);
         return MoreObjects.firstNonNull(unwrappedT.getMessage(), unwrappedT.toString());
     }
 

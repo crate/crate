@@ -32,6 +32,11 @@ public class RelationUnknownException extends ResourceUnknownException {
 
     private final QualifiedName qualifiedName;
 
+    private RelationUnknownException(QualifiedName qualifiedName) {
+        super(String.format(Locale.ENGLISH, "Cannot resolve relation '%s'", qualifiedName));
+        this.qualifiedName = qualifiedName;
+    }
+
     public static RelationUnknownException of(@Nullable String schemaName, String tableName) {
         QualifiedName qualifiedName;
         if (schemaName == null) {
@@ -40,11 +45,6 @@ public class RelationUnknownException extends ResourceUnknownException {
             qualifiedName = new QualifiedName(Arrays.asList(schemaName, tableName));
         }
         return new RelationUnknownException(qualifiedName);
-    }
-
-    private RelationUnknownException(QualifiedName qualifiedName) {
-        super(String.format(Locale.ENGLISH, "Cannot resolve relation '%s'", qualifiedName));
-        this.qualifiedName = qualifiedName;
     }
 
     public QualifiedName qualifiedName() {

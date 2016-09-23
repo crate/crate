@@ -39,6 +39,10 @@ public class CoalesceFunction extends ConditionalFunction {
         super(info);
     }
 
+    public static void register(ScalarFunctionModule module) {
+        module.register(NAME, new Resolver());
+    }
+
     @Override
     public Object evaluate(Input... args) {
         for (Input input : args) {
@@ -48,10 +52,6 @@ public class CoalesceFunction extends ConditionalFunction {
             }
         }
         return null;
-    }
-
-    public static void register(ScalarFunctionModule module) {
-        module.register(NAME, new Resolver());
     }
 
     private static class Resolver implements DynamicFunctionResolver {

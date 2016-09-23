@@ -35,10 +35,8 @@ import io.crate.metadata.Reference;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.Operation;
-import io.crate.sql.tree.QualifiedName;
 
 import javax.annotation.Nullable;
-import java.util.Arrays;
 import java.util.List;
 
 public class DocTableRelation extends AbstractTableRelation<DocTableInfo> {
@@ -46,36 +44,14 @@ public class DocTableRelation extends AbstractTableRelation<DocTableInfo> {
     private static final ImmutableSet<ColumnIdent> HIDDEN_COLUMNS = ImmutableSet.of(DocSysColumns.DOCID);
     private final static SortValidator SORT_VALIDATOR = new SortValidator();
 
-    private static class SortValidator extends SymbolVisitor<DocTableRelation, Void> {
-
-        @Override
-        public Void visitFunction(Function symbol, DocTableRelation context) {
-            for (Symbol arg : symbol.arguments()) {
-                process(arg, context);
-            }
-            return null;
-        }
-
-        @Override
-        public Void visitReference(Reference symbol, DocTableRelation context) {
-            if (context.tableInfo.partitionedBy().contains(symbol.ident().columnIdent())) {
-                throw new UnsupportedOperationException(
-                        SymbolFormatter.format(
-                                "cannot use partitioned column %s in ORDER BY clause", symbol));
-            } else if (symbol.indexType() == Reference.IndexType.ANALYZED) {
-                throw new UnsupportedOperationException(
-                        SymbolFormatter.format("Cannot ORDER BY '%s': sorting on analyzed/fulltext columns is not possible", symbol));
-            } else if (symbol.indexType() == Reference.IndexType.NO) {
-                throw new UnsupportedOperationException(
-                        SymbolFormatter.format("Cannot ORDER BY '%s': sorting on non-indexed columns is not possible", symbol));
-            }
-            return null;
-        }
-    }
-
-
     public DocTableRelation(DocTableInfo tableInfo) {
         super(tableInfo);
+    }
+
+    private static void ensureNotUpdated(ColumnIdent columnUpdated, ColumnIdent protectedColumnIdent, String errorMessage) {
+        if (columnUpdated.equals(protectedColumnIdent) || protectedColumnIdent.isChildOf(columnUpdated)) {
+            throw new ColumnValidationException(columnUpdated.toString(), errorMessage);
+        }
     }
 
     @Override
@@ -102,7 +78,8 @@ public class DocTableRelation extends AbstractTableRelation<DocTableInfo> {
         if (reference == null) {
             reference = tableInfo.indexColumn(ci);
             if (reference == null) {
-                DynamicReference dynamic = tableInfo.getDynamic(ci, operation == Operation.INSERT || operation == Operation.UPDATE);
+                DynamicReference dynamic = tableInfo.getDynamic(ci,
+                    operation == Operation.INSERT || operation == Operation.UPDATE);
                 if (dynamic == null) {
                     return null;
                 } else {
@@ -143,12 +120,6 @@ public class DocTableRelation extends AbstractTableRelation<DocTableInfo> {
         }
     }
 
-    private static void ensureNotUpdated(ColumnIdent columnUpdated, ColumnIdent protectedColumnIdent, String errorMessage) {
-        if (columnUpdated.equals(protectedColumnIdent) || protectedColumnIdent.isChildOf(columnUpdated)) {
-            throw new ColumnValidationException(columnUpdated.toString(), errorMessage);
-        }
-    }
-
     public void validateOrderBy(Optional<OrderBy> orderBy) {
         if (orderBy.isPresent()) {
             for (Symbol symbol : orderBy.get().orderBySymbols()) {
@@ -157,6 +128,32 @@ public class DocTableRelation extends AbstractTableRelation<DocTableInfo> {
         }
     }
 
+    private static class SortValidator extends SymbolVisitor<DocTableRelation, Void> {
+
+        @Override
+        public Void visitFunction(Function symbol, DocTableRelation context) {
+            for (Symbol arg : symbol.arguments()) {
+                process(arg, context);
+            }
+            return null;
+        }
+
+        @Override
+        public Void visitReference(Reference symbol, DocTableRelation context) {
+            if (context.tableInfo.partitionedBy().contains(symbol.ident().columnIdent())) {
+                throw new UnsupportedOperationException(
+                    SymbolFormatter.format(
+                        "cannot use partitioned column %s in ORDER BY clause", symbol));
+            } else if (symbol.indexType() == Reference.IndexType.ANALYZED) {
+                throw new UnsupportedOperationException(
+                    SymbolFormatter.format("Cannot ORDER BY '%s': sorting on analyzed/fulltext columns is not possible", symbol));
+            } else if (symbol.indexType() == Reference.IndexType.NO) {
+                throw new UnsupportedOperationException(
+                    SymbolFormatter.format("Cannot ORDER BY '%s': sorting on non-indexed columns is not possible", symbol));
+            }
+            return null;
+        }
+    }
 
 
 }

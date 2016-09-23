@@ -89,6 +89,16 @@ public class Aggregator {
         return toImpl.finishCollect(state);
     }
 
+    static abstract class ToImpl {
+        protected final RamAccountingContext ramAccountingContext;
+
+        public ToImpl(RamAccountingContext ramAccountingContext) {
+            this.ramAccountingContext = ramAccountingContext;
+        }
+
+        public abstract Object finishCollect(Object state);
+    }
+
     abstract class FromImpl {
 
         protected final RamAccountingContext ramAccountingContext;
@@ -128,16 +138,6 @@ public class Aggregator {
         public Object processRow(Object value) {
             return aggregationFunction.reduce(ramAccountingContext, value, inputs[0].value());
         }
-    }
-
-    static abstract class ToImpl {
-        protected final RamAccountingContext ramAccountingContext;
-
-        public ToImpl(RamAccountingContext ramAccountingContext) {
-            this.ramAccountingContext = ramAccountingContext;
-        }
-
-        public abstract Object finishCollect(Object state);
     }
 
     class ToPartial extends ToImpl {

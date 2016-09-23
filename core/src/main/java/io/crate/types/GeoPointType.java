@@ -39,9 +39,30 @@ public class GeoPointType extends DataType<Double[]> implements Streamer<Double[
 
     public static final int ID = 13;
     public static final GeoPointType INSTANCE = new GeoPointType();
-    private GeoPointType() {}
-
     private static final SpatialContext SPATIAL_CONTEXT = SpatialContext.GEO;
+
+    private GeoPointType() {
+    }
+
+    private static boolean isValid(Double[] geoPoint) {
+        assert geoPoint.length == 2 : "Geo point array must contain 2 Double values.";
+        return (geoPoint[0] >= -180.0d && geoPoint[0] <= 180.0d) && (geoPoint[1] >= -90.0d && geoPoint[1] <= 90.0d);
+    }
+
+    private static void checkLengthIs2(int actualLength) {
+        Preconditions.checkArgument(actualLength == 2,
+            "The value of a GeoPoint must be a double array with 2 items, not %s", actualLength);
+    }
+
+    private static Double[] pointFromString(String value) {
+        try {
+            Point point = (Point) SPATIAL_CONTEXT.readShapeFromWkt(value);
+            return new Double[]{point.getX(), point.getY()};
+        } catch (ParseException e) {
+            throw new IllegalArgumentException(String.format(Locale.ENGLISH,
+                "Cannot convert \"%s\" to geo_point", value), e);
+        }
+    }
 
     @Override
     public int id() {
@@ -75,18 +96,18 @@ public class GeoPointType extends DataType<Double[]> implements Streamer<Double[
         if (value instanceof String) {
             return pointFromString((String) value);
         }
-        if (value instanceof List)  {
+        if (value instanceof List) {
             List values = (List) value;
             checkLengthIs2(values.size());
-            Double[] geoPoint = new Double[] { (Double) values.get(0), (Double) values.get(1) };
+            Double[] geoPoint = new Double[]{(Double) values.get(0), (Double) values.get(1)};
             validate(geoPoint);
             return geoPoint;
         }
         Object[] values = (Object[]) value;
         checkLengthIs2(values.length);
-        Double[] geoPoint = new Double[] {
-                ((Number) values[0]).doubleValue(),
-                ((Number) values[1]).doubleValue()};
+        Double[] geoPoint = new Double[]{
+            ((Number) values[0]).doubleValue(),
+            ((Number) values[1]).doubleValue()};
         validate(geoPoint);
         return geoPoint;
     }
@@ -94,28 +115,8 @@ public class GeoPointType extends DataType<Double[]> implements Streamer<Double[
     private void validate(Double[] doubles) {
         if (!isValid(doubles)) {
             throw new IllegalArgumentException(String.format(Locale.ENGLISH,
-                    "Failed to validate geo point [lon=%f, lat=%f], not a valid location.",
-                    doubles[0], doubles[1]));
-        }
-    }
-
-    private static boolean isValid(Double[] geoPoint) {
-        assert geoPoint.length == 2 : "Geo point array must contain 2 Double values.";
-        return (geoPoint[0] >= -180.0d && geoPoint[0] <= 180.0d) && (geoPoint[1] >= -90.0d && geoPoint[1] <= 90.0d);
-    }
-
-    private static void checkLengthIs2(int actualLength) {
-        Preconditions.checkArgument(actualLength == 2,
-                "The value of a GeoPoint must be a double array with 2 items, not %s", actualLength);
-    }
-
-    private static Double[] pointFromString(String value) {
-        try {
-            Point point = (Point)SPATIAL_CONTEXT.readShapeFromWkt(value);
-            return new Double[] {point.getX(), point.getY()};
-        } catch (ParseException e) {
-            throw new IllegalArgumentException(String.format(Locale.ENGLISH,
-                    "Cannot convert \"%s\" to geo_point", value), e);
+                "Failed to validate geo point [lon=%f, lat=%f], not a valid location.",
+                doubles[0], doubles[1]));
         }
     }
 
@@ -147,7 +148,7 @@ public class GeoPointType extends DataType<Double[]> implements Streamer<Double[
     @Override
     public Double[] readValueFrom(StreamInput in) throws IOException {
         if (in.readBoolean()) {
-            return new Double[] {in.readDouble(), in.readDouble()};
+            return new Double[]{in.readDouble(), in.readDouble()};
         } else {
             return null;
         }

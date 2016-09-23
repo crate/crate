@@ -28,21 +28,6 @@ import io.crate.sql.tree.*;
 
 public class ExplainStatementAnalyzer {
 
-    private final Analyzer analyzer;
-
-    public ExplainStatementAnalyzer(Analyzer analyzer) {
-        this.analyzer = analyzer;
-    }
-
-    public ExplainAnalyzedStatement analyze(Explain node, Analysis analysis) {
-        CHECK_VISITOR.process(node.getStatement(), null);
-        AnalyzedStatement subStatement = analyzer.analyzedStatement(node.getStatement(), analysis);
-        String columnName = SqlFormatter.formatSql(node);
-        ExplainAnalyzedStatement explainAnalyzedStatement = new ExplainAnalyzedStatement(columnName, subStatement);
-        analysis.rootRelation(explainAnalyzedStatement);
-        return explainAnalyzedStatement;
-    }
-
     private static final AstVisitor<Void, Void> CHECK_VISITOR = new AstVisitor<Void, Void>() {
 
         @Override
@@ -60,5 +45,19 @@ public class ExplainStatementAnalyzer {
             throw new UnsupportedFeatureException("EXPLAIN is not supported for " + node);
         }
     };
+    private final Analyzer analyzer;
+
+    public ExplainStatementAnalyzer(Analyzer analyzer) {
+        this.analyzer = analyzer;
+    }
+
+    public ExplainAnalyzedStatement analyze(Explain node, Analysis analysis) {
+        CHECK_VISITOR.process(node.getStatement(), null);
+        AnalyzedStatement subStatement = analyzer.analyzedStatement(node.getStatement(), analysis);
+        String columnName = SqlFormatter.formatSql(node);
+        ExplainAnalyzedStatement explainAnalyzedStatement = new ExplainAnalyzedStatement(columnName, subStatement);
+        analysis.rootRelation(explainAnalyzedStatement);
+        return explainAnalyzedStatement;
+    }
 
 }

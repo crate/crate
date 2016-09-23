@@ -110,7 +110,7 @@ public class GeneratedReference extends Reference {
     @Override
     public int hashCode() {
         return Objects.hashCode(super.hashCode(), formattedGeneratedExpression,
-                generatedExpression, referencedReferences);
+            generatedExpression, referencedReferences);
     }
 
     @Override

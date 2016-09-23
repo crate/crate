@@ -39,19 +39,8 @@ import java.util.Collections;
 @Singleton
 public class SysOperationsLogTableInfo extends StaticTableInfo {
 
-    private final ClusterService clusterService;
-
-    public static class Columns {
-        public static final ColumnIdent ID = new ColumnIdent("id");
-        public static final ColumnIdent JOB_ID = new ColumnIdent("job_id");
-        public static final ColumnIdent NAME = new ColumnIdent("name");
-        public static final ColumnIdent STARTED = new ColumnIdent("started");
-        public static final ColumnIdent ENDED = new ColumnIdent("ended");
-        public static final ColumnIdent USED_BYTES = new ColumnIdent("used_bytes");
-        public static final ColumnIdent ERROR = new ColumnIdent("error");
-    }
-
     public static final TableIdent IDENT = new TableIdent(SysSchemaInfo.NAME, "operations_log");
+    private final ClusterService clusterService;
 
     @Inject
     protected SysOperationsLogTableInfo(ClusterService clusterService) {
@@ -79,5 +68,15 @@ public class SysOperationsLogTableInfo extends StaticTableInfo {
     @Override
     public Routing getRouting(WhereClause whereClause, @Nullable String preference) {
         return Routing.forTableOnAllNodes(IDENT, clusterService.state().nodes());
+    }
+
+    public static class Columns {
+        public static final ColumnIdent ID = new ColumnIdent("id");
+        public static final ColumnIdent JOB_ID = new ColumnIdent("job_id");
+        public static final ColumnIdent NAME = new ColumnIdent("name");
+        public static final ColumnIdent STARTED = new ColumnIdent("started");
+        public static final ColumnIdent ENDED = new ColumnIdent("ended");
+        public static final ColumnIdent USED_BYTES = new ColumnIdent("used_bytes");
+        public static final ColumnIdent ERROR = new ColumnIdent("error");
     }
 }

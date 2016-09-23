@@ -42,15 +42,15 @@ public class RandomFunctionTest extends AbstractScalarFunctionsTest {
     private RandomFunction random;
 
     @Before
-    public void prepareRandom(){
-        random = (RandomFunction)functions.get(new FunctionIdent(RandomFunction.NAME, Collections.<DataType>emptyList()));
+    public void prepareRandom() {
+        random = (RandomFunction) functions.get(new FunctionIdent(RandomFunction.NAME, Collections.<DataType>emptyList()));
 
     }
 
     @Test
     public void testEvaluateRandom() {
         assertThat(random.evaluate(new Input[0]),
-                is(allOf(greaterThanOrEqualTo(0.0), lessThan(1.0))));
+            is(allOf(greaterThanOrEqualTo(0.0), lessThan(1.0))));
     }
 
     @Test

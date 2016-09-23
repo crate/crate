@@ -33,7 +33,7 @@ public class SysShardExpressionModule extends AbstractModule {
     @Override
     protected void configure() {
         MapBinder<ReferenceIdent, ShardReferenceImplementation> b = MapBinder
-                .newMapBinder(binder(), ReferenceIdent.class, ShardReferenceImplementation.class);
+            .newMapBinder(binder(), ReferenceIdent.class, ShardReferenceImplementation.class);
 
         b.addBinding(SysShardsTableInfo.ReferenceIdents.ID).to(ShardIdExpression.class).asEagerSingleton();
         b.addBinding(SysShardsTableInfo.ReferenceIdents.SIZE).to(ShardSizeExpression.class).asEagerSingleton();

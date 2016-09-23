@@ -104,18 +104,21 @@ public class TableSettingsTest extends SQLTransportIntegrationTest {
                 "where settings['translog']['disable_flush'] = true");
         assertEquals(0, response.rowCount());
     }
+
     @Test
     public void testFilterOnInteger() throws Exception {
         execute("select * from information_schema.tables " +
                 "where settings['translog']['flush_threshold_ops'] >= 1000");
         assertEquals(1, response.rowCount());
     }
+
     @Test
     public void testFilterOnByteSizeValue() throws Exception {
         execute("select * from information_schema.tables " +
                 "where settings['translog']['flush_threshold_size'] < 2000000");
         assertEquals(1, response.rowCount());
     }
+
     @Test
     public void testFilterOnString() throws Exception {
         execute("select * from information_schema.tables " +

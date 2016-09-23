@@ -73,6 +73,18 @@ public class NestedLoopContext extends AbstractExecutionSubContext implements Do
         });
     }
 
+    private static void closeReceiver(@Nullable Throwable t, @Nullable PageBucketReceiver subContext, ListenableRowReceiver rowReceiver) {
+        if (subContext == null && t != null) {
+            rowReceiver.fail(t);
+        }
+    }
+
+    private static void killReceiver(Throwable t, @Nullable PageBucketReceiver subContext, ListenableRowReceiver rowReceiver) {
+        if (subContext == null) {
+            rowReceiver.kill(t);
+        }
+    }
+
     @Override
     public String name() {
         return nestedLoopPhase.name();
@@ -94,22 +106,10 @@ public class NestedLoopContext extends AbstractExecutionSubContext implements Do
         closeReceiver(t, rightBucketReceiver, rightRowReceiver);
     }
 
-    private static void closeReceiver(@Nullable Throwable t, @Nullable PageBucketReceiver subContext, ListenableRowReceiver rowReceiver) {
-        if (subContext == null && t != null) {
-            rowReceiver.fail(t);
-        }
-    }
-
     @Override
     protected void innerKill(@Nullable Throwable t) {
         killReceiver(t, leftBucketReceiver, leftRowReceiver);
         killReceiver(t, rightBucketReceiver, rightRowReceiver);
-    }
-
-    private static void killReceiver(Throwable t, @Nullable PageBucketReceiver subContext, ListenableRowReceiver rowReceiver) {
-        if (subContext == null) {
-            rowReceiver.kill(t);
-        }
     }
 
     @Override

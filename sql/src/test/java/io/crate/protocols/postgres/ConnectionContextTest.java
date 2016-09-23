@@ -33,9 +33,7 @@ import java.nio.charset.StandardCharsets;
 
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.*;
 
 public class ConnectionContextTest {
 
@@ -56,6 +54,6 @@ public class ConnectionContextTest {
         ChannelBuffer firstResponse = argumentCaptor.getAllValues().get(0);
         byte[] responseBytes = new byte[5];
         firstResponse.readBytes(responseBytes);
-        assertThat(responseBytes, is(new byte[] { 'I', 0, 0, 0, 4 }));
+        assertThat(responseBytes, is(new byte[]{'I', 0, 0, 0, 4}));
     }
 }

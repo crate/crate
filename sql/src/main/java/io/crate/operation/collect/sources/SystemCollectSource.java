@@ -54,7 +54,7 @@ import java.util.Set;
 
 /**
  * this collect service can be used to retrieve a collector for system tables (which don't contain shards)
- *
+ * <p>
  * System tables are generally represented as Iterable of some type and are converted on-the-fly to {@link Row}
  */
 public class SystemCollectSource implements CollectSource {

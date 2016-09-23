@@ -54,7 +54,7 @@ class FetchCollector {
                    Engine.Searcher searcher,
                    IndexFieldDataService indexFieldDataService,
                    int readerId) {
-         // use toArray to avoid iterator allocations in docIds loop
+        // use toArray to avoid iterator allocations in docIds loop
         this.collectorExpressions = collectorExpressions.toArray(new LuceneCollectorExpression[0]);
         this.streamers = streamers;
         this.readerContexts = searcher.searcher().getIndexReader().leaves();

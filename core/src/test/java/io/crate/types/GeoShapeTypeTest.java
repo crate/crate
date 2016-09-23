@@ -41,17 +41,61 @@ import static org.hamcrest.Matchers.*;
 public class GeoShapeTypeTest extends CrateUnitTest {
 
     private static final List<String> WKT = ImmutableList.of(
-            "multipolygon empty",
-            "MULTIPOLYGON (" +
-            "  ((40 40, 20 45, 45 30, 40 40)),\n" +
-            "  ((20 35, 10 30, 10 10, 30 5, 45 20, 20 35), (30 20, 20 15, 20 25, 30 20))" +
-            ")",
-            "polygon (( 10 10, 10 20, 20 20, 20 15, 10 10))",
-            "linestring ( 10.05  10.28 , 20.95  20.89 )",
-            "multilinestring (( 10.05  10.28 , 20.95  20.89 ),( 20.95  20.89, 31.92 21.45))",
-            "point ( 10.05  10.28 )",
-            "multipoint (10 10, 20 20)"
+        "multipolygon empty",
+        "MULTIPOLYGON (" +
+        "  ((40 40, 20 45, 45 30, 40 40)),\n" +
+        "  ((20 35, 10 30, 10 10, 30 5, 45 20, 20 35), (30 20, 20 15, 20 25, 30 20))" +
+        ")",
+        "polygon (( 10 10, 10 20, 20 20, 20 15, 10 10))",
+        "linestring ( 10.05  10.28 , 20.95  20.89 )",
+        "multilinestring (( 10.05  10.28 , 20.95  20.89 ),( 20.95  20.89, 31.92 21.45))",
+        "point ( 10.05  10.28 )",
+        "multipoint (10 10, 20 20)"
     );
+    private static final List<Map<String, Object>> GEO_JSON = ImmutableList.of(
+        parse("{ \"type\": \"Point\", \"coordinates\": [100.0, 0.0] }"),
+        parse("{ \"type\": \"LineString\",\n" +
+              "    \"coordinates\": [ [100.0, 0.0], [101.0, 1.0] ]\n" +
+              "    }"),
+        parse("{ \"type\": \"Polygon\",\n" +
+              "    \"coordinates\": [\n" +
+              "      [ [100.0, 0.0], [101.0, 0.0], [101.0, 1.0], [100.0, 1.0], [100.0, 0.0] ]\n" +
+              "      ]\n" +
+              "   }"),
+        parse("{ \"type\": \"Polygon\",\n" +
+              "    \"coordinates\": [\n" +
+              "      [ [100.0, 0.0], [101.0, 0.0], [101.0, 1.0], [100.0, 1.0], [100.0, 0.0] ],\n" +
+              "      [ [100.2, 0.2], [100.8, 0.2], [100.8, 0.8], [100.2, 0.8], [100.2, 0.2] ]\n" +
+              "      ]\n" +
+              "   }"),
+        parse("{ \"type\": \"MultiPoint\",\n" +
+              "    \"coordinates\": [ [100.0, 0.0], [101.0, 1.0] ]\n" +
+              "    }"),
+        parse("{ \"type\": \"MultiLineString\",\n" +
+              "    \"coordinates\": [\n" +
+              "        [ [100.0, 0.0], [101.0, 1.0] ],\n" +
+              "        [ [102.0, 2.0], [103.0, 3.0] ]\n" +
+              "      ]\n" +
+              "    }"),
+        parse("{ \"type\": \"MultiPolygon\",\n" +
+              "    \"coordinates\": [\n" +
+              "      [[[102.0, 2.0], [103.0, 2.0], [103.0, 3.0], [102.0, 3.0], [102.0, 2.0]]],\n" +
+              "      [[[100.0, 0.0], [101.0, 0.0], [101.0, 1.0], [100.0, 1.0], [100.0, 0.0]],\n" +
+              "       [[100.2, 0.2], [100.8, 0.2], [100.8, 0.8], [100.2, 0.8], [100.2, 0.2]]]\n" +
+              "      ]\n" +
+              "    }"),
+        parse("{ \"type\": \"GeometryCollection\",\n" +
+              "    \"geometries\": [\n" +
+              "      { \"type\": \"Point\",\n" +
+              "        \"coordinates\": [100.0, 0.0]\n" +
+              "        },\n" +
+              "      { \"type\": \"LineString\",\n" +
+              "        \"coordinates\": [ [101.0, 0.0], [102.0, 1.0] ]\n" +
+              "        }\n" +
+              "    ]\n" +
+              "  }")
+    );
+    private GeoShapeType type = GeoShapeType.INSTANCE;
 
     private static Map<String, Object> parse(String json) {
         try {
@@ -60,55 +104,10 @@ public class GeoShapeTypeTest extends CrateUnitTest {
             throw new RuntimeException(e);
         }
     }
-    private static final List<Map<String, Object>> GEO_JSON = ImmutableList.of(
-            parse("{ \"type\": \"Point\", \"coordinates\": [100.0, 0.0] }"),
-            parse("{ \"type\": \"LineString\",\n" +
-                  "    \"coordinates\": [ [100.0, 0.0], [101.0, 1.0] ]\n" +
-                  "    }"),
-            parse("{ \"type\": \"Polygon\",\n" +
-                  "    \"coordinates\": [\n" +
-                  "      [ [100.0, 0.0], [101.0, 0.0], [101.0, 1.0], [100.0, 1.0], [100.0, 0.0] ]\n" +
-                  "      ]\n" +
-                  "   }"),
-            parse("{ \"type\": \"Polygon\",\n" +
-                  "    \"coordinates\": [\n" +
-                  "      [ [100.0, 0.0], [101.0, 0.0], [101.0, 1.0], [100.0, 1.0], [100.0, 0.0] ],\n" +
-                  "      [ [100.2, 0.2], [100.8, 0.2], [100.8, 0.8], [100.2, 0.8], [100.2, 0.2] ]\n" +
-                  "      ]\n" +
-                  "   }"),
-            parse("{ \"type\": \"MultiPoint\",\n" +
-                  "    \"coordinates\": [ [100.0, 0.0], [101.0, 1.0] ]\n" +
-                  "    }"),
-            parse("{ \"type\": \"MultiLineString\",\n" +
-                  "    \"coordinates\": [\n" +
-                  "        [ [100.0, 0.0], [101.0, 1.0] ],\n" +
-                  "        [ [102.0, 2.0], [103.0, 3.0] ]\n" +
-                  "      ]\n" +
-                  "    }"),
-            parse("{ \"type\": \"MultiPolygon\",\n" +
-                  "    \"coordinates\": [\n" +
-                  "      [[[102.0, 2.0], [103.0, 2.0], [103.0, 3.0], [102.0, 3.0], [102.0, 2.0]]],\n" +
-                  "      [[[100.0, 0.0], [101.0, 0.0], [101.0, 1.0], [100.0, 1.0], [100.0, 0.0]],\n" +
-                  "       [[100.2, 0.2], [100.8, 0.2], [100.8, 0.8], [100.2, 0.8], [100.2, 0.2]]]\n" +
-                  "      ]\n" +
-                  "    }"),
-            parse("{ \"type\": \"GeometryCollection\",\n" +
-                  "    \"geometries\": [\n" +
-                  "      { \"type\": \"Point\",\n" +
-                  "        \"coordinates\": [100.0, 0.0]\n" +
-                  "        },\n" +
-                  "      { \"type\": \"LineString\",\n" +
-                  "        \"coordinates\": [ [101.0, 0.0], [102.0, 1.0] ]\n" +
-                  "        }\n" +
-                  "    ]\n" +
-                  "  }")
-    );
-
-    private GeoShapeType type = GeoShapeType.INSTANCE;
 
     @Test
     public void testStreamer() throws Exception {
-        for(Map<String, Object> geoJSON : GEO_JSON) {
+        for (Map<String, Object> geoJSON : GEO_JSON) {
             Map<String, Object> value = type.value(geoJSON);
 
             BytesStreamOutput out = new BytesStreamOutput();
@@ -138,6 +137,7 @@ public class GeoShapeTypeTest extends CrateUnitTest {
         expectedException.expectMessage("Cannot convert \"foobar\" to geo_shape");
         type.value("foobar");
     }
+
     @Test
     public void testInvalidTypeCausesIllegalArgumentException() throws Exception {
         expectedException.expect(IllegalArgumentException.class);
@@ -149,15 +149,15 @@ public class GeoShapeTypeTest extends CrateUnitTest {
     public void testInvalidCoordinates() throws Exception {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage(allOf(
-                startsWith("Cannot convert \""),
-                endsWith("\" to geo_shape"))
+            startsWith("Cannot convert \""),
+            endsWith("\" to geo_shape"))
         );
         type.value(ImmutableMap.of(
-                GeoJSONUtils.TYPE_FIELD, GeoJSONUtils.LINE_STRING,
-                GeoJSONUtils.COORDINATES_FIELD, new double[][] {
-                        new double[] { 170.0d, 99.0d},
-                        new double[] {180.5d, -180.5d}
-                }
+            GeoJSONUtils.TYPE_FIELD, GeoJSONUtils.LINE_STRING,
+            GeoJSONUtils.COORDINATES_FIELD, new double[][]{
+                new double[]{170.0d, 99.0d},
+                new double[]{180.5d, -180.5d}
+            }
         ));
 
     }
@@ -185,7 +185,7 @@ public class GeoShapeTypeTest extends CrateUnitTest {
 
     @Test
     public void testValueShape() throws Exception {
-        for (Shape shape: GeoJSONUtilsTest.SHAPES) {
+        for (Shape shape : GeoJSONUtilsTest.SHAPES) {
             Map<String, Object> map = type.value(shape);
             GeoJSONUtils.validateGeoJson(map);
         }

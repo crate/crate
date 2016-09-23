@@ -29,7 +29,19 @@ import java.util.Map;
 
 public class NodeOperationGrouper {
 
-    private NodeOperationGrouper() {}
+    private NodeOperationGrouper() {
+    }
+
+    public static Map<String, Collection<NodeOperation>> groupByServer(Iterable<NodeOperation> nodeOperations) {
+        Context ctx = new Context();
+        for (NodeOperation nodeOperation : nodeOperations) {
+            ctx.currentOperation = nodeOperation;
+            for (String server : nodeOperation.executionPhase().executionNodes()) {
+                ctx.add(server);
+            }
+        }
+        return ctx.grouped();
+    }
 
     public static class Context {
 
@@ -47,16 +59,5 @@ public class NodeOperationGrouper {
         public Map<String, Collection<NodeOperation>> grouped() {
             return byServer.asMap();
         }
-    }
-
-    public static Map<String, Collection<NodeOperation>> groupByServer(Iterable<NodeOperation> nodeOperations) {
-        Context ctx = new Context();
-        for (NodeOperation nodeOperation : nodeOperations) {
-            ctx.currentOperation = nodeOperation;
-            for (String server : nodeOperation.executionPhase().executionNodes()) {
-                ctx.add(server);
-            }
-        }
-        return ctx.grouped();
     }
 }

@@ -52,6 +52,54 @@ public class ProjectionBuilder {
         this.querySpec = querySpec;
     }
 
+    public static FilterProjection filterProjection(Collection<? extends Symbol> inputs, Symbol query) {
+        InputCreatingVisitor.Context context = new InputCreatingVisitor.Context(inputs);
+        query = inputVisitor.process(query, context);
+        List<Symbol> outputs = inputVisitor.process(inputs, context);
+        return new FilterProjection(query, outputs);
+    }
+
+    public static TopNProjection topNProjection(
+        Collection<? extends Symbol> inputs,
+        @Nullable OrderBy orderBy,
+        int offset,
+        int limit,
+        @Nullable Collection<Symbol> outputs) {
+
+        InputCreatingVisitor.Context context = new InputCreatingVisitor.Context(inputs);
+        List<Symbol> inputsProcessed = inputVisitor.process(inputs, context);
+        List<Symbol> outputsProcessed;
+        if (outputs == null) {
+            outputsProcessed = inputsProcessed;
+        } else {
+            outputsProcessed = inputVisitor.process(outputs, context);
+        }
+
+        TopNProjection result;
+        if (orderBy == null) {
+            result = new TopNProjection(limit, offset);
+        } else {
+            result = new TopNProjection(limit, offset,
+                inputVisitor.process(orderBy.orderBySymbols(), context),
+                orderBy.reverseFlags(),
+                orderBy.nullsFirst());
+        }
+        result.outputs(outputsProcessed);
+        return result;
+    }
+
+    public static WriterProjection writerProjection(Collection<? extends Symbol> inputs,
+                                                    Symbol uri,
+                                                    @Nullable WriterProjection.CompressionType compressionType,
+                                                    Map<ColumnIdent, Symbol> overwrites,
+                                                    @Nullable List<String> outputNames,
+                                                    WriterProjection.OutputFormat outputFormat) {
+        InputCreatingVisitor.Context context = new InputCreatingVisitor.Context(inputs);
+
+        return new WriterProjection(
+            inputVisitor.process(inputs, context), uri, compressionType, overwrites, outputNames, outputFormat);
+    }
+
     public SplitPoints getSplitPoints() {
         // TODO: orderBy for none groups
         SplitPoints context = new SplitPoints(querySpec);
@@ -59,7 +107,6 @@ public class ProjectionBuilder {
         LeafVisitor.INSTANCE.process(context);
         return context;
     }
-
 
     public AggregationProjection aggregationProjection(Collection<? extends Symbol> inputs,
                                                        Collection<Function> aggregates,
@@ -72,11 +119,11 @@ public class ProjectionBuilder {
     }
 
     public GroupProjection groupProjection(
-            Collection<Symbol> inputs,
-            Collection<Symbol> keys,
-            Collection<Function> values,
-            Aggregation.Step fromStep,
-            Aggregation.Step toStep) {
+        Collection<Symbol> inputs,
+        Collection<Symbol> keys,
+        Collection<Function> values,
+        Aggregation.Step fromStep,
+        Aggregation.Step toStep) {
 
         InputCreatingVisitor.Context context = new InputCreatingVisitor.Context(inputs);
         ArrayList<Aggregation> aggregations = getAggregations(values, fromStep, toStep, context);
@@ -102,9 +149,9 @@ public class ProjectionBuilder {
 
             if (toStep == Aggregation.Step.PARTIAL) {
                 aggregation = Aggregation.partialAggregation(
-                        function.info(),
-                        ((AggregationFunction) this.functions.get(function.info().ident())).partialType(),
-                        aggregationInputs
+                    function.info(),
+                    ((AggregationFunction) this.functions.get(function.info().ident())).partialType(),
+                    aggregationInputs
                 );
             } else {
                 aggregation = Aggregation.finalAggregation(function.info(), aggregationInputs, fromStep);
@@ -112,53 +159,5 @@ public class ProjectionBuilder {
             aggregations.add(aggregation);
         }
         return aggregations;
-    }
-
-    public static FilterProjection filterProjection(Collection<? extends Symbol> inputs, Symbol query) {
-        InputCreatingVisitor.Context context = new InputCreatingVisitor.Context(inputs);
-        query = inputVisitor.process(query, context);
-        List<Symbol> outputs = inputVisitor.process(inputs, context);
-        return new FilterProjection(query, outputs);
-    }
-
-    public static TopNProjection topNProjection(
-            Collection<? extends Symbol> inputs,
-            @Nullable OrderBy orderBy,
-            int offset,
-            int limit,
-            @Nullable Collection<Symbol> outputs) {
-
-        InputCreatingVisitor.Context context = new InputCreatingVisitor.Context(inputs);
-        List<Symbol> inputsProcessed = inputVisitor.process(inputs, context);
-        List<Symbol> outputsProcessed;
-        if (outputs == null){
-            outputsProcessed = inputsProcessed;
-        } else {
-            outputsProcessed = inputVisitor.process(outputs, context);
-        }
-
-        TopNProjection result;
-        if (orderBy == null) {
-            result = new TopNProjection(limit, offset);
-        } else {
-            result = new TopNProjection(limit, offset,
-                    inputVisitor.process(orderBy.orderBySymbols(), context),
-                    orderBy.reverseFlags(),
-                    orderBy.nullsFirst());
-        }
-        result.outputs(outputsProcessed);
-        return result;
-    }
-
-    public static WriterProjection writerProjection(Collection<? extends Symbol> inputs,
-                                                    Symbol uri,
-                                                    @Nullable WriterProjection.CompressionType compressionType,
-                                                    Map<ColumnIdent, Symbol> overwrites,
-                                                    @Nullable List<String> outputNames,
-                                                    WriterProjection.OutputFormat outputFormat) {
-        InputCreatingVisitor.Context context = new InputCreatingVisitor.Context(inputs);
-
-        return new WriterProjection(
-                inputVisitor.process(inputs, context), uri, compressionType, overwrites, outputNames, outputFormat);
     }
 }

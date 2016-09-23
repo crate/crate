@@ -51,8 +51,131 @@ public class WhereClauseAnalyzer {
         this.analysisMetaData = analysisMetaData;
         this.tableInfo = tableRelation.tableInfo();
         this.normalizer = new EvaluatingNormalizer(analysisMetaData.functions(), RowGranularity.CLUSTER,
-                analysisMetaData.referenceResolver(), tableRelation, false);
+            analysisMetaData.referenceResolver(), tableRelation, false);
         this.eqExtractor = new EqualityExtractor(normalizer);
+    }
+
+    private static PartitionReferenceResolver preparePartitionResolver(
+        NestedReferenceResolver referenceResolver, List<Reference> partitionColumns) {
+        List<PartitionExpression> partitionExpressions = new ArrayList<>(partitionColumns.size());
+        int idx = 0;
+        for (Reference partitionedByColumn : partitionColumns) {
+            partitionExpressions.add(new PartitionExpression(partitionedByColumn, idx));
+            idx++;
+        }
+        return new PartitionReferenceResolver(referenceResolver, partitionExpressions);
+    }
+
+    public static WhereClause resolvePartitions(WhereClause whereClause,
+                                                DocTableInfo tableInfo,
+                                                AnalysisMetaData analysisMetaData,
+                                                StmtCtx stmtCtx) {
+        assert tableInfo.isPartitioned() : "table must be partitioned in order to resolve partitions";
+        assert whereClause.partitions().isEmpty() : "partitions must not be analyzed twice";
+        if (tableInfo.partitions().isEmpty()) {
+            return WhereClause.NO_MATCH; // table is partitioned but has no data / no partitions
+        }
+
+        PartitionReferenceResolver partitionReferenceResolver = preparePartitionResolver(
+            analysisMetaData.referenceResolver(),
+            tableInfo.partitionedByColumns());
+        EvaluatingNormalizer normalizer =
+            new EvaluatingNormalizer(analysisMetaData.functions(), RowGranularity.PARTITION, partitionReferenceResolver);
+
+        Symbol normalized = null;
+        Map<Symbol, List<Literal>> queryPartitionMap = new HashMap<>();
+
+        for (PartitionName partitionName : tableInfo.partitions()) {
+            for (PartitionExpression partitionExpression : partitionReferenceResolver.expressions()) {
+                partitionExpression.setNextRow(partitionName);
+            }
+            normalized = normalizer.normalize(whereClause.query(), stmtCtx);
+            assert normalized != null : "normalizing a query must not return null";
+
+            if (normalized.equals(whereClause.query())) {
+                return whereClause; // no partition columns inside the where clause
+            }
+
+            boolean canMatch = WhereClause.canMatch(normalized);
+            if (canMatch) {
+                List<Literal> partitions = queryPartitionMap.get(normalized);
+                if (partitions == null) {
+                    partitions = new ArrayList<>();
+                    queryPartitionMap.put(normalized, partitions);
+                }
+                partitions.add(Literal.newLiteral(partitionName.asIndexName()));
+            }
+        }
+
+        if (queryPartitionMap.size() == 1) {
+            Map.Entry<Symbol, List<Literal>> entry = Iterables.getOnlyElement(queryPartitionMap.entrySet());
+            whereClause = new WhereClause(
+                entry.getKey(),
+                whereClause.docKeys().orNull(),
+                new ArrayList<String>(entry.getValue().size()));
+            whereClause.partitions(entry.getValue());
+            return whereClause;
+        } else if (queryPartitionMap.size() > 0) {
+            return tieBreakPartitionQueries(normalizer, queryPartitionMap, whereClause, stmtCtx);
+        } else {
+            return WhereClause.NO_MATCH;
+        }
+    }
+
+    private static WhereClause tieBreakPartitionQueries(EvaluatingNormalizer normalizer,
+                                                        Map<Symbol, List<Literal>> queryPartitionMap,
+                                                        WhereClause whereClause,
+                                                        StmtCtx stmtCtx) throws UnsupportedOperationException {
+        /*
+         * Got multiple normalized queries which all could match.
+         * This might be the case if one partition resolved to null
+         *
+         * e.g.
+         *
+         *  p = 1 and x = 2
+         *
+         * might lead to
+         *
+         *  null and x = 2
+         *  true and x = 2
+         *
+         * At this point it is unknown if they really match.
+         * In order to figure out if they could potentially match all conditions involving references are now set to true
+         *
+         *  null and true   -> can't match
+         *  true and true   -> can match, can use this query + partition
+         *
+         * If there is still more than 1 query that can match it's not possible to execute the query :(
+         */
+
+        List<Tuple<Symbol, List<Literal>>> canMatch = new ArrayList<>();
+        ReferenceToTrueVisitor referenceToTrueVisitor = new ReferenceToTrueVisitor();
+        for (Map.Entry<Symbol, List<Literal>> entry : queryPartitionMap.entrySet()) {
+            Symbol query = entry.getKey();
+            List<Literal> partitions = entry.getValue();
+
+            Symbol symbol = referenceToTrueVisitor.process(query, null);
+            Symbol normalized = normalizer.normalize(symbol, stmtCtx);
+
+            assert normalized instanceof Literal && normalized.valueType().equals(DataTypes.BOOLEAN) :
+                "after normalization and replacing all reference occurrences with true there must only be a boolean left";
+
+            Object value = ((Literal) normalized).value();
+            if (value != null && (Boolean) value) {
+                canMatch.add(new Tuple<>(query, partitions));
+            }
+        }
+        if (canMatch.size() == 1) {
+            Tuple<Symbol, List<Literal>> symbolListTuple = canMatch.get(0);
+            WhereClause where = new WhereClause(symbolListTuple.v1(),
+                whereClause.docKeys().orNull(),
+                new ArrayList<String>(symbolListTuple.v2().size()));
+            where.partitions(symbolListTuple.v2());
+            return where;
+        }
+        throw new UnsupportedOperationException(
+            "logical conjunction of the conditions in the WHERE clause which " +
+            "involve partitioned columns led to a query that can't be executed.");
     }
 
     public WhereClause analyze(WhereClause whereClause, StmtCtx stmtCtx) {
@@ -129,130 +252,5 @@ public class WhereClauseAnalyzer {
             }
         }
         return null;
-    }
-
-
-
-    private static PartitionReferenceResolver preparePartitionResolver(
-            NestedReferenceResolver referenceResolver, List<Reference> partitionColumns) {
-        List<PartitionExpression> partitionExpressions = new ArrayList<>(partitionColumns.size());
-        int idx = 0;
-        for (Reference partitionedByColumn : partitionColumns) {
-            partitionExpressions.add(new PartitionExpression(partitionedByColumn, idx));
-            idx++;
-        }
-        return new PartitionReferenceResolver(referenceResolver, partitionExpressions);
-    }
-
-    public static WhereClause resolvePartitions(WhereClause whereClause,
-                                                DocTableInfo tableInfo,
-                                                AnalysisMetaData analysisMetaData,
-                                                StmtCtx stmtCtx) {
-        assert tableInfo.isPartitioned() : "table must be partitioned in order to resolve partitions";
-        assert whereClause.partitions().isEmpty(): "partitions must not be analyzed twice";
-        if (tableInfo.partitions().isEmpty()) {
-            return WhereClause.NO_MATCH; // table is partitioned but has no data / no partitions
-        }
-
-        PartitionReferenceResolver partitionReferenceResolver = preparePartitionResolver(
-                analysisMetaData.referenceResolver(),
-                tableInfo.partitionedByColumns());
-        EvaluatingNormalizer normalizer =
-                new EvaluatingNormalizer(analysisMetaData.functions(), RowGranularity.PARTITION, partitionReferenceResolver);
-
-        Symbol normalized = null;
-        Map<Symbol, List<Literal>> queryPartitionMap = new HashMap<>();
-
-        for (PartitionName partitionName : tableInfo.partitions()) {
-            for (PartitionExpression partitionExpression : partitionReferenceResolver.expressions()) {
-                partitionExpression.setNextRow(partitionName);
-            }
-            normalized = normalizer.normalize(whereClause.query(), stmtCtx);
-            assert normalized != null : "normalizing a query must not return null";
-
-            if (normalized.equals(whereClause.query())) {
-                return whereClause; // no partition columns inside the where clause
-            }
-
-            boolean canMatch = WhereClause.canMatch(normalized);
-            if (canMatch) {
-                List<Literal> partitions = queryPartitionMap.get(normalized);
-                if (partitions == null) {
-                    partitions = new ArrayList<>();
-                    queryPartitionMap.put(normalized, partitions);
-                }
-                partitions.add(Literal.newLiteral(partitionName.asIndexName()));
-            }
-        }
-
-        if (queryPartitionMap.size() == 1) {
-            Map.Entry<Symbol, List<Literal>> entry = Iterables.getOnlyElement(queryPartitionMap.entrySet());
-            whereClause = new WhereClause(
-                    entry.getKey(),
-                    whereClause.docKeys().orNull(),
-                    new ArrayList<String>(entry.getValue().size()));
-            whereClause.partitions(entry.getValue());
-            return whereClause;
-        } else if (queryPartitionMap.size() > 0) {
-            return tieBreakPartitionQueries(normalizer, queryPartitionMap, whereClause, stmtCtx);
-        } else {
-            return WhereClause.NO_MATCH;
-        }
-    }
-
-    private static WhereClause tieBreakPartitionQueries(EvaluatingNormalizer normalizer,
-                                                        Map<Symbol, List<Literal>> queryPartitionMap,
-                                                        WhereClause whereClause,
-                                                        StmtCtx stmtCtx) throws UnsupportedOperationException{
-        /*
-         * Got multiple normalized queries which all could match.
-         * This might be the case if one partition resolved to null
-         *
-         * e.g.
-         *
-         *  p = 1 and x = 2
-         *
-         * might lead to
-         *
-         *  null and x = 2
-         *  true and x = 2
-         *
-         * At this point it is unknown if they really match.
-         * In order to figure out if they could potentially match all conditions involving references are now set to true
-         *
-         *  null and true   -> can't match
-         *  true and true   -> can match, can use this query + partition
-         *
-         * If there is still more than 1 query that can match it's not possible to execute the query :(
-         */
-
-        List<Tuple<Symbol, List<Literal>>> canMatch = new ArrayList<>();
-        ReferenceToTrueVisitor referenceToTrueVisitor = new ReferenceToTrueVisitor();
-        for (Map.Entry<Symbol, List<Literal>> entry : queryPartitionMap.entrySet()) {
-            Symbol query = entry.getKey();
-            List<Literal> partitions = entry.getValue();
-
-            Symbol symbol = referenceToTrueVisitor.process(query, null);
-            Symbol normalized = normalizer.normalize(symbol, stmtCtx);
-
-            assert normalized instanceof Literal && normalized.valueType().equals(DataTypes.BOOLEAN) :
-                    "after normalization and replacing all reference occurrences with true there must only be a boolean left";
-
-            Object value = ((Literal) normalized).value();
-            if (value != null && (Boolean) value) {
-                canMatch.add(new Tuple<>(query, partitions));
-            }
-        }
-        if (canMatch.size() == 1) {
-            Tuple<Symbol, List<Literal>> symbolListTuple = canMatch.get(0);
-            WhereClause where = new WhereClause(symbolListTuple.v1(),
-                    whereClause.docKeys().orNull(),
-                    new ArrayList<String>(symbolListTuple.v2().size()));
-            where.partitions(symbolListTuple.v2());
-            return where;
-        }
-        throw new UnsupportedOperationException(
-                "logical conjunction of the conditions in the WHERE clause which " +
-                        "involve partitioned columns led to a query that can't be executed.");
     }
 }

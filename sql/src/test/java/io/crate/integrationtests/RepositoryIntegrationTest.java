@@ -43,17 +43,17 @@ public class RepositoryIntegrationTest extends SQLTransportIntegrationTest {
     @Override
     protected Settings nodeSettings(int nodeOrdinal) {
         return Settings.builder().put(super.nodeSettings(nodeOrdinal))
-                .put("path.repo", TEMPORARY_FOLDER.getRoot().getAbsolutePath())
-                .build();
+            .put("path.repo", TEMPORARY_FOLDER.getRoot().getAbsolutePath())
+            .build();
     }
 
     @Test
     @UseJdbc(false) // drop repository has no rowcount
     public void testDropExistingRepository() throws Exception {
         execute("CREATE REPOSITORY existing_repo TYPE \"fs\" with (location=?, compress=True)",
-                new Object[]{
-                        TEMPORARY_FOLDER.newFolder().getAbsolutePath()
-                });
+            new Object[]{
+                TEMPORARY_FOLDER.newFolder().getAbsolutePath()
+            });
         waitNoPendingTasksOnAll();
         execute("DROP REPOSITORY existing_repo");
         assertThat(response.rowCount(), is(1L));
@@ -67,14 +67,14 @@ public class RepositoryIntegrationTest extends SQLTransportIntegrationTest {
     public void testCreateRepository() throws Throwable {
         String repoLocation = TEMPORARY_FOLDER.newFolder().getAbsolutePath();
         execute("CREATE REPOSITORY \"myRepo\" TYPE \"fs\" with (location=?, compress=True)",
-                new Object[]{
-                        repoLocation
-                });
+            new Object[]{
+                repoLocation
+            });
         waitNoPendingTasksOnAll();
         execute("select * from sys.repositories where name ='myRepo'");
         assertThat(response.rowCount(), is(1L));
         assertThat((String) response.rows()[0][0], is("myRepo"));
-        HashMap<String, String> settings = (HashMap)response.rows()[0][1];
+        HashMap<String, String> settings = (HashMap) response.rows()[0][1];
         assertThat(settings.get("compress"), is("true"));
         assertThat(new File(settings.get("location")).getAbsolutePath(), is(repoLocation));
         assertThat((String) response.rows()[0][2], is("fs"));
@@ -84,13 +84,13 @@ public class RepositoryIntegrationTest extends SQLTransportIntegrationTest {
     public void testCreateExistingRepository() throws Throwable {
         String repoLocation = TEMPORARY_FOLDER.newFolder().getAbsolutePath();
         execute("CREATE REPOSITORY \"myRepo\" TYPE \"fs\" with (location=?, compress=True)",
-                new Object[]{
-                        repoLocation
-                });
+            new Object[]{
+                repoLocation
+            });
         waitNoPendingTasksOnAll();
         expectedException.expect(SQLActionException.class);
         expectedException.expectMessage("Repository 'myRepo' already exists");
         execute("CREATE REPOSITORY \"myRepo\" TYPE \"fs\" with (location=?, compress=True)",
-                new Object[]{repoLocation});
+            new Object[]{repoLocation});
     }
 }

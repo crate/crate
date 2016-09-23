@@ -72,6 +72,20 @@ import static org.mockito.Mockito.*;
 
 public class TestingHelpers {
 
+    private final static Joiner.MapJoiner MAP_JOINER = Joiner.on(", ").useForNull("null").withKeyValueSeparator("=");
+    private static final com.google.common.base.Function<Object, Object> bytesRefToString =
+        new com.google.common.base.Function<Object, Object>() {
+
+            @Nullable
+            @Override
+            public Object apply(@Nullable Object input) {
+                if (input instanceof BytesRef) {
+                    return ((BytesRef) input).utf8ToString();
+                }
+                return input;
+            }
+        };
+
     /**
      * prints the contents of a result array as a human readable table
      *
@@ -133,7 +147,7 @@ public class TestingHelpers {
             out.print("]");
         } else if (o instanceof Map) {
             out.print("{");
-            out.print(MAP_JOINER.join(Sorted.sortRecursive((Map<String, Object>)o, true)));
+            out.print(MAP_JOINER.join(Sorted.sortRecursive((Map<String, Object>) o, true)));
             out.print("}");
         } else {
             out.print(o.toString());
@@ -141,19 +155,17 @@ public class TestingHelpers {
         return first;
     }
 
-    private final static Joiner.MapJoiner MAP_JOINER = Joiner.on(", ").useForNull("null").withKeyValueSeparator("=");
-
     public static String mapToSortedString(Map<String, Object> map) {
         return MAP_JOINER.join(Sorted.sortRecursive(map));
     }
 
     public static Functions getFunctions() {
         return new ModulesBuilder()
-                .add(new AggregationImplModule())
-                .add(new PredicateModule())
-                .add(new TableFunctionModule())
-                .add(new ScalarFunctionModule())
-                .add(new OperatorModule()).createInjector().getInstance(Functions.class);
+            .add(new AggregationImplModule())
+            .add(new PredicateModule())
+            .add(new TableFunctionModule())
+            .add(new ScalarFunctionModule())
+            .add(new OperatorModule()).createInjector().getInstance(Functions.class);
     }
 
     public static Reference createReference(String columnName, DataType dataType) {
@@ -166,9 +178,9 @@ public class TestingHelpers {
 
     public static Reference createReference(String tableName, ColumnIdent columnIdent, DataType dataType) {
         return new Reference(
-                new ReferenceIdent(new TableIdent(null, tableName), columnIdent),
-                RowGranularity.DOC,
-                dataType);
+            new ReferenceIdent(new TableIdent(null, tableName), columnIdent),
+            RowGranularity.DOC,
+            dataType);
     }
 
     public static String readFile(String path) throws IOException {
@@ -208,19 +220,6 @@ public class TestingHelpers {
         return Matchers.allOf(Matchers.instanceOf(Literal.class), hasValue(expectedValue), hasDataType(type));
     }
 
-    private static final com.google.common.base.Function<Object, Object> bytesRefToString =
-            new com.google.common.base.Function<Object, Object>() {
-
-                @Nullable
-                @Override
-                public Object apply(@Nullable Object input) {
-                    if (input instanceof BytesRef) {
-                        return ((BytesRef) input).utf8ToString();
-                    }
-                    return input;
-                }
-            };
-
     public static Matcher<Row> isNullRow() {
         return isRow((Object) null);
     }
@@ -235,18 +234,18 @@ public class TestingHelpers {
             protected boolean matchesSafely(Row item, Description mismatchDescription) {
                 if (item.size() != expected.size()) {
                     mismatchDescription.appendText("row size does not match: ")
-                            .appendValue(item.size()).appendText(" != ").appendValue(expected.size());
+                        .appendValue(item.size()).appendText(" != ").appendValue(expected.size());
                     return false;
                 }
                 for (int i = 0; i < item.size(); i++) {
                     Object actual = bytesRefToString.apply(item.get(i));
                     if (!Objects.equals(expected.get(i), actual)) {
                         mismatchDescription.appendText("value at pos ")
-                                .appendValue(i)
-                                .appendText(" does not match: ")
-                                .appendValue(expected.get(i))
-                                .appendText(" != ")
-                                .appendValue(actual);
+                            .appendValue(i)
+                            .appendText(" does not match: ")
+                            .appendValue(expected.get(i))
+                            .appendText(" != ")
+                            .appendValue(actual);
                         return false;
                     }
                 }
@@ -256,7 +255,7 @@ public class TestingHelpers {
             @Override
             public void describeTo(Description description) {
                 description.appendText("is Row with cells: ")
-                        .appendValue(expected);
+                    .appendValue(expected);
             }
         };
     }
@@ -271,7 +270,7 @@ public class TestingHelpers {
             @Override
             protected boolean matchesSafely(DocKeys.DocKey item, Description mismatchDescription) {
                 List objects = Lists.transform(
-                        Lists.transform(item.values(), ValueSymbolVisitor.VALUE.function), bytesRefToString);
+                    Lists.transform(item.values(), ValueSymbolVisitor.VALUE.function), bytesRefToString);
                 if (!expected.equals(objects)) {
                     mismatchDescription.appendText("is DocKey with values: ").appendValue(objects);
                     return false;
@@ -282,21 +281,20 @@ public class TestingHelpers {
             @Override
             public void describeTo(Description description) {
                 description.appendText("is DocKey with values: ")
-                        .appendValue(expected);
+                    .appendValue(expected);
             }
         };
     }
 
 
-
     public static Matcher<Symbol> isInputColumn(final Integer index) {
         return both(Matchers.<Symbol>instanceOf(InputColumn.class)).and(
-                new FeatureMatcher<Symbol, Integer>(equalTo(index), "index", "index") {
-                    @Override
-                    protected Integer featureValueOf(Symbol actual) {
-                        return ((InputColumn) actual).index();
-                    }
-                });
+            new FeatureMatcher<Symbol, Integer>(equalTo(index), "index", "index") {
+                @Override
+                protected Integer featureValueOf(Symbol actual) {
+                    return ((InputColumn) actual).index();
+                }
+            });
     }
 
     public static Matcher<Symbol> isField(final String expectedName) {
@@ -341,7 +339,7 @@ public class TestingHelpers {
     public static Matcher<Symbol> isFetchRef(Matcher<Symbol> docIdMatcher, Matcher<Symbol> refMatcher) {
 
         FeatureMatcher<Symbol, Symbol> m1 = new FeatureMatcher<Symbol, Symbol>(
-                docIdMatcher, "docId", "docId"
+            docIdMatcher, "docId", "docId"
         ) {
             @Override
             protected Symbol featureValueOf(Symbol actual) {
@@ -350,7 +348,7 @@ public class TestingHelpers {
         };
 
         FeatureMatcher<Symbol, Symbol> m2 = new FeatureMatcher<Symbol, Symbol>(
-                refMatcher, "ref", "ref"
+            refMatcher, "ref", "ref"
         ) {
             @Override
             protected Symbol featureValueOf(Symbol actual) {
@@ -398,7 +396,7 @@ public class TestingHelpers {
 
     public static Matcher<Symbol> isFunction(final String name, Matcher<Symbol>... argMatchers) {
         FeatureMatcher<Symbol, Collection<Symbol>> ma = new FeatureMatcher<Symbol, Collection<Symbol>>(
-                contains(argMatchers), "args", "args") {
+            contains(argMatchers), "args", "args") {
             @Override
             protected Collection<Symbol> featureValueOf(Symbol actual) {
                 return ((Function) actual).arguments();
@@ -409,7 +407,7 @@ public class TestingHelpers {
 
     public static Matcher<Symbol> isFunction(String name) {
         FeatureMatcher<Symbol, String> mn = new FeatureMatcher<Symbol, String>(
-                equalTo(name), "name", "name") {
+            equalTo(name), "name", "name") {
             @Override
             protected String featureValueOf(Symbol actual) {
                 return ((Function) actual).info().ident().name();
@@ -443,7 +441,7 @@ public class TestingHelpers {
                         DataType expected = argumentTypes.get(i);
                         if (!expected.equals(type)) {
                             mismatchDescription.appendText("argument ").appendValue(
-                                    i + 1).appendText(" has wrong type ").appendValue(type.toString());
+                                i + 1).appendText(" has wrong type ").appendValue(type.toString());
                             return false;
                         }
                     }
@@ -557,13 +555,13 @@ public class TestingHelpers {
         return result;
     }
 
-    public static <T, K extends Comparable> Matcher<Iterable<? extends T>> isSortedBy(final com.google.common.base.Function<T,K> extractSortingKeyFunction) {
+    public static <T, K extends Comparable> Matcher<Iterable<? extends T>> isSortedBy(final com.google.common.base.Function<T, K> extractSortingKeyFunction) {
         return isSortedBy(extractSortingKeyFunction, false, null);
     }
 
-    public static <T, K extends Comparable> Matcher<Iterable<? extends T>> isSortedBy(final com.google.common.base.Function<T,K> extractSortingKeyFunction,
-                                                                            final boolean descending,
-                                                                            @Nullable final Boolean nullsFirst) {
+    public static <T, K extends Comparable> Matcher<Iterable<? extends T>> isSortedBy(final com.google.common.base.Function<T, K> extractSortingKeyFunction,
+                                                                                      final boolean descending,
+                                                                                      @Nullable final Boolean nullsFirst) {
         Ordering<K> ordering = Ordering.natural();
         if (descending) {
             ordering = ordering.reverse();
@@ -585,12 +583,12 @@ public class TestingHelpers {
                     if (previous != null) {
                         if (ord.compare(previous, current) > 0) {
                             mismatchDescription
-                                    .appendText("element ").appendValue(current)
-                                    .appendText(" at position ").appendValue(i)
-                                    .appendText(" is ")
-                                    .appendText(descending ? "bigger" : "smaller")
-                                    .appendText(" than previous element ")
-                                    .appendValue(previous);
+                                .appendText("element ").appendValue(current)
+                                .appendText(" at position ").appendValue(i)
+                                .appendText(" is ")
+                                .appendText(descending ? "bigger" : "smaller")
+                                .appendText(" than previous element ")
+                                .appendValue(previous);
                             return false;
                         }
                     }
@@ -618,7 +616,7 @@ public class TestingHelpers {
             @Override
             public Comparable apply(@Nullable Row input) {
                 assert input != null;
-                return (Comparable)input.get(sortingPos);
+                return (Comparable) input.get(sortingPos);
             }
         }, reverse, nullsFirst);
     }
@@ -637,7 +635,7 @@ public class TestingHelpers {
 
     /**
      * Convert {@param s} into UTF8 encoded BytesRef with random offset and extra length
-     *
+     * <p>
      * This should be preferred over `new BytesRef` in tests to make sure that implementations using BytesRef
      * handle offset and length correctly (use {@link BytesRef#length} instead of {@link BytesRef#bytes#length}
      */

@@ -33,32 +33,18 @@ import java.util.List;
 
 /**
  * Extract 0-based integer positions for order by symbols.
- *
+ * <p>
  * This can only be used under the following restriction:
  * <ul>
- *   <li>if an <code>orderBySymbol</code> is no input column with explicit index,
- *    it must be part of <code>sourceSymbols</code>.
- *   </li>
+ * <li>if an <code>orderBySymbol</code> is no input column with explicit index,
+ * it must be part of <code>sourceSymbols</code>.
+ * </li>
  * </ul>
  */
 @Singleton
 public class OrderByPositionVisitor extends SymbolVisitor<OrderByPositionVisitor.Context, Void> {
 
     private final static OrderByPositionVisitor INSTANCE = new OrderByPositionVisitor();
-
-    public static class Context {
-        final List<? extends Symbol> sourceSymbols;
-        IntArrayList orderByPositions;
-
-        public Context(List<? extends Symbol> sourceSymbols) {
-            this.sourceSymbols = sourceSymbols;
-            this.orderByPositions = new IntArrayList();
-        }
-
-        public int[] orderByPositions() {
-            return orderByPositions.toArray();
-        }
-    }
 
     private OrderByPositionVisitor() {
     }
@@ -92,5 +78,19 @@ public class OrderByPositionVisitor extends SymbolVisitor<OrderByPositionVisitor
             throw new IllegalArgumentException(SymbolFormatter.format("Cannot sort by: %s - not part of source symbols", symbol));
         }
         return null;
+    }
+
+    public static class Context {
+        final List<? extends Symbol> sourceSymbols;
+        IntArrayList orderByPositions;
+
+        public Context(List<? extends Symbol> sourceSymbols) {
+            this.sourceSymbols = sourceSymbols;
+            this.orderByPositions = new IntArrayList();
+        }
+
+        public int[] orderByPositions() {
+            return orderByPositions.toArray();
+        }
     }
 }

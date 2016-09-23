@@ -43,13 +43,7 @@ import java.util.Map;
 
 public class HttpTestServer {
 
-    private final int port;
-    private final boolean fail;
     private final static JsonFactory jsonFactory;
-    private Channel channel;
-    public List<String> responses = new ArrayList<>();
-
-    private final ChannelFactory channelFactory;
 
     static {
         jsonFactory = new JsonFactory();
@@ -58,9 +52,14 @@ public class HttpTestServer {
         jsonFactory.configure(JsonParser.Feature.ALLOW_COMMENTS, true);
     }
 
+    private final int port;
+    private final boolean fail;
+    private final ChannelFactory channelFactory;
+    public List<String> responses = new ArrayList<>();
+    private Channel channel;
+
 
     /**
-     *
      * @param port the port to listen on
      * @param fail of set to true, the server will emit error responses
      */
@@ -70,10 +69,20 @@ public class HttpTestServer {
         this.channelFactory = new NioServerSocketChannelFactory();
     }
 
+    public static void main(String[] args) throws Exception {
+        int port;
+        if (args.length > 0) {
+            port = Integer.parseInt(args[0]);
+        } else {
+            port = 8080;
+        }
+        new HttpTestServer(port, false).run();
+    }
+
     public void run() {
         // Configure the server.
         ServerBootstrap bootstrap = new ServerBootstrap(
-                this.channelFactory);
+            this.channelFactory);
 
         // Set up the pipeline factory.
         bootstrap.setPipelineFactory(new ChannelPipelineFactory() {
@@ -112,24 +121,14 @@ public class HttpTestServer {
         }
     }
 
-    public static void main(String[] args) throws Exception {
-        int port;
-        if (args.length > 0) {
-            port = Integer.parseInt(args[0]);
-        } else {
-            port = 8080;
-        }
-        new HttpTestServer(port, false).run();
-    }
-
     public class HttpTestServerHandler extends SimpleChannelUpstreamHandler {
 
         private final ESLogger logger = Loggers.getLogger(
-                HttpTestServerHandler.class.getName());
+            HttpTestServerHandler.class.getName());
 
         @Override
         public void messageReceived(
-                ChannelHandlerContext ctx, MessageEvent e) {
+            ChannelHandlerContext ctx, MessageEvent e) {
             Object msg = e.getMessage();
 
             if (msg instanceof HttpRequest) {
@@ -180,11 +179,11 @@ public class HttpTestServer {
 
         @Override
         public void exceptionCaught(
-                ChannelHandlerContext ctx, ExceptionEvent e) {
+            ChannelHandlerContext ctx, ExceptionEvent e) {
             // Close the connection when an exception is raised.
             logger.warn(
-                    "Unexpected exception from downstream.",
-                    e.getCause());
+                "Unexpected exception from downstream.",
+                e.getCause());
             e.getChannel().close();
         }
     }

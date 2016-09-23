@@ -35,38 +35,30 @@ import java.util.List;
 
 /**
  * ExpressionAnalyzer that supports the VALUES ( columnRef ) expression
- *
+ * <p>
  * e.g. in
- *
+ * <p>
  * -------------------------------------------------------------------
  * insert into t_new (id, name) (select id_old, name_old from t_old)
  * on duplicate key update
- *  set id = values(id) + 1000
- *
+ * set id = values(id) + 1000
+ * <p>
  * will return the following for values (id) + 1000
- *
- *  add(id_old, 10000)
- *
+ * <p>
+ * add(id_old, 10000)
+ * <p>
  * -------------------------------------------------------------------
  * insert into t_new (id, name) values (1, 'foo')
  * on duplicate key update
- *  set id = values (id) + 1
- *
+ * set id = values (id) + 1
+ * <p>
  * will return the following for values (id) + 1
- *
- *  2      (normalized add(1, 1))
+ * <p>
+ * 2      (normalized add(1, 1))
  */
 public class ValuesAwareExpressionAnalyzer extends ExpressionAnalyzer {
 
     private final ValuesResolver valuesResolver;
-
-    /**
-     * used to resolve the argument column in VALUES (&lt;argumentColumn&gt;) to the literal or reference
-     */
-    public interface ValuesResolver {
-
-        Symbol allocateAndResolve(Field argumentColumn);
-    }
 
     public ValuesAwareExpressionAnalyzer(AnalysisMetaData analysisMetaData,
                                          ParameterContext parameterContext,
@@ -84,15 +76,23 @@ public class ValuesAwareExpressionAnalyzer extends ExpressionAnalyzer {
             Symbol argumentColumn = super.convert(expression, context);
             if (argumentColumn.valueType().equals(DataTypes.UNDEFINED)) {
                 throw new IllegalArgumentException(
-                        SymbolFormatter.format("Referenced column '%s' in VALUES expression not found", argumentColumn));
+                    SymbolFormatter.format("Referenced column '%s' in VALUES expression not found", argumentColumn));
             }
             if (!(argumentColumn instanceof Field)) {
                 throw new IllegalArgumentException(SymbolFormatter.format(
-                        "Argument to VALUES expression must reference a column that " +
-                                "is part of the INSERT statement. %s is invalid", argumentColumn));
+                    "Argument to VALUES expression must reference a column that " +
+                    "is part of the INSERT statement. %s is invalid", argumentColumn));
             }
             return valuesResolver.allocateAndResolve((Field) argumentColumn);
         }
         return super.convertFunctionCall(node, context);
+    }
+
+    /**
+     * used to resolve the argument column in VALUES (&lt;argumentColumn&gt;) to the literal or reference
+     */
+    public interface ValuesResolver {
+
+        Symbol allocateAndResolve(Field argumentColumn);
     }
 }

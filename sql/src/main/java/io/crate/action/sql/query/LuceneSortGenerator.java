@@ -40,10 +40,10 @@ public class LuceneSortGenerator {
         }
         SortSymbolVisitor sortSymbolVisitor = new SortSymbolVisitor(inputSymbolVisitor);
         SortField[] sortFields = sortSymbolVisitor.generateSortFields(
-                orderBy.orderBySymbols(),
-                context,
-                orderBy.reverseFlags(),
-                orderBy.nullsFirst()
+            orderBy.orderBySymbols(),
+            context,
+            orderBy.reverseFlags(),
+            orderBy.nullsFirst()
         );
         return new Sort(sortFields);
     }

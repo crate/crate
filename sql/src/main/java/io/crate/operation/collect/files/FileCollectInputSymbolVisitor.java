@@ -32,7 +32,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class FileCollectInputSymbolVisitor
-        extends AbstractImplementationSymbolVisitor<FileCollectInputSymbolVisitor.Context> {
+    extends AbstractImplementationSymbolVisitor<FileCollectInputSymbolVisitor.Context> {
 
     private final FileLineReferenceResolver referenceResolver;
 
@@ -47,6 +47,18 @@ public class FileCollectInputSymbolVisitor
         return new Context();
     }
 
+    @Override
+    public Input<?> visitReference(Reference symbol, Context context) {
+        LineCollectorExpression<?> implementation = referenceResolver.getImplementation(symbol);
+        if (implementation == null) {
+            throw new IllegalArgumentException(
+                SymbolFormatter.format("Can't handle Reference \"%s\"", symbol));
+        }
+
+        context.expressions.add(implementation);
+        return implementation;
+    }
+
     public static class Context extends AbstractImplementationSymbolVisitor.Context {
 
         List<LineCollectorExpression<?>> expressions = new ArrayList<>();
@@ -54,17 +66,5 @@ public class FileCollectInputSymbolVisitor
         public List<LineCollectorExpression<?>> expressions() {
             return this.expressions;
         }
-    }
-
-    @Override
-    public Input<?> visitReference(Reference symbol, Context context) {
-        LineCollectorExpression<?> implementation = referenceResolver.getImplementation(symbol);
-        if (implementation == null) {
-            throw new IllegalArgumentException(
-                    SymbolFormatter.format("Can't handle Reference \"%s\"", symbol));
-        }
-
-        context.expressions.add(implementation);
-        return implementation;
     }
 }

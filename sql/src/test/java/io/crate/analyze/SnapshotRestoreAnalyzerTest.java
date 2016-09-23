@@ -55,35 +55,14 @@ public class SnapshotRestoreAnalyzerTest extends BaseAnalyzerTest {
     @Mock
     private RepositoriesMetaData repositoriesMetaData;
 
-    private class MyMockedClusterServiceModule extends MockedClusterServiceModule {
-        @Override
-        protected void configureMetaData(MetaData metaData) {
-            when(metaData.custom(RepositoriesMetaData.TYPE)).thenReturn(repositoriesMetaData);
-        }
-    }
-
-    static class TestMetaDataModule extends MetaDataModule {
-        @Override
-        protected void bindSchemas() {
-            super.bindSchemas();
-            SchemaInfo schemaInfo = mock(SchemaInfo.class);
-            when(schemaInfo.getTableInfo(USER_TABLE_IDENT.name())).thenReturn(USER_TABLE_INFO);
-            when(schemaInfo.getTableInfo(TEST_DOC_LOCATIONS_TABLE_IDENT.name())).thenReturn(TEST_DOC_LOCATIONS_TABLE_INFO);
-            when(schemaInfo.getTableInfo(TEST_PARTITIONED_TABLE_IDENT.name()))
-                    .thenReturn(TEST_PARTITIONED_TABLE_INFO);
-            when(schemaInfo.iterator()).thenReturn(Collections.singletonList(USER_TABLE_INFO).iterator());
-            schemaBinder.addBinding(Schemas.DEFAULT_SCHEMA_NAME).toInstance(schemaInfo);
-        }
-    }
-
     @Override
     protected List<Module> getModules() {
         List<Module> modules = super.getModules();
         modules.addAll(Arrays.<Module>asList(
-                        new MyMockedClusterServiceModule(),
-                        new TestMetaDataModule(),
-                        new MetaDataSysModule(),
-                        new OperatorModule())
+            new MyMockedClusterServiceModule(),
+            new TestMetaDataModule(),
+            new MetaDataSysModule(),
+            new OperatorModule())
         );
         return modules;
     }
@@ -91,9 +70,9 @@ public class SnapshotRestoreAnalyzerTest extends BaseAnalyzerTest {
     @Before
     public void before() throws Exception {
         RepositoryMetaData repositoryMetaData = new RepositoryMetaData(
-                "my_repo",
-                "fs",
-                Settings.builder().put("location", "/tmp/my_repo").build()
+            "my_repo",
+            "fs",
+            Settings.builder().put("location", "/tmp/my_repo").build()
         );
         when(repositoriesMetaData.repository(anyString())).thenReturn(null);
         when(repositoriesMetaData.repository("my_repo")).thenReturn(repositoryMetaData);
@@ -107,10 +86,10 @@ public class SnapshotRestoreAnalyzerTest extends BaseAnalyzerTest {
         assertThat(statement.snapshotId(), is(new SnapshotId("my_repo", "my_snapshot")));
         assertThat(statement.includeMetadata(), is(true));
         assertThat(statement.snapshotSettings().getAsMap(),
-                allOf(
-                        hasEntry("wait_for_completion", "true"),
-                        hasEntry("ignore_unavailable", "false")
-                ));
+            allOf(
+                hasEntry("wait_for_completion", "true"),
+                hasEntry("ignore_unavailable", "false")
+            ));
     }
 
     @Test
@@ -191,10 +170,10 @@ public class SnapshotRestoreAnalyzerTest extends BaseAnalyzerTest {
         assertThat(statement.includeMetadata(), is(true));
         assertThat(statement.snapshotSettings().getAsMap().size(), is(2));
         assertThat(statement.snapshotSettings().getAsMap(),
-                allOf(
-                        hasEntry("wait_for_completion", "true"),
-                        hasEntry("ignore_unavailable", "false")
-                ));
+            allOf(
+                hasEntry("wait_for_completion", "true"),
+                hasEntry("ignore_unavailable", "false")
+            ));
     }
 
     @Test
@@ -253,7 +232,6 @@ public class SnapshotRestoreAnalyzerTest extends BaseAnalyzerTest {
         analyze("drop snapshot unknown_repo.my_snap_1");
     }
 
-
     @Test
     public void testRestoreSnapshotAll() throws Exception {
         RestoreSnapshotAnalyzedStatement statement = (RestoreSnapshotAnalyzedStatement) analyze("RESTORE SNAPSHOT my_repo.my_snapshot ALL");
@@ -262,23 +240,23 @@ public class SnapshotRestoreAnalyzerTest extends BaseAnalyzerTest {
         assertThat(statement.restoreAll(), is(true));
         assertThat(statement.restoreAll(), is(true));
         assertThat(statement.settings().getAsMap(), // default settings
-                allOf(
-                        hasEntry("wait_for_completion", "false"),
-                        hasEntry("ignore_unavailable", "false")
-                ));
+            allOf(
+                hasEntry("wait_for_completion", "false"),
+                hasEntry("ignore_unavailable", "false")
+            ));
     }
 
     @Test
     public void testRestoreSnapshotSingleTable() throws Exception {
         RestoreSnapshotAnalyzedStatement statement = (RestoreSnapshotAnalyzedStatement) analyze(
-                "RESTORE SNAPSHOT my_repo.my_snapshot TABLE custom.restoreme");
+            "RESTORE SNAPSHOT my_repo.my_snapshot TABLE custom.restoreme");
         String template = PartitionName.templateName("custom", "restoreme") + "*";
         assertThat(statement.indices(), containsInAnyOrder("custom.restoreme", template));
         assertThat(statement.settings().getAsMap(),
-                allOf(
-                        hasEntry("wait_for_completion", "false"),
-                        hasEntry("ignore_unavailable", "false")
-                ));
+            allOf(
+                hasEntry("wait_for_completion", "false"),
+                hasEntry("ignore_unavailable", "false")
+            ));
     }
 
     @Test
@@ -298,7 +276,7 @@ public class SnapshotRestoreAnalyzerTest extends BaseAnalyzerTest {
     @Test
     public void testRestoreSinglePartition() throws Exception {
         RestoreSnapshotAnalyzedStatement statement = (RestoreSnapshotAnalyzedStatement) analyze(
-                "RESTORE SNAPSHOT my_repo.my_snapshot TABLE parted PARTITION (date=123)");
+            "RESTORE SNAPSHOT my_repo.my_snapshot TABLE parted PARTITION (date=123)");
         String partition = new PartitionName("parted", ImmutableList.of(new BytesRef("123"))).asIndexName();
         assertThat(statement.indices(), contains(partition));
     }
@@ -306,7 +284,7 @@ public class SnapshotRestoreAnalyzerTest extends BaseAnalyzerTest {
     @Test
     public void testRestoreSinglePartitionToUnknownTable() throws Exception {
         RestoreSnapshotAnalyzedStatement statement = (RestoreSnapshotAnalyzedStatement) analyze(
-                "RESTORE SNAPSHOT my_repo.my_snapshot TABLE unknown_parted PARTITION (date=123)");
+            "RESTORE SNAPSHOT my_repo.my_snapshot TABLE unknown_parted PARTITION (date=123)");
         String partition = new PartitionName("unknown_parted", ImmutableList.of(new BytesRef("123"))).asIndexName();
         assertThat(statement.indices(), contains(partition));
     }
@@ -323,5 +301,26 @@ public class SnapshotRestoreAnalyzerTest extends BaseAnalyzerTest {
         expectedException.expect(RepositoryUnknownException.class);
         expectedException.expectMessage("Repository 'unknown_repo' unknown");
         analyze("RESTORE SNAPSHOT unknown_repo.my_snapshot ALL");
+    }
+
+    static class TestMetaDataModule extends MetaDataModule {
+        @Override
+        protected void bindSchemas() {
+            super.bindSchemas();
+            SchemaInfo schemaInfo = mock(SchemaInfo.class);
+            when(schemaInfo.getTableInfo(USER_TABLE_IDENT.name())).thenReturn(USER_TABLE_INFO);
+            when(schemaInfo.getTableInfo(TEST_DOC_LOCATIONS_TABLE_IDENT.name())).thenReturn(TEST_DOC_LOCATIONS_TABLE_INFO);
+            when(schemaInfo.getTableInfo(TEST_PARTITIONED_TABLE_IDENT.name()))
+                .thenReturn(TEST_PARTITIONED_TABLE_INFO);
+            when(schemaInfo.iterator()).thenReturn(Collections.singletonList(USER_TABLE_INFO).iterator());
+            schemaBinder.addBinding(Schemas.DEFAULT_SCHEMA_NAME).toInstance(schemaInfo);
+        }
+    }
+
+    private class MyMockedClusterServiceModule extends MockedClusterServiceModule {
+        @Override
+        protected void configureMetaData(MetaData metaData) {
+            when(metaData.custom(RepositoriesMetaData.TYPE)).thenReturn(repositoriesMetaData);
+        }
     }
 }

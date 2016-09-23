@@ -27,10 +27,11 @@ import javax.annotation.Nullable;
 
 public interface CrateCollector {
 
+    void doCollect();
+
+    void kill(@Nullable Throwable throwable);
+
     interface Builder {
         CrateCollector build(RowReceiver rowReceiver);
     }
-
-    void doCollect();
-    void kill(@Nullable Throwable throwable);
 }

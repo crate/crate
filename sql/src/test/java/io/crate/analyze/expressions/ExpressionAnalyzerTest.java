@@ -79,14 +79,14 @@ public class ExpressionAnalyzerTest extends CrateUnitTest {
         context = new ExpressionAnalysisContext(new StmtCtx());
 
         analysisMetaData = new AnalysisMetaData(
-                getFunctions(),
-                mock(ReferenceInfos.class),
-                new NestedReferenceResolver() {
-                    @Override
-                    public ReferenceImplementation getImplementation(Reference refInfo) {
-                        return null;
-                    }
-                });
+            getFunctions(),
+            mock(ReferenceInfos.class),
+            new NestedReferenceResolver() {
+                @Override
+                public ReferenceImplementation getImplementation(Reference refInfo) {
+                    return null;
+                }
+            });
     }
 
     @Test
@@ -94,7 +94,7 @@ public class ExpressionAnalyzerTest extends CrateUnitTest {
         expectedException.expect(UnsupportedOperationException.class);
         expectedException.expectMessage("Unsupported expression IF(1, 3)");
         ExpressionAnalyzer expressionAnalyzer = new ExpressionAnalyzer(
-                mockedAnalysisMetaData, emptyParameterContext, new FullQualifedNameFieldProvider(dummySources), null);
+            mockedAnalysisMetaData, emptyParameterContext, new FullQualifedNameFieldProvider(dummySources), null);
         ExpressionAnalysisContext expressionAnalysisContext = new ExpressionAnalysisContext(new StmtCtx());
 
         expressionAnalyzer.convert(SqlParser.createExpression("IF ( 1 , 3 )"), expressionAnalysisContext);
@@ -105,7 +105,7 @@ public class ExpressionAnalyzerTest extends CrateUnitTest {
         expectedException.expect(UnsupportedOperationException.class);
         expectedException.expectMessage("Unsupported expression current_time");
         ExpressionAnalyzer expressionAnalyzer = new ExpressionAnalyzer(
-                mockedAnalysisMetaData, emptyParameterContext, new FullQualifedNameFieldProvider(dummySources), null);
+            mockedAnalysisMetaData, emptyParameterContext, new FullQualifedNameFieldProvider(dummySources), null);
         ExpressionAnalysisContext expressionAnalysisContext = new ExpressionAnalysisContext(new StmtCtx());
 
         expressionAnalyzer.convert(SqlParser.createExpression("current_time"), expressionAnalysisContext);
@@ -114,11 +114,11 @@ public class ExpressionAnalyzerTest extends CrateUnitTest {
     @Test
     public void testQuotedSubscriptExpression() throws Exception {
         ExpressionAnalyzer expressionAnalyzer = new ExpressionAnalyzer(
-                mockedAnalysisMetaData,
-                new ParameterContext(Row.EMPTY, Collections.<Row>emptyList(),
-                    null, EnumSet.of(SQLOperations.Option.ALLOW_QUOTED_SUBSCRIPT)),
-                new FullQualifedNameFieldProvider(dummySources),
-                null);
+            mockedAnalysisMetaData,
+            new ParameterContext(Row.EMPTY, Collections.<Row>emptyList(),
+                null, EnumSet.of(SQLOperations.Option.ALLOW_QUOTED_SUBSCRIPT)),
+            new FullQualifedNameFieldProvider(dummySources),
+            null);
         ExpressionAnalysisContext expressionAnalysisContext = new ExpressionAnalysisContext(new StmtCtx());
 
         Field field1 = (Field) expressionAnalyzer.convert(SqlParser.createExpression("obj['x']"), expressionAnalysisContext);
@@ -151,19 +151,19 @@ public class ExpressionAnalyzerTest extends CrateUnitTest {
     public void testInSelfJoinCaseFunctionsThatLookTheSameMustNotReuseFunctionAllocation() throws Exception {
         TableInfo tableInfo = mock(TableInfo.class);
         when(tableInfo.getReference(new ColumnIdent("id"))).thenReturn(
-                new Reference(new ReferenceIdent(new TableIdent("doc", "t"), "id"), RowGranularity.DOC, DataTypes.INTEGER));
+            new Reference(new ReferenceIdent(new TableIdent("doc", "t"), "id"), RowGranularity.DOC, DataTypes.INTEGER));
         when(tableInfo.ident()).thenReturn(new TableIdent("doc", "t"));
         TableRelation tr1 = new TableRelation(tableInfo);
         TableRelation tr2 = new TableRelation(tableInfo);
 
         Map<QualifiedName, AnalyzedRelation> sources = ImmutableMap.<QualifiedName, AnalyzedRelation>of(
-                new QualifiedName("t1"), tr1,
-                new QualifiedName("t2"), tr2
+            new QualifiedName("t1"), tr1,
+            new QualifiedName("t2"), tr2
         );
         ExpressionAnalyzer expressionAnalyzer = new ExpressionAnalyzer(
-                analysisMetaData, emptyParameterContext, new FullQualifedNameFieldProvider(sources), null);
-        Function andFunction = (Function)expressionAnalyzer.convert(
-                SqlParser.createExpression("not t1.id = 1 and not t2.id = 1"), context);
+            analysisMetaData, emptyParameterContext, new FullQualifedNameFieldProvider(sources), null);
+        Function andFunction = (Function) expressionAnalyzer.convert(
+            SqlParser.createExpression("not t1.id = 1 and not t2.id = 1"), context);
 
         Field t1Id = ((Field) ((Function) ((Function) andFunction.arguments().get(0)).arguments().get(0)).arguments().get(0));
         Field t2Id = ((Field) ((Function) ((Function) andFunction.arguments().get(1)).arguments().get(0)).arguments().get(0));
@@ -173,7 +173,7 @@ public class ExpressionAnalyzerTest extends CrateUnitTest {
     @Test
     public void testSwapFunctionLeftSide() throws Exception {
         SqlExpressions expressions = new SqlExpressions(T3.SOURCES);
-        Function cmp = (Function)expressions.normalize(expressions.asSymbol("8 + 5 > t1.x"));
+        Function cmp = (Function) expressions.normalize(expressions.asSymbol("8 + 5 > t1.x"));
         // the comparison was swapped so the field is on the left side
         assertThat(cmp.info().ident().name(), is("op_<"));
         assertThat(cmp.arguments().get(0), isField("x"));
@@ -183,11 +183,11 @@ public class ExpressionAnalyzerTest extends CrateUnitTest {
     public void testNonDeterministicFunctionsAlwaysNew() throws Exception {
         ExpressionAnalysisContext localContext = new ExpressionAnalysisContext(new StmtCtx());
         FunctionInfo info1 = new FunctionInfo(
-                new FunctionIdent("inc", Arrays.<DataType>asList(DataTypes.BOOLEAN)),
-                DataTypes.INTEGER,
-                FunctionInfo.Type.SCALAR,
-                false,
-                false
+            new FunctionIdent("inc", Arrays.<DataType>asList(DataTypes.BOOLEAN)),
+            DataTypes.INTEGER,
+            FunctionInfo.Type.SCALAR,
+            false,
+            false
         );
         Function fn1 = localContext.allocateFunction(info1, Arrays.<Symbol>asList(Literal.BOOLEAN_FALSE));
         Function fn2 = localContext.allocateFunction(info1, Arrays.<Symbol>asList(Literal.BOOLEAN_FALSE));
@@ -195,8 +195,8 @@ public class ExpressionAnalyzerTest extends CrateUnitTest {
 
         // different instances
         assertThat(fn1, allOf(
-                not(sameInstance(fn2)),
-                not(sameInstance(fn3))
+            not(sameInstance(fn2)),
+            not(sameInstance(fn3))
 
         ));
         // but equal

@@ -43,10 +43,10 @@ public class ArrayTypeTest extends CrateUnitTest {
         DataType readType = DataTypes.fromStream(in);
         assertThat(readType, instanceOf(ArrayType.class));
 
-        ArrayType readArrayType = (ArrayType)readType;
+        ArrayType readArrayType = (ArrayType) readType;
         assertThat(readArrayType.innerType(), instanceOf(ArrayType.class));
 
-        ArrayType readInnerArrayType = (ArrayType)readArrayType.innerType();
+        ArrayType readInnerArrayType = (ArrayType) readArrayType.innerType();
         assertThat(readInnerArrayType.innerType(), instanceOf(StringType.class));
         assertSame(readInnerArrayType.innerType(), StringType.INSTANCE);
     }

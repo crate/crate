@@ -68,12 +68,6 @@ public class SQLOperations {
     private final boolean isReadOnly;
     private volatile boolean disabled;
 
-    public enum Option {
-        ALLOW_QUOTED_SUBSCRIPT;
-
-        public static final EnumSet<Option> NONE = EnumSet.noneOf(Option.class);
-    }
-
     @Inject
     public SQLOperations(Analyzer analyzer,
                          Planner planner,
@@ -93,7 +87,7 @@ public class SQLOperations {
 
     public Session createSession(@Nullable String defaultSchema, Set<Option> options, int defaultLimit) {
         if (disabled) {
-          throw new NodeDisconnectedException(clusterService.localNode(), "sql");
+            throw new NodeDisconnectedException(clusterService.localNode(), "sql");
         }
 
         return new Session(
@@ -121,13 +115,19 @@ public class SQLOperations {
         disabled = false;
     }
 
+    public enum Option {
+        ALLOW_QUOTED_SUBSCRIPT;
+
+        public static final EnumSet<Option> NONE = EnumSet.noneOf(Option.class);
+    }
+
     /**
      * Stateful Session
      * In the PSQL case there is one session per connection.
-     *
-     *
+     * <p>
+     * <p>
      * Methods are usually called in the following order:
-     *
+     * <p>
      * <pre>
      * parse(...)
      * bind(...)
@@ -135,9 +135,9 @@ public class SQLOperations {
      * execute(...)
      * sync()
      * </pre>
-     *
+     * <p>
      * Or:
-     *
+     * <p>
      * <pre>
      * parse(...)
      * loop:
@@ -145,7 +145,7 @@ public class SQLOperations {
      *      execute(...)
      * sync()
      * </pre>
-     *
+     * <p>
      * (https://www.postgresql.org/docs/9.2/static/protocol-flow.html#PROTOCOL-FLOW-EXT-QUERY)
      */
     public class Session {
@@ -346,6 +346,7 @@ public class SQLOperations {
 
         /**
          * Close a portal or prepared statement
+         *
          * @param type <b>S</b> for prepared statement, <b>P</b> for portal.
          * @param name name of the prepared statement or the portal (depending on type)
          */

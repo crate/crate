@@ -35,7 +35,7 @@ public class ToBooleanArrayFunctionTest extends AbstractScalarFunctionsTest {
 
     @Test
     public void testArrayDifferentTypesToBoolean() throws Exception {
-        Object[] expected = new Boolean[] { Boolean.TRUE, Boolean.FALSE };
+        Object[] expected = new Boolean[]{Boolean.TRUE, Boolean.FALSE};
         Object[] actual;
 
         actual = eval(new String[]{"t", "f"}, DataTypes.STRING);
@@ -43,7 +43,7 @@ public class ToBooleanArrayFunctionTest extends AbstractScalarFunctionsTest {
         actual = eval(new BytesRef[]{new BytesRef("t"), new BytesRef("f")}, DataTypes.STRING);
         assertThat(actual, is(expected));
 
-        actual = eval(new Long[] { 1L, 0L }, DataTypes.LONG);
+        actual = eval(new Long[]{1L, 0L}, DataTypes.LONG);
         assertThat(actual, is(expected));
     }
 

@@ -45,13 +45,13 @@ public class FunctionIdent implements Comparable<FunctionIdent>, Streamable {
 
     }
 
-    public static FunctionIdent of(String name, DataType type1, DataType type2) {
-        return new FunctionIdent(name, ImmutableList.of(type1, type2));
-    }
-
     public FunctionIdent(String name, List<DataType> argumentTypes) {
         this.name = name;
         this.argumentTypes = argumentTypes;
+    }
+
+    public static FunctionIdent of(String name, DataType type1, DataType type2) {
+        return new FunctionIdent(name, ImmutableList.of(type1, type2));
     }
 
     public List<DataType> argumentTypes() {
@@ -73,7 +73,7 @@ public class FunctionIdent implements Comparable<FunctionIdent>, Streamable {
 
         FunctionIdent o = (FunctionIdent) obj;
         return name.equalsIgnoreCase(o.name) &&
-                Objects.equal(argumentTypes, o.argumentTypes);
+               Objects.equal(argumentTypes, o.argumentTypes);
     }
 
     @Override
@@ -84,17 +84,17 @@ public class FunctionIdent implements Comparable<FunctionIdent>, Streamable {
     @Override
     public String toString() {
         return MoreObjects.toStringHelper(this)
-                .add("name", name)
-                .add("argumentTypes", argumentTypes)
-                .toString();
+            .add("name", name)
+            .add("argumentTypes", argumentTypes)
+            .toString();
     }
 
     @Override
     public int compareTo(FunctionIdent o) {
         return ComparisonChain.start()
-                .compare(name, o.name)
-                .compare(argumentTypes, o.argumentTypes, Ordering.<DataType>natural().lexicographical())
-                .result();
+            .compare(name, o.name)
+            .compare(argumentTypes, o.argumentTypes, Ordering.<DataType>natural().lexicographical())
+            .result();
     }
 
 

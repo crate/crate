@@ -56,9 +56,9 @@ public class Assignment extends Node {
     @Override
     public String toString() {
         return MoreObjects.toStringHelper(this)
-                .add("column", columnName)
-                .add("expression", expression)
-                .toString();
+            .add("column", columnName)
+            .add("expression", expression)
+            .toString();
     }
 
     @Override

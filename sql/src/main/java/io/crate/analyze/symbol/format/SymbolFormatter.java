@@ -34,7 +34,7 @@ public class SymbolFormatter {
      * format symbols in simple style and use the formatted symbols as {@link String#format(Locale, String, Object...)} arguments
      * for the given <code>messageTmpl</code>.
      */
-    public static String format(String messageTmpl, Symbol ... symbols) {
+    public static String format(String messageTmpl, Symbol... symbols) {
         Object[] formattedSymbols = new String[symbols.length];
         for (int i = 0; i < symbols.length; i++) {
             Symbol s = symbols[i];

@@ -40,7 +40,7 @@ public class NotPredicate extends Scalar<Boolean, Boolean> implements OperatorFo
     public static final String NAME = "op_not";
     public static final String OPERATOR_ALIAS = "NOT";
     public static final FunctionInfo INFO = new FunctionInfo(
-            new FunctionIdent(NAME, Arrays.<DataType>asList(DataTypes.BOOLEAN)), DataTypes.BOOLEAN);
+        new FunctionIdent(NAME, Arrays.<DataType>asList(DataTypes.BOOLEAN)), DataTypes.BOOLEAN);
 
     public static void register(PredicateModule module) {
         module.register(new NotPredicate());

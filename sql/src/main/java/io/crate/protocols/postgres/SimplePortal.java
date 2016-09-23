@@ -226,8 +226,8 @@ public class SimplePortal extends AbstractPortal {
         private final TransportKillJobsNodeAction transportKillJobsNodeAction;
         private final UUID jobId;
         private final String defaultSchema;
-        private Set<SQLOperations.Option> options;
         int attempt = 1;
+        private Set<SQLOperations.Option> options;
 
         ResultReceiverRetryWrapper(ResultReceiver delegate,
                                    SimplePortal portal,

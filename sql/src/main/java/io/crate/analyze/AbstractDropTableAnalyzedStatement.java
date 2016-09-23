@@ -46,13 +46,14 @@ public abstract class AbstractDropTableAnalyzedStatement<T extends TableInfo> ex
         return tableInfo;
     }
 
-    public TableIdent tableIdent(){
+    public TableIdent tableIdent() {
         return tableInfo.ident();
     }
 
-    public boolean noop(){
+    public boolean noop() {
         return noop;
     }
+
     public boolean dropIfExists() {
         return dropIfExists;
     }

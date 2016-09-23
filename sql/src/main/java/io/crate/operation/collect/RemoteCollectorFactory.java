@@ -99,7 +99,7 @@ public class RemoteCollectorFactory {
     /**
      * create a RemoteCollector
      * The RemoteCollector will collect data from another node using a wormhole as if it was collecting on this node.
-     *
+     * <p>
      * This should only be used if a shard is not available on the current node due to a relocation
      */
     public CrateCollector.Builder createCollector(String index,
@@ -178,7 +178,7 @@ public class RemoteCollectorFactory {
             collectPhase.maxRowGranularity(),
             collectPhase.toCollect(),
 
-             // the projector chain is already here on this node, don't need to run projections on the other node
+            // the projector chain is already here on this node, don't need to run projections on the other node
             Collections.<Projection>emptyList(),
             collectPhase.whereClause(),
             DistributionInfo.DEFAULT_BROADCAST

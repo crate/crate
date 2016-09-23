@@ -73,7 +73,7 @@ public class QueryAndFetchConsumer implements Consumer {
             if (table.querySpec().hasAggregates()) {
                 return null;
             }
-            if(table.querySpec().where().hasVersions()){
+            if (table.querySpec().where().hasVersions()) {
                 context.validationException(new VersionInvalidException());
                 return null;
             }
@@ -96,22 +96,9 @@ public class QueryAndFetchConsumer implements Consumer {
             NO_PREDICATE_VISITOR.process(query, null);
         }
 
-        private static class NoPredicateVisitor extends SymbolVisitor<Void, Void> {
-            @Override
-            public Void visitFunction(Function symbol, Void context) {
-                if (symbol.info().ident().name().equals(MatchPredicate.NAME)) {
-                    throw new UnsupportedFeatureException("Cannot use match predicate on system tables");
-                }
-                for (Symbol argument : symbol.arguments()) {
-                    process(argument, context);
-                }
-                return null;
-            }
-        }
-
         private PlannedAnalyzedRelation normalSelect(QueriedTableRelation table,
                                                      ConsumerContext context,
-                                                     List<Symbol> outputSymbols){
+                                                     List<Symbol> outputSymbols) {
             QuerySpec querySpec = table.querySpec();
 
             RoutedCollectPhase collectPhase;
@@ -149,10 +136,10 @@ public class QueryAndFetchConsumer implements Consumer {
                     nodePageSizeHint = limits.limitAndOffset();
                 }
                 collectPhase = RoutedCollectPhase.forQueriedTable(
-                        plannerContext,
-                        table,
-                        toCollect,
-                        projections
+                    plannerContext,
+                    table,
+                    toCollect,
+                    projections
                 );
                 collectPhase.orderBy(orderBy.orNull());
                 collectPhase.nodePageSizeHint(nodePageSizeHint);
@@ -164,41 +151,41 @@ public class QueryAndFetchConsumer implements Consumer {
                     if (!orderBy.isPresent()) {
                         // no sorting needed
                         mergeNode = MergePhase.localMerge(
-                                plannerContext.jobId(),
-                                plannerContext.nextExecutionPhaseId(),
-                                ImmutableList.<Projection>of(tnp),
-                                collectPhase.executionNodes().size(),
-                                collectPhase.outputTypes()
+                            plannerContext.jobId(),
+                            plannerContext.nextExecutionPhaseId(),
+                            ImmutableList.<Projection>of(tnp),
+                            collectPhase.executionNodes().size(),
+                            collectPhase.outputTypes()
                         );
                     } else {
                         // no order by needed in TopN as we already sorted on collector
                         // and we merge sorted with SortedBucketMerger
                         mergeNode = MergePhase.sortedMerge(
-                                plannerContext.jobId(),
-                                plannerContext.nextExecutionPhaseId(),
-                                orderBy.get(),
-                                allOutputs,
-                                InputColumn.fromSymbols(orderBy.get().orderBySymbols(), toCollect),
-                                ImmutableList.<Projection>of(tnp),
-                                collectPhase.executionNodes().size(),
-                                collectPhase.outputTypes()
+                            plannerContext.jobId(),
+                            plannerContext.nextExecutionPhaseId(),
+                            orderBy.get(),
+                            allOutputs,
+                            InputColumn.fromSymbols(orderBy.get().orderBySymbols(), toCollect),
+                            ImmutableList.<Projection>of(tnp),
+                            collectPhase.executionNodes().size(),
+                            collectPhase.outputTypes()
                         );
                     }
                 }
             } else {
                 collectPhase = RoutedCollectPhase.forQueriedTable(
-                        plannerContext,
-                        table,
-                        outputSymbols,
-                        ImmutableList.<Projection>of()
+                    plannerContext,
+                    table,
+                    outputSymbols,
+                    ImmutableList.<Projection>of()
                 );
                 if (context.isRoot()) {
                     mergeNode = MergePhase.localMerge(
-                            plannerContext.jobId(),
-                            plannerContext.nextExecutionPhaseId(),
-                            ImmutableList.<Projection>of(),
-                            collectPhase.executionNodes().size(),
-                            collectPhase.outputTypes()
+                        plannerContext.jobId(),
+                        plannerContext.nextExecutionPhaseId(),
+                        ImmutableList.<Projection>of(),
+                        collectPhase.executionNodes().size(),
+                        collectPhase.outputTypes()
                     );
                 }
             }
@@ -207,8 +194,21 @@ public class QueryAndFetchConsumer implements Consumer {
                 collectPhase.pageSizeHint(context.requiredPageSize());
             }
             SimpleSelect.enablePagingIfApplicable(
-                    collectPhase, mergeNode, limits.finalLimit(), querySpec.offset(), plannerContext.clusterService().localNode().id());
+                collectPhase, mergeNode, limits.finalLimit(), querySpec.offset(), plannerContext.clusterService().localNode().id());
             return new CollectAndMerge(collectPhase, mergeNode);
+        }
+
+        private static class NoPredicateVisitor extends SymbolVisitor<Void, Void> {
+            @Override
+            public Void visitFunction(Function symbol, Void context) {
+                if (symbol.info().ident().name().equals(MatchPredicate.NAME)) {
+                    throw new UnsupportedFeatureException("Cannot use match predicate on system tables");
+                }
+                for (Symbol argument : symbol.arguments()) {
+                    process(argument, context);
+                }
+                return null;
+            }
         }
     }
 }

@@ -37,14 +37,6 @@ import java.util.Map;
 public class SubscriptObjectFunction extends Scalar<Object, Map> implements DynamicFunctionResolver {
 
     public static final String NAME = "subscript_obj";
-
-    private static FunctionInfo createInfo(List<DataType> argumentTypes, DataType returnType) {
-        return new FunctionInfo(new FunctionIdent(NAME, argumentTypes), returnType);
-    }
-    public static void register(ScalarFunctionModule module) {
-        module.register(NAME, new SubscriptObjectFunction());
-    }
-
     private FunctionInfo info;
 
     private SubscriptObjectFunction() {
@@ -52,6 +44,14 @@ public class SubscriptObjectFunction extends Scalar<Object, Map> implements Dyna
 
     public SubscriptObjectFunction(FunctionInfo info) {
         this.info = info;
+    }
+
+    private static FunctionInfo createInfo(List<DataType> argumentTypes, DataType returnType) {
+        return new FunctionInfo(new FunctionIdent(NAME, argumentTypes), returnType);
+    }
+
+    public static void register(ScalarFunctionModule module) {
+        module.register(NAME, new SubscriptObjectFunction());
     }
 
     @Override
@@ -79,8 +79,8 @@ public class SubscriptObjectFunction extends Scalar<Object, Map> implements Dyna
     @Override
     public FunctionImplementation<Function> getForTypes(List<DataType> dataTypes) throws IllegalArgumentException {
         Preconditions.checkArgument(dataTypes.size() == 2
-                && dataTypes.get(0) == DataTypes.OBJECT
-                && dataTypes.get(1) == DataTypes.STRING);
+                                    && dataTypes.get(0) == DataTypes.OBJECT
+                                    && dataTypes.get(1) == DataTypes.STRING);
         return new SubscriptObjectFunction(createInfo(dataTypes.subList(0, 2), DataTypes.UNDEFINED));
     }
 

@@ -34,6 +34,21 @@ public class AnyLikeOperator extends AbstractAnyLikeOperator {
 
     public static final String NAME = AnyOperator.OPERATOR_PREFIX + "like";
 
+    public AnyLikeOperator(FunctionInfo info) {
+        super(info);
+    }
+
+    public static void register(OperatorModule module) {
+        module.registerDynamicOperatorFunction(NAME, new AnyLikeResolver());
+    }
+
+    protected boolean matches(String expression, String pattern) {
+        return Pattern.matches(
+            LikeOperator.patternToRegex(pattern, LikeOperator.DEFAULT_ESCAPE, true),
+            expression
+        );
+    }
+
     static class AnyLikeResolver extends AnyResolver {
 
         @Override
@@ -45,20 +60,5 @@ public class AnyLikeOperator extends AbstractAnyLikeOperator {
         public String name() {
             return NAME;
         }
-    }
-
-    public static void register(OperatorModule module) {
-        module.registerDynamicOperatorFunction(NAME, new AnyLikeResolver());
-    }
-
-    public AnyLikeOperator(FunctionInfo info) {
-        super(info);
-    }
-
-    protected boolean matches(String expression, String pattern) {
-        return Pattern.matches(
-                LikeOperator.patternToRegex(pattern, LikeOperator.DEFAULT_ESCAPE, true),
-                expression
-        );
     }
 }

@@ -25,15 +25,8 @@ import com.google.common.base.Objects;
 
 public class ColumnType extends Expression {
 
-    public static enum Type {
-        PRIMITIVE,
-        ARRAY,
-        SET
-    }
-
     protected final String name;
     protected final Type type;
-
     public ColumnType(String name) {
         this.name = name;
         this.type = Type.PRIMITIVE;
@@ -73,5 +66,11 @@ public class ColumnType extends Expression {
     @Override
     public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
         return visitor.visitColumnType(this, context);
+    }
+
+    public static enum Type {
+        PRIMITIVE,
+        ARRAY,
+        SET
     }
 }

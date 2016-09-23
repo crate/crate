@@ -23,16 +23,16 @@
 package io.crate.azure;
 
 import com.microsoft.windowsazure.core.Builder.Registry;
-import org.elasticsearch.ElasticsearchException;
-import org.elasticsearch.common.Strings;
-import org.elasticsearch.common.inject.AbstractModule;
-import org.elasticsearch.common.logging.ESLogger;
-import org.elasticsearch.common.settings.Settings;
 import io.crate.azure.discovery.AzureDiscovery;
 import io.crate.azure.management.AzureComputeService;
 import io.crate.azure.management.AzureComputeService.Management;
 import io.crate.azure.management.AzureComputeServiceImpl;
 import io.crate.azure.management.AzureComputeSettingsFilter;
+import org.elasticsearch.ElasticsearchException;
+import org.elasticsearch.common.Strings;
+import org.elasticsearch.common.inject.AbstractModule;
+import org.elasticsearch.common.logging.ESLogger;
+import org.elasticsearch.common.settings.Settings;
 
 /**
  * Azure Module
@@ -50,12 +50,6 @@ public class AzureModule extends AbstractModule {
 
     public static Class<? extends AzureComputeService> getComputeServiceImpl() {
         return computeServiceImpl;
-    }
-
-    @Override
-    protected void configure() {
-        bind(AzureComputeSettingsFilter.class).asEagerSingleton();
-        bind(AzureComputeService.class).to(computeServiceImpl).asEagerSingleton();
     }
 
     public static void registerServices(Registry registry) {
@@ -106,7 +100,7 @@ public class AzureModule extends AbstractModule {
             isPropertyMissing(settings, Management.APP_SECRET)
             ) {
             logger.warn("one or more azure discovery settings are missing. " +
-                         "Check elasticsearch.yml file. Should have [{}], [{}], [{}] and [{}].",
+                        "Check elasticsearch.yml file. Should have [{}], [{}], [{}] and [{}].",
                 Management.SUBSCRIPTION_ID,
                 Management.RESOURCE_GROUP_NAME,
                 Management.TENANT_ID,
@@ -129,5 +123,11 @@ public class AzureModule extends AbstractModule {
 
     private static boolean isPropertyMissing(Settings settings, String name) throws ElasticsearchException {
         return !Strings.hasText(settings.get(name));
+    }
+
+    @Override
+    protected void configure() {
+        bind(AzureComputeSettingsFilter.class).asEagerSingleton();
+        bind(AzureComputeService.class).to(computeServiceImpl).asEagerSingleton();
     }
 }

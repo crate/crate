@@ -86,12 +86,12 @@ public class AzureUnicastHostsProviderTest {
     @Test
     public void testSingleSubnet() throws IOException, ServiceException {
         List<String> networkAddresses = AzureUnicastHostsProvider.listIPAddresses(providerClient, rgName, vnetName, "", "vnet",
-                AzureUnicastHostsProvider.HostType.PRIVATE_IP, logger);
+            AzureUnicastHostsProvider.HostType.PRIVATE_IP, logger);
         assertEquals(networkAddresses.size(), 1);
         assertEquals(networkAddresses.get(0), "10.0.0.4");
 
         List<String> networkAddresses2 = AzureUnicastHostsProvider.listIPAddresses(providerClient, rgName, vnetName, "", "vnet",
-                AzureUnicastHostsProvider.HostType.PUBLIC_IP, logger);
+            AzureUnicastHostsProvider.HostType.PUBLIC_IP, logger);
         assertEquals(networkAddresses2.size(), 0);
     }
 
@@ -133,18 +133,18 @@ public class AzureUnicastHostsProviderTest {
         when(publicIpAddressGetResponse.getPublicIpAddress()).thenReturn(publicIpAddress);
 
         List<String> networkAddresses = AzureUnicastHostsProvider.listIPAddresses(providerClient, rgName, vnetName, subnetname, "subnet",
-                AzureUnicastHostsProvider.HostType.PRIVATE_IP, logger);
+            AzureUnicastHostsProvider.HostType.PRIVATE_IP, logger);
         assertEquals(networkAddresses.size(), 1);
         assertEquals(networkAddresses.get(0), "10.0.0.5");
 
         List<String> networkAddresses2 = AzureUnicastHostsProvider.listIPAddresses(providerClient, rgName, vnetName, subnetname, "vnet",
-                AzureUnicastHostsProvider.HostType.PRIVATE_IP, logger);
+            AzureUnicastHostsProvider.HostType.PRIVATE_IP, logger);
         assertEquals(networkAddresses2.size(), 2);
         assertEquals(networkAddresses2.contains("10.0.0.5"), true);
         assertEquals(networkAddresses2.contains("10.0.0.4"), true);
 
         List<String> networkAddresses3 = AzureUnicastHostsProvider.listIPAddresses(providerClient, rgName, vnetName, subnetname, "vnet",
-                AzureUnicastHostsProvider.HostType.PUBLIC_IP, logger);
+            AzureUnicastHostsProvider.HostType.PUBLIC_IP, logger);
         assertEquals(networkAddresses3.size(), 1);
         assertEquals(networkAddresses3.contains("33.33.33.33"), true);
         assertEquals(networkAddresses3.contains("10.0.0.5"), false);

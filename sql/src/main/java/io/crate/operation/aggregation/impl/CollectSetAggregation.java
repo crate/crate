@@ -44,17 +44,17 @@ public class CollectSetAggregation extends AggregationFunction<Set<Object>, Set<
 
     private FunctionInfo info;
 
-    public static void register(AggregationImplModule mod) {
-        for (final DataType dataType : DataTypes.PRIMITIVE_TYPES) {
-            mod.register(new CollectSetAggregation(new FunctionInfo(new FunctionIdent(NAME,
-                    ImmutableList.of(dataType)),
-                    new SetType(dataType), FunctionInfo.Type.AGGREGATE)));
-        }
-    }
-
     CollectSetAggregation(FunctionInfo info) {
         this.innerTypeEstimator = SizeEstimatorFactory.create(((SetType) info.returnType()).innerType());
         this.info = info;
+    }
+
+    public static void register(AggregationImplModule mod) {
+        for (final DataType dataType : DataTypes.PRIMITIVE_TYPES) {
+            mod.register(new CollectSetAggregation(new FunctionInfo(new FunctionIdent(NAME,
+                ImmutableList.of(dataType)),
+                new SetType(dataType), FunctionInfo.Type.AGGREGATE)));
+        }
     }
 
     @Override

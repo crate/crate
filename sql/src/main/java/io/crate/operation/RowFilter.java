@@ -38,18 +38,18 @@ public class RowFilter implements Predicate<Row> {
     private final Input<Boolean> filterCondition;
     private final Collection<CollectExpression<Row, ?>> filterCollectExpressions;
 
-    public static Predicate<Row> create(ImplementationSymbolVisitor symbolVisitor, @Nullable Symbol filterSymbol) {
-        if (filterSymbol == null) {
-            return Predicates.alwaysTrue();
-        }
-        return new RowFilter(symbolVisitor, filterSymbol);
-    }
-
     private RowFilter(ImplementationSymbolVisitor symbolVisitor, Symbol filterSymbol) {
         ImplementationSymbolVisitor.Context ctx = new ImplementationSymbolVisitor.Context();
         //noinspection unchecked
         filterCondition = (Input) symbolVisitor.process(filterSymbol, ctx);
         filterCollectExpressions = ctx.collectExpressions();
+    }
+
+    public static Predicate<Row> create(ImplementationSymbolVisitor symbolVisitor, @Nullable Symbol filterSymbol) {
+        if (filterSymbol == null) {
+            return Predicates.alwaysTrue();
+        }
+        return new RowFilter(symbolVisitor, filterSymbol);
     }
 
     @Override

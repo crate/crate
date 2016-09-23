@@ -128,26 +128,26 @@ public class DeleteStatementPlanner {
             new ReferenceIdent(tableInfo.ident(), "_uid"), RowGranularity.DOC, DataTypes.STRING);
 
         DeleteProjection deleteProjection = new DeleteProjection(
-                new InputColumn(0, DataTypes.STRING));
+            new InputColumn(0, DataTypes.STRING));
 
         Routing routing = plannerContext.allocateRouting(tableInfo, whereClause, Preference.PRIMARY.type());
         RoutedCollectPhase collectPhase = new RoutedCollectPhase(
-                plannerContext.jobId(),
-                plannerContext.nextExecutionPhaseId(),
-                "collect",
-                routing,
-                tableInfo.rowGranularity(),
-                ImmutableList.<Symbol>of(uidReference),
-                ImmutableList.<Projection>of(deleteProjection),
-                whereClause,
-                DistributionInfo.DEFAULT_BROADCAST
+            plannerContext.jobId(),
+            plannerContext.nextExecutionPhaseId(),
+            "collect",
+            routing,
+            tableInfo.rowGranularity(),
+            ImmutableList.<Symbol>of(uidReference),
+            ImmutableList.<Projection>of(deleteProjection),
+            whereClause,
+            DistributionInfo.DEFAULT_BROADCAST
         );
         MergePhase mergeNode = MergePhase.localMerge(
-                plannerContext.jobId(),
-                plannerContext.nextExecutionPhaseId(),
-                ImmutableList.<Projection>of(MergeCountProjection.INSTANCE),
-                collectPhase.executionNodes().size(),
-                collectPhase.outputTypes()
+            plannerContext.jobId(),
+            plannerContext.nextExecutionPhaseId(),
+            ImmutableList.<Projection>of(MergeCountProjection.INSTANCE),
+            collectPhase.executionNodes().size(),
+            collectPhase.outputTypes()
         );
         return new CollectAndMerge(collectPhase, mergeNode);
     }

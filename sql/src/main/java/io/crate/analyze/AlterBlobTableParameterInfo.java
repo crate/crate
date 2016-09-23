@@ -26,9 +26,9 @@ import com.google.common.collect.ImmutableList;
 public class AlterBlobTableParameterInfo extends TableParameterInfo {
 
     protected static final ImmutableList<String> SUPPORTED_SETTINGS =
-            ImmutableList.<String>builder()
-                    .add(NUMBER_OF_REPLICAS)
-                    .build();
+        ImmutableList.<String>builder()
+            .add(NUMBER_OF_REPLICAS)
+            .build();
 
     protected static final ImmutableList<String> SUPPORTED_MAPPINGS = ImmutableList.<String>of();
 

@@ -31,8 +31,7 @@ import java.util.List;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 public class QuerySpecification
-        extends QueryBody
-{
+    extends QueryBody {
     private final Select select;
     private final List<Relation> from;
     private final Optional<Expression> where;
@@ -43,15 +42,14 @@ public class QuerySpecification
     private final Optional<Expression> offset;
 
     public QuerySpecification(
-            Select select,
-            @Nullable List<Relation> from,
-            Optional<Expression> where,
-            List<Expression> groupBy,
-            Optional<Expression> having,
-            List<SortItem> orderBy,
-            Optional<Expression> limit,
-            Optional<Expression> offset)
-    {
+        Select select,
+        @Nullable List<Relation> from,
+        Optional<Expression> where,
+        List<Expression> groupBy,
+        Optional<Expression> having,
+        List<SortItem> orderBy,
+        Optional<Expression> limit,
+        Optional<Expression> offset) {
         checkNotNull(select, "select is null");
         checkNotNull(where, "where is null");
         checkNotNull(groupBy, "groupBy is null");
@@ -70,70 +68,59 @@ public class QuerySpecification
         this.offset = offset;
     }
 
-    public Select getSelect()
-    {
+    public Select getSelect() {
         return select;
     }
 
-    public List<Relation> getFrom()
-    {
+    public List<Relation> getFrom() {
         return from;
     }
 
-    public Optional<Expression> getWhere()
-    {
+    public Optional<Expression> getWhere() {
         return where;
     }
 
-    public List<Expression> getGroupBy()
-    {
+    public List<Expression> getGroupBy() {
         return groupBy;
     }
 
-    public Optional<Expression> getHaving()
-    {
+    public Optional<Expression> getHaving() {
         return having;
     }
 
-    public List<SortItem> getOrderBy()
-    {
+    public List<SortItem> getOrderBy() {
         return orderBy;
     }
 
-    public Optional<Expression> getLimit()
-    {
+    public Optional<Expression> getLimit() {
         return limit;
     }
 
-    public Optional<Expression> getOffset()
-    {
+    public Optional<Expression> getOffset() {
         return offset;
     }
 
     @Override
-    public <R, C> R accept(AstVisitor<R, C> visitor, C context)
-    {
+    public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
         return visitor.visitQuerySpecification(this, context);
     }
 
     @Override
-    public String toString()
-    {
+    public String toString() {
         return MoreObjects.toStringHelper(this)
-                .add("select", select)
-                .add("from", from)
-                .add("where", where.orNull())
-                .add("groupBy", groupBy)
-                .add("having", having.orNull())
-                .add("orderBy", orderBy)
-                .add("limit", limit.orNull())
-                .add("offset", offset.orNull())
-                .toString();
+            .add("select", select)
+            .add("from", from)
+            .add("where", where.orNull())
+            .add("groupBy", groupBy)
+            .add("having", having.orNull())
+            .add("orderBy", orderBy)
+            .add("limit", limit.orNull())
+            .add("offset", offset.orNull())
+            .toString();
     }
 
     @Override
-    public boolean equals(Object obj)
-    {
+    public boolean equals(Object obj) {
         if (this == obj) {
             return true;
         }
@@ -142,18 +129,17 @@ public class QuerySpecification
         }
         QuerySpecification o = (QuerySpecification) obj;
         return Objects.equal(select, o.select) &&
-                Objects.equal(from, o.from) &&
-                Objects.equal(where, o.where) &&
-                Objects.equal(groupBy, o.groupBy) &&
-                Objects.equal(having, o.having) &&
-                Objects.equal(orderBy, o.orderBy) &&
-                Objects.equal(limit, o.limit) &&
-                Objects.equal(offset, o.offset);
+               Objects.equal(from, o.from) &&
+               Objects.equal(where, o.where) &&
+               Objects.equal(groupBy, o.groupBy) &&
+               Objects.equal(having, o.having) &&
+               Objects.equal(orderBy, o.orderBy) &&
+               Objects.equal(limit, o.limit) &&
+               Objects.equal(offset, o.offset);
     }
 
     @Override
-    public int hashCode()
-    {
+    public int hashCode() {
         return Objects.hashCode(select, from, where, groupBy, having, orderBy, limit, offset);
     }
 }

@@ -24,14 +24,12 @@ package io.crate.sql.tree;
 import com.google.common.base.Preconditions;
 
 public class BetweenPredicate
-        extends Expression
-{
+    extends Expression {
     private final Expression value;
     private final Expression min;
     private final Expression max;
 
-    public BetweenPredicate(Expression value, Expression min, Expression max)
-    {
+    public BetweenPredicate(Expression value, Expression min, Expression max) {
         Preconditions.checkNotNull(value, "value is null");
         Preconditions.checkNotNull(min, "min is null");
         Preconditions.checkNotNull(max, "max is null");
@@ -41,30 +39,25 @@ public class BetweenPredicate
         this.max = max;
     }
 
-    public Expression getValue()
-    {
+    public Expression getValue() {
         return value;
     }
 
-    public Expression getMin()
-    {
+    public Expression getMin() {
         return min;
     }
 
-    public Expression getMax()
-    {
+    public Expression getMax() {
         return max;
     }
 
     @Override
-    public <R, C> R accept(AstVisitor<R, C> visitor, C context)
-    {
+    public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
         return visitor.visitBetweenPredicate(this, context);
     }
 
     @Override
-    public boolean equals(Object o)
-    {
+    public boolean equals(Object o) {
         if (this == o) {
             return true;
         }
@@ -88,8 +81,7 @@ public class BetweenPredicate
     }
 
     @Override
-    public int hashCode()
-    {
+    public int hashCode() {
         int result = value.hashCode();
         result = 31 * result + min.hashCode();
         result = 31 * result + max.hashCode();

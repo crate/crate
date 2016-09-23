@@ -28,9 +28,7 @@ import org.junit.Test;
 
 import java.util.Locale;
 
-import static org.hamcrest.Matchers.arrayContaining;
-import static org.hamcrest.Matchers.not;
-import static org.hamcrest.Matchers.nullValue;
+import static org.hamcrest.Matchers.*;
 import static org.hamcrest.core.Is.is;
 
 
@@ -99,10 +97,10 @@ public class ArithmeticIntegrationTest extends SQLTransportIntegrationTest {
     public void testSelectOrderByScalar() throws Exception {
         execute("create table t (d double, i integer, name string) clustered into 1 shards with (number_of_replicas=0)");
         ensureYellow();
-        execute("insert into t (d, name) values (?, ?)", new Object[][] {
-                new Object[] {1.3d, "Arthur" },
-                new Object[] {1.6d, null },
-                new Object[] {2.2d, "Marvin" }
+        execute("insert into t (d, name) values (?, ?)", new Object[][]{
+            new Object[]{1.3d, "Arthur"},
+            new Object[]{1.6d, null},
+            new Object[]{2.2d, "Marvin"}
         });
         execute("refresh table t");
 
@@ -144,9 +142,9 @@ public class ArithmeticIntegrationTest extends SQLTransportIntegrationTest {
         execute("create table t (d double, i integer) clustered into 1 shards with (number_of_replicas=0)");
         ensureYellow();
         execute("insert into t (d, i) values (?, ?), (?, ?), (?, ?)", new Object[]{
-                1.3d, 1,
-                1.6d, 2,
-                2.2d, 9});
+            1.3d, 1,
+            1.6d, 2,
+            2.2d, 9});
         execute("refresh table t");
 
         execute("select i from t where round(d) = i order by i");
@@ -160,9 +158,9 @@ public class ArithmeticIntegrationTest extends SQLTransportIntegrationTest {
         execute("create table t (x long, base long) clustered into 1 shards with (number_of_replicas=0)");
         ensureYellow();
         execute("insert into t (x, base) values (?, ?), (?, ?), (?, ?)", new Object[]{
-                144L, 12L, // 2
-                65536L, 2L, // 16
-                9L, 3L // 2
+            144L, 12L, // 2
+            65536L, 2L, // 16
+            9L, 3L // 2
         });
         execute("refresh table t");
 
@@ -186,11 +184,11 @@ public class ArithmeticIntegrationTest extends SQLTransportIntegrationTest {
         execute("select l, log(d,l) from t order by l, log(d,l) desc");
         assertThat(response.rowCount(), is(5L));
         assertThat(TestingHelpers.printedTable(response.rows()),
-                is("2| 6.6293566200796095\n" +
-                        "2| 6.499845887083206\n" +
-                        "4| 3.3146783100398047\n" +
-                        "4| 3.249922943541603\n" +
-                        "31234594433| 0.19015764044502392\n"));
+            is("2| 6.6293566200796095\n" +
+               "2| 6.499845887083206\n" +
+               "4| 3.3146783100398047\n" +
+               "4| 3.249922943541603\n" +
+               "31234594433| 0.19015764044502392\n"));
     }
 
     @Test
@@ -198,9 +196,9 @@ public class ArithmeticIntegrationTest extends SQLTransportIntegrationTest {
         execute("create table regex_noindex (i integer, s string INDEX OFF) clustered into 3 shards with (number_of_replicas=0)");
         ensureYellow();
         execute("insert into regex_noindex (i, s) values (?, ?)", new Object[][]{
-                new Object[]{1, "foo"},
-                new Object[]{2, "bar"},
-                new Object[]{3, "foobar"}
+            new Object[]{1, "foo"},
+            new Object[]{2, "bar"},
+            new Object[]{3, "foobar"}
         });
         refresh();
         execute("select regexp_replace(s, 'foo', 'crate') from regex_noindex order by i");
@@ -211,7 +209,7 @@ public class ArithmeticIntegrationTest extends SQLTransportIntegrationTest {
 
         execute("select regexp_matches(s, '^(bar).*') from regex_noindex order by i");
         assertThat(response.rows()[0][0], nullValue());
-        assertThat((Object[]) response.rows()[1][0], arrayContaining(new Object[] {"bar"}));
+        assertThat((Object[]) response.rows()[1][0], arrayContaining(new Object[]{"bar"}));
         assertThat(response.rows()[2][0], nullValue());
     }
 
@@ -285,8 +283,8 @@ public class ArithmeticIntegrationTest extends SQLTransportIntegrationTest {
         execute("select i%3, sum(l) from t where i+1 > 2 group by i%3 order by sum(l)");
         assertThat(response.rowCount(), is(2L));
         assertThat(TestingHelpers.printedTable(response.rows()), is(
-                "2| 5.0\n" +
-                        "1| 3.1234594454E10\n"));
+            "2| 5.0\n" +
+            "1| 3.1234594454E10\n"));
     }
 
     @Test
@@ -299,11 +297,11 @@ public class ArithmeticIntegrationTest extends SQLTransportIntegrationTest {
         execute("select i, i%3 from t order by i%3, l");
         assertThat(response.rowCount(), is(5L));
         assertThat(TestingHelpers.printedTable(response.rows()), is(
-                "-1| -1\n" +
-                        "1| 1\n" +
-                        "10| 1\n" +
-                        "193384| 1\n" +
-                        "2| 2\n"));
+            "-1| -1\n" +
+            "1| 1\n" +
+            "10| 1\n" +
+            "193384| 1\n" +
+            "2| 2\n"));
     }
 
     @Test
@@ -340,15 +338,15 @@ public class ArithmeticIntegrationTest extends SQLTransportIntegrationTest {
         refresh();
 
         String[] functionCalls = new String[]{
-                "abs(%s)",
-                "ceil(%s)",
-                "floor(%s)",
-                "ln(%s)",
-                "log(%s)",
-                "log(%s, 2)",
-                "random()",
-                "round(%s)",
-                "sqrt(%s)"
+            "abs(%s)",
+            "ceil(%s)",
+            "floor(%s)",
+            "ln(%s)",
+            "log(%s)",
+            "log(%s, 2)",
+            "random()",
+            "round(%s)",
+            "sqrt(%s)"
         };
 
         for (String functionCall : functionCalls) {
@@ -377,10 +375,10 @@ public class ArithmeticIntegrationTest extends SQLTransportIntegrationTest {
         execute("create table t (d long) clustered into 1 shards with (number_of_replicas=0)");
         ensureGreen();
         execute("insert into t (d) values (?)", new Object[][]{
-                new Object[]{-7L},
-                new Object[]{null},
-                new Object[]{5L},
-                new Object[]{null}
+            new Object[]{-7L},
+            new Object[]{null},
+            new Object[]{5L},
+            new Object[]{null}
 
         });
         execute("refresh table t");

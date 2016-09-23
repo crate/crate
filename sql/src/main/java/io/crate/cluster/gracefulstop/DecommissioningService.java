@@ -109,17 +109,6 @@ public class DecommissioningService extends AbstractLifecycleComponent implement
         }
     }
 
-    private void removeRemovedNodes(ClusterChangedEvent event) {
-        if (!event.localNodeMaster() || !event.nodesRemoved()) {
-            return;
-        }
-        Set<String> removedDecommissionedNodes = getRemovedDecommissionedNodes(
-            event.nodesDelta(), event.state().metaData().transientSettings());
-        if (removedDecommissionedNodes != null) {
-            updateSettingsAction.execute(new ClusterUpdateSettingsRequest().transientSettingsToRemove(removedDecommissionedNodes));
-        }
-    }
-
     @Nullable
     private static Set<String> getRemovedDecommissionedNodes(DiscoveryNodes.Delta nodesDelta, Settings transientSettings) {
         Set<String> toRemove = null;
@@ -133,6 +122,17 @@ public class DecommissioningService extends AbstractLifecycleComponent implement
             }
         }
         return toRemove;
+    }
+
+    private void removeRemovedNodes(ClusterChangedEvent event) {
+        if (!event.localNodeMaster() || !event.nodesRemoved()) {
+            return;
+        }
+        Set<String> removedDecommissionedNodes = getRemovedDecommissionedNodes(
+            event.nodesDelta(), event.state().metaData().transientSettings());
+        if (removedDecommissionedNodes != null) {
+            updateSettingsAction.execute(new ClusterUpdateSettingsRequest().transientSettingsToRemove(removedDecommissionedNodes));
+        }
     }
 
     @Override

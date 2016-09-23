@@ -96,30 +96,30 @@ public class TransportSQLActionClassLifecycleTest extends SQLTransportIntegratio
     public void testSelectDoc() throws Exception {
         SQLResponse response = execute("select _doc from characters order by name desc limit 1");
         assertArrayEquals(new String[]{"_doc"}, response.cols());
-        Map<String, Object> _doc = new TreeMap<>((Map)response.rows()[0][0]);
+        Map<String, Object> _doc = new TreeMap<>((Map) response.rows()[0][0]);
         assertEquals(
-                "{age=32, birthdate=276912000000, details={job=Mathematician}, " +
-                        "gender=female, name=Trillian, race=Human}",
-                _doc.toString());
+            "{age=32, birthdate=276912000000, details={job=Mathematician}, " +
+            "gender=female, name=Trillian, race=Human}",
+            _doc.toString());
     }
 
     @Test
     public void testSelectRaw() throws Exception {
         SQLResponse response = execute("select _raw from characters order by name desc limit 1");
         assertEquals(
-                "{\"race\":\"Human\",\"gender\":\"female\",\"age\":32,\"birthdate\":276912000000," +
-                        "\"name\":\"Trillian\",\"details\":{\"job\":\"Mathematician\"}}\n",
-                TestingHelpers.printedTable(response.rows()));
+            "{\"race\":\"Human\",\"gender\":\"female\",\"age\":32,\"birthdate\":276912000000," +
+            "\"name\":\"Trillian\",\"details\":{\"job\":\"Mathematician\"}}\n",
+            TestingHelpers.printedTable(response.rows()));
     }
 
     @Test
     public void testSelectRawWithGrouping() throws Exception {
         SQLResponse response = execute("select name, _raw from characters " +
-                "group by _raw, name order by name desc limit 1");
+                                       "group by _raw, name order by name desc limit 1");
         assertEquals(
-                "Trillian| {\"race\":\"Human\",\"gender\":\"female\",\"age\":32,\"birthdate\":276912000000," +
-                        "\"name\":\"Trillian\",\"details\":{\"job\":\"Mathematician\"}}\n",
-                TestingHelpers.printedTable(response.rows()));
+            "Trillian| {\"race\":\"Human\",\"gender\":\"female\",\"age\":32,\"birthdate\":276912000000," +
+            "\"name\":\"Trillian\",\"details\":{\"job\":\"Mathematician\"}}\n",
+            TestingHelpers.printedTable(response.rows()));
     }
 
     @Test
@@ -185,19 +185,19 @@ public class TransportSQLActionClassLifecycleTest extends SQLTransportIntegratio
         SQLResponse secondResp = execute("select sum(age) from characters where age is not null");
 
         assertEquals(
-                firstResp.rowCount(),
-                secondResp.rowCount()
+            firstResp.rowCount(),
+            secondResp.rowCount()
         );
         assertEquals(
-                firstResp.rows()[0][0],
-                secondResp.rows()[0][0]
+            firstResp.rows()[0][0],
+            secondResp.rows()[0][0]
         );
     }
 
     @Test
     public void testGlobalAggregateNullRowWithoutMatchingRows() throws Exception {
         SQLResponse response = execute(
-                "select sum(age), avg(age) from characters where characters.age > 112");
+            "select sum(age), avg(age) from characters where characters.age > 112");
         assertEquals(1, response.rowCount());
         assertNull(response.rows()[0][0]);
         assertNull(response.rows()[0][1]);
@@ -226,7 +226,7 @@ public class TransportSQLActionClassLifecycleTest extends SQLTransportIntegratio
     @Test
     public void testGroupByNestedObject() throws Exception {
         SQLResponse response = execute("select count(*), details['job'] from characters " +
-                "group by details['job'] order by count(*), details['job']");
+                                       "group by details['job'] order by count(*), details['job']");
         assertEquals(3, response.rowCount());
         assertEquals(1L, response.rows()[0][0]);
         assertEquals("Mathematician", response.rows()[0][1]);
@@ -239,7 +239,7 @@ public class TransportSQLActionClassLifecycleTest extends SQLTransportIntegratio
     @Test
     public void testCountWithGroupByOrderOnKeyDescAndLimit() throws Exception {
         SQLResponse response = execute(
-                "select count(*), race from characters group by race order by race desc limit 2");
+            "select count(*), race from characters group by race order by race desc limit 2");
 
         assertEquals(2L, response.rowCount());
         assertEquals(2L, response.rows()[0][0]);
@@ -251,7 +251,7 @@ public class TransportSQLActionClassLifecycleTest extends SQLTransportIntegratio
     @Test
     public void testCountWithGroupByOrderOnKeyAscAndLimit() throws Exception {
         SQLResponse response = execute(
-                "select count(*), race from characters group by race order by race asc limit 2");
+            "select count(*), race from characters group by race order by race asc limit 2");
 
         assertEquals(2, response.rowCount());
         assertEquals(1L, response.rows()[0][0]);
@@ -270,26 +270,26 @@ public class TransportSQLActionClassLifecycleTest extends SQLTransportIntegratio
     @Test
     public void testGroupByAndOrderByAlias() throws Exception {
         SQLResponse response = execute(
-                "select characters.race as test_race from characters group by characters.race order by characters.race");
+            "select characters.race as test_race from characters group by characters.race order by characters.race");
         assertEquals(3, response.rowCount());
 
         response = execute(
-                "select characters.race as test_race from characters group by characters.race order by test_race");
+            "select characters.race as test_race from characters group by characters.race order by test_race");
         assertEquals(3, response.rowCount());
     }
 
     @Test
     public void testCountWithGroupByWithWhereClause() throws Exception {
         SQLResponse response = execute(
-                "select count(*), race from characters where race = 'Human' group by race");
+            "select count(*), race from characters where race = 'Human' group by race");
         assertEquals(1, response.rowCount());
     }
 
     @Test
     public void testCountWithGroupByOrderOnAggAscFuncAndLimit() throws Exception {
         SQLResponse response = execute("select count(*), race from characters " +
-                        "group by race order by count(*) asc limit ?",
-                new Object[]{2});
+                                       "group by race order by count(*) asc limit ?",
+            new Object[]{2});
 
         assertEquals(2, response.rowCount());
         assertEquals(1L, response.rows()[0][0]);
@@ -301,7 +301,7 @@ public class TransportSQLActionClassLifecycleTest extends SQLTransportIntegratio
     @Test
     public void testCountWithGroupByOrderOnAggAscFuncAndSecondColumnAndLimit() throws Exception {
         SQLResponse response = execute("select count(*), gender, race from characters " +
-                "group by race, gender order by count(*) desc, race, gender asc limit 2");
+                                       "group by race, gender order by count(*) desc, race, gender asc limit 2");
 
         assertEquals(2L, response.rowCount());
         assertEquals(2L, response.rows()[0][0]);
@@ -315,7 +315,7 @@ public class TransportSQLActionClassLifecycleTest extends SQLTransportIntegratio
     @Test
     public void testCountWithGroupByOrderOnAggAscFuncAndSecondColumnAndLimitAndOffset() throws Exception {
         SQLResponse response = execute("select count(*), gender, race from characters " +
-                "group by race, gender order by count(*) desc, race asc limit 2 offset 2");
+                                       "group by race, gender order by count(*) desc, race asc limit 2 offset 2");
 
         assertEquals(2, response.rowCount());
         assertEquals(2L, response.rows()[0][0]);
@@ -329,7 +329,7 @@ public class TransportSQLActionClassLifecycleTest extends SQLTransportIntegratio
     @Test
     public void testCountWithGroupByOrderOnAggAscFuncAndSecondColumnAndLimitAndTooLargeOffset() throws Exception {
         SQLResponse response = execute("select count(*), gender, race from characters " +
-                "group by race, gender order by count(*) desc, race asc limit 2 offset 20");
+                                       "group by race, gender order by count(*) desc, race asc limit 2 offset 20");
 
         assertEquals(0, response.rows().length);
         assertEquals(0, response.rowCount());
@@ -338,7 +338,7 @@ public class TransportSQLActionClassLifecycleTest extends SQLTransportIntegratio
     @Test
     public void testCountWithGroupByOrderOnAggDescFuncAndLimit() throws Exception {
         SQLResponse response = execute(
-                "select count(*), race from characters group by race order by count(*) desc limit 2");
+            "select count(*), race from characters group by race order by count(*) desc limit 2");
 
         assertEquals(2, response.rowCount());
         assertEquals(4L, response.rows()[0][0]);
@@ -356,24 +356,24 @@ public class TransportSQLActionClassLifecycleTest extends SQLTransportIntegratio
     @Test
     public void testOrderByNullsFirstAndLast() throws Exception {
         SQLResponse response = execute(
-                "select details['job'] from characters order by details['job'] nulls first limit 1");
+            "select details['job'] from characters order by details['job'] nulls first limit 1");
         assertNull(response.rows()[0][0]);
 
         response = execute(
-                "select details['job'] from characters order by details['job'] desc nulls first limit 1");
+            "select details['job'] from characters order by details['job'] desc nulls first limit 1");
         assertNull(response.rows()[0][0]);
 
         response = execute(
-                "select details['job'] from characters order by details['job'] nulls last");
+            "select details['job'] from characters order by details['job'] nulls last");
         assertNull(response.rows()[((Long) response.rowCount()).intValue() - 1][0]);
 
         response = execute(
-                "select details['job'] from characters order by details['job'] desc nulls last");
+            "select details['job'] from characters order by details['job'] desc nulls last");
         assertNull(response.rows()[((Long) response.rowCount()).intValue() - 1][0]);
 
 
         response = execute(
-                "select distinct details['job'] from characters order by details['job'] desc nulls last");
+            "select distinct details['job'] from characters order by details['job'] desc nulls last");
         assertNull(response.rows()[((Long) response.rowCount()).intValue() - 1][0]);
     }
 
@@ -443,7 +443,7 @@ public class TransportSQLActionClassLifecycleTest extends SQLTransportIntegratio
     @UseJdbc(false) // set has no rowcount
     public void testSetMultipleStatement() throws Exception {
         SQLResponse response = execute(
-                "select settings['stats']['operations_log_size'], settings['stats']['enabled'] from sys.cluster");
+            "select settings['stats']['operations_log_size'], settings['stats']['enabled'] from sys.cluster");
         assertThat(response.rowCount(), is(1L));
         assertThat((Integer) response.rows()[0][0], is(CrateSettings.STATS_OPERATIONS_LOG_SIZE.defaultValue()));
         assertThat((Boolean) response.rows()[0][1], is(CrateSettings.STATS_ENABLED.defaultValue()));
@@ -452,7 +452,7 @@ public class TransportSQLActionClassLifecycleTest extends SQLTransportIntegratio
         assertThat(response.rowCount(), is(1L));
 
         response = execute(
-                "select settings['stats']['operations_log_size'], settings['stats']['enabled'] from sys.cluster");
+            "select settings['stats']['operations_log_size'], settings['stats']['enabled'] from sys.cluster");
         assertThat(response.rowCount(), is(1L));
         assertThat((Integer) response.rows()[0][0], is(1024));
         assertThat((Boolean) response.rows()[0][1], is(false));
@@ -462,7 +462,7 @@ public class TransportSQLActionClassLifecycleTest extends SQLTransportIntegratio
         waitNoPendingTasksOnAll();
 
         response = execute(
-                "select settings['stats']['operations_log_size'], settings['stats']['enabled'] from sys.cluster");
+            "select settings['stats']['operations_log_size'], settings['stats']['enabled'] from sys.cluster");
         assertThat(response.rowCount(), is(1L));
         assertThat((Integer) response.rows()[0][0], is(CrateSettings.STATS_OPERATIONS_LOG_SIZE.defaultValue()));
         assertThat((Boolean) response.rows()[0][1], is(CrateSettings.STATS_ENABLED.defaultValue()));
@@ -485,7 +485,7 @@ public class TransportSQLActionClassLifecycleTest extends SQLTransportIntegratio
     @Test
     public void testSysOperationsLog() throws Exception {
         execute(
-                "select count(*), race from characters group by race order by count(*) desc limit 2");
+            "select count(*), race from characters group by race order by count(*) desc limit 2");
         SQLResponse resp = execute("select count(*) from sys.operations_log");
         assertThat((Long) resp.rows()[0][0], is(0L));
 
@@ -493,7 +493,7 @@ public class TransportSQLActionClassLifecycleTest extends SQLTransportIntegratio
         waitNoPendingTasksOnAll();
 
         execute(
-                "select count(*), race from characters group by race order by count(*) desc limit 2");
+            "select count(*), race from characters group by race order by count(*) desc limit 2");
 
         assertBusy(new Runnable() {
             @Override
@@ -505,12 +505,12 @@ public class TransportSQLActionClassLifecycleTest extends SQLTransportIntegratio
                     names.add((String) objects[4]);
                 }
                 assertThat(names, Matchers.anyOf(
-                        Matchers.hasItems("distributing collect", "distributing collect"),
-                        Matchers.hasItems("collect", "localMerge"),
+                    Matchers.hasItems("distributing collect", "distributing collect"),
+                    Matchers.hasItems("collect", "localMerge"),
 
-                        // the select * from sys.operations_log has 2 collect operations (1 per node)
-                        Matchers.hasItems("collect", "collect"),
-                        Matchers.hasItems("distributed merge", "localMerge")));
+                    // the select * from sys.operations_log has 2 collect operations (1 per node)
+                    Matchers.hasItems("collect", "collect"),
+                    Matchers.hasItems("distributed merge", "localMerge")));
             }
         }, 10L, TimeUnit.SECONDS);
 
@@ -582,7 +582,7 @@ public class TransportSQLActionClassLifecycleTest extends SQLTransportIntegratio
     @Test
     public void testDistanceQueryOnSysTable() throws Exception {
         SQLResponse response = execute(
-                "select Distance('POINT (10 20)', 'POINT (11 21)') from sys.cluster");
+            "select Distance('POINT (10 20)', 'POINT (11 21)') from sys.cluster");
         assertThat((Double) response.rows()[0][0], is(152462.70754934277));
     }
 
@@ -596,8 +596,8 @@ public class TransportSQLActionClassLifecycleTest extends SQLTransportIntegratio
     @Test
     public void testSysNodesVersionFromMultipleNodes() throws Exception {
         SQLResponse response = execute("select version, version['number'], " +
-                "version['build_hash'], version['build_snapshot'] " +
-                "from sys.nodes");
+                                       "version['build_hash'], version['build_snapshot'] " +
+                                       "from sys.nodes");
         assertThat(response.rowCount(), is(2L));
         for (int i = 0; i <= 1; i++) {
             assertThat(response.rows()[i][0], instanceOf(Map.class));

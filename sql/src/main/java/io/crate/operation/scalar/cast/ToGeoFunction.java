@@ -34,6 +34,10 @@ import java.util.Map;
 
 public class ToGeoFunction extends AbstractCastFunction<Object, Object> {
 
+    protected ToGeoFunction(FunctionInfo info) {
+        super(info);
+    }
+
     public static void register(ScalarFunctionModule module) {
         for (Map.Entry<DataType, String> function : CastFunctionResolver.GEO_FUNCTION_MAP.entrySet()) {
             module.register(function.getValue(), new GeoResolver(function.getKey(), function.getValue()));
@@ -50,10 +54,5 @@ public class ToGeoFunction extends AbstractCastFunction<Object, Object> {
         protected FunctionImplementation<Function> createInstance(List<DataType> dataTypes) {
             return new ToGeoFunction(new FunctionInfo(new FunctionIdent(name, dataTypes), dataType));
         }
-    }
-
-
-    protected ToGeoFunction(FunctionInfo info) {
-        super(info);
     }
 }

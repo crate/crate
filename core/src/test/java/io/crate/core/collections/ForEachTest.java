@@ -37,7 +37,7 @@ public class ForEachTest extends CrateUnitTest {
         ForEach.forEach(elements, new ForEach.Acceptor() {
             @Override
             public void accept(Object value) {
-                sum.getAndAdd((int)value);
+                sum.getAndAdd((int) value);
             }
         });
         assertThat(sum.get(), is(expected));
@@ -45,7 +45,7 @@ public class ForEachTest extends CrateUnitTest {
 
     @Test
     public void testPrimitiveArray() throws Exception {
-        int[] array = new int[] {1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
+        int[] array = new int[]{1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
         assertForEachCalledOnAllElements(array, 55);
     }
 
@@ -57,7 +57,7 @@ public class ForEachTest extends CrateUnitTest {
 
     @Test
     public void testArray() throws Exception {
-        Integer[] array = new Integer[] {1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
+        Integer[] array = new Integer[]{1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
         assertForEachCalledOnAllElements(array, 55);
     }
 

@@ -22,9 +22,8 @@
 
 package io.crate.azure.discovery;
 
-import com.microsoft.azure.management.network.*;
+import com.microsoft.azure.management.network.NetworkResourceProviderClient;
 import com.microsoft.azure.management.network.models.*;
-
 import io.crate.azure.management.AzureComputeService;
 import io.crate.azure.management.AzureComputeService.Discovery;
 import org.elasticsearch.Version;
@@ -44,46 +43,25 @@ import org.elasticsearch.transport.TransportService;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
 
 public class AzureUnicastHostsProvider extends AbstractComponent implements UnicastHostsProvider {
-
-    public static enum HostType {
-        PRIVATE_IP("private_ip"),
-        PUBLIC_IP("public_ip");
-
-        private String type;
-
-        private HostType(String type) {
-            this.type = type;
-        }
-
-        public static HostType fromString(String type) {
-            for (HostType hostType : values()) {
-                if (hostType.type.equalsIgnoreCase(type)) {
-                    return hostType;
-                }
-            }
-            return null;
-        }
-    }
 
     private static final TimeValue DEFAULT_REFRESH_TIME = TimeValue.timeValueSeconds(5L);
     private static final HostType DEFAULT_HOST_TYPE = HostType.PRIVATE_IP;
     private static final String DEFAULT_DISCOVERY_METHOD = AzureDiscovery.VNET;
-
     private final AzureComputeService azureComputeService;
     private final TransportService transportService;
     private final NetworkService networkService;
     private final Version version;
     private final TimeValue refreshInterval;
-
-    private DiscoNodeCache cache;
-
     private final String resourceGroup;
     private final HostType hostType;
     private final String discoveryMethod;
-
+    private DiscoNodeCache cache;
     @Inject
     public AzureUnicastHostsProvider(Settings settings,
                                      AzureComputeService azureComputeService,
@@ -102,73 +80,6 @@ public class AzureUnicastHostsProvider extends AbstractComponent implements Unic
         discoveryMethod = settings.get(Discovery.DISCOVERY_METHOD, DEFAULT_DISCOVERY_METHOD);
     }
 
-    /**
-     * We build the list of Nodes from Azure Management API
-     * List of discovery nodes is cached.
-     * The cache time can be controlled using `cloud.azure.refresh_interval` setting.
-     */
-    @Override
-    public List<DiscoveryNode> buildDynamicNodes() {
-        if (cache == null) {
-            cache = new DiscoNodeCache(refreshInterval, Collections.<DiscoveryNode>emptyList());
-        }
-        return cache.getOrRefresh();
-    }
-
-    private class DiscoNodeCache extends SingleObjectCache<List<DiscoveryNode>> {
-
-        protected DiscoNodeCache(TimeValue refreshInterval, List<DiscoveryNode> initialValue) {
-            super(refreshInterval, initialValue);
-        }
-
-        @Override
-        protected List<DiscoveryNode> refresh() {
-            ArrayList<DiscoveryNode> nodes = new ArrayList<>();
-            InetAddress ipAddress;
-            try {
-                ipAddress = networkService.resolvePublishHostAddresses(null);
-                logger.trace("ip of current node: [{}]", ipAddress);
-            } catch (IOException e) {
-                // We can't find the publish host address... Hmmm. Too bad :-(
-                logger.warn("Cannot find publish host address/ip", e);
-                return Collections.emptyList();
-            }
-
-            // In other case, it should be the right deployment so we can add it to the list of instances
-            NetworkResourceProviderClient client = azureComputeService.networkResourceClient();
-            if (client == null) {
-                return Collections.emptyList();
-            }
-
-            try {
-                final HashMap<String, String> networkNameOfCurrentHost = retrieveNetInfo(client, resourceGroup, NetworkAddress.format(ipAddress));
-
-                if (networkNameOfCurrentHost.size() == 0) {
-                    logger.error("Could not find vnet or subnet of current host");
-                    return Collections.emptyList();
-                }
-
-                List<String> ipAddresses = listIPAddresses(client, resourceGroup, networkNameOfCurrentHost.get(AzureDiscovery.VNET),
-                    networkNameOfCurrentHost.get(AzureDiscovery.SUBNET), discoveryMethod, hostType, logger);
-                for (String networkAddress : ipAddresses) {
-                    // limit to 1 port per address
-                    TransportAddress[] addresses = transportService.addressesFromString(networkAddress, 1);
-                    for (TransportAddress address : addresses) {
-                        logger.trace("adding {}, transport_address {}", networkAddress, address);
-                        nodes.add(new DiscoveryNode("#cloud-" + networkAddress, address, version.minimumCompatibilityVersion()));
-                    }
-                }
-            } catch (UnknownHostException e) {
-                logger.error("Error occurred in getting hostname");
-            } catch (Exception e) {
-                logger.error(e.getMessage());
-            }
-
-            logger.debug("{} node(s) added", nodes.size());
-            return nodes;
-        }
-    }
-
     public static HashMap<String, String> retrieveNetInfo(NetworkResourceProviderClient networkResourceProviderClient,
                                                           String rgName,
                                                           String ipAddress) throws Exception {
@@ -184,7 +95,7 @@ public class AzureUnicastHostsProvider extends AbstractComponent implements Unic
                 for (ResourceId resourceId : subnet.getIpConfigurations()) {
                     String[] nicURI = resourceId.getId().split("/");
                     NetworkInterface nic = networkResourceProviderClient.getNetworkInterfacesOperations().get(rgName, nicURI[
-                            nicURI.length - 3]).getNetworkInterface();
+                        nicURI.length - 3]).getNetworkInterface();
                     ArrayList<NetworkInterfaceIpConfiguration> ips = nic.getIpConfigurations();
 
                     // find public ip address
@@ -231,7 +142,8 @@ public class AzureUnicastHostsProvider extends AbstractComponent implements Unic
 
             for (ResourceId resourceId : ipConfigurations) {
                 String[] nicURI = resourceId.getId().split("/");
-                NetworkInterface nic = networkResourceProviderClient.getNetworkInterfacesOperations().get(rgName, nicURI[nicURI.length - 3]).getNetworkInterface();
+                NetworkInterface nic = networkResourceProviderClient.getNetworkInterfacesOperations().get(rgName, nicURI[
+                    nicURI.length - 3]).getNetworkInterface();
                 ArrayList<NetworkInterfaceIpConfiguration> ips = nic.getIpConfigurations();
 
                 // find public ip address
@@ -253,7 +165,7 @@ public class AzureUnicastHostsProvider extends AbstractComponent implements Unic
                             if (ipConfiguration.getPublicIpAddress() != null) {
                                 String[] pipID = ipConfiguration.getPublicIpAddress().getId().split("/");
                                 PublicIpAddress pip = networkResourceProviderClient.getPublicIpAddressesOperations()
-                                        .get(rgName, pipID[pipID.length - 1]).getPublicIpAddress();
+                                    .get(rgName, pipID[pipID.length - 1]).getPublicIpAddress();
 
                                 networkAddress = NetworkAddress.formatAddress(InetAddress.getByName(pip.getIpAddress()));
                             }
@@ -278,5 +190,93 @@ public class AzureUnicastHostsProvider extends AbstractComponent implements Unic
             logger.error("Could not retrieve IP addresses for unicast host list", e);
         }
         return ipList;
+    }
+
+    /**
+     * We build the list of Nodes from Azure Management API
+     * List of discovery nodes is cached.
+     * The cache time can be controlled using `cloud.azure.refresh_interval` setting.
+     */
+    @Override
+    public List<DiscoveryNode> buildDynamicNodes() {
+        if (cache == null) {
+            cache = new DiscoNodeCache(refreshInterval, Collections.<DiscoveryNode>emptyList());
+        }
+        return cache.getOrRefresh();
+    }
+
+    public static enum HostType {
+        PRIVATE_IP("private_ip"),
+        PUBLIC_IP("public_ip");
+
+        private String type;
+
+        private HostType(String type) {
+            this.type = type;
+        }
+
+        public static HostType fromString(String type) {
+            for (HostType hostType : values()) {
+                if (hostType.type.equalsIgnoreCase(type)) {
+                    return hostType;
+                }
+            }
+            return null;
+        }
+    }
+
+    private class DiscoNodeCache extends SingleObjectCache<List<DiscoveryNode>> {
+
+        protected DiscoNodeCache(TimeValue refreshInterval, List<DiscoveryNode> initialValue) {
+            super(refreshInterval, initialValue);
+        }
+
+        @Override
+        protected List<DiscoveryNode> refresh() {
+            ArrayList<DiscoveryNode> nodes = new ArrayList<>();
+            InetAddress ipAddress;
+            try {
+                ipAddress = networkService.resolvePublishHostAddresses(null);
+                logger.trace("ip of current node: [{}]", ipAddress);
+            } catch (IOException e) {
+                // We can't find the publish host address... Hmmm. Too bad :-(
+                logger.warn("Cannot find publish host address/ip", e);
+                return Collections.emptyList();
+            }
+
+            // In other case, it should be the right deployment so we can add it to the list of instances
+            NetworkResourceProviderClient client = azureComputeService.networkResourceClient();
+            if (client == null) {
+                return Collections.emptyList();
+            }
+
+            try {
+                final HashMap<String, String> networkNameOfCurrentHost = retrieveNetInfo(client, resourceGroup, NetworkAddress.format(ipAddress));
+
+                if (networkNameOfCurrentHost.size() == 0) {
+                    logger.error("Could not find vnet or subnet of current host");
+                    return Collections.emptyList();
+                }
+
+                List<String> ipAddresses = listIPAddresses(client, resourceGroup, networkNameOfCurrentHost.get(AzureDiscovery.VNET),
+                    networkNameOfCurrentHost.get(AzureDiscovery.SUBNET), discoveryMethod, hostType, logger);
+                for (String networkAddress : ipAddresses) {
+                    // limit to 1 port per address
+                    TransportAddress[] addresses = transportService.addressesFromString(networkAddress, 1);
+                    for (TransportAddress address : addresses) {
+                        logger.trace("adding {}, transport_address {}", networkAddress, address);
+                        nodes.add(new DiscoveryNode(
+                            "#cloud-" + networkAddress, address, version.minimumCompatibilityVersion()));
+                    }
+                }
+            } catch (UnknownHostException e) {
+                logger.error("Error occurred in getting hostname");
+            } catch (Exception e) {
+                logger.error(e.getMessage());
+            }
+
+            logger.debug("{} node(s) added", nodes.size());
+            return nodes;
+        }
     }
 }

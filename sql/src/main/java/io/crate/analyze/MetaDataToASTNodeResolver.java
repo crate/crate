@@ -78,7 +78,7 @@ public class MetaDataToASTNodeResolver {
                 if (info.valueType().equals(DataTypes.OBJECT)) {
                     columnType = new ObjectColumnType(info.columnPolicy().value(), extractColumnDefinitions(ident));
                 } else if (info.valueType().id() == ArrayType.ID) {
-                    DataType innerType = ((CollectionType)info.valueType()).innerType();
+                    DataType innerType = ((CollectionType) info.valueType()).innerType();
                     ColumnType innerColumnType = null;
                     if (innerType.equals(DataTypes.OBJECT)) {
                         innerColumnType = new ObjectColumnType(info.columnPolicy().value(), extractColumnDefinitions(ident));
@@ -93,14 +93,15 @@ public class MetaDataToASTNodeResolver {
                     columnType = new ColumnType(info.valueType().getName());
                 }
 
-                String columnName = ident.isColumn() ? ident.name() : ident.path().get(ident.path().size()-1);
+                String columnName = ident.isColumn() ? ident.name() : ident.path().get(ident.path().size() - 1);
                 List<ColumnConstraint> constraints = new ArrayList<>();
                 if (!info.isNullable()) {
                     constraints.add(new NotNullColumnConstraint());
                 }
                 if (info.indexType().equals(Reference.IndexType.NO)
-                        && !info.valueType().equals(DataTypes.OBJECT)
-                        && !(info.valueType().id() == ArrayType.ID && ((CollectionType)info.valueType()).innerType().equals(DataTypes.OBJECT))) {
+                    && !info.valueType().equals(DataTypes.OBJECT)
+                    && !(info.valueType().id() == ArrayType.ID &&
+                         ((CollectionType) info.valueType()).innerType().equals(DataTypes.OBJECT))) {
                     constraints.add(IndexColumnConstraint.OFF);
                 } else if (info.indexType().equals(Reference.IndexType.ANALYZED)) {
                     String analyzer = tableInfo.getAnalyzerForColumnIdent(ident);
@@ -110,7 +111,7 @@ public class MetaDataToASTNodeResolver {
                     }
                     constraints.add(new IndexColumnConstraint("fulltext", properties));
                 } else if (info.valueType().equals(DataTypes.GEO_SHAPE)) {
-                    GeoReference geoReference = (GeoReference)info;
+                    GeoReference geoReference = (GeoReference) info;
                     GenericProperties properties = new GenericProperties();
                     if (geoReference.distanceErrorPct() != null) {
                         properties.add(new GenericProperty("distance_error_pct", StringLiteral.fromObject(geoReference.distanceErrorPct())));
@@ -191,23 +192,23 @@ public class MetaDataToASTNodeResolver {
             GenericProperties properties = new GenericProperties();
             Expression numReplicas = new StringLiteral(tableInfo.numberOfReplicas().utf8ToString());
             properties.add(new GenericProperty(
-                            TablePropertiesAnalyzer.esToCrateSettingName(TableParameterInfo.NUMBER_OF_REPLICAS),
-                            numReplicas
-                    )
+                    TablePropertiesAnalyzer.esToCrateSettingName(TableParameterInfo.NUMBER_OF_REPLICAS),
+                    numReplicas
+                )
             );
             // we want a sorted map of table parameters
             TreeMap<String, Object> tableParameters = new TreeMap<>();
             tableParameters.putAll(tableInfo.tableParameters());
             for (Map.Entry<String, Object> entry : tableParameters.entrySet()) {
                 properties.add(new GenericProperty(
-                                TablePropertiesAnalyzer.esToCrateSettingName(entry.getKey()),
-                                Literal.fromObject(entry.getValue())
-                        )
+                        TablePropertiesAnalyzer.esToCrateSettingName(entry.getKey()),
+                        Literal.fromObject(entry.getValue())
+                    )
                 );
             }
             properties.add(new GenericProperty(
-                    "column_policy",
-                    new StringLiteral(tableInfo.columnPolicy().value())
+                "column_policy",
+                new StringLiteral(tableInfo.columnPolicy().value())
             ));
             return properties;
         }

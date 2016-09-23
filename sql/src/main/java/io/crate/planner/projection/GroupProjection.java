@@ -34,18 +34,16 @@ import java.util.List;
 
 public class GroupProjection extends Projection {
 
-    List<Symbol> keys;
-    List<Aggregation> values;
-    List<Symbol> outputs;
-
-    private RowGranularity requiredGranularity = RowGranularity.CLUSTER;
-
     public static final ProjectionFactory<GroupProjection> FACTORY = new ProjectionFactory<GroupProjection>() {
         @Override
         public GroupProjection newInstance() {
             return new GroupProjection();
         }
     };
+    List<Symbol> keys;
+    List<Aggregation> values;
+    List<Symbol> outputs;
+    private RowGranularity requiredGranularity = RowGranularity.CLUSTER;
 
     public GroupProjection() {
     }

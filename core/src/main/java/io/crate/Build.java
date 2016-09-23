@@ -39,7 +39,7 @@ public class Build {
         String hashShort = "NA";
         String timestamp = "NA";
 
-        try (InputStream inputStream = Build.class.getResourceAsStream("/crate-build.properties")){
+        try (InputStream inputStream = Build.class.getResourceAsStream("/crate-build.properties")) {
             Properties props = new Properties();
             if (inputStream != null) {
                 props.load(inputStream);
@@ -69,6 +69,16 @@ public class Build {
         this.timestamp = timestamp;
     }
 
+    public static void writeBuildTo(Build build, StreamOutput out) throws IOException {
+        out.writeString(build.hash());
+        out.writeString(build.hashShort());
+        out.writeString(build.timestamp());
+    }
+
+    public static Build readBuild(StreamInput in) throws IOException {
+        return new Build(in.readString(), in.readString(), in.readString());
+    }
+
     public String hash() {
         return hash;
     }
@@ -79,15 +89,5 @@ public class Build {
 
     public String timestamp() {
         return timestamp;
-    }
-
-    public static void writeBuildTo(Build build, StreamOutput out) throws IOException {
-        out.writeString(build.hash());
-        out.writeString(build.hashShort());
-        out.writeString(build.timestamp());
-    }
-
-    public static Build readBuild(StreamInput in) throws IOException {
-        return new Build(in.readString(), in.readString(), in.readString());
     }
 }

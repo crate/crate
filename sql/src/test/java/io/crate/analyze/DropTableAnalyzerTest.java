@@ -53,30 +53,19 @@ public class DropTableAnalyzerTest extends BaseAnalyzerTest {
 
     private static final TableIdent ALIAS_IDENT = new TableIdent(DocSchemaInfo.NAME, "alias_table");
     private static final TableInfo ALIAS_INFO = TestingTableInfo.builder(ALIAS_IDENT, SHARD_ROUTING)
-            .add("col", DataTypes.STRING, ImmutableList.<String>of())
-            .isAlias(true)
-            .build();
-
-    static class TestMetaDataModule extends MetaDataModule {
-        @Override
-        protected void bindSchemas() {
-            super.bindSchemas();
-            SchemaInfo schemaInfo = mock(SchemaInfo.class);
-            when(schemaInfo.getTableInfo(USER_TABLE_IDENT.name())).thenReturn(USER_TABLE_INFO);
-            when(schemaInfo.getTableInfo(ALIAS_IDENT.name())).thenReturn(ALIAS_INFO);
-            schemaBinder.addBinding(Schemas.DEFAULT_SCHEMA_NAME).toInstance(schemaInfo);
-        }
-    }
+        .add("col", DataTypes.STRING, ImmutableList.<String>of())
+        .isAlias(true)
+        .build();
 
     @Override
     protected List<Module> getModules() {
         List<Module> modules = super.getModules();
         modules.addAll(Arrays.<Module>asList(
-                new MockedClusterServiceModule(),
-                new MetaDataInformationModule(),
-                new TestMetaDataModule(),
-                new MetaDataSysModule(),
-                new OperatorModule())
+            new MockedClusterServiceModule(),
+            new MetaDataInformationModule(),
+            new TestMetaDataModule(),
+            new MetaDataSysModule(),
+            new OperatorModule())
         );
         return modules;
     }
@@ -153,5 +142,16 @@ public class DropTableAnalyzerTest extends BaseAnalyzerTest {
         expectedException.expect(UnsupportedOperationException.class);
         expectedException.expectMessage("doc.alias_table is an alias and hence not dropable.");
         analyze("drop table if exists alias_table");
+    }
+
+    static class TestMetaDataModule extends MetaDataModule {
+        @Override
+        protected void bindSchemas() {
+            super.bindSchemas();
+            SchemaInfo schemaInfo = mock(SchemaInfo.class);
+            when(schemaInfo.getTableInfo(USER_TABLE_IDENT.name())).thenReturn(USER_TABLE_INFO);
+            when(schemaInfo.getTableInfo(ALIAS_IDENT.name())).thenReturn(ALIAS_INFO);
+            schemaBinder.addBinding(Schemas.DEFAULT_SCHEMA_NAME).toInstance(schemaInfo);
+        }
     }
 }

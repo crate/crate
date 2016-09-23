@@ -40,9 +40,9 @@ import java.util.*;
 
 public class FetchPushDown {
 
+    private static final InputColumn DOCID_COL = new InputColumn(0, DataTypes.LONG);
     private final QuerySpec querySpec;
     private final DocTableRelation docTableRelation;
-    private static final InputColumn DOCID_COL = new InputColumn(0, DataTypes.LONG);
     private LinkedHashMap<Reference, FetchReference> fetchRefs;
     private LinkedHashMap<Reference, FetchReference> partitionRefs;
 

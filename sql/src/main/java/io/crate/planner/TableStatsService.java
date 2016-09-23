@@ -49,15 +49,10 @@ import java.lang.annotation.Target;
 public class TableStatsService extends AbstractComponent implements Runnable {
 
     private static final SQLRequest REQUEST = new SQLRequest(
-            "select cast(sum(num_docs) as long), schema_name, table_name from sys.shards group by 2, 3");
+        "select cast(sum(num_docs) as long), schema_name, table_name from sys.shards group by 2, 3");
     private final ClusterService clusterService;
     private final Provider<TransportSQLAction> transportSQLAction;
     private volatile ObjectLongMap<TableIdent> tableStats = null;
-
-    @BindingAnnotation
-    @Target({ ElementType.FIELD, ElementType.PARAMETER, ElementType.METHOD })
-    @Retention(RetentionPolicy.RUNTIME)
-    public @interface StatsUpdateInterval {}
 
     @Inject
     public TableStatsService(Settings settings,
@@ -69,6 +64,14 @@ public class TableStatsService extends AbstractComponent implements Runnable {
         this.clusterService = clusterService;
         this.transportSQLAction = transportSQLAction;
         threadPool.scheduleWithFixedDelay(this, updateInterval);
+    }
+
+    private static ObjectLongMap<TableIdent> statsFromResponse(SQLResponse sqlResponse) {
+        ObjectLongMap<TableIdent> newStats = new ObjectLongHashMap<>((int) sqlResponse.rowCount());
+        for (Object[] row : sqlResponse.rows()) {
+            newStats.put(new TableIdent((String) row[1], (String) row[2]), (long) row[0]);
+        }
+        return newStats;
     }
 
     @Override
@@ -86,32 +89,24 @@ public class TableStatsService extends AbstractComponent implements Runnable {
             return;
         }
         transportSQLAction.get().execute(
-                REQUEST,
-                new ActionListener<SQLResponse>() {
+            REQUEST,
+            new ActionListener<SQLResponse>() {
 
-                    @Override
-                    public void onResponse(SQLResponse sqlResponse) {
-                        tableStats = statsFromResponse(sqlResponse);
-                    }
+                @Override
+                public void onResponse(SQLResponse sqlResponse) {
+                    tableStats = statsFromResponse(sqlResponse);
+                }
 
-                    @Override
-                    public void onFailure(Throwable e) {
-                        logger.error("error retrieving table stats", e);
-                    }
-                });
-    }
-
-    private static ObjectLongMap<TableIdent> statsFromResponse(SQLResponse sqlResponse) {
-        ObjectLongMap<TableIdent> newStats = new ObjectLongHashMap<>((int) sqlResponse.rowCount());
-        for (Object[] row : sqlResponse.rows()) {
-            newStats.put(new TableIdent((String) row[1], (String) row[2]), (long) row[0]);
-        }
-        return newStats;
+                @Override
+                public void onFailure(Throwable e) {
+                    logger.error("error retrieving table stats", e);
+                }
+            });
     }
 
     /**
      * Returns the number of docs a table has.
-     *
+     * <p>
      * <p>
      * The returned number isn't an accurate real-time value but a cached value that is periodically updated
      * </p>
@@ -124,4 +119,9 @@ public class TableStatsService extends AbstractComponent implements Runnable {
         }
         return -1;
     }
+
+    @BindingAnnotation
+    @Target({ElementType.FIELD, ElementType.PARAMETER, ElementType.METHOD})
+    @Retention(RetentionPolicy.RUNTIME)
+    public @interface StatsUpdateInterval {}
 }

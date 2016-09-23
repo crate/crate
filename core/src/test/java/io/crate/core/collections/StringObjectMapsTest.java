@@ -39,15 +39,15 @@ public class StringObjectMapsTest extends CrateUnitTest {
 
         map.put("a", "b");
 
-        assertThat((String)StringObjectMaps.getByPath(map, "a"), is("b"));
+        assertThat((String) StringObjectMaps.getByPath(map, "a"), is("b"));
         assertNull(StringObjectMaps.getByPath(map, "a.b"));
 
-        Map<String, Object> nestedMap = new HashMap<String, Object>(){{
+        Map<String, Object> nestedMap = new HashMap<String, Object>() {{
             put("b", 123);
         }};
         map.put("a", nestedMap);
-        assertThat((Map<String, Object>)StringObjectMaps.getByPath(map, "a"), is(nestedMap));
-        assertThat((Integer)StringObjectMaps.getByPath(map, "a.b"), is(123));
+        assertThat((Map<String, Object>) StringObjectMaps.getByPath(map, "a"), is(nestedMap));
+        assertThat((Integer) StringObjectMaps.getByPath(map, "a.b"), is(123));
         assertNull(StringObjectMaps.getByPath(map, "a.b.c"));
         assertNull(StringObjectMaps.getByPath(map, "a.c"));
         assertNull(StringObjectMaps.getByPath(map, "b.c"));

@@ -33,7 +33,7 @@ import javax.annotation.Nonnull;
 
 /**
  * A subset / simplified form of {@link io.crate.operation.projectors.RowReceiver}.
- *
+ * <p>
  * Used to receive the Result from {@link io.crate.executor.transport.TransportExecutor#execute(Plan, RowReceiver)}
  */
 public interface ResultReceiver extends CompletionListenable {

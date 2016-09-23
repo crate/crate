@@ -57,14 +57,12 @@ import static io.crate.analyze.SnapshotSettings.WAIT_FOR_COMPLETION;
 public class CreateSnapshotStatementAnalyzer extends AbstractRepositoryDDLAnalyzer {
 
     private static final ESLogger LOGGER = Loggers.getLogger(CreateSnapshotStatementAnalyzer.class);
+    private static final ImmutableMap<String, SettingsApplier> SETTINGS = ImmutableMap.<String, SettingsApplier>builder()
+        .put(IGNORE_UNAVAILABLE.name(), new SettingsAppliers.BooleanSettingsApplier(IGNORE_UNAVAILABLE))
+        .put(WAIT_FOR_COMPLETION.name(), new SettingsAppliers.BooleanSettingsApplier(WAIT_FOR_COMPLETION))
+        .build();
     private final RepositoryService repositoryService;
     private final Schemas schemas;
-
-    private static final ImmutableMap<String, SettingsApplier> SETTINGS = ImmutableMap.<String, SettingsApplier>builder()
-            .put(IGNORE_UNAVAILABLE.name(), new SettingsAppliers.BooleanSettingsApplier(IGNORE_UNAVAILABLE))
-            .put(WAIT_FOR_COMPLETION.name(), new SettingsAppliers.BooleanSettingsApplier(WAIT_FOR_COMPLETION))
-            .build();
-
 
 
     @Inject
@@ -79,7 +77,7 @@ public class CreateSnapshotStatementAnalyzer extends AbstractRepositoryDDLAnalyz
         // validate repository
         Preconditions.checkArgument(repositoryName.isPresent(), "Snapshot must be specified by \"<repository_name>\".\"<snapshot_name>\"");
         Preconditions.checkArgument(repositoryName.get().getParts().size() == 1,
-                String.format(Locale.ENGLISH, "Invalid repository name '%s'", repositoryName.get()));
+            String.format(Locale.ENGLISH, "Invalid repository name '%s'", repositoryName.get()));
         repositoryService.failIfRepositoryDoesNotExist(repositoryName.get().toString());
 
         // snapshot existence in repo is validated upon execution
@@ -88,7 +86,7 @@ public class CreateSnapshotStatementAnalyzer extends AbstractRepositoryDDLAnalyz
 
         // validate and extract settings
         Settings settings = GenericPropertiesConverter.settingsFromProperties(
-                node.properties(), analysis.parameterContext(), SETTINGS).build();
+            node.properties(), analysis.parameterContext(), SETTINGS).build();
 
         boolean ignoreUnavailable = settings.getAsBoolean(IGNORE_UNAVAILABLE.name(), IGNORE_UNAVAILABLE.defaultValue());
 
@@ -110,17 +108,17 @@ public class CreateSnapshotStatementAnalyzer extends AbstractRepositoryDDLAnalyz
                 }
                 if (!(tableInfo instanceof DocTableInfo)) {
                     throw new IllegalArgumentException(
-                            String.format(Locale.ENGLISH, "Cannot create snapshot of tables in schema '%s'", tableInfo.ident().schema()));
+                        String.format(Locale.ENGLISH, "Cannot create snapshot of tables in schema '%s'", tableInfo.ident().schema()));
                 }
                 Operation.blockedRaiseException(tableInfo, Operation.READ);
-                DocTableInfo docTableInfo = (DocTableInfo)tableInfo;
+                DocTableInfo docTableInfo = (DocTableInfo) tableInfo;
                 if (table.partitionProperties().isEmpty()) {
                     snapshotIndices.addAll(Arrays.asList(docTableInfo.concreteIndices()));
                 } else {
                     PartitionName partitionName = PartitionPropertiesAnalyzer.toPartitionName(
-                            docTableInfo,
-                            table.partitionProperties(),
-                            analysis.parameterContext().parameters()
+                        docTableInfo,
+                        table.partitionProperties(),
+                        analysis.parameterContext().parameters()
                     );
                     if (!docTableInfo.partitions().contains(partitionName)) {
                         if (!ignoreUnavailable) {

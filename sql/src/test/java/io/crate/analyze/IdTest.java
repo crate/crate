@@ -38,12 +38,11 @@ import static org.hamcrest.core.Is.is;
 
 public class IdTest extends CrateUnitTest {
 
-    @Rule
-    public ExpectedException expectedException = ExpectedException.none();
-
     private static final ColumnIdent _ID = ci("_id");
     private static final ImmutableList<ColumnIdent> _ID_LIST = ImmutableList.of(_ID);
     private static final ImmutableList<BytesRef> EMPTY_PK_VALUES = ImmutableList.of();
+    @Rule
+    public ExpectedException expectedException = ExpectedException.none();
 
     private static ColumnIdent ci(String ident) {
         return new ColumnIdent(ident);
@@ -86,8 +85,8 @@ public class IdTest extends CrateUnitTest {
     @Test
     public void testMultiplePrimaryKey() throws Exception {
         String id = generateId(
-                ImmutableList.of(ci("id"), ci("name")),
-                ImmutableList.of(new BytesRef("1"), new BytesRef("foo")), null);
+            ImmutableList.of(ci("id"), ci("name")),
+            ImmutableList.of(new BytesRef("1"), new BytesRef("foo")), null);
 
         assertThat(id, is("AgExA2Zvbw=="));
     }
@@ -95,9 +94,9 @@ public class IdTest extends CrateUnitTest {
     @Test
     public void testMultiplePrimaryKeyWithClusteredBy() throws Exception {
         String id = generateId(
-                ImmutableList.of(ci("id"), ci("name")),
-                ImmutableList.of(new BytesRef("1"), new BytesRef("foo")),
-                ci("name")
+            ImmutableList.of(ci("id"), ci("name")),
+            ImmutableList.of(new BytesRef("1"), new BytesRef("foo")),
+            ci("name")
         );
         assertThat(id, is("AgNmb28BMQ=="));
     }

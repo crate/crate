@@ -94,29 +94,29 @@ public class IndexWriterProjector extends AbstractProjector {
         } else {
             //noinspection unchecked
             this.sourceInput =
-                    new MapInput((Input<Map<String, Object>>) sourceInput, includes, excludes);
+                new MapInput((Input<Map<String, Object>>) sourceInput, includes, excludes);
         }
         rowShardResolver = new RowShardResolver(functions, primaryKeyIdents, primaryKeySymbols, clusteredByColumn, routingSymbol);
         ShardUpsertRequest.Builder builder = new ShardUpsertRequest.Builder(
-                CrateSettings.BULK_REQUEST_TIMEOUT.extractTimeValue(settings),
-                overwriteDuplicates,
-                true,
-                null,
-                new Reference[]{rawSourceReference},
-                jobId,
-                false);
+            CrateSettings.BULK_REQUEST_TIMEOUT.extractTimeValue(settings),
+            overwriteDuplicates,
+            true,
+            null,
+            new Reference[]{rawSourceReference},
+            jobId,
+            false);
 
         bulkShardProcessor = new BulkShardProcessor<>(
-                clusterService,
-                transportActionProvider.transportBulkCreateIndicesAction(),
-                indexNameExpressionResolver,
-                settings,
-                bulkRetryCoordinatorPool,
-                autoCreateIndices,
-                MoreObjects.firstNonNull(bulkActions, 100),
-                builder,
-                transportActionProvider.transportShardUpsertActionDelegate(),
-                jobId
+            clusterService,
+            transportActionProvider.transportBulkCreateIndicesAction(),
+            indexNameExpressionResolver,
+            settings,
+            bulkRetryCoordinatorPool,
+            autoCreateIndices,
+            MoreObjects.firstNonNull(bulkActions, 100),
+            builder,
+            transportActionProvider.transportShardUpsertActionDelegate(),
+            jobId
         );
     }
 
@@ -133,7 +133,7 @@ public class IndexWriterProjector extends AbstractProjector {
         }
         rowShardResolver.setNextRow(row);
         ShardUpsertRequest.Item item = new ShardUpsertRequest.Item(
-                rowShardResolver.id(), null, new Object[] { sourceInput.value() }, null);
+            rowShardResolver.id(), null, new Object[]{sourceInput.value()}, null);
         if (bulkShardProcessor.add(indexNameResolver.get(), item, rowShardResolver.routing())) {
             return Result.CONTINUE;
         }
@@ -161,10 +161,10 @@ public class IndexWriterProjector extends AbstractProjector {
 
     private static class MapInput implements Input<BytesRef> {
 
+        private static final ESLogger logger = Loggers.getLogger(MapInput.class);
         private final Input<Map<String, Object>> sourceInput;
         private final String[] includes;
         private final String[] excludes;
-        private static final ESLogger logger = Loggers.getLogger(MapInput.class);
         private int lastSourceSize;
 
         private MapInput(Input<Map<String, Object>> sourceInput, String[] includes, String[] excludes) {
@@ -183,7 +183,7 @@ public class IndexWriterProjector extends AbstractProjector {
             Map<String, Object> filteredMap = XContentMapValues.filter(value, includes, excludes);
             try {
                 BytesReference bytes = new XContentBuilder(Requests.INDEX_CONTENT_TYPE.xContent(),
-                        new BytesStreamOutput(lastSourceSize)).map(filteredMap).bytes();
+                    new BytesStreamOutput(lastSourceSize)).map(filteredMap).bytes();
                 lastSourceSize = bytes.length();
                 return bytes.toBytesRef();
             } catch (IOException ex) {

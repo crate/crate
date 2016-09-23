@@ -208,7 +208,7 @@ public class RelationNormalizerTest extends BaseAnalyzerTest {
         assertThat(relation, instanceOf(MultiSourceSelect.class));
         assertThat(relation.querySpec(), isSQL(
             "SELECT concat(doc.t1.a, doc.t2.b) ORDER BY add(add(doc.t1.i, doc.t2.i), doc.t2.y)"));
-        assertThat(((MultiSourceSelect)relation).joinPairs().get(0).condition(), isSQL("(doc.t1.a = doc.t2.b)"));
+        assertThat(((MultiSourceSelect) relation).joinPairs().get(0).condition(), isSQL("(doc.t1.a = doc.t2.b)"));
 
         relation = normalize(
             "select ab " +
@@ -219,7 +219,7 @@ public class RelationNormalizerTest extends BaseAnalyzerTest {
         assertThat(relation, instanceOf(MultiSourceSelect.class));
         assertThat(relation.querySpec(), isSQL(
             "SELECT concat(doc.t1.a, doc.t2.b) ORDER BY add(add(doc.t1.i, doc.t2.i), doc.t2.y)"));
-        assertThat(((MultiSourceSelect)relation).joinPairs().get(0).condition(), isSQL("(doc.t1.a = doc.t2.b)"));
+        assertThat(((MultiSourceSelect) relation).joinPairs().get(0).condition(), isSQL("(doc.t1.a = doc.t2.b)"));
 
         relation = normalize(
             "select ab " +
@@ -230,7 +230,7 @@ public class RelationNormalizerTest extends BaseAnalyzerTest {
         assertThat(relation, instanceOf(MultiSourceSelect.class));
         assertThat(relation.querySpec(), isSQL(
             "SELECT concat(doc.t1.a, doc.t2.b) ORDER BY add(add(doc.t1.i, doc.t2.i), doc.t2.y)"));
-        assertThat(((MultiSourceSelect)relation).joinPairs().get(0).condition(), isSQL("(doc.t1.a = doc.t2.b)"));
+        assertThat(((MultiSourceSelect) relation).joinPairs().get(0).condition(), isSQL("(doc.t1.a = doc.t2.b)"));
     }
 
     @Test
@@ -280,7 +280,7 @@ public class RelationNormalizerTest extends BaseAnalyzerTest {
         assertThat(relation, instanceOf(MultiSourceSelect.class));
         assertThat(relation.querySpec(), isSQL(
             "SELECT doc.t1.a, doc.t2.i WHERE ((doc.t1.x > 60) AND true) ORDER BY doc.t2.y"));
-        assertThat(((MultiSourceSelect)relation).joinPairs().get(0).condition(), isSQL("(doc.t1.a = doc.t2.b)"));
+        assertThat(((MultiSourceSelect) relation).joinPairs().get(0).condition(), isSQL("(doc.t1.a = doc.t2.b)"));
 
         // make sure that where clause was pushed down and didn't disappear somehow
         MultiSourceSelect.Source t1 = ((MultiSourceSelect) relation).sources().get(T3.T1);

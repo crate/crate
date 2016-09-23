@@ -8,14 +8,14 @@ public class GtOperator extends CmpOperator {
 
     public static final String NAME = "op_>";
 
+    GtOperator(FunctionInfo info) {
+        super(info);
+    }
+
     public static void register(OperatorModule module) {
         for (DataType type : DataTypes.PRIMITIVE_TYPES) {
             module.registerOperatorFunction(new GtOperator(generateInfo(NAME, type)));
         }
-    }
-
-    GtOperator(FunctionInfo info) {
-        super(info);
     }
 
     @Override

@@ -34,11 +34,15 @@ import java.util.Map;
 public class ToPrimitiveFunction extends AbstractCastFunction<Object, Object> {
 
 
+    private ToPrimitiveFunction(FunctionInfo functionInfo) {
+        super(functionInfo);
+    }
+
     public static void register(ScalarFunctionModule module) {
         for (Map.Entry<DataType, String> function : CastFunctionResolver.PRIMITIVE_FUNCTION_MAP.entrySet()) {
             module.register(function.getValue(), new PrimitiveResolver(function.getKey(), function.getValue()));
         }
-      }
+    }
 
     private static class PrimitiveResolver extends AbstractCastFunction.Resolver {
 
@@ -50,9 +54,5 @@ public class ToPrimitiveFunction extends AbstractCastFunction<Object, Object> {
         protected FunctionImplementation<Function> createInstance(List<DataType> dataTypes) {
             return new ToPrimitiveFunction(new FunctionInfo(new FunctionIdent(name, dataTypes), dataType));
         }
-    }
-
-    private ToPrimitiveFunction(FunctionInfo functionInfo) {
-        super(functionInfo);
     }
 }

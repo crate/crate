@@ -33,9 +33,9 @@ import java.util.Locale;
 
 class ReaderBucket {
 
-    private final boolean fetchRequired;
     final Object[] partitionValues;
     final IntObjectHashMap<Object[]> docs = new IntObjectHashMap<>();
+    private final boolean fetchRequired;
 
     ReaderBucket(boolean fetchRequired, @Nullable Object[] partitionValues) {
         this.fetchRequired = fetchRequired;

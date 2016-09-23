@@ -41,15 +41,29 @@ public class RamAccountingContext {
     private volatile boolean closed = false;
     private volatile boolean tripped = false;
 
-    public static RamAccountingContext forExecutionPhase(CircuitBreaker breaker, ExecutionPhase executionPhase) {
-        String ramAccountingContextId = String.format(Locale.ENGLISH, "%s: %d",
-                executionPhase.name(), executionPhase.executionPhaseId());
-        return new RamAccountingContext(ramAccountingContextId, breaker);
-    }
-
     public RamAccountingContext(String contextId, CircuitBreaker breaker) {
         this.contextId = contextId;
         this.breaker = breaker;
+    }
+
+    public static RamAccountingContext forExecutionPhase(CircuitBreaker breaker, ExecutionPhase executionPhase) {
+        String ramAccountingContextId = String.format(Locale.ENGLISH, "%s: %d",
+            executionPhase.name(), executionPhase.executionPhaseId());
+        return new RamAccountingContext(ramAccountingContextId, breaker);
+    }
+
+    /**
+     * round n up to the nearest multiple of m
+     */
+    public static long roundUp(long n, long m) {
+        return n + (n % m);
+    }
+
+    /**
+     * round n up to the nearest multiple of 8
+     */
+    public static long roundUp(long n) {
+        return roundUp(n, 8);
     }
 
     /**
@@ -74,7 +88,7 @@ public class RamAccountingContext {
     /**
      * Flush the {@code bytes} to the breaker, incrementing the total
      * bytes and adjusting the buffer.
-
+     *
      * @param bytes long value of bytes to be flushed to the breaker
      * @throws CircuitBreakingException
      */
@@ -139,20 +153,5 @@ public class RamAccountingContext {
      */
     public String contextId() {
         return contextId;
-    }
-
-
-    /**
-     * round n up to the nearest multiple of m
-     */
-    public static long roundUp(long n, long m) {
-        return n + (n % m);
-    }
-
-    /**
-     * round n up to the nearest multiple of 8
-     */
-    public static long roundUp(long n) {
-        return roundUp(n, 8);
     }
 }

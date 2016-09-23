@@ -99,10 +99,10 @@ public class ShowColumns extends Statement {
     @Override
     public String toString() {
         return MoreObjects.toStringHelper(this)
-                .add("table", table)
-                .add("schema", schema)
-                .add("pattern", likePattern)
-                .add("where", where)
-                .toString();
+            .add("table", table)
+            .add("schema", schema)
+            .add("pattern", likePattern)
+            .add("where", where)
+            .toString();
     }
 }

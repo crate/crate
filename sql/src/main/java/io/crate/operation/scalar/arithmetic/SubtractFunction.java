@@ -35,12 +35,12 @@ public abstract class SubtractFunction extends ArithmeticFunction {
 
     public static final String NAME = "subtract";
 
-    public static void register(ScalarFunctionModule module) {
-        module.register(NAME, new Resolver());
-    }
-
     public SubtractFunction(FunctionInfo info) {
         super(info);
+    }
+
+    public static void register(ScalarFunctionModule module) {
+        module.register(NAME, new Resolver());
     }
 
     private static class DoubleSubtractFunction extends SubtractFunction {

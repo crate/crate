@@ -92,15 +92,15 @@ public class CollectSourceResolver {
         ImplementationSymbolVisitor nodeImplementationSymbolVisitor = new ImplementationSymbolVisitor(functions);
         EvaluatingNormalizer normalizer = new EvaluatingNormalizer(functions, RowGranularity.NODE, clusterReferenceResolver);
         ProjectorFactory projectorFactory = new ProjectionToProjectorVisitor(
-                clusterService,
-                functions,
-                indexNameExpressionResolver,
-                threadPool,
-                settings,
-                transportActionProvider,
-                bulkRetryCoordinatorPool,
-                nodeImplementationSymbolVisitor,
-                normalizer
+            clusterService,
+            functions,
+            indexNameExpressionResolver,
+            threadPool,
+            settings,
+            transportActionProvider,
+            bulkRetryCoordinatorPool,
+            nodeImplementationSymbolVisitor,
+            normalizer
         );
         this.shardCollectSource = shardCollectSource;
         this.fileCollectSource = new ProjectorSetupCollectSource(fileCollectSource, projectorFactory);
@@ -124,6 +124,18 @@ public class CollectSourceResolver {
         }
 
         visitor = new CollectPhaseVisitor();
+    }
+
+    public CollectSource getService(CollectPhase collectPhase) {
+        return visitor.process(collectPhase, null);
+    }
+
+    private static class VoidCollectSource implements CollectSource {
+
+        @Override
+        public Collection<CrateCollector> getCollectors(CollectPhase collectPhase, RowReceiver downstream, JobCollectContext jobCollectContext) {
+            return ImmutableList.of();
+        }
     }
 
     private class CollectPhaseVisitor extends ExecutionPhaseVisitor<Void, CollectSource> {
@@ -164,24 +176,13 @@ public class CollectSourceResolver {
                 // partitioned table without any shards; nothing to collect
                 return VOID_COLLECT_SERVICE;
             }
-            assert indexShards.size() == 1 : "routing without shards that operates on non user-tables may only contain 1 index/table";
+            assert indexShards.size() ==
+                   1 : "routing without shards that operates on non user-tables may only contain 1 index/table";
             CollectSource collectSource = nodeDocCollectSources.get(indexName);
             if (collectSource == null) {
                 throw new IllegalStateException("Can't resolve CollectService for collectPhase: " + phase);
             }
             return collectSource;
-        }
-    }
-
-    public CollectSource getService(CollectPhase collectPhase) {
-        return visitor.process(collectPhase, null);
-    }
-
-    private static class VoidCollectSource implements CollectSource {
-
-        @Override
-        public Collection<CrateCollector> getCollectors(CollectPhase collectPhase, RowReceiver downstream, JobCollectContext jobCollectContext) {
-            return ImmutableList.of();
         }
     }
 }

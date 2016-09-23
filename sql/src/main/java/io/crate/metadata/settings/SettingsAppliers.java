@@ -75,12 +75,12 @@ public class SettingsAppliers {
 
         public IllegalArgumentException invalidException(Exception cause) {
             return new IllegalArgumentException(
-                    String.format(Locale.ENGLISH, "Invalid value for argument '%s'", name), cause);
+                String.format(Locale.ENGLISH, "Invalid value for argument '%s'", name), cause);
         }
 
         public IllegalArgumentException invalidException() {
             return new IllegalArgumentException(
-                    String.format(Locale.ENGLISH, "Invalid value for argument '%s'", name));
+                String.format(Locale.ENGLISH, "Invalid value for argument '%s'", name));
         }
 
         @Override
@@ -95,7 +95,7 @@ public class SettingsAppliers {
 
         public NumberSettingsApplier(Setting setting) {
             super(setting.settingName(), setting.defaultValue() == null ? Settings.EMPTY :
-                    Settings.builder().put(setting.settingName(), setting.defaultValue()).build());
+                Settings.builder().put(setting.settingName(), setting.defaultValue()).build());
             this.setting = setting;
         }
 
@@ -114,7 +114,7 @@ public class SettingsAppliers {
 
         public MemoryValueSettingsApplier(Setting setting) {
             super(setting.settingName(),
-                    Settings.builder().put(setting.settingName(), setting.defaultValue()).build());
+                Settings.builder().put(setting.settingName(), setting.defaultValue()).build());
         }
 
         @Override
@@ -130,19 +130,19 @@ public class SettingsAppliers {
 
     public static class ObjectSettingsApplier extends AbstractSettingsApplier {
 
-        public ObjectSettingsApplier(NestedSetting settings) {
-            super(settings.settingName(),
-                    Settings.builder().put(settings.settingName(), settings.defaultValue()).build());
-        }
-
         static final Joiner dotJoiner = Joiner.on('.');
 
+        public ObjectSettingsApplier(NestedSetting settings) {
+            super(settings.settingName(),
+                Settings.builder().put(settings.settingName(), settings.defaultValue()).build());
+        }
+
         protected void flattenSettings(Settings.Builder settingsBuilder,
-                                                      String key, Object value){
-            if(value instanceof Map){
-                for(Map.Entry<String, Object> setting : ((Map<String, Object>) value).entrySet()){
+                                       String key, Object value) {
+            if (value instanceof Map) {
+                for (Map.Entry<String, Object> setting : ((Map<String, Object>) value).entrySet()) {
                     flattenSettings(settingsBuilder, dotJoiner.join(key, setting.getKey()),
-                            setting.getValue());
+                        setting.getValue());
                 }
             } else {
                 SettingsApplier settingsApplier = CrateSettings.getSettingsApplier(key);
@@ -160,7 +160,7 @@ public class SettingsAppliers {
             }
             if (!(value instanceof Map)) {
                 throw new IllegalArgumentException(
-                        String.format(Locale.ENGLISH, "Only object values are allowed at '%s'", name));
+                    String.format(Locale.ENGLISH, "Only object values are allowed at '%s'", name));
             }
             flattenSettings(settingsBuilder, this.name, value);
         }
@@ -168,7 +168,7 @@ public class SettingsAppliers {
         @Override
         public void applyValue(Settings.Builder settingsBuilder, Object value) {
             throw new IllegalArgumentException(
-                    String.format(Locale.ENGLISH, "Only object values are allowed at '%s'", name));
+                String.format(Locale.ENGLISH, "Only object values are allowed at '%s'", name));
         }
     }
 
@@ -176,7 +176,7 @@ public class SettingsAppliers {
 
         public BooleanSettingsApplier(BoolSetting setting) {
             super(setting.settingName(),
-                    Settings.builder().put(setting.settingName(), setting.defaultValue()).build());
+                Settings.builder().put(setting.settingName(), setting.defaultValue()).build());
         }
 
         @Override
@@ -254,7 +254,7 @@ public class SettingsAppliers {
 
         public ByteSizeSettingsApplier(ByteSizeSetting setting) {
             super(setting.settingName(), setting.defaultValue() == null ? Settings.EMPTY :
-                    Settings.builder().put(setting.settingName(), setting.defaultValue()).build());
+                Settings.builder().put(setting.settingName(), setting.defaultValue()).build());
             this.setting = setting;
         }
 
@@ -276,7 +276,7 @@ public class SettingsAppliers {
 
             if (byteSizeValue == null) {
                 throw new IllegalArgumentException(String.format(Locale.ENGLISH,
-                        "'%s' does not support null values", name));
+                    "'%s' does not support null values", name));
             }
 
             applyValue(settingsBuilder, byteSizeValue);
@@ -295,7 +295,7 @@ public class SettingsAppliers {
             } else if (value instanceof String) {
                 try {
                     byteSizeValue = ByteSizeValue.parseBytesSizeValue((String) value,
-                            ExpressionToByteSizeValueVisitor.DEFAULT_VALUE.toString());
+                        ExpressionToByteSizeValueVisitor.DEFAULT_VALUE.toString());
                 } catch (ElasticsearchParseException e) {
                     throw invalidException(e);
                 }
@@ -312,7 +312,7 @@ public class SettingsAppliers {
 
         public StringSettingsApplier(StringSetting setting) {
             super(setting.settingName(), setting.defaultValue() == null ? Settings.EMPTY :
-                    Settings.builder().put(setting.settingName(), setting.defaultValue()).build());
+                Settings.builder().put(setting.settingName(), setting.defaultValue()).build());
             this.setting = setting;
         }
 
@@ -330,7 +330,7 @@ public class SettingsAppliers {
         public void apply(Settings.Builder settingsBuilder, Row parameters, Expression expression) {
             if (expression instanceof ObjectLiteral) {
                 throw new IllegalArgumentException(
-                        String.format(Locale.ENGLISH, "Object values are not allowed at '%s'", name));
+                    String.format(Locale.ENGLISH, "Object values are not allowed at '%s'", name));
             }
             applyValue(settingsBuilder, ExpressionToStringVisitor.convert(expression, parameters));
         }
@@ -342,12 +342,13 @@ public class SettingsAppliers {
 
         public TimeSettingsApplier(TimeSetting setting) {
             super(setting.settingName(),
-                    Settings.builder().put(setting.settingName(), setting.defaultValue()).build());
+                Settings.builder().put(setting.settingName(), setting.defaultValue()).build());
             this.setting = setting;
         }
 
         private TimeValue validate(TimeValue value) {
-            if (value.getMillis() < setting.minValue().getMillis() || value.getMillis() > setting.maxValue().getMillis()) {
+            if (value.getMillis() < setting.minValue().getMillis() ||
+                value.getMillis() > setting.maxValue().getMillis()) {
                 throw invalidException();
             }
             return value;

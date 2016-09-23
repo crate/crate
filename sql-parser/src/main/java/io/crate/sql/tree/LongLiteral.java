@@ -24,30 +24,25 @@ package io.crate.sql.tree;
 import com.google.common.base.Preconditions;
 
 public class LongLiteral
-        extends Literal
-{
+    extends Literal {
     private final long value;
 
-    public LongLiteral(String value)
-    {
+    public LongLiteral(String value) {
         Preconditions.checkNotNull(value, "value is null");
         this.value = Long.parseLong(value);
     }
 
-    public long getValue()
-    {
+    public long getValue() {
         return value;
     }
 
     @Override
-    public <R, C> R accept(AstVisitor<R, C> visitor, C context)
-    {
+    public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
         return visitor.visitLongLiteral(this, context);
     }
 
     @Override
-    public boolean equals(Object o)
-    {
+    public boolean equals(Object o) {
         if (this == o) {
             return true;
         }
@@ -65,8 +60,7 @@ public class LongLiteral
     }
 
     @Override
-    public int hashCode()
-    {
+    public int hashCode() {
         return (int) (value ^ (value >>> 32));
     }
 }

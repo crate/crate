@@ -35,19 +35,20 @@ public class FileLineReferenceResolver implements ReferenceResolver<LineCollecto
     // need to create a new instance here so that each collector will have its own instance.
     // otherwise multiple collectors would share the same state.
     private static final Map<String, ExpressionBuilder> expressionBuilder =
-            ImmutableMap.of(
-                    SourceLineExpression.COLUMN_NAME, new ExpressionBuilder() {
-                        @Override
-                        public LineCollectorExpression<?> create() {
-                            return new SourceLineExpression();
-                        }
-                    },
-                    SourceAsMapLineExpression.COLUMN_NAME, new ExpressionBuilder() {
-                        @Override
-                        public LineCollectorExpression<?> create() {
-                            return new SourceAsMapLineExpression();
-                        }
-                    });
+        ImmutableMap.of(
+            SourceLineExpression.COLUMN_NAME, new ExpressionBuilder() {
+                @Override
+                public LineCollectorExpression<?> create() {
+                    return new SourceLineExpression();
+                }
+            },
+            SourceAsMapLineExpression.COLUMN_NAME, new ExpressionBuilder() {
+                @Override
+                public LineCollectorExpression<?> create() {
+                    return new SourceAsMapLineExpression();
+                }
+            });
+
     private FileLineReferenceResolver() {
     }
 

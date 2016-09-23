@@ -96,11 +96,11 @@ public class CreateAnalyzer extends Statement {
     @Override
     public String toString() {
         return MoreObjects.toStringHelper(this)
-                .add("ident", ident)
-                .add("extends", extendedAnalyzer)
-                .add("elements", elements)
-                .add("properties", properties)
-                .toString();
+            .add("ident", ident)
+            .add("extends", extendedAnalyzer)
+            .add("elements", elements)
+            .add("properties", properties)
+            .toString();
     }
 
     @Override

@@ -41,11 +41,6 @@ abstract class ConditionalFunction extends Scalar<Object, Object> {
         this.info = info;
     }
 
-    @Override
-    public FunctionInfo info() {
-        return info;
-    }
-
     @VisibleForTesting
     static FunctionInfo createInfo(String name, List<DataType> dataTypes) {
         Set<DataType> types = new HashSet<>(dataTypes);
@@ -53,5 +48,10 @@ abstract class ConditionalFunction extends Scalar<Object, Object> {
         Preconditions.checkArgument(types.size() == 1 || (types.size() == 2 && types.contains(DataTypes.UNDEFINED)),
             "all arguments for %s function must have the same data type", name);
         return new FunctionInfo(new FunctionIdent(name, dataTypes), DataTypes.tryFindNotNullType(dataTypes));
+    }
+
+    @Override
+    public FunctionInfo info() {
+        return info;
     }
 }

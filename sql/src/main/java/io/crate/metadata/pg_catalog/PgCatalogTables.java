@@ -37,10 +37,6 @@ import java.util.Map;
 
 public class PgCatalogTables {
 
-    public Supplier<Iterable<?>> pgTypes() {
-        return Suppliers.<Iterable<?>>ofInstance(PGTypes.pgTypes());
-    }
-
     public static Map<ColumnIdent, RowCollectExpressionFactory> pgTypeExpressions() {
         return ImmutableMap.<ColumnIdent, RowCollectExpressionFactory>builder()
             .put(PgTypeTable.Columns.OID, new RowCollectExpressionFactory() {
@@ -88,5 +84,9 @@ public class PgCatalogTables {
                 }
             })
             .build();
+    }
+
+    public Supplier<Iterable<?>> pgTypes() {
+        return Suppliers.<Iterable<?>>ofInstance(PGTypes.pgTypes());
     }
 }

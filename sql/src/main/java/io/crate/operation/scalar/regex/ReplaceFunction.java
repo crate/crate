@@ -38,22 +38,21 @@ import java.util.List;
 public class ReplaceFunction extends Scalar<BytesRef, Object> implements DynamicFunctionResolver {
 
     public static final String NAME = "regexp_replace";
-
-    private static FunctionInfo createInfo(List<DataType> types) {
-        return new FunctionInfo(new FunctionIdent(NAME, types), DataTypes.STRING);
-    }
-    public static void register(ScalarFunctionModule module) {
-        module.register(NAME, new ReplaceFunction());
-    }
-
     private FunctionInfo info;
     private RegexMatcher regexMatcher;
 
     private ReplaceFunction() {
     }
-
     public ReplaceFunction(FunctionInfo info) {
         this.info = info;
+    }
+
+    private static FunctionInfo createInfo(List<DataType> types) {
+        return new FunctionInfo(new FunctionIdent(NAME, types), DataTypes.STRING);
+    }
+
+    public static void register(ScalarFunctionModule module) {
+        module.register(NAME, new ReplaceFunction());
     }
 
     @Override
@@ -86,7 +85,7 @@ public class ReplaceFunction extends Scalar<BytesRef, Object> implements Dynamic
         args[2] = (Input) replacement;
 
         if (size == 4) {
-            args[3] = (Input)symbol.arguments().get(3);
+            args[3] = (Input) symbol.arguments().get(3);
         }
         return Literal.newLiteral(evaluate(args));
     }

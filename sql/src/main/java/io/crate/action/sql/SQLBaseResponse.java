@@ -36,23 +36,12 @@ import java.io.IOException;
 public abstract class SQLBaseResponse extends ActionResponse implements ToXContent {
 
     public static final DataType[] EMPTY_TYPES = new DataType[0];
-
-    static final class Fields {
-        static final XContentBuilderString RESULTS = new XContentBuilderString("results");
-        static final XContentBuilderString COLS = new XContentBuilderString("cols");
-        static final XContentBuilderString COLUMNTYPES = new XContentBuilderString("colTypes");
-        static final XContentBuilderString ROWS = new XContentBuilderString("rows");
-        static final XContentBuilderString ROWCOUNT = new XContentBuilderString("rowcount");
-        static final XContentBuilderString DURATION = new XContentBuilderString("duration");
-        static final XContentBuilderString ERROR_MESSAGE = new XContentBuilderString("error_message");
-    }
-
     private String[] cols;
     private DataType[] colTypes;
     private boolean includeTypes;
     private float duration;
-
-    public SQLBaseResponse() {} // used for serialization
+    public SQLBaseResponse() {
+    } // used for serialization
 
     public SQLBaseResponse(String[] cols, DataType[] colTypes, boolean includeTypes, float duration) {
         assert cols.length == colTypes.length : "cols and colTypes differ";
@@ -62,11 +51,22 @@ public abstract class SQLBaseResponse extends ActionResponse implements ToXConte
         this.duration = duration;
     }
 
-    public String[] cols(){
+    private static void toXContentNestedDataType(XContentBuilder builder, DataType dataType) throws IOException {
+        if (dataType instanceof CollectionType) {
+            builder.startArray();
+            builder.value(dataType.id());
+            toXContentNestedDataType(builder, ((CollectionType) dataType).innerType());
+            builder.endArray();
+        } else {
+            builder.value(dataType.id());
+        }
+    }
+
+    public String[] cols() {
         return cols;
     }
 
-    public void cols(String[] cols){
+    public void cols(String[] cols) {
         this.cols = cols;
     }
 
@@ -101,17 +101,6 @@ public abstract class SQLBaseResponse extends ActionResponse implements ToXConte
         builder.field(Fields.DURATION, duration());
     }
 
-    private static void toXContentNestedDataType(XContentBuilder builder, DataType dataType) throws IOException {
-        if (dataType instanceof CollectionType) {
-            builder.startArray();
-            builder.value(dataType.id());
-            toXContentNestedDataType(builder, ((CollectionType) dataType).innerType());
-            builder.endArray();
-        } else {
-            builder.value(dataType.id());
-        }
-    }
-
     @Override
     public void readFrom(StreamInput in) throws IOException {
         super.readFrom(in);
@@ -141,5 +130,15 @@ public abstract class SQLBaseResponse extends ActionResponse implements ToXConte
                 DataTypes.toStream(colType, out);
             }
         }
+    }
+
+    static final class Fields {
+        static final XContentBuilderString RESULTS = new XContentBuilderString("results");
+        static final XContentBuilderString COLS = new XContentBuilderString("cols");
+        static final XContentBuilderString COLUMNTYPES = new XContentBuilderString("colTypes");
+        static final XContentBuilderString ROWS = new XContentBuilderString("rows");
+        static final XContentBuilderString ROWCOUNT = new XContentBuilderString("rowcount");
+        static final XContentBuilderString DURATION = new XContentBuilderString("duration");
+        static final XContentBuilderString ERROR_MESSAGE = new XContentBuilderString("error_message");
     }
 }

@@ -47,11 +47,51 @@ public class Unnest implements TableFunctionImplementation {
 
     private final static String NAME = "unnest";
 
+    private static int maxLength(List<Object[]> values) {
+        int length = 0;
+        for (Object[] value : values) {
+            if (value.length > length) {
+                length = value.length;
+            }
+        }
+        return length;
+    }
+
+    private static List<Object[]> extractValues(Collection<? extends Input> arguments) {
+        List<Object[]> values = new ArrayList<>(arguments.size());
+        for (Input argument : arguments) {
+            Object value = argument.value();
+            assert value instanceof Object[] : "must be an array because unnest only accepts array arguments";
+            Object[] columnValues = (Object[]) value;
+            values.add(columnValues);
+        }
+        return values;
+    }
+
+    private static void validateTypes(List<? extends DataType> argumentTypes) {
+        ListIterator<? extends DataType> it = argumentTypes.listIterator();
+        if (!it.hasNext()) {
+            throw new IllegalArgumentException("unnest expects at least 1 argument of type array. Got 0");
+        }
+        while (it.hasNext()) {
+            DataType dataType = it.next();
+            if (dataType.id() != ArrayType.ID) {
+                throw new IllegalArgumentException(String.format(Locale.ENGLISH,
+                    "unnest expects arguments of type array. " +
+                    "Got an argument of type '%s' at position %d instead.", dataType, it.previousIndex()));
+            }
+        }
+    }
+
+    public static void register(TableFunctionModule tableFunctionModule) {
+        tableFunctionModule.register(NAME, new Unnest());
+    }
+
     /**
      * @param arguments collection of array-literals
      *                  e.g. [ [1, 2], [Marvin, Trillian] ]
      * @return Bucket containing the unnested rows.
-     *         [ [1, Marvin], [2, Trillian] ]
+     * [ [1, Marvin], [2, Trillian] ]
      */
     @Override
     public Bucket execute(Collection<? extends Input> arguments) {
@@ -105,27 +145,6 @@ public class Unnest implements TableFunctionImplementation {
         };
     }
 
-    private static int maxLength(List<Object[]> values) {
-        int length = 0;
-        for (Object[] value : values) {
-            if (value.length > length) {
-                length = value.length;
-            }
-        }
-        return length;
-    }
-
-    private static List<Object[]> extractValues(Collection<? extends Input> arguments) {
-        List<Object[]> values = new ArrayList<>(arguments.size());
-        for (Input argument : arguments) {
-            Object value = argument.value();
-            assert value instanceof Object[] : "must be an array because unnest only accepts array arguments";
-            Object[] columnValues = (Object[]) value;
-            values.add(columnValues);
-        }
-        return values;
-    }
-
     @Override
     public TableInfo createTableInfo(ClusterService clusterService, List<? extends DataType> argumentTypes) {
         validateTypes(argumentTypes);
@@ -133,7 +152,8 @@ public class Unnest implements TableFunctionImplementation {
         final TableIdent tableIdent = new TableIdent(null, NAME);
         ColumnRegistrar columnRegistrar = new ColumnRegistrar(tableIdent, RowGranularity.DOC);
         for (int i = 0; i < argumentTypes.size(); i++) {
-            columnRegistrar.register(new ColumnIdent("col" + (i + 1)), ((CollectionType) argumentTypes.get(i)).innerType());
+            columnRegistrar.register(new ColumnIdent(
+                "col" + (i + 1)), ((CollectionType) argumentTypes.get(i)).innerType());
         }
 
         final String localNodeId = clusterService.localNode().id();
@@ -148,24 +168,5 @@ public class Unnest implements TableFunctionImplementation {
                 return Routing.forTableOnSingleNode(tableIdent, localNodeId);
             }
         };
-    }
-
-    private static void validateTypes(List<? extends DataType> argumentTypes) {
-        ListIterator<? extends DataType> it = argumentTypes.listIterator();
-        if (!it.hasNext()) {
-            throw new IllegalArgumentException("unnest expects at least 1 argument of type array. Got 0");
-        }
-        while (it.hasNext()) {
-            DataType dataType = it.next();
-            if (dataType.id() != ArrayType.ID) {
-                throw new IllegalArgumentException(String.format(Locale.ENGLISH,
-                        "unnest expects arguments of type array. " +
-                        "Got an argument of type '%s' at position %d instead.", dataType, it.previousIndex()));
-            }
-        }
-    }
-
-    public static void register(TableFunctionModule tableFunctionModule) {
-        tableFunctionModule.register(NAME, new Unnest());
     }
 }

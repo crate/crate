@@ -31,6 +31,19 @@ public class AnyGtOperator extends AnyOperator {
 
     public static final String NAME = OPERATOR_PREFIX + ComparisonExpression.Type.GREATER_THAN.getValue();
 
+    protected AnyGtOperator(FunctionInfo functionInfo) {
+        super(functionInfo);
+    }
+
+    public static void register(OperatorModule module) {
+        module.registerDynamicOperatorFunction(NAME, new AnyGtResolver());
+    }
+
+    @Override
+    protected boolean compare(int comparisonResult) {
+        return comparisonResult > 0;
+    }
+
     static class AnyGtResolver extends AnyResolver {
 
         @Override
@@ -42,18 +55,5 @@ public class AnyGtOperator extends AnyOperator {
         public String name() {
             return NAME;
         }
-    }
-
-    public static void register(OperatorModule module) {
-        module.registerDynamicOperatorFunction(NAME, new AnyGtResolver());
-    }
-
-    protected AnyGtOperator(FunctionInfo functionInfo) {
-        super(functionInfo);
-    }
-
-    @Override
-    protected boolean compare(int comparisonResult) {
-        return comparisonResult > 0;
     }
 }

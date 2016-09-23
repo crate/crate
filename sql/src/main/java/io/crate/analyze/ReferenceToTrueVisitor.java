@@ -31,19 +31,19 @@ import java.util.List;
 
 /**
  * <p>
- *     Visitor to replace function symbols containing references with true literals.
- *
+ * Visitor to replace function symbols containing references with true literals.
+ * <p>
  * <br><br>
- *     <b>WARNING</b>: The function tree that is processed by this visitor should already
- *     have been normalized. If there are any literals still unresolved this won't work correctly!
+ * <b>WARNING</b>: The function tree that is processed by this visitor should already
+ * have been normalized. If there are any literals still unresolved this won't work correctly!
  * </p>
- *
+ * <p>
  * <h3>Example</h3>
- *
+ * <p>
  * <pre>
  *     true and x = 1       -&gt; true and true
  * </pre>
- *
+ * <p>
  * <pre>
  *     true and id is null  -&gt; true and true
  * </pre>

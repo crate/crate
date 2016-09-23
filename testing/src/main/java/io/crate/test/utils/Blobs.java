@@ -46,6 +46,6 @@ public class Blobs {
 
     public static String url(InetSocketAddress address, String tableAndDigest) {
         return String.format(Locale.ENGLISH, "http://%s:%s/_blobs/%s",
-                address.getHostName(), address.getPort(), tableAndDigest);
+            address.getHostName(), address.getPort(), tableAndDigest);
     }
 }

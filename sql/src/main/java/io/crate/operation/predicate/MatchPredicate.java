@@ -44,26 +44,26 @@ import java.util.Set;
 
 /**
  * The match predicate is only used to generate lucene queries from.
-  */
+ */
 public class MatchPredicate implements FunctionImplementation<Function> {
 
     public static final Set<DataType> SUPPORTED_TYPES = ImmutableSet.<DataType>of(DataTypes.STRING, DataTypes.GEO_SHAPE);
-
+    public static final String NAME = "match";
+    public static final FunctionIdent IDENT = new FunctionIdent(
+        NAME,
+        Arrays.<DataType>asList(DataTypes.OBJECT, DataTypes.STRING, DataTypes.STRING, DataTypes.OBJECT)
+    );
+    public static final FunctionInfo INFO = new FunctionInfo(IDENT, DataTypes.BOOLEAN, FunctionInfo.Type.PREDICATE);
     private static final String DEFAULT_MATCH_TYPE_STRING = MultiMatchQueryBuilder.Type.BEST_FIELDS.toString().toLowerCase(Locale.ENGLISH);
     private static final Map<DataType, String> DATA_TYPE_TO_DEFAULT_MATCH_TYPE = ImmutableMap.<DataType, String>of(
-            DataTypes.STRING, DEFAULT_MATCH_TYPE_STRING,
-            DataTypes.GEO_SHAPE, "intersects"
+        DataTypes.STRING, DEFAULT_MATCH_TYPE_STRING,
+        DataTypes.GEO_SHAPE, "intersects"
     );
     private static final Set<String> SUPPORTED_GEO_MATCH_TYPES = ImmutableSet.of("intersects", "disjoint", "within");
 
-    public static final String NAME = "match";
-    public static final FunctionIdent IDENT = new FunctionIdent(
-            NAME,
-            Arrays.<DataType>asList(DataTypes.OBJECT, DataTypes.STRING, DataTypes.STRING, DataTypes.OBJECT)
-    );
 
-    public static final FunctionInfo INFO = new FunctionInfo(IDENT, DataTypes.BOOLEAN, FunctionInfo.Type.PREDICATE);
-
+    public MatchPredicate() {
+    }
 
     private static String defaultMatchType(DataType dataType) {
         String matchType = DATA_TYPE_TO_DEFAULT_MATCH_TYPE.get(dataType);
@@ -73,8 +73,7 @@ public class MatchPredicate implements FunctionImplementation<Function> {
         return matchType;
     }
 
-
-    public static String getMatchType(@Nullable  String matchType, DataType columnType) {
+    public static String getMatchType(@Nullable String matchType, DataType columnType) {
         if (matchType == null) {
             return defaultMatchType(columnType);
         }
@@ -84,13 +83,13 @@ public class MatchPredicate implements FunctionImplementation<Function> {
                 return matchType;
             } catch (ElasticsearchParseException e) {
                 throw new IllegalArgumentException(String.format(Locale.ENGLISH,
-                        "invalid MATCH type '%s' for type '%s'", matchType, columnType), e);
+                    "invalid MATCH type '%s' for type '%s'", matchType, columnType), e);
             }
         } else if (columnType.equals(DataTypes.GEO_SHAPE)) {
             if (!SUPPORTED_GEO_MATCH_TYPES.contains(matchType)) {
                 throw new IllegalArgumentException(String.format(Locale.ENGLISH,
-                        "invalid MATCH type '%s' for type '%s', valid types are: [%s]",
-                        matchType, columnType, Joiner.on(",").join(SUPPORTED_GEO_MATCH_TYPES)));
+                    "invalid MATCH type '%s' for type '%s', valid types are: [%s]",
+                    matchType, columnType, Joiner.on(",").join(SUPPORTED_GEO_MATCH_TYPES)));
             }
             return matchType;
         }
@@ -102,7 +101,7 @@ public class MatchPredicate implements FunctionImplementation<Function> {
      * though it is called differently by the parser. We mangle
      * the arguments and options for the match predicate into
      * function arguments.
-     *
+     * <p>
      * 1. list of column idents and boost values - object mapping column name to boost value (Double) (values nullable)
      * 2. query string - string
      * 3. match_type - string (nullable)
@@ -110,9 +109,6 @@ public class MatchPredicate implements FunctionImplementation<Function> {
      */
     public static void register(PredicateModule module) {
         module.register(new MatchPredicate());
-    }
-
-    public MatchPredicate() {
     }
 
     @Override

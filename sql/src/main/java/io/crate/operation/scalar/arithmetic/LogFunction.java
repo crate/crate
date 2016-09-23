@@ -22,9 +22,6 @@
 package io.crate.operation.scalar.arithmetic;
 
 import com.google.common.collect.ImmutableSet;
-import io.crate.analyze.symbol.Function;
-import io.crate.analyze.symbol.Literal;
-import io.crate.analyze.symbol.Symbol;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Scalar;
@@ -36,15 +33,19 @@ import io.crate.types.DataTypes;
 import java.util.Arrays;
 import java.util.Set;
 
-public abstract class LogFunction extends Scalar<Number,Number> {
+public abstract class LogFunction extends Scalar<Number, Number> {
 
     public static final String NAME = "log";
     private static final Set<DataType> ALLOWED_TYPES = ImmutableSet.<DataType>builder()
-            .addAll(DataTypes.NUMERIC_PRIMITIVE_TYPES)
-            .add(DataTypes.UNDEFINED)
-            .build();
+        .addAll(DataTypes.NUMERIC_PRIMITIVE_TYPES)
+        .add(DataTypes.UNDEFINED)
+        .build();
 
     protected final FunctionInfo info;
+
+    public LogFunction(FunctionInfo info) {
+        this.info = info;
+    }
 
     public static void register(ScalarFunctionModule module) {
         LogBaseFunction.registerLogBaseFunctions(module);
@@ -72,30 +73,26 @@ public abstract class LogFunction extends Scalar<Number,Number> {
         return result;
     }
 
-    public LogFunction(FunctionInfo info) {
-        this.info = info;
-    }
-
     static class LogBaseFunction extends LogFunction {
+
+        public LogBaseFunction(FunctionInfo info) {
+            super(info);
+        }
 
         protected static void registerLogBaseFunctions(ScalarFunctionModule module) {
             // log(valueType, baseType) : double
             for (DataType baseType : ALLOWED_TYPES) {
                 for (DataType valueType : ALLOWED_TYPES) {
                     FunctionInfo info = new FunctionInfo(
-                            new FunctionIdent(
-                                    NAME,
-                                    Arrays.asList(valueType, baseType)
-                            ),
-                            DataTypes.DOUBLE
+                        new FunctionIdent(
+                            NAME,
+                            Arrays.asList(valueType, baseType)
+                        ),
+                        DataTypes.DOUBLE
                     );
                     module.register(new LogBaseFunction(info));
                 }
             }
-        }
-
-        public LogBaseFunction(FunctionInfo info) {
-            super(info);
         }
 
         @Override
@@ -117,16 +114,16 @@ public abstract class LogFunction extends Scalar<Number,Number> {
 
     static class Log10Function extends LogFunction {
 
+        public Log10Function(FunctionInfo info) {
+            super(info);
+        }
+
         protected static void registerLog10Functions(ScalarFunctionModule module) {
             // log(dataType) : double
             for (DataType dt : ALLOWED_TYPES) {
                 FunctionInfo info = new FunctionInfo(new FunctionIdent(NAME, Arrays.asList(dt)), DataTypes.DOUBLE);
                 module.register(new Log10Function(info));
             }
-        }
-
-        public Log10Function(FunctionInfo info) {
-            super(info);
         }
 
         @Override
@@ -147,18 +144,18 @@ public abstract class LogFunction extends Scalar<Number,Number> {
 
     public static class LnFunction extends Log10Function {
 
+        public static final String NAME = "ln";
+
+        public LnFunction(FunctionInfo info) {
+            super(info);
+        }
+
         protected static void registerLnFunctions(ScalarFunctionModule module) {
             // ln(dataType) : double
             for (DataType dt : ALLOWED_TYPES) {
                 FunctionInfo info = new FunctionInfo(new FunctionIdent(LnFunction.NAME, Arrays.asList(dt)), DataTypes.DOUBLE);
                 module.register(new LnFunction(info));
             }
-        }
-
-        public static final String NAME = "ln";
-
-        public LnFunction(FunctionInfo info) {
-            super(info);
         }
 
         @Override

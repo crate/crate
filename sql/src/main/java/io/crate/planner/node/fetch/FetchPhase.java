@@ -49,7 +49,8 @@ public class FetchPhase implements ExecutionPhase {
     private int executionPhaseId;
     private Set<String> executionNodes;
 
-    private FetchPhase() {}
+    private FetchPhase() {
+    }
 
     public FetchPhase(int executionPhaseId,
                       Set<String> executionNodes,

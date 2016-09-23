@@ -50,12 +50,12 @@ public class SortingTopNProjectorTest extends CrateUnitTest {
 
     private Projector getProjector(int numOutputs, int limit, int offset, RowReceiver rowReceiver, Ordering<Object[]> ordering) {
         Projector pipe = new SortingTopNProjector(
-                INPUT_LITERAL_LIST,
-                COLLECT_EXPRESSIONS,
-                numOutputs,
-                ordering,
-                limit,
-                offset
+            INPUT_LITERAL_LIST,
+            COLLECT_EXPRESSIONS,
+            numOutputs,
+            ordering,
+            limit,
+            offset
         );
         pipe.downstream(rowReceiver);
         return pipe;

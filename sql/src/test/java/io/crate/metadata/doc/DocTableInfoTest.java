@@ -42,7 +42,7 @@ public class DocTableInfoTest extends CrateUnitTest {
         DocTableInfo info = new DocTableInfo(
             tableIdent,
             ImmutableList.of(
-                    new Reference(new ReferenceIdent(tableIdent, new ColumnIdent("o", ImmutableList.<String>of())), RowGranularity.DOC, DataTypes.OBJECT)
+                new Reference(new ReferenceIdent(tableIdent, new ColumnIdent("o", ImmutableList.<String>of())), RowGranularity.DOC, DataTypes.OBJECT)
             ),
             ImmutableList.<Reference>of(),
             ImmutableList.<GeneratedReference>of(),
@@ -58,7 +58,7 @@ public class DocTableInfoTest extends CrateUnitTest {
             new IndexNameExpressionResolver(Settings.EMPTY),
             5,
             new BytesRef("0"),
-            ImmutableMap.<String,Object>of(),
+            ImmutableMap.<String, Object>of(),
             ImmutableList.<ColumnIdent>of(),
             ImmutableList.<PartitionName>of(),
             ColumnPolicy.DYNAMIC,
@@ -81,17 +81,17 @@ public class DocTableInfoTest extends CrateUnitTest {
         TableIdent dummy = new TableIdent(null, "dummy");
         ReferenceIdent foobarIdent = new ReferenceIdent(dummy, new ColumnIdent("foobar"));
         Reference strictParent = new Reference(
-                foobarIdent,
-                RowGranularity.DOC,
-                DataTypes.OBJECT,
-                ColumnPolicy.STRICT,
-                Reference.IndexType.NOT_ANALYZED,
-                true
+            foobarIdent,
+            RowGranularity.DOC,
+            DataTypes.OBJECT,
+            ColumnPolicy.STRICT,
+            Reference.IndexType.NOT_ANALYZED,
+            true
         );
 
         ImmutableMap<ColumnIdent, Reference> references = ImmutableMap.<ColumnIdent, Reference>builder()
-                .put(new ColumnIdent("foobar"), strictParent)
-                .build();
+            .put(new ColumnIdent("foobar"), strictParent)
+            .build();
 
         DocTableInfo info = new DocTableInfo(
             dummy,

@@ -33,6 +33,11 @@ public class CompletionMultiListener implements CompletionListener {
 
     private final List<CompletionListener> listeners = new ArrayList<>();
 
+    private CompletionMultiListener(CompletionListener currentListener, CompletionListener newListener) {
+        listeners.add(currentListener);
+        listeners.add(newListener);
+    }
+
     public static CompletionListener merge(@Nullable CompletionListener currentListener,
                                            CompletionListener newListener) {
         if (currentListener == null || currentListener == NO_OP) {
@@ -43,11 +48,6 @@ public class CompletionMultiListener implements CompletionListener {
             return currentListener;
         }
         return new CompletionMultiListener(currentListener, newListener);
-    }
-
-    private CompletionMultiListener(CompletionListener currentListener, CompletionListener newListener) {
-        listeners.add(currentListener);
-        listeners.add(newListener);
     }
 
     @Override

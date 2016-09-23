@@ -33,7 +33,8 @@ public class ExpressionToMemoryValueVisitor {
 
     private static final Visitor VISITOR = new Visitor();
 
-    private ExpressionToMemoryValueVisitor() {}
+    private ExpressionToMemoryValueVisitor() {
+    }
 
     public static ByteSizeValue convert(Node node, Row parameters, String settingName) {
         return VISITOR.process(node, new Context(settingName, parameters));
@@ -57,7 +58,7 @@ public class ExpressionToMemoryValueVisitor {
                 return MemorySizeValue.parseBytesSizeValueOrHeapRatio(node.getValue(), context.settingName);
             } catch (ElasticsearchParseException e) {
                 throw new IllegalArgumentException(
-                        String.format(Locale.ENGLISH, "Invalid byte size value '%s'", node.getValue()));
+                    String.format(Locale.ENGLISH, "Invalid byte size value '%s'", node.getValue()));
             }
         }
 
@@ -77,11 +78,11 @@ public class ExpressionToMemoryValueVisitor {
                     value = MemorySizeValue.parseBytesSizeValueOrHeapRatio((String) param, context.settingName);
                 } catch (ElasticsearchParseException e) {
                     throw new IllegalArgumentException(
-                            String.format(Locale.ENGLISH, "Invalid byte size value '%s'", param));
+                        String.format(Locale.ENGLISH, "Invalid byte size value '%s'", param));
                 }
             } else {
                 throw new IllegalArgumentException(
-                        String.format(Locale.ENGLISH, "Invalid byte size value %s", param));
+                    String.format(Locale.ENGLISH, "Invalid byte size value %s", param));
             }
             return value;
         }

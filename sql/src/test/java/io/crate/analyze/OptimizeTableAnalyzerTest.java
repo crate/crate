@@ -48,30 +48,9 @@ import static org.mockito.Mockito.when;
 
 public class OptimizeTableAnalyzerTest extends BaseAnalyzerTest {
 
+    private final static TableIdent TEST_BLOB_TABLE_IDENT = new TableIdent("blob", "blobs");
     @Rule
     public ExpectedException expectedException = ExpectedException.none();
-
-    private final static TableIdent TEST_BLOB_TABLE_IDENT = new TableIdent("blob", "blobs");
-
-    static class TestMetaDataModule extends MetaDataModule {
-
-        @Override
-        protected void bindSchemas() {
-            super.bindSchemas();
-            SchemaInfo schemaInfo = mock(SchemaInfo.class);
-            BlobTableInfo blobTableInfo = mock(BlobTableInfo.class);
-            when(blobTableInfo.ident()).thenReturn(TEST_BLOB_TABLE_IDENT);
-            when(schemaInfo.getTableInfo(TEST_BLOB_TABLE_IDENT.name())).thenReturn(blobTableInfo);
-            schemaBinder.addBinding(BlobSchemaInfo.NAME).toInstance(schemaInfo);
-
-            SchemaInfo docSchemaInfo = mock(SchemaInfo.class);
-            when(docSchemaInfo.getTableInfo(TEST_PARTITIONED_TABLE_IDENT.name()))
-                .thenReturn(TEST_PARTITIONED_TABLE_INFO);
-            when(docSchemaInfo.getTableInfo(USER_TABLE_IDENT.name())).thenReturn(USER_TABLE_INFO);
-
-            schemaBinder.addBinding(Schemas.DEFAULT_SCHEMA_NAME).toInstance(docSchemaInfo);
-        }
-    }
 
     @Override
     protected List<Module> getModules() {
@@ -189,5 +168,25 @@ public class OptimizeTableAnalyzerTest extends BaseAnalyzerTest {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("operation cannot be performed on system and blob tables: table 'blob.blobs'");
         analyze("OPTIMIZE TABLE blob.blobs partition (n='n')");
+    }
+
+    static class TestMetaDataModule extends MetaDataModule {
+
+        @Override
+        protected void bindSchemas() {
+            super.bindSchemas();
+            SchemaInfo schemaInfo = mock(SchemaInfo.class);
+            BlobTableInfo blobTableInfo = mock(BlobTableInfo.class);
+            when(blobTableInfo.ident()).thenReturn(TEST_BLOB_TABLE_IDENT);
+            when(schemaInfo.getTableInfo(TEST_BLOB_TABLE_IDENT.name())).thenReturn(blobTableInfo);
+            schemaBinder.addBinding(BlobSchemaInfo.NAME).toInstance(schemaInfo);
+
+            SchemaInfo docSchemaInfo = mock(SchemaInfo.class);
+            when(docSchemaInfo.getTableInfo(TEST_PARTITIONED_TABLE_IDENT.name()))
+                .thenReturn(TEST_PARTITIONED_TABLE_INFO);
+            when(docSchemaInfo.getTableInfo(USER_TABLE_IDENT.name())).thenReturn(USER_TABLE_INFO);
+
+            schemaBinder.addBinding(Schemas.DEFAULT_SCHEMA_NAME).toInstance(docSchemaInfo);
+        }
     }
 }

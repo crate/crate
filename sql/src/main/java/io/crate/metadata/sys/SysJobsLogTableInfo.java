@@ -41,17 +41,8 @@ import java.util.List;
 public class SysJobsLogTableInfo extends StaticTableInfo {
 
     public static final TableIdent IDENT = new TableIdent(SysSchemaInfo.NAME, "jobs_log");
-    private final ClusterService clusterService;
-
-    public static class Columns {
-        public static final ColumnIdent ID = new ColumnIdent("id");
-        public static final ColumnIdent STMT = new ColumnIdent("stmt");
-        public static final ColumnIdent STARTED = new ColumnIdent("started");
-        public static final ColumnIdent ENDED = new ColumnIdent("ended");
-        public static final ColumnIdent ERROR = new ColumnIdent("error");
-    }
-
     private final static List<ColumnIdent> primaryKeys = ImmutableList.of(Columns.ID);
+    private final ClusterService clusterService;
 
     @Inject
     public SysJobsLogTableInfo(ClusterService clusterService) {
@@ -72,5 +63,13 @@ public class SysJobsLogTableInfo extends StaticTableInfo {
     @Override
     public Routing getRouting(WhereClause whereClause, @Nullable String preference) {
         return Routing.forTableOnAllNodes(IDENT, clusterService.state().nodes());
+    }
+
+    public static class Columns {
+        public static final ColumnIdent ID = new ColumnIdent("id");
+        public static final ColumnIdent STMT = new ColumnIdent("stmt");
+        public static final ColumnIdent STARTED = new ColumnIdent("started");
+        public static final ColumnIdent ENDED = new ColumnIdent("ended");
+        public static final ColumnIdent ERROR = new ColumnIdent("error");
     }
 }

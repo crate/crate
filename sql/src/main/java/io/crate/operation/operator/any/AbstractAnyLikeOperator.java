@@ -26,13 +26,13 @@ import org.apache.lucene.util.BytesRef;
 
 public abstract class AbstractAnyLikeOperator extends AnyOperator {
 
+    protected AbstractAnyLikeOperator(FunctionInfo info) {
+        super(info);
+    }
+
     @Override
     protected boolean compare(int comparisonResult) {
         return false;
-    }
-
-    protected AbstractAnyLikeOperator(FunctionInfo info) {
-        super(info);
     }
 
     @Override
@@ -52,7 +52,7 @@ public abstract class AbstractAnyLikeOperator extends AnyOperator {
             if (elem instanceof BytesRef) {
                 elemValue = ((BytesRef) elem).utf8ToString();
             } else {
-                elemValue = (String)elem;
+                elemValue = (String) elem;
             }
             if (matches(elemValue, pattern)) {
                 return true;

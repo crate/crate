@@ -57,7 +57,8 @@ abstract class AbstractPortal implements Portal {
     }
 
     @Override
-    public void close() {}
+    public void close() {
+    }
 
     @Override
     public String toString() {
@@ -66,12 +67,12 @@ abstract class AbstractPortal implements Portal {
 
     static class SessionData {
 
-        private Set<SQLOperations.Option> options;
         private final Analyzer analyzer;
         private final Executor executor;
         private final String defaultSchema;
         private final TransportKillJobsNodeAction transportKillJobsNodeAction;
         private final boolean isReadOnly;
+        private Set<SQLOperations.Option> options;
 
         private SessionData(String defaultSchema,
                             Set<SQLOperations.Option> options,

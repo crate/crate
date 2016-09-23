@@ -47,6 +47,17 @@ public class TryCastScalarFunction extends AbstractCastFunction<Object, Object> 
         }
     }
 
+    @Override
+    protected Symbol onNormalizeException(Symbol argument) {
+        return Literal.NULL;
+    }
+
+    @Override
+    protected Object onEvaluateException(Object argument) {
+        // swallow exception
+        return null;
+    }
+
     private static class Resolver implements DynamicFunctionResolver {
 
         private final String name;
@@ -61,16 +72,5 @@ public class TryCastScalarFunction extends AbstractCastFunction<Object, Object> 
         public FunctionImplementation<Function> getForTypes(List<DataType> dataTypes) throws IllegalArgumentException {
             return new TryCastScalarFunction(new FunctionInfo(new FunctionIdent(name, dataTypes), dataType));
         }
-    }
-
-    @Override
-    protected Symbol onNormalizeException(Symbol argument) {
-        return Literal.NULL;
-    }
-
-    @Override
-    protected Object onEvaluateException(Object argument) {
-        // swallow exception
-        return null;
     }
 }

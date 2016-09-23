@@ -41,26 +41,23 @@ import java.util.concurrent.atomic.AtomicBoolean;
 abstract class DMLProjector<Request extends ShardRequest> extends AbstractProjector {
 
     static final int DEFAULT_BULK_SIZE = 1024;
-
-    private final ShardId shardId;
-    private final CollectExpression<Row, ?> collectUidExpression;
-    private final AtomicBoolean failed = new AtomicBoolean(false);
-
     protected final ClusterService clusterService;
     protected final Settings settings;
     protected final TransportActionProvider transportActionProvider;
     protected final BulkRetryCoordinatorPool bulkRetryCoordinatorPool;
     protected final UUID jobId;
-
+    private final ShardId shardId;
+    private final CollectExpression<Row, ?> collectUidExpression;
+    private final AtomicBoolean failed = new AtomicBoolean(false);
     private BulkShardProcessor<Request> bulkShardProcessor;
 
     DMLProjector(ClusterService clusterService,
-                        Settings settings,
-                        ShardId shardId,
-                        TransportActionProvider transportActionProvider,
-                        BulkRetryCoordinatorPool bulkRetryCoordinatorPool,
-                        CollectExpression<Row, ?> collectUidExpression,
-                        UUID jobId) {
+                 Settings settings,
+                 ShardId shardId,
+                 TransportActionProvider transportActionProvider,
+                 BulkRetryCoordinatorPool bulkRetryCoordinatorPool,
+                 CollectExpression<Row, ?> collectUidExpression,
+                 UUID jobId) {
         this.clusterService = clusterService;
         this.settings = settings;
         this.transportActionProvider = transportActionProvider;
@@ -85,7 +82,7 @@ abstract class DMLProjector<Request extends ShardRequest> extends AbstractProjec
     public Result setNextRow(Row row) {
         // resolve the Uid
         collectUidExpression.setNextRow(row);
-        Uid uid = Uid.createUid(((BytesRef)collectUidExpression.value()).utf8ToString());
+        Uid uid = Uid.createUid(((BytesRef) collectUidExpression.value()).utf8ToString());
         // routing is already resolved
         bulkShardProcessor.addForExistingShard(shardId, createItem(uid.id()), null);
         return Result.CONTINUE;

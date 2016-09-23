@@ -35,8 +35,7 @@ import java.util.UUID;
  */
 public abstract class BlobTransferRequest<T extends ReplicationRequest<T>>
     extends ReplicationRequest<T>
-    implements IPutChunkRequest
-{
+    implements IPutChunkRequest {
 
     private boolean last;
     private UUID transferId;
@@ -45,19 +44,19 @@ public abstract class BlobTransferRequest<T extends ReplicationRequest<T>>
     public BlobTransferRequest() {
     }
 
-    public BytesReference content() {
-        return content;
-    }
-
-    public boolean isLast(){
-        return last;
-    }
-
     public BlobTransferRequest(String index, UUID transferId, BytesArray content, boolean last) {
         this.index = index;
         this.transferId = transferId;
         this.content = content;
         this.last = last;
+    }
+
+    public BytesReference content() {
+        return content;
+    }
+
+    public boolean isLast() {
+        return last;
     }
 
     @Override

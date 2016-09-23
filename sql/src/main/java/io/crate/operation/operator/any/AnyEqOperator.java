@@ -36,8 +36,26 @@ public class AnyEqOperator extends AnyOperator {
 
     public static final String NAME = OPERATOR_PREFIX + ComparisonExpression.Type.EQUAL.getValue();
 
+    protected AnyEqOperator(FunctionInfo functionInfo) {
+        super(functionInfo);
+    }
+
     public static FunctionInfo createInfo(DataType targetType) {
         return new FunctionInfo(new FunctionIdent(NAME, ImmutableList.of(targetType, new SetType(targetType))), DataTypes.BOOLEAN);
+    }
+
+    public static void register(OperatorModule module) {
+        module.registerDynamicOperatorFunction(NAME, new AnyEqResolver());
+    }
+
+    @Override
+    protected boolean compare(int comparisonResult) {
+        return comparisonResult == 0;
+    }
+
+    @Override
+    public String operator(Function function) {
+        return "= ANY";
     }
 
     static class AnyEqResolver extends AnyResolver {
@@ -51,23 +69,5 @@ public class AnyEqOperator extends AnyOperator {
         public String name() {
             return NAME;
         }
-    }
-
-    public static void register(OperatorModule module) {
-        module.registerDynamicOperatorFunction(NAME, new AnyEqResolver());
-    }
-
-    protected AnyEqOperator(FunctionInfo functionInfo) {
-        super(functionInfo);
-    }
-
-    @Override
-    protected boolean compare(int comparisonResult) {
-        return comparisonResult == 0;
-    }
-
-    @Override
-    public String operator(Function function) {
-        return "= ANY";
     }
 }

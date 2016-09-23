@@ -36,16 +36,11 @@ import org.elasticsearch.action.support.IndicesOptions;
 
 public class ESDeletePartitionTask extends JobTask {
 
-    private static final Function<Object, Row> TO_UNKNOWN_COUNT_ROW = Functions.<Row>constant(new Row1(-1L));;
+    private static final Function<Object, Row> TO_UNKNOWN_COUNT_ROW = Functions.<Row>constant(new Row1(-1L));
+    ;
 
     private final TransportDeleteIndexAction transport;
     private final DeleteIndexRequest request;
-
-    @Override
-    public void execute(RowReceiver rowReceiver) {
-        OneRowActionListener<DeleteIndexResponse> actionListener = new OneRowActionListener<>(rowReceiver, TO_UNKNOWN_COUNT_ROW);
-        transport.execute(request, actionListener);
-    }
 
     public ESDeletePartitionTask(ESDeletePartition esDeletePartition, TransportDeleteIndexAction transport) {
         super(esDeletePartition.jobId());
@@ -58,5 +53,11 @@ public class ESDeletePartitionTask extends JobTask {
          * so ignore it if some are missing
          */
         this.request.indicesOptions(IndicesOptions.lenientExpandOpen());
+    }
+
+    @Override
+    public void execute(RowReceiver rowReceiver) {
+        OneRowActionListener<DeleteIndexResponse> actionListener = new OneRowActionListener<>(rowReceiver, TO_UNKNOWN_COUNT_ROW);
+        transport.execute(request, actionListener);
     }
 }

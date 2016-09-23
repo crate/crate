@@ -53,6 +53,26 @@ public class RowSender implements Runnable, RepeatHandle {
         });
     }
 
+    /**
+     * Generates N rows where each row will just have 1 integer column, the current range iteration value.
+     * N is defined by the given <p>start</p> and <p>end</p> arguments.
+     *
+     * @param start       range start for generating rows (inclusive)
+     * @param end         range end for generating rows (exclusive)
+     * @param rowReceiver rows will be emitted on that RowReceiver
+     * @return the last emitted integer value
+     */
+    public static long generateRowsInRangeAndEmit(int start, int end, RowReceiver rowReceiver) {
+        RowSender rowSender = new RowSender(RowGenerator.range(start, end), rowReceiver, MoreExecutors.directExecutor());
+        rowSender.run();
+        if (rowSender.iterator.hasNext()) {
+            long nextValue = (long) rowSender.iterator.next().get(0);
+            return start > end ? nextValue + 1L : nextValue - 1L;
+        } else {
+            return end;
+        }
+    }
+
     @Override
     public void run() {
         loop:
@@ -60,7 +80,7 @@ public class RowSender implements Runnable, RepeatHandle {
             RowReceiver.Result result = downstream.setNextRow(iterator.next());
             switch (result) {
                 case CONTINUE:
-                    continue ;
+                    continue;
                 case PAUSE:
                     numPauses++;
                     downstream.pauseProcessed(resumeable);
@@ -71,7 +91,7 @@ public class RowSender implements Runnable, RepeatHandle {
             throw new AssertionError("Unrecognized setNextRow result: " + result);
         }
         downstream.finish(this);
-   }
+    }
 
     @Override
     public void repeat() {
@@ -85,27 +105,5 @@ public class RowSender implements Runnable, RepeatHandle {
 
     public int numResumes() {
         return numResumes;
-    }
-
-
-
-    /**
-     * Generates N rows where each row will just have 1 integer column, the current range iteration value.
-     * N is defined by the given <p>start</p> and <p>end</p> arguments.
-     *
-     * @param start         range start for generating rows (inclusive)
-     * @param end           range end for generating rows (exclusive)
-     * @param rowReceiver   rows will be emitted on that RowReceiver
-     * @return              the last emitted integer value
-     */
-    public static long generateRowsInRangeAndEmit(int start, int end, RowReceiver rowReceiver) {
-        RowSender rowSender = new RowSender(RowGenerator.range(start, end), rowReceiver, MoreExecutors.directExecutor());
-        rowSender.run();
-        if (rowSender.iterator.hasNext()) {
-            long nextValue = (long) rowSender.iterator.next().get(0);
-            return start > end ? nextValue + 1L : nextValue - 1L;
-        } else {
-            return end;
-        }
     }
 }

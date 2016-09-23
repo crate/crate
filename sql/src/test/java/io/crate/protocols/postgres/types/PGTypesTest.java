@@ -59,23 +59,13 @@ public class PGTypesTest extends CrateUnitTest {
         assertThat(PGTypes.fromOID(DoubleType.OID), instanceOf(io.crate.types.DoubleType.class));
     }
 
-    private static class Entry {
-        final DataType type;
-        final Object value;
-
-        public Entry(DataType type, Object value) {
-            this.type = type;
-            this.value = value;
-        }
-    }
-
     @Test
     public void testByteReadWrite() throws Exception {
         for (Entry entry : ImmutableList.of(
             new Entry(DataTypes.STRING, TestingHelpers.bytesRef("foobar", random())),
             new Entry(DataTypes.LONG, 392873L),
             new Entry(DataTypes.INTEGER, 1234),
-            new Entry(DataTypes.SHORT, (short)42),
+            new Entry(DataTypes.SHORT, (short) 42),
             new Entry(DataTypes.FLOAT, 42.3f),
             new Entry(DataTypes.DOUBLE, 42.00003),
             new Entry(DataTypes.BOOLEAN, true),
@@ -107,5 +97,15 @@ public class PGTypesTest extends CrateUnitTest {
         pgType.writeAsText(buffer, entry.value);
         int length = buffer.readInt();
         return pgType.readTextValue(buffer, length);
+    }
+
+    private static class Entry {
+        final DataType type;
+        final Object value;
+
+        public Entry(DataType type, Object value) {
+            this.type = type;
+            this.value = value;
+        }
     }
 }

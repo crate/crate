@@ -35,71 +35,10 @@ import java.util.List;
 
 public class ShardResponse extends ActionWriteResponse {
 
-    /**
-     * Represents a failure.
-     */
-    public static class Failure implements Streamable {
-
-        private String id;
-        private String message;
-        private boolean versionConflict;
-
-        Failure() {
-        }
-
-        public Failure(String id, String message, boolean versionConflict) {
-             this.id = id;
-             this.message = message;
-             this.versionConflict = versionConflict;
-        }
-
-        public String id() {
-            return id;
-        }
-
-        public String message() {
-            return this.message;
-        }
-
-        public boolean versionConflict() {
-            return versionConflict;
-        }
-
-        public static Failure readFailure(StreamInput in) throws IOException {
-            Failure failure = new Failure();
-            failure.readFrom(in);
-            return failure;
-        }
-
-        @Override
-        public void readFrom(StreamInput in) throws IOException {
-            id = in.readString();
-            message = in.readString();
-            versionConflict = in.readBoolean();
-        }
-
-        @Override
-        public void writeTo(StreamOutput out) throws IOException {
-            out.writeString(id);
-            out.writeString(message);
-            out.writeBoolean(versionConflict);
-        }
-
-        @Override
-        public String toString() {
-            return MoreObjects.toStringHelper(this)
-                    .add("id", id)
-                    .add("message", message)
-                    .add("versionConflict", versionConflict)
-                    .toString();
-        }
-    }
-
     private IntArrayList locations = new IntArrayList();
     private List<Failure> failures = new ArrayList<>();
     @Nullable
     private Throwable failure;
-
     public ShardResponse() {
     }
 
@@ -166,6 +105,66 @@ public class ShardResponse extends ActionWriteResponse {
             out.writeThrowable(failure);
         } else {
             out.writeBoolean(false);
+        }
+    }
+
+    /**
+     * Represents a failure.
+     */
+    public static class Failure implements Streamable {
+
+        private String id;
+        private String message;
+        private boolean versionConflict;
+
+        Failure() {
+        }
+
+        public Failure(String id, String message, boolean versionConflict) {
+            this.id = id;
+            this.message = message;
+            this.versionConflict = versionConflict;
+        }
+
+        public static Failure readFailure(StreamInput in) throws IOException {
+            Failure failure = new Failure();
+            failure.readFrom(in);
+            return failure;
+        }
+
+        public String id() {
+            return id;
+        }
+
+        public String message() {
+            return this.message;
+        }
+
+        public boolean versionConflict() {
+            return versionConflict;
+        }
+
+        @Override
+        public void readFrom(StreamInput in) throws IOException {
+            id = in.readString();
+            message = in.readString();
+            versionConflict = in.readBoolean();
+        }
+
+        @Override
+        public void writeTo(StreamOutput out) throws IOException {
+            out.writeString(id);
+            out.writeString(message);
+            out.writeBoolean(versionConflict);
+        }
+
+        @Override
+        public String toString() {
+            return MoreObjects.toStringHelper(this)
+                .add("id", id)
+                .add("message", message)
+                .add("versionConflict", versionConflict)
+                .toString();
         }
     }
 

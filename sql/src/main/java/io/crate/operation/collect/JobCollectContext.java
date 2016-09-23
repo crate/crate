@@ -94,6 +94,25 @@ public class JobCollectContext extends AbstractExecutionSubContext {
         this.threadPoolName = threadPoolName(collectPhase, localNodeId);
     }
 
+    @VisibleForTesting
+    static String threadPoolName(CollectPhase phase, String localNodeId) {
+        if (phase instanceof RoutedCollectPhase) {
+            RoutedCollectPhase collectPhase = (RoutedCollectPhase) phase;
+            if (collectPhase.maxRowGranularity() == RowGranularity.DOC
+                && collectPhase.routing().containsShards(localNodeId)) {
+                // DOC table collectors
+                return ThreadPool.Names.SEARCH;
+            } else if (collectPhase.maxRowGranularity() == RowGranularity.NODE
+                       || collectPhase.maxRowGranularity() == RowGranularity.SHARD) {
+                // Node or Shard system table collector
+                return ThreadPool.Names.MANAGEMENT;
+            }
+        }
+
+        // Anything else like INFORMATION_SCHEMA tables or sys.cluster table collector
+        return ThreadPool.Names.PERCOLATE;
+    }
+
     public void addSearchContext(int jobSearchContextId, CrateSearchContext searchContext) {
         if (future.closed()) {
             // if this is closed and addContext is called this means the context got killed.
@@ -107,7 +126,7 @@ public class JobCollectContext extends AbstractExecutionSubContext {
                 replacedContext.close();
                 searchContext.close();
                 throw new IllegalArgumentException(String.format(Locale.ENGLISH,
-                        "ShardCollectContext for %d already added", jobSearchContextId));
+                    "ShardCollectContext for %d already added", jobSearchContextId));
             }
         }
     }
@@ -150,7 +169,6 @@ public class JobCollectContext extends AbstractExecutionSubContext {
     public String name() {
         return collectPhase.name();
     }
-
 
     @Override
     public String toString() {
@@ -201,29 +219,9 @@ public class JobCollectContext extends AbstractExecutionSubContext {
     }
 
     @VisibleForTesting
-    static String threadPoolName(CollectPhase phase, String localNodeId) {
-        if (phase instanceof RoutedCollectPhase) {
-            RoutedCollectPhase collectPhase = (RoutedCollectPhase) phase;
-            if (collectPhase.maxRowGranularity() == RowGranularity.DOC
-                && collectPhase.routing().containsShards(localNodeId)) {
-                // DOC table collectors
-                return ThreadPool.Names.SEARCH;
-            } else if (collectPhase.maxRowGranularity() == RowGranularity.NODE
-                       || collectPhase.maxRowGranularity() == RowGranularity.SHARD) {
-                // Node or Shard system table collector
-                return ThreadPool.Names.MANAGEMENT;
-            }
-        }
-
-        // Anything else like INFORMATION_SCHEMA tables or sys.cluster table collector
-        return ThreadPool.Names.PERCOLATE;
-    }
-
-    @VisibleForTesting
     public Collection<CrateCollector> collectors() {
         return collectors;
     }
-
 
 
 }

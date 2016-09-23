@@ -48,7 +48,7 @@ public class FailedShardsException extends RuntimeException implements CrateExce
             if (shardFailure == null) {
                 continue;
             }
-            errors.add(shardFailure.shardId()+" ( "+shardFailure.reason()+" )");
+            errors.add(shardFailure.shardId() + " ( " + shardFailure.reason() + " )");
             table = shardFailure.index();
         }
 

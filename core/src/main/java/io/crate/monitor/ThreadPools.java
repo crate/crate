@@ -40,6 +40,10 @@ public class ThreadPools implements Streamable, Iterable<Map.Entry<String, Threa
 
     private final Map<String, ThreadPoolExecutorContext> contexts;
 
+    private ThreadPools() {
+        this.contexts = new HashMap<>();
+    }
+
     public static ThreadPools newInstance(ThreadPool threadPool) {
         ThreadPools threadPools = ThreadPools.newInstance();
         for (ThreadPool.Info info : threadPool.info()) {
@@ -54,8 +58,10 @@ public class ThreadPools implements Streamable, Iterable<Map.Entry<String, Threa
         return new ThreadPools();
     }
 
-    private ThreadPools() {
-        this.contexts = new HashMap<>();
+    public static ThreadPools readThreadPools(StreamInput in) throws IOException {
+        ThreadPools threadPools = new ThreadPools();
+        threadPools.readFrom(in);
+        return threadPools;
     }
 
     public void add(String threadPool, ThreadPoolExecutorContext context) {
@@ -108,12 +114,6 @@ public class ThreadPools implements Streamable, Iterable<Map.Entry<String, Threa
         return Objects.hashCode(contexts);
     }
 
-    public static ThreadPools readThreadPools(StreamInput in) throws IOException {
-        ThreadPools threadPools = new ThreadPools();
-        threadPools.readFrom(in);
-        return threadPools;
-    }
-
     public static class ThreadPoolExecutorContext implements Streamable {
 
         private int queueSize;
@@ -122,6 +122,23 @@ public class ThreadPools implements Streamable, Iterable<Map.Entry<String, Threa
         private int poolSize;
         private long completedTaskCount;
         private long rejectedCount;
+
+        public ThreadPoolExecutorContext() {
+        }
+
+        public ThreadPoolExecutorContext(int queueSize,
+                                         int activeCount,
+                                         int largestPoolSize,
+                                         int poolSize,
+                                         long completedTaskCount,
+                                         long rejectedCount) {
+            this.queueSize = queueSize;
+            this.activeCount = activeCount;
+            this.largestPoolSize = largestPoolSize;
+            this.poolSize = poolSize;
+            this.completedTaskCount = completedTaskCount;
+            this.rejectedCount = rejectedCount;
+        }
 
         public static ThreadPoolExecutorContext newInstance(ThreadPoolExecutor executor) {
             long rejectedCount = -1;
@@ -139,22 +156,6 @@ public class ThreadPools implements Streamable, Iterable<Map.Entry<String, Threa
                 executor.getCompletedTaskCount(),
                 rejectedCount);
 
-        }
-
-        public ThreadPoolExecutorContext() {}
-
-        public ThreadPoolExecutorContext(int queueSize,
-                                         int activeCount,
-                                         int largestPoolSize,
-                                         int poolSize,
-                                         long completedTaskCount,
-                                         long rejectedCount) {
-            this.queueSize = queueSize;
-            this.activeCount = activeCount;
-            this.largestPoolSize = largestPoolSize;
-            this.poolSize = poolSize;
-            this.completedTaskCount = completedTaskCount;
-            this.rejectedCount = rejectedCount;
         }
 
         public int queueSize() {

@@ -37,6 +37,15 @@ public class RowReceivers {
         return new SettableFutureRowReceiver(rowReceiver);
     }
 
+    public static void sendEmptyResult(RowReceiver downstream) {
+        downstream.finish(RepeatHandle.UNSUPPORTED);
+    }
+
+    public static void sendOneRow(RowReceiver receiver, Row row) {
+        receiver.setNextRow(row);
+        receiver.finish(RepeatHandle.UNSUPPORTED);
+    }
+
     @ParametersAreNonnullByDefault
     private static class SettableFutureRowReceiver extends ForwardingRowReceiver implements ListenableRowReceiver {
 
@@ -62,15 +71,6 @@ public class RowReceivers {
         public ListenableFuture<Void> finishFuture() {
             return finishedFuture;
         }
-    }
-
-    public static void sendEmptyResult(RowReceiver downstream){
-        downstream.finish(RepeatHandle.UNSUPPORTED);
-    }
-
-    public static void sendOneRow(RowReceiver receiver, Row row){
-        receiver.setNextRow(row);
-        receiver.finish(RepeatHandle.UNSUPPORTED);
     }
 
 

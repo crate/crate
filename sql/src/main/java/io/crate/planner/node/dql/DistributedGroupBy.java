@@ -33,8 +33,8 @@ public class DistributedGroupBy extends PlanAndPlannedAnalyzedRelation {
 
     private final RoutedCollectPhase collectNode;
     private final MergePhase reducerMergeNode;
-    private MergePhase localMergeNode;
     private final UUID id;
+    private MergePhase localMergeNode;
 
     public DistributedGroupBy(RoutedCollectPhase collectNode, MergePhase reducerMergeNode, @Nullable MergePhase localMergeNode, UUID id) {
         this.collectNode = collectNode;

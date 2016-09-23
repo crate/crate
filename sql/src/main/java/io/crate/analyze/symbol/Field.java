@@ -57,7 +57,8 @@ public class Field extends Symbol {
         this.valueType = valueType;
     }
 
-    private Field() {}
+    private Field() {
+    }
 
     public Path path() {
         return path;
@@ -95,9 +96,9 @@ public class Field extends Symbol {
     @Override
     public String toString() {
         return MoreObjects.toStringHelper(Field.class)
-                .add("path", path)
-                .add("valueType", valueType)
-                .add("relation", relation).toString();
+            .add("path", path)
+            .add("valueType", valueType)
+            .add("relation", relation).toString();
     }
 
     @Override
@@ -126,12 +127,12 @@ public class Field extends Symbol {
     /**
      * @return the position of the field in its relation
      */
-    public int index(){
+    public int index() {
         int idx = -1;
         assert path != null;
         assert relation != null;
         // TODO: consider adding an indexOf method to relations or another way to efficiently get the index
-        if (path instanceof ColumnIndex){
+        if (path instanceof ColumnIndex) {
             idx = ((ColumnIndex) path).index();
         } else {
             idx = relation.fields().indexOf(this);

@@ -48,6 +48,6 @@ public class AzureDiscovery extends ZenDiscovery {
                           ClusterService clusterService, NodeSettingsService nodeSettingsService, ZenPingService pingService,
                           DiscoverySettings discoverySettings, ElectMasterService electMasterService) {
         super(settings, clusterName, threadPool, transportService, clusterService, nodeSettingsService,
-                pingService, electMasterService, discoverySettings);
+            pingService, electMasterService, discoverySettings);
     }
 }

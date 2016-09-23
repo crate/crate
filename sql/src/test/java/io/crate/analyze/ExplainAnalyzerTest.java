@@ -47,26 +47,13 @@ public class ExplainAnalyzerTest extends BaseAnalyzerTest {
     @Rule
     public ExpectedException expectedException = ExpectedException.none();
 
-    static class TestMetaDataModule extends MetaDataModule {
-
-        @Override
-        protected void bindSchemas() {
-            super.bindSchemas();
-            SchemaInfo docSchemaInfo = mock(SchemaInfo.class);
-            when(docSchemaInfo.getTableInfo(TEST_PARTITIONED_TABLE_IDENT.name()))
-                    .thenReturn(TEST_PARTITIONED_TABLE_INFO);
-            when(docSchemaInfo.getTableInfo(USER_TABLE_IDENT.name())).thenReturn(USER_TABLE_INFO);
-            schemaBinder.addBinding(Schemas.DEFAULT_SCHEMA_NAME).toInstance(docSchemaInfo);
-        }
-    }
-
     @Override
     protected List<Module> getModules() {
         List<Module> modules = super.getModules();
         modules.addAll(Arrays.<Module>asList(
-                new MockedClusterServiceModule(),
-                new TestMetaDataModule(),
-                new MetaDataSysModule()
+            new MockedClusterServiceModule(),
+            new TestMetaDataModule(),
+            new MetaDataSysModule()
         ));
         return modules;
     }
@@ -97,5 +84,18 @@ public class ExplainAnalyzerTest extends BaseAnalyzerTest {
         expectedException.expect(UnsupportedFeatureException.class);
         expectedException.expectMessage("EXPLAIN is not supported for OptimizeStatement");
         analyze("explain optimize table parted");
+    }
+
+    static class TestMetaDataModule extends MetaDataModule {
+
+        @Override
+        protected void bindSchemas() {
+            super.bindSchemas();
+            SchemaInfo docSchemaInfo = mock(SchemaInfo.class);
+            when(docSchemaInfo.getTableInfo(TEST_PARTITIONED_TABLE_IDENT.name()))
+                .thenReturn(TEST_PARTITIONED_TABLE_INFO);
+            when(docSchemaInfo.getTableInfo(USER_TABLE_IDENT.name())).thenReturn(USER_TABLE_INFO);
+            schemaBinder.addBinding(Schemas.DEFAULT_SCHEMA_NAME).toInstance(docSchemaInfo);
+        }
     }
 }

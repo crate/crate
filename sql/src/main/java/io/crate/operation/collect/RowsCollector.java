@@ -32,26 +32,16 @@ public class RowsCollector implements CrateCollector {
 
     private final IterableRowEmitter emitter;
 
+    public RowsCollector(RowReceiver rowDownstream, Iterable<Row> rows) {
+        this.emitter = new IterableRowEmitter(rowDownstream, rows);
+    }
+
     public static RowsCollector empty(RowReceiver rowDownstream) {
         return new RowsCollector(rowDownstream, ImmutableList.<Row>of());
     }
 
     public static RowsCollector single(Row row, RowReceiver rowDownstream) {
         return new RowsCollector(rowDownstream, ImmutableList.of(row));
-    }
-
-    public RowsCollector(RowReceiver rowDownstream, Iterable<Row> rows) {
-        this.emitter = new IterableRowEmitter(rowDownstream, rows);
-    }
-
-    @Override
-    public void doCollect() {
-        emitter.run();
-    }
-
-    @Override
-    public void kill(@Nullable Throwable throwable) {
-        emitter.kill(throwable);
     }
 
     public static Builder emptyBuilder() {
@@ -70,5 +60,15 @@ public class RowsCollector implements CrateCollector {
                 return new RowsCollector(rowReceiver, rows);
             }
         };
+    }
+
+    @Override
+    public void doCollect() {
+        emitter.run();
+    }
+
+    @Override
+    public void kill(@Nullable Throwable throwable) {
+        emitter.kill(throwable);
     }
 }

@@ -59,7 +59,7 @@ public class AlterTableAddColumnAnalyzer extends DefaultTraversalVisitor<AddColu
     @Override
     protected AddColumnAnalyzedStatement visitNode(Node node, Analysis analysis) {
         throw new RuntimeException(
-                String.format(Locale.ENGLISH, "Encountered node %s but expected a AlterTableAddColumn node", node));
+            String.format(Locale.ENGLISH, "Encountered node %s but expected a AlterTableAddColumn node", node));
     }
 
     @Override
@@ -69,9 +69,9 @@ public class AlterTableAddColumnAnalyzer extends DefaultTraversalVisitor<AddColu
         Operation.blockedRaiseException(statement.table(), Operation.ALTER);
 
         statement.analyzedTableElements(TableElementsAnalyzer.analyze(
-                node.tableElement(),
-                analysis.parameterContext(),
-                fulltextAnalyzerResolver
+            node.tableElement(),
+            analysis.parameterContext(),
+            fulltextAnalyzerResolver
         ));
 
         for (AnalyzedColumnDefinition column : statement.analyzedTableElements().columns()) {
@@ -80,7 +80,7 @@ public class AlterTableAddColumnAnalyzer extends DefaultTraversalVisitor<AddColu
         addExistingPrimaryKeys(statement);
         ensureNoIndexDefinitions(statement.analyzedTableElements().columns());
         statement.analyzedTableElements().finalizeAndValidate(
-                statement.table().ident(), statement.table(), analysisMetaData, analysis.parameterContext(), analysis.statementContext());
+            statement.table().ident(), statement.table(), analysisMetaData, analysis.parameterContext(), analysis.statementContext());
 
         int numCurrentPks = statement.table().primaryKey().size();
         if (statement.table().primaryKey().contains(DocSysColumns.ID)) {
@@ -94,9 +94,9 @@ public class AlterTableAddColumnAnalyzer extends DefaultTraversalVisitor<AddColu
     private void ensureColumnLeafsAreNew(AnalyzedColumnDefinition column, TableInfo tableInfo) {
         if ((!column.isParentColumn() || !column.hasChildren()) && tableInfo.getReference(column.ident()) != null) {
             throw new IllegalArgumentException(String.format(Locale.ENGLISH,
-                    "The table %s already has a column named %s",
-                    tableInfo.ident().sqlFqn(),
-                    column.ident().sqlFqn()));
+                "The table %s already has a column named %s",
+                tableInfo.ident().sqlFqn(),
+                column.ident().sqlFqn()));
         }
         for (AnalyzedColumnDefinition child : column.children()) {
             ensureColumnLeafsAreNew(child, tableInfo);
@@ -130,7 +130,7 @@ public class AlterTableAddColumnAnalyzer extends DefaultTraversalVisitor<AddColu
         for (AnalyzedColumnDefinition column : columns) {
             if (column.isIndex()) {
                 throw new UnsupportedOperationException(
-                        "Adding an index using ALTER TABLE ADD COLUMN is not supported");
+                    "Adding an index using ALTER TABLE ADD COLUMN is not supported");
             }
             ensureNoIndexDefinitions(column.children());
         }

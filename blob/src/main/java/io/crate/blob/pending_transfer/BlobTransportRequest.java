@@ -28,12 +28,13 @@ import org.elasticsearch.transport.TransportRequest;
 import java.io.IOException;
 import java.util.UUID;
 
-public abstract class BlobTransportRequest extends TransportRequest{
+public abstract class BlobTransportRequest extends TransportRequest {
 
     public UUID transferId;
     public String senderNodeId;
 
-    public BlobTransportRequest() {}
+    public BlobTransportRequest() {
+    }
 
     public BlobTransportRequest(String senderNodeId, UUID transferId) {
         this.senderNodeId = senderNodeId;

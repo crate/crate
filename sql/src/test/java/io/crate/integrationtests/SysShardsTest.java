@@ -52,9 +52,9 @@ public class SysShardsTest extends SQLTransportIntegrationTest {
             "create table quotes (id integer primary key, quote string) with(number_of_replicas=1)");
         BlobIndices blobIndices = internalCluster().getInstance(BlobIndices.class);
         Settings indexSettings = Settings.builder()
-                .put(IndexMetaData.SETTING_NUMBER_OF_REPLICAS, 1)
-                .put(IndexMetaData.SETTING_NUMBER_OF_SHARDS, 5)
-                .build();
+            .put(IndexMetaData.SETTING_NUMBER_OF_REPLICAS, 1)
+            .put(IndexMetaData.SETTING_NUMBER_OF_SHARDS, 5)
+            .build();
         blobIndices.createBlobTable("blobs", indexSettings);
         sqlExecutor.ensureGreen();
     }
@@ -62,15 +62,15 @@ public class SysShardsTest extends SQLTransportIntegrationTest {
     @Test
     public void testSelectGroupByWhereTable() throws Exception {
         SQLResponse response = execute("" +
-            "select count(*), num_docs from sys.shards where table_name = 'characters' " +
-            "group by num_docs order by count(*)");
+                                       "select count(*), num_docs from sys.shards where table_name = 'characters' " +
+                                       "group by num_docs order by count(*)");
         assertThat(response.rowCount(), greaterThan(0L));
     }
 
     @Test
     public void testSelectGroupByAllTables() throws Exception {
         SQLResponse response = execute("select count(*), table_name from sys.shards " +
-            "group by table_name order by table_name");
+                                       "group by table_name order by table_name");
         assertEquals(3L, response.rowCount());
         assertEquals(10L, response.rows()[0][0]);
         assertEquals("blobs", response.rows()[0][1]);
@@ -87,10 +87,10 @@ public class SysShardsTest extends SQLTransportIntegrationTest {
             SQLResponse response = execute("select sum(num_docs), table_name, sum(num_docs) from sys.shards group by table_name order by table_name desc limit 1000");
             assertThat(response.rowCount(), is(4L));
             assertThat(TestingHelpers.printedTable(response.rows()),
-                    is("0.0| t| 0.0\n" +
-                       "0.0| quotes| 0.0\n" +
-                       "14.0| characters| 14.0\n" +
-                       "0.0| blobs| 0.0\n"));
+                is("0.0| t| 0.0\n" +
+                   "0.0| quotes| 0.0\n" +
+                   "14.0| characters| 14.0\n" +
+                   "0.0| blobs| 0.0\n"));
         } finally {
             execute("drop table t");
         }
@@ -99,7 +99,7 @@ public class SysShardsTest extends SQLTransportIntegrationTest {
     @Test
     public void testSelectGroupByWhereNotLike() throws Exception {
         SQLResponse response = execute("select count(*), table_name from sys.shards " +
-            "where table_name not like 'my_table%' group by table_name order by table_name");
+                                       "where table_name not like 'my_table%' group by table_name order by table_name");
         assertEquals(3L, response.rowCount());
         assertEquals(10L, response.rows()[0][0]);
         assertEquals("blobs", response.rows()[0][1]);
@@ -131,18 +131,18 @@ public class SysShardsTest extends SQLTransportIntegrationTest {
         assertEquals(26L, response.rowCount());
         assertEquals(12, response.cols().length);
         assertThat(response.cols(), arrayContaining(
-                "id",
-                "num_docs",
-                "orphan_partition",
-                "partition_ident",
-                "primary",
-                "recovery",
-                "relocating_node",
-                "routing_state",
-                "schema_name",
-                "size",
-                "state",
-                "table_name"));
+            "id",
+            "num_docs",
+            "orphan_partition",
+            "partition_ident",
+            "primary",
+            "recovery",
+            "relocating_node",
+            "routing_state",
+            "schema_name",
+            "size",
+            "state",
+            "table_name"));
     }
 
     @Test
@@ -279,16 +279,16 @@ public class SysShardsTest extends SQLTransportIntegrationTest {
     @Test
     public void testSelectGroupByHaving() throws Exception {
         SQLResponse response = execute("select count(*) " +
-                "from sys.shards " +
-                "group by table_name " +
-                "having table_name = 'quotes'");
+                                       "from sys.shards " +
+                                       "group by table_name " +
+                                       "having table_name = 'quotes'");
         assertThat(TestingHelpers.printedTable(response.rows()), is("8\n"));
     }
 
     @Test
     public void testSelectNodeSysExpression() throws Exception {
         SQLResponse response = execute(
-                "select _node, _node['name'], id from sys.shards order by _node['name'], id  limit 1");
+            "select _node, _node['name'], id from sys.shards order by _node['name'], id  limit 1");
         assertEquals(1L, response.rowCount());
         Map<String, Object> fullNode = (Map<String, Object>) response.rows()[0][0];
         String nodeName = response.rows()[0][1].toString();
@@ -300,23 +300,23 @@ public class SysShardsTest extends SQLTransportIntegrationTest {
     public void testOrphanedPartitionExpression() throws Exception {
         try {
             execute("create table c.orphan_test (id int primary key, p string primary key) " +
-                            "partitioned by (p) " +
-                            "clustered into 1 shards " +
-                            "with (number_of_replicas = 0)"
+                    "partitioned by (p) " +
+                    "clustered into 1 shards " +
+                    "with (number_of_replicas = 0)"
             );
             execute("insert into c.orphan_test (id, p) values (1, 'foo')");
             ensureYellow();
 
             SQLResponse response = execute(
-                    "select orphan_partition from sys.shards where table_name = 'orphan_test'");
+                "select orphan_partition from sys.shards where table_name = 'orphan_test'");
             assertThat(TestingHelpers.printedTable(response.rows()), is("false\n"));
 
             client().admin().indices()
-                    .prepareDeleteTemplate(PartitionName.templateName("c", "orphan_test"))
-                    .execute().get(1, TimeUnit.SECONDS);
+                .prepareDeleteTemplate(PartitionName.templateName("c", "orphan_test"))
+                .execute().get(1, TimeUnit.SECONDS);
 
             response = execute(
-                    "select orphan_partition from sys.shards where table_name = 'orphan_test'");
+                "select orphan_partition from sys.shards where table_name = 'orphan_test'");
             assertThat(TestingHelpers.printedTable(response.rows()), is("true\n"));
         } finally {
             execute("drop table c.orphan_test");
@@ -330,7 +330,7 @@ public class SysShardsTest extends SQLTransportIntegrationTest {
                     "clustered into 5 shards with (number_of_replicas=2)");
             ensureYellow();
             SQLResponse response = execute(
-                    "select _node['name'], id from sys.shards where table_name = 'users' order by _node['name'] nulls last"
+                "select _node['name'], id from sys.shards where table_name = 'users' order by _node['name'] nulls last"
             );
             String nodeName = response.rows()[0][0].toString();
             assertEquals("node_s0", nodeName);
@@ -343,15 +343,15 @@ public class SysShardsTest extends SQLTransportIntegrationTest {
     @Test
     public void testSelectRecoveryExpression() throws Exception {
         SQLResponse response = execute("select recovery, " +
-            "recovery['files'], recovery['files']['used'], recovery['files']['reused'], recovery['files']['recovered'], " +
-            "recovery['size'], recovery['size']['used'], recovery['size']['reused'], recovery['size']['recovered'] " +
-            "from sys.shards");
+                                       "recovery['files'], recovery['files']['used'], recovery['files']['reused'], recovery['files']['recovered'], " +
+                                       "recovery['size'], recovery['size']['used'], recovery['size']['reused'], recovery['size']['recovered'] " +
+                                       "from sys.shards");
         for (Object[] row : response.rows()) {
             Map recovery = (Map) row[0];
             Map<String, Integer> files = (Map<String, Integer>) row[1];
-            assertThat((( Map<String, Integer>)recovery.get("files")).entrySet(), equalTo(files.entrySet()));
+            assertThat(((Map<String, Integer>) recovery.get("files")).entrySet(), equalTo(files.entrySet()));
             Map<String, Long> size = (Map<String, Long>) row[5];
-            assertThat((( Map<String, Long>)recovery.get("size")).entrySet(), equalTo(size.entrySet()));
+            assertThat(((Map<String, Long>) recovery.get("size")).entrySet(), equalTo(size.entrySet()));
         }
     }
 }

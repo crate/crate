@@ -75,8 +75,8 @@ public class ESDeleteTask extends JobTask {
         int resultIdx = 0;
         for (DocKeys.DocKey docKey : esDelete.docKeys()) {
             DeleteRequest request = new DeleteRequest(
-                    ESGetTask.indexName(esDelete.tableInfo(), docKey.partitionValues().orNull()),
-                    Constants.DEFAULT_MAPPING_TYPE, docKey.id());
+                ESGetTask.indexName(esDelete.tableInfo(), docKey.partitionValues().orNull()),
+                Constants.DEFAULT_MAPPING_TYPE, docKey.id());
             request.routing(docKey.routing());
             if (docKey.version().isPresent()) {
                 //noinspection OptionalGetWithoutIsPresent
@@ -135,6 +135,15 @@ public class ESDeleteTask extends JobTask {
         });
     }
 
+    @Override
+    public final ListenableFuture<List<Long>> executeBulk() {
+        try {
+            startContext();
+        } catch (Throwable throwable) {
+            return Futures.immediateFailedFuture(throwable);
+        }
+        return Futures.successfulAsList(results);
+    }
 
     private static class DeleteResponseListener implements ActionListener<DeleteResponse> {
 
@@ -163,16 +172,6 @@ public class ESDeleteTask extends JobTask {
                 result.setException(e);
             }
         }
-    }
-
-    @Override
-    public final ListenableFuture<List<Long>> executeBulk() {
-        try {
-            startContext();
-        } catch (Throwable throwable) {
-            return Futures.immediateFailedFuture(throwable);
-        }
-        return Futures.successfulAsList(results);
     }
 
 

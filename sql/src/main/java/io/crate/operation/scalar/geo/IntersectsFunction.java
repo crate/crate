@@ -44,21 +44,24 @@ import java.util.Set;
 public class IntersectsFunction extends Scalar<Boolean, Object> {
 
     public static final String NAME = "intersects";
+    private static final FunctionInfo SHAPE_INFO = info(DataTypes.GEO_SHAPE, DataTypes.GEO_SHAPE);
+    private static final Set<DataType> SUPPORTED_TYPES = ImmutableSet.<DataType>of(
+        DataTypes.STRING,
+        DataTypes.OBJECT,
+        DataTypes.GEO_SHAPE
+    );
+    private final FunctionInfo info;
+
+    public IntersectsFunction(FunctionInfo functionInfo) {
+        this.info = functionInfo;
+    }
 
     private static FunctionInfo info(DataType type1, DataType type2) {
         return new FunctionInfo(
-                new FunctionIdent(NAME, ImmutableList.of(type1, type2)),
-                DataTypes.BOOLEAN
+            new FunctionIdent(NAME, ImmutableList.of(type1, type2)),
+            DataTypes.BOOLEAN
         );
     }
-
-    private static final FunctionInfo SHAPE_INFO = info(DataTypes.GEO_SHAPE, DataTypes.GEO_SHAPE);
-
-    private static final Set<DataType> SUPPORTED_TYPES = ImmutableSet.<DataType>of(
-            DataTypes.STRING,
-            DataTypes.OBJECT,
-            DataTypes.GEO_SHAPE
-    );
 
     public static void register(ScalarFunctionModule module) {
         for (DataType type1 : SUPPORTED_TYPES) {
@@ -68,10 +71,11 @@ public class IntersectsFunction extends Scalar<Boolean, Object> {
         }
     }
 
-    private final FunctionInfo info;
-
-    public IntersectsFunction(FunctionInfo functionInfo) {
-        this.info = functionInfo;
+    private static Symbol convertTo(DataType toType, Literal convertMe) {
+        if (convertMe.valueType().equals(toType)) {
+            return convertMe;
+        }
+        return Literal.convert(convertMe, toType);
     }
 
     @Override
@@ -108,20 +112,20 @@ public class IntersectsFunction extends Scalar<Boolean, Object> {
 
         if (left.symbolType().isValueSymbol()) {
             numLiterals++;
-            Symbol converted = convertTo(DataTypes.GEO_SHAPE, (Literal)left);
+            Symbol converted = convertTo(DataTypes.GEO_SHAPE, (Literal) left);
             literalConverted = converted != right;
             left = converted;
         }
 
         if (right.symbolType().isValueSymbol()) {
             numLiterals++;
-            Symbol converted = convertTo(DataTypes.GEO_SHAPE, (Literal)right);
+            Symbol converted = convertTo(DataTypes.GEO_SHAPE, (Literal) right);
             literalConverted = literalConverted || converted != right;
             right = converted;
         }
 
         if (numLiterals == 2) {
-            return Literal.newLiteral(evaluate((Input)left, (Input)right));
+            return Literal.newLiteral(evaluate((Input) left, (Input) right));
         }
 
         if (literalConverted) {
@@ -129,12 +133,5 @@ public class IntersectsFunction extends Scalar<Boolean, Object> {
         }
 
         return symbol;
-    }
-
-    private static Symbol convertTo(DataType toType, Literal convertMe) {
-        if (convertMe.valueType().equals(toType)) {
-            return convertMe;
-        }
-        return Literal.convert(convertMe, toType);
     }
 }

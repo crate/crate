@@ -50,18 +50,15 @@ public class CreateAnalyzerStatementAnalyzer extends DefaultTraversalVisitor<
         deprecationLogger = new DeprecationLogger(Loggers.getLogger(CreateAnalyzerStatementAnalyzer.class, settings));
     }
 
-    public CreateAnalyzerAnalyzedStatement analyze(Node node, Analysis analysis) {
-        return super.process(node, new Context(analysis));
+    private static void validateCharFilterProperties(String type, @Nullable GenericProperties properties) {
+        if (properties == null && !type.equals("html_strip")) {
+            throw new IllegalArgumentException(String.format(Locale.ENGLISH,
+                "CHAR_FILTER of type '%s' needs additional parameters", type));
+        }
     }
 
-    static class Context {
-
-        Analysis analysis;
-        CreateAnalyzerAnalyzedStatement statement;
-
-        public Context(Analysis analysis) {
-            this.analysis = analysis;
-        }
+    public CreateAnalyzerAnalyzedStatement analyze(Node node, Analysis analysis) {
+        return super.process(node, new Context(analysis));
     }
 
     @Override
@@ -263,10 +260,13 @@ public class CreateAnalyzerStatementAnalyzer extends DefaultTraversalVisitor<
         return ExpressionToStringVisitor.convert(expression, parameterContext.parameters());
     }
 
-    private static void validateCharFilterProperties(String type, @Nullable GenericProperties properties) {
-        if (properties == null && !type.equals("html_strip")) {
-            throw new IllegalArgumentException(String.format(Locale.ENGLISH,
-                "CHAR_FILTER of type '%s' needs additional parameters", type));
+    static class Context {
+
+        Analysis analysis;
+        CreateAnalyzerAnalyzedStatement statement;
+
+        public Context(Analysis analysis) {
+            this.analysis = analysis;
         }
     }
 

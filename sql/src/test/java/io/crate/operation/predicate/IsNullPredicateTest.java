@@ -40,12 +40,11 @@ import static org.hamcrest.core.Is.is;
 
 public class IsNullPredicateTest extends CrateUnitTest {
 
-    IsNullPredicate predicate = new IsNullPredicate(new FunctionInfo(
-            new FunctionIdent(IsNullPredicate.NAME, Arrays.<DataType>asList(DataTypes.STRING)),
-            DataTypes.BOOLEAN
-    ));
-
     private final StmtCtx stmtCtx = new StmtCtx();
+    IsNullPredicate predicate = new IsNullPredicate(new FunctionInfo(
+        new FunctionIdent(IsNullPredicate.NAME, Arrays.<DataType>asList(DataTypes.STRING)),
+        DataTypes.BOOLEAN
+    ));
 
     @Test
     public void testNormalizeSymbolFalse() throws Exception {
@@ -64,9 +63,9 @@ public class IsNullPredicateTest extends CrateUnitTest {
     @Test
     public void testNormalizeReference() throws Exception {
         Reference name_ref = new Reference(
-                new ReferenceIdent(new TableIdent(null, "dummy"), "name"),
-                RowGranularity.DOC,
-                DataTypes.STRING);
+            new ReferenceIdent(new TableIdent(null, "dummy"), "name"),
+            RowGranularity.DOC,
+            DataTypes.STRING);
         Function isNull = new Function(predicate.info(), Arrays.<Symbol>asList(name_ref));
         Symbol symbol = predicate.normalizeSymbol(isNull, stmtCtx);
         assertThat(symbol, instanceOf(Function.class));
@@ -84,7 +83,7 @@ public class IsNullPredicateTest extends CrateUnitTest {
     @Test
     public void testNormalizeSymbolWithStringLiteralThatIsNull() throws Exception {
         Function isNull = new Function(predicate.info(),
-                Arrays.<Symbol>asList(Literal.newLiteral(DataTypes.STRING, null)));
+            Arrays.<Symbol>asList(Literal.newLiteral(DataTypes.STRING, null)));
         Symbol symbol = predicate.normalizeSymbol(isNull, stmtCtx);
         assertThat((Boolean) ((Input) symbol).value(), is(true));
     }

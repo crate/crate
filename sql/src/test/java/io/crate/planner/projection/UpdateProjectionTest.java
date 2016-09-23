@@ -33,10 +33,10 @@ public class UpdateProjectionTest {
     @Test
     public void testEquals() throws Exception {
         UpdateProjection u1 = new UpdateProjection(
-                Literal.newLiteral(1), new String[] { "foo" }, new Symbol[] { Literal.newLiteral(1) }, null);
+            Literal.newLiteral(1), new String[]{"foo"}, new Symbol[]{Literal.newLiteral(1)}, null);
 
         UpdateProjection u2 = new UpdateProjection(
-                Literal.newLiteral(1), new String[] { "foo" }, new Symbol[] { Literal.newLiteral(1) }, null);
+            Literal.newLiteral(1), new String[]{"foo"}, new Symbol[]{Literal.newLiteral(1)}, null);
 
         assertThat(u2.equals(u1), is(true));
         assertThat(u1.equals(u2), is(true));

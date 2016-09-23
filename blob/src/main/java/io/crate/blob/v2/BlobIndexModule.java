@@ -34,7 +34,7 @@ public class BlobIndexModule extends AbstractModule {
 
     @Override
     protected void configure() {
-        if (settings.getAsBoolean("index.blobs.enabled", false)){
+        if (settings.getAsBoolean("index.blobs.enabled", false)) {
             bind(BlobIndex.class).asEagerSingleton();
         }
     }

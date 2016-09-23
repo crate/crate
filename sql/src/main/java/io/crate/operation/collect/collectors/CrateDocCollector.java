@@ -66,43 +66,6 @@ public class CrateDocCollector implements CrateCollector, RepeatHandle {
     private final ExecutorResumeHandle resumeable;
     private final boolean doScores;
 
-    public static class Builder implements CrateCollector.Builder {
-
-        private final CrateSearchContext searchContext;
-        private final Executor executor;
-        private final boolean doScores;
-        private final RamAccountingContext ramAccountingContext;
-        private final List<Input<?>> inputs;
-        private final Collection<? extends LuceneCollectorExpression<?>> expressions;
-
-        public Builder(CrateSearchContext searchContext,
-                       Executor executor,
-                       boolean doScores,
-                       RamAccountingContext ramAccountingContext,
-                       List<Input<?>> inputs,
-                       Collection<? extends LuceneCollectorExpression<?>> expressions) {
-            this.searchContext = searchContext;
-            this.executor = executor;
-            this.doScores = doScores;
-            this.ramAccountingContext = ramAccountingContext;
-            this.inputs = inputs;
-            this.expressions = expressions;
-        }
-
-        @Override
-        public CrateCollector build(RowReceiver rowReceiver) {
-            return new CrateDocCollector(
-                searchContext,
-                executor,
-                doScores,
-                ramAccountingContext,
-                rowReceiver,
-                inputs,
-                expressions
-            );
-        }
-    }
-
     public CrateDocCollector(final CrateSearchContext searchContext,
                              Executor executor,
                              boolean doScores,
@@ -115,18 +78,18 @@ public class CrateDocCollector implements CrateCollector, RepeatHandle {
         this.expressions = expressions;
         CollectorFieldsVisitor fieldsVisitor = new CollectorFieldsVisitor(expressions.size());
         collectorContext = new CollectorContext(
-                searchContext.mapperService(),
-                searchContext.fieldData(),
-                fieldsVisitor,
-                ((int) searchContext.id())
+            searchContext.mapperService(),
+            searchContext.fieldData(),
+            fieldsVisitor,
+            ((int) searchContext.id())
         );
         this.doScores = doScores || searchContext.minimumScore() != null;
         SimpleCollector collector = new LuceneDocCollector(
-                ramAccountingContext,
-                rowReceiver,
-                this.doScores,
-                new InputRow(inputs),
-                expressions
+            ramAccountingContext,
+            rowReceiver,
+            this.doScores,
+            new InputRow(inputs),
+            expressions
         );
         if (searchContext.minimumScore() != null) {
             collector = new MinimumScoreCollector(collector, searchContext.minimumScore());
@@ -264,6 +227,43 @@ public class CrateDocCollector implements CrateCollector, RepeatHandle {
         innerCollect(state.collector, state.weight, iterator, null, null);
     }
 
+    public static class Builder implements CrateCollector.Builder {
+
+        private final CrateSearchContext searchContext;
+        private final Executor executor;
+        private final boolean doScores;
+        private final RamAccountingContext ramAccountingContext;
+        private final List<Input<?>> inputs;
+        private final Collection<? extends LuceneCollectorExpression<?>> expressions;
+
+        public Builder(CrateSearchContext searchContext,
+                       Executor executor,
+                       boolean doScores,
+                       RamAccountingContext ramAccountingContext,
+                       List<Input<?>> inputs,
+                       Collection<? extends LuceneCollectorExpression<?>> expressions) {
+            this.searchContext = searchContext;
+            this.executor = executor;
+            this.doScores = doScores;
+            this.ramAccountingContext = ramAccountingContext;
+            this.inputs = inputs;
+            this.expressions = expressions;
+        }
+
+        @Override
+        public CrateCollector build(RowReceiver rowReceiver) {
+            return new CrateDocCollector(
+                searchContext,
+                executor,
+                doScores,
+                ramAccountingContext,
+                rowReceiver,
+                inputs,
+                expressions
+            );
+        }
+    }
+
     static class State {
         BulkScorer bulkScorer;
         Iterator<LeafReaderContext> leaveIt;
@@ -329,8 +329,8 @@ public class CrateDocCollector implements CrateCollector, RepeatHandle {
             if (ramAccountingContext != null && ramAccountingContext.trippedBreaker()) {
                 // stop collecting because breaker limit was reached
                 throw new CircuitBreakingException(
-                        CrateCircuitBreakerService.breakingExceptionMessage(ramAccountingContext.contextId(),
-                                ramAccountingContext.limit()));
+                    CrateCircuitBreakerService.breakingExceptionMessage(ramAccountingContext.contextId(),
+                        ramAccountingContext.limit()));
             }
         }
 

@@ -28,7 +28,6 @@ import javax.annotation.Nullable;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 public class CreateTableAnalyzedStatement extends AbstractDDLAnalyzedStatement {
 
@@ -40,7 +39,7 @@ public class CreateTableAnalyzedStatement extends AbstractDDLAnalyzedStatement {
     private boolean noOp = false;
     private boolean ifNotExists = false;
 
-    public CreateTableAnalyzedStatement(FulltextAnalyzerResolver fulltextAnalyzerResolver){
+    public CreateTableAnalyzedStatement(FulltextAnalyzerResolver fulltextAnalyzerResolver) {
         this.fulltextAnalyzerResolver = fulltextAnalyzerResolver;
     }
 
@@ -78,10 +77,13 @@ public class CreateTableAnalyzedStatement extends AbstractDDLAnalyzedStatement {
 
     /**
      * name of the template to create
+     *
      * @return the name of the template to create or <code>null</code>
-     *         if no template is created
+     * if no template is created
      */
-    public @Nullable String templateName() {
+    public
+    @Nullable
+    String templateName() {
         if (isPartitioned()) {
             return PartitionName.templateName(tableIdent().schema(), tableIdent().name());
         }
@@ -91,10 +93,13 @@ public class CreateTableAnalyzedStatement extends AbstractDDLAnalyzedStatement {
     /**
      * template prefix to match against index names to which
      * this template should be applied
+     *
      * @return a template prefix for matching index names or null
-     *         if no template is created
+     * if no template is created
      */
-    public @Nullable String templatePrefix() {
+    public
+    @Nullable
+    String templatePrefix() {
         if (isPartitioned()) {
             return templateName() + "*";
         }
@@ -141,7 +146,9 @@ public class CreateTableAnalyzedStatement extends AbstractDDLAnalyzedStatement {
         this.routingColumn = routingColumn;
     }
 
-    public @Nullable ColumnIdent routing() {
+    public
+    @Nullable
+    ColumnIdent routing() {
         return routingColumn;
     }
 

@@ -57,6 +57,34 @@ public class ValueNormalizer {
         this.normalizer = normalizer;
     }
 
+    private static DataType<?> getTargetType(Symbol valueSymbol, Reference reference) {
+        DataType<?> targetType;
+        if (reference instanceof DynamicReference) {
+            targetType = valueSymbol.valueType();
+            ((DynamicReference) reference).valueType(targetType);
+        } else {
+            targetType = reference.valueType();
+        }
+        return targetType;
+    }
+
+    private static boolean isObjectArray(DataType type) {
+        return type.id() == ArrayType.ID && ((ArrayType) type).innerType().id() == ObjectType.ID;
+    }
+
+    private static Object normalizePrimitiveValue(Object primitiveValue, Reference info) {
+        if (info.valueType().equals(DataTypes.STRING) && primitiveValue instanceof String) {
+            return primitiveValue;
+        }
+        try {
+            return info.valueType().value(primitiveValue);
+        } catch (Exception e) {
+            throw new ColumnValidationException(info.ident().columnIdent().sqlFqn(),
+                String.format(Locale.ENGLISH, "Invalid %s", info.valueType().getName())
+            );
+        }
+    }
+
     /**
      * normalize and validate given value according to the corresponding {@link io.crate.metadata.Reference}
      *
@@ -78,9 +106,9 @@ public class ValueNormalizer {
             literal = Literal.convert(literal, reference.valueType());
         } catch (ConversionException e) {
             throw new ColumnValidationException(
-                    reference.ident().columnIdent().name(),
-                    String.format(Locale.ENGLISH, "%s cannot be cast to type %s", SymbolPrinter.INSTANCE.printSimple(valueSymbol),
-                            reference.valueType().getName()));
+                reference.ident().columnIdent().name(),
+                String.format(Locale.ENGLISH, "%s cannot be cast to type %s", SymbolPrinter.INSTANCE.printSimple(valueSymbol),
+                    reference.valueType().getName()));
         }
         Object value = literal.value();
         if (value == null) {
@@ -95,25 +123,15 @@ public class ValueNormalizer {
             }
         } catch (ConversionException e) {
             throw new ColumnValidationException(
-                    reference.ident().columnIdent().name(),
-                    SymbolFormatter.format(
-                            "\"%s\" has a type that can't be implicitly cast to that of \"%s\" (" + reference.valueType().getName() + ")",
-                            literal,
-                            reference
-                    ));
+                reference.ident().columnIdent().name(),
+                SymbolFormatter.format(
+                    "\"%s\" has a type that can't be implicitly cast to that of \"%s\" (" +
+                    reference.valueType().getName() + ")",
+                    literal,
+                    reference
+                ));
         }
         return literal;
-    }
-
-    private static DataType<?> getTargetType(Symbol valueSymbol, Reference reference) {
-        DataType<?> targetType;
-        if (reference instanceof DynamicReference) {
-            targetType = valueSymbol.valueType();
-            ((DynamicReference) reference).valueType(targetType);
-        } else {
-            targetType = reference.valueType();
-        }
-        return targetType;
     }
 
     @SuppressWarnings("unchecked")
@@ -127,8 +145,8 @@ public class ValueNormalizer {
                     continue;
                 }
                 DynamicReference dynamicReference = null;
-                if (tableInfo instanceof DocTableInfo){
-                    dynamicReference = ((DocTableInfo)tableInfo).getDynamic(nestedIdent, true);
+                if (tableInfo instanceof DocTableInfo) {
+                    dynamicReference = ((DocTableInfo) tableInfo).getDynamic(nestedIdent, true);
                 }
                 if (dynamicReference == null) {
                     throw new ColumnUnknownException(nestedIdent.sqlFqn());
@@ -154,10 +172,6 @@ public class ValueNormalizer {
         }
     }
 
-    private static boolean isObjectArray(DataType type) {
-        return type.id() == ArrayType.ID && ((ArrayType) type).innerType().id() == ObjectType.ID;
-    }
-
     private void normalizeObjectArrayValue(Object[] value, Reference arrayInfo) {
         for (Object arrayItem : value) {
             Preconditions.checkArgument(arrayItem instanceof Map, "invalid value for object array type");
@@ -165,19 +179,6 @@ public class ValueNormalizer {
 
             //noinspection unchecked
             normalizeObjectValue((Map<String, Object>) arrayItem, arrayInfo);
-        }
-    }
-
-    private static Object normalizePrimitiveValue(Object primitiveValue, Reference info) {
-        if (info.valueType().equals(DataTypes.STRING) && primitiveValue instanceof String) {
-            return primitiveValue;
-        }
-        try {
-            return info.valueType().value(primitiveValue);
-        } catch (Exception e) {
-            throw new ColumnValidationException(info.ident().columnIdent().sqlFqn(),
-                    String.format(Locale.ENGLISH, "Invalid %s", info.valueType().getName())
-            );
         }
     }
 }

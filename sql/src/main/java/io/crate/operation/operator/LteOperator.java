@@ -8,14 +8,14 @@ public class LteOperator extends CmpOperator {
 
     public static final String NAME = "op_<=";
 
+    LteOperator(FunctionInfo info) {
+        super(info);
+    }
+
     public static void register(OperatorModule module) {
         for (DataType type : DataTypes.PRIMITIVE_TYPES) {
             module.registerOperatorFunction(new LteOperator(generateInfo(NAME, type)));
         }
-    }
-
-    LteOperator(FunctionInfo info) {
-        super(info);
     }
 
     @Override

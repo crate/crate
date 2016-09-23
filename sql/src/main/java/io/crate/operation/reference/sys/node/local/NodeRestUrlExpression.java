@@ -35,7 +35,8 @@ class NodeRestUrlExpression extends SimpleObjectExpression<BytesRef> {
 
     @Override
     public BytesRef value() {
-        String val = clusterService.localNode() != null ? clusterService.localNode().attributes().get("http_address") : null;
+        String val =
+            clusterService.localNode() != null ? clusterService.localNode().attributes().get("http_address") : null;
         return val != null ? new BytesRef(val) : null;
     }
 }

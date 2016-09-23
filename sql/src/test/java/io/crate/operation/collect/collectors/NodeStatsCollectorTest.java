@@ -71,7 +71,7 @@ public class NodeStatsCollectorTest extends CrateUnitTest {
             RowGranularity.DOC, DataTypes.STRING);
         hostnameRef = new Reference(
             new ReferenceIdent(SysNodesTableInfo.IDENT, SysNodesTableInfo.Columns.HOSTNAME),
-                RowGranularity.DOC, DataTypes.STRING);
+            RowGranularity.DOC, DataTypes.STRING);
         collectPhase = mock(RoutedCollectPhase.class);
         when(collectPhase.whereClause()).thenReturn(WhereClause.NO_MATCH);
 

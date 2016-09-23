@@ -24,29 +24,24 @@ package io.crate.sql.tree;
 import java.util.List;
 
 public class InListExpression
-        extends Expression
-{
+    extends Expression {
     private final List<Expression> values;
 
-    public InListExpression(List<Expression> values)
-    {
+    public InListExpression(List<Expression> values) {
         this.values = values;
     }
 
-    public List<Expression> getValues()
-    {
+    public List<Expression> getValues() {
         return values;
     }
 
     @Override
-    public <R, C> R accept(AstVisitor<R, C> visitor, C context)
-    {
+    public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
         return visitor.visitInListExpression(this, context);
     }
 
     @Override
-    public boolean equals(Object o)
-    {
+    public boolean equals(Object o) {
         if (this == o) {
             return true;
         }
@@ -64,8 +59,7 @@ public class InListExpression
     }
 
     @Override
-    public int hashCode()
-    {
+    public int hashCode() {
         return values.hashCode();
     }
 }

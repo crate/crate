@@ -53,40 +53,15 @@ public class CreateAlterPartitionedTableAnalyzerTest extends BaseAnalyzerTest {
     @Rule
     public ExpectedException expectedException = ExpectedException.none();
 
-    static class TestMetaDataModule extends MetaDataModule {
-        @Override
-        protected void configure() {
-            FulltextAnalyzerResolver fulltextAnalyzerResolver = mock(FulltextAnalyzerResolver.class);
-            when(fulltextAnalyzerResolver.hasCustomAnalyzer("german")).thenReturn(false);
-            when(fulltextAnalyzerResolver.hasCustomAnalyzer("ft_search")).thenReturn(true);
-            Settings.Builder settingsBuilder = Settings.builder();
-            settingsBuilder.put("search", "foobar");
-            when(fulltextAnalyzerResolver.resolveFullCustomAnalyzerSettings("ft_search")).thenReturn(settingsBuilder.build());
-            bind(FulltextAnalyzerResolver.class).toInstance(fulltextAnalyzerResolver);
-            super.configure();
-        }
-
-        @Override
-        protected void bindSchemas() {
-            super.bindSchemas();
-            SchemaInfo schemaInfo = mock(SchemaInfo.class);
-            when(schemaInfo.getTableInfo(USER_TABLE_IDENT.name())).thenReturn(USER_TABLE_INFO);
-            when(schemaInfo.getTableInfo(USER_TABLE_REFRESH_INTERVAL_BY_ONLY.name())).thenReturn(USER_TABLE_INFO_REFRESH_INTERVAL_BY_ONLY);
-            when(schemaInfo.getTableInfo(TEST_PARTITIONED_TABLE_IDENT.name())).thenReturn(TEST_PARTITIONED_TABLE_INFO);
-            when(schemaInfo.getTableInfo(TEST_MULTIPLE_PARTITIONED_TABLE_IDENT.name())).thenReturn(TEST_MULTIPLE_PARTITIONED_TABLE_INFO);
-            schemaBinder.addBinding(Schemas.DEFAULT_SCHEMA_NAME).toInstance(schemaInfo);
-        }
-    }
-
     @Override
     protected List<Module> getModules() {
         List<Module> modules = super.getModules();
         modules.addAll(Arrays.<Module>asList(
-                        new MockedClusterServiceModule(),
-                        new MetaDataInformationModule(),
-                        new TestMetaDataModule(),
-                        new MetaDataSysModule(),
-                        new OperatorModule())
+            new MockedClusterServiceModule(),
+            new MetaDataInformationModule(),
+            new TestMetaDataModule(),
+            new MetaDataSysModule(),
+            new OperatorModule())
         );
         return modules;
     }
@@ -94,22 +69,22 @@ public class CreateAlterPartitionedTableAnalyzerTest extends BaseAnalyzerTest {
     @Test
     public void testPartitionedBy() throws Exception {
         CreateTableAnalyzedStatement analysis = (CreateTableAnalyzedStatement) analyze("create table my_table (" +
-                "  id integer," +
-                "  no_index string index off," +
-                "  name string," +
-                "  date timestamp" +
-                ") partitioned by (name)");
+                                                                                       "  id integer," +
+                                                                                       "  no_index string index off," +
+                                                                                       "  name string," +
+                                                                                       "  date timestamp" +
+                                                                                       ") partitioned by (name)");
         assertThat(analysis.partitionedBy().size(), is(1));
         assertThat(analysis.partitionedBy().get(0), contains("name", "string"));
 
         // partitioned columns must be not indexed in mapping
-        Map<String, Object> nameMapping = (Map<String, Object>)analysis.mappingProperties().get("name");
+        Map<String, Object> nameMapping = (Map<String, Object>) analysis.mappingProperties().get("name");
         assertThat(mapToSortedString(nameMapping), is(
-                "doc_values=false, index=no, store=false, type=string"));
+            "doc_values=false, index=no, store=false, type=string"));
 
         Map<String, Object> metaMapping = (Map) analysis.mapping().get("_meta");
         assertThat((Map<String, Object>) metaMapping.get("columns"), not(hasKey("name")));
-        List<List<String>> partitionedByMeta = (List<List<String>>)metaMapping.get("partitioned_by");
+        List<List<String>> partitionedByMeta = (List<List<String>>) metaMapping.get("partitioned_by");
         assertTrue(analysis.isPartitioned());
         assertThat(partitionedByMeta.size(), is(1));
         assertThat(partitionedByMeta.get(0).get(0), is("name"));
@@ -119,19 +94,19 @@ public class CreateAlterPartitionedTableAnalyzerTest extends BaseAnalyzerTest {
     @Test
     public void testPartitionedByMultipleColumns() throws Exception {
         CreateTableAnalyzedStatement analysis = (CreateTableAnalyzedStatement) analyze("create table my_table (" +
-                "  name string," +
-                "  date timestamp" +
-                ") partitioned by (name, date)");
+                                                                                       "  name string," +
+                                                                                       "  date timestamp" +
+                                                                                       ") partitioned by (name, date)");
         assertThat(analysis.partitionedBy().size(), is(2));
         Map<String, Object> properties = analysis.mappingProperties();
         assertThat(mapToSortedString(properties),
-                is("date={doc_values=false, index=no, store=false, type=date}, " +
-                    "name={doc_values=false, index=no, store=false, type=string}"));
+            is("date={doc_values=false, index=no, store=false, type=date}, " +
+               "name={doc_values=false, index=no, store=false, type=string}"));
         assertThat((Map<String, Object>) ((Map) analysis.mapping().get("_meta")).get("columns"),
-                allOf(
-                        not(hasKey("name")),
-                        not(hasKey("date"))
-                ));
+            allOf(
+                not(hasKey("name")),
+                not(hasKey("date"))
+            ));
         assertThat(analysis.partitionedBy().get(0), contains("name", "string"));
         assertThat(analysis.partitionedBy().get(1), contains("date", "date"));
     }
@@ -139,17 +114,17 @@ public class CreateAlterPartitionedTableAnalyzerTest extends BaseAnalyzerTest {
     @Test
     public void testPartitionedByNestedColumns() throws Exception {
         CreateTableAnalyzedStatement analysis = (CreateTableAnalyzedStatement) analyze("create table my_table (" +
-                "  id integer," +
-                "  no_index string index off," +
-                "  o object as (" +
-                "    name string" +
-                "  )," +
-                "  date timestamp" +
-                ") partitioned by (date, o['name'])");
+                                                                                       "  id integer," +
+                                                                                       "  no_index string index off," +
+                                                                                       "  o object as (" +
+                                                                                       "    name string" +
+                                                                                       "  )," +
+                                                                                       "  date timestamp" +
+                                                                                       ") partitioned by (date, o['name'])");
         assertThat(analysis.partitionedBy().size(), is(2));
-        Map<String, Object> oMapping = (Map<String, Object>)analysis.mappingProperties().get("o");
+        Map<String, Object> oMapping = (Map<String, Object>) analysis.mappingProperties().get("o");
         assertThat(mapToSortedString(oMapping), is(
-                "dynamic=true, properties={name={doc_values=false, index=no, store=false, type=string}}, type=object"));
+            "dynamic=true, properties={name={doc_values=false, index=no, store=false, type=string}}, type=object"));
         assertThat((Map<String, Object>) ((Map) analysis.mapping().get("_meta")).get("columns"), not(hasKey("date")));
 
         Map metaColumns = (Map) ((Map) analysis.mapping().get("_meta")).get("columns");
@@ -219,19 +194,19 @@ public class CreateAlterPartitionedTableAnalyzerTest extends BaseAnalyzerTest {
     @Test
     public void testPartitionedByPartOfPrimaryKey() throws Exception {
         CreateTableAnalyzedStatement analysis = (CreateTableAnalyzedStatement) analyze("create table my_table (" +
-                "  id1 integer," +
-                "  id2 integer," +
-                "  date timestamp," +
-                "  primary key (id1, id2)" +
-                ") partitioned by (id1)");
+                                                                                       "  id1 integer," +
+                                                                                       "  id2 integer," +
+                                                                                       "  date timestamp," +
+                                                                                       "  primary key (id1, id2)" +
+                                                                                       ") partitioned by (id1)");
         assertThat(analysis.partitionedBy().size(), is(1));
         assertThat(analysis.partitionedBy().get(0), contains("id1", "integer"));
 
-        Map<String, Object> oMapping = (Map<String, Object>)analysis.mappingProperties().get("id1");
+        Map<String, Object> oMapping = (Map<String, Object>) analysis.mappingProperties().get("id1");
         assertThat(mapToSortedString(oMapping), is(
-                "doc_values=false, index=no, store=false, type=integer"));
+            "doc_values=false, index=no, store=false, type=integer"));
         assertThat((Map<String, Object>) ((Map) analysis.mapping().get("_meta")).get("columns"),
-                not(hasKey("id1")));
+            not(hasKey("id1")));
     }
 
     @Test(expected = IllegalArgumentException.class)
@@ -269,8 +244,8 @@ public class CreateAlterPartitionedTableAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void testAlterPartitionedTable() throws Exception {
-        AlterTableAnalyzedStatement analysis = (AlterTableAnalyzedStatement)analyze(
-                "alter table parted set (number_of_replicas='0-all')");
+        AlterTableAnalyzedStatement analysis = (AlterTableAnalyzedStatement) analyze(
+            "alter table parted set (number_of_replicas='0-all')");
         assertThat(analysis.partitionName().isPresent(), is(false));
         assertThat(analysis.table().isPartitioned(), is(true));
         assertEquals("0-all", analysis.tableParameter().settings().get(TableParameterInfo.AUTO_EXPAND_REPLICAS));
@@ -279,11 +254,11 @@ public class CreateAlterPartitionedTableAnalyzerTest extends BaseAnalyzerTest {
     @Test
     public void testAlterPartitionedTablePartition() throws Exception {
         AlterTableAnalyzedStatement analysis = (AlterTableAnalyzedStatement) analyze(
-                "alter table parted partition (date=1395874800000) set (number_of_replicas='0-all')");
+            "alter table parted partition (date=1395874800000) set (number_of_replicas='0-all')");
         assertThat(analysis.partitionName().isPresent(), is(true));
         assertThat(analysis.partitionName().get(), is(new PartitionName("parted", Arrays.asList(new BytesRef("1395874800000")))));
         assertThat(analysis.table().tableParameterInfo(), instanceOf(AlterPartitionedTableParameterInfo.class));
-        AlterPartitionedTableParameterInfo tableSettingsInfo = (AlterPartitionedTableParameterInfo)analysis.table().tableParameterInfo();
+        AlterPartitionedTableParameterInfo tableSettingsInfo = (AlterPartitionedTableParameterInfo) analysis.table().tableParameterInfo();
         assertThat(tableSettingsInfo.partitionTableSettingsInfo(), instanceOf(TableParameterInfo.class));
         assertEquals("0-all", analysis.tableParameter().settings().get(TableParameterInfo.AUTO_EXPAND_REPLICAS));
     }
@@ -310,17 +285,17 @@ public class CreateAlterPartitionedTableAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void testAlterPartitionedTableShards() throws Exception {
-        AlterTableAnalyzedStatement analysis = (AlterTableAnalyzedStatement)analyze(
-                "alter table parted set (number_of_shards=10)");
+        AlterTableAnalyzedStatement analysis = (AlterTableAnalyzedStatement) analyze(
+            "alter table parted set (number_of_shards=10)");
         assertThat(analysis.partitionName().isPresent(), is(false));
         assertThat(analysis.table().isPartitioned(), is(true));
         assertThat(analysis.table().tableParameterInfo(), instanceOf(AlterPartitionedTableParameterInfo.class));
         assertEquals("10", analysis.tableParameter().settings().get(TableParameterInfo.NUMBER_OF_SHARDS));
 
-        AlterPartitionedTableParameterInfo tableSettingsInfo = (AlterPartitionedTableParameterInfo)analysis.table().tableParameterInfo();
+        AlterPartitionedTableParameterInfo tableSettingsInfo = (AlterPartitionedTableParameterInfo) analysis.table().tableParameterInfo();
         TableParameter tableParameter = new TableParameter(
-                analysis.tableParameter().settings(),
-                tableSettingsInfo.partitionTableSettingsInfo().supportedInternalSettings());
+            analysis.tableParameter().settings(),
+            tableSettingsInfo.partitionTableSettingsInfo().supportedInternalSettings());
         assertEquals(null, tableParameter.settings().get(TableParameterInfo.NUMBER_OF_SHARDS));
 
     }
@@ -343,6 +318,31 @@ public class CreateAlterPartitionedTableAnalyzerTest extends BaseAnalyzerTest {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("Cannot use column shape of type geo_shape in PARTITIONED BY clause");
         analyze("create table shaped (id int, shape geo_shape) partitioned by (shape)");
+    }
+
+    static class TestMetaDataModule extends MetaDataModule {
+        @Override
+        protected void configure() {
+            FulltextAnalyzerResolver fulltextAnalyzerResolver = mock(FulltextAnalyzerResolver.class);
+            when(fulltextAnalyzerResolver.hasCustomAnalyzer("german")).thenReturn(false);
+            when(fulltextAnalyzerResolver.hasCustomAnalyzer("ft_search")).thenReturn(true);
+            Settings.Builder settingsBuilder = Settings.builder();
+            settingsBuilder.put("search", "foobar");
+            when(fulltextAnalyzerResolver.resolveFullCustomAnalyzerSettings("ft_search")).thenReturn(settingsBuilder.build());
+            bind(FulltextAnalyzerResolver.class).toInstance(fulltextAnalyzerResolver);
+            super.configure();
+        }
+
+        @Override
+        protected void bindSchemas() {
+            super.bindSchemas();
+            SchemaInfo schemaInfo = mock(SchemaInfo.class);
+            when(schemaInfo.getTableInfo(USER_TABLE_IDENT.name())).thenReturn(USER_TABLE_INFO);
+            when(schemaInfo.getTableInfo(USER_TABLE_REFRESH_INTERVAL_BY_ONLY.name())).thenReturn(USER_TABLE_INFO_REFRESH_INTERVAL_BY_ONLY);
+            when(schemaInfo.getTableInfo(TEST_PARTITIONED_TABLE_IDENT.name())).thenReturn(TEST_PARTITIONED_TABLE_INFO);
+            when(schemaInfo.getTableInfo(TEST_MULTIPLE_PARTITIONED_TABLE_IDENT.name())).thenReturn(TEST_MULTIPLE_PARTITIONED_TABLE_INFO);
+            schemaBinder.addBinding(Schemas.DEFAULT_SCHEMA_NAME).toInstance(schemaInfo);
+        }
     }
 
 

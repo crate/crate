@@ -68,7 +68,7 @@ public class ArrayType extends DataType implements CollectionType, Streamer<Obje
         }
         Object[] result;
         if (value instanceof Collection) {
-            Collection values = (Collection)value;
+            Collection values = (Collection) value;
             result = new Object[values.size()];
             int idx = 0;
             for (Object o : values) {
@@ -76,7 +76,7 @@ public class ArrayType extends DataType implements CollectionType, Streamer<Obje
                 idx++;
             }
         } else {
-            Object[] inputArray = (Object[])value;
+            Object[] inputArray = (Object[]) value;
             result = new Object[inputArray.length];
             for (int i = 0; i < inputArray.length; i++) {
                 result[i] = innerType.value(inputArray[i]);
@@ -88,7 +88,7 @@ public class ArrayType extends DataType implements CollectionType, Streamer<Obje
     @Override
     public boolean isConvertableTo(DataType other) {
         return other.id() == UndefinedType.ID ||
-                ((other instanceof CollectionType)
+               ((other instanceof CollectionType)
                 && this.innerType.isConvertableTo(((CollectionType) other).innerType()));
     }
 
@@ -100,15 +100,15 @@ public class ArrayType extends DataType implements CollectionType, Streamer<Obje
             return 0;
         }
 
-        int size1 = val1 instanceof List ? ((List)val1).size() : ((Object[])val1).length;
-        int size2 = val2 instanceof List ? ((List)val2).size() : ((Object[])val2).length;
+        int size1 = val1 instanceof List ? ((List) val1).size() : ((Object[]) val1).length;
+        int size2 = val2 instanceof List ? ((List) val2).size() : ((Object[]) val2).length;
         return Integer.compare(size1, size2);
     }
 
     @Override
     public int compareTo(Object o) {
         if (!(o instanceof ArrayType)) return -1;
-        return Integer.compare(innerType.id(), ((ArrayType)o).innerType().id());
+        return Integer.compare(innerType.id(), ((ArrayType) o).innerType().id());
     }
 
     @Override

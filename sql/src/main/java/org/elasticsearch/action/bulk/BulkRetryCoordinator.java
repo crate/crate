@@ -36,7 +36,7 @@ import java.util.ArrayDeque;
 import java.util.Iterator;
 import java.util.Locale;
 import java.util.Queue;
-import java.util.concurrent.*;
+import java.util.concurrent.Semaphore;
 import java.util.concurrent.atomic.AtomicInteger;
 
 
@@ -46,10 +46,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 public class BulkRetryCoordinator {
 
     private static final ESLogger LOGGER = Loggers.getLogger(BulkRetryCoordinator.class);
-
-    private final ReadWriteLock retryLock;
     private static final BackoffPolicy backoff = LimitedExponentialBackoff.limitedExponential(1000);
-
+    private final ReadWriteLock retryLock;
     private final ThreadPool threadPool;
 
     private final Object pendingLock = new Object();
@@ -61,7 +59,7 @@ public class BulkRetryCoordinator {
         this.retryLock = new ReadWriteLock();
     }
 
-    private void trace(String message, Object ... args) {
+    private void trace(String message, Object... args) {
         if (LOGGER.isTraceEnabled()) {
             LOGGER.trace("BulkRetryCoordinator{activeOperations='" + activeOperations + "', " +
                          "pendingOperations='" + pendingOperations.size() + "'} {}",
@@ -146,6 +144,48 @@ public class BulkRetryCoordinator {
         }
     }
 
+    /**
+     * A {@link Semaphore} based read/write lock allowing multiple readers,
+     * no reader will block others, and only 1 active writer. Writers take
+     * precedence over readers, a writer will block all readers.
+     * Compared to a {@link ReadWriteLock}, no lock is owned by a thread.
+     */
+    static private class ReadWriteLock {
+        private final Semaphore readLock = new Semaphore(1, true);
+        private final Semaphore writeLock = new Semaphore(1, true);
+        private final AtomicInteger activeWriters = new AtomicInteger(0);
+        private final AtomicInteger waitingReaders = new AtomicInteger(0);
+
+        public ReadWriteLock() {
+        }
+
+        public void acquireWriteLock() throws InterruptedException {
+            // check readLock permits to prevent deadlocks
+            if (activeWriters.getAndIncrement() == 0 && readLock.availablePermits() == 1) {
+                // draining read permits, so all reads will block
+                readLock.drainPermits();
+            }
+            writeLock.acquire();
+        }
+
+        public void releaseWriteLock() {
+            if (activeWriters.decrementAndGet() == 0) {
+                // unlock all readers
+                readLock.release(waitingReaders.getAndSet(0) + 1);
+            }
+            writeLock.release();
+        }
+
+        public void acquireReadLock() throws InterruptedException {
+            // only acquire permit if writers are active
+            if (activeWriters.get() > 0) {
+                waitingReaders.getAndIncrement();
+                readLock.acquire();
+            }
+        }
+
+    }
+
     private class PendingTriggeringActionListener implements ActionListener<ShardResponse> {
         private final PendingOperation<ShardRequest, ShardResponse> operation;
 
@@ -174,47 +214,5 @@ public class BulkRetryCoordinator {
                 operation.responseListener.onFailure(e);
             }
         }
-    }
-
-    /**
-     * A {@link Semaphore} based read/write lock allowing multiple readers,
-     * no reader will block others, and only 1 active writer. Writers take
-     * precedence over readers, a writer will block all readers.
-     * Compared to a {@link ReadWriteLock}, no lock is owned by a thread.
-     */
-    static private class ReadWriteLock {
-        private final Semaphore readLock = new Semaphore(1, true);
-        private final Semaphore writeLock = new Semaphore(1, true);
-        private final AtomicInteger activeWriters = new AtomicInteger(0);
-        private final AtomicInteger waitingReaders = new AtomicInteger(0);
-
-        public ReadWriteLock() {
-        }
-
-        public void acquireWriteLock() throws InterruptedException {
-            // check readLock permits to prevent deadlocks
-            if (activeWriters.getAndIncrement() == 0 && readLock.availablePermits() == 1) {
-                // draining read permits, so all reads will block
-                readLock.drainPermits();
-            }
-            writeLock.acquire();
-        }
-
-        public void releaseWriteLock() {
-            if (activeWriters.decrementAndGet() == 0) {
-                // unlock all readers
-                readLock.release(waitingReaders.getAndSet(0)+1);
-            }
-            writeLock.release();
-        }
-
-        public void acquireReadLock() throws InterruptedException {
-            // only acquire permit if writers are active
-            if (activeWriters.get() > 0) {
-                waitingReaders.getAndIncrement();
-                readLock.acquire();
-            }
-        }
-
     }
 }

@@ -62,6 +62,31 @@ public class RepositoryService {
         this.transportActionProvider = transportActionProvider;
     }
 
+    @VisibleForTesting
+    static Throwable convertRepositoryException(Throwable e) {
+        e = Exceptions.unwrap(e);
+        Throwable cause = e.getCause();
+
+        /**
+         * usually the exception looks like:
+         *      RepositoryException
+         *          cause: CreationException (from guice)
+         *                      cause: RepositoryException (with a message that includes the real failure reason
+         *
+         * results in something like: [foo] failed to create repository: [foo] missing location
+         * instead of just: [foo] failed to create repository
+         */
+        if (e instanceof RepositoryException && cause != null) {
+            String msg = e.getMessage();
+            if (cause instanceof CreationException && cause.getCause() != null) {
+                msg += ": " + cause.getCause().getMessage();
+            }
+            return new RepositoryException("", msg, e);
+        } else {
+            return e;
+        }
+    }
+
     @Nullable
     public RepositoryMetaData getRepository(String repositoryName) {
         RepositoriesMetaData repositories = clusterService.state().metaData().custom(RepositoriesMetaData.TYPE);
@@ -81,21 +106,21 @@ public class RepositoryService {
         final SettableFuture<Long> future = SettableFuture.create();
         final String repoName = analyzedStatement.repositoryName();
         transportActionProvider.transportDeleteRepositoryAction().execute(
-                new DeleteRepositoryRequest(repoName),
-                new ActionListener<DeleteRepositoryResponse>() {
-                    @Override
-                    public void onResponse(DeleteRepositoryResponse deleteRepositoryResponse) {
-                        if (!deleteRepositoryResponse.isAcknowledged()) {
-                            LOGGER.info("delete repository '{}' not acknowledged", repoName);
-                        }
-                        future.set(1L);
+            new DeleteRepositoryRequest(repoName),
+            new ActionListener<DeleteRepositoryResponse>() {
+                @Override
+                public void onResponse(DeleteRepositoryResponse deleteRepositoryResponse) {
+                    if (!deleteRepositoryResponse.isAcknowledged()) {
+                        LOGGER.info("delete repository '{}' not acknowledged", repoName);
                     }
-
-                    @Override
-                    public void onFailure(Throwable e) {
-                        future.setException(e);
-                    }
+                    future.set(1L);
                 }
+
+                @Override
+                public void onFailure(Throwable e) {
+                    future.setException(e);
+                }
+            }
         );
         return future;
     }
@@ -137,31 +162,6 @@ public class RepositoryService {
             callback.run();
         } else {
             execute(new DropRepositoryAnalyzedStatement(repoName)).addListener(callback, MoreExecutors.directExecutor());
-        }
-    }
-
-    @VisibleForTesting
-    static Throwable convertRepositoryException(Throwable e) {
-        e = Exceptions.unwrap(e);
-        Throwable cause = e.getCause();
-
-        /**
-         * usually the exception looks like:
-         *      RepositoryException
-         *          cause: CreationException (from guice)
-         *                      cause: RepositoryException (with a message that includes the real failure reason
-         *
-         * results in something like: [foo] failed to create repository: [foo] missing location
-         * instead of just: [foo] failed to create repository
-         */
-        if (e instanceof RepositoryException && cause != null) {
-            String msg = e.getMessage();
-            if (cause instanceof CreationException && cause.getCause() != null) {
-                msg += ": " + cause.getCause().getMessage();
-            }
-            return new RepositoryException("", msg, e);
-        } else {
-            return e;
         }
     }
 }

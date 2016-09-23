@@ -38,19 +38,18 @@ public class AbsFunction extends Scalar<Number, Number> {
 
     public static final String NAME = "abs";
     private static final Set<DataType> ALLOWED_TYPES = ImmutableSet.<DataType>builder()
-            .addAll(DataTypes.NUMERIC_PRIMITIVE_TYPES)
-            .add(DataTypes.UNDEFINED)
-            .build();
-
-    public static void register(ScalarFunctionModule module) {
-        module.register(NAME, new Resolver());
-    }
-
+        .addAll(DataTypes.NUMERIC_PRIMITIVE_TYPES)
+        .add(DataTypes.UNDEFINED)
+        .build();
     private final FunctionInfo info;
 
     public AbsFunction(DataType dataType) {
         this.info = new FunctionInfo(
-                new FunctionIdent(NAME, ImmutableList.of(dataType)), dataType);
+            new FunctionIdent(NAME, ImmutableList.of(dataType)), dataType);
+    }
+
+    public static void register(ScalarFunctionModule module) {
+        module.register(NAME, new Resolver());
     }
 
     @Override
@@ -63,7 +62,7 @@ public class AbsFunction extends Scalar<Number, Number> {
         assert args.length == 1;
         Number value = args[0].value();
         if (value != null) {
-            return (Number)info.returnType().value(Math.abs(value.doubleValue()));
+            return (Number) info.returnType().value(Math.abs(value.doubleValue()));
         }
         return null;
     }
@@ -73,9 +72,9 @@ public class AbsFunction extends Scalar<Number, Number> {
         @Override
         public FunctionImplementation<Function> getForTypes(List<DataType> dataTypes) throws IllegalArgumentException {
             Preconditions.checkArgument(dataTypes.size() == 1,
-                    "invalid size of arguments, 1 expected");
+                "invalid size of arguments, 1 expected");
             Preconditions.checkArgument(ALLOWED_TYPES.contains(dataTypes.get(0)),
-                    "invalid datatype %s for %s function", dataTypes.get(0).toString(), NAME);
+                "invalid datatype %s for %s function", dataTypes.get(0).toString(), NAME);
             return new AbsFunction(dataTypes.get(0));
         }
     }

@@ -37,11 +37,6 @@ public class ExecutorResumeHandle implements ResumeHandle {
         this.runnable = runnable;
     }
 
-    @Override
-    public void resume(boolean async) {
-        resume(executor, runnable, async);
-    }
-
     public static void resume(Executor executor, Runnable runnable, boolean async) {
         if (async) {
             try {
@@ -52,5 +47,10 @@ public class ExecutorResumeHandle implements ResumeHandle {
         } else {
             runnable.run();
         }
+    }
+
+    @Override
+    public void resume(boolean async) {
+        resume(executor, runnable, async);
     }
 }

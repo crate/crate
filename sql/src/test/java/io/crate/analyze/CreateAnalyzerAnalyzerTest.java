@@ -41,29 +41,18 @@ import static org.mockito.Mockito.when;
 
 public class CreateAnalyzerAnalyzerTest extends BaseAnalyzerTest {
 
-    static class TestMetaDataModule extends MetaDataModule {
-        @Override
-        protected void bindSchemas() {
-            super.bindSchemas();
-            SchemaInfo schemaInfo = mock(SchemaInfo.class);
-            when(schemaInfo.getTableInfo(USER_TABLE_IDENT.name())).thenReturn(USER_TABLE_INFO);
-            schemaBinder.addBinding(Schemas.DEFAULT_SCHEMA_NAME).toInstance(schemaInfo);
-        }
-    }
-
     @Override
     protected List<Module> getModules() {
         List<Module> modules = super.getModules();
         modules.addAll(Arrays.<Module>asList(
-                new MockedClusterServiceModule(),
-                new MetaDataInformationModule(),
-                new TestMetaDataModule(),
-                new MetaDataSysModule(),
-                new OperatorModule())
+            new MockedClusterServiceModule(),
+            new MetaDataInformationModule(),
+            new TestMetaDataModule(),
+            new MetaDataSysModule(),
+            new OperatorModule())
         );
         return modules;
     }
-
 
     @Test
     public void testCreateAnalyzerSimple() throws Exception {
@@ -82,25 +71,25 @@ public class CreateAnalyzerAnalyzerTest extends BaseAnalyzerTest {
     @Test
     public void testCreateAnalyzerWithCustomTokenizer() throws Exception {
         AnalyzedStatement analyzedStatement = analyze("CREATE ANALYZER a2 (" +
-                "   tokenizer tok2 with (" +
-                "       type='ngram'," +
-                "       \"min_ngram\"=2," +
-                "       \"token_chars\"=['letter', 'digits']" +
-                "   )" +
-                ")");
+                                                      "   tokenizer tok2 with (" +
+                                                      "       type='ngram'," +
+                                                      "       \"min_ngram\"=2," +
+                                                      "       \"token_chars\"=['letter', 'digits']" +
+                                                      "   )" +
+                                                      ")");
         assertThat(analyzedStatement, instanceOf(CreateAnalyzerAnalyzedStatement.class));
         CreateAnalyzerAnalyzedStatement createAnalyzerAnalysis = (CreateAnalyzerAnalyzedStatement) analyzedStatement;
 
         assertEquals("a2", createAnalyzerAnalysis.ident());
         assertEquals("a2_tok2", createAnalyzerAnalysis.tokenizerDefinition().v1());
         assertThat(
-                createAnalyzerAnalysis.tokenizerDefinition().v2().getAsMap(),
-                allOf(
-                        hasEntry("index.analysis.tokenizer.a2_tok2.type", "ngram"),
-                        hasEntry("index.analysis.tokenizer.a2_tok2.min_ngram", "2"),
-                        hasEntry("index.analysis.tokenizer.a2_tok2.token_chars.0", "letter"),
-                        hasEntry("index.analysis.tokenizer.a2_tok2.token_chars.1", "digits")
-                )
+            createAnalyzerAnalysis.tokenizerDefinition().v2().getAsMap(),
+            allOf(
+                hasEntry("index.analysis.tokenizer.a2_tok2.type", "ngram"),
+                hasEntry("index.analysis.tokenizer.a2_tok2.min_ngram", "2"),
+                hasEntry("index.analysis.tokenizer.a2_tok2.token_chars.0", "letter"),
+                hasEntry("index.analysis.tokenizer.a2_tok2.token_chars.1", "digits")
+            )
         );
 
         // be sure build succeeds
@@ -110,15 +99,15 @@ public class CreateAnalyzerAnalyzerTest extends BaseAnalyzerTest {
     @Test
     public void testCreateAnalyzerWithCharFilters() throws Exception {
         AnalyzedStatement analyzedStatement = analyze("CREATE ANALYZER a3 (" +
-                "   tokenizer lowercase," +
-                "   char_filters (" +
-                "       \"html_strip\"," +
-                "       my_mapping WITH (" +
-                "           type='mapping'," +
-                "           mappings=['ph=>f', 'ß=>ss', 'ö=>oe']" +
-                "       )" +
-                "   )" +
-                ")");
+                                                      "   tokenizer lowercase," +
+                                                      "   char_filters (" +
+                                                      "       \"html_strip\"," +
+                                                      "       my_mapping WITH (" +
+                                                      "           type='mapping'," +
+                                                      "           mappings=['ph=>f', 'ß=>ss', 'ö=>oe']" +
+                                                      "       )" +
+                                                      "   )" +
+                                                      ")");
         assertThat(analyzedStatement, instanceOf(CreateAnalyzerAnalyzedStatement.class));
         CreateAnalyzerAnalyzedStatement createAnalyzerAnalysis = (CreateAnalyzerAnalyzedStatement) analyzedStatement;
 
@@ -126,18 +115,18 @@ public class CreateAnalyzerAnalyzerTest extends BaseAnalyzerTest {
         assertEquals("lowercase", createAnalyzerAnalysis.tokenizerDefinition().v1());
 
         assertThat(
-                createAnalyzerAnalysis.charFilters().keySet(),
-                containsInAnyOrder("html_strip", "a3_my_mapping")
+            createAnalyzerAnalysis.charFilters().keySet(),
+            containsInAnyOrder("html_strip", "a3_my_mapping")
         );
 
         assertThat(
-                createAnalyzerAnalysis.charFilters().get("a3_my_mapping").getAsMap(),
-                hasEntry("index.analysis.char_filter.a3_my_mapping.type", "mapping")
+            createAnalyzerAnalysis.charFilters().get("a3_my_mapping").getAsMap(),
+            hasEntry("index.analysis.char_filter.a3_my_mapping.type", "mapping")
         );
         assertThat(
-                createAnalyzerAnalysis.charFilters().get("a3_my_mapping")
-                        .getAsArray("index.analysis.char_filter.a3_my_mapping.mappings"),
-                arrayContainingInAnyOrder("ph=>f", "ß=>ss", "ö=>oe")
+            createAnalyzerAnalysis.charFilters().get("a3_my_mapping")
+                .getAsArray("index.analysis.char_filter.a3_my_mapping.mappings"),
+            arrayContainingInAnyOrder("ph=>f", "ß=>ss", "ö=>oe")
         );
 
         // be sure build succeeds
@@ -147,15 +136,15 @@ public class CreateAnalyzerAnalyzerTest extends BaseAnalyzerTest {
     @Test
     public void testCreateAnalyzerWithTokenFilters() throws Exception {
         AnalyzedStatement analyzedStatement = analyze("CREATE ANALYZER a11 (" +
-                "  TOKENIZER standard," +
-                "  TOKEN_FILTERS (" +
-                "    lowercase," +
-                "    mystop WITH (" +
-                "      type='stop'," +
-                "      stopword=['the', 'over']" +
-                "    )" +
-                "  )" +
-                ")");
+                                                      "  TOKENIZER standard," +
+                                                      "  TOKEN_FILTERS (" +
+                                                      "    lowercase," +
+                                                      "    mystop WITH (" +
+                                                      "      type='stop'," +
+                                                      "      stopword=['the', 'over']" +
+                                                      "    )" +
+                                                      "  )" +
+                                                      ")");
         assertThat(analyzedStatement, instanceOf(CreateAnalyzerAnalyzedStatement.class));
         CreateAnalyzerAnalyzedStatement createAnalyzerAnalysis = (CreateAnalyzerAnalyzedStatement) analyzedStatement;
 
@@ -163,18 +152,18 @@ public class CreateAnalyzerAnalyzerTest extends BaseAnalyzerTest {
         assertEquals("standard", createAnalyzerAnalysis.tokenizerDefinition().v1());
 
         assertThat(
-                createAnalyzerAnalysis.tokenFilters().keySet(),
-                containsInAnyOrder("lowercase", "a11_mystop")
+            createAnalyzerAnalysis.tokenFilters().keySet(),
+            containsInAnyOrder("lowercase", "a11_mystop")
         );
 
         assertThat(
-                createAnalyzerAnalysis.tokenFilters().get("a11_mystop").getAsMap(),
-                hasEntry("index.analysis.filter.a11_mystop.type", "stop")
+            createAnalyzerAnalysis.tokenFilters().get("a11_mystop").getAsMap(),
+            hasEntry("index.analysis.filter.a11_mystop.type", "stop")
         );
         assertThat(
-                createAnalyzerAnalysis.tokenFilters().get("a11_mystop")
-                        .getAsArray("index.analysis.filter.a11_mystop.stopword"),
-                arrayContainingInAnyOrder("the", "over")
+            createAnalyzerAnalysis.tokenFilters().get("a11_mystop")
+                .getAsArray("index.analysis.filter.a11_mystop.stopword"),
+            arrayContainingInAnyOrder("the", "over")
         );
 
         // be sure build succeeds
@@ -184,9 +173,9 @@ public class CreateAnalyzerAnalyzerTest extends BaseAnalyzerTest {
     @Test
     public void testCreateAnalyzerExtendingBuiltin() throws Exception {
         AnalyzedStatement analyzedStatement = analyze("CREATE ANALYZER a4 EXTENDS " +
-                "german WITH (" +
-                "   \"stop_words\"=['der', 'die', 'das']" +
-                ")");
+                                                      "german WITH (" +
+                                                      "   \"stop_words\"=['der', 'die', 'das']" +
+                                                      ")");
         assertThat(analyzedStatement, instanceOf(CreateAnalyzerAnalyzedStatement.class));
         CreateAnalyzerAnalyzedStatement createAnalyzerAnalysis = (CreateAnalyzerAnalyzedStatement) analyzedStatement;
 
@@ -194,8 +183,8 @@ public class CreateAnalyzerAnalyzerTest extends BaseAnalyzerTest {
         assertEquals("german", createAnalyzerAnalysis.extendedAnalyzerName());
 
         assertThat(
-                createAnalyzerAnalysis.genericAnalyzerSettings().getAsArray("index.analysis.analyzer.a4.stop_words"),
-                arrayContainingInAnyOrder("der", "die", "das")
+            createAnalyzerAnalysis.genericAnalyzerSettings().getAsArray("index.analysis.analyzer.a4.stop_words"),
+            arrayContainingInAnyOrder("der", "die", "das")
         );
 
         // be sure build succeeds
@@ -205,18 +194,18 @@ public class CreateAnalyzerAnalyzerTest extends BaseAnalyzerTest {
     @Test(expected = UnsupportedOperationException.class)
     public void createAnalyzerWithoutTokenizer() throws Exception {
         CreateAnalyzerAnalyzedStatement analysis = analyze(
-                "CREATE ANALYZER a6 (" +
-                "  char_filters (" +
-                "    \"html_strip\"" +
-                "  )," +
-                "  token_filters (" +
-                "    lowercase" +
-                "  )" +
-                ")");
+            "CREATE ANALYZER a6 (" +
+            "  char_filters (" +
+            "    \"html_strip\"" +
+            "  )," +
+            "  token_filters (" +
+            "    lowercase" +
+            "  )" +
+            ")");
         analysis.buildSettings();
     }
 
-    @Test( expected = IllegalArgumentException.class)
+    @Test(expected = IllegalArgumentException.class)
     public void overrideDefaultAnalyzer() throws Exception {
         analyze("CREATE ANALYZER \"default\" (" +
                 "  TOKENIZER whitespace" +
@@ -245,6 +234,16 @@ public class CreateAnalyzerAnalyzerTest extends BaseAnalyzerTest {
             "  TOKENIZER whitespace" +
             ")");
         analysis.buildSettings();
+    }
+
+    static class TestMetaDataModule extends MetaDataModule {
+        @Override
+        protected void bindSchemas() {
+            super.bindSchemas();
+            SchemaInfo schemaInfo = mock(SchemaInfo.class);
+            when(schemaInfo.getTableInfo(USER_TABLE_IDENT.name())).thenReturn(USER_TABLE_INFO);
+            schemaBinder.addBinding(Schemas.DEFAULT_SCHEMA_NAME).toInstance(schemaInfo);
+        }
     }
 
 }

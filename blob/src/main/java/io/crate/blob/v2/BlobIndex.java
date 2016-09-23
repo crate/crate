@@ -38,7 +38,7 @@ public class BlobIndex extends AbstractIndexComponent {
 
     @Inject
     public BlobIndex(Index index, IndexSettingsService indexSettingsService,
-              OperationRouting operationRouting, ClusterService clusterService) {
+                     OperationRouting operationRouting, ClusterService clusterService) {
         super(index, indexSettingsService.getSettings());
         this.operationRouting = operationRouting;
         this.clusterService = clusterService;

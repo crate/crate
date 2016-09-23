@@ -37,9 +37,7 @@ import org.junit.Test;
 
 import java.nio.file.Path;
 
-import static org.hamcrest.Matchers.greaterThan;
-import static org.hamcrest.Matchers.not;
-import static org.hamcrest.Matchers.notNullValue;
+import static org.hamcrest.Matchers.*;
 import static org.hamcrest.core.Is.is;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -47,8 +45,8 @@ import static org.mockito.Mockito.when;
 public class SigarExtendedNodeInfoTest extends CrateUnitTest {
 
     private static final Settings NODE_SETTINGS = Settings.builder()
-            .put(MonitorModule.NODE_INFO_EXTENDED_TYPE, SigarPlugin.NODE_INFO_EXTENDED_TYPE)
-            .build();
+        .put(MonitorModule.NODE_INFO_EXTENDED_TYPE, SigarPlugin.NODE_INFO_EXTENDED_TYPE)
+        .build();
 
     private ExtendedNodeInfo extendedNodeInfo;
 
@@ -64,10 +62,10 @@ public class SigarExtendedNodeInfoTest extends CrateUnitTest {
         MonitorModule monitorModule = new MonitorModule(NODE_SETTINGS);
         monitorModule.addExtendedNodeInfoType(SigarPlugin.NODE_INFO_EXTENDED_TYPE, SigarExtendedNodeInfo.class);
         Injector injector = new ModulesBuilder().add(
-                new SettingsModule(NODE_SETTINGS),
-                monitorModule,
-                nodeEnvironmentModule,
-                new SigarModule(new SigarService(NODE_SETTINGS))
+            new SettingsModule(NODE_SETTINGS),
+            monitorModule,
+            nodeEnvironmentModule,
+            new SigarModule(new SigarService(NODE_SETTINGS))
         ).createInjector();
         extendedNodeInfo = injector.getInstance(ExtendedNodeInfo.class);
     }

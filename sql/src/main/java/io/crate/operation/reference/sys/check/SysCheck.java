@@ -30,22 +30,6 @@ import javax.annotation.concurrent.ThreadSafe;
 @ThreadSafe
 public interface SysCheck {
 
-    enum Severity {
-        LOW(1),
-        MEDIUM(2),
-        HIGH(3);
-
-        private int value;
-
-        Severity(int value) {
-            this.value = value;
-        }
-
-        public int value() {
-            return value;
-        }
-    }
-
     /**
      * Returns the unique id of the check.
      */
@@ -67,4 +51,20 @@ public interface SysCheck {
      * @return true if validation is passed.
      */
     boolean validate();
+
+    enum Severity {
+        LOW(1),
+        MEDIUM(2),
+        HIGH(3);
+
+        private int value;
+
+        Severity(int value) {
+            this.value = value;
+        }
+
+        public int value() {
+            return value;
+        }
+    }
 }

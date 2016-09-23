@@ -44,7 +44,7 @@ import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * Push based nested-loop-like implementation:
- *
+ * <p>
  * <h2>cross join or inner join</h2>
  * <pre>
  *     for (leftRow in left) {
@@ -69,7 +69,7 @@ import java.util.concurrent.atomic.AtomicReference;
  *             RowReceiver
  * </pre>
  * <p>
- *
+ * <p>
  * <h2>left join</h2>:
  * <pre>
  *     for (leftRow in left) {
@@ -83,10 +83,10 @@ import java.util.concurrent.atomic.AtomicReference;
  *     }
  *
  * </pre>
- *
- *
+ * <p>
+ * <p>
  * <h2>right join</h2>
- *
+ * <p>
  * Adds an additional loop over rightRows after the nested-loop to emit any rows that didn't have any matches:
  * <pre>
  *      for (leftRow in left) {
@@ -103,19 +103,19 @@ import java.util.concurrent.atomic.AtomicReference;
  *              emitWithLeftAsNull
  *          }
  *      }
- *</pre>
+ * </pre>
  * As a consequence of this algorithm the ordering of the emitted rows
  * doesn't match the order of the rows as received from the upstreams.
- *
  * <p>
- *
+ * <p>
+ * <p>
  * <h2>Full join</h2>
- *
+ * <p>
  * is a combination of left-join and right-join.
- *
- *
+ * <p>
+ * <p>
  * <h2>Implementation details:</h2>
- *
+ * <p>
  * Both upstreams start concurrently. {@link #leadAcquired} is used to pause the first upstream and at then point
  * it is single threaded.
  * <p>
@@ -153,17 +153,10 @@ public class NestedLoopOperation implements CompletionListenable {
     private final RowReceiver downstream;
     private final Predicate<Row> joinPredicate;
     private final JoinType joinType;
-
+    private final AtomicBoolean leadAcquired = new AtomicBoolean(false);
     private volatile Throwable upstreamFailure;
     private volatile boolean stop = false;
     private volatile boolean emitRightJoin = false;
-
-    @Override
-    public void addListener(CompletionListener listener) {
-        Futures.addCallback(completionFuture, listener);
-    }
-
-    private final AtomicBoolean leadAcquired = new AtomicBoolean(false);
 
     public NestedLoopOperation(int phaseId,
                                RowReceiver rowReceiver,
@@ -183,6 +176,11 @@ public class NestedLoopOperation implements CompletionListenable {
         }
     }
 
+    @Override
+    public void addListener(CompletionListener listener) {
+        Futures.addCallback(completionFuture, listener);
+    }
+
     public ListenableRowReceiver leftRowReceiver() {
         return left;
     }
@@ -191,12 +189,59 @@ public class NestedLoopOperation implements CompletionListenable {
         return right;
     }
 
+    private void killBoth(Throwable throwable) {
+        // make sure that switchTo unblocks
+        left.resumeable.set(ResumeHandle.NOOP);
+        right.resumeable.set(ResumeHandle.NOOP);
+
+        stop = true;
+        left.finished.setException(throwable);
+        right.finished.setException(throwable);
+    }
+
+    private void switchTo(AtomicReference<ResumeHandle> atomicResumeable) {
+        ResumeHandle resumeHandle = busyGet(atomicResumeable);
+        LOGGER.trace("phase={} method=switchTo resumeable={}", phaseId, resumeHandle);
+        resumeHandle.resume(false);
+    }
+
+    private ResumeHandle busyGet(AtomicReference<ResumeHandle> atomicResumeable) {
+        ResumeHandle resumeHandle;
+        int sleep = 10;
+        /*
+         * Usually this loop exits immediately.
+         * There is only a race condition during the "start/lead-acquisition" where that's not the case:
+         * E.g.
+         *
+         * <pre>
+         * side=right method=setNextRow action=leadAcquired->pause
+         * side=left method=setNextRow switchOnPause=true
+         * side=left method=pauseProcessed switchOnPause=true
+         * side=right method=pauseProcessed
+         * </pre>
+         */
+        while ((resumeHandle = atomicResumeable.get()) == ResumeHandle.INVALID) {
+            try {
+                Thread.sleep(sleep *= 2);
+                if (sleep > 100) {
+                    LOGGER.warn("phase={} method=switchTo sleep={} SLOW!", phaseId, sleep);
+                }
+            } catch (InterruptedException e) {
+                LOGGER.error("phase={} method=switchTo timeout", phaseId);
+                Thread.currentThread().interrupt();
+                throw Throwables.propagate(e);
+            }
+        }
+        atomicResumeable.set(ResumeHandle.INVALID);
+        return resumeHandle;
+    }
+
     private static class CombinedRow implements Row {
 
-        volatile Row outerRow;
-        volatile Row innerRow;
         final Row outerNullRow;
         final Row innerNullRow;
+        volatile Row outerRow;
+        volatile Row innerRow;
 
         CombinedRow(int outerOutputSize, int innerOutputSize) {
             outerNullRow = new RowNull(outerOutputSize);
@@ -306,16 +351,6 @@ public class NestedLoopOperation implements CompletionListenable {
         }
     }
 
-    private void killBoth(Throwable throwable) {
-        // make sure that switchTo unblocks
-        left.resumeable.set(ResumeHandle.NOOP);
-        right.resumeable.set(ResumeHandle.NOOP);
-
-        stop = true;
-        left.finished.setException(throwable);
-        right.finished.setException(throwable);
-    }
-
     private class LeftRowReceiver extends AbstractRowReceiver {
 
         private volatile Row lastRow = null; // TODO: volatile is only required for first access
@@ -380,51 +415,14 @@ public class NestedLoopOperation implements CompletionListenable {
         }
     }
 
-    private void switchTo(AtomicReference<ResumeHandle> atomicResumeable) {
-        ResumeHandle resumeHandle = busyGet(atomicResumeable);
-        LOGGER.trace("phase={} method=switchTo resumeable={}", phaseId, resumeHandle);
-        resumeHandle.resume(false);
-    }
-
-    private ResumeHandle busyGet(AtomicReference<ResumeHandle> atomicResumeable) {
-        ResumeHandle resumeHandle;
-        int sleep = 10;
-        /*
-         * Usually this loop exits immediately.
-         * There is only a race condition during the "start/lead-acquisition" where that's not the case:
-         * E.g.
-         *
-         * <pre>
-         * side=right method=setNextRow action=leadAcquired->pause
-         * side=left method=setNextRow switchOnPause=true
-         * side=left method=pauseProcessed switchOnPause=true
-         * side=right method=pauseProcessed
-         * </pre>
-         */
-        while ((resumeHandle = atomicResumeable.get()) == ResumeHandle.INVALID) {
-            try {
-                Thread.sleep(sleep *= 2);
-                if (sleep > 100) {
-                    LOGGER.warn("phase={} method=switchTo sleep={} SLOW!", phaseId, sleep);
-                }
-            } catch (InterruptedException e) {
-                LOGGER.error("phase={} method=switchTo timeout", phaseId);
-                Thread.currentThread().interrupt();
-                throw Throwables.propagate(e);
-            }
-        }
-        atomicResumeable.set(ResumeHandle.INVALID);
-        return resumeHandle;
-    }
-
     private class RightRowReceiver extends AbstractRowReceiver {
 
         final CombinedRow combinedRow;
         private final Set<Requirement> requirements;
 
         Row lastRow = null;
-        private boolean suspendThread = false;
         boolean matchedJoinPredicate = false;
+        private boolean suspendThread = false;
 
         RightRowReceiver(int leftNumOutputs, int rightNumOutputs) {
             requirements = Requirements.add(downstream.requirements(), Requirement.REPEAT);

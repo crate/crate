@@ -50,129 +50,21 @@ public class GeometricMeanAggregation extends AggregationFunction<GeometricMeanA
         DataTypes.register(GeometricMeanStateType.ID, GeometricMeanStateType.INSTANCE);
     }
 
-    public static void register(AggregationImplModule mod) {
-        for (DataType<?> t : DataTypes.NUMERIC_PRIMITIVE_TYPES) {
-            mod.register(new GeometricMeanAggregation(new FunctionInfo(
-                    new FunctionIdent(NAME, ImmutableList.<DataType>of(t)), DataTypes.DOUBLE,
-                    FunctionInfo.Type.AGGREGATE)));
-        }
-        mod.register(new GeometricMeanAggregation(new FunctionInfo(
-                new FunctionIdent(NAME, ImmutableList.<DataType>of(DataTypes.TIMESTAMP)), DataTypes.DOUBLE,
-                FunctionInfo.Type.AGGREGATE)));
-    }
-
-    public static class GeometricMeanState implements Comparable<GeometricMeanState>, Streamable {
-        /**Number of values that have been added */
-        private long n;
-
-        /**
-         * The currently running value
-         */
-        private double value;
-
-        public GeometricMeanState() {
-            value = 0d;
-            n = 0;
-        }
-
-        private void addValue(double val) {
-            this.value += FastMath.log(val);
-            n++;
-        }
-
-        private Double value() {
-            if (n > 0) {
-                return FastMath.exp(value / n);
-            } else {
-                return null;
-            }
-        }
-
-        private void merge(GeometricMeanState other) {
-            this.value += other.value;
-            this.n += other.n;
-        }
-
-        @Override
-        public int compareTo(GeometricMeanState o) {
-            return ComparisonChain.start()
-                    .compare(value, o.value)
-                    .compare(n, o.n)
-                    .result();
-        }
-
-        @Override
-        public void readFrom(StreamInput in) throws IOException {
-            n = in.readVLong();
-            value = in.readDouble();
-        }
-
-        @Override
-        public void writeTo(StreamOutput out) throws IOException {
-            out.writeVLong(n);
-            out.writeDouble(value);
-        }
-    }
-
-    public static class GeometricMeanStateType extends DataType<GeometricMeanState>
-            implements Streamer<GeometricMeanState>, FixedWidthType, DataTypeFactory {
-
-        public static final GeometricMeanStateType INSTANCE = new GeometricMeanStateType();
-        public static final int ID = 4096;
-
-        @Override
-        public int id() {
-            return ID;
-        }
-
-        @Override
-        public String getName() {
-            return "geometric_mean_state";
-        }
-
-        @Override
-        public Streamer<?> streamer() {
-            return this;
-        }
-
-        @Override
-        public GeometricMeanState value(Object value) throws IllegalArgumentException, ClassCastException {
-            return (GeometricMeanState)value;
-        }
-
-        @Override
-        public int compareValueTo(GeometricMeanState val1, GeometricMeanState val2) {
-            return val1.compareTo(val2);
-        }
-
-        @Override
-        public DataType<?> create() {
-            return INSTANCE;
-        }
-
-        @Override
-        public int fixedSize() {
-            return 40;
-        }
-
-        @Override
-        public GeometricMeanState readValueFrom(StreamInput in) throws IOException {
-            GeometricMeanState state = new GeometricMeanState();
-            state.readFrom(in);
-            return state;
-        }
-
-        @Override
-        public void writeValueTo(StreamOutput out, Object v) throws IOException {
-            GeometricMeanState state = (GeometricMeanState)v;
-            state.writeTo(out);
-        }
-    }
-
     private final FunctionInfo info;
 
     public GeometricMeanAggregation(FunctionInfo info) {
         this.info = info;
+    }
+
+    public static void register(AggregationImplModule mod) {
+        for (DataType<?> t : DataTypes.NUMERIC_PRIMITIVE_TYPES) {
+            mod.register(new GeometricMeanAggregation(new FunctionInfo(
+                new FunctionIdent(NAME, ImmutableList.<DataType>of(t)), DataTypes.DOUBLE,
+                FunctionInfo.Type.AGGREGATE)));
+        }
+        mod.register(new GeometricMeanAggregation(new FunctionInfo(
+            new FunctionIdent(NAME, ImmutableList.<DataType>of(DataTypes.TIMESTAMP)), DataTypes.DOUBLE,
+            FunctionInfo.Type.AGGREGATE)));
     }
 
     @Nullable
@@ -218,5 +110,115 @@ public class GeometricMeanAggregation extends AggregationFunction<GeometricMeanA
     @Override
     public FunctionInfo info() {
         return info;
+    }
+
+    public static class GeometricMeanState implements Comparable<GeometricMeanState>, Streamable {
+        /**
+         * Number of values that have been added
+         */
+        private long n;
+
+        /**
+         * The currently running value
+         */
+        private double value;
+
+        public GeometricMeanState() {
+            value = 0d;
+            n = 0;
+        }
+
+        private void addValue(double val) {
+            this.value += FastMath.log(val);
+            n++;
+        }
+
+        private Double value() {
+            if (n > 0) {
+                return FastMath.exp(value / n);
+            } else {
+                return null;
+            }
+        }
+
+        private void merge(GeometricMeanState other) {
+            this.value += other.value;
+            this.n += other.n;
+        }
+
+        @Override
+        public int compareTo(GeometricMeanState o) {
+            return ComparisonChain.start()
+                .compare(value, o.value)
+                .compare(n, o.n)
+                .result();
+        }
+
+        @Override
+        public void readFrom(StreamInput in) throws IOException {
+            n = in.readVLong();
+            value = in.readDouble();
+        }
+
+        @Override
+        public void writeTo(StreamOutput out) throws IOException {
+            out.writeVLong(n);
+            out.writeDouble(value);
+        }
+    }
+
+    public static class GeometricMeanStateType extends DataType<GeometricMeanState>
+        implements Streamer<GeometricMeanState>, FixedWidthType, DataTypeFactory {
+
+        public static final GeometricMeanStateType INSTANCE = new GeometricMeanStateType();
+        public static final int ID = 4096;
+
+        @Override
+        public int id() {
+            return ID;
+        }
+
+        @Override
+        public String getName() {
+            return "geometric_mean_state";
+        }
+
+        @Override
+        public Streamer<?> streamer() {
+            return this;
+        }
+
+        @Override
+        public GeometricMeanState value(Object value) throws IllegalArgumentException, ClassCastException {
+            return (GeometricMeanState) value;
+        }
+
+        @Override
+        public int compareValueTo(GeometricMeanState val1, GeometricMeanState val2) {
+            return val1.compareTo(val2);
+        }
+
+        @Override
+        public DataType<?> create() {
+            return INSTANCE;
+        }
+
+        @Override
+        public int fixedSize() {
+            return 40;
+        }
+
+        @Override
+        public GeometricMeanState readValueFrom(StreamInput in) throws IOException {
+            GeometricMeanState state = new GeometricMeanState();
+            state.readFrom(in);
+            return state;
+        }
+
+        @Override
+        public void writeValueTo(StreamOutput out, Object v) throws IOException {
+            GeometricMeanState state = (GeometricMeanState) v;
+            state.writeTo(out);
+        }
     }
 }

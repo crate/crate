@@ -37,13 +37,30 @@ public class AndOperator extends Operator<Boolean> {
     public static final String NAME = "op_and";
     public static final FunctionInfo INFO = generateInfo(NAME, DataTypes.BOOLEAN);
 
+    public static void register(OperatorModule module) {
+        module.registerOperatorFunction(new AndOperator());
+    }
+
+    public static Function of(Symbol first, Symbol second) {
+        assert first.valueType().equals(DataTypes.BOOLEAN) : "first symbol must have BOOLEAN return type to create AND function";
+        assert second.valueType().equals(DataTypes.BOOLEAN) : "second symbol must have BOOLEAN return type to create AND function";
+
+        return new Function(INFO, Arrays.asList(first, second));
+    }
+
+    public static Symbol join(Iterable<? extends Symbol> symbols) {
+        Iterator<? extends Symbol> it = symbols.iterator();
+        assert it.hasNext() : "argument symbols must have at least one item";
+        Symbol first = it.next();
+        while (it.hasNext()) {
+            first = new Function(INFO, Arrays.asList(first, it.next()));
+        }
+        return first;
+    }
+
     @Override
     public FunctionInfo info() {
         return INFO;
-    }
-
-    public static void register(OperatorModule module) {
-        module.registerOperatorFunction(new AndOperator());
     }
 
     @Override
@@ -113,22 +130,5 @@ public class AndOperator extends Operator<Boolean> {
         }
 
         return left && right;
-    }
-
-    public static Function of(Symbol first, Symbol second) {
-        assert first.valueType().equals(DataTypes.BOOLEAN) : "first symbol must have BOOLEAN return type to create AND function";
-        assert second.valueType().equals(DataTypes.BOOLEAN) : "second symbol must have BOOLEAN return type to create AND function";
-
-        return new Function(INFO, Arrays.asList(first, second));
-    }
-
-    public static Symbol join(Iterable<? extends Symbol> symbols) {
-        Iterator<? extends Symbol> it = symbols.iterator();
-        assert it.hasNext() : "argument symbols must have at least one item";
-        Symbol first = it.next();
-        while (it.hasNext()) {
-            first = new Function(INFO, Arrays.asList(first, it.next()));
-        }
-        return first;
     }
 }

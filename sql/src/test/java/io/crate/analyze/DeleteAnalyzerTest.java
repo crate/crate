@@ -50,34 +50,22 @@ import static org.mockito.Mockito.when;
 
 public class DeleteAnalyzerTest extends BaseAnalyzerTest {
 
-    static class TestMetaDataModule extends MetaDataModule {
-        @Override
-        protected void bindSchemas() {
-            super.bindSchemas();
-            SchemaInfo schemaInfo = mock(SchemaInfo.class);
-            when(schemaInfo.getTableInfo(USER_TABLE_IDENT.name())).thenReturn(USER_TABLE_INFO);
-            when(schemaInfo.getTableInfo(TEST_PARTITIONED_TABLE_IDENT.name()))
-                    .thenReturn(TEST_PARTITIONED_TABLE_INFO);
-            schemaBinder.addBinding(Schemas.DEFAULT_SCHEMA_NAME).toInstance(schemaInfo);
-        }
-    }
-
     @Override
     protected List<Module> getModules() {
         List<Module> modules = super.getModules();
         modules.addAll(Arrays.<Module>asList(
-                        new MockedClusterServiceModule(),
-                        new TestMetaDataModule(),
-                        new MetaDataSysModule(),
-                        new PredicateModule(),
-                        new OperatorModule())
+            new MockedClusterServiceModule(),
+            new TestMetaDataModule(),
+            new MetaDataSysModule(),
+            new PredicateModule(),
+            new OperatorModule())
         );
         return modules;
     }
 
     @Override
     protected DeleteAnalyzedStatement analyze(String statement) {
-        return (DeleteAnalyzedStatement)super.analyze(statement);
+        return (DeleteAnalyzedStatement) super.analyze(statement);
     }
 
     protected DeleteAnalyzedStatement analyze(String statement, Object[][] bulkArgs) {
@@ -93,7 +81,7 @@ public class DeleteAnalyzerTest extends BaseAnalyzerTest {
 
         assertThat(tableInfo.rowGranularity(), is(RowGranularity.DOC));
 
-        Function whereClause = (Function)statement.whereClauses.get(0).query();
+        Function whereClause = (Function) statement.whereClauses.get(0).query();
         assertEquals(EqOperator.NAME, whereClause.info().ident().name());
         assertFalse(whereClause.info().type() == FunctionInfo.Type.AGGREGATE);
 
@@ -101,7 +89,7 @@ public class DeleteAnalyzerTest extends BaseAnalyzerTest {
         assertThat(whereClause.arguments().get(1), isLiteral("Trillian"));
     }
 
-    @Test( expected = UnsupportedOperationException.class)
+    @Test(expected = UnsupportedOperationException.class)
     public void testDeleteSystemTable() throws Exception {
         analyze("delete from sys.nodes where name='Trillian'");
     }
@@ -120,7 +108,7 @@ public class DeleteAnalyzerTest extends BaseAnalyzerTest {
         assertThat(statement.whereClauses().get(0).noMatch(), is(false));
         assertThat(statement.whereClauses().get(0).partitions().size(), is(1));
         assertThat(statement.whereClauses().get(0).partitions().get(0),
-                is(".partitioned.parted.04732cpp6ks3ed1o60o30c1g"));
+            is(".partitioned.parted.04732cpp6ks3ed1o60o30c1g"));
     }
 
     @Test
@@ -140,10 +128,10 @@ public class DeleteAnalyzerTest extends BaseAnalyzerTest {
     @Test
     public void testBulkDelete() throws Exception {
         DeleteAnalyzedStatement analysis = analyze("delete from users where id = ?", new Object[][]{
-                new Object[]{1},
-                new Object[]{2},
-                new Object[]{3},
-                new Object[]{4},
+            new Object[]{1},
+            new Object[]{2},
+            new Object[]{3},
+            new Object[]{4},
         });
         assertThat(analysis.whereClauses().size(), is(4));
     }
@@ -152,9 +140,21 @@ public class DeleteAnalyzerTest extends BaseAnalyzerTest {
     public void testDeleteWhereVersionIsNullPredicate() throws Exception {
         expectedException.expect(UnsupportedOperationException.class);
         expectedException.expectMessage(
-                "Filtering \"_version\" in WHERE clause only works using the \"=\" operator, checking for a numeric value");
+            "Filtering \"_version\" in WHERE clause only works using the \"=\" operator, checking for a numeric value");
         analyze("delete from users where _version is null",
-                new Object[]{1});
+            new Object[]{1});
+    }
+
+    static class TestMetaDataModule extends MetaDataModule {
+        @Override
+        protected void bindSchemas() {
+            super.bindSchemas();
+            SchemaInfo schemaInfo = mock(SchemaInfo.class);
+            when(schemaInfo.getTableInfo(USER_TABLE_IDENT.name())).thenReturn(USER_TABLE_INFO);
+            when(schemaInfo.getTableInfo(TEST_PARTITIONED_TABLE_IDENT.name()))
+                .thenReturn(TEST_PARTITIONED_TABLE_INFO);
+            schemaBinder.addBinding(Schemas.DEFAULT_SCHEMA_NAME).toInstance(schemaInfo);
+        }
     }
 
 

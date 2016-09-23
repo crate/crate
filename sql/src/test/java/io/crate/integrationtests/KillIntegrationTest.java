@@ -49,18 +49,17 @@ import static org.hamcrest.Matchers.*;
 @UseJdbc
 public class KillIntegrationTest extends SQLTransportIntegrationTest {
 
+    @Rule
+    public TemporaryFolder temporaryFolder = new TemporaryFolder();
     private Setup setup = new Setup(sqlExecutor);
 
     @Override
     protected Collection<Class<? extends Plugin>> nodePlugins() {
         return pluginList(
-                SQLPlugin.class,
-                CrateTestingPlugin.class
+            SQLPlugin.class,
+            CrateTestingPlugin.class
         );
     }
-
-    @Rule
-    public TemporaryFolder temporaryFolder = new TemporaryFolder();
 
     @Before
     public void setSetup() {
@@ -103,9 +102,9 @@ public class KillIntegrationTest extends SQLTransportIntegrationTest {
                 exception = Exceptions.unwrap(exception); // wrapped in ExecutionException
                 assertThat(exception, instanceOf(SQLActionException.class));
                 assertThat(exception.toString(), anyOf(
-                        containsString("Job killed"), // CancellationException
-                        containsString("JobExecutionContext for job"), // ContextMissingException when job execution context not found
-                        containsString("SearchContext for job") // ContextMissingException when search context not found
+                    containsString("Job killed"), // CancellationException
+                    containsString("JobExecutionContext for job"), // ContextMissingException when job execution context not found
+                    containsString("SearchContext for job") // ContextMissingException when search context not found
                 ));
             }
         } finally {
@@ -158,11 +157,11 @@ public class KillIntegrationTest extends SQLTransportIntegrationTest {
     public void testKillGroupBy() throws Exception {
         setup.setUpEmployees();
         assertGotCancelled("SELECT sleep(500), sum(income) as summed_income, count(distinct name), department " +
-                "from employees " +
-                "group by 1, department " +
-                "having avg(income) > 100 " +
-                "order by department desc nulls first " +
-                "limit 10", null, true);
+                           "from employees " +
+                           "group by 1, department " +
+                           "having avg(income) > 100 " +
+                           "order by department desc nulls first " +
+                           "limit 10", null, true);
     }
 
     @Test

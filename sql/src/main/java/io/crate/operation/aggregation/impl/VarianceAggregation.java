@@ -49,101 +49,22 @@ public class VarianceAggregation extends AggregationFunction<VarianceAggregation
         DataTypes.register(VarianceStateType.ID, VarianceStateType.INSTANCE);
     }
 
-    public static void register(AggregationImplModule mod) {
-        for (DataType<?> t : DataTypes.NUMERIC_PRIMITIVE_TYPES) {
-            mod.register(new VarianceAggregation(new FunctionInfo(
-                    new FunctionIdent(NAME, ImmutableList.<DataType>of(t)), DataTypes.DOUBLE,
-                    FunctionInfo.Type.AGGREGATE)));
-        }
-        mod.register(new VarianceAggregation(new FunctionInfo(
-                new FunctionIdent(NAME, ImmutableList.<DataType>of(DataTypes.TIMESTAMP)), DataTypes.DOUBLE,
-                FunctionInfo.Type.AGGREGATE)));
-    }
-
-    public static class VarianceState implements Comparable<VarianceState> {
-
-        private final Variance variance;
-
-        public VarianceState() {
-            this.variance = new Variance();
-        }
-
-        private void addValue(double val) {
-            variance.increment(val);
-        }
-
-        private Double value() {
-            double result = variance.result();
-            return (Double.isNaN(result) ? null : result);
-        }
-
-        @Override
-        public int compareTo(VarianceState o) {
-            return Double.compare(variance.result(), o.variance.result());
-        }
-    }
-
-    public static class VarianceStateType extends DataType<VarianceState>
-            implements Streamer<VarianceState>, FixedWidthType, DataTypeFactory {
-
-        public static final VarianceStateType INSTANCE = new VarianceStateType();
-        public static final int ID = 2048;
-
-        @Override
-        public int id() {
-            return ID;
-        }
-
-        @Override
-        public String getName() {
-            return "variance_state";
-        }
-
-        @Override
-        public Streamer<?> streamer() {
-            return this;
-        }
-
-        @Override
-        public VarianceState value(Object value) throws IllegalArgumentException, ClassCastException {
-            return (VarianceState)value;
-        }
-
-        @Override
-        public int compareValueTo(VarianceState val1, VarianceState val2) {
-            return val1.compareTo(val2);
-        }
-
-        @Override
-        public DataType<?> create() {
-            return INSTANCE;
-        }
-
-        @Override
-        public VarianceState readValueFrom(StreamInput in) throws IOException {
-            VarianceState state = new VarianceState();
-            state.variance.readFrom(in);
-            return state;
-        }
-
-        @Override
-        public void writeValueTo(StreamOutput out, Object v) throws IOException {
-            VarianceState state = (VarianceState)v;
-            state.variance.writeTo(out);
-        }
-
-        @Override
-        public int fixedSize() {
-            return 56;
-        }
-    }
-
     private final FunctionInfo info;
 
     public VarianceAggregation(FunctionInfo info) {
         this.info = info;
     }
 
+    public static void register(AggregationImplModule mod) {
+        for (DataType<?> t : DataTypes.NUMERIC_PRIMITIVE_TYPES) {
+            mod.register(new VarianceAggregation(new FunctionInfo(
+                new FunctionIdent(NAME, ImmutableList.<DataType>of(t)), DataTypes.DOUBLE,
+                FunctionInfo.Type.AGGREGATE)));
+        }
+        mod.register(new VarianceAggregation(new FunctionInfo(
+            new FunctionIdent(NAME, ImmutableList.<DataType>of(DataTypes.TIMESTAMP)), DataTypes.DOUBLE,
+            FunctionInfo.Type.AGGREGATE)));
+    }
 
     @Nullable
     @Override
@@ -188,5 +109,83 @@ public class VarianceAggregation extends AggregationFunction<VarianceAggregation
     @Override
     public FunctionInfo info() {
         return info;
+    }
+
+    public static class VarianceState implements Comparable<VarianceState> {
+
+        private final Variance variance;
+
+        public VarianceState() {
+            this.variance = new Variance();
+        }
+
+        private void addValue(double val) {
+            variance.increment(val);
+        }
+
+        private Double value() {
+            double result = variance.result();
+            return (Double.isNaN(result) ? null : result);
+        }
+
+        @Override
+        public int compareTo(VarianceState o) {
+            return Double.compare(variance.result(), o.variance.result());
+        }
+    }
+
+    public static class VarianceStateType extends DataType<VarianceState>
+        implements Streamer<VarianceState>, FixedWidthType, DataTypeFactory {
+
+        public static final VarianceStateType INSTANCE = new VarianceStateType();
+        public static final int ID = 2048;
+
+        @Override
+        public int id() {
+            return ID;
+        }
+
+        @Override
+        public String getName() {
+            return "variance_state";
+        }
+
+        @Override
+        public Streamer<?> streamer() {
+            return this;
+        }
+
+        @Override
+        public VarianceState value(Object value) throws IllegalArgumentException, ClassCastException {
+            return (VarianceState) value;
+        }
+
+        @Override
+        public int compareValueTo(VarianceState val1, VarianceState val2) {
+            return val1.compareTo(val2);
+        }
+
+        @Override
+        public DataType<?> create() {
+            return INSTANCE;
+        }
+
+        @Override
+        public VarianceState readValueFrom(StreamInput in) throws IOException {
+            VarianceState state = new VarianceState();
+            state.variance.readFrom(in);
+            return state;
+        }
+
+        @Override
+        public void writeValueTo(StreamOutput out, Object v) throws IOException {
+            VarianceState state = (VarianceState) v;
+            state.variance.writeTo(out);
+        }
+
+        @Override
+        public int fixedSize() {
+            return 56;
+        }
     }
 }

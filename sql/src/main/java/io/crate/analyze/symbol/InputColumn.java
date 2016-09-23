@@ -49,6 +49,19 @@ public class InputColumn extends Symbol implements Comparable<InputColumn> {
 
     private int index;
 
+    public InputColumn(int index, @Nullable DataType dataType) {
+        assert index >= 0;
+        this.index = index;
+        this.dataType = MoreObjects.firstNonNull(dataType, DataTypes.UNDEFINED);
+    }
+
+    public InputColumn(int index) {
+        this(index, null);
+    }
+
+    protected InputColumn() {
+    }
+
     public static List<Symbol> numInputs(int size) {
         List<Symbol> inputColumns = new ArrayList<>(size);
         for (int i = 0; i < size; i++) {
@@ -75,18 +88,6 @@ public class InputColumn extends Symbol implements Comparable<InputColumn> {
         }
         return inputColumns;
     }
-
-    public InputColumn(int index, @Nullable DataType dataType) {
-        assert index >= 0;
-        this.index = index;
-        this.dataType = MoreObjects.firstNonNull(dataType, DataTypes.UNDEFINED);
-    }
-
-    public InputColumn(int index) {
-        this(index, null);
-    }
-
-    protected InputColumn() {}
 
     public int index() {
         return index;
@@ -127,9 +128,9 @@ public class InputColumn extends Symbol implements Comparable<InputColumn> {
     @Override
     public String toString() {
         return MoreObjects.toStringHelper(this)
-                .add("index", index)
-                .add("type", dataType)
-                .toString();
+            .add("index", index)
+            .add("type", dataType)
+            .toString();
     }
 
     @Override

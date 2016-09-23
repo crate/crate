@@ -50,7 +50,7 @@ public class ReplacingSymbolVisitor<C> extends SymbolVisitor<C, Symbol> {
 
     @Override
     public Symbol visitFunction(Function symbol, C context) {
-        if (mode == ReplaceMode.MUTATE){
+        if (mode == ReplaceMode.MUTATE) {
             processInplace(symbol.arguments(), context);
             return symbol;
         }

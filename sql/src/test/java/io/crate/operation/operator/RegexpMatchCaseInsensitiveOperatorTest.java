@@ -37,14 +37,14 @@ public class RegexpMatchCaseInsensitiveOperatorTest extends CrateUnitTest {
     private static Symbol normalizeSymbol(String source, String pattern) {
         RegexpMatchCaseInsensitiveOperator op = new RegexpMatchCaseInsensitiveOperator();
         Function function = new Function(
-                op.info(),
-                Arrays.<Symbol>asList(Literal.newLiteral(source), Literal.newLiteral(pattern))
+            op.info(),
+            Arrays.<Symbol>asList(Literal.newLiteral(source), Literal.newLiteral(pattern))
         );
         return op.normalizeSymbol(function, new StmtCtx());
     }
 
     private Boolean regexpNormalize(String source, String pattern) {
-        return (Boolean)((Literal)normalizeSymbol(source, pattern)).value();
+        return (Boolean) ((Literal) normalizeSymbol(source, pattern)).value();
     }
 
     @Test

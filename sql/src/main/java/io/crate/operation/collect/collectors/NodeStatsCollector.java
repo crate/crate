@@ -134,19 +134,6 @@ public class NodeStatsCollector implements CrateCollector {
 
         static final TopLevelColumnIdentVisitor INSTANCE = new TopLevelColumnIdentVisitor();
 
-        static class Context {
-
-            private final Set<ColumnIdent> columnIdents = new HashSet<>();
-
-            void add(ColumnIdent columnIdent) {
-                columnIdents.add(columnIdent);
-            }
-
-            Set<ColumnIdent> columnIdents() {
-                return columnIdents;
-            }
-        }
-
         Set<ColumnIdent> process(Collection<? extends Symbol> symbols) {
             Context context = new Context();
             for (Symbol symbol : symbols) {
@@ -159,6 +146,19 @@ public class NodeStatsCollector implements CrateCollector {
         public Void visitReference(Reference symbol, Context context) {
             context.add(symbol.ident().columnReferenceIdent().columnIdent());
             return null;
+        }
+
+        static class Context {
+
+            private final Set<ColumnIdent> columnIdents = new HashSet<>();
+
+            void add(ColumnIdent columnIdent) {
+                columnIdents.add(columnIdent);
+            }
+
+            Set<ColumnIdent> columnIdents() {
+                return columnIdents;
+            }
         }
     }
 }

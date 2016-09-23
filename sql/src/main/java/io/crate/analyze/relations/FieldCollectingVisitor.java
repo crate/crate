@@ -39,6 +39,7 @@ import java.util.Set;
 
 class FieldCollectingVisitor extends DefaultTraversalSymbolVisitor<FieldCollectingVisitor.Context, Void> {
 
+    public static final FieldCollectingVisitor INSTANCE = new FieldCollectingVisitor();
     private static final Supplier<Set<Symbol>> FIELD_SET_SUPPLIER = new Supplier<Set<Symbol>>() {
         @Override
         public Set<Symbol> get() {
@@ -47,26 +48,8 @@ class FieldCollectingVisitor extends DefaultTraversalSymbolVisitor<FieldCollecti
         }
     };
 
-    public static class Context {
-        final Multimap<AnalyzedRelation, Symbol> fields;
-        final Predicate<Symbol> skipIf;
-
-        public Context(int expectedNumRelations, Predicate<Symbol> skipIf){
-            fields = Multimaps.newSetMultimap(
-                    new IdentityHashMap<AnalyzedRelation, Collection<Symbol>>(expectedNumRelations),
-                    FIELD_SET_SUPPLIER);
-            this.skipIf = skipIf;
-        }
-
-        public Context(int expectedNumRelations) {
-            this(expectedNumRelations, Predicates.<Symbol>alwaysFalse());
-        }
-    }
-
     private FieldCollectingVisitor() {
     }
-
-    public static final FieldCollectingVisitor INSTANCE = new FieldCollectingVisitor();
 
     @Override
     public Void process(Symbol symbol, @Nullable Context context) {
@@ -87,5 +70,21 @@ class FieldCollectingVisitor extends DefaultTraversalSymbolVisitor<FieldCollecti
     public Void visitField(Field field, FieldCollectingVisitor.Context context) {
         context.fields.put(field.relation(), field);
         return null;
+    }
+
+    public static class Context {
+        final Multimap<AnalyzedRelation, Symbol> fields;
+        final Predicate<Symbol> skipIf;
+
+        public Context(int expectedNumRelations, Predicate<Symbol> skipIf) {
+            fields = Multimaps.newSetMultimap(
+                new IdentityHashMap<AnalyzedRelation, Collection<Symbol>>(expectedNumRelations),
+                FIELD_SET_SUPPLIER);
+            this.skipIf = skipIf;
+        }
+
+        public Context(int expectedNumRelations) {
+            this(expectedNumRelations, Predicates.<Symbol>alwaysFalse());
+        }
     }
 }

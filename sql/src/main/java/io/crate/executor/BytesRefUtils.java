@@ -51,7 +51,7 @@ public class BytesRefUtils {
             if (BYTES_REF_TYPES.contains(dataType)) {
                 stringColumns.add(idx);
             } else if ((DataTypes.isCollectionType(dataType)
-                    && (BYTES_REF_TYPES.contains(((CollectionType)dataType).innerType())))) {
+                        && (BYTES_REF_TYPES.contains(((CollectionType) dataType).innerType())))) {
                 stringCollectionColumns.add(idx);
             }
             idx++;
@@ -101,7 +101,7 @@ public class BytesRefUtils {
         for (IntCursor stringColumn : stringColumns) {
             Object value = row[stringColumn.value];
             if (value instanceof BytesRef) {
-                row[stringColumn.value] = ((BytesRef)value).utf8ToString();
+                row[stringColumn.value] = ((BytesRef) value).utf8ToString();
             }
         }
     }

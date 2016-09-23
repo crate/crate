@@ -115,11 +115,11 @@ public class ReferenceInfosTest {
         builtInSchema.put(schemaInfo.name(), schemaInfo);
 
         return new ReferenceInfos(
-                builtInSchema,
-                clusterService,
-                new IndexNameExpressionResolver(Settings.EMPTY),
-                mock(ThreadPool.class),
-                transportPutIndexTemplateActionProvider,
-                functions);
+            builtInSchema,
+            clusterService,
+            new IndexNameExpressionResolver(Settings.EMPTY),
+            mock(ThreadPool.class),
+            transportPutIndexTemplateActionProvider,
+            functions);
     }
 }

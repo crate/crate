@@ -30,8 +30,6 @@ import io.crate.test.integration.CrateUnitTest;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.SetType;
-import org.elasticsearch.common.inject.Injector;
-import org.elasticsearch.common.inject.ModulesBuilder;
 import org.junit.Test;
 
 import java.util.HashSet;
@@ -42,7 +40,7 @@ import static io.crate.testing.TestingHelpers.getFunctions;
 public class CollectionAverageFunctionTest extends CrateUnitTest {
 
     final FunctionIdent ident = new FunctionIdent(CollectionAverageFunction.NAME,
-            ImmutableList.<DataType>of(new SetType(DataTypes.LONG)));
+        ImmutableList.<DataType>of(new SetType(DataTypes.LONG)));
 
     @Test
     public void testLookup() throws Exception {
@@ -53,15 +51,15 @@ public class CollectionAverageFunctionTest extends CrateUnitTest {
     @Test
     public void testEvaluate() throws Exception {
         CollectionAverageFunction function = new CollectionAverageFunction(
-                new FunctionInfo(
-                    ident,
-                    DataTypes.DOUBLE)
+            new FunctionInfo(
+                ident,
+                DataTypes.DOUBLE)
         );
 
         Input inputSet = new Input<Set<Long>>() {
             @Override
             public Set<Long> value() {
-                return new HashSet<Long>(){{
+                return new HashSet<Long>() {{
                     add(3L);
                     add(7L);
                 }};

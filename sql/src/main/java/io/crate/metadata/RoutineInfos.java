@@ -39,75 +39,60 @@ public class RoutineInfos implements Iterable<RoutineInfo> {
     private static final ESLogger logger = Loggers.getLogger(RoutineInfos.class);
     private FulltextAnalyzerResolver ftResolver;
 
-    private enum RoutineType {
-        ANALYZER(CustomType.ANALYZER.getName().toUpperCase(Locale.ENGLISH)),
-        CHAR_FILTER(CustomType.CHAR_FILTER.getName().toUpperCase(Locale.ENGLISH)),
-        TOKEN_FILTER("TOKEN_FILTER"),
-        TOKENIZER(CustomType.TOKENIZER.getName().toUpperCase(Locale.ENGLISH)),
-        ;
-        private String name;
-        private RoutineType(String name) {
-            this.name = name;
-        }
-        public String getName() {
-            return name;
-        }
-    }
-
     public RoutineInfos(FulltextAnalyzerResolver ftResolver) {
         this.ftResolver = ftResolver;
     }
 
     private Iterator<RoutineInfo> builtInAnalyzers() {
         return Iterators.transform(
-                ftResolver.getBuiltInAnalyzers().iterator(),
-                new Function<String, RoutineInfo>() {
-            @Nullable
-            @Override
-            public RoutineInfo apply(@Nullable String input) {
-                return new RoutineInfo(input,
+            ftResolver.getBuiltInAnalyzers().iterator(),
+            new Function<String, RoutineInfo>() {
+                @Nullable
+                @Override
+                public RoutineInfo apply(@Nullable String input) {
+                    return new RoutineInfo(input,
                         RoutineType.ANALYZER.getName());
-            }
-        });
+                }
+            });
     }
 
     private Iterator<RoutineInfo> builtInCharFilters() {
         return Iterators.transform(
-                ftResolver.getBuiltInCharFilters().iterator(),
-                new Function<String, RoutineInfo>() {
-            @Nullable
-            @Override
-            public RoutineInfo apply(@Nullable String input) {
-                return new RoutineInfo(input,
+            ftResolver.getBuiltInCharFilters().iterator(),
+            new Function<String, RoutineInfo>() {
+                @Nullable
+                @Override
+                public RoutineInfo apply(@Nullable String input) {
+                    return new RoutineInfo(input,
                         RoutineType.CHAR_FILTER.getName());
-            }
-        });
+                }
+            });
     }
 
     private Iterator<RoutineInfo> builtInTokenFilters() {
         return Iterators.transform(
-                ftResolver.getBuiltInTokenFilters().iterator(),
-                new Function<String, RoutineInfo>() {
-            @Nullable
-            @Override
-            public RoutineInfo apply(@Nullable String input) {
-                return new RoutineInfo(input,
+            ftResolver.getBuiltInTokenFilters().iterator(),
+            new Function<String, RoutineInfo>() {
+                @Nullable
+                @Override
+                public RoutineInfo apply(@Nullable String input) {
+                    return new RoutineInfo(input,
                         RoutineType.TOKEN_FILTER.getName());
-            }
-        });
+                }
+            });
     }
 
     private Iterator<RoutineInfo> builtInTokenizers() {
         return Iterators.transform(
-                ftResolver.getBuiltInTokenizers().iterator(),
-                new Function<String, RoutineInfo>() {
-            @Nullable
-            @Override
-            public RoutineInfo apply(@Nullable String input) {
-                return new RoutineInfo(input,
+            ftResolver.getBuiltInTokenizers().iterator(),
+            new Function<String, RoutineInfo>() {
+                @Nullable
+                @Override
+                public RoutineInfo apply(@Nullable String input) {
+                    return new RoutineInfo(input,
                         RoutineType.TOKENIZER.getName());
-            }
-        });
+                }
+            });
     }
 
     private Iterator<RoutineInfo> customIterators() {
@@ -117,55 +102,55 @@ public class RoutineInfos implements Iterable<RoutineInfo> {
             Iterator<RoutineInfo> cTokenFiltersIterator;
             Iterator<RoutineInfo> cTokenizersIterator;
             cAnalyzersIterator = Iterators.transform(
-                    ftResolver.getCustomAnalyzers().entrySet().iterator(),
-                    new Function<Map.Entry<String, Settings>, RoutineInfo>() {
-                        @Nullable
-                        @Override
-                        public RoutineInfo apply(Map.Entry<String, Settings> input) {
-                            assert input != null;
-                            return new RoutineInfo(input.getKey(),
-                                    RoutineType.ANALYZER.getName()
-                            );
-                        }
-                    });
+                ftResolver.getCustomAnalyzers().entrySet().iterator(),
+                new Function<Map.Entry<String, Settings>, RoutineInfo>() {
+                    @Nullable
+                    @Override
+                    public RoutineInfo apply(Map.Entry<String, Settings> input) {
+                        assert input != null;
+                        return new RoutineInfo(input.getKey(),
+                            RoutineType.ANALYZER.getName()
+                        );
+                    }
+                });
             cCharFiltersIterator = Iterators.transform(
-                    ftResolver.getCustomCharFilters().entrySet().iterator(),
-                    new Function<Map.Entry<String, Settings>, RoutineInfo>() {
-                        @Nullable
-                        @Override
-                        public RoutineInfo apply(Map.Entry<String, Settings> input) {
-                            assert input != null;
-                            return new RoutineInfo(input.getKey(),
-                                    RoutineType.CHAR_FILTER.getName()
-                            );
-                        }
-                    });
+                ftResolver.getCustomCharFilters().entrySet().iterator(),
+                new Function<Map.Entry<String, Settings>, RoutineInfo>() {
+                    @Nullable
+                    @Override
+                    public RoutineInfo apply(Map.Entry<String, Settings> input) {
+                        assert input != null;
+                        return new RoutineInfo(input.getKey(),
+                            RoutineType.CHAR_FILTER.getName()
+                        );
+                    }
+                });
             cTokenFiltersIterator = Iterators.transform(
-                    ftResolver.getCustomTokenFilters().entrySet().iterator(),
-                    new Function<Map.Entry<String, Settings>, RoutineInfo>() {
-                        @Nullable
-                        @Override
-                        public RoutineInfo apply(Map.Entry<String, Settings> input) {
-                            assert input != null;
-                            return new RoutineInfo(input.getKey(),
-                                    RoutineType.TOKEN_FILTER.getName()
-                            );
-                        }
-                    });
+                ftResolver.getCustomTokenFilters().entrySet().iterator(),
+                new Function<Map.Entry<String, Settings>, RoutineInfo>() {
+                    @Nullable
+                    @Override
+                    public RoutineInfo apply(Map.Entry<String, Settings> input) {
+                        assert input != null;
+                        return new RoutineInfo(input.getKey(),
+                            RoutineType.TOKEN_FILTER.getName()
+                        );
+                    }
+                });
             cTokenizersIterator = Iterators.transform(
-                    ftResolver.getCustomTokenizers().entrySet().iterator(),
-                    new Function<Map.Entry<String, Settings>, RoutineInfo>() {
-                        @Nullable
-                        @Override
-                        public RoutineInfo apply(Map.Entry<String, Settings> input) {
-                            assert input != null;
-                            return new RoutineInfo(input.getKey(),
-                                    RoutineType.TOKENIZER.getName()
-                            );
-                        }
-                    });
+                ftResolver.getCustomTokenizers().entrySet().iterator(),
+                new Function<Map.Entry<String, Settings>, RoutineInfo>() {
+                    @Nullable
+                    @Override
+                    public RoutineInfo apply(Map.Entry<String, Settings> input) {
+                        assert input != null;
+                        return new RoutineInfo(input.getKey(),
+                            RoutineType.TOKENIZER.getName()
+                        );
+                    }
+                });
             return Iterators.concat(cAnalyzersIterator, cCharFiltersIterator,
-                    cTokenFiltersIterator, cTokenizersIterator);
+                cTokenFiltersIterator, cTokenizersIterator);
         } catch (IOException e) {
             logger.error("Could not retrieve custom routines", e);
             return null;
@@ -175,11 +160,27 @@ public class RoutineInfos implements Iterable<RoutineInfo> {
     @Override
     public Iterator<RoutineInfo> iterator() {
         return Iterators.concat(
-                builtInAnalyzers(),
-                builtInCharFilters(),
-                builtInTokenFilters(),
-                builtInTokenizers(),
-                customIterators()
+            builtInAnalyzers(),
+            builtInCharFilters(),
+            builtInTokenFilters(),
+            builtInTokenizers(),
+            customIterators()
         );
+    }
+
+    private enum RoutineType {
+        ANALYZER(CustomType.ANALYZER.getName().toUpperCase(Locale.ENGLISH)),
+        CHAR_FILTER(CustomType.CHAR_FILTER.getName().toUpperCase(Locale.ENGLISH)),
+        TOKEN_FILTER("TOKEN_FILTER"),
+        TOKENIZER(CustomType.TOKENIZER.getName().toUpperCase(Locale.ENGLISH)),;
+        private String name;
+
+        private RoutineType(String name) {
+            this.name = name;
+        }
+
+        public String getName() {
+            return name;
+        }
     }
 }

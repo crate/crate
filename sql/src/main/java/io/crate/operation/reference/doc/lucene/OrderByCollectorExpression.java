@@ -22,14 +22,14 @@ public class OrderByCollectorExpression extends LuceneCollectorExpression<Object
         orderIndex = orderBy.orderBySymbols().indexOf(symbol);
         valueType = symbol.valueType();
         this.missingValue = LuceneMissingValue.missingValue(
-                orderBy.reverseFlags()[orderIndex],
-                orderBy.nullsFirst()[orderIndex],
-                SortSymbolVisitor.LUCENE_TYPE_MAP.get(valueType)
+            orderBy.reverseFlags()[orderIndex],
+            orderBy.nullsFirst()[orderIndex],
+            SortSymbolVisitor.LUCENE_TYPE_MAP.get(valueType)
         );
     }
 
     private void value(Object value) {
-        if ( missingValue != null && missingValue.equals(value) ) {
+        if (missingValue != null && missingValue.equals(value)) {
             this.value = null;
         } else {
             this.value = valueType.value(value);

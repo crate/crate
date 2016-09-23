@@ -23,10 +23,10 @@ package io.crate.jobs;
 
 import io.crate.Streamer;
 import io.crate.breaker.RamAccountingContext;
+import io.crate.concurrent.CompletionListener;
 import io.crate.concurrent.CompletionState;
 import io.crate.core.collections.Row1;
 import io.crate.core.collections.SingleRowBucket;
-import io.crate.concurrent.CompletionListener;
 import io.crate.operation.PageDownstream;
 import io.crate.operation.PageResultListener;
 import io.crate.operation.projectors.FlatProjectorChain;
@@ -51,7 +51,7 @@ import static org.mockito.Mockito.*;
 public class PageDownstreamContextTest extends CrateUnitTest {
 
     private static final RamAccountingContext RAM_ACCOUNTING_CONTEXT =
-            new RamAccountingContext("dummy", new NoopCircuitBreaker(CircuitBreaker.FIELDDATA));
+        new RamAccountingContext("dummy", new NoopCircuitBreaker(CircuitBreaker.FIELDDATA));
 
     @Test
     public void testCantSetSameBucketTwiceWithoutReceivingFullPage() throws Exception {
@@ -64,10 +64,10 @@ public class PageDownstreamContextTest extends CrateUnitTest {
                 ref.set((Throwable) invocation.getArguments()[0]);
                 return null;
             }
-        }).when(pageDownstream).fail((Throwable)notNull());
+        }).when(pageDownstream).fail((Throwable) notNull());
 
         PageBucketReceiver ctx = new PageDownstreamContext(Loggers.getLogger(PageDownstreamContext.class), "n1",
-                1, "dummy", pageDownstream, new Streamer[0], RAM_ACCOUNTING_CONTEXT, 3, mock(FlatProjectorChain.class));
+            1, "dummy", pageDownstream, new Streamer[0], RAM_ACCOUNTING_CONTEXT, 3, mock(FlatProjectorChain.class));
 
         PageResultListener pageResultListener = mock(PageResultListener.class);
         ctx.setBucket(1, new SingleRowBucket(new Row1("foo")), false, pageResultListener);
@@ -83,7 +83,7 @@ public class PageDownstreamContextTest extends CrateUnitTest {
         PageDownstream downstream = mock(PageDownstream.class);
 
         PageDownstreamContext ctx = new PageDownstreamContext(Loggers.getLogger(PageDownstreamContext.class), "n1",
-                1, "dummy", downstream, new Streamer[0], RAM_ACCOUNTING_CONTEXT, 3, mock(FlatProjectorChain.class));
+            1, "dummy", downstream, new Streamer[0], RAM_ACCOUNTING_CONTEXT, 3, mock(FlatProjectorChain.class));
 
         final AtomicReference<Throwable> throwable = new AtomicReference<>();
 

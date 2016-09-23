@@ -85,13 +85,19 @@ public class CopyToAnalyzedStatement extends AbstractCopyAnalyzedStatement imple
     }
 
     @Nullable
-    public WriterProjection.CompressionType compressionType() { return compressionType; }
+    public WriterProjection.CompressionType compressionType() {
+        return compressionType;
+    }
 
     @Nullable
-    public WriterProjection.OutputFormat outputFormat() { return outputFormat; }
+    public WriterProjection.OutputFormat outputFormat() {
+        return outputFormat;
+    }
 
     @Nullable
-    public List<String> outputNames() { return outputNames; }
+    public List<String> outputNames() {
+        return outputNames;
+    }
 
     public Map<ColumnIdent, Symbol> overwrites() {
         return this.overwrites;

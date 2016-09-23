@@ -47,14 +47,12 @@ import static org.junit.Assert.assertTrue;
 
 public class NodeSettingsTest {
 
+    private final String CRATE_CONFIG_PATH = getClass().getResource("/crate").getPath();
     @Rule
     public TemporaryFolder tmp = new TemporaryFolder();
-
     protected Node node;
     protected Client client;
     private boolean loggingConfigured = false;
-
-    private final String CRATE_CONFIG_PATH = getClass().getResource("/crate").getPath();
 
     private void doSetup() throws IOException {
         // mute log4j warning by configuring a dummy logger
@@ -151,12 +149,12 @@ public class NodeSettingsTest {
         doSetup();
 
         assertEquals(
-                Constants.HTTP_PORT_RANGE,
-                node.settings().get("http.port")
+            Constants.HTTP_PORT_RANGE,
+            node.settings().get("http.port")
         );
         assertEquals(
-                Constants.TRANSPORT_PORT_RANGE,
-                node.settings().get("transport.tcp.port")
+            Constants.TRANSPORT_PORT_RANGE,
+            node.settings().get("transport.tcp.port")
         );
     }
 }

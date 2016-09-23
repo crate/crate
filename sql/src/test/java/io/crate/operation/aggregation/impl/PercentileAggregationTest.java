@@ -59,19 +59,19 @@ public class PercentileAggregationTest extends AggregationTest {
             Object[][] rowsArray = new Object[10][];
             for (int i = 0; i < rows.length; i++) {
                 rows[i] = new Object[]{
-                        dataType.value(i), fractions[0]
+                    dataType.value(i), fractions[0]
                 };
                 rowsArray[i] = new Object[]{
-                        dataType.value(i), fractions
+                    dataType.value(i), fractions
                 };
             }
             Object[][] result = executeAggregation(dataType, rows);
             assertEquals(4.5, result[0][0]);
             result = executeAggregation(dataType, rowsArray);
             assertTrue(result[0][0].getClass().isArray());
-            assertEquals(2, ((Object[])result[0][0]).length);
-            assertEquals(4.5, ((Object[])result[0][0])[0]);
-            assertEquals(7.2, ((Object[])result[0][0])[1]);
+            assertEquals(2, ((Object[]) result[0][0]).length);
+            assertEquals(4.5, ((Object[]) result[0][0])[0]);
+            assertEquals(7.2, ((Object[]) result[0][0])[1]);
         }
     }
 
@@ -129,8 +129,8 @@ public class PercentileAggregationTest extends AggregationTest {
     @Test
     public void testNullInputValuesReturnNull() throws Exception {
         Object[][] result = executeAggregation(DataTypes.LONG, new Object[][]{
-                {null, 0.5},
-                {null, 0.5}
+            {null, 0.5},
+            {null, 0.5}
         });
         assertEquals(result[0][0], null);
     }
@@ -138,8 +138,8 @@ public class PercentileAggregationTest extends AggregationTest {
     @Test
     public void testNullStateResult() throws Exception {
         PercentileAggregation percAggr = new PercentileAggregation(new FunctionInfo(
-                new FunctionIdent(NAME, ImmutableList.<DataType>of(DataTypes.INTEGER, DataTypes.DOUBLE)), DataTypes.DOUBLE,
-                FunctionInfo.Type.AGGREGATE));
+            new FunctionIdent(NAME, ImmutableList.<DataType>of(DataTypes.INTEGER, DataTypes.DOUBLE)), DataTypes.DOUBLE,
+            FunctionInfo.Type.AGGREGATE));
         TDigestState state = percAggr.iterate(null, null, Literal.newLiteral(1), Literal.newLiteral(0.5));
         assertNotNull(state);
         assertThat(0.5, is(state.fractions()[0]));

@@ -164,7 +164,7 @@ public class SimpleTopNProjectorTest extends CrateUnitTest {
         pipe.downstream(rowReceiver);
         pipe.prepare();
         int i;
-        for (i = 0; i<12;i++) {
+        for (i = 0; i < 12; i++) {
             if (pipe.setNextRow(row) == RowReceiver.Result.STOP) {
                 break;
             }

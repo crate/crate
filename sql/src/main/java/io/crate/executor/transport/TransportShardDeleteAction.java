@@ -60,7 +60,7 @@ public class TransportShardDeleteAction extends TransportShardAction<ShardDelete
                                       ShardStateAction shardStateAction,
                                       ActionFilters actionFilters) {
         super(settings, ACTION_NAME, transportService, mappingUpdatedAction, indexNameExpressionResolver,
-                clusterService, indicesService, threadPool, shardStateAction, actionFilters, ShardDeleteRequest.class);
+            clusterService, indicesService, threadPool, shardStateAction, actionFilters, ShardDeleteRequest.class);
     }
 
     @Override
@@ -91,12 +91,12 @@ public class TransportShardDeleteAction extends TransportShardAction<ShardDelete
                     shardResponse.add(location);
                 } else {
                     logger.debug("{} failed to execute delete for [{}]/[{}], doc not found",
-                            request.shardId(), request.type(), item.id());
+                        request.shardId(), request.type(), item.id());
                     shardResponse.add(location,
-                            new ShardResponse.Failure(
-                                    item.id(),
-                                    "Document not found while deleting",
-                                    false));
+                        new ShardResponse.Failure(
+                            item.id(),
+                            "Document not found while deleting",
+                            false));
 
                 }
             } catch (Throwable t) {
@@ -104,12 +104,12 @@ public class TransportShardDeleteAction extends TransportShardAction<ShardDelete
                     throw t;
                 } else {
                     logger.debug("{} failed to execute delete for [{}]/[{}]",
-                            t, request.shardId(), request.type(), item.id());
+                        t, request.shardId(), request.type(), item.id());
                     shardResponse.add(location,
-                            new ShardResponse.Failure(
-                                    item.id(),
-                                    ExceptionsHelper.detailedMessage(t),
-                                    (t instanceof VersionConflictEngineException)));
+                        new ShardResponse.Failure(
+                            item.id(),
+                            ExceptionsHelper.detailedMessage(t),
+                            (t instanceof VersionConflictEngineException)));
                 }
             }
         }

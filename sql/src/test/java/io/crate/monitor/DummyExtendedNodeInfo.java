@@ -37,17 +37,16 @@ import static org.mockito.Mockito.mock;
 
 public class DummyExtendedNodeInfo implements ExtendedNodeInfo {
 
+    static List<Tuple<String, String>> FILE_SYSTEMS = Arrays.asList(
+        Tuple.tuple("/dev/sda1", "/foo"),
+        Tuple.tuple("/dev/sda2", "/bar")
+    );
     private final NodeEnvironment nodeEnvironment;
 
     @Inject
     public DummyExtendedNodeInfo(NodeEnvironment nodeEnvironment) {
         this.nodeEnvironment = nodeEnvironment;
     }
-
-    static List<Tuple<String, String>> FILE_SYSTEMS = Arrays.asList(
-            Tuple.tuple("/dev/sda1", "/foo"),
-            Tuple.tuple("/dev/sda2", "/bar")
-    );
 
     @Override
     public ExtendedNetworkStats networkStats() {

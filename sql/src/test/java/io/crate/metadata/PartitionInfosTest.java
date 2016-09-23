@@ -43,18 +43,18 @@ import java.util.Map;
 import static org.hamcrest.Matchers.hasEntry;
 import static org.hamcrest.Matchers.is;
 
-public class PartitionInfosTest  extends CrateUnitTest {
-
-    private ClusterService mockService(Map<String, IndexMetaData> indices) {
-        ImmutableOpenMap<String, IndexMetaData> indicesMap =
-                ImmutableOpenMap.<String, IndexMetaData>builder().putAll(indices).build();
-        return new NoopClusterService(
-                ClusterState.builder(ClusterName.DEFAULT).metaData(
-                        MetaData.builder().indices(indicesMap).build()).build());
-    }
+public class PartitionInfosTest extends CrateUnitTest {
 
     private static Settings defaultSettings() {
         return Settings.builder().put("index.version.created", Version.CURRENT).build();
+    }
+
+    private ClusterService mockService(Map<String, IndexMetaData> indices) {
+        ImmutableOpenMap<String, IndexMetaData> indicesMap =
+            ImmutableOpenMap.<String, IndexMetaData>builder().putAll(indices).build();
+        return new NoopClusterService(
+            ClusterState.builder(ClusterName.DEFAULT).metaData(
+                MetaData.builder().indices(indicesMap).build()).build());
     }
 
     @Test
@@ -70,7 +70,7 @@ public class PartitionInfosTest  extends CrateUnitTest {
         Map<String, IndexMetaData> indices = new HashMap<>();
         PartitionName partitionName = new PartitionName("test1", ImmutableList.of(new BytesRef("foo")));
         indices.put(partitionName.asIndexName(), IndexMetaData.builder(partitionName.asIndexName())
-                .settings(defaultSettings()).numberOfShards(10).numberOfReplicas(4).build());
+            .settings(defaultSettings()).numberOfShards(10).numberOfReplicas(4).build());
         Iterable<PartitionInfo> partitioninfos = new PartitionInfos(mockService(indices));
         assertThat(partitioninfos.iterator().hasNext(), is(false));
     }
@@ -80,11 +80,11 @@ public class PartitionInfosTest  extends CrateUnitTest {
         Map<String, IndexMetaData> indices = new HashMap<>();
         PartitionName partitionName = new PartitionName("test1", ImmutableList.of(new BytesRef("foo")));
         IndexMetaData indexMetaData = IndexMetaData
-                .builder(partitionName.asIndexName())
-                .settings(defaultSettings())
-                .putMapping(Constants.DEFAULT_MAPPING_TYPE, "{\"_meta\":{\"partitioned_by\":[[\"col\", \"string\"]]}}")
-                .numberOfShards(10)
-                .numberOfReplicas(4).build();
+            .builder(partitionName.asIndexName())
+            .settings(defaultSettings())
+            .putMapping(Constants.DEFAULT_MAPPING_TYPE, "{\"_meta\":{\"partitioned_by\":[[\"col\", \"string\"]]}}")
+            .numberOfShards(10)
+            .numberOfReplicas(4).build();
         indices.put(partitionName.asIndexName(), indexMetaData);
         Iterable<PartitionInfo> partitioninfos = new PartitionInfos(mockService(indices));
         Iterator<PartitionInfo> iter = partitioninfos.iterator();
@@ -92,7 +92,7 @@ public class PartitionInfosTest  extends CrateUnitTest {
         assertThat(partitioninfo.name().asIndexName(), is(partitionName.asIndexName()));
         assertThat(partitioninfo.numberOfShards(), is(10));
         assertThat(partitioninfo.numberOfReplicas().utf8ToString(), is("4"));
-        assertThat(partitioninfo.values(), hasEntry("col", (Object)"foo"));
+        assertThat(partitioninfo.values(), hasEntry("col", (Object) "foo"));
         assertThat(iter.hasNext(), is(false));
     }
 
@@ -101,11 +101,11 @@ public class PartitionInfosTest  extends CrateUnitTest {
         Map<String, IndexMetaData> indices = new HashMap<>();
         PartitionName partitionName = new PartitionName("test1", ImmutableList.of(new BytesRef("foo"), new BytesRef("1")));
         IndexMetaData indexMetaData = IndexMetaData
-                .builder(partitionName.asIndexName())
-                .settings(defaultSettings())
-                .putMapping(Constants.DEFAULT_MAPPING_TYPE, "{\"_meta\":{\"partitioned_by\":[[\"col\", \"string\"], [\"col2\", \"integer\"]]}}")
-                .numberOfShards(10)
-                .numberOfReplicas(4).build();
+            .builder(partitionName.asIndexName())
+            .settings(defaultSettings())
+            .putMapping(Constants.DEFAULT_MAPPING_TYPE, "{\"_meta\":{\"partitioned_by\":[[\"col\", \"string\"], [\"col2\", \"integer\"]]}}")
+            .numberOfShards(10)
+            .numberOfReplicas(4).build();
         indices.put(partitionName.asIndexName(), indexMetaData);
         Iterable<PartitionInfo> partitioninfos = new PartitionInfos(mockService(indices));
         Iterator<PartitionInfo> iter = partitioninfos.iterator();
@@ -113,8 +113,8 @@ public class PartitionInfosTest  extends CrateUnitTest {
         assertThat(partitioninfo.name().asIndexName(), is(partitionName.asIndexName()));
         assertThat(partitioninfo.numberOfShards(), is(10));
         assertThat(partitioninfo.numberOfReplicas().utf8ToString(), is("4"));
-        assertThat(partitioninfo.values(), hasEntry("col", (Object)"foo"));
-        assertThat(partitioninfo.values(), hasEntry("col2", (Object)1));
+        assertThat(partitioninfo.values(), hasEntry("col", (Object) "foo"));
+        assertThat(partitioninfo.values(), hasEntry("col2", (Object) 1));
         assertThat(iter.hasNext(), is(false));
     }
 }

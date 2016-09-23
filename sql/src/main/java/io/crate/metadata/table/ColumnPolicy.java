@@ -39,10 +39,6 @@ public enum ColumnPolicy {
         this.mappingValue = mappingValue;
     }
 
-    public String value() {
-        return this.name().toLowerCase(Locale.ENGLISH);
-    }
-
     /**
      * get a column policy by its name (case insensitive)
      */
@@ -68,6 +64,10 @@ public enum ColumnPolicy {
             return STRICT;
         }
         return DYNAMIC;
+    }
+
+    public String value() {
+        return this.name().toLowerCase(Locale.ENGLISH);
     }
 
     /**

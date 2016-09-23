@@ -14,17 +14,17 @@ Contents
 ========
 
 .. toctree::
-   :maxdepth: 2
+:maxdepth: 2
 
-   architecture/index
-   installation
-   configuration
-   cli
-   hello
-   sql/index
-   blob
-   plugins
-   discovery
-   udc
-   best_practice/index
-   protocols/index
+       architecture/index
+       installation
+       configuration
+       cli
+       hello
+       sql/index
+       blob
+       plugins
+       discovery
+       udc
+       best_practice/index
+       protocols/index

@@ -38,15 +38,14 @@ import java.util.List;
  */
 public class AggregationProjection extends Projection {
 
-    private RowGranularity contextGranularity;
-    private List<Aggregation> aggregations = ImmutableList.of();
-
     public static final ProjectionFactory<AggregationProjection> FACTORY = new ProjectionFactory<AggregationProjection>() {
         @Override
         public AggregationProjection newInstance() {
             return new AggregationProjection();
         }
     };
+    private RowGranularity contextGranularity;
+    private List<Aggregation> aggregations = ImmutableList.of();
 
     private AggregationProjection() {
     }

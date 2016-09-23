@@ -37,12 +37,12 @@ public abstract class MultiplyFunction extends ArithmeticFunction implements Ope
     public static final String NAME = "multiply";
     public static final String SQL_SYMBOL = "*";
 
-    public static void register(ScalarFunctionModule module) {
-        module.register(NAME, new Resolver());
-    }
-
     public MultiplyFunction(FunctionInfo info) {
         super(info);
+    }
+
+    public static void register(ScalarFunctionModule module) {
+        module.register(NAME, new Resolver());
     }
 
     @Override

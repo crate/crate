@@ -37,7 +37,8 @@ public class SQLBulkResponse extends SQLBaseResponse {
 
     private Result[] results;
 
-    public SQLBulkResponse() {} // used for serialization
+    public SQLBulkResponse() {
+    } // used for serialization
 
     public SQLBulkResponse(Result[] results, float duration) {
         super(EMPTY_OUTPUT_NAMES, EMPTY_COLUMN_TYPES, false, duration);
@@ -60,13 +61,33 @@ public class SQLBulkResponse extends SQLBaseResponse {
         return builder;
     }
 
+    @Override
+    public void writeTo(StreamOutput out) throws IOException {
+        super.writeTo(out);
+        out.writeVInt(results.length);
+        for (Result result : results) {
+            result.writeTo(out);
+        }
+    }
 
-    public static class Result implements Streamable{
+    @Override
+    public void readFrom(StreamInput in) throws IOException {
+        super.readFrom(in);
+        int numResults = in.readVInt();
+        results = new Result[numResults];
+        for (int i = 0; i < numResults; i++) {
+            results[i] = new Result();
+            results[i].readFrom(in);
+        }
+    }
+
+    public static class Result implements Streamable {
 
         private String errorMessage;
         private long rowCount;
 
-        public Result() {} // used for serialization
+        public Result() {
+        } // used for serialization
 
         public Result(@Nullable String errorMessage, long rowCount) {
             this.errorMessage = errorMessage;
@@ -101,26 +122,6 @@ public class SQLBulkResponse extends SQLBaseResponse {
                 builder.field(Fields.ERROR_MESSAGE, errorMessage);
             }
             builder.endObject();
-        }
-    }
-
-    @Override
-    public void writeTo(StreamOutput out) throws IOException {
-        super.writeTo(out);
-        out.writeVInt(results.length);
-        for (Result result : results) {
-            result.writeTo(out);
-        }
-    }
-
-    @Override
-    public void readFrom(StreamInput in) throws IOException {
-        super.readFrom(in);
-        int numResults = in.readVInt();
-        results = new Result[numResults];
-        for (int i = 0; i < numResults; i++) {
-            results[i] = new Result();
-            results[i].readFrom(in);
         }
     }
 }

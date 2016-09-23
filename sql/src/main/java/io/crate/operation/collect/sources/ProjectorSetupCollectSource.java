@@ -46,11 +46,11 @@ public class ProjectorSetupCollectSource implements CollectSource {
             return sourceDelegate.getCollectors(collectPhase, downstream, jobCollectContext);
         }
         FlatProjectorChain projectorChain = FlatProjectorChain.withAttachedDownstream(
-                projectorFactory,
-                jobCollectContext.queryPhaseRamAccountingContext(),
-                collectPhase.projections(),
-                downstream,
-                collectPhase.jobId()
+            projectorFactory,
+            jobCollectContext.queryPhaseRamAccountingContext(),
+            collectPhase.projections(),
+            downstream,
+            collectPhase.jobId()
         );
         projectorChain.prepare();
         return sourceDelegate.getCollectors(collectPhase, projectorChain.firstProjector(), jobCollectContext);

@@ -37,12 +37,12 @@ public abstract class ModulusFunction extends ArithmeticFunction implements Oper
     public static final String NAME = "modulus";
     public static final String SQL_SYMBOL = "%";
 
-    public static void register(ScalarFunctionModule module) {
-        module.register(NAME, new Resolver());
-    }
-
     public ModulusFunction(FunctionInfo info) {
         super(info);
+    }
+
+    public static void register(ScalarFunctionModule module) {
+        module.register(NAME, new Resolver());
     }
 
     @Override

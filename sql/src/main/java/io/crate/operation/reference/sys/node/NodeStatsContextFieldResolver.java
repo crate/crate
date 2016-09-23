@@ -64,44 +64,6 @@ public class NodeStatsContextFieldResolver {
     private final NodeService nodeService;
     private final ThreadPool threadPool;
     private final ExtendedNodeInfo extendedNodeInfo;
-
-    @Inject
-    public NodeStatsContextFieldResolver(ClusterService clusterService,
-                                         OsService osService,
-                                         NodeService nodeService,
-                                         JvmService jvmService,
-                                         ThreadPool threadPool,
-                                         ExtendedNodeInfo extendedNodeInfo) {
-        this.osService = osService;
-        this.jvmService = jvmService;
-        this.clusterService = clusterService;
-        this.nodeService = nodeService;
-        this.threadPool = threadPool;
-        this.extendedNodeInfo = extendedNodeInfo;
-    }
-
-    public NodeStatsContext forColumns(Collection<ColumnIdent> columns) {
-        NodeStatsContext context = NodeStatsContext.newInstance();
-        if (columns.isEmpty()) {
-            return context;
-        }
-
-        for (ColumnIdent column : columns) {
-            consumerForColumnIdent(column).accept(context);
-        }
-        return context;
-    }
-
-    private Consumer<NodeStatsContext> consumerForColumnIdent(ColumnIdent columnIdent) {
-        Consumer<NodeStatsContext> consumer = columnIdentToContext.get(columnIdent);
-        if (consumer == null) {
-            throw new IllegalArgumentException(
-                String.format("Cannot resolve NodeStatsContext field for \"%s\" column ident.", columnIdent)
-            );
-        }
-        return consumer;
-    }
-
     private final Map<ColumnIdent, Consumer<NodeStatsContext>> columnIdentToContext =
         ImmutableMap.<ColumnIdent, Consumer<NodeStatsContext>>builder()
             .put(SysNodesTableInfo.Columns.ID, new Consumer<NodeStatsContext>() {
@@ -223,6 +185,20 @@ public class NodeStatsContextFieldResolver {
                 }
             }).build();
 
+    @Inject
+    public NodeStatsContextFieldResolver(ClusterService clusterService,
+                                         OsService osService,
+                                         NodeService nodeService,
+                                         JvmService jvmService,
+                                         ThreadPool threadPool,
+                                         ExtendedNodeInfo extendedNodeInfo) {
+        this.osService = osService;
+        this.jvmService = jvmService;
+        this.clusterService = clusterService;
+        this.nodeService = nodeService;
+        this.threadPool = threadPool;
+        this.extendedNodeInfo = extendedNodeInfo;
+    }
 
     private static Integer portFromAddress(TransportAddress address) {
         Integer port = null;
@@ -230,5 +206,27 @@ public class NodeStatsContextFieldResolver {
             port = ((InetSocketTransportAddress) address).address().getPort();
         }
         return port;
+    }
+
+    public NodeStatsContext forColumns(Collection<ColumnIdent> columns) {
+        NodeStatsContext context = NodeStatsContext.newInstance();
+        if (columns.isEmpty()) {
+            return context;
+        }
+
+        for (ColumnIdent column : columns) {
+            consumerForColumnIdent(column).accept(context);
+        }
+        return context;
+    }
+
+    private Consumer<NodeStatsContext> consumerForColumnIdent(ColumnIdent columnIdent) {
+        Consumer<NodeStatsContext> consumer = columnIdentToContext.get(columnIdent);
+        if (consumer == null) {
+            throw new IllegalArgumentException(
+                String.format("Cannot resolve NodeStatsContext field for \"%s\" column ident.", columnIdent)
+            );
+        }
+        return consumer;
     }
 }

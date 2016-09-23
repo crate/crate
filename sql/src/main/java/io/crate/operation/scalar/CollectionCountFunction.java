@@ -37,16 +37,15 @@ import java.util.Locale;
 public class CollectionCountFunction extends Scalar<Long, Collection<DataType>> {
 
     public static final String NAME = "collection_count";
-    private final FunctionInfo info;
-
     private static final DynamicFunctionResolver collectionCountResolver = new CollectionCountResolver();
-
-    public static void register(ScalarFunctionModule mod) {
-        mod.register(NAME, collectionCountResolver);
-    }
+    private final FunctionInfo info;
 
     public CollectionCountFunction(FunctionInfo info) {
         this.info = info;
+    }
+
+    public static void register(ScalarFunctionModule mod) {
+        mod.register(NAME, collectionCountResolver);
     }
 
     @Override
@@ -56,7 +55,7 @@ public class CollectionCountFunction extends Scalar<Long, Collection<DataType>> 
         if (arg0Value == null) {
             return null;
         }
-        return ((Integer)(arg0Value.size())).longValue();
+        return ((Integer) (arg0Value.size())).longValue();
     }
 
     @Override
@@ -80,15 +79,15 @@ public class CollectionCountFunction extends Scalar<Long, Collection<DataType>> 
             for (DataType dataType : dataTypes) {
                 if (!isCollectionType(dataType)) {
                     throw new IllegalArgumentException(String.format(Locale.ENGLISH,
-                            "Function \"%s\" got an invalid argument of type \"%s\"",
-                            NAME,
-                            dataType.getName()));
+                        "Function \"%s\" got an invalid argument of type \"%s\"",
+                        NAME,
+                        dataType.getName()));
                 }
             }
 
             return new CollectionCountFunction(new FunctionInfo(
-                    new FunctionIdent(NAME, dataTypes),
-                    DataTypes.LONG
+                new FunctionIdent(NAME, dataTypes),
+                DataTypes.LONG
             ));
         }
     }

@@ -40,9 +40,9 @@ import java.util.List;
 @Singleton
 public class SysSnapshots implements Supplier<Iterable<?>> {
 
+    private static final ESLogger LOGGER = Loggers.getLogger(SysSnapshots.class);
     private final SysRepositories sysRepositories;
     private final SnapshotsService snapshotsService;
-    private static final ESLogger LOGGER = Loggers.getLogger(SysSnapshots.class);
 
     @Inject
     public SysSnapshots(SysRepositories sysRepositories, SnapshotsService snapshotsService) {
@@ -72,13 +72,13 @@ public class SysSnapshots implements Supplier<Iterable<?>> {
                         return null;
                     }
                     return new SysSnapshot(
-                            snapshot.name(),
-                            repositoryName,
-                            snapshot.indices(),
-                            snapshot.startTime(),
-                            snapshot.endTime(),
-                            snapshot.version().toString(),
-                            snapshot.state().name()
+                        snapshot.name(),
+                        repositoryName,
+                        snapshot.indices(),
+                        snapshot.startTime(),
+                        snapshot.endTime(),
+                        snapshot.version().toString(),
+                        snapshot.state().name()
                     );
                 }
             }));

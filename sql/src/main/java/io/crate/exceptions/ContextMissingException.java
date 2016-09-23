@@ -26,6 +26,14 @@ import java.util.UUID;
 
 public class ContextMissingException extends UnhandledServerException {
 
+    public ContextMissingException(ContextType type, UUID jobId) {
+        super(String.format(Locale.ENGLISH, "%s for job %s not found", type.contextType(), jobId));
+    }
+
+    public ContextMissingException(ContextType type, UUID jobId, int contextId) {
+        super(String.format(Locale.ENGLISH, "%s for job %s with id '%d' not found", type.contextType(), jobId, contextId));
+    }
+
     public enum ContextType {
         JOB_EXECUTION_CONTEXT("JobExecutionContext"),
         SUB_CONTEXT("ExecutionSubContext");
@@ -39,14 +47,6 @@ public class ContextMissingException extends UnhandledServerException {
         public String contextType() {
             return contextType;
         }
-    }
-
-    public ContextMissingException(ContextType type, UUID jobId) {
-        super(String.format(Locale.ENGLISH, "%s for job %s not found", type.contextType(), jobId));
-    }
-
-    public ContextMissingException(ContextType type, UUID jobId, int contextId) {
-        super(String.format(Locale.ENGLISH, "%s for job %s with id '%d' not found", type.contextType(), jobId, contextId));
     }
 
 }

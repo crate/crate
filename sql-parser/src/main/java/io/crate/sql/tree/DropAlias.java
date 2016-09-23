@@ -27,39 +27,32 @@ import com.google.common.base.Objects;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 public class DropAlias
-        extends Statement
-{
+    extends Statement {
     private final QualifiedName remote;
 
-    public DropAlias(QualifiedName remote)
-    {
+    public DropAlias(QualifiedName remote) {
         this.remote = checkNotNull(remote, "remote is null");
     }
 
-    public QualifiedName getRemote()
-    {
+    public QualifiedName getRemote() {
         return remote;
     }
 
     @Override
-    public <R, C> R accept(AstVisitor<R, C> visitor, C context)
-    {
+    public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
         return visitor.visitDropAlias(this, context);
     }
 
     @Override
-    public int hashCode()
-    {
+    public int hashCode() {
         return Objects.hashCode(remote);
     }
 
     @Override
-    public boolean equals(Object obj)
-    {
+    public boolean equals(Object obj) {
         if (this == obj) {
             return true;
-        }
-        else if ((obj == null) || (getClass() != obj.getClass())) {
+        } else if ((obj == null) || (getClass() != obj.getClass())) {
             return false;
         }
         DropAlias o = (DropAlias) obj;
@@ -67,10 +60,9 @@ public class DropAlias
     }
 
     @Override
-    public String toString()
-    {
+    public String toString() {
         return MoreObjects.toStringHelper(this)
-                .add("remote", remote)
-                .toString();
+            .add("remote", remote)
+            .toString();
     }
 }

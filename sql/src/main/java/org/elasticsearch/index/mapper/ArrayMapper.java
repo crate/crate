@@ -41,35 +41,34 @@ import java.util.Map;
 
 /**
  * fieldmapper for encoding and handling arrays explicitly
- *
+ * <p>
  * handler for type "array".
- *
+ * <p>
  * accepts mappings like:
- *
- *  "array_field": {
- *      "type": "array",
- *      "inner": {
- *          "type": "boolean",
- *          "null_value": true
- *      }
- *  }
- *
- *  This would be parsed as a array of booleans.
- *  This field now only accepts arrays, no single values.
- *  So inserting a document like:
- *
- *  {
- *      "array_field": true
- *  }
- *
- *  will fail, while a document like:
- *
- *  {
- *      "array_field": [true]
- *  }
- *
- *  will pass.
- *
+ * <p>
+ * "array_field": {
+ * "type": "array",
+ * "inner": {
+ * "type": "boolean",
+ * "null_value": true
+ * }
+ * }
+ * <p>
+ * This would be parsed as a array of booleans.
+ * This field now only accepts arrays, no single values.
+ * So inserting a document like:
+ * <p>
+ * {
+ * "array_field": true
+ * }
+ * <p>
+ * will fail, while a document like:
+ * <p>
+ * {
+ * "array_field": [true]
+ * }
+ * <p>
+ * will pass.
  */
 public class ArrayMapper extends FieldMapper implements ArrayValueMapperParser {
 
@@ -85,34 +84,6 @@ public class ArrayMapper extends FieldMapper implements ArrayValueMapperParser {
         this.innerMapper = innerMapper;
     }
 
-    public static class BuilderFactory implements DynamicArrayFieldMapperBuilderFactory {
-
-        public Mapper create(String name, ObjectMapper parentMapper, ParseContext context) {
-            BuilderContext builderContext = new BuilderContext(context.indexSettings(), context.path());
-            try {
-                Mapper.Builder<?, ?> innerBuilder = detectInnerMapper(context, name, context.parser());
-                if (innerBuilder == null) {
-                    return null;
-                }
-                Mapper mapper = innerBuilder.build(builderContext);
-                mapper = DocumentParser.parseAndMergeUpdate(mapper, context);
-                MappedFieldType mappedFieldType = newArrayFieldType(innerBuilder);
-                String fullName = context.path().fullPathAsText(name);
-                mappedFieldType.setNames(new MappedFieldType.Names(fullName));
-                return new ArrayMapper(
-                        name,
-                        mappedFieldType,
-                        mappedFieldType.clone(),
-                        context.indexSettings(),
-                        MultiFields.empty(),
-                        null,
-                        mapper);
-            } catch (IOException e) {
-                throw Throwables.propagate(e);
-            }
-        }
-    }
-
     private static MappedFieldType newArrayFieldType(Mapper.Builder innerBuilder) {
         if (innerBuilder instanceof FieldMapper.Builder) {
             return new ArrayFieldType(((FieldMapper.Builder) innerBuilder).fieldType());
@@ -123,68 +94,26 @@ public class ArrayMapper extends FieldMapper implements ArrayValueMapperParser {
         throw new IllegalArgumentException("expected a FieldMapper.Builder or ObjectMapper.Builder");
     }
 
-    static class ObjectArrayFieldType extends MappedFieldType {
-
-        protected ObjectArrayFieldType() {}
-
-        public ObjectArrayFieldType(MappedFieldType ref) {
-            super(ref);
+    private static Mapper.Builder<?, ?> detectInnerMapper(ParseContext parseContext,
+                                                          String fieldName, XContentParser parser) throws IOException {
+        XContentParser.Token token = parser.currentToken();
+        if (token == XContentParser.Token.START_ARRAY) {
+            token = parser.nextToken();
         }
 
-        @Override
-        public MappedFieldType clone() {
-            return new ObjectArrayFieldType(this);
+        // can't use nulls to detect type
+        while (token == XContentParser.Token.VALUE_NULL) {
+            token = parser.nextToken();
         }
 
-        @Override
-        public String typeName() {
-            return ArrayMapper.CONTENT_TYPE;
-        }
-    }
-
-    public static class Builder extends FieldMapper.Builder<Builder, ArrayMapper> {
-
-        private final Mapper.Builder innerBuilder;
-
-        public Builder(String name, Mapper.Builder innerBuilder) {
-            super(name, newArrayFieldType(innerBuilder), newArrayFieldType(innerBuilder));
-            this.innerBuilder = innerBuilder;
+        if (token == XContentParser.Token.START_ARRAY) {
+            throw new ElasticsearchParseException("nested arrays are not supported");
+        } else if (token == XContentParser.Token.END_ARRAY) {
+            // array is empty or has only null values
+            return null;
         }
 
-
-        @Override
-        public ArrayMapper build(BuilderContext context) {
-            Mapper innerMapper = innerBuilder.build(context);
-            fieldType.setNames(buildNames(context));
-            return new ArrayMapper(name, fieldType, defaultFieldType, context.indexSettings(),
-                    multiFieldsBuilder.build(this, context), copyTo, innerMapper);
-        }
-    }
-
-    public static class TypeParser implements Mapper.TypeParser {
-        @Override
-        public Mapper.Builder parse(String name, Map<String, Object> node, ParserContext parserContext) throws MapperParsingException {
-            Object inner = node.remove(INNER_TYPE);
-            if (inner == null) {
-                throw new MapperParsingException("property [inner] missing");
-            }
-            if (!(inner instanceof Map)) {
-                throw new MapperParsingException("property [inner] must be a map");
-            }
-            @SuppressWarnings("unchecked")
-            Map<String, Object> innerNode = (Map<String, Object>) inner;
-            String typeName = (String)innerNode.get("type");
-            if (typeName == null && innerNode.containsKey("properties")) {
-                typeName = ObjectMapper.CONTENT_TYPE;
-            } else if (CONTENT_TYPE.equalsIgnoreCase(typeName)) {
-                throw new MapperParsingException("nested arrays are not supported");
-            }
-
-            Mapper.TypeParser innerTypeParser = parserContext.typeParser(typeName);
-            Mapper.Builder innerBuilder = innerTypeParser.parse(name, innerNode, parserContext);
-
-            return new Builder(name, innerBuilder);
-        }
+        return DocumentParser.createBuilderFromDynamicValue(parseContext, token, fieldName);
     }
 
     protected String contentType() {
@@ -235,7 +164,6 @@ public class ArrayMapper extends FieldMapper implements ArrayValueMapperParser {
         return innerMapper.iterator();
     }
 
-
     @Override
     protected void doMerge(Mapper mergeWith, boolean updateAllTypes) {
         if (mergeWith instanceof ArrayMapper) {
@@ -251,7 +179,7 @@ public class ArrayMapper extends FieldMapper implements ArrayValueMapperParser {
         XContentParser.Token token = parser.currentToken();
         if (token == XContentParser.Token.VALUE_NULL) {
             return parseInner(context);
-        } else if  (token != XContentParser.Token.START_ARRAY) {
+        } else if (token != XContentParser.Token.START_ARRAY) {
             throw new ElasticsearchParseException("invalid array");
         }
         token = parser.nextToken();
@@ -279,38 +207,109 @@ public class ArrayMapper extends FieldMapper implements ArrayValueMapperParser {
             assert innerMapper instanceof ObjectMapper : "innerMapper must be a FieldMapper or an ObjectMapper";
             context.path().add(simpleName());
             update = DocumentParser.parseObject(context, ((ObjectMapper) innerMapper), false);
-            context.path().remove();;
+            context.path().remove();
+            ;
         }
         return update;
     }
-
-    private static Mapper.Builder<?, ?> detectInnerMapper(ParseContext parseContext,
-                                                          String fieldName, XContentParser parser) throws IOException {
-        XContentParser.Token token = parser.currentToken();
-        if (token == XContentParser.Token.START_ARRAY) {
-            token = parser.nextToken();
-        }
-
-        // can't use nulls to detect type
-        while (token == XContentParser.Token.VALUE_NULL) {
-            token = parser.nextToken();
-        }
-
-        if (token == XContentParser.Token.START_ARRAY) {
-            throw new ElasticsearchParseException("nested arrays are not supported");
-        } else if (token == XContentParser.Token.END_ARRAY) {
-            // array is empty or has only null values
-            return null;
-        }
-
-        return DocumentParser.createBuilderFromDynamicValue(parseContext, token, fieldName);
-    }
-
 
     @Override
     protected void parseCreateField(ParseContext context, List<Field> fields) throws IOException {
         // parseCreateField is called in the original FieldMapper parse method.
         // Since parse is overwritten parseCreateField is never called
         throw new UnsupportedOperationException();
+    }
+
+    public static class BuilderFactory implements DynamicArrayFieldMapperBuilderFactory {
+
+        public Mapper create(String name, ObjectMapper parentMapper, ParseContext context) {
+            BuilderContext builderContext = new BuilderContext(context.indexSettings(), context.path());
+            try {
+                Mapper.Builder<?, ?> innerBuilder = detectInnerMapper(context, name, context.parser());
+                if (innerBuilder == null) {
+                    return null;
+                }
+                Mapper mapper = innerBuilder.build(builderContext);
+                mapper = DocumentParser.parseAndMergeUpdate(mapper, context);
+                MappedFieldType mappedFieldType = newArrayFieldType(innerBuilder);
+                String fullName = context.path().fullPathAsText(name);
+                mappedFieldType.setNames(new MappedFieldType.Names(fullName));
+                return new ArrayMapper(
+                    name,
+                    mappedFieldType,
+                    mappedFieldType.clone(),
+                    context.indexSettings(),
+                    MultiFields.empty(),
+                    null,
+                    mapper);
+            } catch (IOException e) {
+                throw Throwables.propagate(e);
+            }
+        }
+    }
+
+    static class ObjectArrayFieldType extends MappedFieldType {
+
+        protected ObjectArrayFieldType() {
+        }
+
+        public ObjectArrayFieldType(MappedFieldType ref) {
+            super(ref);
+        }
+
+        @Override
+        public MappedFieldType clone() {
+            return new ObjectArrayFieldType(this);
+        }
+
+        @Override
+        public String typeName() {
+            return ArrayMapper.CONTENT_TYPE;
+        }
+    }
+
+    public static class Builder extends FieldMapper.Builder<Builder, ArrayMapper> {
+
+        private final Mapper.Builder innerBuilder;
+
+        public Builder(String name, Mapper.Builder innerBuilder) {
+            super(name, newArrayFieldType(innerBuilder), newArrayFieldType(innerBuilder));
+            this.innerBuilder = innerBuilder;
+        }
+
+
+        @Override
+        public ArrayMapper build(BuilderContext context) {
+            Mapper innerMapper = innerBuilder.build(context);
+            fieldType.setNames(buildNames(context));
+            return new ArrayMapper(name, fieldType, defaultFieldType, context.indexSettings(),
+                multiFieldsBuilder.build(this, context), copyTo, innerMapper);
+        }
+    }
+
+    public static class TypeParser implements Mapper.TypeParser {
+        @Override
+        public Mapper.Builder parse(String name, Map<String, Object> node, ParserContext parserContext) throws MapperParsingException {
+            Object inner = node.remove(INNER_TYPE);
+            if (inner == null) {
+                throw new MapperParsingException("property [inner] missing");
+            }
+            if (!(inner instanceof Map)) {
+                throw new MapperParsingException("property [inner] must be a map");
+            }
+            @SuppressWarnings("unchecked")
+            Map<String, Object> innerNode = (Map<String, Object>) inner;
+            String typeName = (String) innerNode.get("type");
+            if (typeName == null && innerNode.containsKey("properties")) {
+                typeName = ObjectMapper.CONTENT_TYPE;
+            } else if (CONTENT_TYPE.equalsIgnoreCase(typeName)) {
+                throw new MapperParsingException("nested arrays are not supported");
+            }
+
+            Mapper.TypeParser innerTypeParser = parserContext.typeParser(typeName);
+            Mapper.Builder innerBuilder = innerTypeParser.parse(name, innerNode, parserContext);
+
+            return new Builder(name, innerBuilder);
+        }
     }
 }

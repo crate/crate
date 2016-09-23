@@ -35,9 +35,8 @@ public class IterableRowEmitter implements Runnable, RepeatHandle {
     private final RowReceiver rowReceiver;
     private final Iterable<? extends Row> rows;
     private final ExecutorResumeHandle resumeable;
-    private Iterator<? extends Row> rowsIt;
-
     private final AtomicBoolean finished = new AtomicBoolean(false);
+    private Iterator<? extends Row> rowsIt;
 
     public IterableRowEmitter(RowReceiver rowReceiver,
                               final Iterable<? extends Row> rows,
@@ -64,7 +63,7 @@ public class IterableRowEmitter implements Runnable, RepeatHandle {
                 RowReceiver.Result result = rowReceiver.setNextRow(rowsIt.next());
                 switch (result) {
                     case CONTINUE:
-                        continue ;
+                        continue;
                     case PAUSE:
                         rowReceiver.pauseProcessed(resumeable);
                         return;

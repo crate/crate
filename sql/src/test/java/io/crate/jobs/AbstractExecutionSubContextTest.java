@@ -81,6 +81,42 @@ public class AbstractExecutionSubContextTest extends CrateUnitTest {
         }
     }
 
+    @Test
+    public void testNormalSequence() throws Exception {
+        TestingExecutionSubContext ctx = new TestingExecutionSubContext();
+        ctx.prepare();
+        ctx.start();
+        ctx.close();
+        assertThat(ctx.stats(), contains(1, 1, 1, 0));
+    }
+
+    @Test
+    public void testCloseAfterPrepare() throws Exception {
+        TestingExecutionSubContext ctx = new TestingExecutionSubContext();
+        ctx.prepare();
+        ctx.close();
+        ctx.start();
+        ctx.close();
+        assertThat(ctx.stats(), contains(1, 0, 1, 0));
+    }
+
+    @Test
+    public void testParallelClose() throws Exception {
+        ctx.prepare();
+        ctx.start();
+        runAsync(closeRunnable, 3);
+        assertThat(ctx.stats(), contains(1, 1, 1, 0));
+    }
+
+    @Test
+    public void testParallelKill() throws Exception {
+        ctx.prepare();
+        ctx.start();
+        runAsync(killRunnable, 3);
+        assertThat(ctx.stats(), contains(1, 1, 0, 1));
+        assertThat(ctx.numKill.get(), greaterThan(0));
+    }
+
     public static class TestingExecutionSubContext extends AbstractExecutionSubContext {
 
         private static final ESLogger LOGGER = Loggers.getLogger(TestingExecutionSubContext.class);
@@ -125,49 +161,13 @@ public class AbstractExecutionSubContextTest extends CrateUnitTest {
 
         public List<Integer> stats() {
             return ImmutableList.of(
-                    numPrepare.get(),
-                    numStart.get(),
-                    numClose.get(),
-                    numKill.get()
+                numPrepare.get(),
+                numStart.get(),
+                numClose.get(),
+                numKill.get()
             );
         }
 
-    }
-
-    @Test
-    public void testNormalSequence() throws Exception {
-        TestingExecutionSubContext ctx = new TestingExecutionSubContext();
-        ctx.prepare();
-        ctx.start();
-        ctx.close();
-        assertThat(ctx.stats(), contains(1, 1, 1, 0));
-    }
-
-    @Test
-    public void testCloseAfterPrepare() throws Exception {
-        TestingExecutionSubContext ctx = new TestingExecutionSubContext();
-        ctx.prepare();
-        ctx.close();
-        ctx.start();
-        ctx.close();
-        assertThat(ctx.stats(), contains(1, 0, 1, 0));
-    }
-
-    @Test
-    public void testParallelClose() throws Exception {
-        ctx.prepare();
-        ctx.start();
-        runAsync(closeRunnable, 3);
-        assertThat(ctx.stats(), contains(1, 1, 1, 0));
-    }
-
-    @Test
-    public void testParallelKill() throws Exception {
-        ctx.prepare();
-        ctx.start();
-        runAsync(killRunnable, 3);
-        assertThat(ctx.stats(), contains(1, 1, 0, 1));
-        assertThat(ctx.numKill.get(), greaterThan(0));
     }
 
 }

@@ -28,9 +28,9 @@ import java.io.IOException;
 
 /**
  * granularity of references
- *
+ * <p>
  * order from large-grained to fine-grained:
- *
+ * <p>
  * CLUSTER &gt; PARTITION &gt; NODE &gt; SHARD &gt; DOC
  */
 public enum RowGranularity {

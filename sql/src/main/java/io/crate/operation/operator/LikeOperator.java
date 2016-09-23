@@ -21,10 +21,7 @@
 
 package io.crate.operation.operator;
 
-import io.crate.analyze.symbol.Function;
-import io.crate.analyze.symbol.Symbol;
 import io.crate.metadata.FunctionInfo;
-import io.crate.metadata.Scalar;
 import io.crate.operation.Input;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
@@ -34,41 +31,15 @@ import java.util.regex.Pattern;
 public class LikeOperator extends Operator<BytesRef> {
 
     public static final String NAME = "op_like";
-
-    private FunctionInfo info;
-
     public static final char DEFAULT_ESCAPE = '\\';
-
-    public static void register(OperatorModule module) {
-        module.registerOperatorFunction(new LikeOperator(generateInfo(NAME, DataTypes.STRING)));
-    }
+    private FunctionInfo info;
 
     public LikeOperator(FunctionInfo info) {
         this.info = info;
     }
 
-    @Override
-    public FunctionInfo info() {
-        return info;
-    }
-
-    @Override
-    public Boolean evaluate(Input<BytesRef>... args) {
-        assert (args != null);
-        assert (args.length == 2);
-
-        BytesRef expression = args[0].value();
-        BytesRef pattern = args[1].value();
-        if (expression == null || pattern == null) {
-            return null;
-        }
-
-        return matches(expression.utf8ToString(), pattern.utf8ToString());
-    }
-
-    private boolean matches(String expression, String pattern) {
-        return Pattern.compile(
-                patternToRegex(pattern, DEFAULT_ESCAPE, true), Pattern.DOTALL).matcher(expression).matches();
+    public static void register(OperatorModule module) {
+        module.registerOperatorFunction(new LikeOperator(generateInfo(NAME, DataTypes.STRING)));
     }
 
     public static String patternToRegex(String patternString, char escapeChar, boolean shouldEscape) {
@@ -121,6 +92,30 @@ public class LikeOperator extends Operator<BytesRef> {
         }
         regex.append('$');
         return regex.toString();
+    }
+
+    @Override
+    public FunctionInfo info() {
+        return info;
+    }
+
+    @Override
+    public Boolean evaluate(Input<BytesRef>... args) {
+        assert (args != null);
+        assert (args.length == 2);
+
+        BytesRef expression = args[0].value();
+        BytesRef pattern = args[1].value();
+        if (expression == null || pattern == null) {
+            return null;
+        }
+
+        return matches(expression.utf8ToString(), pattern.utf8ToString());
+    }
+
+    private boolean matches(String expression, String pattern) {
+        return Pattern.compile(
+            patternToRegex(pattern, DEFAULT_ESCAPE, true), Pattern.DOTALL).matcher(expression).matches();
     }
 
 }

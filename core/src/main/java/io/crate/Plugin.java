@@ -54,18 +54,17 @@ public interface Plugin {
 
     /**
      * @deprecated Use {@link #nodeModules()} instead
-     *
+     * <p>
      * Node level modules.
      */
     @Deprecated
     Collection<Class<? extends Module>> modules();
 
     /**
-     * @deprecated Use {@link #nodeModules()} instead
-     *
-     * Node level modules.
-     *
      * @param settings The node level settings.
+     * @deprecated Use {@link #nodeModules()} instead
+     * <p>
+     * Node level modules.
      */
     @Deprecated
     Collection<Class<? extends Module>> modules(Settings settings);

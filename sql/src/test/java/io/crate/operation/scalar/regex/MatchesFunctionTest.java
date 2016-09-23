@@ -34,8 +34,10 @@ import org.junit.Test;
 import java.util.Arrays;
 import java.util.List;
 
-import static io.crate.testing.TestingHelpers.*;
-import static org.hamcrest.Matchers.*;
+import static io.crate.testing.TestingHelpers.createReference;
+import static io.crate.testing.TestingHelpers.isLiteral;
+import static org.hamcrest.Matchers.arrayContaining;
+import static org.hamcrest.Matchers.instanceOf;
 
 public class MatchesFunctionTest extends AbstractScalarFunctionsTest {
 
@@ -44,11 +46,11 @@ public class MatchesFunctionTest extends AbstractScalarFunctionsTest {
         final Literal<BytesRef> pattern = Literal.newLiteral(".*(ba).*");
 
         List<Symbol> arguments = Arrays.asList(
-                createReference("name", DataTypes.STRING),
-                pattern
+            createReference("name", DataTypes.STRING),
+            pattern
         );
 
-        Function function = (Function) sqlExpressions.asSymbol("regexp_matches(name, '"+pattern+"')");
+        Function function = (Function) sqlExpressions.asSymbol("regexp_matches(name, '" + pattern + "')");
         MatchesFunction regexpImpl = (MatchesFunction) functions.get(function.info().ident());
 
         regexpImpl.compile(arguments);
@@ -58,9 +60,9 @@ public class MatchesFunctionTest extends AbstractScalarFunctionsTest {
         assertThat(regexpImpl.regexMatcher().groups(), arrayContaining(new BytesRef("ba")));
 
         arguments = Arrays.asList(
-                createReference("name", DataTypes.STRING),
-                pattern,
-                Literal.newLiteral("usn")
+            createReference("name", DataTypes.STRING),
+            pattern,
+            Literal.newLiteral("usn")
         );
         regexpImpl.compile(arguments);
 
@@ -74,10 +76,10 @@ public class MatchesFunctionTest extends AbstractScalarFunctionsTest {
         final Literal<BytesRef> pattern = Literal.newLiteral(".*(ba).*");
 
         List<Symbol> arguments = Arrays.asList(
-                createReference("name", DataTypes.STRING),
-                pattern
+            createReference("name", DataTypes.STRING),
+            pattern
         );
-        Function function = (Function) sqlExpressions.asSymbol("regexp_matches(name, '"+pattern+"')");
+        Function function = (Function) sqlExpressions.asSymbol("regexp_matches(name, '" + pattern + "')");
         MatchesFunction regexpImpl = (MatchesFunction) functions.get(function.info().ident());
 
         regexpImpl.compile(arguments);
@@ -98,14 +100,14 @@ public class MatchesFunctionTest extends AbstractScalarFunctionsTest {
 
         BytesRef[] result = regexpImpl.evaluate(args);
 
-        assertThat(result, arrayContaining(new BytesRef( "ba")));
+        assertThat(result, arrayContaining(new BytesRef("ba")));
     }
 
     @Test
     public void testEvaluate() throws Exception {
         List<Symbol> arguments = Arrays.<Symbol>asList(
-                createReference("name", DataTypes.STRING),
-                createReference("regex_pattern", DataTypes.STRING)
+            createReference("name", DataTypes.STRING),
+            createReference("regex_pattern", DataTypes.STRING)
         );
         Function function = (Function) sqlExpressions.asSymbol("regexp_matches(name, regex_pattern)");
         MatchesFunction regexpImpl = (MatchesFunction) functions.get(function.info().ident());
@@ -135,8 +137,8 @@ public class MatchesFunctionTest extends AbstractScalarFunctionsTest {
     public void testEvaluateWithFlags() throws Exception {
         final Literal<BytesRef> flags = Literal.newLiteral("usn");
         List<Symbol> arguments = Arrays.<Symbol>asList(
-                createReference("text", DataTypes.STRING),
-                createReference("regex_pattern", DataTypes.STRING)
+            createReference("text", DataTypes.STRING),
+            createReference("regex_pattern", DataTypes.STRING)
         );
         Function function = (Function) sqlExpressions.asSymbol("regexp_matches(name, regex_pattern)");
         MatchesFunction regexpImpl = (MatchesFunction) functions.get(function.info().ident());
@@ -171,13 +173,13 @@ public class MatchesFunctionTest extends AbstractScalarFunctionsTest {
     @Test
     public void testNormalizeSymbol() throws Exception {
         assertNormalize("regexp_matches('foobarbequebaz bar', '.*(ba).*')",
-            isLiteral(new BytesRef[]{ new BytesRef("ba") }, new ArrayType(DataTypes.STRING)));
+            isLiteral(new BytesRef[]{new BytesRef("ba")}, new ArrayType(DataTypes.STRING)));
     }
 
     @Test
     public void testNormalizeSymbolWithFlags() throws Exception {
         assertNormalize("regexp_matches('foobarbequebaz bar', '.*(ba).*', 'us n')",
-            isLiteral(new BytesRef[]{ new BytesRef("ba") }, new ArrayType(DataTypes.STRING)));
+            isLiteral(new BytesRef[]{new BytesRef("ba")}, new ArrayType(DataTypes.STRING)));
     }
 
     @Test

@@ -50,6 +50,18 @@ public class PluginLoaderTest extends ESIntegTestCase {
     @Rule
     public ExpectedException expectedException = ExpectedException.none();
 
+    private static String startNodeWithPlugins(String pluginDir) throws URISyntaxException {
+        URL resource = PluginLoaderTest.class.getResource(pluginDir);
+        Settings.Builder settings = settingsBuilder();
+        if (resource != null) {
+            settings.put("path.crate_plugins", new File(resource.toURI()).getAbsolutePath());
+        }
+        String nodeName = internalCluster().startNode(settings);
+        // We wait for a Green status
+        client().admin().cluster().health(clusterHealthRequest().waitForGreenStatus()).actionGet();
+        return internalCluster().getInstance(ClusterService.class, nodeName).state().nodes().localNode().name();
+    }
+
     @Override
     protected Collection<Class<? extends Plugin>> nodePlugins() {
         return pluginList(PluginLoaderPlugin.class);
@@ -97,19 +109,6 @@ public class PluginLoaderTest extends ESIntegTestCase {
         // test that node will die because of an invalid plugin (in this case, just an empty directory)
         expectedException.expect(CauseMatcher.causeOfCause(RuntimeException.class));
         startNodeWithPlugins("/io/crate/plugin/invalid");
-    }
-
-
-    private static String startNodeWithPlugins(String pluginDir) throws URISyntaxException {
-        URL resource = PluginLoaderTest.class.getResource(pluginDir);
-        Settings.Builder settings = settingsBuilder();
-        if (resource != null) {
-            settings.put("path.crate_plugins", new File(resource.toURI()).getAbsolutePath());
-        }
-        String nodeName = internalCluster().startNode(settings);
-        // We wait for a Green status
-        client().admin().cluster().health(clusterHealthRequest().waitForGreenStatus()).actionGet();
-        return internalCluster().getInstance(ClusterService.class, nodeName).state().nodes().localNode().name();
     }
 
     private PluginLoaderPlugin getCratePlugin(List<Tuple<PluginInfo, Plugin>> pluginsService) {

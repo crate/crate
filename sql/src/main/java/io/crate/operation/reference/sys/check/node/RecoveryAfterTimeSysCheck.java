@@ -33,11 +33,10 @@ import org.elasticsearch.common.unit.TimeValue;
 @Singleton
 public class RecoveryAfterTimeSysCheck extends AbstractSysNodeCheck {
 
-    private final Settings settings;
-
     private static final int ID = 3;
     private static final String DESCRIPTION = "The value of the cluster setting 'gateway.recover_after_time' " +
                                               "must not be less than its default value (5m).";
+    private final Settings settings;
 
     @Inject
     public RecoveryAfterTimeSysCheck(ClusterService clusterService, Settings settings) {

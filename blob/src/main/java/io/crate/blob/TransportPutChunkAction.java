@@ -21,11 +21,9 @@
 
 package io.crate.blob;
 
-import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.action.support.ActionFilters;
 import org.elasticsearch.action.support.replication.TransportReplicationAction;
 import org.elasticsearch.cluster.ClusterService;
-import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.action.index.MappingUpdatedAction;
 import org.elasticsearch.cluster.action.shard.ShardStateAction;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
@@ -34,7 +32,6 @@ import org.elasticsearch.cluster.routing.ShardIterator;
 import org.elasticsearch.common.collect.Tuple;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
@@ -55,8 +52,8 @@ public class TransportPutChunkAction extends TransportReplicationAction<PutChunk
                                    ActionFilters actionFilters,
                                    IndexNameExpressionResolver indexNameExpressionResolver) {
         super(settings, PutChunkAction.NAME, transportService, clusterService,
-                indicesService, threadPool, shardStateAction, mappingUpdatedAction, actionFilters,
-                indexNameExpressionResolver, PutChunkRequest.class, PutChunkReplicaRequest.class, ThreadPool.Names.INDEX);
+            indicesService, threadPool, shardStateAction, mappingUpdatedAction, actionFilters,
+            indexNameExpressionResolver, PutChunkRequest.class, PutChunkReplicaRequest.class, ThreadPool.Names.INDEX);
 
         this.transferTarget = transferTarget;
     }
@@ -69,7 +66,7 @@ public class TransportPutChunkAction extends TransportReplicationAction<PutChunk
     @Override
     protected void resolveRequest(MetaData metaData, String concreteIndex, PutChunkRequest request) {
         ShardIterator shardIterator = clusterService.operationRouting().indexShards(
-                clusterService.state(), concreteIndex, null, null, request.digest());
+            clusterService.state(), concreteIndex, null, null, request.digest());
         request.setShardId(shardIterator.shardId());
     }
 

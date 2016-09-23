@@ -120,6 +120,7 @@ public class CrateClientUsageTest extends CrateClientIntegrationTest {
                 }
 
             }
+
             @Override
             public void onFailure(Throwable e) {
                 future.set(true);
@@ -143,7 +144,7 @@ public class CrateClientUsageTest extends CrateClientIntegrationTest {
         execute("insert into test (id) values (1)");
         execute("refresh table test");
 
-        SQLRequest request =  new SQLRequest("select id from test");
+        SQLRequest request = new SQLRequest("select id from test");
         request.includeTypesOnResponse(true);
         SQLResponse r = execute(request);
 
@@ -169,7 +170,7 @@ public class CrateClientUsageTest extends CrateClientIntegrationTest {
         execute("refresh table test");
 
         SQLBulkResponse bulkResponse = execute("update test set a = ? where b = ?",
-                new Object[][]{new Object[]{"bar", 1}, new Object[]{"baz", 1}});
+            new Object[][]{new Object[]{"bar", 1}, new Object[]{"baz", 1}});
         assertThat(bulkResponse.results().length, is(2));
         for (SQLBulkResponse.Result result : bulkResponse.results()) {
             assertThat(result.rowCount(), is(1L));

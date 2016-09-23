@@ -22,7 +22,7 @@
 package io.crate.sql.tree;
 
 
-public class ParameterExpression extends Expression{
+public class ParameterExpression extends Expression {
 
     private final int position;
 

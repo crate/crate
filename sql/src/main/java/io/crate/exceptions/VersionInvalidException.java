@@ -20,9 +20,9 @@
  */
 package io.crate.exceptions;
 
-public class VersionInvalidException extends UnsupportedFeatureException{
+public class VersionInvalidException extends UnsupportedFeatureException {
 
-    public VersionInvalidException(){
+    public VersionInvalidException() {
         super("\"_version\" column is not valid in the WHERE clause of a SELECT statement");
     }
 }

@@ -47,106 +47,48 @@ import java.util.TreeMap;
 public class SysShardsTableInfo extends StaticTableInfo {
 
     public static final TableIdent IDENT = new TableIdent(SysSchemaInfo.NAME, "shards");
-    private final ClusterService service;
-
-    public static class Columns {
-        public static final ColumnIdent ID = new ColumnIdent("id");
-        public static final ColumnIdent SCHEMA_NAME = new ColumnIdent("schema_name");
-        public static final ColumnIdent TABLE_NAME = new ColumnIdent("table_name");
-        public static final ColumnIdent PARTITION_IDENT = new ColumnIdent("partition_ident");
-        public static final ColumnIdent NUM_DOCS = new ColumnIdent("num_docs");
-        public static final ColumnIdent PRIMARY = new ColumnIdent("primary");
-        public static final ColumnIdent RELOCATING_NODE = new ColumnIdent("relocating_node");
-        public static final ColumnIdent SIZE = new ColumnIdent("size");
-        public static final ColumnIdent STATE = new ColumnIdent("state");
-        public static final ColumnIdent ROUTING_STATE = new ColumnIdent("routing_state");
-        public static final ColumnIdent ORPHAN_PARTITION = new ColumnIdent("orphan_partition");
-
-        public static final ColumnIdent RECOVERY = new ColumnIdent("recovery");
-        public static final ColumnIdent RECOVERY_STAGE = new ColumnIdent("recovery", ImmutableList.of("stage"));
-        public static final ColumnIdent RECOVERY_TYPE = new ColumnIdent("recovery", ImmutableList.of("type"));
-        public static final ColumnIdent RECOVERY_TOTAL_TIME =
-                new ColumnIdent("recovery", ImmutableList.of("total_time"));
-
-        public static final ColumnIdent RECOVERY_FILES = new ColumnIdent("recovery", ImmutableList.of("files"));
-        public static final ColumnIdent RECOVERY_FILES_USED =
-                new ColumnIdent("recovery", ImmutableList.of("files", "used"));
-        public static final ColumnIdent RECOVERY_FILES_REUSED =
-                new ColumnIdent("recovery", ImmutableList.of("files", "reused"));
-        public static final ColumnIdent RECOVERY_FILES_RECOVERED =
-                new ColumnIdent("recovery", ImmutableList.of("files", "recovered"));
-        public static final ColumnIdent RECOVERY_FILES_PERCENT =
-                new ColumnIdent("recovery", ImmutableList.of("files", "percent"));
-
-        public static final ColumnIdent RECOVERY_SIZE =
-                new ColumnIdent("recovery", ImmutableList.of("size"));
-        public static final ColumnIdent RECOVERY_SIZE_USED =
-                new ColumnIdent("recovery", ImmutableList.of("size", "used"));
-        public static final ColumnIdent RECOVERY_SIZE_REUSED =
-                new ColumnIdent("recovery", ImmutableList.of("size", "reused"));
-        public static final ColumnIdent RECOVERY_SIZE_RECOVERED =
-                new ColumnIdent("recovery", ImmutableList.of("size", "recovered"));
-        public static final ColumnIdent RECOVERY_SIZE_PERCENT =
-                new ColumnIdent("recovery", ImmutableList.of("size", "percent"));
-    }
-
-    public static class ReferenceIdents {
-        public static final ReferenceIdent ID = new ReferenceIdent(IDENT, Columns.ID);
-        public static final ReferenceIdent SCHEMA_NAME = new ReferenceIdent(IDENT, Columns.SCHEMA_NAME);
-        public static final ReferenceIdent TABLE_NAME = new ReferenceIdent(IDENT, Columns.TABLE_NAME);
-        public static final ReferenceIdent PARTITION_IDENT = new ReferenceIdent(IDENT, Columns.PARTITION_IDENT);
-        public static final ReferenceIdent NUM_DOCS = new ReferenceIdent(IDENT, Columns.NUM_DOCS);
-        public static final ReferenceIdent PRIMARY = new ReferenceIdent(IDENT, Columns.PRIMARY);
-        public static final ReferenceIdent RELOCATING_NODE = new ReferenceIdent(IDENT, Columns.RELOCATING_NODE);
-        public static final ReferenceIdent SIZE = new ReferenceIdent(IDENT, Columns.SIZE);
-        public static final ReferenceIdent STATE = new ReferenceIdent(IDENT, Columns.STATE);
-        public static final ReferenceIdent ROUTING_STATE = new ReferenceIdent(IDENT, Columns.ROUTING_STATE);
-        public static final ReferenceIdent ORPHAN_PARTITION = new ReferenceIdent(IDENT, Columns.ORPHAN_PARTITION);
-        public static final ReferenceIdent RECOVERY = new ReferenceIdent(IDENT, Columns.RECOVERY);
-    }
-
     private static final ImmutableList<ColumnIdent> PRIMARY_KEY = ImmutableList.of(
-            Columns.SCHEMA_NAME,
-            Columns.TABLE_NAME,
-            Columns.ID,
-            Columns.PARTITION_IDENT
+        Columns.SCHEMA_NAME,
+        Columns.TABLE_NAME,
+        Columns.ID,
+        Columns.PARTITION_IDENT
     );
-
+    private final ClusterService service;
     private final TableColumn nodesTableColumn;
 
     @Inject
     public SysShardsTableInfo(ClusterService service, SysNodesTableInfo sysNodesTableInfo) {
         super(IDENT, new ColumnRegistrar(IDENT, RowGranularity.SHARD)
-                        .register(Columns.SCHEMA_NAME, StringType.INSTANCE)
-                        .register(Columns.TABLE_NAME, StringType.INSTANCE)
-                        .register(Columns.ID, IntegerType.INSTANCE)
-                        .register(Columns.PARTITION_IDENT, StringType.INSTANCE)
-                        .register(Columns.NUM_DOCS, LongType.INSTANCE)
-                        .register(Columns.PRIMARY, BooleanType.INSTANCE)
-                        .register(Columns.RELOCATING_NODE, StringType.INSTANCE)
-                        .register(Columns.SIZE, LongType.INSTANCE)
-                        .register(Columns.STATE, StringType.INSTANCE)
-                        .register(Columns.ROUTING_STATE, StringType.INSTANCE)
-                        .register(Columns.ORPHAN_PARTITION, BooleanType.INSTANCE)
+                .register(Columns.SCHEMA_NAME, StringType.INSTANCE)
+                .register(Columns.TABLE_NAME, StringType.INSTANCE)
+                .register(Columns.ID, IntegerType.INSTANCE)
+                .register(Columns.PARTITION_IDENT, StringType.INSTANCE)
+                .register(Columns.NUM_DOCS, LongType.INSTANCE)
+                .register(Columns.PRIMARY, BooleanType.INSTANCE)
+                .register(Columns.RELOCATING_NODE, StringType.INSTANCE)
+                .register(Columns.SIZE, LongType.INSTANCE)
+                .register(Columns.STATE, StringType.INSTANCE)
+                .register(Columns.ROUTING_STATE, StringType.INSTANCE)
+                .register(Columns.ORPHAN_PARTITION, BooleanType.INSTANCE)
 
-                        .register(Columns.RECOVERY, ObjectType.INSTANCE)
-                        .register(Columns.RECOVERY_STAGE, StringType.INSTANCE)
-                        .register(Columns.RECOVERY_TYPE, StringType.INSTANCE)
-                        .register(Columns.RECOVERY_TOTAL_TIME, LongType.INSTANCE)
+                .register(Columns.RECOVERY, ObjectType.INSTANCE)
+                .register(Columns.RECOVERY_STAGE, StringType.INSTANCE)
+                .register(Columns.RECOVERY_TYPE, StringType.INSTANCE)
+                .register(Columns.RECOVERY_TOTAL_TIME, LongType.INSTANCE)
 
-                        .register(Columns.RECOVERY_SIZE, ObjectType.INSTANCE)
-                        .register(Columns.RECOVERY_SIZE_USED, LongType.INSTANCE)
-                        .register(Columns.RECOVERY_SIZE_REUSED, LongType.INSTANCE)
-                        .register(Columns.RECOVERY_SIZE_RECOVERED, LongType.INSTANCE)
-                        .register(Columns.RECOVERY_SIZE_PERCENT, FloatType.INSTANCE)
+                .register(Columns.RECOVERY_SIZE, ObjectType.INSTANCE)
+                .register(Columns.RECOVERY_SIZE_USED, LongType.INSTANCE)
+                .register(Columns.RECOVERY_SIZE_REUSED, LongType.INSTANCE)
+                .register(Columns.RECOVERY_SIZE_RECOVERED, LongType.INSTANCE)
+                .register(Columns.RECOVERY_SIZE_PERCENT, FloatType.INSTANCE)
 
-                        .register(Columns.RECOVERY_FILES, ObjectType.INSTANCE)
-                        .register(Columns.RECOVERY_FILES_USED, IntegerType.INSTANCE)
-                        .register(Columns.RECOVERY_FILES_REUSED, IntegerType.INSTANCE)
-                        .register(Columns.RECOVERY_FILES_RECOVERED, IntegerType.INSTANCE)
-                        .register(Columns.RECOVERY_FILES_PERCENT, FloatType.INSTANCE)
-                        .putInfoOnly(SysNodesTableInfo.SYS_COL_IDENT, SysNodesTableInfo.tableColumnInfo(IDENT)),
-                PRIMARY_KEY);
+                .register(Columns.RECOVERY_FILES, ObjectType.INSTANCE)
+                .register(Columns.RECOVERY_FILES_USED, IntegerType.INSTANCE)
+                .register(Columns.RECOVERY_FILES_REUSED, IntegerType.INSTANCE)
+                .register(Columns.RECOVERY_FILES_RECOVERED, IntegerType.INSTANCE)
+                .register(Columns.RECOVERY_FILES_PERCENT, FloatType.INSTANCE)
+                .putInfoOnly(SysNodesTableInfo.SYS_COL_IDENT, SysNodesTableInfo.tableColumnInfo(IDENT)),
+            PRIMARY_KEY);
         this.service = service;
         nodesTableColumn = sysNodesTableInfo.tableColumn();
     }
@@ -193,7 +135,7 @@ public class SysShardsTableInfo extends StaticTableInfo {
 
     /**
      * Retrieves the routing for sys.shards
-     *
+     * <p>
      * This routing contains ALL shards of ALL indices.
      * Any shards that are not yet assigned to a node will have a NEGATIVE shard id (see {@link UnassignedShard}
      */
@@ -209,5 +151,61 @@ public class SysShardsTableInfo extends StaticTableInfo {
             processShardRouting(locations, shardRouting, shardIt.shardId());
         }
         return new Routing(locations);
+    }
+
+    public static class Columns {
+        public static final ColumnIdent ID = new ColumnIdent("id");
+        public static final ColumnIdent SCHEMA_NAME = new ColumnIdent("schema_name");
+        public static final ColumnIdent TABLE_NAME = new ColumnIdent("table_name");
+        public static final ColumnIdent PARTITION_IDENT = new ColumnIdent("partition_ident");
+        public static final ColumnIdent NUM_DOCS = new ColumnIdent("num_docs");
+        public static final ColumnIdent PRIMARY = new ColumnIdent("primary");
+        public static final ColumnIdent RELOCATING_NODE = new ColumnIdent("relocating_node");
+        public static final ColumnIdent SIZE = new ColumnIdent("size");
+        public static final ColumnIdent STATE = new ColumnIdent("state");
+        public static final ColumnIdent ROUTING_STATE = new ColumnIdent("routing_state");
+        public static final ColumnIdent ORPHAN_PARTITION = new ColumnIdent("orphan_partition");
+
+        public static final ColumnIdent RECOVERY = new ColumnIdent("recovery");
+        public static final ColumnIdent RECOVERY_STAGE = new ColumnIdent("recovery", ImmutableList.of("stage"));
+        public static final ColumnIdent RECOVERY_TYPE = new ColumnIdent("recovery", ImmutableList.of("type"));
+        public static final ColumnIdent RECOVERY_TOTAL_TIME =
+            new ColumnIdent("recovery", ImmutableList.of("total_time"));
+
+        public static final ColumnIdent RECOVERY_FILES = new ColumnIdent("recovery", ImmutableList.of("files"));
+        public static final ColumnIdent RECOVERY_FILES_USED =
+            new ColumnIdent("recovery", ImmutableList.of("files", "used"));
+        public static final ColumnIdent RECOVERY_FILES_REUSED =
+            new ColumnIdent("recovery", ImmutableList.of("files", "reused"));
+        public static final ColumnIdent RECOVERY_FILES_RECOVERED =
+            new ColumnIdent("recovery", ImmutableList.of("files", "recovered"));
+        public static final ColumnIdent RECOVERY_FILES_PERCENT =
+            new ColumnIdent("recovery", ImmutableList.of("files", "percent"));
+
+        public static final ColumnIdent RECOVERY_SIZE =
+            new ColumnIdent("recovery", ImmutableList.of("size"));
+        public static final ColumnIdent RECOVERY_SIZE_USED =
+            new ColumnIdent("recovery", ImmutableList.of("size", "used"));
+        public static final ColumnIdent RECOVERY_SIZE_REUSED =
+            new ColumnIdent("recovery", ImmutableList.of("size", "reused"));
+        public static final ColumnIdent RECOVERY_SIZE_RECOVERED =
+            new ColumnIdent("recovery", ImmutableList.of("size", "recovered"));
+        public static final ColumnIdent RECOVERY_SIZE_PERCENT =
+            new ColumnIdent("recovery", ImmutableList.of("size", "percent"));
+    }
+
+    public static class ReferenceIdents {
+        public static final ReferenceIdent ID = new ReferenceIdent(IDENT, Columns.ID);
+        public static final ReferenceIdent SCHEMA_NAME = new ReferenceIdent(IDENT, Columns.SCHEMA_NAME);
+        public static final ReferenceIdent TABLE_NAME = new ReferenceIdent(IDENT, Columns.TABLE_NAME);
+        public static final ReferenceIdent PARTITION_IDENT = new ReferenceIdent(IDENT, Columns.PARTITION_IDENT);
+        public static final ReferenceIdent NUM_DOCS = new ReferenceIdent(IDENT, Columns.NUM_DOCS);
+        public static final ReferenceIdent PRIMARY = new ReferenceIdent(IDENT, Columns.PRIMARY);
+        public static final ReferenceIdent RELOCATING_NODE = new ReferenceIdent(IDENT, Columns.RELOCATING_NODE);
+        public static final ReferenceIdent SIZE = new ReferenceIdent(IDENT, Columns.SIZE);
+        public static final ReferenceIdent STATE = new ReferenceIdent(IDENT, Columns.STATE);
+        public static final ReferenceIdent ROUTING_STATE = new ReferenceIdent(IDENT, Columns.ROUTING_STATE);
+        public static final ReferenceIdent ORPHAN_PARTITION = new ReferenceIdent(IDENT, Columns.ORPHAN_PARTITION);
+        public static final ReferenceIdent RECOVERY = new ReferenceIdent(IDENT, Columns.RECOVERY);
     }
 }

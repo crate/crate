@@ -83,23 +83,19 @@ import java.util.*;
 public class TransportExecutor implements Executor {
 
     private static final ESLogger LOGGER = Loggers.getLogger(TransportExecutor.class);
-
+    private final static BulkNodeOperationTreeGenerator BULK_NODE_OPERATION_VISITOR = new BulkNodeOperationTreeGenerator();
     private final IndexNameExpressionResolver indexNameExpressionResolver;
     private final Functions functions;
     private final TaskCollectingVisitor plan2TaskVisitor;
-    private DDLStatementDispatcher ddlAnalysisDispatcherProvider;
-    private ShowStatementDispatcher showStatementDispatcherProvider;
-
     private final ClusterService clusterService;
     private final JobContextService jobContextService;
     private final ContextPreparer contextPreparer;
     private final TransportActionProvider transportActionProvider;
     private final IndicesService indicesService;
     private final BulkRetryCoordinatorPool bulkRetryCoordinatorPool;
-
     private final ProjectionToProjectorVisitor globalProjectionToProjectionVisitor;
-
-    private final static BulkNodeOperationTreeGenerator BULK_NODE_OPERATION_VISITOR = new BulkNodeOperationTreeGenerator();
+    private DDLStatementDispatcher ddlAnalysisDispatcherProvider;
+    private ShowStatementDispatcher showStatementDispatcherProvider;
 
 
     @Inject
@@ -130,15 +126,15 @@ public class TransportExecutor implements Executor {
         EvaluatingNormalizer normalizer = new EvaluatingNormalizer(functions, RowGranularity.CLUSTER, referenceResolver);
         ImplementationSymbolVisitor globalImplementationSymbolVisitor = new ImplementationSymbolVisitor(functions);
         globalProjectionToProjectionVisitor = new ProjectionToProjectorVisitor(
-                clusterService,
-                functions,
-                indexNameExpressionResolver,
-                threadPool,
-                settings,
-                transportActionProvider,
-                bulkRetryCoordinatorPool,
-                globalImplementationSymbolVisitor,
-                normalizer);
+            clusterService,
+            functions,
+            indexNameExpressionResolver,
+            threadPool,
+            settings,
+            transportActionProvider,
+            bulkRetryCoordinatorPool,
+            globalImplementationSymbolVisitor,
+            normalizer);
     }
 
     @Override
@@ -150,110 +146,6 @@ public class TransportExecutor implements Executor {
     public ListenableFuture<List<Long>> executeBulk(Plan plan) {
         Task task = plan2TaskVisitor.process(plan, null);
         return task.executeBulk();
-    }
-
-    private class TaskCollectingVisitor extends PlanVisitor<Void, Task> {
-
-        @Override
-        public Task visitNoopPlan(NoopPlan plan, Void context) {
-            return NoopTask.INSTANCE;
-        }
-
-        @Override
-        public Task visitSetSessionPlan(SetSessionPlan plan, Void context) {
-            return NoopTask.INSTANCE;
-        }
-
-        @Override
-        public Task visitExplainPlan(ExplainPlan explainPlan, Void context) {
-            return new ExplainTask(explainPlan);
-        }
-
-        @Override
-        protected Task visitPlan(Plan plan, Void context) {
-            return executionPhasesTask(plan);
-        }
-
-        private ExecutionPhasesTask executionPhasesTask(Plan plan) {
-            List<NodeOperationTree> nodeOperationTrees = BULK_NODE_OPERATION_VISITOR.createNodeOperationTrees(
-                    plan, clusterService.localNode().id());
-            LOGGER.debug("Created NodeOperationTrees from Plan: {}", nodeOperationTrees);
-            return new ExecutionPhasesTask(
-                    plan.jobId(),
-                    clusterService,
-                    contextPreparer,
-                    jobContextService,
-                    indicesService,
-                    transportActionProvider.transportJobInitAction(),
-                    transportActionProvider.transportKillJobsNodeAction(),
-                    nodeOperationTrees
-            );
-        }
-
-        @Override
-        public Task visitGetPlan(ESGet plan, Void context) {
-            return new ESGetTask(
-                functions,
-                globalProjectionToProjectionVisitor,
-                transportActionProvider,
-                plan,
-                jobContextService);
-        }
-
-        @Override
-        public Task visitDropTablePlan(DropTablePlan plan, Void context) {
-            return new DropTableTask(plan,
-                transportActionProvider.transportDeleteIndexTemplateAction(),
-                transportActionProvider.transportDeleteIndexAction());
-        }
-
-        @Override
-        public Task visitKillPlan(KillPlan killPlan, Void context) {
-            return killPlan.jobToKill().isPresent() ?
-                    new KillJobTask(transportActionProvider.transportKillJobsNodeAction(),
-                            killPlan.jobId(),
-                            killPlan.jobToKill().get()) :
-                    new KillTask(transportActionProvider.transportKillAllNodeAction(), killPlan.jobId());
-        }
-
-        @Override
-        public Task visitGenericShowPlan(GenericShowPlan genericShowPlan, Void context) {
-            return new GenericShowTask(genericShowPlan.jobId(), showStatementDispatcherProvider, genericShowPlan.statement());
-        }
-
-        @Override
-        public Task visitGenericDDLPLan(GenericDDLPlan genericDDLPlan, Void context) {
-            return new DDLTask(genericDDLPlan.jobId(), ddlAnalysisDispatcherProvider, genericDDLPlan.statement());
-        }
-
-        @Override
-        public Task visitESClusterUpdateSettingsPlan(ESClusterUpdateSettingsPlan plan, Void context) {
-            return new ESClusterUpdateSettingsTask(plan, transportActionProvider.transportClusterUpdateSettingsAction());
-        }
-
-        @Override
-        public Task visitESDelete(ESDelete plan, Void context) {
-            return new ESDeleteTask(plan, transportActionProvider.transportDeleteAction(), jobContextService);
-        }
-
-        @Override
-        public Task visitUpsertById(UpsertById plan, Void context) {
-            return new UpsertByIdTask(
-                plan,
-                clusterService,
-                indexNameExpressionResolver,
-                clusterService.state().metaData().settings(),
-                transportActionProvider.transportShardUpsertActionDelegate(),
-                transportActionProvider.transportCreateIndexAction(),
-                transportActionProvider.transportBulkCreateIndicesAction(),
-                bulkRetryCoordinatorPool,
-                jobContextService);
-        }
-
-        @Override
-        public Task visitESDeletePartition(ESDeletePartition plan, Void context) {
-            return new ESDeletePartitionTask(plan, transportActionProvider.transportDeleteIndexAction());
-        }
     }
 
     static class BulkNodeOperationTreeGenerator extends PlanVisitor<BulkNodeOperationTreeGenerator.Context, Void> {
@@ -292,153 +184,48 @@ public class TransportExecutor implements Executor {
 
     /**
      * class used to generate the NodeOperationTree
-     *
-     *
+     * <p>
+     * <p>
      * E.g. a plan like NL:
-     *
-     *              NL
-     *           1 NLPhase
-     *           2 MergePhase
-     *        /               \
-     *       /                 \
-     *     QAF                 QAF
-     *   3 CollectPhase      5 CollectPhase
-     *   4 MergePhase        6 MergePhase
-     *
-     *
+     * <p>
+     * NL
+     * 1 NLPhase
+     * 2 MergePhase
+     * /               \
+     * /                 \
+     * QAF                 QAF
+     * 3 CollectPhase      5 CollectPhase
+     * 4 MergePhase        6 MergePhase
+     * <p>
+     * <p>
      * Will have a data flow like this:
-     *
-     *   3 -- 4
-     *          -- 1 -- 2
-     *   5 -- 6
-     *
+     * <p>
+     * 3 -- 4
+     * -- 1 -- 2
+     * 5 -- 6
+     * <p>
      * The NodeOperation tree will have 5 NodeOperations (3-4, 4-1, 5-6, 6-1, 1-2)
      * And leaf will be 2 (the Phase which will provide the final result)
-     *
-     *
+     * <p>
+     * <p>
      * Implementation detail:
-     *
-     *
-     *   The phases are added in the following order
-     *
-     *   2 - 1 [new branch 0]  4 - 3
-     *         [new branch 1]  5 - 6
-     *
-     *   every time addPhase is called a NodeOperation is added
-     *   that connects the previous phase (if there is one) to the current phase
+     * <p>
+     * <p>
+     * The phases are added in the following order
+     * <p>
+     * 2 - 1 [new branch 0]  4 - 3
+     * [new branch 1]  5 - 6
+     * <p>
+     * every time addPhase is called a NodeOperation is added
+     * that connects the previous phase (if there is one) to the current phase
      */
     static class NodeOperationTreeGenerator extends PlanVisitor<NodeOperationTreeGenerator.NodeOperationTreeContext, Void> {
-
-        private static class Branch {
-            private final Stack<ExecutionPhase> phases = new Stack<>();
-            private final byte inputId;
-
-            public Branch(byte inputId) {
-                this.inputId = inputId;
-            }
-        }
-
-        static class NodeOperationTreeContext {
-            private final String localNodeId;
-            private final List<NodeOperation> collectNodeOperations = new ArrayList<>();
-            private final List<NodeOperation> nodeOperations = new ArrayList<>();
-
-            private final Stack<Branch> branches = new Stack<>();
-            private final Branch root;
-            private Branch currentBranch;
-
-            public NodeOperationTreeContext(String localNodeId) {
-                this.localNodeId = localNodeId;
-                root = new Branch((byte) 0);
-                currentBranch = root;
-            }
-
-            /**
-             * adds a Phase to the "NodeOperation execution tree"
-             * should be called in the reverse order of how data flows.
-             *
-             * E.g. in a plan where data flows from CollectPhase to MergePhase
-             * it should be called first for MergePhase and then for CollectPhase
-             */
-            public void addPhase(@Nullable ExecutionPhase executionPhase) {
-                addPhase(executionPhase, nodeOperations, true);
-            }
-
-            public void addContextPhase(@Nullable ExecutionPhase executionPhase) {
-                addPhase(executionPhase, nodeOperations, false);
-            }
-
-            /**
-             * same as {@link #addPhase(ExecutionPhase)} but those phases will be added
-             * in the front of the nodeOperation list to make sure that they are later in the execution started last
-             * to avoid race conditions.
-             */
-            public void addCollectExecutionPhase(@Nullable ExecutionPhase executionPhase) {
-                addPhase(executionPhase, collectNodeOperations, true);
-            }
-
-            private void addPhase(@Nullable ExecutionPhase executionPhase,
-                                  List<NodeOperation> nodeOperations,
-                                  boolean setDownstreamNodes) {
-                if (executionPhase == null) {
-                    return;
-                }
-                if (branches.size() == 0 && currentBranch.phases.isEmpty()) {
-                    currentBranch.phases.add(executionPhase);
-                    return;
-                }
-
-                ExecutionPhase previousPhase;
-                if (currentBranch.phases.isEmpty()) {
-                    previousPhase = branches.peek().phases.lastElement();
-                } else {
-                    previousPhase = currentBranch.phases.lastElement();
-                }
-                if (setDownstreamNodes) {
-                    assert saneConfiguration(executionPhase, previousPhase.executionNodes()) : String.format(Locale.ENGLISH,
-                            "NodeOperation with %s and %s as downstreams cannot work",
-                            ExecutionPhases.debugPrint(executionPhase), previousPhase.executionNodes());
-
-                    nodeOperations.add(NodeOperation.withDownstream(executionPhase, previousPhase, currentBranch.inputId, localNodeId));
-                } else {
-                    nodeOperations.add(NodeOperation.withoutDownstream(executionPhase));
-                }
-                currentBranch.phases.add(executionPhase);
-            }
-
-            private boolean saneConfiguration(ExecutionPhase executionPhase, Collection<String> downstreamNodes) {
-                if (executionPhase instanceof UpstreamPhase && ((UpstreamPhase) executionPhase).distributionInfo().distributionType() ==
-                                                               DistributionType.SAME_NODE) {
-                    return downstreamNodes.isEmpty() || downstreamNodes.equals(executionPhase.executionNodes());
-                }
-                return true;
-            }
-
-            public void branch(byte inputId) {
-                branches.add(currentBranch);
-                currentBranch = new Branch(inputId);
-            }
-
-            public void leaveBranch() {
-                currentBranch = branches.pop();
-            }
-
-
-            public Collection<NodeOperation> nodeOperations() {
-                return ImmutableList.<NodeOperation>builder()
-                        // collectNodeOperations must be first so that they're started last
-                        // to prevent context-setup race conditions
-                        .addAll(collectNodeOperations)
-                        .addAll(nodeOperations)
-                        .build();
-            }
-        }
 
         public NodeOperationTree fromPlan(Plan plan, String localNodeId) {
             NodeOperationTreeContext nodeOperationTreeContext = new NodeOperationTreeContext(localNodeId);
             process(plan, nodeOperationTreeContext);
             return new NodeOperationTree(nodeOperationTreeContext.nodeOperations(),
-                    nodeOperationTreeContext.root.phases.firstElement());
+                nodeOperationTreeContext.root.phases.firstElement());
         }
 
         @Override
@@ -508,6 +295,216 @@ public class TransportExecutor implements Executor {
         @Override
         protected Void visitPlan(Plan plan, NodeOperationTreeContext context) {
             throw new UnsupportedOperationException(String.format(Locale.ENGLISH, "Can't create NodeOperationTree from plan %s", plan));
+        }
+
+        private static class Branch {
+            private final Stack<ExecutionPhase> phases = new Stack<>();
+            private final byte inputId;
+
+            public Branch(byte inputId) {
+                this.inputId = inputId;
+            }
+        }
+
+        static class NodeOperationTreeContext {
+            private final String localNodeId;
+            private final List<NodeOperation> collectNodeOperations = new ArrayList<>();
+            private final List<NodeOperation> nodeOperations = new ArrayList<>();
+
+            private final Stack<Branch> branches = new Stack<>();
+            private final Branch root;
+            private Branch currentBranch;
+
+            public NodeOperationTreeContext(String localNodeId) {
+                this.localNodeId = localNodeId;
+                root = new Branch((byte) 0);
+                currentBranch = root;
+            }
+
+            /**
+             * adds a Phase to the "NodeOperation execution tree"
+             * should be called in the reverse order of how data flows.
+             * <p>
+             * E.g. in a plan where data flows from CollectPhase to MergePhase
+             * it should be called first for MergePhase and then for CollectPhase
+             */
+            public void addPhase(@Nullable ExecutionPhase executionPhase) {
+                addPhase(executionPhase, nodeOperations, true);
+            }
+
+            public void addContextPhase(@Nullable ExecutionPhase executionPhase) {
+                addPhase(executionPhase, nodeOperations, false);
+            }
+
+            /**
+             * same as {@link #addPhase(ExecutionPhase)} but those phases will be added
+             * in the front of the nodeOperation list to make sure that they are later in the execution started last
+             * to avoid race conditions.
+             */
+            public void addCollectExecutionPhase(@Nullable ExecutionPhase executionPhase) {
+                addPhase(executionPhase, collectNodeOperations, true);
+            }
+
+            private void addPhase(@Nullable ExecutionPhase executionPhase,
+                                  List<NodeOperation> nodeOperations,
+                                  boolean setDownstreamNodes) {
+                if (executionPhase == null) {
+                    return;
+                }
+                if (branches.size() == 0 && currentBranch.phases.isEmpty()) {
+                    currentBranch.phases.add(executionPhase);
+                    return;
+                }
+
+                ExecutionPhase previousPhase;
+                if (currentBranch.phases.isEmpty()) {
+                    previousPhase = branches.peek().phases.lastElement();
+                } else {
+                    previousPhase = currentBranch.phases.lastElement();
+                }
+                if (setDownstreamNodes) {
+                    assert saneConfiguration(executionPhase, previousPhase.executionNodes()) : String.format(Locale.ENGLISH,
+                        "NodeOperation with %s and %s as downstreams cannot work",
+                        ExecutionPhases.debugPrint(executionPhase), previousPhase.executionNodes());
+
+                    nodeOperations.add(NodeOperation.withDownstream(executionPhase, previousPhase, currentBranch.inputId, localNodeId));
+                } else {
+                    nodeOperations.add(NodeOperation.withoutDownstream(executionPhase));
+                }
+                currentBranch.phases.add(executionPhase);
+            }
+
+            private boolean saneConfiguration(ExecutionPhase executionPhase, Collection<String> downstreamNodes) {
+                if (executionPhase instanceof UpstreamPhase &&
+                    ((UpstreamPhase) executionPhase).distributionInfo().distributionType() ==
+                    DistributionType.SAME_NODE) {
+                    return downstreamNodes.isEmpty() || downstreamNodes.equals(executionPhase.executionNodes());
+                }
+                return true;
+            }
+
+            public void branch(byte inputId) {
+                branches.add(currentBranch);
+                currentBranch = new Branch(inputId);
+            }
+
+            public void leaveBranch() {
+                currentBranch = branches.pop();
+            }
+
+
+            public Collection<NodeOperation> nodeOperations() {
+                return ImmutableList.<NodeOperation>builder()
+                    // collectNodeOperations must be first so that they're started last
+                    // to prevent context-setup race conditions
+                    .addAll(collectNodeOperations)
+                    .addAll(nodeOperations)
+                    .build();
+            }
+        }
+    }
+
+    private class TaskCollectingVisitor extends PlanVisitor<Void, Task> {
+
+        @Override
+        public Task visitNoopPlan(NoopPlan plan, Void context) {
+            return NoopTask.INSTANCE;
+        }
+
+        @Override
+        public Task visitSetSessionPlan(SetSessionPlan plan, Void context) {
+            return NoopTask.INSTANCE;
+        }
+
+        @Override
+        public Task visitExplainPlan(ExplainPlan explainPlan, Void context) {
+            return new ExplainTask(explainPlan);
+        }
+
+        @Override
+        protected Task visitPlan(Plan plan, Void context) {
+            return executionPhasesTask(plan);
+        }
+
+        private ExecutionPhasesTask executionPhasesTask(Plan plan) {
+            List<NodeOperationTree> nodeOperationTrees = BULK_NODE_OPERATION_VISITOR.createNodeOperationTrees(
+                plan, clusterService.localNode().id());
+            LOGGER.debug("Created NodeOperationTrees from Plan: {}", nodeOperationTrees);
+            return new ExecutionPhasesTask(
+                plan.jobId(),
+                clusterService,
+                contextPreparer,
+                jobContextService,
+                indicesService,
+                transportActionProvider.transportJobInitAction(),
+                transportActionProvider.transportKillJobsNodeAction(),
+                nodeOperationTrees
+            );
+        }
+
+        @Override
+        public Task visitGetPlan(ESGet plan, Void context) {
+            return new ESGetTask(
+                functions,
+                globalProjectionToProjectionVisitor,
+                transportActionProvider,
+                plan,
+                jobContextService);
+        }
+
+        @Override
+        public Task visitDropTablePlan(DropTablePlan plan, Void context) {
+            return new DropTableTask(plan,
+                transportActionProvider.transportDeleteIndexTemplateAction(),
+                transportActionProvider.transportDeleteIndexAction());
+        }
+
+        @Override
+        public Task visitKillPlan(KillPlan killPlan, Void context) {
+            return killPlan.jobToKill().isPresent() ?
+                new KillJobTask(transportActionProvider.transportKillJobsNodeAction(),
+                    killPlan.jobId(),
+                    killPlan.jobToKill().get()) :
+                new KillTask(transportActionProvider.transportKillAllNodeAction(), killPlan.jobId());
+        }
+
+        @Override
+        public Task visitGenericShowPlan(GenericShowPlan genericShowPlan, Void context) {
+            return new GenericShowTask(genericShowPlan.jobId(), showStatementDispatcherProvider, genericShowPlan.statement());
+        }
+
+        @Override
+        public Task visitGenericDDLPLan(GenericDDLPlan genericDDLPlan, Void context) {
+            return new DDLTask(genericDDLPlan.jobId(), ddlAnalysisDispatcherProvider, genericDDLPlan.statement());
+        }
+
+        @Override
+        public Task visitESClusterUpdateSettingsPlan(ESClusterUpdateSettingsPlan plan, Void context) {
+            return new ESClusterUpdateSettingsTask(plan, transportActionProvider.transportClusterUpdateSettingsAction());
+        }
+
+        @Override
+        public Task visitESDelete(ESDelete plan, Void context) {
+            return new ESDeleteTask(plan, transportActionProvider.transportDeleteAction(), jobContextService);
+        }
+
+        @Override
+        public Task visitUpsertById(UpsertById plan, Void context) {
+            return new UpsertByIdTask(
+                plan,
+                clusterService,
+                indexNameExpressionResolver,
+                clusterService.state().metaData().settings(),
+                transportActionProvider.transportShardUpsertActionDelegate(),
+                transportActionProvider.transportCreateIndexAction(),
+                transportActionProvider.transportBulkCreateIndicesAction(),
+                bulkRetryCoordinatorPool,
+                jobContextService);
+        }
+
+        @Override
+        public Task visitESDeletePartition(ESDeletePartition plan, Void context) {
+            return new ESDeletePartitionTask(plan, transportActionProvider.transportDeleteIndexAction());
         }
     }
 }

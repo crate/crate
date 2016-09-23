@@ -4,13 +4,12 @@
 import argparse
 import logging
 import os
-import zipfile
 import tarfile
-import urllib.request
 import tempfile
-from crate.testing.layer import CrateLayer
+import urllib.request
+import zipfile
 from crate.client import connect
-
+from crate.testing.layer import CrateLayer
 
 CRATE_HTTP_PORT = '42222'
 CRATE_TRANSPORT_PORT = '43333'
@@ -18,7 +17,6 @@ BASE_URL = "https://cdn.crate.io/downloads/releases/crate-{0}.tar.gz"
 
 logging.basicConfig(level=logging.ERROR)
 LOGGER = logging.getLogger(__name__)
-
 
 CREATE_INDEX_SQL = """
     CREATE TABLE legacy_geo_point (
@@ -96,9 +94,9 @@ def parse_config():
                         help='The directory to write the zipped index into')
     group = parser.add_mutually_exclusive_group(required=True)
     group.add_argument('--crate-home', '-d', metavar='DIR',
-                        help='The crate home directory')
+                       help='The crate home directory')
     group.add_argument('--crate-version', '-v',
-                        help='Download a specific crate version to create the legacy index')
+                       help='Download a specific crate version to create the legacy index')
     cfg = parser.parse_args()
     return cfg
 

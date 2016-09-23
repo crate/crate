@@ -46,25 +46,10 @@ public class CurrentTimestampFunction extends Scalar<Long, Integer> implements F
     public static final int DEFAULT_PRECISION = 3;
 
     public static final FunctionInfo INFO = new FunctionInfo(
-            new FunctionIdent(NAME, ImmutableList.<DataType>of(DataTypes.INTEGER)), DataTypes.TIMESTAMP);
+        new FunctionIdent(NAME, ImmutableList.<DataType>of(DataTypes.INTEGER)), DataTypes.TIMESTAMP);
 
     public static void register(ScalarFunctionModule function) {
         function.register(new CurrentTimestampFunction());
-    }
-
-
-    @Override
-    public Long evaluate(Input<Integer>... args) {
-        long millis = DateTimeUtils.currentTimeMillis();
-        Integer precision = 3;
-        if (args.length == 1) {
-            precision = args[0].value();
-            if (precision == null) {
-                throw new IllegalArgumentException(String.format(Locale.ENGLISH,
-                    "NULL precision not supported for %s", NAME));
-            }
-        }
-        return applyPrecision(millis, precision);
     }
 
     private static long applyPrecision(long millis, int precision) {
@@ -85,6 +70,20 @@ public class CurrentTimestampFunction extends Scalar<Long, Integer> implements F
                 throw new IllegalArgumentException("Precision must be between 0 and 3");
         }
         return LongMath.divide(millis, factor, RoundingMode.DOWN) * factor;
+    }
+
+    @Override
+    public Long evaluate(Input<Integer>... args) {
+        long millis = DateTimeUtils.currentTimeMillis();
+        Integer precision = 3;
+        if (args.length == 1) {
+            precision = args[0].value();
+            if (precision == null) {
+                throw new IllegalArgumentException(String.format(Locale.ENGLISH,
+                    "NULL precision not supported for %s", NAME));
+            }
+        }
+        return applyPrecision(millis, precision);
     }
 
     @Override

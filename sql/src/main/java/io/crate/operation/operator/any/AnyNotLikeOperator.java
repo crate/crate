@@ -33,6 +33,22 @@ public class AnyNotLikeOperator extends AbstractAnyLikeOperator {
 
     public static final String NAME = AnyOperator.OPERATOR_PREFIX + "not_like";
 
+    public AnyNotLikeOperator(FunctionInfo info) {
+        super(info);
+    }
+
+    public static void register(OperatorModule operatorModule) {
+        operatorModule.registerDynamicOperatorFunction(NAME, new AnyNotLikeResolver());
+    }
+
+    @Override
+    protected boolean matches(String expression, String pattern) {
+        return !Pattern.matches(
+            LikeOperator.patternToRegex(pattern, LikeOperator.DEFAULT_ESCAPE, true),
+            expression
+        );
+    }
+
     static class AnyNotLikeResolver extends AnyResolver {
 
         @Override
@@ -44,21 +60,5 @@ public class AnyNotLikeOperator extends AbstractAnyLikeOperator {
         public String name() {
             return NAME;
         }
-    }
-
-    public static void register(OperatorModule operatorModule) {
-        operatorModule.registerDynamicOperatorFunction(NAME, new AnyNotLikeResolver());
-    }
-
-    public AnyNotLikeOperator(FunctionInfo info) {
-        super(info);
-    }
-
-    @Override
-    protected boolean matches(String expression, String pattern) {
-        return !Pattern.matches(
-                LikeOperator.patternToRegex(pattern, LikeOperator.DEFAULT_ESCAPE, true),
-                expression
-        );
     }
 }

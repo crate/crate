@@ -37,6 +37,67 @@ import java.util.Map;
 public class CastFunctionResolver {
 
     public static final String TRY_CAST_PREFIX = "try_";
+    static final ImmutableMap<DataType, String> PRIMITIVE_FUNCTION_MAP = new ImmutableMap.Builder<DataType, String>()
+        .put(DataTypes.STRING, FunctionNames.TO_STRING)
+        .put(DataTypes.INTEGER, FunctionNames.TO_INTEGER)
+        .put(DataTypes.LONG, FunctionNames.TO_LONG)
+        .put(DataTypes.TIMESTAMP, FunctionNames.TO_TIMESTAMP)
+        .put(DataTypes.DOUBLE, FunctionNames.TO_DOUBLE)
+        .put(DataTypes.BOOLEAN, FunctionNames.TO_BOOLEAN)
+        .put(DataTypes.FLOAT, FunctionNames.TO_FLOAT)
+        .put(DataTypes.BYTE, FunctionNames.TO_BYTE)
+        .put(DataTypes.SHORT, FunctionNames.TO_SHORT)
+        .put(DataTypes.IP, FunctionNames.TO_IP)
+        .build();
+    static final ImmutableMap<DataType, String> GEO_FUNCTION_MAP = new ImmutableMap.Builder<DataType, String>()
+        .put(DataTypes.GEO_POINT, FunctionNames.TO_GEO_POINT)
+        .put(DataTypes.GEO_SHAPE, FunctionNames.TO_GEO_SHAPE)
+        .build();
+    static final ImmutableMap<DataType, String> ARRAY_FUNCTION_MAP = new ImmutableMap.Builder<DataType, String>()
+        .put(new ArrayType(DataTypes.STRING), FunctionNames.TO_STRING_ARRAY)
+        .put(new ArrayType(DataTypes.LONG), FunctionNames.TO_LONG_ARRAY)
+        .put(new ArrayType(DataTypes.INTEGER), FunctionNames.TO_INTEGER_ARRAY)
+        .put(new ArrayType(DataTypes.DOUBLE), FunctionNames.TO_DOUBLE_ARRAY)
+        .put(new ArrayType(DataTypes.BOOLEAN), FunctionNames.TO_BOOLEAN_ARRAY)
+        .put(new ArrayType(DataTypes.BYTE), FunctionNames.TO_BYTE_ARRAY)
+        .put(new ArrayType(DataTypes.FLOAT), FunctionNames.TO_FLOAT_ARRAY)
+        .put(new ArrayType(DataTypes.SHORT), FunctionNames.TO_SHORT_ARRAY)
+        .put(new ArrayType(DataTypes.IP), FunctionNames.TO_IP_ARRAY)
+        .build();
+    // TODO: register all type conversion functions here
+    private static final ImmutableMap<DataType, String> FUNCTION_MAP = new ImmutableMap.Builder<DataType, String>()
+        .putAll(PRIMITIVE_FUNCTION_MAP)
+        .putAll(GEO_FUNCTION_MAP)
+        .putAll(ARRAY_FUNCTION_MAP)
+        .build();
+    private static Function<String, String> TO_TRY_CAST_MAP = new Function<String, String>() {
+        @Override
+        public String apply(String functionName) {
+            return TRY_CAST_PREFIX + functionName;
+        }
+    };
+
+    /**
+     * resolve the needed conversion function info based on the wanted return data type
+     */
+    public static FunctionInfo functionInfo(DataType dataType, DataType returnType, boolean tryCast) {
+        String functionName = FUNCTION_MAP.get(returnType);
+        if (functionName == null) {
+            throw new IllegalArgumentException(
+                String.format(Locale.ENGLISH, "No cast function found for return type %s",
+                    returnType.getName()));
+        }
+        functionName = tryCast ? TRY_CAST_PREFIX + functionName : functionName;
+        return new FunctionInfo(new FunctionIdent(functionName, ImmutableList.of(dataType)), returnType);
+    }
+
+    public static boolean supportsExplicitConversion(DataType returnType) {
+        return FUNCTION_MAP.get(returnType) != null;
+    }
+
+    public static Map<DataType, String> tryFunctionsMap() {
+        return Maps.transformValues(FUNCTION_MAP, TO_TRY_CAST_MAP);
+    }
 
     public static class FunctionNames {
         public static final String TO_STRING = "to_string";
@@ -61,71 +122,5 @@ public class CastFunctionResolver {
         public static final String TO_IP_ARRAY = "to_ip_array";
         public static final String TO_GEO_POINT = "to_geo_point";
         public static final String TO_GEO_SHAPE = "to_geo_shape";
-    }
-
-    static final ImmutableMap<DataType, String> PRIMITIVE_FUNCTION_MAP = new ImmutableMap.Builder<DataType, String>()
-            .put(DataTypes.STRING, FunctionNames.TO_STRING)
-            .put(DataTypes.INTEGER, FunctionNames.TO_INTEGER)
-            .put(DataTypes.LONG, FunctionNames.TO_LONG)
-            .put(DataTypes.TIMESTAMP, FunctionNames.TO_TIMESTAMP)
-            .put(DataTypes.DOUBLE, FunctionNames.TO_DOUBLE)
-            .put(DataTypes.BOOLEAN, FunctionNames.TO_BOOLEAN)
-            .put(DataTypes.FLOAT, FunctionNames.TO_FLOAT)
-            .put(DataTypes.BYTE, FunctionNames.TO_BYTE)
-            .put(DataTypes.SHORT, FunctionNames.TO_SHORT)
-            .put(DataTypes.IP, FunctionNames.TO_IP)
-            .build();
-
-    static final ImmutableMap<DataType, String> GEO_FUNCTION_MAP = new ImmutableMap.Builder<DataType, String>()
-            .put(DataTypes.GEO_POINT, FunctionNames.TO_GEO_POINT)
-            .put(DataTypes.GEO_SHAPE, FunctionNames.TO_GEO_SHAPE)
-            .build();
-
-    static final ImmutableMap<DataType, String> ARRAY_FUNCTION_MAP = new ImmutableMap.Builder<DataType, String>()
-            .put(new ArrayType(DataTypes.STRING), FunctionNames.TO_STRING_ARRAY)
-            .put(new ArrayType(DataTypes.LONG), FunctionNames.TO_LONG_ARRAY)
-            .put(new ArrayType(DataTypes.INTEGER), FunctionNames.TO_INTEGER_ARRAY)
-            .put(new ArrayType(DataTypes.DOUBLE), FunctionNames.TO_DOUBLE_ARRAY)
-            .put(new ArrayType(DataTypes.BOOLEAN), FunctionNames.TO_BOOLEAN_ARRAY)
-            .put(new ArrayType(DataTypes.BYTE), FunctionNames.TO_BYTE_ARRAY)
-            .put(new ArrayType(DataTypes.FLOAT), FunctionNames.TO_FLOAT_ARRAY)
-            .put(new ArrayType(DataTypes.SHORT), FunctionNames.TO_SHORT_ARRAY)
-            .put(new ArrayType(DataTypes.IP), FunctionNames.TO_IP_ARRAY)
-            .build();
-
-    // TODO: register all type conversion functions here
-    private static final ImmutableMap<DataType, String> FUNCTION_MAP = new ImmutableMap.Builder<DataType, String>()
-            .putAll(PRIMITIVE_FUNCTION_MAP)
-            .putAll(GEO_FUNCTION_MAP)
-            .putAll(ARRAY_FUNCTION_MAP)
-            .build();
-
-    /**
-     * resolve the needed conversion function info based on the wanted return data type
-     */
-    public static FunctionInfo functionInfo(DataType dataType, DataType returnType, boolean tryCast) {
-        String functionName = FUNCTION_MAP.get(returnType);
-        if (functionName == null) {
-            throw new IllegalArgumentException(
-                    String.format(Locale.ENGLISH, "No cast function found for return type %s",
-                            returnType.getName()));
-        }
-        functionName = tryCast ? TRY_CAST_PREFIX + functionName : functionName;
-        return new FunctionInfo(new FunctionIdent(functionName, ImmutableList.of(dataType)), returnType);
-    }
-
-    public static boolean supportsExplicitConversion(DataType returnType) {
-        return FUNCTION_MAP.get(returnType) != null;
-    }
-
-    private static Function<String, String> TO_TRY_CAST_MAP = new Function<String, String>() {
-        @Override
-        public String apply(String functionName) {
-            return TRY_CAST_PREFIX + functionName;
-        }
-    };
-
-    public static Map<DataType, String> tryFunctionsMap() {
-        return Maps.transformValues(FUNCTION_MAP, TO_TRY_CAST_MAP);
     }
 }

@@ -46,7 +46,7 @@ public class ToLongFunctionTest extends AbstractScalarFunctionsTest {
     private final String functionName = CastFunctionResolver.FunctionNames.TO_LONG;
 
     private Long evaluate(Object value, DataType type) {
-        Input[] input = {(Input)Literal.newLiteral(type, value)};
+        Input[] input = {(Input) Literal.newLiteral(type, value)};
         ToPrimitiveFunction fn = getFunction(functionName, type);
         return (Long) fn.evaluate(input);
     }
@@ -54,7 +54,7 @@ public class ToLongFunctionTest extends AbstractScalarFunctionsTest {
     private Symbol normalize(Object value, DataType type) {
         ToPrimitiveFunction function = getFunction(functionName, type);
         return function.normalizeSymbol(new Function(function.info(),
-                Collections.<Symbol>singletonList(Literal.newLiteral(type, value))), new StmtCtx());
+            Collections.<Symbol>singletonList(Literal.newLiteral(type, value))), new StmtCtx());
     }
 
     @Test

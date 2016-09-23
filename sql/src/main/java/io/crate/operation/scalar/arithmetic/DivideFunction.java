@@ -37,12 +37,12 @@ public abstract class DivideFunction extends ArithmeticFunction implements Opera
     public static final String NAME = "divide";
     public static final String SQL_SYMBOL = "/";
 
-    public static void register(ScalarFunctionModule module) {
-        module.register(NAME, new Resolver());
-    }
-
     public DivideFunction(FunctionInfo info) {
         super(info);
+    }
+
+    public static void register(ScalarFunctionModule module) {
+        module.register(NAME, new Resolver());
     }
 
     @Override

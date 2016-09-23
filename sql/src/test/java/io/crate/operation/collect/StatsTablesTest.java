@@ -59,7 +59,7 @@ public class StatsTablesTest extends CrateUnitTest {
             .put(CrateSettings.STATS_OPERATIONS_LOG_SIZE.settingName(), 100).build(), nodeSettingsService);
 
         stats.listener.onRefreshSettings(Settings.builder()
-                .put(CrateSettings.STATS_OPERATIONS_LOG_SIZE.settingName(), 200).build());
+            .put(CrateSettings.STATS_OPERATIONS_LOG_SIZE.settingName(), 200).build());
 
         assertThat(stats.isEnabled(), is(true));
         assertThat(stats.lastJobsLogSize, is(100));
@@ -69,7 +69,7 @@ public class StatsTablesTest extends CrateUnitTest {
 
 
         stats.listener.onRefreshSettings(Settings.builder()
-                .put(CrateSettings.STATS_ENABLED.settingName(), false).build());
+            .put(CrateSettings.STATS_ENABLED.settingName(), false).build());
 
         // logs got wiped:
         assertThat(stats.jobsLog.get(), Matchers.instanceOf(NoopQueue.class));
@@ -80,26 +80,26 @@ public class StatsTablesTest extends CrateUnitTest {
     public void testLogsArentWipedOnSizeChange() {
         NodeSettingsService nodeSettingsService = new NodeSettingsService(Settings.EMPTY);
         Settings settings = Settings.builder()
-                .put(CrateSettings.STATS_ENABLED.settingName(), true).build();
+            .put(CrateSettings.STATS_ENABLED.settingName(), true).build();
         StatsTables stats = new StatsTables(settings, nodeSettingsService);
 
         stats.jobsLog.get().add(new JobContextLog(new JobContext(UUID.randomUUID(), "select 1", 1L), null));
 
         stats.listener.onRefreshSettings(Settings.builder()
-                .put(CrateSettings.STATS_ENABLED.settingName(), true)
-                .put(CrateSettings.STATS_JOBS_LOG_SIZE.settingName(), 200).build());
+            .put(CrateSettings.STATS_ENABLED.settingName(), true)
+            .put(CrateSettings.STATS_JOBS_LOG_SIZE.settingName(), 200).build());
 
         assertThat(stats.jobsLog.get().size(), is(1));
 
 
         stats.operationsLog.get().add(new OperationContextLog(
-                new OperationContext(1, UUID.randomUUID(), "foo", 2L), null));
+            new OperationContext(1, UUID.randomUUID(), "foo", 2L), null));
         stats.operationsLog.get().add(new OperationContextLog(
-                new OperationContext(1, UUID.randomUUID(), "foo", 3L), null));
+            new OperationContext(1, UUID.randomUUID(), "foo", 3L), null));
 
         stats.listener.onRefreshSettings(Settings.builder()
-                .put(CrateSettings.STATS_ENABLED.settingName(), true)
-                .put(CrateSettings.STATS_OPERATIONS_LOG_SIZE.settingName(), 1).build());
+            .put(CrateSettings.STATS_ENABLED.settingName(), true)
+            .put(CrateSettings.STATS_OPERATIONS_LOG_SIZE.settingName(), 1).build());
 
         assertThat(stats.operationsLog.get().size(), is(1));
     }
@@ -108,7 +108,7 @@ public class StatsTablesTest extends CrateUnitTest {
     public void testUniqueOperationIdsInOperationsTable() throws Exception {
         NodeSettingsService nodeSettingsService = new NodeSettingsService(Settings.EMPTY);
         Settings settings = Settings.builder()
-                .put(CrateSettings.STATS_ENABLED.settingName(), true).build();
+            .put(CrateSettings.STATS_ENABLED.settingName(), true).build();
         StatsTables stats = new StatsTables(settings, nodeSettingsService);
 
         OperationContext ctxA = new OperationContext(0, UUID.randomUUID(), "dummyOperation", 1L);

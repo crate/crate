@@ -57,8 +57,8 @@ public class ShardStatsTest extends SQLTransportIntegrationTest {
     @Test
     public void testSelectIncludingUnassignedShards() throws Exception {
         execute("create table locations (id integer primary key, name string) " +
-            "clustered into 2 shards " +
-            "with (number_of_replicas=2)");
+                "clustered into 2 shards " +
+                "with (number_of_replicas=2)");
         client().admin().cluster().prepareHealth("locations").setWaitForYellowStatus().execute().actionGet();
 
         execute("select state, \"primary\", recovery from sys.shards where table_name = 'locations' order by state, \"primary\"");
@@ -103,17 +103,17 @@ public class ShardStatsTest extends SQLTransportIntegrationTest {
     public void testTableNameBlobTable() throws Exception {
         BlobIndices blobIndices = internalCluster().getInstance(BlobIndices.class);
         Settings indexSettings = Settings.builder()
-                .put(IndexMetaData.SETTING_NUMBER_OF_REPLICAS, 1)
-                .put(IndexMetaData.SETTING_NUMBER_OF_SHARDS, 1)
-                .build();
+            .put(IndexMetaData.SETTING_NUMBER_OF_REPLICAS, 1)
+            .put(IndexMetaData.SETTING_NUMBER_OF_SHARDS, 1)
+            .build();
         blobIndices.createBlobTable("blobs", indexSettings).get();
         ensureGreen();
 
         execute("select schema_name, table_name from sys.shards where table_name = 'blobs'");
         assertThat(response.rowCount(), is(2L));
-        for (int i = 0; i<response.rowCount(); i++) {
-            assertThat((String)response.rows()[i][0], is("blob"));
-            assertThat((String)response.rows()[i][1], is("blobs"));
+        for (int i = 0; i < response.rowCount(); i++) {
+            assertThat((String) response.rows()[i][0], is("blob"));
+            assertThat((String) response.rows()[i][1], is("blobs"));
         }
 
         execute("create blob table sbolb clustered into 4 shards with (number_of_replicas=3)");
@@ -122,13 +122,13 @@ public class ShardStatsTest extends SQLTransportIntegrationTest {
         execute("select schema_name, table_name from sys.shards where table_name = 'sbolb'");
         assertThat(response.rowCount(), is(16L));
         for (int i = 0; i < response.rowCount(); i++) {
-            assertThat((String)response.rows()[i][0], is("blob"));
-            assertThat((String)response.rows()[i][1], is("sbolb"));
+            assertThat((String) response.rows()[i][0], is("blob"));
+            assertThat((String) response.rows()[i][1], is("sbolb"));
         }
         execute("select count(*) from sys.shards " +
                 "where schema_name='blob' and table_name != 'blobs' " +
                 "and table_name != 'sbolb'");
         assertThat(response.rowCount(), is(1L));
-        assertThat((Long)response.rows()[0][0], is(0L));
+        assertThat((Long) response.rows()[0][0], is(0L));
     }
 }

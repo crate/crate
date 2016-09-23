@@ -63,7 +63,7 @@ public class VersionHandlingIntegrationTest extends SQLTransportIntegrationTest 
         Long version = (Long) response.rows()[0][0];
 
         execute("delete from test where col1 = 1 and \"_version\" = ?",
-                new Object[]{version});
+            new Object[]{version});
         assertEquals(1L, response.rowCount());
 
         // Validate that the row is really deleted
@@ -105,7 +105,7 @@ public class VersionHandlingIntegrationTest extends SQLTransportIntegrationTest 
         assertEquals(1L, response.rows()[0][0]);
 
         execute("update test set col2 = ? where col1 = ? and \"_version\" = ?",
-                new Object[]{"ok now panic", 1, 1});
+            new Object[]{"ok now panic", 1, 1});
         assertEquals(1L, response.rowCount());
 
         // Validate that the row is really updated
@@ -122,7 +122,7 @@ public class VersionHandlingIntegrationTest extends SQLTransportIntegrationTest 
         execute("create table test (col1 integer primary key, col2 string)");
         ensureYellow();
         execute("update test set col2 = ? where \"_version\" = ?",
-                new Object[]{"ok now panic", 1});
+            new Object[]{"ok now panic", 1});
     }
 
     @Test
@@ -138,12 +138,12 @@ public class VersionHandlingIntegrationTest extends SQLTransportIntegrationTest 
         assertEquals(1L, response.rows()[0][0]);
 
         execute("update test set col2 = ? where col1 = ? and \"_version\" = ?",
-                new Object[]{"ok now panic", 1, 1});
+            new Object[]{"ok now panic", 1, 1});
         assertEquals(1L, response.rowCount());
         refresh();
 
         execute("update test set col2 = ? where col1 = ? and \"_version\" = ?",
-                new Object[]{"hopefully not updated", 1, 1});
+            new Object[]{"hopefully not updated", 1, 1});
         assertEquals(0L, response.rowCount());
         refresh();
 

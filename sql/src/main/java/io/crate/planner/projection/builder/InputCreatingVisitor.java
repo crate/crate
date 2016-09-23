@@ -33,39 +33,6 @@ public class InputCreatingVisitor extends DefaultTraversalSymbolVisitor<InputCre
 
     public static final InputCreatingVisitor INSTANCE = new InputCreatingVisitor();
 
-    public static class Context {
-
-        final HashMap<Symbol, InputColumn> inputs;
-        final IdentityHashMap<Symbol, InputColumn> nonDeterministicFunctions;
-
-        public Context(Collection<? extends Symbol> inputs) {
-            this.inputs = new HashMap<>(inputs.size());
-
-            // non deterministic functions would override each other in a normal hashmap
-            // as they compare equal but shouldn't be treated that way here.
-            // we want them to have their own Input each
-            this.nonDeterministicFunctions = new IdentityHashMap<>(inputs.size());
-
-            int i = 0;
-            for (Symbol input : inputs) {
-                // only non-literals should be replaced with input columns.
-                // otherwise {@link io.crate.metadata.Scalar#compile} won't do anything which
-                // results in poor performance of some scalar implementations
-                if (!input.symbolType().isValueSymbol()) {
-                    DataType valueType = input.valueType();
-                    if (input.symbolType() == SymbolType.FUNCTION && !((Function)input).info().isDeterministic()) {
-                        nonDeterministicFunctions.put(input, new InputColumn(i, valueType));
-                    } else {
-                        this.inputs.put(input, new InputColumn(i, valueType));
-                    }
-                }
-                i++;
-            }
-
-        }
-    }
-
-
     public List<Symbol> process(Collection<? extends Symbol> symbols, Context context) {
         List<Symbol> result = new ArrayList<>(symbols.size());
         for (Symbol symbol : symbols) {
@@ -101,7 +68,39 @@ public class InputCreatingVisitor extends DefaultTraversalSymbolVisitor<InputCre
     @Override
     public Symbol visitAggregation(Aggregation symbol, Context context) {
         throw new AssertionError("Aggregation Symbols must not be visited with " +
-                getClass().getCanonicalName());
+                                 getClass().getCanonicalName());
+    }
+
+    public static class Context {
+
+        final HashMap<Symbol, InputColumn> inputs;
+        final IdentityHashMap<Symbol, InputColumn> nonDeterministicFunctions;
+
+        public Context(Collection<? extends Symbol> inputs) {
+            this.inputs = new HashMap<>(inputs.size());
+
+            // non deterministic functions would override each other in a normal hashmap
+            // as they compare equal but shouldn't be treated that way here.
+            // we want them to have their own Input each
+            this.nonDeterministicFunctions = new IdentityHashMap<>(inputs.size());
+
+            int i = 0;
+            for (Symbol input : inputs) {
+                // only non-literals should be replaced with input columns.
+                // otherwise {@link io.crate.metadata.Scalar#compile} won't do anything which
+                // results in poor performance of some scalar implementations
+                if (!input.symbolType().isValueSymbol()) {
+                    DataType valueType = input.valueType();
+                    if (input.symbolType() == SymbolType.FUNCTION && !((Function) input).info().isDeterministic()) {
+                        nonDeterministicFunctions.put(input, new InputColumn(i, valueType));
+                    } else {
+                        this.inputs.put(input, new InputColumn(i, valueType));
+                    }
+                }
+                i++;
+            }
+
+        }
     }
 
 }

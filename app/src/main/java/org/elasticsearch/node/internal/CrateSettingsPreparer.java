@@ -23,16 +23,12 @@ package org.elasticsearch.node.internal;
 
 import io.crate.Constants;
 import org.elasticsearch.cluster.ClusterName;
-import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.cli.Terminal;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.settings.SettingsException;
 import org.elasticsearch.env.Environment;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.HashSet;
-import java.util.Set;
 
 import static org.elasticsearch.common.Strings.cleanPath;
 import static org.elasticsearch.common.settings.Settings.settingsBuilder;
@@ -44,7 +40,7 @@ public class CrateSettingsPreparer {
     /**
      * ES_COPY_OF: core/src/main/java/org/elasticsearch/node/internal/InternalSettingsPreparer.java
      * This is a copy of {@link InternalSettingsPreparer#prepareEnvironment(Settings, Terminal)}
-     *
+     * <p>
      * with the addition of the "applyCrateDefaults" call.
      */
     public static Environment prepareEnvironment(Settings input, Terminal terminal) {

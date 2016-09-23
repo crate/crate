@@ -50,23 +50,36 @@ import java.util.concurrent.CountDownLatch;
 
 /**
  * ES_COPY_OF: core/src/main/java/org/elasticsearch/bootstrap/Bootstrap.java
- *
+ * <p>
  * This is a copy of {@link Bootstrap}
- *
+ * <p>
  * With following patches:
- *  - CrateNode instead of Node is build/started in order to load the CrateCorePlugin
- *  - CrateSettingsPreparer is used instead of InternalSettingsPreparer
- *  - disabled security manager setup due to policy problems with plugins
+ * - CrateNode instead of Node is build/started in order to load the CrateCorePlugin
+ * - CrateSettingsPreparer is used instead of InternalSettingsPreparer
+ * - disabled security manager setup due to policy problems with plugins
  */
 public class BootstrapProxy {
 
+    /**
+     * option for elasticsearch.yml etc to turn off our security manager completely,
+     * for example if you want to have your own configuration or just disable.
+     */
+    // TODO: remove this: http://www.openbsd.org/papers/hackfest2015-pledge/mgp00005.jpg
+    static final String SECURITY_SETTING = "security.manager.enabled";
+    /**
+     * option for elasticsearch.yml to fully respect the system policy, including bad defaults
+     * from java.
+     */
+    // TODO: remove this hack when insecure defaults are removed from java
+    static final String SECURITY_FILTER_BAD_DEFAULTS_SETTING = "security.manager.filter_bad_defaults";
     private static volatile BootstrapProxy INSTANCE;
-
-    private volatile CrateNode node;
     private final CountDownLatch keepAliveLatch = new CountDownLatch(1);
     private final Thread keepAliveThread;
+    private volatile CrateNode node;
 
-    /** creates a new instance */
+    /**
+     * creates a new instance
+     */
     BootstrapProxy() {
         keepAliveThread = new Thread(new Runnable() {
             @Override
@@ -88,7 +101,9 @@ public class BootstrapProxy {
         });
     }
 
-    /** initialize native resources */
+    /**
+     * initialize native resources
+     */
     public static void initializeNatives(Path tmpFile, boolean mlockAll, boolean seccomp, boolean ctrlHandler) {
         final ESLogger logger = Loggers.getLogger(Bootstrap.class);
 
@@ -147,67 +162,6 @@ public class BootstrapProxy {
         OsProbe.getInstance();
     }
 
-    private void setup(boolean addShutdownHook, Settings settings, Environment environment) throws Exception {
-        initializeNatives(environment.tmpFile(),
-                settings.getAsBoolean("bootstrap.mlockall", false),
-                settings.getAsBoolean("bootstrap.seccomp", true),
-                settings.getAsBoolean("bootstrap.ctrlhandler", true));
-
-        // initialize probes before the security manager is installed
-        initializeProbes();
-
-        if (addShutdownHook) {
-            Runtime.getRuntime().addShutdownHook(new Thread() {
-                @Override
-                public void run() {
-                    if (node != null) {
-                        node.close();
-                    }
-                }
-            });
-        }
-
-        // look for jar hell
-        JarHell.checkJarHell();
-
-        // We do not need to reload system properties here as we have already applied them in building the settings and
-        // reloading could cause multiple prompts to the user for values if a system property was specified with a prompt
-        // placeholder
-        Settings nodeSettings = Settings.settingsBuilder()
-                .put(settings)
-                .put(CrateSettingsPreparer.IGNORE_SYSTEM_PROPERTIES_SETTING, true)
-                .build();
-
-        Environment crateEnvironment = CrateSettingsPreparer.prepareEnvironment(nodeSettings, null);
-
-        /**
-         * DISABLED setup of security manager due to policy problems with plugins (e.g. SigarPlugin will not work)
-         */
-        // install SM after natives, shutdown hooks, etc.
-        //setupSecurity(settings, crateEnvironment);
-
-        node = new CrateNode(crateEnvironment);
-    }
-
-    /**
-     * option for elasticsearch.yml etc to turn off our security manager completely,
-     * for example if you want to have your own configuration or just disable.
-     */
-    // TODO: remove this: http://www.openbsd.org/papers/hackfest2015-pledge/mgp00005.jpg
-    static final String SECURITY_SETTING = "security.manager.enabled";
-    /**
-     * option for elasticsearch.yml to fully respect the system policy, including bad defaults
-     * from java.
-     */
-    // TODO: remove this hack when insecure defaults are removed from java
-    static final String SECURITY_FILTER_BAD_DEFAULTS_SETTING = "security.manager.filter_bad_defaults";
-
-    private void setupSecurity(Settings settings, Environment environment) throws Exception {
-        if (settings.getAsBoolean(SECURITY_SETTING, true)) {
-            Security.configure(environment, settings.getAsBoolean(SECURITY_FILTER_BAD_DEFAULTS_SETTING, true));
-        }
-    }
-
     @SuppressForbidden(reason = "Exception#printStackTrace()")
     private static void setupLogging(Settings settings, Environment environment) {
         try {
@@ -226,11 +180,6 @@ public class BootstrapProxy {
     private static Environment initialSettings(boolean foreground) {
         Terminal terminal = foreground ? Terminal.DEFAULT : null;
         return CrateSettingsPreparer.prepareEnvironment(Settings.EMPTY, terminal);
-    }
-
-    private void start() {
-        node.start();
-        keepAliveThread.start();
     }
 
     public static void stop() {
@@ -363,6 +312,59 @@ public class BootstrapProxy {
             logger.info("{} is no longer supported. crate.yml must be placed in the config directory and cannot be renamed.", settingName);
             System.exit(1);
         }
+    }
+
+    private void setup(boolean addShutdownHook, Settings settings, Environment environment) throws Exception {
+        initializeNatives(environment.tmpFile(),
+            settings.getAsBoolean("bootstrap.mlockall", false),
+            settings.getAsBoolean("bootstrap.seccomp", true),
+            settings.getAsBoolean("bootstrap.ctrlhandler", true));
+
+        // initialize probes before the security manager is installed
+        initializeProbes();
+
+        if (addShutdownHook) {
+            Runtime.getRuntime().addShutdownHook(new Thread() {
+                @Override
+                public void run() {
+                    if (node != null) {
+                        node.close();
+                    }
+                }
+            });
+        }
+
+        // look for jar hell
+        JarHell.checkJarHell();
+
+        // We do not need to reload system properties here as we have already applied them in building the settings and
+        // reloading could cause multiple prompts to the user for values if a system property was specified with a prompt
+        // placeholder
+        Settings nodeSettings = Settings.settingsBuilder()
+            .put(settings)
+            .put(CrateSettingsPreparer.IGNORE_SYSTEM_PROPERTIES_SETTING, true)
+            .build();
+
+        Environment crateEnvironment = CrateSettingsPreparer.prepareEnvironment(nodeSettings, null);
+
+        /**
+         * DISABLED setup of security manager due to policy problems with plugins (e.g. SigarPlugin will not work)
+         */
+        // install SM after natives, shutdown hooks, etc.
+        //setupSecurity(settings, crateEnvironment);
+
+        node = new CrateNode(crateEnvironment);
+    }
+
+    private void setupSecurity(Settings settings, Environment environment) throws Exception {
+        if (settings.getAsBoolean(SECURITY_SETTING, true)) {
+            Security.configure(environment, settings.getAsBoolean(SECURITY_FILTER_BAD_DEFAULTS_SETTING, true));
+        }
+    }
+
+    private void start() {
+        node.start();
+        keepAliveThread.start();
     }
 }
 

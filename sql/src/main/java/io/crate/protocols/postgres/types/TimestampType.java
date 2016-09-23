@@ -36,7 +36,7 @@ class TimestampType extends PGType {
     /**
      * this oid is TIMESTAMPZ (with timezone) instead of TIMESTAMP
      * the timezone is always GMT
-     *
+     * <p>
      * If TIMESTAMP was used resultSet.getTimestamp() would convert the timestamp to a local time.
      */
     private static final int OID = 1184;
@@ -55,13 +55,6 @@ class TimestampType extends PGType {
         super(OID, TYPE_LEN, TYPE_MOD, "timestampz");
     }
 
-    @Override
-    public int writeAsBinary(ChannelBuffer buffer, @Nonnull Object value) {
-        buffer.writeInt(TYPE_LEN);
-        buffer.writeDouble(toPgTimestamp((long)value));
-        return INT32_BYTE_SIZE + TYPE_LEN;
-    }
-
     /**
      * Convert a crate timestamp (unix timestamp in ms) into a postgres timestamp (double seconds since 2000-01-01)
      */
@@ -75,6 +68,13 @@ class TimestampType extends PGType {
      */
     private static long toCrateTimestamp(double v) {
         return (long) ((v + EPOCH_DIFF) * 1000.0);
+    }
+
+    @Override
+    public int writeAsBinary(ChannelBuffer buffer, @Nonnull Object value) {
+        buffer.writeInt(TYPE_LEN);
+        buffer.writeDouble(toPgTimestamp((long) value));
+        return INT32_BYTE_SIZE + TYPE_LEN;
     }
 
     @Override

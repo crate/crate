@@ -62,7 +62,7 @@ import java.util.*;
 public class ESGetTask extends JobTask {
 
     private final static SymbolToFieldExtractor<GetResponse> SYMBOL_TO_FIELD_EXTRACTOR =
-            new SymbolToFieldExtractor<>(new GetResponseFieldExtractorFactory());
+        new SymbolToFieldExtractor<>(new GetResponseFieldExtractorFactory());
 
     private final static Set<ColumnIdent> FETCH_SOURCE_COLUMNS = ImmutableSet.of(DocSysColumns.DOC, DocSysColumns.RAW);
     private final ProjectorFactory projectorFactory;
@@ -73,18 +73,89 @@ public class ESGetTask extends JobTask {
     private final List<Function<GetResponse, Object>> extractors;
     private final FetchSourceContext fsc;
 
+    public ESGetTask(Functions functions,
+                     ProjectorFactory projectorFactory,
+                     TransportActionProvider transportActionProvider,
+                     ESGet esGet,
+                     JobContextService jobContextService) {
+        super(esGet.jobId());
+        this.projectorFactory = projectorFactory;
+        this.transportActionProvider = transportActionProvider;
+        this.esGet = esGet;
+        this.jobContextService = jobContextService;
+
+        assert esGet.docKeys().size() > 0;
+        assert esGet.limit() != 0 : "shouldn't execute ESGetTask if limit is 0";
+
+        GetResponseContext ctx = new GetResponseContext(functions, esGet);
+        extractors = getFieldExtractors(esGet, ctx);
+        fsc = getFetchSourceContext(ctx.references());
+    }
+
+    private static FetchSourceContext getFetchSourceContext(List<Reference> references) {
+        List<String> includes = new ArrayList<>(references.size());
+        for (Reference ref : references) {
+            if (ref.ident().columnIdent().isSystemColumn() &&
+                FETCH_SOURCE_COLUMNS.contains(ref.ident().columnIdent())) {
+                return new FetchSourceContext(true);
+            }
+            includes.add(ref.ident().columnIdent().name());
+        }
+        if (includes.size() > 0) {
+            return new FetchSourceContext(includes.toArray(new String[includes.size()]));
+        }
+        return new FetchSourceContext(false);
+    }
+
+    private static List<Function<GetResponse, Object>> getFieldExtractors(ESGet node, GetResponseContext ctx) {
+        List<Function<GetResponse, Object>> extractors = new ArrayList<>(
+            node.outputs().size() + node.sortSymbols().size());
+        for (Symbol symbol : node.outputs()) {
+            extractors.add(SYMBOL_TO_FIELD_EXTRACTOR.convert(symbol, ctx));
+        }
+        for (Symbol symbol : node.sortSymbols()) {
+            extractors.add(SYMBOL_TO_FIELD_EXTRACTOR.convert(symbol, ctx));
+        }
+        return extractors;
+    }
+
+    public static String indexName(DocTableInfo tableInfo, @Nullable List<BytesRef> values) {
+        if (tableInfo.isPartitioned()) {
+            assert values != null;
+            return new PartitionName(tableInfo.ident(), values).asIndexName();
+        } else {
+            return tableInfo.ident().indexName();
+        }
+    }
+
+    @Override
+    public void execute(RowReceiver rowReceiver) {
+        JobContext jobContext;
+        if (esGet.docKeys().size() == 1) {
+            jobContext = new SingleGetJobContext(this, transportActionProvider.transportGetAction(), rowReceiver);
+        } else {
+            jobContext = new MultiGetJobContext(this, transportActionProvider.transportMultiGetAction(), rowReceiver);
+        }
+        JobExecutionContext.Builder builder = jobContextService.newBuilder(jobId());
+        builder.addSubContext(jobContext);
+
+        try {
+            JobExecutionContext ctx = jobContextService.createContext(builder);
+            ctx.start();
+        } catch (Throwable throwable) {
+            rowReceiver.fail(throwable);
+        }
+    }
+
     static abstract class JobContext<Action extends TransportAction<Request, Response>,
         Request extends ActionRequest, Response extends ActionResponse> extends AbstractExecutionSubContext
         implements ActionListener<Response> {
 
         private static final ESLogger LOGGER = Loggers.getLogger(JobContext.class);
-
-
-        private final Request request;
-        protected RowReceiver downstream;
-
-        private final Action transportAction;
         protected final ESGetTask task;
+        private final Request request;
+        private final Action transportAction;
+        protected RowReceiver downstream;
 
         JobContext(ESGetTask task, Action transportAction, RowReceiver downstream) {
             super(task.esGet.executionPhaseId(), LOGGER);
@@ -251,83 +322,10 @@ public class ESGetTask extends JobTask {
                 // this means we have no matching document
                 downstream.finish(RepeatHandle.UNSUPPORTED);
                 close();
-            } else{
+            } else {
                 downstream.fail(e);
                 close(e);
             }
-        }
-    }
-
-    public ESGetTask(Functions functions,
-                     ProjectorFactory projectorFactory,
-                     TransportActionProvider transportActionProvider,
-                     ESGet esGet,
-                     JobContextService jobContextService) {
-        super(esGet.jobId());
-        this.projectorFactory = projectorFactory;
-        this.transportActionProvider = transportActionProvider;
-        this.esGet = esGet;
-        this.jobContextService = jobContextService;
-
-        assert esGet.docKeys().size() > 0;
-        assert esGet.limit() != 0 : "shouldn't execute ESGetTask if limit is 0";
-
-        GetResponseContext ctx = new GetResponseContext(functions, esGet);
-        extractors = getFieldExtractors(esGet, ctx);
-        fsc = getFetchSourceContext(ctx.references());
-    }
-
-    @Override
-    public void execute(RowReceiver rowReceiver) {
-        JobContext jobContext;
-        if (esGet.docKeys().size() == 1) {
-            jobContext = new SingleGetJobContext(this, transportActionProvider.transportGetAction(), rowReceiver);
-        } else {
-            jobContext = new MultiGetJobContext(this, transportActionProvider.transportMultiGetAction(), rowReceiver);
-        }
-        JobExecutionContext.Builder builder = jobContextService.newBuilder(jobId());
-        builder.addSubContext(jobContext);
-
-        try {
-            JobExecutionContext ctx = jobContextService.createContext(builder);
-            ctx.start();
-        } catch (Throwable throwable) {
-            rowReceiver.fail(throwable);
-        }
-    }
-
-    private static FetchSourceContext getFetchSourceContext(List<Reference> references) {
-        List<String> includes = new ArrayList<>(references.size());
-        for (Reference ref : references) {
-            if (ref.ident().columnIdent().isSystemColumn() &&
-                FETCH_SOURCE_COLUMNS.contains(ref.ident().columnIdent())) {
-                return new FetchSourceContext(true);
-            }
-            includes.add(ref.ident().columnIdent().name());
-        }
-        if (includes.size() > 0) {
-            return new FetchSourceContext(includes.toArray(new String[includes.size()]));
-        }
-        return new FetchSourceContext(false);
-    }
-
-    private static List<Function<GetResponse, Object>> getFieldExtractors(ESGet node, GetResponseContext ctx) {
-        List<Function<GetResponse, Object>> extractors = new ArrayList<>(node.outputs().size() + node.sortSymbols().size());
-        for (Symbol symbol : node.outputs()) {
-            extractors.add(SYMBOL_TO_FIELD_EXTRACTOR.convert(symbol, ctx));
-        }
-        for (Symbol symbol : node.sortSymbols()) {
-            extractors.add(SYMBOL_TO_FIELD_EXTRACTOR.convert(symbol, ctx));
-        }
-        return extractors;
-    }
-
-    public static String indexName(DocTableInfo tableInfo, @Nullable List<BytesRef> values) {
-        if (tableInfo.isPartitioned()) {
-            assert values != null;
-            return new PartitionName(tableInfo.ident(), values).asIndexName();
-        } else {
-            return tableInfo.ident().indexName();
         }
     }
 
@@ -388,7 +386,7 @@ public class ESGetTask extends JobTask {
                         };
                 }
             } else if (context.node.tableInfo().isPartitioned()
-                    && context.node.tableInfo().partitionedBy().contains(reference.ident().columnIdent())) {
+                       && context.node.tableInfo().partitionedBy().contains(reference.ident().columnIdent())) {
                 final int pos = context.node.tableInfo().primaryKey().indexOf(reference.ident().columnIdent());
                 if (pos >= 0) {
                     return new Function<GetResponse, Object>() {

@@ -50,7 +50,7 @@ public class ParameterContextTest extends CrateUnitTest {
 
     @Test
     public void testArgs() throws Exception {
-        Row args = new RowN($(true, 1, null, "string" ));
+        Row args = new RowN($(true, 1, null, "string"));
         ParameterContext ctx = new ParameterContext(args, Collections.<Row>emptyList(), null);
         assertFalse(ctx.hasBulkParams());
         assertThat(ctx.parameters(), is(args));
@@ -58,9 +58,9 @@ public class ParameterContextTest extends CrateUnitTest {
 
     @Test
     public void testBulkArgs() throws Exception {
-        Object[][] bulkArgs = new Object[][] {
-                new Object[]{ true, 1, "foo", null, new String[]{null} },
-                new Object[]{ false, 2, "bar", new Object[0], new String[]{"foo", "bar"} }
+        Object[][] bulkArgs = new Object[][]{
+            new Object[]{true, 1, "foo", null, new String[]{null}},
+            new Object[]{false, 2, "bar", new Object[0], new String[]{"foo", "bar"}}
         };
         ParameterContext ctx = new ParameterContext(Row.EMPTY, Rows.of(bulkArgs), null);
         assertTrue(ctx.hasBulkParams());
@@ -75,16 +75,16 @@ public class ParameterContextTest extends CrateUnitTest {
         assertThat(ctx.getAsSymbol(1), isLiteral(2));
         assertThat(ctx.getAsSymbol(2), isLiteral("bar"));
         assertThat(ctx.getAsSymbol(3), isLiteral(new Object[0], new ArrayType(DataTypes.UNDEFINED)));
-        assertThat(ctx.getAsSymbol(4), isLiteral(new BytesRef[]{ new BytesRef("foo"), new BytesRef("bar") }, new ArrayType(DataTypes.STRING)));
+        assertThat(ctx.getAsSymbol(4), isLiteral(new BytesRef[]{new BytesRef("foo"), new BytesRef("bar")}, new ArrayType(DataTypes.STRING)));
     }
 
     @Test
     public void testBulkArgsMixedNumberOfArguments() throws Exception {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("mixed number of arguments inside bulk arguments");
-        Object[][] bulkArgs = new Object[][] {
-                new Object[]{ "foo" },
-                new Object[]{ false, 1 }
+        Object[][] bulkArgs = new Object[][]{
+            new Object[]{"foo"},
+            new Object[]{false, 1}
         };
         new ParameterContext(Row.EMPTY, Rows.of(bulkArgs), null);
     }
@@ -99,9 +99,9 @@ public class ParameterContextTest extends CrateUnitTest {
         obj2.put("a", new String[]{"foo"});
         obj2.put("b", new Float[]{0.5f});
 
-        Object[][] bulkArgs = new Object[][] {
-                new Object[]{obj1},
-                new Object[]{obj2},
+        Object[][] bulkArgs = new Object[][]{
+            new Object[]{obj1},
+            new Object[]{obj2},
         };
         ParameterContext ctx = new ParameterContext(Row.EMPTY, Rows.of(bulkArgs), null);
         ctx.setBulkIdx(0);
@@ -112,9 +112,9 @@ public class ParameterContextTest extends CrateUnitTest {
 
     @Test
     public void testBulkNestedNested() throws Exception {
-        Object[][] bulkArgs = new Object[][] {
-                new Object[] { new String[][] { new String[]{ null } } },
-                new Object[] { new String[][] { new String[]{ "foo" } } },
+        Object[][] bulkArgs = new Object[][]{
+            new Object[]{new String[][]{new String[]{null}}},
+            new Object[]{new String[][]{new String[]{"foo"}}},
         };
         ParameterContext ctx = new ParameterContext(Row.EMPTY, Rows.of(bulkArgs), null);
         assertThat(ctx.getAsSymbol(0), isLiteral(bulkArgs[0][0], new ArrayType(new ArrayType(DataTypes.UNDEFINED))));
@@ -122,9 +122,9 @@ public class ParameterContextTest extends CrateUnitTest {
 
     @Test
     public void testBulkNestedNestedEmpty() throws Exception {
-        Object[][] bulkArgs = new Object[][] {
-                new Object[] { new String[][] { new String[0] } },
-                new Object[] { new String[][] { new String[0] } },
+        Object[][] bulkArgs = new Object[][]{
+            new Object[]{new String[][]{new String[0]}},
+            new Object[]{new String[][]{new String[0]}},
         };
         ParameterContext ctx = new ParameterContext(Row.EMPTY, Rows.of(bulkArgs), null);
         assertThat(ctx.getAsSymbol(0), isLiteral(bulkArgs[0][0], new ArrayType(new ArrayType(DataTypes.UNDEFINED))));

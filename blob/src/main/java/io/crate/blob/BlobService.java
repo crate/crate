@@ -123,7 +123,7 @@ public class BlobService extends AbstractLifecycleComponent<BlobService> {
      */
     public String getRedirectAddress(String index, String digest) throws MissingHTTPEndpointException {
         ShardIterator shards = clusterService.operationRouting().getShards(
-                clusterService.state(), index, null, null, digest, "_local");
+            clusterService.state(), index, null, null, digest, "_local");
 
         String localNodeId = clusterService.state().nodes().localNodeId();
         DiscoveryNodes nodes = clusterService.state().getNodes();

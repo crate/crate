@@ -70,7 +70,7 @@ public abstract class QueriedTableRelation<TR extends AbstractTableRelation> imp
         return tableRelation;
     }
 
-    public void normalize(AnalysisMetaData analysisMetaData, StmtCtx stmtCtx){
+    public void normalize(AnalysisMetaData analysisMetaData, StmtCtx stmtCtx) {
         EvaluatingNormalizer normalizer = new EvaluatingNormalizer(analysisMetaData, tableRelation, true);
         querySpec().normalize(normalizer, stmtCtx);
     }

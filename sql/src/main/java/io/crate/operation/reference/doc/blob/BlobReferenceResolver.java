@@ -34,22 +34,23 @@ public class BlobReferenceResolver implements ReferenceResolver<BlobCollectorExp
     public static final BlobReferenceResolver INSTANCE = new BlobReferenceResolver();
 
     private static final Map<String, ExpressionBuilder> expressionBuilder =
-            ImmutableMap.of(
-                    BlobDigestExpression.COLUMN_NAME, new ExpressionBuilder() {
-                        @Override
-                        public BlobCollectorExpression<?> create() {
-                            return new BlobDigestExpression();
-                        }
-                    },
-                    BlobLastModifiedExpression.COLUMN_NAME, new ExpressionBuilder() {
-                        @Override
-                        public BlobCollectorExpression<?> create() {
-                            return new BlobLastModifiedExpression();
-                        }
-                    }
-            );
+        ImmutableMap.of(
+            BlobDigestExpression.COLUMN_NAME, new ExpressionBuilder() {
+                @Override
+                public BlobCollectorExpression<?> create() {
+                    return new BlobDigestExpression();
+                }
+            },
+            BlobLastModifiedExpression.COLUMN_NAME, new ExpressionBuilder() {
+                @Override
+                public BlobCollectorExpression<?> create() {
+                    return new BlobLastModifiedExpression();
+                }
+            }
+        );
 
-    private BlobReferenceResolver() {}
+    private BlobReferenceResolver() {
+    }
 
     @Override
     public BlobCollectorExpression<?> getImplementation(Reference refInfo) {

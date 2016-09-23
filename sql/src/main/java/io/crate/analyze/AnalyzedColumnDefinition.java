@@ -39,6 +39,12 @@ import java.util.*;
 
 public class AnalyzedColumnDefinition {
 
+    private final static Set<String> UNSUPPORTED_PK_TYPES = Sets.newHashSet(
+        DataTypes.OBJECT.getName(),
+        DataTypes.GEO_POINT.getName(),
+        DataTypes.GEO_SHAPE.getName()
+    );
+    private final static Set<String> NO_DOC_VALUES_SUPPORT = Sets.newHashSet("object", "geo_shape");
     private final AnalyzedColumnDefinition parent;
     private ColumnIdent ident;
     private String name;
@@ -52,23 +58,14 @@ public class AnalyzedColumnDefinition {
     private boolean isNotNull = false;
     private Settings analyzerSettings = Settings.EMPTY;
     private Settings geoSettings = Settings.EMPTY;
-
     private List<AnalyzedColumnDefinition> children = new ArrayList<>();
     private boolean isIndex = false;
     private ArrayList<String> copyToTargets;
     private boolean isParentColumn;
-
-    private final static Set<String> UNSUPPORTED_PK_TYPES = Sets.newHashSet(
-            DataTypes.OBJECT.getName(),
-            DataTypes.GEO_POINT.getName(),
-            DataTypes.GEO_SHAPE.getName()
-    );
-
     @Nullable
     private String formattedGeneratedExpression;
     @Nullable
     private Expression generatedExpression;
-    private final static Set<String> NO_DOC_VALUES_SUPPORT = Sets.newHashSet("object", "geo_shape");
 
     public AnalyzedColumnDefinition(@Nullable AnalyzedColumnDefinition parent) {
         this.parent = parent;
@@ -76,7 +73,7 @@ public class AnalyzedColumnDefinition {
 
     public void name(String name) {
         Preconditions.checkArgument(!name.startsWith("_"), "Column ident must not start with '_'");
-        if(ColumnIdent.INVALID_COLUMN_NAME_PREDICATE.apply(name)){
+        if (ColumnIdent.INVALID_COLUMN_NAME_PREDICATE.apply(name)) {
             throw new InvalidColumnNameException(name);
         }
 
@@ -102,7 +99,7 @@ public class AnalyzedColumnDefinition {
     }
 
     public void geoTree(String geoTree) {
-       this.geoTree = geoTree;
+        this.geoTree = geoTree;
     }
 
     public void analyzerSettings(Settings settings) {
@@ -144,8 +141,8 @@ public class AnalyzedColumnDefinition {
 
     public boolean docValues() {
         return !isIndex()
-                && collectionType == null
-                && index().equals("not_analyzed");
+               && collectionType == null
+               && index().equals("not_analyzed");
     }
 
     protected boolean isIndex() {
@@ -179,9 +176,9 @@ public class AnalyzedColumnDefinition {
     public void validate() {
         if (analyzer != null && !analyzer.equals("not_analyzed") && !dataType.equals("string")) {
             throw new IllegalArgumentException(
-                    String.format(Locale.ENGLISH, "Can't use an Analyzer on column %s because analyzers are only allowed on columns of type \"string\".",
-                            ident.sqlFqn()
-                    ));
+                String.format(Locale.ENGLISH, "Can't use an Analyzer on column %s because analyzers are only allowed on columns of type \"string\".",
+                    ident.sqlFqn()
+                ));
         }
         if (isPrimaryKey()) {
             ensureTypeCanBeUsedAsKey();
@@ -194,15 +191,15 @@ public class AnalyzedColumnDefinition {
     private void ensureTypeCanBeUsedAsKey() {
         if (collectionType != null) {
             throw new UnsupportedOperationException(
-                    String.format(Locale.ENGLISH, "Cannot use columns of type \"%s\" as primary key", collectionType));
+                String.format(Locale.ENGLISH, "Cannot use columns of type \"%s\" as primary key", collectionType));
         }
         if (UNSUPPORTED_PK_TYPES.contains(dataType)) {
             throw new UnsupportedOperationException(
-                    String.format(Locale.ENGLISH, "Cannot use columns of type \"%s\" as primary key", dataType));
+                String.format(Locale.ENGLISH, "Cannot use columns of type \"%s\" as primary key", dataType));
         }
         if (isArrayOrInArray()) {
             throw new UnsupportedOperationException(
-                    String.format(Locale.ENGLISH, "Cannot use column \"%s\" as primary key within an array object", name));
+                String.format(Locale.ENGLISH, "Cannot use column \"%s\" as primary key within an array object", name));
         }
     }
 
@@ -231,7 +228,7 @@ public class AnalyzedColumnDefinition {
                     DistanceUnit.parse(precision, DistanceUnit.DEFAULT, DistanceUnit.DEFAULT);
                 } catch (IllegalArgumentException e) {
                     throw new IllegalArgumentException(
-                            String.format(Locale.ENGLISH, "Value '%s' of setting precision is not a valid distance unit", precision)
+                        String.format(Locale.ENGLISH, "Value '%s' of setting precision is not a valid distance unit", precision)
                     );
                 }
                 mapping.put("precision", precision);
@@ -249,16 +246,17 @@ public class AnalyzedColumnDefinition {
                 }
             } catch (SettingsException e) {
                 throw new IllegalArgumentException(
-                     String.format(Locale.ENGLISH, "Value '%s' of setting distance_error_pct is not a float value", geoSettings.get("distance_error_pct"))
+                    String.format(Locale.ENGLISH, "Value '%s' of setting distance_error_pct is not a float value", geoSettings.get("distance_error_pct"))
                 );
             }
 
         }
 
         for (String setting : geoSettings.names()) {
-            if (!setting.equals("precision") && !setting.equals("distance_error_pct") && !setting.equals("tree_levels")) {
+            if (!setting.equals("precision") && !setting.equals("distance_error_pct") &&
+                !setting.equals("tree_levels")) {
                 throw new IllegalArgumentException(
-                        String.format(Locale.ENGLISH, "Setting \"%s\" ist not supported on geo_shape index", setting));
+                    String.format(Locale.ENGLISH, "Setting \"%s\" ist not supported on geo_shape index", setting));
             }
         }
 
@@ -269,10 +267,10 @@ public class AnalyzedColumnDefinition {
             mapping.put("analyzer", analyzer());
         }
         if ("array".equals(collectionType)) {
-            Map<String, Object> outerMapping = new HashMap<String, Object>(){{
+            Map<String, Object> outerMapping = new HashMap<String, Object>() {{
                 put("type", "array");
             }};
-            if(dataType().equals("object")){
+            if (dataType().equals("object")) {
                 objectMapping(mapping);
             }
             outerMapping.put("inner", mapping);
@@ -283,7 +281,7 @@ public class AnalyzedColumnDefinition {
         return mapping;
     }
 
-    private void objectMapping(Map<String, Object> mapping){
+    private void objectMapping(Map<String, Object> mapping) {
         mapping.put("dynamic", objectType);
         Map<String, Object> childProperties = new HashMap<>();
         for (AnalyzedColumnDefinition child : children) {

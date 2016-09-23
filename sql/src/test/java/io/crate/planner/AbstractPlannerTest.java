@@ -80,31 +80,27 @@ import static org.mockito.Mockito.when;
 
 public abstract class AbstractPlannerTest extends CrateUnitTest {
 
+    private static final Routing PARTED_ROUTING = new Routing(TreeMapBuilder.<String, Map<String, List<Integer>>>newMapBuilder()
+        .put("nodeOne", TreeMapBuilder.<String, List<Integer>>newMapBuilder().put(".partitioned.parted.04232chj", Arrays.asList(1, 2)).map())
+        .put("nodeTow", TreeMapBuilder.<String, List<Integer>>newMapBuilder().map())
+        .map());
+    private static final Routing CLUSTERED_PARTED_ROUTING = new Routing(TreeMapBuilder.<String, Map<String, List<Integer>>>newMapBuilder()
+        .put("nodeOne", TreeMapBuilder.<String, List<Integer>>newMapBuilder().put(".partitioned.clustered_parted.04732cpp6ks3ed1o60o30c1g", Arrays.asList(1, 2)).map())
+        .put("nodeTwo", TreeMapBuilder.<String, List<Integer>>newMapBuilder().put(".partitioned.clustered_parted.04732cpp6ksjcc9i60o30c1g", Arrays.asList(3)).map())
+        .map());
+    protected ClusterService clusterService;
+    private ThreadPool threadPool;
+    private Analyzer analyzer;
+    private Planner planner;
+    @Mock
+    private SchemaInfo schemaInfo;
+
     protected static Routing shardRouting(String tableName) {
         return new Routing(TreeMapBuilder.<String, Map<String, List<Integer>>>newMapBuilder()
             .put("nodeOne", TreeMapBuilder.<String, List<Integer>>newMapBuilder().put(tableName, Arrays.asList(1, 2)).map())
             .put("nodeTow", TreeMapBuilder.<String, List<Integer>>newMapBuilder().put(tableName, Arrays.asList(3, 4)).map())
             .map());
     }
-
-    private static final Routing PARTED_ROUTING = new Routing(TreeMapBuilder.<String, Map<String, List<Integer>>>newMapBuilder()
-        .put("nodeOne", TreeMapBuilder.<String, List<Integer>>newMapBuilder().put(".partitioned.parted.04232chj", Arrays.asList(1, 2)).map())
-        .put("nodeTow", TreeMapBuilder.<String, List<Integer>>newMapBuilder().map())
-        .map());
-
-    private static final Routing CLUSTERED_PARTED_ROUTING = new Routing(TreeMapBuilder.<String, Map<String, List<Integer>>>newMapBuilder()
-        .put("nodeOne", TreeMapBuilder.<String, List<Integer>>newMapBuilder().put(".partitioned.clustered_parted.04732cpp6ks3ed1o60o30c1g", Arrays.asList(1, 2)).map())
-        .put("nodeTwo", TreeMapBuilder.<String, List<Integer>>newMapBuilder().put(".partitioned.clustered_parted.04732cpp6ksjcc9i60o30c1g", Arrays.asList(3)).map())
-        .map());
-
-
-    protected ClusterService clusterService;
-    private ThreadPool threadPool;
-    private Analyzer analyzer;
-    private Planner planner;
-
-    @Mock
-    private SchemaInfo schemaInfo;
 
     @Before
     public void prepare() throws Exception {
@@ -143,6 +139,22 @@ public abstract class AbstractPlannerTest extends CrateUnitTest {
             .build(functions);
         when(schemaInfo.getTableInfo(generatedPartitionedTableIdent.name()))
             .thenReturn(generatedPartitionedTableInfo);
+    }
+
+    protected <T extends Plan> T plan(String statement, int maxRows, int softLimit) {
+        //noinspection unchecked: for testing this is fine
+        return (T) planner.plan(analyzer.analyze(SqlParser.createStatement(statement),
+            new ParameterContext(Row.EMPTY, Collections.<Row>emptyList(), Schemas.DEFAULT_SCHEMA_NAME)),
+            UUID.randomUUID(), softLimit, maxRows);
+    }
+
+    protected <T extends Plan> T plan(String statement) {
+        return plan(statement, 0, 0);
+    }
+
+    protected Plan plan(String statement, Object[][] bulkArgs) {
+        return planner.plan(analyzer.analyze(SqlParser.createStatement(statement),
+            new ParameterContext(Row.EMPTY, Rows.of(bulkArgs), Schemas.DEFAULT_SCHEMA_NAME)), UUID.randomUUID(), 0, 0);
     }
 
     class TestModule extends MetaDataModule {
@@ -273,21 +285,5 @@ public abstract class AbstractPlannerTest extends CrateUnitTest {
             ClusterService clusterService = new NoopClusterService(state);
             return new SysSchemaInfo(clusterService);
         }
-    }
-
-    protected <T extends Plan> T plan(String statement, int maxRows, int softLimit) {
-        //noinspection unchecked: for testing this is fine
-        return (T) planner.plan(analyzer.analyze(SqlParser.createStatement(statement),
-            new ParameterContext(Row.EMPTY, Collections.<Row>emptyList(), Schemas.DEFAULT_SCHEMA_NAME)),
-            UUID.randomUUID(), softLimit, maxRows);
-    }
-
-    protected <T extends Plan> T plan(String statement) {
-        return plan(statement, 0, 0);
-    }
-
-    protected Plan plan(String statement, Object[][] bulkArgs) {
-        return planner.plan(analyzer.analyze(SqlParser.createStatement(statement),
-            new ParameterContext(Row.EMPTY, Rows.of(bulkArgs), Schemas.DEFAULT_SCHEMA_NAME)), UUID.randomUUID(), 0, 0);
     }
 }

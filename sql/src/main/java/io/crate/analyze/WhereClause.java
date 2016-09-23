@@ -63,7 +63,7 @@ public class WhereClause extends QueryClause implements Streamable {
                        @Nullable List<String> partitions) {
         super(normalizedQuery);
         docKeys(docKeys);
-        if (partitions != null){
+        if (partitions != null) {
             this.partitions = partitions;
         }
     }
@@ -81,7 +81,7 @@ public class WhereClause extends QueryClause implements Streamable {
             return this;
         }
         WhereClause normalizedWhereClause = new WhereClause(normalizedQuery,
-                docKeys.orNull(), partitions);
+            docKeys.orNull(), partitions);
         normalizedWhereClause.clusteredBy = clusteredBy;
         return normalizedWhereClause;
     }
@@ -91,11 +91,11 @@ public class WhereClause extends QueryClause implements Streamable {
     }
 
     @Nullable
-    public Set<String> routingValues(){
+    public Set<String> routingValues() {
         if (clusteredBy.isPresent()) {
             HashSet<String> result = new HashSet<>(clusteredBy.get().size());
             Iterators.addAll(result, Iterators.transform(
-                    clusteredBy.get().iterator(), ValueSymbolVisitor.STRING.function));
+                clusteredBy.get().iterator(), ValueSymbolVisitor.STRING.function));
             return result;
         } else {
             return null;
@@ -103,22 +103,22 @@ public class WhereClause extends QueryClause implements Streamable {
     }
 
     public void clusteredBy(@Nullable Set<Symbol> clusteredBy) {
-        assert this != NO_MATCH && this != MATCH_ALL: "may not set clusteredByLiteral on MATCH_ALL/NO_MATCH singleton";
+        assert this != NO_MATCH && this != MATCH_ALL : "may not set clusteredByLiteral on MATCH_ALL/NO_MATCH singleton";
         if (clusteredBy != null && !clusteredBy.isEmpty()) {
             this.clusteredBy = Optional.of(clusteredBy);
         }
     }
 
     public void partitions(List<Literal> partitions) {
-        assert this != NO_MATCH && this != MATCH_ALL: "may not set partitions on MATCH_ALL/NO_MATCH singleton";
+        assert this != NO_MATCH && this != MATCH_ALL : "may not set partitions on MATCH_ALL/NO_MATCH singleton";
         for (Literal partition : partitions) {
             this.partitions.add(ValueSymbolVisitor.STRING.process(partition));
         }
     }
 
     public void docKeys(@Nullable DocKeys docKeys) {
-        assert this != NO_MATCH && this != MATCH_ALL: "may not set docKeys on MATCH_ALL/NO_MATCH singleton";
-        if (docKeys == null){
+        assert this != NO_MATCH && this != MATCH_ALL : "may not set docKeys on MATCH_ALL/NO_MATCH singleton";
+        if (docKeys == null) {
             this.docKeys = Optional.absent();
         } else {
             this.docKeys = Optional.of(docKeys);
@@ -132,11 +132,10 @@ public class WhereClause extends QueryClause implements Streamable {
     /**
      * Returns a predefined list of partitions this query can be executed on
      * instead of the entire partition set.
-     *
+     * <p>
      * If the list is empty no prefiltering can be done.
-     *
+     * <p>
      * Note that the NO_MATCH case has to be tested separately.
-     *
      */
     public List<String> partitions() {
         return partitions;
@@ -206,7 +205,7 @@ public class WhereClause extends QueryClause implements Streamable {
 
     /**
      * Adds another query to this WhereClause.
-     *
+     * <p>
      * The result is either a new WhereClause or the same (but modified) instance.
      */
     public WhereClause add(Symbol otherQuery) {

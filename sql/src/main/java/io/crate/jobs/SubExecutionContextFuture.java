@@ -64,7 +64,7 @@ public class SubExecutionContextFuture implements ListenableFuture<CompletionSta
     public boolean close(@Nullable Throwable t) {
         if (t == null) {
             return internalFuture.set(state);
-        }  else {
+        } else {
             return internalFuture.setException(t);
         }
     }

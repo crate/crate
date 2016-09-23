@@ -67,87 +67,6 @@ public class UpdateConsumer implements Consumer {
         visitor = new Visitor();
     }
 
-    @Override
-    public PlannedAnalyzedRelation consume(AnalyzedRelation rootRelation, ConsumerContext context) {
-        return visitor.process(rootRelation, context);
-    }
-
-    static class Context {
-        final UpdateAnalyzedStatement statement;
-        final ConsumerContext consumerContext;
-
-        public Context(UpdateAnalyzedStatement statement, ConsumerContext consumerContext) {
-            this.statement = statement;
-            this.consumerContext = consumerContext;
-        }
-    }
-
-    private static class RelationVisitor extends AnalyzedRelationVisitor<Context, PlannedAnalyzedRelation> {
-
-        @Override
-        public PlannedAnalyzedRelation visitDocTableRelation(DocTableRelation relation, Context context) {
-            UpdateAnalyzedStatement statement = context.statement;
-            Planner.Context plannerContext = context.consumerContext.plannerContext();
-
-            DocTableRelation tableRelation = (DocTableRelation) statement.sourceRelation();
-            DocTableInfo tableInfo = tableRelation.tableInfo();
-
-            List<Plan> childNodes = new ArrayList<>(statement.nestedStatements().size());
-            UpsertById upsertById = null;
-            int bulkIdx = 0;
-            for (UpdateAnalyzedStatement.NestedAnalyzedStatement nestedAnalysis : statement.nestedStatements()) {
-                WhereClause whereClause = nestedAnalysis.whereClause();
-                if (whereClause.noMatch()){
-                    continue;
-                }
-                if (whereClause.docKeys().isPresent()) {
-                    if (upsertById == null) {
-                        Tuple<String[], Symbol[]> assignments = Assignments.convert(nestedAnalysis.assignments());
-                        int numBulkResponses = statement.nestedStatements().size();
-                        if (numBulkResponses == 1) {
-                            // disable bulk logic for 1 bulk item
-                            numBulkResponses = 0;
-                        }
-                        upsertById = new UpsertById(
-                            plannerContext.jobId(),
-                            plannerContext.nextExecutionPhaseId(),
-                            false,
-                            numBulkResponses,
-                            assignments.v1(),
-                            null
-                        );
-                    }
-                    upsertById(nestedAnalysis, tableInfo, whereClause, upsertById, bulkIdx++);
-                } else {
-                    Plan plan = upsertByQuery(nestedAnalysis, plannerContext, tableInfo, whereClause);
-                    if (plan != null) {
-                        childNodes.add(plan);
-                    }
-                }
-            }
-            if (upsertById != null) {
-                assert childNodes.isEmpty() : "all bulk operations must resolve to the same sub-plan, either update-by-id or update-by-query";
-                return upsertById;
-            }
-            return createUpsertPlan(statement, childNodes, plannerContext.jobId());
-        }
-
-        @Override
-        public PlannedAnalyzedRelation visitTableRelation(TableRelation tableRelation, Context context) {
-            UpdateAnalyzedStatement statement = context.statement;
-            Planner.Context plannerContext = context.consumerContext.plannerContext();
-
-            List<Plan> childPlans = new ArrayList<>(statement.nestedStatements().size());
-            for (UpdateAnalyzedStatement.NestedAnalyzedStatement nestedStatement : statement.nestedStatements()) {
-                if (nestedStatement.whereClause().noMatch()) {
-                    continue;
-                }
-                childPlans.add(createSysTableUpdatePlan(tableRelation, plannerContext, nestedStatement));
-            }
-            return createUpsertPlan(statement, childPlans, plannerContext.jobId());
-        }
-    }
-
     private static PlannedAnalyzedRelation createUpsertPlan(UpdateAnalyzedStatement statement, List<Plan> childPlans, UUID jobId) {
         if (childPlans.isEmpty()) {
             return new NoopPlannedAnalyzedRelation(statement, jobId);
@@ -187,27 +106,13 @@ public class UpdateConsumer implements Consumer {
         return new CollectAndMerge(collectPhase, mergePhase);
     }
 
-    static class Visitor extends RelationPlanningVisitor {
-
-        private final RelationVisitor relationVisitor;
-
-        public Visitor() {
-            relationVisitor = new RelationVisitor();
-        }
-
-        @Override
-        public PlannedAnalyzedRelation visitUpdateAnalyzedStatement(UpdateAnalyzedStatement statement, ConsumerContext context) {
-            return relationVisitor.process(statement.sourceRelation(), new Context(statement, context));
-        }
-    }
-
     private static Plan upsertByQuery(UpdateAnalyzedStatement.NestedAnalyzedStatement nestedAnalysis,
                                       Planner.Context plannerContext,
                                       DocTableInfo tableInfo,
                                       WhereClause whereClause) {
 
         Symbol versionSymbol = null;
-        if(whereClause.hasVersions()){
+        if (whereClause.hasVersions()) {
             versionSymbol = VersionRewriter.get(whereClause.query());
             whereClause = new WhereClause(whereClause.query(), whereClause.docKeys().orNull(), whereClause.partitions());
         }
@@ -220,7 +125,7 @@ public class UpdateConsumer implements Consumer {
             Tuple<String[], Symbol[]> assignments = Assignments.convert(nestedAnalysis.assignments());
 
             Long version = null;
-            if (versionSymbol != null){
+            if (versionSymbol != null) {
                 version = ValueSymbolVisitor.LONG.process(versionSymbol);
             }
 
@@ -279,6 +184,101 @@ public class UpdateConsumer implements Consumer {
                 key.routing(),
                 assignments.v2(),
                 key.version().orNull());
+        }
+    }
+
+    @Override
+    public PlannedAnalyzedRelation consume(AnalyzedRelation rootRelation, ConsumerContext context) {
+        return visitor.process(rootRelation, context);
+    }
+
+    static class Context {
+        final UpdateAnalyzedStatement statement;
+        final ConsumerContext consumerContext;
+
+        public Context(UpdateAnalyzedStatement statement, ConsumerContext consumerContext) {
+            this.statement = statement;
+            this.consumerContext = consumerContext;
+        }
+    }
+
+    private static class RelationVisitor extends AnalyzedRelationVisitor<Context, PlannedAnalyzedRelation> {
+
+        @Override
+        public PlannedAnalyzedRelation visitDocTableRelation(DocTableRelation relation, Context context) {
+            UpdateAnalyzedStatement statement = context.statement;
+            Planner.Context plannerContext = context.consumerContext.plannerContext();
+
+            DocTableRelation tableRelation = (DocTableRelation) statement.sourceRelation();
+            DocTableInfo tableInfo = tableRelation.tableInfo();
+
+            List<Plan> childNodes = new ArrayList<>(statement.nestedStatements().size());
+            UpsertById upsertById = null;
+            int bulkIdx = 0;
+            for (UpdateAnalyzedStatement.NestedAnalyzedStatement nestedAnalysis : statement.nestedStatements()) {
+                WhereClause whereClause = nestedAnalysis.whereClause();
+                if (whereClause.noMatch()) {
+                    continue;
+                }
+                if (whereClause.docKeys().isPresent()) {
+                    if (upsertById == null) {
+                        Tuple<String[], Symbol[]> assignments = Assignments.convert(nestedAnalysis.assignments());
+                        int numBulkResponses = statement.nestedStatements().size();
+                        if (numBulkResponses == 1) {
+                            // disable bulk logic for 1 bulk item
+                            numBulkResponses = 0;
+                        }
+                        upsertById = new UpsertById(
+                            plannerContext.jobId(),
+                            plannerContext.nextExecutionPhaseId(),
+                            false,
+                            numBulkResponses,
+                            assignments.v1(),
+                            null
+                        );
+                    }
+                    upsertById(nestedAnalysis, tableInfo, whereClause, upsertById, bulkIdx++);
+                } else {
+                    Plan plan = upsertByQuery(nestedAnalysis, plannerContext, tableInfo, whereClause);
+                    if (plan != null) {
+                        childNodes.add(plan);
+                    }
+                }
+            }
+            if (upsertById != null) {
+                assert childNodes.isEmpty() : "all bulk operations must resolve to the same sub-plan, either update-by-id or update-by-query";
+                return upsertById;
+            }
+            return createUpsertPlan(statement, childNodes, plannerContext.jobId());
+        }
+
+        @Override
+        public PlannedAnalyzedRelation visitTableRelation(TableRelation tableRelation, Context context) {
+            UpdateAnalyzedStatement statement = context.statement;
+            Planner.Context plannerContext = context.consumerContext.plannerContext();
+
+            List<Plan> childPlans = new ArrayList<>(statement.nestedStatements().size());
+            for (UpdateAnalyzedStatement.NestedAnalyzedStatement nestedStatement : statement.nestedStatements()) {
+                if (nestedStatement.whereClause().noMatch()) {
+                    continue;
+                }
+                childPlans.add(createSysTableUpdatePlan(tableRelation, plannerContext, nestedStatement));
+            }
+            return createUpsertPlan(statement, childPlans, plannerContext.jobId());
+        }
+    }
+
+    static class Visitor extends RelationPlanningVisitor {
+
+        private final RelationVisitor relationVisitor;
+
+        public Visitor() {
+            relationVisitor = new RelationVisitor();
+        }
+
+        @Override
+        public PlannedAnalyzedRelation visitUpdateAnalyzedStatement(UpdateAnalyzedStatement statement, ConsumerContext context) {
+            return relationVisitor.process(statement.sourceRelation(), new Context(statement, context));
         }
     }
 }

@@ -28,7 +28,7 @@ import io.crate.planner.projection.Projection;
 
 import java.util.UUID;
 
-public class CountPlan extends PlanAndPlannedAnalyzedRelation{
+public class CountPlan extends PlanAndPlannedAnalyzedRelation {
 
     private final CountPhase countNode;
     private final MergePhase mergeNode;

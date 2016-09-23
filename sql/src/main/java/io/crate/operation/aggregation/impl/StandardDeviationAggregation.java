@@ -48,99 +48,21 @@ public class StandardDeviationAggregation extends AggregationFunction<StandardDe
         DataTypes.register(StdDevStateType.ID, StdDevStateType.INSTANCE);
     }
 
-    public static void register(AggregationImplModule mod) {
-        for (DataType<?> t : DataTypes.NUMERIC_PRIMITIVE_TYPES) {
-            mod.register(new StandardDeviationAggregation(new FunctionInfo(
-                    new FunctionIdent(NAME, ImmutableList.<DataType>of(t)), DataTypes.DOUBLE,
-                    FunctionInfo.Type.AGGREGATE)));
-        }
-        mod.register(new StandardDeviationAggregation(new FunctionInfo(
-                new FunctionIdent(NAME, ImmutableList.<DataType>of(DataTypes.TIMESTAMP)), DataTypes.DOUBLE,
-                FunctionInfo.Type.AGGREGATE)));
-    }
-
-    public static class StdDevState implements Comparable<StdDevState> {
-
-        private final StandardDeviation stdDev;
-
-        public StdDevState() {
-            this.stdDev = new StandardDeviation();
-        }
-
-        private void addValue(double val) {
-            this.stdDev.increment(val);
-        }
-
-        private Double value() {
-            double result = stdDev.result();
-            return (Double.isNaN(result) ? null : result);
-        }
-
-        @Override
-        public int compareTo(StdDevState o) {
-            return Double.compare(stdDev.result(), o.stdDev.result());
-        }
-    }
-
-    public static class StdDevStateType extends DataType<StdDevState>
-            implements Streamer<StdDevState>, FixedWidthType, DataTypeFactory {
-
-        public static final StdDevStateType INSTANCE = new StdDevStateType();
-        public static final int ID = 8192;
-
-        @Override
-        public int id() {
-            return ID;
-        }
-
-        @Override
-        public String getName() {
-            return "stddev_state";
-        }
-
-        @Override
-        public Streamer<?> streamer() {
-            return this;
-        }
-
-        @Override
-        public StdDevState value(Object value) throws IllegalArgumentException, ClassCastException {
-            return (StdDevState)value;
-        }
-
-        @Override
-        public int compareValueTo(StdDevState val1, StdDevState val2) {
-            return val1.compareTo(val2);
-        }
-
-        @Override
-        public DataType<?> create() {
-            return INSTANCE;
-        }
-
-        @Override
-        public int fixedSize() {
-            return 56;
-        }
-
-        @Override
-        public StdDevState readValueFrom(StreamInput in) throws IOException {
-            StdDevState state = new StdDevState();
-            state.stdDev.readFrom(in);
-            return state;
-        }
-
-        @Override
-        public void writeValueTo(StreamOutput out, Object v) throws IOException {
-            StdDevState state = (StdDevState)v;
-            state.stdDev.writeTo(out);
-        }
-    }
-
     private final FunctionInfo info;
 
     public StandardDeviationAggregation(FunctionInfo functionInfo) {
         this.info = functionInfo;
+    }
+
+    public static void register(AggregationImplModule mod) {
+        for (DataType<?> t : DataTypes.NUMERIC_PRIMITIVE_TYPES) {
+            mod.register(new StandardDeviationAggregation(new FunctionInfo(
+                new FunctionIdent(NAME, ImmutableList.<DataType>of(t)), DataTypes.DOUBLE,
+                FunctionInfo.Type.AGGREGATE)));
+        }
+        mod.register(new StandardDeviationAggregation(new FunctionInfo(
+            new FunctionIdent(NAME, ImmutableList.<DataType>of(DataTypes.TIMESTAMP)), DataTypes.DOUBLE,
+            FunctionInfo.Type.AGGREGATE)));
     }
 
     @Nullable
@@ -186,5 +108,83 @@ public class StandardDeviationAggregation extends AggregationFunction<StandardDe
     @Override
     public FunctionInfo info() {
         return info;
+    }
+
+    public static class StdDevState implements Comparable<StdDevState> {
+
+        private final StandardDeviation stdDev;
+
+        public StdDevState() {
+            this.stdDev = new StandardDeviation();
+        }
+
+        private void addValue(double val) {
+            this.stdDev.increment(val);
+        }
+
+        private Double value() {
+            double result = stdDev.result();
+            return (Double.isNaN(result) ? null : result);
+        }
+
+        @Override
+        public int compareTo(StdDevState o) {
+            return Double.compare(stdDev.result(), o.stdDev.result());
+        }
+    }
+
+    public static class StdDevStateType extends DataType<StdDevState>
+        implements Streamer<StdDevState>, FixedWidthType, DataTypeFactory {
+
+        public static final StdDevStateType INSTANCE = new StdDevStateType();
+        public static final int ID = 8192;
+
+        @Override
+        public int id() {
+            return ID;
+        }
+
+        @Override
+        public String getName() {
+            return "stddev_state";
+        }
+
+        @Override
+        public Streamer<?> streamer() {
+            return this;
+        }
+
+        @Override
+        public StdDevState value(Object value) throws IllegalArgumentException, ClassCastException {
+            return (StdDevState) value;
+        }
+
+        @Override
+        public int compareValueTo(StdDevState val1, StdDevState val2) {
+            return val1.compareTo(val2);
+        }
+
+        @Override
+        public DataType<?> create() {
+            return INSTANCE;
+        }
+
+        @Override
+        public int fixedSize() {
+            return 56;
+        }
+
+        @Override
+        public StdDevState readValueFrom(StreamInput in) throws IOException {
+            StdDevState state = new StdDevState();
+            state.stdDev.readFrom(in);
+            return state;
+        }
+
+        @Override
+        public void writeValueTo(StreamOutput out, Object v) throws IOException {
+            StdDevState state = (StdDevState) v;
+            state.stdDev.writeTo(out);
+        }
     }
 }

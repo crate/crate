@@ -38,31 +38,21 @@ public class SysOperationsTableInfo extends StaticTableInfo {
 
     public static final TableIdent IDENT = new TableIdent(SysSchemaInfo.NAME, "operations");
     private final ClusterService clusterService;
-
-    public static class Columns {
-        public final static ColumnIdent ID = new ColumnIdent("id");
-        public final static ColumnIdent JOB_ID = new ColumnIdent("job_id");
-        public final static ColumnIdent NAME = new ColumnIdent("name");
-        public final static ColumnIdent STARTED = new ColumnIdent("started");
-        public final static ColumnIdent USED_BYTES = new ColumnIdent("used_bytes");
-    }
-
     private final TableColumn nodesTableColumn;
 
     @Inject
     public SysOperationsTableInfo(ClusterService clusterService, SysNodesTableInfo sysNodesTableInfo) {
         super(IDENT, new ColumnRegistrar(IDENT, RowGranularity.DOC)
-                        .register(Columns.ID, DataTypes.STRING)
-                        .register(Columns.JOB_ID, DataTypes.STRING)
-                        .register(Columns.NAME, DataTypes.STRING)
-                        .register(Columns.STARTED, DataTypes.TIMESTAMP)
-                        .register(Columns.USED_BYTES, DataTypes.LONG)
-                        .putInfoOnly(SysNodesTableInfo.SYS_COL_IDENT, SysNodesTableInfo.tableColumnInfo(IDENT)),
-                Collections.<ColumnIdent>emptyList());
+                .register(Columns.ID, DataTypes.STRING)
+                .register(Columns.JOB_ID, DataTypes.STRING)
+                .register(Columns.NAME, DataTypes.STRING)
+                .register(Columns.STARTED, DataTypes.TIMESTAMP)
+                .register(Columns.USED_BYTES, DataTypes.LONG)
+                .putInfoOnly(SysNodesTableInfo.SYS_COL_IDENT, SysNodesTableInfo.tableColumnInfo(IDENT)),
+            Collections.<ColumnIdent>emptyList());
         this.clusterService = clusterService;
         nodesTableColumn = sysNodesTableInfo.tableColumn();
     }
-
 
     @Nullable
     @Override
@@ -82,5 +72,13 @@ public class SysOperationsTableInfo extends StaticTableInfo {
     @Override
     public Routing getRouting(WhereClause whereClause, @Nullable String preference) {
         return Routing.forTableOnAllNodes(IDENT, clusterService.state().nodes());
+    }
+
+    public static class Columns {
+        public final static ColumnIdent ID = new ColumnIdent("id");
+        public final static ColumnIdent JOB_ID = new ColumnIdent("job_id");
+        public final static ColumnIdent NAME = new ColumnIdent("name");
+        public final static ColumnIdent STARTED = new ColumnIdent("started");
+        public final static ColumnIdent USED_BYTES = new ColumnIdent("used_bytes");
     }
 }

@@ -44,15 +44,25 @@ public class MultiSourceFetchPushDown {
     private Map<TableIdent, FetchSource> fetchSources;
 
 
+    private MultiSourceFetchPushDown(MultiSourceSelect statement) {
+        this.statement = statement;
+        this.fetchSources = new HashMap<>(statement.sources().size());
+    }
+
     public static MultiSourceFetchPushDown pushDown(MultiSourceSelect statement) {
         MultiSourceFetchPushDown pd = new MultiSourceFetchPushDown(statement);
         pd.process();
         return pd;
     }
 
-    private MultiSourceFetchPushDown(MultiSourceSelect statement) {
-        this.statement = statement;
-        this.fetchSources = new HashMap<>(statement.sources().size());
+    private static HashSet<Field> filterByRelation(Set<Field> fields, DocTableRelation rel) {
+        HashSet<Field> filteredFields = new HashSet<>();
+        for (Field field : fields) {
+            if (field.relation() == rel) {
+                filteredFields.add(field);
+            }
+        }
+        return filteredFields;
     }
 
     public Map<TableIdent, FetchSource> fetchSources() {
@@ -71,7 +81,7 @@ public class MultiSourceFetchPushDown {
         HashMap<Symbol, Symbol> mssOutputMap = new HashMap<>(statement.querySpec().outputs().size() + 2);
 
         ArrayList<Symbol> mssOutputs = new ArrayList<>(
-                statement.sources().size() + statement.requiredForQuery().size());
+            statement.sources().size() + statement.requiredForQuery().size());
 
         for (Map.Entry<QualifiedName, MultiSourceSelect.Source> entry : statement.sources().entrySet()) {
             MultiSourceSelect.Source source = entry.getValue();
@@ -94,7 +104,7 @@ public class MultiSourceFetchPushDown {
                 InputColumn docIdInput = new InputColumn(mssOutputs.size() - 1);
 
                 ArrayList<Symbol> qtOutputs = new ArrayList<>(
-                        source.querySpec().outputs().size() - canBeFetched.size() + 1);
+                    source.querySpec().outputs().size() - canBeFetched.size() + 1);
                 Reference docId = rel.tableInfo().getReference(DocSysColumns.DOCID);
                 qtOutputs.add(docId);
 
@@ -102,7 +112,7 @@ public class MultiSourceFetchPushDown {
                     if (!canBeFetched.contains(output)) {
                         qtOutputs.add(output);
                         RelationColumn rc = new RelationColumn(entry.getKey(),
-                                qtOutputs.size() - 1, output.valueType());
+                            qtOutputs.size() - 1, output.valueType());
                         mssOutputs.add(rc);
                         mssOutputMap.put(output, rc);
                         topLevelOutputMap.put(output, new InputColumn(mssOutputs.size() - 1, output.valueType()));
@@ -110,7 +120,7 @@ public class MultiSourceFetchPushDown {
                 }
                 for (Field field : canBeFetched) {
                     FetchReference fr = new FetchReference(
-                            docIdInput, DocReferenceConverter.toSourceLookup(rel.resolveField(field)));
+                        docIdInput, DocReferenceConverter.toSourceLookup(rel.resolveField(field)));
                     allocateFetchedReference(fr, rel);
                     topLevelOutputMap.put(field, fr);
                 }
@@ -131,16 +141,6 @@ public class MultiSourceFetchPushDown {
         if (statement.querySpec().orderBy().isPresent()) {
             MappingSymbolVisitor.inPlace().processInplace(statement.querySpec().orderBy().get().orderBySymbols(), mssOutputMap);
         }
-    }
-
-    private static HashSet<Field> filterByRelation(Set<Field> fields, DocTableRelation rel) {
-        HashSet<Field> filteredFields = new HashSet<>();
-        for (Field field : fields) {
-            if (field.relation() == rel) {
-                filteredFields.add(field);
-            }
-        }
-        return filteredFields;
     }
 
     private void allocateFetchedReference(FetchReference fr, DocTableRelation rel) {

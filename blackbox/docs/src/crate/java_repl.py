@@ -1,12 +1,11 @@
-import subprocess
+import contextlib
 import json
 import os
-import time
 import socket
-import contextlib
-from urllib.request import urlopen, urlretrieve
+import subprocess
+import time
 from urllib.parse import urlencode
-
+from urllib.request import urlopen, urlretrieve
 
 SOURCE_URL = "http://albertlatacz.published.s3.amazonaws.com/javarepl/javarepl.jar"
 CACHE_DIR = os.environ.get(
@@ -24,7 +23,6 @@ def is_up(host, port):
 
 
 class JavaRepl(contextlib.ExitStack):
-
     __bases__ = ()
     __name__ = 'javarepl'
 

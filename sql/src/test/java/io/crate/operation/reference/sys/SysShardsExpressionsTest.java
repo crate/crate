@@ -71,115 +71,32 @@ import static org.mockito.Mockito.when;
 @SuppressWarnings("ConstantConditions")
 public class SysShardsExpressionsTest extends CrateUnitTest {
 
+    private static ThreadPool threadPool = new ThreadPool("testing");
     private AbstractReferenceResolver resolver;
     private Schemas schemas;
-
     private String indexName = "wikipedia_de";
-    private static ThreadPool threadPool = new ThreadPool("testing");
-
-    @Before
-    public void prepare() throws Exception {
-        Injector injector = new ModulesBuilder().add(
-                new TestModule(),
-                new MetaDataModule(),
-                new MetaDataSysModule(),
-                new SysClusterExpressionModule(),
-                new MetaDataShardModule(),
-                new SysShardExpressionModule()
-        ).createInjector();
-        AbstractReferenceResolver shardRefResolver = injector.getInstance(ShardReferenceResolver.class);
-        IndexShard indexShard = injector.getInstance(IndexShard.class);
-        resolver = new RecoveryShardReferenceResolver(shardRefResolver, indexShard);
-        schemas = injector.getInstance(Schemas.class);
-    }
 
     @AfterClass
     public static void after() throws Exception {
         threadPool.shutdown();
         threadPool.awaitTermination(1, TimeUnit.SECONDS);
-        threadPool =  null;
+        threadPool = null;
     }
 
-    class TestModule extends AbstractModule {
-
-        @SuppressWarnings("unchecked")
-        @Override
-        protected void configure() {
-            bind(ThreadPool.class).toInstance(threadPool);
-            bind(Settings.class).toInstance(Settings.EMPTY);
-
-            ClusterService clusterService = mock(ClusterService.class);
-            bind(ClusterService.class).toInstance(clusterService);
-
-            ClusterName clusterName = mock(ClusterName.class);
-            when(clusterName.value()).thenReturn("crate");
-            bind(ClusterName.class).toInstance(clusterName);
-
-            Index index = new Index(SysShardsTableInfo.IDENT.name());
-            bind(Index.class).toInstance(index);
-
-            ShardId shardId = mock(ShardId.class);
-            when(shardId.getId()).thenReturn(1);
-            when(shardId.getIndex()).thenAnswer(new Answer<String>() {
-                @Override
-                public String answer(InvocationOnMock invocation) throws Throwable {
-                    return indexName;
-                }
-            });
-            bind(ShardId.class).toInstance(shardId);
-
-            IndexShard indexShard = mock(IndexShard.class);
-            bind(IndexShard.class).toInstance(indexShard);
-
-            StoreStats storeStats = mock(StoreStats.class);
-            when(indexShard.storeStats()).thenReturn(storeStats);
-            when(storeStats.getSizeInBytes()).thenReturn(123456L);
-
-            DocsStats docsStats = mock(DocsStats.class);
-            when(indexShard.docStats()).thenReturn(docsStats).thenThrow(IllegalIndexShardStateException.class);
-            when(docsStats.getCount()).thenReturn(654321L);
-
-            RecoveryState recoveryState = mock(RecoveryState.class);
-            when(indexShard.recoveryState()).thenReturn(recoveryState);
-
-            RecoveryState.Index recoveryStateIndex = mock(RecoveryState.Index.class);
-            RecoveryState.Timer recoveryStateTimer = mock(RecoveryState.Timer.class);
-
-            when(recoveryState.getIndex()).thenReturn(recoveryStateIndex);
-            when(recoveryState.getStage()).thenReturn(RecoveryState.Stage.DONE);
-            when(recoveryState.getTimer()).thenReturn(recoveryStateTimer);
-            when(recoveryState.getType()).thenReturn(RecoveryState.Type.REPLICA);
-
-            when(recoveryStateIndex.totalBytes()).thenReturn(2048L);
-            when(recoveryStateIndex.reusedBytes()).thenReturn(1024L);
-            when(recoveryStateIndex.recoveredBytes()).thenReturn(1024L);
-
-            when(recoveryStateIndex.totalFileCount()).thenReturn(2);
-            when(recoveryStateIndex.reusedFileCount()).thenReturn(1);
-            when(recoveryStateIndex.recoveredFileCount()).thenReturn(1);
-
-            when(recoveryStateTimer.time()).thenReturn(10000L);
-
-            ShardRouting shardRouting = ShardRouting.newUnassigned(index.name(), shardId.id(), null, true, new UnassignedInfo(UnassignedInfo.Reason.INDEX_CREATED, "foo"));
-            ShardRoutingHelper.initialize(shardRouting, "node1");
-            ShardRoutingHelper.moveToStarted(shardRouting);
-            ShardRoutingHelper.relocate(shardRouting, "node_X");
-            when(indexShard.routingEntry()).thenReturn(shardRouting);
-
-            TransportPutIndexTemplateAction transportPutIndexTemplateAction = mock(TransportPutIndexTemplateAction.class);
-            bind(TransportPutIndexTemplateAction.class).toInstance(transportPutIndexTemplateAction);
-
-            when(indexShard.state()).thenReturn(IndexShardState.STARTED);
-
-            MetaData metaData = mock(MetaData.class);
-            when(metaData.hasConcreteIndex(PartitionName.PARTITIONED_TABLE_PREFIX + ".wikipedia_de._1")).thenReturn(false);
-            when(metaData.concreteAllOpenIndices()).thenReturn(new String[0]);
-            when(metaData.templates()).thenReturn(ImmutableOpenMap.<String, IndexTemplateMetaData>of());
-            ClusterState clusterState = mock(ClusterState.class);
-            when(clusterService.state()).thenReturn(clusterState);
-            when(clusterState.metaData()).thenReturn(metaData);
-
-        }
+    @Before
+    public void prepare() throws Exception {
+        Injector injector = new ModulesBuilder().add(
+            new TestModule(),
+            new MetaDataModule(),
+            new MetaDataSysModule(),
+            new SysClusterExpressionModule(),
+            new MetaDataShardModule(),
+            new SysShardExpressionModule()
+        ).createInjector();
+        AbstractReferenceResolver shardRefResolver = injector.getInstance(ShardReferenceResolver.class);
+        IndexShard indexShard = injector.getInstance(IndexShard.class);
+        resolver = new RecoveryShardReferenceResolver(shardRefResolver, indexShard);
+        schemas = injector.getInstance(Schemas.class);
     }
 
     @Test
@@ -341,7 +258,7 @@ public class SysShardsExpressionsTest extends CrateUnitTest {
         assertEquals(RecoveryState.Type.REPLICA.name(), recovery.get("type"));
         assertEquals(10_000L, recovery.get("total_time"));
 
-        Map<String, Object> expectedFiles = new HashMap<String, Object>(){{
+        Map<String, Object> expectedFiles = new HashMap<String, Object>() {{
             put("used", 2);
             put("reused", 1);
             put("recovered", 1);
@@ -349,7 +266,7 @@ public class SysShardsExpressionsTest extends CrateUnitTest {
         }};
         assertEquals(expectedFiles, recovery.get("files"));
 
-        Map<String, Object> expectedBytes = new HashMap<String, Object>(){{
+        Map<String, Object> expectedBytes = new HashMap<String, Object>() {{
             put("used", 2_048L);
             put("reused", 1_024L);
             put("recovered", 1_024L);
@@ -357,5 +274,88 @@ public class SysShardsExpressionsTest extends CrateUnitTest {
         }};
         assertEquals(expectedBytes, recovery.get("size"));
 
+    }
+
+    class TestModule extends AbstractModule {
+
+        @SuppressWarnings("unchecked")
+        @Override
+        protected void configure() {
+            bind(ThreadPool.class).toInstance(threadPool);
+            bind(Settings.class).toInstance(Settings.EMPTY);
+
+            ClusterService clusterService = mock(ClusterService.class);
+            bind(ClusterService.class).toInstance(clusterService);
+
+            ClusterName clusterName = mock(ClusterName.class);
+            when(clusterName.value()).thenReturn("crate");
+            bind(ClusterName.class).toInstance(clusterName);
+
+            Index index = new Index(SysShardsTableInfo.IDENT.name());
+            bind(Index.class).toInstance(index);
+
+            ShardId shardId = mock(ShardId.class);
+            when(shardId.getId()).thenReturn(1);
+            when(shardId.getIndex()).thenAnswer(new Answer<String>() {
+                @Override
+                public String answer(InvocationOnMock invocation) throws Throwable {
+                    return indexName;
+                }
+            });
+            bind(ShardId.class).toInstance(shardId);
+
+            IndexShard indexShard = mock(IndexShard.class);
+            bind(IndexShard.class).toInstance(indexShard);
+
+            StoreStats storeStats = mock(StoreStats.class);
+            when(indexShard.storeStats()).thenReturn(storeStats);
+            when(storeStats.getSizeInBytes()).thenReturn(123456L);
+
+            DocsStats docsStats = mock(DocsStats.class);
+            when(indexShard.docStats()).thenReturn(docsStats).thenThrow(IllegalIndexShardStateException.class);
+            when(docsStats.getCount()).thenReturn(654321L);
+
+            RecoveryState recoveryState = mock(RecoveryState.class);
+            when(indexShard.recoveryState()).thenReturn(recoveryState);
+
+            RecoveryState.Index recoveryStateIndex = mock(RecoveryState.Index.class);
+            RecoveryState.Timer recoveryStateTimer = mock(RecoveryState.Timer.class);
+
+            when(recoveryState.getIndex()).thenReturn(recoveryStateIndex);
+            when(recoveryState.getStage()).thenReturn(RecoveryState.Stage.DONE);
+            when(recoveryState.getTimer()).thenReturn(recoveryStateTimer);
+            when(recoveryState.getType()).thenReturn(RecoveryState.Type.REPLICA);
+
+            when(recoveryStateIndex.totalBytes()).thenReturn(2048L);
+            when(recoveryStateIndex.reusedBytes()).thenReturn(1024L);
+            when(recoveryStateIndex.recoveredBytes()).thenReturn(1024L);
+
+            when(recoveryStateIndex.totalFileCount()).thenReturn(2);
+            when(recoveryStateIndex.reusedFileCount()).thenReturn(1);
+            when(recoveryStateIndex.recoveredFileCount()).thenReturn(1);
+
+            when(recoveryStateTimer.time()).thenReturn(10000L);
+
+            ShardRouting shardRouting = ShardRouting.newUnassigned(index.name(), shardId.id(), null, true, new UnassignedInfo(UnassignedInfo.Reason.INDEX_CREATED, "foo"));
+            ShardRoutingHelper.initialize(shardRouting, "node1");
+            ShardRoutingHelper.moveToStarted(shardRouting);
+            ShardRoutingHelper.relocate(shardRouting, "node_X");
+            when(indexShard.routingEntry()).thenReturn(shardRouting);
+
+            TransportPutIndexTemplateAction transportPutIndexTemplateAction = mock(TransportPutIndexTemplateAction.class);
+            bind(TransportPutIndexTemplateAction.class).toInstance(transportPutIndexTemplateAction);
+
+            when(indexShard.state()).thenReturn(IndexShardState.STARTED);
+
+            MetaData metaData = mock(MetaData.class);
+            when(metaData.hasConcreteIndex(
+                PartitionName.PARTITIONED_TABLE_PREFIX + ".wikipedia_de._1")).thenReturn(false);
+            when(metaData.concreteAllOpenIndices()).thenReturn(new String[0]);
+            when(metaData.templates()).thenReturn(ImmutableOpenMap.<String, IndexTemplateMetaData>of());
+            ClusterState clusterState = mock(ClusterState.class);
+            when(clusterService.state()).thenReturn(clusterState);
+            when(clusterState.metaData()).thenReturn(metaData);
+
+        }
     }
 }

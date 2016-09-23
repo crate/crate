@@ -45,11 +45,10 @@ public class NodeDisconnectJobMonitorService
     extends AbstractLifecycleComponent<NodeDisconnectJobMonitorService>
     implements TransportConnectionListener {
 
+    private final static TimeValue DELAY = TimeValue.timeValueMinutes(1);
     private final ThreadPool threadPool;
     private final JobContextService jobContextService;
     private final TransportService transportService;
-
-    private final static TimeValue DELAY = TimeValue.timeValueMinutes(1);
 
     @Inject
     public NodeDisconnectJobMonitorService(Settings settings,

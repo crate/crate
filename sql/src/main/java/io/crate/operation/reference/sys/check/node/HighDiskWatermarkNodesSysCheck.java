@@ -37,7 +37,7 @@ public class HighDiskWatermarkNodesSysCheck extends DiskWatermarkNodesSysCheck {
 
     private static final int ID = 5;
     private static final String DESCRIPTION = "The high disk watermark is exceeded on the node." +
-            " The cluster will attempt to relocate shards to another node. Please check the node disk usage.";
+                                              " The cluster will attempt to relocate shards to another node. Please check the node disk usage.";
 
     @Inject
     public HighDiskWatermarkNodesSysCheck(ClusterService clusterService, Settings settings, FsProbe fsProbe) {

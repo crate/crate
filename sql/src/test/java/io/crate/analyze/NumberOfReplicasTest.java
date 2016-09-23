@@ -39,17 +39,17 @@ public class NumberOfReplicasTest extends CrateUnitTest {
     @Test
     public void testNumber() throws Exception {
         BytesRef numberOfResplicas = NumberOfReplicas.fromSettings(Settings.builder()
-                .put(NumberOfReplicas.NUMBER_OF_REPLICAS, 4)
-                .build());
+            .put(NumberOfReplicas.NUMBER_OF_REPLICAS, 4)
+            .build());
         assertThat(numberOfResplicas.utf8ToString(), is("4"));
     }
 
     @Test
     public void testAutoExpandSettingsTakePrecedence() throws Exception {
         BytesRef numberOfResplicas = NumberOfReplicas.fromSettings(Settings.builder()
-                .put(NumberOfReplicas.AUTO_EXPAND_REPLICAS, "0-all")
-                .put(NumberOfReplicas.NUMBER_OF_REPLICAS, 1)
-                .build());
+            .put(NumberOfReplicas.AUTO_EXPAND_REPLICAS, "0-all")
+            .put(NumberOfReplicas.NUMBER_OF_REPLICAS, 1)
+            .build());
         assertThat(numberOfResplicas.utf8ToString(), is("0-all"));
     }
 
@@ -58,8 +58,8 @@ public class NumberOfReplicasTest extends CrateUnitTest {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("The \"number_of_replicas\" range \"abc\" isn't valid");
         NumberOfReplicas.fromSettings(Settings.builder()
-                .put(NumberOfReplicas.AUTO_EXPAND_REPLICAS, "abc")
-                .put(NumberOfReplicas.NUMBER_OF_REPLICAS, 1)
-                .build());
+            .put(NumberOfReplicas.AUTO_EXPAND_REPLICAS, "abc")
+            .put(NumberOfReplicas.NUMBER_OF_REPLICAS, 1)
+            .build());
     }
 }

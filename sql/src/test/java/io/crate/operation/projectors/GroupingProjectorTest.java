@@ -34,11 +34,11 @@ import static org.hamcrest.core.Is.is;
 public class GroupingProjectorTest extends CrateUnitTest {
 
     protected static final RamAccountingContext RAM_ACCOUNTING_CONTEXT =
-            new RamAccountingContext("dummy", new NoopCircuitBreaker(CircuitBreaker.FIELDDATA));
+        new RamAccountingContext("dummy", new NoopCircuitBreaker(CircuitBreaker.FIELDDATA));
 
     /**
      * NOTE:
-     *
+     * <p>
      * the remaining tests for the GroupingProjector are in {@link io.crate.operation.projectors.ProjectionToProjectorVisitorTest}
      **/
 
@@ -46,26 +46,26 @@ public class GroupingProjectorTest extends CrateUnitTest {
     public void testAggregationToPartial() throws Exception {
 
         ImmutableList<Input<?>> keys = ImmutableList.<Input<?>>of(
-                new DummyInput(new BytesRef("one"), new BytesRef("one"), new BytesRef("three")));
+            new DummyInput(new BytesRef("one"), new BytesRef("one"), new BytesRef("three")));
 
 
         FunctionInfo countInfo = new FunctionInfo(new FunctionIdent("count", ImmutableList.<DataType>of()), DataTypes.LONG);
         Aggregation countAggregation =
-                Aggregation.partialAggregation(countInfo, DataTypes.LONG, ImmutableList.<Symbol>of());
+            Aggregation.partialAggregation(countInfo, DataTypes.LONG, ImmutableList.<Symbol>of());
 
         Functions functions = getFunctions();
 
         AggregationContext aggregationContext = new AggregationContext(
-                (AggregationFunction)functions.get(countInfo.ident()),
-                countAggregation);
+            (AggregationFunction) functions.get(countInfo.ident()),
+            countAggregation);
 
-        AggregationContext[] aggregations = new AggregationContext[] { aggregationContext };
+        AggregationContext[] aggregations = new AggregationContext[]{aggregationContext};
         GroupingProjector projector = new GroupingProjector(
-                Arrays.asList(DataTypes.STRING),
-                keys,
-                new CollectExpression[0],
-                aggregations,
-                RAM_ACCOUNTING_CONTEXT
+            Arrays.asList(DataTypes.STRING),
+            keys,
+            new CollectExpression[0],
+            aggregations,
+            RAM_ACCOUNTING_CONTEXT
         );
 
         CollectingRowReceiver rowReceiver = new CollectingRowReceiver();
@@ -88,7 +88,7 @@ public class GroupingProjectorTest extends CrateUnitTest {
         private final BytesRef[] values;
         private int idx;
 
-        DummyInput(BytesRef... values)  {
+        DummyInput(BytesRef... values) {
             this.values = values;
             this.idx = 0;
         }

@@ -64,9 +64,9 @@ public class SysSnapshotsTest extends SQLTransportIntegrationTest {
     @Override
     protected Settings nodeSettings(int nodeOrdinal) {
         return Settings.settingsBuilder()
-                .put(super.nodeSettings(nodeOrdinal))
-                .put("path.repo", TEMP_FOLDER.getRoot().getAbsolutePath())
-                .build();
+            .put(super.nodeSettings(nodeOrdinal))
+            .put("path.repo", TEMP_FOLDER.getRoot().getAbsolutePath())
+            .build();
     }
 
     @Before
@@ -90,12 +90,12 @@ public class SysSnapshotsTest extends SQLTransportIntegrationTest {
 
     private void createRepository(String name) {
         PutRepositoryResponse putRepositoryResponse = client().admin().cluster().preparePutRepository(name)
-                .setType("fs")
-                .setSettings(Settings.settingsBuilder()
-                                .put("location", new File(TEMP_FOLDER.getRoot(), "backup").getAbsolutePath())
-                                .put("chunk_size", "5k")
-                                .put("compress", false)
-                ).get();
+            .setType("fs")
+            .setSettings(Settings.settingsBuilder()
+                .put("location", new File(TEMP_FOLDER.getRoot(), "backup").getAbsolutePath())
+                .put("chunk_size", "5k")
+                .put("compress", false)
+            ).get();
         assertThat(putRepositoryResponse.isAcknowledged(), equalTo(true));
     }
 
@@ -104,7 +104,7 @@ public class SysSnapshotsTest extends SQLTransportIntegrationTest {
         assertThat(deleteRepositoryResponse.isAcknowledged(), equalTo(true));
     }
 
-    private void createTableAndSnapshot(String tableName, String snapshotName){
+    private void createTableAndSnapshot(String tableName, String snapshotName) {
         execute("create table " + tableName + " (id int primary key) with(number_of_replicas=0)");
         ensureYellow();
 
@@ -118,8 +118,8 @@ public class SysSnapshotsTest extends SQLTransportIntegrationTest {
 
     private void createSnapshot(String snapshotName, String... tables) {
         CreateSnapshotResponse createSnapshotResponse = client().admin().cluster()
-                .prepareCreateSnapshot(REPOSITORY_NAME, snapshotName)
-                .setWaitForCompletion(true).setIndices(tables).get();
+            .prepareCreateSnapshot(REPOSITORY_NAME, snapshotName)
+            .setWaitForCompletion(true).setIndices(tables).get();
         assertThat(createSnapshotResponse.getSnapshotInfo().successfulShards(), greaterThan(0));
         assertThat(createSnapshotResponse.getSnapshotInfo().successfulShards(), equalTo(createSnapshotResponse.getSnapshotInfo().totalShards()));
         snapshots.add(snapshotName);
@@ -128,7 +128,7 @@ public class SysSnapshotsTest extends SQLTransportIntegrationTest {
 
     private void deleteSnapshot(String name) {
         DeleteSnapshotResponse deleteSnapshotResponse = client().admin().cluster()
-                .prepareDeleteSnapshot(REPOSITORY_NAME, name).get();
+            .prepareDeleteSnapshot(REPOSITORY_NAME, name).get();
         assertThat(deleteSnapshotResponse.isAcknowledged(), equalTo(true));
     }
 
@@ -139,15 +139,15 @@ public class SysSnapshotsTest extends SQLTransportIntegrationTest {
         assertThat(response.cols().length, is(7));
         assertThat(response.cols(), is(new String[]{"concrete_indices", "finished", "name", "repository", "started", "state", "version"}));
         assertThat(response.columnTypes(), is(
-                new DataType[]{
-                        new ArrayType(StringType.INSTANCE),
-                            TimestampType.INSTANCE,
-                            StringType.INSTANCE,
-                            StringType.INSTANCE,
-                            TimestampType.INSTANCE,
-                            StringType.INSTANCE,
-                            StringType.INSTANCE
-                }));
+            new DataType[]{
+                new ArrayType(StringType.INSTANCE),
+                TimestampType.INSTANCE,
+                StringType.INSTANCE,
+                StringType.INSTANCE,
+                TimestampType.INSTANCE,
+                StringType.INSTANCE,
+                StringType.INSTANCE
+            }));
         assertThat((String[]) response.rows()[0][0], arrayContaining("test_table"));
         assertThat((Long) response.rows()[0][1], lessThanOrEqualTo(finishedTime));
         assertThat((String) response.rows()[0][2], is("test_snap_1"));

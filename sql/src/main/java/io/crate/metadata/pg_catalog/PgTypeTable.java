@@ -41,20 +41,13 @@ public class PgTypeTable extends StaticTableInfo {
     public static final TableIdent IDENT = new TableIdent(PgCatalogSchemaInfo.NAME, "pg_type");
     private final ClusterService clusterService;
 
-    static class Columns {
-        static final ColumnIdent OID = new ColumnIdent("oid");
-        static final ColumnIdent TYPNAME = new ColumnIdent("typname");
-        static final ColumnIdent TYPDELIM = new ColumnIdent("typdelim");
-        static final ColumnIdent TYPELEM = new ColumnIdent("typelem");
-    }
-
     @Inject
     public PgTypeTable(ClusterService clusterService) {
         super(IDENT, new ColumnRegistrar(IDENT, RowGranularity.DOC)
-            .register("oid", DataTypes.INTEGER, null)
-            .register("typname", DataTypes.STRING, null)
-            .register("typdelim", DataTypes.STRING, null)
-            .register("typelem", DataTypes.INTEGER, null),
+                .register("oid", DataTypes.INTEGER, null)
+                .register("typname", DataTypes.STRING, null)
+                .register("typdelim", DataTypes.STRING, null)
+                .register("typelem", DataTypes.INTEGER, null),
             Collections.<ColumnIdent>emptyList());
         this.clusterService = clusterService;
     }
@@ -67,5 +60,12 @@ public class PgTypeTable extends StaticTableInfo {
     @Override
     public Routing getRouting(WhereClause whereClause, @Nullable String preference) {
         return Routing.forTableOnSingleNode(IDENT, clusterService.localNode().id());
+    }
+
+    static class Columns {
+        static final ColumnIdent OID = new ColumnIdent("oid");
+        static final ColumnIdent TYPNAME = new ColumnIdent("typname");
+        static final ColumnIdent TYPDELIM = new ColumnIdent("typdelim");
+        static final ColumnIdent TYPELEM = new ColumnIdent("typelem");
     }
 }

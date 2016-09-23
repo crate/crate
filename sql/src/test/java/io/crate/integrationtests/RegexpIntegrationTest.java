@@ -37,12 +37,12 @@ public class RegexpIntegrationTest extends SQLTransportIntegrationTest {
         execute("create table regex_test (i integer, s string) with (number_of_replicas=0)");
         ensureYellow();
         execute("insert into regex_test(i, s) values (?, ?)", new Object[][]{
-                new Object[]{1, "foo is first"},
-                new Object[]{2, "bar is second"},
-                new Object[]{3, "foobar is great"},
-                new Object[]{4, "crate is greater"},
-                new Object[]{5, "foo"},
-                new Object[]{6, null}
+            new Object[]{1, "foo is first"},
+            new Object[]{2, "bar is second"},
+            new Object[]{3, "foobar is great"},
+            new Object[]{4, "crate is greater"},
+            new Object[]{5, "foo"},
+            new Object[]{6, null}
         });
         refresh();
         execute("select i from regex_test where regexp_matches(s, 'is') is not null");
@@ -56,12 +56,12 @@ public class RegexpIntegrationTest extends SQLTransportIntegrationTest {
         execute("create table regex_test (i integer, s string) with (number_of_replicas=0)");
         ensureYellow();
         execute("insert into regex_test(i, s) values (?, ?)", new Object[][]{
-                new Object[]{1, "foo is first"},
-                new Object[]{2, "bar is second"},
-                new Object[]{3, "foobar is great"},
-                new Object[]{4, "crate is greater"},
-                new Object[]{5, "foo"},
-                new Object[]{6, null}
+            new Object[]{1, "foo is first"},
+            new Object[]{2, "bar is second"},
+            new Object[]{3, "foobar is great"},
+            new Object[]{4, "crate is greater"},
+            new Object[]{5, "foo"},
+            new Object[]{6, null}
         });
         refresh();
         execute("select i from regex_test where regexp_replace(s, 'is', 'was') is not null");
@@ -78,8 +78,8 @@ public class RegexpIntegrationTest extends SQLTransportIntegrationTest {
                                         "^");
         execute("create table phone (phone string) with (number_of_replicas=0)");
         ensureYellow();
-        execute("insert into phone (phone) values (?)", new Object[][] {
-                new Object[]{"+1234567890"}
+        execute("insert into phone (phone) values (?)", new Object[][]{
+            new Object[]{"+1234567890"}
         });
         refresh();
         execute("select * from phone where phone ~* '+1234567890'");
@@ -89,7 +89,7 @@ public class RegexpIntegrationTest extends SQLTransportIntegrationTest {
      * Test querying using regular expressions based on RegexpQuery,
      * which in turn is based on the fast finite-state automata
      * regular expression engine implementation `dk.brics.automaton`.
-     *
+     * <p>
      * This engine is the default when using the regexp tilde operator `~`.
      *
      * @see {@link org.apache.lucene.search.RegexpQuery}
@@ -126,7 +126,7 @@ public class RegexpIntegrationTest extends SQLTransportIntegrationTest {
      * Test querying using regular expressions based on RegexQuery,
      * which in turn uses the regular expression engine of the
      * Java standard library.
-     *
+     * <p>
      * This engine is active when using the case-insensitive regexp tilde operator `~*`.
      *
      * @see {@link org.apache.lucene.sandbox.queries.regex.RegexQuery}
@@ -152,7 +152,7 @@ public class RegexpIntegrationTest extends SQLTransportIntegrationTest {
      * Test querying using regular expressions based on RegexQuery,
      * which in turn uses the regular expression engine of the
      * Java standard library.
-     *
+     * <p>
      * This engine is active when using the regular regexp tilde operator `~`,
      * but the pattern used contains PCRE features, which the fast regex
      * implementation {@link org.apache.lucene.util.automaton.RegExp}

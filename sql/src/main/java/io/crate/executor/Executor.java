@@ -22,8 +22,6 @@
 package io.crate.executor;
 
 import com.google.common.util.concurrent.ListenableFuture;
-import io.crate.core.collections.Row;
-import io.crate.core.collections.Row1;
 import io.crate.operation.projectors.RowReceiver;
 import io.crate.planner.Plan;
 

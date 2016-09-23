@@ -34,9 +34,10 @@ import java.util.Locale;
 
 public class LuceneReferenceResolver implements ReferenceResolver<LuceneCollectorExpression<?>> {
 
-    private final @Nullable MapperService mapperService;
-
     private final static NullValueCollectorExpression NULL_COLLECTOR_EXPRESSION = new NullValueCollectorExpression();
+    private final
+    @Nullable
+    MapperService mapperService;
 
     public LuceneReferenceResolver(@Nullable MapperService mapperService) {
         this.mapperService = mapperService;
@@ -46,13 +47,13 @@ public class LuceneReferenceResolver implements ReferenceResolver<LuceneCollecto
     public LuceneCollectorExpression<?> getImplementation(Reference refInfo) {
         assert refInfo.granularity() == RowGranularity.DOC;
 
-        if (RawCollectorExpression.COLUMN_NAME.equals(refInfo.ident().columnIdent().name())){
-            if (refInfo.ident().columnIdent().isColumn()){
+        if (RawCollectorExpression.COLUMN_NAME.equals(refInfo.ident().columnIdent().name())) {
+            if (refInfo.ident().columnIdent().isColumn()) {
                 return new RawCollectorExpression();
             } else {
                 // TODO: implement an Object source expression which may support subscripts
                 throw new UnsupportedFeatureException(
-                        String.format(Locale.ENGLISH, "_source expression does not support subscripts %s",
+                    String.format(Locale.ENGLISH, "_source expression does not support subscripts %s",
                         refInfo.ident().columnIdent().fqn()));
             }
         } else if (IdCollectorExpression.COLUMN_NAME.equals(refInfo.ident().columnIdent().name())) {

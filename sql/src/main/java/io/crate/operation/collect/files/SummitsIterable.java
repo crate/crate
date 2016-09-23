@@ -39,21 +39,20 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 public class SummitsIterable implements Supplier<Iterable<?>> {
-	
-	private static final Splitter TAB_SPLITTER = Splitter.on("\t");
 
-	@Override
-	public Iterable<?> get() {
-		return summitsSupplierCache.get();
-	}
+    private static final Splitter TAB_SPLITTER = Splitter.on("\t");
+    private final Supplier<List<SummitsContext>> summitsSupplierCache = Suppliers.memoizeWithExpiration(
+        new Supplier<List<SummitsContext>>() {
+            public List<SummitsContext> get() {
+                return fetchSummits();
+            }
+        }, 4, TimeUnit.MINUTES
+    );
 
-	private final Supplier<List<SummitsContext>> summitsSupplierCache = Suppliers.memoizeWithExpiration(
-		new Supplier<List<SummitsContext>>() {
-			public List<SummitsContext> get() {
-				return fetchSummits();
-			}
-		}, 4, TimeUnit.MINUTES
-	);
+    @Override
+    public Iterable<?> get() {
+        return summitsSupplierCache.get();
+    }
 
     private List<SummitsContext> fetchSummits() {
         List<SummitsContext> summits = new ArrayList<>();

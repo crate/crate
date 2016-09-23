@@ -91,7 +91,7 @@ public class Value extends Symbol {
     @Override
     public String toString() {
         return "Value{" +
-                "type=" + type +
-                '}';
+               "type=" + type +
+               '}';
     }
 }

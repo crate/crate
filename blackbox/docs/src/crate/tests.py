@@ -19,30 +19,29 @@
 # with Crate these terms will supersede the license and you may use the
 # software solely pursuant to the terms of the relevant commercial agreement.
 
-import unittest
 import doctest
-import zc.customdoctests
-from crate.testing.layer import CrateLayer
-import os
-import shutil
-import re
-import tempfile
 import glob
-from . import process_test
-from .java_repl import JavaRepl
-from testutils.paths import crate_path, project_path
-from testutils.ports import GLOBAL_PORT_POOL
+import os
+import re
+import shutil
+import tempfile
+import unittest
+import zc.customdoctests
+from crate.client import connect
 from crate.crash.command import CrateCmd
 from crate.crash.printer import PrintWrapper, ColorPrinter
-from crate.client import connect
+from crate.testing.layer import CrateLayer
+from testutils.paths import crate_path, project_path
+from testutils.ports import GLOBAL_PORT_POOL
 
+from . import process_test
+from .java_repl import JavaRepl
 
 CRATE_HTTP_PORT = GLOBAL_PORT_POOL.get()
 CRATE_TRANSPORT_PORT = GLOBAL_PORT_POOL.get()
 
 
 class CrateTestCmd(CrateCmd):
-
     def __init__(self, **kwargs):
         super(CrateTestCmd, self).__init__(**kwargs)
         doctest_print = PrintWrapper()
@@ -54,6 +53,7 @@ class CrateTestCmd(CrateCmd):
             self.process(stmt)
         else:
             self.execute(stmt)
+
 
 cmd = CrateTestCmd(is_tty=False)
 jars = [project_path('blackbox', 'tmp', 'crateClient', 'crate-client.jar')]
@@ -70,9 +70,9 @@ def wait_for_schema_update(schema, table, column):
     count = 0
     while count == 0:
         c.execute(('select count(*) from information_schema.columns '
-                    'where schema_name = ? and table_name = ? '
-                    'and column_name = ?'),
-                    (schema, table, column))
+                   'where schema_name = ? and table_name = ? '
+                   'and column_name = ?'),
+                  (schema, table, column))
         count = c.fetchone()[0]
 
 
@@ -85,8 +85,8 @@ def bash_transform(s):
         s = re.search(r"crash\s+-c\s+\"(.*?)\"", s).group(1)
         return u'cmd.stmt({0})'.format(repr(s.strip().rstrip(';')))
     return (
-        r'import subprocess;'
-        r'print(subprocess.check_output(r"""%s""",stderr=subprocess.STDOUT,shell=True).decode("utf-8"))' % s) + '\n'
+               r'import subprocess;'
+               r'print(subprocess.check_output(r"""%s""",stderr=subprocess.STDOUT,shell=True).decode("utf-8"))' % s) + '\n'
 
 
 def crash_transform(s):
@@ -115,7 +115,6 @@ java_parser = zc.customdoctests.DocTestParser(
 
 
 class ConnectingCrateLayer(CrateLayer):
-
     def __init__(self, *args, **kwargs):
         self.repo_path = kwargs['settings']['path.repo'] = tempfile.mkdtemp()
         super(ConnectingCrateLayer, self).__init__(*args, **kwargs)
@@ -128,8 +127,8 @@ class ConnectingCrateLayer(CrateLayer):
         shutil.rmtree(self.repo_path, ignore_errors=True)
         super(ConnectingCrateLayer, self).tearDown()
 
-class ConnectingAndJavaReplLayer(object):
 
+class ConnectingAndJavaReplLayer(object):
     def __init__(self, connecting_layer, javarepl_layer):
         self.__bases__ = (connecting_layer, javarepl_layer)
         self.__name__ = 'connecting_and_javarepl'
@@ -296,6 +295,7 @@ def setUpQuotes(test):
 def tearDownQuotes(test):
     cmd.stmt("""drop table if exists quotes""")
 
+
 def setUpPhotos(test):
     test.globs['cmd'] = cmd
     cmd.stmt("""
@@ -307,8 +307,10 @@ def setUpPhotos(test):
     cmd.stmt("""copy photos from '{0}'""".format(dept_file))
     cmd.stmt("""refresh table photos""")
 
+
 def tearDownPhotos(test):
     cmd.stmt("""drop table if exists photos""")
+
 
 def setUpCountries(test):
     test.globs['cmd'] = cmd
@@ -321,12 +323,15 @@ def setUpCountries(test):
     cmd.stmt("""copy countries from '{0}'""".format(dept_file))
     cmd.stmt("""refresh table countries""")
 
+
 def tearDownCountries(test):
     cmd.stmt("""drop table if exists countries""")
+
 
 def setUpLocationsAndQuotes(test):
     setUpLocations(test)
     setUpQuotes(test)
+
 
 def tearDownLocationsAndQuotes(test):
     tearDownLocations(test)
@@ -337,6 +342,7 @@ def setUpColorsAndArticles(test):
     setUpColors(test)
     setUpArticles(test)
 
+
 def tearDownColorsAndArticles(test):
     tearDownArticles(test)
     tearDownColors(test)
@@ -345,6 +351,7 @@ def tearDownColorsAndArticles(test):
 def setUpLocationsQuotesAndUserVisits(test):
     setUpLocationsAndQuotes(test)
     setUpUserVisits(test)
+
 
 def tearDownLocationsQuotesAndUserVisits(test):
     tearDownLocationsAndQuotes(test)
@@ -355,6 +362,7 @@ def setUpEmployeesAndDepartments(test):
     setUpEmployees(test)
     setUpDepartments(test)
 
+
 def tearDownEmployeesAndDepartments(test):
     tearDownEmployees(test)
     tearDownDepartments(test)
@@ -364,14 +372,17 @@ def setUpPhotosAndCountries(test):
     setUpPhotos(test)
     setUpCountries(test)
 
+
 def tearDownPhotosAndCountries(test):
     tearDownPhotos(test)
     tearDownCountries(test)
+
 
 def setUpEmpDeptAndColourArticlesAndGeo(test):
     setUpEmployeesAndDepartments(test)
     setUpColorsAndArticles(test)
     setUpPhotosAndCountries(test)
+
 
 def tearDownEmpDeptAndColourArticlesAndGeo(test):
     tearDownEmployeesAndDepartments(test)
@@ -412,7 +423,7 @@ def test_suite():
                              parser=bash_parser,
                              setUp=setUp,
                              optionflags=doctest.NORMALIZE_WHITESPACE |
-                             doctest.ELLIPSIS,
+                                         doctest.ELLIPSIS,
                              encoding='utf-8')
     s.layer = crate_layer
     docs_suite.addTest(s)
@@ -422,7 +433,7 @@ def test_suite():
                                  setUp=setUpLocations,
                                  tearDown=tearDownLocations,
                                  optionflags=doctest.NORMALIZE_WHITESPACE |
-                                 doctest.ELLIPSIS,
+                                             doctest.ELLIPSIS,
                                  encoding='utf-8')
         s.layer = crate_layer
         docs_suite.addTest(s)
@@ -447,7 +458,7 @@ def test_suite():
                                  setUp=setUpLocationsAndQuotes,
                                  tearDown=tearDownLocationsAndQuotes,
                                  optionflags=doctest.NORMALIZE_WHITESPACE |
-                                 doctest.ELLIPSIS,
+                                             doctest.ELLIPSIS,
                                  encoding='utf-8')
         s.layer = crate_layer
         docs_suite.addTest(s)
@@ -458,28 +469,27 @@ def test_suite():
                                  setUp=setUpEmpDeptAndColourArticlesAndGeo,
                                  tearDown=tearDownEmpDeptAndColourArticlesAndGeo,
                                  optionflags=doctest.NORMALIZE_WHITESPACE |
-                                 doctest.ELLIPSIS,
+                                             doctest.ELLIPSIS,
                                  encoding='utf-8')
         s.layer = crate_layer
         docs_suite.addTest(s)
-
 
     for fn in ('sql/dml.txt',):
         s = doctest.DocFileSuite('../../' + fn, parser=crash_parser,
                                  setUp=setUpLocationsQuotesAndUserVisits,
                                  tearDown=tearDownLocationsQuotesAndUserVisits,
                                  optionflags=doctest.NORMALIZE_WHITESPACE |
-                                 doctest.ELLIPSIS,
+                                             doctest.ELLIPSIS,
                                  encoding='utf-8')
         s.layer = crate_layer
         docs_suite.addTest(s)
     for fn in ('best_practice/migrating_from_mongodb.txt',
-	       'best_practice/systables.txt'):
+               'best_practice/systables.txt'):
         path = os.path.join('..', '..', fn)
         s = doctest.DocFileSuite(path, parser=crash_parser,
                                  setUp=setUp,
                                  optionflags=doctest.NORMALIZE_WHITESPACE |
-                                 doctest.ELLIPSIS,
+                                             doctest.ELLIPSIS,
                                  encoding='utf-8')
         s.layer = crate_layer
         docs_suite.addTest(s)
@@ -488,7 +498,7 @@ def test_suite():
         s = doctest.DocFileSuite(path, parser=crash_parser,
                                  setUp=setUpTutorials,
                                  optionflags=doctest.NORMALIZE_WHITESPACE |
-                                 doctest.ELLIPSIS,
+                                             doctest.ELLIPSIS,
                                  encoding='utf-8')
         s.layer = crate_layer
         docs_suite.addTest(s)
@@ -497,7 +507,7 @@ def test_suite():
                                  setUp=setUpLocationsAndQuotes,
                                  tearDown=tearDownLocationsAndQuotes,
                                  optionflags=doctest.NORMALIZE_WHITESPACE |
-                                 doctest.ELLIPSIS,
+                                             doctest.ELLIPSIS,
                                  encoding='utf-8')
         s.layer = crate_layer
         docs_suite.addTest(s)
@@ -505,7 +515,7 @@ def test_suite():
     s = doctest.DocFileSuite('../../clients/client.txt', parser=java_parser,
                              setUp=setUp,
                              optionflags=doctest.NORMALIZE_WHITESPACE |
-                             doctest.ELLIPSIS,
+                                         doctest.ELLIPSIS,
                              encoding='utf-8')
     s.layer = crate_and_javarepl_layer
     docs_suite.addTest(s)

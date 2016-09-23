@@ -27,8 +27,8 @@ import io.crate.executor.transport.distributed.DistributedResultRequest;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
-import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
+import org.elasticsearch.common.io.stream.StreamInput;
 import org.junit.Test;
 
 import java.util.UUID;
@@ -45,7 +45,7 @@ public class DistributedResultRequestTest extends CrateUnitTest {
         Streamer<?>[] streamers = new Streamer[]{DataTypes.STRING.streamer()};
 
         Object[][] rows = new Object[][]{
-                {new BytesRef("ab")},{null},{new BytesRef("cd")}
+            {new BytesRef("ab")}, {null}, {new BytesRef("cd")}
         };
         UUID uuid = UUID.randomUUID();
 

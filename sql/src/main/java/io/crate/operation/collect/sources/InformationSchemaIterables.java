@@ -55,32 +55,32 @@ public class InformationSchemaIterables {
                                       ClusterService clusterService) throws IOException {
         this.schemas = Suppliers.<Iterable<?>>ofInstance(schemas);
         FluentIterable<TableInfo> tablesIterable = FluentIterable.from(schemas)
-                .transformAndConcat(new Function<SchemaInfo, Iterable<TableInfo>>() {
-                    @Nullable
-                    @Override
-                    public Iterable<TableInfo> apply(SchemaInfo input) {
-                        assert input != null;
-                        // filter out partitions
-                        return FluentIterable.from(input).filter(new Predicate<TableInfo>() {
-                            @Override
-                            public boolean apply(TableInfo input) {
-                                assert input != null;
-                                return !PartitionName.isPartition(input.ident().indexName());
-                            }
-                        });
-                    }
-                });
+            .transformAndConcat(new Function<SchemaInfo, Iterable<TableInfo>>() {
+                @Nullable
+                @Override
+                public Iterable<TableInfo> apply(SchemaInfo input) {
+                    assert input != null;
+                    // filter out partitions
+                    return FluentIterable.from(input).filter(new Predicate<TableInfo>() {
+                        @Override
+                        public boolean apply(TableInfo input) {
+                            assert input != null;
+                            return !PartitionName.isPartition(input.ident().indexName());
+                        }
+                    });
+                }
+            });
         tablesGetter = Suppliers.<Iterable<?>>ofInstance(tablesIterable);
         partitionsGetter = Suppliers.<Iterable<?>>ofInstance(new PartitionInfos(clusterService));
         FluentIterable<ColumnContext> columnsIterable = tablesIterable.transformAndConcat(
-                new Function<TableInfo, Iterable<ColumnContext>>() {
-                    @Nullable
-                    @Override
-                    public Iterable<ColumnContext> apply(TableInfo input) {
-                        assert input != null;
-                        return new ColumnsIterator(input);
-                    }
-                });
+            new Function<TableInfo, Iterable<ColumnContext>>() {
+                @Nullable
+                @Override
+                public Iterable<ColumnContext> apply(TableInfo input) {
+                    assert input != null;
+                    return new ColumnsIterator(input);
+                }
+            });
         columnsGetter = Suppliers.<Iterable<?>>ofInstance(columnsIterable);
         constraintsGetter = Suppliers.<Iterable<?>>ofInstance(tablesIterable.filter(new Predicate<TableInfo>() {
             @Override
@@ -91,12 +91,12 @@ public class InformationSchemaIterables {
 
         RoutineInfos routineInfos = new RoutineInfos(ftResolver);
         routinesGetter = Suppliers.<Iterable<?>>ofInstance(FluentIterable.from(routineInfos)
-                .filter(new Predicate<RoutineInfo>() {
-                    @Override
-                    public boolean apply(@Nullable RoutineInfo input) {
-                        return input != null;
-                    }
-                }));
+            .filter(new Predicate<RoutineInfo>() {
+                @Override
+                public boolean apply(@Nullable RoutineInfo input) {
+                    return input != null;
+                }
+            }));
         featuresGetter = Suppliers.<Iterable<?>>ofInstance(new SqlFeaturesIterable());
     }
 
@@ -140,8 +140,8 @@ public class InformationSchemaIterables {
                 @Override
                 public boolean apply(@Nullable Reference input) {
                     return input != null
-                            && !input.ident().columnIdent().isSystemColumn()
-                            && input.valueType() != DataTypes.NOT_SUPPORTED;
+                           && !input.ident().columnIdent().isSystemColumn()
+                           && input.valueType() != DataTypes.NOT_SUPPORTED;
                 }
             }).iterator();
         }
