@@ -44,33 +44,33 @@ public class OperationTest extends CrateUnitTest {
             is(Operation.READ_ONLY));
 
         assertThat(Operation.buildFromIndexSettings(Settings.settingsBuilder()
-            .put(IndexMetaData.SETTING_BLOCKS_READ, true).build()),
+                .put(IndexMetaData.SETTING_BLOCKS_READ, true).build()),
             containsInAnyOrder(Operation.INSERT, Operation.UPDATE, Operation.DELETE, Operation.ALTER, Operation.DROP));
 
         assertThat(Operation.buildFromIndexSettings(Settings.settingsBuilder()
-            .put(IndexMetaData.SETTING_BLOCKS_WRITE, true).build()),
+                .put(IndexMetaData.SETTING_BLOCKS_WRITE, true).build()),
             containsInAnyOrder(Operation.READ, Operation.ALTER));
 
         assertThat(Operation.buildFromIndexSettings(Settings.settingsBuilder()
-            .put(IndexMetaData.SETTING_BLOCKS_METADATA, true).build()),
+                .put(IndexMetaData.SETTING_BLOCKS_METADATA, true).build()),
             containsInAnyOrder(Operation.READ, Operation.INSERT, Operation.UPDATE, Operation.DELETE));
     }
 
     @Test
     public void testBuildFromCompoundIndexBlocks() throws Exception {
         assertThat(Operation.buildFromIndexSettings(Settings.settingsBuilder()
-            .put(IndexMetaData.SETTING_BLOCKS_READ, true)
-            .put(IndexMetaData.SETTING_BLOCKS_WRITE, true).build()),
+                .put(IndexMetaData.SETTING_BLOCKS_READ, true)
+                .put(IndexMetaData.SETTING_BLOCKS_WRITE, true).build()),
             containsInAnyOrder(Operation.ALTER));
 
         assertThat(Operation.buildFromIndexSettings(Settings.settingsBuilder()
-            .put(IndexMetaData.SETTING_BLOCKS_WRITE, true)
-            .put(IndexMetaData.SETTING_BLOCKS_METADATA, true).build()),
+                .put(IndexMetaData.SETTING_BLOCKS_WRITE, true)
+                .put(IndexMetaData.SETTING_BLOCKS_METADATA, true).build()),
             containsInAnyOrder(Operation.READ));
 
         assertThat(Operation.buildFromIndexSettings(Settings.settingsBuilder()
-            .put(IndexMetaData.SETTING_BLOCKS_READ, true)
-            .put(IndexMetaData.SETTING_BLOCKS_METADATA, true).build()),
+                .put(IndexMetaData.SETTING_BLOCKS_READ, true)
+                .put(IndexMetaData.SETTING_BLOCKS_METADATA, true).build()),
             containsInAnyOrder(Operation.INSERT, Operation.UPDATE, Operation.DELETE));
     }
 }

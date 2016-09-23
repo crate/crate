@@ -53,17 +53,17 @@ public abstract class SQLHttpIntegrationTest extends SQLTransportIntegrationTest
     @Override
     protected Settings nodeSettings(int nodeOrdinal) {
         return Settings.settingsBuilder()
-                .put(super.nodeSettings(nodeOrdinal))
-                .put("http.enabled", true)
-                .put("http.host", "127.0.0.1")
-                .build();
+            .put(super.nodeSettings(nodeOrdinal))
+            .put("http.enabled", true)
+            .put("http.host", "127.0.0.1")
+            .build();
     }
 
     @Before
     public void setup() {
         HttpServerTransport httpServerTransport = internalCluster().getInstance(HttpServerTransport.class);
         address = ((InetSocketTransportAddress) httpServerTransport.boundAddress().publishAddress())
-                .address();
+            .address();
         httpPost = new HttpPost(String.format(Locale.ENGLISH, "http://%s:%s/_sql?error_trace", address.getHostName(), address.getPort()));
     }
 

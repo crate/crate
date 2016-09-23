@@ -37,7 +37,7 @@ public class DocKeysTest extends CrateUnitTest {
     public void testClusteredIsFirstInId() throws Exception {
         // if a the table is clustered and has a pk, the clustering value is put in front in the id computation
         List<List<Symbol>> pks = ImmutableList.<List<Symbol>>of(
-                ImmutableList.<Symbol>of(Literal.of(1), Literal.of("Ford"))
+            ImmutableList.<Symbol>of(Literal.of(1), Literal.of("Ford"))
         );
         DocKeys docKeys = new DocKeys(pks, false, 1, null);
         DocKeys.DocKey key = docKeys.getOnlyKey();

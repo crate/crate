@@ -50,31 +50,31 @@ public class ToByteFunctionTest extends AbstractScalarFunctionsTest {
     }
 
     private Byte evaluate(Object value, DataType type) {
-        Input[] input = {(Input)Literal.of(type, value)};
+        Input[] input = {(Input) Literal.of(type, value)};
         return (Byte) getFunction(type).evaluate(input);
     }
 
     private Symbol normalize(Object value, DataType type) {
         ToPrimitiveFunction function = getFunction(type);
         return function.normalizeSymbol(new Function(function.info(),
-                Collections.<Symbol>singletonList(Literal.of(type, value))), new StmtCtx());
+            Collections.<Symbol>singletonList(Literal.of(type, value))), new StmtCtx());
     }
 
     @Test
     @SuppressWarnings("unchecked")
     public void testNormalizeSymbol() throws Exception {
-        assertThat(normalize("123", DataTypes.STRING), isLiteral((byte)123));
-        assertThat(normalize(12.5f, DataTypes.FLOAT), isLiteral((byte)12));
+        assertThat(normalize("123", DataTypes.STRING), isLiteral((byte) 123));
+        assertThat(normalize(12.5f, DataTypes.FLOAT), isLiteral((byte) 12));
     }
 
     @Test
     public void testEvaluate() throws Exception {
-        assertThat(evaluate("123", DataTypes.STRING), is((byte)123));
+        assertThat(evaluate("123", DataTypes.STRING), is((byte) 123));
         assertThat(evaluate(null, DataTypes.STRING), nullValue());
-        assertThat(evaluate(123.5f, DataTypes.FLOAT), is((byte)123));
-        assertThat(evaluate(123.5d, DataTypes.DOUBLE), is((byte)123));
+        assertThat(evaluate(123.5f, DataTypes.FLOAT), is((byte) 123));
+        assertThat(evaluate(123.5d, DataTypes.DOUBLE), is((byte) 123));
         assertThat(evaluate(null, DataTypes.FLOAT), nullValue());
-        assertThat(evaluate(42L, DataTypes.LONG), is((byte)42));
+        assertThat(evaluate(42L, DataTypes.LONG), is((byte) 42));
         assertThat(evaluate(null, DataTypes.INTEGER), nullValue());
     }
 

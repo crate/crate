@@ -84,12 +84,12 @@ public class ToIntFunctionTest extends AbstractScalarFunctionsTest {
         ToPrimitiveFunction stringFn = getFunction(functionName, DataTypes.STRING);
         Literal arg1 = Literal.of("123");
         Object result = stringFn.evaluate(arg1);
-        assertThat((Integer)result, is(123));
+        assertThat((Integer) result, is(123));
 
         ToPrimitiveFunction floatFn = getFunction(functionName, DataTypes.FLOAT);
         arg1 = Literal.of(42.5f);
         result = floatFn.evaluate(arg1);
-        assertThat((Integer)result, is(42));
+        assertThat((Integer) result, is(42));
     }
 
     @Test

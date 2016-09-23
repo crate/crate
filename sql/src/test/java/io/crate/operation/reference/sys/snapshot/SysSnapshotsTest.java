@@ -46,7 +46,7 @@ public class SysSnapshotsTest extends CrateUnitTest {
         SysRepositories sysRepos = mock(SysRepositories.class);
 
         final Iterable<?> objects =
-                Collections.singletonList((Object) new SysRepository("foo", "url", ImmutableMap.<String, Object>of()));
+            Collections.singletonList((Object) new SysRepository("foo", "url", ImmutableMap.<String, Object>of()));
         when(sysRepos.get()).then(new Answer<Object>() {
             @Override
             public Object answer(InvocationOnMock invocation) throws Throwable {

@@ -57,16 +57,16 @@ public class PartitionPropertiesAnalyzerTest extends BaseAnalyzerTest {
     @Test
     public void testPartitionNameFromAssignmentWithBytesRef() throws Exception {
         DocTableInfo tableInfo = TestingTableInfo.builder(new TableIdent("doc", "users"),
-                new Routing(ImmutableMap.<String, Map<String,List<Integer>>>of()))
-                .add("name", DataTypes.STRING, null, true)
-                .addPrimaryKey("name").build();
+            new Routing(ImmutableMap.<String, Map<String, List<Integer>>>of()))
+            .add("name", DataTypes.STRING, null, true)
+            .addPrimaryKey("name").build();
 
         PartitionName partitionName = PartitionPropertiesAnalyzer.toPartitionName(
-                tableInfo,
-                Arrays.asList(new Assignment(
-                        new QualifiedNameReference(new QualifiedName("name")),
-                        new StringLiteral("foo"))),
-                Row.EMPTY);
+            tableInfo,
+            Arrays.asList(new Assignment(
+                new QualifiedNameReference(new QualifiedName("name")),
+                new StringLiteral("foo"))),
+            Row.EMPTY);
         assertThat(partitionName.asIndexName(), is(".partitioned.users.0426crrf"));
     }
 }

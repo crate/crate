@@ -56,33 +56,33 @@ public class DistributingDownstreamFactoryTest extends CrateUnitTest {
     @Before
     public void before() {
         rowDownstreamFactory = new DistributingDownstreamFactory(
-                Settings.EMPTY,
-                new NoopClusterService(),
-                mock(TransportDistributedResultAction.class)
+            Settings.EMPTY,
+            new NoopClusterService(),
+            mock(TransportDistributedResultAction.class)
         );
     }
 
     private RowReceiver createDownstream(Set<String> downstreamExecutionNodes) {
         UUID jobId = UUID.randomUUID();
         Routing routing = new Routing(
-                TreeMapBuilder.<String, Map<String, List<Integer>>>newMapBuilder()
-                        .put("n1", TreeMapBuilder.<String, List<Integer>>newMapBuilder()
-                                .put("i1", Arrays.asList(1, 2)).map()).map());
+            TreeMapBuilder.<String, Map<String, List<Integer>>>newMapBuilder()
+                .put("n1", TreeMapBuilder.<String, List<Integer>>newMapBuilder()
+                    .put("i1", Arrays.asList(1, 2)).map()).map());
         RoutedCollectPhase collectPhase = new RoutedCollectPhase(
-                jobId,
-                1,
-                "collect",
-                routing,
-                RowGranularity.DOC,
-                ImmutableList.<Symbol>of(),
-                ImmutableList.<Projection>of(),
-                WhereClause.MATCH_ALL,
-                DistributionInfo.DEFAULT_MODULO
+            jobId,
+            1,
+            "collect",
+            routing,
+            RowGranularity.DOC,
+            ImmutableList.<Symbol>of(),
+            ImmutableList.<Projection>of(),
+            WhereClause.MATCH_ALL,
+            DistributionInfo.DEFAULT_MODULO
         );
         MergePhase mergePhase = new MergePhase(jobId, 2, "merge", 1,
-                ImmutableList.<DataType>of(LongType.INSTANCE),
-                ImmutableList.<Projection>of(),
-                DistributionInfo.DEFAULT_BROADCAST);
+            ImmutableList.<DataType>of(LongType.INSTANCE),
+            ImmutableList.<Projection>of(),
+            DistributionInfo.DEFAULT_BROADCAST);
         mergePhase.executionNodes(downstreamExecutionNodes);
         NodeOperation nodeOperation = NodeOperation.withDownstream(collectPhase, mergePhase, (byte) 0, "nodeName");
         return rowDownstreamFactory.create(nodeOperation, collectPhase.distributionInfo(), jobId, Paging.PAGE_SIZE);
@@ -97,7 +97,7 @@ public class DistributingDownstreamFactoryTest extends CrateUnitTest {
 
     @Test
     public void testCreateDownstreamMultipleNode() throws Exception {
-        RowReceiver downstream = createDownstream(ImmutableSet.of("downstream_node1","downstream_node2"));
+        RowReceiver downstream = createDownstream(ImmutableSet.of("downstream_node1", "downstream_node2"));
         assertThat(((DistributingDownstream) downstream).multiBucketBuilder, instanceOf(ModuloBucketBuilder.class));
     }
 }

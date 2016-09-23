@@ -46,23 +46,23 @@ import static org.mockito.Mockito.when;
 public class T3 {
 
     public static final DocTableInfo T1_INFO = new TestingTableInfo.Builder(new TableIdent(null, "t1"), null)
-            .add("a", DataTypes.STRING)
-            .add("x", DataTypes.INTEGER)
-            .add("i", DataTypes.INTEGER)
-            .build();
+        .add("a", DataTypes.STRING)
+        .add("x", DataTypes.INTEGER)
+        .add("i", DataTypes.INTEGER)
+        .build();
     public static final DocTableRelation TR_1 = new DocTableRelation(T1_INFO);
 
     public static final DocTableInfo T2_INFO = new TestingTableInfo.Builder(new TableIdent(null, "t2"), null)
-            .add("b", DataTypes.STRING)
-            .add("y", DataTypes.INTEGER)
-            .add("i", DataTypes.INTEGER)
-            .build();
+        .add("b", DataTypes.STRING)
+        .add("y", DataTypes.INTEGER)
+        .add("i", DataTypes.INTEGER)
+        .build();
     public static final DocTableRelation TR_2 = new DocTableRelation(T2_INFO);
 
     public static final TableInfo T3_INFO = new TestingTableInfo.Builder(new TableIdent(null, "t3"), null)
-            .add("c", DataTypes.STRING)
-            .add("z", DataTypes.INTEGER)
-            .build();
+        .add("c", DataTypes.STRING)
+        .add("z", DataTypes.INTEGER)
+        .build();
     public static final TableRelation TR_3 = new TableRelation(T3_INFO);
 
     public static final MetaDataModule META_DATA_MODULE = new MetaDataModule() {
@@ -84,8 +84,8 @@ public class T3 {
 
     public static final ImmutableList<AnalyzedRelation> RELATIONS = ImmutableList.<AnalyzedRelation>of(TR_1, TR_2, TR_3);
     public static final Map<QualifiedName, AnalyzedRelation> SOURCES = ImmutableMap.<QualifiedName, AnalyzedRelation>of(
-            T1, TR_1,
-            T2, TR_2,
-            T3, TR_3
+        T1, TR_1,
+        T2, TR_2,
+        T3, TR_3
     );
 }

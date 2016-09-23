@@ -38,9 +38,9 @@ import static org.hamcrest.Matchers.is;
 
 public class OrderByTest extends CrateUnitTest {
 
-    private static final TableIdent TI =  new TableIdent("doc", "people");
+    private static final TableIdent TI = new TableIdent("doc", "people");
 
-    private Reference ref(String name){
+    private Reference ref(String name) {
         return new Reference(new ReferenceIdent(TI, name), RowGranularity.DOC, DataTypes.STRING);
     }
 
@@ -63,7 +63,7 @@ public class OrderByTest extends CrateUnitTest {
     @Test
     public void testSubset() throws Exception {
         OrderBy orderBy = new OrderBy(ImmutableList.<Symbol>of(
-                ref("a"), ref("b"), ref("c")), new boolean[]{true, false, true}, new Boolean[]{true, null, false});
+            ref("a"), ref("b"), ref("c")), new boolean[]{true, false, true}, new Boolean[]{true, null, false});
         assertThat(orderBy.subset(ImmutableList.of(0, 2)), isSQL("doc.people.a DESC NULLS FIRST, doc.people.c DESC NULLS LAST"));
         assertThat(orderBy.subset(ImmutableList.of(1)), isSQL("doc.people.b"));
     }

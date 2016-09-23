@@ -21,8 +21,8 @@
 
 package org.elasticsearch.action.admin.indices.create;
 
-import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
+import org.elasticsearch.common.io.stream.StreamInput;
 import org.junit.Test;
 
 import java.io.IOException;

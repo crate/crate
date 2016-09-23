@@ -33,12 +33,12 @@ public class TimestampTypeTest extends BasePGTypeTest<Long> {
     @Test
     public void testWriteValues() throws Exception {
         assertBytesWritten(1467072000000L,
-            new byte[] { 0, 0, 0, 8, 65, -65, 4, 122, -128, 0, 0, 0 });
+            new byte[]{0, 0, 0, 8, 65, -65, 4, 122, -128, 0, 0, 0});
     }
 
     @Test
     public void testReadBinary() throws Exception {
         assertBytesReadBinary(
-            new byte[] { 65, -65, 4, 122, -128, 0, 0, 0 }, 1467072000000L);
+            new byte[]{65, -65, 4, 122, -128, 0, 0, 0}, 1467072000000L);
     }
 }

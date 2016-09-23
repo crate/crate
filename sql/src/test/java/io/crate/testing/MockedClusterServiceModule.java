@@ -89,9 +89,12 @@ public class MockedClusterServiceModule extends AbstractModule {
         configureMetaData(metaData);
     }
 
-    protected void configureClusterService(ClusterService clusterService) {}
+    protected void configureClusterService(ClusterService clusterService) {
+    }
 
-    protected void configureClusterState(ClusterState clusterState) {}
+    protected void configureClusterState(ClusterState clusterState) {
+    }
 
-    protected void configureMetaData(MetaData metaData) {}
+    protected void configureMetaData(MetaData metaData) {
+    }
 }

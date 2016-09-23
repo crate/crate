@@ -50,8 +50,8 @@ public class PartitionReferenceResolverTest extends CrateUnitTest {
             }
         });
         PartitionReferenceResolver referenceResolver = new PartitionReferenceResolver(
-                fallbackRefResolver,
-                ImmutableList.<PartitionExpression>of()
+            fallbackRefResolver,
+            ImmutableList.<PartitionExpression>of()
         );
 
         if (assertionsEnabled()) {

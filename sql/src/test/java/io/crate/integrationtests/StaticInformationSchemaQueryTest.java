@@ -150,7 +150,7 @@ public class StaticInformationSchemaQueryTest extends SQLTransportIntegrationTes
     public void testNotEqualsNumber() throws Exception {
         execute("select table_name, number_of_shards from information_schema.tables where schema_name = 'doc' and number_of_shards != 7");
         assertEquals(2L, response.rowCount());
-        assertTrue((int)response.rows()[0][1] != 7);
+        assertTrue((int) response.rows()[0][1] != 7);
         assertTrue((int) response.rows()[1][1] != 7);
     }
 

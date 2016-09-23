@@ -48,10 +48,10 @@ public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
     @Test
     public void testInsertWithColumnNames() throws Exception {
         prepareCreate("test")
-                .addMapping("default",
-                        "firstName", "type=string,store=true,index=not_analyzed",
-                        "lastName", "type=string,store=true,index=not_analyzed")
-                .execute().actionGet();
+            .addMapping("default",
+                "firstName", "type=string,store=true,index=not_analyzed",
+                "lastName", "type=string,store=true,index=not_analyzed")
+            .execute().actionGet();
         ensureGreen();
         execute("insert into test (\"firstName\", \"lastName\") values('Youri', 'Zoon')");
         assertEquals(1, response.rowCount());
@@ -82,21 +82,21 @@ public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
     @Test
     public void testInsertAllCoreDatatypes() throws Exception {
         prepareCreate("test")
-                .addMapping("default",
-                        "boolean", "type=boolean",
-                        "datetime", "type=date",
-                        "double", "type=double",
-                        "float", "type=float",
-                        "integer", "type=integer",
-                        "long", "type=long",
-                        "short", "type=short",
-                        "string", "type=string,index=not_analyzed")
-                .execute().actionGet();
+            .addMapping("default",
+                "boolean", "type=boolean",
+                "datetime", "type=date",
+                "double", "type=double",
+                "float", "type=float",
+                "integer", "type=integer",
+                "long", "type=long",
+                "short", "type=short",
+                "string", "type=string,index=not_analyzed")
+            .execute().actionGet();
         ensureGreen();
 
         execute("insert into test values(true, '2013-09-10T21:51:43', 1.79769313486231570e+308, 3.402, 2147483647, 9223372036854775807, 32767, 'Youri')");
         execute("insert into test values(?, ?, ?, ?, ?, ?, ?, ?)",
-                new Object[]{true, "2013-09-10T21:51:43", 1.79769313486231570e+308, 3.402, 2147483647, 9223372036854775807L, 32767, "Youri"});
+            new Object[]{true, "2013-09-10T21:51:43", 1.79769313486231570e+308, 3.402, 2147483647, 9223372036854775807L, 32767, "Youri"});
         assertEquals(1, response.rowCount());
         refresh();
 
@@ -118,7 +118,7 @@ public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
         assertEquals(3.402f, ((Number) response.rows()[1][3]).floatValue(), 0.002f);
         assertEquals(2147483647, response.rows()[1][4]);
         assertEquals(9223372036854775807L, response.rows()[1][5]);
-        assertEquals((short)32767, response.rows()[1][6]);
+        assertEquals((short) 32767, response.rows()[1][6]);
         assertEquals("Youri", response.rows()[1][7]);
     }
 
@@ -126,29 +126,29 @@ public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
     @SuppressWarnings("unchecked")
     public void testInsertCoreTypesAsArray() throws Exception {
         execute("create table test (" +
-                        "\"boolean\" array(boolean), " +
-                        "\"datetime\" array(timestamp), " +
-                        "\"double\" array(double), " +
-                        "\"float\" array(float), " +
-                        "\"integer\" array(integer), " +
-                        "\"long\" array(long), " +
-                        "\"short\" array(short), " +
-                        "\"string\" array(string) " +
-                        ") with (number_of_replicas=0)"
+                "\"boolean\" array(boolean), " +
+                "\"datetime\" array(timestamp), " +
+                "\"double\" array(double), " +
+                "\"float\" array(float), " +
+                "\"integer\" array(integer), " +
+                "\"long\" array(long), " +
+                "\"short\" array(short), " +
+                "\"string\" array(string) " +
+                ") with (number_of_replicas=0)"
         );
         ensureGreen();
 
         execute("insert into test values(?, ?, ?, ?, ?, ?, ?, ?)",
-                new Object[]{
-                        new Boolean[]{true, false},
-                        new String[]{"2013-09-10T21:51:43", "2013-11-10T21:51:43"},
-                        new Double[]{1.79769313486231570e+308, 1.69769313486231570e+308},
-                        new Float[]{3.402f, 3.403f, null},
-                        new Integer[]{2147483647, 234583},
-                        new Long[]{9223372036854775807L, 4L},
-                        new Short[]{32767, 2},
-                        new String[]{"Youri", "Juri"}
-                }
+            new Object[]{
+                new Boolean[]{true, false},
+                new String[]{"2013-09-10T21:51:43", "2013-11-10T21:51:43"},
+                new Double[]{1.79769313486231570e+308, 1.69769313486231570e+308},
+                new Float[]{3.402f, 3.403f, null},
+                new Integer[]{2147483647, 234583},
+                new Long[]{9223372036854775807L, 4L},
+                new Short[]{32767, 2},
+                new String[]{"Youri", "Juri"}
+            }
         );
         refresh();
 
@@ -192,10 +192,10 @@ public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
     @Test
     public void testInsertMultipleRows() throws Exception {
         prepareCreate("test")
-                .addMapping("default",
-                        "age", "type=integer",
-                        "name", "type=string,store=true,index=not_analyzed")
-                .execute().actionGet();
+            .addMapping("default",
+                "age", "type=integer",
+                "name", "type=string,store=true,index=not_analyzed")
+            .execute().actionGet();
         ensureGreen();
 
         execute("insert into test values(32, 'Youri'), (42, 'Ruben')");
@@ -212,10 +212,10 @@ public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
     @Test
     public void testInsertWithParams() throws Exception {
         prepareCreate("test")
-                .addMapping("default",
-                        "age", "type=integer",
-                        "name", "type=string,store=true,index=not_analyzed")
-                .execute().actionGet();
+            .addMapping("default",
+                "age", "type=integer",
+                "name", "type=string,store=true,index=not_analyzed")
+            .execute().actionGet();
         ensureGreen();
 
         Object[] args = new Object[]{32, "Youri"};
@@ -305,7 +305,7 @@ public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
         this.setup.createTestTableWithPrimaryKey();
 
         Object[] args = new Object[]{"1",
-                "A towel is about the most massively useful thing an interstellar hitch hiker can have."};
+            "A towel is about the most massively useful thing an interstellar hitch hiker can have."};
         execute("insert into test (pk_col, message) values (?, ?)", args);
         refresh();
 
@@ -334,8 +334,8 @@ public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
         this.setup.createTestTableWithPrimaryKey();
 
         Object[] args = new Object[]{
-                "1", "All the doors in this spaceship have a cheerful and sunny disposition.",
-                "2", "I always thought something was fundamentally wrong with the universe"
+            "1", "All the doors in this spaceship have a cheerful and sunny disposition.",
+            "2", "I always thought something was fundamentally wrong with the universe"
         };
         execute("insert into test (pk_col, message) values (?, ?), (?, ?)", args);
         refresh();
@@ -370,12 +370,12 @@ public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
         this.setup.createTestTableWithPrimaryKey();
 
         Object[] args = new Object[]{
-                "1", "All the doors in this spaceship have a cheerful and sunny disposition.",
+            "1", "All the doors in this spaceship have a cheerful and sunny disposition.",
         };
         execute("insert into test (pk_col, message) values (?, ?)", args);
 
         args = new Object[]{
-                "1", "I always thought something was fundamentally wrong with the universe"
+            "1", "I always thought something was fundamentally wrong with the universe"
         };
 
         expectedException.expect(SQLActionException.class);
@@ -389,8 +389,8 @@ public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
         this.setup.createTestTableWithPrimaryKey();
 
         Object[] args = new Object[]{
-                "In the beginning the Universe was created.\n" +
-                        "This has made a lot of people very angry and been widely regarded as a bad move."
+            "In the beginning the Universe was created.\n" +
+            "This has made a lot of people very angry and been widely regarded as a bad move."
         };
 
         expectedException.expect(SQLActionException.class);
@@ -408,7 +408,7 @@ public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
         expectedException.expect(SQLActionException.class);
         expectedException.expectMessage("Clustered by value must not be NULL");
         execute("insert into quotes (id, quote) values(?, ?)",
-                new Object[]{null, "I'd far rather be happy than right any day."});
+            new Object[]{null, "I'd far rather be happy than right any day."});
     }
 
     @Test
@@ -420,9 +420,8 @@ public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
         expectedException.expect(SQLActionException.class);
         expectedException.expectMessage("Clustered by value is required but is missing from the insert statement");
         execute("insert into quotes (quote) values(?)",
-                new Object[]{"I'd far rather be happy than right any day."});
+            new Object[]{"I'd far rather be happy than right any day."});
     }
-
 
 
     @Test
@@ -446,17 +445,17 @@ public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
     @Test
     public void testInsertFromQueryWithPartitionedTable() throws Exception {
         execute("create table users (id int primary key, name string) clustered into 2 shards " +
-            "with (number_of_replicas = 0)");
+                "with (number_of_replicas = 0)");
         execute("create table users_parted (id int, name string) clustered into 1 shards " +
-            "partitioned by (name) with (number_of_replicas = 0)");
+                "partitioned by (name) with (number_of_replicas = 0)");
         ensureYellow();
 
 
         execute("insert into users_parted (id, name) values (?, ?)", new Object[][]{
-                new Object[]{1, "Arthur"},
-                new Object[]{2, "Trillian"},
-                new Object[]{3, "Marvin"},
-                new Object[]{4, "Arthur"},
+            new Object[]{1, "Arthur"},
+            new Object[]{2, "Trillian"},
+            new Object[]{3, "Marvin"},
+            new Object[]{4, "Arthur"},
         });
         execute("refresh table users_parted");
         ensureYellow();
@@ -485,7 +484,7 @@ public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
         Object[] friends = (Object[]) response.rows()[0][0];
         assertThat(friends[0], nullValue());
         assertThat(((String) friends[1]), is("gedöns"));
-        assertThat((String)response.rows()[0][1], is("björk"));
+        assertThat((String) response.rows()[0][1], is("björk"));
 
         friends = ((Object[]) response.rows()[1][0]);
         assertNull(friends[0]);
@@ -558,7 +557,7 @@ public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
         assertThat(response.rowCount(), is(13L));
 
         for (int i = 0; i < rowsOriginal.length; i++) {
-            rowsOriginal[i][5] =  (long)((int)rowsOriginal[i][5]);
+            rowsOriginal[i][5] = (long) ((int) rowsOriginal[i][5]);
         }
         assertThat(response.rows(), is(rowsOriginal));
     }
@@ -582,7 +581,7 @@ public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
         execute("insert into t (id, points) values (1, [[1.1, 2.2],[3.3, 4.4]])");
         execute("insert into t (id, points) values (2, ['POINT(5.5 6.6)','POINT(7.7 8.8)'])");
         execute("insert into t (id, points) values (?, ?)",
-            new Object[] {3, new Double[][] {new Double[]{9.9, 10.10}, new Double[]{11.11, 12.12}}});
+            new Object[]{3, new Double[][]{new Double[]{9.9, 10.10}, new Double[]{11.11, 12.12}}});
         execute("refresh table t");
         execute("select points from t order by id");
         assertThat(response.rowCount(), is(3L));
@@ -611,7 +610,7 @@ public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
         assertThat((int) response.rows()[0][1], is(1));
         assertThat((int) response.rows()[1][1], is(2));
         assertThat((int) response.rows()[2][1], is(3));
-        assertThat((int)response.rows()[3][1], is(4));
+        assertThat((int) response.rows()[3][1], is(4));
     }
 
     @Test
@@ -622,10 +621,10 @@ public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
         refresh();
         execute("select count, name from nodes order by name");
         assertThat(response.rowCount(), is(2L));
-        assertThat((int)response.rows()[0][0], is(1));
-        assertThat((String)response.rows()[0][1], is("node_s0"));
-        assertThat((int)response.rows()[1][0], is(1));
-        assertThat((String)response.rows()[1][1], is("node_s1"));
+        assertThat((int) response.rows()[0][0], is(1));
+        assertThat((String) response.rows()[0][1], is("node_s0"));
+        assertThat((int) response.rows()[1][0], is(1));
+        assertThat((String) response.rows()[1][1], is("node_s1"));
     }
 
     @Test
@@ -638,8 +637,8 @@ public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
         refresh();
         execute("select id, name from t order by id");
         assertThat(response.rowCount(), is(4L));
-        assertThat((int)response.rows()[3][0], is(4));
-        assertThat((String)response.rows()[3][1], is("Arthur"));
+        assertThat((int) response.rows()[3][0], is(4));
+        assertThat((String) response.rows()[3][1], is("Arthur"));
 
     }
 
@@ -656,32 +655,32 @@ public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
 
         execute("select female, count(*) from t group by female order by female");
         assertThat(response.rowCount(), is(2L));
-        assertThat((Long)response.rows()[0][1], is(2L));
-        assertThat((Long)response.rows()[0][1], is(2L));
+        assertThat((Long) response.rows()[0][1], is(2L));
+        assertThat((Long) response.rows()[0][1], is(2L));
 
         // set all 'female' values to true
         execute("insert into t (id, name, female) (select id, name, female from characters) " +
                 "on duplicate key update female = ?",
-                new Object[]{ true });
+            new Object[]{true});
         assertThat(response.rowCount(), is(4L));
         refresh();
 
         execute("select female, count(*) from t group by female");
         assertThat(response.rowCount(), is(1L));
-        assertThat((Long)response.rows()[0][1], is(4L));
+        assertThat((Long) response.rows()[0][1], is(4L));
 
         // set all 'female' values back to their original values
         execute("insert into t (id, name, female) (select id, name, female from characters) " +
-                        "on duplicate key update female = values(female)",
-                new Object[]{ true });
+                "on duplicate key update female = values(female)",
+            new Object[]{true});
         assertThat(response.rowCount(), is(4L));
         refresh();
 
         execute("select female, count(*) from t group by female order by female");
         assertThat(response.rowCount(), is(2L));
         assertThat(TestingHelpers.printedTable(response.rows()),
-                is("false| 2\n" +
-                   "true| 2\n"));
+            is("false| 2\n" +
+               "true| 2\n"));
     }
 
     @Test
@@ -709,14 +708,14 @@ public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
                 "partitioned by (zipcode) with (number_of_replicas=0)");
         ensureGreen();
         execute("insert into custom.source (name, zipcode, city) values (?, ?, ?)", new Object[][]{
-                {"Schulz", "10243", "Berlin"},
-                {"Dings", "14713", "Leipzig"},
-                {"Foo", "10243", "Musterhausen"}
+            {"Schulz", "10243", "Berlin"},
+            {"Dings", "14713", "Leipzig"},
+            {"Foo", "10243", "Musterhausen"}
         });
         ensureGreen();
         refresh();
 
-        execute("select table_name, schema_name, partition_ident, values, number_of_shards, number_of_replicas "+
+        execute("select table_name, schema_name, partition_ident, values, number_of_shards, number_of_replicas " +
                 "from information_schema.table_partitions where schema_name='custom' and table_name='source' order by partition_ident");
         String[] rows = TestingHelpers.printedTable(response.rows()).split("\n");
         assertThat(rows[0], is("source| custom| 043k4pbidhkms| {city=Berlin}| 5| 0"));
@@ -730,11 +729,11 @@ public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
 
         execute("select * from custom.destination order by city");
         assertThat(TestingHelpers.printedTable(response.rows()), is(
-                "Berlin| Schulz| 10243\n" +
-                "Leipzig| Dings| 14713\n" +
-                "Musterhausen| Foo| 10243\n"));
+            "Berlin| Schulz| 10243\n" +
+            "Leipzig| Dings| 14713\n" +
+            "Musterhausen| Foo| 10243\n"));
 
-        execute("select table_name, schema_name, partition_ident, values, number_of_shards, number_of_replicas "+
+        execute("select table_name, schema_name, partition_ident, values, number_of_shards, number_of_replicas " +
                 "from information_schema.table_partitions where schema_name='custom' and table_name='destination' order by partition_ident");
         rows = TestingHelpers.printedTable(response.rows()).split("\n");
         assertThat(rows[0], is("destination| custom| 04332c1i6gpg| {zipcode=10243}| 5| 0"));
@@ -747,8 +746,8 @@ public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
         execute("create table strshapes (id int primary key, shape string) with (number_of_replicas=0)");
         ensureYellow();
         execute("insert into strshapes (id, shape) VALUES (?, ?)", $$(
-                $(1, "POINT (0 0)"),
-                $(2, "LINESTRING (0 0, 1 1, 2 2)")
+            $(1, "POINT (0 0)"),
+            $(2, "LINESTRING (0 0, 1 1, 2 2)")
         ));
         execute("refresh table strshapes");
 
@@ -760,8 +759,8 @@ public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
 
         execute("select * from shapes order by id");
         assertThat(TestingHelpers.printedTable(response.rows()), is(
-                "1| {coordinates=[0.0, 0.0], type=Point}\n" +
-                "2| {coordinates=[[0.0, 0.0], [1.0, 1.0], [2.0, 2.0]], type=LineString}\n"));
+            "1| {coordinates=[0.0, 0.0], type=Point}\n" +
+            "2| {coordinates=[[0.0, 0.0], [1.0, 1.0], [2.0, 2.0]], type=LineString}\n"));
 
     }
 
@@ -770,12 +769,12 @@ public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
         execute("create table t (x int)");
         ensureYellow();
 
-        Object[][] bulkArgs = new Object[][] {new Object[]{null}};
+        Object[][] bulkArgs = new Object[][]{new Object[]{null}};
         SQLBulkResponse bulkResponse = execute("insert into t values (?)", bulkArgs);
         assertThat(bulkResponse.results().length, is(1));
         assertThat(bulkResponse.results()[0].rowCount(), is(1L));
 
-        bulkArgs = new Object[][] {
+        bulkArgs = new Object[][]{
             new Object[]{10},
             new Object[]{null},
             new Object[]{20}
@@ -811,7 +810,7 @@ public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
     public void testBulkInsertWithMultiValueFailing() throws Exception {
         execute("create table t (x int primary key)");
         ensureYellow();
-        Object[][] bulkArgs = new Object[][] {
+        Object[][] bulkArgs = new Object[][]{
             new Object[]{10, 11},
             new Object[]{20, 21},
         };
@@ -821,7 +820,7 @@ public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
             assertThat(result.rowCount(), is(2L));
         }
 
-        bulkArgs = new Object[][] {
+        bulkArgs = new Object[][]{
             new Object[]{20, 21},
             new Object[]{30, 31},
         };
@@ -842,14 +841,15 @@ public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
         int bulkSize = randomIntBetween(1, 250);
         Object[][] bulkArgs = new Object[bulkSize][];
         for (int i = 0; i < bulkSize; i++) {
-            bulkArgs[i] = new Object[] { System.currentTimeMillis() + i, new String[]{randomAsciiOfLength(5), randomAsciiOfLength(2)}, (short)i };
+            bulkArgs[i] = new Object[]{System.currentTimeMillis() +
+                                       i, new String[]{randomAsciiOfLength(5), randomAsciiOfLength(2)}, (short) i};
         }
         SQLBulkResponse bulkResponse = execute("insert into giveittome (date, dirty_names, lashes) values (?, ?, ?)", bulkArgs);
         assertThat(bulkResponse.results().length, is(bulkSize));
         execute("refresh table giveittome");
         // assert that bulk insert has inserted everything it said it has
         execute("select sum(lashes), date from giveittome group by date");
-        assertThat(response.rowCount(), is((long)bulkSize));
+        assertThat(response.rowCount(), is((long) bulkSize));
     }
 
     @Test
@@ -879,8 +879,8 @@ public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
                 ") with (number_of_replicas=0)");
         ensureYellow();
         execute("insert into test_generated_column (ts, user) values (?, ?)", new Object[][]{
-                new Object[]{"2015-11-18T11:11:00", MapBuilder.newMapBuilder().put("name", "foo").map()},
-                new Object[]{"2015-11-18T17:41:00", null},
+            new Object[]{"2015-11-18T11:11:00", MapBuilder.newMapBuilder().put("name", "foo").map()},
+            new Object[]{"2015-11-18T17:41:00", null},
         });
         refresh();
         execute("select ts, day, name from test_generated_column order by ts");
@@ -907,8 +907,8 @@ public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
 
         execute("select * from computed order by quotient");
         assertThat(TestingHelpers.printedTable(response.rows()), is(
-                "0.0| 10.0| 0.0\n" +
-                "1.0| 1.0| 1.0\n"));
+            "0.0| 10.0| 0.0\n" +
+            "1.0| 1.0| 1.0\n"));
 
     }
 
@@ -921,12 +921,12 @@ public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
                 ") with (number_of_replicas=0)");
         ensureYellow();
         execute("insert into test_generated_column (id, ts) values (?, ?)", new Object[]{
-                1, "2015-11-18T11:11:00"});
+            1, "2015-11-18T11:11:00"});
         refresh();
 
         execute("insert into test_generated_column (id, ts) values (?, ?)" +
                 "on duplicate key update ts = ?",
-                new Object[]{1, "2015-11-18T11:11:00", "2015-11-23T14:43:00"});
+            new Object[]{1, "2015-11-18T11:11:00", "2015-11-23T14:43:00"});
         refresh();
 
         execute("select ts, day from test_generated_column");
@@ -987,7 +987,7 @@ public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
         ensureYellow();
 
         execute("insert into source_table (id, ts) values (?, ?)", new Object[]{
-                1, "2015-11-18T11:11:00"});
+            1, "2015-11-18T11:11:00"});
         refresh();
 
         execute("insert into target_table (id, ts) (select id, ts from source_table)");
@@ -1011,7 +1011,7 @@ public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
         ensureYellow();
 
         execute("insert into source_table (id, ts) values (?, ?)", new Object[]{
-                1, "2015-11-18T11:11:00"});
+            1, "2015-11-18T11:11:00"});
         refresh();
 
         execute("insert into target_table (id, ts) (select id, ts from source_table)");
@@ -1036,7 +1036,7 @@ public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
         ensureYellow();
 
         execute("insert into source_table (id, ts, day) values (?, ?, ?)", new Object[]{
-                1, "2015-11-18T11:11:00", "2015-11-18T11:11:00"});
+            1, "2015-11-18T11:11:00", "2015-11-18T11:11:00"});
         refresh();
 
         // will fail because `day` column has invalid value at source table
@@ -1058,7 +1058,7 @@ public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
         execute("insert into import (col1, col2, gen_new) (select col1, col2, col1+col2 from export)");
         refresh();
         execute("select gen_new from import");
-        assertThat((Long)response.rows()[0][0], is(3L));
+        assertThat((Long) response.rows()[0][0], is(3L));
     }
 
     @Test
@@ -1148,7 +1148,7 @@ public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
         execute("insert into target (col1) (select col1 from source)");
         refresh();
         execute("select col1 from target");
-        assertThat((Integer)response.rows()[0][0], is(1));
+        assertThat((Integer) response.rows()[0][0], is(1));
     }
 
     @Test

@@ -60,7 +60,7 @@ public class LuceneDocCollectorTest extends SQLTransportIntegrationTest {
     public TemporaryFolder temporaryFolder = new TemporaryFolder();
 
     @Before
-    public void prepare() throws Exception{
+    public void prepare() throws Exception {
         Paging.PAGE_SIZE = NODE_PAGE_SIZE_HINT;
         execute("create table \"" + INDEX_NAME + "\" (" +
                 " continent string, " +
@@ -79,35 +79,35 @@ public class LuceneDocCollectorTest extends SQLTransportIntegrationTest {
 
     public void generateData() throws Exception {
         Object[][] args = new Object[NUMBER_OF_DOCS][];
-        args[0] = new Object[] {"Europe", "Germany", 0};
-        args[1] = new Object[] {"Europe", "Austria", 1};
+        args[0] = new Object[]{"Europe", "Germany", 0};
+        args[1] = new Object[]{"Europe", "Austria", 1};
         for (int i = 2; i <= 4; i++) {
-            args[i] = new Object[] {"Europe", null, i};
+            args[i] = new Object[]{"Europe", null, i};
         }
         for (int i = 5; i < NUMBER_OF_DOCS; i++) {
-            args[i] = new Object[] {"America", "USA", i};
+            args[i] = new Object[]{"America", "USA", i};
         }
         sqlExecutor.execBulk("insert into countries (continent, \"countryName\", population) values (?, ?, ?)", args,
-                TimeValue.timeValueSeconds(30));
+            TimeValue.timeValueSeconds(30));
         refresh();
     }
 
-    private CrateCollector createDocCollector(String statement, RowReceiver rowReceiver, Object ... args) throws Exception {
+    private CrateCollector createDocCollector(String statement, RowReceiver rowReceiver, Object... args) throws Exception {
         return collectorProvider.createCollector(statement, rowReceiver, NODE_PAGE_SIZE_HINT, args);
     }
 
 
     @Test
-    public void testLimitWithoutOrder() throws Exception{
+    public void testLimitWithoutOrder() throws Exception {
         CrateCollector docCollector = createDocCollector("select \"countryName\" from countries limit 15", rowReceiver);
         docCollector.doCollect();
         assertThat(rowReceiver.rows.size(), is(15));
     }
 
     @Test
-    public void testOrderedWithLimit() throws Exception{
+    public void testOrderedWithLimit() throws Exception {
         CrateCollector docCollector = createDocCollector(
-                "select \"countryName\" from countries order by \"countryName\" asc nulls last limit 15", rowReceiver);
+            "select \"countryName\" from countries order by \"countryName\" asc nulls last limit 15", rowReceiver);
         docCollector.doCollect();
         assertThat(rowReceiver.rows.size(), is(15));
         assertThat(((BytesRef) rowReceiver.rows.get(0)[0]).utf8ToString(), is("Austria"));
@@ -120,14 +120,14 @@ public class LuceneDocCollectorTest extends SQLTransportIntegrationTest {
     public void testOrderedPauseResume() throws Exception {
         CollectingRowReceiver rowReceiver = CollectingRowReceiver.withPauseAfter(3);
         CrateCollector collector = createDocCollector(
-                "select population from countries order by population limit 15", rowReceiver);
+            "select population from countries order by population limit 15", rowReceiver);
         collector.doCollect();
 
         assertThat(rowReceiver.rows.size(), is(3));
         rowReceiver.resumeUpstream(false); // continue
         assertThat(rowReceiver.rows.size(), is(15));
-        for (int i = 0; i < rowReceiver.rows.size();  i++) {
-            assertThat((Integer)rowReceiver.rows.get(i)[0], is(i));
+        for (int i = 0; i < rowReceiver.rows.size(); i++) {
+            assertThat((Integer) rowReceiver.rows.get(i)[0], is(i));
         }
         rowReceiver.result(); // shouldn't timeout
     }
@@ -138,7 +138,7 @@ public class LuceneDocCollectorTest extends SQLTransportIntegrationTest {
         CollectingRowReceiver rowReceiver = CollectingRowReceiver.withPauseAfter(5);
 
         CrateCollector collector = createDocCollector(
-                "select population from countries order by population limit 20", rowReceiver);
+            "select population from countries order by population limit 20", rowReceiver);
         collector.doCollect();
         rowReceiver.resumeUpstream(false);
 
@@ -146,7 +146,7 @@ public class LuceneDocCollectorTest extends SQLTransportIntegrationTest {
         assertThat(bucket.size(), is(20));
 
         assertThat(TestingHelpers.printedTable(bucket),
-                is("0\n1\n2\n3\n4\n5\n6\n7\n8\n9\n10\n11\n12\n13\n14\n15\n16\n17\n18\n19\n"));
+            is("0\n1\n2\n3\n4\n5\n6\n7\n8\n9\n10\n11\n12\n13\n14\n15\n16\n17\n18\n19\n"));
     }
 
     @SuppressWarnings("unchecked")
@@ -223,8 +223,9 @@ public class LuceneDocCollectorTest extends SQLTransportIntegrationTest {
     }
 
     @Test
-    public void testOrderedWithLimitHigherThanPageSize() throws Exception{
-        CrateCollector docCollector = createDocCollector("select \"countryName\" from countries order by 1 limit ?", rowReceiver, NODE_PAGE_SIZE_HINT + 5);
+    public void testOrderedWithLimitHigherThanPageSize() throws Exception {
+        CrateCollector docCollector = createDocCollector("select \"countryName\" from countries order by 1 limit ?", rowReceiver,
+            NODE_PAGE_SIZE_HINT + 5);
         docCollector.doCollect();
         assertThat(rowReceiver.rows.size(), is(NODE_PAGE_SIZE_HINT + 5));
         assertThat(((BytesRef) rowReceiver.rows.get(0)[0]).utf8ToString(), is("Austria"));
@@ -241,10 +242,11 @@ public class LuceneDocCollectorTest extends SQLTransportIntegrationTest {
             args[i] = new Object[]{null};
         }
         sqlExecutor.execBulk("insert into nulls_table (foo) values (?)", args,
-                TimeValue.timeValueSeconds(1));
+            TimeValue.timeValueSeconds(1));
         execute("insert into nulls_table (foo) values (1)");
         refresh();
-        CrateCollector docCollector = createDocCollector("select * from nulls_table order by foo desc nulls last limit ?", rowReceiver, NODE_PAGE_SIZE_HINT + 5);
+        CrateCollector docCollector = createDocCollector("select * from nulls_table order by foo desc nulls last limit ?", rowReceiver,
+            NODE_PAGE_SIZE_HINT + 5);
         docCollector.doCollect();
         assertThat(rowReceiver.rows.size(), is(NODE_PAGE_SIZE_HINT + 5));
     }
@@ -257,7 +259,7 @@ public class LuceneDocCollectorTest extends SQLTransportIntegrationTest {
         assertThat(((BytesRef) rowReceiver.rows.get(0)[0]).utf8ToString(), is("Austria"));
         assertThat(((BytesRef) rowReceiver.rows.get(1)[0]).utf8ToString(), is("Germany"));
         assertThat(((BytesRef) rowReceiver.rows.get(2)[0]).utf8ToString(), is("USA"));
-        assertThat(rowReceiver.rows.get(NUMBER_OF_DOCS -1)[0], is(nullValue()));
+        assertThat(rowReceiver.rows.get(NUMBER_OF_DOCS - 1)[0], is(nullValue()));
     }
 
     @Test
@@ -269,8 +271,8 @@ public class LuceneDocCollectorTest extends SQLTransportIntegrationTest {
         assertThat(rowReceiver.rows.get(1)[0], is(nullValue()));
         assertThat(rowReceiver.rows.get(2)[0], is(nullValue()));
         assertThat(((BytesRef) rowReceiver.rows.get(3)[0]).utf8ToString(), is("Austria"));
-        assertThat(((BytesRef) rowReceiver.rows.get(4)[0]).utf8ToString(), is("Germany") );
-        assertThat(((BytesRef) rowReceiver.rows.get(5)[0]).utf8ToString(), is("USA") );
+        assertThat(((BytesRef) rowReceiver.rows.get(4)[0]).utf8ToString(), is("Germany"));
+        assertThat(((BytesRef) rowReceiver.rows.get(5)[0]).utf8ToString(), is("USA"));
     }
 
     @Test
@@ -283,8 +285,8 @@ public class LuceneDocCollectorTest extends SQLTransportIntegrationTest {
         assertThat(rowReceiver.rows.get(NUMBER_OF_DOCS - 2)[0], is(nullValue()));
         assertThat(rowReceiver.rows.get(NUMBER_OF_DOCS - 3)[0], is(nullValue()));
         assertThat(((BytesRef) rowReceiver.rows.get(NUMBER_OF_DOCS - 4)[0]).utf8ToString(), is("Austria"));
-        assertThat(((BytesRef) rowReceiver.rows.get(NUMBER_OF_DOCS - 5)[0]).utf8ToString(), is("Germany") );
-        assertThat(((BytesRef) rowReceiver.rows.get(NUMBER_OF_DOCS - 6)[0]).utf8ToString(), is("USA") );
+        assertThat(((BytesRef) rowReceiver.rows.get(NUMBER_OF_DOCS - 5)[0]).utf8ToString(), is("Germany"));
+        assertThat(((BytesRef) rowReceiver.rows.get(NUMBER_OF_DOCS - 6)[0]).utf8ToString(), is("USA"));
     }
 
     @Test
@@ -297,8 +299,8 @@ public class LuceneDocCollectorTest extends SQLTransportIntegrationTest {
         assertThat(rowReceiver.rows.get(1)[0], is(nullValue()));
         assertThat(rowReceiver.rows.get(2)[0], is(nullValue()));
         assertThat(((BytesRef) rowReceiver.rows.get(NUMBER_OF_DOCS - 1)[0]).utf8ToString(), is("Austria"));
-        assertThat(((BytesRef) rowReceiver.rows.get(NUMBER_OF_DOCS - 2)[0]).utf8ToString(), is("Germany") );
-        assertThat(((BytesRef) rowReceiver.rows.get(NUMBER_OF_DOCS - 3)[0]).utf8ToString(), is("USA") );
+        assertThat(((BytesRef) rowReceiver.rows.get(NUMBER_OF_DOCS - 2)[0]).utf8ToString(), is("Germany"));
+        assertThat(((BytesRef) rowReceiver.rows.get(NUMBER_OF_DOCS - 3)[0]).utf8ToString(), is("USA"));
     }
 
     @Test
@@ -308,7 +310,7 @@ public class LuceneDocCollectorTest extends SQLTransportIntegrationTest {
 
         assertThat(rowReceiver.rows.size(), is(NUMBER_OF_DOCS));
         assertThat(rowReceiver.rows.get(0).length, is(2));
-        assertThat(((BytesRef) rowReceiver.rows.get(NUMBER_OF_DOCS - 6)[0]).utf8ToString(), is("USA") );
+        assertThat(((BytesRef) rowReceiver.rows.get(NUMBER_OF_DOCS - 6)[0]).utf8ToString(), is("USA"));
         assertThat(rowReceiver.rows.get(NUMBER_OF_DOCS - 5)[0], is(nullValue()));
         assertThat(rowReceiver.rows.get(NUMBER_OF_DOCS - 4)[0], is(nullValue()));
         assertThat(rowReceiver.rows.get(NUMBER_OF_DOCS - 3)[0], is(nullValue()));
@@ -321,8 +323,8 @@ public class LuceneDocCollectorTest extends SQLTransportIntegrationTest {
         CrateCollector docCollector = createDocCollector("select population from countries order by population * -1", rowReceiver);
         docCollector.doCollect();
         assertThat(rowReceiver.rows.size(), is(NUMBER_OF_DOCS));
-        assertThat(((Integer) rowReceiver.rows.get(NUMBER_OF_DOCS - 2)[0]), is(1) );
-        assertThat(((Integer) rowReceiver.rows.get(NUMBER_OF_DOCS - 1)[0]), is(0) );
+        assertThat(((Integer) rowReceiver.rows.get(NUMBER_OF_DOCS - 2)[0]), is(1));
+        assertThat(((Integer) rowReceiver.rows.get(NUMBER_OF_DOCS - 1)[0]), is(0));
     }
 
     @Test
@@ -330,16 +332,16 @@ public class LuceneDocCollectorTest extends SQLTransportIntegrationTest {
         execute("create table test (x integer, y integer) clustered into 1 shards with (number_of_replicas=0)");
         ensureYellow();
         SQLBulkRequest request = new SQLBulkRequest("insert into test values (?, ?)",
-                new Object[][]{
-                    new Object[]{2, 3},
-                    new Object[]{2, 1},
-                    new Object[]{2, null},
-                    new Object[]{1, null},
-                    new Object[]{1, 2},
-                    new Object[]{1, 1},
-                    new Object[]{1, 0},
-                    new Object[]{1, null}
-                }
+            new Object[][]{
+                new Object[]{2, 3},
+                new Object[]{2, 1},
+                new Object[]{2, null},
+                new Object[]{1, null},
+                new Object[]{1, 2},
+                new Object[]{1, 1},
+                new Object[]{1, 0},
+                new Object[]{1, null}
+            }
         );
         sqlExecutor.exec(request);
         execute("refresh table test");
@@ -351,13 +353,13 @@ public class LuceneDocCollectorTest extends SQLTransportIntegrationTest {
         assertThat(rowReceiver.rows.size(), is(8));
 
         String expected = "1| 0\n" +
-                "1| 1\n" +
-                "1| 2\n" +
-                "1| NULL\n" +
-                "1| NULL\n" +
-                "2| 1\n" +
-                "2| 3\n" +
-                "2| NULL\n";
+                          "1| 1\n" +
+                          "1| 2\n" +
+                          "1| NULL\n" +
+                          "1| NULL\n" +
+                          "2| 1\n" +
+                          "2| 3\n" +
+                          "2| NULL\n";
         assertEquals(expected, printedTable(rowReceiver.result()));
 
         rowReceiver = new CollectingRowReceiver();
@@ -400,7 +402,7 @@ public class LuceneDocCollectorTest extends SQLTransportIntegrationTest {
         Bucket result = rowReceiver.result();
         assertThat(result.size(), is(2));
         assertThat(printedTable(result), is(
-                "{\"continent\":\"America\",\"countryName\":\"USA\",\"population\":1000}| 1000\n" +
-                "{\"continent\":\"America\",\"countryName\":\"USA\",\"population\":1001}| 1001\n"));
+            "{\"continent\":\"America\",\"countryName\":\"USA\",\"population\":1000}| 1000\n" +
+            "{\"continent\":\"America\",\"countryName\":\"USA\",\"population\":1001}| 1001\n"));
     }
 }

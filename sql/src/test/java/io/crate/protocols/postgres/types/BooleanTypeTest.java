@@ -32,19 +32,19 @@ public class BooleanTypeTest extends BasePGTypeTest<Boolean> {
 
     @Test
     public void testWriteValue() throws Exception {
-        assertBytesWritten(true, new byte[]{ 0, 0, 0, 1, 1 });
-        assertBytesWritten(false, new byte[]{ 0, 0, 0, 1, 0 });
+        assertBytesWritten(true, new byte[]{0, 0, 0, 1, 1});
+        assertBytesWritten(false, new byte[]{0, 0, 0, 1, 0});
     }
 
     @Test
     public void testReadBinaryValue() throws Exception {
-        assertBytesReadBinary(new byte[] { 0 }, false);
-        assertBytesReadBinary(new byte[] { 1 }, true);
+        assertBytesReadBinary(new byte[]{0}, false);
+        assertBytesReadBinary(new byte[]{1}, true);
     }
 
     @Test
     public void testReadTextValue() throws Exception {
-        assertBytesReadText(new byte[] { 'f' }, false);
-        assertBytesReadText(new byte[] { 'T', 'R', 'U', 'E' }, true);
+        assertBytesReadText(new byte[]{'f'}, false);
+        assertBytesReadText(new byte[]{'T', 'R', 'U', 'E'}, true);
     }
 }

@@ -53,9 +53,9 @@ public class DropTableAnalyzerTest extends BaseAnalyzerTest {
 
     private static final TableIdent ALIAS_IDENT = new TableIdent(DocSchemaInfo.NAME, "alias_table");
     private static final TableInfo ALIAS_INFO = TestingTableInfo.builder(ALIAS_IDENT, SHARD_ROUTING)
-            .add("col", DataTypes.STRING, ImmutableList.<String>of())
-            .isAlias(true)
-            .build();
+        .add("col", DataTypes.STRING, ImmutableList.<String>of())
+        .isAlias(true)
+        .build();
 
     static class TestMetaDataModule extends MetaDataModule {
         @Override
@@ -72,11 +72,11 @@ public class DropTableAnalyzerTest extends BaseAnalyzerTest {
     protected List<Module> getModules() {
         List<Module> modules = super.getModules();
         modules.addAll(Arrays.<Module>asList(
-                new MockedClusterServiceModule(),
-                new MetaDataInformationModule(),
-                new TestMetaDataModule(),
-                new MetaDataSysModule(),
-                new OperatorModule())
+            new MockedClusterServiceModule(),
+            new MetaDataInformationModule(),
+            new TestMetaDataModule(),
+            new MetaDataSysModule(),
+            new OperatorModule())
         );
         return modules;
     }

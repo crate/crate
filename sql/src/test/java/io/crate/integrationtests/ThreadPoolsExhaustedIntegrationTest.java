@@ -44,10 +44,10 @@ public class ThreadPoolsExhaustedIntegrationTest extends SQLTransportIntegration
     @Override
     protected Settings nodeSettings(int nodeOrdinal) {
         return Settings.settingsBuilder()
-                .put(super.nodeSettings(nodeOrdinal))
-                .put("threadpool.search.size", 2)
-                .put("threadpool.search.queue_size", 2)
-                .build();
+            .put(super.nodeSettings(nodeOrdinal))
+            .put("threadpool.search.size", 2)
+            .put("threadpool.search.queue_size", 2)
+            .build();
     }
 
     @Test
@@ -59,7 +59,7 @@ public class ThreadPoolsExhaustedIntegrationTest extends SQLTransportIntegration
         List<ActionFuture<SQLResponse>> futures = new ArrayList<>();
         for (int i = 0; i < 1000; i++) {
             ActionFuture<SQLResponse> future = client().execute(
-                    SQLAction.INSTANCE, new SQLRequest("select * from t limit ?", new Object[] { 10 }));
+                SQLAction.INSTANCE, new SQLRequest("select * from t limit ?", new Object[]{10}));
             futures.add(future);
         }
 

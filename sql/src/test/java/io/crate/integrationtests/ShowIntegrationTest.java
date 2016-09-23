@@ -52,17 +52,17 @@ public class ShowIntegrationTest extends SQLTransportIntegrationTest {
     @Test
     public void testShowCrateTableSimple() throws Exception {
         String expected = "CREATE TABLE IF NOT EXISTS \"doc\".\"test\" (\n" +
-                "   \"col_bool\" BOOLEAN,\n" +
-                "   \"col_byte\" BYTE,\n" +
-                "   \"col_double\" DOUBLE,\n" +
-                "   \"col_float\" FLOAT,\n" +
-                "   \"col_geo\" GEO_POINT,\n" +
-                "   \"col_int\" INTEGER,\n" +
-                "   \"col_long\" LONG,\n" +
-                "   \"col_short\" SHORT,\n" +
-                "   \"col_str\" STRING,\n" +
-                "   \"col_ts\" TIMESTAMP\n" +
-                ")\n";
+                          "   \"col_bool\" BOOLEAN,\n" +
+                          "   \"col_byte\" BYTE,\n" +
+                          "   \"col_double\" DOUBLE,\n" +
+                          "   \"col_float\" FLOAT,\n" +
+                          "   \"col_geo\" GEO_POINT,\n" +
+                          "   \"col_int\" INTEGER,\n" +
+                          "   \"col_long\" LONG,\n" +
+                          "   \"col_short\" SHORT,\n" +
+                          "   \"col_str\" STRING,\n" +
+                          "   \"col_ts\" TIMESTAMP\n" +
+                          ")\n";
         execute("create table test (" +
                 " col_bool boolean," +
                 " col_byte byte," +
@@ -114,11 +114,11 @@ public class ShowIntegrationTest extends SQLTransportIntegrationTest {
         execute("create table my.test (id long, name string) clustered into 2 shards");
         execute("show create table my.test");
         String expected = "CREATE TABLE IF NOT EXISTS \"my\".\"test\" (\n" +
-                "   \"id\" LONG,\n" +
-                "   \"name\" STRING\n" +
-                ")\n" +
-                "CLUSTERED INTO 2 SHARDS\n" +
-                "WITH (";
+                          "   \"id\" LONG,\n" +
+                          "   \"name\" STRING\n" +
+                          ")\n" +
+                          "CLUSTERED INTO 2 SHARDS\n" +
+                          "WITH (";
         assertRow(expected);
     }
 
@@ -136,22 +136,22 @@ public class ShowIntegrationTest extends SQLTransportIntegrationTest {
                 "clustered into 2 shards");
         execute("show create table test");
         assertRow("CREATE TABLE IF NOT EXISTS \"doc\".\"test\" (\n" +
-                "   \"col_a\" STRING INDEX OFF,\n" +
-                "   \"col_b\" STRING,\n" +
-                "   \"col_c\" STRING INDEX USING FULLTEXT WITH (\n" +
-                "      analyzer = 'standard'\n" +
-                "   ),\n" +
-                "   \"col_d\" STRING INDEX USING FULLTEXT WITH (\n" +
-                "      analyzer = 'english'\n" +
-                "   ),\n" +
-                "   \"col_e\" STRING,\n" +
-                "   \"col_f\" STRING,\n" +
-                "   INDEX \"index_ft\" USING FULLTEXT (\"col_e\", \"col_f\") WITH (\n" +
-                "      analyzer = 'english'\n" +
-                "   )\n" +
-                ")\n" +
-                "CLUSTERED INTO 2 SHARDS\n" +
-                "WITH (");
+                  "   \"col_a\" STRING INDEX OFF,\n" +
+                  "   \"col_b\" STRING,\n" +
+                  "   \"col_c\" STRING INDEX USING FULLTEXT WITH (\n" +
+                  "      analyzer = 'standard'\n" +
+                  "   ),\n" +
+                  "   \"col_d\" STRING INDEX USING FULLTEXT WITH (\n" +
+                  "      analyzer = 'english'\n" +
+                  "   ),\n" +
+                  "   \"col_e\" STRING,\n" +
+                  "   \"col_f\" STRING,\n" +
+                  "   INDEX \"index_ft\" USING FULLTEXT (\"col_e\", \"col_f\") WITH (\n" +
+                  "      analyzer = 'english'\n" +
+                  "   )\n" +
+                  ")\n" +
+                  "CLUSTERED INTO 2 SHARDS\n" +
+                  "WITH (");
     }
 
     @Test
@@ -164,12 +164,12 @@ public class ShowIntegrationTest extends SQLTransportIntegrationTest {
                 "partitioned by (\"date\")");
         execute("show create table test");
         assertRow("CREATE TABLE IF NOT EXISTS \"doc\".\"test\" (\n" +
-                "   \"date\" TIMESTAMP,\n" +
-                "   \"id\" LONG\n" +
-                ")\n" +
-                "CLUSTERED INTO 4 SHARDS\n" +
-                "PARTITIONED BY (\"date\")\n" +
-                "WITH (");
+                  "   \"date\" TIMESTAMP,\n" +
+                  "   \"id\" LONG\n" +
+                  ")\n" +
+                  "CLUSTERED INTO 4 SHARDS\n" +
+                  "PARTITIONED BY (\"date\")\n" +
+                  "WITH (");
     }
 
     @Test
@@ -180,12 +180,12 @@ public class ShowIntegrationTest extends SQLTransportIntegrationTest {
                 ") clustered into 8 shards");
         execute("show create table test_pk_single");
         assertRow("CREATE TABLE IF NOT EXISTS \"doc\".\"test_pk_single\" (\n" +
-                "   \"id\" INTEGER,\n" +
-                "   \"name\" STRING,\n" +
-                "   PRIMARY KEY (\"id\")\n" +
-                ")\n" +
-                "CLUSTERED BY (\"id\") INTO 8 SHARDS\n" +
-                "WITH (\n");
+                  "   \"id\" INTEGER,\n" +
+                  "   \"name\" STRING,\n" +
+                  "   PRIMARY KEY (\"id\")\n" +
+                  ")\n" +
+                  "CLUSTERED BY (\"id\") INTO 8 SHARDS\n" +
+                  "WITH (\n");
 
         execute("create table test_pk_multi (" +
                 " id integer," +
@@ -241,9 +241,9 @@ public class ShowIntegrationTest extends SQLTransportIntegrationTest {
 
         execute("SHOW CREATE TABLE with_quote");
         assertRow("CREATE TABLE IF NOT EXISTS \"doc\".\"with_quote\" (\n" +
-                "   \"\"\"\" STRING\n" +
-                ")\n" +
-                "CLUSTERED INTO 1 SHARDS");
+                  "   \"\"\"\" STRING\n" +
+                  ")\n" +
+                  "CLUSTERED INTO 1 SHARDS");
 
     }
 
@@ -287,17 +287,17 @@ public class ShowIntegrationTest extends SQLTransportIntegrationTest {
 
         execute("show columns from my_table1");
         assertThat(TestingHelpers.printedTable(response.rows()),
-                is("column11| integer\n" +
-                   "column12| integer\n" +
-                   "column13| long\n" +
-                   "column21| integer\n" +
-                   "column22| string\n" +
-                   "column31| integer\n"));
+            is("column11| integer\n" +
+               "column12| integer\n" +
+               "column13| long\n" +
+               "column21| integer\n" +
+               "column22| string\n" +
+               "column31| integer\n"));
 
         execute("show columns in my_table1 like '%2'");
         assertThat(TestingHelpers.printedTable(response.rows()),
-                is("column12| integer\n" +
-                   "column22| string\n"));
+            is("column12| integer\n" +
+               "column22| string\n"));
 
         execute("show columns from my_table1 where column_name = 'column12'");
         assertThat(TestingHelpers.printedTable(response.rows()), is("column12| integer\n"));
@@ -307,14 +307,14 @@ public class ShowIntegrationTest extends SQLTransportIntegrationTest {
 
         execute("show columns in my_table1 from my_s1 like 'col1%'");
         assertThat(TestingHelpers.printedTable(response.rows()),
-                is("col11| timestamp\n" +
-                   "col12| integer\n" +
-                   "col13| integer\n"));
+            is("col11| timestamp\n" +
+               "col12| integer\n" +
+               "col13| integer\n"));
 
         execute("show columns from my_table1 in my_s1 like '%1'");
         assertThat(TestingHelpers.printedTable(response.rows()),
-                is("col11| timestamp\n" +
-                   "col31| integer\n"));
+            is("col11| timestamp\n" +
+               "col31| integer\n"));
 
     }
 
@@ -338,7 +338,7 @@ public class ShowIntegrationTest extends SQLTransportIntegrationTest {
         execute(String.format(Locale.ENGLISH, "show tables from %s like 'hello'", schemaName));
         assertEquals(0, response.rowCount());
 
-        execute(String.format(Locale.ENGLISH, "show tables from %s like '%%'" , schemaName));
+        execute(String.format(Locale.ENGLISH, "show tables from %s like '%%'", schemaName));
         assertThat(TestingHelpers.printedTable(response.rows()), is("test\n"));
 
         execute("show tables like '%es%'");

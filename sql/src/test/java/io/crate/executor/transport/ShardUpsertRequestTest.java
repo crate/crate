@@ -44,9 +44,9 @@ public class ShardUpsertRequestTest extends CrateUnitTest {
     private static final TableIdent CHARACTERS_IDENTS = new TableIdent(null, "characters");
 
     private static final Reference ID_REF = new Reference(
-            new ReferenceIdent(CHARACTERS_IDENTS, "id"), RowGranularity.DOC, DataTypes.INTEGER);
+        new ReferenceIdent(CHARACTERS_IDENTS, "id"), RowGranularity.DOC, DataTypes.INTEGER);
     private static final Reference NAME_REF = new Reference(
-            new ReferenceIdent(CHARACTERS_IDENTS, "name"), RowGranularity.DOC, DataTypes.STRING);
+        new ReferenceIdent(CHARACTERS_IDENTS, "name"), RowGranularity.DOC, DataTypes.STRING);
 
     @Test
     public void testStreaming() throws Exception {
@@ -65,15 +65,15 @@ public class ShardUpsertRequestTest extends CrateUnitTest {
         request.validateConstraints(false);
 
         request.add(123, new ShardUpsertRequest.Item(
-                "99",
-                null,
-                new Object[]{99, new BytesRef("Marvin")},
-                null));
+            "99",
+            null,
+            new Object[]{99, new BytesRef("Marvin")},
+            null));
         request.add(5, new ShardUpsertRequest.Item(
-                "42",
-                new Symbol[]{Literal.of(42), Literal.of("Deep Thought") },
-                null,
-                2L));
+            "42",
+            new Symbol[]{Literal.of(42), Literal.of("Deep Thought")},
+            null,
+            2L));
 
         BytesStreamOutput out = new BytesStreamOutput();
         request.writeTo(out);

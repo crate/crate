@@ -50,9 +50,9 @@ public class ReferenceInfosITest extends SQLTransportIntegrationTest {
     @Test
     public void testDocTable() throws Exception {
         execute("create table t1 (" +
-                  "id int primary key, " +
-                  "name string, " +
-                  "details object(dynamic) as (size byte, created timestamp)" +
+                "id int primary key, " +
+                "name string, " +
+                "details object(dynamic) as (size byte, created timestamp)" +
                 ") clustered into 10 shards with (number_of_replicas=1)");
         ensureYellow();
 
@@ -69,7 +69,7 @@ public class ReferenceInfosITest extends SQLTransportIntegrationTest {
         Set<String> nodes = routing.nodes();
 
         assertThat(nodes.size(), isOneOf(1, 2)); // for the rare case
-                                                 // where all shards are on 1 node
+        // where all shards are on 1 node
         int numShards = 0;
         for (Map.Entry<String, Map<String, List<Integer>>> nodeEntry : routing.locations().entrySet()) {
             for (Map.Entry<String, List<Integer>> indexEntry : nodeEntry.getValue().entrySet()) {

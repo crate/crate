@@ -24,7 +24,10 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.net.InetAddresses;
 import io.crate.Build;
 import io.crate.Version;
-import io.crate.metadata.*;
+import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.Reference;
+import io.crate.metadata.RowGranularity;
+import io.crate.metadata.SimpleObjectExpression;
 import io.crate.monitor.DummyExtendedNodeInfo;
 import io.crate.monitor.MonitorModule;
 import io.crate.operation.Input;
@@ -74,17 +77,15 @@ import java.util.Map;
 
 import static io.crate.testing.TestingHelpers.mapToSortedString;
 import static io.crate.testing.TestingHelpers.refInfo;
-import static org.hamcrest.Matchers.instanceOf;
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.notNullValue;
+import static org.hamcrest.Matchers.*;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 public class SysNodesExpressionsTest extends CrateUnitTest {
 
     private static final Settings NODE_SETTINGS = Settings.builder()
-            .put(MonitorModule.NODE_INFO_EXTENDED_TYPE, "dummy")
-            .build();
+        .put(MonitorModule.NODE_INFO_EXTENDED_TYPE, "dummy")
+        .build();
 
     private Injector injector;
     private NodeSysExpression resolver;
@@ -164,7 +165,7 @@ public class SysNodesExpressionsTest extends CrateUnitTest {
             TransportAddress transportAddress = new InetSocketTransportAddress(localhost, 44300);
             when(node.address()).thenReturn(transportAddress);
             when(node.attributes()).thenReturn(
-                    ImmutableMap.<String, String>builder().put("http_address", "http://localhost:44200").build()
+                ImmutableMap.<String, String>builder().put("http_address", "http://localhost:44200").build()
             );
 
 
@@ -225,9 +226,9 @@ public class SysNodesExpressionsTest extends CrateUnitTest {
         monitorModule.addExtendedNodeInfoType("dummy", DummyExtendedNodeInfo.class);
 
         injector = new ModulesBuilder().add(
-                new TestModule(true),
-                monitorModule,
-                new SysNodeExpressionModule()
+            new TestModule(true),
+            monitorModule,
+            new SysNodeExpressionModule()
         ).createInjector();
         resolver = injector.getInstance(NodeSysExpression.class);
     }
@@ -394,10 +395,10 @@ public class SysNodesExpressionsTest extends CrateUnitTest {
 
         Map<String, Object> networkStats = networkRef.value();
         assertThat(mapToSortedString(networkStats),
-                is("probe_timestamp=0, tcp={" +
-                   "connections={accepted=42, curr_established=42, dropped=42, embryonic_dropped=42, initiated=42}, " +
-                   "packets={errors_received=42, received=42, retransmitted=42, rst_sent=42, sent=42}" +
-                   "}"));
+            is("probe_timestamp=0, tcp={" +
+               "connections={accepted=42, curr_established=42, dropped=42, embryonic_dropped=42, initiated=42}, " +
+               "packets={errors_received=42, received=42, retransmitted=42, rst_sent=42, sent=42}" +
+               "}"));
     }
 
     @Test
@@ -410,8 +411,8 @@ public class SysNodesExpressionsTest extends CrateUnitTest {
 
         assertThat(tcpStats, instanceOf(Map.class));
         assertThat(mapToSortedString(tcpStats),
-                is("connections={accepted=42, curr_established=42, dropped=42, embryonic_dropped=42, initiated=42}, " +
-                   "packets={errors_received=42, received=42, retransmitted=42, rst_sent=42, sent=42}"));
+            is("connections={accepted=42, curr_established=42, dropped=42, embryonic_dropped=42, initiated=42}, " +
+               "packets={errors_received=42, received=42, retransmitted=42, rst_sent=42, sent=42}"));
     }
 
     @Test

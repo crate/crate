@@ -226,14 +226,14 @@ public class PartitionNameTest extends CrateUnitTest {
     @Test
     public void testEquals() throws Exception {
         assertTrue(
-                new PartitionName("table", Arrays.asList(new BytesRef("xxx"))).equals(
-                        new PartitionName("table", Arrays.asList(new BytesRef("xxx")))));
+            new PartitionName("table", Arrays.asList(new BytesRef("xxx"))).equals(
+                new PartitionName("table", Arrays.asList(new BytesRef("xxx")))));
         assertTrue(
-                new PartitionName(null, "table", Arrays.asList(new BytesRef("xxx"))).equals(
-                        new PartitionName(Schemas.DEFAULT_SCHEMA_NAME, "table", Arrays.asList(new BytesRef("xxx")))));
+            new PartitionName(null, "table", Arrays.asList(new BytesRef("xxx"))).equals(
+                new PartitionName(Schemas.DEFAULT_SCHEMA_NAME, "table", Arrays.asList(new BytesRef("xxx")))));
         assertFalse(
-                new PartitionName("table", Arrays.asList(new BytesRef("xxx"))).equals(
-                        new PartitionName("schema", "table", Arrays.asList(new BytesRef("xxx")))));
+            new PartitionName("table", Arrays.asList(new BytesRef("xxx"))).equals(
+                new PartitionName("schema", "table", Arrays.asList(new BytesRef("xxx")))));
         PartitionName name = new PartitionName(null, "table", Arrays.asList(new BytesRef("xxx")));
         assertTrue(name.equals(PartitionName.fromIndexOrTemplate(name.asIndexName())));
     }

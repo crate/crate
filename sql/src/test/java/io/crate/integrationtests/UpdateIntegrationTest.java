@@ -197,12 +197,12 @@ public class UpdateIntegrationTest extends SQLTransportIntegrationTest {
         ensureYellow();
 
         execute("insert into test values(1.1, ?),(2.2, ?)", new Object[]{new Object[0],
-                new Object[]{
-                        new HashMap<String, Object>(),
-                        new HashMap<String, Object>() {{
-                            put("hello", "world");
-                        }}
-                }
+            new Object[]{
+                new HashMap<String, Object>(),
+                new HashMap<String, Object>() {{
+                    put("hello", "world");
+                }}
+            }
         });
         assertEquals(2, response.rowCount());
         refresh();
@@ -527,11 +527,11 @@ public class UpdateIntegrationTest extends SQLTransportIntegrationTest {
                 "quote string) clustered by(author) with (number_of_replicas=0)");
         ensureYellow();
         execute("insert into quotes (id, author, quote) values(?, ?, ?)",
-                new Object[]{1, "Ford", "I'd far rather be happy than right any day."});
+            new Object[]{1, "Ford", "I'd far rather be happy than right any day."});
         assertEquals(1L, response.rowCount());
 
         execute("update quotes set quote=? where id=1 and author='Ford'",
-                new Object[]{"Don't panic"});
+            new Object[]{"Don't panic"});
         assertEquals(1L, response.rowCount());
         refresh();
         execute("select quote from quotes where id=1 and author='Ford'");
@@ -545,12 +545,12 @@ public class UpdateIntegrationTest extends SQLTransportIntegrationTest {
                 "quote string) clustered by(author) with (number_of_replicas=0)");
         ensureYellow();
         execute("insert into quotes (id, author, quote) values(?, ?, ?)",
-                new Object[]{1, "Ford", "I'd far rather be happy than right any day."});
+            new Object[]{1, "Ford", "I'd far rather be happy than right any day."});
         assertEquals(1L, response.rowCount());
         refresh();
 
         execute("update quotes set quote=? where id=1",
-                new Object[]{"Don't panic"});
+            new Object[]{"Don't panic"});
         assertEquals(1L, response.rowCount());
         refresh();
 
@@ -641,10 +641,10 @@ public class UpdateIntegrationTest extends SQLTransportIntegrationTest {
         refresh();
 
         SQLBulkResponse bulkResp = execute("update test set a = ? where b = ?",
-                new Object[][]{
-                        new Object[]{"bar", 1},
-                        new Object[]{"baz", 1},
-                        new Object[]{"foobar", 1}});
+            new Object[][]{
+                new Object[]{"bar", 1},
+                new Object[]{"baz", 1},
+                new Object[]{"foobar", 1}});
         assertThat(bulkResp.results().length, is(3));
         // all statements must succeed and return 1 affected row
         for (SQLBulkResponse.Result result : bulkResp.results()) {
@@ -666,9 +666,9 @@ public class UpdateIntegrationTest extends SQLTransportIntegrationTest {
                 ") partitioned by (type) with (number_of_replicas=0)");
         ensureYellow();
         execute("insert into party (id, type, value) values (?, ?, ?)", new Object[][]{
-                {1, 2, "foo"},
-                {2, 3, "bar"},
-                {2, 4, "baz"}
+            {1, 2, "foo"},
+            {2, 3, "bar"},
+            {2, 4, "baz"}
         });
         execute("refresh table party");
 
@@ -679,9 +679,9 @@ public class UpdateIntegrationTest extends SQLTransportIntegrationTest {
 
         execute("select id, type, value from party order by id, value");
         assertThat(TestingHelpers.printedTable(response.rows()), is(
-                "1| 2| updated\n" +
-                "2| 3| bar\n" +
-                "2| 4| updated\n"));
+            "1| 2| updated\n" +
+            "2| 3| bar\n" +
+            "2| 4| updated\n"));
 
     }
 
@@ -721,10 +721,10 @@ public class UpdateIntegrationTest extends SQLTransportIntegrationTest {
                 ") with (number_of_replicas=0)");
         ensureYellow();
         execute("insert into generated_column (id, ts, user) values (?, ?, ?)", new Object[]{
-                1, "2015-11-18T11:11:00", MapBuilder.newMapBuilder().put("name", "foo").map()});
+            1, "2015-11-18T11:11:00", MapBuilder.newMapBuilder().put("name", "foo").map()});
         refresh();
         execute("update generated_column set ts = ?, user = ? where id = ?", new Object[]{
-                "2015-11-19T17:06:00", MapBuilder.newMapBuilder().put("name", "zoo").map(), 1});
+            "2015-11-19T17:06:00", MapBuilder.newMapBuilder().put("name", "zoo").map(), 1});
         refresh();
         execute("select day, name from generated_column");
         assertThat((Long) response.rows()[0][0], is(1447891200000L));

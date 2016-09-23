@@ -70,15 +70,13 @@ import java.util.concurrent.TimeUnit;
 
 import static io.crate.testing.TestingHelpers.getFunctions;
 import static io.crate.testing.TestingHelpers.isRow;
-import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
-import static org.junit.Assert.fail;
 import static org.mockito.Mockito.mock;
 
 public class PageDownstreamFactoryTest extends CrateUnitTest {
 
     private static final RamAccountingContext ramAccountingContext =
-            new RamAccountingContext("dummy", new NoopCircuitBreaker(CircuitBreaker.FIELDDATA));
+        new RamAccountingContext("dummy", new NoopCircuitBreaker(CircuitBreaker.FIELDDATA));
 
     private GroupProjection groupProjection;
     private Functions functions;
@@ -91,7 +89,7 @@ public class PageDownstreamFactoryTest extends CrateUnitTest {
         threadPool = new ThreadPool("testing");
         functions = getFunctions();
         referenceResolver = new GlobalReferenceResolver(
-                Collections.<ReferenceIdent, ReferenceImplementation>emptyMap());
+            Collections.<ReferenceIdent, ReferenceImplementation>emptyMap());
 
         FunctionIdent minAggIdent = new FunctionIdent(MinimumAggregation.NAME, Arrays.<DataType>asList(DataTypes.DOUBLE));
         FunctionInfo minAggInfo = new FunctionInfo(minAggIdent, DataTypes.DOUBLE);
@@ -99,7 +97,7 @@ public class PageDownstreamFactoryTest extends CrateUnitTest {
         groupProjection = new GroupProjection();
         groupProjection.keys(Arrays.<Symbol>asList(new InputColumn(0, DataTypes.INTEGER)));
         groupProjection.values(Arrays.asList(
-                Aggregation.finalAggregation(minAggInfo, Arrays.<Symbol>asList(new InputColumn(1)), Aggregation.Step.PARTIAL)));
+            Aggregation.finalAggregation(minAggInfo, Arrays.<Symbol>asList(new InputColumn(1)), Aggregation.Step.PARTIAL)));
     }
 
     @Override
@@ -113,12 +111,12 @@ public class PageDownstreamFactoryTest extends CrateUnitTest {
     @Test
     public void testMergeSingleResult() throws Exception {
         TopNProjection topNProjection = new TopNProjection(3, TopN.NO_OFFSET,
-                Arrays.<Symbol>asList(new InputColumn(0)), new boolean[]{false}, new Boolean[]{null});
+            Arrays.<Symbol>asList(new InputColumn(0)), new boolean[]{false}, new Boolean[]{null});
         topNProjection.outputs(Arrays.<Symbol>asList(new InputColumn(0), new InputColumn(1)));
 
         MergePhase mergeNode = new MergePhase(UUID.randomUUID(), 0, "merge", 2,
-                ImmutableList.<DataType>of(DataTypes.INTEGER, DataTypes.DOUBLE),
-                Arrays.asList(groupProjection, topNProjection), DistributionInfo.DEFAULT_BROADCAST);
+            ImmutableList.<DataType>of(DataTypes.INTEGER, DataTypes.DOUBLE),
+            Arrays.asList(groupProjection, topNProjection), DistributionInfo.DEFAULT_BROADCAST);
 
         Object[][] objs = new Object[20][];
         for (int i = 0; i < objs.length; i++) {
@@ -127,14 +125,14 @@ public class PageDownstreamFactoryTest extends CrateUnitTest {
         Bucket rows = new ArrayBucket(objs);
         BucketPage page = new BucketPage(Futures.immediateFuture(rows));
         final PageDownstreamFactory pageDownstreamFactory = new PageDownstreamFactory(
-                mock(ClusterService.class),
-                new IndexNameExpressionResolver(Settings.EMPTY),
-                threadPool,
-                Settings.EMPTY,
-                mock(TransportActionProvider.class, Answers.RETURNS_DEEP_STUBS.get()),
-                mock(BulkRetryCoordinatorPool.class),
-                referenceResolver,
-                functions
+            mock(ClusterService.class),
+            new IndexNameExpressionResolver(Settings.EMPTY),
+            threadPool,
+            Settings.EMPTY,
+            mock(TransportActionProvider.class, Answers.RETURNS_DEEP_STUBS.get()),
+            mock(BulkRetryCoordinatorPool.class),
+            referenceResolver,
+            functions
         );
         CollectingRowReceiver rowReceiver = new CollectingRowReceiver();
         final PageDownstream pageDownstream = getPageDownstream(mergeNode, pageDownstreamFactory, rowReceiver);
@@ -154,16 +152,16 @@ public class PageDownstreamFactoryTest extends CrateUnitTest {
         future.get();
         Bucket mergeResult = rowReceiver.result();
         assertThat(mergeResult, IsIterableContainingInOrder.contains(
-                isRow(0, 0.5d),
-                isRow(1, 1.5d),
-                isRow(2, 2.5d)
+            isRow(0, 0.5d),
+            isRow(1, 1.5d),
+            isRow(2, 2.5d)
         ));
     }
 
     private PageDownstream getPageDownstream(MergePhase mergeNode, PageDownstreamFactory pageDownstreamFactory, CollectingRowReceiver rowReceiver) {
         Tuple<PageDownstream, FlatProjectorChain> downstreamFlatProjectorChainTuple =
-                pageDownstreamFactory.createMergeNodePageDownstream(
-                        mergeNode, rowReceiver, randomBoolean(), ramAccountingContext, Optional.<Executor>absent());
+            pageDownstreamFactory.createMergeNodePageDownstream(
+                mergeNode, rowReceiver, randomBoolean(), ramAccountingContext, Optional.<Executor>absent());
         downstreamFlatProjectorChainTuple.v2().prepare();
         return downstreamFlatProjectorChainTuple.v1();
     }
@@ -171,17 +169,17 @@ public class PageDownstreamFactoryTest extends CrateUnitTest {
     @Test
     public void testMergeMultipleResults() throws Exception {
         MergePhase mergeNode = new MergePhase(UUID.randomUUID(), 0, "merge", 2,
-                ImmutableList.<DataType>of(DataTypes.INTEGER, DataTypes.DOUBLE),
-                Arrays.<Projection>asList(groupProjection), DistributionInfo.DEFAULT_BROADCAST);
+            ImmutableList.<DataType>of(DataTypes.INTEGER, DataTypes.DOUBLE),
+            Arrays.<Projection>asList(groupProjection), DistributionInfo.DEFAULT_BROADCAST);
         final PageDownstreamFactory pageDownstreamFactory = new PageDownstreamFactory(
-                mock(ClusterService.class),
-                new IndexNameExpressionResolver(Settings.EMPTY),
-                threadPool,
-                Settings.EMPTY,
-                mock(TransportActionProvider.class, Answers.RETURNS_DEEP_STUBS.get()),
-                mock(BulkRetryCoordinatorPool.class),
-                referenceResolver,
-                functions
+            mock(ClusterService.class),
+            new IndexNameExpressionResolver(Settings.EMPTY),
+            threadPool,
+            Settings.EMPTY,
+            mock(TransportActionProvider.class, Answers.RETURNS_DEEP_STUBS.get()),
+            mock(BulkRetryCoordinatorPool.class),
+            referenceResolver,
+            functions
         );
         CollectingRowReceiver rowReceiver = new CollectingRowReceiver();
         final PageDownstream pageDownstream = getPageDownstream(mergeNode, pageDownstreamFactory, rowReceiver);

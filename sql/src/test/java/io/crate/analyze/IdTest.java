@@ -86,8 +86,8 @@ public class IdTest extends CrateUnitTest {
     @Test
     public void testMultiplePrimaryKey() throws Exception {
         String id = generateId(
-                ImmutableList.of(ci("id"), ci("name")),
-                ImmutableList.of(new BytesRef("1"), new BytesRef("foo")), null);
+            ImmutableList.of(ci("id"), ci("name")),
+            ImmutableList.of(new BytesRef("1"), new BytesRef("foo")), null);
 
         assertThat(id, is("AgExA2Zvbw=="));
     }
@@ -95,9 +95,9 @@ public class IdTest extends CrateUnitTest {
     @Test
     public void testMultiplePrimaryKeyWithClusteredBy() throws Exception {
         String id = generateId(
-                ImmutableList.of(ci("id"), ci("name")),
-                ImmutableList.of(new BytesRef("1"), new BytesRef("foo")),
-                ci("name")
+            ImmutableList.of(ci("id"), ci("name")),
+            ImmutableList.of(new BytesRef("1"), new BytesRef("foo")),
+            ci("name")
         );
         assertThat(id, is("AgNmb28BMQ=="));
     }

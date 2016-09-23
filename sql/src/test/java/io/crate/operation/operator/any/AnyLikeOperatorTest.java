@@ -40,37 +40,37 @@ import static org.hamcrest.Matchers.is;
 
 public class AnyLikeOperatorTest extends CrateUnitTest {
 
-    private static Symbol normalizeSymbol(String pattern, String ... expressions) {
+    private static Symbol normalizeSymbol(String pattern, String... expressions) {
         Literal patternLiteral = Literal.of(pattern);
         Object[] value = new Object[expressions.length];
-        for (int i=0; i < expressions.length; i++) {
+        for (int i = 0; i < expressions.length; i++) {
             value[i] = expressions[i] == null ? null : new BytesRef(expressions[i]);
         }
         Literal valuesLiteral = Literal.of(new ArrayType(DataTypes.STRING), value);
-        AnyLikeOperator impl = (AnyLikeOperator)new AnyLikeOperator.AnyLikeResolver().getForTypes(
-                Arrays.asList(patternLiteral.valueType(), valuesLiteral.valueType())
+        AnyLikeOperator impl = (AnyLikeOperator) new AnyLikeOperator.AnyLikeResolver().getForTypes(
+            Arrays.asList(patternLiteral.valueType(), valuesLiteral.valueType())
         );
 
         Function function = new Function(
-                impl.info(),
-                Arrays.<Symbol>asList(patternLiteral, valuesLiteral)
+            impl.info(),
+            Arrays.<Symbol>asList(patternLiteral, valuesLiteral)
         );
         return impl.normalizeSymbol(function, new StmtCtx());
     }
 
-    private Boolean anyLikeNormalize(String pattern, String ... expressions) {
-        return (Boolean)((Literal)normalizeSymbol(pattern, expressions)).value();
+    private Boolean anyLikeNormalize(String pattern, String... expressions) {
+        return (Boolean) ((Literal) normalizeSymbol(pattern, expressions)).value();
     }
 
-    private Boolean anyLike(String pattern, String ... expressions) {
+    private Boolean anyLike(String pattern, String... expressions) {
         Literal patternLiteral = Literal.of(pattern);
         Object[] value = new Object[expressions.length];
-        for (int i=0; i < expressions.length; i++) {
+        for (int i = 0; i < expressions.length; i++) {
             value[i] = expressions[i] == null ? null : new BytesRef(expressions[i]);
         }
         Literal valuesLiteral = Literal.of(new ArrayType(DataTypes.STRING), value);
-        AnyLikeOperator impl = (AnyLikeOperator)new AnyLikeOperator.AnyLikeResolver().getForTypes(
-                Arrays.asList(DataTypes.STRING, valuesLiteral.valueType())
+        AnyLikeOperator impl = (AnyLikeOperator) new AnyLikeOperator.AnyLikeResolver().getForTypes(
+            Arrays.asList(DataTypes.STRING, valuesLiteral.valueType())
         );
 
         return impl.evaluate(patternLiteral, valuesLiteral);
@@ -154,9 +154,9 @@ public class AnyLikeOperatorTest extends CrateUnitTest {
     public void testNegateLike() throws Exception {
         Literal patternLiteral = Literal.of("A");
         Literal valuesLiteral = Literal.of(new ArrayType(DataTypes.STRING),
-                new Object[]{new BytesRef("A"), new BytesRef("B")});
+            new Object[]{new BytesRef("A"), new BytesRef("B")});
         FunctionImplementation<Function> impl = new AnyLikeOperator.AnyLikeResolver().getForTypes(
-                Arrays.asList(DataTypes.STRING, valuesLiteral.valueType())
+            Arrays.asList(DataTypes.STRING, valuesLiteral.valueType())
         );
         Function anyLikeFunction = new Function(impl.info(), Arrays.<Symbol>asList(patternLiteral, valuesLiteral));
         Input<Boolean> normalized = (Input<Boolean>) impl.normalizeSymbol(anyLikeFunction, new StmtCtx());

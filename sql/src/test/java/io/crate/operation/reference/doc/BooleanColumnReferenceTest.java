@@ -33,7 +33,6 @@ import org.apache.lucene.search.TopDocs;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.index.fielddata.FieldDataType;
 import org.elasticsearch.index.mapper.MappedFieldType;
-import org.elasticsearch.index.mapper.core.BooleanFieldMapper;
 import org.junit.Test;
 
 import static org.hamcrest.core.Is.is;
@@ -45,11 +44,11 @@ public class BooleanColumnReferenceTest extends DocLevelExpressionsTest {
 
     @Override
     protected void insertValues(IndexWriter writer) throws Exception {
-        for (int i = 0; i<10; i++) {
+        for (int i = 0; i < 10; i++) {
             Document doc = new Document();
             doc.add(new StringField("_id", Integer.toString(i), Field.Store.NO));
             doc.add(new StringField(fieldName().indexName(),
-                    (i%2 == 0 ? TRUE : FALSE).utf8ToString(), Field.Store.NO));
+                (i % 2 == 0 ? TRUE : FALSE).utf8ToString(), Field.Store.NO));
             writer.addDocument(doc);
         }
     }
@@ -77,7 +76,7 @@ public class BooleanColumnReferenceTest extends DocLevelExpressionsTest {
         int i = 0;
         for (ScoreDoc doc : topDocs.scoreDocs) {
             booleanColumn.setNextDocId(doc.doc);
-            assertThat(booleanColumn.value(), is(i%2==0));
+            assertThat(booleanColumn.value(), is(i % 2 == 0));
             i++;
         }
     }

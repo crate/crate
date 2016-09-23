@@ -56,30 +56,30 @@ public class TransportBulkCreateIndicesActionTest extends SQLTransportIntegratio
     @Test
     public void testCreateBulkIndicesSimple() throws Exception {
         BulkCreateIndicesResponse response = action.execute(
-                new BulkCreateIndicesRequest(Arrays.asList("index1", "index2", "index3", "index4"), UUID.randomUUID())
+            new BulkCreateIndicesRequest(Arrays.asList("index1", "index2", "index3", "index4"), UUID.randomUUID())
         ).actionGet();
         assertThat(response.isAcknowledged(), is(true));
         ensureYellow();
 
         IndicesExistsResponse indicesExistsResponse = cluster().client().admin()
-                .indices().prepareExists("index1", "index2", "index3", "index4")
-                .execute().actionGet();
+            .indices().prepareExists("index1", "index2", "index3", "index4")
+            .execute().actionGet();
         assertThat(indicesExistsResponse.isExists(), is(true));
     }
 
     @Test
     public void testRoutingOfIndicesIsNotOverridden() throws Exception {
         cluster().client().admin().indices()
-                .prepareCreate("index_0")
-                .setSettings(Settings.builder().put("number_of_shards", 1).put("number_of_replicas", 0))
-                .execute().actionGet();
+            .prepareCreate("index_0")
+            .setSettings(Settings.builder().put("number_of_shards", 1).put("number_of_replicas", 0))
+            .execute().actionGet();
         ensureYellow("index_0");
 
         ClusterState currentState = internalCluster().clusterService().state();
 
         BulkCreateIndicesRequest request = new BulkCreateIndicesRequest(
-                Arrays.asList("index_0", "index_1"),
-                UUID.randomUUID());
+            Arrays.asList("index_0", "index_1"),
+            UUID.randomUUID());
         currentState = action.executeCreateIndices(currentState, request);
 
         ImmutableOpenIntMap<IndexShardRoutingTable> newRouting = currentState.routingTable().indicesRouting().get("index_0").getShards();
@@ -89,17 +89,17 @@ public class TransportBulkCreateIndicesActionTest extends SQLTransportIntegratio
     @Test
     public void testCreateBulkIndicesIgnoreExistingSame() throws Exception {
         BulkCreateIndicesResponse response = action.execute(
-                new BulkCreateIndicesRequest(Arrays.asList("index1", "index2", "index3", "index1"), UUID.randomUUID())
+            new BulkCreateIndicesRequest(Arrays.asList("index1", "index2", "index3", "index1"), UUID.randomUUID())
         ).actionGet();
         assertThat(response.isAcknowledged(), is(true));
 
         IndicesExistsResponse indicesExistsResponse = cluster().client().admin()
-                .indices().prepareExists("index1", "index2", "index3")
-                .execute().actionGet();
+            .indices().prepareExists("index1", "index2", "index3")
+            .execute().actionGet();
         assertThat(indicesExistsResponse.isExists(), is(true));
 
         BulkCreateIndicesResponse response2 = action.execute(
-                new BulkCreateIndicesRequest(Arrays.asList("index1", "index2", "index3", "index1"), UUID.randomUUID())
+            new BulkCreateIndicesRequest(Arrays.asList("index1", "index2", "index3", "index1"), UUID.randomUUID())
         ).actionGet();
         assertThat(response2.isAcknowledged(), is(true));
     }
@@ -107,7 +107,7 @@ public class TransportBulkCreateIndicesActionTest extends SQLTransportIntegratio
     @Test
     public void testEmpty() throws Exception {
         BulkCreateIndicesResponse response = action.execute(
-                new BulkCreateIndicesRequest(ImmutableList.<String>of(), UUID.randomUUID())).actionGet();
+            new BulkCreateIndicesRequest(ImmutableList.<String>of(), UUID.randomUUID())).actionGet();
         assertThat(response.isAcknowledged(), is(true));
     }
 
@@ -123,8 +123,8 @@ public class TransportBulkCreateIndicesActionTest extends SQLTransportIntegratio
         } catch (Throwable t) {
             ensureYellow();
             IndicesExistsResponse indicesExistsResponse = cluster().client().admin()
-                    .indices().prepareExists("valid")
-                    .execute().actionGet();
+                .indices().prepareExists("valid")
+                .execute().actionGet();
             assertThat(indicesExistsResponse.isExists(), is(false)); // if one name is invalid no index is created
             throw t;
         }

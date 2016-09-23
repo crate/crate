@@ -79,9 +79,9 @@ public class TestGlobalSysExpressions extends CrateUnitTest {
     public void prepare() throws Exception {
         threadPool = new ThreadPool("testing");
         injector = new ModulesBuilder().add(
-                new TestModule(),
-                new MetaDataModule(),
-                new MetaDataSysModule()
+            new TestModule(),
+            new MetaDataModule(),
+            new MetaDataSysModule()
         ).createInjector();
         resolver = injector.getInstance(NestedReferenceResolver.class);
         schemas = injector.getInstance(Schemas.class);
@@ -128,11 +128,11 @@ public class TestGlobalSysExpressions extends CrateUnitTest {
             NodeLoadExpression loadExpr = new NodeLoadExpression(extendedNodeInfo.osStats());
 
             MapBinder<ReferenceIdent, ReferenceImplementation> b = MapBinder
-                    .newMapBinder(binder(), ReferenceIdent.class, ReferenceImplementation.class);
+                .newMapBinder(binder(), ReferenceIdent.class, ReferenceImplementation.class);
             b.addBinding(new ReferenceIdent(SysNodesTableInfo.IDENT, "load")).toInstance(loadExpr);
 
             b.addBinding(new ReferenceIdent(SysClusterTableInfo.IDENT, new ColumnIdent(ClusterSettingsExpression.NAME))).to(
-                    ClusterSettingsExpression.class).asEagerSingleton();
+                ClusterSettingsExpression.class).asEagerSingleton();
         }
     }
 
@@ -168,45 +168,45 @@ public class TestGlobalSysExpressions extends CrateUnitTest {
 
         Map stats = (Map) settings.get(CrateSettings.STATS.name());
         assertEquals(CrateSettings.STATS_ENABLED.defaultValue(),
-                stats.get(CrateSettings.STATS_ENABLED.name()));
+            stats.get(CrateSettings.STATS_ENABLED.name()));
         assertEquals(CrateSettings.STATS_JOBS_LOG_SIZE.defaultValue(),
-                stats.get(CrateSettings.STATS_JOBS_LOG_SIZE.name()));
+            stats.get(CrateSettings.STATS_JOBS_LOG_SIZE.name()));
         assertEquals(CrateSettings.STATS_OPERATIONS_LOG_SIZE.defaultValue(),
-                stats.get(CrateSettings.STATS_OPERATIONS_LOG_SIZE.name()));
+            stats.get(CrateSettings.STATS_OPERATIONS_LOG_SIZE.name()));
 
         Map cluster = (Map) settings.get(CrateSettings.CLUSTER.name());
         Map gracefulStop = (Map) cluster.get(CrateSettings.GRACEFUL_STOP.name());
         assertThat(
-                gracefulStop.get(CrateSettings.GRACEFUL_STOP_MIN_AVAILABILITY.name()),
-                is((Object) CrateSettings.GRACEFUL_STOP_MIN_AVAILABILITY.defaultValue()));
+            gracefulStop.get(CrateSettings.GRACEFUL_STOP_MIN_AVAILABILITY.name()),
+            is((Object) CrateSettings.GRACEFUL_STOP_MIN_AVAILABILITY.defaultValue()));
         assertThat(
-                gracefulStop.get(CrateSettings.GRACEFUL_STOP_REALLOCATE.name()),
-                is((Object) CrateSettings.GRACEFUL_STOP_REALLOCATE.defaultValue()));
+            gracefulStop.get(CrateSettings.GRACEFUL_STOP_REALLOCATE.name()),
+            is((Object) CrateSettings.GRACEFUL_STOP_REALLOCATE.defaultValue()));
         assertThat(
-                gracefulStop.get(CrateSettings.GRACEFUL_STOP_TIMEOUT.name()),
-                is((Object) CrateSettings.GRACEFUL_STOP_TIMEOUT.defaultValue().toString())
+            gracefulStop.get(CrateSettings.GRACEFUL_STOP_TIMEOUT.name()),
+            is((Object) CrateSettings.GRACEFUL_STOP_TIMEOUT.defaultValue().toString())
         );
         assertThat(
-                gracefulStop.get(CrateSettings.GRACEFUL_STOP_FORCE.name()),
-                is((Object) CrateSettings.GRACEFUL_STOP_FORCE.defaultValue())
+            gracefulStop.get(CrateSettings.GRACEFUL_STOP_FORCE.name()),
+            is((Object) CrateSettings.GRACEFUL_STOP_FORCE.defaultValue())
         );
         assertThat(
-                gracefulStop.get(CrateSettings.GRACEFUL_STOP_TIMEOUT.name()),
-                is((Object) CrateSettings.GRACEFUL_STOP_TIMEOUT.defaultValue().toString())
+            gracefulStop.get(CrateSettings.GRACEFUL_STOP_TIMEOUT.name()),
+            is((Object) CrateSettings.GRACEFUL_STOP_TIMEOUT.defaultValue().toString())
         );
         Map routing = (Map) cluster.get(CrateSettings.ROUTING.name());
         Map routingAllocation = (Map) routing.get(CrateSettings.ROUTING_ALLOCATION.name());
         assertThat(
-                routingAllocation.get(CrateSettings.ROUTING_ALLOCATION_ENABLE.name()),
-                is((Object) CrateSettings.ROUTING_ALLOCATION_ENABLE.defaultValue())
+            routingAllocation.get(CrateSettings.ROUTING_ALLOCATION_ENABLE.name()),
+            is((Object) CrateSettings.ROUTING_ALLOCATION_ENABLE.defaultValue())
         );
 
         Map gateway = (Map) settings.get(CrateSettings.GATEWAY.name());
         assertThat(gateway.get(CrateSettings.GATEWAY_RECOVER_AFTER_TIME.name()),
-                is((Object) CrateSettings.GATEWAY_RECOVER_AFTER_TIME.defaultValue().toString()));
+            is((Object) CrateSettings.GATEWAY_RECOVER_AFTER_TIME.defaultValue().toString()));
         assertEquals(gateway.get(CrateSettings.GATEWAY_RECOVERY_AFTER_NODES.name()),
-                CrateSettings.GATEWAY_RECOVERY_AFTER_NODES.defaultValue());
+            CrateSettings.GATEWAY_RECOVERY_AFTER_NODES.defaultValue());
         assertEquals(gateway.get(CrateSettings.GATEWAY_EXPECTED_NODES.name()),
-                CrateSettings.GATEWAY_EXPECTED_NODES.defaultValue());
+            CrateSettings.GATEWAY_EXPECTED_NODES.defaultValue());
     }
 }

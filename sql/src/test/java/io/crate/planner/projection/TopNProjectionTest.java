@@ -26,8 +26,8 @@ import io.crate.analyze.symbol.Symbol;
 import io.crate.analyze.symbol.Value;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.types.DataTypes;
-import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
+import org.elasticsearch.common.io.stream.StreamInput;
 import org.junit.Test;
 
 import static io.crate.testing.TestingHelpers.createReference;
@@ -38,9 +38,9 @@ public class TopNProjectionTest extends CrateUnitTest {
     public void testStreaming() throws Exception {
 
         TopNProjection p = new TopNProjection(5, 10,
-                ImmutableList.<Symbol>of(createReference("foo", DataTypes.BOOLEAN)),
-                new boolean[]{true},
-                new Boolean[] { null });
+            ImmutableList.<Symbol>of(createReference("foo", DataTypes.BOOLEAN)),
+            new boolean[]{true},
+            new Boolean[]{null});
 
         p.outputs(ImmutableList.<Symbol>of(new Value(DataTypes.BOOLEAN), new Value(DataTypes.INTEGER)));
 

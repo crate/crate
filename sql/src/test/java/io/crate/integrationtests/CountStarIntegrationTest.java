@@ -53,9 +53,9 @@ public class CountStarIntegrationTest extends SQLTransportIntegrationTest {
     @Test
     public void testCountRouting() throws Exception {
         execute("create table count_routing (" +
-                  "street string, " +
-                  "number short, " +
-                  "zipcode string" +
+                "street string, " +
+                "number short, " +
+                "zipcode string" +
                 ") clustered by (zipcode) with (number_of_replicas=0)");
         ensureYellow();
         execute("insert into count_routing (street, number, zipcode) values " +
@@ -66,10 +66,10 @@ public class CountStarIntegrationTest extends SQLTransportIntegrationTest {
         execute("refresh table count_routing");
 
         execute("select count(*) from count_routing where zipcode='1,2'");
-        assertThat((Long)response.rows()[0][0], is(1L)); // FOUND ONLY ONE
+        assertThat((Long) response.rows()[0][0], is(1L)); // FOUND ONLY ONE
 
         execute("select count(*) from count_routing where zipcode=''");
-        assertThat((Long)response.rows()[0][0], is(1L)); // FOUND ONE
+        assertThat((Long) response.rows()[0][0], is(1L)); // FOUND ONE
     }
 
     @Test
@@ -92,9 +92,9 @@ public class CountStarIntegrationTest extends SQLTransportIntegrationTest {
         execute("refresh table auto_id");
 
         execute("select count(*) from auto_id where _id=''");
-        assertThat((Long)response.rows()[0][0], is(0L)); // FOUND NONE
+        assertThat((Long) response.rows()[0][0], is(0L)); // FOUND NONE
 
         execute("select count(*) from auto_id where name=','");
-        assertThat((Long)response.rows()[0][0], is(1L)); // FOUND ONE
+        assertThat((Long) response.rows()[0][0], is(1L)); // FOUND ONE
     }
 }

@@ -44,14 +44,14 @@ public class NodeStatsTest extends SQLTransportIntegrationTest {
     @Test
     public void testSysNodesMem() throws Exception {
         SQLResponse response = execute("select mem['free'], mem['used'], mem['free_percent'], mem['used_percent'] from sys.nodes limit 1");
-        long free = (long)response.rows()[0][0];
-        long used = (long)response.rows()[0][1];
+        long free = (long) response.rows()[0][0];
+        long used = (long) response.rows()[0][1];
 
         double free_percent = ((Number) response.rows()[0][2]).intValue() * 0.01;
         double used_percent = ((Number) response.rows()[0][3]).intValue() * 0.01;
 
-        double calculated_free_percent = free / (double)(free + used) ;
-        double calculated_used_percent = used / (double)(free + used) ;
+        double calculated_free_percent = free / (double) (free + used);
+        double calculated_used_percent = used / (double) (free + used);
 
         double max_delta = 0.02; // result should not differ from calculated result more than 2%
         double free_delta = Math.abs(calculated_free_percent - free_percent);
@@ -107,15 +107,15 @@ public class NodeStatsTest extends SQLTransportIntegrationTest {
         SQLResponse response = execute("select network from sys.nodes limit 1");
         assertThat(response.rowCount(), is(1L));
 
-        Map<String, Object> network = (Map<String, Object>)response.rows()[0][0];
+        Map<String, Object> network = (Map<String, Object>) response.rows()[0][0];
         assertThat(network, hasKey("tcp"));
-        Map<String, Object> tcp = (Map<String, Object>)network.get("tcp");
+        Map<String, Object> tcp = (Map<String, Object>) network.get("tcp");
         assertNetworkTCP(tcp);
 
 
         response = execute("select network['tcp'] from sys.nodes limit 1");
         assertThat(response.rowCount(), is(1L));
-        tcp = (Map<String, Object>)response.rows()[0][0];
+        tcp = (Map<String, Object>) response.rows()[0][0];
         assertNetworkTCP(tcp);
     }
 
@@ -123,11 +123,11 @@ public class NodeStatsTest extends SQLTransportIntegrationTest {
         assertThat(tcp.keySet().size(), is(2));
         assertThat(tcp.keySet(), hasItems("packets", "connections"));
 
-        Map<String, Object> connections = (Map<String, Object>)tcp.get("connections");
+        Map<String, Object> connections = (Map<String, Object>) tcp.get("connections");
         assertThat(connections.keySet().size(), is(5));
         assertThat(connections.keySet(), hasItems("initiated", "accepted", "curr_established", "dropped", "embryonic_dropped"));
 
-        Map<String, Object> packets = (Map<String, Object>)tcp.get("packets");
+        Map<String, Object> packets = (Map<String, Object>) tcp.get("packets");
         assertThat(packets.keySet().size(), is(5));
         assertThat(packets.keySet(), hasItems("sent", "received", "errors_received", "retransmitted", "rst_sent"));
     }
@@ -135,14 +135,14 @@ public class NodeStatsTest extends SQLTransportIntegrationTest {
     @Test
     public void testNetworkTcpConnectionFields() throws Exception {
         SQLResponse response = execute("select " +
-                "network['tcp']['connections']['initiated'], " +
-                "network['tcp']['connections']['accepted'], " +
-                "network['tcp']['connections']['curr_established']," +
-                "network['tcp']['connections']['dropped']," +
-                "network['tcp']['connections']['embryonic_dropped']" +
-                " from sys.nodes limit 1");
+                                       "network['tcp']['connections']['initiated'], " +
+                                       "network['tcp']['connections']['accepted'], " +
+                                       "network['tcp']['connections']['curr_established']," +
+                                       "network['tcp']['connections']['dropped']," +
+                                       "network['tcp']['connections']['embryonic_dropped']" +
+                                       " from sys.nodes limit 1");
         assertThat(response.rowCount(), is(1L));
-        for (int i=0; i< response.cols().length; i++) {
+        for (int i = 0; i < response.cols().length; i++) {
             assertThat((Long) response.rows()[0][i], greaterThanOrEqualTo(-1L));
         }
     }
@@ -150,12 +150,12 @@ public class NodeStatsTest extends SQLTransportIntegrationTest {
     @Test
     public void testNetworkTcpPacketsFields() throws Exception {
         SQLResponse response = execute("select " +
-                "network['tcp']['packets']['sent'], " +
-                "network['tcp']['packets']['received'], " +
-                "network['tcp']['packets']['retransmitted'], " +
-                "network['tcp']['packets']['errors_received'], " +
-                "network['tcp']['packets']['rst_sent'] " +
-                "from sys.nodes limit 1");
+                                       "network['tcp']['packets']['sent'], " +
+                                       "network['tcp']['packets']['received'], " +
+                                       "network['tcp']['packets']['retransmitted'], " +
+                                       "network['tcp']['packets']['errors_received'], " +
+                                       "network['tcp']['packets']['rst_sent'] " +
+                                       "from sys.nodes limit 1");
         assertThat(response.rowCount(), is(1L));
         for (int i = 0; i < response.cols().length; i++) {
             assertThat((Long) response.rows()[0][i], greaterThanOrEqualTo(-1L));
@@ -210,8 +210,8 @@ public class NodeStatsTest extends SQLTransportIntegrationTest {
     @Test
     public void testSysNodesProcess() throws Exception {
         SQLResponse response = execute("select process['open_file_descriptors'], " +
-                "process['max_open_file_descriptors'] " +
-                "from sys.nodes limit 1");
+                                       "process['max_open_file_descriptors'] " +
+                                       "from sys.nodes limit 1");
         for (int i = 0; i < response.cols().length; i++) {
             assertThat((Long) response.rows()[0][i], greaterThanOrEqualTo(-1L));
         }
@@ -223,18 +223,18 @@ public class NodeStatsTest extends SQLTransportIntegrationTest {
         SQLResponse response = execute("select fs from sys.nodes limit 1");
         assertThat(response.rowCount(), is(1L));
         assertThat(response.rows()[0][0], instanceOf(Map.class));
-        Map<String, Object> fs = (Map<String, Object>)response.rows()[0][0];
+        Map<String, Object> fs = (Map<String, Object>) response.rows()[0][0];
         assertThat(fs.keySet().size(), is(3));
         assertThat(fs.keySet(), hasItems("total", "disks", "data"));
 
         Map<String, Object> total = (Map<String, Object>) fs.get("total");
         assertThat(total.keySet(), hasItems("size", "used", "available", "reads", "writes",
-                "bytes_written", "bytes_read"));
+            "bytes_written", "bytes_read"));
         for (Object val : total.values()) {
-            assertThat((Long)val, greaterThanOrEqualTo(-1L));
+            assertThat((Long) val, greaterThanOrEqualTo(-1L));
         }
 
-        Object[] disks = (Object[])fs.get("disks");
+        Object[] disks = (Object[]) fs.get("disks");
         if (disks.length > 0) {
             // on travis there are no accessible disks
 
@@ -242,7 +242,7 @@ public class NodeStatsTest extends SQLTransportIntegrationTest {
             Map<String, Object> someDisk = (Map<String, Object>) disks[0];
             assertThat(someDisk.keySet().size(), is(8));
             assertThat(someDisk.keySet(), hasItems("dev", "size", "used", "available",
-                    "reads", "writes", "bytes_read", "bytes_written"));
+                "reads", "writes", "bytes_read", "bytes_written"));
             for (Map.Entry<String, Object> entry : someDisk.entrySet()) {
                 if (!entry.getKey().equals("dev")) {
                     assertThat((Long) entry.getValue(), greaterThanOrEqualTo(-1L));
@@ -250,7 +250,7 @@ public class NodeStatsTest extends SQLTransportIntegrationTest {
             }
         }
 
-        Object[] data = (Object[])fs.get("data");
+        Object[] data = (Object[]) fs.get("data");
         if (data.length > 0) {
             // without sigar, no data definition returned
             int numDataPaths = internalCluster().getInstance(NodeEnvironment.class).nodeDataPaths().length;
@@ -267,13 +267,13 @@ public class NodeStatsTest extends SQLTransportIntegrationTest {
         assertThat(response.rowCount(), is(2L));
         for (Object[] row : response.rows()) {
             // data device name
-            for (Object diskDevName : (Object[])row[0]) {
-                assertThat((String)diskDevName, is(not("rootfs")));
+            for (Object diskDevName : (Object[]) row[0]) {
+                assertThat((String) diskDevName, is(not("rootfs")));
             }
-            Object[] disks = (Object[])row[1];
+            Object[] disks = (Object[]) row[1];
             // disks device name
             for (Object disk : disks) {
-                String diskDevName = (String)((Map<String, Object>)disk).get("dev");
+                String diskDevName = (String) ((Map<String, Object>) disk).get("dev");
                 assertThat(diskDevName, is(notNullValue()));
                 assertThat(diskDevName, is(not("rootfs")));
             }
@@ -284,7 +284,7 @@ public class NodeStatsTest extends SQLTransportIntegrationTest {
     public void testSysNodesObjectArrayStringChildColumn() throws Exception {
         SQLResponse response = execute("select fs['data']['path'] from sys.nodes");
         assertThat(response.rowCount(), Matchers.is(2L));
-        for (Object path : (Object[])response.rows()[0][0]) {
+        for (Object path : (Object[]) response.rows()[0][0]) {
             assertThat(path, instanceOf(String.class));
         }
     }
@@ -292,21 +292,21 @@ public class NodeStatsTest extends SQLTransportIntegrationTest {
     @Test
     public void testVersion() throws Exception {
         SQLResponse response = execute("select version, version['number'], " +
-                "version['build_hash'], version['build_snapshot'] " +
-                "from sys.nodes limit 1");
+                                       "version['build_hash'], version['build_snapshot'] " +
+                                       "from sys.nodes limit 1");
         assertThat(response.rowCount(), is(1L));
         assertThat(response.rows()[0][0], instanceOf(Map.class));
-        assertThat((Map<String, Object>)response.rows()[0][0], allOf(hasKey("number"), hasKey("build_hash"), hasKey("build_snapshot")));
-        assertThat((String)response.rows()[0][1], is(Version.CURRENT.number()));
+        assertThat((Map<String, Object>) response.rows()[0][0], allOf(hasKey("number"), hasKey("build_hash"), hasKey("build_snapshot")));
+        assertThat((String) response.rows()[0][1], is(Version.CURRENT.number()));
         assertThat(response.rows()[0][2], instanceOf(String.class));
-        assertThat((Boolean)response.rows()[0][3], is(Version.CURRENT.snapshot()));
+        assertThat((Boolean) response.rows()[0][3], is(Version.CURRENT.snapshot()));
     }
 
     @Test
     public void testRegexpMatchOnNode() throws Exception {
         SQLResponse response = execute("select name from sys.nodes where name ~ 'node_s[0-1]{1,2}' order by name");
         assertThat(response.rowCount(), is(2L));
-        assertThat((String)response.rows()[0][0], is("node_s0"));
-        assertThat((String)response.rows()[1][0], is("node_s1"));
+        assertThat((String) response.rows()[0][0], is("node_s0"));
+        assertThat((String) response.rows()[1][0], is("node_s1"));
     }
 }

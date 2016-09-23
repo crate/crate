@@ -82,7 +82,7 @@ public class ToStringFunctionTest extends AbstractScalarFunctionsTest {
             }
         };
         Object result = format.evaluate(arg1);
-        assertThat(((BytesRef)result), is(new BytesRef("123")));
+        assertThat(((BytesRef) result), is(new BytesRef("123")));
     }
 
 }

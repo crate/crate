@@ -80,12 +80,12 @@ public class SysShardsExpressionsTest extends CrateUnitTest {
     @Before
     public void prepare() throws Exception {
         Injector injector = new ModulesBuilder().add(
-                new TestModule(),
-                new MetaDataModule(),
-                new MetaDataSysModule(),
-                new SysClusterExpressionModule(),
-                new MetaDataShardModule(),
-                new SysShardExpressionModule()
+            new TestModule(),
+            new MetaDataModule(),
+            new MetaDataSysModule(),
+            new SysClusterExpressionModule(),
+            new MetaDataShardModule(),
+            new SysShardExpressionModule()
         ).createInjector();
         AbstractReferenceResolver shardRefResolver = injector.getInstance(ShardReferenceResolver.class);
         IndexShard indexShard = injector.getInstance(IndexShard.class);
@@ -97,7 +97,7 @@ public class SysShardsExpressionsTest extends CrateUnitTest {
     public static void after() throws Exception {
         threadPool.shutdown();
         threadPool.awaitTermination(1, TimeUnit.SECONDS);
-        threadPool =  null;
+        threadPool = null;
     }
 
     class TestModule extends AbstractModule {
@@ -172,7 +172,8 @@ public class SysShardsExpressionsTest extends CrateUnitTest {
             when(indexShard.state()).thenReturn(IndexShardState.STARTED);
 
             MetaData metaData = mock(MetaData.class);
-            when(metaData.hasConcreteIndex(PartitionName.PARTITIONED_TABLE_PREFIX + ".wikipedia_de._1")).thenReturn(false);
+            when(metaData.hasConcreteIndex(
+                PartitionName.PARTITIONED_TABLE_PREFIX + ".wikipedia_de._1")).thenReturn(false);
             when(metaData.concreteAllOpenIndices()).thenReturn(new String[0]);
             when(metaData.templates()).thenReturn(ImmutableOpenMap.<String, IndexTemplateMetaData>of());
             ClusterState clusterState = mock(ClusterState.class);
@@ -341,7 +342,7 @@ public class SysShardsExpressionsTest extends CrateUnitTest {
         assertEquals(RecoveryState.Type.REPLICA.name(), recovery.get("type"));
         assertEquals(10_000L, recovery.get("total_time"));
 
-        Map<String, Object> expectedFiles = new HashMap<String, Object>(){{
+        Map<String, Object> expectedFiles = new HashMap<String, Object>() {{
             put("used", 2);
             put("reused", 1);
             put("recovered", 1);
@@ -349,7 +350,7 @@ public class SysShardsExpressionsTest extends CrateUnitTest {
         }};
         assertEquals(expectedFiles, recovery.get("files"));
 
-        Map<String, Object> expectedBytes = new HashMap<String, Object>(){{
+        Map<String, Object> expectedBytes = new HashMap<String, Object>() {{
             put("used", 2_048L);
             put("reused", 1_024L);
             put("recovered", 1_024L);

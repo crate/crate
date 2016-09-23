@@ -42,18 +42,18 @@ public class ObjectColumnTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testInsertIntoDynamicObject() throws Exception {
-        Map<String, Object> authorMap = new HashMap<String, Object>(){{
-            put("name", new HashMap<String, Object>(){{
+        Map<String, Object> authorMap = new HashMap<String, Object>() {{
+            put("name", new HashMap<String, Object>() {{
                 put("first_name", "Douglas");
                 put("last_name", "Adams");
             }});
             put("age", 49);
         }};
         execute("insert into ot (title, author) values (?, ?)",
-                new Object[]{
-                        "Life, the Universe and Everything",
-                        authorMap
-                });
+            new Object[]{
+                "Life, the Universe and Everything",
+                authorMap
+            });
         refresh();
         execute("select title, author from ot order by title");
         assertEquals(2, response.rowCount());
@@ -63,8 +63,8 @@ public class ObjectColumnTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testAddColumnToDynamicObject() throws Exception {
-        Map<String, Object> authorMap = new HashMap<String, Object>(){{
-            put("name", new HashMap<String, Object>(){{
+        Map<String, Object> authorMap = new HashMap<String, Object>() {{
+            put("name", new HashMap<String, Object>() {{
                 put("first_name", "Douglas");
                 put("last_name", "Adams");
             }});
@@ -72,10 +72,10 @@ public class ObjectColumnTest extends SQLTransportIntegrationTest {
             put("age", 49);
         }};
         execute("insert into ot (title, author) values (?, ?)",
-                new Object[]{
-                        "Life, the Universe and Everything",
-                        authorMap
-                });
+            new Object[]{
+                "Life, the Universe and Everything",
+                authorMap
+            });
         refresh();
         waitForMappingUpdateOnAll("ot", "author.dead");
         execute("select title, author, author['dead'] from ot order by title");
@@ -87,17 +87,17 @@ public class ObjectColumnTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testAddColumnToIgnoredObject() throws Exception {
-        Map<String, Object> detailMap = new HashMap<String, Object>(){{
+        Map<String, Object> detailMap = new HashMap<String, Object>() {{
             put("num_pages", 240);
             put("publishing_date", "1982-01-01");
             put("isbn", "978-0345391827");
             put("weight", 4.8d);
         }};
         execute("insert into ot (title, details) values (?, ?)",
-                new Object[]{
-                        "Life, the Universe and Everything",
-                        detailMap
-                });
+            new Object[]{
+                "Life, the Universe and Everything",
+                detailMap
+            });
         refresh();
         execute("select title, details, details['weight'], details['publishing_date'] from ot order by title");
         assertEquals(2, response.rowCount());
@@ -112,8 +112,8 @@ public class ObjectColumnTest extends SQLTransportIntegrationTest {
         expectedException.expect(SQLActionException.class);
         expectedException.expectMessage("Column author['name']['middle_name'] unknown");
 
-        Map<String, Object> authorMap = new HashMap<String, Object>(){{
-            put("name", new HashMap<String, Object>(){{
+        Map<String, Object> authorMap = new HashMap<String, Object>() {{
+            put("name", new HashMap<String, Object>() {{
                 put("first_name", "Douglas");
                 put("middle_name", "Noel");
                 put("last_name", "Adams");
@@ -121,10 +121,10 @@ public class ObjectColumnTest extends SQLTransportIntegrationTest {
             put("age", 49);
         }};
         execute("insert into ot (title, author) values (?, ?)",
-                new Object[]{
-                        "Life, the Universe and Everything",
-                        authorMap
-                });
+            new Object[]{
+                "Life, the Universe and Everything",
+                authorMap
+            });
     }
 
     @Test
@@ -137,15 +137,15 @@ public class ObjectColumnTest extends SQLTransportIntegrationTest {
                 "where author['name']['first_name']='Douglas' and author['name']['last_name']='Adams'");
         assertEquals(1, response.rowCount());
         assertEquals(
-                new HashMap<String, Object>(){{
-                    put("name", new HashMap<String, Object>(){{
-                        put("first_name", "Douglas");
-                        put("last_name", "Adams");
-                    }});
-                    put("age", 49);
-                    put("job", "Writer");
-                }},
-                response.rows()[0][0]
+            new HashMap<String, Object>() {{
+                put("name", new HashMap<String, Object>() {{
+                    put("first_name", "Douglas");
+                    put("last_name", "Adams");
+                }});
+                put("age", 49);
+                put("job", "Writer");
+            }},
+            response.rows()[0][0]
         );
         assertEquals("Writer", response.rows()[0][1]);
     }
@@ -156,14 +156,14 @@ public class ObjectColumnTest extends SQLTransportIntegrationTest {
                 "where title=?", new Object[]{"The Hitchhiker's Guide to the Galaxy"});
         refresh();
         execute("select details, details['published'] from ot where title=?",
-                new Object[]{"The Hitchhiker's Guide to the Galaxy"});
+            new Object[]{"The Hitchhiker's Guide to the Galaxy"});
         assertEquals(1, response.rowCount());
         assertEquals(
-                new HashMap<String, Object>() {{
-                    put("num_pages", 224);
-                    put("published", "1978-01-01");
-                }},
-                response.rows()[0][0]
+            new HashMap<String, Object>() {{
+                put("num_pages", 224);
+                put("published", "1978-01-01");
+            }},
+            response.rows()[0][0]
         );
         assertEquals("1978-01-01", response.rows()[0][1]);
     }
@@ -179,8 +179,8 @@ public class ObjectColumnTest extends SQLTransportIntegrationTest {
 
     @Test
     public void selectDynamicAddedColumnWhere() throws Exception {
-        Map<String, Object> authorMap = new HashMap<String, Object>(){{
-            put("name", new HashMap<String, Object>(){{
+        Map<String, Object> authorMap = new HashMap<String, Object>() {{
+            put("name", new HashMap<String, Object>() {{
                 put("first_name", "Douglas");
                 put("last_name", "Adams");
             }});
@@ -188,10 +188,10 @@ public class ObjectColumnTest extends SQLTransportIntegrationTest {
             put("age", 49);
         }};
         execute("insert into ot (title, author) values (?, ?)",
-                new Object[]{
-                        "Life, the Universe and Everything",
-                        authorMap
-                });
+            new Object[]{
+                "Life, the Universe and Everything",
+                authorMap
+            });
         refresh();
         waitForMappingUpdateOnAll("ot", "author.dead");
         execute("select author from ot where author['dead']=true");
@@ -201,17 +201,17 @@ public class ObjectColumnTest extends SQLTransportIntegrationTest {
 
     @Test
     public void selectIgnoredAddedColumnWhere() throws Exception {
-        Map<String, Object> detailMap = new HashMap<String, Object>(){{
+        Map<String, Object> detailMap = new HashMap<String, Object>() {{
             put("num_pages", 240);
             put("publishing_date", "1982-01-01");
             put("isbn", "978-0345391827");
             put("weight", 4.8d);
         }};
         execute("insert into ot (title, details) values (?, ?)",
-                new Object[]{
-                        "Life, the Universe and Everything",
-                        detailMap
-                });
+            new Object[]{
+                "Life, the Universe and Everything",
+                detailMap
+            });
         refresh();
         execute("select details from ot where details['isbn']='978-0345391827'");
         assertEquals(0, response.rowCount());
@@ -223,8 +223,8 @@ public class ObjectColumnTest extends SQLTransportIntegrationTest {
 
     @Test
     public void selectDynamicAddedColumnOrderBy() throws Exception {
-        Map<String, Object> authorMap = new HashMap<String, Object>(){{
-            put("name", new HashMap<String, Object>(){{
+        Map<String, Object> authorMap = new HashMap<String, Object>() {{
+            put("name", new HashMap<String, Object>() {{
                 put("first_name", "Douglas");
                 put("last_name", "Adams");
             }});
@@ -232,23 +232,23 @@ public class ObjectColumnTest extends SQLTransportIntegrationTest {
             put("age", 49);
         }};
         execute("insert into ot (title, author) values (?, ?)",
-                new Object[]{
-                        "Life, the Universe and Everything",
-                        authorMap
-                }
+            new Object[]{
+                "Life, the Universe and Everything",
+                authorMap
+            }
         );
         execute("insert into ot (title, author) values (?, ?)",
-                new Object[]{
-                        "Don't Panic: Douglas Adams and the \"Hitchhiker's Guide to the Galaxy\"",
-                        new HashMap<String, Object>() {{
-                            put("name", new HashMap<String, Object>(){{
-                                put("first_name", "Neil");
-                                put("last_name", "Gaiman");
-                            }});
-                            put("dead", false);
-                            put("age", 53);
-                        }}
-                }
+            new Object[]{
+                "Don't Panic: Douglas Adams and the \"Hitchhiker's Guide to the Galaxy\"",
+                new HashMap<String, Object>() {{
+                    put("name", new HashMap<String, Object>() {{
+                        put("first_name", "Neil");
+                        put("last_name", "Gaiman");
+                    }});
+                    put("dead", false);
+                    put("age", 53);
+                }}
+            }
         );
         refresh();
         waitForMappingUpdateOnAll("ot", "author.dead");
@@ -278,10 +278,10 @@ public class ObjectColumnTest extends SQLTransportIntegrationTest {
 
         assertEquals(1L, response.rowCount());
         assertArrayEquals(new String[]{"message", "person['name']", "person['addresses']['city']"},
-                response.cols());
+            response.cols());
         assertArrayEquals(
-                new Object[]{"I'm addicted to kite", "Youri", new Object[] { "Dirksland" }},
-                response.rows()[0]
+            new Object[]{"I'm addicted to kite", "Youri", new Object[]{"Dirksland"}},
+            response.rows()[0]
         );
     }
 
@@ -290,7 +290,7 @@ public class ObjectColumnTest extends SQLTransportIntegrationTest {
         execute("create table test (a object as (nested integer)) with (number_of_replicas=0)");
         ensureYellow();
         execute("insert into test (a) values (?)", new Object[]{
-                new MapBuilder<String, Object>().put("nested", 2).map()
+            new MapBuilder<String, Object>().put("nested", 2).map()
         });
         refresh();
 

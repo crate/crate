@@ -40,7 +40,7 @@ import static org.hamcrest.core.Is.is;
 public class ShortColumnReferenceTest extends DocLevelExpressionsTest {
     @Override
     protected void insertValues(IndexWriter writer) throws Exception {
-        for (short i = -10; i<10; i++) {
+        for (short i = -10; i < 10; i++) {
             Document doc = new Document();
             doc.add(new StringField("_id", Short.toString(i), Field.Store.NO));
             doc.add(new IntField(fieldName().indexName(), i, Field.Store.NO));

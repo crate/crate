@@ -38,11 +38,11 @@ public class ClusterSettingsExpressionTest {
     @Test
     public void testSettingsAreAppliedImmediately() throws Exception {
         ClusterSettingsExpression clusterSettingsExpression = new ClusterSettingsExpression(
-                Settings.builder().put("bulk.request_timeout", "20s").build(), mock(NodeSettingsService.class), mock(ClusterService.class));
+            Settings.builder().put("bulk.request_timeout", "20s").build(), mock(NodeSettingsService.class), mock(ClusterService.class));
 
         assertThat(((BytesRef) clusterSettingsExpression
                 .getChildImplementation("bulk")
                 .getChildImplementation("request_timeout").value()).utf8ToString(),
-                is("20s"));
+            is("20s"));
     }
 }

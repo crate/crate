@@ -92,13 +92,13 @@ public class BlobTableAnalyzerTest extends BaseAnalyzerTest {
             BlobSchemaInfo schemaInfo = mock(BlobSchemaInfo.class);
             TableIdent myBlobsIdent = new TableIdent(BlobSchemaInfo.NAME, "myblobs");
             TestingBlobTableInfo myBlobsInfo = new TestingBlobTableInfo(
-                    myBlobsIdent,
-                    myBlobsIdent.indexName(),
-                    null,
-                    5,
-                    new BytesRef("0"),
-                    ImmutableMap.<String, Object>of(),
-                    null
+                myBlobsIdent,
+                myBlobsIdent.indexName(),
+                null,
+                5,
+                new BytesRef("0"),
+                ImmutableMap.<String, Object>of(),
+                null
             );
             myBlobsInfo.routing(SHARD_ROUTING);
             when(schemaInfo.getTableInfo(myBlobsIdent.name())).thenReturn(myBlobsInfo);
@@ -110,28 +110,28 @@ public class BlobTableAnalyzerTest extends BaseAnalyzerTest {
     protected List<Module> getModules() {
         List<Module> modules = super.getModules();
         modules.addAll(Arrays.<Module>asList(
-                new MockedClusterServiceModule(),
-                new MetaDataInformationModule(),
-                new TestMetaDataModule(),
-                new MetaDataSysModule()
+            new MockedClusterServiceModule(),
+            new MetaDataInformationModule(),
+            new TestMetaDataModule(),
+            new MetaDataSysModule()
         ));
         return modules;
     }
 
-    @Test (expected = IllegalArgumentException.class)
+    @Test(expected = IllegalArgumentException.class)
     public void testWithInvalidProperty() {
         analyze("create blob table screenshots with (foobar=1)");
     }
 
-    @Test (expected = IllegalArgumentException.class)
+    @Test(expected = IllegalArgumentException.class)
     public void testWithMultipleArgsToProperty() {
         analyze("create blob table screenshots with (number_of_replicas=[1, 2])");
     }
 
     @Test
     public void testCreateBlobTableAutoExpand() {
-        CreateBlobTableAnalyzedStatement analysis = (CreateBlobTableAnalyzedStatement)analyze(
-                "create blob table screenshots clustered into 10 shards with (number_of_replicas='0-all')");
+        CreateBlobTableAnalyzedStatement analysis = (CreateBlobTableAnalyzedStatement) analyze(
+            "create blob table screenshots clustered into 10 shards with (number_of_replicas='0-all')");
 
         assertThat(analysis.tableIdent().name(), is("screenshots"));
         assertThat(analysis.tableIdent().schema(), is(BlobSchemaInfo.NAME));
@@ -155,8 +155,8 @@ public class BlobTableAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void testCreateBlobTable() {
-        CreateBlobTableAnalyzedStatement analysis = (CreateBlobTableAnalyzedStatement)analyze(
-                "create blob table screenshots clustered into 10 shards with (number_of_replicas='0-all')");
+        CreateBlobTableAnalyzedStatement analysis = (CreateBlobTableAnalyzedStatement) analyze(
+            "create blob table screenshots clustered into 10 shards with (number_of_replicas='0-all')");
 
         assertThat(analysis.tableIdent().name(), is("screenshots"));
         assertThat(analysis.tableParameter().settings().getAsInt(IndexMetaData.SETTING_NUMBER_OF_SHARDS, 0), is(10));
@@ -165,8 +165,8 @@ public class BlobTableAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void testCreateBlobTableWithPath() {
-        CreateBlobTableAnalyzedStatement analysis = (CreateBlobTableAnalyzedStatement)analyze(
-                "create blob table screenshots with (blobs_path='/tmp/crate_blob_data')");
+        CreateBlobTableAnalyzedStatement analysis = (CreateBlobTableAnalyzedStatement) analyze(
+            "create blob table screenshots with (blobs_path='/tmp/crate_blob_data')");
 
         assertThat(analysis.tableIdent().name(), is("screenshots"));
         assertThat(analysis.tableParameter().settings().get(BlobIndices.SETTING_INDEX_BLOBS_PATH), is("/tmp/crate_blob_data"));
@@ -174,8 +174,8 @@ public class BlobTableAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void testCreateBlobTableWithPathParameter() {
-        CreateBlobTableAnalyzedStatement analysis = (CreateBlobTableAnalyzedStatement)analyze(
-                "create blob table screenshots with (blobs_path=?)", new Object[]{"/tmp/crate_blob_data"});
+        CreateBlobTableAnalyzedStatement analysis = (CreateBlobTableAnalyzedStatement) analyze(
+            "create blob table screenshots with (blobs_path=?)", new Object[]{"/tmp/crate_blob_data"});
 
         assertThat(analysis.tableIdent().name(), is("screenshots"));
         assertThat(analysis.tableParameter().settings().get(BlobIndices.SETTING_INDEX_BLOBS_PATH), is("/tmp/crate_blob_data"));
@@ -192,7 +192,7 @@ public class BlobTableAnalyzerTest extends BaseAnalyzerTest {
     public void testCreateBlobTableWithPathInvalidParameter() {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("Invalid value for argument 'blobs_path'");
-        analyze("create blob table screenshots with (blobs_path=?)", new Object[]{ 1 });
+        analyze("create blob table screenshots with (blobs_path=?)", new Object[]{1});
     }
 
     @Test(expected = InvalidTableNameException.class)
@@ -202,30 +202,30 @@ public class BlobTableAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void testDropBlobTable() {
-        DropBlobTableAnalyzedStatement analysis = (DropBlobTableAnalyzedStatement)analyze("drop blob table myblobs");
+        DropBlobTableAnalyzedStatement analysis = (DropBlobTableAnalyzedStatement) analyze("drop blob table myblobs");
         assertThat(analysis.tableIdent().name(), is("myblobs"));
         assertThat(analysis.tableIdent().schema(), is(BlobSchemaInfo.NAME));
     }
 
-    @Test (expected = IllegalArgumentException.class)
+    @Test(expected = IllegalArgumentException.class)
     public void testDropBlobTableWithInvalidSchema() {
         analyze("drop blob table doc.users");
     }
 
     @Test
     public void testDropBlobTableWithValidSchema() {
-        DropBlobTableAnalyzedStatement analysis = (DropBlobTableAnalyzedStatement)analyze("drop blob table \"blob\".myblobs");
+        DropBlobTableAnalyzedStatement analysis = (DropBlobTableAnalyzedStatement) analyze("drop blob table \"blob\".myblobs");
         assertThat(analysis.tableIdent().name(), is("myblobs"));
     }
 
-    @Test (expected = TableUnknownException.class)
+    @Test(expected = TableUnknownException.class)
     public void testDropBlobTableThatDoesNotExist() {
         analyze("drop blob table unknown");
     }
 
     @Test
     public void testDropBlobTableIfExists() throws Exception {
-        DropBlobTableAnalyzedStatement analysis = (DropBlobTableAnalyzedStatement)analyze("drop blob table if exists myblobs");
+        DropBlobTableAnalyzedStatement analysis = (DropBlobTableAnalyzedStatement) analyze("drop blob table if exists myblobs");
         assertThat(analysis.dropIfExists(), is(true));
         assertThat(analysis.tableIdent().name(), is("myblobs"));
         assertThat(analysis.tableIdent().schema(), is(BlobSchemaInfo.NAME));
@@ -233,18 +233,18 @@ public class BlobTableAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void testDropNonExistentBlobTableIfExists() throws Exception {
-        DropBlobTableAnalyzedStatement analysis = (DropBlobTableAnalyzedStatement)analyze("drop blob table if exists unknown");
+        DropBlobTableAnalyzedStatement analysis = (DropBlobTableAnalyzedStatement) analyze("drop blob table if exists unknown");
         assertThat(analysis.dropIfExists(), is(true));
     }
 
-    @Test (expected = IllegalArgumentException.class)
+    @Test(expected = IllegalArgumentException.class)
     public void testAlterBlobTableWithInvalidProperty() throws Exception {
         analyze("alter blob table myblobs set (foobar='2')");
     }
 
     @Test
     public void testAlterBlobTableWithReplicas() throws Exception {
-        AlterBlobTableAnalyzedStatement analysis = (AlterBlobTableAnalyzedStatement)analyze("alter blob table myblobs set (number_of_replicas=2)");
+        AlterBlobTableAnalyzedStatement analysis = (AlterBlobTableAnalyzedStatement) analyze("alter blob table myblobs set (number_of_replicas=2)");
         assertThat(analysis.table().ident().name(), is("myblobs"));
         assertThat(analysis.tableParameter().settings().getAsInt(IndexMetaData.SETTING_NUMBER_OF_REPLICAS, 0), is(2));
     }
@@ -258,9 +258,9 @@ public class BlobTableAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void testCreateBlobTableWithParams() throws Exception {
-        CreateBlobTableAnalyzedStatement analysis = (CreateBlobTableAnalyzedStatement)analyze(
-                "create blob table screenshots clustered into ? shards with (number_of_replicas= ?)",
-                new Object[] { 2, "0-all" });
+        CreateBlobTableAnalyzedStatement analysis = (CreateBlobTableAnalyzedStatement) analyze(
+            "create blob table screenshots clustered into ? shards with (number_of_replicas= ?)",
+            new Object[]{2, "0-all"});
 
         assertThat(analysis.tableIdent().name(), is("screenshots"));
         assertThat(analysis.tableIdent().schema(), is(BlobSchemaInfo.NAME));
@@ -272,6 +272,6 @@ public class BlobTableAnalyzerTest extends BaseAnalyzerTest {
     public void testCreateBlobTableWithInvalidShardsParam() throws Exception {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("invalid number 'foo'");
-        analyze("create blob table screenshots clustered into ? shards", new Object[] { "foo" });
+        analyze("create blob table screenshots clustered into ? shards", new Object[]{"foo"});
     }
 }

@@ -38,13 +38,13 @@ public class FormatFunctionTest extends AbstractScalarFunctionsTest {
     @SuppressWarnings("unchecked")
     public void testEvaluate() throws Exception {
         assertEvaluate("format('%s bla %s', name, age)",
-                "Arthur bla 38",
-                Literal.of("Arthur"),
-                Literal.of(38L));
+            "Arthur bla 38",
+            Literal.of("Arthur"),
+            Literal.of(38L));
 
         assertEvaluate("format('%s bla %s', name, age)",
-                "Arthur bla 42",
-                Literal.of("Arthur"),
-                Literal.of(42L));
+            "Arthur bla 42",
+            Literal.of("Arthur"),
+            Literal.of(42L));
     }
 }

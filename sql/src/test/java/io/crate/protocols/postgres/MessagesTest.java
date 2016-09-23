@@ -55,7 +55,7 @@ public class MessagesTest {
         // message type
         assertThat((char) buffer.readByte(), is('D'));
 
-         // size of the message
+        // size of the message
         assertThat(buffer.readInt(), is(16));
         assertThat(buffer.readableBytes(), is(12)); // 16 - INT4 because the size was already read
     }

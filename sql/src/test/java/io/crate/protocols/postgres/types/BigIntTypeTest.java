@@ -32,12 +32,12 @@ public class BigIntTypeTest extends BasePGTypeTest<Long> {
 
     @Test
     public void testWriteValue() throws Exception {
-        assertBytesWritten(Long.MIN_VALUE, new byte[]{ 0, 0, 0, 8, -128, 0, 0, 0, 0, 0, 0, 0 });
+        assertBytesWritten(Long.MIN_VALUE, new byte[]{0, 0, 0, 8, -128, 0, 0, 0, 0, 0, 0, 0});
     }
 
     @Test
     public void testReadValueBinary() throws Exception {
-        assertBytesReadBinary(new byte[]{ 127, -1, -1, -1, -1, -1, -1, -1 }, Long.MAX_VALUE);
+        assertBytesReadBinary(new byte[]{127, -1, -1, -1, -1, -1, -1, -1}, Long.MAX_VALUE);
     }
 
     @Test

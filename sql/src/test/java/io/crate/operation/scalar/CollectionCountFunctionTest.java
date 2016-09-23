@@ -40,7 +40,7 @@ import static io.crate.testing.TestingHelpers.getFunctions;
 public class CollectionCountFunctionTest extends CrateUnitTest {
 
     final FunctionIdent ident = new FunctionIdent(CollectionCountFunction.NAME, ImmutableList.<DataType>of(
-            new SetType(DataTypes.STRING)));
+        new SetType(DataTypes.STRING)));
 
     @Test
     public void testLookup() throws Exception {
@@ -51,15 +51,15 @@ public class CollectionCountFunctionTest extends CrateUnitTest {
     @Test
     public void testEvaluate() throws Exception {
         CollectionCountFunction function = new CollectionCountFunction(
-                new FunctionInfo(
-                        ident,
-                        DataTypes.LONG)
+            new FunctionInfo(
+                ident,
+                DataTypes.LONG)
         );
 
         Input inputSet = new Input<Set<String>>() {
             @Override
             public Set<String> value() {
-                return new HashSet<String>(){{
+                return new HashSet<String>() {{
                     add("foo");
                     add("bar");
                 }};

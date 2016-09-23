@@ -101,11 +101,11 @@ public class MetaDataToASTNodeResolverTest extends CrateUnitTest {
                                           @Nullable ColumnPolicy policy,
                                           Boolean partitionColumn) {
         return new Reference(
-                new ReferenceIdent(tableIdent, name, path),
-                partitionColumn ? RowGranularity.PARTITION : RowGranularity.DOC,
-                type,
-                policy == null ? ColumnPolicy.DYNAMIC : policy,
-                Reference.IndexType.NOT_ANALYZED, true);
+            new ReferenceIdent(tableIdent, name, path),
+            partitionColumn ? RowGranularity.PARTITION : RowGranularity.DOC,
+            type,
+            policy == null ? ColumnPolicy.DYNAMIC : policy,
+            Reference.IndexType.NOT_ANALYZED, true);
     }
 
     private static ImmutableMap<ColumnIdent, Reference> referencesMap(List<Reference> columns) {
@@ -122,70 +122,70 @@ public class MetaDataToASTNodeResolverTest extends CrateUnitTest {
         TableIdent ident = new TableIdent("doc", "test");
 
         List<Reference> columns = ImmutableList.of(
-                newReference(ident, "bools", DataTypes.BOOLEAN),
-                newReference(ident, "bytes", DataTypes.BYTE),
-                newReference(ident, "strings", DataTypes.STRING),
-                newReference(ident, "shorts", DataTypes.SHORT),
-                newReference(ident, "floats", DataTypes.FLOAT),
-                newReference(ident, "doubles", DataTypes.DOUBLE),
-                newReference(ident, "ints", DataTypes.INTEGER),
-                newReference(ident, "longs", DataTypes.LONG),
-                newReference(ident, "timestamp", DataTypes.TIMESTAMP),
-                newReference(ident, "ip_addr", DataTypes.IP),
-                newReference(ident, "arr_simple", new ArrayType(DataTypes.STRING)),
-                newReference(ident, "arr_geo_point", new ArrayType(DataTypes.GEO_POINT)),
-                newReference(ident, "arr_obj", new ArrayType(DataTypes.OBJECT), null, ColumnPolicy.STRICT, false),
-                newReference(ident, "arr_obj", DataTypes.LONG, Arrays.asList("col_1"), null, false),
-                newReference(ident, "arr_obj", DataTypes.STRING, Arrays.asList("col_2"), null, false),
-                newReference(ident, "obj", DataTypes.OBJECT, null, ColumnPolicy.DYNAMIC, false),
-                newReference(ident, "obj", DataTypes.LONG, Arrays.asList("col_1"), null, false),
-                newReference(ident, "obj", DataTypes.STRING, Arrays.asList("col_2"), null, false)
+            newReference(ident, "bools", DataTypes.BOOLEAN),
+            newReference(ident, "bytes", DataTypes.BYTE),
+            newReference(ident, "strings", DataTypes.STRING),
+            newReference(ident, "shorts", DataTypes.SHORT),
+            newReference(ident, "floats", DataTypes.FLOAT),
+            newReference(ident, "doubles", DataTypes.DOUBLE),
+            newReference(ident, "ints", DataTypes.INTEGER),
+            newReference(ident, "longs", DataTypes.LONG),
+            newReference(ident, "timestamp", DataTypes.TIMESTAMP),
+            newReference(ident, "ip_addr", DataTypes.IP),
+            newReference(ident, "arr_simple", new ArrayType(DataTypes.STRING)),
+            newReference(ident, "arr_geo_point", new ArrayType(DataTypes.GEO_POINT)),
+            newReference(ident, "arr_obj", new ArrayType(DataTypes.OBJECT), null, ColumnPolicy.STRICT, false),
+            newReference(ident, "arr_obj", DataTypes.LONG, Arrays.asList("col_1"), null, false),
+            newReference(ident, "arr_obj", DataTypes.STRING, Arrays.asList("col_2"), null, false),
+            newReference(ident, "obj", DataTypes.OBJECT, null, ColumnPolicy.DYNAMIC, false),
+            newReference(ident, "obj", DataTypes.LONG, Arrays.asList("col_1"), null, false),
+            newReference(ident, "obj", DataTypes.STRING, Arrays.asList("col_2"), null, false)
         );
 
         DocTableInfo tableInfo = new TestDocTableInfo(
-                ident,
-                5, "0-all",
-                columns,
-                ImmutableList.<Reference>of(),
-                ImmutableList.<GeneratedReference>of(),
-                ImmutableMap.<ColumnIdent, IndexReference>of(),
-                referencesMap(columns),
-                ImmutableMap.<ColumnIdent, String>of(),
-                ImmutableList.<ColumnIdent>of(),
-                null,
-                ImmutableMap.<String, Object>of(),
-                ImmutableList.<ColumnIdent>of(),
-                ColumnPolicy.DYNAMIC);
+            ident,
+            5, "0-all",
+            columns,
+            ImmutableList.<Reference>of(),
+            ImmutableList.<GeneratedReference>of(),
+            ImmutableMap.<ColumnIdent, IndexReference>of(),
+            referencesMap(columns),
+            ImmutableMap.<ColumnIdent, String>of(),
+            ImmutableList.<ColumnIdent>of(),
+            null,
+            ImmutableMap.<String, Object>of(),
+            ImmutableList.<ColumnIdent>of(),
+            ColumnPolicy.DYNAMIC);
 
         CreateTable node = MetaDataToASTNodeResolver.resolveCreateTable(tableInfo);
         assertEquals("CREATE TABLE IF NOT EXISTS \"doc\".\"test\" (\n" +
-                "   \"bools\" BOOLEAN,\n" +
-                "   \"bytes\" BYTE,\n" +
-                "   \"strings\" STRING,\n" +
-                "   \"shorts\" SHORT,\n" +
-                "   \"floats\" FLOAT,\n" +
-                "   \"doubles\" DOUBLE,\n" +
-                "   \"ints\" INTEGER,\n" +
-                "   \"longs\" LONG,\n" +
-                "   \"timestamp\" TIMESTAMP,\n" +
-                "   \"ip_addr\" IP,\n" +
-                "   \"arr_simple\" ARRAY(STRING),\n" +
-                "   \"arr_geo_point\" ARRAY(GEO_POINT),\n" +
-                "   \"arr_obj\" ARRAY(OBJECT (STRICT) AS (\n" +
-                "      \"col_1\" LONG,\n" +
-                "      \"col_2\" STRING\n" +
-                "   )),\n" +
-                "   \"obj\" OBJECT (DYNAMIC) AS (\n" +
-                "      \"col_1\" LONG,\n" +
-                "      \"col_2\" STRING\n" +
-                "   )\n" +
-                ")\n" +
-                "CLUSTERED INTO 5 SHARDS\n" +
-                "WITH (\n" +
-                "   column_policy = 'dynamic',\n" +
-                "   number_of_replicas = '0-all'\n" +
-                ")",
-                SqlFormatter.formatSql(node));
+                     "   \"bools\" BOOLEAN,\n" +
+                     "   \"bytes\" BYTE,\n" +
+                     "   \"strings\" STRING,\n" +
+                     "   \"shorts\" SHORT,\n" +
+                     "   \"floats\" FLOAT,\n" +
+                     "   \"doubles\" DOUBLE,\n" +
+                     "   \"ints\" INTEGER,\n" +
+                     "   \"longs\" LONG,\n" +
+                     "   \"timestamp\" TIMESTAMP,\n" +
+                     "   \"ip_addr\" IP,\n" +
+                     "   \"arr_simple\" ARRAY(STRING),\n" +
+                     "   \"arr_geo_point\" ARRAY(GEO_POINT),\n" +
+                     "   \"arr_obj\" ARRAY(OBJECT (STRICT) AS (\n" +
+                     "      \"col_1\" LONG,\n" +
+                     "      \"col_2\" STRING\n" +
+                     "   )),\n" +
+                     "   \"obj\" OBJECT (DYNAMIC) AS (\n" +
+                     "      \"col_1\" LONG,\n" +
+                     "      \"col_2\" STRING\n" +
+                     "   )\n" +
+                     ")\n" +
+                     "CLUSTERED INTO 5 SHARDS\n" +
+                     "WITH (\n" +
+                     "   column_policy = 'dynamic',\n" +
+                     "   number_of_replicas = '0-all'\n" +
+                     ")",
+            SqlFormatter.formatSql(node));
     }
 
     @Test
@@ -193,41 +193,41 @@ public class MetaDataToASTNodeResolverTest extends CrateUnitTest {
         TableIdent ident = new TableIdent("myschema", "test");
 
         List<Reference> columns = ImmutableList.of(
-                newReference(ident, "pk_col_one", DataTypes.LONG),
-                newReference(ident, "pk_col_two", DataTypes.LONG)
+            newReference(ident, "pk_col_one", DataTypes.LONG),
+            newReference(ident, "pk_col_two", DataTypes.LONG)
         );
         List<ColumnIdent> primaryKeys = ImmutableList.of(
-                new ColumnIdent("pk_col_one"),
-                new ColumnIdent("pk_col_two")
+            new ColumnIdent("pk_col_one"),
+            new ColumnIdent("pk_col_two")
         );
 
         DocTableInfo tableInfo = new TestDocTableInfo(
-                ident,
-                5, "0-all",
-                columns,
-                ImmutableList.<Reference>of(),
-                ImmutableList.<GeneratedReference>of(),
-                ImmutableMap.<ColumnIdent, IndexReference>of(),
-                referencesMap(columns),
-                ImmutableMap.<ColumnIdent, String>of(),
-                primaryKeys,
-                null,
-                ImmutableMap.<String, Object>of(),
-                ImmutableList.<ColumnIdent>of(),
-                ColumnPolicy.STRICT);
+            ident,
+            5, "0-all",
+            columns,
+            ImmutableList.<Reference>of(),
+            ImmutableList.<GeneratedReference>of(),
+            ImmutableMap.<ColumnIdent, IndexReference>of(),
+            referencesMap(columns),
+            ImmutableMap.<ColumnIdent, String>of(),
+            primaryKeys,
+            null,
+            ImmutableMap.<String, Object>of(),
+            ImmutableList.<ColumnIdent>of(),
+            ColumnPolicy.STRICT);
 
         CreateTable node = MetaDataToASTNodeResolver.resolveCreateTable(tableInfo);
         assertEquals("CREATE TABLE IF NOT EXISTS \"myschema\".\"test\" (\n" +
-                "   \"pk_col_one\" LONG,\n" +
-                "   \"pk_col_two\" LONG,\n" +
-                "   PRIMARY KEY (\"pk_col_one\", \"pk_col_two\")\n" +
-                ")\n" +
-                "CLUSTERED INTO 5 SHARDS\n" +
-                "WITH (\n" +
-                "   column_policy = 'strict',\n" +
-                "   number_of_replicas = '0-all'\n" +
-                ")",
-                SqlFormatter.formatSql(node));
+                     "   \"pk_col_one\" LONG,\n" +
+                     "   \"pk_col_two\" LONG,\n" +
+                     "   PRIMARY KEY (\"pk_col_one\", \"pk_col_two\")\n" +
+                     ")\n" +
+                     "CLUSTERED INTO 5 SHARDS\n" +
+                     "WITH (\n" +
+                     "   column_policy = 'strict',\n" +
+                     "   number_of_replicas = '0-all'\n" +
+                     ")",
+            SqlFormatter.formatSql(node));
     }
 
     @Test
@@ -276,46 +276,46 @@ public class MetaDataToASTNodeResolverTest extends CrateUnitTest {
         TableIdent ident = new TableIdent("myschema", "test");
 
         List<Reference> columns = ImmutableList.of(
-                newReference(ident, "id", DataTypes.LONG)
+            newReference(ident, "id", DataTypes.LONG)
         );
         ImmutableMap.Builder<String, Object> tableParameters = ImmutableMap.builder();
         tableParameters.put("refresh_interval", 10000L)
-                .put("param_array", new String[]{"foo", "bar"})
-                .put("param_obj", new HashMap<String, Object>() {{
-                    put("foo", "bar");
-                    put("int", 42);
-                }})
-                .put("index.translog.flush_interval", 100L);
+            .put("param_array", new String[]{"foo", "bar"})
+            .put("param_obj", new HashMap<String, Object>() {{
+                put("foo", "bar");
+                put("int", 42);
+            }})
+            .put("index.translog.flush_interval", 100L);
 
         DocTableInfo tableInfo = new TestDocTableInfo(
-                ident,
-                5, "5",
-                columns,
-                ImmutableList.<Reference>of(),
-                ImmutableList.<GeneratedReference>of(),
-                ImmutableMap.<ColumnIdent, IndexReference>of(),
-                referencesMap(columns),
-                ImmutableMap.<ColumnIdent, String>of(),
-                ImmutableList.<ColumnIdent>of(),
-                null,
-                tableParameters.build(),
-                ImmutableList.<ColumnIdent>of(),
-                ColumnPolicy.IGNORED);
+            ident,
+            5, "5",
+            columns,
+            ImmutableList.<Reference>of(),
+            ImmutableList.<GeneratedReference>of(),
+            ImmutableMap.<ColumnIdent, IndexReference>of(),
+            referencesMap(columns),
+            ImmutableMap.<ColumnIdent, String>of(),
+            ImmutableList.<ColumnIdent>of(),
+            null,
+            tableParameters.build(),
+            ImmutableList.<ColumnIdent>of(),
+            ColumnPolicy.IGNORED);
 
         CreateTable node = MetaDataToASTNodeResolver.resolveCreateTable(tableInfo);
         assertEquals("CREATE TABLE IF NOT EXISTS \"myschema\".\"test\" (\n" +
-                "   \"id\" LONG\n" +
-                ")\n" +
-                "CLUSTERED INTO 5 SHARDS\n" +
-                "WITH (\n" +
-                "   column_policy = 'ignored',\n" +
-                "   \"index.translog.flush_interval\" = 100,\n" +
-                "   number_of_replicas = '5',\n" +
-                "   param_array = ['foo','bar'],\n" +
-                "   param_obj = {\"foo\"= 'bar', \"int\"= 42},\n" +
-                "   refresh_interval = 10000\n" +
-                ")",
-                SqlFormatter.formatSql(node));
+                     "   \"id\" LONG\n" +
+                     ")\n" +
+                     "CLUSTERED INTO 5 SHARDS\n" +
+                     "WITH (\n" +
+                     "   column_policy = 'ignored',\n" +
+                     "   \"index.translog.flush_interval\" = 100,\n" +
+                     "   number_of_replicas = '5',\n" +
+                     "   param_array = ['foo','bar'],\n" +
+                     "   param_obj = {\"foo\"= 'bar', \"int\"= 42},\n" +
+                     "   refresh_interval = 10000\n" +
+                     ")",
+            SqlFormatter.formatSql(node));
     }
 
     @Test
@@ -323,39 +323,39 @@ public class MetaDataToASTNodeResolverTest extends CrateUnitTest {
         TableIdent ident = new TableIdent("myschema", "test");
 
         List<Reference> columns = ImmutableList.of(
-                newReference(ident, "id", DataTypes.LONG),
-                newReference(ident, "partition_column", DataTypes.STRING, null, null, true),
-                newReference(ident, "cluster_column", DataTypes.STRING)
+            newReference(ident, "id", DataTypes.LONG),
+            newReference(ident, "partition_column", DataTypes.STRING, null, null, true),
+            newReference(ident, "cluster_column", DataTypes.STRING)
         );
 
         DocTableInfo tableInfo = new TestDocTableInfo(
-                ident,
-                5, "0-all",
-                columns,
-                ImmutableList.of(columns.get(1)),
-                ImmutableList.<GeneratedReference>of(),
-                ImmutableMap.<ColumnIdent, IndexReference>of(),
-                referencesMap(columns),
-                ImmutableMap.<ColumnIdent, String>of(),
-                ImmutableList.<ColumnIdent>of(),
-                new ColumnIdent("cluster_column"),
-                ImmutableMap.<String, Object>of(),
-                ImmutableList.of(columns.get(1).ident().columnIdent()),
-                ColumnPolicy.DYNAMIC);
+            ident,
+            5, "0-all",
+            columns,
+            ImmutableList.of(columns.get(1)),
+            ImmutableList.<GeneratedReference>of(),
+            ImmutableMap.<ColumnIdent, IndexReference>of(),
+            referencesMap(columns),
+            ImmutableMap.<ColumnIdent, String>of(),
+            ImmutableList.<ColumnIdent>of(),
+            new ColumnIdent("cluster_column"),
+            ImmutableMap.<String, Object>of(),
+            ImmutableList.of(columns.get(1).ident().columnIdent()),
+            ColumnPolicy.DYNAMIC);
 
         CreateTable node = MetaDataToASTNodeResolver.resolveCreateTable(tableInfo);
         assertEquals("CREATE TABLE IF NOT EXISTS \"myschema\".\"test\" (\n" +
-                "   \"id\" LONG,\n" +
-                "   \"partition_column\" STRING,\n" +
-                "   \"cluster_column\" STRING\n" +
-                ")\n" +
-                "CLUSTERED BY (\"cluster_column\") INTO 5 SHARDS\n" +
-                "PARTITIONED BY (\"partition_column\")\n" +
-                "WITH (\n" +
-                "   column_policy = 'dynamic',\n" +
-                "   number_of_replicas = '0-all'\n" +
-                ")",
-                SqlFormatter.formatSql(node));
+                     "   \"id\" LONG,\n" +
+                     "   \"partition_column\" STRING,\n" +
+                     "   \"cluster_column\" STRING\n" +
+                     ")\n" +
+                     "CLUSTERED BY (\"cluster_column\") INTO 5 SHARDS\n" +
+                     "PARTITIONED BY (\"partition_column\")\n" +
+                     "WITH (\n" +
+                     "   column_policy = 'dynamic',\n" +
+                     "   number_of_replicas = '0-all'\n" +
+                     ")",
+            SqlFormatter.formatSql(node));
     }
 
 
@@ -363,67 +363,67 @@ public class MetaDataToASTNodeResolverTest extends CrateUnitTest {
     public void testBuildCreateTableIndexes() throws Exception {
         TableIdent ident = new TableIdent("myschema", "test");
         Reference colA = new Reference(new ReferenceIdent(ident, "col_a", null),
-                RowGranularity.DOC, DataTypes.STRING, null, Reference.IndexType.NOT_ANALYZED, true);
+            RowGranularity.DOC, DataTypes.STRING, null, Reference.IndexType.NOT_ANALYZED, true);
         Reference colB = new Reference(new ReferenceIdent(ident, "col_b", null),
-                RowGranularity.DOC, DataTypes.STRING, null, Reference.IndexType.ANALYZED, true);
+            RowGranularity.DOC, DataTypes.STRING, null, Reference.IndexType.ANALYZED, true);
         Reference colC = new Reference(new ReferenceIdent(ident, "col_c", null),
-                RowGranularity.DOC, DataTypes.STRING, null, Reference.IndexType.NO, true);
+            RowGranularity.DOC, DataTypes.STRING, null, Reference.IndexType.NO, true);
         Reference colD = new Reference(new ReferenceIdent(ident, "col_d", null),
-                RowGranularity.DOC, DataTypes.OBJECT);
+            RowGranularity.DOC, DataTypes.OBJECT);
         Reference colE = new Reference(new ReferenceIdent(ident, "col_d", Arrays.asList("a")),
-                RowGranularity.DOC, DataTypes.STRING, null, Reference.IndexType.NOT_ANALYZED, true);
+            RowGranularity.DOC, DataTypes.STRING, null, Reference.IndexType.NOT_ANALYZED, true);
 
         List<Reference> columns = ImmutableList.of(
-                newReference(ident, "id", DataTypes.LONG),
-                colA, colB, colC, colD, colE
+            newReference(ident, "id", DataTypes.LONG),
+            colA, colB, colC, colD, colE
         );
 
         ImmutableMap.Builder<ColumnIdent, IndexReference> indexBuilder = ImmutableMap.builder();
         indexBuilder
-                .put(new ColumnIdent("col_a_col_b_ft"),
-                        new IndexReference(new ReferenceIdent(ident, "col_a_col_b_ft"), Reference.IndexType.ANALYZED,
-                                ImmutableList.of(colA, colB), "english"))
-                .put(new ColumnIdent("col_d_a_ft"),
-                        new IndexReference(new ReferenceIdent(ident, "col_d_a_ft"), Reference.IndexType.ANALYZED,
-                                ImmutableList.of(colE), "custom_analyzer"));
+            .put(new ColumnIdent("col_a_col_b_ft"),
+                new IndexReference(new ReferenceIdent(ident, "col_a_col_b_ft"), Reference.IndexType.ANALYZED,
+                    ImmutableList.of(colA, colB), "english"))
+            .put(new ColumnIdent("col_d_a_ft"),
+                new IndexReference(new ReferenceIdent(ident, "col_d_a_ft"), Reference.IndexType.ANALYZED,
+                    ImmutableList.of(colE), "custom_analyzer"));
 
         DocTableInfo tableInfo = new TestDocTableInfo(
-                ident,
-                5, "0-all",
-                columns,
-                ImmutableList.<Reference>of(),
-                ImmutableList.<GeneratedReference>of(),
-                indexBuilder.build(),
-                referencesMap(columns),
-                ImmutableMap.<ColumnIdent, String>of(),
-                ImmutableList.<ColumnIdent>of(),
-                null,
-                ImmutableMap.<String, Object>of(),
-                ImmutableList.<ColumnIdent>of(),
-                ColumnPolicy.DYNAMIC);
+            ident,
+            5, "0-all",
+            columns,
+            ImmutableList.<Reference>of(),
+            ImmutableList.<GeneratedReference>of(),
+            indexBuilder.build(),
+            referencesMap(columns),
+            ImmutableMap.<ColumnIdent, String>of(),
+            ImmutableList.<ColumnIdent>of(),
+            null,
+            ImmutableMap.<String, Object>of(),
+            ImmutableList.<ColumnIdent>of(),
+            ColumnPolicy.DYNAMIC);
 
 
         CreateTable node = MetaDataToASTNodeResolver.resolveCreateTable(tableInfo);
         assertEquals("CREATE TABLE IF NOT EXISTS \"myschema\".\"test\" (\n" +
-                "   \"id\" LONG,\n" +
-                "   \"col_a\" STRING,\n" +
-                "   \"col_b\" STRING INDEX USING FULLTEXT,\n" +
-                "   \"col_c\" STRING INDEX OFF,\n" +
-                "   \"col_d\" OBJECT (DYNAMIC) AS (\n" +
-                "      \"a\" STRING\n" +
-                "   ),\n" +
-                "   INDEX \"col_a_col_b_ft\" USING FULLTEXT (\"col_a\", \"col_b\") WITH (\n" +
-                "      analyzer = 'english'\n" +
-                "   ),\n" +
-                "   INDEX \"col_d_a_ft\" USING FULLTEXT (\"col_d\"['a']) WITH (\n" +
-                "      analyzer = 'custom_analyzer'\n" +
-                "   )\n" +
-                ")\n" +
-                "CLUSTERED INTO 5 SHARDS\n" +
-                "WITH (\n" +
-                "   column_policy = 'dynamic',\n" +
-                "   number_of_replicas = '0-all'\n" +
-                ")",
-                SqlFormatter.formatSql(node));
+                     "   \"id\" LONG,\n" +
+                     "   \"col_a\" STRING,\n" +
+                     "   \"col_b\" STRING INDEX USING FULLTEXT,\n" +
+                     "   \"col_c\" STRING INDEX OFF,\n" +
+                     "   \"col_d\" OBJECT (DYNAMIC) AS (\n" +
+                     "      \"a\" STRING\n" +
+                     "   ),\n" +
+                     "   INDEX \"col_a_col_b_ft\" USING FULLTEXT (\"col_a\", \"col_b\") WITH (\n" +
+                     "      analyzer = 'english'\n" +
+                     "   ),\n" +
+                     "   INDEX \"col_d_a_ft\" USING FULLTEXT (\"col_d\"['a']) WITH (\n" +
+                     "      analyzer = 'custom_analyzer'\n" +
+                     "   )\n" +
+                     ")\n" +
+                     "CLUSTERED INTO 5 SHARDS\n" +
+                     "WITH (\n" +
+                     "   column_policy = 'dynamic',\n" +
+                     "   number_of_replicas = '0-all'\n" +
+                     ")",
+            SqlFormatter.formatSql(node));
     }
 }

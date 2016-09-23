@@ -297,9 +297,9 @@ public class SysNodesExpressionsOnHandlerTest extends CrateUnitTest {
         Map<String, Object> networkStats = (Map<String, Object>) collectExpression.value();
         assertThat(mapToSortedString(networkStats),
             is("probe_timestamp=0, tcp={" +
-                "connections={accepted=42, curr_established=42, dropped=42, embryonic_dropped=42, initiated=42}, " +
-                "packets={errors_received=42, received=42, retransmitted=42, rst_sent=42, sent=42}" +
-                "}"));
+               "connections={accepted=42, curr_established=42, dropped=42, embryonic_dropped=42, initiated=42}, " +
+               "packets={errors_received=42, received=42, retransmitted=42, rst_sent=42, sent=42}" +
+               "}"));
     }
 
     @Test
@@ -312,7 +312,7 @@ public class SysNodesExpressionsOnHandlerTest extends CrateUnitTest {
         assertThat(tcpStats, instanceOf(Map.class));
         assertThat(mapToSortedString(tcpStats),
             is("connections={accepted=42, curr_established=42, dropped=42, embryonic_dropped=42, initiated=42}, " +
-                "packets={errors_received=42, received=42, retransmitted=42, rst_sent=42, sent=42}"));
+               "packets={errors_received=42, received=42, retransmitted=42, rst_sent=42, sent=42}"));
     }
 
     @Test
