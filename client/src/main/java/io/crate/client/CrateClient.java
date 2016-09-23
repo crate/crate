@@ -56,33 +56,33 @@ import static org.elasticsearch.common.settings.Settings.settingsBuilder;
 
 public class CrateClient {
 
+    private static final ESLogger logger = Loggers.getLogger(CrateClient.class);
+
     private final Settings settings;
     private final TransportService transportService;
     private final ThreadPool threadPool;
     private final TransportClientNodesService nodesService;
-
-    private static final ESLogger logger = Loggers.getLogger(CrateClient.class);
     private final TransportActionNodeProxy<SQLRequest, SQLResponse> sqlTransportProxy;
     private final TransportActionNodeProxy<SQLBulkRequest, SQLBulkResponse> bulkSqlTransportProxy;
 
-    public CrateClient(Settings pSettings, String ... servers) throws
-            ElasticsearchException {
+    public CrateClient(Settings pSettings, String... servers) throws
+        ElasticsearchException {
 
         Settings.Builder builder = settingsBuilder()
-                .put(pSettings)
-                .put("network.server", false)
-                .put("node.client", true)
-                .put("client.transport.ignore_cluster_name", true)
-                .put("node.name", "crate-client-" + UUID.randomUUID().toString())
-                // Client uses only the SAME or GENERIC thread-pool (see TransportNodeActionProxy)
-                // so the other thread-pools can be limited to 1 thread to not waste resources
-                .put("threadpool.search.size", 1)
-                .put("threadpool.index.size", 1)
-                .put("threadpool.bulk.size", 1)
-                .put("threadpool.get.size", 1)
-                .put("threadpool.percolate.size", 1);
+            .put(pSettings)
+            .put("network.server", false)
+            .put("node.client", true)
+            .put("client.transport.ignore_cluster_name", true)
+            .put("node.name", "crate-client-" + UUID.randomUUID().toString())
+            // Client uses only the SAME or GENERIC thread-pool (see TransportNodeActionProxy)
+            // so the other thread-pools can be limited to 1 thread to not waste resources
+            .put("threadpool.search.size", 1)
+            .put("threadpool.index.size", 1)
+            .put("threadpool.bulk.size", 1)
+            .put("threadpool.get.size", 1)
+            .put("threadpool.percolate.size", 1);
 
-        if (builder.get("name") == null){
+        if (builder.get("name") == null) {
             builder.put("name", "crate_client");
         }
 
@@ -109,7 +109,7 @@ public class CrateClient {
         );
         for (String server : servers) {
             TransportAddress transportAddress = tryCreateTransportFor(server);
-            if(transportAddress != null) {
+            if (transportAddress != null) {
                 nodesService.addTransportAddresses(transportAddress);
             }
         }
@@ -137,7 +137,7 @@ public class CrateClient {
 
         if (uri.getHost() != null) {
             return new InetSocketTransportAddress(
-                    new InetSocketAddress(uri.getHost(), uri.getPort() > -1 ? uri.getPort() : 4300));
+                new InetSocketAddress(uri.getHost(), uri.getPort() > -1 ? uri.getPort() : 4300));
         }
         return null;
     }
