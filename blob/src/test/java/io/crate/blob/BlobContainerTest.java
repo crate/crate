@@ -39,6 +39,10 @@ public class BlobContainerTest {
     @ClassRule
     public static TemporaryFolder temporaryFolder = new TemporaryFolder();
 
+    private static String digest(String content) {
+        return Hex.encodeHexString(Blobs.digest(content));
+    }
+
     @Test
     public void testGetFiles() throws Exception {
         File blobsPath = temporaryFolder.newFolder();
@@ -55,9 +59,5 @@ public class BlobContainerTest {
         assertThat(fileIterator.next().exists(), is(true));
         assertThat(fileIterator.next().exists(), is(true));
         assertThat(fileIterator.hasNext(), is(false));
-    }
-
-    private static String digest(String content) {
-        return Hex.encodeHexString(Blobs.digest(content));
     }
 }

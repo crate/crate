@@ -25,8 +25,9 @@ import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.support.replication.ReplicationRequestBuilder;
 import org.elasticsearch.client.ElasticsearchClient;
 
-public class DeleteBlobRequestBuilder extends ReplicationRequestBuilder<DeleteBlobRequest, DeleteBlobResponse,
-        DeleteBlobRequestBuilder> {
+public class DeleteBlobRequestBuilder extends ReplicationRequestBuilder<DeleteBlobRequest,
+                                                                        DeleteBlobResponse,
+                                                                        DeleteBlobRequestBuilder> {
 
     protected DeleteBlobRequestBuilder(ElasticsearchClient client, DeleteBlobAction action) {
         super(client, action, new DeleteBlobRequest());

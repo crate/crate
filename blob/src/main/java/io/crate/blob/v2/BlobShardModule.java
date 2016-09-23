@@ -36,7 +36,7 @@ public class BlobShardModule extends AbstractModule {
 
     @Override
     protected void configure() {
-        if (settings. getAsBoolean(BlobIndices.SETTING_INDEX_BLOBS_ENABLED, false)){
+        if (settings.getAsBoolean(BlobIndices.SETTING_INDEX_BLOBS_ENABLED, false)) {
             bind(BlobShard.class).asEagerSingleton();
         }
     }

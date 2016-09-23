@@ -38,8 +38,9 @@ import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
-public class TransportDeleteBlobAction extends TransportReplicationAction<DeleteBlobRequest, DeleteBlobRequest,
-        DeleteBlobResponse> {
+public class TransportDeleteBlobAction extends TransportReplicationAction<DeleteBlobRequest,
+                                                                          DeleteBlobRequest,
+                                                                          DeleteBlobResponse> {
 
     private final BlobIndices blobIndices;
 
@@ -55,7 +56,7 @@ public class TransportDeleteBlobAction extends TransportReplicationAction<Delete
                                      ActionFilters actionFilters,
                                      IndexNameExpressionResolver indexNameExpressionResolver) {
         super(settings, DeleteBlobAction.NAME, transportService, clusterService, indicesService, threadPool, shardStateAction,
-                mappingUpdatedAction, actionFilters, indexNameExpressionResolver, DeleteBlobRequest.class, DeleteBlobRequest.class, ThreadPool.Names.INDEX);
+            mappingUpdatedAction, actionFilters, indexNameExpressionResolver, DeleteBlobRequest.class, DeleteBlobRequest.class, ThreadPool.Names.INDEX);
         this.blobIndices = blobIndices;
         logger.trace("Constructor");
     }
@@ -85,7 +86,7 @@ public class TransportDeleteBlobAction extends TransportReplicationAction<Delete
     @Override
     protected void resolveRequest(MetaData metaData, String concreteIndex, DeleteBlobRequest request) {
         ShardIterator shardIterator = clusterService.operationRouting()
-                .indexShards(clusterService.state(), concreteIndex, null, request.id(), null);
+            .indexShards(clusterService.state(), concreteIndex, null, request.id(), null);
         request.setShardId(shardIterator.shardId());
     }
 

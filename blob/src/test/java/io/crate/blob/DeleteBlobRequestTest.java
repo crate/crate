@@ -33,7 +33,7 @@ public class DeleteBlobRequestTest extends CrateUnitTest {
 
     @Test
     public void testDeleteBlobRequestStreaming() throws Exception {
-        byte[] digest = new byte[] { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20 };
+        byte[] digest = new byte[]{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20};
         DeleteBlobRequest request = new DeleteBlobRequest("foo", digest);
         BytesStreamOutput out = new BytesStreamOutput();
         request.writeTo(out);

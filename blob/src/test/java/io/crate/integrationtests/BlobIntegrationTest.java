@@ -71,7 +71,8 @@ public class BlobIntegrationTest extends BlobHttpIntegrationTest {
     @Test
     public void testUploadChunkedWithConflict() throws IOException {
         String digest = uploadBigBlob();
-        CloseableHttpResponse conflictRes = put(blobUri(digest), StringUtils.repeat("abcdefghijklmnopqrstuvwxyz", 1024 * 600));
+        CloseableHttpResponse conflictRes = put(blobUri(digest), StringUtils.repeat("abcdefghijklmnopqrstuvwxyz",
+            1024 * 600));
         assertThat(conflictRes.getStatusLine().getStatusCode(), is(409));
     }
 
@@ -128,7 +129,7 @@ public class BlobIntegrationTest extends BlobHttpIntegrationTest {
     public void testByteRange() throws IOException {
         String digest = uploadTinyBlob();
         Header[] headers = {
-          new BasicHeader("Range", "bytes=8-")
+            new BasicHeader("Range", "bytes=8-")
         };
         CloseableHttpResponse res = get(blobUri(digest), headers);
         assertThat(res.getFirstHeader("Content-Length").getValue(), is("18"));
@@ -138,13 +139,13 @@ public class BlobIntegrationTest extends BlobHttpIntegrationTest {
         assertThat(res.getFirstHeader("Cache-Control").getValue(), is("max-age=315360000"));
         assertThat(EntityUtils.toString(res.getEntity()), is("ijklmnopqrstuvwxyz"));
 
-        res = get(blobUri(digest),new Header[] {
-                new BasicHeader("Range", "bytes=0-1")
+        res = get(blobUri(digest), new Header[]{
+            new BasicHeader("Range", "bytes=0-1")
         });
         assertThat(EntityUtils.toString(res.getEntity()), is("ab"));
 
-        res = get(blobUri(digest),new Header[] {
-                new BasicHeader("Range", "bytes=25-")
+        res = get(blobUri(digest), new Header[]{
+            new BasicHeader("Range", "bytes=25-")
         });
         assertThat(EntityUtils.toString(res.getEntity()), is("z"));
     }
@@ -153,7 +154,7 @@ public class BlobIntegrationTest extends BlobHttpIntegrationTest {
     public void testInvalidByteRange() throws IOException {
         String digest = uploadTinyBlob();
         Header[] headers = {
-                new BasicHeader("Range", "bytes=40-58")
+            new BasicHeader("Range", "bytes=40-58")
         };
         CloseableHttpResponse res = get(blobUri(digest), headers);
         assertThat(res.getStatusLine().getStatusCode(), is(416));
@@ -180,29 +181,29 @@ public class BlobIntegrationTest extends BlobHttpIntegrationTest {
     public void testParallelAccessWithRange() throws Throwable {
         String digest = uploadBigBlob();
         String expectedContent = StringUtils.repeat("abcdefghijklmnopqrstuvwxyz", 1024 * 600);
-        Header[][] headers = new Header[][] {
-                { new BasicHeader("Range", "bytes=0-") },
-                { new BasicHeader("Range", "bytes=10-100") },
-                { new BasicHeader("Range", "bytes=20-30") },
-                { new BasicHeader("Range", "bytes=40-50") },
-                { new BasicHeader("Range", "bytes=40-80") },
-                { new BasicHeader("Range", "bytes=10-80") },
-                { new BasicHeader("Range", "bytes=5-30") },
-                { new BasicHeader("Range", "bytes=15-3000") },
-                { new BasicHeader("Range", "bytes=2000-10800") },
-                { new BasicHeader("Range", "bytes=1500-20000") },
+        Header[][] headers = new Header[][]{
+            {new BasicHeader("Range", "bytes=0-")},
+            {new BasicHeader("Range", "bytes=10-100")},
+            {new BasicHeader("Range", "bytes=20-30")},
+            {new BasicHeader("Range", "bytes=40-50")},
+            {new BasicHeader("Range", "bytes=40-80")},
+            {new BasicHeader("Range", "bytes=10-80")},
+            {new BasicHeader("Range", "bytes=5-30")},
+            {new BasicHeader("Range", "bytes=15-3000")},
+            {new BasicHeader("Range", "bytes=2000-10800")},
+            {new BasicHeader("Range", "bytes=1500-20000")},
         };
-        String[] expected = new String[] {
-                expectedContent,
-                expectedContent.substring(10, 101),
-                expectedContent.substring(20, 31),
-                expectedContent.substring(40, 51),
-                expectedContent.substring(40, 81),
-                expectedContent.substring(10, 81),
-                expectedContent.substring(5, 31),
-                expectedContent.substring(15, 3001),
-                expectedContent.substring(2000, 10801),
-                expectedContent.substring(1500, 20001),
+        String[] expected = new String[]{
+            expectedContent,
+            expectedContent.substring(10, 101),
+            expectedContent.substring(20, 31),
+            expectedContent.substring(40, 51),
+            expectedContent.substring(40, 81),
+            expectedContent.substring(10, 81),
+            expectedContent.substring(5, 31),
+            expectedContent.substring(15, 3001),
+            expectedContent.substring(2000, 10801),
+            expectedContent.substring(1500, 20001),
         };
         String[] uris = new String[10];
         for (int i = 0; i < 10; i++) {
@@ -287,7 +288,7 @@ public class BlobIntegrationTest extends BlobHttpIntegrationTest {
     public void testIndexOnNonBlobTable() throws IOException {
         // this test works only if ES API is enabled
         HttpPut httpPut = new HttpPut(String.format(Locale.ENGLISH, "http://%s:%s/test_no_blobs/default/1",
-                address.getHostName(), address.getPort()));
+            address.getHostName(), address.getPort()));
         String blobData = String.format(Locale.ENGLISH, "{\"content\": \"%s\"}", StringUtils.repeat("a", 1024 * 64));
         httpPut.setEntity(new StringEntity(blobData, ContentType.APPLICATION_OCTET_STREAM));
         CloseableHttpResponse res = httpClient.execute(httpPut);

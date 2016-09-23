@@ -36,21 +36,19 @@ import java.util.*;
 
 public class BlobContainer {
 
-    private final static ESLogger logger = Loggers.getLogger(BlobContainer.class);
+    private static final ESLogger logger = Loggers.getLogger(BlobContainer.class);
 
     public static final String[] SUB_DIRS = new String[256];
-
     public static final byte[] PREFIXES = new byte[256];
-
-    private final File[] subDirs = new File[256];
 
     static {
         for (int i = 0; i < 256; i++) {
             SUB_DIRS[i] = String.format(Locale.ENGLISH, "%02x", i & 0xFFFFF);
-            PREFIXES[i] = (byte)i;
+            PREFIXES[i] = (byte) i;
         }
     }
 
+    private final File[] subDirs = new File[256];
     private final File baseDirectory;
     private final File tmpDirectory;
     private final File varDirectory;
@@ -97,7 +95,7 @@ public class BlobContainer {
     /**
      * get all digests in a subfolder
      * the digests are returned as byte[][] instead as String[] to save overhead in the BlobRecovery
-     *
+     * <p>
      * incomplete files leftover from a previous recovery are deleted.
      *
      * @param prefix the subfolder for which to get the digests
@@ -107,7 +105,7 @@ public class BlobContainer {
         int index = prefix & 0xFF;  // byte is signed and may be negative, convert to int to get correct index
         String[] names = cleanDigests(subDirs[index].list(), index);
         byte[][] digests = new byte[names.length][];
-        for(int i = 0; i < names.length; i ++){
+        for (int i = 0; i < names.length; i++) {
             try {
                 digests[i] = Hex.decodeHex(names[i]);
             } catch (IllegalStateException ex) {

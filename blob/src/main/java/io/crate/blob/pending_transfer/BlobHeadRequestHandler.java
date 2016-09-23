@@ -27,8 +27,8 @@ import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.threadpool.ThreadPool;
-import org.elasticsearch.transport.TransportRequestHandler;
 import org.elasticsearch.transport.TransportChannel;
+import org.elasticsearch.transport.TransportRequestHandler;
 import org.elasticsearch.transport.TransportResponse;
 import org.elasticsearch.transport.TransportService;
 
@@ -38,18 +38,6 @@ public class BlobHeadRequestHandler {
     private final ThreadPool threadPool;
     private final BlobTransferTarget blobTransferTarget;
     private final ClusterService clusterService;
-
-    /**
-     * this request handler contains handlers for both the source and target nodes
-     */
-    public static class Actions {
-        // handlers called on the source node
-        public static final String GET_BLOB_HEAD = "crate/blob/shard/tmp_transfer/get_head";
-        public static final String GET_TRANSFER_INFO = "crate/blob/shard/tmp_transfer/get_info";
-
-        // handlers called on the target node
-        public static final String PUT_BLOB_HEAD_CHUNK = "crate/blob/shard/tmp_transfer/put_head_chunk";
-    }
 
     @Inject
     public BlobHeadRequestHandler(TransportService transportService, ClusterService clusterService,
@@ -66,6 +54,18 @@ public class BlobHeadRequestHandler {
         transportService.registerRequestHandler(Actions.PUT_BLOB_HEAD_CHUNK, PutBlobHeadChunkRequest.class, ThreadPool.Names.GENERIC, new PutBlobHeadChunkHandler());
     }
 
+    /**
+     * this request handler contains handlers for both the source and target nodes
+     */
+    public static class Actions {
+        // handlers called on the source node
+        public static final String GET_BLOB_HEAD = "crate/blob/shard/tmp_transfer/get_head";
+        public static final String GET_TRANSFER_INFO = "crate/blob/shard/tmp_transfer/get_info";
+
+        // handlers called on the target node
+        public static final String PUT_BLOB_HEAD_CHUNK = "crate/blob/shard/tmp_transfer/put_head_chunk";
+    }
+
     private class GetBlobHeadHandler extends TransportRequestHandler<GetBlobHeadRequest> {
         /**
          * this is method is called on the recovery source node
@@ -76,7 +76,8 @@ public class BlobHeadRequestHandler {
 
             final BlobTransferStatus transferStatus = blobTransferTarget.getActiveTransfer(request.transferId);
             assert transferStatus != null :
-                "Received GetBlobHeadRequest for transfer" + request.transferId.toString() + "but don't have an activeTransfer with that id";
+                "Received GetBlobHeadRequest for transfer" + request.transferId.toString() +
+                "but don't have an activeTransfer with that id";
 
             final DiscoveryNode recipientNode = clusterService.state().getNodes().get(request.senderNodeId);
             final long bytesToSend = request.endPos;
@@ -92,7 +93,6 @@ public class BlobHeadRequestHandler {
             );
         }
     }
-
 
 
     class PutBlobHeadChunkHandler extends TransportRequestHandler<PutBlobHeadChunkRequest> {
@@ -113,7 +113,8 @@ public class BlobHeadRequestHandler {
         public void messageReceived(BlobInfoRequest request, TransportChannel channel) throws Exception {
             final BlobTransferStatus transferStatus = blobTransferTarget.getActiveTransfer(request.transferId);
             assert transferStatus != null :
-                "Received GetBlobHeadRequest for transfer " + request.transferId.toString() + " but don't have an activeTransfer with that id";
+                "Received GetBlobHeadRequest for transfer " + request.transferId.toString() +
+                " but don't have an activeTransfer with that id";
 
             BlobTransferInfoResponse response = new BlobTransferInfoResponse(
                 transferStatus.index(),

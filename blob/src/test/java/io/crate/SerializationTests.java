@@ -32,7 +32,6 @@ import java.util.UUID;
 
 public class SerializationTests extends CrateUnitTest {
 
-
     @Test
     public void testPutChunkReplicaRequestSerialization() throws Exception {
         BytesStreamOutput outputStream = new BytesStreamOutput();
@@ -44,7 +43,7 @@ public class SerializationTests extends CrateUnitTest {
         requestOut.transferId = transferId;
         requestOut.currentPos = 10;
         requestOut.isLast = false;
-        requestOut.content = new BytesArray(new byte[] { 0x65, 0x66 });
+        requestOut.content = new BytesArray(new byte[]{0x65, 0x66});
         requestOut.sourceNodeId = "nodeId";
 
         requestOut.writeTo(outputStream);

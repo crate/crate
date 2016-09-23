@@ -41,19 +41,19 @@ import static org.hamcrest.Matchers.is;
 
 public class BlobEnvironmentTest extends CrateUnitTest {
 
+    @Rule
+    public TemporaryFolder folder = new TemporaryFolder();
+
     private BlobEnvironment blobEnvironment;
     private NodeEnvironment nodeEnvironment;
-
-    @Rule
-    public TemporaryFolder folder= new TemporaryFolder();
 
     @Before
     public void setup() throws Exception {
         Path home = folder.newFolder("home").toPath();
         Path dataPath = folder.newFolder("data").toPath();
         Settings settings = Settings.builder()
-                .put("path.home", home.toAbsolutePath())
-                .put("path.data", dataPath.toAbsolutePath()).build();
+            .put("path.home", home.toAbsolutePath())
+            .put("path.data", dataPath.toAbsolutePath()).build();
         Environment environment = new Environment(settings);
         nodeEnvironment = new NodeEnvironment(settings, environment);
         blobEnvironment = new BlobEnvironment(nodeEnvironment, new ClusterName("test"));
@@ -70,7 +70,7 @@ public class BlobEnvironmentTest extends CrateUnitTest {
         File blobsPath = new File("/tmp/crate_blobs");
         File shardLocation = blobEnvironment.shardLocation(new ShardId(".blob_test", 0), blobsPath);
         assertThat(shardLocation.getAbsolutePath().substring(0, blobsPath.getAbsolutePath().length()),
-                is(blobsPath.getAbsolutePath()));
+            is(blobsPath.getAbsolutePath()));
     }
 
     @Test
@@ -78,7 +78,7 @@ public class BlobEnvironmentTest extends CrateUnitTest {
         File shardLocation = blobEnvironment.shardLocation(new ShardId(".blob_test", 0));
         Path nodeShardPaths = nodeEnvironment.availableShardPaths(new ShardId(".blob_test", 0))[0];
         assertThat(shardLocation.getAbsolutePath().substring(nodeShardPaths.toAbsolutePath().toString().length()),
-                is(File.separator + BlobEnvironment.BLOBS_SUB_PATH));
+            is(File.separator + BlobEnvironment.BLOBS_SUB_PATH));
     }
 
     @Test
@@ -86,7 +86,7 @@ public class BlobEnvironmentTest extends CrateUnitTest {
         File blobsPath = new File("/tmp/crate_blobs");
         File indexLocation = blobEnvironment.indexLocation(new Index(".blob_test"), blobsPath);
         assertThat(indexLocation.getAbsolutePath().substring(0, blobsPath.getAbsolutePath().length()),
-                is(blobsPath.getAbsolutePath()));
+            is(blobsPath.getAbsolutePath()));
     }
 
     @Test
@@ -95,7 +95,7 @@ public class BlobEnvironmentTest extends CrateUnitTest {
 
         expectedException.expect(SettingsException.class);
         expectedException.expectMessage(String.format(Locale.ENGLISH, "blobs path '%s' is a file, must be a directory",
-                testFile.getAbsolutePath()));
+            testFile.getAbsolutePath()));
         blobEnvironment.validateBlobsPath(testFile);
     }
 
@@ -111,7 +111,7 @@ public class BlobEnvironmentTest extends CrateUnitTest {
 
         expectedException.expect(SettingsException.class);
         expectedException.expectMessage(String.format(Locale.ENGLISH, "blobs path '%s' could not be created",
-                file.getAbsolutePath()));
+            file.getAbsolutePath()));
         blobEnvironment.validateBlobsPath(file);
     }
 }

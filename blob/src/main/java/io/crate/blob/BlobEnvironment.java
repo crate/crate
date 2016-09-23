@@ -24,7 +24,6 @@ package io.crate.blob;
 import org.elasticsearch.cluster.ClusterName;
 import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.io.FileSystemUtils;
 import org.elasticsearch.common.settings.SettingsException;
 import org.elasticsearch.env.NodeEnvironment;
 import org.elasticsearch.index.Index;
@@ -95,7 +94,6 @@ public class BlobEnvironment {
 
     /**
      * Return the shard location according to the given base path
-     *
      */
     public File shardLocation(ShardId shardId, File path) {
         Path shardLocation = nodeEnvironment.availableShardPaths(shardId)[0];
@@ -111,18 +109,18 @@ public class BlobEnvironment {
         if (blobsPath.exists()) {
             if (blobsPath.isFile()) {
                 throw new SettingsException(
-                        String.format(Locale.ENGLISH, "blobs path '%s' is a file, must be a directory", blobsPath.getAbsolutePath()));
+                    String.format(Locale.ENGLISH, "blobs path '%s' is a file, must be a directory", blobsPath.getAbsolutePath()));
             }
             if (!blobsPath.canWrite()) {
                 throw new SettingsException(
-                        String.format(Locale.ENGLISH, "blobs path '%s' is not writable", blobsPath.getAbsolutePath()));
+                    String.format(Locale.ENGLISH, "blobs path '%s' is not writable", blobsPath.getAbsolutePath()));
             }
         } else {
             try {
                 Files.createDirectories(blobsPath.toPath());
             } catch (IOException e) {
                 throw new SettingsException(
-                        String.format(Locale.ENGLISH, "blobs path '%s' could not be created", blobsPath.getAbsolutePath()));
+                    String.format(Locale.ENGLISH, "blobs path '%s' could not be created", blobsPath.getAbsolutePath()));
             }
         }
     }

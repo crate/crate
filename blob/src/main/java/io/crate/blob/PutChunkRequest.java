@@ -29,13 +29,12 @@ import org.elasticsearch.common.io.stream.StreamOutput;
 import java.io.IOException;
 import java.util.UUID;
 
-public class PutChunkRequest extends BlobTransferRequest<PutChunkRequest> implements  IPutChunkRequest {
+public class PutChunkRequest extends BlobTransferRequest<PutChunkRequest> implements IPutChunkRequest {
 
     private byte[] digest;
     private long currentPos;
 
-    public PutChunkRequest() {
-    }
+    public PutChunkRequest() {}
 
     public PutChunkRequest(String index, byte[] digest, UUID transferId,
                            BytesArray content, long currentPos, boolean last) {
@@ -44,7 +43,7 @@ public class PutChunkRequest extends BlobTransferRequest<PutChunkRequest> implem
         this.currentPos = currentPos;
     }
 
-    public String digest(){
+    public String digest() {
         return Hex.encodeHexString(digest);
     }
 

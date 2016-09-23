@@ -32,13 +32,12 @@ import org.elasticsearch.index.shard.ShardId;
 
 public class BlobIndex extends AbstractIndexComponent {
 
-
     private final OperationRouting operationRouting;
     private final ClusterService clusterService;
 
     @Inject
     public BlobIndex(Index index, IndexSettingsService indexSettingsService,
-              OperationRouting operationRouting, ClusterService clusterService) {
+                     OperationRouting operationRouting, ClusterService clusterService) {
         super(index, indexSettingsService.getSettings());
         this.operationRouting = operationRouting;
         this.clusterService = clusterService;
@@ -49,5 +48,4 @@ public class BlobIndex extends AbstractIndexComponent {
         // TODO: check null and raise
         return si.shardId();
     }
-
 }
