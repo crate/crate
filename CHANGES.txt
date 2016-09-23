@@ -69,6 +69,8 @@ Unreleased
 2016/08/05 0.55.3
 =================
 
+ - Fixed a race condition which could cause select statements to get stuck
+
  - Fixed an issue which prevents java client from running explain
    statements.
 
