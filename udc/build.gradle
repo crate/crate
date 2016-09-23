@@ -14,5 +14,5 @@ sourceSets {
 
 test {
     testLogging.exceptionFormat = 'full'
-    jacoco.excludes = [ "*Test*" ]
+    jacoco.excludes = ["*Test*"]
 }

@@ -39,7 +39,7 @@ dependencies {
     compile project(':dns-discovery')
     compile project(':es-discovery-multicast')
     compile project(':es-cloud-aws')
-    compile ('org.apache.xbean:xbean-finder:4.2') {
+    compile('org.apache.xbean:xbean-finder:4.2') {
         exclude group: 'org.apache.xbean', module: 'xbean-asm-util'
     }
 
@@ -65,11 +65,11 @@ task nightly(dependsOn: 'distTar') << {
     logger.info("nightly version: " + project(':core').getVersion.version);
 }
 
-task writeBuildInfo (dependsOn: [':core:getVersion']) << {
+task writeBuildInfo(dependsOn: [':core:getVersion']) << {
     def hash = "git rev-parse HEAD".execute().in.text.trim()
 
     def file = new File(project.projectDir.path + "/src/main/resources/crate-build.properties");
-    if(!file.isFile()) {
+    if (!file.isFile()) {
         def parentDir = new File(file.parent);
         if (!parentDir.isDirectory()) {
             parentDir.mkdirs();
@@ -80,13 +80,13 @@ task writeBuildInfo (dependsOn: [':core:getVersion']) << {
     copy {
         into('src/main/dist/bin')
         from('src/bin') {
-            filter(ReplaceTokens,tokens: [version: project(':core').getVersion.version])
+            filter(ReplaceTokens, tokens: [version: project(':core').getVersion.version])
         }
     }
 
-    ant.propertyfile(file:file.path, comment:'Build Properties') {
-        ant.entry(key:'hash',value:hash)
-        ant.entry(key:'timestamp', value:System.currentTimeMillis())
+    ant.propertyfile(file: file.path, comment: 'Build Properties') {
+        ant.entry(key: 'hash', value: hash)
+        ant.entry(key: 'timestamp', value: System.currentTimeMillis())
     }
 }
 
@@ -107,7 +107,7 @@ task myJavadocs(type: Javadoc, dependsOn: processResources) {
             project(':udc').sourceSets.main.allJava
 }
 
-task javadocJar (type: Jar, dependsOn: [myJavadocs]) {
+task javadocJar(type: Jar, dependsOn: [myJavadocs]) {
     classifier = 'javadoc'
     from myJavadocs.destinationDir
     manifest {
@@ -115,15 +115,15 @@ task javadocJar (type: Jar, dependsOn: [myJavadocs]) {
     }
 }
 
-task buildJavadocJar (dependsOn: [':core:getVersion', myJavadocs] ) << {
+task buildJavadocJar(dependsOn: [':core:getVersion', myJavadocs]) << {
     ext.version = project(':core').getVersion.version
     project.version = ext.version
     tasks.javadocJar.execute()
 }
 
-task sourceJar (type : Jar) {
+task sourceJar(type: Jar) {
     classifier = 'sources'
-    from (sourceSets.main.allSource +
+    from(sourceSets.main.allSource +
             project(':core').sourceSets.main.allJava +
             project(':sql').sourceSets.main.allJava +
             project(':sql-parser').sourceSets.main.allJava +
@@ -134,7 +134,7 @@ task sourceJar (type : Jar) {
     }
 }
 
-task buildSourceJar (dependsOn: [':core:getVersion'] ) << {
+task buildSourceJar(dependsOn: [':core:getVersion']) << {
     ext.version = project(':core').getVersion.version
     project.version = ext.version
     tasks.sourceJar.execute()
@@ -146,7 +146,7 @@ artifacts {
     archives javadocJar
 }
 
-task signJars (type : Sign, dependsOn: [jar, buildSourceJar, buildJavadocJar]) {
+task signJars(type: Sign, dependsOn: [jar, buildSourceJar, buildJavadocJar]) {
     sign configurations.archives
 }
 
@@ -155,12 +155,15 @@ install {
     repositories {
         mavenInstaller {
             pom.whenConfigured {
-                pom -> pom.dependencies.clear()
-                project.parent.subprojects.findAll{ it.name != 'app'}.each {
-                    if (it.hasProperty('install')) {
-                        pom.dependencies.addAll(it.install.repositories.mavenInstaller.pom.getEffectivePom().dependencies.findAll { it.groupId != 'io.crate'})
+                pom ->
+                    pom.dependencies.clear()
+                    project.parent.subprojects.findAll { it.name != 'app' }.each {
+                        if (it.hasProperty('install')) {
+                            pom.dependencies.addAll(it.install.repositories.mavenInstaller.pom.getEffectivePom().dependencies.findAll {
+                                it.groupId != 'io.crate'
+                            })
+                        }
                     }
-                }
             }
             pom.project {
                 artifactId 'crate'
@@ -194,18 +197,22 @@ uploadArchives {
     repositories {
         mavenDeployer {
             beforeDeployment {
-                MavenDeployment deployment -> signing.signPom(deployment)
-                if (project.ext.bintrayUsername.length() == 0 || project.ext.bintrayPassword.length() == 0) {
-                    throw new StopExecutionException("uploadArchives cannot be called without bintray username and password")
-                }
+                MavenDeployment deployment ->
+                    signing.signPom(deployment)
+                    if (project.ext.bintrayUsername.length() == 0 || project.ext.bintrayPassword.length() == 0) {
+                        throw new StopExecutionException("uploadArchives cannot be called without bintray username and password")
+                    }
             }
             pom.whenConfigured {
-                pom -> pom.dependencies.clear()
-                project.parent.subprojects.findAll{ it.name != 'app' && it.name != 'sigar' }.each {
-                    if (it.hasProperty('install')) {
-                        pom.dependencies.addAll(it.install.repositories.mavenInstaller.pom.getEffectivePom().dependencies.findAll { it.groupId != 'io.crate'})
+                pom ->
+                    pom.dependencies.clear()
+                    project.parent.subprojects.findAll { it.name != 'app' && it.name != 'sigar' }.each {
+                        if (it.hasProperty('install')) {
+                            pom.dependencies.addAll(it.install.repositories.mavenInstaller.pom.getEffectivePom().dependencies.findAll {
+                                it.groupId != 'io.crate'
+                            })
+                        }
                     }
-                }
             }
             pom.project {
                 artifactId 'crate'
@@ -291,12 +298,12 @@ distributions {
                 from jar
             }
             into('plugins') {
-                from ('plugins') {
+                from('plugins') {
                     includeEmptyDirs = true
                 }
             }
             into('bin') {
-                from ("${downloadDir}/crash_standalone") {
+                from("${downloadDir}/crash_standalone") {
                     fileMode = 0755
                 }
             }
@@ -315,23 +322,23 @@ jar {
         serviceDir.mkdirs()
 
         // copy all service files from deps to buildDir
-        for(file in configurations.compileNotTransitive) {
-            zipTree(file).matching{ include 'META-INF/services/*' }.each { f ->
+        for (file in configurations.compileNotTransitive) {
+            zipTree(file).matching { include 'META-INF/services/*' }.each { f ->
                 new File(serviceDir, f.name) << f.getText("UTF-8") << "\n"
             }
         }
     }
 
-    from(configurations.compileNotTransitive.collect { it.isDirectory() ? it : zipTree(it) }){
+    from(configurations.compileNotTransitive.collect { it.isDirectory() ? it : zipTree(it) }) {
         exclude 'META-INF/**' // Don't let Gradle merge service files
     }
 
     // include service files from the buildDir
-    from fileTree(buildDir).matching{ include 'META-INF/services/*' }
+    from fileTree(buildDir).matching { include 'META-INF/services/*' }
 }
 
-task downloadPlugins (
-    dependsOn: [':admin-ui:downloadPlugin', ':sigar:jar', ':es-repository-hdfs:distZip', ':azure-discovery:jar']) << {
+task downloadPlugins(
+        dependsOn: [':admin-ui:downloadPlugin', ':sigar:jar', ':es-repository-hdfs:distZip', ':azure-discovery:jar']) << {
 
     copy {
         from(zipTree(project(':es-repository-hdfs').tasks.distZip.archivePath))
@@ -347,7 +354,7 @@ task downloadPlugins (
     }
 
     copy {
-        from (project(':admin-ui').buildDir.path + '/crate-admin')
+        from(project(':admin-ui').buildDir.path + '/crate-admin')
         into 'plugins/crate-admin'
     }
 
@@ -368,9 +375,9 @@ downloadPlugins.outputs.file files('plugins')
 
 task downloadCrash << {
     def dest = download(
-        downloadDir,
-        "https://cdn.crate.io/downloads/releases/crash_standalone_${crash_version}",
-        "crash_standalone"
+            downloadDir,
+            "https://cdn.crate.io/downloads/releases/crash_standalone_${crash_version}",
+            "crash_standalone"
     )
 }
 
@@ -389,7 +396,7 @@ task(run, dependsOn: 'classes', type: JavaExec) {
     debug = false
     enableAssertions = true
     classpath = sourceSets.main.runtimeClasspath
-    systemProperties += ['es.path.home':"${project.buildDir}/$name"]
+    systemProperties += ['es.path.home': "${project.buildDir}/$name"]
     systemProperties System.getProperties()
 }
 
@@ -399,7 +406,7 @@ test {
     }
 
     jacoco {
-        excludes = [ "*Test*" ]
+        excludes = ["*Test*"]
     }
 }
 
