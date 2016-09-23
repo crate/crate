@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fix: aggregations on no-match JOIN queries incorrectly returned empty result
+   Now these queries fail because aggregations are not supported on joins
+
  - Updated crash to 0.18.0 which contains following changes:
 
     - Don't show tables from ``pg_catalog`` if ``\dt`` command is used.
