@@ -59,16 +59,16 @@ public class ShortType extends DataType<Short> implements DataTypeFactory, Strea
             return (Short) value;
         }
         if (value instanceof String) {
-            return Short.valueOf((String)value);
+            return Short.valueOf((String) value);
         }
         if (value instanceof BytesRef) {
-            return Short.valueOf(((BytesRef)value).utf8ToString());
+            return Short.valueOf(((BytesRef) value).utf8ToString());
         }
-        int intVal = ((Number)value).intValue();
+        int intVal = ((Number) value).intValue();
         if (intVal < Short.MIN_VALUE || Short.MAX_VALUE < intVal) {
             throw new IllegalArgumentException("short value out of range: " + intVal);
         }
-        return ((Number)value).shortValue();
+        return ((Number) value).shortValue();
     }
 
     @Override

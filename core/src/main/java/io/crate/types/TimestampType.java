@@ -48,7 +48,7 @@ public class TimestampType extends LongType implements Streamer<Long>, DataTypeF
             return null;
         }
         if (value instanceof BytesRef) {
-            return valueFromString(((BytesRef)value).utf8ToString());
+            return valueFromString(((BytesRef) value).utf8ToString());
         }
         if (value instanceof String) {
             return valueFromString((String) value);
@@ -56,15 +56,15 @@ public class TimestampType extends LongType implements Streamer<Long>, DataTypeF
         // we treat float and double values as seconds with milliseconds as fractions
         // see timestamp documentation
         if (value instanceof Double) {
-            return ((Number)(((Double)value) * 1000)).longValue();
+            return ((Number) (((Double) value) * 1000)).longValue();
         }
         if (value instanceof Float) {
-            return ((Number)(((Float)value) * 1000)).longValue();
+            return ((Number) (((Float) value) * 1000)).longValue();
         }
         if (!(value instanceof Long)) {
-            return ((Number)value).longValue();
+            return ((Number) value).longValue();
         }
-        return (Long)value;
+        return (Long) value;
     }
 
     private Long valueFromString(String s) {

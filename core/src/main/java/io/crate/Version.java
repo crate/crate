@@ -44,8 +44,10 @@ public class Version {
     static {
         // safe-guard that we don't release a version with DEBUG_MODE set to true
         assert CURRENT.esVersion == org.elasticsearch.Version.CURRENT : "Version must be " +
-                "upgraded to [" + org.elasticsearch.Version.CURRENT + "] is still set to [" +
-                CURRENT.esVersion + "]";
+                                                                        "upgraded to [" +
+                                                                        org.elasticsearch.Version.CURRENT +
+                                                                        "] is still set to [" +
+                                                                        CURRENT.esVersion + "]";
     }
 
     public final int id;
@@ -64,6 +66,25 @@ public class Version {
         this.build = (byte) (id % 100);
         this.snapshot = snapshot;
         this.esVersion = esVersion;
+    }
+
+    public static void main(String[] args) {
+        System.out.println("Version: " + Version.CURRENT + ", Build: " +
+                           Build.CURRENT.hashShort() + "/" + Build.CURRENT.timestamp() +
+                           ", ES: " + org.elasticsearch.Version.CURRENT +
+                           ", JVM: " + JvmInfo.jvmInfo().version());
+    }
+
+    public static Version readVersion(StreamInput in) throws IOException {
+        return new Version(in.readVInt(),
+            in.readBoolean(),
+            org.elasticsearch.Version.readVersion(in));
+    }
+
+    public static void writeVersionTo(Version version, StreamOutput out) throws IOException {
+        out.writeVInt(version.id);
+        out.writeBoolean(version.snapshot);
+        org.elasticsearch.Version.writeVersion(version.esVersion, out);
     }
 
     public boolean snapshot() {
@@ -92,13 +113,6 @@ public class Version {
         return sb.toString();
     }
 
-    public static void main(String[] args) {
-        System.out.println("Version: " + Version.CURRENT + ", Build: " +
-                Build.CURRENT.hashShort() + "/" + Build.CURRENT.timestamp() +
-                ", ES: " + org.elasticsearch.Version.CURRENT +
-                ", JVM: " + JvmInfo.jvmInfo().version() );
-    }
-
     @Override
     public String toString() {
         StringBuilder sb = new StringBuilder();
@@ -124,18 +138,6 @@ public class Version {
     @Override
     public int hashCode() {
         return id;
-    }
-
-    public static Version readVersion(StreamInput in) throws IOException {
-        return new Version(in.readVInt(),
-                           in.readBoolean(),
-                           org.elasticsearch.Version.readVersion(in));
-    }
-
-    public static void writeVersionTo(Version version, StreamOutput out) throws IOException {
-        out.writeVInt(version.id);
-        out.writeBoolean(version.snapshot);
-        org.elasticsearch.Version.writeVersion(version.esVersion, out);
     }
 
     public static class Module extends AbstractModule {

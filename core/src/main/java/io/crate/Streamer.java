@@ -29,5 +29,6 @@ import java.io.IOException;
 public interface Streamer<T> {
 
     T readValueFrom(StreamInput in) throws IOException;
+
     void writeValueTo(StreamOutput out, Object v) throws IOException;
 }

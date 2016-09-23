@@ -30,53 +30,8 @@ public class IpType extends StringType {
 
     public final static int ID = 5;
     public final static IpType INSTANCE = new IpType();
+
     protected IpType() {}
-
-    @Override
-    public int id() {
-        return ID;
-    }
-
-    @Override
-    public BytesRef value(Object value) {
-        if (value == null) {
-            return null;
-        }
-        if (value instanceof BytesRef) {
-            BytesRef ip = (BytesRef) value;
-            validate(ip);
-            return ip;
-        }
-        if (value instanceof String) {
-            BytesRef ip = new BytesRef((String) value);
-            validate(ip);
-            return ip;
-        } else {
-            Long longIp = ((Number)value).longValue();
-            if (longIp < 0) {
-                throw new IllegalArgumentException(String.format(Locale.ENGLISH, "Failed to convert long value: %s to ipv4 address)",
-                        longIp));
-            }
-            String strIp = IpFieldMapper.longToIp(longIp);
-            return new BytesRef(strIp);
-        }
-    }
-
-    private void validate(BytesRef ip) {
-        if(!isValid(ip)) {
-            throw new IllegalArgumentException("Failed to validate ip [" + ip.utf8ToString() + "], not a valid ipv4 address");
-        }
-    }
-
-    @Override
-    public String getName() {
-        return "ip";
-    }
-
-    @Override
-    public DataType<?> create() {
-        return IpType.INSTANCE;
-    }
 
     static public boolean isValid(BytesRef ip) {
         if (ip.length < 7 && ip.length > 15) { // minimum length of a valid ip address
@@ -116,5 +71,52 @@ public class IpType extends StringType {
 
     private static boolean isDigit(int sym) {
         return sym >= 48 && sym < 58;
+    }
+
+    @Override
+    public int id() {
+        return ID;
+    }
+
+    @Override
+    public BytesRef value(Object value) {
+        if (value == null) {
+            return null;
+        }
+        if (value instanceof BytesRef) {
+            BytesRef ip = (BytesRef) value;
+            validate(ip);
+            return ip;
+        }
+        if (value instanceof String) {
+            BytesRef ip = new BytesRef((String) value);
+            validate(ip);
+            return ip;
+        } else {
+            Long longIp = ((Number) value).longValue();
+            if (longIp < 0) {
+                throw new IllegalArgumentException(String.format(Locale.ENGLISH, "Failed to convert long value: %s to ipv4 address)",
+                    longIp));
+            }
+            String strIp = IpFieldMapper.longToIp(longIp);
+            return new BytesRef(strIp);
+        }
+    }
+
+    private void validate(BytesRef ip) {
+        if (!isValid(ip)) {
+            throw new IllegalArgumentException(
+                "Failed to validate ip [" + ip.utf8ToString() + "], not a valid ipv4 address");
+        }
+    }
+
+    @Override
+    public String getName() {
+        return "ip";
+    }
+
+    @Override
+    public DataType<?> create() {
+        return IpType.INSTANCE;
     }
 }

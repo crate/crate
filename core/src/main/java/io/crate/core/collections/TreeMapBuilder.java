@@ -27,14 +27,14 @@ import static com.google.common.collect.Maps.newTreeMap;
 
 public class TreeMapBuilder<K extends Comparable, V> {
 
-    public static <K extends Comparable, V> TreeMapBuilder<K, V> newMapBuilder() {
-        return new TreeMapBuilder<>();
-    }
-
     private Map<K, V> map = newTreeMap();
 
     public TreeMapBuilder() {
         this.map = newTreeMap();
+    }
+
+    public static <K extends Comparable, V> TreeMapBuilder<K, V> newMapBuilder() {
+        return new TreeMapBuilder<>();
     }
 
     public TreeMapBuilder<K, V> putAll(Map<K, V> map) {

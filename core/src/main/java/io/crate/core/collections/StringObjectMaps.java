@@ -29,7 +29,8 @@ import java.util.Map;
 
 public class StringObjectMaps {
 
-    public static @Nullable Object getByPath(Map<String, Object> map, String path) {
+    @Nullable
+    public static Object getByPath(Map<String, Object> map, String path) {
         assert path != null;
         Object tmp;
         List<String> splittedPath = StringUtils.PATH_SPLITTER.splitToList(path);
@@ -44,7 +45,7 @@ public class StringObjectMaps {
 
         if (map != null) {
             // get last path element
-            return map.get(splittedPath.get(splittedPath.size()-1));
+            return map.get(splittedPath.get(splittedPath.size() - 1));
         }
         return null;
     }

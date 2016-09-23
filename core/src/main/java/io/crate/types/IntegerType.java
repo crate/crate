@@ -59,17 +59,17 @@ public class IntegerType extends DataType<Integer> implements Streamer<Integer>,
             return (Integer) value;
         }
         if (value instanceof String) {
-            return Integer.parseInt((String)value);
+            return Integer.parseInt((String) value);
         }
         if (value instanceof BytesRef) {
-            return Integer.parseInt(((BytesRef)value).utf8ToString());
+            return Integer.parseInt(((BytesRef) value).utf8ToString());
         }
 
-        long longVal = ((Number)value).longValue();
+        long longVal = ((Number) value).longValue();
         if (longVal < Integer.MIN_VALUE || Integer.MAX_VALUE < longVal) {
             throw new IllegalArgumentException("integer value out of range: " + longVal);
         }
-        return ((Number)value).intValue();
+        return ((Number) value).intValue();
     }
 
     @Override

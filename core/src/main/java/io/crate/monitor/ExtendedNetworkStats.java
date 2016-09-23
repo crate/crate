@@ -92,8 +92,7 @@ public class ExtendedNetworkStats implements Streamable {
             return tcp;
         }
 
-        public Tcp() {
-        }
+        public Tcp() {}
 
         public Tcp(long activeOpens,
                    long passiveOpens,

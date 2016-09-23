@@ -37,7 +37,7 @@ public class StringUtils {
     /**
      * Return the common ancestors of a list of fields.<br>
      * A field is a string that can use the dotted-notation to indicate nesting.<br>
-     *
+     * <p>
      * <pre>
      * fields:  [ "a", "a.b", "b.c", "b.c.d"]
      * returns: [ "a", "b.c" ]
@@ -46,15 +46,15 @@ public class StringUtils {
      * @param fields a list of strings where each string may contain dots as its separator
      * @return a list of strings with only the common ancestors.
      */
-    public static Set<String> commonAncestors(List<String> fields){
+    public static Set<String> commonAncestors(List<String> fields) {
         int idx = 0;
         String previous = null;
 
         Collections.sort(fields);
         Set<String> result = new HashSet<>(fields.size());
         for (String field : fields) {
-            if (idx>0){
-                if (!field.startsWith(previous + '.')){
+            if (idx > 0) {
+                if (!field.startsWith(previous + '.')) {
                     previous = field;
                     result.add(field);
                 }

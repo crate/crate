@@ -59,12 +59,12 @@ public class DoubleType extends DataType<Double> implements FixedWidthType, Stre
             return (Double) value;
         }
         if (value instanceof String) {
-            return Double.valueOf((String)value);
+            return Double.valueOf((String) value);
         }
         if (value instanceof BytesRef) {
-            return Double.valueOf(((BytesRef)value).utf8ToString());
+            return Double.valueOf(((BytesRef) value).utf8ToString());
         }
-        return ((Number)value).doubleValue();
+        return ((Number) value).doubleValue();
     }
 
     @Override
