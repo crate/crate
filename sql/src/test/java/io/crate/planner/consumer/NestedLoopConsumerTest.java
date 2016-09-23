@@ -311,6 +311,13 @@ public class NestedLoopConsumerTest extends CrateUnitTest {
     }
 
     @Test
+    public void testAggregationOnNoMatch() throws Exception {
+        expectedException.expect(ValidationException.class);
+        expectedException.expectMessage("AGGREGATIONS on JOINS is not supported");
+        plan("select count(*) from users u1, users u2 where false");
+    }
+
+    @Test
     public void testOrderByOnJoinCondition() throws Exception {
         NestedLoop nl = plan("select u1.name || u2.name from users u1, users u2 order by u1.name, u1.name || u2.name");
         List<Symbol> orderBy = ((TopNProjection) nl.nestedLoopPhase().projections().get(0)).orderBy();
