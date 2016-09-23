@@ -49,7 +49,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 
 @AxisRange(min = 0)
-@BenchmarkHistoryChart(filePrefix="benchmark-nl-history", labelWith = LabelType.CUSTOM_KEY)
+@BenchmarkHistoryChart(filePrefix = "benchmark-nl-history", labelWith = LabelType.CUSTOM_KEY)
 @BenchmarkMethodChart(filePrefix = "benchmark-nl")
 public class NestedLoopOperationBenchmark {
 
@@ -136,7 +136,7 @@ public class NestedLoopOperationBenchmark {
         executor.execute(leftRowSender);
         executor.execute(rightRowSender);
         Bucket result = receiver.result(TimeValue.timeValueMinutes(10));
-        assertThat((Integer)result.iterator().next().get(0), is(leftSize * rightSize));
+        assertThat((Integer) result.iterator().next().get(0), is(leftSize * rightSize));
         return result;
     }
 
