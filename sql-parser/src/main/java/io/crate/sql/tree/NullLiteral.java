@@ -21,11 +21,16 @@
 
 package io.crate.sql.tree;
 
-public class NullLiteral
-    extends Literal {
+public class NullLiteral extends Literal {
+
     @Override
     public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
         return visitor.visitNullLiteral(this, context);
+    }
+
+    @Override
+    public int hashCode() {
+        return 0;
     }
 
     @Override
@@ -38,10 +43,5 @@ public class NullLiteral
         }
 
         return true;
-    }
-
-    @Override
-    public int hashCode() {
-        return 0;
     }
 }

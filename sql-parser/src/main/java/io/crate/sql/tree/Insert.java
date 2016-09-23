@@ -35,10 +35,10 @@ public abstract class Insert extends Statement {
     protected final List<Assignment> onDuplicateKeyAssignments;
     protected final List<String> columns;
 
-
     public Insert(Table table, @Nullable List<String> columns, @Nullable List<Assignment> onDuplicateKeyAssignments) {
         this.table = table;
-        this.onDuplicateKeyAssignments = MoreObjects.firstNonNull(onDuplicateKeyAssignments, ImmutableList.<Assignment>of());
+        this.onDuplicateKeyAssignments =
+            MoreObjects.firstNonNull(onDuplicateKeyAssignments, ImmutableList.<Assignment>of());
         this.columns = MoreObjects.firstNonNull(columns, ImmutableList.<String>of());
     }
 
@@ -52,6 +52,11 @@ public abstract class Insert extends Statement {
 
     public List<Assignment> onDuplicateKeyAssignments() {
         return onDuplicateKeyAssignments;
+    }
+
+    @Override
+    public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
+        return visitor.visitInsert(this, context);
     }
 
     @Override
@@ -72,10 +77,5 @@ public abstract class Insert extends Statement {
             return false;
 
         return true;
-    }
-
-    @Override
-    public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
-        return visitor.visitInsert(this, context);
     }
 }

@@ -30,8 +30,8 @@ import java.util.List;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
-public class QuerySpecification
-    extends QueryBody {
+public class QuerySpecification extends QueryBody {
+
     private final Select select;
     private final List<Relation> from;
     private final Optional<Expression> where;
@@ -106,17 +106,8 @@ public class QuerySpecification
     }
 
     @Override
-    public String toString() {
-        return MoreObjects.toStringHelper(this)
-            .add("select", select)
-            .add("from", from)
-            .add("where", where.orNull())
-            .add("groupBy", groupBy)
-            .add("having", having.orNull())
-            .add("orderBy", orderBy)
-            .add("limit", limit.orNull())
-            .add("offset", offset.orNull())
-            .toString();
+    public int hashCode() {
+        return Objects.hashCode(select, from, where, groupBy, having, orderBy, limit, offset);
     }
 
     @Override
@@ -139,7 +130,16 @@ public class QuerySpecification
     }
 
     @Override
-    public int hashCode() {
-        return Objects.hashCode(select, from, where, groupBy, having, orderBy, limit, offset);
+    public String toString() {
+        return MoreObjects.toStringHelper(this)
+                          .add("select", select)
+                          .add("from", from)
+                          .add("where", where.orNull())
+                          .add("groupBy", groupBy)
+                          .add("having", having.orNull())
+                          .add("orderBy", orderBy)
+                          .add("limit", limit.orNull())
+                          .add("offset", offset.orNull())
+                          .toString();
     }
 }

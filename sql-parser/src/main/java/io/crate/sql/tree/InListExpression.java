@@ -23,8 +23,8 @@ package io.crate.sql.tree;
 
 import java.util.List;
 
-public class InListExpression
-    extends Expression {
+public class InListExpression extends Expression {
+
     private final List<Expression> values;
 
     public InListExpression(List<Expression> values) {
@@ -38,6 +38,11 @@ public class InListExpression
     @Override
     public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
         return visitor.visitInListExpression(this, context);
+    }
+
+    @Override
+    public int hashCode() {
+        return values.hashCode();
     }
 
     @Override
@@ -56,10 +61,5 @@ public class InListExpression
         }
 
         return true;
-    }
-
-    @Override
-    public int hashCode() {
-        return values.hashCode();
     }
 }

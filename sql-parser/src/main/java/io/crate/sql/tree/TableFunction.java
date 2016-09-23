@@ -44,6 +44,16 @@ public class TableFunction extends QueryBody {
     }
 
     @Override
+    public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
+        return visitor.visitTableFunction(this, context);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(name, arguments);
+    }
+
+    @Override
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
@@ -53,19 +63,9 @@ public class TableFunction extends QueryBody {
     }
 
     @Override
-    public int hashCode() {
-        return Objects.hash(name, arguments);
-    }
-
-    @Override
     public String toString() {
         return "TableFunction{" + name + '\'' +
                ", args=" + arguments +
                '}';
-    }
-
-    @Override
-    public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
-        return visitor.visitTableFunction(this, context);
     }
 }

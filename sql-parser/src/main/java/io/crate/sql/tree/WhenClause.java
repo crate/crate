@@ -21,8 +21,8 @@
 
 package io.crate.sql.tree;
 
-public class WhenClause
-    extends Expression {
+public class WhenClause extends Expression {
+
     private final Expression operand;
     private final Expression result;
 
@@ -45,6 +45,13 @@ public class WhenClause
     }
 
     @Override
+    public int hashCode() {
+        int result1 = operand.hashCode();
+        result1 = 31 * result1 + result.hashCode();
+        return result1;
+    }
+
+    @Override
     public boolean equals(Object o) {
         if (this == o) {
             return true;
@@ -63,12 +70,5 @@ public class WhenClause
         }
 
         return true;
-    }
-
-    @Override
-    public int hashCode() {
-        int result1 = operand.hashCode();
-        result1 = 31 * result1 + result.hashCode();
-        return result1;
     }
 }

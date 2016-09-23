@@ -21,8 +21,8 @@
 
 package io.crate.sql.tree;
 
-public class QualifiedNameReference
-    extends Expression {
+public class QualifiedNameReference extends Expression {
+
     private final QualifiedName name;
 
     public QualifiedNameReference(QualifiedName name) {
@@ -36,6 +36,11 @@ public class QualifiedNameReference
     @Override
     public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
         return visitor.visitQualifiedNameReference(this, context);
+    }
+
+    @Override
+    public int hashCode() {
+        return name.hashCode();
     }
 
     @Override
@@ -54,10 +59,5 @@ public class QualifiedNameReference
         }
 
         return true;
-    }
-
-    @Override
-    public int hashCode() {
-        return name.hashCode();
     }
 }

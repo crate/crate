@@ -29,8 +29,7 @@ import com.google.common.base.Preconditions;
 import javax.annotation.Nullable;
 import java.util.List;
 
-public class
-Update extends Statement {
+public class Update extends Statement {
 
     private final Relation relation;
     private final List<Assignment> assignments;
@@ -57,17 +56,13 @@ Update extends Statement {
     }
 
     @Override
-    public int hashCode() {
-        return Objects.hashCode(relation, assignments, where);
+    public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
+        return visitor.visitUpdate(this, context);
     }
 
     @Override
-    public String toString() {
-        return MoreObjects.toStringHelper(this)
-            .add("relation", relation)
-            .add("assignments", assignments)
-            .add("where", where.orNull())
-            .toString();
+    public int hashCode() {
+        return Objects.hashCode(relation, assignments, where);
     }
 
     @Override
@@ -85,7 +80,11 @@ Update extends Statement {
     }
 
     @Override
-    public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
-        return visitor.visitUpdate(this, context);
+    public String toString() {
+        return MoreObjects.toStringHelper(this)
+                          .add("relation", relation)
+                          .add("assignments", assignments)
+                          .add("where", where.orNull())
+                          .toString();
     }
 }

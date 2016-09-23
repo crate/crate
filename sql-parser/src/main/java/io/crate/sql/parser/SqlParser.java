@@ -30,8 +30,8 @@ import org.antlr.runtime.tree.CommonTree;
 import org.antlr.runtime.tree.TreeNodeStream;
 
 public final class SqlParser {
-    private SqlParser() {
-    }
+
+    private SqlParser() {}
 
     public static Statement createStatement(String sql) {
         try {
@@ -73,7 +73,7 @@ public final class SqlParser {
     @VisibleForTesting
     static CommonTree parseStatement(String sql) {
         try {
-            return (CommonTree) getParser(sql).singleStatement().getTree();
+            return getParser(sql).singleStatement().getTree();
         } catch (RecognitionException e) {
             throw new AssertionError(e); // RecognitionException is not thrown
         }
@@ -81,7 +81,7 @@ public final class SqlParser {
 
     private static CommonTree parseExpression(String expression) {
         try {
-            return (CommonTree) getParser(expression).singleExpression().getTree();
+            return getParser(expression).singleExpression().getTree();
         } catch (RecognitionException e) {
             throw new AssertionError(e); // RecognitionException is not thrown
         }

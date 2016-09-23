@@ -23,14 +23,17 @@ package io.crate.sql.tree;
 
 import com.google.common.base.MoreObjects;
 
-public class SortItem
-    extends Node {
+public class SortItem extends Node {
+
     public enum Ordering {
-        ASCENDING, DESCENDING
+        ASCENDING,
+        DESCENDING
     }
 
     public enum NullOrdering {
-        FIRST, LAST, UNDEFINED
+        FIRST,
+        LAST,
+        UNDEFINED
     }
 
     private final Expression sortKey;
@@ -61,12 +64,11 @@ public class SortItem
     }
 
     @Override
-    public String toString() {
-        return MoreObjects.toStringHelper(this)
-            .add("sortKey", sortKey)
-            .add("ordering", ordering)
-            .add("nullOrdering", nullOrdering)
-            .toString();
+    public int hashCode() {
+        int result = sortKey.hashCode();
+        result = 31 * result + (ordering != null ? ordering.hashCode() : 0);
+        result = 31 * result + (nullOrdering != null ? nullOrdering.hashCode() : 0);
+        return result;
     }
 
     @Override
@@ -94,11 +96,11 @@ public class SortItem
     }
 
     @Override
-    public int hashCode() {
-        int result = sortKey.hashCode();
-        result = 31 * result + (ordering != null ? ordering.hashCode() : 0);
-        result = 31 * result + (nullOrdering != null ? nullOrdering.hashCode() : 0);
-        return result;
+    public String toString() {
+        return MoreObjects.toStringHelper(this)
+                          .add("sortKey", sortKey)
+                          .add("ordering", ordering)
+                          .add("nullOrdering", nullOrdering)
+                          .toString();
     }
-
 }

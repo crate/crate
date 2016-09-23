@@ -51,6 +51,19 @@ public class CreateBlobTable extends Statement {
     }
 
     @Override
+    public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
+        return visitor.visitCreateBlobTable(this, context);
+    }
+
+    @Override
+    public int hashCode() {
+        int result = name.hashCode();
+        result = 31 * result + clusteredBy.hashCode();
+        result = 31 * result + genericProperties.hashCode();
+        return result;
+    }
+
+    @Override
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
@@ -65,23 +78,10 @@ public class CreateBlobTable extends Statement {
     }
 
     @Override
-    public int hashCode() {
-        int result = name.hashCode();
-        result = 31 * result + clusteredBy.hashCode();
-        result = 31 * result + genericProperties.hashCode();
-        return result;
-    }
-
-    @Override
     public String toString() {
         return MoreObjects.toStringHelper(this)
-            .add("name", name)
-            .add("clusteredBy", clusteredBy)
-            .add("properties", genericProperties).toString();
-    }
-
-    @Override
-    public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
-        return visitor.visitCreateBlobTable(this, context);
+                          .add("name", name)
+                          .add("clusteredBy", clusteredBy)
+                          .add("properties", genericProperties).toString();
     }
 }

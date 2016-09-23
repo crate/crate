@@ -26,8 +26,8 @@ import com.google.common.collect.ImmutableList;
 
 import java.util.List;
 
-public class SimpleCaseExpression
-    extends Expression {
+public class SimpleCaseExpression extends Expression {
+
     private final Expression operand;
     private final List<WhenClause> whenClauses;
     private final Expression defaultValue;
@@ -59,6 +59,14 @@ public class SimpleCaseExpression
     }
 
     @Override
+    public int hashCode() {
+        int result = operand.hashCode();
+        result = 31 * result + whenClauses.hashCode();
+        result = 31 * result + (defaultValue != null ? defaultValue.hashCode() : 0);
+        return result;
+    }
+
+    @Override
     public boolean equals(Object o) {
         if (this == o) {
             return true;
@@ -80,13 +88,5 @@ public class SimpleCaseExpression
         }
 
         return true;
-    }
-
-    @Override
-    public int hashCode() {
-        int result = operand.hashCode();
-        result = 31 * result + whenClauses.hashCode();
-        result = 31 * result + (defaultValue != null ? defaultValue.hashCode() : 0);
-        return result;
     }
 }

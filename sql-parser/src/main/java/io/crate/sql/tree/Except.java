@@ -25,8 +25,8 @@ import com.google.common.base.MoreObjects;
 import com.google.common.base.Objects;
 import com.google.common.base.Preconditions;
 
-public class Except
-    extends SetOperation {
+public class Except extends SetOperation {
+
     private final Relation left;
     private final Relation right;
     private final boolean distinct;
@@ -58,12 +58,8 @@ public class Except
     }
 
     @Override
-    public String toString() {
-        return MoreObjects.toStringHelper(this)
-            .add("left", left)
-            .add("right", right)
-            .add("distinct", distinct)
-            .toString();
+    public int hashCode() {
+        return Objects.hashCode(left, right, distinct);
     }
 
     @Override
@@ -81,7 +77,11 @@ public class Except
     }
 
     @Override
-    public int hashCode() {
-        return Objects.hashCode(left, right, distinct);
+    public String toString() {
+        return MoreObjects.toStringHelper(this)
+                          .add("left", left)
+                          .add("right", right)
+                          .add("distinct", distinct)
+                          .toString();
     }
 }

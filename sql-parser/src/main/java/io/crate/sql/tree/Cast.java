@@ -23,8 +23,8 @@ package io.crate.sql.tree;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
-public class Cast
-    extends Expression {
+public class Cast extends Expression {
+
     private final Expression expression;
     private final ColumnType type;
 
@@ -50,6 +50,13 @@ public class Cast
     }
 
     @Override
+    public int hashCode() {
+        int result = expression.hashCode();
+        result = 31 * result + type.hashCode();
+        return result;
+    }
+
+    @Override
     public boolean equals(Object o) {
         if (this == o) {
             return true;
@@ -68,12 +75,5 @@ public class Cast
         }
 
         return true;
-    }
-
-    @Override
-    public int hashCode() {
-        int result = expression.hashCode();
-        result = 31 * result + type.hashCode();
-        return result;
     }
 }

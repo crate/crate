@@ -23,8 +23,8 @@ package io.crate.sql.tree;
 
 import com.google.common.base.MoreObjects;
 
-public final class ShowCatalogs
-    extends Statement {
+public final class ShowCatalogs extends Statement {
+
     @Override
     public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
         return visitor.visitShowCatalogs(this, context);

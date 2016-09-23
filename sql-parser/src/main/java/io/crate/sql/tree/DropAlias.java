@@ -26,8 +26,8 @@ import com.google.common.base.Objects;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
-public class DropAlias
-    extends Statement {
+public class DropAlias extends Statement {
+
     private final QualifiedName remote;
 
     public DropAlias(QualifiedName remote) {
@@ -62,7 +62,7 @@ public class DropAlias
     @Override
     public String toString() {
         return MoreObjects.toStringHelper(this)
-            .add("remote", remote)
-            .toString();
+                          .add("remote", remote)
+                          .toString();
     }
 }

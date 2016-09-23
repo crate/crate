@@ -23,8 +23,8 @@ package io.crate.sql.tree;
 
 import com.google.common.base.Preconditions;
 
-public class ExistsPredicate
-    extends Expression {
+public class ExistsPredicate extends Expression {
+
     private final Query subquery;
 
     public ExistsPredicate(Query subquery) {
@@ -39,6 +39,11 @@ public class ExistsPredicate
     @Override
     public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
         return visitor.visitExists(this, context);
+    }
+
+    @Override
+    public int hashCode() {
+        return subquery.hashCode();
     }
 
     @Override
@@ -57,10 +62,5 @@ public class ExistsPredicate
         }
 
         return true;
-    }
-
-    @Override
-    public int hashCode() {
-        return subquery.hashCode();
     }
 }

@@ -44,13 +44,17 @@ public class GenericProperty extends AnalyzerElement {
         this.value = value;
     }
 
-
     public String key() {
         return key;
     }
 
     public Expression value() {
         return value;
+    }
+
+    @Override
+    public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
+        return visitor.visitGenericProperty(this, context);
     }
 
     @Override
@@ -74,13 +78,8 @@ public class GenericProperty extends AnalyzerElement {
     @Override
     public String toString() {
         return MoreObjects.toStringHelper(this)
-            .add("key", key)
-            .add("value", value)
-            .toString();
-    }
-
-    @Override
-    public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
-        return visitor.visitGenericProperty(this, context);
+                          .add("key", key)
+                          .add("value", value)
+                          .toString();
     }
 }

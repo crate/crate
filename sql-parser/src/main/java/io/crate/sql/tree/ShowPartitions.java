@@ -30,8 +30,8 @@ import java.util.List;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
-public class ShowPartitions
-    extends Statement {
+public class ShowPartitions extends Statement {
+
     private final QualifiedName table;
     private final Optional<Expression> where;
     private final List<SortItem> orderBy;
@@ -99,11 +99,11 @@ public class ShowPartitions
     @Override
     public String toString() {
         return MoreObjects.toStringHelper(this)
-            .add("table", table)
-            .add("where", where)
-            .add("orderBy", orderBy)
-            .add("limit", limit)
-            .add("offset", offset)
-            .toString();
+                          .add("table", table)
+                          .add("where", where)
+                          .add("orderBy", orderBy)
+                          .add("limit", limit)
+                          .add("offset", offset)
+                          .toString();
     }
 }

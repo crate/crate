@@ -27,9 +27,8 @@ public class NotNullColumnConstraint extends ColumnConstraint {
     private static final String NAME = "NOT NULL";
 
     @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        return !(o == null || getClass() != o.getClass());
+    public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
+        return visitor.visitNotNullColumnConstraint(this, context);
     }
 
     @Override
@@ -38,12 +37,13 @@ public class NotNullColumnConstraint extends ColumnConstraint {
     }
 
     @Override
-    public String toString() {
-        return NAME;
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        return !(o == null || getClass() != o.getClass());
     }
 
     @Override
-    public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
-        return visitor.visitNotNullColumnConstraint(this, context);
+    public String toString() {
+        return NAME;
     }
 }

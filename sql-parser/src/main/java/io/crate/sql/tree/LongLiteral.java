@@ -23,8 +23,8 @@ package io.crate.sql.tree;
 
 import com.google.common.base.Preconditions;
 
-public class LongLiteral
-    extends Literal {
+public class LongLiteral extends Literal {
+
     private final long value;
 
     public LongLiteral(String value) {
@@ -39,6 +39,11 @@ public class LongLiteral
     @Override
     public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
         return visitor.visitLongLiteral(this, context);
+    }
+
+    @Override
+    public int hashCode() {
+        return (int) (value ^ (value >>> 32));
     }
 
     @Override
@@ -57,10 +62,5 @@ public class LongLiteral
         }
 
         return true;
-    }
-
-    @Override
-    public int hashCode() {
-        return (int) (value ^ (value >>> 32));
     }
 }

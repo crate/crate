@@ -71,18 +71,8 @@ public class AddColumnDefinition extends TableElement {
     }
 
     @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-
-        AddColumnDefinition that = (AddColumnDefinition) o;
-
-        if (!name.equals(that.name)) return false;
-        if (generatedExpression != null ? !generatedExpression.equals(that.generatedExpression) :
-            that.generatedExpression != null) return false;
-        if (type != null ? !type.equals(that.type) : that.type != null) return false;
-        return constraints.equals(that.constraints);
-
+    public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
+        return visitor.visitAddColumnDefinition(this, context);
     }
 
     @Override
@@ -95,17 +85,26 @@ public class AddColumnDefinition extends TableElement {
     }
 
     @Override
-    public String toString() {
-        return MoreObjects.toStringHelper(this)
-            .add("name", name)
-            .add("generatedExpression", generatedExpression)
-            .add("type", type)
-            .add("constraints", constraints)
-            .toString();
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+
+        AddColumnDefinition that = (AddColumnDefinition) o;
+
+        if (!name.equals(that.name)) return false;
+        if (generatedExpression != null ? !generatedExpression.equals(that.generatedExpression) :
+            that.generatedExpression != null) return false;
+        if (type != null ? !type.equals(that.type) : that.type != null) return false;
+        return constraints.equals(that.constraints);
     }
 
     @Override
-    public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
-        return visitor.visitAddColumnDefinition(this, context);
+    public String toString() {
+        return MoreObjects.toStringHelper(this)
+                          .add("name", name)
+                          .add("generatedExpression", generatedExpression)
+                          .add("type", type)
+                          .add("constraints", constraints)
+                          .toString();
     }
 }

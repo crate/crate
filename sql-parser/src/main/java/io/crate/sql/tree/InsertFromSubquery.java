@@ -44,6 +44,11 @@ public class InsertFromSubquery extends Insert {
     }
 
     @Override
+    public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
+        return visitor.visitInsertFromSubquery(this, context);
+    }
+
+    @Override
     public int hashCode() {
         return Objects.hashCode(super.hashCode(), subQuery);
     }
@@ -64,15 +69,10 @@ public class InsertFromSubquery extends Insert {
     @Override
     public String toString() {
         return MoreObjects.toStringHelper(this)
-            .add("table", table)
-            .add("columns", columns)
-            .add("subquery", subQuery)
-            .add("assignments", onDuplicateKeyAssignments)
-            .toString();
-    }
-
-    @Override
-    public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
-        return visitor.visitInsertFromSubquery(this, context);
+                          .add("table", table)
+                          .add("columns", columns)
+                          .add("subquery", subQuery)
+                          .add("assignments", onDuplicateKeyAssignments)
+                          .toString();
     }
 }

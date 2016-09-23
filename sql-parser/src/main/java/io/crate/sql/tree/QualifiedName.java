@@ -31,8 +31,19 @@ import com.google.common.collect.Lists;
 import java.util.List;
 
 public class QualifiedName {
+
     private final List<String> parts;
 
+    public QualifiedName(String name) {
+        this(ImmutableList.of(name));
+    }
+
+    public QualifiedName(Iterable<String> parts) {
+        Preconditions.checkNotNull(parts, "parts");
+        Preconditions.checkArgument(!Iterables.isEmpty(parts), "parts is empty");
+
+        this.parts = ImmutableList.copyOf(parts);
+    }
 
     public static QualifiedName of(String first, String... rest) {
         Preconditions.checkNotNull(first, "first is null");
@@ -46,24 +57,8 @@ public class QualifiedName {
         return new QualifiedName(parts);
     }
 
-    public QualifiedName(String name) {
-        this(ImmutableList.of(name));
-    }
-
-    public QualifiedName(Iterable<String> parts) {
-        Preconditions.checkNotNull(parts, "parts");
-        Preconditions.checkArgument(!Iterables.isEmpty(parts), "parts is empty");
-
-        this.parts = ImmutableList.copyOf(parts);
-    }
-
     public List<String> getParts() {
         return parts;
-    }
-
-    @Override
-    public String toString() {
-        return Joiner.on('.').join(parts);
     }
 
     /**
@@ -80,6 +75,11 @@ public class QualifiedName {
 
     public String getSuffix() {
         return Iterables.getLast(parts);
+    }
+
+    @Override
+    public int hashCode() {
+        return parts.hashCode();
     }
 
     @Override
@@ -101,7 +101,7 @@ public class QualifiedName {
     }
 
     @Override
-    public int hashCode() {
-        return parts.hashCode();
+    public String toString() {
+        return Joiner.on('.').join(parts);
     }
 }

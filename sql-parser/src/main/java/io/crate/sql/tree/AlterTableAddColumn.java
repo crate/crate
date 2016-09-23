@@ -42,6 +42,18 @@ public class AlterTableAddColumn extends Statement {
     }
 
     @Override
+    public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
+        return visitor.visitAlterTableAddColumnStatement(this, context);
+    }
+
+    @Override
+    public int hashCode() {
+        int result = addColumnDefinition.hashCode();
+        result = 31 * result + table.hashCode();
+        return result;
+    }
+
+    @Override
     public boolean equals(Object o) {
         if (this == o) return true;
         if (!(o instanceof AlterTableAddColumn)) return false;
@@ -55,21 +67,9 @@ public class AlterTableAddColumn extends Statement {
     }
 
     @Override
-    public int hashCode() {
-        int result = addColumnDefinition.hashCode();
-        result = 31 * result + table.hashCode();
-        return result;
-    }
-
-    @Override
     public String toString() {
         return MoreObjects.toStringHelper(this)
-            .add("table", table)
-            .add("element", addColumnDefinition).toString();
-    }
-
-    @Override
-    public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
-        return visitor.visitAlterTableAddColumnStatement(this, context);
+                          .add("table", table)
+                          .add("element", addColumnDefinition).toString();
     }
 }

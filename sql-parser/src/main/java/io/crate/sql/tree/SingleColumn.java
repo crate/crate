@@ -25,8 +25,8 @@ import com.google.common.base.Objects;
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 
-public class SingleColumn
-    extends SelectItem {
+public class SingleColumn extends SelectItem {
+
     private Optional<String> alias;
     private Expression expression;
 
@@ -55,6 +55,16 @@ public class SingleColumn
     }
 
     @Override
+    public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
+        return visitor.visitSingleColumn(this, context);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hashCode(alias, expression);
+    }
+
+    @Override
     public boolean equals(Object obj) {
         if (this == obj) {
             return true;
@@ -66,21 +76,11 @@ public class SingleColumn
         return Objects.equal(this.alias, other.alias) && Objects.equal(this.expression, other.expression);
     }
 
-    @Override
-    public int hashCode() {
-        return Objects.hashCode(alias, expression);
-    }
-
     public String toString() {
         if (alias.isPresent()) {
             return expression.toString() + " " + alias.get();
         }
 
         return expression.toString();
-    }
-
-    @Override
-    public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
-        return visitor.visitSingleColumn(this, context);
     }
 }

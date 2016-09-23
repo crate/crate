@@ -29,8 +29,8 @@ import static com.google.common.base.Preconditions.checkNotNull;
 /**
  * IF(v1,v2[,v3]): CASE WHEN v1 THEN v2 [ELSE v3] END
  */
-public class IfExpression
-    extends Expression {
+public class IfExpression extends Expression {
+
     private final Expression condition;
     private final Expression trueValue;
     private final Optional<Expression> falseValue;
@@ -59,6 +59,11 @@ public class IfExpression
     }
 
     @Override
+    public int hashCode() {
+        return Objects.hashCode(condition, trueValue, falseValue);
+    }
+
+    @Override
     public boolean equals(Object obj) {
         if (this == obj) {
             return true;
@@ -70,10 +75,5 @@ public class IfExpression
         return Objects.equal(condition, o.condition) &&
                Objects.equal(trueValue, o.trueValue) &&
                Objects.equal(falseValue, o.falseValue);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hashCode(condition, trueValue, falseValue);
     }
 }

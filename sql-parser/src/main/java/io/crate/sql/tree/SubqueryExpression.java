@@ -21,8 +21,8 @@
 
 package io.crate.sql.tree;
 
-public class SubqueryExpression
-    extends Expression {
+public class SubqueryExpression extends Expression {
+
     private final Query query;
 
     public SubqueryExpression(Query query) {
@@ -36,6 +36,11 @@ public class SubqueryExpression
     @Override
     public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
         return visitor.visitSubqueryExpression(this, context);
+    }
+
+    @Override
+    public int hashCode() {
+        return query.hashCode();
     }
 
     @Override
@@ -54,10 +59,5 @@ public class SubqueryExpression
         }
 
         return true;
-    }
-
-    @Override
-    public int hashCode() {
-        return query.hashCode();
     }
 }

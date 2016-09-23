@@ -26,8 +26,8 @@ import com.google.common.base.Preconditions;
 
 import java.util.List;
 
-public class AliasedRelation
-    extends Relation {
+public class AliasedRelation extends Relation {
+
     private final Relation relation;
     private final String alias;
     private final List<String> columnNames;
@@ -59,13 +59,11 @@ public class AliasedRelation
     }
 
     @Override
-    public String toString() {
-        return MoreObjects.toStringHelper(this)
-            .add("relation", relation)
-            .add("alias", alias)
-            .add("columnNames", columnNames)
-            .omitNullValues()
-            .toString();
+    public int hashCode() {
+        int result = relation.hashCode();
+        result = 31 * result + alias.hashCode();
+        result = 31 * result + (columnNames != null ? columnNames.hashCode() : 0);
+        return result;
     }
 
     @Override
@@ -93,11 +91,12 @@ public class AliasedRelation
     }
 
     @Override
-    public int hashCode() {
-        int result = relation.hashCode();
-        result = 31 * result + alias.hashCode();
-        result = 31 * result + (columnNames != null ? columnNames.hashCode() : 0);
-        return result;
+    public String toString() {
+        return MoreObjects.toStringHelper(this)
+                          .add("relation", relation)
+                          .add("alias", alias)
+                          .add("columnNames", columnNames)
+                          .omitNullValues()
+                          .toString();
     }
-
 }

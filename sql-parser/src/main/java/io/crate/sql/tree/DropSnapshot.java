@@ -37,6 +37,11 @@ public class DropSnapshot extends Statement {
     }
 
     @Override
+    public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
+        return visitor.visitDropSnapshot(this, context);
+    }
+
+    @Override
     public int hashCode() {
         return Objects.hashCode(name);
     }
@@ -51,12 +56,7 @@ public class DropSnapshot extends Statement {
     @Override
     public String toString() {
         return MoreObjects.toStringHelper(this)
-            .add("name", name)
-            .toString();
-    }
-
-    @Override
-    public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
-        return visitor.visitDropSnapshot(this, context);
+                          .add("name", name)
+                          .toString();
     }
 }

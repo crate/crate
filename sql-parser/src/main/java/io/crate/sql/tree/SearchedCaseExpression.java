@@ -26,8 +26,8 @@ import com.google.common.collect.ImmutableList;
 
 import java.util.List;
 
-public class SearchedCaseExpression
-    extends Expression {
+public class SearchedCaseExpression extends Expression {
+
     private final List<WhenClause> whenClauses;
     private final Expression defaultValue;
 
@@ -51,6 +51,13 @@ public class SearchedCaseExpression
     }
 
     @Override
+    public int hashCode() {
+        int result = whenClauses.hashCode();
+        result = 31 * result + (defaultValue != null ? defaultValue.hashCode() : 0);
+        return result;
+    }
+
+    @Override
     public boolean equals(Object o) {
         if (this == o) {
             return true;
@@ -69,12 +76,5 @@ public class SearchedCaseExpression
         }
 
         return true;
-    }
-
-    @Override
-    public int hashCode() {
-        int result = whenClauses.hashCode();
-        result = 31 * result + (defaultValue != null ? defaultValue.hashCode() : 0);
-        return result;
     }
 }

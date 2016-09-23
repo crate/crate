@@ -27,10 +27,7 @@ import javax.annotation.Nullable;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
-public class CurrentTime
-    extends Expression {
-    private final Type type;
-    private final Optional<Integer> precision;
+public class CurrentTime extends Expression {
 
     public enum Type {
         TIME("current_time"),
@@ -39,7 +36,7 @@ public class CurrentTime
 
         private final String name;
 
-        private Type(String name) {
+        Type(String name) {
             this.name = name;
         }
 
@@ -47,6 +44,9 @@ public class CurrentTime
             return name;
         }
     }
+
+    private final Type type;
+    private final Optional<Integer> precision;
 
     public CurrentTime(Type type) {
         this(type, null);
@@ -72,6 +72,13 @@ public class CurrentTime
     }
 
     @Override
+    public int hashCode() {
+        int result = type.hashCode();
+        result = 31 * result + precision.hashCode();
+        return result;
+    }
+
+    @Override
     public boolean equals(Object o) {
         if (this == o) {
             return true;
@@ -90,12 +97,5 @@ public class CurrentTime
         }
 
         return true;
-    }
-
-    @Override
-    public int hashCode() {
-        int result = type.hashCode();
-        result = 31 * result + precision.hashCode();
-        return result;
     }
 }

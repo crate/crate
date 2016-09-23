@@ -27,11 +27,11 @@ import org.antlr.runtime.tree.Tree;
 
 import java.util.List;
 
-public final class TreePrinter {
-    private TreePrinter() {
-    }
+final class TreePrinter {
 
-    public static String treeToString(Tree tree) {
+    private TreePrinter() {}
+
+    static String treeToString(Tree tree) {
         return treeToString(tree, 1);
     }
 

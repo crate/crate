@@ -34,7 +34,10 @@ public class IndexDefinition extends TableElement {
     private final List<Expression> columns;
     private final GenericProperties properties;
 
-    public IndexDefinition(String ident, String method, List<Expression> columns, @Nullable GenericProperties properties) {
+    public IndexDefinition(String ident,
+                           String method,
+                           List<Expression> columns,
+                           @Nullable GenericProperties properties) {
         this.ident = ident;
         this.method = method;
         this.columns = columns;
@@ -55,6 +58,11 @@ public class IndexDefinition extends TableElement {
 
     public GenericProperties properties() {
         return properties;
+    }
+
+    @Override
+    public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
+        return visitor.visitIndexDefinition(this, context);
     }
 
     @Override
@@ -80,15 +88,10 @@ public class IndexDefinition extends TableElement {
     @Override
     public String toString() {
         return MoreObjects.toStringHelper(this)
-            .add("ident", ident)
-            .add("method", method)
-            .add("columns", columns)
-            .add("properties", properties)
-            .toString();
-    }
-
-    @Override
-    public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
-        return visitor.visitIndexDefinition(this, context);
+                          .add("ident", ident)
+                          .add("method", method)
+                          .add("columns", columns)
+                          .add("properties", properties)
+                          .toString();
     }
 }

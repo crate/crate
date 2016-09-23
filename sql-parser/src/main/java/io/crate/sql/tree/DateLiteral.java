@@ -27,8 +27,8 @@ import org.joda.time.format.ISODateTimeFormat;
 
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 
-public class DateLiteral
-    extends Literal {
+public class DateLiteral extends Literal {
+
     public static final DateTimeFormatter DATE_FORMATTER = ISODateTimeFormat.date().withZoneUTC();
 
     private final String value;
@@ -54,6 +54,11 @@ public class DateLiteral
     }
 
     @Override
+    public int hashCode() {
+        return value.hashCode();
+    }
+
+    @Override
     public boolean equals(Object o) {
         if (this == o) {
             return true;
@@ -69,10 +74,5 @@ public class DateLiteral
         }
 
         return true;
-    }
-
-    @Override
-    public int hashCode() {
-        return value.hashCode();
     }
 }

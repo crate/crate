@@ -98,10 +98,10 @@ public class CreateTable extends Statement {
     @Override
     public String toString() {
         return MoreObjects.toStringHelper(this)
-            .add("name", name)
-            .add("tableElements", tableElements)
-            .add("crateTableOptions", crateTableOptions)
-            .add("ifNotExists", ifNotExists)
-            .add("properties", properties).toString();
+                          .add("name", name)
+                          .add("tableElements", tableElements)
+                          .add("crateTableOptions", crateTableOptions)
+                          .add("ifNotExists", ifNotExists)
+                          .add("properties", properties).toString();
     }
 }

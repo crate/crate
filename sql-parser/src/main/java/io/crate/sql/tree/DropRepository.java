@@ -38,6 +38,11 @@ public class DropRepository extends Statement {
     }
 
     @Override
+    public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
+        return visitor.visitDropRepository(this, context);
+    }
+
+    @Override
     public int hashCode() {
         return Objects.hashCode(repository);
     }
@@ -52,12 +57,7 @@ public class DropRepository extends Statement {
     @Override
     public String toString() {
         return MoreObjects.toStringHelper(this)
-            .add("repository", repository)
-            .toString();
-    }
-
-    @Override
-    public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
-        return visitor.visitDropRepository(this, context);
+                          .add("repository", repository)
+                          .toString();
     }
 }

@@ -23,8 +23,8 @@ package io.crate.sql.tree;
 
 import com.google.common.base.Preconditions;
 
-public class ComparisonExpression
-    extends Expression {
+public class ComparisonExpression extends Expression {
+
     public enum Type {
         EQUAL("="),
         NOT_EQUAL("<>"),
@@ -47,7 +47,6 @@ public class ComparisonExpression
         public String getValue() {
             return value;
         }
-
     }
 
     private final Type type;
@@ -82,6 +81,14 @@ public class ComparisonExpression
     }
 
     @Override
+    public int hashCode() {
+        int result = type.hashCode();
+        result = 31 * result + left.hashCode();
+        result = 31 * result + right.hashCode();
+        return result;
+    }
+
+    @Override
     public boolean equals(Object o) {
         if (this == o) {
             return true;
@@ -103,14 +110,6 @@ public class ComparisonExpression
         }
 
         return true;
-    }
-
-    @Override
-    public int hashCode() {
-        int result = type.hashCode();
-        result = 31 * result + left.hashCode();
-        result = 31 * result + right.hashCode();
-        return result;
     }
 }
 

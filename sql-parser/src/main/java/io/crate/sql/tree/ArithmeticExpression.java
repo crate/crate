@@ -21,14 +21,15 @@
 
 package io.crate.sql.tree;
 
-public class ArithmeticExpression
-    extends Expression {
+public class ArithmeticExpression extends Expression {
+
     public enum Type {
         ADD("+"),
         SUBTRACT("-"),
         MULTIPLY("*"),
         DIVIDE("/"),
         MODULUS("%");
+
         private final String value;
 
         Type(String value) {
@@ -68,6 +69,14 @@ public class ArithmeticExpression
     }
 
     @Override
+    public int hashCode() {
+        int result = type.hashCode();
+        result = 31 * result + left.hashCode();
+        result = 31 * result + right.hashCode();
+        return result;
+    }
+
+    @Override
     public boolean equals(Object o) {
         if (this == o) {
             return true;
@@ -89,13 +98,5 @@ public class ArithmeticExpression
         }
 
         return true;
-    }
-
-    @Override
-    public int hashCode() {
-        int result = type.hashCode();
-        result = 31 * result + left.hashCode();
-        result = 31 * result + right.hashCode();
-        return result;
     }
 }

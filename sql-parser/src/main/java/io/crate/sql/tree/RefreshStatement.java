@@ -39,6 +39,11 @@ public class RefreshStatement extends Statement {
     }
 
     @Override
+    public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
+        return visitor.visitRefreshStatement(this, context);
+    }
+
+    @Override
     public int hashCode() {
         return Objects.hashCode(tables);
     }
@@ -58,12 +63,7 @@ public class RefreshStatement extends Statement {
     @Override
     public String toString() {
         return MoreObjects.toStringHelper(this)
-            .add("table", tables)
-            .toString();
-    }
-
-    @Override
-    public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
-        return visitor.visitRefreshStatement(this, context);
+                          .add("table", tables)
+                          .toString();
     }
 }

@@ -21,8 +21,8 @@
 
 package io.crate.sql.tree;
 
-public class InPredicate
-    extends Expression {
+public class InPredicate extends Expression {
+
     private final Expression value;
     private final Expression valueList;
 
@@ -45,6 +45,13 @@ public class InPredicate
     }
 
     @Override
+    public int hashCode() {
+        int result = value.hashCode();
+        result = 31 * result + valueList.hashCode();
+        return result;
+    }
+
+    @Override
     public boolean equals(Object o) {
         if (this == o) {
             return true;
@@ -63,12 +70,5 @@ public class InPredicate
         }
 
         return true;
-    }
-
-    @Override
-    public int hashCode() {
-        int result = value.hashCode();
-        result = 31 * result + valueList.hashCode();
-        return result;
     }
 }

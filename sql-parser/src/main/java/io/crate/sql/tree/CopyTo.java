@@ -30,7 +30,6 @@ import java.util.List;
 
 public class CopyTo extends Statement {
 
-
     private final Table table;
     private final boolean directoryUri;
     private final Expression targetUri;
@@ -70,13 +69,28 @@ public class CopyTo extends Statement {
         return columns;
     }
 
-
     public Optional<GenericProperties> genericProperties() {
         return genericProperties;
     }
 
     public Optional<Expression> whereClause() {
         return whereClause;
+    }
+
+    @Override
+    public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
+        return visitor.visitCopyTo(this, context);
+    }
+
+    @Override
+    public int hashCode() {
+        int result = table.hashCode();
+        result = 31 * result + (directoryUri ? 1 : 0);
+        result = 31 * result + targetUri.hashCode();
+        result = 31 * result + genericProperties.hashCode();
+        result = 31 * result + columns.hashCode();
+        result = 31 * result + whereClause.hashCode();
+        return result;
     }
 
     @Override
@@ -97,30 +111,14 @@ public class CopyTo extends Statement {
     }
 
     @Override
-    public int hashCode() {
-        int result = table.hashCode();
-        result = 31 * result + (directoryUri ? 1 : 0);
-        result = 31 * result + targetUri.hashCode();
-        result = 31 * result + genericProperties.hashCode();
-        result = 31 * result + columns.hashCode();
-        result = 31 * result + whereClause.hashCode();
-        return result;
-    }
-
-    @Override
     public String toString() {
         return MoreObjects.toStringHelper(this)
-            .add("table", table)
-            .add("columns", columns)
-            .add("whereClause", whereClause)
-            .add("directoryUri", directoryUri)
-            .add("targetUri", targetUri)
-            .add("genericProperties", genericProperties)
-            .toString();
-    }
-
-    @Override
-    public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
-        return visitor.visitCopyTo(this, context);
+                          .add("table", table)
+                          .add("columns", columns)
+                          .add("whereClause", whereClause)
+                          .add("directoryUri", directoryUri)
+                          .add("targetUri", targetUri)
+                          .add("genericProperties", genericProperties)
+                          .toString();
     }
 }

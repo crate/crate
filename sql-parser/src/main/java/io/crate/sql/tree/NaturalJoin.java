@@ -23,19 +23,19 @@ package io.crate.sql.tree;
 
 import com.google.common.base.MoreObjects;
 
-public class NaturalJoin
-    extends JoinCriteria {
+public class NaturalJoin extends JoinCriteria {
+
+    @Override
+    public int hashCode() {
+        return 0;
+    }
+
     @Override
     public boolean equals(Object obj) {
         if (this == obj) {
             return true;
         }
         return (obj != null) && (getClass() == obj.getClass());
-    }
-
-    @Override
-    public int hashCode() {
-        return 0;
     }
 
     @Override

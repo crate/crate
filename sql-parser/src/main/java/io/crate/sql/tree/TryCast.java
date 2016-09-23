@@ -25,6 +25,7 @@ package io.crate.sql.tree;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 public class TryCast extends Expression {
+
     private final Expression expression;
     private final ColumnType type;
 
@@ -50,6 +51,13 @@ public class TryCast extends Expression {
     }
 
     @Override
+    public int hashCode() {
+        int result = expression.hashCode();
+        result = 31 * result + type.hashCode();
+        return result;
+    }
+
+    @Override
     public boolean equals(Object o) {
         if (this == o) {
             return true;
@@ -68,12 +76,5 @@ public class TryCast extends Expression {
         }
 
         return true;
-    }
-
-    @Override
-    public int hashCode() {
-        int result = expression.hashCode();
-        result = 31 * result + type.hashCode();
-        return result;
     }
 }

@@ -51,6 +51,11 @@ public class MatchPredicateColumnIdent extends Expression {
     }
 
     @Override
+    public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
+        return visitor.visitMatchPredicateColumnIdent(this, context);
+    }
+
+    @Override
     public int hashCode() {
         return Objects.hashCode(ident, boost);
     }
@@ -74,10 +79,5 @@ public class MatchPredicateColumnIdent extends Expression {
         }
 
         return true;
-    }
-
-    @Override
-    public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
-        return visitor.visitMatchPredicateColumnIdent(this, context);
     }
 }

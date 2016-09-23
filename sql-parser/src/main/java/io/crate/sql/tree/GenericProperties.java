@@ -28,7 +28,6 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
-
 /**
  * these are a kind of map/dictionary with string keys and expression values.
  * <p>
@@ -81,6 +80,11 @@ public class GenericProperties extends Node {
     }
 
     @Override
+    public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
+        return visitor.visitGenericProperties(this, context);
+    }
+
+    @Override
     public int hashCode() {
         return Objects.hashCode(properties);
     }
@@ -100,10 +104,5 @@ public class GenericProperties extends Node {
     @Override
     public String toString() {
         return properties.toString();
-    }
-
-    @Override
-    public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
-        return visitor.visitGenericProperties(this, context);
     }
 }

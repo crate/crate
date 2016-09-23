@@ -23,8 +23,8 @@ package io.crate.sql.tree;
 
 import com.google.common.base.Preconditions;
 
-public class DoubleLiteral
-    extends Literal {
+public class DoubleLiteral extends Literal {
+
     private final double value;
 
     public DoubleLiteral(String value) {
@@ -39,6 +39,12 @@ public class DoubleLiteral
     @Override
     public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
         return visitor.visitDoubleLiteral(this, context);
+    }
+
+    @Override
+    public int hashCode() {
+        long temp = value != +0.0d ? Double.doubleToLongBits(value) : 0L;
+        return (int) (temp ^ (temp >>> 32));
     }
 
     @Override
@@ -57,11 +63,5 @@ public class DoubleLiteral
         }
 
         return true;
-    }
-
-    @Override
-    public int hashCode() {
-        long temp = value != +0.0d ? Double.doubleToLongBits(value) : 0L;
-        return (int) (temp ^ (temp >>> 32));
     }
 }

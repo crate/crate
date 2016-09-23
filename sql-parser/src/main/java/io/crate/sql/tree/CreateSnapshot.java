@@ -39,7 +39,6 @@ public class CreateSnapshot extends Statement {
         this.name = name;
         this.properties = Optional.fromNullable(genericProperties);
         this.tableList = Optional.absent();
-
     }
 
     public CreateSnapshot(QualifiedName name,
@@ -48,7 +47,6 @@ public class CreateSnapshot extends Statement {
         this.name = name;
         this.tableList = Optional.of(tableList);
         this.properties = Optional.fromNullable(genericProperties);
-
     }
 
     public QualifiedName name() {
@@ -61,6 +59,11 @@ public class CreateSnapshot extends Statement {
 
     public Optional<List<Table>> tableList() {
         return tableList;
+    }
+
+    @Override
+    public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
+        return visitor.visitCreateSnapshot(this, context);
     }
 
     @Override
@@ -83,14 +86,9 @@ public class CreateSnapshot extends Statement {
     @Override
     public String toString() {
         return MoreObjects.toStringHelper(this)
-            .add("name", name)
-            .add("properties", properties)
-            .add("tableList", tableList)
-            .toString();
-    }
-
-    @Override
-    public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
-        return visitor.visitCreateSnapshot(this, context);
+                          .add("name", name)
+                          .add("properties", properties)
+                          .add("tableList", tableList)
+                          .toString();
     }
 }

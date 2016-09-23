@@ -32,6 +32,11 @@ public class CollectionColumnType extends ColumnType {
 
     private final ColumnType innerType;
 
+    private CollectionColumnType(ColumnType innerType, Type type) {
+        super(type.name().toUpperCase(Locale.ENGLISH), type);
+        this.innerType = innerType;
+    }
+
     public static CollectionColumnType array(ColumnType innerType) {
         return new CollectionColumnType(innerType, Type.ARRAY);
     }
@@ -40,18 +45,13 @@ public class CollectionColumnType extends ColumnType {
         return new CollectionColumnType(innerType, Type.SET);
     }
 
-    private CollectionColumnType(ColumnType innerType, Type type) {
-        super(type.name().toUpperCase(Locale.ENGLISH), type);
-        this.innerType = innerType;
-    }
-
     public ColumnType innerType() {
         return innerType;
     }
 
     @Override
-    public int hashCode() {
-        return Objects.hashCode(name, type, innerType);
+    public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
+        return visitor.visitCollectionColumnType(this, context);
     }
 
     @Override
@@ -68,7 +68,7 @@ public class CollectionColumnType extends ColumnType {
     }
 
     @Override
-    public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
-        return visitor.visitCollectionColumnType(this, context);
+    public int hashCode() {
+        return Objects.hashCode(name, type, innerType);
     }
 }

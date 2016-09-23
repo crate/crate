@@ -23,8 +23,8 @@ package io.crate.sql.tree;
 
 import com.google.common.base.Preconditions;
 
-public class NotExpression
-    extends Expression {
+public class NotExpression extends Expression {
+
     private final Expression value;
 
     public NotExpression(Expression value) {
@@ -39,6 +39,11 @@ public class NotExpression
     @Override
     public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
         return visitor.visitNotExpression(this, context);
+    }
+
+    @Override
+    public int hashCode() {
+        return value.hashCode();
     }
 
     @Override
@@ -57,10 +62,5 @@ public class NotExpression
         }
 
         return true;
-    }
-
-    @Override
-    public int hashCode() {
-        return value.hashCode();
     }
 }

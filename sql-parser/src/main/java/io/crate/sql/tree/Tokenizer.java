@@ -42,6 +42,11 @@ public class Tokenizer extends AnalyzerElement {
     }
 
     @Override
+    public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
+        return visitor.visitTokenizer(this, context);
+    }
+
+    @Override
     public int hashCode() {
         return Objects.hashCode(namedProperties);
     }
@@ -61,10 +66,5 @@ public class Tokenizer extends AnalyzerElement {
     @Override
     public String toString() {
         return MoreObjects.toStringHelper(this).add("namedProperties", namedProperties).toString();
-    }
-
-    @Override
-    public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
-        return visitor.visitTokenizer(this, context);
     }
 }

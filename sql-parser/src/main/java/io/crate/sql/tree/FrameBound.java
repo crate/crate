@@ -27,8 +27,8 @@ import com.google.common.base.Optional;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
-public class FrameBound
-    extends Node {
+public class FrameBound extends Node {
+
     public enum Type {
         UNBOUNDED_PRECEDING,
         PRECEDING,
@@ -63,6 +63,11 @@ public class FrameBound
     }
 
     @Override
+    public int hashCode() {
+        return Objects.hashCode(type, value);
+    }
+
+    @Override
     public boolean equals(Object obj) {
         if (this == obj) {
             return true;
@@ -76,15 +81,10 @@ public class FrameBound
     }
 
     @Override
-    public int hashCode() {
-        return Objects.hashCode(type, value);
-    }
-
-    @Override
     public String toString() {
         return MoreObjects.toStringHelper(this)
-            .add("type", type)
-            .add("value", value)
-            .toString();
+                          .add("type", type)
+                          .add("value", value)
+                          .toString();
     }
 }

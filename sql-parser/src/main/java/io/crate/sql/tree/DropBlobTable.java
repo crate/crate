@@ -53,11 +53,8 @@ public class DropBlobTable extends Statement {
     }
 
     @Override
-    public String toString() {
-        return MoreObjects.toStringHelper(this)
-            .add("table", table)
-            .add("ignoreNonExistentTable", ignoreNonExistentTable)
-            .toString();
+    public int hashCode() {
+        return Objects.hashCode(table, ignoreNonExistentTable);
     }
 
     @Override
@@ -74,11 +71,13 @@ public class DropBlobTable extends Statement {
             return false;
         }
         return table.equals(that.table);
-
     }
 
     @Override
-    public int hashCode() {
-        return Objects.hashCode(table, ignoreNonExistentTable);
+    public String toString() {
+        return MoreObjects.toStringHelper(this)
+                          .add("table", table)
+                          .add("ignoreNonExistentTable", ignoreNonExistentTable)
+                          .toString();
     }
 }

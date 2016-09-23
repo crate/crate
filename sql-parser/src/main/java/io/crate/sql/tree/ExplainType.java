@@ -26,8 +26,8 @@ import com.google.common.base.Objects;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
-public class ExplainType
-    extends ExplainOption {
+public class ExplainType extends ExplainOption {
+
     public enum Type {
         LOGICAL,
         DISTRIBUTED
@@ -63,7 +63,7 @@ public class ExplainType
     @Override
     public String toString() {
         return MoreObjects.toStringHelper(this)
-            .add("type", type)
-            .toString();
+                          .add("type", type)
+                          .toString();
     }
 }

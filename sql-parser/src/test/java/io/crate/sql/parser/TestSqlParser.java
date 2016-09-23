@@ -40,6 +40,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 
 public class TestSqlParser {
+
     @Rule
     public ExpectedException expectedException = ExpectedException.none();
 
@@ -83,20 +84,20 @@ public class TestSqlParser {
     @Test
     public void testDoubleInQuery() {
         assertStatement("SELECT 123.456E7 FROM DUAL",
-            new Query(
-                Optional.<With>absent(),
-                new QuerySpecification(
-                    selectList(new DoubleLiteral("123.456E7")),
-                    table(QualifiedName.of("dual")),
-                    Optional.<Expression>absent(),
-                    ImmutableList.<Expression>of(),
-                    Optional.<Expression>absent(),
-                    ImmutableList.<SortItem>of(),
-                    Optional.<Expression>absent(),
-                    Optional.<Expression>absent()),
-                ImmutableList.<SortItem>of(),
-                Optional.<Expression>absent(),
-                Optional.<Expression>absent()));
+                        new Query(
+                            Optional.<With>absent(),
+                            new QuerySpecification(
+                                selectList(new DoubleLiteral("123.456E7")),
+                                table(QualifiedName.of("dual")),
+                                Optional.<Expression>absent(),
+                                ImmutableList.<Expression>of(),
+                                Optional.<Expression>absent(),
+                                ImmutableList.<SortItem>of(),
+                                Optional.<Expression>absent(),
+                                Optional.<Expression>absent()),
+                            ImmutableList.<SortItem>of(),
+                            Optional.<Expression>absent(),
+                            Optional.<Expression>absent()));
     }
 
     @Test
@@ -173,28 +174,32 @@ public class TestSqlParser {
     @Test
     public void testParseErrorBackquotes() {
         expectedException.expect(ParsingException.class);
-        expectedException.expectMessage("line 1:15: backquoted identifiers are not supported; use double quotes to quote identifiers");
+        expectedException.expectMessage(
+            "line 1:15: backquoted identifiers are not supported; use double quotes to quote identifiers");
         SqlParser.createStatement("select * from `foo`");
     }
 
     @Test
     public void testParseErrorBackquotesEndOfInput() {
         expectedException.expect(ParsingException.class);
-        expectedException.expectMessage("line 1:19: backquoted identifiers are not supported; use double quotes to quote identifiers");
+        expectedException.expectMessage(
+            "line 1:19: backquoted identifiers are not supported; use double quotes to quote identifiers");
         SqlParser.createStatement("select * from foo `bar`");
     }
 
     @Test
     public void testParseErrorDigitIdentifiers() {
         expectedException.expect(ParsingException.class);
-        expectedException.expectMessage("line 1:8: identifiers must not start with a digit; surround the identifier with double quotes");
+        expectedException.expectMessage(
+            "line 1:8: identifiers must not start with a digit; surround the identifier with double quotes");
         SqlParser.createStatement("select 1x from dual");
     }
 
     @Test
     public void testIdentifierWithColon() {
         expectedException.expect(ParsingException.class);
-        expectedException.expectMessage("line 1:15: identifiers must not contain a colon; use '@' instead of ':' for table links");
+        expectedException.expectMessage(
+            "line 1:15: identifiers must not contain a colon; use '@' instead of ':' for table links");
         SqlParser.createStatement("select * from foo:bar");
     }
 
@@ -289,9 +294,9 @@ public class TestSqlParser {
     private static void assertParsed(String input, Node expected, Node parsed) {
         if (!parsed.equals(expected)) {
             fail(format("expected\n\n%s\n\nto parse as\n\n%s\n\nbut was\n\n%s\n",
-                indent(input),
-                indent(formatSql(expected)),
-                indent(formatSql(parsed))));
+                        indent(input),
+                        indent(formatSql(expected)),
+                        indent(formatSql(parsed))));
         }
     }
 

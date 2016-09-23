@@ -27,10 +27,11 @@ import com.google.common.base.Optional;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
-public class WindowFrame
-    extends Node {
+public class WindowFrame extends Node {
+
     public enum Type {
-        RANGE, ROWS
+        RANGE,
+        ROWS
     }
 
     private final Type type;
@@ -61,6 +62,11 @@ public class WindowFrame
     }
 
     @Override
+    public int hashCode() {
+        return Objects.hashCode(type, start, end);
+    }
+
+    @Override
     public boolean equals(Object obj) {
         if (this == obj) {
             return true;
@@ -75,16 +81,11 @@ public class WindowFrame
     }
 
     @Override
-    public int hashCode() {
-        return Objects.hashCode(type, start, end);
-    }
-
-    @Override
     public String toString() {
         return MoreObjects.toStringHelper(this)
-            .add("type", type)
-            .add("start", start)
-            .add("end", end)
-            .toString();
+                          .add("type", type)
+                          .add("start", start)
+                          .add("end", end)
+                          .toString();
     }
 }

@@ -27,13 +27,22 @@ public class ShowCreateTable extends Statement {
 
     private final Table table;
 
+    public ShowCreateTable(Table table) {
+        this.table = table;
+    }
+
+    public Table table() {
+        return table;
+    }
+
     @Override
     public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
         return visitor.visitShowCreateTable(this, context);
     }
 
-    public ShowCreateTable(Table table) {
-        this.table = table;
+    @Override
+    public int hashCode() {
+        return table.hashCode();
     }
 
     @Override
@@ -44,22 +53,12 @@ public class ShowCreateTable extends Statement {
         ShowCreateTable that = (ShowCreateTable) o;
 
         return table.equals(that.table);
-
-    }
-
-    @Override
-    public int hashCode() {
-        return table.hashCode();
     }
 
     @Override
     public String toString() {
         return MoreObjects.toStringHelper(this)
-            .add("table", table)
-            .toString();
-    }
-
-    public Table table() {
-        return table;
+                          .add("table", table)
+                          .toString();
     }
 }

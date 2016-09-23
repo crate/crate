@@ -49,6 +49,11 @@ public class ObjectColumnType extends ColumnType {
     }
 
     @Override
+    public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
+        return visitor.visitObjectColumnType(this, context);
+    }
+
+    @Override
     public int hashCode() {
         return Objects.hashCode(name, objectType, nestedColumns);
     }
@@ -65,10 +70,5 @@ public class ObjectColumnType extends ColumnType {
         if (!objectType.equals(that.objectType)) return false;
 
         return true;
-    }
-
-    @Override
-    public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
-        return visitor.visitObjectColumnType(this, context);
     }
 }

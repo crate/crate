@@ -30,8 +30,8 @@ import java.util.List;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 
-public class With
-    extends Node {
+public class With extends Node {
+
     private final boolean recursive;
     private final List<WithQuery> queries;
 
@@ -57,6 +57,11 @@ public class With
     }
 
     @Override
+    public int hashCode() {
+        return Objects.hashCode(recursive, queries);
+    }
+
+    @Override
     public boolean equals(Object obj) {
         if (this == obj) {
             return true;
@@ -70,15 +75,10 @@ public class With
     }
 
     @Override
-    public int hashCode() {
-        return Objects.hashCode(recursive, queries);
-    }
-
-    @Override
     public String toString() {
         return MoreObjects.toStringHelper(this)
-            .add("recursive", recursive)
-            .add("queries", queries)
-            .toString();
+                          .add("recursive", recursive)
+                          .add("queries", queries)
+                          .toString();
     }
 }

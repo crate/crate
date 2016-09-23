@@ -28,8 +28,8 @@ import com.google.common.collect.ImmutableList;
 
 import java.util.List;
 
-public class Union
-    extends SetOperation {
+public class Union extends SetOperation {
+
     private final List<Relation> relations;
     private final boolean distinct;
 
@@ -54,11 +54,8 @@ public class Union
     }
 
     @Override
-    public String toString() {
-        return MoreObjects.toStringHelper(this)
-            .add("relations", relations)
-            .add("distinct", distinct)
-            .toString();
+    public int hashCode() {
+        return Objects.hashCode(relations, distinct);
     }
 
     @Override
@@ -75,7 +72,10 @@ public class Union
     }
 
     @Override
-    public int hashCode() {
-        return Objects.hashCode(relations, distinct);
+    public String toString() {
+        return MoreObjects.toStringHelper(this)
+                          .add("relations", relations)
+                          .add("distinct", distinct)
+                          .toString();
     }
 }
