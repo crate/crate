@@ -65,16 +65,16 @@ public class SigarExtendedNodeInfo implements ExtendedNodeInfo {
         try {
             Tcp sigarTcp = sigar.getTcp();
             tcp = new ExtendedNetworkStats.Tcp(
-                    sigarTcp.getActiveOpens(),
-                    sigarTcp.getPassiveOpens(),
-                    sigarTcp.getAttemptFails(),
-                    sigarTcp.getEstabResets(),
-                    sigarTcp.getCurrEstab(),
-                    sigarTcp.getInSegs(),
-                    sigarTcp.getOutSegs(),
-                    sigarTcp.getRetransSegs(),
-                    sigarTcp.getInErrs(),
-                    sigarTcp.getOutRsts()
+                sigarTcp.getActiveOpens(),
+                sigarTcp.getPassiveOpens(),
+                sigarTcp.getAttemptFails(),
+                sigarTcp.getEstabResets(),
+                sigarTcp.getCurrEstab(),
+                sigarTcp.getInSegs(),
+                sigarTcp.getOutSegs(),
+                sigarTcp.getRetransSegs(),
+                sigarTcp.getInErrs(),
+                sigarTcp.getOutRsts()
             );
         } catch (SigarException e) {
             // ignore
@@ -169,10 +169,10 @@ public class SigarExtendedNodeInfo implements ExtendedNodeInfo {
         try {
             CpuPerc cpuPerc = sigar.getCpuPerc();
             cpu = new ExtendedOsStats.Cpu(
-                    (short) Math.round(cpuPerc.getSys() * 100),
-                    (short) Math.round(cpuPerc.getUser() * 100),
-                    (short) Math.round(cpuPerc.getIdle() * 100),
-                    (short) Math.round(cpuPerc.getStolen() * 100)
+                (short) Math.round(cpuPerc.getSys() * 100),
+                (short) Math.round(cpuPerc.getUser() * 100),
+                (short) Math.round(cpuPerc.getIdle() * 100),
+                (short) Math.round(cpuPerc.getStolen() * 100)
             );
         } catch (SigarException e) {
             // ignore
@@ -213,10 +213,10 @@ public class SigarExtendedNodeInfo implements ExtendedNodeInfo {
         try {
             ProcCpu cpu = sigar.getProcCpu(sigar.getPid());
             return new ExtendedProcessCpuStats(
-                    (short) Math.round(cpu.getPercent() * 100),
-                    cpu.getSys(),
-                    cpu.getUser(),
-                    cpu.getTotal()
+                (short) Math.round(cpu.getPercent() * 100),
+                cpu.getSys(),
+                cpu.getUser(),
+                cpu.getTotal()
             );
         } catch (SigarException e) {
             // ignore
