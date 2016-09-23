@@ -738,6 +738,14 @@ assignment returns [Assignment value]
     | ^(ASSIGNMENT qname expr) { $value = new Assignment(new QualifiedNameReference($qname.value), $expr.value); }
     ;
 
+multiValueAssignment returns [Assignment value]
+    : ^(ASSIGNMENT qname setExprList) { $value = new Assignment(new QualifiedNameReference($qname.value), $setExprList.value); }
+    ;
+
+setExprList returns [List<Expression> value = new ArrayList<>()]
+    : ^(EXPR_LIST (expr { $value.add($expr.value); })+ )
+    ;
+
 copyTo returns [Statement value]
     : ^(COPY_TO namedTable columnList? whereClause? d=copyToTargetSpec[false] expr genericProperties?)
         {
@@ -1039,7 +1047,8 @@ set returns [SetStatement value]
     : ^(SET_GLOBAL assignments=assignmentList) { $value = new SetStatement(SetStatement.Scope.GLOBAL, $assignments.value); }
     | ^(SET_GLOBAL TRANSIENT assignments=assignmentList) { $value = new SetStatement(SetStatement.Scope.GLOBAL, SetStatement.SettingType.TRANSIENT, $assignments.value); }
     | ^(SET_GLOBAL PERSISTENT assignments=assignmentList) { $value = new SetStatement(SetStatement.Scope.GLOBAL, SetStatement.SettingType.PERSISTENT, $assignments.value); }
-    | ^(SET_SESSION assignments=assignmentList) { $value = new SetStatement(SetStatement.Scope.SESSION, $assignments.value); }
+    | ^(SET_SESSION mVAssignment=multiValueAssignment) {  $value = new SetStatement(SetStatement.Scope.SESSION, $mVAssignment.value); }
+    | ^(SET_LOCAL mVAssignment=multiValueAssignment) { $value = new SetStatement(SetStatement.Scope.LOCAL, $mVAssignment.value); }
     ;
 
 begin returns [BeginStatement value]

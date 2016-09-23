@@ -25,12 +25,13 @@ import com.google.common.base.MoreObjects;
 import com.google.common.base.Objects;
 import com.google.common.base.Preconditions;
 
+import java.util.Collections;
 import java.util.List;
 
 public class SetStatement extends Statement {
 
     public enum Scope {
-        GLOBAL, SESSION
+        GLOBAL, SESSION, LOCAL
     }
 
     public enum SettingType {
@@ -50,6 +51,13 @@ public class SetStatement extends Statement {
         this.scope = scope;
         this.settingType = settingType;
         this.assignments = assignments;
+    }
+
+    public SetStatement(Scope scope, Assignment assignment) {
+        Preconditions.checkNotNull(assignment, "assignment is null");
+        this.scope = scope;
+        this.settingType = SettingType.TRANSIENT;
+        this.assignments = Collections.singletonList(assignment);
     }
 
     public Scope scope() {

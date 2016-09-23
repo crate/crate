@@ -25,17 +25,27 @@ import com.google.common.base.MoreObjects;
 import com.google.common.base.Objects;
 import com.google.common.base.Preconditions;
 
+import java.util.Collections;
+import java.util.List;
+
 public class Assignment extends Node {
 
     private final Expression columnName;
-    private final Expression expression;
+    private final List<Expression> expressions;
 
+
+    public Assignment(Expression columnName, List<Expression> expression) {
+        Preconditions.checkNotNull(columnName, "columnname is null");
+        Preconditions.checkNotNull(expression, "expression is null");
+        this.columnName = columnName;
+        this.expressions = expression;
+    }
 
     public Assignment(Expression columnName, Expression expression) {
         Preconditions.checkNotNull(columnName, "columnname is null");
         Preconditions.checkNotNull(expression, "expression is null");
         this.columnName = columnName;
-        this.expression = expression;
+        this.expressions = Collections.singletonList(expression);
     }
 
 
@@ -44,12 +54,17 @@ public class Assignment extends Node {
     }
 
     public Expression expression() {
-        return expression;
+        return expressions.get(0);
     }
+
+    public List<Expression> expressions() {
+        return expressions;
+    }
+
 
     @Override
     public int hashCode() {
-        return Objects.hashCode(columnName, expression);
+        return Objects.hashCode(columnName, expressions);
     }
 
 
@@ -57,7 +72,7 @@ public class Assignment extends Node {
     public String toString() {
         return MoreObjects.toStringHelper(this)
             .add("column", columnName)
-            .add("expression", expression)
+            .add("expression", expressions)
             .toString();
     }
 
@@ -69,7 +84,7 @@ public class Assignment extends Node {
         Assignment that = (Assignment) o;
 
         if (!columnName.equals(that.columnName)) return false;
-        if (!expression.equals(that.expression)) return false;
+        if (!expressions.equals(that.expressions)) return false;
 
         return true;
     }
