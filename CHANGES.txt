@@ -5,6 +5,18 @@ Changes for Crate
 Unreleased
 ==========
 
+2016/09/23 0.56.0
+=================
+
+ - BREAKING: Column names returned on queries does not include the table and schema
+   names anymore, i.e., ``select doc.t1.a from t1`` will return column name ``a``
+   instead of ``doc.t1.a``.
+
+ - BREAKING: Moved some `sys.checks` into a new `sys.node_checks` table as
+   those checks were actually node specific.
+   Added the ability to acknowledge failing checks on this new
+   `sys.node_checks` table.
+
  - Updated crate-admin to ``0.20.0`` which contains following changes:
 
     - Added a new console option to allow users to display the error trace
@@ -61,13 +73,7 @@ Unreleased
    in the cluster are unresponsive. All columns of the unresponsive nodes will
    contain null values except `id` and `name`.
 
- - Fixed a race condition which could cause select statements to get stuck
-
  - Added support for subselect statements that can be rewritten as a single query.
-
- - BREAKING: Column names returned on queries does not include the table and schema
-   names anymore, i.e., ``select doc.t1.a from t1`` will return column name ``a`` instead of
-   ``doc.t1.a``.
 
  - Fetch operations are now threaded per shard instead of per node.
 
@@ -117,11 +123,6 @@ Unreleased
         characters in queries.
 
       - Fixed call of `sysinfo` command when launching the shell.
-
- - BREAKING: Moved some `sys.checks` into a new `sys.node_checks` table as
-   those checks were actually node specific.
-   Added the ability to acknowledge failing checks on this new
-   `sys.node_checks` table.
 
  - Deprecated usage of COPY TO without specifying a DIRECTORY. This will prevent a user from defining an output path
    that conflicts with multiple shards.
@@ -182,6 +183,8 @@ Unreleased
 
 2016/08/05 0.55.3
 =================
+
+ - Fixed a race condition which could cause select statements to get stuck
 
  - Fixed an issue which prevents java client from running explain
    statements.
