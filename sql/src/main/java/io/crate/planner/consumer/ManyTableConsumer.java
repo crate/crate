@@ -304,7 +304,7 @@ public class ManyTableConsumer implements Consumer {
                 return true;
             }
             if (statement.querySpec().hasAggregates()) {
-                context.validationException(new ValidationException("AGGREGATIONS on JOINS is not supported"));
+                context.validationException(new ValidationException("AGGREGATIONS on JOINS are not supported"));
                 return true;
             }
 

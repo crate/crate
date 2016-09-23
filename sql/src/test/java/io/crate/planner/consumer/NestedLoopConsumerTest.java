@@ -306,14 +306,14 @@ public class NestedLoopConsumerTest extends CrateUnitTest {
     @Test
     public void testAggregationOnCrossJoin() throws Exception {
         expectedException.expect(ValidationException.class);
-        expectedException.expectMessage("AGGREGATIONS on JOINS is not supported");
+        expectedException.expectMessage("AGGREGATIONS on JOINS are not supported");
         plan("select min(u1.name) from users u1, users u2");
     }
 
     @Test
     public void testAggregationOnNoMatch() throws Exception {
         expectedException.expect(ValidationException.class);
-        expectedException.expectMessage("AGGREGATIONS on JOINS is not supported");
+        expectedException.expectMessage("AGGREGATIONS on JOINS are not supported");
         plan("select count(*) from users u1, users u2 where false");
     }
 
