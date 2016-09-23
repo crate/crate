@@ -37,6 +37,7 @@ import io.crate.metadata.Functions;
 import io.crate.metadata.Routing;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.doc.DocTableInfo;
+import io.crate.planner.Limits;
 import io.crate.planner.Planner;
 import io.crate.planner.distribution.DistributionInfo;
 import io.crate.planner.node.NoopPlannedAnalyzedRelation;
@@ -150,7 +151,7 @@ public class DistributedGroupByConsumer implements Consumer {
                 }
             }
 
-            Planner.Context.Limits limits = plannerContext.getLimits(context.isRoot(), querySpec);
+            Limits limits = plannerContext.getLimits(context.isRoot(), querySpec);
             boolean isRootRelation = context.rootRelation() == table;
             if (isRootRelation) {
                 reducerProjections.add(ProjectionBuilder.topNProjection(

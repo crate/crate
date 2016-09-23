@@ -31,7 +31,7 @@ import io.crate.analyze.symbol.*;
 import io.crate.exceptions.ValidationException;
 import io.crate.metadata.TableIdent;
 import io.crate.operation.projectors.TopN;
-import io.crate.planner.Planner;
+import io.crate.planner.Limits;
 import io.crate.planner.TableStatsService;
 import io.crate.planner.distribution.DistributionInfo;
 import io.crate.planner.distribution.UpstreamPhase;
@@ -248,7 +248,7 @@ public class NestedLoopConsumer implements Consumer {
                 }
             }
 
-            Planner.Context.Limits limits = context.plannerContext().getLimits(context.isRoot(), querySpec);
+            Limits limits = context.plannerContext().getLimits(context.isRoot(), querySpec);
             OrderBy orderBy = statement.remainingOrderBy().orNull();
             if (orderBy == null && joinType.isOuter()) {
                 orderBy = orderByBeforeSplit;

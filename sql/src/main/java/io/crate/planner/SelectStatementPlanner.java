@@ -125,7 +125,7 @@ public class SelectStatementPlanner {
             CollectAndMerge qaf = (CollectAndMerge) plannedSubQuery;
             RoutedCollectPhase collectPhase = ((RoutedCollectPhase) qaf.collectPhase());
 
-            Planner.Context.Limits limits = context.getLimits(true, querySpec);
+            Limits limits = context.getLimits(true, querySpec);
             if (collectPhase.nodePageSizeHint() == null && limits.limitAndOffset > TopN.NO_LIMIT) {
                 collectPhase.nodePageSizeHint(limits.limitAndOffset);
             }

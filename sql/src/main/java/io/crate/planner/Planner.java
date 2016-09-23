@@ -137,33 +137,7 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
             return stmtCtx;
         }
 
-        public static class Limits {
-            public int finalLimit() {
-                return finalLimit;
-            }
-
-            public int limitAndOffset() {
-                return limitAndOffset;
-            }
-
-            public boolean hasLimit() {
-                return finalLimit != TopN.NO_LIMIT;
-            }
-
-            final int finalLimit;
-            final int limitAndOffset;
-
-            Limits(int finalLimit, int offset) {
-                this.finalLimit = finalLimit;
-                if (finalLimit > TopN.NO_LIMIT) {
-                    this.limitAndOffset = finalLimit + offset;
-                } else {
-                    this.limitAndOffset = TopN.NO_LIMIT;
-                }
-            }
-        }
-
-        public static class ReaderAllocations {
+        static class ReaderAllocations {
 
             private final TreeMap<Integer, String> readerIndices = new TreeMap<>();
             private final Map<String, IntSet> nodeReaders = new HashMap<>();
@@ -222,7 +196,7 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
             }
         }
 
-        public ReaderAllocations buildReaderAllocations() {
+        ReaderAllocations buildReaderAllocations() {
             if (readerAllocations != null) {
                 return readerAllocations;
             }
@@ -346,7 +320,7 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
         final Routing routing;
         boolean nodesAllocated = false;
 
-        public TableRouting(WhereClause where, String preference, Routing routing) {
+        TableRouting(WhereClause where, String preference, Routing routing) {
             this.where = where;
             this.preference = preference;
             this.routing = routing;

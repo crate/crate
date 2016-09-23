@@ -35,7 +35,7 @@ import io.crate.exceptions.VersionInvalidException;
 import io.crate.metadata.Functions;
 import io.crate.metadata.RowGranularity;
 import io.crate.operation.projectors.TopN;
-import io.crate.planner.Planner;
+import io.crate.planner.Limits;
 import io.crate.planner.node.NoopPlannedAnalyzedRelation;
 import io.crate.planner.node.dql.CollectAndMerge;
 import io.crate.planner.node.dql.GroupByConsumer;
@@ -155,7 +155,7 @@ public class ReduceOnCollectorGroupByConsumer implements Consumer {
             boolean outputsMatch = querySpec.outputs().size() == collectOutputs.size() &&
                                    collectOutputs.containsAll(querySpec.outputs());
 
-            Planner.Context.Limits limits = context.plannerContext().getLimits(context.isRoot(), querySpec);
+            Limits limits = context.plannerContext().getLimits(context.isRoot(), querySpec);
             boolean collectorTopN = limits.hasLimit() || querySpec.offset() > 0 || !outputsMatch;
 
             if (collectorTopN) {

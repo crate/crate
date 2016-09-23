@@ -38,6 +38,7 @@ import io.crate.collections.Lists2;
 import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.exceptions.VersionInvalidException;
 import io.crate.operation.predicate.MatchPredicate;
+import io.crate.planner.Limits;
 import io.crate.planner.Planner;
 import io.crate.planner.node.dql.CollectAndMerge;
 import io.crate.planner.node.dql.MergePhase;
@@ -119,7 +120,7 @@ public class QueryAndFetchConsumer implements Consumer {
             Optional<OrderBy> orderBy = querySpec.orderBy();
             Planner.Context plannerContext = context.plannerContext();
 
-            Planner.Context.Limits limits = plannerContext.getLimits(context.isRoot(), querySpec);
+            Limits limits = plannerContext.getLimits(context.isRoot(), querySpec);
             if (querySpec.isLimited() || orderBy.isPresent()) {
                 /**
                  * select id, name, order by id, date

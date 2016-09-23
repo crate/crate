@@ -1788,7 +1788,7 @@ public class PlannerTest extends AbstractPlannerTest {
     public void testNoSoftLimitOnUnlimitedChildRelation() throws Exception {
         int softLimit = 10_000;
         Planner.Context plannerContext = new Planner.Context(clusterService, UUID.randomUUID(), null, new StmtCtx(), softLimit, 0);
-        Planner.Context.Limits limits = plannerContext.getLimits(false, new QuerySpec());
+        Limits limits = plannerContext.getLimits(false, new QuerySpec());
         assertThat(limits.finalLimit(), is(TopN.NO_LIMIT));
     }
 }
