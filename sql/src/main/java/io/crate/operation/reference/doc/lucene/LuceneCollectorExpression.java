@@ -30,14 +30,14 @@ import org.apache.lucene.search.Scorer;
  */
 public abstract class LuceneCollectorExpression<ReturnType> implements Input<ReturnType> {
 
-    public void startCollect(CollectorContext context){
+    public void startCollect(CollectorContext context) {
 
     }
 
-    public void setNextDocId(int doc){
+    public void setNextDocId(int doc) {
     }
 
-    public void setNextReader(LeafReaderContext context){
+    public void setNextReader(LeafReaderContext context) {
     }
 
     public void setScorer(Scorer scorer) {

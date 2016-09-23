@@ -108,8 +108,8 @@ public class AnalyzedTableElements {
             partitionedBy = new ArrayList<>(partitionedByColumns.size());
             for (AnalyzedColumnDefinition partitionedByColumn : partitionedByColumns) {
                 partitionedBy.add(ImmutableList.of(
-                        partitionedByColumn.ident().fqn(),
-                        partitionedByColumn.dataType())
+                    partitionedByColumn.ident().fqn(),
+                    partitionedByColumn.dataType())
                 );
             }
         }
@@ -174,7 +174,7 @@ public class AnalyzedTableElements {
     private static void checkPrimaryKeyAlreadyDefined(Set<String> primaryKeys, String columnName) {
         if (primaryKeys.contains(columnName)) {
             throw new IllegalArgumentException(String.format(Locale.ENGLISH,
-                    "Column \"%s\" appears twice in primary key constraint", columnName));
+                "Column \"%s\" appears twice in primary key constraint", columnName));
         }
     }
 
@@ -186,7 +186,7 @@ public class AnalyzedTableElements {
     public void add(AnalyzedColumnDefinition analyzedColumnDefinition) {
         if (columnIdents.contains(analyzedColumnDefinition.ident())) {
             throw new IllegalArgumentException(String.format(Locale.ENGLISH,
-                    "column \"%s\" specified more than once", analyzedColumnDefinition.ident().sqlFqn()));
+                "column \"%s\" specified more than once", analyzedColumnDefinition.ident().sqlFqn()));
         }
         columnIdents.add(analyzedColumnDefinition.ident());
         columns.add(analyzedColumnDefinition);
@@ -209,7 +209,7 @@ public class AnalyzedTableElements {
                                     AnalysisMetaData analysisMetaData,
                                     ParameterContext parameterContext,
                                     StmtCtx stmtCtx
-                                    ) {
+    ) {
         expandColumnIdents();
         validateGeneratedColumns(tableIdent, tableInfo, analysisMetaData, parameterContext, stmtCtx);
         for (AnalyzedColumnDefinition column : columns) {
@@ -236,7 +236,7 @@ public class AnalyzedTableElements {
 
         TableReferenceResolver tableReferenceResolver = new TableReferenceResolver(tableReferences);
         ExpressionAnalyzer expressionAnalyzer = new ExpressionAnalyzer(
-                analysisMetaData, parameterContext, tableReferenceResolver, null);
+            analysisMetaData, parameterContext, tableReferenceResolver, null);
         SymbolPrinter printer = new SymbolPrinter(analysisMetaData.functions());
         ExpressionAnalysisContext expressionAnalysisContext = new ExpressionAnalysisContext(stmtCtx);
         for (AnalyzedColumnDefinition columnDefinition : columns) {
@@ -255,12 +255,13 @@ public class AnalyzedTableElements {
 
         String formattedExpression;
         DataType valueType = function.valueType();
-        DataType definedType = columnDefinition.dataType() == null ? null : DataTypes.ofMappingNameSafe(columnDefinition.dataType());
+        DataType definedType =
+            columnDefinition.dataType() == null ? null : DataTypes.ofMappingNameSafe(columnDefinition.dataType());
 
         // check for optional defined type and add `cast` to expression if possible
         if (definedType != null && !definedType.equals(valueType)) {
             Preconditions.checkArgument(valueType.isConvertableTo(definedType),
-                    "generated expression value type '%s' not supported for conversion to '%s'", valueType, definedType.getName());
+                "generated expression value type '%s' not supported for conversion to '%s'", valueType, definedType.getName());
 
             Function castFunction = new Function(CastFunctionResolver.functionInfo(valueType, definedType, false), Lists.newArrayList(function));
             formattedExpression = symbolPrinter.print(castFunction, SymbolPrinter.Style.PARSEABLE_NOT_QUALIFIED); // no full qualified references here
@@ -276,16 +277,16 @@ public class AnalyzedTableElements {
         Reference reference;
         if (columnDefinition.generatedExpression() == null) {
             reference = new Reference(
-                    new ReferenceIdent(tableIdent, columnDefinition.ident()),
-                    RowGranularity.DOC,
-                    DataTypes.ofMappingNameSafe(columnDefinition.dataType()));
+                new ReferenceIdent(tableIdent, columnDefinition.ident()),
+                RowGranularity.DOC,
+                DataTypes.ofMappingNameSafe(columnDefinition.dataType()));
         } else {
             reference = new GeneratedReference(
-                    new ReferenceIdent(tableIdent, columnDefinition.ident()),
-                    RowGranularity.DOC,
-                    columnDefinition.dataType() ==
-                    null ? DataTypes.UNDEFINED : DataTypes.ofMappingNameSafe(columnDefinition.dataType()),
-                    "dummy expression, real one not needed here");
+                new ReferenceIdent(tableIdent, columnDefinition.ident()),
+                RowGranularity.DOC,
+                columnDefinition.dataType() ==
+                null ? DataTypes.UNDEFINED : DataTypes.ofMappingNameSafe(columnDefinition.dataType()),
+                "dummy expression, real one not needed here");
         }
         references.add(reference);
         for (AnalyzedColumnDefinition childDefinition : columnDefinition.children()) {
@@ -380,13 +381,13 @@ public class AnalyzedTableElements {
 
     public void changeToPartitionedByColumn(ColumnIdent partitionedByIdent, boolean skipIfNotFound) {
         Preconditions.checkArgument(!partitionedByIdent.name().startsWith("_"),
-                "Cannot use system columns in PARTITIONED BY clause");
+            "Cannot use system columns in PARTITIONED BY clause");
 
         // need to call primaryKeys() before the partition column is removed from the columns list
         if (!primaryKeys().isEmpty() && !primaryKeys().contains(partitionedByIdent.fqn())) {
             throw new IllegalArgumentException(String.format(Locale.ENGLISH,
-                    "Cannot use non primary key column '%s' in PARTITIONED BY clause if primary key is set on table",
-                    partitionedByIdent.sqlFqn()));
+                "Cannot use non primary key column '%s' in PARTITIONED BY clause if primary key is set on table",
+                partitionedByIdent.sqlFqn()));
         }
 
         AnalyzedColumnDefinition columnDefinition = columnDefinitionByIdent(partitionedByIdent);
@@ -399,19 +400,19 @@ public class AnalyzedTableElements {
         DataType columnType = DataTypes.ofMappingNameSafe(columnDefinition.dataType());
         if (!DataTypes.isPrimitive(columnType)) {
             throw new IllegalArgumentException(String.format(Locale.ENGLISH,
-                    "Cannot use column %s of type %s in PARTITIONED BY clause",
-                    columnDefinition.ident().sqlFqn(), columnDefinition.dataType()));
+                "Cannot use column %s of type %s in PARTITIONED BY clause",
+                columnDefinition.ident().sqlFqn(), columnDefinition.dataType()));
         }
         if (columnDefinition.isArrayOrInArray()) {
             throw new IllegalArgumentException(String.format(Locale.ENGLISH,
-                    "Cannot use array column %s in PARTITIONED BY clause", columnDefinition.ident().sqlFqn()));
+                "Cannot use array column %s in PARTITIONED BY clause", columnDefinition.ident().sqlFqn()));
 
 
         }
         if (columnDefinition.index().equals("analyzed")) {
             throw new IllegalArgumentException(String.format(Locale.ENGLISH,
-                    "Cannot use column %s with fulltext index in PARTITIONED BY clause",
-                    columnDefinition.ident().sqlFqn()));
+                "Cannot use column %s with fulltext index in PARTITIONED BY clause",
+                columnDefinition.ident().sqlFqn()));
         }
         columnIdents.remove(columnDefinition.ident());
         columnDefinition.index(Reference.IndexType.NO.toString());

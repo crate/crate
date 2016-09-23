@@ -47,6 +47,7 @@ public class RelationAnalyzerTest extends BaseAnalyzerTest {
         modules.add(T3.META_DATA_MODULE);
         return modules;
     }
+
     @Test
     public void testValidateUsedRelationsInJoinConditions() throws Exception {
         expectedException.expect(ValidationException.class);

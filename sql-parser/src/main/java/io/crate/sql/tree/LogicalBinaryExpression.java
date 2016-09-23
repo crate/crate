@@ -24,10 +24,8 @@ package io.crate.sql.tree;
 import com.google.common.base.Preconditions;
 
 public class LogicalBinaryExpression
-        extends Expression
-{
-    public enum Type
-    {
+    extends Expression {
+    public enum Type {
         AND, OR
     }
 
@@ -35,8 +33,7 @@ public class LogicalBinaryExpression
     private final Expression left;
     private final Expression right;
 
-    public LogicalBinaryExpression(Type type, Expression left, Expression right)
-    {
+    public LogicalBinaryExpression(Type type, Expression left, Expression right) {
         Preconditions.checkNotNull(type, "type is null");
         Preconditions.checkNotNull(left, "left is null");
         Preconditions.checkNotNull(right, "right is null");
@@ -46,40 +43,33 @@ public class LogicalBinaryExpression
         this.right = right;
     }
 
-    public Type getType()
-    {
+    public Type getType() {
         return type;
     }
 
-    public Expression getLeft()
-    {
+    public Expression getLeft() {
         return left;
     }
 
-    public Expression getRight()
-    {
+    public Expression getRight() {
         return right;
     }
 
     @Override
-    public <R, C> R accept(AstVisitor<R, C> visitor, C context)
-    {
+    public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
         return visitor.visitLogicalBinaryExpression(this, context);
     }
 
-    public static LogicalBinaryExpression and(Expression left, Expression right)
-    {
+    public static LogicalBinaryExpression and(Expression left, Expression right) {
         return new LogicalBinaryExpression(Type.AND, left, right);
     }
 
-    public static LogicalBinaryExpression or(Expression left, Expression right)
-    {
+    public static LogicalBinaryExpression or(Expression left, Expression right) {
         return new LogicalBinaryExpression(Type.OR, left, right);
     }
 
     @Override
-    public boolean equals(Object o)
-    {
+    public boolean equals(Object o) {
         if (this == o) {
             return true;
         }
@@ -103,8 +93,7 @@ public class LogicalBinaryExpression
     }
 
     @Override
-    public int hashCode()
-    {
+    public int hashCode() {
         int result = type.hashCode();
         result = 31 * result + left.hashCode();
         result = 31 * result + right.hashCode();

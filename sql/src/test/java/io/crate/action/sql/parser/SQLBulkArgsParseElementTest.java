@@ -49,7 +49,7 @@ public class SQLBulkArgsParseElementTest extends CrateUnitTest {
         String bulk_args = "[[\"200\", \"Somewhere\", \"planet\"], [\"201\", \"Somewhere else\", \"city\"]]";
         Object[][] bulk_array = parse(bulk_args);
         assertArrayEquals(new Object[]{new Object[]{"200", "Somewhere", "planet"},
-                                       new Object[]{"201", "Somewhere else", "city"}}, bulk_array);
+            new Object[]{"201", "Somewhere else", "city"}}, bulk_array);
     }
 
     @Test

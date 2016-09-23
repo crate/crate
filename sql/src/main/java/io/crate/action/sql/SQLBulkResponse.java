@@ -37,7 +37,8 @@ public class SQLBulkResponse extends SQLBaseResponse {
 
     private Result[] results;
 
-    public SQLBulkResponse() {} // used for serialization
+    public SQLBulkResponse() {
+    } // used for serialization
 
     public SQLBulkResponse(Result[] results, float duration) {
         super(EMPTY_OUTPUT_NAMES, EMPTY_COLUMN_TYPES, false, duration);
@@ -61,12 +62,13 @@ public class SQLBulkResponse extends SQLBaseResponse {
     }
 
 
-    public static class Result implements Streamable{
+    public static class Result implements Streamable {
 
         private String errorMessage;
         private long rowCount;
 
-        public Result() {} // used for serialization
+        public Result() {
+        } // used for serialization
 
         public Result(@Nullable String errorMessage, long rowCount) {
             this.errorMessage = errorMessage;

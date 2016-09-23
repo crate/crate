@@ -45,8 +45,8 @@ public class DummyExtendedNodeInfo implements ExtendedNodeInfo {
     }
 
     static List<Tuple<String, String>> FILE_SYSTEMS = Arrays.asList(
-            Tuple.tuple("/dev/sda1", "/foo"),
-            Tuple.tuple("/dev/sda2", "/bar")
+        Tuple.tuple("/dev/sda1", "/foo"),
+        Tuple.tuple("/dev/sda2", "/bar")
     );
 
     @Override

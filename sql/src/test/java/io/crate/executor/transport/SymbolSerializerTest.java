@@ -25,8 +25,8 @@ import io.crate.analyze.symbol.Symbols;
 import io.crate.analyze.symbol.Value;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.types.DataTypes;
-import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
+import org.elasticsearch.common.io.stream.StreamInput;
 import org.junit.Test;
 
 public class SymbolSerializerTest extends CrateUnitTest {

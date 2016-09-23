@@ -27,59 +27,50 @@ import com.google.common.base.Objects;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 public class CreateAlias
-        extends Statement
-{
+    extends Statement {
     private final QualifiedName alias;
     private final QualifiedName remote;
 
-    public CreateAlias(QualifiedName alias, QualifiedName remote)
-    {
+    public CreateAlias(QualifiedName alias, QualifiedName remote) {
         this.alias = checkNotNull(alias, "alias is null");
         this.remote = checkNotNull(remote, "remote is null");
     }
 
-    public QualifiedName getAlias()
-    {
+    public QualifiedName getAlias() {
         return alias;
     }
 
-    public QualifiedName getRemote()
-    {
+    public QualifiedName getRemote() {
         return remote;
     }
 
     @Override
-    public <R, C> R accept(AstVisitor<R, C> visitor, C context)
-    {
+    public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
         return visitor.visitCreateAlias(this, context);
     }
 
     @Override
-    public int hashCode()
-    {
+    public int hashCode() {
         return Objects.hashCode(alias, remote);
     }
 
     @Override
-    public boolean equals(Object obj)
-    {
+    public boolean equals(Object obj) {
         if (this == obj) {
             return true;
-        }
-        else if ((obj == null) || (getClass() != obj.getClass())) {
+        } else if ((obj == null) || (getClass() != obj.getClass())) {
             return false;
         }
         CreateAlias o = (CreateAlias) obj;
         return Objects.equal(alias, o.alias)
-                && Objects.equal(remote, o.remote);
+               && Objects.equal(remote, o.remote);
     }
 
     @Override
-    public String toString()
-    {
+    public String toString() {
         return MoreObjects.toStringHelper(this)
-                .add("alias", alias)
-                .add("remote", remote)
-                .toString();
+            .add("alias", alias)
+            .add("remote", remote)
+            .toString();
     }
 }

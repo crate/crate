@@ -27,7 +27,6 @@ import org.elasticsearch.action.bulk.BulkShardProcessor;
 import org.junit.Before;
 import org.junit.Test;
 
-
 import static org.mockito.Mockito.*;
 
 public class BulkShardProcessorContextTest extends CrateUnitTest {

@@ -71,7 +71,8 @@ public class DefaultSchemaIntegrationTest extends SQLTransportIntegrationTest {
         execute(requestWithSchema("foo", "select * from foobar"));
         assertThat(response.rowCount(), is(0L));
 
-        execute(requestWithSchema("foo", "copy foobar from ? with (shared=True)", foobarExport.getAbsolutePath() + "/*"));
+        execute(requestWithSchema("foo", "copy foobar from ? with (shared=True)",
+            foobarExport.getAbsolutePath() + "/*"));
         execute(requestWithSchema("foo", "refresh table foobar"));
         execute(requestWithSchema("foo", "select * from foobar"));
         assertThat(response.rowCount(), is(2L));
@@ -87,7 +88,7 @@ public class DefaultSchemaIntegrationTest extends SQLTransportIntegrationTest {
 
     private long getTableCount(String schema, String tableName) {
         execute("select count(*) from information_schema.tables where schema_name = ? and table_name = ?",
-                new Object[]{schema, tableName});
+            new Object[]{schema, tableName});
         return ((long) response.rows()[0][0]);
     }
 

@@ -30,10 +30,10 @@ import java.util.*;
 
 /**
  * A chain of connected projectors rows will flow through.
- *
+ * <p>
  * Will be constructed from a list of projections which will be transformed to
  * projectors which will be connected.
- *
+ * <p>
  * Usage:
  * <ul>
  * <li> construct it,

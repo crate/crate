@@ -18,8 +18,8 @@ import java.util.*;
 
 
 public class Literal<ReturnType>
-        extends Symbol
-        implements Input<ReturnType>, Comparable<Literal> {
+    extends Symbol
+    implements Input<ReturnType>, Comparable<Literal> {
 
     protected Object value;
     protected DataType type;
@@ -41,18 +41,18 @@ public class Literal<ReturnType>
         int size;
         Object literalValue = collectionLiteral.value();
         if (literalValue instanceof Collection) {
-            values = (Iterable)literalValue;
-            size = ((Collection)literalValue).size();
+            values = (Iterable) literalValue;
+            size = ((Collection) literalValue).size();
         } else {
-            values = FluentIterable.of((Object[])literalValue);
-            size = ((Object[])literalValue).length;
+            values = FluentIterable.of((Object[]) literalValue);
+            size = ((Object[]) literalValue).length;
         }
 
         List<Literal> literals = new ArrayList<>(size);
         for (Object value : values) {
             literals.add(new Literal<>(
-                    ((CollectionType)collectionLiteral.valueType()).innerType(),
-                    value
+                ((CollectionType) collectionLiteral.valueType()).innerType(),
+                value
             ));
         }
         return literals;
@@ -79,7 +79,7 @@ public class Literal<ReturnType>
             while (innerType instanceof ArrayType && value.getClass().isArray()) {
                 type = innerType;
                 innerType = ((ArrayType) innerType).innerType();
-                value = ((Object[])value)[0];
+                value = ((Object[]) value)[0];
             }
             if (innerType.equals(DataTypes.STRING)) {
                 for (Object o : ((Object[]) value)) {
@@ -89,7 +89,7 @@ public class Literal<ReturnType>
                 }
                 return true;
             } else {
-                return Arrays.equals((Object[]) value, ((ArrayType)type).value(value));
+                return Arrays.equals((Object[]) value, ((ArrayType) type).value(value));
             }
         }
         // types like GeoPoint are represented as arrays
@@ -108,7 +108,7 @@ public class Literal<ReturnType>
     @Override
     @SuppressWarnings("unchecked")
     public ReturnType value() {
-        return (ReturnType)value;
+        return (ReturnType) value;
     }
 
     @Override
@@ -147,9 +147,9 @@ public class Literal<ReturnType>
     @Override
     public String toString() {
         return "Literal{" +
-                "value=" + BytesRefs.toString(value) +
-                ", type=" + type +
-                '}';
+               "value=" + BytesRefs.toString(value) +
+               ", type=" + type +
+               '}';
     }
 
     @Override
@@ -224,7 +224,7 @@ public class Literal<ReturnType>
      * in which case the symbol will be returned as is.
      *
      * @param symbol that is expected to be a literal
-     * @param type type that the literal should have
+     * @param type   type that the literal should have
      * @return converted literal
      * @throws ConversionException if symbol cannot be converted to the given type
      */

@@ -52,49 +52,49 @@ public class EvaluatingNormalizerTest extends CrateUnitTest {
 
     /**
      * prepare the following where clause as function symbol tree:
-     *
-     *  where test.dummy.load = 0.08 or name != 'x' and name != 'y'
-     *
-     *  test.dummy.load is a expression that can be evaluated on node level
-     *  name would be a doc level reference and is untouched
+     * <p>
+     * where test.dummy.load = 0.08 or name != 'x' and name != 'y'
+     * <p>
+     * test.dummy.load is a expression that can be evaluated on node level
+     * name would be a doc level reference and is untouched
      */
     private Function prepareFunctionTree() {
 
         Reference load_1 = dummyLoadInfo;
         Literal<Double> d01 = Literal.of(0.08);
         Function load_eq_01 = new Function(
-                functionInfo(EqOperator.NAME, DataTypes.DOUBLE), Arrays.<Symbol>asList(load_1, d01));
+            functionInfo(EqOperator.NAME, DataTypes.DOUBLE), Arrays.<Symbol>asList(load_1, d01));
 
         Symbol name_ref = new Reference(
-                        new ReferenceIdent(new TableIdent(null, "foo"), "name"),
-                        RowGranularity.DOC,
-                        DataTypes.STRING);
+            new ReferenceIdent(new TableIdent(null, "foo"), "name"),
+            RowGranularity.DOC,
+            DataTypes.STRING);
         Symbol x_literal = Literal.of("x");
         Symbol y_literal = Literal.of("y");
 
         Function name_eq_x = new Function(
-                functionInfo(EqOperator.NAME, DataTypes.STRING), Arrays.<Symbol>asList(name_ref, x_literal));
+            functionInfo(EqOperator.NAME, DataTypes.STRING), Arrays.<Symbol>asList(name_ref, x_literal));
 
         Function name_neq_x = new Function(
-                functionInfo(NotPredicate.NAME, DataTypes.BOOLEAN, true), Arrays.<Symbol>asList(name_eq_x));
+            functionInfo(NotPredicate.NAME, DataTypes.BOOLEAN, true), Arrays.<Symbol>asList(name_eq_x));
 
         Function name_eq_y = new Function(
-                functionInfo(EqOperator.NAME, DataTypes.STRING), Arrays.<Symbol>asList(name_ref, y_literal));
+            functionInfo(EqOperator.NAME, DataTypes.STRING), Arrays.<Symbol>asList(name_ref, y_literal));
 
         Function name_neq_y = new Function(
-                functionInfo(NotPredicate.NAME, DataTypes.BOOLEAN, true), Arrays.<Symbol>asList(name_eq_y));
+            functionInfo(NotPredicate.NAME, DataTypes.BOOLEAN, true), Arrays.<Symbol>asList(name_eq_y));
 
         Function op_and = new Function(
-                functionInfo(AndOperator.NAME, DataTypes.BOOLEAN), Arrays.<Symbol>asList(name_neq_x, name_neq_y));
+            functionInfo(AndOperator.NAME, DataTypes.BOOLEAN), Arrays.<Symbol>asList(name_neq_x, name_neq_y));
 
         return new Function(
-                functionInfo(OrOperator.NAME, DataTypes.BOOLEAN), Arrays.<Symbol>asList(load_eq_01, op_and));
+            functionInfo(OrOperator.NAME, DataTypes.BOOLEAN), Arrays.<Symbol>asList(load_eq_01, op_and));
     }
 
     @Test
     public void testEvaluation() {
         EvaluatingNormalizer visitor = new EvaluatingNormalizer(
-                functions, RowGranularity.NODE, referenceResolver);
+            functions, RowGranularity.NODE, referenceResolver);
 
         Function op_or = prepareFunctionTree();
 
@@ -107,7 +107,7 @@ public class EvaluatingNormalizerTest extends CrateUnitTest {
     @Test
     public void testEvaluationClusterGranularity() {
         EvaluatingNormalizer visitor = new EvaluatingNormalizer(
-                functions, RowGranularity.CLUSTER, referenceResolver);
+            functions, RowGranularity.CLUSTER, referenceResolver);
 
         Function op_or = prepareFunctionTree();
         Symbol query = visitor.normalize(op_or, stmtCtx);

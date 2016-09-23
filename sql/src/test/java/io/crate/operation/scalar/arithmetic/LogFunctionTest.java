@@ -65,13 +65,13 @@ public class LogFunctionTest extends AbstractScalarFunctionsTest {
 
     private Symbol normalize(Number value, DataType valueType, LogFunction function) {
         return function.normalizeSymbol(new Function(function.info(),
-                        Arrays.<Symbol>asList(Literal.of(valueType, value))), stmtCtx);
+            Arrays.<Symbol>asList(Literal.of(valueType, value))), stmtCtx);
     }
 
     private Symbol normalizeLog(Number value, DataType valueType, Number base, DataType baseType) {
         LogFunction function = getFunction(LogFunction.NAME, valueType, baseType);
         return function.normalizeSymbol(new Function(function.info(),
-                Arrays.<Symbol>asList(Literal.of(valueType, value), Literal.of(baseType, base))), stmtCtx);
+            Arrays.<Symbol>asList(Literal.of(valueType, value), Literal.of(baseType, base))), stmtCtx);
     }
 
     private Number evaluateLog(Number value, DataType valueType) {
@@ -84,8 +84,8 @@ public class LogFunctionTest extends AbstractScalarFunctionsTest {
 
     private Number evaluateLog(Number value, DataType valueType, Number base, DataType baseType) {
         return getFunction(LogFunction.NAME, valueType, baseType).evaluate(
-                (Input) Literal.of(valueType, value),
-                (Input) Literal.of(baseType, base)
+            (Input) Literal.of(valueType, value),
+            (Input) Literal.of(baseType, base)
         );
     }
 

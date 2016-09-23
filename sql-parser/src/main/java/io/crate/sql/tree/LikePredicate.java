@@ -24,14 +24,12 @@ package io.crate.sql.tree;
 import com.google.common.base.Preconditions;
 
 public class LikePredicate
-        extends Expression
-{
+    extends Expression {
     private final Expression value;
     private final Expression pattern;
     private final Expression escape;
 
-    public LikePredicate(Expression value, Expression pattern, Expression escape)
-    {
+    public LikePredicate(Expression value, Expression pattern, Expression escape) {
         Preconditions.checkNotNull(value, "value is null");
         Preconditions.checkNotNull(pattern, "pattern is null");
 
@@ -40,30 +38,25 @@ public class LikePredicate
         this.escape = escape;
     }
 
-    public Expression getValue()
-    {
+    public Expression getValue() {
         return value;
     }
 
-    public Expression getPattern()
-    {
+    public Expression getPattern() {
         return pattern;
     }
 
-    public Expression getEscape()
-    {
+    public Expression getEscape() {
         return escape;
     }
 
     @Override
-    public <R, C> R accept(AstVisitor<R, C> visitor, C context)
-    {
+    public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
         return visitor.visitLikePredicate(this, context);
     }
 
     @Override
-    public boolean equals(Object o)
-    {
+    public boolean equals(Object o) {
         if (this == o) {
             return true;
         }
@@ -87,8 +80,7 @@ public class LikePredicate
     }
 
     @Override
-    public int hashCode()
-    {
+    public int hashCode() {
         int result = value.hashCode();
         result = 31 * result + pattern.hashCode();
         result = 31 * result + (escape != null ? escape.hashCode() : 0);

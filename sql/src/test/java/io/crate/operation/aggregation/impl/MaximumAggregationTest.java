@@ -79,7 +79,7 @@ public class MaximumAggregationTest extends AggregationTest {
     @Test
     public void testString() throws Exception {
         Object[][] result = executeAggregation(DataTypes.STRING,
-                new Object[][]{{new BytesRef("Youri")}, {new BytesRef("Ruben")}});
+            new Object[][]{{new BytesRef("Youri")}, {new BytesRef("Ruben")}});
 
         assertEquals(new BytesRef("Youri"), result[0][0]);
     }

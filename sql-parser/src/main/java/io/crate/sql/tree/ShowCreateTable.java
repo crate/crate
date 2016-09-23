@@ -55,8 +55,8 @@ public class ShowCreateTable extends Statement {
     @Override
     public String toString() {
         return MoreObjects.toStringHelper(this)
-                .add("table", table)
-                .toString();
+            .add("table", table)
+            .toString();
     }
 
     public Table table() {

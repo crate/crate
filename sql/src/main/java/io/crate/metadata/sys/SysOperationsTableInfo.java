@@ -52,13 +52,13 @@ public class SysOperationsTableInfo extends StaticTableInfo {
     @Inject
     public SysOperationsTableInfo(ClusterService clusterService, SysNodesTableInfo sysNodesTableInfo) {
         super(IDENT, new ColumnRegistrar(IDENT, RowGranularity.DOC)
-                        .register(Columns.ID, DataTypes.STRING)
-                        .register(Columns.JOB_ID, DataTypes.STRING)
-                        .register(Columns.NAME, DataTypes.STRING)
-                        .register(Columns.STARTED, DataTypes.TIMESTAMP)
-                        .register(Columns.USED_BYTES, DataTypes.LONG)
-                        .putInfoOnly(SysNodesTableInfo.SYS_COL_IDENT, SysNodesTableInfo.tableColumnInfo(IDENT)),
-                Collections.<ColumnIdent>emptyList());
+                .register(Columns.ID, DataTypes.STRING)
+                .register(Columns.JOB_ID, DataTypes.STRING)
+                .register(Columns.NAME, DataTypes.STRING)
+                .register(Columns.STARTED, DataTypes.TIMESTAMP)
+                .register(Columns.USED_BYTES, DataTypes.LONG)
+                .putInfoOnly(SysNodesTableInfo.SYS_COL_IDENT, SysNodesTableInfo.tableColumnInfo(IDENT)),
+            Collections.<ColumnIdent>emptyList());
         this.clusterService = clusterService;
         nodesTableColumn = sysNodesTableInfo.tableColumn();
     }

@@ -141,7 +141,8 @@ public class ThreadPools implements Streamable, Iterable<Map.Entry<String, Threa
 
         }
 
-        public ThreadPoolExecutorContext() {}
+        public ThreadPoolExecutorContext() {
+        }
 
         public ThreadPoolExecutorContext(int queueSize,
                                          int activeCount,

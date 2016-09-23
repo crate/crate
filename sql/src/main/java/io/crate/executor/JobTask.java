@@ -40,7 +40,8 @@ public abstract class JobTask implements Task {
 
     @Override
     public ListenableFuture<List<Long>> executeBulk() {
-        throw new UnsupportedOperationException(this.getClass().getSimpleName() + " cannot be executed as bulk operation");
+        throw new UnsupportedOperationException(
+            this.getClass().getSimpleName() + " cannot be executed as bulk operation");
     }
 
 }

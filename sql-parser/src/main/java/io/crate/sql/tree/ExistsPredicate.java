@@ -24,30 +24,25 @@ package io.crate.sql.tree;
 import com.google.common.base.Preconditions;
 
 public class ExistsPredicate
-        extends Expression
-{
+    extends Expression {
     private final Query subquery;
 
-    public ExistsPredicate(Query subquery)
-    {
+    public ExistsPredicate(Query subquery) {
         Preconditions.checkNotNull(subquery, "subquery is null");
         this.subquery = subquery;
     }
 
-    public Query getSubquery()
-    {
+    public Query getSubquery() {
         return subquery;
     }
 
     @Override
-    public <R, C> R accept(AstVisitor<R, C> visitor, C context)
-    {
+    public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
         return visitor.visitExists(this, context);
     }
 
     @Override
-    public boolean equals(Object o)
-    {
+    public boolean equals(Object o) {
         if (this == o) {
             return true;
         }
@@ -65,8 +60,7 @@ public class ExistsPredicate
     }
 
     @Override
-    public int hashCode()
-    {
+    public int hashCode() {
         return subquery.hashCode();
     }
 }

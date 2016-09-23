@@ -88,10 +88,10 @@ public class BlobTableIntegrationTest extends SQLHttpIntegrationTest {
         ensureYellow();
 
         blobUpload(new String[]{"bar", "foo", "baz"}, "b1");
-        execute("insert into files (i, digest) values (?, ?)", new Object[][] {
-            new Object[] { 1, blobDigest("baz") },
-            new Object[] { 2, blobDigest("bar") },
-            new Object[] { 2, blobDigest("foo") }
+        execute("insert into files (i, digest) values (?, ?)", new Object[][]{
+            new Object[]{1, blobDigest("baz")},
+            new Object[]{2, blobDigest("bar")},
+            new Object[]{2, blobDigest("foo")}
         });
         refresh();
 

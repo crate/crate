@@ -46,7 +46,7 @@ class CharType extends PGType {
 
     @Override
     public Object readBinaryValue(ChannelBuffer buffer, int valueLength) {
-        assert valueLength == 1: "char must have 1 byte";
+        assert valueLength == 1 : "char must have 1 byte";
         return buffer.readByte();
     }
 

@@ -57,7 +57,7 @@ public class InformationSchemaQueryTest extends SQLTransportIntegrationTest {
     @Test
     public void testConcurrentInformationSchemaQueries() throws Exception {
         final SQLResponse response = execute("select * from information_schema.columns " +
-                "order by schema_name, table_name, column_name");
+                                             "order by schema_name, table_name, column_name");
         final CountDownLatch latch = new CountDownLatch(40);
         final AtomicReference<AssertionError> lastAssertionError = new AtomicReference<>();
 
@@ -66,7 +66,7 @@ public class InformationSchemaQueryTest extends SQLTransportIntegrationTest {
                 @Override
                 public void run() {
                     SQLResponse resp = execute("select * from information_schema.columns " +
-                            "order by schema_name, table_name, column_name");
+                                               "order by schema_name, table_name, column_name");
                     try {
                         assertThat(resp.rows(), Matchers.equalTo(response.rows()));
                     } catch (AssertionError e) {

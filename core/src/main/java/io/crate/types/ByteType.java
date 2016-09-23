@@ -33,7 +33,8 @@ public class ByteType extends DataType<Byte> implements DataTypeFactory, Streame
     public final static ByteType INSTANCE = new ByteType();
     public final static int ID = 2;
 
-    private ByteType() {}
+    private ByteType() {
+    }
 
     @Override
     public int id() {
@@ -56,12 +57,12 @@ public class ByteType extends DataType<Byte> implements DataTypeFactory, Streame
             return null;
         }
         if (value instanceof String) {
-            return Byte.parseByte((String)value);
+            return Byte.parseByte((String) value);
         }
         if (value instanceof BytesRef) {
-            return Byte.parseByte(((BytesRef)value).utf8ToString());
+            return Byte.parseByte(((BytesRef) value).utf8ToString());
         }
-        Integer val = ((Number)value).intValue();
+        Integer val = ((Number) value).intValue();
         if (val < Byte.MIN_VALUE || Byte.MAX_VALUE < val) {
             throw new IllegalArgumentException("byte value out of range: " + val);
         }

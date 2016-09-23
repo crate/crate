@@ -52,7 +52,8 @@ public abstract class SQLBaseResponse extends ActionResponse implements ToXConte
     private boolean includeTypes;
     private float duration;
 
-    public SQLBaseResponse() {} // used for serialization
+    public SQLBaseResponse() {
+    } // used for serialization
 
     public SQLBaseResponse(String[] cols, DataType[] colTypes, boolean includeTypes, float duration) {
         assert cols.length == colTypes.length : "cols and colTypes differ";
@@ -62,11 +63,11 @@ public abstract class SQLBaseResponse extends ActionResponse implements ToXConte
         this.duration = duration;
     }
 
-    public String[] cols(){
+    public String[] cols() {
         return cols;
     }
 
-    public void cols(String[] cols){
+    public void cols(String[] cols) {
         this.cols = cols;
     }
 

@@ -97,7 +97,7 @@ public class AlterTableOperation {
                     } else {
                         String columnFailure = analysis.newPrimaryKeys() ? "primary key" : "generated";
                         result.setException(new UnsupportedOperationException(String.format(Locale.ENGLISH,
-                                "Cannot add a %s column to a table that isn't empty", columnFailure)));
+                            "Cannot add a %s column to a table that isn't empty", columnFailure)));
                     }
                 }
 
@@ -123,10 +123,10 @@ public class AlterTableOperation {
         if (table.isPartitioned()) {
             // create new filtered partition table settings
             AlterPartitionedTableParameterInfo tableSettingsInfo =
-                    (AlterPartitionedTableParameterInfo) table.tableParameterInfo();
+                (AlterPartitionedTableParameterInfo) table.tableParameterInfo();
             TableParameter parameterWithFilteredSettings = new TableParameter(
-                    analysis.tableParameter().settings(),
-                    tableSettingsInfo.partitionTableSettingsInfo().supportedInternalSettings());
+                analysis.tableParameter().settings(),
+                tableSettingsInfo.partitionTableSettingsInfo().supportedInternalSettings());
 
             Optional<PartitionName> partitionName = analysis.partitionName();
             if (partitionName.isPresent()) {
@@ -162,7 +162,7 @@ public class AlterTableOperation {
                                                   TableIdent tableIdent) {
         String templateName = PartitionName.templateName(tableIdent.schema(), tableIdent.name());
         IndexTemplateMetaData indexTemplateMetaData =
-                clusterService.state().metaData().templates().get(templateName);
+            clusterService.state().metaData().templates().get(templateName);
         if (indexTemplateMetaData == null) {
             return Futures.immediateFailedFuture(new RuntimeException("Template for partitioned table is missing"));
         }
@@ -176,11 +176,11 @@ public class AlterTableOperation {
         settingsBuilder.put(newSettings);
 
         PutIndexTemplateRequest request = new PutIndexTemplateRequest(templateName)
-                .create(false)
-                .mapping(Constants.DEFAULT_MAPPING_TYPE, mapping)
-                .order(indexTemplateMetaData.order())
-                .settings(settingsBuilder.build())
-                .template(indexTemplateMetaData.template());
+            .create(false)
+            .mapping(Constants.DEFAULT_MAPPING_TYPE, mapping)
+            .order(indexTemplateMetaData.order())
+            .settings(settingsBuilder.build())
+            .template(indexTemplateMetaData.template());
         for (ObjectObjectCursor<String, AliasMetaData> container : indexTemplateMetaData.aliases()) {
             Alias alias = new Alias(container.key);
             request.alias(alias);
@@ -196,7 +196,7 @@ public class AlterTableOperation {
             return Futures.immediateFuture(null);
         }
         assert areAllMappingsEqual(clusterService.state().metaData(), indices) :
-                "Trying to update mapping for indices with different existing mappings";
+            "Trying to update mapping for indices with different existing mappings";
 
         Map<String, Object> mapping;
         try {

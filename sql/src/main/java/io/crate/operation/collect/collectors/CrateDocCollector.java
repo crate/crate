@@ -115,18 +115,18 @@ public class CrateDocCollector implements CrateCollector, RepeatHandle {
         this.expressions = expressions;
         CollectorFieldsVisitor fieldsVisitor = new CollectorFieldsVisitor(expressions.size());
         collectorContext = new CollectorContext(
-                searchContext.mapperService(),
-                searchContext.fieldData(),
-                fieldsVisitor,
-                ((int) searchContext.id())
+            searchContext.mapperService(),
+            searchContext.fieldData(),
+            fieldsVisitor,
+            ((int) searchContext.id())
         );
         this.doScores = doScores || searchContext.minimumScore() != null;
         SimpleCollector collector = new LuceneDocCollector(
-                ramAccountingContext,
-                rowReceiver,
-                this.doScores,
-                new InputRow(inputs),
-                expressions
+            ramAccountingContext,
+            rowReceiver,
+            this.doScores,
+            new InputRow(inputs),
+            expressions
         );
         if (searchContext.minimumScore() != null) {
             collector = new MinimumScoreCollector(collector, searchContext.minimumScore());
@@ -329,8 +329,8 @@ public class CrateDocCollector implements CrateCollector, RepeatHandle {
             if (ramAccountingContext != null && ramAccountingContext.trippedBreaker()) {
                 // stop collecting because breaker limit was reached
                 throw new CircuitBreakingException(
-                        CrateCircuitBreakerService.breakingExceptionMessage(ramAccountingContext.contextId(),
-                                ramAccountingContext.limit()));
+                    CrateCircuitBreakerService.breakingExceptionMessage(ramAccountingContext.contextId(),
+                        ramAccountingContext.limit()));
             }
         }
 

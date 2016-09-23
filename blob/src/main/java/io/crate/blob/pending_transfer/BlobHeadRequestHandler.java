@@ -27,8 +27,8 @@ import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.threadpool.ThreadPool;
-import org.elasticsearch.transport.TransportRequestHandler;
 import org.elasticsearch.transport.TransportChannel;
+import org.elasticsearch.transport.TransportRequestHandler;
 import org.elasticsearch.transport.TransportResponse;
 import org.elasticsearch.transport.TransportService;
 
@@ -76,7 +76,8 @@ public class BlobHeadRequestHandler {
 
             final BlobTransferStatus transferStatus = blobTransferTarget.getActiveTransfer(request.transferId);
             assert transferStatus != null :
-                "Received GetBlobHeadRequest for transfer" + request.transferId.toString() + "but don't have an activeTransfer with that id";
+                "Received GetBlobHeadRequest for transfer" + request.transferId.toString() +
+                "but don't have an activeTransfer with that id";
 
             final DiscoveryNode recipientNode = clusterService.state().getNodes().get(request.senderNodeId);
             final long bytesToSend = request.endPos;
@@ -92,7 +93,6 @@ public class BlobHeadRequestHandler {
             );
         }
     }
-
 
 
     class PutBlobHeadChunkHandler extends TransportRequestHandler<PutBlobHeadChunkRequest> {
@@ -113,7 +113,8 @@ public class BlobHeadRequestHandler {
         public void messageReceived(BlobInfoRequest request, TransportChannel channel) throws Exception {
             final BlobTransferStatus transferStatus = blobTransferTarget.getActiveTransfer(request.transferId);
             assert transferStatus != null :
-                "Received GetBlobHeadRequest for transfer " + request.transferId.toString() + " but don't have an activeTransfer with that id";
+                "Received GetBlobHeadRequest for transfer " + request.transferId.toString() +
+                " but don't have an activeTransfer with that id";
 
             BlobTransferInfoResponse response = new BlobTransferInfoResponse(
                 transferStatus.index(),

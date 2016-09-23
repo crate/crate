@@ -42,8 +42,8 @@ public class ArbitraryAggregation extends AggregationFunction<Object, Object> {
     public static void register(AggregationImplModule mod) {
         for (final DataType t : DataTypes.PRIMITIVE_TYPES) {
             mod.register(new ArbitraryAggregation(
-                    new FunctionInfo(new FunctionIdent(NAME, ImmutableList.of(t)), t,
-                                    FunctionInfo.Type.AGGREGATE)));
+                new FunctionInfo(new FunctionIdent(NAME, ImmutableList.of(t)), t,
+                    FunctionInfo.Type.AGGREGATE)));
         }
     }
 

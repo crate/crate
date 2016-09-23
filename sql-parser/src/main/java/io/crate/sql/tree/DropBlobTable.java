@@ -55,9 +55,9 @@ public class DropBlobTable extends Statement {
     @Override
     public String toString() {
         return MoreObjects.toStringHelper(this)
-                .add("table", table)
-                .add("ignoreNonExistentTable", ignoreNonExistentTable)
-                .toString();
+            .add("table", table)
+            .add("ignoreNonExistentTable", ignoreNonExistentTable)
+            .toString();
     }
 
     @Override

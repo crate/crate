@@ -22,7 +22,6 @@
 
 package io.crate.planner.statement;
 
-import io.crate.action.sql.SQLOperations;
 import io.crate.planner.Plan;
 import io.crate.planner.PlanVisitor;
 import org.elasticsearch.common.settings.Settings;

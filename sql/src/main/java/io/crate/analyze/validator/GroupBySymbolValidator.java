@@ -21,9 +21,11 @@
 
 package io.crate.analyze.validator;
 
-import io.crate.analyze.symbol.*;
+import io.crate.analyze.symbol.Function;
+import io.crate.analyze.symbol.MatchPredicate;
+import io.crate.analyze.symbol.Symbol;
+import io.crate.analyze.symbol.SymbolVisitor;
 import io.crate.analyze.symbol.format.SymbolPrinter;
-import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 
 import java.util.Locale;
@@ -57,10 +59,10 @@ public class GroupBySymbolValidator {
                     throw new IllegalArgumentException("Aggregate functions are not allowed in GROUP BY");
                 case PREDICATE:
                     throw new UnsupportedOperationException(String.format(Locale.ENGLISH,
-                            "%s predicate cannot be used in a GROUP BY clause", symbol.info().ident().name()));
+                        "%s predicate cannot be used in a GROUP BY clause", symbol.info().ident().name()));
                 default:
                     throw new UnsupportedOperationException(
-                            String.format(Locale.ENGLISH, "FunctionInfo.Type %s not handled", symbol.info().type()));
+                        String.format(Locale.ENGLISH, "FunctionInfo.Type %s not handled", symbol.info().type()));
             }
             return null;
         }
@@ -68,7 +70,7 @@ public class GroupBySymbolValidator {
         @Override
         public Void visitMatchPredicate(MatchPredicate matchPredicate, Void context) {
             throw new UnsupportedOperationException(String.format(Locale.ENGLISH,
-                    "%s predicate cannot be used in a GROUP BY clause", io.crate.operation.predicate.MatchPredicate.NAME));
+                "%s predicate cannot be used in a GROUP BY clause", io.crate.operation.predicate.MatchPredicate.NAME));
         }
 
         @Override

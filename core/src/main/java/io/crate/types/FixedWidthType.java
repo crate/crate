@@ -29,14 +29,14 @@ public interface FixedWidthType {
     /**
      * The fixed amount of memory a value object instance of type t requires.
      * (t is the type described by our DataType interface or something that implements FixedWidthType)
-     *
-     *
+     * <p>
+     * <p>
      * Implementations here may not be 100% accurate because sizes may vary between JVM implementations
      * and then there is also stuff like padding and other JVM magic.
-     *
+     * <p>
      * See also:
-     *  https://blogs.oracle.com/jrose/entry/fixnums_in_the_vm
-     *  http://www.javaworld.com/article/2077496/testing-debugging/java-tip-130--do-you-know-your-data-size-.html
+     * https://blogs.oracle.com/jrose/entry/fixnums_in_the_vm
+     * http://www.javaworld.com/article/2077496/testing-debugging/java-tip-130--do-you-know-your-data-size-.html
      */
     int fixedSize();
 }

@@ -152,7 +152,7 @@ public class PluginLoader {
                     checkJarHell(pluginURL);
                 } catch (Exception e) {
                     String msg = String.format(Locale.ENGLISH,
-                            "failed to load plugin %s due to jar hell", pluginURL);
+                        "failed to load plugin %s due to jar hell", pluginURL);
                     logger.error(msg, e);
                     throw new RuntimeException(msg, e);
                 }
@@ -185,7 +185,7 @@ public class PluginLoader {
                             pluginUrls.add(libURL);
                         } catch (Exception e) {
                             String msg = String.format(Locale.ENGLISH,
-                                    "Library %s of plugin %s already loaded", libURL, pluginURL);
+                                "Library %s of plugin %s already loaded", libURL, pluginURL);
                             logger.error(msg, e);
                             throw new RuntimeException(msg, e);
                         }
@@ -199,7 +199,7 @@ public class PluginLoader {
             Collection<Class<? extends Plugin>> implementations = findImplementations(pluginUrls);
             if (implementations == null || implementations.isEmpty()) {
                 String msg = String.format(Locale.ENGLISH,
-                        "Path [%s] does not contain a valid Crate or Elasticsearch plugin", plugin.getAbsolutePath());
+                    "Path [%s] does not contain a valid Crate or Elasticsearch plugin", plugin.getAbsolutePath());
                 RuntimeException e = new RuntimeException(msg);
                 logger.error(msg, e);
                 throw e;

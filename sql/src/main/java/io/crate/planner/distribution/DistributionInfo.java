@@ -76,9 +76,9 @@ public class DistributionInfo implements Streamable {
     @Override
     public String toString() {
         return "DistributionInfo{" +
-                "distributionType=" + distributionType +
-                ", distributeByColumn=" + distributeByColumn +
-                '}';
+               "distributionType=" + distributionType +
+               ", distributeByColumn=" + distributeByColumn +
+               '}';
     }
 
     @Override

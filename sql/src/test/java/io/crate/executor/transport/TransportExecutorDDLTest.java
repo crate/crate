@@ -55,24 +55,24 @@ public class TransportExecutorDDLTest extends SQLTransportIntegrationTest {
     private TransportExecutor executor;
 
     private final static Map<String, Object> TEST_PARTITIONED_MAPPING = ImmutableMap.<String, Object>of(
-            "_meta", ImmutableMap.of(
-                    "partitioned_by", ImmutableList.of(Arrays.asList("name", "string"))
-            ),
-            "properties", ImmutableMap.of(
-                "id", ImmutableMap.builder()
-                    .put("type", "integer")
-                    .put("store", false)
-                    .put("index", "not_analyzed")
-                    .put("doc_values", true).build(),
-                "names", ImmutableMap.builder()
-                    .put("type", "string")
-                    .put("store", false)
-                    .put("index", "not_analyzed")
-                    .put("doc_values", false).build()
-            ));
+        "_meta", ImmutableMap.of(
+            "partitioned_by", ImmutableList.of(Arrays.asList("name", "string"))
+        ),
+        "properties", ImmutableMap.of(
+            "id", ImmutableMap.builder()
+                .put("type", "integer")
+                .put("store", false)
+                .put("index", "not_analyzed")
+                .put("doc_values", true).build(),
+            "names", ImmutableMap.builder()
+                .put("type", "string")
+                .put("store", false)
+                .put("index", "not_analyzed")
+                .put("doc_values", false).build()
+        ));
     private final static Settings TEST_SETTINGS = Settings.settingsBuilder()
-            .put("number_of_replicas", 0)
-            .put("number_of_shards", 2).build();
+        .put("number_of_replicas", 0)
+        .put("number_of_shards", 2).build();
 
     @Before
     public void transportSetup() {
@@ -82,9 +82,9 @@ public class TransportExecutorDDLTest extends SQLTransportIntegrationTest {
     @After
     public void resetSettings() throws Exception {
         client().admin().cluster().prepareUpdateSettings()
-                .setPersistentSettingsToRemove(ImmutableSet.of("stats.enabled"))
-                .setTransientSettingsToRemove(ImmutableSet.of("stats.enabled", "bulk.request_timeout"))
-                .execute().actionGet();
+            .setPersistentSettingsToRemove(ImmutableSet.of("stats.enabled"))
+            .setTransientSettingsToRemove(ImmutableSet.of("stats.enabled", "bulk.request_timeout"))
+            .execute().actionGet();
     }
 
 
@@ -92,9 +92,9 @@ public class TransportExecutorDDLTest extends SQLTransportIntegrationTest {
     public void testCreateTableWithOrphanedPartitions() throws Exception {
         String partitionName = new PartitionName("test", Arrays.asList(new BytesRef("foo"))).asIndexName();
         client().admin().indices().prepareCreate(partitionName)
-                .addMapping(Constants.DEFAULT_MAPPING_TYPE, TEST_PARTITIONED_MAPPING)
-                .setSettings(TEST_SETTINGS)
-                .execute().actionGet();
+            .addMapping(Constants.DEFAULT_MAPPING_TYPE, TEST_PARTITIONED_MAPPING)
+            .setSettings(TEST_SETTINGS)
+            .execute().actionGet();
         ensureGreen();
 
         execute("create table test (id integer, name string, names string) partitioned by (id)");
@@ -103,7 +103,7 @@ public class TransportExecutorDDLTest extends SQLTransportIntegrationTest {
         assertThat(response.rowCount(), is(1L));
 
         execute("select count(*) from information_schema.columns where table_name = 'test'");
-        assertThat((Long)response.rows()[0][0], is(3L));
+        assertThat((Long) response.rows()[0][0], is(3L));
 
         // check that orphaned partition has been deleted
         assertThat(client().admin().indices().exists(new IndicesExistsRequest(partitionName)).actionGet().isExists(), is(false));
@@ -113,10 +113,10 @@ public class TransportExecutorDDLTest extends SQLTransportIntegrationTest {
     public void testCreateTableWithOrphanedAlias() throws Exception {
         String partitionName = new PartitionName("test", Collections.singletonList(new BytesRef("foo"))).asIndexName();
         client().admin().indices().prepareCreate(partitionName)
-                .addMapping(Constants.DEFAULT_MAPPING_TYPE, TEST_PARTITIONED_MAPPING)
-                .setSettings(TEST_SETTINGS)
-                .addAlias(new Alias("test"))
-                .execute().actionGet();
+            .addMapping(Constants.DEFAULT_MAPPING_TYPE, TEST_PARTITIONED_MAPPING)
+            .setSettings(TEST_SETTINGS)
+            .addAlias(new Alias("test"))
+            .execute().actionGet();
         ensureGreen();
 
         execute("create table test (id integer, name string, names string) " +
@@ -133,7 +133,7 @@ public class TransportExecutorDDLTest extends SQLTransportIntegrationTest {
 
         // check that orphaned alias has been deleted
         assertThat(client().admin().cluster().prepareState().execute().actionGet()
-                .getState().metaData().hasAlias("test"), is(false));
+            .getState().metaData().hasAlias("test"), is(false));
         // check that orphaned partition has been deleted
         assertThat(client().admin().indices().exists(new IndicesExistsRequest(partitionName)).actionGet().isExists(), is(false));
     }
@@ -165,7 +165,7 @@ public class TransportExecutorDDLTest extends SQLTransportIntegrationTest {
     /**
      * this case should not happen as closed indices aren't listed as TableInfo
      * but if it does maybe because of stale cluster state - validate behaviour here
-     *
+     * <p>
      * cannot prevent this task from deleting closed indices.
      */
     @Test
@@ -198,8 +198,8 @@ public class TransportExecutorDDLTest extends SQLTransportIntegrationTest {
 
         // Update persistent only
         Settings persistentSettings = Settings.builder()
-                .put(persistentSetting, "panic")
-                .build();
+            .put(persistentSetting, "panic")
+            .build();
 
         ESClusterUpdateSettingsPlan node = new ESClusterUpdateSettingsPlan(UUID.randomUUID(), persistentSettings);
         Bucket objects = executePlan(node);
@@ -209,8 +209,8 @@ public class TransportExecutorDDLTest extends SQLTransportIntegrationTest {
 
         // Update transient only
         Settings transientSettings = Settings.builder()
-                .put(transientSetting, "123s")
-                .build();
+            .put(transientSetting, "123s")
+            .build();
 
         node = new ESClusterUpdateSettingsPlan(UUID.randomUUID(), EMPTY_SETTINGS, transientSettings);
         objects = executePlan(node);
@@ -220,11 +220,11 @@ public class TransportExecutorDDLTest extends SQLTransportIntegrationTest {
 
         // Update persistent & transient
         persistentSettings = Settings.builder()
-                .put(persistentSetting, "normal")
-                .build();
+            .put(persistentSetting, "normal")
+            .build();
         transientSettings = Settings.builder()
-                .put(transientSetting, "243s")
-                .build();
+            .put(transientSetting, "243s")
+            .build();
 
         node = new ESClusterUpdateSettingsPlan(UUID.randomUUID(), persistentSettings, transientSettings);
         objects = executePlan(node);

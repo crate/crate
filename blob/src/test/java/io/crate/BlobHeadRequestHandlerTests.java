@@ -73,29 +73,29 @@ public class BlobHeadRequestHandlerTests extends CrateUnitTest {
                     }
                 }, 800, TimeUnit.MILLISECONDS);
                 PutHeadChunkRunnable runnable = new PutHeadChunkRunnable(
-                        digestBlob, 5, transportService, blobTransferTarget, discoveryNode, transferId
+                    digestBlob, 5, transportService, blobTransferTarget, discoveryNode, transferId
                 );
 
                 @SuppressWarnings("unchecked")
                 TransportFuture<TransportResponse.Empty> result = mock(TransportFuture.class);
 
                 when(transportService.submitRequest(
-                        eq(discoveryNode),
-                        eq(BlobHeadRequestHandler.Actions.PUT_BLOB_HEAD_CHUNK),
-                        any(TransportRequest.class),
-                        any(TransportRequestOptions.class),
-                        eq(EmptyTransportResponseHandler.INSTANCE_SAME)
+                    eq(discoveryNode),
+                    eq(BlobHeadRequestHandler.Actions.PUT_BLOB_HEAD_CHUNK),
+                    any(TransportRequest.class),
+                    any(TransportRequestOptions.class),
+                    eq(EmptyTransportResponseHandler.INSTANCE_SAME)
                 )).thenReturn(result);
 
                 runnable.run();
 
                 verify(blobTransferTarget).putHeadChunkTransferFinished(transferId);
                 verify(transportService, times(2)).submitRequest(
-                        eq(discoveryNode),
-                        eq(BlobHeadRequestHandler.Actions.PUT_BLOB_HEAD_CHUNK),
-                        any(TransportRequest.class),
-                        any(TransportRequestOptions.class),
-                        eq(EmptyTransportResponseHandler.INSTANCE_SAME)
+                    eq(discoveryNode),
+                    eq(BlobHeadRequestHandler.Actions.PUT_BLOB_HEAD_CHUNK),
+                    any(TransportRequest.class),
+                    any(TransportRequestOptions.class),
+                    eq(EmptyTransportResponseHandler.INSTANCE_SAME)
                 );
             } finally {
                 scheduledExecutor.awaitTermination(1, TimeUnit.SECONDS);

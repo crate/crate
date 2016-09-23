@@ -44,9 +44,9 @@ public class PartitionPropertiesAnalyzer {
         Map<ColumnIdent, Object> map = new HashMap<>(assignments.size());
         for (Assignment assignment : assignments) {
             map.put(
-                    ColumnIdent.fromPath(ExpressionToStringVisitor.convert(assignment.columnName(), parameters)),
-                    ExpressionToObjectVisitor.convert(assignment.expression(), parameters)
-                    );
+                ColumnIdent.fromPath(ExpressionToStringVisitor.convert(assignment.columnName(), parameters)),
+                ExpressionToObjectVisitor.convert(assignment.expression(), parameters)
+            );
         }
         return map;
     }
@@ -56,10 +56,10 @@ public class PartitionPropertiesAnalyzer {
                                                 Row parameters) {
         Preconditions.checkArgument(tableInfo.isPartitioned(), "table '%s' is not partitioned", tableInfo.ident().fqn());
         Preconditions.checkArgument(partitionProperties.size() == tableInfo.partitionedBy().size(),
-                "The table \"%s\" is partitioned by %s columns but the PARTITION clause contains %s columns",
-                tableInfo.ident().fqn(),
-                tableInfo.partitionedBy().size(),
-                partitionProperties.size()
+            "The table \"%s\" is partitioned by %s columns but the PARTITION clause contains %s columns",
+            tableInfo.ident().fqn(),
+            tableInfo.partitionedBy().size(),
+            partitionProperties.size()
         );
         Map<ColumnIdent, Object> properties = assignmentsToMap(partitionProperties, parameters);
         BytesRef[] values = new BytesRef[properties.size()];
@@ -74,7 +74,7 @@ public class PartitionPropertiesAnalyzer {
                 values[idx] = converted == null ? null : DataTypes.STRING.value(converted);
             } catch (IndexOutOfBoundsException ex) {
                 throw new IllegalArgumentException(
-                        String.format(Locale.ENGLISH, "\"%s\" is no known partition column", entry.getKey().sqlFqn()));
+                    String.format(Locale.ENGLISH, "\"%s\" is no known partition column", entry.getKey().sqlFqn()));
             }
         }
         return new PartitionName(tableInfo.ident(), Arrays.asList(values));

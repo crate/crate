@@ -101,11 +101,11 @@ public class PutHeadChunkRunnable implements Runnable {
                 remainingBytes -= bytesRead;
 
                 transportService.submitRequest(
-                        recipientNode,
-                        BlobHeadRequestHandler.Actions.PUT_BLOB_HEAD_CHUNK,
-                        new PutBlobHeadChunkRequest(transferId, new BytesArray(buffer, 0, bytesRead)),
-                        TransportRequestOptions.EMPTY,
-                        EmptyTransportResponseHandler.INSTANCE_SAME
+                    recipientNode,
+                    BlobHeadRequestHandler.Actions.PUT_BLOB_HEAD_CHUNK,
+                    new PutBlobHeadChunkRequest(transferId, new BytesArray(buffer, 0, bytesRead)),
+                    TransportRequestOptions.EMPTY,
+                    EmptyTransportResponseHandler.INSTANCE_SAME
                 ).txGet();
             }
 
@@ -130,8 +130,7 @@ public class PutHeadChunkRunnable implements Runnable {
         }
     }
 
-    private void waitUntilFileHasGrown(File pendingFile)
-    {
+    private void waitUntilFileHasGrown(File pendingFile) {
         try {
             if (watcher == null) {
                 initWatcher(pendingFile.getParent());
@@ -149,7 +148,7 @@ public class PutHeadChunkRunnable implements Runnable {
                 }
 
                 @SuppressWarnings("unchecked")
-                WatchEvent<Path> ev = (WatchEvent<Path>)event;
+                WatchEvent<Path> ev = (WatchEvent<Path>) event;
                 Path filename = ev.context();
                 if (filename.toString().equals(pendingFile.getName())) {
                     break;

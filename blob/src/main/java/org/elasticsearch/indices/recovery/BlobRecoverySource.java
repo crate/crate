@@ -48,7 +48,7 @@ import java.util.*;
 /**
  * The source recovery accepts recovery requests from other peer shards and start the recovery process from this
  * source shard to the target shard.
- *
+ * <p>
  * This is a copy from ES RecoverySource - with a change marked with "CRATE CHANGE"
  */
 public class BlobRecoverySource extends AbstractComponent {
@@ -106,7 +106,8 @@ public class BlobRecoverySource extends AbstractComponent {
         RoutingNode node = clusterService.state().getRoutingNodes().node(request.targetNode().id());
         if (node == null) {
             logger.debug("delaying recovery of {} as source node {} is unknown", request.shardId(), request.targetNode());
-            throw new DelayRecoveryException("source node does not have the node [" + request.targetNode() + "] in its state yet..");
+            throw new DelayRecoveryException(
+                "source node does not have the node [" + request.targetNode() + "] in its state yet..");
         }
         ShardRouting targetShardRouting = null;
         for (ShardRouting shardRouting : node) {
@@ -121,8 +122,10 @@ public class BlobRecoverySource extends AbstractComponent {
         }
         if (!targetShardRouting.initializing()) {
             logger.debug("delaying recovery of {} as it is not listed as initializing on the target node {}. known shards state is [{}]",
-                    request.shardId(), request.targetNode(), targetShardRouting.state());
-            throw new DelayRecoveryException("source node has the state of the target shard to be [" + targetShardRouting.state() + "], expecting to be [initializing]");
+                request.shardId(), request.targetNode(), targetShardRouting.state());
+            throw new DelayRecoveryException(
+                "source node has the state of the target shard to be [" + targetShardRouting.state() +
+                "], expecting to be [initializing]");
         }
 
         logger.trace("[{}][{}] starting recovery to {}, mark_as_relocated {}", request.shardId().index().name(), request.shardId().id(), request.targetNode(), request.markAsRelocated());
@@ -132,7 +135,7 @@ public class BlobRecoverySource extends AbstractComponent {
         } else {
             // CRATE CHANGE:
             handler = new BlobRecoverySourceHandler(
-                    shard, request, recoverySettings, transportService, logger, blobTransferTarget, blobIndices);
+                shard, request, recoverySettings, transportService, logger, blobTransferTarget, blobIndices);
         }
         ongoingRecoveries.add(shard, handler);
         try {
@@ -160,7 +163,8 @@ public class BlobRecoverySource extends AbstractComponent {
                 shardRecoveryHandlers = new HashSet<>();
                 ongoingRecoveries.put(shard, shardRecoveryHandlers);
             }
-            assert shardRecoveryHandlers.contains(handler) == false : "Handler was already registered [" + handler + "]";
+            assert
+                shardRecoveryHandlers.contains(handler) == false : "Handler was already registered [" + handler + "]";
             shardRecoveryHandlers.add(handler);
             shard.recoveryStats().incCurrentAsSource();
         }

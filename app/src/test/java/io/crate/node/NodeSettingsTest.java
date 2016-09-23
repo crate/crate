@@ -151,12 +151,12 @@ public class NodeSettingsTest {
         doSetup();
 
         assertEquals(
-                Constants.HTTP_PORT_RANGE,
-                node.settings().get("http.port")
+            Constants.HTTP_PORT_RANGE,
+            node.settings().get("http.port")
         );
         assertEquals(
-                Constants.TRANSPORT_PORT_RANGE,
-                node.settings().get("transport.tcp.port")
+            Constants.TRANSPORT_PORT_RANGE,
+            node.settings().get("transport.tcp.port")
         );
     }
 }

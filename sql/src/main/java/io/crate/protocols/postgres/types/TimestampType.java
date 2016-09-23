@@ -36,7 +36,7 @@ class TimestampType extends PGType {
     /**
      * this oid is TIMESTAMPZ (with timezone) instead of TIMESTAMP
      * the timezone is always GMT
-     *
+     * <p>
      * If TIMESTAMP was used resultSet.getTimestamp() would convert the timestamp to a local time.
      */
     private static final int OID = 1184;
@@ -58,7 +58,7 @@ class TimestampType extends PGType {
     @Override
     public int writeAsBinary(ChannelBuffer buffer, @Nonnull Object value) {
         buffer.writeInt(TYPE_LEN);
-        buffer.writeDouble(toPgTimestamp((long)value));
+        buffer.writeDouble(toPgTimestamp((long) value));
         return INT32_BYTE_SIZE + TYPE_LEN;
     }
 

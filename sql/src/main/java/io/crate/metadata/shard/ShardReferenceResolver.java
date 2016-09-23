@@ -45,8 +45,8 @@ public class ShardReferenceResolver extends AbstractReferenceResolver {
                                   final Map<ReferenceIdent, ReferenceImplementation> globalImplementations,
                                   final Map<ReferenceIdent, ShardReferenceImplementation> shardImplementations) {
         ImmutableMap.Builder<ReferenceIdent, ReferenceImplementation> builder = ImmutableMap.builder();
-                builder.putAll(globalImplementations)
-                .putAll(shardImplementations);
+        builder.putAll(globalImplementations)
+            .putAll(shardImplementations);
 
         if (PartitionName.isPartition(index.name())) {
             PartitionName partitionName;
@@ -54,7 +54,7 @@ public class ShardReferenceResolver extends AbstractReferenceResolver {
                 partitionName = PartitionName.fromIndexOrTemplate(index.name());
             } catch (IllegalArgumentException e) {
                 throw new UnhandledServerException(String.format(Locale.ENGLISH,
-                        "Unable to load PARTITIONED BY columns from partition %s", index.name()), e);
+                    "Unable to load PARTITIONED BY columns from partition %s", index.name()), e);
             }
             TableIdent tableIdent = partitionName.tableIdent();
             try {
@@ -64,11 +64,12 @@ public class ShardReferenceResolver extends AbstractReferenceResolver {
                     int i = 0;
                     int numPartitionedColumns = info.partitionedByColumns().size();
 
-                    assert partitionName.values().size() == numPartitionedColumns : "invalid number of partitioned columns";
+                    assert partitionName.values().size() ==
+                           numPartitionedColumns : "invalid number of partitioned columns";
                     for (Reference partitionedInfo : info.partitionedByColumns()) {
                         builder.put(partitionedInfo.ident(), new PartitionedColumnExpression(
-                                partitionedInfo,
-                                partitionName.values().get(i)
+                            partitionedInfo,
+                            partitionName.values().get(i)
                         ));
                         i++;
                     }

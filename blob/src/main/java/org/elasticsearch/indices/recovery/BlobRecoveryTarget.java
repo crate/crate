@@ -89,7 +89,7 @@ public class BlobRecoveryTarget extends AbstractComponent {
 
     @Inject
     public BlobRecoveryTarget(Settings settings, IndicesLifecycle indicesLifecycle, RecoveryTarget indexRecoveryTarget,
-            IndicesService indicesService, TransportService transportService) {
+                              IndicesService indicesService, TransportService transportService) {
         super(settings);
         this.indexRecoveryTarget = indexRecoveryTarget;
         this.indicesService = indicesService;
@@ -110,7 +110,7 @@ public class BlobRecoveryTarget extends AbstractComponent {
                 request.shardId().getId(), request.recoveryId);
 
             try (RecoveriesCollection.StatusRef statusSafe = indexRecoveryTarget.onGoingRecoveries.getStatusSafe(
-                    request.recoveryId(), request.shardId())) {
+                request.recoveryId(), request.shardId())) {
                 RecoveryStatus onGoingIndexRecovery = statusSafe.status();
 
                 if (onGoingIndexRecovery.CancellableThreads().isCancelled()) {
@@ -118,8 +118,8 @@ public class BlobRecoveryTarget extends AbstractComponent {
                 }
 
                 BlobShard blobShard = indicesService.indexServiceSafe(
-                        onGoingIndexRecovery.shardId().getIndex()).shardInjectorSafe(
-                        onGoingIndexRecovery.shardId().id()).getInstance(BlobShard.class);
+                    onGoingIndexRecovery.shardId().getIndex()).shardInjectorSafe(
+                    onGoingIndexRecovery.shardId().id()).getInstance(BlobShard.class);
 
                 BlobRecoveryStatus status = new BlobRecoveryStatus(onGoingIndexRecovery, blobShard);
                 onGoingRecoveries.put(request.recoveryId(), status);
@@ -135,7 +135,7 @@ public class BlobRecoveryTarget extends AbstractComponent {
 
             BlobRecoveryStatus onGoingRecovery = onGoingRecoveries.get(request.recoveryId());
             if (onGoingRecovery == null) {
-                 // shard is getting closed on us
+                // shard is getting closed on us
                 throw new IllegalBlobRecoveryStateException("Could not retrieve onGoingRecoveryStatus");
             }
 
@@ -143,7 +143,7 @@ public class BlobRecoveryTarget extends AbstractComponent {
             BlobShard shard = onGoingRecovery.blobShard;
             if (onGoingRecovery.canceled()) {
                 onGoingRecovery.sentCanceledToSource();
-                 throw new IndexShardClosedException(onGoingRecovery.shardId());
+                throw new IndexShardClosedException(onGoingRecovery.shardId());
             }
 
             if (transferStatus == null) {
@@ -241,7 +241,7 @@ public class BlobRecoveryTarget extends AbstractComponent {
                     }
                 }
             } else {
-                BlobRecoveryTransferStatus transferStatus= new BlobRecoveryTransferStatus(
+                BlobRecoveryTransferStatus transferStatus = new BlobRecoveryTransferStatus(
                     request.transferId(), outputStream, tmpPath, request.path()
                 );
                 status.onGoingTransfers().put(request.transferId(), transferStatus);

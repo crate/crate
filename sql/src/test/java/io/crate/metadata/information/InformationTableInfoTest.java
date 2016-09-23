@@ -42,8 +42,8 @@ public class InformationTableInfoTest extends CrateUnitTest {
     @Before
     public void prepare() throws Exception {
         Injector injector = new ModulesBuilder()
-                .add(new MockedClusterServiceModule())
-                .createInjector();
+            .add(new MockedClusterServiceModule())
+            .createInjector();
         ClusterService clusterService = injector.getInstance(ClusterService.class);
         informationSchemaInfo = new InformationSchemaInfo(clusterService);
     }

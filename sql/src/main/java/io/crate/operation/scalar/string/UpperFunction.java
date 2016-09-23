@@ -42,8 +42,8 @@ public class UpperFunction extends Scalar<BytesRef, Object> {
 
     public static void register(ScalarFunctionModule module) {
         module.register(new UpperFunction(new FunctionInfo(
-                new FunctionIdent(NAME, ImmutableList.<DataType>of(DataTypes.STRING)),
-                DataTypes.STRING)
+            new FunctionIdent(NAME, ImmutableList.<DataType>of(DataTypes.STRING)),
+            DataTypes.STRING)
         ));
     }
 

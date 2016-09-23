@@ -34,7 +34,9 @@ import java.util.Locale;
 public class SafeExpressionToStringVisitor extends AstVisitor<String, Row> {
 
     private final static SafeExpressionToStringVisitor INSTANCE = new SafeExpressionToStringVisitor();
-    private SafeExpressionToStringVisitor() {}
+
+    private SafeExpressionToStringVisitor() {
+    }
 
     public static String convert(Node node, @Nullable Row context) {
         return INSTANCE.process(node, context);
@@ -54,7 +56,7 @@ public class SafeExpressionToStringVisitor extends AstVisitor<String, Row> {
         if (!(value instanceof String)) {
             throw new IllegalArgumentException(String.format(Locale.ENGLISH, "Parameter %s not a string value, can't handle this.", value));
         }
-        return (String)value;
+        return (String) value;
     }
 
     @Override

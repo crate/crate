@@ -49,34 +49,34 @@ public class ShowStatementsAnalyzerTest extends BaseAnalyzerTest {
 
     public static final TableIdent SCHEMATA = new TableIdent(InformationSchemaInfo.NAME, "schemata");
     public static final TableInfo SCHEMATA_INFO = new TestingTableInfo.Builder(
-            SCHEMATA, new Routing(ImmutableMap.<String, Map<String, List<Integer>>>of()))
-            .add("schema_name", DataTypes.STRING, null)
-            .build();
+        SCHEMATA, new Routing(ImmutableMap.<String, Map<String, List<Integer>>>of()))
+        .add("schema_name", DataTypes.STRING, null)
+        .build();
 
     public static final TableIdent COLUMNS = new TableIdent(InformationSchemaInfo.NAME, "columns");
     public static final TableInfo COLUMNS_INFO = new TestingTableInfo.Builder(
-            COLUMNS, new Routing(ImmutableMap.<String, Map<String, List<Integer>>>of()))
-            .add("column_name", DataTypes.STRING, null)
-            .add("schema_name", DataTypes.STRING, null)
-            .add("table_name", DataTypes.STRING, null)
-            .add("data_type", DataTypes.STRING, null)
-            .build();
+        COLUMNS, new Routing(ImmutableMap.<String, Map<String, List<Integer>>>of()))
+        .add("column_name", DataTypes.STRING, null)
+        .add("schema_name", DataTypes.STRING, null)
+        .add("table_name", DataTypes.STRING, null)
+        .add("data_type", DataTypes.STRING, null)
+        .build();
 
     public static final TableIdent TABLES = new TableIdent(InformationSchemaInfo.NAME, "tables");
     public static final TableInfo TABLES_INFO = new TestingTableInfo.Builder(
-            TABLES, new Routing(ImmutableMap.<String, Map<String, List<Integer>>>of()))
-            .add("table_name", DataTypes.STRING, null)
-            .add("schema_name", DataTypes.STRING, null)
-            .build();
+        TABLES, new Routing(ImmutableMap.<String, Map<String, List<Integer>>>of()))
+        .add("table_name", DataTypes.STRING, null)
+        .add("schema_name", DataTypes.STRING, null)
+        .build();
 
     public static final TableIdent CONSTRAINTS = new TableIdent(InformationSchemaInfo.NAME, "table_constraints");
     public static final TableInfo CONSTRAINTS_INFO = new TestingTableInfo.Builder(
-            CONSTRAINTS, new Routing(ImmutableMap.<String, Map<String, List<Integer>>>of()))
-            .add("table_name", DataTypes.STRING, null)
-            .add("schema_name", DataTypes.STRING, null)
-            .add("constraint_type", DataTypes.STRING, null)
-            .add("constraint_name", new ArrayType(DataTypes.STRING), null)
-            .build();
+        CONSTRAINTS, new Routing(ImmutableMap.<String, Map<String, List<Integer>>>of()))
+        .add("table_name", DataTypes.STRING, null)
+        .add("schema_name", DataTypes.STRING, null)
+        .add("constraint_type", DataTypes.STRING, null)
+        .add("constraint_name", new ArrayType(DataTypes.STRING), null)
+        .build();
 
     static class TestMetaDataModule extends MetaDataModule {
 
@@ -96,9 +96,9 @@ public class ShowStatementsAnalyzerTest extends BaseAnalyzerTest {
     protected List<Module> getModules() {
         List<Module> modules = super.getModules();
         modules.addAll(Arrays.<Module>asList(
-                new MockedClusterServiceModule(),
-                new TestMetaDataModule(),
-                new OperatorModule()
+            new MockedClusterServiceModule(),
+            new TestMetaDataModule(),
+            new OperatorModule()
         ));
         return modules;
     }
@@ -108,18 +108,18 @@ public class ShowStatementsAnalyzerTest extends BaseAnalyzerTest {
         SelectAnalyzedStatement analyzedStatement = analyze("show tables in QNAME");
 
         assertThat(analyzedStatement.relation().querySpec(), isSQL(
-                "SELECT information_schema.tables.table_name " +
-                "WHERE (information_schema.tables.schema_name = 'qname') " +
-                "GROUP BY information_schema.tables.table_name " +
-                "ORDER BY information_schema.tables.table_name"));
+            "SELECT information_schema.tables.table_name " +
+            "WHERE (information_schema.tables.schema_name = 'qname') " +
+            "GROUP BY information_schema.tables.table_name " +
+            "ORDER BY information_schema.tables.table_name"));
 
         analyzedStatement = analyze("show tables");
 
         assertThat(analyzedStatement.relation().querySpec(), isSQL(
-                "SELECT information_schema.tables.table_name " +
-                "WHERE (NOT (information_schema.tables.schema_name = ANY(['information_schema', 'pg_catalog', 'sys']))) " +
-                "GROUP BY information_schema.tables.table_name " +
-                "ORDER BY information_schema.tables.table_name"));
+            "SELECT information_schema.tables.table_name " +
+            "WHERE (NOT (information_schema.tables.schema_name = ANY(['information_schema', 'pg_catalog', 'sys']))) " +
+            "GROUP BY information_schema.tables.table_name " +
+            "ORDER BY information_schema.tables.table_name"));
     }
 
     @Test
@@ -127,42 +127,42 @@ public class ShowStatementsAnalyzerTest extends BaseAnalyzerTest {
         SelectAnalyzedStatement analyzedStatement = analyze("show tables in QNAME like 'likePattern'");
 
         assertThat(analyzedStatement.relation().querySpec(), isSQL(
-                "SELECT information_schema.tables.table_name " +
-                "WHERE ((information_schema.tables.schema_name = 'qname') " +
-                "AND (information_schema.tables.table_name LIKE 'likePattern')) " +
-                "GROUP BY information_schema.tables.table_name " +
-                "ORDER BY information_schema.tables.table_name"));
+            "SELECT information_schema.tables.table_name " +
+            "WHERE ((information_schema.tables.schema_name = 'qname') " +
+            "AND (information_schema.tables.table_name LIKE 'likePattern')) " +
+            "GROUP BY information_schema.tables.table_name " +
+            "ORDER BY information_schema.tables.table_name"));
 
         analyzedStatement = analyze("show tables like '%'");
 
         assertThat(analyzedStatement.relation().querySpec(), isSQL(
-                "SELECT information_schema.tables.table_name " +
-                "WHERE ((NOT (information_schema.tables.schema_name = ANY(['information_schema', 'pg_catalog', 'sys']))) " +
-                "AND (information_schema.tables.table_name LIKE '%')) " +
-                "GROUP BY information_schema.tables.table_name " +
-                "ORDER BY information_schema.tables.table_name"));
+            "SELECT information_schema.tables.table_name " +
+            "WHERE ((NOT (information_schema.tables.schema_name = ANY(['information_schema', 'pg_catalog', 'sys']))) " +
+            "AND (information_schema.tables.table_name LIKE '%')) " +
+            "GROUP BY information_schema.tables.table_name " +
+            "ORDER BY information_schema.tables.table_name"));
     }
 
     @Test
     public void testVisitShowTablesWhere() throws Exception {
         SelectAnalyzedStatement analyzedStatement =
-                analyze("show tables in QNAME where table_name = 'foo' or table_name like '%bar%'");
+            analyze("show tables in QNAME where table_name = 'foo' or table_name like '%bar%'");
 
         assertThat(analyzedStatement.relation().querySpec(), isSQL(
-                "SELECT information_schema.tables.table_name " +
-                "WHERE ((information_schema.tables.schema_name = 'qname') " +
-                "AND ((information_schema.tables.table_name = 'foo') OR (information_schema.tables.table_name LIKE '%bar%'))) " +
-                "GROUP BY information_schema.tables.table_name " +
-                "ORDER BY information_schema.tables.table_name"));
+            "SELECT information_schema.tables.table_name " +
+            "WHERE ((information_schema.tables.schema_name = 'qname') " +
+            "AND ((information_schema.tables.table_name = 'foo') OR (information_schema.tables.table_name LIKE '%bar%'))) " +
+            "GROUP BY information_schema.tables.table_name " +
+            "ORDER BY information_schema.tables.table_name"));
 
         analyzedStatement = analyze("show tables where table_name like '%'");
 
         assertThat(analyzedStatement.relation().querySpec(), isSQL(
-                "SELECT information_schema.tables.table_name " +
-                "WHERE ((NOT (information_schema.tables.schema_name = ANY(['information_schema', 'pg_catalog', 'sys']))) " +
-                "AND (information_schema.tables.table_name LIKE '%')) " +
-                "GROUP BY information_schema.tables.table_name " +
-                "ORDER BY information_schema.tables.table_name"));
+            "SELECT information_schema.tables.table_name " +
+            "WHERE ((NOT (information_schema.tables.schema_name = ANY(['information_schema', 'pg_catalog', 'sys']))) " +
+            "AND (information_schema.tables.table_name LIKE '%')) " +
+            "GROUP BY information_schema.tables.table_name " +
+            "ORDER BY information_schema.tables.table_name"));
     }
 
     @Test
@@ -199,11 +199,11 @@ public class ShowStatementsAnalyzerTest extends BaseAnalyzerTest {
         SelectAnalyzedStatement analyzedStatement = analyze("show columns from schemata in information_schema like '%'");
         QuerySpec querySpec = analyzedStatement.relation().querySpec();
         assertThat(querySpec, isSQL(
-                "SELECT information_schema.columns.column_name, information_schema.columns.data_type" +
-                " WHERE (((information_schema.columns.table_name = 'schemata')" +
-                " AND (information_schema.columns.schema_name = 'information_schema'))" +
-                " AND (information_schema.columns.column_name LIKE '%'))" +
-                " ORDER BY information_schema.columns.column_name"));
+            "SELECT information_schema.columns.column_name, information_schema.columns.data_type" +
+            " WHERE (((information_schema.columns.table_name = 'schemata')" +
+            " AND (information_schema.columns.schema_name = 'information_schema'))" +
+            " AND (information_schema.columns.column_name LIKE '%'))" +
+            " ORDER BY information_schema.columns.column_name"));
     }
 
     @Test
@@ -213,11 +213,11 @@ public class ShowStatementsAnalyzerTest extends BaseAnalyzerTest {
 
         QuerySpec querySpec = analyzedStatement.relation().querySpec();
         assertThat(querySpec, isSQL(
-                "SELECT information_schema.columns.column_name, information_schema.columns.data_type" +
-                " WHERE (((information_schema.columns.table_name = 'schemata')" +
-                " AND (information_schema.columns.schema_name = 'information_schema'))" +
-                " AND (information_schema.columns.column_name = 'id'))" +
-                " ORDER BY information_schema.columns.column_name"));
+            "SELECT information_schema.columns.column_name, information_schema.columns.data_type" +
+            " WHERE (((information_schema.columns.table_name = 'schemata')" +
+            " AND (information_schema.columns.schema_name = 'information_schema'))" +
+            " AND (information_schema.columns.column_name = 'id'))" +
+            " ORDER BY information_schema.columns.column_name"));
     }
 
     @Test
@@ -226,11 +226,11 @@ public class ShowStatementsAnalyzerTest extends BaseAnalyzerTest {
 
         QuerySpec querySpec = analyzedStatement.relation().querySpec();
         assertThat(querySpec, isSQL(
-                "SELECT information_schema.columns.column_name, information_schema.columns.data_type" +
-                " WHERE (((information_schema.columns.table_name = 'schemata')" +
-                " AND (information_schema.columns.schema_name = 'doc'))" +
-                " AND (information_schema.columns.column_name LIKE '%'))" +
-                " ORDER BY information_schema.columns.column_name"));
+            "SELECT information_schema.columns.column_name, information_schema.columns.data_type" +
+            " WHERE (((information_schema.columns.table_name = 'schemata')" +
+            " AND (information_schema.columns.schema_name = 'doc'))" +
+            " AND (information_schema.columns.column_name LIKE '%'))" +
+            " ORDER BY information_schema.columns.column_name"));
     }
 
     @Test
@@ -239,10 +239,10 @@ public class ShowStatementsAnalyzerTest extends BaseAnalyzerTest {
 
         QuerySpec querySpec = analyzedStatement.relation().querySpec();
         assertThat(querySpec, isSQL(
-                "SELECT information_schema.columns.column_name, information_schema.columns.data_type" +
-                " WHERE ((information_schema.columns.table_name = 'schemata')" +
-                " AND (information_schema.columns.schema_name = 'doc'))" +
-                " ORDER BY information_schema.columns.column_name"));
+            "SELECT information_schema.columns.column_name, information_schema.columns.data_type" +
+            " WHERE ((information_schema.columns.table_name = 'schemata')" +
+            " AND (information_schema.columns.schema_name = 'doc'))" +
+            " ORDER BY information_schema.columns.column_name"));
     }
 
 }

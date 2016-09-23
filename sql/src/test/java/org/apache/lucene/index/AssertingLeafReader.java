@@ -22,14 +22,14 @@
 
 package org.apache.lucene.index;
 
-import java.io.IOException;
-import java.util.Iterator;
-
 import org.apache.lucene.search.DocIdSetIterator;
 import org.apache.lucene.util.Bits;
 import org.apache.lucene.util.BytesRef;
 import org.apache.lucene.util.VirtualMethod;
 import org.apache.lucene.util.automaton.CompiledAutomaton;
+
+import java.io.IOException;
+import java.util.Iterator;
 
 /**
  * A {@link FilterLeafReader} that can be used to apply
@@ -141,7 +141,10 @@ public class AssertingLeafReader extends FilterLeafReader {
 
     static class AssertingTermsEnum extends FilterTermsEnum {
         private final Thread creationThread = Thread.currentThread();
-        private enum State {INITIAL, POSITIONED, UNPOSITIONED};
+
+        private enum State {INITIAL, POSITIONED, UNPOSITIONED}
+
+        ;
         private State state = State.INITIAL;
         private final boolean delegateOverridesSeekExact;
 
@@ -153,7 +156,7 @@ public class AssertingLeafReader extends FilterLeafReader {
         @Override
         public PostingsEnum postings(PostingsEnum reuse, int flags) throws IOException {
             assertThread("Terms enums", creationThread);
-            assert state == State.POSITIONED: "docs(...) called on unpositioned TermsEnum";
+            assert state == State.POSITIONED : "docs(...) called on unpositioned TermsEnum";
 
             // reuse if the codec reused
             final PostingsEnum actualReuse;
@@ -169,7 +172,7 @@ public class AssertingLeafReader extends FilterLeafReader {
             }
             if (docs == actualReuse) {
                 // codec reused, reset asserting state
-                ((AssertingPostingsEnum)reuse).reset();
+                ((AssertingPostingsEnum) reuse).reset();
                 return reuse;
             } else {
                 return new AssertingPostingsEnum(docs);
@@ -181,7 +184,7 @@ public class AssertingLeafReader extends FilterLeafReader {
         @Override
         public BytesRef next() throws IOException {
             assertThread("Terms enums", creationThread);
-            assert state == State.INITIAL || state == State.POSITIONED: "next() called on unpositioned TermsEnum";
+            assert state == State.INITIAL || state == State.POSITIONED : "next() called on unpositioned TermsEnum";
             BytesRef result = super.next();
             if (result == null) {
                 state = State.UNPOSITIONED;
@@ -285,9 +288,13 @@ public class AssertingLeafReader extends FilterLeafReader {
         }
     }
 
-    static enum DocsEnumState { START, ITERATING, FINISHED };
+    static enum DocsEnumState {START, ITERATING, FINISHED}
 
-    /** Wraps a docsenum with additional checks */
+    ;
+
+    /**
+     * Wraps a docsenum with additional checks
+     */
     public static class AssertingPostingsEnum extends FilterPostingsEnum {
         private final Thread creationThread = Thread.currentThread();
         private DocsEnumState state = DocsEnumState.START;
@@ -340,7 +347,9 @@ public class AssertingLeafReader extends FilterLeafReader {
         @Override
         public int docID() {
             assertThread("Docs enums", creationThread);
-            assert doc == super.docID() : " invalid docID() in " + in.getClass() + " " + super.docID() + " instead of " + doc;
+            assert
+                doc == super.docID() :
+                " invalid docID() in " + in.getClass() + " " + super.docID() + " instead of " + doc;
             return doc;
         }
 
@@ -398,7 +407,9 @@ public class AssertingLeafReader extends FilterLeafReader {
         }
     }
 
-    /** Wraps a NumericDocValues but with additional asserts */
+    /**
+     * Wraps a NumericDocValues but with additional asserts
+     */
     public static class AssertingNumericDocValues extends NumericDocValues {
         private final Thread creationThread = Thread.currentThread();
         private final NumericDocValues in;
@@ -417,7 +428,9 @@ public class AssertingLeafReader extends FilterLeafReader {
         }
     }
 
-    /** Wraps a BinaryDocValues but with additional asserts */
+    /**
+     * Wraps a BinaryDocValues but with additional asserts
+     */
     public static class AssertingBinaryDocValues extends BinaryDocValues {
         private final Thread creationThread = Thread.currentThread();
         private final BinaryDocValues in;
@@ -438,7 +451,9 @@ public class AssertingLeafReader extends FilterLeafReader {
         }
     }
 
-    /** Wraps a SortedDocValues but with additional asserts */
+    /**
+     * Wraps a SortedDocValues but with additional asserts
+     */
     public static class AssertingSortedDocValues extends SortedDocValues {
         private final Thread creationThread = Thread.currentThread();
         private final SortedDocValues in;
@@ -498,7 +513,9 @@ public class AssertingLeafReader extends FilterLeafReader {
         }
     }
 
-    /** Wraps a SortedSetDocValues but with additional asserts */
+    /**
+     * Wraps a SortedSetDocValues but with additional asserts
+     */
     public static class AssertingSortedNumericDocValues extends SortedNumericDocValues {
         private final Thread creationThread = Thread.currentThread();
         private final SortedNumericDocValues in;
@@ -537,7 +554,9 @@ public class AssertingLeafReader extends FilterLeafReader {
         }
     }
 
-    /** Wraps a RandomAccessOrds but with additional asserts */
+    /**
+     * Wraps a RandomAccessOrds but with additional asserts
+     */
     public static class AssertingRandomAccessOrds extends RandomAccessOrds {
         private final Thread creationThread = Thread.currentThread();
         private final RandomAccessOrds in;
@@ -616,7 +635,9 @@ public class AssertingLeafReader extends FilterLeafReader {
         }
     }
 
-    /** Wraps a SortedSetDocValues but with additional asserts */
+    /**
+     * Wraps a SortedSetDocValues but with additional asserts
+     */
     public static class AssertingSortedSetDocValues extends SortedSetDocValues {
         private final Thread creationThread = Thread.currentThread();
         private final SortedSetDocValues in;
@@ -766,7 +787,9 @@ public class AssertingLeafReader extends FilterLeafReader {
         }
     }
 
-    /** Wraps a Bits but with additional asserts */
+    /**
+     * Wraps a Bits but with additional asserts
+     */
     public static class AssertingBits implements Bits {
         private final Thread creationThread = Thread.currentThread();
         final Bits in;

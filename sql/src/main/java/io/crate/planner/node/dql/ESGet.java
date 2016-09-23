@@ -72,7 +72,7 @@ public class ESGet extends PlanAndPlannedAnalyzedRelation {
 
         outputTypes = Symbols.extractTypes(outputs);
 
-        if (querySpec.orderBy().isPresent()){
+        if (querySpec.orderBy().isPresent()) {
             this.sortSymbols = querySpec.orderBy().get().orderBySymbols();
             this.reverseFlags = querySpec.orderBy().get().reverseFlags();
             this.nullsFirst = querySpec.orderBy().get().nullsFirst();
@@ -130,9 +130,9 @@ public class ESGet extends PlanAndPlannedAnalyzedRelation {
     @Override
     public String toString() {
         return MoreObjects.toStringHelper(this)
-                .add("docKeys", docKeys)
-                .add("outputs", outputs)
-                .toString();
+            .add("docKeys", docKeys)
+            .add("outputs", outputs)
+            .toString();
     }
 
     @Override

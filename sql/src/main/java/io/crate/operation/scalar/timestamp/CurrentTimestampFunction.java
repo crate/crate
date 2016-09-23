@@ -46,7 +46,7 @@ public class CurrentTimestampFunction extends Scalar<Long, Integer> implements F
     public static final int DEFAULT_PRECISION = 3;
 
     public static final FunctionInfo INFO = new FunctionInfo(
-            new FunctionIdent(NAME, ImmutableList.<DataType>of(DataTypes.INTEGER)), DataTypes.TIMESTAMP);
+        new FunctionIdent(NAME, ImmutableList.<DataType>of(DataTypes.INTEGER)), DataTypes.TIMESTAMP);
 
     public static void register(ScalarFunctionModule function) {
         function.register(new CurrentTimestampFunction());

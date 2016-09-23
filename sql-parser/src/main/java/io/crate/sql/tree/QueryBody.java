@@ -22,8 +22,7 @@
 package io.crate.sql.tree;
 
 public abstract class QueryBody
-        extends Relation
-{
+    extends Relation {
     @Override
     public abstract int hashCode();
 
@@ -34,8 +33,7 @@ public abstract class QueryBody
     public abstract String toString();
 
     @Override
-    public <R, C> R accept(AstVisitor<R, C> visitor, C context)
-    {
+    public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
         return visitor.visitQueryBody(this, context);
     }
 }

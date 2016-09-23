@@ -51,16 +51,16 @@ public class WithinFunction extends Scalar<Boolean, Object> {
     public static final String NAME = "within";
 
     private static final Set<DataType> LEFT_TYPES = ImmutableSet.<DataType>of(
-            DataTypes.GEO_POINT,
-            DataTypes.GEO_SHAPE,
-            DataTypes.OBJECT,
-            DataTypes.STRING
+        DataTypes.GEO_POINT,
+        DataTypes.GEO_SHAPE,
+        DataTypes.OBJECT,
+        DataTypes.STRING
     );
 
     private static final Set<DataType> RIGHT_TYPES = ImmutableSet.<DataType>of(
-            DataTypes.GEO_SHAPE,
-            DataTypes.OBJECT,
-            DataTypes.STRING
+        DataTypes.GEO_SHAPE,
+        DataTypes.OBJECT,
+        DataTypes.STRING
     );
 
     public static void register(ScalarFunctionModule scalarFunctionModule) {
@@ -73,8 +73,8 @@ public class WithinFunction extends Scalar<Boolean, Object> {
 
     private static FunctionInfo info(DataType pointType, DataType shapeType) {
         return new FunctionInfo(
-                new FunctionIdent(NAME, ImmutableList.of(pointType, shapeType)),
-                DataTypes.BOOLEAN
+            new FunctionIdent(NAME, ImmutableList.of(pointType, shapeType)),
+            DataTypes.BOOLEAN
         );
     }
 
@@ -125,8 +125,8 @@ public class WithinFunction extends Scalar<Boolean, Object> {
     @SuppressWarnings("unchecked")
     private Shape parseRightShape(Object right) {
         return (right instanceof BytesRef) ?
-                GeoJSONUtils.wkt2Shape(BytesRefs.toString(right)) :
-                GeoJSONUtils.map2Shape((Map<String, Object>) right);
+            GeoJSONUtils.wkt2Shape(BytesRefs.toString(right)) :
+            GeoJSONUtils.map2Shape((Map<String, Object>) right);
     }
 
     @Override

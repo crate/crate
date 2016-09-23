@@ -90,7 +90,7 @@ public class RemoteDigestBlob {
         this.index = index;
     }
 
-    public Status status(){
+    public Status status() {
         return status;
     }
 
@@ -98,8 +98,8 @@ public class RemoteDigestBlob {
         logger.trace("delete");
         assert (transferId == null);
         DeleteBlobRequest request = new DeleteBlobRequest(
-                index,
-                Hex.decodeHex(digest)
+            index,
+            Hex.decodeHex(digest)
         );
 
         return client.execute(DeleteBlobAction.INSTANCE, request).actionGet().deleted;
@@ -109,10 +109,10 @@ public class RemoteDigestBlob {
         logger.trace("start blob upload");
         assert (transferId == null);
         StartBlobRequest request = new StartBlobRequest(
-                index,
-                Hex.decodeHex(digest),
-                new BytesArray(buffer.array()),
-                last
+            index,
+            Hex.decodeHex(digest),
+            new BytesArray(buffer.array()),
+            last
         );
         transferId = request.transferId();
         size += buffer.readableBytes();
@@ -145,7 +145,7 @@ public class RemoteDigestBlob {
             // client probably doesn't support 100-continue and is sending chunked requests
             // need to ignore the content.
             return status;
-        } else if (status != Status.PARTIAL){
+        } else if (status != Status.PARTIAL) {
             throw new IllegalStateException("Expected Status.PARTIAL for chunk but got: " + status);
         } else {
             return chunk(buffer, last);

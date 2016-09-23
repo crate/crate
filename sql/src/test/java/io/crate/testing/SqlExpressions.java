@@ -73,10 +73,10 @@ public class SqlExpressions {
                           @Nullable FieldResolver fieldResolver,
                           @Nullable Object[] parameters) {
         ModulesBuilder modulesBuilder = new ModulesBuilder()
-                .add(new OperatorModule())
-                .add(new ScalarFunctionModule())
-                .add(new TableFunctionModule())
-                .add(new PredicateModule());
+            .add(new OperatorModule())
+            .add(new ScalarFunctionModule())
+            .add(new TableFunctionModule())
+            .add(new PredicateModule());
         injector = modulesBuilder.createInjector();
         NestedReferenceResolver referenceResolver = new NestedReferenceResolver() {
             @Override
@@ -86,12 +86,12 @@ public class SqlExpressions {
         };
         Schemas schemas = mock(Schemas.class);
         analysisMetaData = new AnalysisMetaData(injector.getInstance(Functions.class), schemas, referenceResolver);
-        expressionAnalyzer =  new ExpressionAnalyzer(
-                analysisMetaData,
-                new ParameterContext(parameters == null
-                    ? Row.EMPTY : new RowN(parameters), Collections.<Row>emptyList(), null),
-                new FullQualifedNameFieldProvider(sources),
-                fieldResolver);
+        expressionAnalyzer = new ExpressionAnalyzer(
+            analysisMetaData,
+            new ParameterContext(parameters == null
+                ? Row.EMPTY : new RowN(parameters), Collections.<Row>emptyList(), null),
+            new FullQualifedNameFieldProvider(sources),
+            fieldResolver);
         expressionAnalysisCtx = new ExpressionAnalysisContext(new StmtCtx());
     }
 

@@ -39,6 +39,7 @@ public class StatsTablesUpdateListener implements CompletionListener {
         this.jobId = jobId;
         this.statsTables = statsTables;
     }
+
     @Override
     public void onSuccess(@Nullable CompletionState result) {
         statsTables.logExecutionEnd(jobId, null);

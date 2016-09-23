@@ -84,23 +84,23 @@ public class CompoundLiteralTest extends CrateUnitTest {
         when(clusterService.state()).thenReturn(state);
         final TransportPutIndexTemplateAction transportPutIndexTemplateAction = mock(TransportPutIndexTemplateAction.class);
         analysisMetaData = new AnalysisMetaData(
-                new Functions(
-                        Collections.<FunctionIdent, FunctionImplementation>emptyMap(),
-                        Collections.<String, DynamicFunctionResolver>emptyMap(),
-                        Collections.<String, TableFunctionImplementation>emptyMap()),
-                new ReferenceInfos(
-                        Collections.<String, SchemaInfo>emptyMap(),
-                        clusterService,
-                        new IndexNameExpressionResolver(Settings.EMPTY),
-                        threadPool,
-                        new Provider<TransportPutIndexTemplateAction>() {
-                            @Override
-                            public TransportPutIndexTemplateAction get() {
-                                return transportPutIndexTemplateAction;
-                            }
-                        },
-                        mock(Functions.class)),
-                new GlobalReferenceResolver(Collections.<ReferenceIdent, ReferenceImplementation>emptyMap())
+            new Functions(
+                Collections.<FunctionIdent, FunctionImplementation>emptyMap(),
+                Collections.<String, DynamicFunctionResolver>emptyMap(),
+                Collections.<String, TableFunctionImplementation>emptyMap()),
+            new ReferenceInfos(
+                Collections.<String, SchemaInfo>emptyMap(),
+                clusterService,
+                new IndexNameExpressionResolver(Settings.EMPTY),
+                threadPool,
+                new Provider<TransportPutIndexTemplateAction>() {
+                    @Override
+                    public TransportPutIndexTemplateAction get() {
+                        return transportPutIndexTemplateAction;
+                    }
+                },
+                mock(Functions.class)),
+            new GlobalReferenceResolver(Collections.<ReferenceIdent, ReferenceImplementation>emptyMap())
         );
     }
 
@@ -117,13 +117,13 @@ public class CompoundLiteralTest extends CrateUnitTest {
 
     private Symbol analyzeExpression(String expression, Object[] params) {
         ExpressionAnalyzer expressionAnalyzer = new ExpressionAnalyzer(
-                analysisMetaData,
-                new ParameterContext(new RowN(params), Collections.<Row>emptyList(), null),
-                new FullQualifedNameFieldProvider(
-                        ImmutableMap.<QualifiedName, AnalyzedRelation>of(
-                            new QualifiedName("dummy"), new DummyRelation()
+            analysisMetaData,
+            new ParameterContext(new RowN(params), Collections.<Row>emptyList(), null),
+            new FullQualifedNameFieldProvider(
+                ImmutableMap.<QualifiedName, AnalyzedRelation>of(
+                    new QualifiedName("dummy"), new DummyRelation()
                 )),
-                null
+            null
         );
         return expressionAnalyzer.convert(SqlParser.createExpression(expression), new ExpressionAnalysisContext(new StmtCtx()));
     }
@@ -133,21 +133,21 @@ public class CompoundLiteralTest extends CrateUnitTest {
     public void testObjectLiteral() throws Exception {
         Symbol s = analyzeExpression("{}");
         assertThat(s, instanceOf(Literal.class));
-        Literal l = (Literal)s;
-        assertThat(l.value(), is((Object)new HashMap<String, Object>()));
+        Literal l = (Literal) s;
+        assertThat(l.value(), is((Object) new HashMap<String, Object>()));
 
-        Literal objectLiteral = (Literal)analyzeExpression("{ident='value'}");
+        Literal objectLiteral = (Literal) analyzeExpression("{ident='value'}");
         assertThat(objectLiteral.symbolType(), is(SymbolType.LITERAL));
-        assertThat(objectLiteral.valueType(), is((DataType)ObjectType.INSTANCE));
+        assertThat(objectLiteral.valueType(), is((DataType) ObjectType.INSTANCE));
         assertThat(objectLiteral.value(), is((Object) new MapBuilder<String, Object>().put("ident", "value").map()));
 
-        Literal multipleObjectLiteral = (Literal)analyzeExpression("{\"Ident\"=123.4, a={}, ident='string'}");
-        Map<String, Object> values = (Map<String, Object>)multipleObjectLiteral.value();
+        Literal multipleObjectLiteral = (Literal) analyzeExpression("{\"Ident\"=123.4, a={}, ident='string'}");
+        Map<String, Object> values = (Map<String, Object>) multipleObjectLiteral.value();
         assertThat(values, is(new MapBuilder<String, Object>()
-                .put("Ident", 123.4d)
-                .put("a", new HashMap<String, Object>())
-                .put("ident", "string")
-                .map()));
+            .put("Ident", 123.4d)
+            .put("a", new HashMap<String, Object>())
+            .put("ident", "string")
+            .map()));
     }
 
     @Test
@@ -174,18 +174,18 @@ public class CompoundLiteralTest extends CrateUnitTest {
     @Test
     public void testArrayLiteral() throws Exception {
         Literal emptyArray = (Literal) analyzeExpression("[]");
-        assertThat((Object[])emptyArray.value(), is(new Object[0]));
-        assertThat(emptyArray.valueType(), is((DataType)new ArrayType(UndefinedType.INSTANCE)));
+        assertThat((Object[]) emptyArray.value(), is(new Object[0]));
+        assertThat(emptyArray.valueType(), is((DataType) new ArrayType(UndefinedType.INSTANCE)));
 
         Literal singleArray = (Literal) analyzeExpression("[1]");
-        assertThat(singleArray.valueType(), is((DataType)new ArrayType(LongType.INSTANCE)));
-        assertThat(((Object[])singleArray.value()).length, is(1));
-        assertThat(((Object[])singleArray.value())[0], is((Object)1L));
+        assertThat(singleArray.valueType(), is((DataType) new ArrayType(LongType.INSTANCE)));
+        assertThat(((Object[]) singleArray.value()).length, is(1));
+        assertThat(((Object[]) singleArray.value())[0], is((Object) 1L));
 
         Literal multiArray = (Literal) analyzeExpression("[1, 2, 3]");
-        assertThat(multiArray.valueType(), is((DataType)new ArrayType(LongType.INSTANCE)));
-        assertThat(((Object[])multiArray.value()).length, is(3));
-        assertThat((Object[])multiArray.value(), is(new Object[]{1L,2L,3L}));
+        assertThat(multiArray.valueType(), is((DataType) new ArrayType(LongType.INSTANCE)));
+        assertThat(((Object[]) multiArray.value()).length, is(3));
+        assertThat((Object[]) multiArray.value(), is(new Object[]{1L, 2L, 3L}));
     }
 
     @Test
@@ -213,16 +213,16 @@ public class CompoundLiteralTest extends CrateUnitTest {
     @Test
     public void testNestedArrayLiteral() throws Exception {
         Map<String, DataType> expected = ImmutableMap.<String, DataType>builder()
-                .put("'string'", DataTypes.STRING)
-                .put("0", DataTypes.LONG)
-                .put("1.8", DataTypes.DOUBLE)
-                .put("TRUE", DataTypes.BOOLEAN)
-                .build();
+            .put("'string'", DataTypes.STRING)
+            .put("0", DataTypes.LONG)
+            .put("1.8", DataTypes.DOUBLE)
+            .put("TRUE", DataTypes.BOOLEAN)
+            .build();
         for (Map.Entry<String, DataType> entry : expected.entrySet()) {
             Symbol nestedArraySymbol = analyzeExpression("[[" + entry.getKey() + "]]");
             assertThat(nestedArraySymbol, Matchers.instanceOf(Literal.class));
-            Literal nestedArray = (Literal)nestedArraySymbol;
-            assertThat(nestedArray.valueType(), is((DataType)new ArrayType(new ArrayType(entry.getValue()))));
+            Literal nestedArray = (Literal) nestedArraySymbol;
+            assertThat(nestedArray.valueType(), is((DataType) new ArrayType(new ArrayType(entry.getValue()))));
         }
     }
 }

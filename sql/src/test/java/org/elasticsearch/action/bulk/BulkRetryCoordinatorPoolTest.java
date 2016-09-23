@@ -50,7 +50,7 @@ import static org.mockito.Mockito.mock;
 
 public class BulkRetryCoordinatorPoolTest extends CrateUnitTest {
 
-    private static final String[] NODE_IDS = new String[] {"node1", "node2"};
+    private static final String[] NODE_IDS = new String[]{"node1", "node2"};
 
     public static final String TEST_INDEX = "test_index";
 
@@ -63,18 +63,18 @@ public class BulkRetryCoordinatorPoolTest extends CrateUnitTest {
     @Before
     public void prepare() {
         MetaData metaData = MetaData.builder()
-                .put(IndexMetaData.builder(TEST_INDEX).settings(settings(Version.CURRENT)).numberOfShards(3).numberOfReplicas(0))
-                .build();
+            .put(IndexMetaData.builder(TEST_INDEX).settings(settings(Version.CURRENT)).numberOfShards(3).numberOfReplicas(0))
+            .build();
         RoutingTable routingTable = RoutingTable.builder()
-                .addAsNew(metaData.index(TEST_INDEX)).build();
+            .addAsNew(metaData.index(TEST_INDEX)).build();
         ClusterState state = ClusterState
-                .builder(org.elasticsearch.cluster.ClusterName.DEFAULT)
-                .metaData(metaData)
-                .routingTable(routingTable)
-                .build();
+            .builder(org.elasticsearch.cluster.ClusterName.DEFAULT)
+            .metaData(metaData)
+            .routingTable(routingTable)
+            .build();
 
         state = ClusterState.builder(state).nodes(
-                DiscoveryNodes.builder().put(newNode(NODE_IDS[0])).localNodeId(NODE_IDS[0])).build();
+            DiscoveryNodes.builder().put(newNode(NODE_IDS[0])).localNodeId(NODE_IDS[0])).build();
 
         AllocationService allocationService = createAllocationService();
         routingTable = allocationService.reroute(state, "test").routingTable();
@@ -130,7 +130,7 @@ public class BulkRetryCoordinatorPoolTest extends CrateUnitTest {
         BulkRetryCoordinator coordinator = pool.coordinator(shardId);
 
         ClusterState newState = ClusterState.builder(state).nodes(
-                DiscoveryNodes.builder().put(newNode(NODE_IDS[1]))).build();
+            DiscoveryNodes.builder().put(newNode(NODE_IDS[1]))).build();
 
         AllocationService allocationService = createAllocationService();
         RoutingTable routingTable = allocationService.reroute(newState, "test").routingTable();

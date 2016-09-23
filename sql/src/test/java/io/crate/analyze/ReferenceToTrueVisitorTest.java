@@ -43,12 +43,12 @@ public class ReferenceToTrueVisitorTest extends CrateUnitTest {
     public void prepare() throws Exception {
         visitor = new ReferenceToTrueVisitor();
         DummyRelation dummyRelation = new DummyRelation("clustered_by",
-                                                        "number_of_shards",
-                                                        "table_name",
-                                                        "number_of_replicas",
-                                                        "schema_name");
+            "number_of_shards",
+            "table_name",
+            "number_of_replicas",
+            "schema_name");
         ImmutableMap<QualifiedName, AnalyzedRelation> sources = ImmutableMap.<QualifiedName, AnalyzedRelation>of(
-                new QualifiedName("dummy"), dummyRelation);
+            new QualifiedName("dummy"), dummyRelation);
         expressions = new SqlExpressions(sources);
     }
 
@@ -76,7 +76,7 @@ public class ReferenceToTrueVisitorTest extends CrateUnitTest {
     public void testComplexNestedDifferentMethods() throws Exception {
         Symbol symbol = convert(fromSQL(
             "number_of_shards = 1 or (number_of_replicas = 3 and schema_name = 'sys') " +
-                "or not (number_of_shards = 2) and substr(table_name, 1, 1) = '1'"));
+            "or not (number_of_shards = 2) and substr(table_name, 1, 1) = '1'"));
         assertThat(symbol, isLiteral(true));
     }
 
@@ -108,7 +108,7 @@ public class ReferenceToTrueVisitorTest extends CrateUnitTest {
     public void testComplexNestedDifferentMethodsEvaluatesToFalse() throws Exception {
         Symbol symbol = convert(fromSQL(
             "(number_of_shards = 1 or number_of_replicas = 3 and schema_name = 'sys' " +
-                "or not (number_of_shards = 2)) and substr(table_name, 1, 1) = '1' and false"));
+            "or not (number_of_shards = 2)) and substr(table_name, 1, 1) = '1' and false"));
         assertThat(symbol, isLiteral(false));
     }
 

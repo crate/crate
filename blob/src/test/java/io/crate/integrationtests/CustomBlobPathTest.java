@@ -56,9 +56,9 @@ public class CustomBlobPathTest extends BlobIntegrationTestBase {
     @Override
     protected Settings nodeSettings(int nodeOrdinal) {
         return Settings.settingsBuilder()
-                .put(super.nodeSettings(nodeOrdinal))
-                .put(BlobEnvironment.SETTING_BLOBS_PATH, globalBlobPath.getAbsolutePath())
-                .build();
+            .put(super.nodeSettings(nodeOrdinal))
+            .put(BlobEnvironment.SETTING_BLOBS_PATH, globalBlobPath.getAbsolutePath())
+            .build();
     }
 
     @Override
@@ -78,15 +78,15 @@ public class CustomBlobPathTest extends BlobIntegrationTestBase {
         assertThat(blobEnvironment.blobsPath().getAbsolutePath(), is(globalBlobPath.getAbsolutePath()));
 
         Settings indexSettings = Settings.builder()
-                .put(IndexMetaData.SETTING_NUMBER_OF_REPLICAS, 0)
-                .put(IndexMetaData.SETTING_NUMBER_OF_SHARDS, 2)
-                .build();
+            .put(IndexMetaData.SETTING_NUMBER_OF_REPLICAS, 0)
+            .put(IndexMetaData.SETTING_NUMBER_OF_SHARDS, 2)
+            .build();
         blobIndices.createBlobTable("test", indexSettings).get();
         ensureGreen();
         assertTrue(blobEnvironment.shardLocation(new ShardId(".blob_test", 0)).exists()
-                || blobEnvironment.shardLocation(new ShardId(".blob_test", 1)).exists());
+                   || blobEnvironment.shardLocation(new ShardId(".blob_test", 1)).exists());
         assertTrue(blobEnvironment2.shardLocation(new ShardId(".blob_test", 0)).exists()
-                || blobEnvironment2.shardLocation(new ShardId(".blob_test", 1)).exists());
+                   || blobEnvironment2.shardLocation(new ShardId(".blob_test", 1)).exists());
 
         blobIndices.dropBlobTable("test").get();
 
@@ -105,23 +105,23 @@ public class CustomBlobPathTest extends BlobIntegrationTestBase {
 
         File tempBlobPath = temporaryFolder.newFolder();
         Settings indexSettings = Settings.builder()
-                .put(IndexMetaData.SETTING_NUMBER_OF_REPLICAS, 0)
-                .put(IndexMetaData.SETTING_NUMBER_OF_SHARDS, 2)
-                .put(BlobIndices.SETTING_INDEX_BLOBS_PATH, tempBlobPath.getAbsolutePath())
-                .build();
+            .put(IndexMetaData.SETTING_NUMBER_OF_REPLICAS, 0)
+            .put(IndexMetaData.SETTING_NUMBER_OF_SHARDS, 2)
+            .put(BlobIndices.SETTING_INDEX_BLOBS_PATH, tempBlobPath.getAbsolutePath())
+            .build();
         blobIndices.createBlobTable("test", indexSettings).get();
         ensureGreen();
         assertTrue(blobEnvironment.shardLocation(new ShardId(".blob_test", 0), tempBlobPath).exists()
-                || blobEnvironment.shardLocation(new ShardId(".blob_test", 1), tempBlobPath).exists());
+                   || blobEnvironment.shardLocation(new ShardId(".blob_test", 1), tempBlobPath).exists());
         assertTrue(blobEnvironment2.shardLocation(new ShardId(".blob_test", 0), tempBlobPath).exists()
-                || blobEnvironment2.shardLocation(new ShardId(".blob_test", 1), tempBlobPath).exists());
+                   || blobEnvironment2.shardLocation(new ShardId(".blob_test", 1), tempBlobPath).exists());
 
         blobIndices.createBlobTable("test2", indexSettings).get();
         ensureGreen();
         assertTrue(blobEnvironment.shardLocation(new ShardId(".blob_test2", 0), tempBlobPath).exists()
-                || blobEnvironment.shardLocation(new ShardId(".blob_test2", 1), tempBlobPath).exists());
+                   || blobEnvironment.shardLocation(new ShardId(".blob_test2", 1), tempBlobPath).exists());
         assertTrue(blobEnvironment2.shardLocation(new ShardId(".blob_test2", 0), tempBlobPath).exists()
-                || blobEnvironment2.shardLocation(new ShardId(".blob_test2", 1), tempBlobPath).exists());
+                   || blobEnvironment2.shardLocation(new ShardId(".blob_test2", 1), tempBlobPath).exists());
 
         blobIndices.dropBlobTable("test").get();
 

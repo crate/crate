@@ -46,14 +46,14 @@ public class DropRepository extends Statement {
     public boolean equals(Object obj) {
         if (this == obj) return true;
         if (obj == null || getClass() != obj.getClass()) return false;
-        return repository.equals(((DropRepository)obj).repository);
+        return repository.equals(((DropRepository) obj).repository);
     }
 
     @Override
     public String toString() {
         return MoreObjects.toStringHelper(this)
-                .add("repository", repository)
-                .toString();
+            .add("repository", repository)
+            .toString();
     }
 
     @Override

@@ -87,10 +87,10 @@ public class LuceneOrderedDocCollector extends OrderedDocCollector {
         this.scorer = new DummyScorer();
         this.expressions = expressions;
         this.rowFunction = new ScoreDocRowFunction(
-                searcher.getIndexReader(),
-                inputs,
-                expressions,
-                scorer
+            searcher.getIndexReader(),
+            inputs,
+            expressions,
+            scorer
         );
         missingValues = new Object[orderBy.orderBySymbols().size()];
         for (int i = 0; i < orderBy.orderBySymbols().size(); i++) {

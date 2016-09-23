@@ -52,18 +52,18 @@ public class ReadOnlyNodeIntegrationTest extends SQLTransportIntegrationTest {
 
     public ReadOnlyNodeIntegrationTest() {
         super(new SQLTransportExecutor(
-                new SQLTransportExecutor.ClientProvider() {
-                    @Override
-                    public Client client() {
-                        // make sure we use the read-only client
-                        return internalCluster().client(internalCluster().getNodeNames()[1]);
-                    }
-
-                    @Override
-                    public String pgUrl() {
-                        return null;
-                    }
+            new SQLTransportExecutor.ClientProvider() {
+                @Override
+                public Client client() {
+                    // make sure we use the read-only client
+                    return internalCluster().client(internalCluster().getNodeNames()[1]);
                 }
+
+                @Override
+                public String pgUrl() {
+                    return null;
+                }
+            }
         ));
     }
 
@@ -89,19 +89,19 @@ public class ReadOnlyNodeIntegrationTest extends SQLTransportIntegrationTest {
     private SQLResponse executeWrite(String stmt, Object[] args) {
         if (readOnlyExecutor == null) {
             readOnlyExecutor = new SQLTransportExecutor(
-                    new SQLTransportExecutor.ClientProvider() {
-                        @Override
-                        public Client client() {
-                            // make sure we use NOT the read-only client
-                            return internalCluster().client(internalCluster().getNodeNames()[0]);
-                        }
-
-                        @Nullable
-                        @Override
-                        public String pgUrl() {
-                            return null;
-                        }
+                new SQLTransportExecutor.ClientProvider() {
+                    @Override
+                    public Client client() {
+                        // make sure we use NOT the read-only client
+                        return internalCluster().client(internalCluster().getNodeNames()[0]);
                     }
+
+                    @Nullable
+                    @Override
+                    public String pgUrl() {
+                        return null;
+                    }
+                }
             );
         }
         response = readOnlyExecutor.exec(stmt, args);
@@ -122,7 +122,9 @@ public class ReadOnlyNodeIntegrationTest extends SQLTransportIntegrationTest {
         assertReadOnly(stmt, SQLRequest.EMPTY_ARGS);
     }
 
-    /** ALLOWED STATEMENT TESTS **/
+    /**
+     * ALLOWED STATEMENT TESTS
+     **/
 
     @Test
     public void testAllowedSelectSys() throws Exception {
@@ -160,12 +162,14 @@ public class ReadOnlyNodeIntegrationTest extends SQLTransportIntegrationTest {
     @Test
     public void testAllowedCopyTo() throws Exception {
         String uri = folder.getRoot().toURI().toString();
-        SQLResponse response = execute("copy write_test to directory ?", new Object[] { uri });
+        SQLResponse response = execute("copy write_test to directory ?", new Object[]{uri});
         assertThat(response.rowCount(), greaterThanOrEqualTo(0L));
     }
 
 
-    /** FORBIDDEN STATEMENT TESTS **/
+    /**
+     * FORBIDDEN STATEMENT TESTS
+     **/
 
     @Test
     public void testForbiddenCreateTable() throws Exception {

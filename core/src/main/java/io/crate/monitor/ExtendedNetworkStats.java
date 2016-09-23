@@ -39,7 +39,8 @@ public class ExtendedNetworkStats implements Streamable {
         return stat;
     }
 
-    public ExtendedNetworkStats() {}
+    public ExtendedNetworkStats() {
+    }
 
     public ExtendedNetworkStats(Tcp tcp) {
         this.tcp = tcp;

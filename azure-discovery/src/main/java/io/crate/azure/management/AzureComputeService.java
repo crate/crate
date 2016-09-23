@@ -47,6 +47,8 @@ public interface AzureComputeService extends LifecycleComponent<AzureComputeServ
     }
 
     public Configuration configuration();
+
     public ComputeManagementClient computeManagementClient();
+
     public NetworkResourceProviderClient networkResourceClient();
 }

@@ -48,8 +48,12 @@ import java.util.List;
 public class SourceIndexWriterProjection extends AbstractIndexWriterProjection {
 
     private Boolean overwriteDuplicates;
-    private @Nullable String[] includes;
-    private @Nullable String[] excludes;
+    private
+    @Nullable
+    String[] includes;
+    private
+    @Nullable
+    String[] excludes;
 
     protected Reference rawSourceReference;
     protected InputColumn rawSourceSymbol;
@@ -58,14 +62,15 @@ public class SourceIndexWriterProjection extends AbstractIndexWriterProjection {
     private final static boolean OVERWRITE_DUPLICATES_DEFAULT = false;
 
     public static final ProjectionFactory<SourceIndexWriterProjection> FACTORY =
-            new ProjectionFactory<SourceIndexWriterProjection>() {
-                @Override
-                public SourceIndexWriterProjection newInstance() {
-                    return new SourceIndexWriterProjection();
-                }
-            };
+        new ProjectionFactory<SourceIndexWriterProjection>() {
+            @Override
+            public SourceIndexWriterProjection newInstance() {
+                return new SourceIndexWriterProjection();
+            }
+        };
 
-    protected SourceIndexWriterProjection() {}
+    protected SourceIndexWriterProjection() {
+    }
 
     public SourceIndexWriterProjection(TableIdent tableIdent,
                                        @Nullable String partitionIdent,
@@ -133,6 +138,7 @@ public class SourceIndexWriterProjection extends AbstractIndexWriterProjection {
     public <C, R> R accept(ProjectionVisitor<C, R> visitor, C context) {
         return visitor.visitSourceIndexWriterProjection(this, context);
     }
+
     public InputColumn rawSource() {
         return rawSourceSymbol;
     }

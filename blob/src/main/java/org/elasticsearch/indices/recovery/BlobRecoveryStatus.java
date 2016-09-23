@@ -38,7 +38,7 @@ public class BlobRecoveryStatus {
         this.blobShard = blobShard;
     }
 
-    public long recoveryId(){
+    public long recoveryId() {
         return indexRecoveryStatus.recoveryId();
     }
 

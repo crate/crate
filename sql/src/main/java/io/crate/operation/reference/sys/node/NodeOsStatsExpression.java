@@ -39,6 +39,7 @@ class NodeOsStatsExpression extends NestedNodeStatsExpression {
         });
         childImplementations.put(TIMESTAMP, new SimpleNodeStatsExpression<Long>() {
             final long ts = System.currentTimeMillis();
+
             @Override
             public Long innerValue() {
                 return ts;

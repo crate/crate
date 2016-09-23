@@ -52,7 +52,7 @@ public class InputRow implements Row {
     @Override
     public String toString() {
         return "InputRow{" +
-                "inputs=" + inputs +
-                '}';
+               "inputs=" + inputs +
+               '}';
     }
 }

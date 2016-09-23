@@ -22,7 +22,9 @@
 
 package org.elasticsearch.action.bulk;
 
-import io.crate.executor.transport.*;
+import io.crate.executor.transport.ShardDeleteRequest;
+import io.crate.executor.transport.ShardResponse;
+import io.crate.executor.transport.TransportShardDeleteAction;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.common.inject.Inject;
 

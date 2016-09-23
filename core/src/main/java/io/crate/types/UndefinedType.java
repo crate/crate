@@ -32,7 +32,9 @@ public class UndefinedType extends DataType<Object> implements DataTypeFactory, 
     public static final int ID = 0;
 
     public static final UndefinedType INSTANCE = new UndefinedType();
-    private UndefinedType() {}
+
+    private UndefinedType() {
+    }
 
     @Override
     public int id() {

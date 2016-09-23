@@ -51,10 +51,10 @@ class FieldCollectingVisitor extends DefaultTraversalSymbolVisitor<FieldCollecti
         final Multimap<AnalyzedRelation, Symbol> fields;
         final Predicate<Symbol> skipIf;
 
-        public Context(int expectedNumRelations, Predicate<Symbol> skipIf){
+        public Context(int expectedNumRelations, Predicate<Symbol> skipIf) {
             fields = Multimaps.newSetMultimap(
-                    new IdentityHashMap<AnalyzedRelation, Collection<Symbol>>(expectedNumRelations),
-                    FIELD_SET_SUPPLIER);
+                new IdentityHashMap<AnalyzedRelation, Collection<Symbol>>(expectedNumRelations),
+                FIELD_SET_SUPPLIER);
             this.skipIf = skipIf;
         }
 

@@ -36,7 +36,7 @@ import java.util.Map;
 
 /**
  * Resolves QualifiedNames to Fields considering multiple AnalyzedRelations.
- *
+ * <p>
  * The Resolver also takes full qualified names so the name may contain table
  * and / or schema.
  */
@@ -70,8 +70,8 @@ public class FullQualifedNameFieldProvider implements FieldProvider<Field> {
                 break;
             default:
                 throw new IllegalArgumentException("Column reference \"%s\" has too many parts. " +
-                        "A column reference can have at most 3 parts and must have one of the following formats:  " +
-                        "\"<column>\", \"<table>.<column>\" or \"<schema>.<table>.<column>\"");
+                                                   "A column reference can have at most 3 parts and must have one of the following formats:  " +
+                                                   "\"<column>\", \"<table>.<column>\" or \"<schema>.<table>.<column>\"");
         }
 
         boolean schemaMatched = false;
@@ -90,7 +90,7 @@ public class FullQualifedNameFieldProvider implements FieldProvider<Field> {
                 sourceTableOrAlias = sourceParts.get(1);
             } else {
                 throw new UnsupportedOperationException(String.format(Locale.ENGLISH,
-                        "sources key (QualifiedName) must have 1 or 2 parts, not %d", sourceParts.size()));
+                    "sources key (QualifiedName) must have 1 or 2 parts, not %d", sourceParts.size()));
             }
             AnalyzedRelation sourceRelation = entry.getValue();
 

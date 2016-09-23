@@ -107,8 +107,8 @@ public class PageDownstreamContext extends AbstractExecutionSubContext implement
             traceLog("method=setBucket", bucketIdx);
             if (allFuturesSet.get(bucketIdx)) {
                 pageDownstream.fail(new IllegalStateException(String.format(Locale.ENGLISH,
-                        "Same bucket of a page set more than once. node=%s method=setBucket phaseId=%d bucket=%d",
-                        nodeName, id, bucketIdx)));
+                    "Same bucket of a page set more than once. node=%s method=setBucket phaseId=%d bucket=%d",
+                    nodeName, id, bucketIdx)));
                 return;
             }
 
@@ -149,8 +149,8 @@ public class PageDownstreamContext extends AbstractExecutionSubContext implement
             traceLog("method=failure", bucketIdx, throwable);
             if (allFuturesSet.get(bucketIdx)) {
                 pageDownstream.fail(new IllegalStateException(String.format(Locale.ENGLISH,
-                        "Same bucket of a page set more than once. node=%s method=failure phaseId=%d bucket=%d",
-                        nodeName, id(), bucketIdx)));
+                    "Same bucket of a page set more than once. node=%s method=failure phaseId=%d bucket=%d",
+                    nodeName, id(), bucketIdx)));
                 return;
             }
             if (pageEmpty()) {
@@ -193,7 +193,7 @@ public class PageDownstreamContext extends AbstractExecutionSubContext implement
 
     @Override
     protected void innerClose(@Nullable Throwable throwable) {
-        if (throwable == null){
+        if (throwable == null) {
             pageDownstream.finish();
         } else {
             pageDownstream.fail(throwable);

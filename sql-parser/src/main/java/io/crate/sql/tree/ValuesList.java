@@ -48,8 +48,8 @@ public class ValuesList extends Node {
     @Override
     public String toString() {
         return MoreObjects.toStringHelper(this)
-                .add("values", values)
-                .toString();
+            .add("values", values)
+            .toString();
     }
 
     @Override

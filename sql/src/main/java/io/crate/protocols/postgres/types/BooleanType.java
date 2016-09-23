@@ -37,15 +37,15 @@ class BooleanType extends PGType {
     private static final int TYPE_LEN = 1;
     private static final int TYPE_MOD = -1;
 
-    private final static byte[] TEXT_TRUE = new byte[] { 't' };
-    private final static byte[] TEXT_FALSE = new byte[] { 'f' };
+    private final static byte[] TEXT_TRUE = new byte[]{'t'};
+    private final static byte[] TEXT_FALSE = new byte[]{'f'};
 
     private static final Collection<ByteBuffer> TRUTH_VALUES = ImmutableSet.of(
-        ByteBuffer.wrap(new byte[] { '1' }),
-        ByteBuffer.wrap(new byte[] { 't' }),
-        ByteBuffer.wrap(new byte[] { 'T' }),
-        ByteBuffer.wrap(new byte[] { 't', 'r', 'u', 'e'}),
-        ByteBuffer.wrap(new byte[] { 'T', 'R', 'U', 'E'})
+        ByteBuffer.wrap(new byte[]{'1'}),
+        ByteBuffer.wrap(new byte[]{'t'}),
+        ByteBuffer.wrap(new byte[]{'T'}),
+        ByteBuffer.wrap(new byte[]{'t', 'r', 'u', 'e'}),
+        ByteBuffer.wrap(new byte[]{'T', 'R', 'U', 'E'})
     );
 
     private BooleanType() {

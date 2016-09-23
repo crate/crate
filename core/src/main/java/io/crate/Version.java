@@ -44,8 +44,10 @@ public class Version {
     static {
         // safe-guard that we don't release a version with DEBUG_MODE set to true
         assert CURRENT.esVersion == org.elasticsearch.Version.CURRENT : "Version must be " +
-                "upgraded to [" + org.elasticsearch.Version.CURRENT + "] is still set to [" +
-                CURRENT.esVersion + "]";
+                                                                        "upgraded to [" +
+                                                                        org.elasticsearch.Version.CURRENT +
+                                                                        "] is still set to [" +
+                                                                        CURRENT.esVersion + "]";
     }
 
     public final int id;
@@ -94,9 +96,9 @@ public class Version {
 
     public static void main(String[] args) {
         System.out.println("Version: " + Version.CURRENT + ", Build: " +
-                Build.CURRENT.hashShort() + "/" + Build.CURRENT.timestamp() +
-                ", ES: " + org.elasticsearch.Version.CURRENT +
-                ", JVM: " + JvmInfo.jvmInfo().version() );
+                           Build.CURRENT.hashShort() + "/" + Build.CURRENT.timestamp() +
+                           ", ES: " + org.elasticsearch.Version.CURRENT +
+                           ", JVM: " + JvmInfo.jvmInfo().version());
     }
 
     @Override
@@ -128,8 +130,8 @@ public class Version {
 
     public static Version readVersion(StreamInput in) throws IOException {
         return new Version(in.readVInt(),
-                           in.readBoolean(),
-                           org.elasticsearch.Version.readVersion(in));
+            in.readBoolean(),
+            org.elasticsearch.Version.readVersion(in));
     }
 
     public static void writeVersionTo(Version version, StreamOutput out) throws IOException {

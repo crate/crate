@@ -87,10 +87,10 @@ public class PartitionInfo {
     @Override
     public String toString() {
         return MoreObjects.toStringHelper(this)
-                .add("name", name)
-                .add("numberOfShards", numberOfShards)
-                .add("numberOfReplicas", numberOfReplicas)
-                .toString();
+            .add("name", name)
+            .add("numberOfShards", numberOfShards)
+            .add("numberOfReplicas", numberOfReplicas)
+            .toString();
     }
 
     public ImmutableMap<String, Object> tableParameters() {

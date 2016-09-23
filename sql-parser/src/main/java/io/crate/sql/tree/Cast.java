@@ -24,13 +24,11 @@ package io.crate.sql.tree;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 public class Cast
-        extends Expression
-{
+    extends Expression {
     private final Expression expression;
     private final ColumnType type;
 
-    public Cast(Expression expression, ColumnType type)
-    {
+    public Cast(Expression expression, ColumnType type) {
         checkNotNull(expression, "expression is null");
         checkNotNull(type, "type is null");
 
@@ -38,25 +36,21 @@ public class Cast
         this.type = type;
     }
 
-    public Expression getExpression()
-    {
+    public Expression getExpression() {
         return expression;
     }
 
-    public ColumnType getType()
-    {
+    public ColumnType getType() {
         return type;
     }
 
     @Override
-    public <R, C> R accept(AstVisitor<R, C> visitor, C context)
-    {
+    public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
         return visitor.visitCast(this, context);
     }
 
     @Override
-    public boolean equals(Object o)
-    {
+    public boolean equals(Object o) {
         if (this == o) {
             return true;
         }
@@ -77,8 +71,7 @@ public class Cast
     }
 
     @Override
-    public int hashCode()
-    {
+    public int hashCode() {
         int result = expression.hashCode();
         result = 31 * result + type.hashCode();
         return result;

@@ -148,7 +148,7 @@ public class BlobTransferTarget extends AbstractComponent {
         String senderNodeId = nodes.localNodeId();
 
         BlobTransferInfoResponse transferInfoResponse =
-            (BlobTransferInfoResponse)transportService.submitRequest(
+            (BlobTransferInfoResponse) transportService.submitRequest(
                 recipientNodeId,
                 BlobHeadRequestHandler.Actions.GET_TRANSFER_INFO,
                 new BlobInfoRequest(senderNodeId, request.transferId),
@@ -284,10 +284,9 @@ public class BlobTransferTarget extends AbstractComponent {
     /**
      * wait until the expected number of GetHeadRequests was received or at most
      * num / timeUnit.
-     *
+     * <p>
      * The number of GetHeadRequests that are expected is  set when
      * {@link #createActiveTransfersSnapshot()} is called
-     *
      */
     public void waitForGetHeadRequests(int num, TimeUnit timeUnit) {
         try {

@@ -35,7 +35,8 @@ public class StreamerVisitor {
 
     private static final ExecutionPhaseStreamerVisitor EXECUTION_PHASE_STREAMER_VISITOR = new ExecutionPhaseStreamerVisitor();
 
-    private StreamerVisitor() {}
+    private StreamerVisitor() {
+    }
 
     public static Streamer<?>[] streamersFromOutputs(ExecutionPhase executionPhase) {
         return EXECUTION_PHASE_STREAMER_VISITOR.process(executionPhase, null);

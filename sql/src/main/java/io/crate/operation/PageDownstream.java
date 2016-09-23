@@ -27,7 +27,7 @@ public interface PageDownstream {
 
     /**
      * Called each time the first bucket of a new Page is received.
-     *
+     * <p>
      * After the first call this may only be called again if requested through the listener
      */
     void nextPage(BucketPage page, PageConsumeListener listener);

@@ -30,9 +30,7 @@ import io.crate.blob.StartBlobRequest;
 import io.crate.blob.v2.BlobIndices;
 import io.crate.blob.v2.BlobShard;
 import io.crate.common.Hex;
-import io.crate.plugin.CrateCorePlugin;
 import io.crate.test.utils.Blobs;
-import io.crate.plugin.CrateCorePlugin;
 import org.apache.log4j.ConsoleAppender;
 import org.apache.log4j.Logger;
 import org.apache.log4j.PatternLayout;
@@ -48,8 +46,6 @@ import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.test.ESIntegTestCase;
 import org.junit.Test;
 
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -85,7 +81,7 @@ public class RecoveryTests extends BlobIntegrationTestBase {
         ConsoleAppender consoleAppender;
 
         logger = Logger.getLogger(
-                "org.elasticsearch.io.crate.blob.recovery.BlobRecoveryHandler");
+            "org.elasticsearch.io.crate.blob.recovery.BlobRecoveryHandler");
         //logger.setLevel(Level.TRACE);
         consoleAppender = new ConsoleAppender(new PatternLayout("%r [%t] %-5p %c %x - %m\n"));
         logger.addAppender(consoleAppender);
@@ -96,7 +92,7 @@ public class RecoveryTests extends BlobIntegrationTestBase {
         logger.addAppender(consoleAppender);
 
         logger = Logger.getLogger(
-                "org.elasticsearch.io.crate.integrationtests.RecoveryTests");
+            "org.elasticsearch.io.crate.integrationtests.RecoveryTests");
         //logger.setLevel(Level.TRACE);
         consoleAppender = new ConsoleAppender(new PatternLayout("%r [%t] %-5p %c %x - %m\n"));
         logger.addAppender(consoleAppender);
@@ -110,11 +106,11 @@ public class RecoveryTests extends BlobIntegrationTestBase {
         BytesArray bytes = new BytesArray(new byte[]{contentBytes[0]});
         if (content.length() == 1) {
             client.execute(StartBlobAction.INSTANCE,
-                    new StartBlobRequest(BlobIndices.fullIndexName("test"), digest, bytes,true))
-                    .actionGet();
+                new StartBlobRequest(BlobIndices.fullIndexName("test"), digest, bytes, true))
+                .actionGet();
         } else {
             StartBlobRequest startBlobRequest = new StartBlobRequest(
-                    BlobIndices.fullIndexName("test"), digest, bytes, false);
+                BlobIndices.fullIndexName("test"), digest, bytes, false);
             client.execute(StartBlobAction.INSTANCE, startBlobRequest).actionGet();
             for (int i = 1; i < contentBytes.length; i++) {
                 try {
@@ -125,10 +121,10 @@ public class RecoveryTests extends BlobIntegrationTestBase {
                 bytes = new BytesArray(new byte[]{contentBytes[i]});
                 try {
                     client.execute(PutChunkAction.INSTANCE,
-                            new PutChunkRequest(
-                                    BlobIndices.fullIndexName("test"), digest,
-                                    startBlobRequest.transferId(), bytes, i,
-                                    (i + 1) == content.length())
+                        new PutChunkRequest(
+                            BlobIndices.fullIndexName("test"), digest,
+                            startBlobRequest.transferId(), bytes, i,
+                            (i + 1) == content.length())
                     ).actionGet();
                 } catch (IllegalStateException ex) {
                     Thread.interrupted();
@@ -166,9 +162,9 @@ public class RecoveryTests extends BlobIntegrationTestBase {
 
         logger.trace("--> creating test index ...");
         Settings indexSettings = Settings.builder()
-                .put(IndexMetaData.SETTING_NUMBER_OF_REPLICAS, 0)
-                .put(IndexMetaData.SETTING_NUMBER_OF_SHARDS, 1)
-                .build();
+            .put(IndexMetaData.SETTING_NUMBER_OF_REPLICAS, 0)
+            .put(IndexMetaData.SETTING_NUMBER_OF_SHARDS, 1)
+            .build();
         blobIndices.createBlobTable("test", indexSettings).get();
 
         logger.trace("--> starting [node2] ...");
@@ -225,20 +221,20 @@ public class RecoveryTests extends BlobIntegrationTestBase {
             String toNode = node1.equals(fromNode) ? node2 : node1;
             logger.trace("--> START relocate the shard from {} to {}", fromNode, toNode);
             internalCluster().client(node1).admin().cluster().prepareReroute()
-                    .add(new MoveAllocationCommand(new ShardId(BlobIndices.fullIndexName("test"), 0), fromNode, toNode))
-                    .execute().actionGet();
+                .add(new MoveAllocationCommand(new ShardId(BlobIndices.fullIndexName("test"), 0), fromNode, toNode))
+                .execute().actionGet();
             ClusterHealthResponse clusterHealthResponse = internalCluster().client(node1).admin().cluster()
-                    .prepareHealth()
-                    .setWaitForEvents(Priority.LANGUID)
-                    .setWaitForRelocatingShards(0)
-                    .setTimeout(ACCEPTABLE_RELOCATION_TIME).execute().actionGet();
+                .prepareHealth()
+                .setWaitForEvents(Priority.LANGUID)
+                .setWaitForRelocatingShards(0)
+                .setTimeout(ACCEPTABLE_RELOCATION_TIME).execute().actionGet();
 
             assertThat(clusterHealthResponse.isTimedOut(), equalTo(false));
             clusterHealthResponse = internalCluster().client(node2).admin().cluster()
-                    .prepareHealth()
-                    .setWaitForEvents(Priority.LANGUID)
-                    .setWaitForRelocatingShards(0)
-                    .setTimeout(ACCEPTABLE_RELOCATION_TIME).execute().actionGet();
+                .prepareHealth()
+                .setWaitForEvents(Priority.LANGUID)
+                .setWaitForRelocatingShards(0)
+                .setTimeout(ACCEPTABLE_RELOCATION_TIME).execute().actionGet();
             assertThat(clusterHealthResponse.isTimedOut(), equalTo(false));
             logger.trace("--> DONE relocate the shard from {} to {}", fromNode, toNode);
         }

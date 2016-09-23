@@ -31,5 +31,6 @@ public class CollectionPauseException extends IOException {
 
     public static final CollectionPauseException INSTANCE = new CollectionPauseException();
 
-    private CollectionPauseException() {}
+    private CollectionPauseException() {
+    }
 }

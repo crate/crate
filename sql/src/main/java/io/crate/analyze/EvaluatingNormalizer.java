@@ -63,11 +63,11 @@ public class EvaluatingNormalizer {
 
 
     /**
-     * @param functions function resolver
-     * @param granularity the maximum row granularity the normalizer should try to normalize
+     * @param functions         function resolver
+     * @param granularity       the maximum row granularity the normalizer should try to normalize
      * @param referenceResolver reference resolver which is used to resolve paths
-     * @param fieldResolver optional field resolver to resolve fields
-     * @param inPlace defines if symbols like functions can be changed inplace instead of being copied when changed
+     * @param fieldResolver     optional field resolver to resolve fields
+     * @param inPlace           defines if symbols like functions can be changed inplace instead of being copied when changed
      */
     public EvaluatingNormalizer(Functions functions,
                                 RowGranularity granularity,
@@ -95,7 +95,7 @@ public class EvaluatingNormalizer {
                                 FieldResolver fieldResolver,
                                 boolean inPlace) {
         this(analysisMetaData.functions(), RowGranularity.CLUSTER,
-                analysisMetaData.referenceResolver(), fieldResolver, inPlace);
+            analysisMetaData.referenceResolver(), fieldResolver, inPlace);
     }
 
     private abstract class BaseVisitor extends SymbolVisitor<StmtCtx, Symbol> {
@@ -127,12 +127,12 @@ public class EvaluatingNormalizer {
                 }
 
                 return new Function(
-                        io.crate.operation.predicate.MatchPredicate.INFO,
-                        Arrays.<Symbol>asList(
-                                Literal.of(fqnBoostMap),
-                                Literal.of(matchPredicate.columnType(), matchPredicate.queryTerm()),
-                                Literal.of(matchPredicate.matchType()),
-                                Literal.of(matchPredicate.options())));
+                    io.crate.operation.predicate.MatchPredicate.INFO,
+                    Arrays.<Symbol>asList(
+                        Literal.of(fqnBoostMap),
+                        Literal.of(matchPredicate.columnType(), matchPredicate.queryTerm()),
+                        Literal.of(matchPredicate.matchType()),
+                        Literal.of(matchPredicate.options())));
             }
             return matchPredicate;
         }

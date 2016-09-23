@@ -40,7 +40,7 @@ import static org.hamcrest.core.Is.is;
 public class FloatColumnReferenceTest extends DocLevelExpressionsTest {
     @Override
     protected void insertValues(IndexWriter writer) throws Exception {
-        for (float f = -0.5f; f<10.0f; f++) {
+        for (float f = -0.5f; f < 10.0f; f++) {
             Document doc = new Document();
             doc.add(new StringField("_id", Float.toString(f), Field.Store.NO));
             doc.add(new FloatField(fieldName().indexName(), f, Field.Store.NO));

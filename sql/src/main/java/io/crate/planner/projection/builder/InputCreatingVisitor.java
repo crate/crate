@@ -53,7 +53,7 @@ public class InputCreatingVisitor extends DefaultTraversalSymbolVisitor<InputCre
                 // results in poor performance of some scalar implementations
                 if (!input.symbolType().isValueSymbol()) {
                     DataType valueType = input.valueType();
-                    if (input.symbolType() == SymbolType.FUNCTION && !((Function)input).info().isDeterministic()) {
+                    if (input.symbolType() == SymbolType.FUNCTION && !((Function) input).info().isDeterministic()) {
                         nonDeterministicFunctions.put(input, new InputColumn(i, valueType));
                     } else {
                         this.inputs.put(input, new InputColumn(i, valueType));
@@ -101,7 +101,7 @@ public class InputCreatingVisitor extends DefaultTraversalSymbolVisitor<InputCre
     @Override
     public Symbol visitAggregation(Aggregation symbol, Context context) {
         throw new AssertionError("Aggregation Symbols must not be visited with " +
-                getClass().getCanonicalName());
+                                 getClass().getCanonicalName());
     }
 
 }

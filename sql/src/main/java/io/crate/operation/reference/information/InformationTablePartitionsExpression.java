@@ -27,7 +27,7 @@ import org.apache.lucene.util.BytesRef;
 import java.util.Map;
 
 public abstract class InformationTablePartitionsExpression<T>
-        extends RowContextCollectorExpression<PartitionInfo, T> {
+    extends RowContextCollectorExpression<PartitionInfo, T> {
 
     public static class PartitionsTableNameExpression extends InformationTablePartitionsExpression<BytesRef> {
         @Override
@@ -50,12 +50,14 @@ public abstract class InformationTablePartitionsExpression<T>
             return new BytesRef(row.name().ident());
         }
     }
+
     public static class PartitionsValuesExpression extends InformationTablePartitionsExpression<Map<String, Object>> {
         @Override
         public Map<String, Object> value() {
             return row.values();
         }
     }
+
     public static class PartitionsNumberOfShardsExpression extends InformationTablePartitionsExpression<Integer> {
 
         @Override

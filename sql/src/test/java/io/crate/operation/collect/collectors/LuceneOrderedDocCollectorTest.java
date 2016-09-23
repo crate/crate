@@ -109,8 +109,8 @@ public class LuceneOrderedDocCollectorTest extends RandomizedTest {
 
     private Long[] nextPageQuery(IndexReader reader, FieldDoc lastCollected, boolean reverseFlag, @Nullable Boolean nullFirst) throws IOException {
         OrderBy orderBy = new OrderBy(ImmutableList.<Symbol>of(REFERENCE),
-                new boolean[]{reverseFlag},
-                new Boolean[]{nullFirst});
+            new boolean[]{reverseFlag},
+            new Boolean[]{nullFirst});
 
         SortField sortField = new SortedNumericSortField("value", SortField.Type.LONG, reverseFlag);
         Long missingValue = (Long) LuceneMissingValue.missingValue(orderBy, 0);

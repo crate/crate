@@ -25,5 +25,5 @@ import io.crate.metadata.RowCollectExpression;
 
 public interface RowCollectExpressionFactory {
 
-   RowCollectExpression create();
+    RowCollectExpression create();
 }

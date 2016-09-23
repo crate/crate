@@ -21,7 +21,6 @@
 
 package io.crate.operation.reference.sys.check.cluster;
 
-import com.google.common.collect.Lists;
 import io.crate.metadata.NestedReferenceResolver;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.ReferenceInfos;

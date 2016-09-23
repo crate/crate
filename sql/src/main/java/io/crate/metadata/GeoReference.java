@@ -43,9 +43,15 @@ public class GeoReference extends Reference {
     private static final String DEFAULT_TREE = "geohash";
 
     private String geoTree;
-    private @Nullable String precision;
-    private @Nullable Integer treeLevels;
-    private @Nullable Double distanceErrorPct;
+    private
+    @Nullable
+    String precision;
+    private
+    @Nullable
+    Integer treeLevels;
+    private
+    @Nullable
+    Double distanceErrorPct;
 
     private GeoReference() {
     }

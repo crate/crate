@@ -58,8 +58,8 @@ public class ColumnIndex implements Path {
     @Override
     public String toString() {
         return MoreObjects.toStringHelper(this)
-                .add("index", index)
-                .toString();
+            .add("index", index)
+            .toString();
     }
 
     public int index() {

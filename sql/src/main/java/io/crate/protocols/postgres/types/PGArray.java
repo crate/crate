@@ -44,7 +44,7 @@ class PGArray extends PGType {
     static final PGArray VARCHAR_ARRAY = new PGArray(1015, VarCharType.INSTANCE);
     static final PGArray JSON_ARRAY = new PGArray(199, JsonType.INSTANCE);
 
-    private static final byte[] NULL_BYTES = new byte[] { 'N', 'U', 'L', 'L' };
+    private static final byte[] NULL_BYTES = new byte[]{'N', 'U', 'L', 'L'};
 
     private PGArray(int oid, PGType innerType) {
         super(oid, -1, -1, "_" + innerType.typName());
@@ -71,7 +71,7 @@ class PGArray extends PGType {
         boolean isJson = JsonType.OID == innerType.oid();
         Object[] values = (Object[]) array;
         List<Byte> encodedValues = new ArrayList<>();
-        encodedValues.add((byte)'{');
+        encodedValues.add((byte) '{');
         for (int i = 0; i < values.length; i++) {
             Object o = values[i];
             if (o instanceof Object[]) { // Nested Array -> recursive call
@@ -176,7 +176,7 @@ class PGArray extends PGType {
                         //End of JSON object
                         addObject(bytes, valIdx, i + 1, objects);
                         jsonObject = false;
-                        i ++;
+                        i++;
                         valIdx = i;
                         if (bytes[i] == '}') { // end of array
                             return i + 2;
@@ -194,8 +194,8 @@ class PGArray extends PGType {
             if (firstValueByte == '"') {
                 List<Byte> innerBytes = new ArrayList<>(endIdx - (startIdx + 1));
                 for (int i = startIdx + 1; i < endIdx; i++) {
-                    if (i < (endIdx - 1) && (char)bytes[i] == '\\' &&
-                        ((char)bytes[i + 1] == '\\' || (char)bytes[i + 1] == '\"')) {
+                    if (i < (endIdx - 1) && (char) bytes[i] == '\\' &&
+                        ((char) bytes[i + 1] == '\\' || (char) bytes[i + 1] == '\"')) {
                         i++;
                     }
                     innerBytes.add(bytes[i]);

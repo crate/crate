@@ -143,7 +143,7 @@ public class WriterProjector extends AbstractProjector {
         try {
             if (!overwrites.isEmpty()) {
                 rowWriter = new DocWriter(
-                        output.acquireOutputStream(), collectExpressions, overwrites);
+                    output.acquireOutputStream(), collectExpressions, overwrites);
             } else if (outputFormat.equals(WriterProjection.OutputFormat.JSON_ARRAY)) {
                 rowWriter = new ColumnRowWriter(output.acquireOutputStream(), collectExpressions, inputs);
             } else if (outputNames != null && outputFormat.equals(WriterProjection.OutputFormat.JSON_OBJECT)) {

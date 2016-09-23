@@ -50,13 +50,12 @@ public interface TableInfo extends Iterable<Reference> {
 
     /**
      * Retrieve the routing for the table
-     *
+     * <p>
      * The result of this method is non-deterministic for two reasons:
-     *
-     *  1. Shard selection is randomized for load distribution.
-     *
-     *  2. The underlying clusterState might change between calls.
-     *
+     * <p>
+     * 1. Shard selection is randomized for load distribution.
+     * <p>
+     * 2. The underlying clusterState might change between calls.
      */
     Routing getRouting(WhereClause whereClause, @Nullable String preference);
 

@@ -24,13 +24,9 @@ package io.crate.operation.scalar.arithmetic;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
-import io.crate.analyze.symbol.Function;
-import io.crate.analyze.symbol.Literal;
-import io.crate.analyze.symbol.Symbol;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Scalar;
-import io.crate.operation.Input;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 
@@ -41,9 +37,9 @@ import java.util.Set;
 abstract class ArithmeticFunction extends Scalar<Number, Number> {
 
     private final static Set<DataType> NUMERIC_WITH_DECIMAL =
-            Sets.<DataType>newHashSet(DataTypes.FLOAT, DataTypes.DOUBLE);
+        Sets.<DataType>newHashSet(DataTypes.FLOAT, DataTypes.DOUBLE);
     private final static Set<DataType> ALLOWED_TYPES = Sets.newHashSet(
-            Iterables.concat(DataTypes.NUMERIC_PRIMITIVE_TYPES, Arrays.asList(DataTypes.TIMESTAMP))
+        Iterables.concat(DataTypes.NUMERIC_PRIMITIVE_TYPES, Arrays.asList(DataTypes.TIMESTAMP))
     );
 
     protected final FunctionInfo info;
@@ -78,9 +74,9 @@ abstract class ArithmeticFunction extends Scalar<Number, Number> {
         DataType leftType = dataTypes.get(0);
         DataType rightType = dataTypes.get(1);
         Preconditions.checkArgument(ALLOWED_TYPES.contains(leftType),
-                "invalid type %s of left argument", leftType.toString());
+            "invalid type %s of left argument", leftType.toString());
         Preconditions.checkArgument(ALLOWED_TYPES.contains(rightType),
-                "invalid type %s of right argument", leftType.toString());
+            "invalid type %s of right argument", leftType.toString());
     }
 
     protected static boolean containsTypesWithDecimal(List<DataType> dataTypes) {

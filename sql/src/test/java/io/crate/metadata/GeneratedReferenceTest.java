@@ -31,8 +31,8 @@ import io.crate.testing.SqlExpressions;
 import io.crate.testing.T3;
 import io.crate.types.StringType;
 import org.elasticsearch.common.collect.MapBuilder;
-import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
+import org.elasticsearch.common.io.stream.StreamInput;
 import org.junit.Test;
 
 import static org.hamcrest.Matchers.is;
@@ -40,19 +40,19 @@ import static org.hamcrest.Matchers.is;
 public class GeneratedReferenceTest extends CrateUnitTest {
 
     private static final SqlExpressions SQL_EXPRESSIONS = new SqlExpressions(
-            MapBuilder.<QualifiedName, AnalyzedRelation>newMapBuilder()
-                    .put(new QualifiedName(T3.T1_INFO.ident().fqn()), T3.TR_1)
-                    .map(),
-            T3.TR_1
-            );
+        MapBuilder.<QualifiedName, AnalyzedRelation>newMapBuilder()
+            .put(new QualifiedName(T3.T1_INFO.ident().fqn()), T3.TR_1)
+            .map(),
+        T3.TR_1
+    );
 
     @Test
     public void testStreaming() throws Exception {
         ReferenceIdent referenceIdent = new ReferenceIdent(T3.T1_INFO.ident(), "generated_column");
         String formattedGeneratedExpression = "concat(a, 'bar')";
         GeneratedReference generatedReferenceInfo = new GeneratedReference(referenceIdent, RowGranularity.DOC,
-                StringType.INSTANCE, ColumnPolicy.STRICT, Reference.IndexType.ANALYZED,
-                formattedGeneratedExpression, false);
+            StringType.INSTANCE, ColumnPolicy.STRICT, Reference.IndexType.ANALYZED,
+            formattedGeneratedExpression, false);
 
         generatedReferenceInfo.generatedExpression(SQL_EXPRESSIONS.normalize(SQL_EXPRESSIONS.asSymbol(formattedGeneratedExpression)));
         generatedReferenceInfo.referencedReferences(ImmutableList.of(T3.T1_INFO.getReference(new ColumnIdent("a"))));

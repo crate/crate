@@ -30,46 +30,39 @@ import com.google.common.collect.Lists;
 
 import java.util.List;
 
-public class QualifiedName
-{
+public class QualifiedName {
     private final List<String> parts;
 
 
-    public static QualifiedName of(String first, String... rest)
-    {
+    public static QualifiedName of(String first, String... rest) {
         Preconditions.checkNotNull(first, "first is null");
         return new QualifiedName(ImmutableList.copyOf(Lists.asList(first, rest)));
     }
 
-    public static QualifiedName of(Iterable<String> parts)
-    {
+    public static QualifiedName of(Iterable<String> parts) {
         Preconditions.checkNotNull(parts, "parts is null");
         Preconditions.checkArgument(!Iterables.isEmpty(parts), "parts is empty");
 
         return new QualifiedName(parts);
     }
 
-    public QualifiedName(String name)
-    {
+    public QualifiedName(String name) {
         this(ImmutableList.of(name));
     }
 
-    public QualifiedName(Iterable<String> parts)
-    {
+    public QualifiedName(Iterable<String> parts) {
         Preconditions.checkNotNull(parts, "parts");
         Preconditions.checkArgument(!Iterables.isEmpty(parts), "parts is empty");
 
         this.parts = ImmutableList.copyOf(parts);
     }
 
-    public List<String> getParts()
-    {
+    public List<String> getParts() {
         return parts;
     }
 
     @Override
-    public String toString()
-    {
+    public String toString() {
         return Joiner.on('.').join(parts);
     }
 
@@ -77,8 +70,7 @@ public class QualifiedName
      * For an identifier of the form "a.b.c.d", returns "a.b.c"
      * For an identifier of the form "a", returns absent
      */
-    public Optional<QualifiedName> getPrefix()
-    {
+    public Optional<QualifiedName> getPrefix() {
         if (parts.size() == 1) {
             return Optional.absent();
         }
@@ -86,14 +78,12 @@ public class QualifiedName
         return Optional.of(QualifiedName.of(parts.subList(0, parts.size() - 1)));
     }
 
-    public String getSuffix()
-    {
+    public String getSuffix() {
         return Iterables.getLast(parts);
     }
 
     @Override
-    public boolean equals(Object o)
-    {
+    public boolean equals(Object o) {
         if (this == o) {
             return true;
         }
@@ -111,8 +101,7 @@ public class QualifiedName
     }
 
     @Override
-    public int hashCode()
-    {
+    public int hashCode() {
         return parts.hashCode();
     }
 }

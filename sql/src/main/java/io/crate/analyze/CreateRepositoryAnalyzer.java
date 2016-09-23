@@ -49,7 +49,7 @@ public class CreateRepositoryAnalyzer extends AbstractRepositoryDDLAnalyzer {
         }
 
         Settings settings = repositoryParamValidator.convertAndValidate(
-                node.type(), node.properties(), context.parameterContext());
+            node.type(), node.properties(), context.parameterContext());
         return new CreateRepositoryAnalyzedStatement(repositoryName, node.type(), settings);
     }
 }

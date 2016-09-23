@@ -22,8 +22,8 @@
 
 package io.crate.azure.plugin;
 
-import io.crate.azure.discovery.AzureDiscovery;
 import io.crate.azure.AzureModule;
+import io.crate.azure.discovery.AzureDiscovery;
 import io.crate.azure.discovery.AzureUnicastHostsProvider;
 import org.elasticsearch.common.component.LifecycleComponent;
 import org.elasticsearch.common.inject.Module;

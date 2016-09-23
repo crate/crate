@@ -77,7 +77,7 @@ public class NestedLoopConsumer implements Consumer {
         WhereClause where = parentQuerySpec.where();
         if (where != null && where.hasQuery()) {
             parentQuerySpec.where(new WhereClause(
-                    MappingSymbolVisitor.inPlace().process(where.query(), symbolMap)
+                MappingSymbolVisitor.inPlace().process(where.query(), symbolMap)
             ));
         }
         if (parentQuerySpec.orderBy().isPresent()) {
@@ -193,12 +193,12 @@ public class NestedLoopConsumer implements Consumer {
                 nlExecutionNodes = leftPlan.resultPhase().executionNodes();
             } else {
                 leftMerge = mergePhase(
-                        context,
-                        nlExecutionNodes,
-                        leftPlan.resultPhase(),
-                        left.querySpec().orderBy().orNull(),
-                        left.querySpec().outputs(),
-                        false);
+                    context,
+                    nlExecutionNodes,
+                    leftPlan.resultPhase(),
+                    left.querySpec().orderBy().orNull(),
+                    left.querySpec().outputs(),
+                    false);
             }
             if (nlExecutionNodes.size() == 1
                 && nlExecutionNodes.equals(rightPlan.resultPhase().executionNodes())) {
@@ -208,12 +208,12 @@ public class NestedLoopConsumer implements Consumer {
                 rightPlan.resultPhase().distributionInfo(DistributionInfo.DEFAULT_SAME_NODE);
             } else {
                 rightMerge = mergePhase(
-                        context,
-                        nlExecutionNodes,
-                        rightPlan.resultPhase(),
-                        right.querySpec().orderBy().orNull(),
-                        right.querySpec().outputs(),
-                        isDistributed);
+                    context,
+                    nlExecutionNodes,
+                    rightPlan.resultPhase(),
+                    right.querySpec().orderBy().orNull(),
+                    right.querySpec().outputs(),
+                    isDistributed);
                 rightPlan.resultPhase().distributionInfo(DistributionInfo.DEFAULT_BROADCAST);
             }
 
@@ -281,11 +281,11 @@ public class NestedLoopConsumer implements Consumer {
                 localMergePhase = mergePhase(context, handlerNodes, nl, orderByBeforeSplit, postNLOutputs, true);
                 assert localMergePhase != null : "local merge phase must not be null";
                 TopNProjection finalTopN = ProjectionBuilder.topNProjection(
-                        postNLOutputs,
-                        null, // orderBy = null because mergePhase receives data sorted
-                        querySpec.offset(),
-                        limits.finalLimit(),
-                        querySpec.outputs()
+                    postNLOutputs,
+                    null, // orderBy = null because mergePhase receives data sorted
+                    querySpec.offset(),
+                    limits.finalLimit(),
+                    querySpec.outputs()
                 );
                 localMergePhase.addProjection(finalTopN);
             }
@@ -307,8 +307,8 @@ public class NestedLoopConsumer implements Consumer {
         private boolean isLeftSmallerThanRight(QueriedRelation qrLeft, QueriedRelation qrRight) {
             if (qrLeft instanceof QueriedTableRelation && qrRight instanceof QueriedTableRelation) {
                 return isLeftSmallerThanRight(
-                        ((QueriedTableRelation) qrLeft).tableRelation().tableInfo().ident(),
-                        ((QueriedTableRelation) qrRight).tableRelation().tableInfo().ident()
+                    ((QueriedTableRelation) qrLeft).tableRelation().tableInfo().ident(),
+                    ((QueriedTableRelation) qrRight).tableRelation().tableInfo().ident()
                 );
             }
             return false;
@@ -320,7 +320,7 @@ public class NestedLoopConsumer implements Consumer {
 
             if (leftNumDocs < rightNumDocs) {
                 LOGGER.debug("Right table is larger with {} docs (left has {}. Will change left plan to broadcast its result",
-                        rightNumDocs, leftNumDocs);
+                    rightNumDocs, leftNumDocs);
                 return true;
             }
             return false;
@@ -328,11 +328,11 @@ public class NestedLoopConsumer implements Consumer {
 
         // TODO: this is a duplicate, it coecists in QueryThenFetchConsumer
         public static MergePhase mergePhase(ConsumerContext context,
-                                      Collection<String> executionNodes,
-                                      UpstreamPhase upstreamPhase,
-                                      @Nullable OrderBy orderBy,
-                                      List<Symbol> previousOutputs,
-                                      boolean isDistributed) {
+                                            Collection<String> executionNodes,
+                                            UpstreamPhase upstreamPhase,
+                                            @Nullable OrderBy orderBy,
+                                            List<Symbol> previousOutputs,
+                                            boolean isDistributed) {
             assert !upstreamPhase.executionNodes().isEmpty() : "upstreamPhase must be executed somewhere";
             if (!isDistributed && upstreamPhase.executionNodes().equals(executionNodes)) {
                 // if the nested loop is on the same node we don't need a mergePhase to receive requests
@@ -343,22 +343,22 @@ public class NestedLoopConsumer implements Consumer {
             MergePhase mergePhase;
             if (orderBy != null) {
                 mergePhase = MergePhase.sortedMerge(
-                        context.plannerContext().jobId(),
-                        context.plannerContext().nextExecutionPhaseId(),
-                        orderBy,
-                        previousOutputs,
-                        orderBy.orderBySymbols(),
-                        ImmutableList.<Projection>of(),
-                        upstreamPhase.executionNodes().size(),
-                        Symbols.extractTypes(previousOutputs)
+                    context.plannerContext().jobId(),
+                    context.plannerContext().nextExecutionPhaseId(),
+                    orderBy,
+                    previousOutputs,
+                    orderBy.orderBySymbols(),
+                    ImmutableList.<Projection>of(),
+                    upstreamPhase.executionNodes().size(),
+                    Symbols.extractTypes(previousOutputs)
                 );
             } else {
                 mergePhase = MergePhase.localMerge(
-                        context.plannerContext().jobId(),
-                        context.plannerContext().nextExecutionPhaseId(),
-                        ImmutableList.<Projection>of(),
-                        upstreamPhase.executionNodes().size(),
-                        Symbols.extractTypes(previousOutputs)
+                    context.plannerContext().jobId(),
+                    context.plannerContext().nextExecutionPhaseId(),
+                    ImmutableList.<Projection>of(),
+                    upstreamPhase.executionNodes().size(),
+                    Symbols.extractTypes(previousOutputs)
                 );
             }
             mergePhase.executionNodes(executionNodes);
@@ -372,13 +372,13 @@ public class NestedLoopConsumer implements Consumer {
 
         @Override
         public QueriedRelation visitTableRelation(TableRelation tableRelation,
-                                                       MultiSourceSelect.Source source) {
+                                                  MultiSourceSelect.Source source) {
             return new QueriedTable(tableRelation, source.querySpec());
         }
 
         @Override
         public QueriedRelation visitDocTableRelation(DocTableRelation tableRelation,
-                                                          MultiSourceSelect.Source source) {
+                                                     MultiSourceSelect.Source source) {
             return new QueriedDocTable(tableRelation, source.querySpec());
         }
 

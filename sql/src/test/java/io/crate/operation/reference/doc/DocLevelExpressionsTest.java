@@ -26,7 +26,6 @@ import io.crate.test.integration.CrateSingleNodeTest;
 import org.apache.lucene.analysis.standard.StandardAnalyzer;
 import org.apache.lucene.index.*;
 import org.apache.lucene.store.RAMDirectory;
-import org.elasticsearch.common.lucene.Lucene;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.IndexService;
 import org.elasticsearch.index.fielddata.FieldDataType;
@@ -64,8 +63,8 @@ public abstract class DocLevelExpressionsTest extends CrateSingleNodeTest {
 
         IndexFieldData<?> fieldData = ifd.getForField(fieldMapper);
         writer = new IndexWriter(new RAMDirectory(),
-                new IndexWriterConfig(new StandardAnalyzer())
-                        .setMergePolicy(new LogByteSizeMergePolicy()));
+            new IndexWriterConfig(new StandardAnalyzer())
+                .setMergePolicy(new LogByteSizeMergePolicy()));
 
         insertValues(writer);
 

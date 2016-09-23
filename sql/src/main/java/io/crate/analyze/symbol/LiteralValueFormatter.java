@@ -43,9 +43,9 @@ public class LiteralValueFormatter {
             builder.append("NULL");
         } else if (value instanceof Map) {
             formatMap((Map<String, Object>) value, builder);
-        } else if(value instanceof Set) {
+        } else if (value instanceof Set) {
             formatIterable(Sorted.sortRecursive((Collection) value), builder);
-        } else if(value instanceof Collection) {
+        } else if (value instanceof Collection) {
             formatIterable((Iterable<?>) value, builder);
         } else if (value instanceof Object[]) {
             formatIterable(ImmutableList.copyOf((Object[]) value), builder);

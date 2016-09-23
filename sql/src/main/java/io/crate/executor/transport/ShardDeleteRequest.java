@@ -155,10 +155,10 @@ public class ShardDeleteRequest extends ShardRequest<ShardDeleteRequest, ShardDe
         @Override
         public ShardDeleteRequest newRequest(ShardId shardId, String routing) {
             return new ShardDeleteRequest(
-                    shardId,
-                    routing,
-                    jobId)
-                    .timeout(timeout);
+                shardId,
+                routing,
+                jobId)
+                .timeout(timeout);
         }
     }
 

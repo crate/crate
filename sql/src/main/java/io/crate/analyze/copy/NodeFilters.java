@@ -51,7 +51,7 @@ public class NodeFilters implements Predicate<DiscoveryNode> {
             return (String) obj;
         } catch (ClassCastException e) {
             throw new IllegalArgumentException(String.format(Locale.ENGLISH,
-                    "%s argument '%s' must be a String, not %s (%s)", NAME, key, obj, obj.getClass().getSimpleName()));
+                "%s argument '%s' must be a String, not %s (%s)", NAME, key, obj, obj.getClass().getSimpleName()));
         }
     }
 
@@ -59,8 +59,10 @@ public class NodeFilters implements Predicate<DiscoveryNode> {
         if (name == null && id == null) {
             innerPredicate = Predicates.alwaysTrue();
         } else {
-            Predicate<DiscoveryNode> namesPredicate = name == null ? Predicates.<DiscoveryNode>alwaysTrue() : new NamesPredicate(name);
-            Predicate<DiscoveryNode> idsPredicate = id == null ? Predicates.<DiscoveryNode>alwaysTrue() : new IdsPredicate(id);
+            Predicate<DiscoveryNode> namesPredicate =
+                name == null ? Predicates.<DiscoveryNode>alwaysTrue() : new NamesPredicate(name);
+            Predicate<DiscoveryNode> idsPredicate =
+                id == null ? Predicates.<DiscoveryNode>alwaysTrue() : new IdsPredicate(id);
             innerPredicate = Predicates.and(namesPredicate, idsPredicate);
         }
     }

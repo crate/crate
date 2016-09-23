@@ -29,7 +29,7 @@ import java.util.List;
 import java.util.Map;
 
 public abstract class Literal
-        extends Expression  {
+    extends Expression {
 
     @Override
     public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
@@ -45,7 +45,7 @@ public abstract class Literal
         } else if (value instanceof Number) {
             if (value instanceof Float || value instanceof Double) {
                 literal = new DoubleLiteral(value.toString());
-            } else if (value instanceof Short || value instanceof Integer || value instanceof Long){
+            } else if (value instanceof Short || value instanceof Integer || value instanceof Long) {
                 literal = new LongLiteral(value.toString());
             }
         } else if (value instanceof Boolean) {

@@ -41,9 +41,9 @@ import java.util.*;
 public class EqualityExtractor {
 
     public static final Function NULL_MARKER = new Function(
-            new FunctionInfo(
-                    new FunctionIdent("null_marker", ImmutableList.<DataType>of()),
-                    DataTypes.UNDEFINED), ImmutableList.<Symbol>of());
+        new FunctionInfo(
+            new FunctionIdent("null_marker", ImmutableList.<DataType>of()),
+            DataTypes.UNDEFINED), ImmutableList.<Symbol>of());
     public static final EqProxy NULL_MARKER_PROXY = new EqProxy(NULL_MARKER);
 
     private EvaluatingNormalizer normalizer;
@@ -52,9 +52,10 @@ public class EqualityExtractor {
         this.normalizer = normalizer;
     }
 
-    public List<List<Symbol>> extractParentMatches(List<ColumnIdent> columns, Symbol symbol, @Nullable StmtCtx stmtCtx){
+    public List<List<Symbol>> extractParentMatches(List<ColumnIdent> columns, Symbol symbol, @Nullable StmtCtx stmtCtx) {
         return extractMatches(columns, symbol, false, stmtCtx);
     }
+
     public List<List<Symbol>> extractExactMatches(List<ColumnIdent> columns, Symbol symbol, @Nullable StmtCtx stmtCtx) {
         return extractMatches(columns, symbol, true, stmtCtx);
     }
@@ -64,11 +65,11 @@ public class EqualityExtractor {
                                               boolean exact,
                                               @Nullable StmtCtx stmtCtx) {
         EqualityExtractor.ProxyInjectingVisitor.Context context =
-                new EqualityExtractor.ProxyInjectingVisitor.Context(columns, exact);
+            new EqualityExtractor.ProxyInjectingVisitor.Context(columns, exact);
         Symbol proxiedTree = ProxyInjectingVisitor.INSTANCE.process(symbol, context);
 
         // bail out if we have any unknown part in the tree
-        if (context.exact && context.seenUnknown){
+        if (context.exact && context.seenUnknown) {
             return null;
         }
 
@@ -79,15 +80,15 @@ public class EqualityExtractor {
         for (List<EqProxy> proxies : cp) {
             boolean anyNull = false;
             for (EqProxy proxy : proxies) {
-                if (proxy != NULL_MARKER_PROXY){
+                if (proxy != NULL_MARKER_PROXY) {
                     proxy.setTrue();
                 } else {
                     anyNull = true;
                 }
             }
             Symbol normalized = normalizer.normalize(proxiedTree, stmtCtx);
-            if (normalized == Literal.BOOLEAN_TRUE){
-                if (anyNull){
+            if (normalized == Literal.BOOLEAN_TRUE) {
+                if (anyNull) {
                     return null;
                 }
                 if (!proxies.isEmpty()) {
@@ -111,7 +112,7 @@ public class EqualityExtractor {
     /**
      * Wraps any_= functions and exhibits the same logical semantics like
      * OR-chained comparisons.
-     *
+     * <p>
      * creates EqProxies for every single any array element
      * and shares pre existing proxies - so true value can be set on
      * this "parent" if a shared comparison is "true"
@@ -130,15 +131,15 @@ public class EqualityExtractor {
         private void initProxies(Map<Function, EqProxy> existingProxies) {
             Symbol left = origin.arguments().get(0);
             DataType leftType = origin.info().ident().argumentTypes().get(0);
-            DataType rightType = ((CollectionType)origin.info().ident().argumentTypes().get(1)).innerType();
+            DataType rightType = ((CollectionType) origin.info().ident().argumentTypes().get(1)).innerType();
             FunctionInfo eqInfo = new FunctionInfo(
-                    new FunctionIdent(
-                            EqOperator.NAME,
-                            ImmutableList.of(leftType, rightType)
-                    ),
-                    DataTypes.BOOLEAN
+                new FunctionIdent(
+                    EqOperator.NAME,
+                    ImmutableList.of(leftType, rightType)
+                ),
+                DataTypes.BOOLEAN
             );
-            Literal arrayLiteral = (Literal)origin.arguments().get(1);
+            Literal arrayLiteral = (Literal) origin.arguments().get(1);
             proxies = new HashMap<>();
             for (Literal arrayElem : Literal.explodeCollection(arrayLiteral)) {
                 Function f = new Function(eqInfo, Arrays.asList(left, arrayElem));
@@ -220,11 +221,11 @@ public class EqualityExtractor {
             this.current = origin;
         }
 
-        public void reset(){
+        public void reset() {
             this.current = origin;
         }
 
-        public void setTrue(){
+        public void setTrue() {
             this.current = Literal.BOOLEAN_TRUE;
         }
 
@@ -257,9 +258,9 @@ public class EqualityExtractor {
             if (this == NULL_MARKER_PROXY) {
                 return "NULL";
             }
-            String s = "(" + ((Reference)origin.arguments().get(0)).ident().columnIdent().fqn() + "=" +
-                    ((Literal) origin.arguments().get(1)).value() +  ")";
-            if (current!=origin){
+            String s = "(" + ((Reference) origin.arguments().get(0)).ident().columnIdent().fqn() + "=" +
+                       ((Literal) origin.arguments().get(1)).value() + ")";
+            if (current != origin) {
                 s += " TRUE";
             }
             return s;
@@ -278,14 +279,14 @@ public class EqualityExtractor {
         private ProxyInjectingVisitor() {
         }
 
-        static class Comparison{
+        static class Comparison {
             final HashMap<Function, EqProxy> proxies = new HashMap<>();
 
             public Comparison() {
                 proxies.put(NULL_MARKER, NULL_MARKER_PROXY);
             }
 
-            public EqProxy add(Function compared){
+            public EqProxy add(Function compared) {
                 if (compared.info().ident().name().equals(AnyEqOperator.NAME)) {
                     AnyEqProxy anyEqProxy = new AnyEqProxy(compared, proxies);
                     for (EqProxy proxiedProxy : anyEqProxy) {
@@ -296,7 +297,7 @@ public class EqualityExtractor {
                     return anyEqProxy;
                 }
                 EqProxy proxy = proxies.get(compared);
-                if (proxy==null){
+                if (proxy == null) {
                     proxy = new EqProxy(compared);
                     proxies.put(compared, proxy);
                 }
@@ -319,7 +320,7 @@ public class EqualityExtractor {
                 }
             }
 
-            public List<Set<EqProxy>> comparisonSet(){
+            public List<Set<EqProxy>> comparisonSet() {
                 List<Set<EqProxy>> comps = new ArrayList<>(comparisons.size());
                 for (Comparison comparison : comparisons.values()) {
                     // TODO: probably create a view instead of a seperate set
@@ -342,7 +343,7 @@ public class EqualityExtractor {
 
         @Override
         public Symbol visitReference(Reference symbol, Context context) {
-            if (!context.comparisons.containsKey(symbol.ident().columnIdent())){
+            if (!context.comparisons.containsKey(symbol.ident().columnIdent())) {
                 context.seenUnknown = true;
             }
             return super.visitReference(symbol, context);
@@ -354,19 +355,20 @@ public class EqualityExtractor {
             if (functionName.equals(EqOperator.NAME)) {
                 if (function.arguments().get(0) instanceof Reference) {
                     Comparison comparison = context.comparisons.get(
-                            ((Reference) function.arguments().get(0)).ident().columnIdent());
+                        ((Reference) function.arguments().get(0)).ident().columnIdent());
                     if (comparison != null) {
                         context.proxyBelow = true;
                         EqProxy x = comparison.add(function);
                         return x;
                     }
                 }
-            } else if (functionName.equals(AnyEqOperator.NAME) && function.arguments().get(1).symbolType().isValueSymbol()) {
+            } else if (functionName.equals(AnyEqOperator.NAME) &&
+                       function.arguments().get(1).symbolType().isValueSymbol()) {
                 // ref = any ([1,2,3])
                 if (function.arguments().get(0) instanceof Reference) {
                     Reference reference = (Reference) function.arguments().get(0);
                     Comparison comparison = context.comparisons.get(
-                            reference.ident().columnIdent());
+                        reference.ident().columnIdent());
                     if (comparison != null) {
                         context.proxyBelow = true;
                         EqProxy x = comparison.add(function);
@@ -383,7 +385,7 @@ public class EqualityExtractor {
                 proxyBelowPost = context.proxyBelow || proxyBelowPost;
             }
             context.proxyBelow = proxyBelowPost;
-            if (!context.proxyBelow && function.valueType().equals(DataTypes.BOOLEAN)){
+            if (!context.proxyBelow && function.valueType().equals(DataTypes.BOOLEAN)) {
                 return Literal.BOOLEAN_TRUE;
             }
             return new Function(function.info(), args);

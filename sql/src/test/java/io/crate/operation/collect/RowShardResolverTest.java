@@ -40,8 +40,8 @@ public class RowShardResolverTest extends CrateUnitTest {
 
     private final static ColumnIdent ID_IDENT = new ColumnIdent("_id");
 
-    private Row row(Object ... cells){
-        if (cells==null){
+    private Row row(Object... cells) {
+        if (cells == null) {
             cells = new Object[]{null};
         }
         return new RowN(cells);
@@ -56,7 +56,7 @@ public class RowShardResolverTest extends CrateUnitTest {
     @Test
     public void testNoPrimaryKeyNoRouting() {
         RowShardResolver rowShardResolver =
-                new RowShardResolver(functions, ImmutableList.<ColumnIdent>of(), ImmutableList.<Symbol>of(), null, null);
+            new RowShardResolver(functions, ImmutableList.<ColumnIdent>of(), ImmutableList.<Symbol>of(), null, null);
         rowShardResolver.setNextRow(row());
 
         // auto-generated id, no special routing
@@ -67,7 +67,7 @@ public class RowShardResolverTest extends CrateUnitTest {
     @Test
     public void testNoPrimaryKeyButRouting() {
         RowShardResolver rowShardResolver =
-                new RowShardResolver(functions, ImmutableList.<ColumnIdent>of(), ImmutableList.<Symbol>of(), ID_IDENT, new InputColumn(1));
+            new RowShardResolver(functions, ImmutableList.<ColumnIdent>of(), ImmutableList.<Symbol>of(), ID_IDENT, new InputColumn(1));
         rowShardResolver.setNextRow(row(1, "hoschi"));
 
         // auto-generated id, special routing
@@ -79,7 +79,7 @@ public class RowShardResolverTest extends CrateUnitTest {
     public void testPrimaryKeyNoRouting() {
         List<Symbol> primaryKeySymbols = ImmutableList.<Symbol>of(new InputColumn(0), new InputColumn(1));
         RowShardResolver rowShardResolver =
-                new RowShardResolver(functions, ImmutableList.of(ci("id"), ci("foo")), primaryKeySymbols, null, null);
+            new RowShardResolver(functions, ImmutableList.of(ci("id"), ci("foo")), primaryKeySymbols, null, null);
         rowShardResolver.setNextRow(row(1, "hoschi"));
 
         // compound encoded id, no special routing
@@ -91,7 +91,7 @@ public class RowShardResolverTest extends CrateUnitTest {
     public void testPrimaryKeyAndRouting() {
         List<Symbol> primaryKeySymbols = ImmutableList.<Symbol>of(new InputColumn(0), new InputColumn(1));
         RowShardResolver rowShardResolver =
-                new RowShardResolver(functions, ImmutableList.of(ci("id"), ci("foo")), primaryKeySymbols, ci("foo"), new InputColumn(1));
+            new RowShardResolver(functions, ImmutableList.of(ci("id"), ci("foo")), primaryKeySymbols, ci("foo"), new InputColumn(1));
         rowShardResolver.setNextRow(row(1, "hoschi"));
 
         // compound encoded id, special routing
@@ -103,7 +103,7 @@ public class RowShardResolverTest extends CrateUnitTest {
     public void testMultipleRows() {
         List<Symbol> primaryKeySymbols = ImmutableList.<Symbol>of(new InputColumn(0), new InputColumn(1));
         RowShardResolver rowShardResolver =
-                new RowShardResolver(functions, ImmutableList.of(ci("id"), ci("foo")), primaryKeySymbols, ci("foo"), new InputColumn(1));
+            new RowShardResolver(functions, ImmutableList.of(ci("id"), ci("foo")), primaryKeySymbols, ci("foo"), new InputColumn(1));
 
         rowShardResolver.setNextRow(row(1, "hoschi"));
         assertThat(rowShardResolver.id(), is("AgZob3NjaGkBMQ=="));
@@ -118,7 +118,7 @@ public class RowShardResolverTest extends CrateUnitTest {
     public void testIdPrimaryKeyNull() {
         List<Symbol> primaryKeySymbols = ImmutableList.<Symbol>of(new InputColumn(2));
         RowShardResolver rowShardResolver =
-                new RowShardResolver(functions, ImmutableList.of(ID_IDENT), primaryKeySymbols, null, new InputColumn(1));
+            new RowShardResolver(functions, ImmutableList.of(ID_IDENT), primaryKeySymbols, null, new InputColumn(1));
         rowShardResolver.setNextRow(row(1, "hoschi", null));
 
         // generated _id, special routing
@@ -133,8 +133,8 @@ public class RowShardResolverTest extends CrateUnitTest {
 
         List<Symbol> primaryKeySymbols = ImmutableList.<Symbol>of(new InputColumn(0));
         RowShardResolver rowShardResolver =
-                new RowShardResolver(functions, ImmutableList.of(ci("id")), primaryKeySymbols, null, null);
-        rowShardResolver.setNextRow(row(new Object[] { null }));
+            new RowShardResolver(functions, ImmutableList.of(ci("id")), primaryKeySymbols, null, null);
+        rowShardResolver.setNextRow(row(new Object[]{null}));
     }
 
     @Test
@@ -144,7 +144,7 @@ public class RowShardResolverTest extends CrateUnitTest {
 
         List<Symbol> primaryKeySymbols = ImmutableList.<Symbol>of(new InputColumn(1), new InputColumn(0));
         RowShardResolver rowShardResolver =
-                new RowShardResolver(functions, ImmutableList.of(ci("id"), ci("foo")), primaryKeySymbols, null, new InputColumn(1));
+            new RowShardResolver(functions, ImmutableList.of(ci("id"), ci("foo")), primaryKeySymbols, null, new InputColumn(1));
         rowShardResolver.setNextRow(row(1, null));
     }
 }

@@ -31,7 +31,7 @@ import org.elasticsearch.common.xcontent.XContentParser;
 /**
  * Parser for SQL statements in JSON and other XContent formats
  * <p>
- *     <pre>
+ * <pre>
  * {
  *  "stmt": "select * from...."
  * }
@@ -48,9 +48,9 @@ public class SQLXContentSourceParser {
     }
 
     private static final ImmutableMap<String, SQLParseElement> elementParsers = ImmutableMap.of(
-            Fields.STMT, (SQLParseElement) new SQLStmtParseElement(),
-            Fields.ARGS, (SQLParseElement) new SQLArgsParseElement(),
-            Fields.BULK_ARGS, (SQLParseElement) new SQLBulkArgsParseElement()
+        Fields.STMT, (SQLParseElement) new SQLStmtParseElement(),
+        Fields.ARGS, (SQLParseElement) new SQLArgsParseElement(),
+        Fields.BULK_ARGS, (SQLParseElement) new SQLBulkArgsParseElement()
     );
 
     public SQLXContentSourceParser(SQLXContentSourceContext context) {

@@ -23,8 +23,6 @@
 package io.crate.monitor;
 
 import com.google.common.collect.Iterators;
-import com.sun.org.apache.xalan.internal.xsltc.compiler.util.StringType;
-import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.Nullable;

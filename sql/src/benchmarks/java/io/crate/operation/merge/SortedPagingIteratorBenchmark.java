@@ -49,7 +49,7 @@ public class SortedPagingIteratorBenchmark {
 
     public static final int NUM_REPEATS = 10;
     public static final Ordering<Row> ORDERING =
-            OrderingByPosition.rowOrdering(new int[]{0}, new boolean[]{false}, new Boolean[]{null});
+        OrderingByPosition.rowOrdering(new int[]{0}, new boolean[]{false}, new Boolean[]{null});
 
     private Bucket bucket1;
     private Bucket bucket2;
@@ -67,6 +67,7 @@ public class SortedPagingIteratorBenchmark {
 
         return Iterables.transform(Arrays.asList(buckets), new Function<Iterable<Row>, KeyIterable<Integer, Row>>() {
             private int i = 0;
+
             @Nullable
             @Override
             public KeyIterable<Integer, Row> apply(Iterable<Row> input) {

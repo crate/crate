@@ -195,7 +195,7 @@ public class SysNodeChecksTest extends CrateUnitTest {
     @Test
     public void testValidationDiskWatermarkCheckInBytes() {
         DiskWatermarkNodesSysCheck highDiskWatermarkNodesSysCheck
-                = new HighDiskWatermarkNodesSysCheck(clusterService, Settings.EMPTY, mock(FsProbe.class));
+            = new HighDiskWatermarkNodesSysCheck(clusterService, Settings.EMPTY, mock(FsProbe.class));
 
         assertThat(highDiskWatermarkNodesSysCheck.id(), is(5));
         assertThat(highDiskWatermarkNodesSysCheck.nodeId().utf8ToString(), is("noop_id"));
@@ -205,8 +205,8 @@ public class SysNodeChecksTest extends CrateUnitTest {
         // sda: 170b is free;
         // sdc: 150b is free
         List<FsInfo.Path> sameSizeDisksGroup = ImmutableList.of(
-                new FsInfo.Path("/middle", "/dev/sda", 300, 170, 160),
-                new FsInfo.Path("/most", "/dev/sdc", 300, 150, 140)
+            new FsInfo.Path("/middle", "/dev/sda", 300, 170, 160),
+            new FsInfo.Path("/most", "/dev/sdc", 300, 150, 140)
         );
 
         // disk.watermark.high: 140b
@@ -221,7 +221,7 @@ public class SysNodeChecksTest extends CrateUnitTest {
     @Test
     public void testValidationDiskWatermarkCheckInPercents() {
         DiskWatermarkNodesSysCheck lowDiskWatermarkNodesSysCheck
-                = new LowDiskWatermarkNodesSysCheck(clusterService, Settings.EMPTY, mock(FsProbe.class));
+            = new LowDiskWatermarkNodesSysCheck(clusterService, Settings.EMPTY, mock(FsProbe.class));
 
         assertThat(lowDiskWatermarkNodesSysCheck.id(), is(6));
         assertThat(lowDiskWatermarkNodesSysCheck.nodeId().utf8ToString(), is("noop_id"));
@@ -231,8 +231,8 @@ public class SysNodeChecksTest extends CrateUnitTest {
         // sda: 60% is used;
         // sdc: 50% is used
         List<FsInfo.Path> differentSizeDisksGroup = ImmutableList.of(
-                new FsInfo.Path("/middle", "/dev/sda", 100, 40, 30),
-                new FsInfo.Path("/most", "/dev/sdc", 300, 150, 140)
+            new FsInfo.Path("/middle", "/dev/sda", 100, 40, 30),
+            new FsInfo.Path("/most", "/dev/sdc", 300, 150, 140)
         );
 
         // disk.watermark.high: 75%

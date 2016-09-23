@@ -33,7 +33,7 @@ public abstract class InformationTableConstraintsExpression<T> extends RowContex
     private static final BytesRef PRIMARY_KEY = new BytesRef("PRIMARY_KEY");
 
     public static class TableConstraintsSchemaNameExpression
-            extends InformationTableConstraintsExpression<BytesRef> {
+        extends InformationTableConstraintsExpression<BytesRef> {
 
         @Override
         public BytesRef value() {
@@ -42,7 +42,7 @@ public abstract class InformationTableConstraintsExpression<T> extends RowContex
     }
 
     public static class TableConstraintsTableNameExpression
-            extends InformationTableConstraintsExpression<BytesRef> {
+        extends InformationTableConstraintsExpression<BytesRef> {
 
         @Override
         public BytesRef value() {
@@ -52,7 +52,7 @@ public abstract class InformationTableConstraintsExpression<T> extends RowContex
     }
 
     public static class TableConstraintsConstraintNameExpression
-            extends InformationTableConstraintsExpression<BytesRef[]> {
+        extends InformationTableConstraintsExpression<BytesRef[]> {
 
         @Override
         public BytesRef[] value() {
@@ -66,7 +66,7 @@ public abstract class InformationTableConstraintsExpression<T> extends RowContex
     }
 
     public static class TableConstraintsConstraintTypeExpression
-            extends InformationTableConstraintsExpression<BytesRef> {
+        extends InformationTableConstraintsExpression<BytesRef> {
 
         @Override
         public BytesRef value() {

@@ -35,7 +35,7 @@ public class SizeEstimatorFactory {
         switch (type.id()) {
             case StringType.ID:
             case IpType.ID:
-                return (SizeEstimator<T>)new BytesRefSizeEstimator();
+                return (SizeEstimator<T>) new BytesRefSizeEstimator();
             default:
                 if (type instanceof FixedWidthType) {
                     return (SizeEstimator<T>) new ConstSizeEstimator(((FixedWidthType) type).fixedSize());

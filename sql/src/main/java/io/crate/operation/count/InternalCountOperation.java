@@ -82,9 +82,9 @@ public class InternalCountOperation implements CountOperation {
                 });
             }
         }
-        MergePartialCountFunction mergeFunction =  new MergePartialCountFunction();
+        MergePartialCountFunction mergeFunction = new MergePartialCountFunction();
         ListenableFuture<List<Long>> listListenableFuture = ThreadPools.runWithAvailableThreads(
-                executor, corePoolSize, callableList, mergeFunction);
+            executor, corePoolSize, callableList, mergeFunction);
         return Futures.transform(listListenableFuture, mergeFunction);
     }
 
@@ -103,7 +103,7 @@ public class InternalCountOperation implements CountOperation {
         IndexShard indexShard = indexService.shardSafe(shardId);
         try (Engine.Searcher searcher = indexShard.acquireSearcher("count-operation")) {
             LuceneQueryBuilder.Context queryCtx = queryBuilder.convert(
-                    whereClause, indexService.mapperService(), indexService.fieldData(), indexService.cache());
+                whereClause, indexService.mapperService(), indexService.fieldData(), indexService.cache());
             if (Thread.interrupted()) {
                 throw new InterruptedException();
             }

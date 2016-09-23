@@ -30,7 +30,9 @@ public class IpType extends StringType {
 
     public final static int ID = 5;
     public final static IpType INSTANCE = new IpType();
-    protected IpType() {}
+
+    protected IpType() {
+    }
 
     @Override
     public int id() {
@@ -52,10 +54,10 @@ public class IpType extends StringType {
             validate(ip);
             return ip;
         } else {
-            Long longIp = ((Number)value).longValue();
+            Long longIp = ((Number) value).longValue();
             if (longIp < 0) {
                 throw new IllegalArgumentException(String.format(Locale.ENGLISH, "Failed to convert long value: %s to ipv4 address)",
-                        longIp));
+                    longIp));
             }
             String strIp = IpFieldMapper.longToIp(longIp);
             return new BytesRef(strIp);
@@ -63,8 +65,9 @@ public class IpType extends StringType {
     }
 
     private void validate(BytesRef ip) {
-        if(!isValid(ip)) {
-            throw new IllegalArgumentException("Failed to validate ip [" + ip.utf8ToString() + "], not a valid ipv4 address");
+        if (!isValid(ip)) {
+            throw new IllegalArgumentException(
+                "Failed to validate ip [" + ip.utf8ToString() + "], not a valid ipv4 address");
         }
     }
 

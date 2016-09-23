@@ -21,9 +21,8 @@
 
 package io.crate.operation.projectors.writer;
 
-import io.crate.planner.projection.WriterProjection;
 import com.google.common.base.Preconditions;
-import org.elasticsearch.common.settings.Settings;
+import io.crate.planner.projection.WriterProjection;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -48,11 +47,11 @@ public class OutputFile extends Output {
     @Override
     public OutputStream acquireOutputStream() throws IOException {
         File outFile = new File(path);
-        if (outFile.exists()){
-            if (!overwrite){
+        if (outFile.exists()) {
+            if (!overwrite) {
                 throw new IOException("File exists: " + path);
             }
-            if (outFile.isDirectory()){
+            if (outFile.isDirectory()) {
                 throw new IOException("Output path is a directory: " + path);
             }
         }

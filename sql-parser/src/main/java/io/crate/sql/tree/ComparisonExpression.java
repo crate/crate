@@ -24,10 +24,8 @@ package io.crate.sql.tree;
 import com.google.common.base.Preconditions;
 
 public class ComparisonExpression
-        extends Expression
-{
-    public enum Type
-    {
+    extends Expression {
+    public enum Type {
         EQUAL("="),
         NOT_EQUAL("<>"),
         LESS_THAN("<"),
@@ -42,13 +40,11 @@ public class ComparisonExpression
 
         private final String value;
 
-        Type(String value)
-        {
+        Type(String value) {
             this.value = value;
         }
 
-        public String getValue()
-        {
+        public String getValue() {
             return value;
         }
 
@@ -58,8 +54,7 @@ public class ComparisonExpression
     private final Expression left;
     private final Expression right;
 
-    public ComparisonExpression(Type type, Expression left, Expression right)
-    {
+    public ComparisonExpression(Type type, Expression left, Expression right) {
         Preconditions.checkNotNull(type, "type is null");
         Preconditions.checkNotNull(left, "left is null");
         Preconditions.checkNotNull(right, "right is null");
@@ -69,30 +64,25 @@ public class ComparisonExpression
         this.right = right;
     }
 
-    public Type getType()
-    {
+    public Type getType() {
         return type;
     }
 
-    public Expression getLeft()
-    {
+    public Expression getLeft() {
         return left;
     }
 
-    public Expression getRight()
-    {
+    public Expression getRight() {
         return right;
     }
 
     @Override
-    public <R, C> R accept(AstVisitor<R, C> visitor, C context)
-    {
+    public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
         return visitor.visitComparisonExpression(this, context);
     }
 
     @Override
-    public boolean equals(Object o)
-    {
+    public boolean equals(Object o) {
         if (this == o) {
             return true;
         }
@@ -116,8 +106,7 @@ public class ComparisonExpression
     }
 
     @Override
-    public int hashCode()
-    {
+    public int hashCode() {
         int result = type.hashCode();
         result = 31 * result + left.hashCode();
         result = 31 * result + right.hashCode();

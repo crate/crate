@@ -26,10 +26,10 @@ import com.google.common.collect.ImmutableList;
 public class BlobTableParameterInfo extends TableParameterInfo {
 
     protected static final ImmutableList<String> SUPPORTED_SETTINGS =
-            ImmutableList.<String>builder()
-                    .add(NUMBER_OF_REPLICAS)
-                    .add(BLOBS_PATH)
-                    .build();
+        ImmutableList.<String>builder()
+            .add(NUMBER_OF_REPLICAS)
+            .add(BLOBS_PATH)
+            .build();
 
     protected static final ImmutableList<String> SUPPORTED_MAPPINGS = ImmutableList.<String>of();
 

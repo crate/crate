@@ -45,7 +45,7 @@ public class LoggingSetting extends StringSetting {
             }
         }
         return String.format(Locale.ENGLISH, "'%s' is not an allowed value. Allowed values are: %s",
-                value, Joiner.on(", ").join(LOGGING_VALUES)
+            value, Joiner.on(", ").join(LOGGING_VALUES)
         );
     }
 }

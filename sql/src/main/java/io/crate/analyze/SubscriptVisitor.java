@@ -33,30 +33,30 @@ public class SubscriptVisitor extends AstVisitor<Void, SubscriptContext> {
 
     private static final Long MAX_VALUE = Integer.MAX_VALUE + 1L;
     private static final Set<Class<?>> SUBSCRIPT_NAME_CLASSES = ImmutableSet.<Class<?>>of(
-            SubscriptExpression.class,
-            QualifiedNameReference.class,
-            FunctionCall.class,
-            ArrayLiteral.class
+        SubscriptExpression.class,
+        QualifiedNameReference.class,
+        FunctionCall.class,
+        ArrayLiteral.class
     );
     private static final Set<Class<?>> SUBSCRIPT_INDEX_CLASSES = ImmutableSet.<Class<?>>of(
-            StringLiteral.class,
-            LongLiteral.class,
-            NegativeExpression.class,
-            ParameterExpression.class
+        StringLiteral.class,
+        LongLiteral.class,
+        NegativeExpression.class,
+        ParameterExpression.class
     );
 
     @Override
     protected Void visitSubscriptExpression(SubscriptExpression node, SubscriptContext context) {
         Preconditions.checkArgument(
-                node.index() == null
-                        || SUBSCRIPT_INDEX_CLASSES.contains(node.index().getClass()),
-                "index of subscript has to be a string or long literal or parameter. " +
-                "Any other index expression is not supported"
+            node.index() == null
+            || SUBSCRIPT_INDEX_CLASSES.contains(node.index().getClass()),
+            "index of subscript has to be a string or long literal or parameter. " +
+            "Any other index expression is not supported"
         );
         Preconditions.checkArgument(
-                SUBSCRIPT_NAME_CLASSES.contains(node.name().getClass()),
-                "An expression of type %s cannot have an index accessor ([])",
-                node.name().getClass().getSimpleName()
+            SUBSCRIPT_NAME_CLASSES.contains(node.name().getClass()),
+            "An expression of type %s cannot have an index accessor ([])",
+            node.name().getClass().getSimpleName()
         );
         if (node.index() != null) {
             node.index().accept(this, context);
@@ -86,8 +86,8 @@ public class SubscriptVisitor extends AstVisitor<Void, SubscriptContext> {
     @Override
     public Void visitArrayLiteral(ArrayLiteral node, SubscriptContext context) {
         Preconditions.checkArgument(
-                context.index() != null,
-                "Array literals can only be accessed via numeric index.");
+            context.index() != null,
+            "Array literals can only be accessed via numeric index.");
         context.expression(node);
         return null;
     }
@@ -99,8 +99,8 @@ public class SubscriptVisitor extends AstVisitor<Void, SubscriptContext> {
 
         if (value < 1 || value > MAX_VALUE) {
             throw new UnsupportedOperationException(
-                    String.format(Locale.ENGLISH, "Array index must be in range 1 to %s",
-                            MAX_VALUE));
+                String.format(Locale.ENGLISH, "Array index must be in range 1 to %s",
+                    MAX_VALUE));
         }
         context.index((int) value);
         return null;
@@ -109,8 +109,8 @@ public class SubscriptVisitor extends AstVisitor<Void, SubscriptContext> {
     @Override
     protected Void visitNegativeExpression(NegativeExpression node, SubscriptContext context) {
         throw new UnsupportedOperationException(
-                String.format(Locale.ENGLISH, "Array index must be in range 1 to %s",
-                        MAX_VALUE));
+            String.format(Locale.ENGLISH, "Array index must be in range 1 to %s",
+                MAX_VALUE));
     }
 
     @Override
@@ -122,8 +122,8 @@ public class SubscriptVisitor extends AstVisitor<Void, SubscriptContext> {
     @Override
     protected Void visitExpression(Expression node, SubscriptContext context) {
         throw new UnsupportedOperationException(String.format(Locale.ENGLISH,
-                "Expression of type %s is not supported within a subscript expression",
-                node.getClass()));
+            "Expression of type %s is not supported within a subscript expression",
+            node.getClass()));
     }
 
     private void validateNestedArrayAccess(SubscriptContext context) {

@@ -60,7 +60,8 @@ public class CrateNettyHttpServerTransport extends NettyHttpServerTransport {
     protected void doStart() {
         super.doStart();
 
-        final String httpAddress = boundAddress.publishAddress().getHost() + ":" + boundAddress.publishAddress().getPort();
+        final String httpAddress =
+            boundAddress.publishAddress().getHost() + ":" + boundAddress.publishAddress().getPort();
         discoveryNodeService.addCustomAttributeProvider(new DiscoveryNodeService.CustomAttributesProvider() {
             @Override
             public Map<String, String> buildAttributes() {

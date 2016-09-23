@@ -38,7 +38,7 @@ public abstract class AbstractCopyAnalyzedStatement implements AnalyzedStatement
         return uri;
     }
 
-    public Settings settings(){
+    public Settings settings() {
         return settings;
     }
 }

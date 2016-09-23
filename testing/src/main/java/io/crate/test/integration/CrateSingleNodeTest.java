@@ -22,9 +22,6 @@
 package io.crate.test.integration;
 
 import com.google.common.collect.Sets;
-import org.elasticsearch.cluster.settings.ClusterDynamicSettings;
-import org.elasticsearch.cluster.settings.DynamicSettings;
-import org.elasticsearch.common.inject.Key;
 import org.elasticsearch.test.ESSingleNodeTestCase;
 import org.junit.After;
 
@@ -34,9 +31,9 @@ public class CrateSingleNodeTest extends ESSingleNodeTestCase {
     @After
     public void tearDown() throws Exception {
         client().admin().cluster()
-                .prepareUpdateSettings()
-                .setTransientSettingsToRemove(Sets.newHashSet("cluster_id"))
-                .execute().actionGet();
+            .prepareUpdateSettings()
+            .setTransientSettingsToRemove(Sets.newHashSet("cluster_id"))
+            .execute().actionGet();
         super.tearDown();
     }
 }

@@ -57,7 +57,7 @@ public class BaseImplementationSymbolVisitor<C> extends SymbolVisitor<C, Input<?
             return new FunctionExpression<>(scalarImpl, argumentInputs);
         } else {
             throw new IllegalArgumentException(
-                    SymbolFormatter.format("Cannot find implementation for function %s", function));
+                SymbolFormatter.format("Cannot find implementation for function %s", function));
         }
     }
 

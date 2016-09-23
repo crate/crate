@@ -50,47 +50,47 @@ public class GeoJSONUtilsTest extends CrateUnitTest {
     private static final GeometryFactory GEOMETRY_FACTORY = new GeometryFactory(CoordinateArraySequenceFactory.instance());
 
     public final static List<Shape> SHAPES = ImmutableList.<Shape>of(
-            new JtsGeometry(new Polygon(GEOMETRY_FACTORY.createLinearRing(new Coordinate[]{
+        new JtsGeometry(new Polygon(GEOMETRY_FACTORY.createLinearRing(new Coordinate[]{
+            new Coordinate(0.0, 1.0),
+            new Coordinate(100.0, 0.1),
+            new Coordinate(20.0, 23.567),
+            new Coordinate(0.0, 1.0)
+        }), new LinearRing[0], GEOMETRY_FACTORY), JtsSpatialContext.GEO, true, true),
+        new JtsGeometry(new MultiPolygon(
+            new Polygon[]{
+                new Polygon(GEOMETRY_FACTORY.createLinearRing(new Coordinate[]{
                     new Coordinate(0.0, 1.0),
-                    new Coordinate(100.0, 0.1),
-                    new Coordinate(20.0, 23.567),
+                    new Coordinate(0.1, 1.1),
+                    new Coordinate(1.1, 60.0),
                     new Coordinate(0.0, 1.0)
-            }), new LinearRing[0], GEOMETRY_FACTORY), JtsSpatialContext.GEO, true, true),
-            new JtsGeometry(new MultiPolygon(
-                    new Polygon[]{
-                            new Polygon(GEOMETRY_FACTORY.createLinearRing(new Coordinate[]{
-                                    new Coordinate(0.0, 1.0),
-                                    new Coordinate(0.1, 1.1),
-                                    new Coordinate(1.1, 60.0),
-                                    new Coordinate(0.0, 1.0)
-                            }), new LinearRing[0], GEOMETRY_FACTORY),
-                            new Polygon(GEOMETRY_FACTORY.createLinearRing(new Coordinate[]{
-                                    new Coordinate(2.0, 1.0),
-                                    new Coordinate(2.1, 1.1),
-                                    new Coordinate(2.1, 70.0),
-                                    new Coordinate(2.0, 1.0)
-                            }), new LinearRing[0], GEOMETRY_FACTORY)
-                    },
-                    GEOMETRY_FACTORY
-                ), JtsSpatialContext.GEO, true, true),
-            new JtsGeometry(GEOMETRY_FACTORY.createMultiPoint(new Coordinate[]{
-                    new Coordinate(0.0, 0.0),
-                    new Coordinate(1.0, 1.0)
-            }), JtsSpatialContext.GEO, true, true),
-            new JtsGeometry(GEOMETRY_FACTORY.createMultiLineString(new LineString[]{
-                    GEOMETRY_FACTORY.createLineString(new Coordinate[]{
-                            new Coordinate(0.0, 1.0),
-                            new Coordinate(0.1, 1.1),
-                            new Coordinate(1.1, 80.0),
-                            new Coordinate(0.0, 1.0)
-                    }),
-                    GEOMETRY_FACTORY.createLineString(new Coordinate[]{
-                            new Coordinate(2.0, 1.0),
-                            new Coordinate(2.1, 1.1),
-                            new Coordinate(2.1, 60.0),
-                            new Coordinate(2.0, 1.0)
-                    })
-            }), JtsSpatialContext.GEO, true, true)
+                }), new LinearRing[0], GEOMETRY_FACTORY),
+                new Polygon(GEOMETRY_FACTORY.createLinearRing(new Coordinate[]{
+                    new Coordinate(2.0, 1.0),
+                    new Coordinate(2.1, 1.1),
+                    new Coordinate(2.1, 70.0),
+                    new Coordinate(2.0, 1.0)
+                }), new LinearRing[0], GEOMETRY_FACTORY)
+            },
+            GEOMETRY_FACTORY
+        ), JtsSpatialContext.GEO, true, true),
+        new JtsGeometry(GEOMETRY_FACTORY.createMultiPoint(new Coordinate[]{
+            new Coordinate(0.0, 0.0),
+            new Coordinate(1.0, 1.0)
+        }), JtsSpatialContext.GEO, true, true),
+        new JtsGeometry(GEOMETRY_FACTORY.createMultiLineString(new LineString[]{
+            GEOMETRY_FACTORY.createLineString(new Coordinate[]{
+                new Coordinate(0.0, 1.0),
+                new Coordinate(0.1, 1.1),
+                new Coordinate(1.1, 80.0),
+                new Coordinate(0.0, 1.0)
+            }),
+            GEOMETRY_FACTORY.createLineString(new Coordinate[]{
+                new Coordinate(2.0, 1.0),
+                new Coordinate(2.1, 1.1),
+                new Coordinate(2.1, 60.0),
+                new Coordinate(2.0, 1.0)
+            })
+        }), JtsSpatialContext.GEO, true, true)
 
     );
 
@@ -108,9 +108,9 @@ public class GeoJSONUtilsTest extends CrateUnitTest {
         Point point = GEOMETRY_FACTORY.createPoint(new Coordinate(0.0, 0.0));
         Shape shape = new JtsPoint(point, JtsSpatialContext.GEO);
         Map<String, Object> map = GeoJSONUtils.shape2Map(shape);
-        assertThat(map, hasEntry("type", (Object)"Point"));
+        assertThat(map, hasEntry("type", (Object) "Point"));
         assertThat(map.get("coordinates").getClass().isArray(), is(true));
-        assertThat(((double[])map.get("coordinates")).length, is(2));
+        assertThat(((double[]) map.get("coordinates")).length, is(2));
     }
 
     @Test
@@ -133,8 +133,8 @@ public class GeoJSONUtilsTest extends CrateUnitTest {
     public void testInvalidWKT() throws Exception {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage(allOf(
-                startsWith("Cannot convert WKT \""),
-                endsWith("\" to shape")));
+            startsWith("Cannot convert WKT \""),
+            endsWith("\" to shape")));
         GeoJSONUtils.wkt2Map("multilinestring (((10.05  10.28  3.4  8.4, 20.95  20.89  4.5  9.5),\n" +
                              " \n" +
                              "( 20.95  20.89  4.5  9.5, 31.92  21.45  3.6  8.6)))");
@@ -144,11 +144,11 @@ public class GeoJSONUtilsTest extends CrateUnitTest {
     @Test
     public void testMap2Shape() throws Exception {
         Shape shape = GeoJSONUtils.map2Shape(ImmutableMap.<String, Object>of(
-                GeoJSONUtils.TYPE_FIELD, GeoJSONUtils.LINE_STRING,
-                GeoJSONUtils.COORDINATES_FIELD, new Double[][]{ {0.0, 0.1}, {1.0, 1.1} }
-                ));
+            GeoJSONUtils.TYPE_FIELD, GeoJSONUtils.LINE_STRING,
+            GeoJSONUtils.COORDINATES_FIELD, new Double[][]{{0.0, 0.1}, {1.0, 1.1}}
+        ));
         assertThat(shape, instanceOf(JtsGeometry.class));
-        assertThat(((JtsGeometry)shape).getGeom(), instanceOf(LineString.class));
+        assertThat(((JtsGeometry) shape).getGeom(), instanceOf(LineString.class));
 
     }
 
@@ -192,10 +192,10 @@ public class GeoJSONUtilsTest extends CrateUnitTest {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("Invalid GeoJSON: invalid GeometryCollection");
         GeoJSONUtils.validateGeoJson(
-                ImmutableMap.of(
-                        GeoJSONUtils.TYPE_FIELD, GeoJSONUtils.GEOMETRY_COLLECTION,
-                        GeoJSONUtils.GEOMETRIES_FIELD, ImmutableList.<Object>of("ABC")
-                )
+            ImmutableMap.of(
+                GeoJSONUtils.TYPE_FIELD, GeoJSONUtils.GEOMETRY_COLLECTION,
+                GeoJSONUtils.GEOMETRIES_FIELD, ImmutableList.<Object>of("ABC")
+            )
         );
     }
 
@@ -204,10 +204,10 @@ public class GeoJSONUtilsTest extends CrateUnitTest {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("Invalid GeoJSON: invalid coordinate");
         GeoJSONUtils.validateGeoJson(
-                ImmutableMap.of(
-                        GeoJSONUtils.TYPE_FIELD, GeoJSONUtils.POINT,
-                        GeoJSONUtils.COORDINATES_FIELD, "ABC"
-                )
+            ImmutableMap.of(
+                GeoJSONUtils.TYPE_FIELD, GeoJSONUtils.POINT,
+                GeoJSONUtils.COORDINATES_FIELD, "ABC"
+            )
         );
     }
 
@@ -216,13 +216,13 @@ public class GeoJSONUtilsTest extends CrateUnitTest {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("Invalid GeoJSON: invalid coordinate");
         GeoJSONUtils.validateGeoJson(
-                ImmutableMap.of(
-                        GeoJSONUtils.TYPE_FIELD, GeoJSONUtils.POINT,
-                        GeoJSONUtils.COORDINATES_FIELD, new double[][] {
-                                {0.0, 1.0},
-                                {1.0, 0.0}
-                        }
-                )
+            ImmutableMap.of(
+                GeoJSONUtils.TYPE_FIELD, GeoJSONUtils.POINT,
+                GeoJSONUtils.COORDINATES_FIELD, new double[][]{
+                    {0.0, 1.0},
+                    {1.0, 0.0}
+                }
+            )
         );
     }
 
@@ -231,13 +231,13 @@ public class GeoJSONUtilsTest extends CrateUnitTest {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("Invalid GeoJSON: invalid coordinate");
         GeoJSONUtils.validateGeoJson(
-                ImmutableMap.of(
-                        GeoJSONUtils.TYPE_FIELD, GeoJSONUtils.POLYGON,
-                        GeoJSONUtils.COORDINATES_FIELD, new double[][] {
-                                {0.0, 1.0},
-                                {1.0, 0.0}
-                        }
-                )
+            ImmutableMap.of(
+                GeoJSONUtils.TYPE_FIELD, GeoJSONUtils.POLYGON,
+                GeoJSONUtils.COORDINATES_FIELD, new double[][]{
+                    {0.0, 1.0},
+                    {1.0, 0.0}
+                }
+            )
         );
     }
 }

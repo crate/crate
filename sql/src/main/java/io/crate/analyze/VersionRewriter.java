@@ -38,7 +38,7 @@ public class VersionRewriter {
     private static final Visitor VISITOR = new Visitor();
 
     @Nullable
-    public static Symbol get(Symbol query){
+    public static Symbol get(Symbol query) {
         Visitor.Context context = new Visitor.Context();
         VISITOR.process(query, context);
         return context.version;
@@ -46,13 +46,13 @@ public class VersionRewriter {
 
     private static class Visitor extends SymbolVisitor<Visitor.Context, Symbol> {
 
-        static class Context{
+        static class Context {
             Symbol version;
         }
 
         @Override
-        public Symbol visitFunction(Function function, Context context){
-            if (context.version!= null){
+        public Symbol visitFunction(Function function, Context context) {
+            if (context.version != null) {
                 return function;
             }
             String functionName = function.info().ident().name();
@@ -87,7 +87,7 @@ public class VersionRewriter {
                 Symbol argumentNew = process(argument, context);
                 if (!argument.equals(argumentNew)) {
                     symbol.setArgument(argumentsProcessed, argumentNew);
-                    if (context.version != null){
+                    if (context.version != null) {
                         break;
                     }
                 }

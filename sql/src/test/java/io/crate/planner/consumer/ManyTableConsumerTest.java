@@ -62,20 +62,20 @@ public class ManyTableConsumerTest {
     @Before
     public void setUp() throws Exception {
         Injector injector = new ModulesBuilder()
-                .add(new MockedClusterServiceModule())
-                .add(T3.META_DATA_MODULE)
-                .add(new AbstractModule() {
-                    @Override
-                    protected void configure() {
-                        bind(ThreadPool.class).toInstance(newMockedThreadPool());
-                    }
-                })
-                .add(new AggregationImplModule())
-                .add(new ScalarFunctionModule())
-                .add(new PredicateModule())
-                .add(new RepositorySettingsModule())
-                .add(new OperatorModule())
-                .createInjector();
+            .add(new MockedClusterServiceModule())
+            .add(T3.META_DATA_MODULE)
+            .add(new AbstractModule() {
+                @Override
+                protected void configure() {
+                    bind(ThreadPool.class).toInstance(newMockedThreadPool());
+                }
+            })
+            .add(new AggregationImplModule())
+            .add(new ScalarFunctionModule())
+            .add(new PredicateModule())
+            .add(new RepositorySettingsModule())
+            .add(new OperatorModule())
+            .createInjector();
         analyzer = injector.getInstance(Analyzer.class);
     }
 
@@ -122,11 +122,11 @@ public class ManyTableConsumerTest {
         assertThat(t3AndT1.querySpec().where().query(), isSQL("null"));
 
         assertThat(root.joinPair().condition(), Matchers.anyOf(
-                // order of the AND clauses is not deterministic, but both are okay as they're semantically the same
-                isSQL("((RELCOL(doc.t2, 0) = RELCOL(join.doc.t3.doc.t1, 0)) " +
-                      "AND (RELCOL(join.doc.t3.doc.t1, 2) = RELCOL(doc.t2, 0)))"),
-                isSQL("((RELCOL(join.doc.t3.doc.t1, 2) = RELCOL(doc.t2, 0)) " +
-                      "AND (RELCOL(doc.t2, 0) = RELCOL(join.doc.t3.doc.t1, 0)))")));
+            // order of the AND clauses is not deterministic, but both are okay as they're semantically the same
+            isSQL("((RELCOL(doc.t2, 0) = RELCOL(join.doc.t3.doc.t1, 0)) " +
+                  "AND (RELCOL(join.doc.t3.doc.t1, 2) = RELCOL(doc.t2, 0)))"),
+            isSQL("((RELCOL(join.doc.t3.doc.t1, 2) = RELCOL(doc.t2, 0)) " +
+                  "AND (RELCOL(doc.t2, 0) = RELCOL(join.doc.t3.doc.t1, 0)))")));
     }
 
     @Test

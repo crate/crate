@@ -59,7 +59,8 @@ public class ColumnIdent implements Path, Comparable<ColumnIdent>, Streamable {
     private String name;
     private List<String> path;
 
-    private ColumnIdent() { }
+    private ColumnIdent() {
+    }
 
     public static ColumnIdent fromStream(StreamInput in) throws IOException {
         ColumnIdent columnIdent = new ColumnIdent();
@@ -103,6 +104,7 @@ public class ColumnIdent implements Path, Comparable<ColumnIdent>, Streamable {
 
     /**
      * checks whether this ColumnIdent is a child of <code>parentIdent</code>
+     *
      * @param parentIdent the ident to check for parenthood
      * @return true if <code>parentIdent</code> is parentIdent of this, false otherwise.
      */
@@ -164,7 +166,7 @@ public class ColumnIdent implements Path, Comparable<ColumnIdent>, Streamable {
     /**
      * returns true if this is a system column
      */
-    public boolean isSystemColumn(){
+    public boolean isSystemColumn() {
         return name.startsWith("_");
     }
 
@@ -235,7 +237,7 @@ public class ColumnIdent implements Path, Comparable<ColumnIdent>, Streamable {
         }
         ColumnIdent o = (ColumnIdent) obj;
         return Objects.equal(name, o.name) &&
-                Objects.equal(path, o.path);
+               Objects.equal(path, o.path);
     }
 
     @Override
@@ -253,9 +255,9 @@ public class ColumnIdent implements Path, Comparable<ColumnIdent>, Streamable {
     @Override
     public int compareTo(ColumnIdent o) {
         return ComparisonChain.start()
-                .compare(name, o.name)
-                .compare(path, o.path, ordering)
-                .result();
+            .compare(name, o.name)
+            .compare(path, o.path, ordering)
+            .result();
     }
 
 
@@ -285,7 +287,7 @@ public class ColumnIdent implements Path, Comparable<ColumnIdent>, Streamable {
 
     /**
      * Create a new ColumnIdent with the name inserted at the start
-     *
+     * <p>
      * E.g. ColumnIdent y['z'].prepend('x') becomes ColumnIdent x['y']['z']
      */
     public ColumnIdent prepend(String name) {

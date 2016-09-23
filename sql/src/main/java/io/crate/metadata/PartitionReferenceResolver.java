@@ -47,7 +47,7 @@ public class PartitionReferenceResolver implements NestedReferenceResolver {
     public ReferenceImplementation getImplementation(Reference ref) {
         PartitionExpression expression = expressionMap.get(ref.ident());
         assert expression != null || fallbackResolver.getImplementation(ref) == null
-                : "granularity < PARTITION should have been resolved already";
+            : "granularity < PARTITION should have been resolved already";
         return expression;
     }
 

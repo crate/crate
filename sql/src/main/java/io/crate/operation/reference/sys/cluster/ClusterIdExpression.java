@@ -46,7 +46,7 @@ public class ClusterIdExpression extends SimpleObjectExpression<BytesRef> {
             if (value == null && clusterIdService.clusterId().get() != null) {
                 value = new BytesRef(clusterIdService.clusterId().get().value().toString());
             }
-        } catch (InterruptedException|ExecutionException e) {
+        } catch (InterruptedException | ExecutionException e) {
             return null;
         }
         return value;

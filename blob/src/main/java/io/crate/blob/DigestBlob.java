@@ -75,7 +75,7 @@ public class DigestBlob {
     }
 
     private static File getTmpFilePath(BlobContainer blobContainer, String digest, UUID transferId) {
-       return new File(blobContainer.getTmpDirectory(), String.format("%s.%s", digest, transferId.toString()));
+        return new File(blobContainer.getTmpDirectory(), String.format("%s.%s", digest, transferId.toString()));
     }
 
     private File createTmpFile() throws IOException {
@@ -86,7 +86,7 @@ public class DigestBlob {
     }
 
     private void updateDigest(ByteBuffer bbf) throws IOException {
-        if (md == null){
+        if (md == null) {
             try {
                 md = MessageDigest.getInstance("SHA-1");
             } catch (NoSuchAlgorithmException e) {
@@ -117,7 +117,7 @@ public class DigestBlob {
             } while (written < readableBytes);
             size += readableBytes;
             buffer.readerIndex(buffer.readerIndex() + written);
-            chunks ++;
+            chunks++;
         }
         if (last) {
             if (file == null) {
@@ -176,7 +176,7 @@ public class DigestBlob {
         return container.getFile(digest);
     }
 
-    public void addContent(BytesReference content, boolean last){
+    public void addContent(BytesReference content, boolean last) {
         try {
             addContent(content.toChannelBuffer(), last);
         } catch (IOException e) {
@@ -214,8 +214,7 @@ public class DigestBlob {
     }
 
     public static DigestBlob resumeTransfer(BlobContainer blobContainer, String digest,
-                                            UUID transferId, long currentPos)
-    {
+                                            UUID transferId, long currentPos) {
         DigestBlob digestBlob = new DigestBlob(blobContainer, digest, transferId);
         digestBlob.file = getTmpFilePath(blobContainer, digest, transferId);
 

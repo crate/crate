@@ -53,9 +53,9 @@ public class SysNodeCheckerIntegrationTest extends SQLTransportIntegrationTest {
         // gateway.expected_nodes is -1 in the test setup so this check always fails
         execute("select id, passed from sys.node_checks where passed = false");
         Object id = response.rows()[0][0];
-        execute("update sys.node_checks set acknowledged = true where id = ?", new Object[] {id});
+        execute("update sys.node_checks set acknowledged = true where id = ?", new Object[]{id});
 
-        execute("select id, passed, acknowledged from sys.node_checks where id = ?", new Object[] {id});
+        execute("select id, passed, acknowledged from sys.node_checks where id = ?", new Object[]{id});
         assertThat(TestingHelpers.printedTable(response.rows()),
             is("1| false| true\n" +
                "1| false| true\n"));

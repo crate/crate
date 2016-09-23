@@ -62,7 +62,8 @@ public class NestedLoopPhase extends AbstractProjectionsPhase implements Upstrea
     private int numLeftOutputs;
     private int numRightOutputs;
 
-    public NestedLoopPhase() {}
+    public NestedLoopPhase() {
+    }
 
     public NestedLoopPhase(UUID jobId,
                            int executionNodeId,
@@ -207,13 +208,13 @@ public class NestedLoopPhase extends AbstractProjectionsPhase implements Upstrea
     @Override
     public String toString() {
         MoreObjects.ToStringHelper helper = MoreObjects.toStringHelper(this)
-                .add("executionPhaseId", executionPhaseId())
-                .add("name", name())
-                .add("joinType", joinType)
-                .add("joinCondition", joinCondition)
-                .add("outputTypes", outputTypes)
-                .add("jobId", jobId())
-                .add("executionNodes", executionNodes);
+            .add("executionPhaseId", executionPhaseId())
+            .add("name", name())
+            .add("joinType", joinType)
+            .add("joinCondition", joinCondition)
+            .add("outputTypes", outputTypes)
+            .add("jobId", jobId())
+            .add("executionNodes", executionNodes);
         return helper.toString();
     }
 

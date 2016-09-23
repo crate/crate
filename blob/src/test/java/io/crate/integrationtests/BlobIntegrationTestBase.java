@@ -36,10 +36,10 @@ public abstract class BlobIntegrationTestBase extends ESIntegTestCase {
     @Override
     protected Settings nodeSettings(int nodeOrdinal) {
         return Settings.settingsBuilder()
-                .put(super.nodeSettings(nodeOrdinal))
-                .put(Node.HTTP_ENABLED, true)
-                .put(CrateRestFilter.ES_API_ENABLED_SETTING, true)
-                .build();
+            .put(super.nodeSettings(nodeOrdinal))
+            .put(Node.HTTP_ENABLED, true)
+            .put(CrateRestFilter.ES_API_ENABLED_SETTING, true)
+            .build();
     }
 
     @SuppressWarnings("unchecked")

@@ -50,13 +50,13 @@ import java.util.concurrent.CountDownLatch;
 
 /**
  * ES_COPY_OF: core/src/main/java/org/elasticsearch/bootstrap/Bootstrap.java
- *
+ * <p>
  * This is a copy of {@link Bootstrap}
- *
+ * <p>
  * With following patches:
- *  - CrateNode instead of Node is build/started in order to load the CrateCorePlugin
- *  - CrateSettingsPreparer is used instead of InternalSettingsPreparer
- *  - disabled security manager setup due to policy problems with plugins
+ * - CrateNode instead of Node is build/started in order to load the CrateCorePlugin
+ * - CrateSettingsPreparer is used instead of InternalSettingsPreparer
+ * - disabled security manager setup due to policy problems with plugins
  */
 public class BootstrapProxy {
 
@@ -66,7 +66,9 @@ public class BootstrapProxy {
     private final CountDownLatch keepAliveLatch = new CountDownLatch(1);
     private final Thread keepAliveThread;
 
-    /** creates a new instance */
+    /**
+     * creates a new instance
+     */
     BootstrapProxy() {
         keepAliveThread = new Thread(new Runnable() {
             @Override
@@ -88,7 +90,9 @@ public class BootstrapProxy {
         });
     }
 
-    /** initialize native resources */
+    /**
+     * initialize native resources
+     */
     public static void initializeNatives(Path tmpFile, boolean mlockAll, boolean seccomp, boolean ctrlHandler) {
         final ESLogger logger = Loggers.getLogger(Bootstrap.class);
 
@@ -149,9 +153,9 @@ public class BootstrapProxy {
 
     private void setup(boolean addShutdownHook, Settings settings, Environment environment) throws Exception {
         initializeNatives(environment.tmpFile(),
-                settings.getAsBoolean("bootstrap.mlockall", false),
-                settings.getAsBoolean("bootstrap.seccomp", true),
-                settings.getAsBoolean("bootstrap.ctrlhandler", true));
+            settings.getAsBoolean("bootstrap.mlockall", false),
+            settings.getAsBoolean("bootstrap.seccomp", true),
+            settings.getAsBoolean("bootstrap.ctrlhandler", true));
 
         // initialize probes before the security manager is installed
         initializeProbes();
@@ -174,9 +178,9 @@ public class BootstrapProxy {
         // reloading could cause multiple prompts to the user for values if a system property was specified with a prompt
         // placeholder
         Settings nodeSettings = Settings.settingsBuilder()
-                .put(settings)
-                .put(CrateSettingsPreparer.IGNORE_SYSTEM_PROPERTIES_SETTING, true)
-                .build();
+            .put(settings)
+            .put(CrateSettingsPreparer.IGNORE_SYSTEM_PROPERTIES_SETTING, true)
+            .build();
 
         Environment crateEnvironment = CrateSettingsPreparer.prepareEnvironment(nodeSettings, null);
 

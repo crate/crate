@@ -123,7 +123,7 @@ public final class RelationSplitter {
 
         // add all order by symbols to context outputs
         for (Map.Entry<AnalyzedRelation, QuerySpec> entry : specs.entrySet()) {
-            if (entry.getValue().orderBy().isPresent()){
+            if (entry.getValue().orderBy().isPresent()) {
                 context.fields.putAll(entry.getKey(), entry.getValue().orderBy().get().orderBySymbols());
             }
         }
@@ -164,8 +164,8 @@ public final class RelationSplitter {
         OrderBy orderBy = querySpec.orderBy().get();
         Set<AnalyzedRelation> relations = Collections.newSetFromMap(new IdentityHashMap<AnalyzedRelation, Boolean>());
         Multimap<AnalyzedRelation, Integer> splits = Multimaps.newSetMultimap(
-                new IdentityHashMap<AnalyzedRelation, Collection<Integer>>(specs.size()),
-                INT_SET_SUPPLIER);
+            new IdentityHashMap<AnalyzedRelation, Collection<Integer>>(specs.size()),
+            INT_SET_SUPPLIER);
 
         // Detect remaining orderBy before any push down happens,
         // since if remaining orderBy is detected we need to

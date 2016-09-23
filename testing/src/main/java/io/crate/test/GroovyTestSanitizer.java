@@ -33,8 +33,8 @@ import java.util.Set;
 
 /**
  * COPIED FROM https://github.com/elastic/elasticsearch-groovy
- *
- *
+ * <p>
+ * <p>
  * {@code GroovyTestSanitizer} sanitizes the existing test infrastructure to work well with the Groovy runtime.
  * <ul>
  * <li>Modifies {@link LuceneTestCase} to add Groovy's {@link ClassInfo} type to the list (literally it's a

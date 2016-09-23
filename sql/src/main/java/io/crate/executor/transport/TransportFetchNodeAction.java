@@ -73,9 +73,9 @@ public class TransportFetchNodeAction implements NodeAction<NodeFetchRequest, No
         this.jobContextService = jobContextService;
 
         transportService.registerRequestHandler(TRANSPORT_ACTION,
-                NodeFetchRequest.class,
-                EXECUTOR_NAME,
-                new NodeActionRequestHandler<NodeFetchRequest, NodeFetchResponse>(this) { });
+            NodeFetchRequest.class,
+            EXECUTOR_NAME,
+            new NodeActionRequestHandler<NodeFetchRequest, NodeFetchResponse>(this) {});
     }
 
     public void execute(String targetNode,
@@ -83,12 +83,12 @@ public class TransportFetchNodeAction implements NodeAction<NodeFetchRequest, No
                         final NodeFetchRequest request,
                         ActionListener<NodeFetchResponse> listener) {
         transports.sendRequest(TRANSPORT_ACTION, targetNode, request, listener,
-                new DefaultTransportResponseHandler<NodeFetchResponse>(listener, RESPONSE_EXECUTOR) {
-                    @Override
-                    public NodeFetchResponse newInstance() {
-                        return NodeFetchResponse.forReceiveing(streamers);
-                    }
-                });
+            new DefaultTransportResponseHandler<NodeFetchResponse>(listener, RESPONSE_EXECUTOR) {
+                @Override
+                public NodeFetchResponse newInstance() {
+                    return NodeFetchResponse.forReceiveing(streamers);
+                }
+            });
     }
 
     @Override
@@ -145,7 +145,7 @@ public class TransportFetchNodeAction implements NodeAction<NodeFetchRequest, No
         } catch (Throwable t) {
             fetchResponse.onFailure(t);
             statsTables.operationFinished(request.fetchPhaseId(), request.jobId(), Exceptions.messageOf(t),
-                    ramAccountingContext.totalBytes());
+                ramAccountingContext.totalBytes());
             ramAccountingContext.close();
         }
     }

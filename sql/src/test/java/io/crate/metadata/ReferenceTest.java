@@ -50,10 +50,10 @@ public class ReferenceTest extends CrateUnitTest {
         TableIdent tableIdent = new TableIdent("doc", "test");
         ReferenceIdent referenceIdent = new ReferenceIdent(tableIdent, "object_column");
         Reference reference = new Reference(referenceIdent,
-                                                        RowGranularity.DOC,
-                                                        new ArrayType(DataTypes.OBJECT),
-                                                        ColumnPolicy.STRICT,
-                                                        Reference.IndexType.ANALYZED, false);
+            RowGranularity.DOC,
+            new ArrayType(DataTypes.OBJECT),
+            ColumnPolicy.STRICT,
+            Reference.IndexType.ANALYZED, false);
 
         BytesStreamOutput out = new BytesStreamOutput();
         Reference.toStream(reference, out);

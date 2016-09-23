@@ -29,8 +29,6 @@ import java.util.Arrays;
 import java.util.Iterator;
 import java.util.concurrent.Callable;
 
-import static org.elasticsearch.test.ESTestCase.randomByte;
-import static org.elasticsearch.test.ESTestCase.randomIntBetween;
 import static org.hamcrest.core.Is.is;
 
 public class TypeConversionTest extends CrateUnitTest {
@@ -104,7 +102,7 @@ public class TypeConversionTest extends CrateUnitTest {
 
         for (Integer shortVal : integers((int) Byte.MIN_VALUE, (int) Byte.MAX_VALUE, 10)) {
             for (DataType t : DataTypes.ALLOWED_CONVERSIONS.get(DataTypes.SHORT.id())) {
-                shortVal = t.equals(DataTypes.IP) ?  Math.abs(shortVal) : shortVal;
+                shortVal = t.equals(DataTypes.IP) ? Math.abs(shortVal) : shortVal;
                 t.value(shortVal.shortValue());
             }
         }
@@ -152,6 +150,7 @@ public class TypeConversionTest extends CrateUnitTest {
     public void testShortOutOfRangePositive() throws Exception {
         DataTypes.SHORT.value(Integer.MAX_VALUE);
     }
+
     @Test(expected = IllegalArgumentException.class)
     public void testShortOutOfRangeNegative() throws Exception {
         DataTypes.SHORT.value(Integer.MIN_VALUE);
@@ -185,8 +184,8 @@ public class TypeConversionTest extends CrateUnitTest {
     @Test
     public void selfConversionTest() throws Exception {
         for (DataType type : com.google.common.collect.Iterables.concat(
-                DataTypes.PRIMITIVE_TYPES,
-                Arrays.asList(DataTypes.UNDEFINED, DataTypes.GEO_POINT, DataTypes.GEO_SHAPE, DataTypes.OBJECT))) {
+            DataTypes.PRIMITIVE_TYPES,
+            Arrays.asList(DataTypes.UNDEFINED, DataTypes.GEO_POINT, DataTypes.GEO_SHAPE, DataTypes.OBJECT))) {
 
             assertTrue(type.isConvertableTo(type));
 
@@ -201,8 +200,8 @@ public class TypeConversionTest extends CrateUnitTest {
     @Test
     public void testNotSupportedConversion() throws Exception {
         for (DataType type : com.google.common.collect.Iterables.concat(
-                DataTypes.PRIMITIVE_TYPES,
-                Arrays.asList(DataTypes.GEO_POINT, DataTypes.GEO_SHAPE, DataTypes.OBJECT))) {
+            DataTypes.PRIMITIVE_TYPES,
+            Arrays.asList(DataTypes.GEO_POINT, DataTypes.GEO_SHAPE, DataTypes.OBJECT))) {
             assertFalse(DataTypes.NOT_SUPPORTED.isConvertableTo(type));
         }
     }
@@ -210,8 +209,8 @@ public class TypeConversionTest extends CrateUnitTest {
     @Test
     public void testToNullConversions() throws Exception {
         for (DataType type : com.google.common.collect.Iterables.concat(
-                DataTypes.PRIMITIVE_TYPES,
-                Arrays.asList(DataTypes.GEO_POINT, DataTypes.GEO_SHAPE, DataTypes.OBJECT))) {
+            DataTypes.PRIMITIVE_TYPES,
+            Arrays.asList(DataTypes.GEO_POINT, DataTypes.GEO_SHAPE, DataTypes.OBJECT))) {
             assertThat(type.isConvertableTo(DataTypes.UNDEFINED), is(false));
         }
         assertThat(DataTypes.UNDEFINED.isConvertableTo(DataTypes.UNDEFINED), is(true));

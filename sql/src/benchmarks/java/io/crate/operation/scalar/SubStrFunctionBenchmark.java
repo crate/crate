@@ -39,7 +39,7 @@ import java.util.Random;
 import static org.junit.Assert.assertEquals;
 
 @AxisRange(min = 0)
-@BenchmarkHistoryChart(filePrefix="benchmark-substr-history", labelWith = LabelType.CUSTOM_KEY)
+@BenchmarkHistoryChart(filePrefix = "benchmark-substr-history", labelWith = LabelType.CUSTOM_KEY)
 @BenchmarkMethodChart(filePrefix = "benchmark-substr")
 public class SubStrFunctionBenchmark {
 

@@ -41,7 +41,7 @@ import java.net.URI;
 import static io.crate.azure.management.AzureComputeService.Management.*;
 
 public class AzureComputeServiceImpl extends AbstractLifecycleComponent<AzureComputeService>
-        implements AzureComputeService {
+    implements AzureComputeService {
 
     private final String resourceGroupName;
     private final String subscriptionId;

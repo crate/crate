@@ -42,7 +42,8 @@ public class DummyRelation implements AnalyzedRelation {
 
     private final Set<ColumnIdent> columnReferences = new HashSet<>();
 
-    public DummyRelation() {}
+    public DummyRelation() {
+    }
 
     public DummyRelation(String... referenceNames) {
         for (String referenceName : referenceNames) {

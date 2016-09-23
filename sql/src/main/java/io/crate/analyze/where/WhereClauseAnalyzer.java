@@ -51,7 +51,7 @@ public class WhereClauseAnalyzer {
         this.analysisMetaData = analysisMetaData;
         this.tableInfo = tableRelation.tableInfo();
         this.normalizer = new EvaluatingNormalizer(analysisMetaData.functions(), RowGranularity.CLUSTER,
-                analysisMetaData.referenceResolver(), tableRelation, false);
+            analysisMetaData.referenceResolver(), tableRelation, false);
         this.eqExtractor = new EqualityExtractor(normalizer);
     }
 
@@ -132,9 +132,8 @@ public class WhereClauseAnalyzer {
     }
 
 
-
     private static PartitionReferenceResolver preparePartitionResolver(
-            NestedReferenceResolver referenceResolver, List<Reference> partitionColumns) {
+        NestedReferenceResolver referenceResolver, List<Reference> partitionColumns) {
         List<PartitionExpression> partitionExpressions = new ArrayList<>(partitionColumns.size());
         int idx = 0;
         for (Reference partitionedByColumn : partitionColumns) {
@@ -149,16 +148,16 @@ public class WhereClauseAnalyzer {
                                                 AnalysisMetaData analysisMetaData,
                                                 StmtCtx stmtCtx) {
         assert tableInfo.isPartitioned() : "table must be partitioned in order to resolve partitions";
-        assert whereClause.partitions().isEmpty(): "partitions must not be analyzed twice";
+        assert whereClause.partitions().isEmpty() : "partitions must not be analyzed twice";
         if (tableInfo.partitions().isEmpty()) {
             return WhereClause.NO_MATCH; // table is partitioned but has no data / no partitions
         }
 
         PartitionReferenceResolver partitionReferenceResolver = preparePartitionResolver(
-                analysisMetaData.referenceResolver(),
-                tableInfo.partitionedByColumns());
+            analysisMetaData.referenceResolver(),
+            tableInfo.partitionedByColumns());
         EvaluatingNormalizer normalizer =
-                new EvaluatingNormalizer(analysisMetaData.functions(), RowGranularity.PARTITION, partitionReferenceResolver);
+            new EvaluatingNormalizer(analysisMetaData.functions(), RowGranularity.PARTITION, partitionReferenceResolver);
 
         Symbol normalized = null;
         Map<Symbol, List<Literal>> queryPartitionMap = new HashMap<>();
@@ -188,9 +187,9 @@ public class WhereClauseAnalyzer {
         if (queryPartitionMap.size() == 1) {
             Map.Entry<Symbol, List<Literal>> entry = Iterables.getOnlyElement(queryPartitionMap.entrySet());
             whereClause = new WhereClause(
-                    entry.getKey(),
-                    whereClause.docKeys().orNull(),
-                    new ArrayList<String>(entry.getValue().size()));
+                entry.getKey(),
+                whereClause.docKeys().orNull(),
+                new ArrayList<String>(entry.getValue().size()));
             whereClause.partitions(entry.getValue());
             return whereClause;
         } else if (queryPartitionMap.size() > 0) {
@@ -203,7 +202,7 @@ public class WhereClauseAnalyzer {
     private static WhereClause tieBreakPartitionQueries(EvaluatingNormalizer normalizer,
                                                         Map<Symbol, List<Literal>> queryPartitionMap,
                                                         WhereClause whereClause,
-                                                        StmtCtx stmtCtx) throws UnsupportedOperationException{
+                                                        StmtCtx stmtCtx) throws UnsupportedOperationException {
         /*
          * Got multiple normalized queries which all could match.
          * This might be the case if one partition resolved to null
@@ -236,7 +235,7 @@ public class WhereClauseAnalyzer {
             Symbol normalized = normalizer.normalize(symbol, stmtCtx);
 
             assert normalized instanceof Literal && normalized.valueType().equals(DataTypes.BOOLEAN) :
-                    "after normalization and replacing all reference occurrences with true there must only be a boolean left";
+                "after normalization and replacing all reference occurrences with true there must only be a boolean left";
 
             Object value = ((Literal) normalized).value();
             if (value != null && (Boolean) value) {
@@ -246,13 +245,13 @@ public class WhereClauseAnalyzer {
         if (canMatch.size() == 1) {
             Tuple<Symbol, List<Literal>> symbolListTuple = canMatch.get(0);
             WhereClause where = new WhereClause(symbolListTuple.v1(),
-                    whereClause.docKeys().orNull(),
-                    new ArrayList<String>(symbolListTuple.v2().size()));
+                whereClause.docKeys().orNull(),
+                new ArrayList<String>(symbolListTuple.v2().size()));
             where.partitions(symbolListTuple.v2());
             return where;
         }
         throw new UnsupportedOperationException(
-                "logical conjunction of the conditions in the WHERE clause which " +
-                        "involve partitioned columns led to a query that can't be executed.");
+            "logical conjunction of the conditions in the WHERE clause which " +
+            "involve partitioned columns led to a query that can't be executed.");
     }
 }

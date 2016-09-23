@@ -32,7 +32,9 @@ import java.util.Map;
 public class ExpressionToObjectVisitor extends AstVisitor<Object, Row> {
 
     private final static ExpressionToObjectVisitor INSTANCE = new ExpressionToObjectVisitor();
-    private ExpressionToObjectVisitor() {}
+
+    private ExpressionToObjectVisitor() {
+    }
 
     public static Object convert(Node node, Row parameters) {
         return INSTANCE.process(node, parameters);
@@ -81,7 +83,7 @@ public class ExpressionToObjectVisitor extends AstVisitor<Object, Row> {
     @Override
     public Object[] visitArrayLiteral(ArrayLiteral node, Row context) {
         Object[] array = new Object[node.values().size()];
-        for (int i = 0; i< node.values().size(); i++) {
+        for (int i = 0; i < node.values().size(); i++) {
             array[i] = node.values().get(i).accept(this, context);
         }
         return array;
@@ -93,9 +95,9 @@ public class ExpressionToObjectVisitor extends AstVisitor<Object, Row> {
         for (Map.Entry<String, Expression> entry : node.values().entries()) {
             if (object.put(entry.getKey(), entry.getValue().accept(this, context)) != null) {
                 throw new IllegalArgumentException(
-                        String.format(Locale.ENGLISH,
-                                "key '%s' listed twice in object literal",
-                                entry.getKey())
+                    String.format(Locale.ENGLISH,
+                        "key '%s' listed twice in object literal",
+                        entry.getKey())
                 );
             }
         }
@@ -106,12 +108,12 @@ public class ExpressionToObjectVisitor extends AstVisitor<Object, Row> {
     protected Object visitNegativeExpression(NegativeExpression node, Row context) {
         Object o = process(node.getValue(), context);
         if (o instanceof Long) {
-            return -1L * (Long)o;
+            return -1L * (Long) o;
         } else if (o instanceof Double) {
-            return -1 * (Double)o;
+            return -1 * (Double) o;
         } else {
             throw new UnsupportedOperationException(
-                    String.format(Locale.ENGLISH, "Can't handle negative of %s.", node.getValue()));
+                String.format(Locale.ENGLISH, "Can't handle negative of %s.", node.getValue()));
         }
     }
 

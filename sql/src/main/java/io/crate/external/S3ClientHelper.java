@@ -28,8 +28,8 @@ import com.amazonaws.auth.*;
 import com.amazonaws.retry.PredefinedRetryPolicies;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.AmazonS3Client;
-import com.carrotsearch.hppc.IntObjectMap;
 import com.carrotsearch.hppc.IntObjectHashMap;
+import com.carrotsearch.hppc.IntObjectMap;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.NotThreadSafe;
@@ -40,22 +40,22 @@ import java.net.URI;
 public class S3ClientHelper {
 
     private final static AWSCredentialsProvider DEFAULT_CREDENTIALS_PROVIDER_CHAIN =
-            new AWSCredentialsProviderChain(
-                    new EnvironmentVariableCredentialsProvider(),
-                    new SystemPropertiesCredentialsProvider(),
-                    new InstanceProfileCredentialsProvider()) {
+        new AWSCredentialsProviderChain(
+            new EnvironmentVariableCredentialsProvider(),
+            new SystemPropertiesCredentialsProvider(),
+            new InstanceProfileCredentialsProvider()) {
 
-                        private AWSCredentials ANONYMOUS_CREDENTIALS = new AnonymousAWSCredentials();
+            private AWSCredentials ANONYMOUS_CREDENTIALS = new AnonymousAWSCredentials();
 
-                        public AWSCredentials getCredentials() {
-                            try {
-                                return super.getCredentials();
-                            } catch (AmazonClientException ace) {
-                                // allow for anonymous access
-                                return ANONYMOUS_CREDENTIALS;
-                            }
-                        }
-                    };
+            public AWSCredentials getCredentials() {
+                try {
+                    return super.getCredentials();
+                } catch (AmazonClientException ace) {
+                    // allow for anonymous access
+                    return ANONYMOUS_CREDENTIALS;
+                }
+            }
+        };
 
     private final static ClientConfiguration CLIENT_CONFIGURATION = new ClientConfiguration().withProtocol(Protocol.HTTPS);
 
@@ -73,8 +73,8 @@ public class S3ClientHelper {
             return new AmazonS3Client(DEFAULT_CREDENTIALS_PROVIDER_CHAIN, CLIENT_CONFIGURATION);
         }
         return new AmazonS3Client(
-                new BasicAWSCredentials(accessKey, secretKey),
-                CLIENT_CONFIGURATION
+            new BasicAWSCredentials(accessKey, secretKey),
+            CLIENT_CONFIGURATION
         );
     }
 
@@ -92,8 +92,8 @@ public class S3ClientHelper {
             } catch (ArrayIndexOutOfBoundsException e) {
                 // ignore
             }
-        // if the URI contains '@' and ':', a UserInfo is in fact given, but could not
-        // be parsed properly because the URI is not valid (e.g. not properly encoded).
+            // if the URI contains '@' and ':', a UserInfo is in fact given, but could not
+            // be parsed properly because the URI is not valid (e.g. not properly encoded).
         } else if (uri.toString().contains("@") && uri.toString().contains(":")) {
             throw new IllegalArgumentException(INVALID_URI_MSG);
         }

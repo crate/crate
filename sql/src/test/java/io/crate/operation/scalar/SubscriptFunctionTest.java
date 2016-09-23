@@ -47,9 +47,9 @@ public class SubscriptFunctionTest extends AbstractScalarFunctionsTest {
         Function function = (Function) sqlExpressions.asSymbol("subscript(['Youri', 'Ruben'], cast(1 as integer))");
         SubscriptFunction subscriptFunction = (SubscriptFunction) functions.get(function.info().ident());
 
-        Input[] args = new Input[] {
-                ((Input) function.arguments().get(0)),
-                ((Input) function.arguments().get(1))
+        Input[] args = new Input[]{
+            ((Input) function.arguments().get(0)),
+            ((Input) function.arguments().get(1))
         };
         BytesRef expected = new BytesRef("Youri");
         assertEquals(expected, subscriptFunction.evaluate(args));
@@ -68,7 +68,7 @@ public class SubscriptFunctionTest extends AbstractScalarFunctionsTest {
 
         Symbol result = subscriptFunction.normalizeSymbol(function, stmtCtx);
         assertThat(result, instanceOf(Function.class));
-        assertThat((Function)result, is(function));
+        assertThat((Function) result, is(function));
     }
 
     @Test

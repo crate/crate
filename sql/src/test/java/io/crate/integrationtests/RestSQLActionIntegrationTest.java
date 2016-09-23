@@ -42,7 +42,7 @@ public class RestSQLActionIntegrationTest extends SQLHttpIntegrationTest {
         assertEquals(400, response.getStatusLine().getStatusCode());
         String bodyAsString = EntityUtils.toString(response.getEntity());
         assertThat(bodyAsString, startsWith("{\"error\":{\"message\":\"SQLActionException[missing request body]\"," +
-            "\"code\":4000},\"error_trace\":\"SQLActionException:"
+                                            "\"code\":4000},\"error_trace\":\"SQLActionException:"
         ));
     }
 
@@ -52,7 +52,7 @@ public class RestSQLActionIntegrationTest extends SQLHttpIntegrationTest {
         assertEquals(400, response.getStatusLine().getStatusCode());
         String bodyAsString = EntityUtils.toString(response.getEntity());
         assertThat(bodyAsString, startsWith("{\"error\":{\"message\":\"SQLActionException[Failed to parse source" +
-            " [{\\\"foo\\\": \\\"bar\\\"}]]\",\"code\":4000},\"error_trace\":\"")
+                                            " [{\\\"foo\\\": \\\"bar\\\"}]]\",\"code\":4000},\"error_trace\":\"")
         );
     }
 
@@ -63,7 +63,7 @@ public class RestSQLActionIntegrationTest extends SQLHttpIntegrationTest {
         assertEquals(400, response.getStatusLine().getStatusCode());
         String bodyAsString = EntityUtils.toString(response.getEntity());
         assertThat(bodyAsString, startsWith("{\"error\":{\"message\":\"SQLActionException[request body contains args" +
-            " and bulk_args. It's forbidden to provide both]\",\"code\":4000},\"error_trace\":\"SQLActionException:"
+                                            " and bulk_args. It's forbidden to provide both]\",\"code\":4000},\"error_trace\":\"SQLActionException:"
         ));
     }
 

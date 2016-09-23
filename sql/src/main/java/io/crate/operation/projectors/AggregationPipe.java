@@ -48,10 +48,10 @@ public class AggregationPipe extends AbstractProjector {
         aggregators = new Aggregator[aggregations.length];
         for (int i = 0; i < aggregators.length; i++) {
             aggregators[i] = new Aggregator(
-                    ramAccountingContext,
-                    aggregations[i].symbol(),
-                    aggregations[i].function(),
-                    aggregations[i].inputs()
+                ramAccountingContext,
+                aggregations[i].symbol(),
+                aggregations[i].function(),
+                aggregations[i].inputs()
             );
             // prepareState creates the aggregationState. In case of the AggregationProjector
             // we only want to have 1 global state not 1 state per node/shard or even document.

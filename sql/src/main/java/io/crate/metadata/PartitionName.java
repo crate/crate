@@ -90,7 +90,7 @@ public class PartitionName {
             return values;
         } catch (IOException e) {
             throw new IllegalArgumentException(
-                    String.format(Locale.ENGLISH, "Invalid partition ident: %s", ident), e);
+                String.format(Locale.ENGLISH, "Invalid partition ident: %s", ident), e);
         }
     }
 
@@ -159,7 +159,7 @@ public class PartitionName {
         return values;
     }
 
-    public TableIdent tableIdent(){
+    public TableIdent tableIdent() {
         return tableIdent;
     }
 
@@ -185,7 +185,7 @@ public class PartitionName {
 
     /**
      * creates a PartitionName from an index or template Name
-     *
+     * <p>
      * an partition index has the format [&lt;schema&gt;.].partitioned.&lt;table&gt;.[&lt;ident&gt;]
      * a templateName has the same format but without the ident.
      */
@@ -198,7 +198,7 @@ public class PartitionName {
         String partitioned;
         String table;
         String ident;
-        switch(parts.size()) {
+        switch (parts.size()) {
             case 4:
                 // ""."partitioned"."table_name". ["ident"]
                 schema = null;
@@ -227,7 +227,8 @@ public class PartitionName {
 
     public static boolean isPartition(String index) {
         return index.length() > PARTITIONED_TABLE_PREFIX.length() + 1 &&
-                (index.startsWith(PARTITIONED_TABLE_PREFIX + ".") || index.contains("." + PARTITIONED_TABLE_PREFIX + "."));
+               (index.startsWith(PARTITIONED_TABLE_PREFIX + ".") ||
+                index.contains("." + PARTITIONED_TABLE_PREFIX + "."));
     }
 
     /**

@@ -36,7 +36,8 @@ public class SQLRequest extends SQLBaseRequest {
     public final static Object[] EMPTY_ARGS = new Object[0];
     private Object[] args;
 
-    public SQLRequest() {} // used for serialization
+    public SQLRequest() {
+    } // used for serialization
 
     public SQLRequest(String stmt) {
         super(stmt);
@@ -58,15 +59,15 @@ public class SQLRequest extends SQLBaseRequest {
 
     /**
      * use to set the request arguments.
-     *
+     * <p>
      * E.g. if a statement like
-     *
-     *      "select * from x where y = ?"
-     *
-     *  is used, the value for "?" can be set as an argument.
-     *  args in that case would look like:
-     *
-     *      args = new Object[] { "myYvalue" }
+     * <p>
+     * "select * from x where y = ?"
+     * <p>
+     * is used, the value for "?" can be set as an argument.
+     * args in that case would look like:
+     * <p>
+     * args = new Object[] { "myYvalue" }
      */
     public void args(Object[] args) {
         this.args = MoreObjects.firstNonNull(args, EMPTY_ARGS);
@@ -95,7 +96,7 @@ public class SQLRequest extends SQLBaseRequest {
     @Override
     public String toString() {
         return MoreObjects.toStringHelper(this)
-                .add("stmt", stmt())
-                .add("args", Arrays.asList(args)).toString();
+            .add("stmt", stmt())
+            .add("args", Arrays.asList(args)).toString();
     }
 }

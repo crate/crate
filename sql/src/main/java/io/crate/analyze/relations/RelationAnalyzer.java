@@ -95,7 +95,8 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
     @Override
     protected AnalyzedRelation visitJoin(Join node, StatementAnalysisContext statementContext) {
         if (!ALLOWED_JOIN_TYPES.contains(node.getType())) {
-            throw new UnsupportedOperationException("Explicit " + node.getType().name() + " join syntax is not supported");
+            throw new UnsupportedOperationException(
+                "Explicit " + node.getType().name() + " join syntax is not supported");
         }
         process(node.getLeft(), statementContext);
         process(node.getRight(), statementContext);
@@ -115,7 +116,7 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
                 }
             } else {
                 throw new UnsupportedOperationException(String.format(Locale.ENGLISH, "join criteria %s not supported",
-                        joinCriteria.getClass().getSimpleName()));
+                    joinCriteria.getClass().getSimpleName()));
             }
         }
 
@@ -150,20 +151,20 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
             groupBy = rewriteGlobalDistinct(selectAnalysis.outputSymbols());
             isDistinct = true;
         }
-        if (groupBy != null && groupBy.isEmpty()){
+        if (groupBy != null && groupBy.isEmpty()) {
             groupBy = null;
         }
 
         QuerySpec querySpec = new QuerySpec()
-                .orderBy(analyzeOrderBy(selectAnalysis, node.getOrderBy(), context,
-                    expressionAnalysisContext.hasAggregates || groupBy != null, isDistinct))
-                .having(analyzeHaving(node.getHaving(), groupBy, context))
-                .limit(context.expressionAnalyzer().integerFromExpression(node.getLimit()))
-                .offset(context.expressionAnalyzer().integerFromExpression(node.getOffset()))
-                .outputs(selectAnalysis.outputSymbols())
-                .where(whereClause)
-                .groupBy(groupBy)
-                .hasAggregates(expressionAnalysisContext.hasAggregates);
+            .orderBy(analyzeOrderBy(selectAnalysis, node.getOrderBy(), context,
+                expressionAnalysisContext.hasAggregates || groupBy != null, isDistinct))
+            .having(analyzeHaving(node.getHaving(), groupBy, context))
+            .limit(context.expressionAnalyzer().integerFromExpression(node.getLimit()))
+            .offset(context.expressionAnalyzer().integerFromExpression(node.getOffset()))
+            .outputs(selectAnalysis.outputSymbols())
+            .where(whereClause)
+            .groupBy(groupBy)
+            .hasAggregates(expressionAnalysisContext.hasAggregates);
 
         QueriedRelation relation = null;
         if (context.sources().size() == 1) {
@@ -214,8 +215,8 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
             if (groupBy == null || !groupBy.contains(output)) {
                 if (!isAggregate(output)) {
                     throw new IllegalArgumentException(
-                            SymbolFormatter.format("column '%s' must appear in the GROUP BY clause " +
-                                                   "or be used in an aggregation function", output));
+                        SymbolFormatter.format("column '%s' must appear in the GROUP BY clause " +
+                                               "or be used in an aggregation function", output));
                 }
             }
         }
@@ -297,7 +298,7 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
         List<Symbol> groupBySymbols = new ArrayList<>(groupBy.size());
         for (Expression expression : groupBy) {
             Symbol symbol = symbolFromSelectOutputReferenceOrExpression(
-                    expression, selectAnalysis, "GROUP BY", context);
+                expression, selectAnalysis, "GROUP BY", context);
             GroupBySymbolValidator.validate(symbol);
             groupBySymbols.add(symbol);
         }
@@ -334,12 +335,12 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
 
     /**
      * <h2>resolve expression by also taking alias and ordinal-reference into account</h2>
-     *
+     * <p>
      * <p>
      * in group by or order by clauses it is possible to reference anything in the
      * select list by using a number or alias
      * </p>
-     *
+     * <p>
      * These are allowed:
      * <pre>
      *     select name as n  ... order by n
@@ -368,7 +369,7 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
                 longLiteral = io.crate.analyze.symbol.Literal.convert(symbol, DataTypes.LONG);
             } catch (ClassCastException | IllegalArgumentException e) {
                 throw new UnsupportedOperationException(String.format(Locale.ENGLISH,
-                        "Cannot use %s in %s clause", SymbolPrinter.INSTANCE.printSimple(symbol), clause));
+                    "Cannot use %s in %s clause", SymbolPrinter.INSTANCE.printSimple(symbol), clause));
             }
             symbol = ordinalOutputReference(selectAnalysis.outputSymbols(), longLiteral, clause);
         }
@@ -380,13 +381,13 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
         int idx = ((Long) longLiteral.value()).intValue() - 1;
         if (idx < 0) {
             throw new IllegalArgumentException(String.format(Locale.ENGLISH,
-                    "%s position %s is not in select list", clauseName, idx + 1));
+                "%s position %s is not in select list", clauseName, idx + 1));
         }
         try {
             return outputSymbols.get(idx);
         } catch (IndexOutOfBoundsException e) {
             throw new IllegalArgumentException(String.format(Locale.ENGLISH,
-                    "%s position %s is not in select list", clauseName, idx + 1));
+                "%s position %s is not in select list", clauseName, idx + 1));
         }
     }
 
@@ -415,11 +416,11 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
     @Override
     protected AnalyzedRelation visitTable(Table node, StatementAnalysisContext context) {
         TableInfo tableInfo = analysisMetaData.schemas().getTableInfo(
-                TableIdent.of(node, context.parameterContext().defaultSchema()));
+            TableIdent.of(node, context.parameterContext().defaultSchema()));
         Operation.blockedRaiseException(tableInfo, context.currentOperation());
         AnalyzedRelation tableRelation;
         // Dispatching of doc relations is based on the returned class of the schema information.
-        if (tableInfo instanceof DocTableInfo){
+        if (tableInfo instanceof DocTableInfo) {
             tableRelation = new DocTableRelation((DocTableInfo) tableInfo);
         } else {
             tableRelation = new TableRelation(tableInfo);
@@ -433,7 +434,7 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
     public AnalyzedRelation visitTableFunction(TableFunction node, StatementAnalysisContext statementContext) {
         RelationAnalysisContext context = statementContext.currentRelationContext();
         ExpressionAnalyzer expressionAnalyzer = new ExpressionAnalyzer(
-                analysisMetaData, statementContext.parameterContext(), new FieldProvider() {
+            analysisMetaData, statementContext.parameterContext(), new FieldProvider() {
             @Override
             public Symbol resolveField(QualifiedName qualifiedName, Operation operation) {
                 throw new UnsupportedOperationException("Can only resolve literals");

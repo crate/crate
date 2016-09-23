@@ -36,14 +36,15 @@ public class BooleanType extends DataType<Boolean> implements DataTypeFactory, S
     public static final int ID = 3;
     public static final BooleanType INSTANCE = new BooleanType();
 
-    private BooleanType() {}
+    private BooleanType() {
+    }
 
     private static final Map<String, Boolean> booleanMap = ImmutableMap.<String, Boolean>builder()
-            .put("f", false)
-            .put("false", false)
-            .put("t", true)
-            .put("true", true)
-            .build();
+        .put("f", false)
+        .put("false", false)
+        .put("t", true)
+        .put("true", true)
+        .build();
 
 
     @Override
@@ -73,9 +74,9 @@ public class BooleanType extends DataType<Boolean> implements DataTypeFactory, S
             return booleanFromString(((BytesRef) value).utf8ToString());
         }
         if (value instanceof Number) {
-            return booleanFromNumber((Number)value);
+            return booleanFromNumber((Number) value);
         }
-        return (Boolean)value;
+        return (Boolean) value;
     }
 
     private Boolean booleanFromString(String value) {
@@ -89,7 +90,7 @@ public class BooleanType extends DataType<Boolean> implements DataTypeFactory, S
     }
 
     private Boolean booleanFromNumber(Number value) {
-        if(value.doubleValue() > 0.0) {
+        if (value.doubleValue() > 0.0) {
             return Boolean.TRUE;
         }
         return Boolean.FALSE;
@@ -112,7 +113,7 @@ public class BooleanType extends DataType<Boolean> implements DataTypeFactory, S
 
     @Override
     public void writeValueTo(StreamOutput out, Object v) throws IOException {
-        out.writeOptionalBoolean((Boolean)v);
+        out.writeOptionalBoolean((Boolean) v);
     }
 
     @Override

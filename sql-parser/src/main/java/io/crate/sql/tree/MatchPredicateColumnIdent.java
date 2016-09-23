@@ -36,8 +36,8 @@ public class MatchPredicateColumnIdent extends Expression {
         this.ident = ident;
         if (boost != null) {
             Preconditions.checkArgument(
-                    boost instanceof LongLiteral || boost instanceof DoubleLiteral || boost instanceof ParameterExpression,
-                    "'boost' value must be a numeric literal or a parameter expression");
+                boost instanceof LongLiteral || boost instanceof DoubleLiteral || boost instanceof ParameterExpression,
+                "'boost' value must be a numeric literal or a parameter expression");
         }
         this.boost = MoreObjects.firstNonNull(boost, new NullLiteral());
     }
@@ -77,8 +77,7 @@ public class MatchPredicateColumnIdent extends Expression {
     }
 
     @Override
-    public <R, C> R accept(AstVisitor<R, C> visitor, C context)
-    {
+    public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
         return visitor.visitMatchPredicateColumnIdent(this, context);
     }
 }

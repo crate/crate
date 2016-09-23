@@ -33,8 +33,9 @@ public class ForEach {
 
     /**
      * apply an acceptor to all elements of a collection, a primitive or non-primitive array
+     *
      * @param arrayOrCollection a collection, a primitive or non-primitive array
-     * @param fun called for every element of <code>arrayOrCollection</code> as Object
+     * @param fun               called for every element of <code>arrayOrCollection</code> as Object
      */
     public static void forEach(Object arrayOrCollection, Acceptor fun) {
         if (arrayOrCollection.getClass().isArray()) {

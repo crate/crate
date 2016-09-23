@@ -65,8 +65,8 @@ public class AlterTable extends Statement {
     @Override
     public String toString() {
         return MoreObjects.toStringHelper(this)
-                .add("table", table)
-                .add("properties", genericProperties).toString();
+            .add("table", table)
+            .add("properties", genericProperties).toString();
     }
 
     @Override

@@ -24,37 +24,31 @@ package io.crate.sql.tree;
 import com.google.common.base.MoreObjects;
 
 public class TableSubquery
-        extends QueryBody
-{
+    extends QueryBody {
     private final Query query;
 
-    public TableSubquery(Query query)
-    {
+    public TableSubquery(Query query) {
         this.query = query;
     }
 
-    public Query getQuery()
-    {
+    public Query getQuery() {
         return query;
     }
 
     @Override
-    public <R, C> R accept(AstVisitor<R, C> visitor, C context)
-    {
+    public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
         return visitor.visitTableSubquery(this, context);
     }
 
     @Override
-    public String toString()
-    {
+    public String toString() {
         return MoreObjects.toStringHelper(this)
-                .addValue(query)
-                .toString();
+            .addValue(query)
+            .toString();
     }
 
     @Override
-    public boolean equals(Object o)
-    {
+    public boolean equals(Object o) {
         if (this == o) {
             return true;
         }
@@ -72,8 +66,7 @@ public class TableSubquery
     }
 
     @Override
-    public int hashCode()
-    {
+    public int hashCode() {
         return query.hashCode();
     }
 }

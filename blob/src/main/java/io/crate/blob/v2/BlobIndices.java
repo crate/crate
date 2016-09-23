@@ -115,7 +115,7 @@ public class BlobIndices extends AbstractComponent implements ClusterStateListen
     /**
      * can be used to alter the number of replicas.
      *
-     * @param tableName name of the blob table
+     * @param tableName     name of the blob table
      * @param indexSettings updated index settings
      */
     public ListenableFuture<Void> alterBlobTable(String tableName, Settings indexSettings) {
@@ -194,7 +194,7 @@ public class BlobIndices extends AbstractComponent implements ClusterStateListen
 
     /**
      * check if this index is a blob table
-     *
+     * <p>
      * This only works for indices that were created via SQL.
      */
     public static boolean isBlobIndex(String indexName) {
@@ -203,7 +203,7 @@ public class BlobIndices extends AbstractComponent implements ClusterStateListen
 
     /**
      * check if given shard is part of an index that is a blob table
-     *
+     * <p>
      * This only works for indices that were created via SQL.
      */
     public static boolean isBlobShard(ShardId shardId) {
@@ -283,7 +283,7 @@ public class BlobIndices extends AbstractComponent implements ClusterStateListen
         // check if custom index blobs path is empty, if so delete whole path
         if (customBlobsPath != null && blobEnvironment.isCustomBlobPathEmpty(customBlobsPath)) {
             logger.debug("[{}] Empty per table defined blobs path found, deleting leftover folders inside {}",
-                    index, customBlobsPath.getAbsolutePath());
+                index, customBlobsPath.getAbsolutePath());
             try {
                 FileSystemUtils.deleteSubDirectories(customBlobsPath.toPath());
             } catch (IOException e) {

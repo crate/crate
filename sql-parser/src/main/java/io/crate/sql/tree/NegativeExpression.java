@@ -22,29 +22,24 @@
 package io.crate.sql.tree;
 
 public class NegativeExpression
-        extends Expression
-{
+    extends Expression {
     private final Expression value;
 
-    public NegativeExpression(Expression value)
-    {
+    public NegativeExpression(Expression value) {
         this.value = value;
     }
 
-    public Expression getValue()
-    {
+    public Expression getValue() {
         return value;
     }
 
     @Override
-    public <R, C> R accept(AstVisitor<R, C> visitor, C context)
-    {
+    public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
         return visitor.visitNegativeExpression(this, context);
     }
 
     @Override
-    public boolean equals(Object o)
-    {
+    public boolean equals(Object o) {
         if (this == o) {
             return true;
         }
@@ -62,8 +57,7 @@ public class NegativeExpression
     }
 
     @Override
-    public int hashCode()
-    {
+    public int hashCode() {
         return value.hashCode();
     }
 }

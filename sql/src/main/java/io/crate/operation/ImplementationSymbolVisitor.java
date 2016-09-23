@@ -39,7 +39,7 @@ import java.util.*;
  * that might be treated in a special way
  */
 public class ImplementationSymbolVisitor extends
-        AbstractImplementationSymbolVisitor<ImplementationSymbolVisitor.Context> {
+    AbstractImplementationSymbolVisitor<ImplementationSymbolVisitor.Context> {
 
     public static class Context extends AbstractImplementationSymbolVisitor.Context {
 
@@ -85,7 +85,7 @@ public class ImplementationSymbolVisitor extends
         FunctionImplementation impl = functions.get(symbol.functionIdent());
         if (impl == null) {
             throw new UnsupportedOperationException(
-                    SymbolFormatter.format("Can't load aggregation impl for symbol %s", symbol));
+                SymbolFormatter.format("Can't load aggregation impl for symbol %s", symbol));
         }
 
         AggregationContext aggregationContext = new AggregationContext((AggregationFunction) impl, symbol);

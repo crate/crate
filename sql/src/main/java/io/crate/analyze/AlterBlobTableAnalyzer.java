@@ -45,12 +45,12 @@ public class AlterBlobTableAnalyzer extends BlobTableAnalyzer<AlterBlobTableAnal
 
         if (node.genericProperties().isPresent()) {
             TABLE_PROPERTIES_ANALYZER.analyze(
-                    statement.tableParameter(), statement.table().tableParameterInfo(),
-                    node.genericProperties(), analysis.parameterContext().parameters());
+                statement.tableParameter(), statement.table().tableParameterInfo(),
+                node.genericProperties(), analysis.parameterContext().parameters());
         } else if (!node.resetProperties().isEmpty()) {
             TABLE_PROPERTIES_ANALYZER.analyze(
-                    statement.tableParameter(), statement.table().tableParameterInfo(),
-                    node.resetProperties());
+                statement.tableParameter(), statement.table().tableParameterInfo(),
+                node.resetProperties());
         }
 
         return statement;

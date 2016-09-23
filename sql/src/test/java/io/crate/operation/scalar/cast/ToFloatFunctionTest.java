@@ -49,14 +49,14 @@ public class ToFloatFunctionTest extends AbstractScalarFunctionsTest {
     }
 
     private Float evaluate(Object value, DataType type) {
-        Input[] input = {(Input)Literal.of(type, value)};
+        Input[] input = {(Input) Literal.of(type, value)};
         return (Float) getFunction(type).evaluate(input);
     }
 
     private Symbol normalize(Object value, DataType type) {
         ToPrimitiveFunction function = getFunction(type);
         return function.normalizeSymbol(new Function(function.info(),
-                Collections.<Symbol>singletonList(Literal.of(type, value))), new StmtCtx());
+            Collections.<Symbol>singletonList(Literal.of(type, value))), new StmtCtx());
     }
 
     @Test

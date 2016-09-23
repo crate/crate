@@ -55,7 +55,7 @@ public abstract class AbstractExecutionSubContext implements ExecutionSubContext
     public final void prepare() throws Exception {
         try {
             innerPrepare();
-        } catch (Exception e){
+        } catch (Exception e) {
             cleanup();
             throw e;
         }

@@ -42,7 +42,7 @@ public class ClusterIdServiceTest extends ESIntegTestCase {
     @Test
     public void testClusterIdGeneration() throws Exception {
         Settings localSettings = settingsBuilder()
-                .put("discovery.type", "local").build();
+            .put("discovery.type", "local").build();
         String node_0 = internalCluster().startNode(localSettings);
 
         ClusterIdService clusterIdService = internalCluster().getInstance(ClusterIdService.class, node_0);
@@ -52,7 +52,7 @@ public class ClusterIdServiceTest extends ESIntegTestCase {
     @Test
     public void testClusterIdTransient() throws Exception {
         Settings localSettings = settingsBuilder()
-                .put("discovery.type", "local").build();
+            .put("discovery.type", "local").build();
         String node_0 = internalCluster().startNode(localSettings);
 
         ClusterIdService clusterIdService = internalCluster().getInstance(ClusterIdService.class, node_0);

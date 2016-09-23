@@ -29,8 +29,6 @@ import org.junit.Test;
 
 import java.util.*;
 
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 
 public class DataTypesTest extends CrateUnitTest {
@@ -58,13 +56,13 @@ public class DataTypesTest extends CrateUnitTest {
     public void testLongToNumbers() {
         Long longValue = 123L;
 
-        assertEquals((Long)123L, DataTypes.LONG.value((longValue)));
-        assertEquals((Integer)123, DataTypes.INTEGER.value(longValue));
-        assertEquals((Double)123.0d, DataTypes.DOUBLE.value(longValue));
-        assertEquals((Float)123.0f, DataTypes.FLOAT.value(longValue));
-        assertEquals((Short)(short)123, DataTypes.SHORT.value(longValue));
-        assertEquals((Byte)(byte)123, DataTypes.BYTE.value(longValue));
-        assertEquals((Long)123L, DataTypes.TIMESTAMP.value(longValue));
+        assertEquals((Long) 123L, DataTypes.LONG.value((longValue)));
+        assertEquals((Integer) 123, DataTypes.INTEGER.value(longValue));
+        assertEquals((Double) 123.0d, DataTypes.DOUBLE.value(longValue));
+        assertEquals((Float) 123.0f, DataTypes.FLOAT.value(longValue));
+        assertEquals((Short) (short) 123, DataTypes.SHORT.value(longValue));
+        assertEquals((Byte) (byte) 123, DataTypes.BYTE.value(longValue));
+        assertEquals((Long) 123L, DataTypes.TIMESTAMP.value(longValue));
         assertEquals(new BytesRef("123"), DataTypes.STRING.value(longValue));
     }
 
@@ -74,7 +72,7 @@ public class DataTypesTest extends CrateUnitTest {
         SetType longSet = new SetType(DataTypes.LONG);
 
         assertThat(longArray.isConvertableTo(longSet), is(true));
-        assertThat(longSet.value(new Object[] { 1L, 2L}), is((Set) Sets.newHashSet(1L, 2L)));
+        assertThat(longSet.value(new Object[]{1L, 2L}), is((Set) Sets.newHashSet(1L, 2L)));
         assertThat(longSet.value(Arrays.asList(1L, 2L)), is((Set) Sets.newHashSet(1L, 2L)));
     }
 
@@ -84,17 +82,17 @@ public class DataTypesTest extends CrateUnitTest {
         SetType longSet = new SetType(DataTypes.LONG);
 
         assertThat(longSet.isConvertableTo(longArray), is(true));
-        assertThat(longArray.value(Sets.newHashSet(1L, 2L)), is(new Object[] { 1L, 2L}));
+        assertThat(longArray.value(Sets.newHashSet(1L, 2L)), is(new Object[]{1L, 2L}));
     }
 
-    private static Map<String, Object> testMap = new HashMap<String, Object>(){{
+    private static Map<String, Object> testMap = new HashMap<String, Object>() {{
         put("int", 1);
         put("boolean", false);
         put("double", 2.8d);
         put("list", Arrays.asList(1, 3, 4));
     }};
 
-    private static Map<String, Object> testCompareMap = new HashMap<String, Object>(){{
+    private static Map<String, Object> testCompareMap = new HashMap<String, Object>() {{
         put("int", 2);
         put("boolean", true);
         put("double", 2.9d);
@@ -106,7 +104,7 @@ public class DataTypesTest extends CrateUnitTest {
         assertThat(DataTypes.OBJECT.value(testMap), is(testMap));
     }
 
-    @Test( expected = ClassCastException.class)
+    @Test(expected = ClassCastException.class)
     public void testMapToBoolean() {
         DataTypes.BOOLEAN.value(testMap);
     }
@@ -198,8 +196,8 @@ public class DataTypesTest extends CrateUnitTest {
 
     @Test
     public void testConvertStringsToTimestamp() {
-        assertEquals((Long)1393555173000L, DataTypes.TIMESTAMP.value("2014-02-28T02:39:33"));
-        assertEquals((Long)1393545600000L, DataTypes.TIMESTAMP.value("2014-02-28"));
+        assertEquals((Long) 1393555173000L, DataTypes.TIMESTAMP.value("2014-02-28T02:39:33"));
+        assertEquals((Long) 1393545600000L, DataTypes.TIMESTAMP.value("2014-02-28"));
     }
 
     @Test(expected = NumberFormatException.class)

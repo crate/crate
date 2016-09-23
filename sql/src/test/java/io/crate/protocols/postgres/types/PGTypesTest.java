@@ -75,7 +75,7 @@ public class PGTypesTest extends CrateUnitTest {
             new Entry(DataTypes.STRING, TestingHelpers.bytesRef("foobar", random())),
             new Entry(DataTypes.LONG, 392873L),
             new Entry(DataTypes.INTEGER, 1234),
-            new Entry(DataTypes.SHORT, (short)42),
+            new Entry(DataTypes.SHORT, (short) 42),
             new Entry(DataTypes.FLOAT, 42.3f),
             new Entry(DataTypes.DOUBLE, 42.00003),
             new Entry(DataTypes.BOOLEAN, true),

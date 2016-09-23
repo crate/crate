@@ -54,7 +54,7 @@ public class NumberOfReplicas {
 
     private static void validateExpandReplicaSetting(String replicas) {
         Preconditions.checkArgument(EXPAND_REPLICA_PATTERN.matcher(replicas).matches(),
-                "The \"number_of_replicas\" range \"%s\" isn't valid", replicas);
+            "The \"number_of_replicas\" range \"%s\" isn't valid", replicas);
     }
 
     public String esSettingKey() {

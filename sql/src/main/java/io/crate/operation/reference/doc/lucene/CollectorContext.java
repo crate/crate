@@ -36,8 +36,8 @@ public class CollectorContext {
     private SourceLookup sourceLookup;
 
     public CollectorContext(MapperService mapperService,
-                        IndexFieldDataService fieldData,
-                        CollectorFieldsVisitor visitor) {
+                            IndexFieldDataService fieldData,
+                            CollectorFieldsVisitor visitor) {
         this(mapperService, fieldData, visitor, -1);
     }
 
@@ -51,7 +51,7 @@ public class CollectorContext {
         this.jobSearchContextId = jobSearchContextId;
     }
 
-    public CollectorFieldsVisitor visitor(){
+    public CollectorFieldsVisitor visitor() {
         return fieldsVisitor;
     }
 

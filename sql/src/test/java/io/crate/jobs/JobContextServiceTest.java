@@ -47,7 +47,7 @@ public class JobContextServiceTest extends CrateUnitTest {
 
     @Before
     public void prepare() throws Exception {
-        jobContextService  = new JobContextService(Settings.EMPTY, new NoopClusterService(), mock(StatsTables.class));
+        jobContextService = new JobContextService(Settings.EMPTY, new NoopClusterService(), mock(StatsTables.class));
     }
 
     @After
@@ -86,7 +86,7 @@ public class JobContextServiceTest extends CrateUnitTest {
 
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage(String.format(Locale.ENGLISH,
-                "context for job %s already exists", jobId));
+            "context for job %s already exists", jobId));
 
         // create new context
         JobExecutionContext.Builder builder1 = jobContextService.newBuilder(jobId);

@@ -19,7 +19,7 @@ public class Routing implements Streamable {
 
     public static abstract class RoutingLocationVisitor {
 
-        public boolean visitLocations(Map<String, Map<String, List<Integer>>> locations){
+        public boolean visitLocations(Map<String, Map<String, List<Integer>>> locations) {
             return true;
         }
 
@@ -58,7 +58,8 @@ public class Routing implements Streamable {
         }
     }
 
-    private Routing() {}
+    private Routing() {
+    }
 
     public static Routing fromStream(StreamInput in) throws IOException {
         Routing routing = new Routing();
@@ -199,7 +200,7 @@ public class Routing implements Streamable {
             return false;
         }
         for (Map<String, List<Integer>> innerMap : locations.values()) {
-            if (innerMap.size() > 1 &&  !(innerMap instanceof TreeMap)) {
+            if (innerMap.size() > 1 && !(innerMap instanceof TreeMap)) {
                 return false;
             }
         }
@@ -220,7 +221,7 @@ public class Routing implements Streamable {
     public static Routing forTableOnAllNodes(TableIdent tableIdent, DiscoveryNodes nodes) {
         TreeMapBuilder<String, Map<String, List<Integer>>> nodesMapBuilder = TreeMapBuilder.newMapBuilder();
         Map<String, List<Integer>> tableMap = TreeMapBuilder.<String, List<Integer>>newMapBuilder()
-                .put(tableIdent.fqn(), Collections.<Integer>emptyList()).map();
+            .put(tableIdent.fqn(), Collections.<Integer>emptyList()).map();
         for (DiscoveryNode node : nodes) {
             nodesMapBuilder.put(node.id(), tableMap);
         }
@@ -233,7 +234,7 @@ public class Routing implements Streamable {
         if (o == null || getClass() != o.getClass()) return false;
         Routing routing = (Routing) o;
         return Objects.equals(numShards, routing.numShards) &&
-                Objects.equals(locations, routing.locations);
+               Objects.equals(locations, routing.locations);
     }
 
     @Override

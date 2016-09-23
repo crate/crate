@@ -35,13 +35,13 @@ import java.util.Arrays;
 public class BlobTableInfoTest extends CrateUnitTest {
 
     private BlobTableInfo info = new BlobTableInfo(
-            new TableIdent("blob", "dummy"),
-            "dummy",
-            null,
-            5,
-            new BytesRef("0"),
-            ImmutableMap.<String, Object>of(),
-            new BytesRef("/tmp/blobs_path"));
+        new TableIdent("blob", "dummy"),
+        "dummy",
+        null,
+        5,
+        new BytesRef("0"),
+        ImmutableMap.<String, Object>of(),
+        new BytesRef("/tmp/blobs_path"));
 
     @Test
     public void testGetColumnInfo() throws Exception {
@@ -52,7 +52,7 @@ public class BlobTableInfoTest extends CrateUnitTest {
 
     @Test
     public void testPrimaryKey() throws Exception {
-        assertEquals(Arrays.asList(new ColumnIdent[]{ new ColumnIdent("digest") }), info.primaryKey());
+        assertEquals(Arrays.asList(new ColumnIdent[]{new ColumnIdent("digest")}), info.primaryKey());
     }
 
     @Test

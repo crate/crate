@@ -54,6 +54,6 @@ public class ObjectColumnReference extends ColumnReferenceCollectorExpression<Ma
 
     @Override
     public Map<String, Object> value() {
-        return (Map<String, Object>)sourceLookup.extractValue(columnName);
+        return (Map<String, Object>) sourceLookup.extractValue(columnName);
     }
 }

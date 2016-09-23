@@ -101,7 +101,7 @@ public class UpsertByIdTask extends JobTask {
     @Override
     public void execute(final RowReceiver rowReceiver) {
         ListenableFuture<Long> result;
-        if (upsertById.items().size() > 1){
+        if (upsertById.items().size() > 1) {
             try {
                 result = executeBulkShardProcessor().get(0);
             } catch (Throwable throwable) {
@@ -162,7 +162,7 @@ public class UpsertByIdTask extends JobTask {
         }
     }
 
-    private void executeUpsertRequest(final UpsertById.Item item, final SettableFuture<Long> future){
+    private void executeUpsertRequest(final UpsertById.Item item, final SettableFuture<Long> future) {
         final FutureCallback<Long> callback = new FutureCallback<Long>() {
             @Override
             public void onSuccess(@Nullable Long result) {
@@ -234,8 +234,8 @@ public class UpsertByIdTask extends JobTask {
             CrateSettings.BULK_REQUEST_TIMEOUT.extractTimeValue(settings),
             false, // do not overwrite duplicates
             upsertById.numBulkResponses() > 0 ||
-                upsertById.items().size() > 1 ||
-                upsertById.updateColumns() != null, // continue on error on bulk, on multiple values and/or update
+            upsertById.items().size() > 1 ||
+            upsertById.updateColumns() != null, // continue on error on bulk, on multiple values and/or update
             upsertById.updateColumns(),
             upsertById.insertColumns(),
             jobId(),
@@ -339,7 +339,6 @@ public class UpsertByIdTask extends JobTask {
             return resultList;
         }
     }
-
 
 
     private SettableFuture<Long> createIndexAndExecuteUpsertRequest(final UpsertById.Item item) {

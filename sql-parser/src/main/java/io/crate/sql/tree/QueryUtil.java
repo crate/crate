@@ -25,11 +25,9 @@ import com.google.common.collect.ImmutableList;
 
 import java.util.List;
 
-public class QueryUtil
-{
+public class QueryUtil {
 
-    public static Select selectList(Expression... expressions)
-    {
+    public static Select selectList(Expression... expressions) {
         ImmutableList.Builder<SelectItem> items = ImmutableList.builder();
         for (Expression expression : expressions) {
             items.add(new SingleColumn(expression));
@@ -37,23 +35,19 @@ public class QueryUtil
         return new Select(false, items.build());
     }
 
-    public static Select selectList(SelectItem... items)
-    {
+    public static Select selectList(SelectItem... items) {
         return new Select(false, ImmutableList.copyOf(items));
     }
 
-    public static List<Relation> table(QualifiedName name)
-    {
+    public static List<Relation> table(QualifiedName name) {
         return ImmutableList.<Relation>of(new Table(name));
     }
 
-    public static List<Relation> subquery(Query query)
-    {
+    public static List<Relation> subquery(Query query) {
         return ImmutableList.<Relation>of(new TableSubquery(query));
     }
 
-    public static Expression equal(Expression left, Expression right)
-    {
+    public static Expression equal(Expression left, Expression right) {
         return new ComparisonExpression(ComparisonExpression.Type.EQUAL, left, right);
     }
 

@@ -53,15 +53,15 @@ public class FetchContextTest extends CrateUnitTest {
 
 
         final FetchContext context = new FetchContext(
-                new FetchPhase(
-                        1,
-                        null,
-                        new TreeMap<String, Integer>(),
-                        HashMultimap.<TableIdent, String>create(),
-                        ImmutableList.<Reference>of()),
-                "dummy",
-                new SharedShardContexts(mock(IndicesService.class)),
-                Collections.<Routing>emptyList());
+            new FetchPhase(
+                1,
+                null,
+                new TreeMap<String, Integer>(),
+                HashMultimap.<TableIdent, String>create(),
+                ImmutableList.<Reference>of()),
+            "dummy",
+            new SharedShardContexts(mock(IndicesService.class)),
+            Collections.<Routing>emptyList());
 
         expectedException.expect(IllegalArgumentException.class);
         context.indexService(10);
@@ -70,9 +70,9 @@ public class FetchContextTest extends CrateUnitTest {
     @Test
     public void testSearcherIsAcquiredForShard() throws Exception {
         Routing routing = new Routing(
-                TreeMapBuilder.<String, Map<String, List<Integer>>>newMapBuilder().put(
-                        "dummy",
-                        TreeMapBuilder.<String, List<Integer>>newMapBuilder().put("i1", ImmutableList.of(1, 2)).map()).map());
+            TreeMapBuilder.<String, Map<String, List<Integer>>>newMapBuilder().put(
+                "dummy",
+                TreeMapBuilder.<String, List<Integer>>newMapBuilder().put("i1", ImmutableList.of(1, 2)).map()).map());
 
         IndexBaseVisitor ibv = new IndexBaseVisitor();
         routing.walkLocations(ibv);
@@ -82,15 +82,15 @@ public class FetchContextTest extends CrateUnitTest {
         tableIndices.put(new TableIdent(null, "i1"), "i1");
 
         final FetchContext context = new FetchContext(
-                new FetchPhase(
-                        1,
-                        null,
-                        ibv.build(),
-                        tableIndices,
-                        ImmutableList.of(createReference("i1", new ColumnIdent("x"), DataTypes.STRING))),
-                "dummy",
-                new SharedShardContexts(mock(IndicesService.class, RETURNS_MOCKS)),
-                ImmutableList.of(routing));
+            new FetchPhase(
+                1,
+                null,
+                ibv.build(),
+                tableIndices,
+                ImmutableList.of(createReference("i1", new ColumnIdent("x"), DataTypes.STRING))),
+            "dummy",
+            new SharedShardContexts(mock(IndicesService.class, RETURNS_MOCKS)),
+            ImmutableList.of(routing));
 
         context.prepare();
 

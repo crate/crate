@@ -27,23 +27,19 @@ import com.google.common.base.Objects;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 public class JoinOn
-        extends JoinCriteria
-{
+    extends JoinCriteria {
     private final Expression expression;
 
-    public JoinOn(Expression expression)
-    {
+    public JoinOn(Expression expression) {
         this.expression = checkNotNull(expression, "expression is null");
     }
 
-    public Expression getExpression()
-    {
+    public Expression getExpression() {
         return expression;
     }
 
     @Override
-    public boolean equals(Object obj)
-    {
+    public boolean equals(Object obj) {
         if (this == obj) {
             return true;
         }
@@ -55,16 +51,14 @@ public class JoinOn
     }
 
     @Override
-    public int hashCode()
-    {
+    public int hashCode() {
         return Objects.hashCode(expression);
     }
 
     @Override
-    public String toString()
-    {
+    public String toString() {
         return MoreObjects.toStringHelper(this)
-                .addValue(expression)
-                .toString();
+            .addValue(expression)
+            .toString();
     }
 }

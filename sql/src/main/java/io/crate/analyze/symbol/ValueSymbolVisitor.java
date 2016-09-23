@@ -34,13 +34,13 @@ import java.util.List;
 public abstract class ValueSymbolVisitor<T> extends SymbolVisitor<Void, T> {
 
     public final com.google.common.base.Function<Symbol, T> function =
-            new com.google.common.base.Function<Symbol, T>() {
-                @Nullable
-                @Override
-                public T apply(Symbol input) {
-                    return process(input);
-                }
-            };
+        new com.google.common.base.Function<Symbol, T>() {
+            @Nullable
+            @Override
+            public T apply(Symbol input) {
+                return process(input);
+            }
+        };
 
     public T process(Symbol symbol) {
         return process(symbol, null);
@@ -49,25 +49,25 @@ public abstract class ValueSymbolVisitor<T> extends SymbolVisitor<Void, T> {
     @Override
     protected T visitSymbol(Symbol symbol, Void context) {
         throw new UnsupportedOperationException(
-                SymbolFormatter.format("Unable to get value from symbol: %s", symbol));
+            SymbolFormatter.format("Unable to get value from symbol: %s", symbol));
     }
 
 
-    public static final ValueSymbolVisitor<Object> VALUE = new ValueSymbolVisitor<Object>(){
+    public static final ValueSymbolVisitor<Object> VALUE = new ValueSymbolVisitor<Object>() {
         @Override
         public Object visitLiteral(Literal symbol, Void context) {
             return symbol.value();
         }
     };
 
-    public static final ValueSymbolVisitor<BytesRef> BYTES_REF = new ValueSymbolVisitor<BytesRef>(){
+    public static final ValueSymbolVisitor<BytesRef> BYTES_REF = new ValueSymbolVisitor<BytesRef>() {
         @Override
         public BytesRef visitLiteral(Literal symbol, Void context) {
             return DataTypes.STRING.value(symbol.value);
         }
     };
 
-    public static final ValueSymbolVisitor<String> STRING = new ValueSymbolVisitor<String>(){
+    public static final ValueSymbolVisitor<String> STRING = new ValueSymbolVisitor<String>() {
         @Override
         public String visitLiteral(Literal symbol, Void context) {
             return BytesRefs.toString(symbol.value());
@@ -88,7 +88,7 @@ public abstract class ValueSymbolVisitor<T> extends SymbolVisitor<Void, T> {
         }
     };
 
-    public static final ValueSymbolVisitor<Long> LONG = new ValueSymbolVisitor<Long>(){
+    public static final ValueSymbolVisitor<Long> LONG = new ValueSymbolVisitor<Long>() {
         @Override
         public Long visitLiteral(Literal symbol, Void context) {
             return DataTypes.LONG.value(symbol.value());

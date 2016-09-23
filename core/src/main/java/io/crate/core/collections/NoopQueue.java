@@ -32,7 +32,8 @@ public class NoopQueue<E> implements BlockingQueue<E>, Queue<E> {
 
     private final static NoopQueue INSTANCE = new NoopQueue();
 
-    private NoopQueue() {}
+    private NoopQueue() {
+    }
 
     public static <T> NoopQueue<T> instance() {
         return INSTANCE;

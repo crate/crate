@@ -64,11 +64,11 @@ public class ProjectorChainContext extends AbstractExecutionSubContext {
             }
         });
         projectorChain = FlatProjectorChain.withAttachedDownstream(
-                projectorFactory,
-                ramAccountingContext,
-                projections,
-                listenableRowReceiver,
-                jobId
+            projectorFactory,
+            ramAccountingContext,
+            projections,
+            listenableRowReceiver,
+            jobId
         );
         this.rowReceiver = projectorChain.firstProjector();
     }

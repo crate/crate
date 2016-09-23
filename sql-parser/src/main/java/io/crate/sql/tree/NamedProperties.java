@@ -66,8 +66,8 @@ public class NamedProperties extends Node {
     @Override
     public String toString() {
         return MoreObjects.toStringHelper(this)
-                .add("ident", ident)
-                .add("properties", properties)
-                .toString();
+            .add("ident", ident)
+            .add("properties", properties)
+            .toString();
     }
 }

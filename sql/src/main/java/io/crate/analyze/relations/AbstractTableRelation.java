@@ -45,8 +45,8 @@ public abstract class AbstractTableRelation<T extends TableInfo> implements Anal
         @Override
         public boolean apply(@Nullable Reference input) {
             return input != null
-                    && input.valueType().id() == ArrayType.ID
-                    && ((ArrayType) input.valueType()).innerType().equals(DataTypes.OBJECT);
+                   && input.valueType().id() == ArrayType.ID
+                   && ((ArrayType) input.valueType()).innerType().equals(DataTypes.OBJECT);
         }
     };
 
@@ -178,6 +178,7 @@ public abstract class AbstractTableRelation<T extends TableInfo> implements Anal
         }
         return false;
     }
+
     @Override
     public String toString() {
         return MoreObjects.toStringHelper(this).add("table", tableInfo.ident()).toString();

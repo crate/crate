@@ -98,9 +98,9 @@ public class NestedLoopOperationTest extends CrateUnitTest {
 
     private PageDownstream pageDownstream(RowReceiver rowReceiver) {
         return new IteratorPageDownstream(
-                    rowReceiver,
-                    PassThroughPagingIterator.<Void, Row>repeatable(),
-                    Optional.<Executor>absent()
+            rowReceiver,
+            PassThroughPagingIterator.<Void, Row>repeatable(),
+            Optional.<Executor>absent()
         );
     }
 
@@ -183,13 +183,13 @@ public class NestedLoopOperationTest extends CrateUnitTest {
         NestedLoopOperation parentNl = unfilteredNestedLoopOperation(0, childNl.leftRowReceiver());
 
         RowSender rsA = new RowSender(
-                singleColRows(1, 2), parentNl.leftRowReceiver(), MoreExecutors.directExecutor());
+            singleColRows(1, 2), parentNl.leftRowReceiver(), MoreExecutors.directExecutor());
 
         RowSender rsB = new RowSender(
-                singleColRows(10, 20), parentNl.rightRowReceiver(), MoreExecutors.directExecutor());
+            singleColRows(10, 20), parentNl.rightRowReceiver(), MoreExecutors.directExecutor());
 
         RowSender rsC = new RowSender(
-                singleColRows(100, 200), childNl.rightRowReceiver(), MoreExecutors.directExecutor());
+            singleColRows(100, 200), childNl.rightRowReceiver(), MoreExecutors.directExecutor());
 
         ArrayList<Thread> threads = new ArrayList<>();
 
@@ -219,12 +219,12 @@ public class NestedLoopOperationTest extends CrateUnitTest {
 
         Bucket rows = executeNestedLoop(leftRows, rightRows);
         assertThat(TestingHelpers.printedTable(rows), is("" +
-                "green| small\n" +
-                "green| medium\n" +
-                "blue| small\n" +
-                "blue| medium\n" +
-                "red| small\n" +
-                "red| medium\n"));
+                                                         "green| small\n" +
+                                                         "green| medium\n" +
+                                                         "blue| small\n" +
+                                                         "blue| medium\n" +
+                                                         "red| small\n" +
+                                                         "red| medium\n"));
     }
 
     @Test
@@ -254,16 +254,16 @@ public class NestedLoopOperationTest extends CrateUnitTest {
     }
 
     @Test
-    @Repeat (iterations = 5)
+    @Repeat(iterations = 5)
     public void testNestedLoopWithTopNDownstream() throws Exception {
         InputCollectExpression firstCol = new InputCollectExpression(0);
         InputCollectExpression secondCol = new InputCollectExpression(1);
         CollectingRowReceiver rowReceiver = new CollectingRowReceiver();
         SimpleTopNProjector topNProjector = new SimpleTopNProjector(
-                Arrays.<Input<?>>asList(firstCol, secondCol),
-                Arrays.asList(firstCol, secondCol),
-                3,
-                1
+            Arrays.<Input<?>>asList(firstCol, secondCol),
+            Arrays.asList(firstCol, secondCol),
+            3,
+            1
         );
         topNProjector.downstream(rowReceiver);
         NestedLoopOperation nestedLoopOperation = unfilteredNestedLoopOperation(0, topNProjector);
@@ -275,9 +275,9 @@ public class NestedLoopOperationTest extends CrateUnitTest {
 
         Bucket rows = rowReceiver.result();
         assertThat(TestingHelpers.printedTable(rows), is("" +
-                "green| medium\n" +
-                "blue| small\n" +
-                "blue| medium\n"));
+                                                         "green| medium\n" +
+                                                         "blue| small\n" +
+                                                         "blue| medium\n"));
 
         leftT.join();
         rightT.join();
@@ -396,7 +396,7 @@ public class NestedLoopOperationTest extends CrateUnitTest {
         NestedLoopOperation nestedLoopOperation = unfilteredNestedLoopOperation(0, receiver);
 
         List<ListenableRowReceiver> listenableRowReceivers =
-                Arrays.asList(nestedLoopOperation.rightRowReceiver(), nestedLoopOperation.leftRowReceiver());
+            Arrays.asList(nestedLoopOperation.rightRowReceiver(), nestedLoopOperation.leftRowReceiver());
         Collections.shuffle(listenableRowReceivers, getRandom());
         return listenableRowReceivers;
     }

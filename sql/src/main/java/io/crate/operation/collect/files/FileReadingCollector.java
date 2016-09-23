@@ -99,7 +99,8 @@ public class FileReadingCollector implements CrateCollector {
     private static class UriWithGlob {
         final URI uri;
         final URI preGlobUri;
-        @Nullable  final Predicate<URI> globPredicate;
+        @Nullable
+        final Predicate<URI> globPredicate;
 
         public UriWithGlob(URI uri, URI preGlobUri, Predicate<URI> globPredicate) {
             this.uri = uri;
@@ -192,10 +193,10 @@ public class FileReadingCollector implements CrateCollector {
     }
 
     private boolean readLines(FileInput fileInput,
-                           CollectorContext collectorContext,
-                           URI uri,
-                           long startLine,
-                           int retry) throws IOException {
+                              CollectorContext collectorContext,
+                              URI uri,
+                              long startLine,
+                              int retry) throws IOException {
         InputStream inputStream = fileInput.getStream(uri);
         if (inputStream == null) {
             return true;
@@ -248,7 +249,7 @@ public class FileReadingCollector implements CrateCollector {
         BufferedReader reader;
         if (compressed) {
             reader = new BufferedReader(new InputStreamReader(new GZIPInputStream(inputStream),
-                    StandardCharsets.UTF_8));
+                StandardCharsets.UTF_8));
         } else {
             reader = new BufferedReader(new InputStreamReader(inputStream, StandardCharsets.UTF_8));
         }

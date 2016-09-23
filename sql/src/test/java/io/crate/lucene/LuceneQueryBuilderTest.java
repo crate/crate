@@ -85,14 +85,14 @@ public class LuceneQueryBuilderTest extends CrateUnitTest {
     @Before
     public void prepare() throws Exception {
         DocTableInfo users = TestingTableInfo.builder(new TableIdent(null, "users"), null)
-                .add("name", DataTypes.STRING)
-                .add("x", DataTypes.INTEGER)
-                .add("d", DataTypes.DOUBLE)
-                .add("d_array", new ArrayType(DataTypes.DOUBLE))
-                .add("y_array", new ArrayType(DataTypes.LONG))
-                .add("shape", DataTypes.GEO_SHAPE)
-                .add("point", DataTypes.GEO_POINT)
-                .build();
+            .add("name", DataTypes.STRING)
+            .add("x", DataTypes.INTEGER)
+            .add("d", DataTypes.DOUBLE)
+            .add("d_array", new ArrayType(DataTypes.DOUBLE))
+            .add("y_array", new ArrayType(DataTypes.LONG))
+            .add("shape", DataTypes.GEO_SHAPE)
+            .add("point", DataTypes.GEO_POINT)
+            .build();
         TableRelation usersTr = new TableRelation(users);
         sources = ImmutableMap.<QualifiedName, AnalyzedRelation>of(new QualifiedName("users"), usersTr);
 
@@ -110,11 +110,11 @@ public class LuceneQueryBuilderTest extends CrateUnitTest {
         MapperService mapperService = newMapperService(temporaryFolder.newFolder().toPath(), indexSettings);
 
         XContentBuilder xContentBuilder = XContentFactory.jsonBuilder().startObject().startObject("default")
-                .startObject("properties")
-                .startObject("point").field("type", "geo_point").endObject()
-                .startObject("shape").field("type", "geo_shape").endObject()
-                .endObject()
-                .endObject().endObject();
+            .startObject("properties")
+            .startObject("point").field("type", "geo_point").endObject()
+            .startObject("shape").field("type", "geo_shape").endObject()
+            .endObject()
+            .endObject().endObject();
         mapperService.merge("default", new CompressedXContent(xContentBuilder.bytes()), MapperService.MergeReason.MAPPING_UPDATE, true);
 
         when(searchContext.mapperService()).thenReturn(mapperService);
@@ -190,7 +190,7 @@ public class LuceneQueryBuilderTest extends CrateUnitTest {
 
     @Test
     public void testEqOnTwoArraysBecomesGenericFunctionQueryAllValuesNull() throws Exception {
-        SqlExpressions sqlExpressions = new SqlExpressions(sources, new Object[]{new Object[] { null, null, null }});
+        SqlExpressions sqlExpressions = new SqlExpressions(sources, new Object[]{new Object[]{null, null, null}});
         Query query = convert(new WhereClause(normalizer.normalize(sqlExpressions.asSymbol("y_array = ?"), new StmtCtx())));
         assertThat(query, instanceOf(LuceneQueryBuilder.Visitor.FunctionFilter.class));
     }
@@ -343,7 +343,7 @@ public class LuceneQueryBuilderTest extends CrateUnitTest {
     public void testLessThanAnyOnArrayLiteral() throws Exception {
         Query ltQuery2 = convert("name < any (['a', 'b', 'c'])");
         assertThat(ltQuery2, instanceOf(BooleanQuery.class));
-        BooleanQuery ltBQuery = (BooleanQuery)ltQuery2;
+        BooleanQuery ltBQuery = (BooleanQuery) ltQuery2;
         assertThat(ltBQuery.toString(), is("(name:{* TO a} name:{* TO b} name:{* TO c})~1"));
     }
 
@@ -402,6 +402,7 @@ public class LuceneQueryBuilderTest extends CrateUnitTest {
         Query eqWithinQuery = convert("within(point, {type='LineString', coordinates=[[0.0, 0.0], [1.0, 1.0], [2.0, 1.0]]})");
         assertThat(eqWithinQuery.toString(), is("GeoPointInPolygonQuery: field=point: Points: [0.0, 0.0] [1.0, 1.0] [2.0, 1.0] [0.0, 0.0] "));
     }
+
     @Test
     public void testWithinFunctionWithShapeReference() throws Exception {
         // shape references cannot use the inverted index, so use generic function here

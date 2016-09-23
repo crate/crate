@@ -32,12 +32,12 @@ public class RealTypeTest extends BasePGTypeTest<Float> {
 
     @Test
     public void testWriteValue() throws Exception {
-        assertBytesWritten(Float.MIN_VALUE, new byte[]{ 0, 0, 0, 4, 0, 0, 0, 1 });
+        assertBytesWritten(Float.MIN_VALUE, new byte[]{0, 0, 0, 4, 0, 0, 0, 1});
     }
 
     @Test
     public void testReadValueBinary() throws Exception {
-        assertBytesReadBinary(new byte[]{ 127, 127, -1, -1 }, Float.MAX_VALUE);
+        assertBytesReadBinary(new byte[]{127, 127, -1, -1}, Float.MAX_VALUE);
     }
 
     @Test

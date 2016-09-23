@@ -25,7 +25,6 @@ import io.crate.action.sql.SQLActionException;
 import io.crate.operation.Paging;
 import io.crate.testing.TestingHelpers;
 import io.crate.testing.UseJdbc;
-import org.hamcrest.core.Is;
 import org.junit.Test;
 
 import static org.hamcrest.Matchers.containsString;

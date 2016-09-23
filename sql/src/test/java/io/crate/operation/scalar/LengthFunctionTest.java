@@ -41,7 +41,7 @@ public class LengthFunctionTest extends AbstractScalarFunctionsTest {
 
     private Integer evaluate(String functionName, Object value, DataType dataType) {
         return ((LengthFunction) getFunction(functionName, dataType))
-                .evaluate((Input) Literal.of(dataType, value));
+            .evaluate((Input) Literal.of(dataType, value));
     }
 
     @Test

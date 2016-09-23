@@ -21,19 +21,15 @@
 
 package io.crate.sql.tree;
 
-import com.google.common.base.Function;
 import com.google.common.base.MoreObjects;
 
 public class SortItem
-        extends Node
-{
-    public enum Ordering
-    {
+    extends Node {
+    public enum Ordering {
         ASCENDING, DESCENDING
     }
 
-    public enum NullOrdering
-    {
+    public enum NullOrdering {
         FIRST, LAST, UNDEFINED
     }
 
@@ -41,47 +37,40 @@ public class SortItem
     private final Ordering ordering;
     private final NullOrdering nullOrdering;
 
-    public SortItem(Expression sortKey, Ordering ordering, NullOrdering nullOrdering)
-    {
+    public SortItem(Expression sortKey, Ordering ordering, NullOrdering nullOrdering) {
         this.ordering = ordering;
         this.sortKey = sortKey;
         this.nullOrdering = nullOrdering;
     }
 
-    public Expression getSortKey()
-    {
+    public Expression getSortKey() {
         return sortKey;
     }
 
-    public Ordering getOrdering()
-    {
+    public Ordering getOrdering() {
         return ordering;
     }
 
-    public NullOrdering getNullOrdering()
-    {
+    public NullOrdering getNullOrdering() {
         return nullOrdering;
     }
 
     @Override
-    public <R, C> R accept(AstVisitor<R, C> visitor, C context)
-    {
+    public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
         return visitor.visitSortItem(this, context);
     }
 
     @Override
-    public String toString()
-    {
+    public String toString() {
         return MoreObjects.toStringHelper(this)
-                .add("sortKey", sortKey)
-                .add("ordering", ordering)
-                .add("nullOrdering", nullOrdering)
-                .toString();
+            .add("sortKey", sortKey)
+            .add("ordering", ordering)
+            .add("nullOrdering", nullOrdering)
+            .toString();
     }
 
     @Override
-    public boolean equals(Object o)
-    {
+    public boolean equals(Object o) {
         if (this == o) {
             return true;
         }
@@ -105,8 +94,7 @@ public class SortItem
     }
 
     @Override
-    public int hashCode()
-    {
+    public int hashCode() {
         int result = sortKey.hashCode();
         result = 31 * result + (ordering != null ? ordering.hashCode() : 0);
         result = 31 * result + (nullOrdering != null ? nullOrdering.hashCode() : 0);

@@ -47,20 +47,20 @@ public class ToLongArrayFunctionTest extends AbstractScalarFunctionsTest {
 
     @Test
     public void testArrayDifferentTypesToInt() throws Exception {
-        Object[] expected = new Long[] { 10L, 20L, 30L };
+        Object[] expected = new Long[]{10L, 20L, 30L};
         Object[] actual;
 
         actual = eval(new String[]{"10", "20", "30"}, DataTypes.STRING);
         assertThat(actual, is(expected));
         actual = eval(new BytesRef[]{new BytesRef("10"), new BytesRef("20"), new BytesRef("30")}, DataTypes.STRING);
         assertThat(actual, is(expected));
-        actual = eval(new Integer[] { 10, 20, 30 }, DataTypes.INTEGER);
+        actual = eval(new Integer[]{10, 20, 30}, DataTypes.INTEGER);
         assertThat(actual, is(expected));
     }
 
     @Test
     public void testListDifferentTypesToInt() throws Exception {
-        Object[] expected = new Long[] { 10L, 20L, 30L };
+        Object[] expected = new Long[]{10L, 20L, 30L};
         Object[] actual;
 
         actual = eval($("10", "20", "30"), DataTypes.STRING);
@@ -68,7 +68,7 @@ public class ToLongArrayFunctionTest extends AbstractScalarFunctionsTest {
 
         actual = eval($(new BytesRef("10"), new BytesRef("20"), new BytesRef("30")), DataTypes.STRING);
         assertThat(actual, is(expected));
-        actual = eval($( 10, 20, 30 ), DataTypes.INTEGER);
+        actual = eval($(10, 20, 30), DataTypes.INTEGER);
         assertThat(actual, is(expected));
     }
 
@@ -81,7 +81,7 @@ public class ToLongArrayFunctionTest extends AbstractScalarFunctionsTest {
 
     @Test
     public void testWithNullValueToInt() throws Exception {
-        Object[] expected = new Long[] { 10L, null, 30L };
+        Object[] expected = new Long[]{10L, null, 30L};
         Object[] actual;
         actual = eval($("10", null, "30"), DataTypes.STRING);
         assertThat(actual, is(expected));
@@ -91,7 +91,7 @@ public class ToLongArrayFunctionTest extends AbstractScalarFunctionsTest {
     public void testNormalizeWithReference() throws Exception {
         final DataType arrayType = new ArrayType(DataTypes.STRING);
         ToArrayFunction impl = (ToArrayFunction) functions.get(
-                new FunctionIdent(CastFunctionResolver.FunctionNames.TO_LONG_ARRAY, ImmutableList.of(arrayType)));
+            new FunctionIdent(CastFunctionResolver.FunctionNames.TO_LONG_ARRAY, ImmutableList.of(arrayType)));
 
         Reference foo = TestingHelpers.createReference("foo", arrayType);
         Symbol symbol = impl.normalizeSymbol(new Function(impl.info(), Collections.<Symbol>singletonList(foo)), new StmtCtx());

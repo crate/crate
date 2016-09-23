@@ -41,7 +41,7 @@ import java.util.*;
 public class WriterProjection extends Projection {
 
     private static final List<Symbol> OUTPUTS = ImmutableList.<Symbol>of(
-            new Value(DataTypes.LONG) // number of lines written
+        new Value(DataTypes.LONG) // number of lines written
     );
 
     private final static Reference SHARD_ID_REF = new Reference(SysShardsTableInfo.ReferenceIdents.ID, RowGranularity.SHARD, IntegerType.INSTANCE);
@@ -50,10 +50,10 @@ public class WriterProjection extends Projection {
 
 
     public static final Symbol DIRECTORY_TO_FILENAME = new Function(new FunctionInfo(
-            new FunctionIdent(FormatFunction.NAME, Arrays.<DataType>asList(StringType.INSTANCE,
-                    StringType.INSTANCE, StringType.INSTANCE, StringType.INSTANCE)),
-            StringType.INSTANCE),
-            Arrays.<Symbol>asList(Literal.of("%s_%s_%s.json"), TABLE_NAME_REF, SHARD_ID_REF, PARTITION_IDENT_REF)
+        new FunctionIdent(FormatFunction.NAME, Arrays.<DataType>asList(StringType.INSTANCE,
+            StringType.INSTANCE, StringType.INSTANCE, StringType.INSTANCE)),
+        StringType.INSTANCE),
+        Arrays.<Symbol>asList(Literal.of("%s_%s_%s.json"), TABLE_NAME_REF, SHARD_ID_REF, PARTITION_IDENT_REF)
     );
 
     private Symbol uri;
@@ -132,13 +132,17 @@ public class WriterProjection extends Projection {
         return this.overwrites;
     }
 
-    public List<String> outputNames() { return this.outputNames; }
+    public List<String> outputNames() {
+        return this.outputNames;
+    }
 
     public OutputFormat outputFormat() {
         return outputFormat;
     }
 
-    public CompressionType compressionType() { return compressionType; }
+    public CompressionType compressionType() {
+        return compressionType;
+    }
 
     @Override
     public <C, R> R accept(ProjectionVisitor<C, R> visitor, C context) {
@@ -199,7 +203,8 @@ public class WriterProjection extends Projection {
             return false;
         if (!uri.equals(that.uri)) return false;
         if (!overwrites.equals(that.overwrites)) return false;
-        if (compressionType != null ? !compressionType.equals(that.compressionType) : that.compressionType != null) return false;
+        if (compressionType != null ? !compressionType.equals(that.compressionType) : that.compressionType != null)
+            return false;
         if (!outputFormat.equals(that.outputFormat)) return false;
 
         return true;
@@ -219,16 +224,16 @@ public class WriterProjection extends Projection {
     @Override
     public String toString() {
         return "WriterProjection{" +
-                "uri=" + uri +
-                ", outputNames=" + outputNames +
-                ", compressionType=" + compressionType +
-                ", outputFormat=" + outputFormat +
-                '}';
+               "uri=" + uri +
+               ", outputNames=" + outputNames +
+               ", compressionType=" + compressionType +
+               ", outputFormat=" + outputFormat +
+               '}';
     }
 
     public WriterProjection normalize(EvaluatingNormalizer normalizer, StmtCtx stmtCtx) {
         Symbol nUri = normalizer.normalize(uri, stmtCtx);
-        if (uri != nUri){
+        if (uri != nUri) {
             WriterProjection p = new WriterProjection();
             p.uri = nUri;
             p.outputNames = outputNames;

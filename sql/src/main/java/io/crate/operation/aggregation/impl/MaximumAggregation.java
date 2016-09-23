@@ -43,7 +43,7 @@ public abstract class MaximumAggregation extends AggregationFunction<Comparable,
     public static void register(AggregationImplModule mod) {
         for (final DataType dataType : DataTypes.PRIMITIVE_TYPES) {
             FunctionInfo functionInfo = new FunctionInfo(
-                    new FunctionIdent(NAME, ImmutableList.of(dataType)), dataType, FunctionInfo.Type.AGGREGATE);
+                new FunctionIdent(NAME, ImmutableList.of(dataType)), dataType, FunctionInfo.Type.AGGREGATE);
 
             if (dataType instanceof FixedWidthType) {
                 mod.register(new FixedMaximumAggregation(functionInfo));
