@@ -34,6 +34,7 @@ import io.crate.analyze.WhereClause;
 import io.crate.analyze.fetch.FetchFieldExtractor;
 import io.crate.analyze.symbol.*;
 import io.crate.operation.operator.AndOperator;
+import io.crate.planner.Limits;
 
 import javax.annotation.Nullable;
 import java.util.*;
@@ -113,10 +114,12 @@ public final class RelationSplitter {
         FieldCollectingVisitor.INSTANCE.process(joinConditions, context);
 
         // set the limit and offset where possible
-        if (querySpec.limit().isPresent()) {
+        Optional<Symbol> limit = querySpec.limit();
+        if (limit.isPresent()) {
+            Optional<Symbol> limitAndOffset = Limits.add(limit, querySpec.offset());
             for (AnalyzedRelation rel : Sets.difference(specs.keySet(), context.fields.keySet())) {
                 QuerySpec spec = specs.get(rel);
-                spec.limit(querySpec.limit().get() + querySpec.offset());
+                spec.limit(limitAndOffset);
             }
         }
 

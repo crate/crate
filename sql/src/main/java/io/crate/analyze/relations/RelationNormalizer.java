@@ -33,9 +33,12 @@ import io.crate.analyze.symbol.Symbol;
 import io.crate.analyze.symbol.SymbolVisitor;
 import io.crate.metadata.*;
 import io.crate.operation.operator.AndOperator;
+import io.crate.operation.scalar.conditional.LeastFunction;
+import io.crate.planner.Limits;
 import io.crate.sql.tree.QualifiedName;
 
 import javax.annotation.Nullable;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -131,17 +134,15 @@ final class RelationNormalizer extends AnalyzedRelationVisitor<RelationNormalize
             return querySpec2;
         }
 
-        QuerySpec querySpec = new QuerySpec()
+        return new QuerySpec()
             .outputs(querySpec1.outputs())
             .where(mergeWhere(querySpec1.where(), querySpec2.where()))
             .orderBy(mergeOrderBy(querySpec1.orderBy(), querySpec2.orderBy()))
-            .offset(querySpec1.offset() + querySpec2.offset())
+            .offset(Limits.add(querySpec1.offset(), querySpec2.offset()))
             .limit(mergeLimit(querySpec1.limit(), querySpec2.limit()))
             .groupBy(pushGroupBy(querySpec1.groupBy(), querySpec2.groupBy()))
             .having(pushHaving(querySpec1.having(), querySpec2.having()))
             .hasAggregates(querySpec1.hasAggregates() || querySpec2.hasAggregates());
-
-        return querySpec;
     }
 
     private static WhereClause mergeWhere(WhereClause where1, WhereClause where2) {
@@ -162,13 +163,14 @@ final class RelationNormalizer extends AnalyzedRelationVisitor<RelationNormalize
         return o1.get().merge(o2.get());
     }
 
-    @Nullable
-    private static Integer mergeLimit(Optional<Integer> limit1, Optional<Integer> limit2) {
-        if (!limit1.isPresent() || !limit2.isPresent()) {
-            return limit1.or(limit2).orNull();
+    private static Optional<Symbol> mergeLimit(Optional<Symbol> limit1, Optional<Symbol> limit2) {
+        if (limit1.isPresent()) {
+            if (limit2.isPresent()) {
+                return Optional.of((Symbol) new Function(LeastFunction.TWO_INT_INFO, Arrays.asList(limit1.get(), limit2.get())));
+            }
+            return limit1;
         }
-
-        return Math.min(limit1.or(0), limit2.or(0));
+        return limit2;
     }
 
     @Nullable

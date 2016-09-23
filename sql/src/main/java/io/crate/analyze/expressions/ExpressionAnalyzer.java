@@ -115,15 +115,6 @@ public class ExpressionAnalyzer {
             parameterContext, fieldProvider, fieldResolver);
     }
 
-    @Nullable
-    public Integer integerFromExpression(Optional<Expression> expression) {
-        if (expression.isPresent()) {
-            return DataTypes.INTEGER.value(
-                ExpressionToNumberVisitor.convert(expression.get(), parameterContext.parameters()));
-        }
-        return null;
-    }
-
     /**
      * Use to normalize a symbol. (For example to normalize a function that contains only literals to a literal)
      */
@@ -199,7 +190,7 @@ public class ExpressionAnalyzer {
         this.operation = operation;
     }
 
-    static Symbol castIfNeededOrFail(Symbol symbolToCast, DataType targetType) {
+    public static Symbol castIfNeededOrFail(Symbol symbolToCast, DataType targetType) {
         DataType sourceType = symbolToCast.valueType();
         if (sourceType.equals(targetType)) {
             return symbolToCast;

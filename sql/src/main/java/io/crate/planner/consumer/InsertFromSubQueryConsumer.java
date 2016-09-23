@@ -80,7 +80,7 @@ public class InsertFromSubQueryConsumer implements Consumer {
 
             // We'd have to enable paging & add a mergePhase to the sub-plan which applies the ordering/limit before
             // the indexWriterProjection can be added
-            if (subQuerySpec.isLimited() || subQuerySpec.orderBy().isPresent()) {
+            if (subQuerySpec.limit().isPresent() || subQuerySpec.offset().isPresent() || subQuerySpec.orderBy().isPresent()) {
                 throw new UnsupportedFeatureException("Using limit, offset or order by is not " +
                                                       "supported on insert using a sub-query");
             }

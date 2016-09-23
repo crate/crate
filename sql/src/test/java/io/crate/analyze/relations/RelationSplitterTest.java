@@ -21,6 +21,7 @@
 
 package io.crate.analyze.relations;
 
+import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.crate.analyze.OrderBy;
@@ -114,7 +115,7 @@ public class RelationSplitterTest extends CrateUnitTest {
 
     @Test
     public void testQuerySpecSplitNoRelationQuery() throws Exception {
-        QuerySpec querySpec = fromQuery("x + y + z = 5").limit(30);
+        QuerySpec querySpec = fromQuery("x + y + z = 5").limit(Optional.of((Symbol) Literal.of(30)));
         RelationSplitter splitter = split(querySpec);
 
         assertThat(querySpec, isSQL("SELECT true WHERE (add(add(doc.t1.x, doc.t2.y), doc.t3.z) = 5) LIMIT 30"));
@@ -134,17 +135,17 @@ public class RelationSplitterTest extends CrateUnitTest {
 
         assertThat(splitter.canBeFetched(), containsInAnyOrder(isField("x"), isField("y")));
 
-        querySpec.limit(10);
+        querySpec.limit(Optional.of((Symbol) Literal.of(10)));
         splitter = split(querySpec);
         assertThat(querySpec, isSQL("SELECT doc.t1.x, doc.t2.y LIMIT 10"));
         assertThat(splitter.getSpec(T3.TR_1), isSQL("SELECT doc.t1.x LIMIT 10"));
         assertThat(splitter.getSpec(T3.TR_2), isSQL("SELECT doc.t2.y LIMIT 10"));
 
-        querySpec.offset(10);
+        querySpec.offset(Optional.of((Symbol)Literal.of(10)));
         splitter = split(querySpec);
         assertThat(querySpec, isSQL("SELECT doc.t1.x, doc.t2.y LIMIT 10 OFFSET 10"));
-        assertThat(splitter.getSpec(T3.TR_1), isSQL("SELECT doc.t1.x LIMIT 20"));
-        assertThat(splitter.getSpec(T3.TR_2), isSQL("SELECT doc.t2.y LIMIT 20"));
+        assertThat(splitter.getSpec(T3.TR_1), isSQL("SELECT doc.t1.x LIMIT add(10, 10)"));
+        assertThat(splitter.getSpec(T3.TR_2), isSQL("SELECT doc.t2.y LIMIT add(10, 10)"));
 
     }
 
@@ -172,10 +173,10 @@ public class RelationSplitterTest extends CrateUnitTest {
 
     @Test
     public void testSplitOrderByWith3RelationsButOutputsOnly2Relations() throws Exception {
-        QuerySpec querySpec = fromQuery("x = 1 and y = 2 and z = 3").limit(30);
+        QuerySpec querySpec = fromQuery("x = 1 and y = 2 and z = 3").limit(Optional.of((Symbol) Literal.of(30)));
         List<Symbol> orderBySymbols = Arrays.asList(asSymbol("x"), asSymbol("y"), asSymbol("z"));
         OrderBy orderBy = new OrderBy(orderBySymbols, new boolean[]{false, false, false}, new Boolean[]{null, null, null});
-        querySpec.orderBy(orderBy).limit(20).outputs(Arrays.asList(asSymbol("x"), asSymbol("y")));
+        querySpec.orderBy(orderBy).limit(Optional.of((Symbol) Literal.of(20))).outputs(Arrays.asList(asSymbol("x"), asSymbol("y")));
 
         RelationSplitter splitter = split(querySpec);
 

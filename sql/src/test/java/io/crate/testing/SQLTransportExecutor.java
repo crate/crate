@@ -194,6 +194,11 @@ public class SQLTransportExecutor {
             try {
                 return connection.createArrayOf(pgType.typName(), convertedValues.toArray(new Object[0]));
             } catch (SQLException e) {
+                /*
+                 * pg error message doesn't include a stacktrace.
+                 * Set a breakpoint in {@link io.crate.protocols.postgres.Messages#sendErrorResponse(Channel, Throwable)}
+                 * to inspect the error
+                 */
                 throw Throwables.propagate(e);
             }
         }

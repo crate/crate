@@ -44,8 +44,8 @@ public class QuerySpec {
     private Optional<HavingClause> having = Optional.absent();
     private List<Symbol> outputs;
     private WhereClause where = WhereClause.MATCH_ALL;
-    private Optional<Integer> limit = Optional.absent();
-    private int offset = 0;
+    private Optional<Symbol> limit = Optional.absent();
+    private Optional<Symbol> offset = Optional.absent();
     private boolean hasAggregates = false;
 
     public Optional<List<Symbol>> groupBy() {
@@ -71,21 +71,22 @@ public class QuerySpec {
         return this;
     }
 
-    public Optional<Integer> limit() {
+    public Optional<Symbol> limit() {
         return limit;
     }
 
-    public QuerySpec limit(@Nullable Integer limit) {
-        this.limit = Optional.fromNullable(limit);
+    public QuerySpec limit(Optional<Symbol> limit) {
+        assert limit != null : "argument limit must not be null but absent";
+        this.limit = limit;
         return this;
     }
 
-    public int offset() {
+    public Optional<Symbol> offset() {
         return offset;
     }
 
-    public QuerySpec offset(@Nullable Integer offset) {
-        this.offset = offset != null ? offset : 0;
+    public QuerySpec offset(Optional<Symbol> offset) {
+        this.offset = offset;
         return this;
     }
 
@@ -127,10 +128,6 @@ public class QuerySpec {
     public QuerySpec hasAggregates(boolean hasAggregates) {
         this.hasAggregates = hasAggregates;
         return this;
-    }
-
-    public boolean isLimited() {
-        return limit.isPresent() || offset > 0;
     }
 
     public void normalize(EvaluatingNormalizer normalizer, StmtCtx context) {
@@ -198,7 +195,7 @@ public class QuerySpec {
         }
 
         QuerySpec newSpec = new QuerySpec()
-            .limit(limit.orNull())
+            .limit(limit)
             .offset(offset);
         if (traverseFunctions) {
             newSpec.outputs(SubsetVisitor.filter(outputs, predicate));
@@ -252,7 +249,7 @@ public class QuerySpec {
         }
 
         QuerySpec newSpec = new QuerySpec()
-            .limit(limit.orNull())
+            .limit(limit)
             .offset(offset)
             .outputs(Lists.transform(outputs, replaceFunction));
         if (!where.hasQuery()) {

@@ -109,7 +109,8 @@ public class SelectStatementPlanner {
             if (querySpec.where().hasVersions()) {
                 throw new VersionInvalidException();
             }
-            if (querySpec.where().noMatch() || (querySpec.limit().isPresent() && querySpec.limit().get() == 0)) {
+            Limits limits = context.getLimits(true, querySpec);
+            if (querySpec.where().noMatch() || (querySpec.limit().isPresent() && limits.finalLimit() == 0)) {
                 return new NoopPlan(context.jobId());
             }
             table.tableRelation().validateOrderBy(querySpec.orderBy());
@@ -125,7 +126,6 @@ public class SelectStatementPlanner {
             CollectAndMerge qaf = (CollectAndMerge) plannedSubQuery;
             RoutedCollectPhase collectPhase = ((RoutedCollectPhase) qaf.collectPhase());
 
-            Limits limits = context.getLimits(true, querySpec);
             if (collectPhase.nodePageSizeHint() == null && limits.limitAndOffset > TopN.NO_LIMIT) {
                 collectPhase.nodePageSizeHint(limits.limitAndOffset);
             }
@@ -148,7 +148,7 @@ public class SelectStatementPlanner {
             TopNProjection topN = ProjectionBuilder.topNProjection(
                 collectPhase.toCollect(),
                 null, // orderBy = null because stuff is pre-sorted in collectPhase and sortedLocalMerge is used
-                querySpec.offset(),
+                limits.offset(),
                 limits.finalLimit,
                 null
             );
@@ -173,7 +173,7 @@ public class SelectStatementPlanner {
                 );
             }
             SimpleSelect.enablePagingIfApplicable(
-                collectPhase, localMergePhase, querySpec.limit().orNull(), querySpec.offset(),
+                collectPhase, localMergePhase, limits.finalLimit(), limits.offset(),
                 context.clusterService().localNode().id());
             CollectAndMerge subPlan = new CollectAndMerge(collectPhase, null);
             return new QueryThenFetch(subPlan, fetchPhase, localMergePhase, context.jobId());

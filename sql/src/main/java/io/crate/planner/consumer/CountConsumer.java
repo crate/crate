@@ -31,6 +31,7 @@ import io.crate.exceptions.VersionInvalidException;
 import io.crate.metadata.Routing;
 import io.crate.metadata.table.TableInfo;
 import io.crate.operation.aggregation.impl.CountAggregation;
+import io.crate.planner.Limits;
 import io.crate.planner.Planner;
 import io.crate.planner.distribution.DistributionInfo;
 import io.crate.planner.node.NoopPlannedAnalyzedRelation;
@@ -69,7 +70,8 @@ public class CountConsumer implements Consumer {
                 return null;
             }
 
-            if (querySpec.limit().or(1) < 1 || querySpec.offset() > 0) {
+            Limits limits = context.plannerContext().getLimits(context.isRoot(), querySpec);
+            if ((limits.finalLimit() == 0 || limits.offset() > 0)) {
                 return new NoopPlannedAnalyzedRelation(table, context.plannerContext().jobId());
             }
 

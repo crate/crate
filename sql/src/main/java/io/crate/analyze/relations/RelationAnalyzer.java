@@ -159,8 +159,8 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
             .orderBy(analyzeOrderBy(selectAnalysis, node.getOrderBy(), context,
                 expressionAnalysisContext.hasAggregates || groupBy != null, isDistinct))
             .having(analyzeHaving(node.getHaving(), groupBy, context))
-            .limit(context.expressionAnalyzer().integerFromExpression(node.getLimit()))
-            .offset(context.expressionAnalyzer().integerFromExpression(node.getOffset()))
+            .limit(optionalIntSymbol(node.getLimit(), context))
+            .offset(optionalIntSymbol(node.getOffset(), context))
             .outputs(selectAnalysis.outputSymbols())
             .where(whereClause)
             .groupBy(groupBy)
@@ -196,6 +196,14 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
 
         statementContext.endRelation();
         return relation;
+    }
+
+    private Optional<Symbol> optionalIntSymbol(Optional<Expression> optExpression, RelationAnalysisContext relCtx) {
+        if (optExpression.isPresent()) {
+            Symbol symbol = relCtx.expressionAnalyzer().convert(optExpression.get(), relCtx.expressionAnalysisContext());
+            return Optional.of(ExpressionAnalyzer.castIfNeededOrFail(symbol, DataTypes.INTEGER));
+        }
+        return Optional.absent();
     }
 
     @Nullable

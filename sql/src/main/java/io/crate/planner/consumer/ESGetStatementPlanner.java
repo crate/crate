@@ -52,12 +52,11 @@ public class ESGetStatementPlanner {
             // handle: where id in (null)
             return new NoopPlan(context.jobId());
         }
-        Optional<Integer> limit = querySpec.limit();
-        if (limit.isPresent() && limit.get() == 0){
+        Limits limits = context.getLimits(true, querySpec);
+        if (limits.hasLimit() && limits.finalLimit() == 0) {
             return new NoopPlan(context.jobId());
         }
         table.tableRelation().validateOrderBy(querySpec.orderBy());
-        Limits limits = context.getLimits(true, querySpec);
         return new ESGet(
             context.nextExecutionPhaseId(),
             tableInfo,

@@ -121,7 +121,7 @@ public class QueryAndFetchConsumer implements Consumer {
             Planner.Context plannerContext = context.plannerContext();
 
             Limits limits = plannerContext.getLimits(context.isRoot(), querySpec);
-            if (querySpec.isLimited() || orderBy.isPresent()) {
+            if (limits.hasLimit() || orderBy.isPresent()) {
                 /**
                  * select id, name, order by id, date
                  *
@@ -160,7 +160,7 @@ public class QueryAndFetchConsumer implements Consumer {
 
                 // MERGE
                 if (context.isRoot()) {
-                    TopNProjection tnp = new TopNProjection(limits.finalLimit(), querySpec.offset());
+                    TopNProjection tnp = new TopNProjection(limits.finalLimit(), limits.offset());
                     tnp.outputs(finalOutputs);
                     if (!orderBy.isPresent()) {
                         // no sorting needed
@@ -208,7 +208,7 @@ public class QueryAndFetchConsumer implements Consumer {
                 collectPhase.pageSizeHint(context.requiredPageSize());
             }
             SimpleSelect.enablePagingIfApplicable(
-                collectPhase, mergeNode, limits.finalLimit(), querySpec.offset(), plannerContext.clusterService().localNode().id());
+                collectPhase, mergeNode, limits.finalLimit(), limits.offset(), plannerContext.clusterService().localNode().id());
             return new CollectAndMerge(collectPhase, mergeNode);
         }
     }

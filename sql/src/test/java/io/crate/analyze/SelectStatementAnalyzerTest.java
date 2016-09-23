@@ -21,6 +21,7 @@
 
 package io.crate.analyze;
 
+import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import io.crate.analyze.relations.AnalyzedRelation;
@@ -247,7 +248,7 @@ public class SelectStatementAnalyzerTest extends BaseAnalyzerTest {
     @Test
     public void testSimpleSelect() throws Exception {
         QueriedRelation relation = analyze("select load['5'] from sys.nodes limit 2").relation();
-        assertEquals(new Integer(2), relation.querySpec().limit().get());
+        assertThat(relation.querySpec().limit().get(), is((Symbol) Literal.of(2)));
 
         assertFalse(relation.querySpec().groupBy().isPresent());
         assertEquals(1, relation.querySpec().outputs().size());
@@ -435,7 +436,7 @@ public class SelectStatementAnalyzerTest extends BaseAnalyzerTest {
     @Test
     public void testOffsetSupportInAnalyzer() throws Exception {
         SelectAnalyzedStatement analyze = analyze("select * from sys.nodes limit 1 offset 3");
-        assertThat(analyze.relation().querySpec().offset(), is(3));
+        assertThat(analyze.relation().querySpec().offset(), is(Optional.of((Symbol) Literal.of(3))));
     }
 
     @Test

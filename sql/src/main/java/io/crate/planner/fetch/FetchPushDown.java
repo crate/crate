@@ -33,6 +33,7 @@ import io.crate.metadata.Reference;
 import io.crate.metadata.ReplaceMode;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.doc.DocSysColumns;
+import io.crate.planner.Limits;
 import io.crate.types.DataTypes;
 
 import javax.annotation.Nullable;
@@ -145,9 +146,9 @@ public class FetchPushDown {
             querySpec.orderBy(new OrderBy(newOrderBySymbols, orderBy.get().reverseFlags(), orderBy.get().nullsFirst()));
         }
 
-        Optional<Integer> limit = querySpec.limit();
+        Optional<Symbol> limit = querySpec.limit();
         if (limit.isPresent()) {
-            sub.limit(limit.get() + querySpec.offset());
+            sub.limit(Limits.add(limit, querySpec.offset()));
         }
         return subRelation;
     }

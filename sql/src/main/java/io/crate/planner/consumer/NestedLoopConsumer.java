@@ -21,6 +21,7 @@
 
 package io.crate.planner.consumer;
 
+import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
@@ -30,7 +31,6 @@ import io.crate.analyze.relations.*;
 import io.crate.analyze.symbol.*;
 import io.crate.exceptions.ValidationException;
 import io.crate.metadata.TableIdent;
-import io.crate.operation.projectors.TopN;
 import io.crate.planner.Limits;
 import io.crate.planner.TableStatsService;
 import io.crate.planner.distribution.DistributionInfo;
@@ -140,16 +140,17 @@ public class NestedLoopConsumer implements Consumer {
             boolean filterNeeded = where.hasQuery() && !(where.query() instanceof Literal);
             boolean hasDocTables = left instanceof QueriedDocTable || right instanceof QueriedDocTable;
             boolean isDistributed = hasDocTables && filterNeeded && !joinType.isOuter();
+            Limits limits = context.plannerContext().getLimits(context.isRoot(), querySpec);
 
             if (filterNeeded || joinCondition != null || statement.remainingOrderBy().isPresent()) {
-                left.querySpec().limit(null);
-                right.querySpec().limit(null);
-                left.querySpec().offset(TopN.NO_OFFSET);
-                right.querySpec().offset(TopN.NO_OFFSET);
+                left.querySpec().limit(Optional.<Symbol>absent());
+                right.querySpec().limit(Optional.<Symbol>absent());
+                left.querySpec().offset(Optional.<Symbol>absent());
+                right.querySpec().offset(Optional.<Symbol>absent());
             }
 
             if (!filterNeeded && joinCondition == null && querySpec.limit().isPresent()) {
-                context.requiredPageSize(querySpec.limit().get() + querySpec.offset());
+                context.requiredPageSize(limits.limitAndOffset());
             }
 
             // this normalization is required to replace fields of the table relations
@@ -248,7 +249,6 @@ public class NestedLoopConsumer implements Consumer {
                 }
             }
 
-            Limits limits = context.plannerContext().getLimits(context.isRoot(), querySpec);
             OrderBy orderBy = statement.remainingOrderBy().orNull();
             if (orderBy == null && joinType.isOuter()) {
                 orderBy = orderByBeforeSplit;
@@ -256,7 +256,7 @@ public class NestedLoopConsumer implements Consumer {
             TopNProjection topN = ProjectionBuilder.topNProjection(
                 nlOutputs,
                 orderBy,
-                isDistributed ? 0 : querySpec.offset(),
+                isDistributed ? 0 : limits.offset(),
                 isDistributed ? limits.limitAndOffset() : limits.finalLimit(),
                 postNLOutputs
             );
@@ -283,7 +283,7 @@ public class NestedLoopConsumer implements Consumer {
                 TopNProjection finalTopN = ProjectionBuilder.topNProjection(
                     postNLOutputs,
                     null, // orderBy = null because mergePhase receives data sorted
-                    querySpec.offset(),
+                    limits.offset(),
                     limits.finalLimit(),
                     querySpec.outputs()
                 );

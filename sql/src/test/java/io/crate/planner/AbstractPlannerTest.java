@@ -25,6 +25,7 @@ package io.crate.planner;
 import com.google.common.collect.ImmutableMap;
 import io.crate.analyze.Analyzer;
 import io.crate.analyze.BaseAnalyzerTest;
+import io.crate.analyze.EvaluatingNormalizer;
 import io.crate.analyze.ParameterContext;
 import io.crate.analyze.repositories.RepositorySettingsModule;
 import io.crate.core.collections.Row;
@@ -80,6 +81,7 @@ import static org.mockito.Mockito.when;
 
 public abstract class AbstractPlannerTest extends CrateUnitTest {
 
+
     protected static Routing shardRouting(String tableName) {
         return new Routing(TreeMapBuilder.<String, Map<String, List<Integer>>>newMapBuilder()
             .put("nodeOne", TreeMapBuilder.<String, List<Integer>>newMapBuilder().put(tableName, Arrays.asList(1, 2)).map())
@@ -102,6 +104,7 @@ public abstract class AbstractPlannerTest extends CrateUnitTest {
     private ThreadPool threadPool;
     private Analyzer analyzer;
     private Planner planner;
+    protected EvaluatingNormalizer normalizer;
 
     @Mock
     private SchemaInfo schemaInfo;
@@ -121,6 +124,15 @@ public abstract class AbstractPlannerTest extends CrateUnitTest {
             .createInjector();
         analyzer = injector.getInstance(Analyzer.class);
         planner = injector.getInstance(Planner.class);
+        normalizer = new EvaluatingNormalizer(
+            injector.getInstance(Functions.class),
+            RowGranularity.CLUSTER,
+            new NestedReferenceResolver() {
+                @Override
+                public ReferenceImplementation<?> getImplementation(Reference refInfo) {
+                    return null;
+                }
+            });
 
         bindGeneratedColumnTable(injector.getInstance(Functions.class));
     }

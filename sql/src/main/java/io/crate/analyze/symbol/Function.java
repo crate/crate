@@ -26,7 +26,8 @@ public class Function extends Symbol implements Cloneable {
 
     public Function(FunctionInfo info, List<Symbol> arguments) {
         Preconditions.checkNotNull(info, "function info is null");
-        Preconditions.checkArgument(arguments.size() == info.ident().argumentTypes().size());
+        Preconditions.checkArgument(arguments.size() == info.ident().argumentTypes().size(),
+            "number of arguments must match the number of argumentTypes of the FunctionIdent");
         this.info = info;
 
         assert arguments.isEmpty() || !(arguments instanceof ImmutableList) :

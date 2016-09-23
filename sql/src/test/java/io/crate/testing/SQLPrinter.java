@@ -22,6 +22,7 @@
 
 package io.crate.testing;
 
+import com.google.common.base.Optional;
 import com.google.common.collect.Ordering;
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.QuerySpec;
@@ -93,15 +94,16 @@ public class SQLPrinter {
             sb.append(" ORDER BY ");
             TESTING_SYMBOL_PRINTER.process(spec.orderBy().get(), sb);
         }
-        if (spec.limit().isPresent()) {
+        Optional<Symbol> limit = spec.limit();
+        if (limit.isPresent()) {
             sb.append(" LIMIT ");
-            sb.append(spec.limit().get());
+            sb.append(print(limit.get()));
         }
-        if (spec.offset() > 0) {
+        Optional<Symbol> offset = spec.offset();
+        if (offset.isPresent()) {
             sb.append(" OFFSET ");
-            sb.append(spec.offset());
+            sb.append(print(offset.get()));
         }
-
         return sb.toString();
     }
 

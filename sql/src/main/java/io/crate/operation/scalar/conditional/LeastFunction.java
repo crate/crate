@@ -24,15 +24,21 @@ package io.crate.operation.scalar.conditional;
 
 import io.crate.analyze.symbol.Function;
 import io.crate.metadata.DynamicFunctionResolver;
+import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.FunctionInfo;
 import io.crate.operation.scalar.ScalarFunctionModule;
 import io.crate.types.DataType;
+import io.crate.types.DataTypes;
 
+import java.util.Arrays;
 import java.util.List;
 
 public class LeastFunction extends ConditionalCompareFunction {
+
     public final static String NAME = "least";
+    public final static FunctionInfo TWO_INT_INFO = new FunctionInfo(
+        new FunctionIdent(NAME, Arrays.<DataType>asList(DataTypes.INTEGER, DataTypes.INTEGER)), DataTypes.INTEGER);
 
     private LeastFunction(FunctionInfo info) {
         super(info);

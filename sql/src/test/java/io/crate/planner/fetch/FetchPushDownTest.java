@@ -21,6 +21,7 @@
 
 package io.crate.planner.fetch;
 
+import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import io.crate.analyze.OrderBy;
@@ -29,12 +30,14 @@ import io.crate.analyze.WhereClause;
 import io.crate.analyze.relations.DocTableRelation;
 import io.crate.analyze.relations.QueriedDocTable;
 import io.crate.analyze.symbol.Function;
+import io.crate.analyze.symbol.Literal;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.metadata.*;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.TestingTableInfo;
 import io.crate.operation.scalar.arithmetic.AbsFunction;
+import io.crate.operation.scalar.arithmetic.AddFunction;
 import io.crate.types.DataTypes;
 import org.junit.Test;
 
@@ -66,16 +69,16 @@ public class FetchPushDownTest {
     public void testLimitIsPushedDown() throws Exception {
         QuerySpec qs = new QuerySpec();
         qs.outputs(Lists.<Symbol>newArrayList(REF_I, REF_A));
-        qs.limit(10);
-        qs.offset(100);
+        qs.limit(Optional.of((Symbol) Literal.of(10)));
+        qs.offset(Optional.of((Symbol) Literal.of(100)));
 
         FetchPushDown pd = new FetchPushDown(qs, TABLE_REL);
         QueriedDocTable sub = pd.pushDown();
-        assertThat(sub.querySpec().limit().get(), is(110));
-        assertThat(sub.querySpec().offset(), is(0));
+        assertThat(sub.querySpec().limit().get(), is((Symbol) AddFunction.of(Literal.of(10), Literal.of(100))));
+        assertThat(sub.querySpec().offset().isPresent(), is(false));
 
-        assertThat(qs.limit().get(), is(10));
-        assertThat(qs.offset(), is(100));
+        assertThat(qs.limit().get(), is((Symbol) Literal.of(10)));
+        assertThat(qs.offset().get(), is((Symbol) Literal.of(100)));
     }
 
     @Test

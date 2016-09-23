@@ -37,6 +37,7 @@ import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RowGranularity;
+import io.crate.planner.Limits;
 import io.crate.planner.Planner;
 import io.crate.planner.node.NoopPlannedAnalyzedRelation;
 import io.crate.planner.node.dql.CollectAndMerge;
@@ -105,7 +106,8 @@ public class GlobalAggregateConsumer implements Consumer {
         }
 
         Planner.Context plannerContext = context.plannerContext();
-        if (table.querySpec().limit().or(1) < 1 || table.querySpec().offset() > 0) {
+        Limits limits = plannerContext.getLimits(context.isRoot(), table.querySpec());
+        if (limits.finalLimit() == 0 || limits.offset() > 0) {
             return new NoopPlannedAnalyzedRelation(table, plannerContext.jobId());
         }
 

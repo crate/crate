@@ -22,7 +22,10 @@
 
 package io.crate.planner;
 
+import com.google.common.base.Optional;
+import io.crate.analyze.symbol.Symbol;
 import io.crate.operation.projectors.TopN;
+import io.crate.operation.scalar.arithmetic.AddFunction;
 
 public class Limits {
 
@@ -54,5 +57,15 @@ public class Limits {
 
     public int offset() {
         return offset;
+    }
+
+    public static Optional<Symbol> add(Optional<Symbol> s1, Optional<Symbol> s2) {
+        if (s1.isPresent()) {
+            if (s2.isPresent()) {
+                return Optional.of((Symbol) AddFunction.of(s1.get(), s2.get()));
+            }
+            return s1;
+        }
+        return s2;
     }
 }

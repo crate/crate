@@ -22,6 +22,7 @@
 package io.crate.operation.scalar.arithmetic;
 
 import io.crate.analyze.symbol.Function;
+import io.crate.analyze.symbol.Symbol;
 import io.crate.analyze.symbol.format.OperatorFormatSpec;
 import io.crate.metadata.DynamicFunctionResolver;
 import io.crate.metadata.FunctionImplementation;
@@ -30,6 +31,7 @@ import io.crate.operation.Input;
 import io.crate.operation.scalar.ScalarFunctionModule;
 import io.crate.types.DataType;
 
+import java.util.Arrays;
 import java.util.List;
 
 public abstract class AddFunction extends ArithmeticFunction implements OperatorFormatSpec {
@@ -48,6 +50,14 @@ public abstract class AddFunction extends ArithmeticFunction implements Operator
     @Override
     public String operator(Function function) {
         return SQL_SYMBOL;
+    }
+
+    public static Function of(Symbol first, Symbol second) {
+        List<DataType> argumentTypes = Arrays.asList(first.valueType(), second.valueType());
+        if (containsTypesWithDecimal(argumentTypes)) {
+            return new Function(genDoubleInfo(NAME, argumentTypes, true), Arrays.asList(first, second));
+        }
+        return new Function(genLongInfo(NAME, argumentTypes, true), Arrays.asList(first, second));
     }
 
     private static class DoubleAddFunction extends AddFunction {

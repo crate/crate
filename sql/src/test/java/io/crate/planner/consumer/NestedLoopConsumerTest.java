@@ -87,7 +87,7 @@ public class NestedLoopConsumerTest extends CrateUnitTest {
 
     private final ClusterService clusterService = mock(ClusterService.class);
     private NestedLoopConsumer consumer;
-    private final Planner.Context plannerContext = new Planner.Context(clusterService, UUID.randomUUID(), null, new StmtCtx(), 0, 0);
+    private Planner.Context plannerContext;
     private TableStatsService statsService;
 
     @Before
@@ -104,6 +104,17 @@ public class NestedLoopConsumerTest extends CrateUnitTest {
             .createInjector();
         analyzer = injector.getInstance(Analyzer.class);
         planner = injector.getInstance(Planner.class);
+        EvaluatingNormalizer normalizer = new EvaluatingNormalizer(
+            injector.getInstance(Functions.class),
+            RowGranularity.CLUSTER,
+            new NestedReferenceResolver() {
+                @Override
+                public ReferenceImplementation<?> getImplementation(Reference refInfo) {
+                    return null;
+                }
+            }
+        );
+        plannerContext = new Planner.Context(clusterService, UUID.randomUUID(), null, normalizer, new StmtCtx(), 0, 0);
         consumer = new NestedLoopConsumer(clusterService, mock(AnalysisMetaData.class), statsService);
     }
 

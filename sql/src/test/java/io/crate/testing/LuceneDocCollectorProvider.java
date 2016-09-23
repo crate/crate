@@ -26,6 +26,7 @@ import com.google.common.collect.Iterables;
 import io.crate.action.job.SharedShardContexts;
 import io.crate.analyze.Analysis;
 import io.crate.analyze.Analyzer;
+import io.crate.analyze.EvaluatingNormalizer;
 import io.crate.analyze.ParameterContext;
 import io.crate.analyze.relations.PlannedAnalyzedRelation;
 import io.crate.breaker.RamAccountingContext;
@@ -33,8 +34,7 @@ import io.crate.core.collections.Row;
 import io.crate.core.collections.RowN;
 import io.crate.jobs.JobContextService;
 import io.crate.jobs.JobExecutionContext;
-import io.crate.metadata.Routing;
-import io.crate.metadata.StmtCtx;
+import io.crate.metadata.*;
 import io.crate.operation.collect.CrateCollector;
 import io.crate.operation.collect.JobCollectContext;
 import io.crate.operation.collect.MapSideDataCollectOperation;
@@ -67,6 +67,7 @@ public class LuceneDocCollectorProvider implements AutoCloseable {
     private final InternalTestCluster cluster;
     private final Analyzer analyzer;
     private final QueryAndFetchConsumer queryAndFetchConsumer;
+    private final EvaluatingNormalizer normalizer;
 
     private List<JobCollectContext> collectContexts = new ArrayList<>();
 
@@ -74,6 +75,16 @@ public class LuceneDocCollectorProvider implements AutoCloseable {
         this.cluster = cluster;
         this.analyzer = cluster.getDataNodeInstance(Analyzer.class);
         this.queryAndFetchConsumer = cluster.getDataNodeInstance(QueryAndFetchConsumer.class);
+        this.normalizer = new EvaluatingNormalizer(
+            cluster.getInstance(Functions.class),
+            RowGranularity.CLUSTER,
+            new NestedReferenceResolver() {
+                @Override
+                public ReferenceImplementation<?> getImplementation(Reference refInfo) {
+                    return null;
+                }
+            }
+        );
     }
 
     private Iterable<CrateCollector> createNodeCollectors(String nodeId, RoutedCollectPhase collectPhase, RowReceiver downstream) throws Exception {
@@ -99,7 +110,8 @@ public class LuceneDocCollectorProvider implements AutoCloseable {
                 new RowN(args), Collections.<Row>emptyList(), null));
         PlannedAnalyzedRelation plannedAnalyzedRelation = queryAndFetchConsumer.consume(
             analysis.rootRelation(),
-            new ConsumerContext(analysis.rootRelation(), new Planner.Context(cluster.clusterService(), UUID.randomUUID(), null, new StmtCtx(), 0, 0)));
+            new ConsumerContext(analysis.rootRelation(), new Planner.Context(
+                cluster.clusterService(), UUID.randomUUID(), null, normalizer, new StmtCtx(), 0, 0)));
         final RoutedCollectPhase collectPhase = ((RoutedCollectPhase) ((CollectAndMerge) plannedAnalyzedRelation.plan()).collectPhase());
         collectPhase.nodePageSizeHint(nodePageSizeHint);
         Routing routing = collectPhase.routing();

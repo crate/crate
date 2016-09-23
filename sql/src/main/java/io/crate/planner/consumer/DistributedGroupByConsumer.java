@@ -180,7 +180,7 @@ public class DistributedGroupByConsumer implements Consumer {
                 TopNProjection topN = ProjectionBuilder.topNProjection(
                     querySpec.outputs(),
                     querySpec.orderBy().orNull(),
-                    querySpec.offset(),
+                    limits.offset(),
                     limits.finalLimit(),
                     null);
                 localMergeNode = MergePhase.localMerge(

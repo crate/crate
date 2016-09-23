@@ -67,7 +67,8 @@ public class RelationNormalizerTest extends BaseAnalyzerTest {
         QueriedRelation relation = normalize(
             "select * from (select * from t1 limit 10 offset 5) as tt order by x");
         assertThat(relation, instanceOf(QueriedDocTable.class));
-        assertThat(relation.querySpec(), isSQL("SELECT doc.t1.a, doc.t1.x, doc.t1.i ORDER BY doc.t1.x LIMIT 10 OFFSET 5"));
+        assertThat(relation.querySpec(),
+            isSQL("SELECT doc.t1.a, doc.t1.x, doc.t1.i ORDER BY doc.t1.x LIMIT 10 OFFSET 5"));
     }
 
     @Test
@@ -75,7 +76,8 @@ public class RelationNormalizerTest extends BaseAnalyzerTest {
         QueriedRelation relation = normalize(
             "select x from (select * from (select concat(a, a) as aa, x from t1) as t order by aa) as tt order by x");
         assertThat(relation, instanceOf(QueriedDocTable.class));
-        assertThat(relation.querySpec(), isSQL("SELECT doc.t1.x ORDER BY concat(doc.t1.a, doc.t1.a), doc.t1.x"));
+        assertThat(relation.querySpec(),
+            isSQL("SELECT doc.t1.x ORDER BY concat(doc.t1.a, doc.t1.a), doc.t1.x"));
     }
 
     @Test
@@ -83,7 +85,7 @@ public class RelationNormalizerTest extends BaseAnalyzerTest {
         QueriedRelation relation = normalize(
             "select * from (select * from t1 limit 10 offset 5) as tt limit 5 offset 2");
         assertThat(relation, instanceOf(QueriedDocTable.class));
-        assertThat(relation.querySpec(), isSQL("SELECT doc.t1.a, doc.t1.x, doc.t1.i LIMIT 5 OFFSET 7"));
+        assertThat(relation.querySpec(), isSQL("SELECT doc.t1.a, doc.t1.x, doc.t1.i LIMIT least(5, 10) OFFSET add(2, 5)"));
     }
 
     @Test
@@ -93,7 +95,8 @@ public class RelationNormalizerTest extends BaseAnalyzerTest {
             " from (select (xx + i) as xxi, concat(a, a) as aa" +
             "  from (select a, i, (x + x) as xx from t1) as t) as tt");
         assertThat(relation, instanceOf(QueriedDocTable.class));
-        assertThat(relation.querySpec(), isSQL("SELECT concat(doc.t1.a, doc.t1.a), add(add(add(doc.t1.x, doc.t1.x), doc.t1.i), 1)"));
+        assertThat(relation.querySpec(),
+            isSQL("SELECT concat(doc.t1.a, doc.t1.a), add(add(add(doc.t1.x, doc.t1.x), doc.t1.i), 1)"));
     }
 
     @Test
@@ -101,7 +104,8 @@ public class RelationNormalizerTest extends BaseAnalyzerTest {
         QueriedRelation relation = normalize(
             "select x from (select x, (i + i) as ii from t1 where a = 'a') as tt where ii > 10");
         assertThat(relation, instanceOf(QueriedDocTable.class));
-        assertThat(relation.querySpec(), isSQL("SELECT doc.t1.x WHERE ((doc.t1.a = 'a') AND (add(doc.t1.i, doc.t1.i) > 10))"));
+        assertThat(relation.querySpec(),
+            isSQL("SELECT doc.t1.x WHERE ((doc.t1.a = 'a') AND (add(doc.t1.i, doc.t1.i) > 10))"));
     }
 
     @Test
@@ -165,7 +169,8 @@ public class RelationNormalizerTest extends BaseAnalyzerTest {
         QueriedRelation relation = normalize(
             "select * from (select sum(i) as ii, x from t1 group by x) as tt where x = 10");
         assertThat(relation, instanceOf(QueriedDocTable.class));
-        assertThat(relation.querySpec(), isSQL("SELECT sum(doc.t1.i), doc.t1.x WHERE (doc.t1.x = 10) GROUP BY doc.t1.x"));
+        assertThat(relation.querySpec(),
+            isSQL("SELECT sum(doc.t1.i), doc.t1.x WHERE (doc.t1.x = 10) GROUP BY doc.t1.x"));
     }
 
     @Test
@@ -173,7 +178,8 @@ public class RelationNormalizerTest extends BaseAnalyzerTest {
         QueriedRelation relation = normalize(
             "select * from (select sum(i) as ii from t1 group by x) as tt order by ii");
         assertThat(relation, instanceOf(QueriedDocTable.class));
-        assertThat(relation.querySpec(), isSQL("SELECT sum(doc.t1.i) GROUP BY doc.t1.x ORDER BY sum(doc.t1.i)"));
+        assertThat(relation.querySpec(),
+            isSQL("SELECT sum(doc.t1.i) GROUP BY doc.t1.x ORDER BY sum(doc.t1.i)"));
     }
 
     @Test
@@ -194,7 +200,8 @@ public class RelationNormalizerTest extends BaseAnalyzerTest {
             "order by iiy");
         assertThat(relation, instanceOf(MultiSourceSelect.class));
         assertThat(relation.querySpec(), isSQL(
-            "SELECT concat(doc.t1.a, doc.t2.b) WHERE ((doc.t1.a = 'a') OR (doc.t2.b = 'aa')) ORDER BY add(add(doc.t1.i, doc.t2.i), doc.t2.y)"));
+            "SELECT concat(doc.t1.a, doc.t2.b) WHERE ((doc.t1.a = 'a') OR (doc.t2.b = 'aa')) " +
+            "ORDER BY add(add(doc.t1.i, doc.t2.i), doc.t2.y)"));
     }
 
     @Test
@@ -316,6 +323,6 @@ public class RelationNormalizerTest extends BaseAnalyzerTest {
             "order by col3 limit 10 offset 2");
         assertThat(relation, instanceOf(MultiSourceSelect.class));
         assertThat(relation.querySpec(), isSQL(
-            "SELECT doc.t1.a, doc.t2.i ORDER BY doc.t2.y LIMIT 5 OFFSET 7"));
+            "SELECT doc.t1.a, doc.t2.i ORDER BY doc.t2.y LIMIT least(10, 5) OFFSET add(2, 5)"));
     }
 }

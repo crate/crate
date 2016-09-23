@@ -110,9 +110,11 @@ public class ReduceOnCollectorGroupByConsumer implements Consumer {
             GroupByConsumer.validateGroupBySymbols(tableRelation, querySpec.groupBy().get());
             List<Symbol> groupBy = querySpec.groupBy().get();
 
+            Limits limits = context.plannerContext().getLimits(context.isRoot(), querySpec);
             boolean ignoreSorting = context.rootRelation() != table
-                                    && !querySpec.limit().isPresent()
-                                    && querySpec.offset() == TopN.NO_OFFSET;
+                                    && !limits.hasLimit()
+                                    && limits.offset() == TopN.NO_OFFSET;
+
 
             ProjectionBuilder projectionBuilder = new ProjectionBuilder(functions, querySpec);
             SplitPoints splitPoints = projectionBuilder.getSplitPoints();
@@ -155,8 +157,7 @@ public class ReduceOnCollectorGroupByConsumer implements Consumer {
             boolean outputsMatch = querySpec.outputs().size() == collectOutputs.size() &&
                                    collectOutputs.containsAll(querySpec.outputs());
 
-            Limits limits = context.plannerContext().getLimits(context.isRoot(), querySpec);
-            boolean collectorTopN = limits.hasLimit() || querySpec.offset() > 0 || !outputsMatch;
+            boolean collectorTopN = limits.hasLimit() || limits.offset() > 0 || !outputsMatch;
 
             if (collectorTopN) {
                 projections.add(ProjectionBuilder.topNProjection(
@@ -185,7 +186,7 @@ public class ReduceOnCollectorGroupByConsumer implements Consumer {
                     ProjectionBuilder.topNProjection(
                         querySpec.outputs(),
                         null, // omit order by
-                        querySpec.offset(),
+                        limits.offset(),
                         limits.finalLimit(),
                         querySpec.outputs()
                     )
@@ -205,7 +206,7 @@ public class ReduceOnCollectorGroupByConsumer implements Consumer {
                     ProjectionBuilder.topNProjection(
                         collectorTopN ? querySpec.outputs() : collectOutputs,
                         querySpec.orderBy().orNull(),
-                        querySpec.offset(),
+                        limits.offset(),
                         limits.finalLimit(),
                         querySpec.outputs()
                     )

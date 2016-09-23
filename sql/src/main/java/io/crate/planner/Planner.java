@@ -30,6 +30,7 @@ import com.google.common.collect.Multimap;
 import io.crate.analyze.*;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.PlannedAnalyzedRelation;
+import io.crate.analyze.symbol.Literal;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.exceptions.UnhandledServerException;
 import io.crate.metadata.*;
@@ -51,6 +52,7 @@ import io.crate.planner.statement.CopyStatementPlanner;
 import io.crate.planner.statement.DeleteStatementPlanner;
 import io.crate.planner.statement.SetSessionPlan;
 import io.crate.sql.tree.SetStatement;
+import io.crate.types.DataTypes;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
@@ -69,6 +71,7 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
     private final CopyStatementPlanner copyStatementPlanner;
     private final SelectStatementPlanner selectStatementPlanner;
     private final DeleteStatementPlanner deleteStatementPlanner;
+    private final EvaluatingNormalizer normalizer;
 
 
     public static class Context {
@@ -79,6 +82,7 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
         private final ClusterService clusterService;
         private final UUID jobId;
         private final ConsumingPlanner consumingPlanner;
+        private final EvaluatingNormalizer normalizer;
         private final StmtCtx stmtCtx;
         private final int softLimit;
         private final int fetchSize;
@@ -90,12 +94,14 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
         public Context(ClusterService clusterService,
                        UUID jobId,
                        ConsumingPlanner consumingPlanner,
+                       EvaluatingNormalizer normalizer,
                        StmtCtx stmtCtx,
                        int softLimit,
                        int fetchSize) {
             this.clusterService = clusterService;
             this.jobId = jobId;
             this.consumingPlanner = consumingPlanner;
+            this.normalizer = normalizer;
             this.stmtCtx = stmtCtx;
             this.softLimit = softLimit;
             this.fetchSize = fetchSize;
@@ -108,8 +114,17 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
             return queryLimit;
         }
 
+        @Nullable
+        private Integer toInteger(@Nullable Symbol symbol) {
+            if (symbol == null) {
+                return null;
+            }
+            io.crate.operation.Input input = (io.crate.operation.Input) (normalizer.normalize(symbol, stmtCtx));
+            return DataTypes.INTEGER.value(input.value());
+        }
+
         public Limits getLimits(boolean isRootRelation, QuerySpec querySpec) {
-            Optional<Integer> optLimit = querySpec.limit();
+            Optional<Symbol> optLimit = querySpec.limit();
             if (!isRootRelation) {
                 /**
                  * Don't apply softLimit or maxRows on child-relations,
@@ -119,14 +134,17 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
 
                 if (optLimit.isPresent()) {
                     //noinspection OptionalGetWithoutIsPresent it's present!
-                    Integer limit = optLimit.get();
-                    return new Limits(limit, querySpec.offset());
+                    Integer limit = toInteger(optLimit.get());
+                    Integer offset = toInteger(querySpec.offset().or(Literal.ZERO));
+                    return new Limits(limit, offset);
                 } else {
                     return new Limits(TopN.NO_LIMIT, TopN.NO_OFFSET);
                 }
             }
-            int finalLimit = finalLimit(optLimit.orNull(), softLimit);
-            return new Limits(finalLimit, querySpec.offset());
+            Integer limit = toInteger(optLimit.orNull());
+            int finalLimit = finalLimit(limit, softLimit);
+            Integer offset = toInteger(querySpec.offset().or(Literal.ZERO));
+            return new Limits(finalLimit, offset);
         }
 
         public int fetchSize() {
@@ -329,6 +347,8 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
 
     @Inject
     public Planner(ClusterService clusterService,
+                   Functions functions,
+                   NestedReferenceResolver globalResolver,
                    ConsumingPlanner consumingPlanner,
                    UpdateConsumer updateConsumer,
                    CopyStatementPlanner copyStatementPlanner,
@@ -340,6 +360,7 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
         this.copyStatementPlanner = copyStatementPlanner;
         this.selectStatementPlanner = selectStatementPlanner;
         this.deleteStatementPlanner = deleteStatementPlanner;
+        normalizer = new EvaluatingNormalizer(functions, RowGranularity.CLUSTER, globalResolver);
     }
 
     /**
@@ -357,7 +378,7 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
     public Plan plan(Analysis analysis, UUID jobId, int softLimit, int fetchSize) {
         AnalyzedStatement analyzedStatement = analysis.analyzedStatement();
         return process(analyzedStatement, new Context(
-            clusterService, jobId, consumingPlanner, analysis.statementContext(), softLimit, fetchSize));
+            clusterService, jobId, consumingPlanner, normalizer, analysis.statementContext(), softLimit, fetchSize));
     }
 
     @Override
