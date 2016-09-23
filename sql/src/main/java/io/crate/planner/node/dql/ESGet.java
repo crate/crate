@@ -22,8 +22,9 @@
 package io.crate.planner.node.dql;
 
 import com.google.common.base.MoreObjects;
+import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
-import io.crate.analyze.QuerySpec;
+import io.crate.analyze.OrderBy;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.analyze.symbol.Symbols;
 import io.crate.analyze.where.DocKeys;
@@ -41,11 +42,11 @@ import java.util.UUID;
 public class ESGet extends PlanAndPlannedAnalyzedRelation {
 
     private final DocTableInfo tableInfo;
-    private final QuerySpec querySpec;
     private final List<Symbol> sortSymbols;
     private final boolean[] reverseFlags;
     private final Boolean[] nullsFirst;
     private final int executionPhaseId;
+    private final int offset;
     private final UUID jobId;
 
     private final static boolean[] EMPTY_REVERSE_FLAGS = new boolean[0];
@@ -57,27 +58,29 @@ public class ESGet extends PlanAndPlannedAnalyzedRelation {
 
     public ESGet(int executionPhaseId,
                  DocTableInfo tableInfo,
-                 QuerySpec querySpec,
+                 List<Symbol> outputs,
+                 DocKeys docKeys,
+                 Optional<OrderBy> optOrderBY,
                  int limit,
+                 int offset,
                  UUID jobId) {
-
-        assert querySpec.where().docKeys().isPresent();
         this.tableInfo = tableInfo;
-        this.querySpec = querySpec;
-        this.outputs = querySpec.outputs();
-        this.docKeys = querySpec.where().docKeys().get();
+        this.outputs = outputs;
+        this.docKeys = docKeys;
         this.executionPhaseId = executionPhaseId;
+        this.offset = offset;
         this.jobId = jobId;
         this.limit = limit;
 
         outputTypes = Symbols.extractTypes(outputs);
 
-        if (querySpec.orderBy().isPresent()) {
-            this.sortSymbols = querySpec.orderBy().get().orderBySymbols();
-            this.reverseFlags = querySpec.orderBy().get().reverseFlags();
-            this.nullsFirst = querySpec.orderBy().get().nullsFirst();
+        if (optOrderBY.isPresent()){
+            OrderBy orderBy = optOrderBY.get();
+            this.sortSymbols = orderBy.orderBySymbols();
+            this.reverseFlags = orderBy.reverseFlags();
+            this.nullsFirst = orderBy.nullsFirst();
         } else {
-            this.sortSymbols = ImmutableList.<Symbol>of();
+            this.sortSymbols = ImmutableList.of();
             this.reverseFlags = EMPTY_REVERSE_FLAGS;
             this.nullsFirst = EMPTY_NULLS_FIRST;
         }
@@ -91,10 +94,6 @@ public class ESGet extends PlanAndPlannedAnalyzedRelation {
         return tableInfo;
     }
 
-    public QuerySpec querySpec() {
-        return querySpec;
-    }
-
     public DocKeys docKeys() {
         return docKeys;
     }
@@ -104,7 +103,7 @@ public class ESGet extends PlanAndPlannedAnalyzedRelation {
     }
 
     public int offset() {
-        return querySpec().offset();
+        return offset;
     }
 
     public List<Symbol> sortSymbols() {

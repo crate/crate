@@ -23,10 +23,12 @@ package io.crate.planner.consumer;
 
 
 import com.google.common.base.Optional;
+import io.crate.analyze.QuerySpec;
 import io.crate.analyze.relations.QueriedDocTable;
 import io.crate.analyze.where.DocKeys;
 import io.crate.exceptions.VersionInvalidException;
 import io.crate.metadata.doc.DocTableInfo;
+import io.crate.planner.Limits;
 import io.crate.planner.NoopPlan;
 import io.crate.planner.Plan;
 import io.crate.planner.Planner;
@@ -34,30 +36,36 @@ import io.crate.planner.node.dql.ESGet;
 
 public class ESGetStatementPlanner {
 
-
     public static Plan convert(QueriedDocTable table, Planner.Context context) {
-        assert !(table.querySpec().hasAggregates()
-                 || table.querySpec().groupBy().isPresent()
-                 || !table.querySpec().where().docKeys().isPresent());
+        QuerySpec querySpec = table.querySpec();
+        Optional<DocKeys> optKeys = querySpec.where().docKeys();
+        assert !querySpec.hasAggregates() : "Can't create ESGet plan for queries with aggregates";
+        assert !querySpec.groupBy().isPresent() : "Can't create ESGet plan for queries with group by";
+        assert optKeys.isPresent() : "Can't create ESGet without docKeys";
 
         DocTableInfo tableInfo = table.tableRelation().tableInfo();
-        DocKeys docKeys = table.querySpec().where().docKeys().get();
-        if (docKeys.withVersions()) {
+        DocKeys docKeys = optKeys.get();
+        if (docKeys.withVersions()){
             throw new VersionInvalidException();
         }
         if (docKeys.size() == 1 && docKeys.iterator().next().id() == null) {
             // handle: where id in (null)
             return new NoopPlan(context.jobId());
         }
-        Optional<Integer> limit = table.querySpec().limit();
-        if (limit.isPresent() && limit.get() == 0) {
+        Optional<Integer> limit = querySpec.limit();
+        if (limit.isPresent() && limit.get() == 0){
             return new NoopPlan(context.jobId());
         }
-        table.tableRelation().validateOrderBy(table.querySpec().orderBy());
+        table.tableRelation().validateOrderBy(querySpec.orderBy());
+        Limits limits = context.getLimits(true, querySpec);
         return new ESGet(
             context.nextExecutionPhaseId(),
-            tableInfo, table.querySpec(),
-            context.getLimits(true, table.querySpec()).finalLimit(),
+            tableInfo,
+            querySpec.outputs(),
+            optKeys.get(),
+            querySpec.orderBy(),
+            limits.finalLimit(),
+            limits.offset(),
             context.jobId()).plan();
     }
 }

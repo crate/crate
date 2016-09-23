@@ -28,8 +28,10 @@ public class Limits {
 
     final int finalLimit;
     final int limitAndOffset;
+    private final int offset;
 
     Limits(int finalLimit, int offset) {
+        this.offset = offset;
         this.finalLimit = finalLimit;
         if (finalLimit > TopN.NO_LIMIT) {
             this.limitAndOffset = finalLimit + offset;
@@ -48,5 +50,9 @@ public class Limits {
 
     public boolean hasLimit() {
         return finalLimit != TopN.NO_LIMIT;
+    }
+
+    public int offset() {
+        return offset;
     }
 }
