@@ -19,20 +19,18 @@
 # with Crate these terms will supersede the license and you may use the
 # software solely pursuant to the terms of the relevant commercial agreement.
 
-import unittest
 import time
+import unittest
 from crate.client import connect
 from crate.testing.layer import CrateLayer
-
-from testutils.ports import GLOBAL_PORT_POOL
 from testutils.paths import crate_path
+from testutils.ports import GLOBAL_PORT_POOL
 
 CRATE_HTTP_PORT = GLOBAL_PORT_POOL.get()
 CRATE_TRANSPORT_PORT = GLOBAL_PORT_POOL.get()
 
 
 class SigarIntegrationTest(unittest.TestCase):
-
     def test_multiple_probe_selects(self):
         conn = connect('localhost:{}'.format(CRATE_HTTP_PORT))
         cur = conn.cursor()
