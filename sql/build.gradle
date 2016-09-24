@@ -44,15 +44,8 @@ clean.dependsOn(cleanTest)
 sourceSets {
     test {
         resources {
-            srcDir 'src/test/java'
-            include '**/*.Plugin'
-            include '**/*.rst'
-            include '**/*.json'
-            include '**/*.gz'
-            include '**/*.zip'
-            include '**/*.sql'
-            include '**/*.html'
-            include '**/*.jsonp'
+            srcDir 'src/test/resources'
+
         }
     }
     benchmarks {

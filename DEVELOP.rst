@@ -46,7 +46,7 @@ sure that there is a python executable called ``python3`` in the global system
 Before you can build the documentation, you need to setup a development
 environment by running `bootstrap.sh` inside the ``blackbox`` directory::
 
-    
+
     $ cd blackbox
     $ ./bootstrap.sh
 
@@ -115,6 +115,16 @@ Other common tasks are:
  - Running tests during development::
 
     ./gradlew --parallel :sql:test -PtestForks=2 itest gtest
+
+    To enable logging for tests::
+
+    ./gradlew -PtestLogging test
+
+    Use @TestLogging(["<packageName1>:<logLevel1>", ...]) on your
+    test class or test method to enable more detailed logging.
+
+    Example:
+    @TestLogging("io.crate:DEBUG","io.crate.planner.consumer.NestedLoopConsumer:TRACE")
 
  - Run a single test::
 

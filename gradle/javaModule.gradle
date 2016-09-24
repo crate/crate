@@ -9,3 +9,9 @@ repositories {
 sourceCompatibility = "7"
 targetCompatibility = "7"
 
+if (project.hasProperty('testLogging')) {
+    // Used to enable logging for tests
+    test {
+        testLogging.showStandardStreams = true
+    }
+}
