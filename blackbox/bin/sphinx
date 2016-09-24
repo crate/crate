@@ -1,4 +1,5 @@
-#!/bin/sh
+#!/bin/bash
+
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )/.." && pwd )"
 declare -i RESULT=0
 echo "\033[1mCleaning output folder ...\033[0m"
