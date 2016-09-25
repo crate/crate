@@ -32,11 +32,10 @@ import io.crate.analyze.OrderBy;
 import io.crate.analyze.QuerySpec;
 import io.crate.analyze.WhereClause;
 import io.crate.analyze.fetch.FetchFieldExtractor;
-import io.crate.analyze.symbol.DefaultTraversalSymbolVisitor;
-import io.crate.analyze.symbol.Field;
-import io.crate.analyze.symbol.Symbol;
+import io.crate.analyze.symbol.*;
 import io.crate.operation.operator.AndOperator;
 
+import javax.annotation.Nullable;
 import java.util.*;
 
 public final class RelationSplitter {
@@ -151,6 +150,7 @@ public final class RelationSplitter {
         Symbol query = querySpec.where().query();
         assert query != null;
         QuerySplittingVisitor.Context context = QuerySplittingVisitor.INSTANCE.process(querySpec.where().query(), joinPairs);
+        JoinConditionValidator.INSTANCE.process(context.query(), null);
         querySpec.where(new WhereClause(context.query()));
         for (Map.Entry<AnalyzedRelation, Collection<Symbol>> entry : context.queries().asMap().entrySet()) {
             getSpec(entry.getKey()).where(new WhereClause(AndOperator.join(entry.getValue())));
@@ -216,7 +216,7 @@ public final class RelationSplitter {
 
     static class RelationCounter extends DefaultTraversalSymbolVisitor<Set<AnalyzedRelation>, Void> {
 
-        public static final RelationCounter INSTANCE = new RelationCounter();
+        static final RelationCounter INSTANCE = new RelationCounter();
 
         @Override
         public Void visitField(Field field, Set<AnalyzedRelation> context) {
@@ -225,4 +225,27 @@ public final class RelationSplitter {
         }
     }
 
+    private static class JoinConditionValidator extends SymbolVisitor<Void, Symbol> {
+
+        private static final JoinConditionValidator INSTANCE = new JoinConditionValidator();
+
+        @Override
+        public Symbol process(Symbol symbol, @Nullable Void context) {
+            return symbol != null ? super.process(symbol, context) : null;
+        }
+
+        @Override
+        public Symbol visitFunction(Function symbol, Void context) {
+            for (Symbol argument : symbol.arguments()) {
+                process(argument, context);
+            }
+            return null;
+        }
+
+        @Override
+        public Symbol visitMatchPredicate(MatchPredicate matchPredicate, Void context) {
+            throw new IllegalArgumentException("Cannot use MATCH predicates on columns of 2 different relations " +
+                                               "if it cannot be logically applied on each of them separately");
+        }
+    }
 }

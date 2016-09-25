@@ -96,6 +96,25 @@ Arguments
 :match_type: Optional. Defaults to ``best_fields`` for fulltext indices. For details see :ref:`predicates_match_types`.
 
 
+.. note::
+
+    The ``MATCH`` predicate can only be used in the :ref:`sql_dql_where_clause` and on user-created tables.
+    Using the ``MATCH`` predicate on system tables is not supported.
+
+.. note::
+
+    One MATCH predicate cannot combine columns of both relations of a join.
+
+.. note::
+
+    MATCH predicates cannot be used on columns of both relations of a join if they cannot be logically
+    applied to each of them separately. For example:
+
+    This is allowed: FROM t1, t2 WHERE match(t1.txt, 'foo') AND match(t2.txt, 'bar');
+
+    But this is not: FROM t1, t2 WHERE match(t1.txt, 'foo') OR match(t2.txt, 'bar');
+
+
 .. _predicates_match_types:
 
 Match Types
