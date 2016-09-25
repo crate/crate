@@ -32,7 +32,7 @@ from crate.testing.layer import CrateLayer
 from crate.client import connect
 from urllib.request import urlretrieve
 
-HADOOP_VERSION = '2.7.1'
+HADOOP_VERSION = '2.7.3'
 HADOOP_SOURCE = ('http://www-eu.apache.org/dist/hadoop/common/'
                  'hadoop-{version}/hadoop-{version}.tar.gz'.format(version=HADOOP_VERSION))
 CACHE_DIR = os.environ.get(
@@ -103,7 +103,7 @@ class HadoopLayer(object):
         cmd = ['bash',
                self.hadoop_bin, 'jar',
                self.hadoop_mapreduce_client, 'minicluster',
-               '-nnport', NN_PORT, '-nomr', '-D', 'dfs.replication=0', 'dfs.client.use.datanode.hostname=true']
+               '-nnport', NN_PORT, '-nomr', '-D', 'dfs.replication=0']
 
         JAVA_HOME = os.environ.get('JAVA_HOME', '/usr/lib/jvm/java-8-openjdk/')
         self.p = subprocess.Popen(
