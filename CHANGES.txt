@@ -5,6 +5,10 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fix: Prevented usage of ``MATCH`` predicates on columns of both relations
+   of a join if they cannot be applied to each of them separately.
+   eg: FROM t1, t2 WHERE match(t1.txt, 'foo') OR match(t2.txt, 'bar');
+
  - Fix: aggregations on no-match JOIN queries incorrectly returned empty result
    Now these queries fail because aggregations are not supported on joins
 

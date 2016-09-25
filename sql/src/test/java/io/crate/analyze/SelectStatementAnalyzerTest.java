@@ -1160,6 +1160,15 @@ public class SelectStatementAnalyzerTest extends BaseAnalyzerTest {
     }
 
     @Test
+    public void testForbidJoinWhereMatchOnBothTables() throws Exception {
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("Cannot use MATCH predicates on columns of 2 different relations " +
+                                        "if it cannot be logically applied on each of them separately");
+        analyze("select * from users u1, users_multi_pk u2 " +
+                "where match(u1.name, 'Lanistas experimentum!') or match(u2.name, 'Rationes ridetis!')");
+    }
+
+    @Test
     public void testMatchOnIndex() throws Exception {
         SelectAnalyzedStatement analysis = analyze("select * from users where match(name_text_ft, 'Arthur Dent')");
         Function query = (Function) analysis.relation().querySpec().where().query();
