@@ -22,15 +22,16 @@
 
 package io.crate.sql;
 
-import java.util.Locale;
+import com.google.common.annotations.VisibleForTesting;
 
 public class Literals {
 
     public static String quoteStringLiteral(String literal) {
-        return String.format(Locale.ENGLISH, "'%s'", escapeStringLiteral(literal));
+        return "'" + escapeStringLiteral(literal) + "'";
     }
 
-    public static String escapeStringLiteral(String literal) {
+    @VisibleForTesting
+    static String escapeStringLiteral(String literal) {
         return literal.replace("'", "''");
     }
 }
