@@ -34,6 +34,7 @@ import io.crate.analyze.WhereClause;
 import io.crate.analyze.fetch.FetchFieldExtractor;
 import io.crate.analyze.symbol.*;
 import io.crate.operation.operator.AndOperator;
+import io.crate.sql.tree.QualifiedName;
 
 import javax.annotation.Nullable;
 import java.util.*;
@@ -42,6 +43,7 @@ public class RelationSplitter {
 
     private final QuerySpec querySpec;
     private final Set<Symbol> requiredForQuery = new HashSet<>();
+    private final Map<QualifiedName, AnalyzedRelation> relations;
     private Set<Field> canBeFetched;
 
     private static final Supplier<Set<Integer>> INT_SET_SUPPLIER = new Supplier<Set<Integer>>() {
@@ -63,8 +65,10 @@ public class RelationSplitter {
     private RelationSplitter(QuerySpec querySpec, Collection<? extends AnalyzedRelation> relations) {
         this.querySpec = querySpec;
         specs = new IdentityHashMap<>(relations.size());
+        this.relations = new HashMap<>(relations.size());
         for (AnalyzedRelation relation : relations) {
             specs.put(relation, new QuerySpec());
+            this.relations.put(relation.getQualifiedName(), relation);
         }
     }
 
@@ -88,6 +92,10 @@ public class RelationSplitter {
         processOrderBy();
         processWhere();
         processOutputs();
+    }
+
+    private QuerySpec getSpec(QualifiedName relationName) {
+        return specs.get(relations.get(relationName));
     }
 
     private void processOutputs() {
@@ -144,7 +152,7 @@ public class RelationSplitter {
         QuerySplittingVisitor.Context context = QuerySplittingVisitor.INSTANCE.process(querySpec.where().query());
         JoinConditionValidator.INSTANCE.process(context.query(), null);
         querySpec.where(new WhereClause(context.query()));
-        for (Map.Entry<AnalyzedRelation, Collection<Symbol>> entry : context.queries().asMap().entrySet()) {
+        for (Map.Entry<QualifiedName, Collection<Symbol>> entry : context.queries().asMap().entrySet()) {
             getSpec(entry.getKey()).where(new WhereClause(AndOperator.join(entry.getValue())));
         }
     }

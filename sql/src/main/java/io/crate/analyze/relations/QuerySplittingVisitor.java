@@ -28,6 +28,7 @@ import com.google.common.collect.Multimap;
 import io.crate.analyze.symbol.*;
 import io.crate.metadata.ReplacingSymbolVisitor;
 import io.crate.operation.operator.AndOperator;
+import io.crate.sql.tree.QualifiedName;
 
 import javax.annotation.Nullable;
 import java.util.Collections;
@@ -45,7 +46,7 @@ public class QuerySplittingVisitor extends ReplacingSymbolVisitor<QuerySplitting
     public static class Context {
         private AnalyzedRelation seenRelation;
         private final Set<AnalyzedRelation> seenRelations = Collections.newSetFromMap(new IdentityHashMap<AnalyzedRelation, Boolean>());
-        private final Multimap<AnalyzedRelation, Symbol> queries = HashMultimap.create();
+        private final Multimap<QualifiedName, Symbol> queries = HashMultimap.create();
         private boolean multiRelation = false;
         private Symbol query;
 
@@ -53,7 +54,7 @@ public class QuerySplittingVisitor extends ReplacingSymbolVisitor<QuerySplitting
             return query;
         }
 
-        public Multimap<AnalyzedRelation, Symbol> queries() {
+        public Multimap<QualifiedName, Symbol> queries() {
             return queries;
         }
     }
@@ -63,7 +64,7 @@ public class QuerySplittingVisitor extends ReplacingSymbolVisitor<QuerySplitting
         context.query = process(query, context);
         if (!context.multiRelation) {
             assert context.seenRelation != null;
-            context.queries.put(context.seenRelation, context.query);
+            context.queries.put(context.seenRelation.getQualifiedName(), context.query);
             context.query = null;
         }
         return context;
@@ -110,7 +111,7 @@ public class QuerySplittingVisitor extends ReplacingSymbolVisitor<QuerySplitting
             } else if (leftMultiRel) {
                 context.multiRelation = true;
                 if (rightRelation != null) {
-                    context.queries.put(rightRelation, right);
+                    context.queries.put(rightRelation.getQualifiedName(), right);
                     function.arguments().set(1, Literal.BOOLEAN_TRUE);
                     context.seenRelation = null;
                     return function;
@@ -120,7 +121,7 @@ public class QuerySplittingVisitor extends ReplacingSymbolVisitor<QuerySplitting
             } else if (rightMultiRel) {
                 context.multiRelation = true;
                 if (leftRelation != null) {
-                    context.queries.put(leftRelation, left);
+                    context.queries.put(leftRelation.getQualifiedName(), left);
                     function.arguments().set(0, Literal.BOOLEAN_TRUE);
                     context.seenRelation = null;
                     return function;
@@ -136,7 +137,7 @@ public class QuerySplittingVisitor extends ReplacingSymbolVisitor<QuerySplitting
                     context.seenRelation = leftRelation;
                     context.multiRelation = false;
                 } else {
-                    context.queries.put(leftRelation, left);
+                    context.queries.put(leftRelation.getQualifiedName(), left);
                     function.arguments().set(0, Literal.BOOLEAN_TRUE);
                     context.seenRelation = rightRelation;
                 }
