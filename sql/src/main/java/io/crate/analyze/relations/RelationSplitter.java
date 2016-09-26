@@ -34,6 +34,7 @@ import io.crate.analyze.WhereClause;
 import io.crate.analyze.fetch.FetchFieldExtractor;
 import io.crate.analyze.symbol.*;
 import io.crate.operation.operator.AndOperator;
+import io.crate.sql.tree.QualifiedName;
 
 import javax.annotation.Nullable;
 import java.util.*;
@@ -43,6 +44,7 @@ public final class RelationSplitter {
     private final QuerySpec querySpec;
     private final Set<Symbol> requiredForQuery = new HashSet<>();
     private final Map<AnalyzedRelation, QuerySpec> specs;
+    private final Map<QualifiedName, AnalyzedRelation> relations;
     private final List<JoinPair> joinPairs;
     private final List<Symbol> joinConditions;
     private Set<Field> canBeFetched;
@@ -60,8 +62,10 @@ public final class RelationSplitter {
                             List<JoinPair> joinPairs) {
         this.querySpec = querySpec;
         specs = new IdentityHashMap<>(relations.size());
+        this.relations = new HashMap<>(relations.size());
         for (AnalyzedRelation relation : relations) {
             specs.put(relation, new QuerySpec());
+            this.relations.put(relation.getQualifiedName(), relation);
         }
         this.joinPairs = joinPairs;
         joinConditions = new ArrayList<>(joinPairs.size());
@@ -92,6 +96,10 @@ public final class RelationSplitter {
         processOrderBy();
         processWhere();
         processOutputs();
+    }
+
+    private QuerySpec getSpec(QualifiedName relationName) {
+        return specs.get(relations.get(relationName));
     }
 
     private void processOutputs() {
@@ -152,7 +160,7 @@ public final class RelationSplitter {
         QuerySplittingVisitor.Context context = QuerySplittingVisitor.INSTANCE.process(querySpec.where().query(), joinPairs);
         JoinConditionValidator.INSTANCE.process(context.query(), null);
         querySpec.where(new WhereClause(context.query()));
-        for (Map.Entry<AnalyzedRelation, Collection<Symbol>> entry : context.queries().asMap().entrySet()) {
+        for (Map.Entry<QualifiedName, Collection<Symbol>> entry : context.queries().asMap().entrySet()) {
             getSpec(entry.getKey()).where(new WhereClause(AndOperator.join(entry.getValue())));
         }
     }

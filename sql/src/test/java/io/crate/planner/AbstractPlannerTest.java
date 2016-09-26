@@ -83,13 +83,20 @@ public abstract class AbstractPlannerTest extends CrateUnitTest {
     protected static Routing shardRouting(String tableName) {
         return new Routing(TreeMapBuilder.<String, Map<String, List<Integer>>>newMapBuilder()
             .put("nodeOne", TreeMapBuilder.<String, List<Integer>>newMapBuilder().put(tableName, Arrays.asList(1, 2)).map())
-            .put("nodeTow", TreeMapBuilder.<String, List<Integer>>newMapBuilder().put(tableName, Arrays.asList(3, 4)).map())
+            .put("nodeTwo", TreeMapBuilder.<String, List<Integer>>newMapBuilder().put(tableName, Arrays.asList(3, 4)).map())
+            .map());
+    }
+
+    protected static Routing shardRoutingForReplicas(String tableName) {
+        return new Routing(TreeMapBuilder.<String, Map<String, List<Integer>>>newMapBuilder()
+            .put("nodeOne", TreeMapBuilder.<String, List<Integer>>newMapBuilder().put(tableName, Arrays.asList(3, 4)).map())
+            .put("nodeTwo", TreeMapBuilder.<String, List<Integer>>newMapBuilder().put(tableName, Arrays.asList(1, 2)).map())
             .map());
     }
 
     private static final Routing PARTED_ROUTING = new Routing(TreeMapBuilder.<String, Map<String, List<Integer>>>newMapBuilder()
         .put("nodeOne", TreeMapBuilder.<String, List<Integer>>newMapBuilder().put(".partitioned.parted.04232chj", Arrays.asList(1, 2)).map())
-        .put("nodeTow", TreeMapBuilder.<String, List<Integer>>newMapBuilder().map())
+        .put("nodeTwo", TreeMapBuilder.<String, List<Integer>>newMapBuilder().map())
         .map());
 
     private static final Routing CLUSTERED_PARTED_ROUTING = new Routing(TreeMapBuilder.<String, Map<String, List<Integer>>>newMapBuilder()

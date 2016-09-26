@@ -23,6 +23,7 @@ package io.crate.planner;
 
 import com.carrotsearch.hppc.IntHashSet;
 import com.carrotsearch.hppc.IntSet;
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.HashMultimap;
@@ -322,14 +323,18 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
                         return existing.routing;
                     }
                 }
+
+                routing = tableInfo.getRouting(where, preference);
                 // ensure all routings of this table are allocated
+                // and update new routing by merging with existing ones
                 for (TableRouting existingRouting : existingRoutings) {
                     if (!existingRouting.nodesAllocated) {
                         allocateRoutingNodes(tableInfo.ident(), existingRouting.routing.locations());
                         existingRouting.nodesAllocated = true;
                     }
+                    // Merge locations with existing routing
+                    routing.mergeLocations(existingRouting.routing.locations());
                 }
-                routing = tableInfo.getRouting(where, preference);
                 if (!allocateRoutingNodes(tableInfo.ident(), routing.locations())) {
                     throw new UnsupportedOperationException(
                         "Nodes of existing routing are not allocated, routing rebuild needed");
@@ -340,7 +345,8 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
         }
     }
 
-    private static class TableRouting {
+    @VisibleForTesting
+    static class TableRouting {
         final WhereClause where;
         final String preference;
         final Routing routing;

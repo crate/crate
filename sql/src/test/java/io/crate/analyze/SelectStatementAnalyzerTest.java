@@ -849,6 +849,22 @@ public class SelectStatementAnalyzerTest extends BaseAnalyzerTest {
         assertThat(users.querySpec().where().query(), isSQL("(doc.users.name = 'Arthur')"));
     }
 
+    public void testSelfJoinSyntaxWithWhereClause() throws Exception {
+        SelectAnalyzedStatement analysis = analyze("select t2.id from users as t1 join users as t2 on t1.id = t2.id " +
+                                                   "where t1.name = 'foo' and t2.name = 'bar'");
+
+        assertThat(analysis.relation().querySpec().where(), is(WhereClause.MATCH_ALL));
+        assertThat(analysis.relation(), instanceOf(MultiSourceSelect.class));
+
+        MultiSourceSelect.Source source1 = ((MultiSourceSelect) analysis.relation()).sources()
+                                                                                    .get(QualifiedName.of("t1"));
+        MultiSourceSelect.Source source2 = ((MultiSourceSelect) analysis.relation()).sources()
+                                                                                    .get(QualifiedName.of("t2"));
+
+        assertThat(source1.querySpec().where().query(), isSQL("(doc.users.name = 'foo')"));
+        assertThat(source2.querySpec().where().query(), isSQL("(true AND (doc.users.name = 'bar'))"));
+    }
+
     @Test
     public void testJoinWithOrderBy() throws Exception {
         SelectAnalyzedStatement analysis = analyze("select users.id from users, users_multi_pk order by users.id");
@@ -1099,7 +1115,6 @@ public class SelectStatementAnalyzerTest extends BaseAnalyzerTest {
         assertTrue(analysis.relation().querySpec().orderBy().isPresent());
         assertEquals(DistanceFunction.NAME, ((Function) analysis.relation().querySpec().orderBy().get().orderBySymbols().get(0)).info().ident().name());
     }
-
 
     @Test
     public void testWhereMatchOnColumn() throws Exception {

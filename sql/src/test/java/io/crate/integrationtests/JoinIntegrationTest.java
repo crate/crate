@@ -38,6 +38,7 @@ import java.util.concurrent.TimeUnit;
 import static io.crate.testing.TestingHelpers.printRows;
 import static io.crate.testing.TestingHelpers.printedTable;
 import static org.hamcrest.Matchers.arrayContaining;
+import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.core.Is.is;
 
 @ESIntegTestCase.ClusterScope(minNumDataNodes = 2)
@@ -320,9 +321,27 @@ public class JoinIntegrationTest extends SQLTransportIntegrationTest {
     public void testSelfJoin() throws Exception {
         execute("create table t (x int)");
         ensureYellow();
-        execute("insert into t (x) values (1)");
+        execute("insert into t (x) values (1), (2)");
         execute("refresh table t");
         execute("select * from t as t1, t as t2");
+        assertThat(response.rowCount(), is(4L));
+        assertThat(Arrays.asList(response.rows()), containsInAnyOrder(new Object[]{1, 1},
+                                                                      new Object[]{1, 2},
+                                                                      new Object[]{2, 1},
+                                                                      new Object[]{2, 2}));
+    }
+
+    @Test
+    public void testSelfJoinWithOrder() throws Exception {
+        execute("create table t (x int)");
+        ensureYellow();
+        execute("insert into t (x) values (1), (2)");
+        execute("refresh table t");
+        execute("select * from t as t1, t as t2 order by t1.x, t2.x");
+        assertThat(printedTable(response.rows()), is("1| 1\n" +
+                                                     "1| 2\n" +
+                                                     "2| 1\n" +
+                                                     "2| 2\n"));
     }
 
     @Test
@@ -335,10 +354,21 @@ public class JoinIntegrationTest extends SQLTransportIntegrationTest {
         execute("select more.name, less.name, (more.salary - less.salary) from employees as more, employees as less " +
                 "where more.salary > less.salary " +
                 "order by more.salary desc, less.salary desc");
-        assertThat(printedTable(response.rows()), is("" +
-                                                     "Douglas Adams| Trillian| 200.0\n" +
+        assertThat(printedTable(response.rows()), is("Douglas Adams| Trillian| 200.0\n" +
                                                      "Douglas Adams| Ford Perfect| 600.0\n" +
                                                      "Trillian| Ford Perfect| 400.0\n"));
+    }
+
+    @Test
+    public void testFilteredSelfJoinWithFilterOnBothRelations() {
+        execute("create table test(id long primary key, num long, txt string) with (number_of_replicas=1)");
+        ensureYellow();
+        execute("insert into test(id, num, txt) values(1, 1, '1111'), (2, 2, '2222'), (3, 1, '2222'), (4, 2, '2222')");
+        execute("refresh table test");
+
+        execute("select t1.id, t2.id from test as t1 inner join test as t2 on t1.num = t2.num " +
+                "where t1.txt = '1111' and t2.txt='2222'");
+        assertThat(TestingHelpers.printedTable(response.rows()), is("1| 3\n"));
     }
 
     @Test
@@ -492,7 +522,7 @@ public class JoinIntegrationTest extends SQLTransportIntegrationTest {
     }
 
     @Test
-    public void testFetchArrayAndAnalyedColumnsWithJoin() throws Exception {
+    public void testFetchArrayAndAnalyzedColumnsWithJoin() throws Exception {
         execute("create table t1 (id int primary key, text string index using fulltext)");
         execute("create table t2 (id int primary key, tags array(string))");
         ensureYellow();
