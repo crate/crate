@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fixed an issue which could cause ``EXPLAIN`` statements to fail
+
 2016/09/23 0.56.0
 =================
 
