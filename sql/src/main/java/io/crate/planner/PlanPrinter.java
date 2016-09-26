@@ -62,14 +62,14 @@ public class PlanPrinter {
         return refs;
     }
 
-    static class ExecutionPhase2MapVisitor extends ExecutionPhaseVisitor<Void, ImmutableMap.Builder<String, Object>> {
+    private static class ExecutionPhase2MapVisitor extends ExecutionPhaseVisitor<Void, ImmutableMap.Builder<String, Object>> {
 
         public static final ExecutionPhase2MapVisitor INSTANCE = new ExecutionPhase2MapVisitor();
 
         private ExecutionPhase2MapVisitor() {
         }
 
-        public static ImmutableMap.Builder<String, Object> toBuilder(ExecutionPhase node) {
+        static ImmutableMap.Builder<String, Object> toBuilder(ExecutionPhase node) {
             assert node != null;
             return INSTANCE.process(node, null);
         }
@@ -82,7 +82,9 @@ public class PlanPrinter {
                     assert input != null;
                     return Projection2MapVisitor.toBuilder(input).build();
                 }
-            });
+            }).toList();
+            // need to use a List because this is part of a map which is streamed to the client.
+            // Map streaming uses StreamOutput#writeGenericValue which can't handle Iterable
         }
 
         private static ImmutableMap.Builder<String, Object> newBuilder() {
@@ -156,7 +158,7 @@ public class PlanPrinter {
     }
 
 
-    static class Projection2MapVisitor extends ProjectionVisitor<Void, ImmutableMap.Builder<String, Object>> {
+    private static class Projection2MapVisitor extends ProjectionVisitor<Void, ImmutableMap.Builder<String, Object>> {
 
         private static final Projection2MapVisitor INSTANCE = new Projection2MapVisitor();
 
@@ -164,7 +166,7 @@ public class PlanPrinter {
             return ImmutableMap.builder();
         }
 
-        public static ImmutableMap.Builder<String, Object> toBuilder(Projection projection) {
+        static ImmutableMap.Builder<String, Object> toBuilder(Projection projection) {
             assert projection != null;
             return INSTANCE.process(projection, null);
         }
@@ -181,7 +183,7 @@ public class PlanPrinter {
         }
     }
 
-    static class Plan2MapVisitor extends PlanVisitor<Void, ImmutableMap.Builder<String, Object>> {
+    private static class Plan2MapVisitor extends PlanVisitor<Void, ImmutableMap.Builder<String, Object>> {
 
         private static final Plan2MapVisitor INSTANCE = new Plan2MapVisitor();
 
@@ -203,7 +205,7 @@ public class PlanPrinter {
             }
         }
 
-        public static Map<String, Object> toMap(Plan plan) {
+        static Map<String, Object> toMap(Plan plan) {
             assert plan != null;
             return INSTANCE.process(plan, null).build();
         }
