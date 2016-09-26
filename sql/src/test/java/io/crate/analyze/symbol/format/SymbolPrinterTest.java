@@ -331,13 +331,13 @@ public class SymbolPrinterTest extends CrateUnitTest {
     @Test
     public void testPrintInOperator() throws Exception {
         Symbol inQuery = sqlExpressions.asSymbol("bar in (1)");
-        assertPrint(inQuery, "(doc.formatter.bar = ANY([1]))"); // internal in is rewritten to ANY
+        assertPrint(inQuery, "(doc.formatter.bar = ANY(_array(1)))"); // internal in is rewritten to ANY
         FunctionImplementation impl = sqlExpressions.analysisMD().functions().getSafe(new FunctionIdent(InOperator.NAME, Arrays.<DataType>asList(DataTypes.LONG, new SetType(DataTypes.LONG))));
         Function fn = new Function(impl.info(), Arrays.asList(sqlExpressions.asSymbol("bar"), Literal.of(new SetType(DataTypes.LONG), ImmutableSet.of(1L, 2L))));
         assertPrint(fn, "(doc.formatter.bar IN (1, 2))");
         inQuery = sqlExpressions.asSymbol("bar in (1, abs(-10), 9)");
-        assertPrint(inQuery, "(doc.formatter.bar = ANY([1, 9, 10]))");
-        assertPrintStatic(inQuery, "(doc.formatter.bar = ANY([1, 9, 10]))");
+        assertPrint(inQuery, "(doc.formatter.bar = ANY(_array(1, abs(-10), 9)))");
+        assertPrintStatic(inQuery, "(doc.formatter.bar = ANY(_array(1, abs(-10), 9)))");
     }
 
     @Test

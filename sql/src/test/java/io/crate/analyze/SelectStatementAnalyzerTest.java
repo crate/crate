@@ -27,7 +27,10 @@ import com.google.common.collect.Lists;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.QueriedRelation;
 import io.crate.analyze.symbol.*;
-import io.crate.exceptions.*;
+import io.crate.exceptions.AmbiguousColumnAliasException;
+import io.crate.exceptions.ColumnUnknownException;
+import io.crate.exceptions.RelationUnknownException;
+import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.metadata.*;
 import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.metadata.doc.DocTableInfo;
@@ -580,8 +583,8 @@ public class SelectStatementAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void testWhereInSelectDifferentDataTypeValueUncompatibleDataTypes() throws Exception {
-        expectedException.expect(ConversionException.class);
-        expectedException.expectMessage("cannot cast 'foo' to type long");
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("'foo' cannot be cast to type long");
         analyze("select 'found' from users where 1 in (1, 'foo', 2)");
     }
 

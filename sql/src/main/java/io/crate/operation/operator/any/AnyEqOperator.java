@@ -40,7 +40,7 @@ public class AnyEqOperator extends AnyOperator {
         return new FunctionInfo(new FunctionIdent(NAME, ImmutableList.of(targetType, new SetType(targetType))), DataTypes.BOOLEAN);
     }
 
-    static class AnyEqResolver extends AnyResolver {
+    private static class AnyEqResolver extends AnyResolver {
 
         @Override
         public FunctionImplementation<Function> newInstance(FunctionInfo info) {

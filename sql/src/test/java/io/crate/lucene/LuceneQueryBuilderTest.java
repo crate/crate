@@ -415,4 +415,11 @@ public class LuceneQueryBuilderTest extends CrateUnitTest {
         Query eqWithinQuery = convert("within(point, shape)");
         assertThat(eqWithinQuery, instanceOf(LuceneQueryBuilder.Visitor.FunctionFilter.class));
     }
+
+    @Test
+    public void testWhereInIsOptimized() throws Exception {
+        Query query = convert("name in ('foo', 'bar')");
+        assertThat(query, instanceOf(TermsQuery.class));
+        assertThat(query.toString(), is("name:bar name:foo"));
+    }
 }

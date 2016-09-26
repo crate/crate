@@ -50,6 +50,7 @@ import io.crate.operation.predicate.NotPredicate;
 import io.crate.operation.reference.ReferenceResolver;
 import io.crate.operation.scalar.ExtractFunctions;
 import io.crate.operation.scalar.SubscriptFunction;
+import io.crate.operation.scalar.arithmetic.ArrayFunction;
 import io.crate.operation.scalar.cast.CastFunctionResolver;
 import io.crate.operation.scalar.timestamp.CurrentTimestampFunction;
 import io.crate.sql.ExpressionFormatter;
@@ -307,21 +308,15 @@ public class ExpressionAnalyzer {
 
         @Override
         protected Symbol visitInPredicate(InPredicate node, ExpressionAnalysisContext context) {
-            /**
+            /*
              * convert where x IN (values)
              *
              * where values = a list of expressions
              *
              * into
              *
-             *      x = ANY([1, 2, 3])
-             *
-             * if all expressions are literals
-             * otherwise into
-             *
-             *      x = 1 or x = 2 or x = 3 ...
+             *      x = ANY(array(1, 2, 3, ...))
              */
-
             Symbol left = process(node.getValue(), context);
             DataType targetType = left.valueType();
 
@@ -334,37 +329,14 @@ public class ExpressionAnalyzer {
             List<Expression> expressions = ((InListExpression) node.getValueList()).getValues();
             List<Symbol> symbols = new ArrayList<>(expressions.size());
 
-            boolean allLiterals = true;
             for (Expression expression : expressions) {
-                Symbol symbol = normalize(process(expression, context), context.statementContext());
-                allLiterals = allLiterals & symbol.symbolType().isValueSymbol();
-                symbols.add(symbol);
+                symbols.add(castIfNeededOrFail(process(expression, context), targetType));
             }
-
-            if (allLiterals) {
-                Set<Object> values = new HashSet<>(symbols.size());
-                Symbols.addValuesToCollection(values, targetType, symbols);
-                return context.allocateFunction(
-                    AnyEqOperator.createInfo(targetType),
-                    Arrays.asList(left, Literal.of(new SetType(targetType), values)));
-            }
-
-            Set<Function> comparisons = new HashSet<>(expressions.size());
-            FunctionInfo eqInfo = EqOperator.createInfo(targetType);
-            for (Symbol symbol : symbols) {
-                comparisons.add(context.allocateFunction(eqInfo, Arrays.asList(left, castIfNeededOrFail(symbol, targetType))));
-            }
-
-            if (comparisons.size() == 1) {
-                return comparisons.iterator().next();
-            } else {
-                Iterator<Function> iter = comparisons.iterator();
-                Symbol result = iter.next();
-                while (iter.hasNext()) {
-                    result = context.allocateFunction(OrOperator.INFO, Arrays.asList(result, iter.next()));
-                }
-                return result;
-            }
+            return context.allocateFunction(
+                AnyEqOperator.createInfo(targetType),
+                Arrays.asList(
+                    left, context.allocateFunction(ArrayFunction.createInfo(Symbols.extractTypes(symbols)), symbols))
+            );
         }
 
         @Override

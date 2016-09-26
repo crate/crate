@@ -24,9 +24,7 @@ package io.crate.analyze.symbol;
 import com.google.common.base.Predicate;
 import com.google.common.collect.Lists;
 import io.crate.Streamer;
-import io.crate.exceptions.ConversionException;
 import io.crate.metadata.*;
-import io.crate.operation.Input;
 import io.crate.types.DataType;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
@@ -91,18 +89,6 @@ public class Symbols {
             }
         }
         return false;
-    }
-
-    public static Collection<Object> addValuesToCollection(Collection<Object> collection, DataType targetType, List<Symbol> symbols) {
-        for (Symbol symbol : symbols) {
-            assert symbol instanceof Input : "each symbol must be a literal to extract values";
-            try {
-                collection.add(targetType.value(((Input) symbol).value()));
-            } catch (IllegalArgumentException | ClassCastException e) {
-                throw new ConversionException(((Input) symbol).value(), targetType);
-            }
-        }
-        return collection;
     }
 
     public static void toStream(Collection<? extends Symbol> symbols, StreamOutput out) throws IOException {

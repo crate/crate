@@ -117,7 +117,7 @@ public class ShowStatementsAnalyzerTest extends BaseAnalyzerTest {
 
         assertThat(analyzedStatement.relation().querySpec(), isSQL(
             "SELECT information_schema.tables.table_name " +
-            "WHERE (NOT (information_schema.tables.schema_name = ANY(['information_schema', 'pg_catalog', 'sys']))) " +
+            "WHERE (NOT (information_schema.tables.schema_name = ANY(_array('information_schema', 'sys', 'pg_catalog')))) " +
             "GROUP BY information_schema.tables.table_name " +
             "ORDER BY information_schema.tables.table_name"));
     }
@@ -137,7 +137,7 @@ public class ShowStatementsAnalyzerTest extends BaseAnalyzerTest {
 
         assertThat(analyzedStatement.relation().querySpec(), isSQL(
             "SELECT information_schema.tables.table_name " +
-            "WHERE ((NOT (information_schema.tables.schema_name = ANY(['information_schema', 'pg_catalog', 'sys']))) " +
+            "WHERE ((NOT (information_schema.tables.schema_name = ANY(_array('information_schema', 'sys', 'pg_catalog')))) " +
             "AND (information_schema.tables.table_name LIKE '%')) " +
             "GROUP BY information_schema.tables.table_name " +
             "ORDER BY information_schema.tables.table_name"));
@@ -159,7 +159,7 @@ public class ShowStatementsAnalyzerTest extends BaseAnalyzerTest {
 
         assertThat(analyzedStatement.relation().querySpec(), isSQL(
             "SELECT information_schema.tables.table_name " +
-            "WHERE ((NOT (information_schema.tables.schema_name = ANY(['information_schema', 'pg_catalog', 'sys']))) " +
+            "WHERE ((NOT (information_schema.tables.schema_name = ANY(_array('information_schema', 'sys', 'pg_catalog')))) " +
             "AND (information_schema.tables.table_name LIKE '%')) " +
             "GROUP BY information_schema.tables.table_name " +
             "ORDER BY information_schema.tables.table_name"));
