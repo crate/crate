@@ -22,6 +22,7 @@
 package io.crate.analyze.relations;
 
 import com.google.common.base.Optional;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
 import io.crate.analyze.*;
@@ -41,6 +42,7 @@ import io.crate.exceptions.ValidationException;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.doc.DocTableInfo;
+import io.crate.metadata.sys.SysClusterTableInfo;
 import io.crate.metadata.table.Operation;
 import io.crate.metadata.table.TableInfo;
 import io.crate.metadata.tablefunctions.TableFunctionImplementation;
@@ -64,6 +66,11 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
     private final AnalysisMetaData analysisMetaData;
     private static final EnumSet<Join.Type> ALLOWED_JOIN_TYPES =
         EnumSet.of(Join.Type.CROSS, Join.Type.INNER, Join.Type.LEFT, Join.Type.RIGHT, Join.Type.FULL);
+    private static final List<Relation> SYS_CLUSTER_SOURCE = ImmutableList.<Relation>of(
+        new Table(new QualifiedName(
+            ImmutableList.of(SysClusterTableInfo.IDENT.schema(), SysClusterTableInfo.IDENT.name()))
+        )
+    );
 
     @Inject
     public RelationAnalyzer(ClusterService clusterService, AnalysisMetaData analysisMetaData) {
@@ -126,15 +133,14 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
 
     @Override
     protected AnalyzedRelation visitQuerySpecification(QuerySpecification node, StatementAnalysisContext statementContext) {
-        if (node.getFrom() == null) {
-            throw new IllegalArgumentException("FROM clause is missing.");
-        }
+        List<Relation> from = node.getFrom() != null ? node.getFrom() : SYS_CLUSTER_SOURCE;
 
         statementContext.startRelation();
 
-        for (Relation relation : node.getFrom()) {
+        for (Relation relation : from) {
             process(relation, statementContext);
         }
+
         RelationAnalysisContext context = statementContext.currentRelationContext();
         ExpressionAnalysisContext expressionAnalysisContext = context.expressionAnalysisContext();
         WhereClause whereClause = context.expressionAnalyzer()

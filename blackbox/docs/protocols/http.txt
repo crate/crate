@@ -242,12 +242,12 @@ Client libraries should use the error code to translate the error into an
 appropriate exception::
 
     sh$ curl -sSXPOST '127.0.0.1:4200/_sql?pretty' -d '{
-    ... "stmt":"select name, position"
+    ... "stmt":"select name, position from foo.locations"
     ... }'
     {
       "error" : {
-        "message" : "SQLActionException[SQLParseException: FROM clause is missing.]",
-        "code" : 4000
+        "message" : "SQLActionException[SchemaUnknownException: Schema 'foo' unknown]",
+        "code" : 4045
       }
     }
 
@@ -255,12 +255,12 @@ To get more insight into what exactly went wrong an additional `error_trace`
 GET parameter can be specified to return the stack trace::
 
     sh$ curl -sSXPOST '127.0.0.1:4200/_sql?pretty&error_trace=True' -d '{
-    ... "stmt":"select name, position"
+    ... "stmt":"select name, position from foo.locations"
     ... }'
     {
       "error" : {
-        "message" : "SQLActionException[SQLParseException: FROM clause is missing.]",
-        "code" : 4000
+        "message" : "SQLActionException[SchemaUnknownException: Schema 'foo' unknown]",
+        "code" : 4045
       },
       "error_trace" : "..."
     }

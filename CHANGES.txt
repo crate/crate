@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Support ``SELECT`` queries without the ``FROM`` clause. Such queries are
+   executed against the ``sys.cluster`` table.
+
  - Fix: ``WHERE`` clauses with a ``NOT`` operator where the column
    reference resolves to ``NULL`` now return the correct results:
    ``NOT NULL`` -> ``NULL`` -> no match

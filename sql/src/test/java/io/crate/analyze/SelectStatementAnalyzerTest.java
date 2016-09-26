@@ -750,12 +750,10 @@ public class SelectStatementAnalyzerTest extends BaseAnalyzerTest {
     }
 
     @Test
-    public void testNoFrom() throws Exception {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("FROM clause is missing.");
-        analyze("select name");
+    public void testNoFromResultsInSysClusterQuery() throws Exception {
+        SelectAnalyzedStatement analysis = analyze("select 'bar', name");
+        assertThat(analysis.relation().querySpec(), isSQL("SELECT 'bar', sys.cluster.name"));
     }
-
 
     @Test
     public void test2From() throws Exception {
