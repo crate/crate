@@ -236,7 +236,7 @@ public class SymbolPrinter {
 
         private String anyOperatorName(String functionName) {
             // handles NOT_LIKE -> NOT LIKE
-            return functionName.substring(4).replace("_", " ").toUpperCase(Locale.ENGLISH);
+            return functionName.substring(4).replace('_', ' ').toUpperCase(Locale.ENGLISH);
         }
 
         private void printInOperator(Function function, final SymbolPrinterContext context) {
