@@ -534,13 +534,7 @@ public class ExpressionAnalyzer {
                 return Literal.NULL;
             }
             expression = castIfNeededOrFail(expression, DataTypes.STRING);
-            Symbol pattern = normalize(
-                castIfNeededOrFail(process(node.getPattern(), context), DataTypes.STRING),
-                context.statementContext());
-            assert pattern != null : "pattern must not be null";
-            if (!pattern.symbolType().isValueSymbol()) {
-                throw new UnsupportedOperationException("<expression> LIKE <pattern>: pattern must not be a reference.");
-            }
+            Symbol pattern = castIfNeededOrFail(process(node.getPattern(), context), DataTypes.STRING);
             FunctionIdent functionIdent = FunctionIdent.of(LikeOperator.NAME, expression.valueType(), pattern.valueType());
             return context.allocateFunction(getFunctionInfo(functionIdent), Arrays.asList(expression, pattern));
         }

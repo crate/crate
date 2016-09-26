@@ -701,12 +701,6 @@ public class SelectStatementAnalyzerTest extends BaseAnalyzerTest {
         assertThat((BytesRef) stringLiteral.value(), is(new BytesRef("1")));
     }
 
-
-    @Test(expected = UnsupportedOperationException.class)
-    public void testLikeReferenceInPatternInWhereQuery() {
-        analyze("select * from sys.nodes where 1 like name");
-    }
-
     @Test
     public void testLikeLongDataTypeInWhereQuery() {
         SelectAnalyzedStatement analysis = analyze("select * from sys.nodes where 1 like 2");

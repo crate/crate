@@ -404,6 +404,12 @@ public class LuceneQueryBuilderTest extends CrateUnitTest {
     }
 
     @Test
+    public void testLikeWithBothSidesReferences() throws Exception {
+        Query query = convert("name like name");
+        assertThat(query, instanceOf(LuceneQueryBuilder.Visitor.FunctionFilter.class));
+    }
+
+    @Test
     public void testWithinFunctionWithShapeReference() throws Exception {
         // shape references cannot use the inverted index, so use generic function here
         Query eqWithinQuery = convert("within(point, shape)");

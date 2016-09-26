@@ -24,7 +24,7 @@ import io.crate.analyze.symbol.Function;
 import io.crate.analyze.symbol.Literal;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.metadata.StmtCtx;
-import io.crate.test.integration.CrateUnitTest;
+import io.crate.operation.scalar.AbstractScalarFunctionsTest;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
 import org.junit.Test;
@@ -33,7 +33,7 @@ import java.util.Arrays;
 
 import static io.crate.operation.operator.LikeOperator.DEFAULT_ESCAPE;
 
-public class LikeOperatorTest extends CrateUnitTest {
+public class LikeOperatorTest extends AbstractScalarFunctionsTest {
 
     private static Symbol normalizeSymbol(String expression, String pattern) {
         LikeOperator op = new LikeOperator(
@@ -54,6 +54,12 @@ public class LikeOperatorTest extends CrateUnitTest {
     public void testNormalizeSymbolEqual() {
         assertTrue(likeNormalize("foo", "foo"));
         assertFalse(likeNormalize("notFoo", "foo"));
+    }
+
+    @Test
+    public void testPatternIsNoLiteral() throws Exception {
+        assertEvaluate("name like timezone", false, Literal.of("foo"), Literal.of("bar"));
+        assertEvaluate("name like name", true, Literal.of("foo"), Literal.of("foo"));
     }
 
     @Test
