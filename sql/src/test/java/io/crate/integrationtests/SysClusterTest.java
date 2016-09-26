@@ -35,7 +35,7 @@ public class SysClusterTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testSysCluster() throws Exception {
-        execute("select id from sys.cluster");
+        execute("select id");
         assertThat(response.rowCount(), is(1L));
         assertThat(((String) response.rows()[0][0]).length(), is(36)); // looks like a uuid
     }
