@@ -42,6 +42,14 @@ public class NotPredicateTest extends CrateUnitTest {
     private final StmtCtx stmtCtx = new StmtCtx();
 
     @Test
+    public void testNormalizeSymbolNull() throws Exception {
+        NotPredicate predicate = new NotPredicate();
+        Function not = new Function(predicate.info(), Arrays.<Symbol>asList(Literal.NULL));
+
+        assertThat(predicate.normalizeSymbol(not, stmtCtx), isLiteral(null));
+    }
+
+    @Test
     public void testNormalizeSymbolBoolean() throws Exception {
         NotPredicate predicate = new NotPredicate();
         Function not = new Function(predicate.info(), Arrays.<Symbol>asList(Literal.newLiteral(true)));

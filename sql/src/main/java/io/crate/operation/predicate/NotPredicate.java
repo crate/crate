@@ -60,7 +60,10 @@ public class NotPredicate extends Scalar<Boolean, Boolean> implements OperatorFo
         if (arg instanceof Input) {
             Object value = ((Input) arg).value();
             if (value == null) {
-                return Literal.BOOLEAN_TRUE;
+                /**
+                 * WHERE NOT NULL -> WHERE NULL
+                 */
+                return Literal.NULL;
             }
             if (value instanceof Boolean) {
                 return Literal.newLiteral(!((Boolean) value));
