@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fixed evaluation of ``NOT NULL`` (=> ``NULL``) in ``WHERE`` clause
+
  - Fix: The ``count`` aggregation function counts null values.
    E.g. count(cast(null as string))
 
