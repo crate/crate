@@ -24,6 +24,7 @@ package io.crate.analyze;
 import com.google.common.collect.ImmutableSet;
 import io.crate.metadata.MetaDataModule;
 import io.crate.operation.operator.OperatorModule;
+import io.crate.sql.tree.SetStatement;
 import io.crate.testing.MockedClusterServiceModule;
 import org.elasticsearch.common.inject.Module;
 import org.elasticsearch.common.settings.Settings;
@@ -55,22 +56,58 @@ public class SetAnalyzerTest extends BaseAnalyzerTest {
     }
 
     @Test
-    public void testSet() throws Exception {
+    public void testSetGlobal() throws Exception {
         SetAnalyzedStatement analysis = analyze("SET GLOBAL PERSISTENT stats.operations_log_size=1");
         assertThat(analysis.isPersistent(), is(true));
+        assertThat(analysis.scope(), is(SetStatement.Scope.GLOBAL));
         assertThat(analysis.settings().toDelimitedString(','), is("stats.operations_log_size=1,"));
 
         analysis = analyze("SET GLOBAL TRANSIENT stats.jobs_log_size=2");
         assertThat(analysis.isPersistent(), is(false));
+        assertThat(analysis.scope(), is(SetStatement.Scope.GLOBAL));
         assertThat(analysis.settings().toDelimitedString(','), is("stats.jobs_log_size=2,"));
 
-        analysis = analyze("SET GLOBAL TRANSIENT stats.enabled=false, stats.operations_log_size=0, stats.jobs_log_size=0");
+        analysis = analyze("SET GLOBAL TRANSIENT stats.enabled=false, stats.operations_log_size=0, stats.jobs_log_size='0'");
+        assertThat(analysis.scope(), is(SetStatement.Scope.GLOBAL));
         assertThat(analysis.isPersistent(), is(false));
         assertThat(analysis.settings(), is(Settings.builder()
                 .put("stats.enabled", false)
                 .put("stats.operations_log_size", 0)
                 .put("stats.jobs_log_size", 0)
                 .build()));
+    }
+
+    @Test
+    public void testSetLocal() throws Exception {
+        SetAnalyzedStatement analysis = analyze("SET LOCAL stats.jobs_log_size TO 2");
+        assertThat(analysis.scope(), is(SetStatement.Scope.LOCAL));
+        assertThat(analysis.settings().toDelimitedString(','), is("stats.jobs_log_size=[2],"));
+
+        analysis = analyze("SET LOCAL stats.jobs_log_size TO DEFAULT");
+        assertThat(analysis.scope(), is(SetStatement.Scope.LOCAL));
+        assertThat(analysis.settings().toDelimitedString(','), is("stats.jobs_log_size=[],"));
+    }
+
+    @Test
+    public void testSetSession() throws Exception {
+        SetAnalyzedStatement analysis = analyze("SET SESSION stats.jobs_log_size TO 2");
+        assertThat(analysis.scope(), is(SetStatement.Scope.SESSION));
+        assertThat(analysis.settings().toDelimitedString(','), is("stats.jobs_log_size=[2],"));
+
+        analysis = analyze("SET SESSION stats.jobs_log_size = 1,2,3");
+        assertThat(analysis.scope(), is(SetStatement.Scope.SESSION));
+        assertThat(analysis.settings().toDelimitedString(','), is("stats.jobs_log_size=[1, 2, 3],"));
+    }
+
+    @Test
+    public void testSet() throws Exception {
+        SetAnalyzedStatement analysis = analyze("SET stats.jobs_log_size TO 2");
+        assertThat(analysis.scope(), is(SetStatement.Scope.SESSION));
+        assertThat(analysis.settings().toDelimitedString(','), is("stats.jobs_log_size=[2],"));
+
+        analysis = analyze("SET stats.jobs_log_size = DEFAULT");
+        assertThat(analysis.scope(), is(SetStatement.Scope.SESSION));
+        assertThat(analysis.settings().toDelimitedString(','), is("stats.jobs_log_size=[],"));
     }
 
     @Test

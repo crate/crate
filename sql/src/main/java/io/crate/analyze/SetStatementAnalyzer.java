@@ -40,23 +40,23 @@ public class SetStatementAnalyzer {
     private SetStatementAnalyzer() {}
 
     public static SetAnalyzedStatement analyze(SetStatement node, ParameterContext parameterContext) {
-        if (SetStatement.Scope.SESSION.equals(node.scope())) {
-            logger.debug("SET SESSION STATEMENT: {}", node.toString());
+        if (!SetStatement.Scope.GLOBAL.equals(node.scope())) {
+            logger.warn("SET STATEMENT: {}", node);
         }
+
         Settings.Builder builder = Settings.builder();
         for (Assignment assignment : node.assignments()) {
             String settingsName = ExpressionToStringVisitor.convert(assignment.columnName(),
                     parameterContext.parameters());
 
-            if (SetStatement.Scope.SESSION.equals(node.scope())) {
-                builder.put(settingsName, assignment.expressions());
-            } else {
+            if (SetStatement.Scope.GLOBAL.equals(node.scope())) {
                 SettingsApplier settingsApplier = CrateSettings.getSettingsApplier(settingsName);
                 for (String setting : ExpressionToSettingNameListVisitor.convert(assignment)) {
                     checkIfSettingIsRuntime(setting);
                 }
-
                 settingsApplier.apply(builder, parameterContext.parameters(), assignment.expression());
+            } else {
+                builder.put(settingsName, assignment.expressions());
             }
         }
         return new SetAnalyzedStatement(node.scope(), builder.build(),
