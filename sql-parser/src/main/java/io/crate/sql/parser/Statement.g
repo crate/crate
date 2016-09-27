@@ -139,7 +139,6 @@ tokens {
     SET_SESSION;
     SET_LOCAL;
     EXPR_LIST;
-    DEFAULT;
 }
 
 @header {
@@ -531,6 +530,12 @@ simpleExpr
 identExpr
     : parameterOrSimpleLiteral
     | ident                     -> ^(IDENT_EXPR ident)
+    ;
+
+setExpr
+    : STRING
+    | numericLiteral
+    | ident -> ^(IDENT_EXPR ident)
     ;
 
 parameterOrLiteral
@@ -1114,17 +1119,13 @@ setGlobalAssignment
     : numericExpr (EQ|TO) expr -> ^(ASSIGNMENT numericExpr expr)
     ;
 
-
 setAssignment
-    : (numericExpr (EQ|TO) setExprList) => numericExpr (EQ|TO) setExprList -> ^(ASSIGNMENT numericExpr setExprList)
+    : numericExpr (EQ|TO) setExprList -> ^(ASSIGNMENT numericExpr setExprList)
     ;
 
 setExprList
-    : expr (',' expr)* -> ^(EXPR_LIST expr+)
-    ;
-
-settingDefault
-    : DEFAULT -> ^(DEFAULT)
+    : DEFAULT
+    | setExpr ( ',' setExpr )* -> ^(EXPR_LIST setExpr+)
     ;
 
 killStmt
@@ -1138,7 +1139,7 @@ optimizeStmt
 
 nonReserved
     : ALIAS | ANALYZER | BERNOULLI | BLOB | CATALOGS | CHAR_FILTERS | CLUSTERED
-    | COLUMNS | COPY | CURRENT | DATE | DAY | DEFAULT | DISTRIBUTED | DUPLICATE | DYNAMIC | EXPLAIN
+    | COLUMNS | COPY | CURRENT | DATE | DAY | DISTRIBUTED | DUPLICATE | DYNAMIC | EXPLAIN
     | EXTENDS | FOLLOWING | FORMAT | FULLTEXT | FUNCTIONS | GEO_POINT | GEO_SHAPE | GLOBAL
     | GRAPHVIZ | HOUR | IGNORED | KEY | KILL | LOGICAL  | LOCAL | MATERIALIZED | MINUTE
     | MONTH | OFF | ONLY | OVER | OPTIMIZE | PARTITION | PARTITIONED | PARTITIONS | PLAIN

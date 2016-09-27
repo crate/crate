@@ -375,16 +375,30 @@ public class TestStatementBuilder {
 
     @Test
     public void testSetSession() throws Exception {
-        printStatement("set global some_setting = '1'");
-        printStatement("set global some_setting = '1', other_setting = 2");
         printStatement("set some_setting = DEFAULT");
-        printStatement("set session some_setting = '1'");
+        printStatement("set some_setting = 'value'");
+        printStatement("set some_setting = 1, '2', foo");
+
+        printStatement("set some_setting TO DEFAULT");
+        printStatement("set some_setting TO 'value'");
+        printStatement("set some_setting TO 1, 2, 3");
+
+        printStatement("set session some_setting = DEFAULT");
+        printStatement("set session some_setting = 'value'");
+        printStatement("set session some_setting = 1, 2, 3");
+
         printStatement("set session some_setting TO DEFAULT");
-        printStatement("set session some_setting TO '1'");
-        printStatement("set local some_setting = '1'");
-        printStatement("set local some_setting TO '1'");
+        printStatement("set session some_setting TO 'value'");
+        printStatement("set session some_setting TO 1, 2, 3");
+
         printStatement("set local some_setting = DEFAULT");
+        printStatement("set local some_setting = 'value'");
         printStatement("set local some_setting = 1, 2, 3");
+
+        printStatement("set local some_setting TO DEFAULT");
+        printStatement("set local some_setting TO 'value'");
+        printStatement("set local some_setting TO 1, 2, 3");
+
     }
 
     @Test

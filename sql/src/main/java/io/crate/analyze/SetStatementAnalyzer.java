@@ -51,7 +51,7 @@ public class SetStatementAnalyzer {
                 parameterContext.parameters());
 
             if (SetStatement.Scope.SESSION.equals(node.scope())) {
-                builder.put(settingsName, assignment.expression());
+                builder.put(settingsName, assignment.expressions());
             } else {
                 SettingsApplier settingsApplier = CrateSettings.getSettingsApplier(settingsName);
                 for (String setting : ExpressionToSettingNameListVisitor.convert(assignment)) {
