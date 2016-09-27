@@ -1103,21 +1103,8 @@ public class SelectStatementAnalyzerTest extends BaseAnalyzerTest {
     public void testWhereMatchOnColumn() throws Exception {
         SelectAnalyzedStatement analysis = analyze("select * from users where match(name, 'Arthur Dent')");
         Function query = (Function) analysis.relation().querySpec().where().query();
-        assertThat(query.info().ident().name(), is("match"));
-        assertThat(query.arguments().size(), is(4));
-        assertThat(query.arguments().get(0), Matchers.instanceOf(Literal.class));
-        Literal<Map<String, Object>> idents = (Literal<Map<String, Object>>) query.arguments().get(0);
-
-        assertThat(idents.value().size(), is(1));
-        assertThat(idents.value().get("name"), is(nullValue()));
-
-        assertThat(query.arguments().get(1), Matchers.instanceOf(Literal.class));
-        assertThat(query.arguments().get(1), isLiteral("Arthur Dent", DataTypes.STRING));
-        assertThat(query.arguments().get(2), isLiteral("best_fields", DataTypes.STRING));
-
-        Literal<Map<String, Object>> options = (Literal<Map<String, Object>>) query.arguments().get(3);
-        assertThat(options.value(), Matchers.instanceOf(Map.class));
-        assertThat(options.value().size(), is(0));
+        assertThat(query, isFunction("match"));
+        assertThat(io.crate.analyze.symbol.MatchPredicate.extractField(query.arguments()), is("name"));
     }
 
     @Test
@@ -1134,20 +1121,12 @@ public class SelectStatementAnalyzerTest extends BaseAnalyzerTest {
         SelectAnalyzedStatement analysis = analyze("select * from users where match(name_text_ft, 'Arthur Dent')");
         Function query = (Function) analysis.relation().querySpec().where().query();
         assertThat(query.info().ident().name(), is("match"));
-        assertThat(query.arguments().size(), is(4));
-        assertThat(query.arguments().get(0), Matchers.instanceOf(Literal.class));
-        Literal<Map<String, Object>> idents = (Literal<Map<String, Object>>) query.arguments().get(0);
-
-        assertThat(idents.value().size(), is(1));
-        assertThat(idents.value().get("name_text_ft"), is(nullValue()));
-
-        assertThat(query.arguments().get(1), Matchers.instanceOf(Literal.class));
-        assertThat(query.arguments().get(1), isLiteral("Arthur Dent", DataTypes.STRING));
-        assertThat(query.arguments().get(2), isLiteral("best_fields", DataTypes.STRING));
-
-        Literal<Map<String, Object>> options = (Literal<Map<String, Object>>) query.arguments().get(3);
-        assertThat(options.value(), Matchers.instanceOf(Map.class));
-        assertThat(options.value().size(), is(0));
+        List<Symbol> arguments = query.arguments();
+        assertThat(arguments.size(), is(17));
+        assertThat(arguments.get(0), isLiteral("Arthur Dent"));
+        assertThat(arguments.get(1), isLiteral("best_fields"));
+        assertThat(io.crate.analyze.symbol.MatchPredicate.extractField(arguments), is("name_text_ft"));
+        assertThat(io.crate.analyze.symbol.MatchPredicate.extractOptions(arguments).size(), is(0));
     }
 
     @Test
@@ -1179,28 +1158,17 @@ public class SelectStatementAnalyzerTest extends BaseAnalyzerTest {
     }
 
     @Test
-    public void testMatchPredicateWithWrongQueryTerm() throws Exception {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("cannot cast {} to string");
-        analyze("select name from users order by match(name, {})");
-
-    }
-
-    @Test
     public void testSelectWhereSimpleMatchPredicate() throws Exception {
         SelectAnalyzedStatement analysis = analyze("select * from users where match (text, 'awesome')");
         assertThat(analysis.relation().querySpec().where().hasQuery(), is(true));
         Function query = (Function) analysis.relation().querySpec().where().query();
 
         assertThat(query.info().ident().name(), is(MatchPredicate.NAME));
-        assertThat(query.arguments().size(), is(4));
+        assertThat(query.arguments().size(), is(17));
         assertThat(query.arguments().get(0), Matchers.instanceOf(Literal.class));
-        Literal<Map<String, Object>> idents = (Literal<Map<String, Object>>) query.arguments().get(0);
 
-        assertThat(idents.value().keySet(), hasItem("text"));
-        assertThat(idents.value().get("text"), is(nullValue()));
-        assertThat(query.arguments().get(1), instanceOf(Literal.class));
-        assertThat(query.arguments().get(1), isLiteral("awesome", DataTypes.STRING));
+        assertThat(io.crate.analyze.symbol.MatchPredicate.extractField(query.arguments()), is("text"));
+        assertThat(query.arguments().get(0), isLiteral("awesome"));
     }
 
     @Test
@@ -1210,20 +1178,21 @@ public class SelectStatementAnalyzerTest extends BaseAnalyzerTest {
         assertThat(analysis.relation().querySpec().where().hasQuery(), is(true));
         Function query = (Function) analysis.relation().querySpec().where().query();
         assertThat(query.info().ident().name(), is(MatchPredicate.NAME));
-        assertThat(query.arguments().size(), is(4));
-        assertThat(query.arguments().get(0), Matchers.instanceOf(Literal.class));
-        Literal<Map<String, Object>> idents = (Literal<Map<String, Object>>) query.arguments().get(0);
+        List<Symbol> arguments = query.arguments();
+        assertThat(arguments.size(), is(19));
 
-        assertThat(idents.value().size(), is(2));
-        assertThat((Double) idents.value().get("name"), is(1.2d));
-        assertThat(idents.value().get("text"), is(Matchers.nullValue()));
+        assertThat(arguments.get(0), isLiteral("awesome"));
+        assertThat(arguments.get(1), isLiteral("best_fields"));
 
-        assertThat(query.arguments().get(1), isLiteral("awesome", DataTypes.STRING));
-        assertThat(query.arguments().get(2), isLiteral("best_fields", DataTypes.STRING));
+        Map<String, Object> fields = io.crate.analyze.symbol.MatchPredicate.extractFields(arguments);
+        assertThat(fields.size(), is(2));
+        assertThat((Double) fields.get("name"), is(1.2d));
+        assertThat(fields.get("text"), is(Matchers.nullValue()));
 
-        Literal<Map<String, Object>> options = (Literal<Map<String, Object>>) query.arguments().get(3);
-        assertThat(options.value().size(), is(1));
-        assertThat((String) options.value().get("analyzer"), is("german"));
+
+        Map<String, Object> options = io.crate.analyze.symbol.MatchPredicate.extractOptions(arguments);
+        assertThat(options.size(), is(1));
+        assertThat((String) options.get("analyzer"), is("german"));
     }
 
     @Test
@@ -1256,25 +1225,8 @@ public class SelectStatementAnalyzerTest extends BaseAnalyzerTest {
         analyze("select * from users where o['no_such_column'] is not null");
     }
 
-
-    @Test
-    public void testWhereMatchUnknownOption() throws Exception {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("unknown match option 'oh'");
-        analyze("select * from users " +
-                "where match ((name 4.777, text), 'awesome') using cross_fields with (oh='srsly?')");
-    }
-
-    @Test
-    public void testWhereMatchInvalidOptionValue() throws Exception {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("invalid value for option 'zero_terms_query': 12.6");
-        analyze("select * from users " +
-                "where match ((name 4.777, text), 'awesome') using cross_fields with (zero_terms_query=12.6)");
-    }
-
     private String getMatchType(Function matchFunction) {
-        return ((BytesRef) ((Literal) matchFunction.arguments().get(2)).value()).utf8ToString();
+        return ((BytesRef) ((Literal) matchFunction.arguments().get(1)).value()).utf8ToString();
     }
 
     @Test
@@ -1317,7 +1269,7 @@ public class SelectStatementAnalyzerTest extends BaseAnalyzerTest {
                                                    "  slop=3" +
                                                    ")");
         Function match = (Function) analysis.relation().querySpec().where().query();
-        Map<String, Object> options = ((Literal<Map<String, Object>>) match.arguments().get(3)).value();
+        Map<String, Object> options = io.crate.analyze.symbol.MatchPredicate.extractOptions(match.arguments());
         assertThat(mapToSortedString(options),
             is("analyzer=german, boost=4.6, cutoff_frequency=5, " +
                "fuzziness=12, fuzzy_rewrite=top_terms_20, max_expansions=3, minimum_should_match=4, " +

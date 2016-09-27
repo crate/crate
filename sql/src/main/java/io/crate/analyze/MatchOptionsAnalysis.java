@@ -24,30 +24,25 @@ package io.crate.analyze;
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableMap;
-import io.crate.analyze.expressions.ExpressionToObjectVisitor;
-import io.crate.core.collections.Row;
-import io.crate.sql.tree.Expression;
-import io.crate.sql.tree.GenericProperties;
 
 import javax.annotation.Nullable;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
 
 public class MatchOptionsAnalysis {
 
-    static final Predicate<Object> POSITIVE_NUMBER = new Predicate<Object>() {
+    private static final Predicate<Object> POSITIVE_NUMBER = new Predicate<Object>() {
         @Override
         public boolean apply(@Nullable Object input) {
             return input != null && input instanceof Number && ((Number) input).doubleValue() > 0;
         }
     };
-    static final Predicate<Object> IS_STRING = Predicates.instanceOf(String.class);
-    static final Predicate<Object> IS_NUMBER = Predicates.instanceOf(Number.class);
-    static final Predicate<Object> NUMBER_OR_STRING = Predicates.or(IS_STRING, IS_NUMBER);
+    private static final Predicate<Object> IS_STRING = Predicates.instanceOf(String.class);
+    private static final Predicate<Object> IS_NUMBER = Predicates.instanceOf(Number.class);
+    private static final Predicate<Object> NUMBER_OR_STRING = Predicates.or(IS_STRING, IS_NUMBER);
 
-    static final Map<String, Predicate<Object>> ALLOWED_SETTINGS = ImmutableMap.<String, Predicate<Object>>builder()
+    private static final Map<String, Predicate<Object>> ALLOWED_SETTINGS = ImmutableMap.<String, Predicate<Object>>builder()
         .put("analyzer", IS_STRING)
         .put("boost", POSITIVE_NUMBER)
         .put("cutoff_frequency", POSITIVE_NUMBER)
@@ -63,21 +58,19 @@ public class MatchOptionsAnalysis {
         .put("zero_terms_query", IS_STRING)
         .build();
 
-    public static Map<String, Object> process(GenericProperties properties, Row parameters) {
-        Map<String, Object> processed = new HashMap<>(properties.properties().size());
-        for (Map.Entry<String, Expression> option : properties.properties().entrySet()) {
-            Predicate<Object> validator = ALLOWED_SETTINGS.get(option.getKey());
+    public static void validate(Map<String, Object> options) {
+        for (Map.Entry<String, Object> e : options.entrySet()) {
+            String optionName = e.getKey();
+            Predicate<Object> validator = ALLOWED_SETTINGS.get(optionName);
             if (validator == null) {
                 throw new IllegalArgumentException(
-                    String.format(Locale.ENGLISH, "unknown match option '%s'", option.getKey()));
+                    String.format(Locale.ENGLISH, "unknown match option '%s'", optionName));
             }
-            Object value = ExpressionToObjectVisitor.convert(option.getValue(), parameters);
+            Object value = e.getValue();
             if (!validator.apply(value)) {
                 throw new IllegalArgumentException(String.format(Locale.ENGLISH,
-                    "invalid value for option '%s': %s", option.getKey(), value));
+                    "invalid value for option '%s': %s", optionName, value));
             }
-            processed.put(option.getKey(), value);
         }
-        return processed;
     }
 }

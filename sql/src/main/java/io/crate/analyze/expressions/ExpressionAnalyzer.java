@@ -650,7 +650,7 @@ public class ExpressionAnalyzer {
 
         @Override
         public Symbol visitMatchPredicate(MatchPredicate node, ExpressionAnalysisContext context) {
-            Map<Field, Double> identBoostMap = new HashMap<>(node.idents().size());
+            Map<Field, Symbol> identBoostMap = new HashMap<>(node.idents().size());
             DataType columnType = null;
             for (MatchPredicateColumnIdent ident : node.idents()) {
                 Symbol column = process(ident.columnIdent(), context);
@@ -660,16 +660,18 @@ public class ExpressionAnalyzer {
                 Preconditions.checkArgument(
                     column instanceof Field,
                     SymbolFormatter.format("can only MATCH on columns, not on %s", column));
-                Number boost = ExpressionToNumberVisitor.convert(ident.boost(), parameterContext.parameters());
-                identBoostMap.put(((Field) column), boost == null ? null : boost.doubleValue());
+                Symbol boost = process(ident.boost(), context);
+                identBoostMap.put(((Field) column), boost);
             }
             assert columnType != null : "columnType must not be null";
             verifyTypesForMatch(identBoostMap.keySet(), columnType);
 
-            Object queryTerm = ExpressionToObjectVisitor.convert(node.value(), parameterContext.parameters());
-            queryTerm = columnType.value(queryTerm);
+            Symbol queryTerm = castIfNeededOrFail(process(node.value(), context), columnType);
             String matchType = io.crate.operation.predicate.MatchPredicate.getMatchType(node.matchType(), columnType);
-            Map<String, Object> options = MatchOptionsAnalysis.process(node.properties(), parameterContext.parameters());
+            Map<String, Symbol> options = new HashMap<>(node.properties().size());
+            for (Map.Entry<String, Expression> e : node.properties().properties().entrySet()) {
+                options.put(e.getKey(), process(e.getValue(), context));
+            }
             return new io.crate.analyze.symbol.MatchPredicate(identBoostMap, columnType, queryTerm, matchType, options);
         }
 
