@@ -1096,7 +1096,7 @@ beginStmt
     ;
 
 setStmt
-    : (GLOBAL settingsType? setGlobalAssignmentList) => GLOBAL settingsType? setGlobalAssignmentList -> ^(SET_GLOBAL settingsType? setGlobalAssignmentList)
+    : (GLOBAL settingsType setGlobalAssignmentList) => GLOBAL settingsType setGlobalAssignmentList -> ^(SET_GLOBAL settingsType setGlobalAssignmentList)
     | (SESSION setAssignment) => SESSION setAssignment -> ^(SET_SESSION setAssignment)
     | (LOCAL setAssignment) => LOCAL setAssignment -> ^(SET_LOCAL setAssignment)
     | setAssignment -> ^(SET_SESSION setAssignment)
@@ -1107,7 +1107,8 @@ resetStmt
     ;
 
 settingsType
-    : TRANSIENT
+    : -> TRANSIENT
+    | TRANSIENT
     | PERSISTENT
     ;
 
