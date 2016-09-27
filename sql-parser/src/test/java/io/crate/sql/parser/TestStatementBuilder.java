@@ -379,7 +379,7 @@ public class TestStatementBuilder {
     public void testSetSession() throws Exception {
         printStatement("set some_setting = DEFAULT");
         printStatement("set some_setting = 'value'");
-        printStatement("set some_setting = 1, '2', foo");
+        printStatement("set some_setting = 1, '2', 'foo'");
 
         printStatement("set some_setting TO DEFAULT");
         printStatement("set some_setting TO 'value'");
