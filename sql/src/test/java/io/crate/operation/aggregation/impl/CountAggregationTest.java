@@ -28,6 +28,8 @@ import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.junit.Test;
 
+import static io.crate.testing.TestingHelpers.isLiteral;
+
 public class CountAggregationTest extends AggregationTest {
 
     private Object[][] executeAggregation(DataType dataType, Object[][] data) throws Exception {
@@ -81,6 +83,12 @@ public class CountAggregationTest extends AggregationTest {
         Object[][] result = executeAggregation(DataTypes.STRING, new Object[][]{{"Youri"}, {"Ruben"}});
 
         assertEquals(2L, result[0][0]);
+    }
+
+    @Test
+    public void testNormalizeWithNullLiteral() {
+        assertThat(normalize("count", null, DataTypes.STRING), isLiteral(0L));
+        assertThat(normalize("count", null, null), isLiteral(0L));
     }
 
     @Test

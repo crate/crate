@@ -99,9 +99,9 @@ public class CountAggregation extends AggregationFunction<Long, Long> {
 
         if (function.arguments().size() == 1) {
             if (function.arguments().get(0).symbolType().isValueSymbol()) {
-                if ((function.arguments().get(0)).valueType() == DataTypes.UNDEFINED) {
+                if (ValueSymbolVisitor.VALUE.process(function.arguments().get(0)) == null) {
                     return Literal.newLiteral(0L);
-                } else{
+                } else {
                     return new Function(COUNT_STAR_FUNCTION, ImmutableList.<Symbol>of());
                 }
             }

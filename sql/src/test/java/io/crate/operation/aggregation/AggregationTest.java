@@ -22,17 +22,23 @@
 package io.crate.operation.aggregation;
 
 import com.google.common.collect.ImmutableList;
+import io.crate.analyze.symbol.Function;
+import io.crate.analyze.symbol.Literal;
+import io.crate.analyze.symbol.Symbol;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.core.collections.ArrayBucket;
 import io.crate.core.collections.Row;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.Functions;
+import io.crate.metadata.StmtCtx;
 import io.crate.operation.collect.InputCollectExpression;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.types.DataType;
 import org.elasticsearch.common.breaker.CircuitBreaker;
 import org.elasticsearch.common.breaker.NoopCircuitBreaker;
 import org.junit.Before;
+
+import java.util.Arrays;
 
 import static io.crate.testing.TestingHelpers.getFunctions;
 
@@ -75,4 +81,17 @@ public abstract class AggregationTest extends CrateUnitTest {
         return new Object[][]{{state}};
     }
 
+    protected Symbol normalize(String functionName, Object value, DataType type) {
+        return normalize(functionName, Literal.newLiteral(type, value));
+    }
+
+    protected Symbol normalize(String functionName, Symbol... args) {
+        DataType[] argTypes = new DataType[args.length];
+        for (int i = 0; i < args.length; i++) {
+            argTypes[i] = args[i].valueType();
+        }
+        AggregationFunction function =
+            (AggregationFunction) functions.get(new FunctionIdent(functionName, Arrays.asList(argTypes)));
+        return function.normalizeSymbol(new Function(function.info(), Arrays.asList(args)), new StmtCtx());
+    }
 }
