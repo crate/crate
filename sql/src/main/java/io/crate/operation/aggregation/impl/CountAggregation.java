@@ -26,6 +26,7 @@ import io.crate.Streamer;
 import io.crate.analyze.symbol.Function;
 import io.crate.analyze.symbol.Literal;
 import io.crate.analyze.symbol.Symbol;
+import io.crate.analyze.symbol.ValueSymbolVisitor;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.metadata.*;
 import io.crate.operation.Input;
@@ -101,7 +102,7 @@ public class CountAggregation extends AggregationFunction<CountAggregation.LongS
 
         if (function.arguments().size() == 1) {
             if (function.arguments().get(0).symbolType().isValueSymbol()) {
-                if ((function.arguments().get(0)).valueType() == DataTypes.UNDEFINED) {
+                if (ValueSymbolVisitor.VALUE.process(function.arguments().get(0)) == null) {
                     return Literal.of(0L);
                 } else {
                     return new Function(COUNT_STAR_FUNCTION, ImmutableList.<Symbol>of());

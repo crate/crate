@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fix: The ``count`` aggregation function counts null values.
+   E.g. count(cast(null as string))
+
  - Fixed an issue which could cause ``EXPLAIN`` statements to fail
 
  - Fix: Prevented usage of ``MATCH`` predicates on columns of both relations
