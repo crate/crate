@@ -1352,10 +1352,9 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         this.setup.setUpArrayTables();
 
         execute("select id from any_table where NOT 'Hangelsberg' = ANY (names) order by id");
-        assertThat(response.rowCount(), is(3L));
+        assertThat(response.rowCount(), is(2L));
         assertThat((Integer) response.rows()[0][0], is(1));
         assertThat((Integer) response.rows()[1][0], is(2));
-        assertThat((Integer) response.rows()[2][0], is(4)); // null values matched because of negation
 
         execute("select id from any_table where 'Hangelsberg' != ANY (names) order by id");
         assertThat(response.rowCount(), is(3L));
@@ -1928,6 +1927,43 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         assertThat(response.cols(), is(arrayContaining("\"")));
         assertThat((String) response.rows()[0][0], is("'"));
     }
+
+    @Test
+    public void testWhereNotNull() throws Exception {
+        execute("create table t (b boolean, i int) with (number_of_replicas=0)");
+        ensureYellow();
+        execute("insert into t (b, i) values (true, 1), (false, 2), (null, null)");
+        execute("refresh table t");
+
+        execute("select b, not b, not (b > i) from t order by b");
+        Object[][] rows = response.rows();
+        assertThat((Boolean) rows[0][0], is(false));
+        assertThat((Boolean) rows[0][1], is(true));
+        assertThat((Boolean) rows[0][2], is(true));
+        assertThat((Boolean) rows[1][0], is(true));
+        assertThat((Boolean) rows[1][1], is(false));
+        assertThat((Boolean) rows[1][2], is(true));
+        assertThat(rows[2][0], nullValue());
+        assertThat(rows[2][1], nullValue());
+        assertThat(rows[2][2], nullValue());
+
+        execute("select b, i from t where not b");
+        assertThat(response.rowCount(), is(1L));
+
+        execute("select b, i from t where not b > i");
+        assertThat(response.rowCount(), is(2L));
+
+        execute("SELECt b, i FROM t WHERE NOT (i = 1 AND b = TRUE)");
+        assertThat(response.rowCount(), is(1L));
+
+        execute("SELECT b, i FROM t WHERE NOT (i IS NULL OR b IS NULL)");
+        assertThat(response.rowCount(), is(2L));
+
+        execute("SELECT b FROM t WHERE NOT (coalesce(b, true))");
+        assertThat(response.rowCount(), is(1L));
+
+        execute("SELECT b, i FROM t WHERE NOT (coalesce(b, false) = true AND i IS NULL)");
+        assertThat(response.rowCount(), is(2L));
+
+    }
 }
-
-

@@ -76,10 +76,7 @@ public class NotPredicate extends Scalar<Boolean, Boolean> implements OperatorFo
     public Boolean evaluate(Input<Boolean>... args) {
         assert args.length == 1;
         Boolean value = args[0].value();
-        if (value == null) {
-            return true;
-        }
-        return !value;
+        return value != null ? !value : null;
     }
 
     @Override
