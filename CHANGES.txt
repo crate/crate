@@ -5,6 +5,10 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fix: ``WHERE`` clauses with a ``NOT`` operator where the column
+   reference resolves to ``NULL`` now return the correct results:
+   ``NOT NULL`` -> ``NULL`` -> no match
+
  - The PostgreSQL wire protocol is enabled by default.
 
  - Fix: The ``count`` aggregation function counts null values.
