@@ -45,6 +45,7 @@ import org.junit.Before;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 import static org.hamcrest.core.Is.is;
@@ -96,7 +97,10 @@ public abstract class AbstractScalarFunctionsTest extends CrateUnitTest {
         assertThat(impl, Matchers.notNullValue());
 
         Symbol normalized = impl.normalizeSymbol(function, new StmtCtx());
-        assertThat(normalized, expectedSymbol);
+        assertThat(
+            String.format(Locale.ENGLISH, "expected <%s> to normalize to %s", functionExpression, expectedSymbol),
+            normalized,
+            expectedSymbol);
 
         if (normalized instanceof Input && allArgsAreInputs(function.arguments())) {
             Input[] inputs = new Input[function.arguments().size()];

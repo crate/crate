@@ -20,40 +20,19 @@
  */
 package io.crate.operation.operator;
 
-import io.crate.analyze.symbol.Function;
 import io.crate.analyze.symbol.Literal;
-import io.crate.analyze.symbol.Symbol;
-import io.crate.metadata.StmtCtx;
 import io.crate.operation.scalar.AbstractScalarFunctionsTest;
-import io.crate.types.DataTypes;
-import org.apache.lucene.util.BytesRef;
 import org.junit.Test;
 
-import java.util.Arrays;
-
 import static io.crate.operation.operator.LikeOperator.DEFAULT_ESCAPE;
+import static io.crate.testing.TestingHelpers.isLiteral;
 
 public class LikeOperatorTest extends AbstractScalarFunctionsTest {
 
-    private static Symbol normalizeSymbol(String expression, String pattern) {
-        LikeOperator op = new LikeOperator(
-            LikeOperator.generateInfo(LikeOperator.NAME, DataTypes.STRING)
-        );
-        Function function = new Function(
-            op.info(),
-            Arrays.<Symbol>asList(Literal.of(expression), Literal.of(pattern))
-        );
-        return op.normalizeSymbol(function, new StmtCtx());
-    }
-
-    private Boolean likeNormalize(String expression, String pattern) {
-        return (Boolean) ((Literal) normalizeSymbol(expression, pattern)).value();
-    }
-
     @Test
     public void testNormalizeSymbolEqual() {
-        assertTrue(likeNormalize("foo", "foo"));
-        assertFalse(likeNormalize("notFoo", "foo"));
+        assertNormalize("'foo' like 'foo'", isLiteral(true));
+        assertNormalize("'notFoo' like 'foo'", isLiteral(false));
     }
 
     @Test
@@ -65,36 +44,38 @@ public class LikeOperatorTest extends AbstractScalarFunctionsTest {
     @Test
     public void testNormalizeSymbolLikeZeroOrMore() {
         // Following tests: wildcard: '%' ... zero or more characters (0...N)
-        assertTrue(likeNormalize("foobar", "%bar"));
-        assertTrue(likeNormalize("bar", "%bar"));
-        assertFalse(likeNormalize("ar", "%bar"));
-        assertTrue(likeNormalize("foobar", "foo%"));
-        assertTrue(likeNormalize("foo", "foo%"));
-        assertFalse(likeNormalize("fo", "foo%"));
-        assertTrue(likeNormalize("foobar", "%oob%"));
+
+        assertNormalize("'foobar' like '%bar'", isLiteral(true));
+        assertNormalize("'bar' like '%bar'", isLiteral(true));
+        assertNormalize("'ar' like '%bar'", isLiteral(false));
+        assertNormalize("'foobar' like 'foo%'", isLiteral(true));
+        assertNormalize("'foo' like 'foo%'", isLiteral(true));
+        assertNormalize("'fo' like 'foo%'", isLiteral(false));
+        assertNormalize("'foobar' like '%oob%'", isLiteral(true));
     }
 
     @Test
     public void testNormalizeSymbolLikeExactlyOne() {
         // Following tests: wildcard: '_' ... any single character (exactly one)
-        assertTrue(likeNormalize("bar", "_ar"));
-        assertFalse(likeNormalize("bar", "_bar"));
-        assertTrue(likeNormalize("foo", "fo_"));
-        assertFalse(likeNormalize("foo", "foo_"));
-        assertTrue(likeNormalize("foo", "_o_"));
-        assertFalse(likeNormalize("foobar", "_foobar_"));
+        assertNormalize("'bar' like '_ar'", isLiteral(true));
+        assertNormalize("'bar' like '_bar'", isLiteral(false));
+        assertNormalize("'foo' like 'fo_'", isLiteral(true));
+        assertNormalize("'foo' like 'foo_'", isLiteral(false));
+        assertNormalize("'foo' like '_o_'", isLiteral(true));
+        assertNormalize("'foobar' like '_foobar_'", isLiteral(false));
     }
 
     // Following tests: mixed wildcards:
 
     @Test
     public void testNormalizeSymbolLikeMixed() {
-        assertTrue(likeNormalize("foobar", "%o_ar"));
-        assertTrue(likeNormalize("foobar", "%a_"));
-        assertTrue(likeNormalize("foobar", "%o_a%"));
-        assertTrue(likeNormalize("Lorem ipsum dolor...", "%i%m%"));
-        assertTrue(likeNormalize("Lorem ipsum dolor...", "%%%sum%%"));
-        assertFalse(likeNormalize("Lorem ipsum dolor...", "%i%m"));
+        assertNormalize("'foobar' like '%o_ar'", isLiteral(true));
+        assertNormalize("'foobar' like '%a_'", isLiteral(true));
+        assertNormalize("'foobar' like '%o_a%'", isLiteral(true));
+
+        assertNormalize("'Lorem ipsum dolor...' like '%i%m%'", isLiteral(true));
+        assertNormalize("'Lorem ipsum dolor...' like '%%%sum%%'", isLiteral(true));
+        assertNormalize("'Lorem ipsum dolor...' like '%i%m'", isLiteral(false));
     }
 
     // Following tests: escaping wildcards
@@ -112,10 +93,10 @@ public class LikeOperatorTest extends AbstractScalarFunctionsTest {
                       "WHERE month_partition = '201409'\n" +
                       "GROUP BY 1 ORDER BY 1 DESC limit 100";
 
-        assertFalse(likeNormalize(stmt, "  SELECT%"));
-        assertTrue(likeNormalize(stmt, "SELECT%"));
-        assertTrue(likeNormalize(stmt, "SELECT date_trunc%"));
-        assertTrue(likeNormalize(stmt, "% date_trunc%"));
+        assertEvaluate("name like '  SELECT%'", false, Literal.of(stmt));
+        assertEvaluate("name like 'SELECT%'", true, Literal.of(stmt));
+        assertEvaluate("name like 'SELECT date_trunc%'", true, Literal.of(stmt));
+        assertEvaluate("name like '% date_trunc%'", true, Literal.of(stmt));
     }
 
     @Test
@@ -154,29 +135,13 @@ public class LikeOperatorTest extends AbstractScalarFunctionsTest {
         assertEquals("^fo\\(ooo\\)o\\[asdf\\]obar\\^\\$\\.\\*$", LikeOperator.patternToRegex(expression, DEFAULT_ESCAPE, true));
     }
 
-    // test evaluate
-
-    private Boolean like(String expression, String pattern) {
-        LikeOperator op = new LikeOperator(
-            LikeOperator.generateInfo(LikeOperator.NAME, DataTypes.STRING)
-        );
-        return op.evaluate(Literal.of(expression), Literal.of(pattern));
-    }
-
     @Test
     public void testLikeOperator() {
-        assertTrue(like("foobarbaz", "foo%baz"));
-        assertFalse(like("foobarbaz", "foo_baz"));
-        assertTrue(like("characters", "charac%"));
+        assertEvaluate("'foobarbaz' like 'foo%baz'", true);
+        assertEvaluate("'foobarbaz' like 'foo_baz'", false);
+        assertEvaluate("'characters' like 'charac%'", true);
 
-        // set the Input.value() to null.
-        LikeOperator op = new LikeOperator(
-            LikeOperator.generateInfo(LikeOperator.NAME, DataTypes.STRING)
-        );
-        BytesRef nullValue = null;
-        Literal<BytesRef> brNullValue = Literal.of(nullValue);
-        assertNull(op.evaluate(brNullValue, Literal.of("foobarbaz")));
-        assertNull(op.evaluate(Literal.of("foobarbaz"), brNullValue));
+        assertEvaluate("'foobarbaz' like name", null, Literal.NULL);
+        assertEvaluate("name like 'foobarbaz'", null, Literal.NULL);
     }
-
 }
