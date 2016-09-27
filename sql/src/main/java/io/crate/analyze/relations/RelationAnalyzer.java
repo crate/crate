@@ -137,7 +137,8 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
         }
         RelationAnalysisContext context = statementContext.currentRelationContext();
         ExpressionAnalysisContext expressionAnalysisContext = context.expressionAnalysisContext();
-        WhereClause whereClause = analyzeWhere(node.getWhere(), context);
+        WhereClause whereClause = context.expressionAnalyzer()
+            .generateWhereClause(node.getWhere(), context.expressionAnalysisContext());
 
         SelectAnalyzer.SelectAnalysis selectAnalysis = SelectAnalyzer.analyzeSelect(node.getSelect(), context);
 
@@ -324,20 +325,6 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
                 symbol, context.expressionAnalysisContext().statementContext()));
         }
         return null;
-    }
-
-    private WhereClause analyzeWhere(Optional<Expression> where, RelationAnalysisContext context) {
-        if (!where.isPresent()) {
-            return WhereClause.MATCH_ALL;
-        }
-        Symbol query;
-        if (where.isPresent()) {
-            query = context.expressionAnalyzer().convert(where.get(), context.expressionAnalysisContext());
-        } else {
-            query = Literal.BOOLEAN_TRUE;
-        }
-        query = context.expressionAnalyzer().normalize(query, context.expressionAnalysisContext().statementContext());
-        return new WhereClause(query);
     }
 
 
