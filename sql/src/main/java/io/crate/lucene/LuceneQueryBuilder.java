@@ -24,6 +24,7 @@ package io.crate.lucene;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.spatial4j.core.context.jts.JtsSpatialContext;
 import com.spatial4j.core.shape.Rectangle;
@@ -40,6 +41,7 @@ import io.crate.geo.GeoJSONUtils;
 import io.crate.lucene.match.MatchQueryBuilder;
 import io.crate.lucene.match.MultiMatchQueryBuilder;
 import io.crate.metadata.DocReferenceConverter;
+import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Functions;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.operation.Input;
@@ -443,11 +445,83 @@ public class LuceneQueryBuilder {
 
         class NotQuery implements FunctionToQuery {
 
+            private class SymbolToNotNullContext {
+                private final HashSet<Reference> references = new HashSet<>();
+                boolean containsNullCanMatchFunction = false;
+
+                boolean add(Reference symbol) {
+                    return references.add(symbol);
+                }
+
+                Set<Reference> references() {
+                    return references;
+                }
+            }
+
+            private class SymbolToNotNullRangeQueryArgs extends SymbolVisitor<SymbolToNotNullContext, Void> {
+
+                private final Set<String> NULL_CAN_MATCH_FUNCTIONS = ImmutableSet.of("any");
+
+                private boolean nullCanMatch(Function symbol) {
+                    return NULL_CAN_MATCH_FUNCTIONS.contains(symbol.info().ident().name());
+                }
+
+                @Override
+                public Void visitReference(Reference symbol, SymbolToNotNullContext context) {
+                    context.add(symbol);
+                    return null;
+                }
+
+                @Override
+                public Void visitFunction(Function symbol, SymbolToNotNullContext context) {
+                    if (!nullCanMatch(symbol)) {
+                        for (Symbol arg: symbol.arguments()) {
+                            process(arg, context);
+                        }
+                    } else {
+                        context.containsNullCanMatchFunction = true;
+                    }
+                    return null;
+                }
+            }
+
+            private final SymbolToNotNullRangeQueryArgs INNER_VISITOR = new SymbolToNotNullRangeQueryArgs();
+
             @Override
             public Query apply(Function input, Context context) {
                 assert input != null;
                 assert input.arguments().size() == 1;
-                return Queries.not(process(input.arguments().get(0), context));
+                /**
+                 * not null -> null     -> no match
+                 * not true -> false    -> no match
+                 * not false -> true    -> match
+                 */
+
+                // handles not true / not false
+                Symbol arg = input.arguments().get(0);
+                Query innerQuery = process(arg, context);
+                Query notX = Queries.not(innerQuery);
+
+                // not x =  not x & x is not null
+                BooleanQuery.Builder builder = new BooleanQuery.Builder();
+                builder.add(notX, BooleanClause.Occur.MUST);
+
+                SymbolToNotNullContext ctx = new SymbolToNotNullContext();
+                INNER_VISITOR.process(arg, ctx);
+                for (Reference reference : ctx.references()) {
+                    String columnName = reference.ident().columnIdent().fqn();
+                    QueryBuilderHelper builderHelper = QueryBuilderHelper.forType(reference.valueType());
+                    builder.add(builderHelper.rangeQuery(columnName, null, null, true, true), BooleanClause.Occur.MUST);
+                }
+                if (ctx.containsNullCanMatchFunction) {
+                    FunctionInfo isNullInfo = IsNullPredicate.generateInfo(Collections.singletonList(arg.valueType()));
+                    Function isNullFunction = new Function(isNullInfo, Collections.singletonList(arg));
+                    builder.add(
+                        Queries.not(genericFunctionFilter(isNullFunction, context)),
+                        BooleanClause.Occur.MUST
+                    );
+                }
+                return builder.build();
             }
         }
 

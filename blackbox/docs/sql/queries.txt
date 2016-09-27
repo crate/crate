@@ -24,11 +24,11 @@ If the '*' operator is used, all columns defined in the schema are returned
 for each row::
 
     cr> select * from locations order by id limit 1 offset 1;
-    +----...-+--------------...-+----+-------------+--...-+--...-+----------+------+
-    | date   | description      | id | information | kind | name | position | race |
-    +----...-+--------------...-+----+-------------+--...-+--...-+----------+------+
-    | 308... | Motivated by ... | 10 |        NULL | P... | A... | 3        | NULL |
-    +----...-+--------------...-+----+-------------+--...-+--...-+----------+------+
+    +----...-+--------------...-+----+-------------+--...-+--...-+----------+------------------...-+
+    | date   | description      | id | information | kind | name | position | race                 |
+    +----...-+--------------...-+----+-------------+--...-+--...-+----------+------------------...-+
+    | 308... | Motivated by ... | 10 |        NULL | P... | A... | 3        | {"description": ...} |
+    +----...-+--------------...-+----+-------------+--...-+--...-+----------+------------------...-+
     SELECT 1 row in set (... sec)
 
 Aliases can be used to change the output name of the columns::
@@ -481,13 +481,12 @@ does always return ``NULL`` when comparing ``NULL``.
     | Alpha Centauri                     |
     | Altair                             |
     | Argabuthon                         |
-    | Arkintoofle Minor                  |
     | Galactic Sector QQ7 Active J Gamma |
     | North West Ripple                  |
     | Outer Eastern Rim                  |
     | NULL                               |
     +------------------------------------+
-    SELECT 12 rows in set (... sec)
+    SELECT 11 rows in set (... sec)
 
 ::
 
@@ -516,12 +515,13 @@ does always return ``NULL`` when comparing ``NULL``.
 ::
 
     cr> select name from locations where race['interests'] is not null;
-    +-----------+
-    | name      |
-    +-----------+
-    | Bartledan |
-    +-----------+
-    SELECT 1 row in set (... sec)
+    +-------------------+
+    | name              |
+    +-------------------+
+    | Arkintoofle Minor |
+    | Bartledan         |
+    +-------------------+
+    SELECT 2 rows in set (... sec)
 
 ::
 
@@ -639,22 +639,22 @@ As you see, the result is the same in this case::
     +----------------+-----------------------------------------+
     | race['name']   | race['interests']                       |
     +----------------+-----------------------------------------+
+    | Minories       | ["baseball", "short stories"]           |
     | Bartledannians | ["netball", "books with 100.000 words"] |
     +----------------+-----------------------------------------+
-    SELECT 1 row in set (... sec)
+    SELECT 2 rows in set (... sec)
 
 Negating the ``=`` query from above is totally different. It can be translated to
 *get all rows where race['interests'] has no value that equals 'netball'*::
 
     cr> select race['name'], race['interests'] from locations
     ... where not 'netball' = ANY(race['interests']) order by race['name'];
-    +--------------+-------------------+
-    | race['name'] | race['interests'] |
-    +--------------+-------------------+
-    | NULL         | NULL              |
-    ...
-    +--------------+-------------------+
-    SELECT 12 rows in set (... sec)
+    +--------------+-------------------------------+
+    | race['name'] | race['interests']             |
+    +--------------+-------------------------------+
+    | Minories     | ["baseball", "short stories"] |
+    +--------------+-------------------------------+
+    SELECT 1 row in set (... sec)
 
 The same behaviour (though different comparison operations involved)
 holds true for operators

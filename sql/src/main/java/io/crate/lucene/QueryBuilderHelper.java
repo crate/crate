@@ -75,7 +75,7 @@ public abstract class QueryBuilderHelper {
     static final class BooleanQueryBuilder extends QueryBuilderHelper {
         @Override
         public Query rangeQuery(String columnName, Object from, Object to, boolean includeLower, boolean includeUpper) {
-            throw new UnsupportedOperationException("This type of comparison is not supported on boolean fields");
+            return new TermRangeQuery(columnName, BytesRefs.toBytesRef(from), BytesRefs.toBytesRef(to), includeLower, includeUpper);
         }
 
         @Override
