@@ -139,6 +139,7 @@ tokens {
     SET_SESSION;
     SET_LOCAL;
     EXPR_LIST;
+    SINGLE_VALUE_ASSIGNMENT;
     DEFAULT;
 }
 
@@ -1119,12 +1120,14 @@ setAssignment
     : (numericExpr (EQ|TO) setExprList) => numericExpr (EQ|TO) setExprList -> ^(ASSIGNMENT numericExpr setExprList)
     ;
 
+
 setExprList
-    : expr (',' expr)* -> ^(EXPR_LIST expr+)
+    :  expr -> ^(SINGLE_VALUE_ASSIGNMENT expr)
+    |  notDefaultExpr ( ',' notDefaultExpr )+ -> ^(EXPR_LIST notDefaultExpr+)
     ;
 
-settingDefault
-    : DEFAULT -> ^(DEFAULT)
+notDefaultExpr
+    : ~(DEFAULT)
     ;
 
 killStmt

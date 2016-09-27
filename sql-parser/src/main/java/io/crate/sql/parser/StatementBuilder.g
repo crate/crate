@@ -744,6 +744,7 @@ multiValueAssignment returns [Assignment value]
 
 setExprList returns [List<Expression> value = new ArrayList<>()]
     : ^(EXPR_LIST (expr { $value.add($expr.value); })+ )
+    | ^(SINGLE_VALUE_ASSIGNMENT expr) {$value.add($expr.value);}
     ;
 
 copyTo returns [Statement value]
