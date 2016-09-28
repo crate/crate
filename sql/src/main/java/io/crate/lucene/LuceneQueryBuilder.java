@@ -642,25 +642,19 @@ public class LuceneQueryBuilder {
             @Override
             public Query apply(Function input, Context context) throws IOException {
                 List<Symbol> arguments = input.arguments();
-                assert arguments.size() == 4 : "invalid number of arguments";
-                assert Symbol.isLiteral(arguments.get(0), DataTypes.OBJECT); // fields
-                assert Symbol.isLiteral(arguments.get(2), DataTypes.STRING); // matchType
-
-                Symbol queryTerm = arguments.get(1);
+                Symbol queryTerm = arguments.get(0);
                 if (queryTerm.valueType().equals(DataTypes.GEO_SHAPE)) {
                     return geoMatch(context, arguments, queryTerm);
                 }
                 return stringMatch(context, arguments, queryTerm);
             }
 
-            private Query geoMatch(Context context, List<Symbol> arguments, Symbol queryTerm) {
-                assert Symbol.isLiteral(arguments.get(1), DataTypes.GEO_SHAPE);
 
-                Map fields = (Map) ((Literal) arguments.get(0)).value();
-                String fieldName = ((String) Iterables.getOnlyElement(fields.keySet()));
+            private Query geoMatch(Context context, List<Symbol> arguments, Symbol queryTerm) {
+                String fieldName = io.crate.analyze.symbol.MatchPredicate.extractField(arguments);
                 MappedFieldType fieldType = context.mapperService.smartNameFieldType(fieldName);
                 GeoShapeFieldMapper.GeoShapeFieldType geoShapeFieldType = (GeoShapeFieldMapper.GeoShapeFieldType) fieldType;
-                String matchType = ((BytesRef) ((Input) arguments.get(2)).value()).utf8ToString();
+                String matchType = ((BytesRef) ((Input) arguments.get(1)).value()).utf8ToString();
                 @SuppressWarnings("unchecked")
                 Shape shape = GeoJSONUtils.map2Shape(((Map<String, Object>) ((Input) queryTerm).value()));
 
@@ -708,13 +702,12 @@ public class LuceneQueryBuilder {
 
             private Query stringMatch(Context context, List<Symbol> arguments, Symbol queryTerm) throws IOException {
                 assert Symbol.isLiteral(queryTerm, DataTypes.STRING);
-                assert Symbol.isLiteral(arguments.get(3), DataTypes.OBJECT);
 
-                @SuppressWarnings("unchecked")
-                Map<String, Object> fields = (Map) ((Literal) arguments.get(0)).value();
+                Map<String, Object> fields = io.crate.analyze.symbol.MatchPredicate.extractFields(arguments);
                 BytesRef queryString = (BytesRef) ((Literal) queryTerm).value();
-                BytesRef matchType = (BytesRef) ((Literal) arguments.get(2)).value();
-                Map options = (Map) ((Literal) arguments.get(3)).value();
+                BytesRef matchType = (BytesRef) ((Literal) arguments.get(1)).value();
+
+                Map options = io.crate.analyze.symbol.MatchPredicate.extractOptions(arguments);
 
                 checkArgument(queryString != null, "cannot use NULL as query term in match predicate");
 

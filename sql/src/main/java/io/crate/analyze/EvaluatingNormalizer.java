@@ -22,6 +22,7 @@ package io.crate.analyze;
 
 import io.crate.analyze.relations.FieldResolver;
 import io.crate.analyze.symbol.*;
+import io.crate.analyze.symbol.MatchPredicate;
 import io.crate.analyze.symbol.format.SymbolFormatter;
 import io.crate.metadata.*;
 import io.crate.operation.Input;
@@ -31,9 +32,7 @@ import org.elasticsearch.common.logging.Loggers;
 
 import javax.annotation.Nullable;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 
 /**
@@ -113,26 +112,7 @@ public class EvaluatingNormalizer {
         @Override
         public Symbol visitMatchPredicate(MatchPredicate matchPredicate, StmtCtx context) {
             if (fieldResolver != null) {
-                // Once the fields can be resolved, rewrite matchPredicate to function
-                Map<Field, Double> fieldBoostMap = matchPredicate.identBoostMap();
-                Map<String, Object> fqnBoostMap = new HashMap<>(fieldBoostMap.size());
-
-                for (Map.Entry<Field, Double> entry : fieldBoostMap.entrySet()) {
-                    Symbol resolved = process(entry.getKey(), null);
-                    if (resolved instanceof Reference) {
-                        fqnBoostMap.put(((Reference) resolved).ident().columnIdent().fqn(), entry.getValue());
-                    } else {
-                        return matchPredicate;
-                    }
-                }
-
-                return new Function(
-                    io.crate.operation.predicate.MatchPredicate.INFO,
-                    Arrays.<Symbol>asList(
-                        Literal.of(fqnBoostMap),
-                        Literal.of(matchPredicate.columnType(), matchPredicate.queryTerm()),
-                        Literal.of(matchPredicate.matchType()),
-                        Literal.of(matchPredicate.options())));
+                return matchPredicate.tryConvertToFunction(fieldResolver);
             }
             return matchPredicate;
         }

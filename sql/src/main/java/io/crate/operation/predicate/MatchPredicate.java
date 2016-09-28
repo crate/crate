@@ -26,10 +26,8 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import io.crate.analyze.symbol.Function;
 import io.crate.analyze.symbol.Symbol;
-import io.crate.metadata.FunctionIdent;
-import io.crate.metadata.FunctionImplementation;
-import io.crate.metadata.FunctionInfo;
-import io.crate.metadata.StmtCtx;
+import io.crate.analyze.symbol.Symbols;
+import io.crate.metadata.*;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.elasticsearch.ElasticsearchParseException;
@@ -37,7 +35,7 @@ import org.elasticsearch.common.ParseFieldMatcher;
 import org.elasticsearch.index.query.MultiMatchQueryBuilder;
 
 import javax.annotation.Nullable;
-import java.util.Arrays;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
@@ -57,13 +55,7 @@ public class MatchPredicate implements FunctionImplementation<Function> {
     private static final Set<String> SUPPORTED_GEO_MATCH_TYPES = ImmutableSet.of("intersects", "disjoint", "within");
 
     public static final String NAME = "match";
-    public static final FunctionIdent IDENT = new FunctionIdent(
-        NAME,
-        Arrays.<DataType>asList(DataTypes.OBJECT, DataTypes.STRING, DataTypes.STRING, DataTypes.OBJECT)
-    );
-
-    public static final FunctionInfo INFO = new FunctionInfo(IDENT, DataTypes.BOOLEAN, FunctionInfo.Type.PREDICATE);
-
+    private final FunctionInfo info;
 
     private static String defaultMatchType(DataType dataType) {
         String matchType = DATA_TYPE_TO_DEFAULT_MATCH_TYPE.get(dataType);
@@ -97,6 +89,14 @@ public class MatchPredicate implements FunctionImplementation<Function> {
         throw new IllegalArgumentException("No match type for dataType: " + columnType);
     }
 
+    private static FunctionInfo createInfo(List<DataType> argumentTypes) {
+        return new FunctionInfo(new FunctionIdent(NAME, argumentTypes), DataTypes.BOOLEAN);
+    }
+
+    public static Function createSymbol(List<Symbol> args) {
+        return new Function(createInfo(Symbols.extractTypes(args)), args);
+    }
+
     /**
      * the match predicate is registered as a regular function
      * though it is called differently by the parser. We mangle
@@ -109,15 +109,21 @@ public class MatchPredicate implements FunctionImplementation<Function> {
      * 4. match_type options - object mapping option name to value (Object) (nullable)
      */
     public static void register(PredicateModule module) {
-        module.register(new MatchPredicate());
+        module.register(NAME, new DynamicFunctionResolver() {
+            @Override
+            public FunctionImplementation<Function> getForTypes(List<DataType> dataTypes) throws IllegalArgumentException {
+                return new MatchPredicate(createInfo(dataTypes));
+            }
+        });
     }
 
-    public MatchPredicate() {
+    public MatchPredicate(FunctionInfo info) {
+        this.info = info;
     }
 
     @Override
     public FunctionInfo info() {
-        return INFO;
+        return info;
     }
 
     @Override

@@ -106,4 +106,8 @@ public class GenericProperties extends Node {
     public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
         return visitor.visitGenericProperties(this, context);
     }
+
+    public int size() {
+        return properties.size();
+    }
 }
