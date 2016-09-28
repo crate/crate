@@ -336,7 +336,7 @@ public class PostgresITest extends SQLTransportIntegrationTest {
             } catch (BatchUpdateException e) {
                 assertThat(e.getUpdateCounts(), is(new int[]{-3, -3, -3}));
                 SQLException nextException = e.getNextException();
-                assertThat(nextException.getMessage(), Matchers.containsString("cannot cast 'foobar' to type integer"));
+                assertThat(nextException.getMessage(), Matchers.containsString("Cannot cast 'foobar' to type integer"));
             }
 
             conn.createStatement().executeUpdate("refresh table t");
@@ -490,7 +490,7 @@ public class PostgresITest extends SQLTransportIntegrationTest {
                 stmt.executeQuery();
                 fail("Should've raised PSQLException");
             } catch (PSQLException e) {
-                assertThat(e.getMessage(), Matchers.containsString("cannot cast [10.3, 20.2] to type integer"));
+                assertThat(e.getMessage(), Matchers.containsString("Cannot cast [10.3, 20.2] to type integer"));
             }
 
             assertSelectNameFromSysClusterWorks(conn);

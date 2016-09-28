@@ -75,7 +75,7 @@ public class ToLongArrayFunctionTest extends AbstractScalarFunctionsTest {
     @Test
     public void testInvalidValueToInt() throws Exception {
         expectedException.expect(ConversionException.class);
-        expectedException.expectMessage("cannot cast ['foobar', '20', '30'] to type long_array");
+        expectedException.expectMessage("Cannot cast ['foobar', '20', '30'] to type long_array");
         eval($("foobar", "20", "30"), DataTypes.STRING);
     }
 

@@ -48,7 +48,7 @@ public class ToPrimitiveFunction extends AbstractCastFunction<Object, Object> {
 
         @Override
         protected FunctionImplementation<Function> createInstance(List<DataType> dataTypes) {
-            return new ToPrimitiveFunction(new FunctionInfo(new FunctionIdent(name, dataTypes), dataType));
+            return new ToPrimitiveFunction(new FunctionInfo(new FunctionIdent(name, dataTypes), targetType));
         }
     }
 

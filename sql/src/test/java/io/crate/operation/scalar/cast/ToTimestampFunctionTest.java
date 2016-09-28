@@ -69,7 +69,7 @@ public class ToTimestampFunctionTest extends AbstractScalarFunctionsTest {
             } catch (Exception e) {
                 assertThat(
                     e.getMessage(),
-                    is(String.format(Locale.ENGLISH, "type '%s' not supported for conversion to 'timestamp'", dataType.getName()))
+                    is(String.format(Locale.ENGLISH, "Cannot cast %s to type timestamp", dataType.getName()))
                 );
             }
         }

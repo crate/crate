@@ -64,7 +64,7 @@ public class ToGeoPointFunctionTest extends AbstractScalarFunctionsTest {
     @Test
     public void testEvaluateCastFromInvalidString() throws Exception {
         expectedException.expect(ConversionException.class);
-        expectedException.expectMessage("cannot cast 'POINT ((0 0), (1 1))' to type geo_point");
+        expectedException.expectMessage("Cannot cast 'POINT ((0 0), (1 1))' to type geo_point");
         ToGeoFunction fn = getFunction(DataTypes.STRING);
         fn.evaluate(Literal.of(DataTypes.STRING, "POINT ((0 0), (1 1))"));
     }
@@ -72,7 +72,7 @@ public class ToGeoPointFunctionTest extends AbstractScalarFunctionsTest {
     @Test
     public void testInvalidType() throws Exception {
         expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("type 'integer' not supported for conversion to 'geo_point'");
+        expectedException.expectMessage("Cannot cast integer to type geo_point");
         getFunction(DataTypes.INTEGER);
     }
 }

@@ -340,7 +340,7 @@ public class UpdateAnalyzerTest extends BaseAnalyzerTest {
     @Test
     public void testUpdateWithWrongParameters() throws Exception {
         expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("[1, 2, 3] cannot be cast to type long");
+        expectedException.expectMessage("Cannot cast [1, 2, 3] to type long");
 
         analyze("update users set name=?, friends=? where other_id=?",
             new Object[]{

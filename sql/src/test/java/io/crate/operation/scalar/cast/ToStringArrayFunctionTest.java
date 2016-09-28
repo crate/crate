@@ -45,14 +45,14 @@ public class ToStringArrayFunctionTest extends AbstractScalarFunctionsTest {
     @Test
     public void testInvalidArgumentType() throws Exception {
         expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage("type 'string' not supported for conversion to 'string_array'");
+        expectedException.expectMessage("Cannot cast string to type string_array");
         sqlExpressions.normalize(sqlExpressions.asSymbol("to_string_array('bla')"));
     }
 
     @Test
     public void testInvalidArgumentInnerType() throws Exception {
         expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage("type 'object_array' not supported for conversion to 'string_array'");
+        expectedException.expectMessage("Cannot cast object_array to type string_array");
         sqlExpressions.normalize(sqlExpressions.asSymbol("to_string_array([{a = 1}])"));
     }
 

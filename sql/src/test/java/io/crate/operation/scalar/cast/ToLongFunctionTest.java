@@ -67,14 +67,14 @@ public class ToLongFunctionTest extends AbstractScalarFunctionsTest {
     @Test
     public void testInvalidType() throws Exception {
         expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("type 'object' not supported for conversion");
+        expectedException.expectMessage("Cannot cast object to type long");
         functions.get(new FunctionIdent(functionName, ImmutableList.<DataType>of(DataTypes.OBJECT)));
     }
 
     @Test
     public void testNormalizeInvalidString() throws Exception {
         expectedException.expect(ConversionException.class);
-        expectedException.expectMessage("cannot cast 'hello' to type long");
+        expectedException.expectMessage("Cannot cast 'hello' to type long");
         assertThat(normalize("hello", DataTypes.STRING), isLiteral(123L));
     }
 
@@ -104,7 +104,7 @@ public class ToLongFunctionTest extends AbstractScalarFunctionsTest {
     @SuppressWarnings("unchecked")
     public void testEvaluateInvalidString() throws Exception {
         expectedException.expect(ConversionException.class);
-        expectedException.expectMessage("cannot cast 'hello' to type long");
+        expectedException.expectMessage("Cannot cast 'hello' to type long");
         ToPrimitiveFunction stringFn = getFunction(functionName, DataTypes.STRING);
         Literal arg1 = Literal.of("hello");
 
@@ -115,7 +115,7 @@ public class ToLongFunctionTest extends AbstractScalarFunctionsTest {
     @SuppressWarnings("unchecked")
     public void testEvaluateInvalidByteRef() throws Exception {
         expectedException.expect(ConversionException.class);
-        expectedException.expectMessage("cannot cast 'hello' to type long");
+        expectedException.expectMessage("Cannot cast 'hello' to type long");
         ToPrimitiveFunction stringFn = getFunction(functionName, DataTypes.STRING);
         Literal arg1 = Literal.of(new BytesRef("hello"));
 

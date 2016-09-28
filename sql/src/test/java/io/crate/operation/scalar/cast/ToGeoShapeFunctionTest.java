@@ -82,7 +82,7 @@ public class ToGeoShapeFunctionTest extends AbstractScalarFunctionsTest {
     @Test
     public void testEvaluateCastFromInvalidString() throws Exception {
         expectedException.expect(ConversionException.class);
-        expectedException.expectMessage("cannot cast 'POINTE ()' to type geo_shape");
+        expectedException.expectMessage("Cannot cast 'POINTE ()' to type geo_shape");
         ToGeoFunction fn = getFunction(FUNCTION_NAME, DataTypes.STRING);
         fn.evaluate(Literal.of(DataTypes.STRING, INVALID_STR));
     }
@@ -105,7 +105,7 @@ public class ToGeoShapeFunctionTest extends AbstractScalarFunctionsTest {
         ToGeoFunction fn = getFunction(FUNCTION_NAME, DataTypes.OBJECT);
 
         expectedException.expect(ConversionException.class);
-        expectedException.expectMessage(allOf(startsWith("cannot cast"), endsWith("to type geo_shape")));
+        expectedException.expectMessage(allOf(startsWith("Cannot cast"), endsWith("to type geo_shape")));
         fn.evaluate(Literal.of(DataTypes.OBJECT, INVALID_OBJECT));
     }
 
@@ -136,14 +136,14 @@ public class ToGeoShapeFunctionTest extends AbstractScalarFunctionsTest {
     @Test
     public void testNormalizeFromInvalidString() throws Exception {
         expectedException.expect(ConversionException.class);
-        expectedException.expectMessage("cannot cast 'POINTE ()' to type geo_shape");
+        expectedException.expectMessage("Cannot cast 'POINTE ()' to type geo_shape");
         normalize(FUNCTION_NAME, INVALID_STR, DataTypes.STRING);
     }
 
     @Test
     public void testNormalizeFromInvalidObject() throws Exception {
         expectedException.expect(ConversionException.class);
-        expectedException.expectMessage("cannot cast {\"coordinates\"=[[0.0, 0.0], [42.0, 0.0], " +
+        expectedException.expectMessage("Cannot cast {\"coordinates\"=[[0.0, 0.0], [42.0, 0.0], " +
                                         "[42.0, 1.0], [42.0, 42.0], " +
                                         "[1.0, 42.0], [0.0, 0.0]], \"type\"='Polygon'} to type geo_shape");
         normalize(FUNCTION_NAME, INVALID_OBJECT, DataTypes.OBJECT);
@@ -152,7 +152,7 @@ public class ToGeoShapeFunctionTest extends AbstractScalarFunctionsTest {
     @Test
     public void testCastFromInvalidType() throws Exception {
         expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("type 'boolean' not supported for conversion to 'geo_shape'");
+        expectedException.expectMessage("Cannot cast boolean to type geo_shape");
         getFunction(FUNCTION_NAME, DataTypes.BOOLEAN);
 
     }

@@ -34,7 +34,6 @@ import io.crate.analyze.relations.FieldResolver;
 import io.crate.analyze.symbol.*;
 import io.crate.analyze.symbol.Literal;
 import io.crate.analyze.symbol.format.SymbolFormatter;
-import io.crate.analyze.symbol.format.SymbolPrinter;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.exceptions.ConversionException;
 import io.crate.exceptions.UnsupportedFeatureException;
@@ -199,16 +198,9 @@ public class ExpressionAnalyzer {
         if (sourceType.isConvertableTo(targetType)) {
             // cast further below doesn't always fail because it might be lazy as it wraps functions/references inside a cast function.
             // -> Need to check isConvertableTo to fail eagerly if the cast won't work.
-            try {
-                return cast(symbolToCast, targetType, false);
-            } catch (ConversionException e) {
-                // exception is just thrown for literals, rest is evaluated lazy
-                throw new IllegalArgumentException(String.format(Locale.ENGLISH, "%s cannot be cast to type %s",
-                    SymbolPrinter.INSTANCE.printSimple(symbolToCast), targetType.getName()), e);
-            }
+            return cast(symbolToCast, targetType, false);
         }
-        throw new IllegalArgumentException(String.format(Locale.ENGLISH, "%s cannot be cast to type %s",
-            SymbolPrinter.INSTANCE.printSimple(symbolToCast), targetType.getName()));
+        throw new ConversionException(symbolToCast, targetType);
     }
 
     private static Symbol cast(Symbol sourceSymbol, DataType targetType, boolean tryCast) {

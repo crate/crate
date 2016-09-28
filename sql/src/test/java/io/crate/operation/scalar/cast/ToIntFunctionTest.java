@@ -65,14 +65,14 @@ public class ToIntFunctionTest extends AbstractScalarFunctionsTest {
     @Test
     public void testInvalidType() throws Exception {
         expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("type 'object' not supported for conversion");
+        expectedException.expectMessage("Cannot cast object to type integer");
         functions.get(new FunctionIdent(functionName, ImmutableList.<DataType>of(DataTypes.OBJECT)));
     }
 
     @Test
     public void testNormalizeInvalidString() throws Exception {
         expectedException.expect(ConversionException.class);
-        expectedException.expectMessage("cannot cast 'hello' to type integer");
+        expectedException.expectMessage("Cannot cast 'hello' to type integer");
         ToPrimitiveFunction castStringToInteger = getFunction(functionName, DataTypes.STRING);
         Function function = new Function(castStringToInteger.info(), Collections.<Symbol>singletonList(Literal.of("hello")));
         castStringToInteger.normalizeSymbol(function, stmtCtx);
@@ -96,7 +96,7 @@ public class ToIntFunctionTest extends AbstractScalarFunctionsTest {
     @SuppressWarnings("unchecked")
     public void testEvaluateInvalidString() throws Exception {
         expectedException.expect(ConversionException.class);
-        expectedException.expectMessage("cannot cast 'hello' to type integer");
+        expectedException.expectMessage("Cannot cast 'hello' to type integer");
         ToPrimitiveFunction stringFn = getFunction(functionName, DataTypes.STRING);
         Literal arg1 = Literal.of("hello");
 
@@ -107,7 +107,7 @@ public class ToIntFunctionTest extends AbstractScalarFunctionsTest {
     @SuppressWarnings("unchecked")
     public void testEvaluateInvalidByteRef() throws Exception {
         expectedException.expect(ConversionException.class);
-        expectedException.expectMessage("cannot cast 'hello' to type integer");
+        expectedException.expectMessage("Cannot cast 'hello' to type integer");
         ToPrimitiveFunction stringFn = getFunction(functionName, DataTypes.STRING);
         Literal arg1 = Literal.of(new BytesRef("hello"));
 

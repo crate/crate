@@ -48,7 +48,7 @@ public class ToGeoFunction extends AbstractCastFunction<Object, Object> {
 
         @Override
         protected FunctionImplementation<Function> createInstance(List<DataType> dataTypes) {
-            return new ToGeoFunction(new FunctionInfo(new FunctionIdent(name, dataTypes), dataType));
+            return new ToGeoFunction(new FunctionInfo(new FunctionIdent(name, dataTypes), targetType));
         }
     }
 

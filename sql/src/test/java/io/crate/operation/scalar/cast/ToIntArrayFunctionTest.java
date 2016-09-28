@@ -75,7 +75,7 @@ public class ToIntArrayFunctionTest extends AbstractScalarFunctionsTest {
     @Test
     public void testInvalidValueToInt() throws Exception {
         expectedException.expect(ConversionException.class);
-        expectedException.expectMessage("cannot cast ['foobar', '20', '30'] to type integer_array");
+        expectedException.expectMessage("Cannot cast ['foobar', '20', '30'] to type integer_array");
         eval($("foobar", "20", "30"), DataTypes.STRING);
     }
 

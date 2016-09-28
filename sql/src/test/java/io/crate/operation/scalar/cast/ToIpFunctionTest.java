@@ -63,49 +63,49 @@ public class ToIpFunctionTest extends AbstractScalarFunctionsTest {
     @Test
     public void testEvaluateInvalidStringValue() throws Exception {
         expectedException.expect(ConversionException.class);
-        expectedException.expectMessage("cannot cast 'not.a.valid.ip' to type ip");
+        expectedException.expectMessage("Cannot cast 'not.a.valid.ip' to type ip");
         assertThat(evaluate("not.a.valid.ip", DataTypes.STRING), is(nullValue()));
     }
 
     @Test
     public void testEvaluateInvalidBytesRefValue() throws Exception {
         expectedException.expect(ConversionException.class);
-        expectedException.expectMessage("cannot cast '257.0.1.1' to type ip");
+        expectedException.expectMessage("Cannot cast '257.0.1.1' to type ip");
         assertThat(evaluate(new BytesRef("257.0.1.1"), DataTypes.STRING), is(nullValue()));
     }
 
     @Test
     public void testEvaluateInvalidLongValue() throws Exception {
         expectedException.expect(ConversionException.class);
-        expectedException.expectMessage("cannot cast -1 ");
+        expectedException.expectMessage("Cannot cast -1 ");
         assertThat(evaluate(-1L, DataTypes.LONG), is(nullValue()));
     }
 
     @Test
     public void testNormalizeInvalidStringValue() throws Exception {
         expectedException.expect(ConversionException.class);
-        expectedException.expectMessage("cannot cast '257.0.0.0' to type ip");
+        expectedException.expectMessage("Cannot cast '257.0.0.0' to type ip");
         normalize(functionName, "257.0.0.0", DataTypes.STRING);
     }
 
     @Test
     public void testNormalizeInvalidLongValue() throws Exception {
         expectedException.expect(ConversionException.class);
-        expectedException.expectMessage("cannot cast -1 to type ip");
+        expectedException.expectMessage("Cannot cast -1 to type ip");
         normalize(functionName, -1L, DataTypes.LONG);
     }
 
     @Test
     public void testNormalizeInvalidBytesRefValue() throws Exception {
         expectedException.expect(ConversionException.class);
-        expectedException.expectMessage("cannot cast '257.0.0.0' to type ip");
+        expectedException.expectMessage("Cannot cast '257.0.0.0' to type ip");
         normalize(functionName, new BytesRef("257.0.0.0"), DataTypes.STRING);
     }
 
     @Test
     public void testInvalidObjectType() throws Exception {
         expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("type 'object' not supported for conversion");
+        expectedException.expectMessage("Cannot cast object to type ip");
         functions.get(new FunctionIdent(functionName, ImmutableList.<DataType>of(DataTypes.OBJECT)));
     }
 

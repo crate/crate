@@ -56,7 +56,7 @@ public abstract class AbstractCastFunction<From, To> extends Scalar<To, From> im
         From value = args[0].value();
         try {
             return returnType.value(value);
-        } catch (ClassCastException | IllegalArgumentException | ConversionException e) {
+        } catch (ClassCastException | IllegalArgumentException e) {
             return onEvaluateException(value);
         }
     }
@@ -74,7 +74,7 @@ public abstract class AbstractCastFunction<From, To> extends Scalar<To, From> im
             Object value = ((Input) argument).value();
             try {
                 return Literal.of(returnType, returnType.value(value));
-            } catch (ClassCastException | IllegalArgumentException | ConversionException e) {
+            } catch (ClassCastException | IllegalArgumentException e) {
                 return onNormalizeException(argument);
             }
         }
@@ -111,18 +111,20 @@ public abstract class AbstractCastFunction<From, To> extends Scalar<To, From> im
     protected abstract static class Resolver implements DynamicFunctionResolver {
 
         protected final String name;
-        protected final DataType dataType;
+        protected final DataType targetType;
 
-        protected Resolver(DataType dataType, String name) {
+        protected Resolver(DataType targetType, String name) {
             this.name = name;
-            this.dataType = dataType;
+            this.targetType = targetType;
         }
 
-        protected void checkPreconditions(List<DataType> dataTypes) {
+        void checkPreconditions(List<DataType> dataTypes) {
             Preconditions.checkArgument(dataTypes.size() == 1,
                 "invalid size of arguments, 1 expected");
             DataType convertFrom = dataTypes.get(0);
-            Preconditions.checkArgument(convertFrom.isConvertableTo(dataType), "type '%s' not supported for conversion to '%s'", convertFrom, dataType);
+            if (!convertFrom.isConvertableTo(targetType)) {
+                throw new ConversionException(convertFrom, targetType);
+            }
         }
 
         protected abstract FunctionImplementation<Function> createInstance(List<DataType> types);

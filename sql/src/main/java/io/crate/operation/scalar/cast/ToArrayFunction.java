@@ -51,7 +51,7 @@ public class ToArrayFunction extends AbstractCastFunction<Object, Object[]> {
 
         @Override
         protected FunctionImplementation<Function> createInstance(List<DataType> dataTypes) {
-            return new ToArrayFunction(new FunctionInfo(new FunctionIdent(name, dataTypes), dataType));
+            return new ToArrayFunction(new FunctionInfo(new FunctionIdent(name, dataTypes), targetType));
         }
     }
 }

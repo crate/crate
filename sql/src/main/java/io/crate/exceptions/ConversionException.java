@@ -28,32 +28,32 @@ import org.apache.lucene.util.BytesRef;
 
 import java.util.Locale;
 
-public class ConversionException extends RuntimeException {
+public class ConversionException extends IllegalArgumentException {
 
-    private final static String ERROR_MESSAGE = "cannot cast %s to type %s";
+    private final static String ERROR_MESSAGE = "Cannot cast %s to type %s";
 
-    private String message;
-
-    public ConversionException(Object value, DataType type) {
-        super();
-
-        if (value instanceof Symbol) {
-            message = String.format(Locale.ENGLISH, ERROR_MESSAGE,
-                SymbolPrinter.INSTANCE.printSimple((Symbol) value), type.toString());
-        } else if (value instanceof BytesRef) {
-            message = String.format(Locale.ENGLISH, ERROR_MESSAGE,
-                String.format(Locale.ENGLISH, "'%s'", ((BytesRef) value).utf8ToString()), type.toString());
-        } else if (value instanceof String) {
-            message = String.format(Locale.ENGLISH, ERROR_MESSAGE,
-                String.format(Locale.ENGLISH, "'%s'", value), type.toString());
-        } else {
-            message = String.format(Locale.ENGLISH, ERROR_MESSAGE,
-                value.toString(), type.toString());
-        }
+    public ConversionException(Symbol symbol, DataType targetType) {
+        super(generateMessage(symbol, targetType));
     }
 
-    @Override
-    public String getMessage() {
-        return message;
+    public ConversionException(Object value, DataType type) {
+        super(generateMessage(value, type));
+    }
+
+    private static String generateMessage(Symbol value, DataType type) {
+        return String.format(Locale.ENGLISH, ERROR_MESSAGE,
+            SymbolPrinter.INSTANCE.printSimple(value), type.toString());
+    }
+    private static String generateMessage(Object value, DataType type) {
+        if (value instanceof Symbol) {
+            return generateMessage((Symbol) value, type);
+        } else if (value instanceof BytesRef) {
+            return String.format(Locale.ENGLISH, ERROR_MESSAGE,
+                String.format(Locale.ENGLISH, "'%s'", ((BytesRef) value).utf8ToString()), type.toString());
+        } else if (value instanceof String) {
+            return String.format(Locale.ENGLISH, ERROR_MESSAGE,
+                String.format(Locale.ENGLISH, "'%s'", value), type.toString());
+        }
+        return String.format(Locale.ENGLISH, ERROR_MESSAGE, value.toString(), type.toString());
     }
 }

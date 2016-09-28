@@ -76,7 +76,7 @@ public class StringType extends DataType<BytesRef> implements DataTypeFactory, S
         }
         if (value instanceof Map || value.getClass().isArray()) {
             throw new IllegalArgumentException(
-                String.format(Locale.ENGLISH, "cannot cast %s to string", value));
+                String.format(Locale.ENGLISH, "Cannot cast %s to type string", value));
         }
         return new BytesRef(value.toString());
     }

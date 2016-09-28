@@ -82,14 +82,14 @@ public class ToFloatFunctionTest extends AbstractScalarFunctionsTest {
     @Test
     public void testInvalidType() throws Exception {
         expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("type 'object' not supported for conversion");
+        expectedException.expectMessage("Cannot cast object to type float");
         functions.get(new FunctionIdent(functionName, ImmutableList.<DataType>of(DataTypes.OBJECT)));
     }
 
     @Test
     public void testNormalizeInvalidString() throws Exception {
         expectedException.expect(ConversionException.class);
-        expectedException.expectMessage("cannot cast 'hello' to type float");
+        expectedException.expectMessage("Cannot cast 'hello' to type float");
         normalize("hello", DataTypes.STRING);
     }
 }

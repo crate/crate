@@ -67,7 +67,7 @@ public class ToStringFunctionTest extends AbstractScalarFunctionsTest {
     @Test
     public void testInvalidType() throws Exception {
         expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("type 'object' not supported for conversion");
+        expectedException.expectMessage("Cannot cast object to type string");
         getFunction(functionName, DataTypes.OBJECT);
     }
 

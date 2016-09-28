@@ -584,7 +584,7 @@ public class SelectStatementAnalyzerTest extends BaseAnalyzerTest {
     @Test
     public void testWhereInSelectDifferentDataTypeValueUncompatibleDataTypes() throws Exception {
         expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("'foo' cannot be cast to type long");
+        expectedException.expectMessage("Cannot cast 'foo' to type long");
         analyze("select 'found' from users where 1 in (1, 'foo', 2)");
     }
 
@@ -1181,7 +1181,7 @@ public class SelectStatementAnalyzerTest extends BaseAnalyzerTest {
     @Test
     public void testMatchPredicateWithWrongQueryTerm() throws Exception {
         expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("cannot cast {} to string");
+        expectedException.expectMessage("Cannot cast {} to type string");
         analyze("select name from users order by match(name, {})");
 
     }
@@ -1470,7 +1470,7 @@ public class SelectStatementAnalyzerTest extends BaseAnalyzerTest {
     @Test
     public void testRegexpMatchInvalidArg() throws Exception {
         expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("'foo' cannot be cast to type float");
+        expectedException.expectMessage("Cannot cast 'foo' to type float");
         analyze("select * from users where floats ~ 'foo'");
     }
 
