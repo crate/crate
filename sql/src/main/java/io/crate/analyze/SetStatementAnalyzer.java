@@ -41,7 +41,7 @@ public class SetStatementAnalyzer {
 
     public static SetAnalyzedStatement analyze(SetStatement node, ParameterContext parameterContext) {
         if (!SetStatement.Scope.GLOBAL.equals(node.scope())) {
-            logger.warn("SET STATEMENT: {}", node);
+            logger.warn("SET STATEMENT WITH SESSION OR LOCAL WILL BE IGNORED: {}", node);
         }
 
         Settings.Builder builder = Settings.builder();
@@ -56,6 +56,10 @@ public class SetStatementAnalyzer {
                 }
                 settingsApplier.apply(builder, parameterContext.parameters(), assignment.expression());
             } else {
+                Set<String> settingNames = CrateSettings.settingNamesByPrefix(settingsName);
+                if (settingNames.size() != 0) {
+                    throw new IllegalArgumentException(String.format(Locale.ENGLISH, "GLOBAL Cluster setting '%s' cannot be used with SET SESSION / LOCAL", settingsName));
+                }
                 builder.put(settingsName, assignment.expressions());
             }
         }
