@@ -109,7 +109,6 @@ public abstract class SQLTransportIntegrationTest extends ESIntegTestCase {
     protected Settings nodeSettings(int nodeOrdinal) {
         return Settings.builder()
             .put(super.nodeSettings(nodeOrdinal))
-            .put("psql.enabled", true)
             .build();
     }
 

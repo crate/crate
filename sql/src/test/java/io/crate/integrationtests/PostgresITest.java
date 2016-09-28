@@ -50,7 +50,6 @@ public class PostgresITest extends SQLTransportIntegrationTest {
     protected Settings nodeSettings(int nodeOrdinal) {
         Settings.Builder builder = Settings.builder();
         builder.put(super.nodeSettings(nodeOrdinal))
-            .put("psql.enabled", true)
             .put("network.host", "127.0.0.1");
 
         if ((nodeOrdinal + 1) % 2 == 0) {

@@ -867,5 +867,5 @@
 #
 # This allows you to connect to Crate using one of the many Postgres tools and libraries
 
-#psql.enabled: false
+#psql.enabled: true
 #psql.port: 5432

@@ -45,7 +45,6 @@ public class PostgresStatsTablesITest extends SQLTransportIntegrationTest {
     protected Settings nodeSettings(int nodeOrdinal) {
         Settings.Builder builder = Settings.builder();
         return builder.put(super.nodeSettings(nodeOrdinal))
-            .put("psql.enabled", true)
             .put("psql.port", "4244")
             .put("network.host", "127.0.0.1").build();
     }

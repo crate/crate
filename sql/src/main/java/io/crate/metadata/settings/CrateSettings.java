@@ -1369,7 +1369,7 @@ public class CrateSettings {
         new StringSetting("port", null, false, "5432-5532", PSQL);
 
 
-    public static final BoolSetting PSQL_ENABLED = new BoolSetting("enabled", false, false) {
+    public static final BoolSetting PSQL_ENABLED = new BoolSetting("enabled", true, false) {
         @Override
         public Setting parent() {
             return PSQL;

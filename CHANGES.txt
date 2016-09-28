@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - The PostgreSQL wire protocol is enabled by default.
+
  - Fix: The ``count`` aggregation function counts null values.
    E.g. count(cast(null as string))
 
