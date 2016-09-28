@@ -155,6 +155,7 @@ public class CrateDocCollector implements CrateCollector, RepeatHandle {
 
     @Override
     public void doCollect() {
+        debugLog("doCollect");
         for (LuceneCollectorExpression<?> expression : expressions) {
             expression.startCollect(collectorContext);
         }
@@ -253,7 +254,9 @@ public class CrateDocCollector implements CrateCollector, RepeatHandle {
 
     @Override
     public void kill(@Nullable Throwable throwable) {
+        debugLog("kill searchContext=" + searchContext);
         rowReceiver.kill(throwable);
+        searchContext.clearReleasables(SearchContext.Lifetime.PHASE);
     }
 
     @Override
