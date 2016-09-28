@@ -21,63 +21,32 @@
 
 package io.crate.operation.scalar;
 
-import io.crate.analyze.symbol.Function;
-import io.crate.analyze.symbol.Symbol;
 import io.crate.metadata.FunctionIdent;
-import io.crate.metadata.StmtCtx;
-import io.crate.operation.Input;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.SetType;
-import org.apache.lucene.util.BytesRef;
 import org.junit.Test;
 
 import java.util.Arrays;
 
+import static io.crate.testing.TestingHelpers.isFunction;
 import static io.crate.testing.TestingHelpers.isLiteral;
-import static org.hamcrest.Matchers.instanceOf;
-import static org.hamcrest.Matchers.is;
 
 public class SubscriptFunctionTest extends AbstractScalarFunctionsTest {
 
-    private final StmtCtx stmtCtx = new StmtCtx();
-
     @Test
     public void testEvaluate() throws Exception {
-        Function function = (Function) sqlExpressions.asSymbol("subscript(['Youri', 'Ruben'], cast(1 as integer))");
-        SubscriptFunction subscriptFunction = (SubscriptFunction) functions.get(function.info().ident());
-
-        Input[] args = new Input[]{
-            ((Input) function.arguments().get(0)),
-            ((Input) function.arguments().get(1))
-        };
-        BytesRef expected = new BytesRef("Youri");
-        assertEquals(expected, subscriptFunction.evaluate(args));
+        assertNormalize("subscript(['Youri', 'Ruben'], cast(1 as integer))", isLiteral("Youri"));
     }
 
     @Test
     public void testNormalizeSymbol() throws Exception {
-        Function function = (Function) sqlExpressions.asSymbol("subscript(['Youri', 'Ruben'], cast(1 as integer))");
-        SubscriptFunction subscriptFunction = (SubscriptFunction) functions.get(function.info().ident());
-
-        Symbol actual = subscriptFunction.normalizeSymbol(function, stmtCtx);
-        assertThat(actual, isLiteral(new BytesRef("Youri")));
-
-
-        function = (Function) sqlExpressions.asSymbol("subscript(tags, cast(1 as integer))");
-
-        Symbol result = subscriptFunction.normalizeSymbol(function, stmtCtx);
-        assertThat(result, instanceOf(Function.class));
-        assertThat((Function) result, is(function));
+        assertNormalize("subscript(tags, cast(1 as integer))", isFunction("subscript"));
     }
 
     @Test
     public void testIndexOutOfRange() throws Exception {
-        Function function = (Function) sqlExpressions.asSymbol("subscript(['Youri', 'Ruben'], cast(3 as integer))");
-        SubscriptFunction subscriptFunction = (SubscriptFunction) functions.get(function.info().ident());
-
-        Symbol result = subscriptFunction.normalizeSymbol(function, stmtCtx);
-        assertThat(result, isLiteral(null, DataTypes.STRING));
+        assertNormalize("subscript(['Youri', 'Ruben'], cast(3 as integer))", isLiteral(null));
     }
 
     @Test

@@ -26,49 +26,53 @@ import io.crate.analyze.symbol.Function;
 import io.crate.metadata.*;
 import io.crate.operation.Input;
 import io.crate.operation.scalar.ScalarFunctionModule;
-import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
+import org.elasticsearch.common.lucene.BytesRefs;
 
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 
-public class ArrayFunction extends Scalar<Object, Object> {
+/**
+ * _map(k, v, [...]) -> object
+ *
+ * args must be a multiple of 2
+ *
+ * k: must be a string
+ */
+public class MapFunction extends Scalar<Object, Object> {
 
-    private final static String NAME = "_array";
-    private final FunctionInfo info;
+    private final static String NAME = "_map";
 
-    public static FunctionInfo createInfo(List<DataType> argumentTypes) {
-        if (argumentTypes.isEmpty()) {
-            throw new IllegalArgumentException("Cannot determine type of empty array");
-        }
-        Iterator<DataType> it = argumentTypes.iterator();
-        DataType firstType = it.next();
-        while (it.hasNext()) {
-            DataType next = it.next();
-            if (next.equals(DataTypes.UNDEFINED)) {
-                continue;
-            }
-            if (firstType.equals(DataTypes.UNDEFINED)) {
-                firstType = next;
-            } else if (!firstType.equals(next)) {
-                throw new IllegalArgumentException("All arguments to an array must have the same type. " +
-                                                   "Found " + firstType.getName() + " and " + next.getName());
-            }
-        }
-        return new FunctionInfo(new FunctionIdent(NAME, argumentTypes), new ArrayType(firstType));
-    }
-
-    private static final DynamicFunctionResolver RESOLVER = new DynamicFunctionResolver() {
-
+    private final static DynamicFunctionResolver RESOLVER = new DynamicFunctionResolver() {
         @Override
         public FunctionImplementation<Function> getForTypes(List<DataType> dataTypes) throws IllegalArgumentException {
-            return new ArrayFunction(createInfo(dataTypes));
+            if (dataTypes.size() % 2 != 0) {
+                throw new IllegalArgumentException(
+                    "Number of arguments to _map(...) must be a multiple of 2. Got " + dataTypes.size());
+            }
+            Iterator<DataType> it = dataTypes.iterator();
+            while (it.hasNext()) {
+                DataType keyType = it.next();
+                if (!keyType.equals(DataTypes.STRING)) {
+                    throw new IllegalArgumentException("Keys to _map must be of type string. Got " + keyType);
+                }
+                it.next();
+            }
+            return new MapFunction(createInfo(dataTypes));
         }
     };
 
-    private ArrayFunction(FunctionInfo info) {
+    private final FunctionInfo info;
+
+    private MapFunction(FunctionInfo info) {
         this.info = info;
+    }
+
+    public static FunctionInfo createInfo(List<DataType> dataTypes) {
+        return new FunctionInfo(new FunctionIdent(NAME, dataTypes), DataTypes.OBJECT);
     }
 
     @Override
@@ -79,11 +83,11 @@ public class ArrayFunction extends Scalar<Object, Object> {
     @SafeVarargs
     @Override
     public final Object evaluate(Input<Object>... args) {
-        Object[] values = new Object[args.length];
-        for (int i = 0; i < values.length; i++) {
-            values[i] = args[i].value();
+        Map<String, Object> m = new HashMap<>(args.length / 2, 1.0f);
+        for (int i = 0; i < args.length; i += 2) {
+            m.put(BytesRefs.toBytesRef(args[i].value()).utf8ToString(), args[i + 1].value());
         }
-        return values;
+        return m;
     }
 
     public static void register(ScalarFunctionModule scalarFunctionModule) {

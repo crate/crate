@@ -107,6 +107,10 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
             this.fetchSize = fetchSize;
         }
 
+        public EvaluatingNormalizer normalizer() {
+            return normalizer;
+        }
+
         private static int finalLimit(@Nullable Integer queryLimit, int softLimit) {
             if (queryLimit == null) {
                 return softLimit > 0 ? softLimit : TopN.NO_LIMIT;

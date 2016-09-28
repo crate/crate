@@ -43,6 +43,7 @@ import org.elasticsearch.common.io.stream.StreamOutput;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
@@ -306,12 +307,15 @@ public class RoutedCollectPhase extends AbstractProjectionsPhase implements Coll
         WhereClause where = table.querySpec().where();
         if (table.tableRelation() instanceof TableFunctionRelation) {
             TableFunctionRelation tableFunctionRelation = (TableFunctionRelation) table.tableRelation();
+            List<Symbol> args = new ArrayList<>();
+            args.addAll(tableFunctionRelation.arguments());
+            plannerContext.normalizer().normalizeInplace(args, plannerContext.statementContext());
             return new TableFunctionCollectPhase(
                 plannerContext.jobId(),
                 plannerContext.nextExecutionPhaseId(),
                 plannerContext.allocateRouting(tableInfo, where, null),
                 tableFunctionRelation.functionName(),
-                tableFunctionRelation.arguments(),
+                args,
                 projections,
                 toCollect,
                 where

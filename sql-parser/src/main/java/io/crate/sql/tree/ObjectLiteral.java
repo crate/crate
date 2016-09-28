@@ -21,7 +21,6 @@
 
 package io.crate.sql.tree;
 
-import com.google.common.base.MoreObjects;
 import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.Multimap;
 
@@ -32,7 +31,14 @@ public class ObjectLiteral extends Literal {
     private final Multimap<String, Expression> values;
 
     public ObjectLiteral(@Nullable Multimap<String, Expression> values) {
-        this.values = MoreObjects.firstNonNull(values, ImmutableMultimap.<String, Expression>of());
+        if (values == null) {
+            this.values = ImmutableMultimap.of();
+        } else {
+            this.values = values;
+            if (values.size() != values.keySet().size()) {
+                throw new IllegalArgumentException("object contains duplicate keys: " + values);
+            }
+        }
     }
 
     public Multimap<String, Expression> values() {

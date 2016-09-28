@@ -437,8 +437,8 @@ public class InsertFromValuesAnalyzerTest extends BaseAnalyzerTest {
         Object[] arrayValue = (Object[]) analysis.sourceMaps().get(0)[0];
         assertThat(arrayValue.length, is(2));
         assertThat(arrayValue[0], instanceOf(Map.class));
-        assertThat((String) ((Map) arrayValue[0]).get("name"), is("cool"));
-        assertThat((String) ((Map) arrayValue[1]).get("name"), is("fancy"));
+        assertThat((BytesRef) ((Map) arrayValue[0]).get("name"), is(new BytesRef("cool")));
+        assertThat((BytesRef) ((Map) arrayValue[1]).get("name"), is(new BytesRef("fancy")));
         assertThat(Arrays.toString(((Object[]) ((Map) arrayValue[0]).get("metadata"))), is("[{id=0}, {id=1}]"));
         assertThat(Arrays.toString(((Object[]) ((Map) arrayValue[1]).get("metadata"))), is("[{id=2}, {id=3}]"));
     }
@@ -1077,8 +1077,8 @@ public class InsertFromValuesAnalyzerTest extends BaseAnalyzerTest {
         assertThat(analysis.columns(), contains(isReference("ts"), isReference("user"), isReference("day"), isReference("name")));
         assertThat(analysis.sourceMaps(), hasSize(2));
         assertThat(analysis.sourceMaps(), contains(
-            Matchers.arrayContaining(0L, ImmutableMap.<String, Object>of("name", "Johnny"), 0L, new BytesRef("Johnnybar")),
-            Matchers.arrayContaining(626603400000L, ImmutableMap.<String, Object>of("name", "Egon"), 626572800000L, new BytesRef("Egonbar"))));
+            Matchers.arrayContaining(0L, ImmutableMap.<String, Object>of("name", new BytesRef("Johnny")), 0L, new BytesRef("Johnnybar")),
+            Matchers.arrayContaining(626603400000L, ImmutableMap.<String, Object>of("name", new BytesRef("Egon")), 626572800000L, new BytesRef("Egonbar"))));
     }
 
     @Test
@@ -1089,8 +1089,8 @@ public class InsertFromValuesAnalyzerTest extends BaseAnalyzerTest {
         assertThat(analysis.columns(), contains(isReference("ts"), isReference("user"), isReference("day"), isReference("name")));
         assertThat(analysis.sourceMaps(), hasSize(2));
         assertThat(analysis.sourceMaps(), contains(
-            Matchers.arrayContaining(0L, ImmutableMap.<String, Object>of("name", "Johnny"), 0L, new BytesRef("Johnnybar")),
-            Matchers.arrayContaining(626603400000L, ImmutableMap.<String, Object>of("name", "Egon"), 626572800000L, new BytesRef("Egonbar"))));
+            Matchers.arrayContaining(0L, ImmutableMap.<String, Object>of("name", new BytesRef("Johnny")), 0L, new BytesRef("Johnnybar")),
+            Matchers.arrayContaining(626603400000L, ImmutableMap.<String, Object>of("name", new BytesRef("Egon")), 626572800000L, new BytesRef("Egonbar"))));
     }
 
     @Test

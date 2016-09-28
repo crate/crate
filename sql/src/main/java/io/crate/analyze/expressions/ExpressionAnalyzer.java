@@ -23,10 +23,7 @@ package io.crate.analyze.expressions;
 
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Lists;
+import com.google.common.collect.*;
 import io.crate.action.sql.SQLOperations;
 import io.crate.analyze.*;
 import io.crate.analyze.relations.FieldProvider;
@@ -50,6 +47,7 @@ import io.crate.operation.reference.ReferenceResolver;
 import io.crate.operation.scalar.ExtractFunctions;
 import io.crate.operation.scalar.SubscriptFunction;
 import io.crate.operation.scalar.arithmetic.ArrayFunction;
+import io.crate.operation.scalar.arithmetic.MapFunction;
 import io.crate.operation.scalar.cast.CastFunctionResolver;
 import io.crate.operation.scalar.timestamp.CurrentTimestampFunction;
 import io.crate.sql.ExpressionFormatter;
@@ -574,65 +572,33 @@ public class ExpressionAnalyzer {
 
         @Override
         public Symbol visitArrayLiteral(ArrayLiteral node, ExpressionAnalysisContext context) {
-            // TODO: support everything that is immediately evaluable as values
-            return toArrayLiteral(node.values(), context);
-        }
-
-        private Literal toArrayLiteral(List<Expression> values, ExpressionAnalysisContext context) {
+            List<Expression> values = node.values();
             if (values.isEmpty()) {
                 return Literal.of(new ArrayType(UndefinedType.INSTANCE), new Object[0]);
             } else {
-                DataType innerType = null;
-                Object[] innerValues = new Object[values.size()];
-                int idx = 0;
-                for (Expression e : values) {
-                    Symbol arrayElement = process(e, context);
-                    DataType currentType = arrayElement.valueType();
-                    if (innerType == null && currentType != DataTypes.UNDEFINED) {
-                        innerType = currentType;
-                    } else if (innerType != null && currentType != DataTypes.UNDEFINED &&
-                               !currentType.equals(innerType)) {
-                        throw new IllegalArgumentException(String.format(
-                            Locale.ENGLISH, "array element %s not of array item type %s", e, innerType));
-                    }
-                    innerValues[idx] = ((Literal) arrayElement).value();
-                    idx++;
+                List<Symbol> arguments = new ArrayList<>(values.size());
+                for (Expression value : values) {
+                    arguments.add(process(value, context));
                 }
-                if (innerType == null) {
-                    innerType = DataTypes.UNDEFINED;
-                } else {
-                    for (int i = 0; i < innerValues.length; i++) {
-                        innerValues[i] = innerType.value(innerValues[i]);
-                    }
-                }
-                return Literal.of(new ArrayType(innerType), innerValues);
+                return context.allocateFunction(
+                    ArrayFunction.createInfo(Symbols.extractTypes(arguments)),
+                    arguments
+                );
             }
         }
 
         @Override
         public Symbol visitObjectLiteral(ObjectLiteral node, ExpressionAnalysisContext context) {
-            // TODO: support everything that is immediately evaluable as values
-            Map<String, Object> values = new HashMap<>(node.values().size());
-            for (Map.Entry<String, Expression> entry : node.values().entries()) {
-                Object value;
-                try {
-                    value = ExpressionToObjectVisitor.convert(entry.getValue(), parameterContext.parameters());
-                } catch (UnsupportedOperationException e) {
-                    throw new IllegalArgumentException(
-                        String.format(Locale.ENGLISH,
-                            "invalid object literal value '%s'",
-                            entry.getValue())
-                    );
-                }
-
-                if (values.put(entry.getKey(), value) != null) {
-                    throw new IllegalArgumentException(
-                        String.format(Locale.ENGLISH,
-                            "key '%s' listed twice in object literal",
-                            entry.getKey()));
-                }
+            Multimap<String, Expression> values = node.values();
+            if (values.isEmpty()) {
+                return Literal.EMPTY_OBJECT;
             }
-            return Literal.of(values);
+            List<Symbol> arguments = new ArrayList<>(values.size() * 2);
+            for (Map.Entry<String, Expression> entry : values.entries()) {
+                arguments.add(Literal.of(entry.getKey()));
+                arguments.add(process(entry.getValue(), context));
+            }
+            return context.allocateFunction(MapFunction.createInfo(Symbols.extractTypes(arguments)), arguments);
         }
 
         @Override

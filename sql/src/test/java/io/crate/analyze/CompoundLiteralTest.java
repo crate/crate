@@ -22,157 +22,83 @@
 package io.crate.analyze;
 
 import com.google.common.collect.ImmutableMap;
-import io.crate.analyze.expressions.ExpressionAnalysisContext;
-import io.crate.analyze.expressions.ExpressionAnalyzer;
-import io.crate.analyze.relations.AnalyzedRelation;
-import io.crate.analyze.relations.FullQualifedNameFieldProvider;
 import io.crate.analyze.symbol.Literal;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.analyze.symbol.SymbolType;
-import io.crate.core.collections.Row;
-import io.crate.core.collections.RowN;
-import io.crate.metadata.*;
-import io.crate.metadata.table.SchemaInfo;
-import io.crate.metadata.tablefunctions.TableFunctionImplementation;
 import io.crate.sql.parser.ParsingException;
-import io.crate.sql.parser.SqlParser;
-import io.crate.sql.tree.QualifiedName;
 import io.crate.test.integration.CrateUnitTest;
-import io.crate.testing.DummyRelation;
+import io.crate.testing.SqlExpressions;
+import io.crate.testing.T3;
 import io.crate.types.*;
-import org.elasticsearch.action.admin.indices.template.put.TransportPutIndexTemplateAction;
-import org.elasticsearch.cluster.ClusterService;
-import org.elasticsearch.cluster.ClusterState;
-import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
-import org.elasticsearch.cluster.metadata.IndexTemplateMetaData;
-import org.elasticsearch.cluster.metadata.MetaData;
-import org.elasticsearch.common.collect.ImmutableOpenMap;
+import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.collect.MapBuilder;
-import org.elasticsearch.common.inject.Provider;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.threadpool.ThreadPool;
 import org.hamcrest.Matchers;
-import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.concurrent.TimeUnit;
 
+import static io.crate.testing.TestingHelpers.isFunction;
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.Matchers.is;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 public class CompoundLiteralTest extends CrateUnitTest {
 
-    private AnalysisMetaData analysisMetaData;
-    private ThreadPool threadPool;
+    private SqlExpressions expressions;
 
     @Before
     public void prepare() {
-        threadPool = new ThreadPool("dummy");
-        ClusterService clusterService = mock(ClusterService.class);
-        ClusterState state = mock(ClusterState.class);
-        MetaData metaData = mock(MetaData.class);
-        when(metaData.concreteAllOpenIndices()).thenReturn(new String[0]);
-        when(metaData.getTemplates()).thenReturn(ImmutableOpenMap.<String, IndexTemplateMetaData>of());
-        when(metaData.templates()).thenReturn(ImmutableOpenMap.<String, IndexTemplateMetaData>of());
-        when(state.metaData()).thenReturn(metaData);
-        when(clusterService.state()).thenReturn(state);
-        final TransportPutIndexTemplateAction transportPutIndexTemplateAction = mock(TransportPutIndexTemplateAction.class);
-        analysisMetaData = new AnalysisMetaData(
-            new Functions(
-                Collections.<FunctionIdent, FunctionImplementation>emptyMap(),
-                Collections.<String, DynamicFunctionResolver>emptyMap(),
-                Collections.<String, TableFunctionImplementation>emptyMap()),
-            new ReferenceInfos(
-                Collections.<String, SchemaInfo>emptyMap(),
-                clusterService,
-                new IndexNameExpressionResolver(Settings.EMPTY),
-                threadPool,
-                new Provider<TransportPutIndexTemplateAction>() {
-                    @Override
-                    public TransportPutIndexTemplateAction get() {
-                        return transportPutIndexTemplateAction;
-                    }
-                },
-                mock(Functions.class)),
-            new GlobalReferenceResolver(Collections.<ReferenceIdent, ReferenceImplementation>emptyMap())
-        );
-    }
-
-    @After
-    public void after() throws Exception {
-        threadPool.shutdown();
-        threadPool.awaitTermination(1, TimeUnit.SECONDS);
-    }
-
-    private Symbol analyzeExpression(String expression) {
-        return analyzeExpression(expression, new Object[0]);
-    }
-
-
-    private Symbol analyzeExpression(String expression, Object[] params) {
-        ExpressionAnalyzer expressionAnalyzer = new ExpressionAnalyzer(
-            analysisMetaData,
-            new ParameterContext(new RowN(params), Collections.<Row>emptyList(), null),
-            new FullQualifedNameFieldProvider(
-                ImmutableMap.<QualifiedName, AnalyzedRelation>of(
-                    new QualifiedName("dummy"), new DummyRelation()
-                )),
-            null
-        );
-        return expressionAnalyzer.convert(SqlParser.createExpression(expression), new ExpressionAnalysisContext(new StmtCtx()));
+        expressions = new SqlExpressions(T3.SOURCES);
     }
 
     @SuppressWarnings("ConstantConditions")
     @Test
-    public void testObjectLiteral() throws Exception {
-        Symbol s = analyzeExpression("{}");
+    public void testObjectConstruction() throws Exception {
+        Symbol s = expressions.asSymbol("{}");
         assertThat(s, instanceOf(Literal.class));
         Literal l = (Literal) s;
         assertThat(l.value(), is((Object) new HashMap<String, Object>()));
 
-        Literal objectLiteral = (Literal) analyzeExpression("{ident='value'}");
+        Literal objectLiteral = (Literal) expressions.normalize(expressions.asSymbol("{ident='value'}"));
         assertThat(objectLiteral.symbolType(), is(SymbolType.LITERAL));
         assertThat(objectLiteral.valueType(), is((DataType) ObjectType.INSTANCE));
-        assertThat(objectLiteral.value(), is((Object) new MapBuilder<String, Object>().put("ident", "value").map()));
+        assertThat(objectLiteral.value(), is((Object) new MapBuilder<String, Object>().put("ident", new BytesRef("value")).map()));
 
-        Literal multipleObjectLiteral = (Literal) analyzeExpression("{\"Ident\"=123.4, a={}, ident='string'}");
+        Literal multipleObjectLiteral = (Literal) expressions.normalize(expressions.asSymbol("{\"Ident\"=123.4, a={}, ident='string'}"));
         Map<String, Object> values = (Map<String, Object>) multipleObjectLiteral.value();
         assertThat(values, is(new MapBuilder<String, Object>()
             .put("Ident", 123.4d)
             .put("a", new HashMap<String, Object>())
-            .put("ident", "string")
+            .put("ident", new BytesRef("string"))
             .map()));
     }
 
-    @Test
-    public void testObjectliteralWithParameter() throws Exception {
-        Literal objectLiteral = (Literal) analyzeExpression("{ident=?}", new Object[]{1});
-        assertThat(objectLiteral.valueType(), is((DataType) ObjectType.INSTANCE));
-        assertThat(objectLiteral.value(), is((Object) new MapBuilder<String, Object>().put("ident", 1).map()));
+    private Symbol analyzeExpression(String expression) {
+        return expressions.normalize(expressions.asSymbol(expression));
     }
 
     @Test
-    public void testObjectLiteralWithFunction() throws Exception {
+    public void testObjectConstructionWithParameterExpression() throws Exception {
+        assertThat(expressions.asSymbol("{ident=?}"), isFunction("_map"));
+    }
+
+    @Test
+    public void testObjectConstructionDoesNotSupportFunctionsAsValues() throws Exception {
         expectedException.expect(ParsingException.class);
         expectedException.expectMessage("line 1:4: mismatched input 'format' expecting '{'");
         analyzeExpression("{a=format('%s.', 'dot')}");
     }
 
     @Test
-    public void testObjectLiteralKeyTwice() throws Exception {
+    public void testObjectConstructionFailsOnDuplicateKeys() throws Exception {
         expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("key 'a' listed twice in object literal");
+        expectedException.expectMessage("object contains duplicate keys");
         analyzeExpression("{a=1, a=2}");
     }
 
     @Test
-    public void testArrayLiteral() throws Exception {
+    public void testArrayConstructionWithOnlyLiterals() throws Exception {
         Literal emptyArray = (Literal) analyzeExpression("[]");
         assertThat((Object[]) emptyArray.value(), is(new Object[0]));
         assertThat(emptyArray.valueType(), is((DataType) new ArrayType(UndefinedType.INSTANCE)));
@@ -189,24 +115,23 @@ public class CompoundLiteralTest extends CrateUnitTest {
     }
 
     @Test
-    public void testArrayLiteralWithParameter() throws Exception {
-        Literal array = (Literal) analyzeExpression("[1, ?]", new Object[]{4L});
-        assertThat(array.valueType(), is((DataType) new ArrayType(LongType.INSTANCE)));
-        assertThat(((Object[]) array.value()).length, is(2));
-        assertThat((Object[]) array.value(), is(new Object[]{1L, 4L}));
+    public void testArrayConstructionWithParameterExpression() throws Exception {
+        Symbol array = expressions.asSymbol("[1, ?]");
+        assertThat(array, isFunction("_array"));
+        assertThat(((io.crate.analyze.symbol.Function) array).arguments().size(), is(2));
     }
 
     @Test
     public void testArrayDifferentTypes() throws Exception {
         expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("array element 'string' not of array item type long");
+        expectedException.expectMessage("All arguments to an array must have the same type. Found long and string");
         analyzeExpression("[1, 'string']");
     }
 
     @Test
     public void testArrayDifferentTypesString() throws Exception {
         expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("array element 1 not of array item type string");
+        expectedException.expectMessage("All arguments to an array must have the same type. Found string and long");
         analyzeExpression("['string', 1]");
     }
 

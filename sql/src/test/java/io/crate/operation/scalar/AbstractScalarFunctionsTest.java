@@ -93,10 +93,9 @@ public abstract class AbstractScalarFunctionsTest extends CrateUnitTest {
         }
         Function function = (Function) functionSymbol;
         FunctionImplementation impl = functions.get(function.info().ident());
-
         assertThat(impl, Matchers.notNullValue());
 
-        Symbol normalized = impl.normalizeSymbol(function, new StmtCtx());
+        Symbol normalized = sqlExpressions.normalize(function);
         assertThat(
             String.format(Locale.ENGLISH, "expected <%s> to normalize to %s", functionExpression, expectedSymbol),
             normalized,
@@ -129,6 +128,10 @@ public abstract class AbstractScalarFunctionsTest extends CrateUnitTest {
     @SuppressWarnings("unchecked")
     public void assertEvaluate(String functionExpression, Object expectedValue, Input... inputs) {
         Symbol functionSymbol = sqlExpressions.asSymbol(functionExpression);
+        functionSymbol = sqlExpressions.normalize(functionSymbol);
+        if (expectedValue instanceof String) {
+            expectedValue = new BytesRef((String) expectedValue);
+        }
         if (functionSymbol instanceof Literal) {
             assertThat(((Literal) functionSymbol).value(), is(expectedValue));
             return;
@@ -146,9 +149,6 @@ public abstract class AbstractScalarFunctionsTest extends CrateUnitTest {
                 arguments[i] = inputs[idx];
                 idx++;
             }
-        }
-        if (expectedValue instanceof String) {
-            expectedValue = new BytesRef((String) expectedValue);
         }
         assertThat(scalar.compile(function.arguments()).evaluate(arguments), is(expectedValue));
         assertThat(scalar.evaluate(arguments), is(expectedValue));

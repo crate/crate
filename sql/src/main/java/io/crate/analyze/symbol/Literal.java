@@ -28,6 +28,7 @@ public class Literal<ReturnType>
     public final static Literal<Boolean> BOOLEAN_TRUE = new Literal<>(DataTypes.BOOLEAN, true);
     public final static Literal<Boolean> BOOLEAN_FALSE = new Literal<>(DataTypes.BOOLEAN, false);
     public final static Literal<Integer> ZERO = Literal.of(0);
+    public static final Literal<Map<String, Object>> EMPTY_OBJECT = Literal.of(Collections.<String, Object>emptyMap());
 
     public static final SymbolFactory<Literal> FACTORY = new SymbolFactory<Literal>() {
         @Override
