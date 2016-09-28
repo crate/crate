@@ -96,11 +96,20 @@ Columns of type string can also be analyzed. See :ref:`sql_ddl_index_fulltext`.
 numeric types
 =============
 
-Crate supports a set of numeric types: ``integer``, ``long``, ``short``, ``double``,
-``float`` and ``byte``. All types have the same ranges as corresponding `Java types`_.
-You can insert any number for any type, be it a ``float``, ``integer``, or ``byte``
-as long as its within the corresponding range.
-Example::
+Crate supports a set of numeric types: ``integer``, ``long``, ``short``,
+``double``, ``float`` and ``byte``.
+
+The ``float`` and ``double`` data types are inexact, variable-precision
+numeric types. It means that these types are stored as an approximation.
+Therefore, storage, calculation, and retrieval of the value will not always
+result in an exact representation of the actual floating-point value.
+For instance, the result of applying ``sum`` or ``avg`` aggregate functions
+may slightly vary between query executions or comparing floating-point values
+for equality might not always be correct.
+
+All types have the same ranges as corresponding `Java types`_. You can insert
+any number for any type, be it a ``float``, ``integer``, or ``byte`` as long
+as its within the corresponding range. Example::
 
     cr> create table my_table3 (
     ...   first_column integer,
