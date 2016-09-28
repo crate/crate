@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Added support for SET LOCAL|SESSION statements.
+
  - Fix: The ``count`` aggregation function counts null values.
    E.g. count(cast(null as string))
 
