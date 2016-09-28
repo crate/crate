@@ -79,35 +79,35 @@ public class SetAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void testSetLocal() throws Exception {
-        SetAnalyzedStatement analysis = analyze("SET LOCAL stats.jobs_log_size TO 2");
+        SetAnalyzedStatement analysis = analyze("SET LOCAL something TO 2");
         assertThat(analysis.scope(), is(SetStatement.Scope.LOCAL));
-        assertThat(analysis.settings().toDelimitedString(','), is("stats.jobs_log_size=[2],"));
+        assertThat(analysis.settings().toDelimitedString(','), is("something=[2],"));
 
-        analysis = analyze("SET LOCAL stats.jobs_log_size TO DEFAULT");
+        analysis = analyze("SET LOCAL something TO DEFAULT");
         assertThat(analysis.scope(), is(SetStatement.Scope.LOCAL));
-        assertThat(analysis.settings().toDelimitedString(','), is("stats.jobs_log_size=[],"));
+        assertThat(analysis.settings().toDelimitedString(','), is("something=[],"));
     }
 
     @Test
     public void testSetSession() throws Exception {
-        SetAnalyzedStatement analysis = analyze("SET SESSION stats.jobs_log_size TO 2");
+        SetAnalyzedStatement analysis = analyze("SET SESSION something TO 2");
         assertThat(analysis.scope(), is(SetStatement.Scope.SESSION));
-        assertThat(analysis.settings().toDelimitedString(','), is("stats.jobs_log_size=[2],"));
+        assertThat(analysis.settings().toDelimitedString(','), is("something=[2],"));
 
-        analysis = analyze("SET SESSION stats.jobs_log_size = 1,2,3");
+        analysis = analyze("SET SESSION something = 1,2,3");
         assertThat(analysis.scope(), is(SetStatement.Scope.SESSION));
-        assertThat(analysis.settings().toDelimitedString(','), is("stats.jobs_log_size=[1, 2, 3],"));
+        assertThat(analysis.settings().toDelimitedString(','), is("something=[1, 2, 3],"));
     }
 
     @Test
     public void testSet() throws Exception {
-        SetAnalyzedStatement analysis = analyze("SET stats.jobs_log_size TO 2");
+        SetAnalyzedStatement analysis = analyze("SET something TO 2");
         assertThat(analysis.scope(), is(SetStatement.Scope.SESSION));
-        assertThat(analysis.settings().toDelimitedString(','), is("stats.jobs_log_size=[2],"));
+        assertThat(analysis.settings().toDelimitedString(','), is("something=[2],"));
 
-        analysis = analyze("SET stats.jobs_log_size = DEFAULT");
+        analysis = analyze("SET something = DEFAULT");
         assertThat(analysis.scope(), is(SetStatement.Scope.SESSION));
-        assertThat(analysis.settings().toDelimitedString(','), is("stats.jobs_log_size=[],"));
+        assertThat(analysis.settings().toDelimitedString(','), is("something=[],"));
     }
 
     @Test
@@ -134,6 +134,13 @@ public class SetAnalyzerTest extends BaseAnalyzerTest {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("Invalid value for argument 'cluster.graceful_stop.timeout'");
         analyze("SET GLOBAL PERSISTENT cluster.graceful_stop.timeout = '-1h'");
+    }
+
+    @Test
+    public void testSetSessionInvalidSetting() throws Exception {
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("GLOBAL Cluster setting 'stats.operations_log_size' cannot be used with SET SESSION / LOCAL");
+        analyze("SET SESSION stats.operations_log_size=1");
     }
 
     @Test
