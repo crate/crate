@@ -54,6 +54,13 @@ import java.util.concurrent.TimeUnit;
 
 import static org.elasticsearch.common.settings.Settings.settingsBuilder;
 
+/**
+ * @deprecated The Crate client and its transport protocol are deprecated
+ *     in favour of the PostgreSQL wire protocol.
+ *
+ *     Please further use the PostgreSQL JDBC driver instead of the Crate client.
+ */
+@Deprecated
 public class CrateClient {
 
     private final Settings settings;
