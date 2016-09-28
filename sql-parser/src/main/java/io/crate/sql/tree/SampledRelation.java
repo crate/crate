@@ -30,8 +30,8 @@ import java.util.List;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
-public class SampledRelation
-    extends Relation {
+public class SampledRelation extends Relation {
+
     public enum Type {
         BERNOULLI,
         SYSTEM
@@ -42,7 +42,10 @@ public class SampledRelation
     private final Expression samplePercentage;
     private final Optional<List<Expression>> columnsToStratifyOn;
 
-    public SampledRelation(Relation relation, Type type, Expression samplePercentage, Optional<List<Expression>> columnsToStratifyOn) {
+    public SampledRelation(Relation relation,
+                           Type type,
+                           Expression samplePercentage,
+                           Optional<List<Expression>> columnsToStratifyOn) {
         this.relation = checkNotNull(relation, "relation is null");
         this.type = checkNotNull(type, "type is null");
         this.samplePercentage = checkNotNull(samplePercentage, "samplePercentage is null");
@@ -52,7 +55,6 @@ public class SampledRelation
         } else {
             this.columnsToStratifyOn = columnsToStratifyOn;
         }
-
     }
 
     public Relation getRelation() {
@@ -77,13 +79,8 @@ public class SampledRelation
     }
 
     @Override
-    public String toString() {
-        return MoreObjects.toStringHelper(this)
-            .add("relation", relation)
-            .add("type", type)
-            .add("samplePercentage", samplePercentage)
-            .add("columnsToStratifyOn", columnsToStratifyOn)
-            .toString();
+    public int hashCode() {
+        return Objects.hashCode(relation, type, samplePercentage, columnsToStratifyOn);
     }
 
     @Override
@@ -102,7 +99,12 @@ public class SampledRelation
     }
 
     @Override
-    public int hashCode() {
-        return Objects.hashCode(relation, type, samplePercentage, columnsToStratifyOn);
+    public String toString() {
+        return MoreObjects.toStringHelper(this)
+                          .add("relation", relation)
+                          .add("type", type)
+                          .add("samplePercentage", samplePercentage)
+                          .add("columnsToStratifyOn", columnsToStratifyOn)
+                          .toString();
     }
 }

@@ -37,7 +37,10 @@ public class ColumnDefinition extends TableElement {
     private final ColumnType type;
     private final List<ColumnConstraint> constraints;
 
-    public ColumnDefinition(String ident, @Nullable Expression generatedExpression, @Nullable ColumnType type, @Nullable List<ColumnConstraint> constraints) {
+    public ColumnDefinition(String ident,
+                            @Nullable Expression generatedExpression,
+                            @Nullable ColumnType type,
+                            @Nullable List<ColumnConstraint> constraints) {
         this.ident = ident;
         this.generatedExpression = generatedExpression;
         this.type = type;
@@ -67,6 +70,11 @@ public class ColumnDefinition extends TableElement {
     }
 
     @Override
+    public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
+        return visitor.visitColumnDefinition(this, context);
+    }
+
+    @Override
     public int hashCode() {
         return Objects.hashCode(ident, generatedExpression, type, constraints);
     }
@@ -83,22 +91,15 @@ public class ColumnDefinition extends TableElement {
             that.generatedExpression != null) return false;
         if (type != null ? !type.equals(that.type) : that.type != null) return false;
         return constraints.equals(that.constraints);
-
     }
-
 
     @Override
     public String toString() {
         return MoreObjects.toStringHelper(this)
-            .add("ident", ident)
-            .add("generatedExpression", generatedExpression)
-            .add("type", type)
-            .add("constraints", constraints)
-            .toString();
-    }
-
-    @Override
-    public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
-        return visitor.visitColumnDefinition(this, context);
+                          .add("ident", ident)
+                          .add("generatedExpression", generatedExpression)
+                          .add("type", type)
+                          .add("constraints", constraints)
+                          .toString();
     }
 }

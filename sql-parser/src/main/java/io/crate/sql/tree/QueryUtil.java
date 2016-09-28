@@ -50,5 +50,4 @@ public class QueryUtil {
     public static Expression equal(Expression left, Expression right) {
         return new ComparisonExpression(ComparisonExpression.Type.EQUAL, left, right);
     }
-
 }

@@ -78,7 +78,8 @@ public class TestStatementBuilder {
                        ", avg(salary) over (partition by depname)\n" +
                        ", rank() over (partition by depname order by salary desc)\n" +
                        ", sum(salary) over (order by salary rows unbounded preceding)\n" +
-                       ", sum(salary) over (partition by depname order by salary rows between current row and 3 following)\n" +
+                       ", sum(salary) over (partition by depname order by salary rows between current row and 3 " +
+                       "following)\n" +
                        ", sum(salary) over (partition by depname range unbounded preceding)\n" +
                        ", sum(salary) over (rows between 2 preceding and unbounded following)\n" +
                        "from emp");
@@ -111,7 +112,6 @@ public class TestStatementBuilder {
         printStatement("update schemah.foo set foo.a='b', foo.b=foo.a");
         printStatement("update schemah.foo set foo.a=abs(-6.3334), x=true where x=false");
 
-
         printStatement("create table if not exists t (id integer primary key, name string)");
         printStatement("create table t (id integer primary key, name string)");
         printStatement("create table t (id integer primary key, name string) clustered into 3 shards");
@@ -121,8 +121,11 @@ public class TestStatementBuilder {
         printStatement("create table t (id integer primary key, name string) clustered by (id) into ? shards");
         printStatement("create table t (id integer primary key, name string) with (number_of_replicas=4)");
         printStatement("create table t (id integer primary key, name string) with (number_of_replicas=?)");
-        printStatement("create table t (id integer primary key, name string) clustered by (id) with (number_of_replicas=4)");
-        printStatement("create table t (id integer primary key, name string) clustered by (id) into 999 shards with (number_of_replicas=4)");
+        printStatement(
+            "create table t (id integer primary key, name string) clustered by (id) with (number_of_replicas=4)");
+        printStatement(
+            "create table t (id integer primary key, name string) clustered by (id) into 999 shards with " +
+            "(number_of_replicas=4)");
         printStatement("create table t (id integer primary key, name string) with (number_of_replicas=-4)");
         printStatement("create table t (o object(dynamic) as (i integer, d double))");
         printStatement("create table t (id integer, name string, primary key (id))");
@@ -143,7 +146,9 @@ public class TestStatementBuilder {
         printStatement("create table \"TABLE\" (o object(dynamic))");
         printStatement("create table \"TABLE\" (o object(strict))");
         printStatement("create table \"TABLE\" (o object(ignored))");
-        printStatement("create table \"TABLE\" (o object(strict) as (inner_col object as (sub_inner_col timestamp, another_inner_col string)))");
+        printStatement(
+            "create table \"TABLE\" (o object(strict) as (inner_col object as (sub_inner_col timestamp, " +
+            "another_inner_col string)))");
 
         printStatement("create table test (col1 int, col2 timestamp not null)");
         printStatement("create table test (col1 int primary key not null, col2 timestamp)");
@@ -216,7 +221,6 @@ public class TestStatementBuilder {
         printStatement("alter table t partition (partitioned_col=1) set (number_of_replicas=4)");
         printStatement("alter table only t set (number_of_replicas=4)");
 
-
         printStatement("select * from t where 'value' LIKE ANY (col)");
         printStatement("select * from t where 'value' NOT LIKE ANY (col)");
         printStatement("select * from t where 'source' ~ 'pattern'");
@@ -227,7 +231,8 @@ public class TestStatementBuilder {
         printStatement("insert into t (a, b) values (1, 2) on duplicate key update a = a + 1");
         printStatement("insert into t (a, b) values (1, 2) on duplicate key update a = a + 1, b = 3");
         printStatement("insert into t (a, b) values (1, 2), (3, 4) on duplicate key update a = values (a) + 1, b = 4");
-        printStatement("insert into t (a, b) values (1, 2), (3, 4) on duplicate key update a = values (a) + 1, b = values(b) - 2");
+        printStatement(
+            "insert into t (a, b) values (1, 2), (3, 4) on duplicate key update a = values (a) + 1, b = values(b) - 2");
 
         printStatement("kill all");
         printStatement("kill '6a3d6fb6-1401-4333-933d-b38c9322fca7'");
@@ -287,13 +292,13 @@ public class TestStatementBuilder {
         printTpchQuery(20, "part name like", "2013-03-05", "nation name");
         printTpchQuery(21, "nation name");
         printTpchQuery(22,
-            "phone 1",
-            "phone 2",
-            "phone 3",
-            "phone 4",
-            "phone 5",
-            "phone 6",
-            "phone 7");
+                       "phone 1",
+                       "phone 2",
+                       "phone 3",
+                       "phone 4",
+                       "phone 5",
+                       "phone 6",
+                       "phone 7");
     }
 
     @Test
@@ -403,8 +408,10 @@ public class TestStatementBuilder {
     public void testRepository() throws Exception {
         printStatement("create repository my_repo type hdfs");
         printStatement("CREATE REPOSITORY \"myRepo\" TYPE \"fs\"");
-        printStatement("CREATE REPOSITORY \"myRepo\" TYPE \"fs\" with (location='/mount/backups/my_backup', compress=True)");
-        Statement statement = SqlParser.createStatement("CREATE REPOSITORY my_repo type hdfs with (location='/mount/backups/my_backup')");
+        printStatement(
+            "CREATE REPOSITORY \"myRepo\" TYPE \"fs\" with (location='/mount/backups/my_backup', compress=True)");
+        Statement statement =
+            SqlParser.createStatement("CREATE REPOSITORY my_repo type hdfs with (location='/mount/backups/my_backup')");
         assertThat(statement.toString(), is("CreateRepository{" +
                                             "repository=my_repo, " +
                                             "type=hdfs, " +
@@ -422,7 +429,8 @@ public class TestStatementBuilder {
         printStatement("CREATE SNAPSHOT my_repo.my_snapshot TABLE authors, books");
         printStatement("CREATE SNAPSHOT my_repo.my_snapshot TABLE authors, books with (wait_for_completion=True)");
         printStatement("CREATE SNAPSHOT my_repo.my_snapshot ALL with (wait_for_completion=True)");
-        Statement statement = SqlParser.createStatement("CREATE SNAPSHOT my_repo.my_snapshot TABLE authors PARTITION (year=2015, year=2014), books");
+        Statement statement = SqlParser.createStatement(
+            "CREATE SNAPSHOT my_repo.my_snapshot TABLE authors PARTITION (year=2015, year=2014), books");
         assertThat(statement.toString(), is("CreateSnapshot{" +
                                             "name=my_repo.my_snapshot, " +
                                             "properties=Optional.absent(), " +
@@ -441,7 +449,9 @@ public class TestStatementBuilder {
         printStatement("RESTORE SNAPSHOT my_repo.my_snapshot TABLE authors, books with (wait_for_completion=True)");
         printStatement("RESTORE SNAPSHOT my_repo.my_snapshot ALL with (wait_for_completion=True)");
         printStatement("RESTORE SNAPSHOT my_repo.my_snapshot TABLE authors PARTITION (year=2015, year=2014), books");
-        statement = SqlParser.createStatement("RESTORE SNAPSHOT my_repo.my_snapshot TABLE authors PARTITION (year=2015, year=2014), books with (wait_for_completion=True)");
+        statement = SqlParser.createStatement(
+            "RESTORE SNAPSHOT my_repo.my_snapshot TABLE authors PARTITION (year=2015, year=2014), books with " +
+            "(wait_for_completion=True)");
         assertThat(statement.toString(), is("RestoreSnapshot{" +
                                             "name=my_repo.my_snapshot, " +
                                             "properties=Optional.of({wait_for_completion=true}), " +
@@ -645,7 +655,6 @@ public class TestStatementBuilder {
         assertThat(multipleArrayLiteral.values().get(2), instanceOf(ObjectLiteral.class));
         assertThat(multipleArrayLiteral.values().get(3), instanceOf(ArrayLiteral.class));
     }
-
 
     @Test
     public void testParameterNode() throws Exception {

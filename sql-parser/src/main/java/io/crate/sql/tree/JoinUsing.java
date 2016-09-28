@@ -30,8 +30,8 @@ import java.util.List;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 
-public class JoinUsing
-    extends JoinCriteria {
+public class JoinUsing extends JoinCriteria {
+
     private final List<String> columns;
 
     public JoinUsing(List<String> columns) {
@@ -42,6 +42,11 @@ public class JoinUsing
 
     public List<String> getColumns() {
         return columns;
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hashCode(columns);
     }
 
     @Override
@@ -57,14 +62,9 @@ public class JoinUsing
     }
 
     @Override
-    public int hashCode() {
-        return Objects.hashCode(columns);
-    }
-
-    @Override
     public String toString() {
         return MoreObjects.toStringHelper(this)
-            .addValue(columns)
-            .toString();
+                          .addValue(columns)
+                          .toString();
     }
 }

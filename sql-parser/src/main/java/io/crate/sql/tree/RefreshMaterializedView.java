@@ -26,8 +26,8 @@ import com.google.common.base.Objects;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
-public class RefreshMaterializedView
-    extends Statement {
+public class RefreshMaterializedView extends Statement {
+
     private final QualifiedName name;
 
     public RefreshMaterializedView(QualifiedName name) {
@@ -62,7 +62,7 @@ public class RefreshMaterializedView
     @Override
     public String toString() {
         return MoreObjects.toStringHelper(this)
-            .add("name", name)
-            .toString();
+                          .add("name", name)
+                          .toString();
     }
 }

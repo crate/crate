@@ -27,7 +27,6 @@ public class KillStatement extends Statement {
 
     private final Optional<Expression> jobId;
 
-
     public KillStatement() {
         this.jobId = Optional.absent();
     }
@@ -38,6 +37,11 @@ public class KillStatement extends Statement {
 
     public Optional<Expression> jobId() {
         return jobId;
+    }
+
+    @Override
+    public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
+        return visitor.visitKillStatement(this, context);
     }
 
     @Override
@@ -58,10 +62,5 @@ public class KillStatement extends Statement {
     @Override
     public String toString() {
         return jobId.isPresent() ? String.format("KILL '%s'", jobId.get()) : "KILL ALL";
-    }
-
-    @Override
-    public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
-        return visitor.visitKillStatement(this, context);
     }
 }

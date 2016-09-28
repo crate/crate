@@ -26,8 +26,8 @@ import com.google.common.base.Objects;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
-public class ExplainFormat
-    extends ExplainOption {
+public class ExplainFormat extends ExplainOption {
+
     public enum Type {
         TEXT,
         GRAPHVIZ
@@ -63,7 +63,7 @@ public class ExplainFormat
     @Override
     public String toString() {
         return MoreObjects.toStringHelper(this)
-            .add("type", type)
-            .toString();
+                          .add("type", type)
+                          .toString();
     }
 }

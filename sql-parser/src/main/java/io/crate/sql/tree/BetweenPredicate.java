@@ -23,8 +23,8 @@ package io.crate.sql.tree;
 
 import com.google.common.base.Preconditions;
 
-public class BetweenPredicate
-    extends Expression {
+public class BetweenPredicate extends Expression {
+
     private final Expression value;
     private final Expression min;
     private final Expression max;
@@ -57,6 +57,14 @@ public class BetweenPredicate
     }
 
     @Override
+    public int hashCode() {
+        int result = value.hashCode();
+        result = 31 * result + min.hashCode();
+        result = 31 * result + max.hashCode();
+        return result;
+    }
+
+    @Override
     public boolean equals(Object o) {
         if (this == o) {
             return true;
@@ -78,13 +86,5 @@ public class BetweenPredicate
         }
 
         return true;
-    }
-
-    @Override
-    public int hashCode() {
-        int result = value.hashCode();
-        result = 31 * result + min.hashCode();
-        result = 31 * result + max.hashCode();
-        return result;
     }
 }

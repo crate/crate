@@ -25,7 +25,7 @@ import com.google.common.base.Objects;
 
 public class ColumnType extends Expression {
 
-    public static enum Type {
+    public enum Type {
         PRIMITIVE,
         ARRAY,
         SET
@@ -53,6 +53,11 @@ public class ColumnType extends Expression {
     }
 
     @Override
+    public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
+        return visitor.visitColumnType(this, context);
+    }
+
+    @Override
     public int hashCode() {
         return Objects.hashCode(name, type);
     }
@@ -68,10 +73,5 @@ public class ColumnType extends Expression {
         if (!type.equals(that.type)) return false;
 
         return true;
-    }
-
-    @Override
-    public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
-        return visitor.visitColumnType(this, context);
     }
 }

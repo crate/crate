@@ -47,6 +47,11 @@ public class IndexColumnConstraint extends ColumnConstraint {
     }
 
     @Override
+    public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
+        return visitor.visitIndexColumnConstraint(this, context);
+    }
+
+    @Override
     public int hashCode() {
         return Objects.hashCode(indexMethod, properties);
     }
@@ -67,13 +72,8 @@ public class IndexColumnConstraint extends ColumnConstraint {
     @Override
     public String toString() {
         return MoreObjects.toStringHelper(this)
-            .add("method", indexMethod)
-            .add("properties", properties)
-            .toString();
-    }
-
-    @Override
-    public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
-        return visitor.visitIndexColumnConstraint(this, context);
+                          .add("method", indexMethod)
+                          .add("properties", properties)
+                          .toString();
     }
 }

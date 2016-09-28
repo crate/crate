@@ -47,6 +47,11 @@ public class OptimizeStatement extends Statement {
     }
 
     @Override
+    public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
+        return visitor.visitOptimizeStatement(this, context);
+    }
+
+    @Override
     public int hashCode() {
         int result = tables.hashCode();
         result = 31 * result + properties.hashCode();
@@ -66,13 +71,8 @@ public class OptimizeStatement extends Statement {
     @Override
     public String toString() {
         return MoreObjects.toStringHelper(this)
-            .add("table", tables)
-            .add("properties", properties)
-            .toString();
-    }
-
-    @Override
-    public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
-        return visitor.visitOptimizeStatement(this, context);
+                          .add("table", tables)
+                          .add("properties", properties)
+                          .toString();
     }
 }

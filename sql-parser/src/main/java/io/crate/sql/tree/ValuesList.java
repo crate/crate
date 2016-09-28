@@ -40,16 +40,13 @@ public class ValuesList extends Node {
     }
 
     @Override
-    public int hashCode() {
-        return Objects.hashCode(values);
+    public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
+        return visitor.visitValuesList(this, context);
     }
 
-
     @Override
-    public String toString() {
-        return MoreObjects.toStringHelper(this)
-            .add("values", values)
-            .toString();
+    public int hashCode() {
+        return Objects.hashCode(values);
     }
 
     @Override
@@ -65,7 +62,9 @@ public class ValuesList extends Node {
     }
 
     @Override
-    public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
-        return visitor.visitValuesList(this, context);
+    public String toString() {
+        return MoreObjects.toStringHelper(this)
+                          .add("values", values)
+                          .toString();
     }
 }

@@ -28,13 +28,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-public abstract class Literal
-    extends Expression {
-
-    @Override
-    public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
-        return visitor.visitLiteral(this, context);
-    }
+public abstract class Literal extends Expression {
 
     public static Literal fromObject(Object value) {
         Literal literal = null;
@@ -58,12 +52,18 @@ public abstract class Literal
             literal = new ArrayLiteral(expressions);
         } else if (value instanceof Map) {
             Multimap<String, Expression> map = HashMultimap.create();
-            @SuppressWarnings("unchecked") Map<String, Object> valueMap = (Map<String, Object>) value;
+            @SuppressWarnings("unchecked")
+            Map<String, Object> valueMap = (Map<String, Object>) value;
             for (Map.Entry<String, Object> entry : valueMap.entrySet()) {
                 map.put(entry.getKey(), fromObject(entry.getValue()));
             }
             literal = new ObjectLiteral(map);
         }
         return literal;
+    }
+
+    @Override
+    public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
+        return visitor.visitLiteral(this, context);
     }
 }

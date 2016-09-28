@@ -58,6 +58,11 @@ public class InsertFromValues extends Insert {
     }
 
     @Override
+    public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
+        return visitor.visitInsertFromValues(this, context);
+    }
+
+    @Override
     public int hashCode() {
         return Objects.hashCode(super.hashCode(), valuesLists);
     }
@@ -78,15 +83,10 @@ public class InsertFromValues extends Insert {
     @Override
     public String toString() {
         return MoreObjects.toStringHelper(this)
-            .add("table", table)
-            .add("columns", columns)
-            .add("values", valuesLists)
-            .add("assignments", onDuplicateKeyAssignments)
-            .toString();
-    }
-
-    @Override
-    public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
-        return visitor.visitInsertFromValues(this, context);
+                          .add("table", table)
+                          .add("columns", columns)
+                          .add("values", valuesLists)
+                          .add("assignments", onDuplicateKeyAssignments)
+                          .toString();
     }
 }

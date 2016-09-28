@@ -23,8 +23,8 @@ package io.crate.sql.tree;
 
 import com.google.common.base.MoreObjects;
 
-public class TableSubquery
-    extends QueryBody {
+public class TableSubquery extends QueryBody {
+
     private final Query query;
 
     public TableSubquery(Query query) {
@@ -41,10 +41,8 @@ public class TableSubquery
     }
 
     @Override
-    public String toString() {
-        return MoreObjects.toStringHelper(this)
-            .addValue(query)
-            .toString();
+    public int hashCode() {
+        return query.hashCode();
     }
 
     @Override
@@ -66,7 +64,9 @@ public class TableSubquery
     }
 
     @Override
-    public int hashCode() {
-        return query.hashCode();
+    public String toString() {
+        return MoreObjects.toStringHelper(this)
+                          .addValue(query)
+                          .toString();
     }
 }

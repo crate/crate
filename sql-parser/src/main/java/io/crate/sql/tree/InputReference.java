@@ -30,8 +30,8 @@ import static com.google.common.base.Preconditions.checkNotNull;
  * channel and field to avoid unnecessary lookups in a symbol -&gt; input map during evaluation
  * </p>
  */
-public class InputReference
-    extends Expression {
+public class InputReference extends Expression {
+
     private final Input input;
 
     public InputReference(Input input) {
@@ -50,6 +50,11 @@ public class InputReference
     }
 
     @Override
+    public int hashCode() {
+        return input.hashCode();
+    }
+
+    @Override
     public boolean equals(Object o) {
         if (this == o) {
             return true;
@@ -65,10 +70,5 @@ public class InputReference
         }
 
         return true;
-    }
-
-    @Override
-    public int hashCode() {
-        return input.hashCode();
     }
 }

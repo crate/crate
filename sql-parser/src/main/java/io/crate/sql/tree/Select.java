@@ -28,8 +28,8 @@ import java.util.List;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
-public class Select
-    extends Node {
+public class Select extends Node {
+
     private final boolean distinct;
     private final List<SelectItem> selectItems;
 
@@ -52,12 +52,10 @@ public class Select
     }
 
     @Override
-    public String toString() {
-        return MoreObjects.toStringHelper(this)
-            .add("distinct", distinct)
-            .add("selectItems", selectItems)
-            .omitNullValues()
-            .toString();
+    public int hashCode() {
+        int result = (distinct ? 1 : 0);
+        result = 31 * result + selectItems.hashCode();
+        return result;
     }
 
     @Override
@@ -82,9 +80,11 @@ public class Select
     }
 
     @Override
-    public int hashCode() {
-        int result = (distinct ? 1 : 0);
-        result = 31 * result + selectItems.hashCode();
-        return result;
+    public String toString() {
+        return MoreObjects.toStringHelper(this)
+                          .add("distinct", distinct)
+                          .add("selectItems", selectItems)
+                          .omitNullValues()
+                          .toString();
     }
 }

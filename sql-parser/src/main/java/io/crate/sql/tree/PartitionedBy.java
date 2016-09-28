@@ -41,6 +41,11 @@ public class PartitionedBy extends CrateTableOption {
     }
 
     @Override
+    public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
+        return visitor.visitPartitionedBy(this, context);
+    }
+
+    @Override
     public int hashCode() {
         return Objects.hashCode(columns);
     }
@@ -60,10 +65,5 @@ public class PartitionedBy extends CrateTableOption {
     @Override
     public String toString() {
         return MoreObjects.toStringHelper(this).add("columns", columns).toString();
-    }
-
-    @Override
-    public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
-        return visitor.visitPartitionedBy(this, context);
     }
 }

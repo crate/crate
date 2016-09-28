@@ -30,11 +30,13 @@ import java.util.List;
 public class SetStatement extends Statement {
 
     public enum Scope {
-        GLOBAL, SESSION
+        GLOBAL,
+        SESSION
     }
 
     public enum SettingType {
-        TRANSIENT, PERSISTENT
+        TRANSIENT,
+        PERSISTENT
     }
 
     private final Scope scope;
@@ -65,17 +67,13 @@ public class SetStatement extends Statement {
     }
 
     @Override
-    public int hashCode() {
-        return Objects.hashCode(scope, assignments, settingType);
+    public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
+        return visitor.visitSetStatement(this, context);
     }
 
     @Override
-    public String toString() {
-        return MoreObjects.toStringHelper(this)
-            .add("scope", scope)
-            .add("assignments", assignments)
-            .add("settingType", settingType)
-            .toString();
+    public int hashCode() {
+        return Objects.hashCode(scope, assignments, settingType);
     }
 
     @Override
@@ -93,7 +91,11 @@ public class SetStatement extends Statement {
     }
 
     @Override
-    public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
-        return visitor.visitSetStatement(this, context);
+    public String toString() {
+        return MoreObjects.toStringHelper(this)
+                          .add("scope", scope)
+                          .add("assignments", assignments)
+                          .add("settingType", settingType)
+                          .toString();
     }
 }

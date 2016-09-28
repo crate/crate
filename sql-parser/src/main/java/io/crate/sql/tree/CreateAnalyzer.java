@@ -46,7 +46,6 @@ public class CreateAnalyzer extends Statement {
                 this.properties.add((GenericProperty) element);
             }
         }
-
     }
 
     public String ident() {
@@ -74,6 +73,11 @@ public class CreateAnalyzer extends Statement {
     }
 
     @Override
+    public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
+        return visitor.visitCreateAnalyzer(this, context);
+    }
+
+    @Override
     public int hashCode() {
         return Objects.hashCode(ident, extendedAnalyzer, elements);
     }
@@ -96,15 +100,10 @@ public class CreateAnalyzer extends Statement {
     @Override
     public String toString() {
         return MoreObjects.toStringHelper(this)
-            .add("ident", ident)
-            .add("extends", extendedAnalyzer)
-            .add("elements", elements)
-            .add("properties", properties)
-            .toString();
-    }
-
-    @Override
-    public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
-        return visitor.visitCreateAnalyzer(this, context);
+                          .add("ident", ident)
+                          .add("extends", extendedAnalyzer)
+                          .add("elements", elements)
+                          .add("properties", properties)
+                          .toString();
     }
 }

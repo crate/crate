@@ -26,8 +26,8 @@ import com.google.common.base.Objects;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
-public class CreateAlias
-    extends Statement {
+public class CreateAlias extends Statement {
+
     private final QualifiedName alias;
     private final QualifiedName remote;
 
@@ -69,8 +69,8 @@ public class CreateAlias
     @Override
     public String toString() {
         return MoreObjects.toStringHelper(this)
-            .add("alias", alias)
-            .add("remote", remote)
-            .toString();
+                          .add("alias", alias)
+                          .add("remote", remote)
+                          .toString();
     }
 }

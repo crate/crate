@@ -24,8 +24,8 @@ package io.crate.sql.tree;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Objects;
 
-public class DropTable
-    extends Statement {
+public class DropTable extends Statement {
+
     private final Table table;
     private final boolean ignoreNonExistentTable;
 
@@ -69,14 +69,13 @@ public class DropTable
             return false;
         }
         return table.equals(that.table);
-
     }
 
     @Override
     public String toString() {
         return MoreObjects.toStringHelper(this)
-            .add("table", table)
-            .add("ignoreNonExistentTable", ignoreNonExistentTable)
-            .toString();
+                          .add("table", table)
+                          .add("ignoreNonExistentTable", ignoreNonExistentTable)
+                          .toString();
     }
 }

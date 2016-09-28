@@ -46,6 +46,11 @@ public class ClusteredBy extends CrateTableOption {
     }
 
     @Override
+    public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
+        return visitor.visitClusteredBy(this, context);
+    }
+
+    @Override
     public int hashCode() {
         return Objects.hashCode(column, numberOfShards);
     }
@@ -66,12 +71,7 @@ public class ClusteredBy extends CrateTableOption {
     @Override
     public String toString() {
         return MoreObjects.toStringHelper(this)
-            .add("column", column)
-            .add("number of shards", numberOfShards).toString();
-    }
-
-    @Override
-    public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
-        return visitor.visitClusteredBy(this, context);
+                          .add("column", column)
+                          .add("number of shards", numberOfShards).toString();
     }
 }

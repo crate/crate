@@ -62,6 +62,11 @@ public class ArrayLikePredicate extends LikePredicate implements ArrayComparison
     }
 
     @Override
+    public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
+        return visitor.visitArrayLikePredicate(this, context);
+    }
+
+    @Override
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
@@ -81,10 +86,5 @@ public class ArrayLikePredicate extends LikePredicate implements ArrayComparison
         result = 31 * result + quantifier.hashCode();
         result = 31 * result + (inverse ? 1 : 0);
         return result;
-    }
-
-    @Override
-    public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
-        return visitor.visitArrayLikePredicate(this, context);
     }
 }

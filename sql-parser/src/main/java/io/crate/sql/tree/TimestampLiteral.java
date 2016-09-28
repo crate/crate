@@ -28,8 +28,8 @@ import org.joda.time.format.ISODateTimeFormat;
 
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 
-public class TimestampLiteral
-    extends Literal {
+public class TimestampLiteral extends Literal {
+
     public static final DateTimeFormatter DATE_TIME_FORMATTER;
 
     static {
@@ -38,28 +38,28 @@ public class TimestampLiteral
             .appendLiteral(':')
             .appendMinuteOfHour(2)
             .appendOptional(new DateTimeFormatterBuilder()
-                .appendLiteral(':')
-                .appendSecondOfMinute(2)
-                .appendOptional(new DateTimeFormatterBuilder()
-                    .appendLiteral('.')
-                    .appendMillisOfSecond(1)
-                    .toParser())
-                .toParser())
+                                .appendLiteral(':')
+                                .appendSecondOfMinute(2)
+                                .appendOptional(new DateTimeFormatterBuilder()
+                                                    .appendLiteral('.')
+                                                    .appendMillisOfSecond(1)
+                                                    .toParser())
+                                .toParser())
             .appendOptional(new DateTimeFormatterBuilder()
-                .appendTimeZoneOffset("Z", true, 1, 2)
-                .toParser())
+                                .appendTimeZoneOffset("Z", true, 1, 2)
+                                .toParser())
             .appendOptional(new DateTimeFormatterBuilder()
-                .appendLiteral(' ')
-                .appendTimeZoneId()
-                .toParser())
+                                .appendLiteral(' ')
+                                .appendTimeZoneId()
+                                .toParser())
             .toFormatter();
 
         DATE_TIME_FORMATTER = new DateTimeFormatterBuilder()
             .append(ISODateTimeFormat.date())
             .appendOptional(new DateTimeFormatterBuilder()
-                .appendLiteral(' ')
-                .append(timeFormatter)
-                .toParser())
+                                .appendLiteral(' ')
+                                .append(timeFormatter)
+                                .toParser())
             .toFormatter()
             .withZoneUTC();
     }
@@ -88,6 +88,11 @@ public class TimestampLiteral
     }
 
     @Override
+    public int hashCode() {
+        return value.hashCode();
+    }
+
+    @Override
     public boolean equals(Object o) {
         if (this == o) {
             return true;
@@ -103,10 +108,5 @@ public class TimestampLiteral
         }
 
         return true;
-    }
-
-    @Override
-    public int hashCode() {
-        return value.hashCode();
     }
 }

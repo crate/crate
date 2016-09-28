@@ -28,6 +28,7 @@ import com.google.common.base.Objects;
  * Represents a reference to a field in a physical execution plan
  */
 public class Input {
+
     private final int channel;
 
     public Input(int channel) {
@@ -58,7 +59,7 @@ public class Input {
     @Override
     public String toString() {
         return MoreObjects.toStringHelper(this)
-            .add("channel", channel)
-            .toString();
+                          .add("channel", channel)
+                          .toString();
     }
 }

@@ -27,8 +27,21 @@ import com.google.common.base.Optional;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 
-public class Join
-    extends Relation {
+public class Join extends Relation {
+
+    public enum Type {
+        CROSS,
+        INNER,
+        LEFT,
+        RIGHT,
+        FULL
+    }
+
+    private final Type type;
+    private final Relation left;
+    private final Relation right;
+    private final Optional<JoinCriteria> criteria;
+
     public Join(Type type, Relation left, Relation right, Optional<JoinCriteria> criteria) {
         checkNotNull(left, "left is null");
         checkNotNull(right, "right is null");
@@ -43,15 +56,6 @@ public class Join
         this.right = right;
         this.criteria = criteria;
     }
-
-    public enum Type {
-        CROSS, INNER, LEFT, RIGHT, FULL
-    }
-
-    private final Type type;
-    private final Relation left;
-    private final Relation right;
-    private final Optional<JoinCriteria> criteria;
 
     public Type getType() {
         return type;
@@ -75,14 +79,12 @@ public class Join
     }
 
     @Override
-    public String toString() {
-        return MoreObjects.toStringHelper(this)
-            .add("type", type)
-            .add("left", left)
-            .add("right", right)
-            .add("criteria", criteria)
-            .omitNullValues()
-            .toString();
+    public int hashCode() {
+        int result = type != null ? type.hashCode() : 0;
+        result = 31 * result + left.hashCode();
+        result = 31 * result + right.hashCode();
+        result = 31 * result + (criteria != null ? criteria.hashCode() : 0);
+        return result;
     }
 
     @Override
@@ -113,11 +115,13 @@ public class Join
     }
 
     @Override
-    public int hashCode() {
-        int result = type != null ? type.hashCode() : 0;
-        result = 31 * result + left.hashCode();
-        result = 31 * result + right.hashCode();
-        result = 31 * result + (criteria != null ? criteria.hashCode() : 0);
-        return result;
+    public String toString() {
+        return MoreObjects.toStringHelper(this)
+                          .add("type", type)
+                          .add("left", left)
+                          .add("right", right)
+                          .add("criteria", criteria)
+                          .omitNullValues()
+                          .toString();
     }
 }

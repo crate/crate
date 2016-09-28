@@ -27,8 +27,8 @@ import com.google.common.base.Optional;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
-public class CreateMaterializedView
-    extends Statement {
+public class CreateMaterializedView extends Statement {
+
     private final QualifiedName name;
     private final Optional<String> refresh;
     private final Query tableDefinition;
@@ -77,9 +77,9 @@ public class CreateMaterializedView
     @Override
     public String toString() {
         return MoreObjects.toStringHelper(this)
-            .add("name", name)
-            .add("refresh", refresh)
-            .add("tableDefinition", tableDefinition)
-            .toString();
+                          .add("name", name)
+                          .add("refresh", refresh)
+                          .add("tableDefinition", tableDefinition)
+                          .toString();
     }
 }

@@ -23,8 +23,8 @@ package io.crate.sql.tree;
 
 import com.google.common.base.Preconditions;
 
-public class IsNullPredicate
-    extends Expression {
+public class IsNullPredicate extends Expression {
+
     private final Expression value;
 
     public IsNullPredicate(Expression value) {
@@ -39,6 +39,11 @@ public class IsNullPredicate
     @Override
     public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
         return visitor.visitIsNullPredicate(this, context);
+    }
+
+    @Override
+    public int hashCode() {
+        return value.hashCode();
     }
 
     @Override
@@ -57,10 +62,5 @@ public class IsNullPredicate
         }
 
         return true;
-    }
-
-    @Override
-    public int hashCode() {
-        return value.hashCode();
     }
 }

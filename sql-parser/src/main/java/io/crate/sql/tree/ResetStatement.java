@@ -39,15 +39,13 @@ public class ResetStatement extends Statement {
     }
 
     @Override
-    public int hashCode() {
-        return Objects.hashCode(columns);
+    public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
+        return visitor.visitResetStatement(this, context);
     }
 
     @Override
-    public String toString() {
-        return MoreObjects.toStringHelper(this)
-            .add("columns", columns)
-            .toString();
+    public int hashCode() {
+        return Objects.hashCode(columns);
     }
 
     @Override
@@ -63,7 +61,9 @@ public class ResetStatement extends Statement {
     }
 
     @Override
-    public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
-        return visitor.visitResetStatement(this, context);
+    public String toString() {
+        return MoreObjects.toStringHelper(this)
+                          .add("columns", columns)
+                          .toString();
     }
 }

@@ -45,11 +45,6 @@ public class AlterTable extends Statement {
         this.genericProperties = Optional.absent();
     }
 
-    @Override
-    public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
-        return visitor.visitAlterTable(this, context);
-    }
-
     public Table table() {
         return table;
     }
@@ -63,10 +58,15 @@ public class AlterTable extends Statement {
     }
 
     @Override
-    public String toString() {
-        return MoreObjects.toStringHelper(this)
-            .add("table", table)
-            .add("properties", genericProperties).toString();
+    public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
+        return visitor.visitAlterTable(this, context);
+    }
+
+    @Override
+    public int hashCode() {
+        int result = table.hashCode();
+        result = 31 * result + genericProperties.hashCode();
+        return result;
     }
 
     @Override
@@ -83,9 +83,9 @@ public class AlterTable extends Statement {
     }
 
     @Override
-    public int hashCode() {
-        int result = table.hashCode();
-        result = 31 * result + genericProperties.hashCode();
-        return result;
+    public String toString() {
+        return MoreObjects.toStringHelper(this)
+                          .add("table", table)
+                          .add("properties", genericProperties).toString();
     }
 }

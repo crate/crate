@@ -24,8 +24,8 @@ package io.crate.sql.tree;
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 
-public class AllColumns
-    extends SelectItem {
+public class AllColumns extends SelectItem {
+
     private final Optional<QualifiedName> prefix;
 
     public AllColumns() {
@@ -47,6 +47,11 @@ public class AllColumns
     }
 
     @Override
+    public int hashCode() {
+        return prefix != null ? prefix.hashCode() : 0;
+    }
+
+    @Override
     public boolean equals(Object o) {
         if (this == o) {
             return true;
@@ -62,11 +67,6 @@ public class AllColumns
         }
 
         return true;
-    }
-
-    @Override
-    public int hashCode() {
-        return prefix != null ? prefix.hashCode() : 0;
     }
 
     @Override

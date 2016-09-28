@@ -29,8 +29,8 @@ import java.util.List;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
-public class Explain
-    extends Statement {
+public class Explain extends Statement {
+
     private final Statement statement;
     private final List<ExplainOption> options;
 
@@ -77,8 +77,8 @@ public class Explain
     @Override
     public String toString() {
         return MoreObjects.toStringHelper(this)
-            .add("statement", statement)
-            .add("options", options)
-            .toString();
+                          .add("statement", statement)
+                          .add("options", options)
+                          .toString();
     }
 }

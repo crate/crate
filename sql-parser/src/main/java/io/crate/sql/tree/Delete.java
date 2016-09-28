@@ -52,19 +52,9 @@ public class Delete extends Statement {
         return visitor.visitDelete(this, context);
     }
 
-
     @Override
     public int hashCode() {
         return Objects.hashCode(relation, where);
-    }
-
-
-    @Override
-    public String toString() {
-        return MoreObjects.toStringHelper(this)
-            .add("relation", relation)
-            .add("where", where.orNull())
-            .toString();
     }
 
     @Override
@@ -78,5 +68,13 @@ public class Delete extends Statement {
         if (where != null ? !where.equals(delete.where) : delete.where != null) return false;
 
         return true;
+    }
+
+    @Override
+    public String toString() {
+        return MoreObjects.toStringHelper(this)
+                          .add("relation", relation)
+                          .add("where", where.orNull())
+                          .toString();
     }
 }

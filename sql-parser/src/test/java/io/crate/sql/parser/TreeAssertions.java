@@ -36,11 +36,11 @@ import static java.lang.String.format;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 
-public final class TreeAssertions {
-    private TreeAssertions() {
-    }
+final class TreeAssertions {
 
-    public static void assertFormattedSql(Node expected) {
+    private TreeAssertions() {}
+
+    static void assertFormattedSql(Node expected) {
         String formatted = formatSql(expected);
 
         // verify round-trip of formatting already-formatted SQL
@@ -72,8 +72,8 @@ public final class TreeAssertions {
         if (actual.size() != expected.size()) {
             Joiner joiner = Joiner.on("\n    ");
             fail(format("Lists not equal%nActual [%s]:%n    %s%nExpected [%s]:%n    %s",
-                actual.size(), joiner.join(actual),
-                expected.size(), joiner.join(expected)));
+                        actual.size(), joiner.join(actual),
+                        expected.size(), joiner.join(expected)));
         }
         assertEquals(actual, expected);
     }

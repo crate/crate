@@ -54,6 +54,11 @@ public class CreateRepository extends Statement {
     }
 
     @Override
+    public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
+        return visitor.visitCreateRepository(this, context);
+    }
+
+    @Override
     public int hashCode() {
         return Objects.hashCode(repository, type, properties);
     }
@@ -73,13 +78,8 @@ public class CreateRepository extends Statement {
     @Override
     public String toString() {
         return MoreObjects.toStringHelper(this)
-            .add("repository", repository)
-            .add("type", type)
-            .add("properties", properties).toString();
-    }
-
-    @Override
-    public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
-        return visitor.visitCreateRepository(this, context);
+                          .add("repository", repository)
+                          .add("type", type)
+                          .add("properties", properties).toString();
     }
 }

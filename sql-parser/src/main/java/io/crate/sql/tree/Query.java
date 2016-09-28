@@ -29,20 +29,19 @@ import java.util.List;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
-public class Query
-    extends Statement {
+public class Query extends Statement {
+
     private final Optional<With> with;
     private final QueryBody queryBody;
     private final List<SortItem> orderBy;
     private final Optional<Expression> limit;
     private final Optional<Expression> offset;
 
-    public Query(
-        Optional<With> with,
-        QueryBody queryBody,
-        List<SortItem> orderBy,
-        Optional<Expression> limit,
-        Optional<Expression> offset) {
+    public Query(Optional<With> with,
+                 QueryBody queryBody,
+                 List<SortItem> orderBy,
+                 Optional<Expression> limit,
+                 Optional<Expression> offset) {
         checkNotNull(with, "with is null");
         checkNotNull(queryBody, "queryBody is null");
         checkNotNull(orderBy, "orderBy is null");
@@ -82,15 +81,8 @@ public class Query
     }
 
     @Override
-    public String toString() {
-        return MoreObjects.toStringHelper(this)
-            .add("with", with.orNull())
-            .add("queryBody", queryBody)
-            .add("orderBy", orderBy)
-            .add("limit", limit.orNull())
-            .add("offset", offset.orNull())
-            .omitNullValues()
-            .toString();
+    public int hashCode() {
+        return Objects.hashCode(with, queryBody, orderBy, limit, offset);
     }
 
     @Override
@@ -110,7 +102,14 @@ public class Query
     }
 
     @Override
-    public int hashCode() {
-        return Objects.hashCode(with, queryBody, orderBy, limit, offset);
+    public String toString() {
+        return MoreObjects.toStringHelper(this)
+                          .add("with", with.orNull())
+                          .add("queryBody", queryBody)
+                          .add("orderBy", orderBy)
+                          .add("limit", limit.orNull())
+                          .add("offset", offset.orNull())
+                          .omitNullValues()
+                          .toString();
     }
 }

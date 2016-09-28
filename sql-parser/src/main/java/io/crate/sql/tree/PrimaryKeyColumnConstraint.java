@@ -26,11 +26,8 @@ public class PrimaryKeyColumnConstraint extends ColumnConstraint {
     private static final String NAME = "PRIMARY_KEY";
 
     @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        //noinspection RedundantIfStatement
-        if (o == null || getClass() != o.getClass()) return false;
-        return true;
+    public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
+        return visitor.visitPrimaryKeyColumnConstraint(this, context);
     }
 
     @Override
@@ -39,12 +36,15 @@ public class PrimaryKeyColumnConstraint extends ColumnConstraint {
     }
 
     @Override
-    public String toString() {
-        return NAME;
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        //noinspection RedundantIfStatement
+        if (o == null || getClass() != o.getClass()) return false;
+        return true;
     }
 
     @Override
-    public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
-        return visitor.visitPrimaryKeyColumnConstraint(this, context);
+    public String toString() {
+        return NAME;
     }
 }

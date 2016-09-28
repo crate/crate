@@ -39,6 +39,11 @@ public class PrimaryKeyConstraint extends TableElement {
     }
 
     @Override
+    public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
+        return visitor.visitPrimaryKeyConstraint(this, context);
+    }
+
+    @Override
     public int hashCode() {
         return Objects.hashCode(columns);
     }
@@ -58,10 +63,5 @@ public class PrimaryKeyConstraint extends TableElement {
     @Override
     public String toString() {
         return MoreObjects.toStringHelper(this).add("columns", columns).toString();
-    }
-
-    @Override
-    public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
-        return visitor.visitPrimaryKeyConstraint(this, context);
     }
 }

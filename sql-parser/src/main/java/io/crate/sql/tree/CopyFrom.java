@@ -54,6 +54,19 @@ public class CopyFrom extends Statement {
     }
 
     @Override
+    public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
+        return visitor.visitCopyFrom(this, context);
+    }
+
+    @Override
+    public int hashCode() {
+        int result = table.hashCode();
+        result = 31 * result + path.hashCode();
+        result = 31 * result + genericProperties.hashCode();
+        return result;
+    }
+
+    @Override
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
@@ -68,24 +81,11 @@ public class CopyFrom extends Statement {
     }
 
     @Override
-    public int hashCode() {
-        int result = table.hashCode();
-        result = 31 * result + path.hashCode();
-        result = 31 * result + genericProperties.hashCode();
-        return result;
-    }
-
-    @Override
     public String toString() {
         return MoreObjects.toStringHelper(this)
-            .add("table", table)
-            .add("path", path)
-            .add("properties", genericProperties)
-            .toString();
-    }
-
-    @Override
-    public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
-        return visitor.visitCopyFrom(this, context);
+                          .add("table", table)
+                          .add("path", path)
+                          .add("properties", genericProperties)
+                          .toString();
     }
 }

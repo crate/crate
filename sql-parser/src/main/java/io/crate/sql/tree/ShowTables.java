@@ -33,7 +33,9 @@ public class ShowTables extends Statement {
     private final Optional<String> likePattern;
     private final Optional<Expression> whereExpression;
 
-    public ShowTables(@Nullable QualifiedName schema, @Nullable String likePattern, @Nullable Expression whereExpression) {
+    public ShowTables(@Nullable QualifiedName schema,
+                      @Nullable String likePattern,
+                      @Nullable Expression whereExpression) {
         this.schema = Optional.fromNullable(schema);
         this.whereExpression = Optional.fromNullable(whereExpression);
         this.likePattern = Optional.fromNullable(likePattern);
@@ -78,10 +80,9 @@ public class ShowTables extends Statement {
     @Override
     public String toString() {
         return MoreObjects.toStringHelper(this)
-            .add("schema", schema)
-            .add("likePattern", likePattern.toString())
-            .add("whereExpression", whereExpression.toString())
-            .toString();
+                          .add("schema", schema)
+                          .add("likePattern", likePattern.toString())
+                          .add("whereExpression", whereExpression.toString())
+                          .toString();
     }
-
 }

@@ -30,14 +30,12 @@ public class Assignment extends Node {
     private final Expression columnName;
     private final Expression expression;
 
-
     public Assignment(Expression columnName, Expression expression) {
         Preconditions.checkNotNull(columnName, "columnname is null");
         Preconditions.checkNotNull(expression, "expression is null");
         this.columnName = columnName;
         this.expression = expression;
     }
-
 
     public Expression columnName() {
         return columnName;
@@ -48,17 +46,13 @@ public class Assignment extends Node {
     }
 
     @Override
-    public int hashCode() {
-        return Objects.hashCode(columnName, expression);
+    public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
+        return visitor.visitAssignment(this, context);
     }
 
-
     @Override
-    public String toString() {
-        return MoreObjects.toStringHelper(this)
-            .add("column", columnName)
-            .add("expression", expression)
-            .toString();
+    public int hashCode() {
+        return Objects.hashCode(columnName, expression);
     }
 
     @Override
@@ -75,7 +69,10 @@ public class Assignment extends Node {
     }
 
     @Override
-    public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
-        return visitor.visitAssignment(this, context);
+    public String toString() {
+        return MoreObjects.toStringHelper(this)
+                          .add("column", columnName)
+                          .add("expression", expression)
+                          .toString();
     }
 }

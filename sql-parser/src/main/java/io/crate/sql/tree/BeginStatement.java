@@ -24,7 +24,11 @@ package io.crate.sql.tree;
 
 public class BeginStatement extends Statement {
 
-    public BeginStatement() {
+    public BeginStatement() {}
+
+    @Override
+    public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
+        return visitor.visitBegin(this, context);
     }
 
     @Override
@@ -40,10 +44,5 @@ public class BeginStatement extends Statement {
     @Override
     public String toString() {
         return "BEGIN";
-    }
-
-    @Override
-    public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
-        return visitor.visitBegin(this, context);
     }
 }

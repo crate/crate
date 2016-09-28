@@ -24,6 +24,7 @@ package io.crate.sql.tree;
 import com.google.common.base.Objects;
 
 public class BooleanLiteral extends Literal {
+
     public static final BooleanLiteral TRUE_LITERAL = new BooleanLiteral(true);
     public static final BooleanLiteral FALSE_LITERAL = new BooleanLiteral(false);
 

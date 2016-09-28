@@ -28,8 +28,8 @@ import java.util.List;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
-public class WithQuery
-    extends Node {
+public class WithQuery extends Node {
+
     private final String name;
     private final Query query;
     private final List<String> columnNames;
@@ -58,16 +58,6 @@ public class WithQuery
     }
 
     @Override
-    public String toString() {
-        return MoreObjects.toStringHelper(this)
-            .add("name", name)
-            .add("query", query)
-            .add("columnNames", columnNames)
-            .omitNullValues()
-            .toString();
-    }
-
-    @Override
     public int hashCode() {
         return Objects.hashCode(name, query, columnNames);
     }
@@ -84,5 +74,15 @@ public class WithQuery
         return Objects.equal(name, o.name) &&
                Objects.equal(query, o.query) &&
                Objects.equal(columnNames, o.columnNames);
+    }
+
+    @Override
+    public String toString() {
+        return MoreObjects.toStringHelper(this)
+                          .add("name", name)
+                          .add("query", query)
+                          .add("columnNames", columnNames)
+                          .omitNullValues()
+                          .toString();
     }
 }

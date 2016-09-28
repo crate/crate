@@ -23,10 +23,11 @@ package io.crate.sql.tree;
 
 import com.google.common.base.Preconditions;
 
-public class LogicalBinaryExpression
-    extends Expression {
+public class LogicalBinaryExpression extends Expression {
+
     public enum Type {
-        AND, OR
+        AND,
+        OR
     }
 
     private final Type type;
@@ -41,6 +42,14 @@ public class LogicalBinaryExpression
         this.type = type;
         this.left = left;
         this.right = right;
+    }
+
+    public static LogicalBinaryExpression and(Expression left, Expression right) {
+        return new LogicalBinaryExpression(Type.AND, left, right);
+    }
+
+    public static LogicalBinaryExpression or(Expression left, Expression right) {
+        return new LogicalBinaryExpression(Type.OR, left, right);
     }
 
     public Type getType() {
@@ -60,12 +69,12 @@ public class LogicalBinaryExpression
         return visitor.visitLogicalBinaryExpression(this, context);
     }
 
-    public static LogicalBinaryExpression and(Expression left, Expression right) {
-        return new LogicalBinaryExpression(Type.AND, left, right);
-    }
-
-    public static LogicalBinaryExpression or(Expression left, Expression right) {
-        return new LogicalBinaryExpression(Type.OR, left, right);
+    @Override
+    public int hashCode() {
+        int result = type.hashCode();
+        result = 31 * result + left.hashCode();
+        result = 31 * result + right.hashCode();
+        return result;
     }
 
     @Override
@@ -90,13 +99,5 @@ public class LogicalBinaryExpression
         }
 
         return true;
-    }
-
-    @Override
-    public int hashCode() {
-        int result = type.hashCode();
-        result = 31 * result + left.hashCode();
-        result = 31 * result + right.hashCode();
-        return result;
     }
 }

@@ -28,10 +28,7 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 @Immutable
-public class Extract
-    extends Expression {
-    private final Expression expression;
-    private final Expression field;
+public class Extract extends Expression {
 
     public enum Field {
         CENTURY,
@@ -52,12 +49,15 @@ public class Extract
         TIMEZONE_MINUTE
     }
 
+    private final Expression expression;
+    private final Expression field;
+
     public Extract(Expression expression, Expression field) {
         checkNotNull(expression, "expression is null");
         checkNotNull(field, "field is null");
         checkArgument(field instanceof StringLiteral || field instanceof ParameterExpression,
-            // (ident is converted to StringLiteral in StatementBuilder.g
-            "field must be an ident, a string literal or a parameter expression");
+                      // (ident is converted to StringLiteral in StatementBuilder.g
+                      "field must be an ident, a string literal or a parameter expression");
         this.expression = expression;
         this.field = field;
     }
@@ -65,7 +65,6 @@ public class Extract
     public Expression getExpression() {
         return expression;
     }
-
 
     public Field getField(Object[] parameters) {
         String fieldName;
@@ -88,6 +87,13 @@ public class Extract
     }
 
     @Override
+    public int hashCode() {
+        int result = expression.hashCode();
+        result = 31 * result + field.hashCode();
+        return result;
+    }
+
+    @Override
     public boolean equals(Object o) {
         if (this == o) {
             return true;
@@ -106,12 +112,5 @@ public class Extract
         }
 
         return true;
-    }
-
-    @Override
-    public int hashCode() {
-        int result = expression.hashCode();
-        result = 31 * result + field.hashCode();
-        return result;
     }
 }

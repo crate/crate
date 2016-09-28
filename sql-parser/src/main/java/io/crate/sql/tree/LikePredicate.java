@@ -23,8 +23,8 @@ package io.crate.sql.tree;
 
 import com.google.common.base.Preconditions;
 
-public class LikePredicate
-    extends Expression {
+public class LikePredicate extends Expression {
+
     private final Expression value;
     private final Expression pattern;
     private final Expression escape;
@@ -56,6 +56,14 @@ public class LikePredicate
     }
 
     @Override
+    public int hashCode() {
+        int result = value.hashCode();
+        result = 31 * result + pattern.hashCode();
+        result = 31 * result + (escape != null ? escape.hashCode() : 0);
+        return result;
+    }
+
+    @Override
     public boolean equals(Object o) {
         if (this == o) {
             return true;
@@ -77,13 +85,5 @@ public class LikePredicate
         }
 
         return true;
-    }
-
-    @Override
-    public int hashCode() {
-        int result = value.hashCode();
-        result = 31 * result + pattern.hashCode();
-        result = 31 * result + (escape != null ? escape.hashCode() : 0);
-        return result;
     }
 }

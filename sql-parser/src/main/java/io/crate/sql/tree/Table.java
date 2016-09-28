@@ -27,8 +27,8 @@ import com.google.common.collect.ImmutableList;
 import javax.annotation.Nullable;
 import java.util.List;
 
-public class Table
-    extends QueryBody {
+public class Table extends QueryBody {
+
     private final QualifiedName name;
     private final boolean excludePartitions;
     private final List<Assignment> partitionProperties;
@@ -67,12 +67,10 @@ public class Table
     }
 
     @Override
-    public String toString() {
-        return MoreObjects.toStringHelper(this)
-            .add("only", excludePartitions)
-            .addValue(name)
-            .add("partitionProperties", partitionProperties)
-            .toString();
+    public int hashCode() {
+        int result = name.hashCode();
+        result = 31 * result + partitionProperties.hashCode();
+        return result;
     }
 
     @Override
@@ -89,9 +87,11 @@ public class Table
     }
 
     @Override
-    public int hashCode() {
-        int result = name.hashCode();
-        result = 31 * result + partitionProperties.hashCode();
-        return result;
+    public String toString() {
+        return MoreObjects.toStringHelper(this)
+                          .add("only", excludePartitions)
+                          .addValue(name)
+                          .add("partitionProperties", partitionProperties)
+                          .toString();
     }
 }

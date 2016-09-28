@@ -27,8 +27,8 @@ import org.joda.time.format.DateTimeFormatterBuilder;
 
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 
-public class TimeLiteral
-    extends Literal {
+public class TimeLiteral extends Literal {
+
     public static final DateTimeFormatter DATE_TIME_FORMATTER;
 
     static {
@@ -37,20 +37,20 @@ public class TimeLiteral
             .appendLiteral(':')
             .appendMinuteOfHour(2)
             .appendOptional(new DateTimeFormatterBuilder()
-                .appendLiteral(':')
-                .appendSecondOfMinute(2)
-                .appendOptional(new DateTimeFormatterBuilder()
-                    .appendLiteral('.')
-                    .appendMillisOfSecond(1)
-                    .toParser())
-                .toParser())
+                                .appendLiteral(':')
+                                .appendSecondOfMinute(2)
+                                .appendOptional(new DateTimeFormatterBuilder()
+                                                    .appendLiteral('.')
+                                                    .appendMillisOfSecond(1)
+                                                    .toParser())
+                                .toParser())
             .appendOptional(new DateTimeFormatterBuilder()
-                .appendTimeZoneOffset("Z", true, 1, 2)
-                .toParser())
+                                .appendTimeZoneOffset("Z", true, 1, 2)
+                                .toParser())
             .appendOptional(new DateTimeFormatterBuilder()
-                .appendLiteral(' ')
-                .appendTimeZoneId()
-                .toParser())
+                                .appendLiteral(' ')
+                                .appendTimeZoneId()
+                                .toParser())
             .toFormatter()
             .withZoneUTC();
     }
@@ -78,6 +78,11 @@ public class TimeLiteral
     }
 
     @Override
+    public int hashCode() {
+        return value.hashCode();
+    }
+
+    @Override
     public boolean equals(Object o) {
         if (this == o) {
             return true;
@@ -93,10 +98,5 @@ public class TimeLiteral
         }
 
         return true;
-    }
-
-    @Override
-    public int hashCode() {
-        return value.hashCode();
     }
 }

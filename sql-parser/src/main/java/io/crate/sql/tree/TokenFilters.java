@@ -39,6 +39,11 @@ public class TokenFilters extends AnalyzerElement {
     }
 
     @Override
+    public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
+        return visitor.visitTokenFilters(this, context);
+    }
+
+    @Override
     public int hashCode() {
         return Objects.hashCode(tokenFilters);
     }
@@ -58,10 +63,5 @@ public class TokenFilters extends AnalyzerElement {
     @Override
     public String toString() {
         return MoreObjects.toStringHelper(this).add("tokenFilters", tokenFilters).toString();
-    }
-
-    @Override
-    public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
-        return visitor.visitTokenFilters(this, context);
     }
 }

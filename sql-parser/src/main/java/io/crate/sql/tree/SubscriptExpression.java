@@ -21,7 +21,6 @@
 
 package io.crate.sql.tree;
 
-
 public class SubscriptExpression extends Expression {
 
     private Expression name;

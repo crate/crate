@@ -29,8 +29,8 @@ import java.util.List;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
-public class Window
-    extends Node {
+public class Window extends Node {
+
     private final List<Expression> partitionBy;
     private final List<SortItem> orderBy;
     private final Optional<WindowFrame> frame;
@@ -59,6 +59,11 @@ public class Window
     }
 
     @Override
+    public int hashCode() {
+        return Objects.hashCode(partitionBy, orderBy, frame);
+    }
+
+    @Override
     public boolean equals(Object obj) {
         if (this == obj) {
             return true;
@@ -73,16 +78,11 @@ public class Window
     }
 
     @Override
-    public int hashCode() {
-        return Objects.hashCode(partitionBy, orderBy, frame);
-    }
-
-    @Override
     public String toString() {
         return MoreObjects.toStringHelper(this)
-            .add("partitionBy", partitionBy)
-            .add("orderBy", orderBy)
-            .add("frame", frame)
-            .toString();
+                          .add("partitionBy", partitionBy)
+                          .add("orderBy", orderBy)
+                          .add("frame", frame)
+                          .toString();
     }
 }

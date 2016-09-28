@@ -23,11 +23,11 @@ package io.crate.sql.parser;
 
 import org.antlr.runtime.CharStream;
 
-public class CaseInsensitiveStream
-    implements CharStream {
+class CaseInsensitiveStream implements CharStream {
+
     private CharStream stream;
 
-    public CaseInsensitiveStream(CharStream stream) {
+    CaseInsensitiveStream(CharStream stream) {
         this.stream = stream;
     }
 
@@ -59,18 +59,13 @@ public class CaseInsensitiveStream
     }
 
     @Override
-    public void setCharPositionInLine(int pos) {
-        stream.setCharPositionInLine(pos);
-    }
-
-    @Override
-    public int getCharPositionInLine() {
-        return stream.getCharPositionInLine();
-    }
-
-    @Override
     public void consume() {
         stream.consume();
+    }
+
+    @Override
+    public void setCharPositionInLine(int pos) {
+        stream.setCharPositionInLine(pos);
     }
 
     @Override
@@ -84,6 +79,11 @@ public class CaseInsensitiveStream
             default:
                 return Character.toUpperCase(result);
         }
+    }
+
+    @Override
+    public int getCharPositionInLine() {
+        return stream.getCharPositionInLine();
     }
 
     @Override

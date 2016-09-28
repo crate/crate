@@ -42,8 +42,7 @@ public final class ExpressionFormatter {
     private static final Joiner COMMA_JOINER = Joiner.on(", ");
     private static final Joiner WHITESPACE_JOINER = Joiner.on(' ');
 
-    private ExpressionFormatter() {
-    }
+    private ExpressionFormatter() {}
 
     public static String formatExpression(Expression expression) {
         return new Formatter().process(expression, null);
@@ -62,12 +61,15 @@ public final class ExpressionFormatter {
         extends AstVisitor<String, Void> {
         @Override
         protected String visitNode(Node node, Void context) {
-            throw new UnsupportedOperationException(String.format(Locale.ENGLISH, "cannot handle node '%s'", node.toString()));
+            throw new UnsupportedOperationException(
+                String.format(Locale.ENGLISH, "cannot handle node '%s'", node.toString()));
         }
 
         @Override
         protected String visitExpression(Expression node, Void context) {
-            throw new UnsupportedOperationException(String.format("not yet implemented: %s.visit%s", getClass().getName(), node.getClass().getSimpleName()));
+            throw new UnsupportedOperationException(
+                String.format("not yet implemented: %s.visit%s", getClass().getName(),
+                              node.getClass().getSimpleName()));
         }
 
         @Override
@@ -89,8 +91,8 @@ public final class ExpressionFormatter {
 
             if (node.getPrecision().isPresent()) {
                 builder.append('(')
-                    .append(node.getPrecision().get())
-                    .append(')');
+                       .append(node.getPrecision().get())
+                       .append(')');
             }
 
             return builder.toString();
@@ -162,7 +164,6 @@ public final class ExpressionFormatter {
                     first = false;
                 }
                 builder.append(element.accept(this, context));
-
             }
             return builder.append("]").toString();
         }
@@ -183,9 +184,8 @@ public final class ExpressionFormatter {
                     first = false;
                 }
                 builder.append(formatIdentifier(entry.getKey()))
-                    .append("= ")
-                    .append(entry.getValue().accept(this, context));
-
+                       .append("= ")
+                       .append(entry.getValue().accept(this, context));
             }
             return builder.append("}").toString();
         }
@@ -228,7 +228,7 @@ public final class ExpressionFormatter {
             }
 
             builder.append(node.getName())
-                .append('(').append(arguments).append(')');
+                   .append('(').append(arguments).append(')');
 
             if (node.getWindow().isPresent()) {
                 builder.append(" OVER ").append(visitWindow(node.getWindow().get(), null));
@@ -266,12 +266,12 @@ public final class ExpressionFormatter {
         protected String visitIfExpression(IfExpression node, Void context) {
             StringBuilder builder = new StringBuilder();
             builder.append("IF(")
-                .append(process(node.getCondition(), context))
-                .append(", ")
-                .append(process(node.getTrueValue(), context));
+                   .append(process(node.getCondition(), context))
+                   .append(", ")
+                   .append(process(node.getTrueValue(), context));
             if (node.getFalseValue().isPresent()) {
                 builder.append(", ")
-                    .append(process(node.getFalseValue().get(), context));
+                       .append(process(node.getFalseValue().get(), context));
             }
             builder.append(")");
             return builder.toString();
@@ -292,13 +292,13 @@ public final class ExpressionFormatter {
             StringBuilder builder = new StringBuilder();
 
             builder.append('(')
-                .append(process(node.getValue(), null))
-                .append(" LIKE ")
-                .append(process(node.getPattern(), null));
+                   .append(process(node.getValue(), null))
+                   .append(" LIKE ")
+                   .append(process(node.getPattern(), null));
 
             if (node.getEscape() != null) {
                 builder.append(" ESCAPE ")
-                    .append(process(node.getEscape(), null));
+                       .append(process(node.getEscape(), null));
             }
 
             builder.append(')');
@@ -310,16 +310,16 @@ public final class ExpressionFormatter {
         public String visitArrayLikePredicate(ArrayLikePredicate node, Void context) {
             StringBuilder builder = new StringBuilder();
             builder.append('(')
-                .append(process(node.getPattern(), null))
-                .append(node.inverse() ? " NOT" : "")
-                .append(" LIKE ")
-                .append(node.quantifier().name())
-                .append(" (")
-                .append(process(node.getValue(), null))
-                .append(") ");
+                   .append(process(node.getPattern(), null))
+                   .append(node.inverse() ? " NOT" : "")
+                   .append(" LIKE ")
+                   .append(node.quantifier().name())
+                   .append(" (")
+                   .append(process(node.getValue(), null))
+                   .append(") ");
             if (node.getEscape() != null) {
                 builder.append("ESCAPE ")
-                    .append(process(node.getEscape(), null));
+                       .append(process(node.getEscape(), null));
             }
             builder.append(')');
             return builder.toString();
@@ -366,12 +366,13 @@ public final class ExpressionFormatter {
         @Override
         public String visitGenericProperties(GenericProperties node, Void context) {
             StringBuilder builder = new StringBuilder().append(" WITH (");
-            String properties = COMMA_JOINER.join(transform(node.properties().entrySet(), new Function<Map.Entry<String, Expression>, Object>() {
-                @Override
-                public Object apply(Map.Entry<String, Expression> input) {
-                    return input.getKey() + "=" + process(input.getValue(), null);
-                }
-            }));
+            String properties = COMMA_JOINER.join(
+                transform(node.properties().entrySet(), new Function<Map.Entry<String, Expression>, Object>() {
+                    @Override
+                    public Object apply(Map.Entry<String, Expression> input) {
+                        return input.getKey() + "=" + process(input.getValue(), null);
+                    }
+                }));
             builder.append(properties);
             builder.append(")");
             return builder.toString();
@@ -406,7 +407,7 @@ public final class ExpressionFormatter {
             }
             if (node.getDefaultValue() != null) {
                 parts.add("ELSE")
-                    .add(process(node.getDefaultValue(), context));
+                     .add(process(node.getDefaultValue(), context));
             }
             parts.add("END");
 
@@ -418,14 +419,14 @@ public final class ExpressionFormatter {
             ImmutableList.Builder<String> parts = ImmutableList.builder();
 
             parts.add("CASE")
-                .add(process(node.getOperand(), context));
+                 .add(process(node.getOperand(), context));
 
             for (WhenClause whenClause : node.getWhenClauses()) {
                 parts.add(process(whenClause, context));
             }
             if (node.getDefaultValue() != null) {
                 parts.add("ELSE")
-                    .add(process(node.getDefaultValue(), context));
+                     .add(process(node.getDefaultValue(), context));
             }
             parts.add("END");
 
@@ -479,9 +480,9 @@ public final class ExpressionFormatter {
 
             if (node.getEnd().isPresent()) {
                 builder.append("BETWEEN ")
-                    .append(process(node.getStart(), null))
-                    .append(" AND ")
-                    .append(process(node.getEnd().get(), null));
+                       .append(process(node.getStart(), null))
+                       .append(" AND ")
+                       .append(process(node.getEnd().get(), null));
             } else {
                 builder.append(process(node.getStart(), null));
             }

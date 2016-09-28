@@ -26,8 +26,8 @@ import com.google.common.base.Optional;
 
 import java.util.List;
 
-public class FunctionCall
-    extends Expression {
+public class FunctionCall extends Expression {
+
     private final QualifiedName name;
     private final Optional<Window> window;
     private final boolean distinct;
@@ -66,6 +66,11 @@ public class FunctionCall
     }
 
     @Override
+    public int hashCode() {
+        return Objects.hashCode(name, distinct, window, arguments);
+    }
+
+    @Override
     public boolean equals(Object obj) {
         if (this == obj) {
             return true;
@@ -78,10 +83,5 @@ public class FunctionCall
                Objects.equal(window, o.window) &&
                Objects.equal(distinct, o.distinct) &&
                Objects.equal(arguments, o.arguments);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hashCode(name, distinct, window, arguments);
     }
 }
