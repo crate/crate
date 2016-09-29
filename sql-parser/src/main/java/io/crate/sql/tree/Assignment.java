@@ -33,26 +33,26 @@ public class Assignment extends Node {
     private final Expression columnName;
     private final List<Expression> expressions;
 
+    /**
+     * Constructor for SET SESSION/LOCAL statements
+     * one or more expressions are allowed on the right side of the assignment
+     * DEFAULT             -> empty list of expressions
+     * VALUE               -> single item in expressions list
+     *                        value can be either string literal, numeric literal, or ident
+     * VALUE, VALUE, ...   -> two or more items in expressions list
+     */
     public Assignment(Expression columnName, List<Expression> expressions) {
-        /**
-         * Constructor for SET SESSION/LOCAL statements
-         * one or more expressions are allowed on the right side of the assignment
-         * DEFAULT             -> empty list of expressions
-         * VALUE               -> single item in expressions list
-         *                        value can be either string literal, numeric literal, or ident
-         * VALUE, VALUE, ...   -> two or more items in expressions list
-         */
         Preconditions.checkNotNull(columnName, "columnname is null");
         Preconditions.checkNotNull(expressions, "expression is null");
         this.columnName = columnName;
         this.expressions = expressions;
     }
 
+    /**
+     * Constructor for SET GLOBAL statements
+     * only single expression is allowed on right side of assignment
+     */
     public Assignment(Expression columnName, Expression expression) {
-        /**
-         * Constructor for SET GLOBAL statements
-         * only single expression is allowed on right side of assignment
-         */
         Preconditions.checkNotNull(columnName, "columnname is null");
         Preconditions.checkNotNull(expression, "expression is null");
         this.columnName = columnName;
@@ -64,9 +64,6 @@ public class Assignment extends Node {
     }
 
     public Expression expression() {
-        /**
-         * TODO: make sure that does not break anything in the analysis!
-         */
         return expressions.isEmpty() ? null : expressions.get(0);
     }
 
