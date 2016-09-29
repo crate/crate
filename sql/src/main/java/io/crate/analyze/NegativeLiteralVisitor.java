@@ -23,10 +23,10 @@ package io.crate.analyze;
 import io.crate.analyze.symbol.Literal;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.analyze.symbol.SymbolVisitor;
-import io.crate.analyze.symbol.format.SymbolFormatter;
+import io.crate.operation.scalar.arithmetic.NegateFunction;
 import io.crate.types.*;
 
-public class NegativeLiteralVisitor extends SymbolVisitor<Void, Literal> {
+public class NegativeLiteralVisitor extends SymbolVisitor<Void, Symbol> {
 
     @Override
     public Literal visitLiteral(Literal symbol, Void context) {
@@ -50,7 +50,7 @@ public class NegativeLiteralVisitor extends SymbolVisitor<Void, Literal> {
     }
 
     @Override
-    protected Literal visitSymbol(Symbol symbol, Void context) {
-        throw new UnsupportedOperationException(SymbolFormatter.format("Cannot negate symbol %s", symbol));
+    protected Symbol visitSymbol(Symbol symbol, Void context) {
+        return NegateFunction.createFunction(symbol);
     }
 }

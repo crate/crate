@@ -62,6 +62,7 @@ public class ScalarFunctionModule extends AbstractModule {
 
     @Override
     protected void configure() {
+        NegateFunction.register(this);
         CollectionCountFunction.register(this);
         CollectionAverageFunction.register(this);
         FormatFunction.register(this);
