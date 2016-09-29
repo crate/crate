@@ -385,7 +385,7 @@ exprList returns [List<Expression> value = new ArrayList<>()]
     ;
 
 multiExprList returns [List<Expression> value = new ArrayList<>()]
-    : (expr { $value.add($expr.value); })+
+    : (setExpr { $value.add($setExpr.value); })+
     ;
 
 parameterExpr returns [ParameterExpression value]
@@ -404,6 +404,15 @@ parameterOrSimpleLiteral returns [Expression value]
     | ^(IDENT_EXPR ident)   { $value = new StringLiteral($ident.value); }
     ;
 
+setExpr returns [Expression value]
+    : string                { $value = new StringLiteral($string.value); }
+    | integer               { $value = new LongLiteral($integer.value); }
+    | decimal               { $value = new DoubleLiteral($decimal.value); }
+    | TRUE                  { $value = BooleanLiteral.TRUE_LITERAL; }
+    | FALSE                 { $value = BooleanLiteral.FALSE_LITERAL; }
+    | ^(IDENT_EXPR ident)   { $value = new StringLiteral($ident.value); }
+    | BOOLEAN_ON            { $value = BooleanLiteral.TRUE_LITERAL; }
+    ;
 
 subscript returns [SubscriptExpression value]
     :   ^('[' a=expr b=expr) { $value = new SubscriptExpression($a.value, $b.value); }

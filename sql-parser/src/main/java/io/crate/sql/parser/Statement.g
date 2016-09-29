@@ -139,6 +139,7 @@ tokens {
     SET_SESSION;
     SET_LOCAL;
     EXPR_LIST;
+    BOOLEAN_ON;
 }
 
 @header {
@@ -535,7 +536,9 @@ identExpr
 setExpr
     : STRING
     | numericLiteral
-    | ident -> ^(IDENT_EXPR ident)
+    | bool
+    | ident             -> ^(IDENT_EXPR ident)
+    | ON                -> ^(BOOLEAN_ON )
     ;
 
 parameterOrLiteral

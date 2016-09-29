@@ -375,31 +375,54 @@ public class TestStatementBuilder {
 
     @Test
     public void testSetSession() throws Exception {
-        printStatement("set some_setting = DEFAULT");
-        printStatement("set some_setting = 'value'");
-        printStatement("set some_setting = 1, '2', 'foo'");
-
-        printStatement("set some_setting TO DEFAULT");
-        printStatement("set some_setting TO 'value'");
-        printStatement("set some_setting TO 1, 2, 3");
-
         printStatement("set session some_setting = DEFAULT");
         printStatement("set session some_setting = 'value'");
         printStatement("set session some_setting = 1, 2, 3");
+        printStatement("set session some_setting = ON");
+        printStatement("set session some_setting = 1, ON");
+        printStatement("set session some_setting = false");
 
         printStatement("set session some_setting TO DEFAULT");
         printStatement("set session some_setting TO 'value'");
         printStatement("set session some_setting TO 1, 2, 3");
+        printStatement("set session some_setting TO ON");
+        printStatement("set session some_setting TO true");
+        printStatement("set session some_setting TO 1, ON");
 
+    }
+
+    @Test
+    public void testSet() throws Exception {
+        printStatement("set some_setting = DEFAULT");
+        printStatement("set some_setting = 'value'");
+        printStatement("set some_setting = 1, '2', foo");
+        printStatement("set some_setting = on");
+        printStatement("set some_setting = 1, on");
+        printStatement("set some_setting = true");
+
+        printStatement("set some_setting TO DEFAULT");
+        printStatement("set some_setting TO 'value'");
+        printStatement("set some_setting TO 1, 2, 3");
+        printStatement("set some_setting TO ON");
+        printStatement("set some_setting TO true");
+        printStatement("set some_setting TO 1, ON");
+    }
+
+    @Test
+    public void testSetLocal() throws Exception {
         printStatement("set local some_setting = DEFAULT");
         printStatement("set local some_setting = 'value'");
         printStatement("set local some_setting = 1, 2, 3");
+        printStatement("set local some_setting = 1, ON");
+        printStatement("set local some_setting = ON");
+        printStatement("set local some_setting = false");
 
         printStatement("set local some_setting TO DEFAULT");
         printStatement("set local some_setting TO 'value'");
         printStatement("set local some_setting TO 1, 2, 3");
-        printStatement("set local some_setting = 'on'");
-
+        printStatement("set local some_setting TO ON");
+        printStatement("set local some_setting TO true");
+        printStatement("set local some_setting TO ALWAYS");
     }
 
     @Test
