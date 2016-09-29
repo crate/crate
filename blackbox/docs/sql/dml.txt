@@ -425,7 +425,7 @@ An example import from a file URI::
 If all files inside a directory should be imported a ``*`` wildcard has to be
 used::
 
-    cr> copy quotes from '/tmp/import_data/*' with (concurrency = 1, bulk_size = 4);
+    cr> copy quotes from '/tmp/import_data/*' with (bulk_size = 4);
     COPY OK, 3 rows affected (... sec)
 
 .. Hidden: delete imported data
