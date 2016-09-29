@@ -24,6 +24,9 @@ package io.crate.sql.tree;
 public class NullLiteral extends Literal {
     public static final NullLiteral INSTANCE = new NullLiteral();
 
+    private NullLiteral(){
+    }
+    
     @Override
     public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
         return visitor.visitNullLiteral(this, context);
