@@ -22,38 +22,32 @@
 
 package io.crate.planner;
 
-import com.google.common.collect.ImmutableSet;
+import com.carrotsearch.hppc.ObjectLongMap;
+import com.google.common.collect.ImmutableList;
 import io.crate.action.sql.SQLOperations;
-import io.crate.action.sql.SQLRequest;
-import io.crate.action.sql.SQLResponse;
-import io.crate.action.sql.TransportSQLAction;
+import io.crate.concurrent.CompletionListener;
 import io.crate.metadata.TableIdent;
+import io.crate.protocols.postgres.FormatCodes;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.types.DataType;
-import io.crate.types.DataTypes;
-import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.action.support.ActionFilter;
-import org.elasticsearch.action.support.ActionFilters;
 import org.elasticsearch.cluster.ClusterService;
-import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.common.inject.Provider;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.threadpool.ThreadPool;
-import org.elasticsearch.transport.TransportService;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-import org.mockito.Answers;
+import org.mockito.Mockito;
 
+import java.util.Collections;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
 
-import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.is;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
+import static org.mockito.Matchers.anyByte;
+import static org.mockito.Matchers.anyString;
+import static org.mockito.Mockito.*;
 
 public class TableStatsServiceTest extends CrateUnitTest {
 
@@ -70,69 +64,8 @@ public class TableStatsServiceTest extends CrateUnitTest {
         threadPool.awaitTermination(30, TimeUnit.SECONDS);
     }
 
-    private TransportSQLAction getTransportSQLAction(final AtomicInteger numRequests) {
-        return new TransportSQLAction(
-            mock(SQLOperations.class),
-            Settings.EMPTY,
-            threadPool,
-            mock(TransportService.class, Answers.RETURNS_MOCKS.get()),
-            new ActionFilters(ImmutableSet.<ActionFilter>of()),
-            mock(IndexNameExpressionResolver.class)
-        ) {
-            @Override
-            protected void doExecute(SQLRequest request, ActionListener<SQLResponse> listener) {
-                Object[] row;
-                if (numRequests.get() == 0) {
-                    row = new Object[]{2L, "foo", "bar"};
-                } else {
-                    row = new Object[]{4L, "foo", "bar"};
-                }
-                listener.onResponse(new SQLResponse(
-                    new String[]{"cast(sum(num_docs) as long)", "schema_name", "table_name"},
-                    new Object[][]{row},
-                    new DataType[]{DataTypes.LONG, DataTypes.STRING, DataTypes.STRING},
-                    1L,
-                    1,
-                    false
-                ));
-                numRequests.incrementAndGet();
-            }
-        };
-    }
-
     @Test
-    public void testPeriodicUpdate() throws Exception {
-        final AtomicInteger numRequests = new AtomicInteger(0);
-        final TransportSQLAction transportSQLAction = getTransportSQLAction(numRequests);
-
-        final ClusterService clusterService = mock(ClusterService.class);
-        when(clusterService.localNode()).thenReturn(mock(DiscoveryNode.class));
-
-        new TableStatsService(Settings.EMPTY,
-            threadPool,
-            clusterService,
-            TimeValue.timeValueMillis(100),
-            new Provider<TransportSQLAction>() {
-                @Override
-                public TransportSQLAction get() {
-                    return transportSQLAction;
-                }
-            });
-
-        assertBusy(new Runnable() {
-            @Override
-            public void run() {
-                // periodic update happened
-                assertThat(numRequests.get(), greaterThan(1));
-            }
-        });
-    }
-
-    @Test
-    public void testNumDocs() throws Exception {
-        final AtomicInteger numRequests = new AtomicInteger(0);
-        final TransportSQLAction transportSQLAction = getTransportSQLAction(numRequests);
-
+    public void testRowsToTableStatConversion() {
         final ClusterService clusterService = mock(ClusterService.class);
         when(clusterService.localNode()).thenReturn(mock(DiscoveryNode.class));
 
@@ -140,56 +73,75 @@ public class TableStatsServiceTest extends CrateUnitTest {
             threadPool,
             clusterService,
             TimeValue.timeValueHours(1),
-            new Provider<TransportSQLAction>() {
+            new Provider<SQLOperations>() {
                 @Override
-                public TransportSQLAction get() {
-                    return transportSQLAction;
+                public SQLOperations get() {
+                    return mock(SQLOperations.class);
                 }
             });
-        // 1st Periodic Update
-        statsService.run();
-        assertBusy(new Runnable() {
-            @Override
-            public void run() {
-                assertThat(numRequests.get(), is(1));
-            }
-        });
-        assertThat(statsService.numDocs(new TableIdent("foo", "bar")), is(2L));
-
-        // 2nd Periodic Update
-        statsService.run();
-        assertBusy(new Runnable() {
-            @Override
-            public void run() {
-                assertThat(numRequests.get(), is(2));
-            }
-        });
-        assertThat(statsService.numDocs(new TableIdent("foo", "bar")), is(4L));
-
-        assertThat(statsService.numDocs(new TableIdent("unknown", "table")), is(-1L));
+        ObjectLongMap<TableIdent> stats = statsService.statsFromRows(ImmutableList.of(
+            new Object[]{1L, "custom", "foo"},
+            new Object[]{2L, "doc", "foo"},
+            new Object[]{3L, "bar", "foo"}));
+        assertThat(stats.size(), is(3));
+        assertThat(stats.get(new TableIdent("bar", "foo")), is(3L));
     }
 
     @Test
-    public void testNoUpdateIfLocalNodeNotAvailable() throws Exception {
-        final AtomicInteger numRequests = new AtomicInteger(0);
-        final TransportSQLAction transportSQLAction = getTransportSQLAction(numRequests);
-
+    public void testStatsQueriesCorrectly() throws Exception {
         ClusterService clusterService = mock(ClusterService.class);
-        when(clusterService.localNode()).thenReturn(null);
+        when(clusterService.localNode()).thenReturn(mock(DiscoveryNode.class));
+        final SQLOperations sqlOperations = mock(SQLOperations.class);
+        SQLOperations.Session session = mock(SQLOperations.Session.class);
+        when(sqlOperations.createSession(eq("sys"), eq(SQLOperations.Option.NONE), eq(TableStatsService.DEFAULT_SOFT_LIMIT)))
+            .thenReturn(session);
 
         TableStatsService statsService = new TableStatsService(Settings.EMPTY,
             threadPool,
             clusterService,
             TimeValue.timeValueHours(1),
-            new Provider<TransportSQLAction>() {
+            new Provider<SQLOperations>() {
                 @Override
-                public TransportSQLAction get() {
-                    return transportSQLAction;
+                public SQLOperations get() {
+                    return sqlOperations;
+                }
+            });
+        statsService.run();
+
+        verify(session, times(1)).parse(
+            eq(TableStatsService.UNNAMED),
+            eq(TableStatsService.STMT),
+            eq(Collections.<DataType>emptyList()));
+        verify(session, times(1)).bind(
+            eq(TableStatsService.UNNAMED),
+            eq(TableStatsService.UNNAMED),
+            eq(Collections.emptyList()),
+            isNull(FormatCodes.FormatCode[].class));
+        verify(session, times(1)).execute(
+            eq(TableStatsService.UNNAMED),
+            eq(0),
+            any(TableStatsService.TableStatsResultReceiver.class));
+        verify(session, times(1)).sync(eq(CompletionListener.NO_OP));
+    }
+
+    @Test
+    public void testNoUpdateIfLocalNodeNotAvailable() throws Exception {
+        final ClusterService clusterService = mock(ClusterService.class);
+        when(clusterService.localNode()).thenReturn(null);
+        final SQLOperations sqlOperations = mock(SQLOperations.class);
+
+        TableStatsService statsService = new TableStatsService(Settings.EMPTY,
+            threadPool,
+            clusterService,
+            TimeValue.timeValueHours(1),
+            new Provider<SQLOperations>() {
+                @Override
+                public SQLOperations get() {
+                    return sqlOperations;
                 }
             });
 
         statsService.run();
-        assertThat(statsService.numDocs(new TableIdent("foo", "bar")), is(-1L));
-        assertThat(numRequests.get(), is(0));
+        Mockito.verify(sqlOperations, times(0)).createSession(anyString(), anySetOf(SQLOperations.Option.class), anyByte());
     }
 }

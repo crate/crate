@@ -25,49 +25,60 @@ package io.crate.planner;
 
 import com.carrotsearch.hppc.ObjectLongHashMap;
 import com.carrotsearch.hppc.ObjectLongMap;
-import io.crate.action.sql.SQLRequest;
-import io.crate.action.sql.SQLResponse;
-import io.crate.action.sql.TransportSQLAction;
+import io.crate.action.sql.ResultReceiver;
+import io.crate.action.sql.SQLOperations;
+import io.crate.concurrent.CompletionListener;
+import io.crate.core.collections.Row;
 import io.crate.metadata.TableIdent;
-import org.elasticsearch.action.ActionListener;
+import io.crate.types.DataType;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.component.AbstractComponent;
 import org.elasticsearch.common.inject.BindingAnnotation;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Provider;
 import org.elasticsearch.common.inject.Singleton;
+import org.elasticsearch.common.lucene.BytesRefs;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.threadpool.ThreadPool;
 
+import javax.annotation.Nonnull;
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 
 @Singleton
 public class TableStatsService extends AbstractComponent implements Runnable {
 
-    private static final SQLRequest REQUEST = new SQLRequest(
-        "select cast(sum(num_docs) as long), schema_name, table_name from sys.shards group by 2, 3");
+    static final String UNNAMED = "";
+    static final int DEFAULT_SOFT_LIMIT = 10_000;
+    static final String STMT =
+        "select cast(sum(num_docs) as long), schema_name, table_name from sys.shards group by 2, 3";
+
     private final ClusterService clusterService;
-    private final Provider<TransportSQLAction> transportSQLAction;
+    private final Provider<SQLOperations> sqlOperationsProvider;
     private volatile ObjectLongMap<TableIdent> tableStats = null;
 
     @BindingAnnotation
     @Target({ElementType.FIELD, ElementType.PARAMETER, ElementType.METHOD})
     @Retention(RetentionPolicy.RUNTIME)
-    public @interface StatsUpdateInterval {}
+    public @interface StatsUpdateInterval {
+    }
+
 
     @Inject
     public TableStatsService(Settings settings,
                              ThreadPool threadPool,
                              ClusterService clusterService,
                              @StatsUpdateInterval TimeValue updateInterval,
-                             Provider<TransportSQLAction> transportSQLAction) {
+                             Provider<SQLOperations> sqlOperationsProvider) {
         super(settings);
         this.clusterService = clusterService;
-        this.transportSQLAction = transportSQLAction;
+        this.sqlOperationsProvider = sqlOperationsProvider;
         threadPool.scheduleWithFixedDelay(this, updateInterval);
     }
 
@@ -78,33 +89,58 @@ public class TableStatsService extends AbstractComponent implements Runnable {
 
     private void updateStats() {
         if (clusterService.localNode() == null) {
-            /**
-             * During a long startup (e.g. during an upgrade process) the localNode() may be null
-             * and this would lead to NullPointerException in the TransportExecutor.
+            /*
+              During a long startup (e.g. during an upgrade process) the localNode() may be null
+              and this would lead to NullPointerException in the TransportExecutor.
              */
             logger.debug("Could not retrieve table stats. localNode is not fully available yet.");
             return;
         }
-        transportSQLAction.get().execute(
-            REQUEST,
-            new ActionListener<SQLResponse>() {
 
-                @Override
-                public void onResponse(SQLResponse sqlResponse) {
-                    tableStats = statsFromResponse(sqlResponse);
-                }
-
-                @Override
-                public void onFailure(Throwable e) {
-                    logger.error("error retrieving table stats", e);
-                }
-            });
+        SQLOperations.Session session =
+            sqlOperationsProvider.get().createSession("sys", SQLOperations.Option.NONE, DEFAULT_SOFT_LIMIT);
+        try {
+            session.parse(UNNAMED, STMT, Collections.<DataType>emptyList());
+            session.bind(UNNAMED, UNNAMED, Collections.emptyList(), null);
+            session.execute(UNNAMED, 0, new TableStatsResultReceiver());
+            session.sync(CompletionListener.NO_OP);
+        } catch (Throwable t) {
+            logger.error("error retrieving table stats", t);
+        }
     }
 
-    private static ObjectLongMap<TableIdent> statsFromResponse(SQLResponse sqlResponse) {
-        ObjectLongMap<TableIdent> newStats = new ObjectLongHashMap<>((int) sqlResponse.rowCount());
-        for (Object[] row : sqlResponse.rows()) {
-            newStats.put(new TableIdent((String) row[1], (String) row[2]), (long) row[0]);
+    class TableStatsResultReceiver implements ResultReceiver {
+
+        private final List<Object[]> rows = new ArrayList<>();
+
+        @Override
+        public void addListener(CompletionListener listener) {
+        }
+
+        @Override
+        public void setNextRow(Row row) {
+            rows.add(row.materialize());
+        }
+
+        @Override
+        public void batchFinished() {
+        }
+
+        @Override
+        public void allFinished() {
+            tableStats = statsFromRows(rows);
+        }
+
+        @Override
+        public void fail(@Nonnull Throwable t) {
+            logger.error("error retrieving table stats", t);
+        }
+    }
+
+    ObjectLongMap<TableIdent> statsFromRows(List<Object[]> rows) {
+        ObjectLongMap<TableIdent> newStats = new ObjectLongHashMap<>(rows.size());
+        for (Object[] row : rows) {
+            newStats.put(new TableIdent(BytesRefs.toString(row[1]), BytesRefs.toString(row[2])), (long) row[0]);
         }
         return newStats;
     }
@@ -125,3 +161,4 @@ public class TableStatsService extends AbstractComponent implements Runnable {
         return -1;
     }
 }
+
