@@ -31,33 +31,37 @@ public class BooleanColumnReference extends FieldCacheExpression<IndexFieldData,
 
     private static final BytesRef TRUE_BYTESREF = new BytesRef("1");
     private SortedBinaryDocValues values;
+    private Boolean value;
 
     public BooleanColumnReference(String columnName) {
         super(columnName);
     }
 
     @Override
-    public void setNextReader(LeafReaderContext context) {
-        super.setNextReader(context);
-        values = indexFieldData.load(context).getBytesValues();
+    public Boolean value() {
+        return value;
     }
 
     @Override
     public void setNextDocId(int docId) {
         super.setNextDocId(docId);
         values.setDocument(docId);
-    }
-
-    @Override
-    public Boolean value() {
         switch (values.count()) {
             case 0:
-                return null;
+                value = null;
+                break;
             case 1:
-                return values.valueAt(0).compareTo(TRUE_BYTESREF) == 0;
+                value = values.valueAt(0).compareTo(TRUE_BYTESREF) == 0;
+                break;
             default:
                 throw new GroupByOnArrayUnsupportedException(columnName());
         }
+    }
+
+    @Override
+    public void setNextReader(LeafReaderContext context) {
+        super.setNextReader(context);
+        values = indexFieldData.load(context).getBytesValues();
     }
 
     @Override
