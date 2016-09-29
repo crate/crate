@@ -35,7 +35,7 @@ import io.crate.types.DataType;
 import java.util.List;
 import java.util.Map;
 
-public class TryCastScalarFunction extends AbstractCastFunction<Object, Object> {
+public class TryCastScalarFunction extends CastFunction {
 
     private TryCastScalarFunction(FunctionInfo functionInfo) {
         super(functionInfo);

@@ -30,30 +30,33 @@ import io.crate.analyze.symbol.format.FunctionFormatSpec;
 import io.crate.exceptions.ConversionException;
 import io.crate.metadata.*;
 import io.crate.operation.Input;
+import io.crate.operation.scalar.ScalarFunctionModule;
 import io.crate.types.DataType;
 
 import java.util.List;
+import java.util.Map;
 
 import static io.crate.analyze.symbol.format.SymbolPrinter.Strings.PAREN_CLOSE;
 import static io.crate.analyze.symbol.format.SymbolPrinter.Strings.PAREN_OPEN;
 
-public abstract class AbstractCastFunction<From, To> extends Scalar<To, From> implements FunctionFormatSpec {
+public class CastFunction extends Scalar<Object, Object> implements FunctionFormatSpec {
 
-    public static final String TRY_CAST_SQL_NAME = "try_cast";
-    public static final String CAST_SQL_NAME = "cast";
+    private static final String TRY_CAST_SQL_NAME = "try_cast";
+    private static final String CAST_SQL_NAME = "cast";
 
-    protected final DataType<To> returnType;
+    protected final DataType returnType;
     protected final FunctionInfo info;
 
-    protected AbstractCastFunction(FunctionInfo info) {
+    CastFunction(FunctionInfo info) {
         this.info = info;
         this.returnType = info.returnType();
     }
 
+    @SafeVarargs
     @Override
-    public To evaluate(Input<From>... args) {
+    public final Object evaluate(Input<Object>... args) {
         assert args.length == 1 : "Number of arguments must be 1";
-        From value = args[0].value();
+        Object value = args[0].value();
         try {
             return returnType.value(value);
         } catch (ClassCastException | IllegalArgumentException e) {
@@ -85,7 +88,7 @@ public abstract class AbstractCastFunction<From, To> extends Scalar<To, From> im
         throw new ConversionException(argument, returnType);
     }
 
-    protected To onEvaluateException(From argument) {
+    protected Object onEvaluateException(Object argument) {
         throw new ConversionException(argument, returnType);
     }
 
@@ -108,10 +111,10 @@ public abstract class AbstractCastFunction<From, To> extends Scalar<To, From> im
         return true;
     }
 
-    protected abstract static class Resolver implements DynamicFunctionResolver {
+    private static class Resolver implements DynamicFunctionResolver {
 
-        protected final String name;
-        protected final DataType targetType;
+        private final String name;
+        private final DataType targetType;
 
         protected Resolver(DataType targetType, String name) {
             this.name = name;
@@ -127,12 +130,22 @@ public abstract class AbstractCastFunction<From, To> extends Scalar<To, From> im
             }
         }
 
-        protected abstract FunctionImplementation<Function> createInstance(List<DataType> types);
-
         @Override
         public FunctionImplementation<Function> getForTypes(List<DataType> dataTypes) throws IllegalArgumentException {
             checkPreconditions(dataTypes);
-            return createInstance(dataTypes);
+            return new CastFunction(new FunctionInfo(new FunctionIdent(name, dataTypes), targetType));
+        }
+    }
+
+    public static void register(ScalarFunctionModule module) {
+        for (Map.Entry<DataType, String> function : CastFunctionResolver.ARRAY_FUNCTION_MAP.entrySet()) {
+            module.register(function.getValue(), new Resolver(function.getKey(), function.getValue()));
+        }
+        for (Map.Entry<DataType, String> function : CastFunctionResolver.PRIMITIVE_FUNCTION_MAP.entrySet()) {
+            module.register(function.getValue(), new Resolver(function.getKey(), function.getValue()));
+        }
+        for (Map.Entry<DataType, String> function : CastFunctionResolver.GEO_FUNCTION_MAP.entrySet()) {
+            module.register(function.getValue(), new Resolver(function.getKey(), function.getValue()));
         }
     }
 }
