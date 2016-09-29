@@ -41,6 +41,8 @@ import java.util.Map;
  * args must be a multiple of 2
  *
  * k: must be a string
+ *
+ * Note that keys will be returned as String while values of type String will be BytesRef
  */
 public class MapFunction extends Scalar<Object, Object> {
 

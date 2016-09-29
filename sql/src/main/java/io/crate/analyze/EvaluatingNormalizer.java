@@ -26,12 +26,13 @@ import io.crate.analyze.symbol.format.SymbolFormatter;
 import io.crate.metadata.*;
 import io.crate.operation.Input;
 import io.crate.operation.reference.ReferenceResolver;
+import io.crate.operation.scalar.arithmetic.MapFunction;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 
 import javax.annotation.Nullable;
+import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -114,25 +115,28 @@ public class EvaluatingNormalizer {
         public Symbol visitMatchPredicate(MatchPredicate matchPredicate, StmtCtx context) {
             if (fieldResolver != null) {
                 // Once the fields can be resolved, rewrite matchPredicate to function
-                Map<Field, Double> fieldBoostMap = matchPredicate.identBoostMap();
-                Map<String, Object> fqnBoostMap = new HashMap<>(fieldBoostMap.size());
+                Map<Field, Symbol> fieldBoostMap = matchPredicate.identBoostMap();
 
-                for (Map.Entry<Field, Double> entry : fieldBoostMap.entrySet()) {
+                List<Symbol> columnBoostMapArgs = new ArrayList<>(fieldBoostMap.size() * 2);
+                for (Map.Entry<Field, Symbol> entry : fieldBoostMap.entrySet()) {
                     Symbol resolved = process(entry.getKey(), null);
                     if (resolved instanceof Reference) {
-                        fqnBoostMap.put(((Reference) resolved).ident().columnIdent().fqn(), entry.getValue());
+                        columnBoostMapArgs.add(Literal.of(((Reference) resolved).ident().columnIdent().fqn()));
+                        columnBoostMapArgs.add(entry.getValue());
                     } else {
                         return matchPredicate;
                     }
                 }
 
-                return new Function(
+                Function function = new Function(
                     io.crate.operation.predicate.MatchPredicate.INFO,
-                    Arrays.<Symbol>asList(
-                        Literal.of(fqnBoostMap),
-                        Literal.of(matchPredicate.columnType(), matchPredicate.queryTerm()),
+                    Arrays.asList(
+                        new Function(MapFunction.createInfo(Symbols.extractTypes(columnBoostMapArgs)), columnBoostMapArgs),
+                        matchPredicate.queryTerm(),
                         Literal.of(matchPredicate.matchType()),
-                        Literal.of(matchPredicate.options())));
+                        matchPredicate.options()
+                    ));
+                return process(function, context);
             }
             return matchPredicate;
         }

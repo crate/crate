@@ -62,6 +62,7 @@ import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.collect.MapBuilder;
 import org.elasticsearch.common.inject.Module;
+import org.elasticsearch.common.lucene.BytesRefs;
 import org.elasticsearch.node.service.NodeService;
 import org.hamcrest.Matchers;
 import org.hamcrest.core.IsInstanceOf;
@@ -1222,8 +1223,10 @@ public class SelectStatementAnalyzerTest extends BaseAnalyzerTest {
         assertThat(query.arguments().get(2), isLiteral("best_fields", DataTypes.STRING));
 
         Literal<Map<String, Object>> options = (Literal<Map<String, Object>>) query.arguments().get(3);
-        assertThat(options.value().size(), is(1));
-        assertThat((String) options.value().get("analyzer"), is("german"));
+        Map<String, Object> map = options.value();
+        replaceBytesRefWithString(map);
+        assertThat(map.size(), is(1));
+        assertThat((String) map.get("analyzer"), is("german"));
     }
 
     @Test
@@ -1254,23 +1257,6 @@ public class SelectStatementAnalyzerTest extends BaseAnalyzerTest {
         expectedException.expect(ColumnUnknownException.class);
         expectedException.expectMessage("Column o['no_such_column'] unknown");
         analyze("select * from users where o['no_such_column'] is not null");
-    }
-
-
-    @Test
-    public void testWhereMatchUnknownOption() throws Exception {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("unknown match option 'oh'");
-        analyze("select * from users " +
-                "where match ((name 4.777, text), 'awesome') using cross_fields with (oh='srsly?')");
-    }
-
-    @Test
-    public void testWhereMatchInvalidOptionValue() throws Exception {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("invalid value for option 'zero_terms_query': 12.6");
-        analyze("select * from users " +
-                "where match ((name 4.777, text), 'awesome') using cross_fields with (zero_terms_query=12.6)");
     }
 
     private String getMatchType(Function matchFunction) {
@@ -1318,11 +1304,21 @@ public class SelectStatementAnalyzerTest extends BaseAnalyzerTest {
                                                    ")");
         Function match = (Function) analysis.relation().querySpec().where().query();
         Map<String, Object> options = ((Literal<Map<String, Object>>) match.arguments().get(3)).value();
+        replaceBytesRefWithString(options);
         assertThat(mapToSortedString(options),
             is("analyzer=german, boost=4.6, cutoff_frequency=5, " +
                "fuzziness=12, fuzzy_rewrite=top_terms_20, max_expansions=3, minimum_should_match=4, " +
                "operator=or, prefix_length=4, rewrite=constant_score_boolean, slop=3, tie_breaker=0.75, " +
                "zero_terms_query=all"));
+    }
+
+    private void replaceBytesRefWithString(Map<String, Object> options) {
+        for (Map.Entry<String, Object> entry : options.entrySet()) {
+            Object value = entry.getValue();
+            if (value instanceof BytesRef) {
+                entry.setValue(BytesRefs.toString(value));
+            }
+        }
     }
 
     @Test

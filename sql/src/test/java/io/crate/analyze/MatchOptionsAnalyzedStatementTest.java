@@ -21,42 +21,34 @@
 
 package io.crate.analyze;
 
-import io.crate.core.collections.Row1;
-import io.crate.sql.tree.*;
+import com.google.common.collect.ImmutableMap;
 import io.crate.test.integration.CrateUnitTest;
+import org.apache.lucene.util.BytesRef;
 import org.junit.Test;
 
+import java.util.HashMap;
 import java.util.Map;
-
-import static io.crate.testing.TestingHelpers.mapToSortedString;
-import static org.hamcrest.CoreMatchers.is;
 
 public class MatchOptionsAnalyzedStatementTest extends CrateUnitTest {
 
     @Test
-    public void testMatchOptions() throws Exception {
-        GenericProperties props = new GenericProperties();
-        props.add(new GenericProperty("analyzer", new StringLiteral("english")));
-        props.add(new GenericProperty("operator", new StringLiteral("and")));
-        props.add(new GenericProperty("fuzziness", new ParameterExpression(1)));
-        Map<String, Object> processed = MatchOptionsAnalysis.process(props, new Row1(12));
-        assertThat(
-            mapToSortedString(processed),
-            is("analyzer=english, fuzziness=12, operator=and"));
+    public void testValidOptions() throws Exception {
+        Map<String, Object> options = new HashMap<>();
+        options.put("analyzer", new BytesRef("english"));
+        options.put("operator", new BytesRef("and"));
+        options.put("fuzziness", 12);
+        // no exception raised
+        MatchOptionsAnalysis.validate(options);
     }
 
     @Test
     public void testUnknownMatchOptions() throws Exception {
-
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("unknown match option 'analyzer_wrong'");
 
-        GenericProperties props = new GenericProperties();
-        props.add(new GenericProperty("prefix_length", new LongLiteral("4")));
-        props.add(new GenericProperty("fuzziness", new ParameterExpression(1)));
-        props.add(new GenericProperty("analyzer_wrong", new StringLiteral("english")));
-
-        MatchOptionsAnalysis.process(props, new Row1(12));
+        Map<String, Object> options = new HashMap<>();
+        options.put("analyzer_wrong", new BytesRef("english"));
+        MatchOptionsAnalysis.validate(options);
     }
 
     @Test
@@ -64,12 +56,22 @@ public class MatchOptionsAnalyzedStatementTest extends CrateUnitTest {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("invalid value for option 'max_expansions': abc");
 
-        GenericProperties props = new GenericProperties();
-        props.add(new GenericProperty("fuzziness", new ParameterExpression(1)));
-        props.add(new GenericProperty("max_expansions", new StringLiteral("abc")));
-        props.add(new GenericProperty("analyzer", new StringLiteral("english")));
-
-        MatchOptionsAnalysis.process(props, new Row1(""));
+        Map<String, Object> options = new HashMap<>();
+        options.put("max_expansions", new BytesRef("abc"));
+        MatchOptionsAnalysis.validate(options);
     }
 
+    @Test
+    public void testZeroTermsQueryMustBeAString() throws Exception {
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("invalid value for option 'zero_terms_query': 12.6");
+        MatchOptionsAnalysis.validate(ImmutableMap.<String, Object>of("zero_terms_query", 12.6));
+    }
+
+    @Test
+    public void testUnknownOption() throws Exception {
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("unknown match option 'oh'");
+        MatchOptionsAnalysis.validate(ImmutableMap.<String, Object>of("oh", 1));
+    }
 }

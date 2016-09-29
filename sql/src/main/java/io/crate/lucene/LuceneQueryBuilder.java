@@ -33,6 +33,7 @@ import com.vividsolutions.jts.geom.Coordinate;
 import com.vividsolutions.jts.geom.CoordinateArrays;
 import com.vividsolutions.jts.geom.Geometry;
 import io.crate.Constants;
+import io.crate.analyze.MatchOptionsAnalysis;
 import io.crate.analyze.WhereClause;
 import io.crate.analyze.symbol.*;
 import io.crate.analyze.symbol.format.SymbolFormatter;
@@ -788,8 +789,10 @@ public class LuceneQueryBuilder {
                 Map<String, Object> fields = (Map) ((Literal) arguments.get(0)).value();
                 BytesRef queryString = (BytesRef) ((Literal) queryTerm).value();
                 BytesRef matchType = (BytesRef) ((Literal) arguments.get(2)).value();
-                Map options = (Map) ((Literal) arguments.get(3)).value();
+                //noinspection unchecked
+                Map<String, Object> options = (Map<String, Object>) ((Literal) arguments.get(3)).value();
 
+                MatchOptionsAnalysis.validate(options);
                 checkArgument(queryString != null, "cannot use NULL as query term in match predicate");
 
                 MatchQueryBuilder queryBuilder;
