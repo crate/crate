@@ -29,6 +29,7 @@ import org.elasticsearch.index.fielddata.SortedNumericDoubleValues;
 public class DoubleColumnReference extends FieldCacheExpression<IndexNumericFieldData, Double> {
 
     private SortedNumericDoubleValues values;
+    private Double value;
 
     public DoubleColumnReference(String columnName) {
         super(columnName);
@@ -36,11 +37,20 @@ public class DoubleColumnReference extends FieldCacheExpression<IndexNumericFiel
 
     @Override
     public Double value() {
+        return value;
+    }
+
+    @Override
+    public void setNextDocId(int docId) {
+        super.setNextDocId(docId);
+        values.setDocument(docId);
         switch (values.count()) {
             case 0:
-                return null;
+                value = null;
+                break;
             case 1:
-                return values.valueAt(0);
+                value = values.valueAt(0);
+                break;
             default:
                 throw new GroupByOnArrayUnsupportedException(columnName());
         }
@@ -50,12 +60,6 @@ public class DoubleColumnReference extends FieldCacheExpression<IndexNumericFiel
     public void setNextReader(LeafReaderContext context) {
         super.setNextReader(context);
         values = indexFieldData.load(context).getDoubleValues();
-    }
-
-    @Override
-    public void setNextDocId(int docId) {
-        super.setNextDocId(docId);
-        values.setDocument(docId);
     }
 
     @Override

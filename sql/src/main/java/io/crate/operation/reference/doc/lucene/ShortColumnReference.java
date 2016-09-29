@@ -29,6 +29,7 @@ import org.elasticsearch.index.fielddata.IndexNumericFieldData;
 public class ShortColumnReference extends FieldCacheExpression<IndexNumericFieldData, Short> {
 
     private SortedNumericDocValues values;
+    private Short value;
 
     public ShortColumnReference(String columnName) {
         super(columnName);
@@ -36,11 +37,20 @@ public class ShortColumnReference extends FieldCacheExpression<IndexNumericField
 
     @Override
     public Short value() {
+        return value;
+    }
+
+    @Override
+    public void setNextDocId(int docId) {
+        super.setNextDocId(docId);
+        values.setDocument(docId);
         switch (values.count()) {
             case 0:
-                return null;
+                value = null;
+                break;
             case 1:
-                return (short) values.valueAt(0);
+                value = (short) values.valueAt(0);
+                break;
             default:
                 throw new GroupByOnArrayUnsupportedException(columnName());
         }
@@ -50,12 +60,6 @@ public class ShortColumnReference extends FieldCacheExpression<IndexNumericField
     public void setNextReader(LeafReaderContext context) {
         super.setNextReader(context);
         values = indexFieldData.load(context).getLongValues();
-    }
-
-    @Override
-    public void setNextDocId(int docId) {
-        super.setNextDocId(docId);
-        values.setDocument(docId);
     }
 
     @Override

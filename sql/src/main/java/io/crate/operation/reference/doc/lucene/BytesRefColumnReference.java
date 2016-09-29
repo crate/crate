@@ -31,19 +31,28 @@ import org.elasticsearch.index.fielddata.IndexOrdinalsFieldData;
 public class BytesRefColumnReference extends FieldCacheExpression<IndexOrdinalsFieldData, BytesRef> {
 
     private RandomAccessOrds values;
+    private BytesRef value;
 
     public BytesRefColumnReference(String columnName) {
         super(columnName);
     }
 
-
     @Override
     public BytesRef value() throws ValidationException {
+        return value;
+    }
+
+    @Override
+    public void setNextDocId(int docId) {
+        super.setNextDocId(docId);
+        values.setDocument(docId);
         switch (values.cardinality()) {
             case 0:
-                return null;
+                value = null;
+                break;
             case 1:
-                return BytesRef.deepCopyOf(values.lookupOrd(values.ordAt(0)));
+                value = BytesRef.deepCopyOf(values.lookupOrd(values.ordAt(0)));
+                break;
             default:
                 throw new GroupByOnArrayUnsupportedException(columnName());
         }
@@ -53,12 +62,6 @@ public class BytesRefColumnReference extends FieldCacheExpression<IndexOrdinalsF
     public void setNextReader(LeafReaderContext context) {
         super.setNextReader(context);
         values = indexFieldData.load(context).getOrdinalsValues();
-    }
-
-    @Override
-    public void setNextDocId(int docId) {
-        super.setNextDocId(docId);
-        values.setDocument(docId);
     }
 
     @Override
@@ -76,6 +79,5 @@ public class BytesRefColumnReference extends FieldCacheExpression<IndexOrdinalsF
     public int hashCode() {
         return columnName.hashCode();
     }
-
 }
 
