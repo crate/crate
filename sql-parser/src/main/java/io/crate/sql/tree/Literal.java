@@ -39,7 +39,7 @@ public abstract class Literal
     public static Literal fromObject(Object value) {
         Literal literal = null;
         if (value == null) {
-            literal = new NullLiteral();
+            literal = NullLiteral.INSTANCE;
         } else if (value instanceof String) {
             literal = new StringLiteral((String) value);
         } else if (value instanceof Number) {
