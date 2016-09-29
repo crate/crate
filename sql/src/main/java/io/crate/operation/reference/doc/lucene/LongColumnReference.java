@@ -29,6 +29,7 @@ import org.elasticsearch.index.fielddata.IndexNumericFieldData;
 public class LongColumnReference extends FieldCacheExpression<IndexNumericFieldData, Long> {
 
     private SortedNumericDocValues values;
+    private Long value;
 
     public LongColumnReference(String columnName) {
         super(columnName);
@@ -36,11 +37,20 @@ public class LongColumnReference extends FieldCacheExpression<IndexNumericFieldD
 
     @Override
     public Long value() {
+        return value;
+    }
+
+    @Override
+    public void setNextDocId(int docId) {
+        super.setNextDocId(docId);
+        values.setDocument(docId);
         switch (values.count()) {
             case 0:
-                return null;
+                value = null;
+                break;
             case 1:
-                return values.valueAt(0);
+                value = values.valueAt(0);
+                break;
             default:
                 throw new GroupByOnArrayUnsupportedException(columnName());
         }
@@ -50,12 +60,6 @@ public class LongColumnReference extends FieldCacheExpression<IndexNumericFieldD
     public void setNextReader(LeafReaderContext context) {
         super.setNextReader(context);
         values = indexFieldData.load(context).getLongValues();
-    }
-
-    @Override
-    public void setNextDocId(int docId) {
-        super.setNextDocId(docId);
-        values.setDocument(docId);
     }
 
     @Override

@@ -29,6 +29,7 @@ import org.elasticsearch.index.fielddata.IndexNumericFieldData;
 public class IntegerColumnReference extends FieldCacheExpression<IndexNumericFieldData, Integer> {
 
     private SortedNumericDocValues values;
+    private Integer value;
 
     public IntegerColumnReference(String columnName) {
         super(columnName);
@@ -36,20 +37,23 @@ public class IntegerColumnReference extends FieldCacheExpression<IndexNumericFie
 
     @Override
     public Integer value() {
-        switch (values.count()) {
-            case 0:
-                return null;
-            case 1:
-                return (int) values.valueAt(0);
-            default:
-                throw new GroupByOnArrayUnsupportedException(columnName());
-        }
+        return value;
     }
 
     @Override
     public void setNextDocId(int docId) {
         super.setNextDocId(docId);
         values.setDocument(docId);
+        switch (values.count()) {
+            case 0:
+                value = null;
+                break;
+            case 1:
+                value = (int) values.valueAt(0);
+                break;
+            default:
+                throw new GroupByOnArrayUnsupportedException(columnName());
+        }
     }
 
     @Override

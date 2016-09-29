@@ -30,6 +30,7 @@ import org.elasticsearch.index.fielddata.MultiGeoPointValues;
 public class GeoPointColumnReference extends FieldCacheExpression<IndexGeoPointFieldData, Double[]> {
 
     private MultiGeoPointValues values;
+    private Double[] value;
 
     public GeoPointColumnReference(String columnName) {
         super(columnName);
@@ -37,12 +38,21 @@ public class GeoPointColumnReference extends FieldCacheExpression<IndexGeoPointF
 
     @Override
     public Double[] value() {
+        return value;
+    }
+
+    @Override
+    public void setNextDocId(int docId) {
+        super.setNextDocId(docId);
+        values.setDocument(docId);
         switch (values.count()) {
             case 0:
-                return null;
+                value = null;
+                break;
             case 1:
                 GeoPoint gp = values.valueAt(0);
-                return new Double[]{gp.lon(), gp.lat()};
+                value = new Double[]{gp.lon(), gp.lat()};
+                break;
             default:
                 throw new GroupByOnArrayUnsupportedException(columnName());
         }
@@ -52,12 +62,6 @@ public class GeoPointColumnReference extends FieldCacheExpression<IndexGeoPointF
     public void setNextReader(LeafReaderContext context) {
         super.setNextReader(context);
         values = indexFieldData.load(context).getGeoPointValues();
-    }
-
-    @Override
-    public void setNextDocId(int docId) {
-        super.setNextDocId(docId);
-        values.setDocument(docId);
     }
 
     @Override
