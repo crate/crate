@@ -5,6 +5,10 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fix: ``ANY`` operator fails in the ``WHERE`` clause if a subscript is
+   used as an expression.
+   E.g. 'value' = any(obj_array[1]['a']['b'])
+
  - Fix: ``WHERE`` clauses with a ``NOT`` operator where the column
    reference resolves to ``NULL`` now return the correct results:
    ``NOT NULL`` -> ``NULL`` -> no match

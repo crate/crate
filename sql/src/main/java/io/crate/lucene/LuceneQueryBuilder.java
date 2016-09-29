@@ -279,8 +279,12 @@ public class LuceneQueryBuilder {
                         "invalid argument for ANY expression");
                 if (left.symbolType().isValueSymbol()) {
                     // 1 = any (array_col) - simple eq
-                    assert collectionSymbol instanceof Reference: "no reference found in ANY expression";
-                    return applyArrayReference((Reference)collectionSymbol, (Literal)left, context);
+                    if (collectionSymbol instanceof Reference) {
+                        return applyArrayReference((Reference) collectionSymbol, (Literal) left, context);
+                    } else {
+                        // no reference found (maybe subscript) in ANY expression -> fallback to slow generic function filter
+                        return null;
+                    }
                 } else if (left instanceof Reference && collectionSymbol.symbolType().isValueSymbol()) {
                     return applyArrayLiteral((Reference)left, (Literal)collectionSymbol, context);
                 } else {
