@@ -24,7 +24,8 @@ package io.crate.analyze.expressions;
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.*;
-import io.crate.action.sql.SQLOperations;
+import io.crate.action.sql.Option;
+import io.crate.action.sql.SessionContext;
 import io.crate.analyze.*;
 import io.crate.analyze.relations.FieldProvider;
 import io.crate.analyze.relations.FieldResolver;
@@ -84,9 +85,10 @@ public class ExpressionAnalyzer {
     private final static NegativeLiteralVisitor NEGATIVE_LITERAL_VISITOR = new NegativeLiteralVisitor();
     private final static SubscriptVisitor SUBSCRIPT_VISITOR = new SubscriptVisitor();
     private final EvaluatingNormalizer normalizer;
+    private final SessionContext sessionContext;
+    private final ParameterContext parameterContext;
     private final FieldProvider<?> fieldProvider;
     private final Functions functions;
-    private final ParameterContext parameterContext;
     private final InnerExpressionAnalyzer innerAnalyzer;
     private Operation operation = Operation.READ;
 
@@ -94,10 +96,12 @@ public class ExpressionAnalyzer {
 
     public ExpressionAnalyzer(Functions functions,
                               ReferenceResolver<? extends io.crate.operation.Input<?>> referenceResolver,
+                              SessionContext sessionContext,
                               ParameterContext parameterContext,
                               FieldProvider<?> fieldProvider,
                               @Nullable FieldResolver fieldResolver) {
         this.functions = functions;
+        this.sessionContext = sessionContext;
         this.parameterContext = parameterContext;
         this.fieldProvider = fieldProvider;
         this.innerAnalyzer = new InnerExpressionAnalyzer();
@@ -106,11 +110,12 @@ public class ExpressionAnalyzer {
     }
 
     public ExpressionAnalyzer(AnalysisMetaData analysisMetaData,
+                              SessionContext sessionContext,
                               ParameterContext parameterContext,
                               FieldProvider fieldProvider,
                               @Nullable FieldResolver fieldResolver) {
         this(analysisMetaData.functions(), analysisMetaData.referenceResolver(),
-            parameterContext, fieldProvider, fieldResolver);
+            sessionContext, parameterContext, fieldProvider, fieldResolver);
     }
 
     /**
@@ -532,7 +537,7 @@ public class ExpressionAnalyzer {
             try {
                 return fieldProvider.resolveField(node.getName(), null, operation);
             } catch (ColumnUnknownException exception) {
-                if (parameterContext.options().contains(SQLOperations.Option.ALLOW_QUOTED_SUBSCRIPT)) {
+                if (sessionContext.options().contains(Option.ALLOW_QUOTED_SUBSCRIPT)) {
                     String quotedSubscriptLiteral = getQuotedSubscriptLiteral(node.getName().toString());
                     if (quotedSubscriptLiteral != null) {
                         return process(SqlParser.createExpression(quotedSubscriptLiteral), context);

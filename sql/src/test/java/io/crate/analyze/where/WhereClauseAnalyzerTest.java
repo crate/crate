@@ -23,6 +23,7 @@ package io.crate.analyze.where;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import io.crate.action.sql.SessionContext;
 import io.crate.analyze.*;
 import io.crate.analyze.relations.DocTableRelation;
 import io.crate.analyze.repositories.RepositorySettingsModule;
@@ -227,7 +228,8 @@ public class WhereClauseAnalyzerTest extends CrateUnitTest {
 
     private DeleteAnalyzedStatement analyzeDelete(String stmt, Object[][] bulkArgs) {
         return (DeleteAnalyzedStatement) analyzer.analyze(SqlParser.createStatement(stmt),
-            new ParameterContext(Row.EMPTY, Rows.of(bulkArgs), Schemas.DEFAULT_SCHEMA_NAME)).analyzedStatement();
+            SessionContext.SYSTEM_SESSION,
+            new ParameterContext(Row.EMPTY, Rows.of(bulkArgs))).analyzedStatement();
     }
 
     private DeleteAnalyzedStatement analyzeDelete(String stmt) {
@@ -236,12 +238,14 @@ public class WhereClauseAnalyzerTest extends CrateUnitTest {
 
     private UpdateAnalyzedStatement analyzeUpdate(String stmt) {
         return (UpdateAnalyzedStatement) analyzer.analyze(SqlParser.createStatement(stmt),
-            new ParameterContext(Row.EMPTY, Collections.<Row>emptyList(), Schemas.DEFAULT_SCHEMA_NAME)).analyzedStatement();
+            SessionContext.SYSTEM_SESSION,
+            new ParameterContext(Row.EMPTY, Collections.<Row>emptyList())).analyzedStatement();
     }
 
     private WhereClause analyzeSelect(String stmt, Object... args) {
         SelectAnalyzedStatement statement = (SelectAnalyzedStatement) analyzer.analyze(SqlParser.createStatement(stmt),
-            new ParameterContext(new RowN(args), Collections.<Row>emptyList(), Schemas.DEFAULT_SCHEMA_NAME)).analyzedStatement();
+            SessionContext.SYSTEM_SESSION,
+            new ParameterContext(new RowN(args), Collections.<Row>emptyList())).analyzedStatement();
         return statement.relation().querySpec().where();
     }
 

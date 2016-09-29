@@ -22,6 +22,7 @@
 
 package io.crate.testing;
 
+import io.crate.action.sql.SessionContext;
 import io.crate.analyze.AnalysisMetaData;
 import io.crate.analyze.ParameterContext;
 import io.crate.analyze.expressions.ExpressionAnalysisContext;
@@ -89,8 +90,9 @@ public class SqlExpressions {
         analysisMetaData = new AnalysisMetaData(injector.getInstance(Functions.class), schemas, referenceResolver);
         expressionAnalyzer = new ExpressionAnalyzer(
             analysisMetaData,
+            SessionContext.SYSTEM_SESSION,
             new ParameterContext(parameters == null
-                ? new RowNull(0): new RowN(parameters), Collections.<Row>emptyList(), null),
+                ? new RowNull(0): new RowN(parameters), Collections.<Row>emptyList()),
             new FullQualifedNameFieldProvider(sources),
             fieldResolver);
         expressionAnalysisCtx = new ExpressionAnalysisContext(new StmtCtx());

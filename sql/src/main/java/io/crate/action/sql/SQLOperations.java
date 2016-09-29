@@ -66,12 +66,6 @@ public class SQLOperations {
     private final boolean isReadOnly;
     private volatile boolean disabled;
 
-    public enum Option {
-        ALLOW_QUOTED_SUBSCRIPT;
-
-        public static final EnumSet<Option> NONE = EnumSet.noneOf(Option.class);
-    }
-
     @Inject
     public SQLOperations(Analyzer analyzer,
                          Planner planner,
@@ -92,12 +86,7 @@ public class SQLOperations {
             throw new NodeDisconnectedException(clusterService.localNode(), "sql");
         }
 
-        return new Session(
-            executorProvider.get(),
-            defaultSchema,
-            defaultLimit,
-            options
-        );
+        return new Session(executorProvider.get(), new SessionContext(defaultLimit, options, defaultSchema));
     }
 
     /**
@@ -147,29 +136,21 @@ public class SQLOperations {
 
         private static final String UNNAMED = "";
         private final Executor executor;
-        private final String defaultSchema;
-        private final int defaultLimit;
-        private final Set<Option> options;
+        private final SessionContext sessionContext;
 
         private final Map<String, PreparedStmt> preparedStatements = new HashMap<>();
         private final Map<String, Portal> portals = new HashMap<>();
         private final Set<Portal> pendingExecutions = Collections.newSetFromMap(new IdentityHashMap<Portal, Boolean>());
 
-        private Session(Executor executor,
-                        String defaultSchema,
-                        int defaultLimit,
-                        Set<Option> options) {
+        private Session(Executor executor, SessionContext sessionContext) {
             this.executor = executor;
-            this.defaultSchema = defaultSchema;
-            this.defaultLimit = defaultLimit;
-            this.options = options;
+            this.sessionContext = sessionContext;
         }
 
         private Portal getOrCreatePortal(String portalName) {
             Portal portal = portals.get(portalName);
             if (portal == null) {
-                portal = new SimplePortal(
-                    portalName, defaultSchema, options, analyzer, executor, isReadOnly, defaultLimit);
+                portal = new SimplePortal(portalName, analyzer, executor, isReadOnly, sessionContext);
                 portals.put(portalName, portal);
             }
             return portal;

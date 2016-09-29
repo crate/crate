@@ -66,6 +66,7 @@ public class ShowStatementAnalyzer {
          */
         Analysis newAnalysis = analyzer.analyze(
             SqlParser.createStatement("select 'read uncommitted' as transaction_isolation from sys.cluster"),
+            analysis.sessionContext(),
             ParameterContext.EMPTY);
         analysis.rootRelation(newAnalysis.rootRelation());
         return newAnalysis.analyzedStatement();
@@ -96,7 +97,8 @@ public class ShowStatementAnalyzer {
         sb.append("ORDER BY schema_name");
 
         Analysis newAnalysis = analyzer.analyze(SqlParser.createStatement(sb.toString()),
-            new ParameterContext(new RowN(params.toArray(new Object[0])), Collections.<Row>emptyList(), null));
+            analysis.sessionContext(),
+            new ParameterContext(new RowN(params.toArray(new Object[0])), Collections.<Row>emptyList()));
         analysis.rootRelation(newAnalysis.rootRelation());
         return newAnalysis.analyzedStatement();
     }
@@ -138,7 +140,8 @@ public class ShowStatementAnalyzer {
         sb.append("ORDER BY column_name");
 
         Analysis newAnalysis = analyzer.analyze(SqlParser.createStatement(sb.toString()),
-            new ParameterContext(new RowN(params.toArray()), Collections.<Row>emptyList(), null));
+            analysis.sessionContext(),
+            new ParameterContext(new RowN(params.toArray()), Collections.<Row>emptyList()));
         analysis.rootRelation(newAnalysis.rootRelation());
         return newAnalysis.analyzedStatement();
     }
@@ -185,7 +188,8 @@ public class ShowStatementAnalyzer {
         sb.append(" ORDER BY 1");
 
         Analysis newAnalysis = analyzer.analyze(SqlParser.createStatement(sb.toString()),
-            new ParameterContext(new RowN(params.toArray()), Collections.<Row>emptyList(), null));
+            analysis.sessionContext(),
+            new ParameterContext(new RowN(params.toArray()), Collections.<Row>emptyList()));
         analysis.rootRelation(newAnalysis.rootRelation());
         return newAnalysis.analyzedStatement();
     }

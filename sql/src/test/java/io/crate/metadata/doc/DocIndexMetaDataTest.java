@@ -5,6 +5,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 import io.crate.Constants;
+import io.crate.action.sql.SessionContext;
 import io.crate.analyze.*;
 import io.crate.metadata.*;
 import io.crate.metadata.table.ColumnPolicy;
@@ -940,7 +941,7 @@ public class DocIndexMetaDataTest extends CrateUnitTest {
             new NumberOfShards(clusterService)
         );
 
-        Analysis analysis = new Analysis(ParameterContext.EMPTY);
+        Analysis analysis = new Analysis(SessionContext.SYSTEM_SESSION, ParameterContext.EMPTY);
         CreateTableAnalyzedStatement analyzedStatement = analyzer.analyze(statement, analysis);
 
         Settings.Builder settingsBuilder = Settings.builder()

@@ -46,7 +46,8 @@ public class RefreshTableAnalyzer extends DefaultTraversalVisitor<RefreshTableAn
 
     @Override
     public RefreshTableAnalyzedStatement visitRefreshStatement(RefreshStatement node, Analysis analysis) {
-        Set<String> indexNames = TableAnalyzer.getIndexNames(node.tables(), schemas, analysis.parameterContext());
+        Set<String> indexNames = TableAnalyzer.getIndexNames(
+            node.tables(), schemas, analysis.parameterContext(), analysis.sessionContext().defaultSchema());
         return new RefreshTableAnalyzedStatement(indexNames);
     }
 }

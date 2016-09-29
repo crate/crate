@@ -23,6 +23,7 @@
 package io.crate.protocols.postgres;
 
 import com.google.common.annotations.VisibleForTesting;
+import io.crate.action.sql.Option;
 import io.crate.action.sql.ResultReceiver;
 import io.crate.action.sql.SQLOperations;
 import io.crate.analyze.symbol.Field;
@@ -202,7 +203,7 @@ class ConnectionContext {
                 defaultSchema = value;
             }
         }
-        return sqlOperations.createSession(defaultSchema, SQLOperations.Option.NONE, 0);
+        return sqlOperations.createSession(defaultSchema, Option.NONE, 0);
     }
 
     private static class ReadyForQueryListener implements CompletionListener {

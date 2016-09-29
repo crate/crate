@@ -25,6 +25,7 @@ package io.crate.protocols.postgres;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import io.crate.action.sql.ResultReceiver;
+import io.crate.action.sql.SessionContext;
 import io.crate.analyze.Analysis;
 import io.crate.analyze.ParameterContext;
 import io.crate.analyze.symbol.Field;
@@ -62,8 +63,9 @@ class BulkPortal extends AbstractPortal {
                ResultReceiver resultReceiver,
                int maxRows,
                List<Object> params,
-               SessionData sessionData) {
-        super(name, sessionData);
+               SessionContext sessionContext,
+               PortalContext portalContext) {
+        super(name, sessionContext, portalContext);
         this.query = query;
         this.statement = statement;
         this.outputTypes = outputTypes;
@@ -114,12 +116,9 @@ class BulkPortal extends AbstractPortal {
     @Override
     public void sync(Planner planner, StatsTables statsTables, CompletionListener listener) {
         List<Row> bulkParams = Rows.of(bulkArgs);
-        Analysis analysis = sessionData.getAnalyzer().analyze(statement,
-            new ParameterContext(
-                Row.EMPTY,
-                bulkParams,
-                sessionData.getDefaultSchema(),
-                sessionData.options()));
+        Analysis analysis = portalContext.getAnalyzer().analyze(statement,
+            sessionContext,
+            new ParameterContext(Row.EMPTY, bulkParams));
         UUID jobId = UUID.randomUUID();
         Plan plan;
         try {
@@ -129,7 +128,7 @@ class BulkPortal extends AbstractPortal {
             throw t;
         }
         statsTables.logExecutionStart(jobId, query);
-        executeBulk(sessionData.getExecutor(), plan, jobId, statsTables, listener);
+        executeBulk(portalContext.getExecutor(), plan, jobId, statsTables, listener);
     }
 
     private void executeBulk(Executor executor, Plan plan, final UUID jobId,

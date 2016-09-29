@@ -25,6 +25,7 @@ package io.crate.planner;
 
 import com.carrotsearch.hppc.ObjectLongHashMap;
 import com.carrotsearch.hppc.ObjectLongMap;
+import io.crate.action.sql.Option;
 import io.crate.action.sql.ResultReceiver;
 import io.crate.action.sql.SQLOperations;
 import io.crate.concurrent.CompletionListener;
@@ -98,7 +99,7 @@ public class TableStatsService extends AbstractComponent implements Runnable {
         }
 
         SQLOperations.Session session =
-            sqlOperationsProvider.get().createSession("sys", SQLOperations.Option.NONE, DEFAULT_SOFT_LIMIT);
+            sqlOperationsProvider.get().createSession("sys", Option.NONE, DEFAULT_SOFT_LIMIT);
         try {
             session.parse(UNNAMED, STMT, Collections.<DataType>emptyList());
             session.bind(UNNAMED, UNNAMED, Collections.emptyList(), null);

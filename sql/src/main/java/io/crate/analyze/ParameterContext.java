@@ -21,56 +21,32 @@
 
 package io.crate.analyze;
 
-import io.crate.action.sql.SQLOperations;
 import io.crate.analyze.symbol.Literal;
 import io.crate.core.collections.Row;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 
-import javax.annotation.Nullable;
 import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
-import java.util.Set;
 
 
 public class ParameterContext {
 
-    public static final ParameterContext EMPTY = new ParameterContext(
-        Row.EMPTY, Collections.<Row>emptyList(), null, SQLOperations.Option.NONE);
+    public static final ParameterContext EMPTY = new ParameterContext(Row.EMPTY, Collections.<Row>emptyList());
 
-    @Nullable
-    private final String defaultSchema;
-
-    private final Set<SQLOperations.Option> options;
     private final Row parameters;
     private final List<Row> bulkParameters;
 
     private int currentIdx = 0;
 
 
-    public ParameterContext(Row parameters, List<Row> bulkParameters,
-                            @Nullable String defaultSchema, Set<SQLOperations.Option> options) {
+    public ParameterContext(Row parameters, List<Row> bulkParameters) {
         this.parameters = parameters;
-        this.defaultSchema = defaultSchema;
-        this.options = options;
         if (bulkParameters.size() > 0) {
             validateBulkParams(bulkParameters);
         }
         this.bulkParameters = bulkParameters;
-    }
-
-    public ParameterContext(Row parameters, List<Row> bulkParameters, @Nullable String defaultSchema) {
-        this(parameters, bulkParameters, defaultSchema, SQLOperations.Option.NONE);
-    }
-
-    public Set<SQLOperations.Option> options() {
-        return options;
-    }
-
-    @Nullable
-    public String defaultSchema() {
-        return defaultSchema;
     }
 
     private void validateBulkParams(List<Row> bulkParams) {

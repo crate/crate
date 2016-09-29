@@ -69,12 +69,12 @@ public class TransportSQLAction extends TransportAction<SQLRequest, SQLResponse>
         transportService.registerRequestHandler(SQLAction.NAME, SQLRequest.class, ThreadPool.Names.SAME, new TransportHandler());
     }
 
-    static Set<SQLOperations.Option> toOptions(int requestFlags) {
+    static Set<Option> toOptions(int requestFlags) {
         switch (requestFlags) {
             case SQLBaseRequest.HEADER_FLAG_OFF:
-                return SQLOperations.Option.NONE;
+                return Option.NONE;
             case SQLBaseRequest.HEADER_FLAG_ALLOW_QUOTED_SUBSCRIPT:
-                return EnumSet.of(SQLOperations.Option.ALLOW_QUOTED_SUBSCRIPT);
+                return EnumSet.of(Option.ALLOW_QUOTED_SUBSCRIPT);
         }
         throw new IllegalArgumentException("Unrecognized requestFlags: " + requestFlags);
     }

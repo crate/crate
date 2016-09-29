@@ -26,6 +26,7 @@ import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import io.crate.action.sql.SessionContext;
 import io.crate.analyze.copy.NodeFilters;
 import io.crate.analyze.expressions.ExpressionAnalysisContext;
 import io.crate.analyze.expressions.ExpressionAnalyzer;
@@ -84,7 +85,7 @@ public class CopyStatementAnalyzer {
 
     public CopyFromAnalyzedStatement convertCopyFrom(CopyFrom node, Analysis analysis) {
         DocTableInfo tableInfo = analysisMetaData.schemas().getWritableTable(
-            TableIdent.of(node.table(), analysis.parameterContext().defaultSchema()));
+            TableIdent.of(node.table(), analysis.sessionContext().defaultSchema()));
         DocTableRelation tableRelation = new DocTableRelation(tableInfo);
         Operation.blockedRaiseException(tableInfo, Operation.INSERT);
 
@@ -97,7 +98,12 @@ public class CopyStatementAnalyzer {
         }
 
         Context context = new Context(
-            analysisMetaData, analysis.parameterContext(), analysis.statementContext(), tableRelation, Operation.INSERT);
+            analysisMetaData,
+            analysis.sessionContext(),
+            analysis.parameterContext(),
+            analysis.statementContext(),
+            tableRelation,
+            Operation.INSERT);
         Predicate<DiscoveryNode> nodeFilters = Predicates.alwaysTrue();
         Settings settings = Settings.EMPTY;
         if (node.genericProperties().isPresent()) {
@@ -138,7 +144,7 @@ public class CopyStatementAnalyzer {
         }
 
         TableInfo tableInfo = analysisMetaData.schemas().getTableInfo(
-            TableIdent.of(node.table(), analysis.parameterContext().defaultSchema()));
+            TableIdent.of(node.table(), analysis.sessionContext().defaultSchema()));
         if (!(tableInfo instanceof DocTableInfo)) {
             throw new UnsupportedOperationException(String.format(Locale.ENGLISH,
                 "Cannot COPY %s TO. COPY TO only supports user tables", tableInfo.ident()));
@@ -147,7 +153,12 @@ public class CopyStatementAnalyzer {
         DocTableRelation tableRelation = new DocTableRelation((DocTableInfo) tableInfo);
 
         Context context = new Context(
-            analysisMetaData, analysis.parameterContext(), analysis.statementContext(), tableRelation, Operation.READ);
+            analysisMetaData,
+            analysis.sessionContext(),
+            analysis.parameterContext(),
+            analysis.statementContext(),
+            tableRelation,
+            Operation.READ);
         Settings settings = GenericPropertiesConverter.settingsFromProperties(
             node.genericProperties(), analysis.parameterContext(), SETTINGS_APPLIERS).build();
 
@@ -302,6 +313,7 @@ public class CopyStatementAnalyzer {
         private final StmtCtx stmtCtx;
 
         public Context(AnalysisMetaData analysisMetaData,
+                       SessionContext sessionContext,
                        ParameterContext parameterContext,
                        StmtCtx stmtCtx,
                        DocTableRelation tableRelation,
@@ -310,6 +322,7 @@ public class CopyStatementAnalyzer {
             this.stmtCtx = stmtCtx;
             expressionAnalyzer = new ExpressionAnalyzer(
                 analysisMetaData,
+                sessionContext,
                 parameterContext,
                 new NameFieldProvider(tableRelation),
                 tableRelation);

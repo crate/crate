@@ -82,7 +82,7 @@ public class RestoreSnapshotStatementAnalyzer extends AbstractRepositoryDDLAnaly
             List<Table> tableList = node.tableList().get();
             Set<String> restoreIndices = new HashSet<>(tableList.size());
             for (Table table : tableList) {
-                TableIdent tableIdent = TableIdent.of(table, analysis.parameterContext().defaultSchema());
+                TableIdent tableIdent = TableIdent.of(table, analysis.sessionContext().defaultSchema());
                 boolean tableExists = schemas.tableExists(tableIdent);
 
                 if (tableExists) {

@@ -21,6 +21,7 @@
 
 package io.crate.analyze;
 
+import io.crate.action.sql.SessionContext;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.metadata.StmtCtx;
 
@@ -28,10 +29,13 @@ public class Analysis {
 
     private final ParameterContext parameterContext;
     private final StmtCtx stmtCtx;
+
+    private final SessionContext sessionContext;
     private AnalyzedStatement analyzedStatement;
     private AnalyzedRelation rootRelation;
 
-    public Analysis(ParameterContext parameterContext) {
+    public Analysis(SessionContext sessionContext, ParameterContext parameterContext) {
+        this.sessionContext = sessionContext;
         this.stmtCtx = new StmtCtx();
         this.parameterContext = parameterContext;
     }
@@ -58,5 +62,9 @@ public class Analysis {
 
     public StmtCtx statementContext() {
         return stmtCtx;
+    }
+
+    public SessionContext sessionContext() {
+        return sessionContext;
     }
 }

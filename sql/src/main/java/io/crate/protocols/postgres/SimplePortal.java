@@ -25,7 +25,7 @@ package io.crate.protocols.postgres;
 import io.crate.Constants;
 import io.crate.action.sql.ResultReceiver;
 import io.crate.action.sql.RowReceiverToResultReceiver;
-import io.crate.action.sql.SQLOperations;
+import io.crate.action.sql.SessionContext;
 import io.crate.analyze.Analysis;
 import io.crate.analyze.Analyzer;
 import io.crate.analyze.ParameterContext;
@@ -51,7 +51,6 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.Collections;
 import java.util.List;
-import java.util.Set;
 import java.util.UUID;
 
 public class SimplePortal extends AbstractPortal {
@@ -71,14 +70,12 @@ public class SimplePortal extends AbstractPortal {
     private int defaultLimit;
 
     public SimplePortal(String name,
-                        String defaultSchema,
-                        Set<SQLOperations.Option> options,
                         Analyzer analyzer,
                         Executor executor,
                         boolean isReadOnly,
-                        int defaultLimit) {
-        super(name, defaultSchema, options, analyzer, executor, isReadOnly);
-        this.defaultLimit = defaultLimit;
+                        SessionContext sessionContext) {
+        super(name, analyzer, executor, isReadOnly, sessionContext);
+        this.defaultLimit = sessionContext.defaultLimit();
     }
 
     @Override
@@ -102,18 +99,18 @@ public class SimplePortal extends AbstractPortal {
                        List<Object> params, @Nullable FormatCodes.FormatCode[] resultFormatCodes) {
 
         if (statement.equals(this.statement)) {
-            if (sessionData.isReadOnly()) { // Cannot have a bulk operation in read only mode
+            if (portalContext.isReadOnly()) { // Cannot have a bulk operation in read only mode
                 throw new ReadOnlyException();
             }
-            BulkPortal portal = new BulkPortal(name, this.query, this.statement, outputTypes,
-                resultReceiver, maxRows, this.params, sessionData);
+            BulkPortal portal = new BulkPortal(
+                name, this.query, this.statement, outputTypes, resultReceiver, maxRows, this.params, sessionContext, portalContext);
             return portal.bind(statementName, query, statement, params, resultFormatCodes);
         } else if (this.statement != null) {
-            if (sessionData.isReadOnly()) { // Cannot have a batch operation in read only mode
+            if (portalContext.isReadOnly()) { // Cannot have a batch operation in read only mode
                 throw new ReadOnlyException();
             }
-            BatchPortal portal = new BatchPortal(name, this.query, analysis, outputTypes, resultReceiver,
-                this.params, sessionData);
+            BatchPortal portal = new BatchPortal(
+                name, this.query, analysis, outputTypes, resultReceiver, this.params, sessionContext, portalContext);
             return portal.bind(statementName, query, statement, params, resultFormatCodes);
         }
 
@@ -122,11 +119,10 @@ public class SimplePortal extends AbstractPortal {
         this.params = params;
         this.resultFormatCodes = resultFormatCodes;
         if (analysis == null) {
-            analysis = sessionData.getAnalyzer().analyze(statement,
-                new ParameterContext(new RowN(params.toArray()),
-                    Collections.<Row>emptyList(),
-                    sessionData.getDefaultSchema(),
-                    sessionData.options()));
+            analysis = portalContext.getAnalyzer().analyze(
+                statement,
+                sessionContext,
+                new ParameterContext(new RowN(params.toArray()), Collections.<Row>emptyList()));
             AnalyzedRelation rootRelation = analysis.rootRelation();
             if (rootRelation != null) {
                 this.outputTypes = Symbols.extractTypes(rootRelation.fields());
@@ -168,17 +164,16 @@ public class SimplePortal extends AbstractPortal {
             resultReceiver = new ResultReceiverRetryWrapper(
                 resultReceiver,
                 this,
-                sessionData.getAnalyzer(),
+                portalContext.getAnalyzer(),
                 planner,
-                sessionData.getExecutor(),
+                portalContext.getExecutor(),
                 jobId,
-                sessionData.getDefaultSchema(),
-                sessionData.options());
+                sessionContext);
         }
 
         if (resumeIfSuspended()) return;
         this.rowReceiver = new RowReceiverToResultReceiver(resultReceiver, maxRows);
-        sessionData.getExecutor().execute(plan, rowReceiver);
+        portalContext.getExecutor().execute(plan, rowReceiver);
     }
 
     @Override
@@ -208,7 +203,7 @@ public class SimplePortal extends AbstractPortal {
     }
 
     private void validateReadOnly(Analysis analysis) {
-        if (analysis != null && analysis.analyzedStatement().isWriteOperation() && sessionData.isReadOnly()) {
+        if (analysis != null && analysis.analyzedStatement().isWriteOperation() && portalContext.isReadOnly()) {
             throw new ReadOnlyException();
         }
     }
@@ -221,8 +216,7 @@ public class SimplePortal extends AbstractPortal {
         private final Planner planner;
         private final Executor executor;
         private final UUID jobId;
-        private final String defaultSchema;
-        private Set<SQLOperations.Option> options;
+        private final SessionContext sessionContext;
         int attempt = 1;
 
         ResultReceiverRetryWrapper(ResultReceiver delegate,
@@ -231,16 +225,14 @@ public class SimplePortal extends AbstractPortal {
                                    Planner planner,
                                    Executor executor,
                                    UUID jobId,
-                                   String defaultSchema,
-                                   Set<SQLOperations.Option> options) {
+                                   SessionContext sessionContext) {
             this.delegate = delegate;
             this.portal = portal;
             this.analyzer = analyzer;
             this.planner = planner;
             this.executor = executor;
             this.jobId = jobId;
-            this.defaultSchema = defaultSchema;
-            this.options = options;
+            this.sessionContext = sessionContext;
         }
 
         @Override
@@ -270,8 +262,8 @@ public class SimplePortal extends AbstractPortal {
 
         private void retry() {
             LOGGER.debug("Retrying statement due to a shard failure, attempt={}, jobId={}", attempt, jobId);
-            Analysis analysis = analyzer.analyze(portal.statement,
-                new ParameterContext(new RowN(portal.params.toArray()), Collections.<Row>emptyList(), defaultSchema, options));
+            Analysis analysis = analyzer.analyze(portal.statement, sessionContext,
+                new ParameterContext(new RowN(portal.params.toArray()), Collections.<Row>emptyList()));
             Plan plan = planner.plan(analysis, jobId, 0, portal.maxRows);
             executor.execute(plan, portal.rowReceiver);
         }

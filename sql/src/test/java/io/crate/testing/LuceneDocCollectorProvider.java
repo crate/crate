@@ -24,6 +24,7 @@ package io.crate.testing;
 
 import com.google.common.collect.Iterables;
 import io.crate.action.job.SharedShardContexts;
+import io.crate.action.sql.SessionContext;
 import io.crate.analyze.Analysis;
 import io.crate.analyze.Analyzer;
 import io.crate.analyze.EvaluatingNormalizer;
@@ -106,8 +107,9 @@ public class LuceneDocCollectorProvider implements AutoCloseable {
 
     public CrateCollector createCollector(String statement, final RowReceiver downstream, Integer nodePageSizeHint, Object... args) throws Exception {
         Analysis analysis = analyzer.analyze(
-            SqlParser.createStatement(statement), new ParameterContext(
-                new RowN(args), Collections.<Row>emptyList(), null));
+            SqlParser.createStatement(statement),
+            SessionContext.SYSTEM_SESSION,
+            new ParameterContext(new RowN(args), Collections.<Row>emptyList()));
         PlannedAnalyzedRelation plannedAnalyzedRelation = queryAndFetchConsumer.consume(
             analysis.rootRelation(),
             new ConsumerContext(analysis.rootRelation(), new Planner.Context(

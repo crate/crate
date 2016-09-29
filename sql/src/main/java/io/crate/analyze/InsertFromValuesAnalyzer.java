@@ -93,19 +93,19 @@ public class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
 
     public AnalyzedStatement analyze(InsertFromValues node, Analysis analysis) {
         DocTableInfo tableInfo = analysisMetaData.schemas().getWritableTable(
-            TableIdent.of(node.table(), analysis.parameterContext().defaultSchema()));
+            TableIdent.of(node.table(), analysis.sessionContext().defaultSchema()));
         Operation.blockedRaiseException(tableInfo, Operation.INSERT);
 
         DocTableRelation tableRelation = new DocTableRelation(tableInfo);
         FieldProvider fieldProvider = new NameFieldProvider(tableRelation);
         ExpressionAnalyzer expressionAnalyzer =
-            new ExpressionAnalyzer(analysisMetaData, analysis.parameterContext(), fieldProvider, tableRelation);
+            new ExpressionAnalyzer(analysisMetaData, analysis.sessionContext(), analysis.parameterContext(), fieldProvider, tableRelation);
         ExpressionAnalysisContext expressionAnalysisContext = new ExpressionAnalysisContext(analysis.statementContext());
         expressionAnalyzer.setResolveFieldsOperation(Operation.INSERT);
 
         ValuesResolver valuesResolver = new ValuesResolver(tableRelation);
         ExpressionAnalyzer valuesAwareExpressionAnalyzer = new ValuesAwareExpressionAnalyzer(
-            analysisMetaData, analysis.parameterContext(), fieldProvider, valuesResolver);
+            analysisMetaData, analysis.sessionContext(), analysis.parameterContext(), fieldProvider, valuesResolver);
 
         InsertFromValuesAnalyzedStatement statement = new InsertFromValuesAnalyzedStatement(
             tableInfo, analysis.parameterContext().numBulkParams());

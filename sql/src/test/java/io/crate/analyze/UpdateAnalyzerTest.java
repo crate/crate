@@ -22,6 +22,7 @@
 package io.crate.analyze;
 
 import com.google.common.collect.ImmutableMap;
+import io.crate.action.sql.SessionContext;
 import io.crate.analyze.relations.DocTableRelation;
 import io.crate.analyze.symbol.DynamicReference;
 import io.crate.analyze.symbol.Function;
@@ -152,12 +153,14 @@ public class UpdateAnalyzerTest extends BaseAnalyzerTest {
 
     protected UpdateAnalyzedStatement analyze(String statement, Object[] params) {
         return (UpdateAnalyzedStatement) analyzer.analyze(SqlParser.createStatement(statement),
-            new ParameterContext(new RowN(params), Collections.<Row>emptyList(), Schemas.DEFAULT_SCHEMA_NAME)).analyzedStatement();
+            SessionContext.SYSTEM_SESSION,
+            new ParameterContext(new RowN(params), Collections.<Row>emptyList())).analyzedStatement();
     }
 
     protected UpdateAnalyzedStatement analyze(String statement, Object[][] bulkArgs) {
         return (UpdateAnalyzedStatement) analyzer.analyze(SqlParser.createStatement(statement),
-            new ParameterContext(Row.EMPTY, Rows.of(bulkArgs), Schemas.DEFAULT_SCHEMA_NAME)).analyzedStatement();
+            SessionContext.SYSTEM_SESSION,
+            new ParameterContext(Row.EMPTY, Rows.of(bulkArgs))).analyzedStatement();
     }
 
     @Test

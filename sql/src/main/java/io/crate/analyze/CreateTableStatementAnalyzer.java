@@ -107,6 +107,7 @@ public class CreateTableStatementAnalyzer extends DefaultTraversalVisitor<Create
             null,
             analysisMetaData,
             context.analysis.parameterContext(),
+            context.analysis.sessionContext(),
             context.analysis.statementContext());
 
         // update table settings
@@ -124,7 +125,7 @@ public class CreateTableStatementAnalyzer extends DefaultTraversalVisitor<Create
     }
 
     private void setTableIdent(CreateTable node, Context context) {
-        TableIdent tableIdent = TableIdent.of(node.name(), context.analysis.parameterContext().defaultSchema());
+        TableIdent tableIdent = TableIdent.of(node.name(), context.analysis.sessionContext().defaultSchema());
         if (READ_ONLY_SCHEMAS.contains(tableIdent.schema())) {
             throw new IllegalArgumentException(
                 String.format(Locale.ENGLISH, "Cannot create table in read-only schema '%s'", tableIdent.schema())

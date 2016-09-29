@@ -24,6 +24,7 @@ package io.crate.protocols.postgres;
 
 import io.crate.action.sql.ResultReceiver;
 import io.crate.action.sql.RowReceiverToResultReceiver;
+import io.crate.action.sql.SessionContext;
 import io.crate.analyze.Analysis;
 import io.crate.analyze.AnalyzedStatement;
 import io.crate.analyze.ParameterContext;
@@ -65,8 +66,9 @@ class BatchPortal extends AbstractPortal {
                 List<? extends DataType> outputTypes,
                 ResultReceiver resultReceiver,
                 List<Object> params,
-                SessionData sessionData) {
-        super(name, sessionData);
+                SessionContext sessionContext,
+                PortalContext portalContext) {
+        super(name, sessionContext, portalContext);
         queries.add(query);
         this.analysis.add(analysis);
         this.outputTypes.add(outputTypes);
@@ -100,11 +102,8 @@ class BatchPortal extends AbstractPortal {
         queries.add(query);
         batchParams.add(params);
         this.resultFormatCodes.add(resultFormatCodes);
-        analysis.add(sessionData.getAnalyzer().analyze(statement,
-            new ParameterContext(getArgs(),
-                Collections.<Row>emptyList(),
-                sessionData.getDefaultSchema(),
-                sessionData.options())));
+        analysis.add(portalContext.getAnalyzer().analyze(
+            statement, sessionContext, new ParameterContext(getArgs(), Collections.<Row>emptyList())));
         return this;
     }
 
@@ -143,7 +142,7 @@ class BatchPortal extends AbstractPortal {
             resultReceiver.addListener(new StatsTablesUpdateListener(jobId, statsTables));
             resultReceiver.addListener(batchCompletionListener);
             RowReceiver rowReceiver = new RowReceiverToResultReceiver(resultReceiver, 0);
-            sessionData.getExecutor().execute(plan, rowReceiver);
+            portalContext.getExecutor().execute(plan, rowReceiver);
         }
     }
 
@@ -156,7 +155,7 @@ class BatchPortal extends AbstractPortal {
         if (!analyzedStatement.isWriteOperation()) {
             throw new UnsupportedOperationException("Only write operations are allowed in Batch statements");
         }
-        if (sessionData.isReadOnly()) {
+        if (portalContext.isReadOnly()) {
             throw new ReadOnlyException();
         }
     }

@@ -86,7 +86,7 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
 
     public AnalyzedRelation analyze(Node node, Analysis analysis) {
         return analyze(node, new StatementAnalysisContext(
-            analysis.parameterContext(), analysis.statementContext(), analysisMetaData));
+            analysis.sessionContext(), analysis.parameterContext(), analysis.statementContext(), analysisMetaData));
     }
 
     @Override
@@ -417,7 +417,7 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
     @Override
     protected AnalyzedRelation visitTable(Table node, StatementAnalysisContext context) {
         TableInfo tableInfo = analysisMetaData.schemas().getTableInfo(
-            TableIdent.of(node, context.parameterContext().defaultSchema()));
+            TableIdent.of(node, context.sessionContext().defaultSchema()));
         Operation.blockedRaiseException(tableInfo, context.currentOperation());
         AnalyzedRelation tableRelation;
         // Dispatching of doc relations is based on the returned class of the schema information.
@@ -435,7 +435,7 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
     public AnalyzedRelation visitTableFunction(TableFunction node, StatementAnalysisContext statementContext) {
         RelationAnalysisContext context = statementContext.currentRelationContext();
         ExpressionAnalyzer expressionAnalyzer = new ExpressionAnalyzer(
-            analysisMetaData, statementContext.parameterContext(), new FieldProvider() {
+            analysisMetaData, statementContext.sessionContext(), statementContext.parameterContext(), new FieldProvider() {
             @Override
             public Symbol resolveField(QualifiedName qualifiedName, Operation operation) {
                 throw new UnsupportedOperationException("Can only resolve literals");

@@ -21,6 +21,7 @@
 
 package io.crate.analyze;
 
+import io.crate.action.sql.SessionContext;
 import io.crate.analyze.expressions.ExpressionAnalysisContext;
 import io.crate.analyze.expressions.ExpressionAnalyzer;
 import io.crate.analyze.relations.FieldProvider;
@@ -69,10 +70,11 @@ public class ValuesAwareExpressionAnalyzer extends ExpressionAnalyzer {
     }
 
     public ValuesAwareExpressionAnalyzer(AnalysisMetaData analysisMetaData,
+                                         SessionContext sessionContext,
                                          ParameterContext parameterContext,
                                          FieldProvider fieldProvider,
                                          ValuesResolver valuesResolver) {
-        super(analysisMetaData, parameterContext, fieldProvider, null);
+        super(analysisMetaData, sessionContext, parameterContext, fieldProvider, null);
         this.valuesResolver = valuesResolver;
     }
 

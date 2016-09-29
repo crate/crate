@@ -23,6 +23,7 @@
 package io.crate.planner;
 
 import com.google.common.collect.ImmutableMap;
+import io.crate.action.sql.SessionContext;
 import io.crate.analyze.Analyzer;
 import io.crate.analyze.BaseAnalyzerTest;
 import io.crate.analyze.EvaluatingNormalizer;
@@ -289,9 +290,13 @@ public abstract class AbstractPlannerTest extends CrateUnitTest {
 
     protected <T extends Plan> T plan(String statement, int maxRows, int softLimit) {
         //noinspection unchecked: for testing this is fine
-        return (T) planner.plan(analyzer.analyze(SqlParser.createStatement(statement),
-            new ParameterContext(Row.EMPTY, Collections.<Row>emptyList(), Schemas.DEFAULT_SCHEMA_NAME)),
-            UUID.randomUUID(), softLimit, maxRows);
+        return (T) planner.plan(analyzer.analyze(
+            SqlParser.createStatement(statement),
+            SessionContext.SYSTEM_SESSION,
+            new ParameterContext(Row.EMPTY, Collections.<Row>emptyList())),
+            UUID.randomUUID(),
+            softLimit,
+            maxRows);
     }
 
     protected <T extends Plan> T plan(String statement) {
@@ -300,6 +305,7 @@ public abstract class AbstractPlannerTest extends CrateUnitTest {
 
     protected Plan plan(String statement, Object[][] bulkArgs) {
         return planner.plan(analyzer.analyze(SqlParser.createStatement(statement),
-            new ParameterContext(Row.EMPTY, Rows.of(bulkArgs), Schemas.DEFAULT_SCHEMA_NAME)), UUID.randomUUID(), 0, 0);
+            SessionContext.SYSTEM_SESSION,
+            new ParameterContext(Row.EMPTY, Rows.of(bulkArgs))), UUID.randomUUID(), 0, 0);
     }
 }

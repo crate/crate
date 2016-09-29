@@ -21,6 +21,7 @@
 
 package io.crate.analyze.relations;
 
+import io.crate.action.sql.SessionContext;
 import io.crate.analyze.AnalysisMetaData;
 import io.crate.analyze.ParameterContext;
 import io.crate.metadata.StmtCtx;
@@ -32,21 +33,25 @@ import java.util.List;
 public class StatementAnalysisContext {
 
     private final Operation currentOperation;
+    private final SessionContext sessionContext;
     private final ParameterContext parameterContext;
     private final StmtCtx stmtCtx;
     private final AnalysisMetaData analysisMetaData;
     private final List<RelationAnalysisContext> lastRelationContextQueue = new ArrayList<>();
 
-    StatementAnalysisContext(ParameterContext parameterContext,
+    StatementAnalysisContext(SessionContext sessionContext,
+                             ParameterContext parameterContext,
                              StmtCtx stmtCtx,
                              AnalysisMetaData analysisMetaData) {
-        this(parameterContext, stmtCtx, analysisMetaData, Operation.READ);
+        this(sessionContext, parameterContext, stmtCtx, analysisMetaData, Operation.READ);
     }
 
-    public StatementAnalysisContext(ParameterContext parameterContext,
+    public StatementAnalysisContext(SessionContext sessionContext,
+                                    ParameterContext parameterContext,
                                     StmtCtx stmtCtx,
                                     AnalysisMetaData analysisMetaData,
                                     Operation currentOperation) {
+        this.sessionContext = sessionContext;
         this.parameterContext = parameterContext;
         this.stmtCtx = stmtCtx;
         this.analysisMetaData = analysisMetaData;
@@ -71,7 +76,7 @@ public class StatementAnalysisContext {
 
     RelationAnalysisContext startRelation(boolean aliasedRelation) {
         RelationAnalysisContext currentRelationContext = new RelationAnalysisContext(
-            parameterContext, stmtCtx, analysisMetaData, aliasedRelation);
+            sessionContext, parameterContext, stmtCtx, analysisMetaData, aliasedRelation);
         lastRelationContextQueue.add(currentRelationContext);
         return currentRelationContext;
     }
@@ -85,5 +90,9 @@ public class StatementAnalysisContext {
     RelationAnalysisContext currentRelationContext() {
         assert lastRelationContextQueue.size() > 0 : "relation context must be created using startRelation() first";
         return lastRelationContextQueue.get(lastRelationContextQueue.size() - 1);
+    }
+
+    public SessionContext sessionContext() {
+        return sessionContext;
     }
 }

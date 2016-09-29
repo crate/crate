@@ -24,6 +24,7 @@ package io.crate.planner;
 
 import com.carrotsearch.hppc.ObjectLongMap;
 import com.google.common.collect.ImmutableList;
+import io.crate.action.sql.Option;
 import io.crate.action.sql.SQLOperations;
 import io.crate.concurrent.CompletionListener;
 import io.crate.metadata.TableIdent;
@@ -93,7 +94,7 @@ public class TableStatsServiceTest extends CrateUnitTest {
         when(clusterService.localNode()).thenReturn(mock(DiscoveryNode.class));
         final SQLOperations sqlOperations = mock(SQLOperations.class);
         SQLOperations.Session session = mock(SQLOperations.Session.class);
-        when(sqlOperations.createSession(eq("sys"), eq(SQLOperations.Option.NONE), eq(TableStatsService.DEFAULT_SOFT_LIMIT)))
+        when(sqlOperations.createSession(eq("sys"), eq(Option.NONE), eq(TableStatsService.DEFAULT_SOFT_LIMIT)))
             .thenReturn(session);
 
         TableStatsService statsService = new TableStatsService(Settings.EMPTY,
@@ -142,6 +143,6 @@ public class TableStatsServiceTest extends CrateUnitTest {
             });
 
         statsService.run();
-        Mockito.verify(sqlOperations, times(0)).createSession(anyString(), anySetOf(SQLOperations.Option.class), anyByte());
+        Mockito.verify(sqlOperations, times(0)).createSession(anyString(), anySetOf(Option.class), anyByte());
     }
 }

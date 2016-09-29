@@ -59,7 +59,8 @@ public class OptimizeTableAnalyzer extends DefaultTraversalVisitor<OptimizeTable
 
     @Override
     public OptimizeTableAnalyzedStatement visitOptimizeStatement(OptimizeStatement node, Analysis analysis) {
-        Set<String> indexNames = TableAnalyzer.getIndexNames(node.tables(), schemas, analysis.parameterContext());
+        Set<String> indexNames = TableAnalyzer.getIndexNames(
+            node.tables(), schemas, analysis.parameterContext(), analysis.sessionContext().defaultSchema());
 
         // validate and extract settings
         Settings.Builder builder = GenericPropertiesConverter.settingsFromProperties(

@@ -23,6 +23,7 @@ package io.crate.analyze;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
+import io.crate.action.sql.SessionContext;
 import io.crate.analyze.repositories.RepositorySettingsModule;
 import io.crate.core.collections.Row;
 import io.crate.core.collections.RowN;
@@ -230,12 +231,14 @@ public abstract class BaseAnalyzerTest extends CrateUnitTest {
 
     protected Analysis analysis(String statement, Object[][] bulkArgs) {
         return analyzer.analyze(SqlParser.createStatement(statement),
-            new ParameterContext(Row.EMPTY, Rows.of(bulkArgs), Schemas.DEFAULT_SCHEMA_NAME));
+            SessionContext.SYSTEM_SESSION,
+            new ParameterContext(Row.EMPTY, Rows.of(bulkArgs)));
     }
 
     protected Analysis analysis(String statement, Object[] params) {
         return analyzer.analyze(SqlParser.createStatement(statement),
-            new ParameterContext(new RowN(params), Collections.<Row>emptyList(), Schemas.DEFAULT_SCHEMA_NAME));
+            SessionContext.SYSTEM_SESSION,
+            new ParameterContext(new RowN(params), Collections.<Row>emptyList()));
     }
 
     protected List<Module> getModules() {

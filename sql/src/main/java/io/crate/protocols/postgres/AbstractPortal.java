@@ -22,7 +22,7 @@
 
 package io.crate.protocols.postgres;
 
-import io.crate.action.sql.SQLOperations;
+import io.crate.action.sql.SessionContext;
 import io.crate.analyze.Analyzer;
 import io.crate.executor.Executor;
 
@@ -31,21 +31,19 @@ import java.util.Set;
 abstract class AbstractPortal implements Portal {
 
     protected final String name;
-    final SessionData sessionData;
+    protected final PortalContext portalContext;
+    final SessionContext sessionContext;
 
-    AbstractPortal(String name,
-                   String defaultSchema,
-                   Set<SQLOperations.Option> options,
-                   Analyzer analyzer,
-                   Executor executor,
-                   boolean isReadOnly) {
+    AbstractPortal(String name, Analyzer analyzer, Executor executor, boolean isReadOnly, SessionContext sessionContext) {
         this.name = name;
-        sessionData = new SessionData(defaultSchema, options, analyzer, executor, isReadOnly);
+        this.sessionContext = sessionContext;
+        portalContext = new PortalContext(analyzer, executor, isReadOnly);
     }
 
-    AbstractPortal(String name, SessionData sessionData) {
+    AbstractPortal(String name, SessionContext sessionContext, PortalContext portalContext) {
         this.name = name;
-        this.sessionData = sessionData;
+        this.portalContext = portalContext;
+        this.sessionContext = sessionContext;
     }
 
     @Override
@@ -62,21 +60,13 @@ abstract class AbstractPortal implements Portal {
         return "name: " + name + ", type: " + getClass().getSimpleName();
     }
 
-    static class SessionData {
+    static class PortalContext {
 
-        private Set<SQLOperations.Option> options;
         private final Analyzer analyzer;
         private final Executor executor;
-        private final String defaultSchema;
         private final boolean isReadOnly;
 
-        private SessionData(String defaultSchema,
-                            Set<SQLOperations.Option> options,
-                            Analyzer analyzer,
-                            Executor executor,
-                            boolean isReadOnly) {
-            this.defaultSchema = defaultSchema;
-            this.options = options;
+        private PortalContext(Analyzer analyzer, Executor executor, boolean isReadOnly) {
             this.analyzer = analyzer;
             this.executor = executor;
             this.isReadOnly = isReadOnly;
@@ -88,14 +78,6 @@ abstract class AbstractPortal implements Portal {
 
         Executor getExecutor() {
             return executor;
-        }
-
-        String getDefaultSchema() {
-            return defaultSchema;
-        }
-
-        Set<SQLOperations.Option> options() {
-            return options;
         }
 
         boolean isReadOnly() {

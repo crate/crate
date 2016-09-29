@@ -98,7 +98,7 @@ public class CreateSnapshotStatementAnalyzer extends AbstractRepositoryDDLAnalyz
             for (Table table : tableList) {
                 TableInfo tableInfo;
                 try {
-                    tableInfo = schemas.getTableInfo(TableIdent.of(table, analysis.parameterContext().defaultSchema()));
+                    tableInfo = schemas.getTableInfo(TableIdent.of(table, analysis.sessionContext().defaultSchema()));
                 } catch (ResourceUnknownException e) {
                     if (ignoreUnavailable) {
                         LOGGER.info("ignoring: {}", e.getMessage());
