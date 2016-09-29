@@ -93,6 +93,18 @@ public class LuceneQueryBuilderIntegrationTest extends SQLTransportIntegrationTe
     }
 
     @Test
+    public void testAnyFunctionWithSubscript() throws Exception {
+        execute("create table t (a array(object as (b array(object as (s string))))) " +
+                "clustered into 1 shards with (number_of_replicas = 0)");
+        ensureYellow();
+        execute("insert into t (a) values ([{b=[{s='hello world'}, {s='hello world2'}, {s='hello world3'}]}])");
+        refresh();
+
+        execute("select * from t where 'hello world' = any(a[1]['b']['s'])");
+        assertThat(response.rowCount(), is(1L));
+    }
+
+    @Test
     public void testWhereSubstringWithSysColumn() throws Exception {
         execute("create table t (dummy string) clustered into 2 shards with (number_of_replicas = 1)");
         ensureYellow();
