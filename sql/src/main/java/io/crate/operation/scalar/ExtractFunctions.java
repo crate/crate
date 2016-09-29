@@ -23,79 +23,85 @@ package io.crate.operation.scalar;
 
 import com.google.common.collect.ImmutableList;
 import io.crate.analyze.symbol.Function;
+import io.crate.analyze.symbol.Symbol;
+import io.crate.analyze.symbol.ValueSymbolVisitor;
 import io.crate.analyze.symbol.format.FunctionFormatSpec;
+import io.crate.analyze.symbol.format.SymbolFormatter;
 import io.crate.analyze.symbol.format.SymbolPrinter;
-import io.crate.metadata.FunctionIdent;
-import io.crate.metadata.FunctionInfo;
-import io.crate.metadata.Scalar;
+import io.crate.metadata.*;
 import io.crate.operation.Input;
 import io.crate.sql.tree.Extract;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.elasticsearch.common.joda.Joda;
+import org.elasticsearch.common.lucene.BytesRefs;
 import org.joda.time.DateTimeField;
 import org.joda.time.chrono.ISOChronology;
 
+import java.util.Arrays;
 import java.util.Locale;
 
 public class ExtractFunctions {
 
     private final static ImmutableList<DataType> ARGUMENT_TYPES = ImmutableList.<DataType>of(DataTypes.TIMESTAMP);
-    private final static String NAME_TMPL = "extract_%s";
+    private final static String NAME_PREFIX = "extract_";
+    public final static FunctionInfo GENERIC_INFO = new FunctionInfo(
+        new FunctionIdent("_extract", ImmutableList.<DataType>of(DataTypes.STRING, DataTypes.TIMESTAMP)), DataTypes.INTEGER);
 
-    public static final String EXTRACT_CENTURY_PREFIX = "extract(century from ";
-    public static final String EXTRACT_YEAR_PREFIX = "extract(year from ";
-    public static final String EXTRACT_QUARTER_PREFIX = "extract(quarter from ";
-    public static final String EXTRACT_MONTH_PREFIX = "extract(month from ";
-    public static final String EXTRACT_WEEK_PREFIX = "extract(week from ";
-    public static final String EXTRACT_DAY_OF_MONTH_PREFIX = "extract(day_of_month from ";
-    public static final String EXTRACT_DAY_OF_WEEK_PREFIX = "extract(day_of_week from ";
-    public static final String EXTRACT_SECOND_PREFIX = "extract(second from ";
-    public static final String EXTRACT_MINUTE_PREFIX = "extract(minute from ";
-    public static final String EXTRACT_HOUR_PREFIX = "extract(hour from ";
-    public static final String EXTRACT_DAY_OF_YEAR_PREFIX = "extract(day_of_year from ";
+    private static final String EXTRACT_CENTURY_PREFIX = "extract(century from ";
+    private static final String EXTRACT_YEAR_PREFIX = "extract(year from ";
+    private static final String EXTRACT_QUARTER_PREFIX = "extract(quarter from ";
+    private static final String EXTRACT_MONTH_PREFIX = "extract(month from ";
+    private static final String EXTRACT_WEEK_PREFIX = "extract(week from ";
+    private static final String EXTRACT_DAY_OF_MONTH_PREFIX = "extract(day_of_month from ";
+    private static final String EXTRACT_DAY_OF_WEEK_PREFIX = "extract(day_of_week from ";
+    private static final String EXTRACT_SECOND_PREFIX = "extract(second from ";
+    private static final String EXTRACT_MINUTE_PREFIX = "extract(minute from ";
+    private static final String EXTRACT_HOUR_PREFIX = "extract(hour from ";
+    private static final String EXTRACT_DAY_OF_YEAR_PREFIX = "extract(day_of_year from ";
 
     public static void register(ScalarFunctionModule scalarFunctionModule) {
-        scalarFunctionModule.register(new ExtractCentury());
-        scalarFunctionModule.register(new ExtractYear());
-        scalarFunctionModule.register(new ExtractQuarter());
-        scalarFunctionModule.register(new ExtractMonth());
-        scalarFunctionModule.register(new ExtractWeek());
-        scalarFunctionModule.register(new ExtractDayOfMonth());
-        scalarFunctionModule.register(new ExtractDayOfWeek());
-        scalarFunctionModule.register(new ExtractDayOfYear());
-        scalarFunctionModule.register(new ExtractHour());
-        scalarFunctionModule.register(new ExtractMinute());
-        scalarFunctionModule.register(new ExtractSecond());
+        scalarFunctionModule.register(ExtractCentury.INSTANCE);
+        scalarFunctionModule.register(ExtractYear.INSTANCE);
+        scalarFunctionModule.register(ExtractQuarter.INSTANCE);
+        scalarFunctionModule.register(ExtractMonth.INSTANCE);
+        scalarFunctionModule.register(ExtractWeek.INSTANCE);
+        scalarFunctionModule.register(ExtractDayOfMonth.INSTANCE);
+        scalarFunctionModule.register(ExtractDayOfWeek.INSTANCE);
+        scalarFunctionModule.register(ExtractDayOfYear.INSTANCE);
+        scalarFunctionModule.register(ExtractHour.INSTANCE);
+        scalarFunctionModule.register(ExtractMinute.INSTANCE);
+        scalarFunctionModule.register(ExtractSecond.INSTANCE);
+        scalarFunctionModule.register(ExtractFunction.INSTANCE);
     }
 
-    public static FunctionInfo functionInfo(Extract.Field field) {
+    static Scalar<Number, Long> getScalar(Extract.Field field) {
         switch (field) {
             case CENTURY:
-                return ExtractCentury.INFO;
+                return ExtractCentury.INSTANCE;
             case YEAR:
-                return ExtractYear.INFO;
+                return ExtractYear.INSTANCE;
             case QUARTER:
-                return ExtractQuarter.INFO;
+                return ExtractQuarter.INSTANCE;
             case MONTH:
-                return ExtractMonth.INFO;
+                return ExtractMonth.INSTANCE;
             case WEEK:
-                return ExtractWeek.INFO;
+                return ExtractWeek.INSTANCE;
             case DAY:
             case DAY_OF_MONTH:
-                return ExtractDayOfMonth.INFO;
+                return ExtractDayOfMonth.INSTANCE;
             case DAY_OF_WEEK:
             case DOW:
-                return ExtractDayOfWeek.INFO;
+                return ExtractDayOfWeek.INSTANCE;
             case DAY_OF_YEAR:
             case DOY:
-                return ExtractDayOfYear.INFO;
+                return ExtractDayOfYear.INSTANCE;
             case HOUR:
-                return ExtractHour.INFO;
+                return ExtractHour.INSTANCE;
             case MINUTE:
-                return ExtractMinute.INFO;
+                return ExtractMinute.INSTANCE;
             case SECOND:
-                return ExtractSecond.INFO;
+                return ExtractSecond.INSTANCE;
             case TIMEZONE_HOUR:
                 break;
             case TIMEZONE_MINUTE:
@@ -106,10 +112,65 @@ public class ExtractFunctions {
 
     private static FunctionInfo createFunctionInfo(Extract.Field field) {
         return new FunctionInfo(
-            new FunctionIdent(String.format(Locale.ENGLISH, NAME_TMPL, field.toString()), ARGUMENT_TYPES),
+            new FunctionIdent(NAME_PREFIX + field.toString(), ARGUMENT_TYPES),
             DataTypes.INTEGER,
             FunctionInfo.Type.SCALAR
         );
+    }
+
+    /**
+     * This is a generic ExtractFunction variant: _extract(field from ts).
+     * Where the field doesn't yet have a value (either because it is a parameter or because of lazy evaluation)
+     *
+     * As soon as the field has an actual value it will be re-written to one of the concrete extract_ variants.
+     */
+    private static class ExtractFunction extends Scalar<Object, Object> implements FunctionFormatSpec {
+
+        public static final FunctionImplementation INSTANCE = new ExtractFunction();
+
+        private ExtractFunction() {
+        }
+
+        @Override
+        public FunctionInfo info() {
+            return GENERIC_INFO;
+        }
+
+        @Override
+        public Symbol normalizeSymbol(Function symbol, StmtCtx stmtCtx) {
+            Symbol arg1 = symbol.arguments().get(0);
+            if (arg1.symbolType().isValueSymbol()) {
+                String field = ValueSymbolVisitor.STRING.process(arg1);
+
+                Scalar<Number, Long> scalar = getScalar(Extract.Field.valueOf(field.toUpperCase(Locale.ENGLISH)));
+                //noinspection ArraysAsListWithZeroOrOneArgument # need mutable list as arg to function
+                Function function = new Function(scalar.info(), Arrays.asList(symbol.arguments().get(1)));
+                return scalar.normalizeSymbol(function, stmtCtx);
+            }
+            return super.normalizeSymbol(symbol, stmtCtx);
+        }
+
+        @Override
+        public final Object evaluate(Input[] args) {
+            String field = BytesRefs.toString(args[0].value());
+            Scalar<Number, Long> scalar = getScalar(Extract.Field.valueOf(field.toUpperCase(Locale.ENGLISH)));
+            return scalar.evaluate(args[1]);
+        }
+
+        @Override
+        public String beforeArgs(Function function) {
+            return SymbolFormatter.format("extract(%s from %s", function.arguments().toArray(new Symbol[0]));
+        }
+
+        @Override
+        public String afterArgs(Function function) {
+            return SymbolPrinter.Strings.PAREN_CLOSE;
+        }
+
+        @Override
+        public boolean formatArgs(Function function) {
+            return false;
+        }
     }
 
     private abstract static class GenericExtractFunction extends Scalar<Number, Long> implements FunctionFormatSpec {
@@ -140,8 +201,12 @@ public class ExtractFunctions {
 
     private static class ExtractCentury extends GenericExtractFunction {
 
-        public static final FunctionInfo INFO = createFunctionInfo(Extract.Field.CENTURY);
-        private static final DateTimeField CENTURY = ISOChronology.getInstanceUTC().centuryOfEra();
+        private static final FunctionInfo INFO = createFunctionInfo(Extract.Field.CENTURY);
+        static final ExtractCentury INSTANCE = new ExtractCentury();
+        static final DateTimeField CENTURY = ISOChronology.getInstanceUTC().centuryOfEra();
+
+        private ExtractCentury() {
+        }
 
         @Override
         public int evaluate(long value) {
@@ -161,8 +226,9 @@ public class ExtractFunctions {
 
     private static class ExtractYear extends GenericExtractFunction {
 
-        public static final FunctionInfo INFO = createFunctionInfo(Extract.Field.YEAR);
-        private static final DateTimeField YEAR = ISOChronology.getInstanceUTC().year();
+        private static final FunctionInfo INFO = createFunctionInfo(Extract.Field.YEAR);
+        static final DateTimeField YEAR = ISOChronology.getInstanceUTC().year();
+        static final ExtractYear INSTANCE = new ExtractYear();
 
         @Override
         public int evaluate(long value) {
@@ -182,8 +248,12 @@ public class ExtractFunctions {
 
     private static class ExtractQuarter extends GenericExtractFunction {
 
-        public static final FunctionInfo INFO = createFunctionInfo(Extract.Field.QUARTER);
+        public static final ExtractQuarter INSTANCE = new ExtractQuarter();
+        private static final FunctionInfo INFO = createFunctionInfo(Extract.Field.QUARTER);
         private static final DateTimeField QUARTER = Joda.QuarterOfYear.getField(ISOChronology.getInstanceUTC());
+
+        private ExtractQuarter() {
+        }
 
         @Override
         public int evaluate(long value) {
@@ -203,8 +273,12 @@ public class ExtractFunctions {
 
     private static class ExtractMonth extends GenericExtractFunction {
 
-        public static final FunctionInfo INFO = createFunctionInfo(Extract.Field.MONTH);
+        private static final FunctionInfo INFO = createFunctionInfo(Extract.Field.MONTH);
         private static final DateTimeField MONTH = ISOChronology.getInstanceUTC().monthOfYear();
+        public static final ExtractMonth INSTANCE = new ExtractMonth();
+
+        private ExtractMonth() {
+        }
 
         @Override
         public int evaluate(long value) {
@@ -225,7 +299,11 @@ public class ExtractFunctions {
     private static class ExtractWeek extends GenericExtractFunction {
 
         public static final FunctionInfo INFO = createFunctionInfo(Extract.Field.WEEK);
-        private static final DateTimeField WEEK_OF_WEEK_YEAR = ISOChronology.getInstanceUTC().weekOfWeekyear();
+        static final DateTimeField WEEK_OF_WEEK_YEAR = ISOChronology.getInstanceUTC().weekOfWeekyear();
+        public static final ExtractWeek INSTANCE = new ExtractWeek();
+
+        private ExtractWeek() {
+        }
 
         @Override
         public int evaluate(long value) {
@@ -245,8 +323,12 @@ public class ExtractFunctions {
 
     private static class ExtractDayOfMonth extends GenericExtractFunction {
 
-        public static final FunctionInfo INFO = createFunctionInfo(Extract.Field.DAY_OF_MONTH);
+        private static final FunctionInfo INFO = createFunctionInfo(Extract.Field.DAY_OF_MONTH);
         private static final DateTimeField DAY_OF_MONTH = ISOChronology.getInstanceUTC().dayOfMonth();
+        public static final ExtractDayOfMonth INSTANCE = new ExtractDayOfMonth();
+
+        private ExtractDayOfMonth() {
+        }
 
         @Override
         public int evaluate(long value) {
@@ -266,8 +348,9 @@ public class ExtractFunctions {
 
     private static class ExtractDayOfWeek extends GenericExtractFunction {
 
-        public static final FunctionInfo INFO = createFunctionInfo(Extract.Field.DAY_OF_WEEK);
+        private static final FunctionInfo INFO = createFunctionInfo(Extract.Field.DAY_OF_WEEK);
         private static final DateTimeField DAY_OF_WEEK = ISOChronology.getInstanceUTC().dayOfWeek();
+        public static final ExtractDayOfWeek INSTANCE = new ExtractDayOfWeek();
 
         @Override
         public int evaluate(long value) {
@@ -287,8 +370,12 @@ public class ExtractFunctions {
 
     private static class ExtractSecond extends GenericExtractFunction {
 
-        public static final FunctionInfo INFO = createFunctionInfo(Extract.Field.SECOND);
+        private static final FunctionInfo INFO = createFunctionInfo(Extract.Field.SECOND);
         private static final DateTimeField SECOND_OF_MINUTE = ISOChronology.getInstanceUTC().secondOfMinute();
+        public static final ExtractSecond INSTANCE = new ExtractSecond();
+
+        private ExtractSecond() {
+        }
 
         @Override
         public int evaluate(long value) {
@@ -308,8 +395,12 @@ public class ExtractFunctions {
 
     private static class ExtractMinute extends GenericExtractFunction {
 
-        public static final FunctionInfo INFO = createFunctionInfo(Extract.Field.MINUTE);
+        private static final FunctionInfo INFO = createFunctionInfo(Extract.Field.MINUTE);
         private static final DateTimeField MINUTE_OF_HOUR = ISOChronology.getInstanceUTC().minuteOfHour();
+        public static final ExtractMinute INSTANCE = new ExtractMinute();
+
+        private ExtractMinute() {
+        }
 
         @Override
         public int evaluate(long value) {
@@ -329,8 +420,12 @@ public class ExtractFunctions {
 
     private static class ExtractHour extends GenericExtractFunction {
 
-        public static final FunctionInfo INFO = createFunctionInfo(Extract.Field.HOUR);
+        private static final FunctionInfo INFO = createFunctionInfo(Extract.Field.HOUR);
         private static final DateTimeField HOUR_OF_DAY = ISOChronology.getInstanceUTC().hourOfDay();
+        public static final ExtractHour INSTANCE = new ExtractHour();
+
+        private ExtractHour() {
+        }
 
         @Override
         public int evaluate(long value) {
@@ -350,8 +445,12 @@ public class ExtractFunctions {
 
     private static class ExtractDayOfYear extends GenericExtractFunction {
 
-        public static final FunctionInfo INFO = createFunctionInfo(Extract.Field.DAY_OF_YEAR);
+        private static final FunctionInfo INFO = createFunctionInfo(Extract.Field.DAY_OF_YEAR);
         private static final DateTimeField DAY_OF_YEAR = ISOChronology.getInstanceUTC().dayOfYear();
+        private static final ExtractDayOfYear INSTANCE = new ExtractDayOfYear();
+
+        private ExtractDayOfYear() {
+        }
 
         @Override
         public int evaluate(long value) {

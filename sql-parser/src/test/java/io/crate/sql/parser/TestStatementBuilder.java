@@ -27,7 +27,9 @@ import io.crate.sql.Literals;
 import io.crate.sql.SqlFormatter;
 import io.crate.sql.tree.*;
 import org.antlr.runtime.tree.CommonTree;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 
 import java.io.IOException;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -42,9 +44,19 @@ import static org.junit.Assert.*;
 
 public class TestStatementBuilder {
 
+    @Rule
+    public ExpectedException expectedException = ExpectedException.none();
+
     @Test
     public void testBegin() throws Exception {
         printStatement("BEGIN");
+    }
+
+    @Test
+    public void testNullNotAllowedAsArgToExtractField() throws Exception {
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("field must be an ident, a string literal or a parameter expression");
+        printStatement("select extract(null from x) from y");
     }
 
     @Test

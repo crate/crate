@@ -35,7 +35,7 @@ public class ExtractFunctionsTest extends AbstractScalarFunctionsTest {
     String D_2014_02_15___21_33_23 = "2014-02-15T21:33:23";
 
     private void assertEval(Extract.Field field, String datetimeString, int expected) {
-        Scalar scalar = (Scalar) functions.get(ExtractFunctions.functionInfo(field).ident());
+        Scalar scalar = (Scalar) functions.get(ExtractFunctions.getScalar(field).info().ident());
         @SuppressWarnings("unchecked") Integer actual =
             (Integer) scalar.evaluate(Literal.of(DataTypes.TIMESTAMP, DataTypes.TIMESTAMP.value(datetimeString)));
         assertThat(actual, is(expected));
@@ -43,7 +43,7 @@ public class ExtractFunctionsTest extends AbstractScalarFunctionsTest {
 
     @Test
     public void testYayNullValue() throws Exception {
-        Scalar scalar = (Scalar) functions.get(ExtractFunctions.functionInfo(Extract.Field.DAY).ident());
+        Scalar scalar = (Scalar) functions.get(ExtractFunctions.getScalar(Extract.Field.DAY).info().ident());
         @SuppressWarnings("unchecked") Long result = (Long) scalar.evaluate(Literal.of(DataTypes.TIMESTAMP, null));
         assertThat(result, Matchers.nullValue());
     }
