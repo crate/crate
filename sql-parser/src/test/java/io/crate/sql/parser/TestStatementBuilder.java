@@ -398,6 +398,7 @@ public class TestStatementBuilder {
         printStatement("set local some_setting TO DEFAULT");
         printStatement("set local some_setting TO 'value'");
         printStatement("set local some_setting TO 1, 2, 3");
+        printStatement("set local some_setting = 'on'");
 
     }
 
