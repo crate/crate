@@ -1946,9 +1946,6 @@ public class SelectStatementAnalyzerTest extends BaseAnalyzerTest {
         assertThat(stmt.relation().querySpec().outputs(), contains(isReference("col1")));
     }
 
-
-    /*
-     TODO: add set cast functions - this only worked because we bypassed cast function lookup for literal conversion
     @Test
     public void testCollectSetCanBeUsedInHaving() throws Exception {
         SelectAnalyzedStatement stmt = analyze(
@@ -1961,5 +1958,4 @@ public class SelectStatementAnalyzerTest extends BaseAnalyzerTest {
         assertThat(stmt.relation().querySpec().having().get().query(),
             isSQL("(NOT (collect_set(sys.shards.recovery['size']['percent']) = [100.0]))"));
     }
-    */
 }

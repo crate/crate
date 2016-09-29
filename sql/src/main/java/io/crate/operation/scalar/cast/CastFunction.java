@@ -138,13 +138,7 @@ public class CastFunction extends Scalar<Object, Object> implements FunctionForm
     }
 
     public static void register(ScalarFunctionModule module) {
-        for (Map.Entry<DataType, String> function : CastFunctionResolver.ARRAY_FUNCTION_MAP.entrySet()) {
-            module.register(function.getValue(), new Resolver(function.getKey(), function.getValue()));
-        }
-        for (Map.Entry<DataType, String> function : CastFunctionResolver.PRIMITIVE_FUNCTION_MAP.entrySet()) {
-            module.register(function.getValue(), new Resolver(function.getKey(), function.getValue()));
-        }
-        for (Map.Entry<DataType, String> function : CastFunctionResolver.GEO_FUNCTION_MAP.entrySet()) {
+        for (Map.Entry<DataType, String> function : CastFunctionResolver.FUNCTION_MAP.entrySet()) {
             module.register(function.getValue(), new Resolver(function.getKey(), function.getValue()));
         }
     }
