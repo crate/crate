@@ -152,13 +152,13 @@ public class UpdateAnalyzerTest extends BaseAnalyzerTest {
     }
 
     protected UpdateAnalyzedStatement analyze(String statement, Object[] params) {
-        return (UpdateAnalyzedStatement) analyzer.analyze(SqlParser.createStatement(statement),
+        return (UpdateAnalyzedStatement) analyzer.boundAnalyze(SqlParser.createStatement(statement),
             SessionContext.SYSTEM_SESSION,
             new ParameterContext(new RowN(params), Collections.<Row>emptyList())).analyzedStatement();
     }
 
     protected UpdateAnalyzedStatement analyze(String statement, Object[][] bulkArgs) {
-        return (UpdateAnalyzedStatement) analyzer.analyze(SqlParser.createStatement(statement),
+        return (UpdateAnalyzedStatement) analyzer.boundAnalyze(SqlParser.createStatement(statement),
             SessionContext.SYSTEM_SESSION,
             new ParameterContext(Row.EMPTY, Rows.of(bulkArgs))).analyzedStatement();
     }

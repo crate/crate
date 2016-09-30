@@ -150,7 +150,7 @@ public class NestedLoopConsumerTest extends CrateUnitTest {
     }
 
     public <T> T plan(String statement) {
-        Analysis analysis = analyzer.analyze(
+        Analysis analysis = analyzer.boundAnalyze(
             SqlParser.createStatement(statement),
             SessionContext.SYSTEM_SESSION,
             ParameterContext.EMPTY);

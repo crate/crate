@@ -227,7 +227,7 @@ public class WhereClauseAnalyzerTest extends CrateUnitTest {
     }
 
     private DeleteAnalyzedStatement analyzeDelete(String stmt, Object[][] bulkArgs) {
-        return (DeleteAnalyzedStatement) analyzer.analyze(SqlParser.createStatement(stmt),
+        return (DeleteAnalyzedStatement) analyzer.boundAnalyze(SqlParser.createStatement(stmt),
             SessionContext.SYSTEM_SESSION,
             new ParameterContext(Row.EMPTY, Rows.of(bulkArgs))).analyzedStatement();
     }
@@ -237,13 +237,13 @@ public class WhereClauseAnalyzerTest extends CrateUnitTest {
     }
 
     private UpdateAnalyzedStatement analyzeUpdate(String stmt) {
-        return (UpdateAnalyzedStatement) analyzer.analyze(SqlParser.createStatement(stmt),
+        return (UpdateAnalyzedStatement) analyzer.boundAnalyze(SqlParser.createStatement(stmt),
             SessionContext.SYSTEM_SESSION,
             new ParameterContext(Row.EMPTY, Collections.<Row>emptyList())).analyzedStatement();
     }
 
     private WhereClause analyzeSelect(String stmt, Object... args) {
-        SelectAnalyzedStatement statement = (SelectAnalyzedStatement) analyzer.analyze(SqlParser.createStatement(stmt),
+        SelectAnalyzedStatement statement = (SelectAnalyzedStatement) analyzer.boundAnalyze(SqlParser.createStatement(stmt),
             SessionContext.SYSTEM_SESSION,
             new ParameterContext(new RowN(args), Collections.<Row>emptyList())).analyzedStatement();
         return statement.relation().querySpec().where();

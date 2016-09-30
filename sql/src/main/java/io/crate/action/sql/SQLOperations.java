@@ -23,6 +23,7 @@
 package io.crate.action.sql;
 
 import io.crate.analyze.Analyzer;
+import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.symbol.Field;
 import io.crate.concurrent.CompletionListener;
 import io.crate.exceptions.Exceptions;
@@ -210,13 +211,17 @@ public class SQLOperations {
                     return portal.describe();
                 case 'S':
                     /*
-                     * describe might be called without prior bind call. E.g. in batch insert case the statement is prepared first:
+                     * describe might be called without prior bind call.
+                     *
+                     * If the client uses server-side prepared statements this is usually the case.
+                     *
+                     * E.g. the statement is first prepared:
                      *
                      *      parse stmtName=S_1 query=insert into t (x) values ($1) paramTypes=[integer]
                      *      describe type=S portalOrStatement=S_1
                      *      sync
                      *
-                     * and then per batch:
+                     * and then used with different bind calls:
                      *
                      *      bind portalName= statementName=S_1 params=[0]
                      *      describe type=P portalOrStatement=
@@ -225,18 +230,21 @@ public class SQLOperations {
                      *      bind portalName= statementName=S_1 params=[1]
                      *      describe type=P portalOrStatement=
                      *      execute
-                     *
-                     * and finally:
-                     *
-                     *      sync
-                     *
-                     * Returning null (= "NoData") is correct for insert statements but will cause errors
-                     * in JDBC since 9.4.1210
-                     *
-                     * To prevent describe calls without prior bind calls
-                     * it's necessary to set prepareThreshold to 0 in the Connection properties.
                      */
-                    return null;
+                    PreparedStmt preparedStmt = preparedStatements.get(portalOrStatement);
+                    Statement statement = preparedStmt.statement();
+
+                    AnalyzedRelation analyzedRelation;
+                    try {
+                        analyzedRelation = analyzer.unboundAnalyze(statement, sessionContext, preparedStmt.paramTypes());
+                    } catch (Throwable t) {
+                        throw Exceptions.createSQLActionException(t);
+                    }
+                    if (analyzedRelation == null) {
+                        // statement without result set -> return null for NoData msg
+                        return null;
+                    }
+                    return analyzedRelation.fields();
             }
             throw new AssertionError("Unsupported type: " + type);
         }

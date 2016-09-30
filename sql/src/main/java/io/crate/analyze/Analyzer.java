@@ -21,15 +21,26 @@
 package io.crate.analyze;
 
 import io.crate.action.sql.SessionContext;
+import io.crate.analyze.relations.AnalyzedRelation;
+import io.crate.analyze.relations.AnalyzedRelationVisitor;
+import io.crate.analyze.relations.QueriedRelation;
+import io.crate.analyze.relations.RelationAnalyzer;
+import io.crate.analyze.symbol.Field;
+import io.crate.exceptions.ColumnUnknownException;
+import io.crate.metadata.Path;
+import io.crate.metadata.table.Operation;
 import io.crate.sql.tree.*;
 import org.elasticsearch.common.inject.Inject;
 
+import javax.annotation.Nonnull;
+import java.util.List;
 import java.util.Locale;
 
 public class Analyzer {
 
     private final AnalyzerDispatcher dispatcher = new AnalyzerDispatcher();
 
+    private final RelationAnalyzer relationAnalyzer;
     private final DropTableStatementAnalyzer dropTableStatementAnalyzer;
     private final CreateTableStatementAnalyzer createTableStatementAnalyzer;
     private final ShowCreateTableAnalyzer showCreateTableAnalyzer;
@@ -46,7 +57,6 @@ public class Analyzer {
     private final InsertFromValuesAnalyzer insertFromValuesAnalyzer;
     private final InsertFromSubQueryAnalyzer insertFromSubQueryAnalyzer;
     private final CopyStatementAnalyzer copyStatementAnalyzer;
-    private final SelectStatementAnalyzer selectStatementAnalyzer;
     private final UpdateStatementAnalyzer updateStatementAnalyzer;
     private final DeleteStatementAnalyzer deleteStatementAnalyzer;
     private final DropRepositoryStatementAnalyzer dropRepositoryAnalyzer;
@@ -54,9 +64,10 @@ public class Analyzer {
     private final DropSnapshotAnalyzer dropSnapshotAnalyzer;
     private final CreateSnapshotStatementAnalyzer createSnapshotStatementAnalyzer;
     private final RestoreSnapshotStatementAnalyzer restoreSnapshotStatementAnalyzer;
+    private final UnboundAnalyzer unboundAnalyzer;
 
     @Inject
-    public Analyzer(SelectStatementAnalyzer selectStatementAnalyzer,
+    public Analyzer(RelationAnalyzer relationAnalyzer,
                     DropTableStatementAnalyzer dropTableStatementAnalyzer,
                     CreateTableStatementAnalyzer createTableStatementAnalyzer,
                     ShowCreateTableAnalyzer showCreateTableAnalyzer,
@@ -78,12 +89,13 @@ public class Analyzer {
                     DropSnapshotAnalyzer dropSnapshotAnalyzer,
                     CreateSnapshotStatementAnalyzer createSnapshotStatementAnalyzer,
                     RestoreSnapshotStatementAnalyzer restoreSnapshotStatementAnalyzer) {
-        this.selectStatementAnalyzer = selectStatementAnalyzer;
+        this.relationAnalyzer = relationAnalyzer;
         this.dropTableStatementAnalyzer = dropTableStatementAnalyzer;
         this.createTableStatementAnalyzer = createTableStatementAnalyzer;
         this.showCreateTableAnalyzer = showCreateTableAnalyzer;
         this.explainStatementAnalyzer = new ExplainStatementAnalyzer(this);
         this.showStatementAnalyzer = new ShowStatementAnalyzer(this);
+        this.unboundAnalyzer = new UnboundAnalyzer(relationAnalyzer, showCreateTableAnalyzer, showStatementAnalyzer);
         this.createBlobTableStatementAnalyzer = createBlobTableStatementAnalyzer;
         this.createAnalyzerStatementAnalyzer = createAnalyzerStatementAnalyzer;
         this.dropBlobTableStatementAnalyzer = dropBlobTableStatementAnalyzer;
@@ -104,11 +116,15 @@ public class Analyzer {
         this.restoreSnapshotStatementAnalyzer = restoreSnapshotStatementAnalyzer;
     }
 
-    public Analysis analyze(Statement statement, SessionContext sessionContext, ParameterContext parameterContext) {
-        Analysis analysis = new Analysis(sessionContext, parameterContext);
+    public Analysis boundAnalyze(Statement statement, SessionContext sessionContext, ParameterContext parameterContext) {
+        Analysis analysis = new Analysis(sessionContext, parameterContext, ParamTypeHints.EMPTY);
         AnalyzedStatement analyzedStatement = analyzedStatement(statement, analysis);
         analysis.analyzedStatement(analyzedStatement);
         return analysis;
+    }
+
+    public AnalyzedRelation unboundAnalyze(Statement statement, SessionContext sessionContext, ParamTypeHints paramTypeHints) {
+        return unboundAnalyzer.analyze(statement, sessionContext, paramTypeHints);
     }
 
     AnalyzedStatement analyzedStatement(Statement statement, Analysis analysis) {
@@ -117,12 +133,13 @@ public class Analyzer {
         return analyzedStatement;
     }
 
-
     private class AnalyzerDispatcher extends AstVisitor<AnalyzedStatement, Analysis> {
 
         @Override
         protected AnalyzedStatement visitQuery(Query node, Analysis analysis) {
-            return selectStatementAnalyzer.process(node, analysis);
+            AnalyzedRelation relation = relationAnalyzer.analyze(node.getQueryBody(), analysis);
+            analysis.rootRelation(relation);
+            return new SelectAnalyzedStatement((QueriedRelation) relation);
         }
 
         @Override
@@ -178,7 +195,7 @@ public class Analyzer {
 
         @Override
         public AnalyzedStatement visitShowTransaction(ShowTransaction showTransaction, Analysis context) {
-            return showStatementAnalyzer.analyze(showTransaction, context);
+            return showStatementAnalyzer.analyzeShowTransaction(context);
         }
 
         public AnalyzedStatement visitShowTables(ShowTables node, Analysis analysis) {

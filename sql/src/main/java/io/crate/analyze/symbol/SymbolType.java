@@ -41,7 +41,8 @@ public enum SymbolType {
     RELATION_COLUMN(RelationColumn.FACTORY),
     INDEX_REFERENCE(IndexReference.FACTORY),
     GEO_REFERENCE(GeoReference.FACTORY),
-    GENERATED_REFERENCE(GeneratedReference.FACTORY);
+    GENERATED_REFERENCE(GeneratedReference.FACTORY),
+    PARAMETER(ParameterSymbol.FACTORY);
 
     private final Symbol.SymbolFactory factory;
 

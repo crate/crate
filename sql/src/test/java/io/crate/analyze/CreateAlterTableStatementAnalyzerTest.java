@@ -703,7 +703,7 @@ public class CreateAlterTableStatementAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void testExplicitSchemaHasPrecedenceOverDefaultSchema() throws Exception {
-        CreateTableAnalyzedStatement statement = (CreateTableAnalyzedStatement) analyzer.analyze(
+        CreateTableAnalyzedStatement statement = (CreateTableAnalyzedStatement) analyzer.boundAnalyze(
             SqlParser.createStatement("create table foo.bar (x string)"),
             new SessionContext(0, Option.NONE, "hoschi"),
             new ParameterContext(Row.EMPTY, Collections.<Row>emptyList())).analyzedStatement();
@@ -714,7 +714,7 @@ public class CreateAlterTableStatementAnalyzerTest extends BaseAnalyzerTest {
 
     @Test
     public void testDefaultSchemaIsAddedToTableIdentIfNoEplicitSchemaExistsInTheStatement() throws Exception {
-        CreateTableAnalyzedStatement statement = (CreateTableAnalyzedStatement) analyzer.analyze(
+        CreateTableAnalyzedStatement statement = (CreateTableAnalyzedStatement) analyzer.boundAnalyze(
             SqlParser.createStatement("create table bar (x string)"),
             new SessionContext(0, Option.NONE, "hoschi"),
             new ParameterContext(Row.EMPTY, Collections.<Row>emptyList())).analyzedStatement();

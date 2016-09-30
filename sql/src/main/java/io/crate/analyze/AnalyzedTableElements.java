@@ -28,6 +28,7 @@ import com.google.common.collect.Lists;
 import io.crate.action.sql.SessionContext;
 import io.crate.analyze.expressions.ExpressionAnalysisContext;
 import io.crate.analyze.expressions.ExpressionAnalyzer;
+import io.crate.analyze.expressions.ParamToLiteral;
 import io.crate.analyze.expressions.TableReferenceResolver;
 import io.crate.analyze.symbol.Function;
 import io.crate.analyze.symbol.Symbol;
@@ -239,7 +240,7 @@ public class AnalyzedTableElements {
 
         TableReferenceResolver tableReferenceResolver = new TableReferenceResolver(tableReferences);
         ExpressionAnalyzer expressionAnalyzer = new ExpressionAnalyzer(
-            analysisMetaData, sessionContext, parameterContext, tableReferenceResolver, null);
+            analysisMetaData, sessionContext, new ParamToLiteral(parameterContext), tableReferenceResolver, null);
         SymbolPrinter printer = new SymbolPrinter(analysisMetaData.functions());
         ExpressionAnalysisContext expressionAnalysisContext = new ExpressionAnalysisContext(stmtCtx);
         for (AnalyzedColumnDefinition columnDefinition : columns) {

@@ -25,9 +25,12 @@ import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
+import io.crate.action.sql.SessionContext;
 import io.crate.analyze.*;
 import io.crate.analyze.expressions.ExpressionAnalysisContext;
 import io.crate.analyze.expressions.ExpressionAnalyzer;
+import io.crate.analyze.expressions.ParamToLiteral;
+import io.crate.analyze.expressions.ParamToParamSymbol;
 import io.crate.analyze.relations.select.SelectAnalyzer;
 import io.crate.analyze.symbol.*;
 import io.crate.analyze.symbol.Literal;
@@ -84,9 +87,26 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
             relationAnalysisContext.stmtCtx());
     }
 
+    public AnalyzedRelation analyzeUnbound(Query query, SessionContext sessionContext, ParamTypeHints paramTypeHints) {
+        return process(query, new StatementAnalysisContext(
+            sessionContext,
+            new ParamToParamSymbol(paramTypeHints),
+            null,
+            analysisMetaData,
+            Operation.READ));
+    }
+
     public AnalyzedRelation analyze(Node node, Analysis analysis) {
-        return analyze(node, new StatementAnalysisContext(
-            analysis.sessionContext(), analysis.parameterContext(), analysis.statementContext(), analysisMetaData));
+        return analyze(
+            node,
+            new StatementAnalysisContext(
+                analysis.sessionContext(),
+                new ParamToLiteral(analysis.parameterContext()),
+                analysis.statementContext(),
+                analysisMetaData,
+                Operation.READ
+            )
+        );
     }
 
     @Override
@@ -435,7 +455,7 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
     public AnalyzedRelation visitTableFunction(TableFunction node, StatementAnalysisContext statementContext) {
         RelationAnalysisContext context = statementContext.currentRelationContext();
         ExpressionAnalyzer expressionAnalyzer = new ExpressionAnalyzer(
-            analysisMetaData, statementContext.sessionContext(), statementContext.parameterContext(), new FieldProvider() {
+            analysisMetaData, statementContext.sessionContext(), statementContext.convertParamFunction(), new FieldProvider() {
             @Override
             public Symbol resolveField(QualifiedName qualifiedName, Operation operation) {
                 throw new UnsupportedOperationException("Can only resolve literals");

@@ -20,47 +20,28 @@
  * agreement.
  */
 
-package io.crate.action.sql;
+package io.crate.analyze.expressions;
 
-import io.crate.analyze.ParamTypeHints;
-import io.crate.analyze.relations.AnalyzedRelation;
-import io.crate.sql.tree.Statement;
-import io.crate.types.DataType;
+import io.crate.analyze.ParameterContext;
+import io.crate.analyze.symbol.Symbol;
+import io.crate.sql.tree.ParameterExpression;
 
 import javax.annotation.Nullable;
-import java.util.List;
 
-public class PreparedStmt {
+public class ParamToLiteral implements com.google.common.base.Function<ParameterExpression, Symbol> {
 
-    private final Statement statement;
-    private final String query;
-    private final ParamTypeHints paramTypes;
-    private AnalyzedRelation relation;
+    private final ParameterContext parameterContext;
 
-    public PreparedStmt(Statement statement, String query, List<DataType> paramTypes) {
-        this.statement = statement;
-        this.query = query;
-        this.paramTypes = new ParamTypeHints(paramTypes);
-    }
-
-    public Statement statement() {
-        return statement;
-    }
-
-    public ParamTypeHints paramTypes() {
-        return paramTypes;
-    }
-
-    public String query() {
-        return query;
+    public ParamToLiteral(ParameterContext parameterContext) {
+        this.parameterContext = parameterContext;
     }
 
     @Nullable
-    public AnalyzedRelation relation() {
-        return relation;
-    }
-
-    public void relation(AnalyzedRelation relation) {
-        this.relation = relation;
+    @Override
+    public Symbol apply(@Nullable ParameterExpression input) {
+        if (input == null) {
+            return null;
+        }
+        return parameterContext.getAsSymbol(input.index());
     }
 }

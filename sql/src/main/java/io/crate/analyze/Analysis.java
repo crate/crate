@@ -31,11 +31,13 @@ public class Analysis {
     private final StmtCtx stmtCtx;
 
     private final SessionContext sessionContext;
+    private final ParamTypeHints paramTypeHints;
     private AnalyzedStatement analyzedStatement;
     private AnalyzedRelation rootRelation;
 
-    public Analysis(SessionContext sessionContext, ParameterContext parameterContext) {
+    public Analysis(SessionContext sessionContext, ParameterContext parameterContext, ParamTypeHints paramTypeHints) {
         this.sessionContext = sessionContext;
+        this.paramTypeHints = paramTypeHints;
         this.stmtCtx = new StmtCtx();
         this.parameterContext = parameterContext;
     }
@@ -66,5 +68,9 @@ public class Analysis {
 
     public SessionContext sessionContext() {
         return sessionContext;
+    }
+
+    public ParamTypeHints paramTypeHints() {
+        return paramTypeHints;
     }
 }

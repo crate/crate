@@ -20,47 +20,29 @@
  * agreement.
  */
 
-package io.crate.action.sql;
+package io.crate.analyze.expressions;
 
 import io.crate.analyze.ParamTypeHints;
-import io.crate.analyze.relations.AnalyzedRelation;
-import io.crate.sql.tree.Statement;
-import io.crate.types.DataType;
+import io.crate.analyze.symbol.ParameterSymbol;
+import io.crate.analyze.symbol.Symbol;
+import io.crate.sql.tree.ParameterExpression;
 
 import javax.annotation.Nullable;
-import java.util.List;
 
-public class PreparedStmt {
+public class ParamToParamSymbol implements com.google.common.base.Function<ParameterExpression, Symbol> {
 
-    private final Statement statement;
-    private final String query;
-    private final ParamTypeHints paramTypes;
-    private AnalyzedRelation relation;
+    private final ParamTypeHints typeHints;
 
-    public PreparedStmt(Statement statement, String query, List<DataType> paramTypes) {
-        this.statement = statement;
-        this.query = query;
-        this.paramTypes = new ParamTypeHints(paramTypes);
-    }
-
-    public Statement statement() {
-        return statement;
-    }
-
-    public ParamTypeHints paramTypes() {
-        return paramTypes;
-    }
-
-    public String query() {
-        return query;
+    public ParamToParamSymbol(ParamTypeHints typeHints) {
+        this.typeHints = typeHints;
     }
 
     @Nullable
-    public AnalyzedRelation relation() {
-        return relation;
-    }
-
-    public void relation(AnalyzedRelation relation) {
-        this.relation = relation;
+    @Override
+    public Symbol apply(@Nullable ParameterExpression input) {
+        if (input == null) {
+            return null;
+        }
+        return new ParameterSymbol(input.index(), typeHints.get(input.index()));
     }
 }

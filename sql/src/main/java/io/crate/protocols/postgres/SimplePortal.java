@@ -119,7 +119,7 @@ public class SimplePortal extends AbstractPortal {
         this.params = params;
         this.resultFormatCodes = resultFormatCodes;
         if (analysis == null) {
-            analysis = portalContext.getAnalyzer().analyze(
+            analysis = portalContext.getAnalyzer().boundAnalyze(
                 statement,
                 sessionContext,
                 new ParameterContext(new RowN(params.toArray()), Collections.<Row>emptyList()));
@@ -262,7 +262,7 @@ public class SimplePortal extends AbstractPortal {
 
         private void retry() {
             LOGGER.debug("Retrying statement due to a shard failure, attempt={}, jobId={}", attempt, jobId);
-            Analysis analysis = analyzer.analyze(portal.statement, sessionContext,
+            Analysis analysis = analyzer.boundAnalyze(portal.statement, sessionContext,
                 new ParameterContext(new RowN(portal.params.toArray()), Collections.<Row>emptyList()));
             Plan plan = planner.plan(analysis, jobId, 0, portal.maxRows);
             executor.execute(plan, portal.rowReceiver);

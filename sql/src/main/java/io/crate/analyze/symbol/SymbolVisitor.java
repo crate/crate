@@ -79,5 +79,9 @@ public class SymbolVisitor<C, R> {
     public R visitFetchReference(FetchReference fetchReference, C context) {
         return visitSymbol(fetchReference, context);
     }
+
+    public R visitParameterSymbol(ParameterSymbol parameterSymbol, C context) {
+        return visitSymbol(parameterSymbol, context);
+    }
 }
 
