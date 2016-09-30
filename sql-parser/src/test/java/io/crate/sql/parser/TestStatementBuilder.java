@@ -481,8 +481,8 @@ public class TestStatementBuilder {
                                             "properties=Optional.absent(), " +
                                             "tableList=Optional.of(" +
                                             "[Table{only=false, authors, partitionProperties=[" + "" +
-                                            "Assignment{column=\"year\", expression=2015}, " +
-                                            "Assignment{column=\"year\", expression=2014}]}, " +
+                                            "Assignment{column=\"year\", expressions=[2015]}, " +
+                                            "Assignment{column=\"year\", expressions=[2014]}]}, " +
                                             "Table{only=false, books, partitionProperties=[]}])}"));
 
         statement = SqlParser.createStatement("DROP SNAPSHOT my_repo.my_snapshot");
@@ -500,8 +500,8 @@ public class TestStatementBuilder {
                                             "properties=Optional.of({wait_for_completion=true}), " +
                                             "tableList=Optional.of(" +
                                             "[Table{only=false, authors, partitionProperties=[" + "" +
-                                            "Assignment{column=\"year\", expression=2015}, " +
-                                            "Assignment{column=\"year\", expression=2014}]}, " +
+                                            "Assignment{column=\"year\", expressions=[2015]}, " +
+                                            "Assignment{column=\"year\", expressions=[2014]}]}, " +
                                             "Table{only=false, books, partitionProperties=[]}])}"));
         statement = SqlParser.createStatement("RESTORE SNAPSHOT my_repo.my_snapshot ALL");
         assertThat(statement.toString(), is("RestoreSnapshot{" +
