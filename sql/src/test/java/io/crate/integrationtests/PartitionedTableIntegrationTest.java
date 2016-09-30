@@ -54,6 +54,7 @@ import org.junit.rules.TemporaryFolder;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
+import java.net.URISyntaxException;
 import java.nio.file.Paths;
 import java.util.*;
 
@@ -65,11 +66,13 @@ import static org.hamcrest.core.Is.is;
 public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest {
 
     private Setup setup = new Setup(sqlExecutor);
-
-    private String copyFilePath = getClass().getResource("/essetup/data/copy").getPath();
+    private String copyFilePath = Paths.get(getClass().getResource("/essetup/data/copy").toURI()).toUri().toString();
 
     @Rule
     public TemporaryFolder folder = new TemporaryFolder();
+
+    public PartitionedTableIntegrationTest() throws URISyntaxException {
+    }
 
     @After
     public void resetSettings() throws Exception {
@@ -85,8 +88,7 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
                 "quote string index using fulltext" +
                 ") partitioned by (date) with (number_of_replicas=0)");
         ensureYellow();
-        String uriPath = Joiner.on("/").join(copyFilePath, "test_copy_from.json");
-        execute("copy quotes partition (date=1400507539938) from ?", new Object[]{uriPath});
+        execute("copy quotes partition (date=1400507539938) from ?", new Object[]{copyFilePath + "test_copy_from.json"});
         assertEquals(3L, response.rowCount());
         refresh();
         execute("select id, date, quote from quotes order by id asc");
@@ -98,7 +100,7 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
         execute("select count(*) from information_schema.table_partitions where table_name = 'quotes'");
         assertThat((Long) response.rows()[0][0], is(1L));
 
-        execute("copy quotes partition (date=1800507539938) from ?", new Object[]{uriPath});
+        execute("copy quotes partition (date=1800507539938) from ?", new Object[]{copyFilePath + "test_copy_from.json"});
         refresh();
 
         execute("select partition_ident from information_schema.table_partitions " +
@@ -124,8 +126,7 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
                 ") partitioned by (id)");
         ensureYellow();
 
-        String uriPath = Joiner.on("/").join(copyFilePath, "test_copy_from.json");
-        execute("copy quotes from ?", new Object[]{uriPath});
+        execute("copy quotes from ?", new Object[]{copyFilePath + "test_copy_from.json"});
         assertEquals(3L, response.rowCount());
         refresh();
         ensureYellow();
@@ -158,7 +159,7 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
                 "{\"id\":1, \"month\":1425168000000, \"created\":1425901500000}\n" +
                 "{\"id\":2, \"month\":1420070400000,\"created\":1425901460000}");
         }
-        String uriPath = Paths.get(copyFromFile.toURI()).toString();
+        String uriPath = Paths.get(copyFromFile.toURI()).toUri().toString();
 
         execute("copy my_schema.parted from ? with (shared=true)", new Object[]{uriPath});
         assertEquals(2L, response.rowCount());

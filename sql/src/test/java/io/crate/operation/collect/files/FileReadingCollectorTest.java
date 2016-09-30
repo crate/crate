@@ -27,7 +27,6 @@ import com.amazonaws.services.s3.model.ObjectListing;
 import com.amazonaws.services.s3.model.S3Object;
 import com.amazonaws.services.s3.model.S3ObjectInputStream;
 import com.amazonaws.services.s3.model.S3ObjectSummary;
-import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableMap;
 import io.crate.core.collections.Bucket;
 import io.crate.core.collections.Row;
@@ -135,8 +134,8 @@ public class FileReadingCollectorTest extends CrateUnitTest {
     @Test
     public void testNoErrorIfNoSuchFile() throws Throwable {
         // no error, -> don't want to fail just because one node doesn't have a file
-        getObjects("/some/path/that/shouldnt/exist/foo.json");
-        getObjects("/some/path/that/shouldnt/exist/*");
+        getObjects("file:///some/path/that/shouldnt/exist/foo.json");
+        getObjects("file:///some/path/that/shouldnt/exist/*");
     }
 
     @Test(expected = IllegalArgumentException.class)
@@ -147,13 +146,13 @@ public class FileReadingCollectorTest extends CrateUnitTest {
 
     @Test
     public void testCollectFromUriWithGlob() throws Throwable {
-        CollectingRowReceiver projector = getObjects(resolveURI(tmpFile.getParentFile(), "file*.json"));
+        CollectingRowReceiver projector = getObjects(Paths.get(tmpFile.getParentFile().toURI()).toUri().toString() + "file*.json");
         assertCorrectResult(projector.result());
     }
 
     @Test
     public void testCollectFromDirectory() throws Throwable {
-        CollectingRowReceiver projector = getObjects(resolveURI(tmpFile.getParentFile(), "*"));
+        CollectingRowReceiver projector = getObjects(Paths.get(tmpFile.getParentFile().toURI()).toUri().toString() + "*");
         assertCorrectResult(projector.result());
     }
 
@@ -203,8 +202,8 @@ public class FileReadingCollectorTest extends CrateUnitTest {
     @Test
     public void testMultipleUriSupport() throws Throwable {
         List<String> fileUris = new ArrayList<>();
-        fileUris.add(tmpFile.getCanonicalPath());
-        fileUris.add(tmpFileEmptyLine.getCanonicalPath());
+        fileUris.add(Paths.get(tmpFile.toURI()).toUri().toString());
+        fileUris.add(Paths.get(tmpFileEmptyLine.toURI()).toUri().toString());
         CollectingRowReceiver projector = getObjects(fileUris, null);
         Iterator<Row> it = projector.result().iterator();
         assertThat(it.next(), isRow("{\"name\": \"Arthur\", \"id\": 4, \"details\": {\"age\": 38}}"));
@@ -217,8 +216,8 @@ public class FileReadingCollectorTest extends CrateUnitTest {
     public void testRowReceiverDontWantMoreStopsCollectingMultipleUris() throws Throwable {
         CollectingRowReceiver rowReceiver = CollectingRowReceiver.withLimit(1);
         List<String> fileUris = new ArrayList<>();
-        fileUris.add(tmpFile.getCanonicalPath());
-        fileUris.add(tmpFileEmptyLine.getCanonicalPath());
+        fileUris.add(Paths.get(tmpFile.toURI()).toUri().toString());
+        fileUris.add(Paths.get(tmpFileEmptyLine.toURI()).toUri().toString());
         getObjects(fileUris, null, null, rowReceiver);
         Iterator<Row> it = rowReceiver.result().iterator();
         assertThat(it.next(), isRow("{\"name\": \"Arthur\", \"id\": 4, \"details\": {\"age\": 38}}"));
@@ -289,24 +288,6 @@ public class FileReadingCollectorTest extends CrateUnitTest {
         );
         rowReceiver.prepare();
         collector.doCollect();
-    }
-
-    /**
-     * Resolves file path to URI<br/>
-     * Note: Per URI specification, the only allowed format is file:///foo/bar.json (or for windows file:///C:/foo/bar.json)
-     *
-     * @param path the path (directory) that contains the file
-     * @param file the file name
-     * @return uri
-     */
-    public static String resolveURI(File path, String file) {
-        String uri = null != file ?
-            Joiner.on("").join(path.toURI().toString(), file) : path.toURI().toString();
-        // matching against regex "file:\/[^\/].*"
-        if (uri.matches("file:\\/[^\\/].*")) {
-            uri = uri.replace("file:/", "file:///");
-        }
-        return uri;
     }
 
     private static class WriteBufferAnswer implements Answer<Integer> {

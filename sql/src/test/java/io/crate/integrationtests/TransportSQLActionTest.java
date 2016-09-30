@@ -47,6 +47,7 @@ import org.junit.rules.TemporaryFolder;
 
 import javax.annotation.Nullable;
 import java.io.File;
+import java.nio.file.Paths;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 
@@ -1890,8 +1891,9 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         execute("refresh table t");
 
         File file = folder.newFolder();
-        execute("copy t to directory ?", new Object[]{file.getAbsolutePath()});
-        execute("copy t from ? with (shared=true)", new Object[]{file.getAbsolutePath() + "/*"});
+        String uriTemplate = Paths.get(file.toURI()).toUri().toString();
+        execute("copy t to directory ?", new Object[]{uriTemplate});
+        execute("copy t from ? with (shared=true)", new Object[]{uriTemplate + "/*"});
         execute("refresh table t");
 
         execute("select _id, * from t");

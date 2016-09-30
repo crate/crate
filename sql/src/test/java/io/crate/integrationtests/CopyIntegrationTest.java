@@ -22,7 +22,6 @@
 package io.crate.integrationtests;
 
 import com.carrotsearch.randomizedtesting.LifecycleScope;
-import com.google.common.base.Joiner;
 import io.crate.action.sql.SQLActionException;
 import io.crate.action.sql.SQLResponse;
 import io.crate.testing.TestingHelpers;
@@ -34,6 +33,8 @@ import org.junit.rules.TemporaryFolder;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
@@ -42,7 +43,6 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.Locale;
 
 import static com.carrotsearch.randomizedtesting.RandomizedTest.newTempDir;
 import static org.hamcrest.Matchers.*;
@@ -51,13 +51,16 @@ import static org.hamcrest.core.Is.is;
 @ESIntegTestCase.ClusterScope(numDataNodes = 2, randomDynamicTemplates = false)
 public class CopyIntegrationTest extends SQLHttpIntegrationTest {
 
-    private String copyFilePath = getClass().getResource("/essetup/data/copy").getPath();
-    private String nestedArrayCopyFilePath = getClass().getResource("/essetup/data/nested_array").getPath();
+    private String copyFilePath = Paths.get(getClass().getResource("/essetup/data/copy").toURI()).toUri().toString();
+    private String nestedArrayCopyFilePath = Paths.get(getClass().getResource("/essetup/data/nested_array").toURI()).toUri().toString();
 
     private Setup setup = new Setup(sqlExecutor);
 
     @Rule
     public TemporaryFolder folder = new TemporaryFolder();
+
+    public CopyIntegrationTest() throws URISyntaxException {
+    }
 
     @Test
     public void testCopyFromFile() throws Exception {
@@ -65,8 +68,7 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
                 "quote string index using fulltext) with (number_of_replicas = 0)");
         ensureYellow();
 
-        String uriPath = Joiner.on("/").join(copyFilePath, "test_copy_from.json");
-        execute("copy quotes from ?", new Object[]{uriPath});
+        execute("copy quotes from ?", new Object[]{copyFilePath + "test_copy_from.json"});
         assertEquals(3L, response.rowCount());
         refresh();
 
@@ -87,7 +89,7 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
         List<String> lines = Collections.singletonList("{\"id\": 1, \"name\": \"Arthur\"}");
         Files.write(file.toPath(), lines, StandardCharsets.UTF_8);
 
-        execute("copy t from ?", new Object[]{tmpFolder.getAbsolutePath() + "/s*.json"});
+        execute("copy t from ?", new Object[]{Paths.get(tmpFolder.toURI()).toUri().toString() + "s*.json"});
         assertThat(response.rowCount(), is(1L));
     }
 
@@ -105,12 +107,13 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
         execute("refresh table t");
 
         File tmpExport = folder.newFolder("tmpExport");
-        execute("copy t to directory ?", new Object[]{tmpExport.getAbsolutePath()});
+        String uriTemplate = Paths.get(tmpExport.toURI()).toUri().toString();
+        execute("copy t to directory ?", new Object[]{uriTemplate});
         assertThat(response.rowCount(), is(4L));
-        execute("copy t from ?", new Object[]{String.format(Locale.ENGLISH, "%s/*", tmpExport.getAbsolutePath())});
+        execute("copy t from ?", new Object[]{uriTemplate + "*"});
         assertThat(response.rowCount(), is(0L));
         execute("copy t from ? with (overwrite_duplicates = true, shared=true)",
-            new Object[]{String.format(Locale.ENGLISH, "%s/*", tmpExport.getAbsolutePath())});
+            new Object[]{uriTemplate + "*"});
         assertThat(response.rowCount(), is(4L));
         execute("refresh table t");
         execute("select count(*) from t");
@@ -123,8 +126,7 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
                 "quote string index using fulltext) with (number_of_replicas=0)");
         ensureYellow();
 
-        String uriPath = Joiner.on("/").join(copyFilePath, "test_copy_from.json");
-        execute("copy quotes from ?", new Object[]{uriPath});
+        execute("copy quotes from ?", new Object[]{copyFilePath + "test_copy_from.json"});
         assertEquals(6L, response.rowCount());
         refresh();
 
@@ -139,8 +141,7 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
                 "quote string index using fulltext) with (number_of_replicas=0)");
         ensureYellow();
 
-        String uriPath = Joiner.on("/").join(copyFilePath, "test_copy_from.json");
-        execute("copy quotes from ? with (shared=true)", new Object[]{uriPath});
+        execute("copy quotes from ? with (shared=true)", new Object[]{copyFilePath + "test_copy_from.json"});
         assertEquals(3L, response.rowCount());
         refresh();
 
@@ -154,8 +155,7 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
                 "quote string index using fulltext) with (number_of_replicas=0)");
         ensureYellow();
 
-        String uriPath = Joiner.on("/").join(copyFilePath, "test_copy_from.json");
-        execute("copy quotes from ?", new Object[]{uriPath});
+        execute("copy quotes from ?", new Object[]{copyFilePath + "test_copy_from.json"});
         assertEquals(3L, response.rowCount());
         refresh();
 
@@ -174,7 +174,7 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
             writer.write("\n");
             writer.write("{id:2}\n");
         }
-        execute("copy foo from ?", new Object[]{newFile.getPath()});
+        execute("copy foo from ?", new Object[]{Paths.get(newFile.toURI()).toUri().toString()});
         assertEquals(2L, response.rowCount());
         refresh();
 
@@ -193,7 +193,7 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
         }
         expectedException.expect(SQLActionException.class);
         expectedException.expectMessage("Failed to parse JSON in line: 1 in file:");
-        execute("copy foo from ?", new Object[]{newFile.getPath()});
+        execute("copy foo from ?", new Object[]{Paths.get(newFile.toURI()).toUri().toString()});
     }
 
     @Test
@@ -201,8 +201,7 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
         execute("create table quotes (id int, " +
                 "quote string) partitioned by (id)");
         ensureGreen();
-        String filePath = Joiner.on(File.separator).join(copyFilePath, "test_copy_from.json");
-        execute("copy quotes partition (id = 1) from ? with (shared=true)", new Object[]{filePath});
+        execute("copy quotes partition (id = 1) from ? with (shared=true)", new Object[]{copyFilePath + "test_copy_from.json"});
         refresh();
 
         execute("select * from quotes");
@@ -214,8 +213,8 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
         execute("create table quotes (id int, " +
                 "quote string)");
         ensureGreen();
-        String filePath = Joiner.on(File.separator).join(copyFilePath, "test_copy_from.gz");
-        execute("copy quotes from ? with (compression='gzip')", new Object[]{filePath});
+
+        execute("copy quotes from ? with (compression='gzip')", new Object[]{copyFilePath + "test_copy_from.gz"});
         refresh();
 
         execute("select * from quotes");
@@ -231,8 +230,7 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
                 ")");
         ensureYellow();
 
-        String filePath = Joiner.on(File.separator).join(copyFilePath, "test_copy_from.json");
-        execute("copy quotes from ? with (shared=true)", new Object[]{filePath});
+        execute("copy quotes from ? with (shared=true)", new Object[]{copyFilePath + "test_copy_from.json"});
         refresh();
 
         execute("select gen_quote from quotes limit 1");
@@ -247,8 +245,7 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
                 ")");
         ensureYellow();
 
-        String filePath = Joiner.on(File.separator).join(copyFilePath, "test_copy_from.json");
-        execute("copy quotes from ? with (shared=true)", new Object[]{filePath});
+        execute("copy quotes from ? with (shared=true)", new Object[]{copyFilePath + "test_copy_from.json"});
         assertThat(response.rowCount(), is(3L));
         refresh();
 
@@ -266,8 +263,7 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
                 ") partitioned by (gen_quote)");
         ensureYellow();
 
-        String filePath = Joiner.on(File.separator).join(copyFilePath, "test_copy_from.json");
-        execute("copy quotes from ? with (shared=true)", new Object[]{filePath});
+        execute("copy quotes from ? with (shared=true)", new Object[]{copyFilePath + "test_copy_from.json"});
         refresh();
 
         execute("select gen_quote from quotes limit 1");
@@ -281,8 +277,7 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
                 ") partitioned by (time)");
         ensureYellow();
 
-        String filePath = Joiner.on(File.separator).join(copyFilePath, "test_copy_from_null_value.json");
-        execute("copy times from ? with (shared=true)", new Object[]{filePath});
+        execute("copy times from ? with (shared=true)", new Object[]{copyFilePath + "test_copy_from_null_value.json"});
         refresh();
 
         execute("select time from times");
@@ -301,8 +296,7 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
                 ") partitioned by (id_str)");
         ensureYellow();
 
-        String filePath = Joiner.on(File.separator).join(copyFilePath, "test_copy_from.json");
-        execute("copy quotes partition (id_str = 1) from ? with (shared=true)", new Object[]{filePath});
+        execute("copy quotes partition (id_str = 1) from ? with (shared=true)", new Object[]{copyFilePath + "test_copy_from.json"});
         assertThat(response.rowCount(), is(3L));
         refresh();
 
@@ -444,8 +438,7 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
         execute("create table users (id int, " +
                 "name string) with (number_of_replicas=0)");
         ensureYellow();
-        String uriPath = Joiner.on("/").join(nestedArrayCopyFilePath, "nested_array_copy_from.json");
-        execute("copy users from ? with (shared=true)", new Object[]{uriPath});
+        execute("copy users from ? with (shared=true)", new Object[]{nestedArrayCopyFilePath + "nested_array_copy_from.json"});
         assertEquals(1L, response.rowCount()); // only 1 document got inserted
         refresh();
 
@@ -478,14 +471,14 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
         execute("insert into t (i, c) values (1, 'clusteredbyvalue'), (2, 'clusteredbyvalue')");
         refresh();
 
-        String uri = Paths.get(folder.getRoot().toURI()).toString();
+        String uri = Paths.get(folder.getRoot().toURI()).toUri().toString();
         SQLResponse response = execute("copy t to directory ?", new Object[]{uri});
         assertThat(response.rowCount(), is(2L));
 
         execute("delete from t");
         refresh();
 
-        execute("copy t from ? with (shared=true)", new Object[]{uri + "/t_*"});
+        execute("copy t from ? with (shared=true)", new Object[]{uri + "t_*"});
         refresh();
 
         // only one shard should have all imported rows, since we have the same routing for both rows
@@ -522,7 +515,7 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
         String r2 = "{\"id\": 2, \"name\":\"Slartibartfast\"}";
 
         Files.write(file.toPath(), Collections.singletonList(r1), StandardCharsets.UTF_8);
-        String[] urls = {tmpDir.toAbsolutePath() + "/*.json", upload("blobs", r2)};
+        String[] urls = {tmpDir.toUri().toString() + "*.json", upload("blobs", r2)};
 
         execute("copy names from ?", new Object[]{urls});
         assertThat(response.rowCount(), is(2L));

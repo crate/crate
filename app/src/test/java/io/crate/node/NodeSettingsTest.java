@@ -40,6 +40,8 @@ import org.junit.rules.TemporaryFolder;
 
 import java.io.File;
 import java.io.IOException;
+import java.net.URISyntaxException;
+import java.nio.file.Paths;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
@@ -54,7 +56,10 @@ public class NodeSettingsTest {
     protected Client client;
     private boolean loggingConfigured = false;
 
-    private final String CRATE_CONFIG_PATH = getClass().getResource("/crate").getPath();
+    private final String CRATE_CONFIG_PATH = Paths.get(getClass().getResource("/crate").toURI()).toString();
+
+    public NodeSettingsTest() throws URISyntaxException {
+    }
 
     private void doSetup() throws IOException {
         // mute log4j warning by configuring a dummy logger

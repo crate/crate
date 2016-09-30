@@ -21,7 +21,6 @@
 
 package io.crate.integrationtests;
 
-import com.google.common.base.Joiner;
 import io.crate.Constants;
 import io.crate.action.sql.SQLActionException;
 import io.crate.metadata.PartitionName;
@@ -42,6 +41,8 @@ import org.hamcrest.Matchers;
 import org.junit.Test;
 
 import java.io.IOException;
+import java.net.URISyntaxException;
+import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
@@ -53,7 +54,10 @@ import static org.hamcrest.Matchers.*;
 @UseJdbc
 public class ColumnPolicyIntegrationTest extends SQLTransportIntegrationTest {
 
-    private String copyFilePath = getClass().getResource("/essetup/data/copy").getPath();
+    private String copyFilePath = Paths.get(getClass().getResource("/essetup/data/copy").toURI()).toUri().toString();
+
+    public ColumnPolicyIntegrationTest() throws URISyntaxException {
+    }
 
     public MappingMetaData getMappingMetadata(String index) {
         return clusterService().state().metaData().indices()
@@ -110,8 +114,7 @@ public class ColumnPolicyIntegrationTest extends SQLTransportIntegrationTest {
         execute("create table quotes (id int primary key) with (column_policy='strict', number_of_replicas = 0)");
         ensureYellow();
 
-        String uriPath = Joiner.on("/").join(copyFilePath, "test_copy_from.json");
-        execute("copy quotes from ?", new Object[]{uriPath});
+        execute("copy quotes from ?", new Object[]{copyFilePath + "test_copy_from.json"});
         assertThat(response.rowCount(), is(0L));
     }
 

@@ -39,6 +39,7 @@ import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
 import javax.annotation.Nullable;
+import java.nio.file.Paths;
 import java.util.Collection;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
@@ -149,7 +150,7 @@ public class KillIntegrationTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testKillCopyTo() throws Exception {
-        String path = temporaryFolder.newFolder().getAbsolutePath();
+        String path = Paths.get(temporaryFolder.newFolder().toURI()).toUri().toString();
         setup.setUpEmployees();
         assertGotCancelled("copy employees to directory ?", new Object[]{path}, true);
     }

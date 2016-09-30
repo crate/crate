@@ -73,9 +73,9 @@ public class RegexpIntegrationTest extends SQLTransportIntegrationTest {
     @Test
     public void testInvalidPatternSyntax() throws Exception {
         expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("Dangling meta character '+' near index 0\n" +
-                                        "+1234567890\n" +
-                                        "^");
+        expectedException.expectMessage(String.format("Dangling meta character '+' near index 0%n" +
+                "+1234567890%n" +
+                "^"));
         execute("create table phone (phone string) with (number_of_replicas=0)");
         ensureYellow();
         execute("insert into phone (phone) values (?)", new Object[][]{
@@ -83,6 +83,7 @@ public class RegexpIntegrationTest extends SQLTransportIntegrationTest {
         });
         refresh();
         execute("select * from phone where phone ~* '+1234567890'");
+        ensureYellow();
     }
 
     /**

@@ -268,12 +268,7 @@ public class SysNodesExpressionsOnHandlerTest extends CrateUnitTest {
     }
 
     private String resolveCanonicalPath(String path) {
-        try {
-            return new File(path).getCanonicalPath();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-        return null;
+        return new File(path).getPath().replace("\\", "/");
     }
 
     @Test
