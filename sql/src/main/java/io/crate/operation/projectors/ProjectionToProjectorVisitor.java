@@ -212,7 +212,7 @@ public class ProjectionToProjectorVisitor
 
         StringBuilder sb = new StringBuilder(uri);
         Symbol resolvedFileName = normalizer.normalize(WriterProjection.DIRECTORY_TO_FILENAME, context.stmtCtx);
-        assert resolvedFileName instanceof Literal;
+        assert resolvedFileName instanceof Literal : "resolvedFileName must be a Literal, but is: " + resolvedFileName;
         assert resolvedFileName.valueType() == StringType.INSTANCE;
         String fileName = ValueSymbolVisitor.STRING.process(resolvedFileName);
         if (!uri.endsWith("/")) {
