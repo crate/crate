@@ -230,13 +230,13 @@ public abstract class BaseAnalyzerTest extends CrateUnitTest {
     }
 
     protected Analysis analysis(String statement, Object[][] bulkArgs) {
-        return analyzer.analyze(SqlParser.createStatement(statement),
+        return analyzer.boundAnalyze(SqlParser.createStatement(statement),
             SessionContext.SYSTEM_SESSION,
             new ParameterContext(Row.EMPTY, Rows.of(bulkArgs)));
     }
 
     protected Analysis analysis(String statement, Object[] params) {
-        return analyzer.analyze(SqlParser.createStatement(statement),
+        return analyzer.boundAnalyze(SqlParser.createStatement(statement),
             SessionContext.SYSTEM_SESSION,
             new ParameterContext(new RowN(params), Collections.<Row>emptyList()));
     }

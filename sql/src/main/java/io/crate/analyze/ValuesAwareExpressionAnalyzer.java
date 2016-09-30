@@ -21,6 +21,7 @@
 
 package io.crate.analyze;
 
+import com.google.common.base.Function;
 import io.crate.action.sql.SessionContext;
 import io.crate.analyze.expressions.ExpressionAnalysisContext;
 import io.crate.analyze.expressions.ExpressionAnalyzer;
@@ -30,6 +31,7 @@ import io.crate.analyze.symbol.Symbol;
 import io.crate.analyze.symbol.format.SymbolFormatter;
 import io.crate.sql.tree.Expression;
 import io.crate.sql.tree.FunctionCall;
+import io.crate.sql.tree.ParameterExpression;
 import io.crate.types.DataTypes;
 
 import java.util.List;
@@ -71,10 +73,10 @@ public class ValuesAwareExpressionAnalyzer extends ExpressionAnalyzer {
 
     public ValuesAwareExpressionAnalyzer(AnalysisMetaData analysisMetaData,
                                          SessionContext sessionContext,
-                                         ParameterContext parameterContext,
+                                         Function<ParameterExpression, Symbol> convertParamFunction,
                                          FieldProvider fieldProvider,
                                          ValuesResolver valuesResolver) {
-        super(analysisMetaData, sessionContext, parameterContext, fieldProvider, null);
+        super(analysisMetaData, sessionContext, convertParamFunction, fieldProvider, null);
         this.valuesResolver = valuesResolver;
     }
 

@@ -31,6 +31,7 @@ import io.crate.analyze.copy.NodeFilters;
 import io.crate.analyze.expressions.ExpressionAnalysisContext;
 import io.crate.analyze.expressions.ExpressionAnalyzer;
 import io.crate.analyze.expressions.ExpressionToObjectVisitor;
+import io.crate.analyze.expressions.ParamToLiteral;
 import io.crate.analyze.relations.DocTableRelation;
 import io.crate.analyze.relations.NameFieldProvider;
 import io.crate.analyze.relations.QueriedDocTable;
@@ -323,7 +324,7 @@ public class CopyStatementAnalyzer {
             expressionAnalyzer = new ExpressionAnalyzer(
                 analysisMetaData,
                 sessionContext,
-                parameterContext,
+                new ParamToLiteral(parameterContext),
                 new NameFieldProvider(tableRelation),
                 tableRelation);
             expressionAnalyzer.setResolveFieldsOperation(operation);

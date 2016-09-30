@@ -106,7 +106,7 @@ public class LuceneDocCollectorProvider implements AutoCloseable {
     }
 
     public CrateCollector createCollector(String statement, final RowReceiver downstream, Integer nodePageSizeHint, Object... args) throws Exception {
-        Analysis analysis = analyzer.analyze(
+        Analysis analysis = analyzer.boundAnalyze(
             SqlParser.createStatement(statement),
             SessionContext.SYSTEM_SESSION,
             new ParameterContext(new RowN(args), Collections.<Row>emptyList()));

@@ -24,6 +24,7 @@ package io.crate.analyze;
 import com.google.common.base.Function;
 import io.crate.analyze.expressions.ExpressionAnalysisContext;
 import io.crate.analyze.expressions.ExpressionAnalyzer;
+import io.crate.analyze.expressions.ParamToLiteral;
 import io.crate.analyze.expressions.ValueNormalizer;
 import io.crate.analyze.relations.DocTableRelation;
 import io.crate.analyze.relations.FieldProvider;
@@ -98,14 +99,23 @@ public class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
 
         DocTableRelation tableRelation = new DocTableRelation(tableInfo);
         FieldProvider fieldProvider = new NameFieldProvider(tableRelation);
-        ExpressionAnalyzer expressionAnalyzer =
-            new ExpressionAnalyzer(analysisMetaData, analysis.sessionContext(), analysis.parameterContext(), fieldProvider, tableRelation);
+        ParamToLiteral convertParamFunction = new ParamToLiteral(analysis.parameterContext());
+        ExpressionAnalyzer expressionAnalyzer = new ExpressionAnalyzer(
+            analysisMetaData,
+            analysis.sessionContext(),
+            convertParamFunction,
+            fieldProvider,
+            tableRelation);
         ExpressionAnalysisContext expressionAnalysisContext = new ExpressionAnalysisContext(analysis.statementContext());
         expressionAnalyzer.setResolveFieldsOperation(Operation.INSERT);
 
         ValuesResolver valuesResolver = new ValuesResolver(tableRelation);
         ExpressionAnalyzer valuesAwareExpressionAnalyzer = new ValuesAwareExpressionAnalyzer(
-            analysisMetaData, analysis.sessionContext(), analysis.parameterContext(), fieldProvider, valuesResolver);
+            analysisMetaData,
+            analysis.sessionContext(),
+            convertParamFunction,
+            fieldProvider,
+            valuesResolver);
 
         InsertFromValuesAnalyzedStatement statement = new InsertFromValuesAnalyzedStatement(
             tableInfo, analysis.parameterContext().numBulkParams());

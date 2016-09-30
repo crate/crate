@@ -941,7 +941,7 @@ public class DocIndexMetaDataTest extends CrateUnitTest {
             new NumberOfShards(clusterService)
         );
 
-        Analysis analysis = new Analysis(SessionContext.SYSTEM_SESSION, ParameterContext.EMPTY);
+        Analysis analysis = new Analysis(SessionContext.SYSTEM_SESSION, ParameterContext.EMPTY, ParamTypeHints.EMPTY);
         CreateTableAnalyzedStatement analyzedStatement = analyzer.analyze(statement, analysis);
 
         Settings.Builder settingsBuilder = Settings.builder()

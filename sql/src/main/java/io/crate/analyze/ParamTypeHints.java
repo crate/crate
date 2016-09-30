@@ -20,47 +20,28 @@
  * agreement.
  */
 
-package io.crate.action.sql;
+package io.crate.analyze;
 
-import io.crate.analyze.ParamTypeHints;
-import io.crate.analyze.relations.AnalyzedRelation;
-import io.crate.sql.tree.Statement;
 import io.crate.types.DataType;
+import io.crate.types.DataTypes;
 
-import javax.annotation.Nullable;
+import java.util.Collections;
 import java.util.List;
 
-public class PreparedStmt {
+public class ParamTypeHints {
 
-    private final Statement statement;
-    private final String query;
-    private final ParamTypeHints paramTypes;
-    private AnalyzedRelation relation;
+    public static final ParamTypeHints EMPTY = new ParamTypeHints(Collections.<DataType>emptyList());
 
-    public PreparedStmt(Statement statement, String query, List<DataType> paramTypes) {
-        this.statement = statement;
-        this.query = query;
-        this.paramTypes = new ParamTypeHints(paramTypes);
+    private final List<DataType> types;
+
+    public ParamTypeHints(List<DataType> types) {
+        this.types = types;
     }
 
-    public Statement statement() {
-        return statement;
-    }
-
-    public ParamTypeHints paramTypes() {
-        return paramTypes;
-    }
-
-    public String query() {
-        return query;
-    }
-
-    @Nullable
-    public AnalyzedRelation relation() {
-        return relation;
-    }
-
-    public void relation(AnalyzedRelation relation) {
-        this.relation = relation;
+    public DataType get(int index) {
+        if (index + 1 > types.size()) {
+            return DataTypes.UNDEFINED;
+        }
+        return types.get(index);
     }
 }

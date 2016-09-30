@@ -25,6 +25,7 @@ import com.google.common.base.Predicate;
 import com.google.common.collect.Iterables;
 import io.crate.analyze.expressions.ExpressionAnalysisContext;
 import io.crate.analyze.expressions.ExpressionAnalyzer;
+import io.crate.analyze.expressions.ParamToLiteral;
 import io.crate.analyze.expressions.ValueNormalizer;
 import io.crate.analyze.relations.*;
 import io.crate.analyze.symbol.Symbol;
@@ -93,7 +94,11 @@ public class UpdateStatementAnalyzer extends DefaultTraversalVisitor<AnalyzedSta
     @Override
     public AnalyzedStatement visitUpdate(Update node, Analysis analysis) {
         StatementAnalysisContext statementAnalysisContext = new StatementAnalysisContext(
-            analysis.sessionContext(), analysis.parameterContext(), analysis.statementContext(), analysisMetaData, Operation.UPDATE);
+            analysis.sessionContext(),
+            new ParamToLiteral(analysis.parameterContext()),
+            analysis.statementContext(),
+            analysisMetaData,
+            Operation.UPDATE);
         RelationAnalysisContext currentRelationContext = statementAnalysisContext.startRelation();
         AnalyzedRelation analyzedRelation = relationAnalyzer.analyze(node.relation(), statementAnalysisContext);
 
@@ -103,7 +108,7 @@ public class UpdateStatementAnalyzer extends DefaultTraversalVisitor<AnalyzedSta
             new ExpressionAnalyzer(
                 analysisMetaData,
                 analysis.sessionContext(),
-                analysis.parameterContext(),
+                new ParamToLiteral(analysis.parameterContext()),
                 columnFieldProvider,
                 fieldResolver);
         columnExpressionAnalyzer.setResolveFieldsOperation(Operation.UPDATE);
@@ -113,7 +118,7 @@ public class UpdateStatementAnalyzer extends DefaultTraversalVisitor<AnalyzedSta
             new ExpressionAnalyzer(
                 analysisMetaData,
                 analysis.sessionContext(),
-                analysis.parameterContext(),
+                new ParamToLiteral(analysis.parameterContext()),
                 currentRelationContext.fieldProvider(),
                 fieldResolver);
         ExpressionAnalysisContext expressionAnalysisContext = new ExpressionAnalysisContext(analysis.statementContext());

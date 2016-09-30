@@ -151,13 +151,6 @@ JDBC
 The `pgjdbc`_ JDBC driver starting with version ``9.4.1209`` can be used with
 Crate.
 
-Starting with version ``9.4.1210`` server-side prepared statements are not
-supported. It is necessary to initialize the connection with the following
-properties to prevent the client from using them::
-
-    Properties properties = new Properties();
-    properties.setProperty("prepareThreshold", "0");
-
 Limitations
 ~~~~~~~~~~~
 
