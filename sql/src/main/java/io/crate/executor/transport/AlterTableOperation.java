@@ -33,19 +33,23 @@ import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
 import io.crate.Constants;
 import io.crate.action.FutureActionListener;
-import io.crate.action.sql.SQLRequest;
-import io.crate.action.sql.SQLResponse;
+import io.crate.action.sql.Option;
+import io.crate.action.sql.ResultReceiver;
+import io.crate.action.sql.SQLOperations;
 import io.crate.analyze.AddColumnAnalyzedStatement;
 import io.crate.analyze.AlterPartitionedTableParameterInfo;
 import io.crate.analyze.AlterTableAnalyzedStatement;
 import io.crate.analyze.TableParameter;
+import io.crate.concurrent.CompletionListener;
+import io.crate.concurrent.CompletionMultiListener;
 import io.crate.core.MultiFutureCallback;
+import io.crate.core.collections.Row;
 import io.crate.exceptions.AlterTableAliasException;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.doc.DocTableInfo;
+import io.crate.types.DataType;
 import org.elasticsearch.ElasticsearchException;
-import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.admin.indices.alias.Alias;
 import org.elasticsearch.action.admin.indices.mapping.put.PutMappingRequest;
 import org.elasticsearch.action.admin.indices.mapping.put.PutMappingResponse;
@@ -77,39 +81,83 @@ public class AlterTableOperation {
     private static final Function<Object, Long> LONG_NULL_FUNCTION = Functions.constant(null);
     private final ClusterService clusterService;
     private final TransportActionProvider transportActionProvider;
+    private final SQLOperations sqlOperations;
 
     @Inject
-    public AlterTableOperation(ClusterService clusterService, TransportActionProvider transportActionProvider) {
+    public AlterTableOperation(ClusterService clusterService,
+                               TransportActionProvider transportActionProvider,
+                               SQLOperations sqlOperations) {
         this.clusterService = clusterService;
         this.transportActionProvider = transportActionProvider;
+        this.sqlOperations = sqlOperations;
     }
 
     public ListenableFuture<Long> executeAlterTableAddColumn(final AddColumnAnalyzedStatement analysis) {
         final SettableFuture<Long> result = SettableFuture.create();
         if (analysis.newPrimaryKeys() || analysis.hasNewGeneratedColumns()) {
-            String stmt = String.format(Locale.ENGLISH, "SELECT COUNT(*) FROM \"%s\".\"%s\"", analysis.table().ident().schema(), analysis.table().ident().name());
-            transportActionProvider.transportSQLAction().execute(new SQLRequest(stmt), new ActionListener<SQLResponse>() {
-                @Override
-                public void onResponse(SQLResponse sqlResponse) {
-                    Long count = (Long) sqlResponse.rows()[0][0];
-                    if (count == 0L) {
-                        addColumnToTable(analysis, result);
-                    } else {
-                        String columnFailure = analysis.newPrimaryKeys() ? "primary key" : "generated";
-                        result.setException(new UnsupportedOperationException(String.format(Locale.ENGLISH,
-                            "Cannot add a %s column to a table that isn't empty", columnFailure)));
-                    }
-                }
+            TableIdent ident = analysis.table().ident();
+            String stmt =
+                String.format(Locale.ENGLISH, "SELECT COUNT(*) FROM \"%s\".\"%s\"", ident.schema(), ident.name());
 
-                @Override
-                public void onFailure(Throwable e) {
-                    result.setException(e);
-                }
-            });
+            SQLOperations.Session session = sqlOperations.createSession(ident.schema(), Option.NONE, 1);
+            try {
+                session.parse(SQLOperations.Session.UNNAMED, stmt, Collections.<DataType>emptyList());
+                session.bind(SQLOperations.Session.UNNAMED, SQLOperations.Session.UNNAMED, Collections.emptyList(), null);
+                session.execute(SQLOperations.Session.UNNAMED, 1, new ResultSetReceiver(analysis, result));
+                session.sync(CompletionListener.NO_OP);
+            } catch (Throwable t) {
+                result.setException(t);
+            }
         } else {
             addColumnToTable(analysis, result);
         }
         return result;
+    }
+
+    private class ResultSetReceiver implements ResultReceiver {
+
+        private final AddColumnAnalyzedStatement analysis;
+        private final SettableFuture<Long> result;
+
+        private CompletionListener completionListener = CompletionListener.NO_OP;
+        private long count;
+
+        ResultSetReceiver(AddColumnAnalyzedStatement analysis, SettableFuture<Long> result) {
+            this.analysis = analysis;
+            this.result = result;
+        }
+
+        @Override
+        public void addListener(CompletionListener listener) {
+            this.completionListener = CompletionMultiListener.merge(this.completionListener, listener);
+        }
+
+        @Override
+        public void setNextRow(Row row) {
+            count = (long) row.get(0);
+        }
+
+        @Override
+        public void batchFinished() {
+        }
+
+        @Override
+        public void allFinished() {
+            if (count == 0L) {
+                addColumnToTable(analysis, result);
+                completionListener.onSuccess(null);
+            } else {
+                String columnFailure = analysis.newPrimaryKeys() ? "primary key" : "generated";
+                fail(new UnsupportedOperationException(String.format(Locale.ENGLISH,
+                    "Cannot add a %s column to a table that isn't empty", columnFailure)));
+            }
+        }
+
+        @Override
+        public void fail(@Nonnull Throwable t) {
+            result.setException(t);
+            completionListener.onFailure(t);
+        }
     }
 
     public ListenableFuture<Long> executeAlterTable(AlterTableAnalyzedStatement analysis) {

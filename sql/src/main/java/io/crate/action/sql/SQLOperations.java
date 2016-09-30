@@ -134,7 +134,7 @@ public class SQLOperations {
      */
     public class Session {
 
-        private static final String UNNAMED = "";
+        public static final String UNNAMED = "";
         private final Executor executor;
         private final SessionContext sessionContext;
 
