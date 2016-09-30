@@ -27,7 +27,6 @@ import io.crate.analyze.symbol.Field;
 import io.crate.concurrent.CompletionListener;
 import io.crate.exceptions.Exceptions;
 import io.crate.executor.Executor;
-import io.crate.executor.transport.kill.TransportKillJobsNodeAction;
 import io.crate.operation.collect.StatsTables;
 import io.crate.planner.Planner;
 import io.crate.protocols.postgres.FormatCodes;
@@ -62,7 +61,6 @@ public class SQLOperations {
     private final Analyzer analyzer;
     private final Planner planner;
     private final Provider<Executor> executorProvider;
-    private final Provider<TransportKillJobsNodeAction> transportKillJobsNodeActionProvider;
     private final StatsTables statsTables;
     private final ClusterService clusterService;
     private final boolean isReadOnly;
@@ -78,14 +76,12 @@ public class SQLOperations {
     public SQLOperations(Analyzer analyzer,
                          Planner planner,
                          Provider<Executor> executorProvider,
-                         Provider<TransportKillJobsNodeAction> transportKillJobsNodeActionProvider,
                          StatsTables statsTables,
                          Settings settings,
                          ClusterService clusterService) {
         this.analyzer = analyzer;
         this.planner = planner;
         this.executorProvider = executorProvider;
-        this.transportKillJobsNodeActionProvider = transportKillJobsNodeActionProvider;
         this.statsTables = statsTables;
         this.clusterService = clusterService;
         this.isReadOnly = settings.getAsBoolean(NODE_READ_ONLY_SETTING, false);
@@ -98,7 +94,6 @@ public class SQLOperations {
 
         return new Session(
             executorProvider.get(),
-            transportKillJobsNodeActionProvider.get(),
             defaultSchema,
             defaultLimit,
             options
@@ -152,7 +147,6 @@ public class SQLOperations {
 
         private static final String UNNAMED = "";
         private final Executor executor;
-        private final TransportKillJobsNodeAction transportKillJobsNodeAction;
         private final String defaultSchema;
         private final int defaultLimit;
         private final Set<Option> options;
@@ -162,12 +156,10 @@ public class SQLOperations {
         private final Set<Portal> pendingExecutions = Collections.newSetFromMap(new IdentityHashMap<Portal, Boolean>());
 
         private Session(Executor executor,
-                        TransportKillJobsNodeAction transportKillJobsNodeAction,
                         String defaultSchema,
                         int defaultLimit,
                         Set<Option> options) {
             this.executor = executor;
-            this.transportKillJobsNodeAction = transportKillJobsNodeAction;
             this.defaultSchema = defaultSchema;
             this.defaultLimit = defaultLimit;
             this.options = options;
@@ -177,7 +169,7 @@ public class SQLOperations {
             Portal portal = portals.get(portalName);
             if (portal == null) {
                 portal = new SimplePortal(
-                    portalName, defaultSchema, options, analyzer, executor, transportKillJobsNodeAction, isReadOnly, defaultLimit);
+                    portalName, defaultSchema, options, analyzer, executor, isReadOnly, defaultLimit);
                 portals.put(portalName, portal);
             }
             return portal;

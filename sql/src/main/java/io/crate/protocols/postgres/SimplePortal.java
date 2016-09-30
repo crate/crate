@@ -38,7 +38,6 @@ import io.crate.core.collections.RowN;
 import io.crate.exceptions.Exceptions;
 import io.crate.exceptions.ReadOnlyException;
 import io.crate.executor.Executor;
-import io.crate.executor.transport.kill.TransportKillJobsNodeAction;
 import io.crate.operation.collect.StatsTables;
 import io.crate.operation.projectors.ResumeHandle;
 import io.crate.planner.Plan;
@@ -76,10 +75,9 @@ public class SimplePortal extends AbstractPortal {
                         Set<SQLOperations.Option> options,
                         Analyzer analyzer,
                         Executor executor,
-                        TransportKillJobsNodeAction transportKillJobsNodeAction,
                         boolean isReadOnly,
                         int defaultLimit) {
-        super(name, defaultSchema, options, analyzer, executor, transportKillJobsNodeAction, isReadOnly);
+        super(name, defaultSchema, options, analyzer, executor, isReadOnly);
         this.defaultLimit = defaultLimit;
     }
 
@@ -173,7 +171,6 @@ public class SimplePortal extends AbstractPortal {
                 sessionData.getAnalyzer(),
                 planner,
                 sessionData.getExecutor(),
-                sessionData.getTransportKillJobsNodeAction(),
                 jobId,
                 sessionData.getDefaultSchema(),
                 sessionData.options());
@@ -223,7 +220,6 @@ public class SimplePortal extends AbstractPortal {
         private final Analyzer analyzer;
         private final Planner planner;
         private final Executor executor;
-        private final TransportKillJobsNodeAction transportKillJobsNodeAction;
         private final UUID jobId;
         private final String defaultSchema;
         private Set<SQLOperations.Option> options;
@@ -234,7 +230,6 @@ public class SimplePortal extends AbstractPortal {
                                    Analyzer analyzer,
                                    Planner planner,
                                    Executor executor,
-                                   TransportKillJobsNodeAction transportKillJobsNodeAction,
                                    UUID jobId,
                                    String defaultSchema,
                                    Set<SQLOperations.Option> options) {
@@ -243,7 +238,6 @@ public class SimplePortal extends AbstractPortal {
             this.analyzer = analyzer;
             this.planner = planner;
             this.executor = executor;
-            this.transportKillJobsNodeAction = transportKillJobsNodeAction;
             this.jobId = jobId;
             this.defaultSchema = defaultSchema;
             this.options = options;
