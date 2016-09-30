@@ -32,6 +32,10 @@ ext {
     ]
 }
 
+repositories {
+    mavenCentral()
+}
+
 allprojects {
     apply plugin: 'findbugs'
     apply plugin: 'jacoco'
