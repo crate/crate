@@ -199,18 +199,11 @@ public class CrateDocCollector implements CrateCollector, RepeatHandle {
 
     private void fail(Throwable t) {
         debugLog("finished collect with failure");
-        try {
-            searchContext.clearReleasables(SearchContext.Lifetime.PHASE);
-        } catch (AssertionError e) {
-            // log it, the original failure is more interesting than the stage assertion
-            LOGGER.error("Invalid searcher stage: ", e);
-        }
         rowReceiver.fail(t);
     }
 
     private void finishCollect() {
         debugLog("finished collect");
-        searchContext.clearReleasables(SearchContext.Lifetime.PHASE);
         rowReceiver.finish(this);
     }
 
@@ -223,19 +216,15 @@ public class CrateDocCollector implements CrateCollector, RepeatHandle {
             assert leaf != null : "leaf must not be null if bulkScorer isn't null";
             if (processScorer(collector, leaf, bulkScorer)) return RowReceiver.Result.PAUSE;
         }
-        try {
-            while (leaves.hasNext()) {
-                leaf = leaves.next();
-                LeafCollector leafCollector = collector.getLeafCollector(leaf);
-                Scorer scorer = weight.scorer(leaf);
-                if (scorer == null) {
-                    continue;
-                }
-                bulkScorer = new DefaultBulkScorer(scorer);
-                if (processScorer(leafCollector, leaf, bulkScorer)) return RowReceiver.Result.PAUSE;
+        while (leaves.hasNext()) {
+            leaf = leaves.next();
+            LeafCollector leafCollector = collector.getLeafCollector(leaf);
+            Scorer scorer = weight.scorer(leaf);
+            if (scorer == null) {
+                continue;
             }
-        } finally {
-            searchContext.clearReleasables(SearchContext.Lifetime.COLLECTION);
+            bulkScorer = new DefaultBulkScorer(scorer);
+            if (processScorer(leafCollector, leaf, bulkScorer)) return RowReceiver.Result.PAUSE;
         }
         return RowReceiver.Result.CONTINUE;
     }
@@ -256,7 +245,6 @@ public class CrateDocCollector implements CrateCollector, RepeatHandle {
     public void kill(@Nullable Throwable throwable) {
         debugLog("kill searchContext=" + searchContext);
         rowReceiver.kill(throwable);
-        searchContext.clearReleasables(SearchContext.Lifetime.PHASE);
     }
 
     @Override

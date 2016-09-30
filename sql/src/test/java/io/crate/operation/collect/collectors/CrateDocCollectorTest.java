@@ -46,7 +46,6 @@ public class CrateDocCollectorTest {
 
         c.kill(null);
 
-        verify(sc, times(1)).clearReleasables(any(SearchContext.Lifetime.class));
         verify(rowReceiver, only()).kill(any(Throwable.class));
     }
 }
