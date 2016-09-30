@@ -63,7 +63,10 @@ public class PostgresITest extends SQLTransportIntegrationTest {
 
     @Before
     public void initProperties() throws Exception {
-        properties.setProperty("prepareThreshold", "0"); // disable prepared statements
+        if (randomBoolean()) {
+            // force binary transfer & use server-side prepared statements
+            properties.setProperty("prepareThreshold", "-1");
+        }
     }
 
     @Test
@@ -93,7 +96,6 @@ public class PostgresITest extends SQLTransportIntegrationTest {
             assertThat(array, is("[[1,2],[3]]"));
         }
 
-        /*
         properties = new Properties();
         properties.setProperty("prepareThreshold", "-1"); // force binary transfer
         try (Connection conn = DriverManager.getConnection(JDBC_POSTGRESQL_URL, properties)) {
@@ -102,7 +104,6 @@ public class PostgresITest extends SQLTransportIntegrationTest {
             String array = resultSet.getString(1);
             assertThat(array, is("[[1,2],[3]]"));
         }
-        */
     }
 
     @Test
@@ -154,14 +155,6 @@ public class PostgresITest extends SQLTransportIntegrationTest {
         properties.setProperty("prepareThreshold", "-1");
         try (Connection conn = DriverManager.getConnection(JDBC_POSTGRESQL_URL, properties)) {
             PreparedStatement p1 = conn.prepareStatement("select 1 from sys.cluster");
-
-            /*
-             * {@link io.crate.action.sql.SQLOperations.Session#describe(char, String)} returned "NoData"
-             * because analyzer doesn't work without parameters (= without prior bind call)
-             *
-             * This fails because client expects data due to the Describe request but receives a result
-             */
-            expectedException.expect(IllegalStateException.class);
             ResultSet resultSet = p1.executeQuery();
             assertThat(resultSet.next(), is(true));
             assertThat(resultSet.getInt(1), is(1));
@@ -184,13 +177,6 @@ public class PostgresITest extends SQLTransportIntegrationTest {
         try (Connection conn = DriverManager.getConnection(JDBC_POSTGRESQL_URL, properties)) {
             PreparedStatement p1 = conn.prepareStatement("select ? from sys.cluster");
             p1.setInt(1, 20);
-            /*
-             * {@link io.crate.action.sql.SQLOperations.Session#describe(char, String)} returned "NoData"
-             * because analyzer doesn't work without parameters (= without prior bind call)
-             *
-             * This fails because client expects data due to the Describe request but receives a result
-             */
-            expectedException.expect(IllegalStateException.class);
             ResultSet resultSet = p1.executeQuery();
             /*
              * This execute results in the following messages:

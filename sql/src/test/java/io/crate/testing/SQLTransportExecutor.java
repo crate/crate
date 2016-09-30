@@ -140,7 +140,7 @@ public class SQLTransportExecutor {
     private SQLResponse executeWithPg(SQLRequest request, String pgUrl, Random random) {
         try {
             Properties properties = new Properties();
-            properties.setProperty("prepareThreshold", "0"); // disable prepared statements
+            properties.setProperty("prepareThreshold", "-1"); // disable prepared statements
             try (Connection conn = DriverManager.getConnection(pgUrl, properties)) {
                 conn.setAutoCommit(true);
                 PreparedStatement preparedStatement = conn.prepareStatement(request.stmt());

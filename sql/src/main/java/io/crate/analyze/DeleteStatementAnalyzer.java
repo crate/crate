@@ -23,6 +23,7 @@ package io.crate.analyze;
 
 import io.crate.analyze.expressions.ExpressionAnalysisContext;
 import io.crate.analyze.expressions.ExpressionAnalyzer;
+import io.crate.analyze.expressions.ParamToLiteral;
 import io.crate.analyze.relations.*;
 import io.crate.analyze.symbol.Symbols;
 import io.crate.analyze.where.WhereClauseAnalyzer;
@@ -96,8 +97,13 @@ public class DeleteStatementAnalyzer extends DefaultTraversalVisitor<AnalyzedSta
     public AnalyzedStatement visitDelete(Delete node, Analysis analysis) {
         int numNested = 1;
 
+        ParamToLiteral convertParamFunction = new ParamToLiteral(analysis.parameterContext());
         StatementAnalysisContext statementAnalysisContext = new StatementAnalysisContext(
-            analysis.sessionContext(), analysis.parameterContext(), analysis.statementContext(), analysisMetaData, Operation.DELETE);
+            analysis.sessionContext(),
+            convertParamFunction,
+            analysis.statementContext(),
+            analysisMetaData,
+            Operation.DELETE);
         RelationAnalysisContext relationAnalysisContext = statementAnalysisContext.startRelation();
         AnalyzedRelation analyzedRelation = relationAnalyzer.analyze(node.getRelation(), statementAnalysisContext);
 
@@ -108,7 +114,7 @@ public class DeleteStatementAnalyzer extends DefaultTraversalVisitor<AnalyzedSta
             new ExpressionAnalyzer(
                 analysisMetaData,
                 analysis.sessionContext(),
-                analysis.parameterContext(),
+                convertParamFunction,
                 relationAnalysisContext.fieldProvider(),
                 docTableRelation),
             new ExpressionAnalysisContext(analysis.statementContext()),

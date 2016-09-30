@@ -81,7 +81,7 @@ public class ManyTableConsumerTest {
     }
 
     private MultiSourceSelect analyze(String statement) {
-        Analysis analysis = analyzer.analyze(SqlParser.createStatement(statement), SessionContext.SYSTEM_SESSION, ParameterContext.EMPTY);
+        Analysis analysis = analyzer.boundAnalyze(SqlParser.createStatement(statement), SessionContext.SYSTEM_SESSION, ParameterContext.EMPTY);
         MultiSourceSelect mss = (MultiSourceSelect) ((SelectAnalyzedStatement) analysis.analyzedStatement()).relation();
         ManyTableConsumer.replaceFieldsWithRelationColumns(mss);
         return mss;

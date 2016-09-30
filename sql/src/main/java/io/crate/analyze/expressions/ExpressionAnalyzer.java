@@ -86,7 +86,7 @@ public class ExpressionAnalyzer {
     private final static SubscriptVisitor SUBSCRIPT_VISITOR = new SubscriptVisitor();
     private final EvaluatingNormalizer normalizer;
     private final SessionContext sessionContext;
-    private final ParameterContext parameterContext;
+    private final com.google.common.base.Function<ParameterExpression, Symbol> convertParamFunction;
     private final FieldProvider<?> fieldProvider;
     private final Functions functions;
     private final InnerExpressionAnalyzer innerAnalyzer;
@@ -97,12 +97,12 @@ public class ExpressionAnalyzer {
     public ExpressionAnalyzer(Functions functions,
                               ReferenceResolver<? extends io.crate.operation.Input<?>> referenceResolver,
                               SessionContext sessionContext,
-                              ParameterContext parameterContext,
+                              com.google.common.base.Function<ParameterExpression, Symbol> convertParamFunction,
                               FieldProvider<?> fieldProvider,
                               @Nullable FieldResolver fieldResolver) {
         this.functions = functions;
         this.sessionContext = sessionContext;
-        this.parameterContext = parameterContext;
+        this.convertParamFunction = convertParamFunction;
         this.fieldProvider = fieldProvider;
         this.innerAnalyzer = new InnerExpressionAnalyzer();
         this.normalizer = new EvaluatingNormalizer(
@@ -111,11 +111,11 @@ public class ExpressionAnalyzer {
 
     public ExpressionAnalyzer(AnalysisMetaData analysisMetaData,
                               SessionContext sessionContext,
-                              ParameterContext parameterContext,
+                              com.google.common.base.Function<ParameterExpression, Symbol> convertParamFunction,
                               FieldProvider fieldProvider,
                               @Nullable FieldResolver fieldResolver) {
         this(analysisMetaData.functions(), analysisMetaData.referenceResolver(),
-            sessionContext, parameterContext, fieldProvider, fieldResolver);
+            sessionContext, convertParamFunction, fieldProvider, fieldResolver);
     }
 
     /**
@@ -608,7 +608,7 @@ public class ExpressionAnalyzer {
 
         @Override
         public Symbol visitParameterExpression(ParameterExpression node, ExpressionAnalysisContext context) {
-            return parameterContext.getAsSymbol(node.index());
+            return convertParamFunction.apply(node);
         }
 
         @Override
