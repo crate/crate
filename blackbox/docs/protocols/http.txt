@@ -21,9 +21,9 @@ A simple `SELECT` statement can be submitted like this::
     ... }'
     {
       "cols" : [ "name", "position" ],
-      "duration" : ...,
       "rows" : [ [ "North West Ripple", 1 ], [ "Arkintoofle Minor", 3 ] ],
-      "rowcount" : 2
+      "rowcount" : 2,
+      "duration" : ...
     }
 
 .. _parameter_substitution:
@@ -50,9 +50,9 @@ expected under the ``args`` key::
     ... EOF
     {
       "cols" : [ "date", "position" ],
-      "duration" : ...,
       "rows" : [ [ 308534400000, 1 ], [ 308534400000, 2 ] ],
-      "rowcount" : 2
+      "rowcount" : 2,
+      "duration" : ...
     }
 
 .. note::
@@ -76,9 +76,9 @@ The same query using question marks as placeholders looks like this::
     ... EOF
     {
       "cols" : [ "date", "position" ],
-      "duration" : ...,
       "rows" : [ [ 308534400000, 1 ], [ 308534400000, 2 ] ],
-      "rowcount" : 2
+      "rowcount" : 2,
+      "duration" : ...
     }
 
 .. note::
@@ -98,9 +98,9 @@ It is possible to set a default schema while querying the Crate cluster via
     ... }'
     {
       "cols" : [ "name", "position" ],
-      "duration" : ...,
       "rows" : [ [ "North West Ripple", 1 ], [ "Arkintoofle Minor", 3 ] ],
-      "rowcount" : 2
+      "rowcount" : 2,
+      "duration" : ...
     }
 
 If the schema name is not specified in the header, the default ``doc`` schema
@@ -126,9 +126,9 @@ parameter must be passed to the request::
     {
       "cols" : [ "date", "position" ],
       "col_types" : [ 11, 9 ],
-      "duration" : ...,
       "rows" : [ [ 308534400000, 1 ], [ 308534400000, 2 ] ],
-      "rowcount" : 2
+      "rowcount" : 2,
+      "duration" : ...
     }
 
 Collection data types like ``Set`` or ``Array`` are displayed as

@@ -35,13 +35,13 @@ import java.io.StringWriter;
 import static org.elasticsearch.ExceptionsHelper.detailedMessage;
 
 
-public class CrateThrowableRestResponse extends RestResponse {
+class CrateThrowableRestResponse extends RestResponse {
 
     private final RestStatus status;
     private final BytesReference content;
     private final String contentType;
 
-    public CrateThrowableRestResponse(RestChannel channel, Throwable t) throws IOException {
+    CrateThrowableRestResponse(RestChannel channel, Throwable t) throws IOException {
         status = (t instanceof ElasticsearchException) ?
             ((ElasticsearchException) t).status() :
             RestStatus.INTERNAL_SERVER_ERROR;

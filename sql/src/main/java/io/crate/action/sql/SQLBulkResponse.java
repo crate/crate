@@ -49,19 +49,6 @@ public class SQLBulkResponse extends SQLBaseResponse {
         return results;
     }
 
-    @Override
-    public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
-        builder.startObject();
-        writeSharedAttributes(builder);
-        builder.startArray(Fields.RESULTS);
-        for (Result result : results) {
-            result.toXContent(builder);
-        }
-        builder.endArray();
-        return builder;
-    }
-
-
     public static class Result implements Streamable {
 
         private String errorMessage;

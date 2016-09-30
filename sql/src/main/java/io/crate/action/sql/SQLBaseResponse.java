@@ -33,7 +33,7 @@ import org.elasticsearch.common.xcontent.XContentBuilderString;
 
 import java.io.IOException;
 
-public abstract class SQLBaseResponse extends ActionResponse implements ToXContent {
+public abstract class SQLBaseResponse extends ActionResponse {
 
     public static final DataType[] EMPTY_TYPES = new DataType[0];
 

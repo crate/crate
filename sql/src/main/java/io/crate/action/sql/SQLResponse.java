@@ -51,26 +51,6 @@ public class SQLResponse extends SQLBaseResponse {
         this.rowCount = rowCount;
     }
 
-    @Override
-    public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
-        builder.startObject();
-        writeSharedAttributes(builder);
-        builder.startArray(Fields.ROWS);
-        if (rows != null) {
-            for (Object[] row : rows) {
-                builder.startArray();
-                for (int j = 0, len = cols().length; j < len; j++) {
-                    builder.value(row[j]);
-                }
-                builder.endArray();
-            }
-        }
-        builder.endArray();
-        builder.field(Fields.ROWCOUNT, rowCount());
-        builder.endObject();
-        return builder;
-    }
-
     public Object[][] rows() {
         return rows;
     }

@@ -25,8 +25,6 @@ import com.carrotsearch.hppc.cursors.ObjectCursor;
 import com.google.common.base.Throwables;
 import com.google.common.collect.Multimap;
 import io.crate.action.sql.*;
-import io.crate.action.sql.parser.SQLXContentSourceContext;
-import io.crate.action.sql.parser.SQLXContentSourceParser;
 import io.crate.analyze.Analyzer;
 import io.crate.analyze.ParameterContext;
 import io.crate.core.collections.Row;
@@ -59,15 +57,11 @@ import org.elasticsearch.client.Requests;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.cluster.metadata.MappingMetaData;
 import org.elasticsearch.cluster.metadata.MetaData;
-import org.elasticsearch.common.Nullable;
-import org.elasticsearch.common.bytes.BytesArray;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.transport.InetSocketTransportAddress;
 import org.elasticsearch.common.unit.TimeValue;
-import org.elasticsearch.common.xcontent.ToXContent;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentFactory;
-import org.elasticsearch.common.xcontent.XContentType;
 import org.elasticsearch.index.IndexService;
 import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.indices.IndicesService;
@@ -447,53 +441,6 @@ public abstract class SQLTransportIntegrationTest extends ESIntegTestCase {
         builder.endObject();
 
         return builder.string();
-    }
-
-    /**
-     * Execute an SQLRequest on a random client of the cluster like it would
-     * be executed by an HTTP REST Request
-     *
-     * @param source       the body of the statement, a JSON String containing the "stmt" and the "args"
-     * @param includeTypes include data types in response
-     * @param schema       default schema
-     * @return the Response as JSON String
-     * @throws IOException
-     */
-    protected String restSQLExecute(String source, boolean includeTypes, @Nullable String schema) throws IOException {
-        XContentBuilder builder = XContentFactory.contentBuilder(XContentType.JSON);
-        builder.generator().usePrettyPrint();
-        SQLXContentSourceContext context = new SQLXContentSourceContext();
-        SQLXContentSourceParser parser = new SQLXContentSourceParser(context);
-        parser.parseSource(new BytesArray(source));
-
-        SQLBaseResponse sqlResponse;
-        Object[][] bulkArgs = context.bulkArgs();
-        if (bulkArgs != null && bulkArgs.length > 0) {
-            SQLBulkRequestBuilder requestBuilder = new SQLBulkRequestBuilder(client(), SQLBulkAction.INSTANCE);
-            requestBuilder.bulkArgs(context.bulkArgs());
-            requestBuilder.stmt(context.stmt());
-            requestBuilder.includeTypesOnResponse(includeTypes);
-            requestBuilder.setSchema(schema);
-            sqlResponse = requestBuilder.execute().actionGet();
-        } else {
-            SQLRequestBuilder requestBuilder = new SQLRequestBuilder(client(), SQLAction.INSTANCE);
-            requestBuilder.args(context.args());
-            requestBuilder.stmt(context.stmt());
-            requestBuilder.includeTypesOnResponse(includeTypes);
-            requestBuilder.setSchema(schema);
-            sqlResponse = requestBuilder.execute().actionGet();
-        }
-        sqlResponse.toXContent(builder, ToXContent.EMPTY_PARAMS);
-        responseDuration = sqlResponse.duration();
-        return builder.string();
-    }
-
-    protected String restSQLExecute(String source, boolean includeTypes) throws IOException {
-        return restSQLExecute(source, includeTypes, null);
-    }
-
-    protected String restSQLExecute(String source) throws IOException {
-        return restSQLExecute(source, false);
     }
 
     public static class TestSQLPlugin extends Plugin {
