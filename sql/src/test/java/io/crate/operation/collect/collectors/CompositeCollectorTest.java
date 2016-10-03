@@ -27,17 +27,32 @@ import io.crate.core.collections.CollectionBucket;
 import io.crate.core.collections.Row;
 import io.crate.operation.collect.CrateCollector;
 import io.crate.operation.collect.RowsCollector;
+import io.crate.operation.projectors.RepeatHandle;
+import io.crate.operation.projectors.RowReceiver;
 import io.crate.testing.CollectingRowReceiver;
 import io.crate.testing.RowGenerator;
 import io.crate.testing.TestingHelpers;
 import org.junit.Test;
 
+import javax.annotation.Nullable;
 import java.util.Arrays;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
+import static org.mockito.Matchers.isNull;
+import static org.mockito.Mockito.*;
 
 public class CompositeCollectorTest {
+
+
+    private CrateCollector.Builder mockBuilder(final CrateCollector mock) {
+        return new CrateCollector.Builder() {
+            @Override
+            public CrateCollector build(RowReceiver rowReceiver) {
+                return mock;
+            }
+        };
+    }
 
     @Test
     public void testRepeatEmitsRowsInTheSameOrder() throws Exception {
@@ -53,12 +68,53 @@ public class CompositeCollectorTest {
         collector.doCollect();
 
         Bucket result = rr.result();
-        assertThat(TestingHelpers.printedTable(result),
+        String resultString = TestingHelpers.printedTable(result);
+        assertThat(resultString,
             is("0\n1\n2\n3\n4\n5\n6\n7\n8\n9\n10\n11\n12\n13\n14\n10\n11\n12\n13\n14\n15\n16\n17\n18\n19\n20\n21\n22\n23\n24\n25\n26\n27\n28\n29\n"));
 
         rr.repeatUpstream();
         assertThat(TestingHelpers.printedTable(new CollectionBucket(rr.rows)),
-            is("0\n1\n2\n3\n4\n5\n6\n7\n8\n9\n10\n11\n12\n13\n14\n10\n11\n12\n13\n14\n15\n16\n17\n18\n19\n20\n21\n22\n23\n24\n25\n26\n27\n28\n29\n" +
-               "0\n1\n2\n3\n4\n5\n6\n7\n8\n9\n10\n11\n12\n13\n14\n10\n11\n12\n13\n14\n15\n16\n17\n18\n19\n20\n21\n22\n23\n24\n25\n26\n27\n28\n29\n"));
+            is(resultString + resultString));
+
+        rr.repeatUpstream();
+        assertThat(TestingHelpers.printedTable(new CollectionBucket(rr.rows)),
+            is(resultString + resultString + resultString));
+    }
+
+
+    @Test
+    public void testKill() throws Exception {
+
+        CollectingRowReceiver rr = new CollectingRowReceiver();
+        CrateCollector.Builder builder = new CrateCollector.Builder() {
+
+            @Override
+            public CrateCollector build(final RowReceiver rowReceiver) {
+                return new CrateCollector() {
+                    @Override
+                    public void doCollect() {
+                        rowReceiver.finish(RepeatHandle.UNSUPPORTED);
+                    }
+
+                    @Override
+                    public void kill(@Nullable Throwable throwable) {
+                        throw new AssertionError("Kill should not be called on finished collector");
+                    }
+                };
+            }
+        };
+
+        CrateCollector c2 = mock(CrateCollector.class);
+        CrateCollector c3 = mock(CrateCollector.class);
+
+        CompositeCollector collector = new CompositeCollector(Arrays.asList(builder, mockBuilder(c2), mockBuilder(c3)), rr);
+
+        collector.doCollect();
+        collector.kill(null);
+
+        verify(c2, times(1)).doCollect();
+        verify(c2, times(1)).kill(isNull(Throwable.class));
+        verify(c3, never()).doCollect();
+        verify(c3, never()).kill(isNull(Throwable.class));
     }
 }

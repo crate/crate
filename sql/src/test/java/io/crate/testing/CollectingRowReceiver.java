@@ -81,7 +81,11 @@ public class CollectingRowReceiver implements RowReceiver {
 
     @Override
     public void kill(Throwable throwable) {
-        resultFuture.setException(throwable);
+        if (throwable == null) {
+            resultFuture().cancel(false);
+        } else {
+            resultFuture.setException(throwable);
+        }
     }
 
     @Override
