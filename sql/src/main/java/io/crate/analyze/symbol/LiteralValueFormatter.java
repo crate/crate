@@ -22,13 +22,13 @@
 
 package io.crate.analyze.symbol;
 
-import com.google.common.collect.ImmutableList;
 import io.crate.core.collections.Sorted;
 import io.crate.sql.Literals;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.lucene.BytesRefs;
 
 import java.lang.reflect.Array;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Map;
 import java.util.Set;
@@ -48,8 +48,7 @@ public class LiteralValueFormatter {
         } else if(value instanceof Collection) {
             formatIterable((Iterable<?>) value, builder);
         } else if (value instanceof Object[]) {
-            formatIterable(ImmutableList.copyOf((Object[]) value), builder);
-
+            formatIterable(Arrays.asList((Object[]) value), builder);
         } else if (value.getClass().isArray()) {
             formatArray(value, builder);
         } else if (value instanceof CharSequence || value instanceof Character || value instanceof BytesRef) {
