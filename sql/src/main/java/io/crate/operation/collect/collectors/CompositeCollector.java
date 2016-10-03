@@ -22,24 +22,18 @@
 
 package io.crate.operation.collect.collectors;
 
-import com.google.common.collect.ImmutableList;
-import io.crate.concurrent.CompletionListenable;
-import io.crate.concurrent.CompletionListener;
-import io.crate.concurrent.CompletionMultiListener;
-import io.crate.concurrent.CompletionState;
 import io.crate.core.collections.Row;
-import io.crate.operation.RowDownstream;
 import io.crate.operation.collect.CrateCollector;
 import io.crate.operation.projectors.RepeatHandle;
 import io.crate.operation.projectors.Requirement;
 import io.crate.operation.projectors.ResumeHandle;
 import io.crate.operation.projectors.RowReceiver;
-import org.elasticsearch.common.logging.ESLogger;
-import org.elasticsearch.common.logging.Loggers;
 
-import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
@@ -80,141 +74,107 @@ import java.util.concurrent.atomic.AtomicInteger;
  */
 public class CompositeCollector implements CrateCollector {
 
-    private static final ESLogger LOGGER = Loggers.getLogger(CompositeCollector.class);
-
-    private final Iterator<? extends CrateCollector> collectorsIt;
+    private final List<CrateCollector> collectors;
+    private final Receiver receiver;
+    private final RowReceiver downstream;
 
     public CompositeCollector(Collection<? extends Builder> builders, RowReceiver rowReceiver) {
-        MultiRowReceiver multiRowReceiver = new MultiRowReceiver(rowReceiver);
-        List<CrateCollector> collectors = new ArrayList<>(builders.size());
+        assert builders.size() > 1 : "CompositeCollector must not be called with less than 2 collectors";
+        receiver = new Receiver(builders.size());
+        collectors = new ArrayList<>(builders.size());
+        downstream = rowReceiver;
         for (Builder builder : builders) {
-            collectors.add(builder.build(multiRowReceiver.newRowReceiver()));
+            collectors.add(builder.build(receiver));
         }
-        multiRowReceiver.addListener(new CompletionListener() {
-            @Override
-            public void onSuccess(@Nullable CompletionState result) {
-                doCollect();
-            }
-
-            @Override
-            public void onFailure(@Nonnull Throwable t) {
-                kill(t);
-            }
-        });
-        collectorsIt = collectors.iterator();
-        // without at least one collector there is no way to inform someone about anything - this would just be a useless no-op class
-        assert this.collectorsIt.hasNext() : "need at least one collector";
     }
 
     @Override
     public void doCollect() {
-        if (collectorsIt.hasNext()) {
-            CrateCollector collector = collectorsIt.next();
-            LOGGER.trace("doCollect collector={}", collector);
-            collector.doCollect();
-        }
+        collectors.get(0).doCollect();
     }
 
     @Override
     public void kill(@Nullable Throwable throwable) {
-        // no while loop because one kill will cause completionListener.onFailure to be killed which calls kill here again
-        if (collectorsIt.hasNext()) {
-            CrateCollector collector = collectorsIt.next();
-            collector.kill(throwable);
-        }
+        receiver.killFromParent(throwable);
     }
 
-    private static class MultiRowReceiver implements RowDownstream, RowReceiver, CompletionListenable {
+    private class Receiver implements RowReceiver, RepeatHandle {
 
-        private final RowReceiver delegate;
-        private final AtomicInteger activeUpstreams = new AtomicInteger(0);
-        private final List<RepeatHandle> repeatHandles = new ArrayList<>();
-        private Throwable failure = null;
-        private boolean prepared = false;
-        private CompletionListener listener = CompletionListener.NO_OP;
+        private final AtomicInteger numFinishCalls = new AtomicInteger(0);
+        private final RepeatHandle[] repeatHandles;
 
-        MultiRowReceiver(RowReceiver delegate) {
-            this.delegate = delegate;
-        }
-
-        private void countdown() {
-            int numUpstreams = activeUpstreams.decrementAndGet();
-            LOGGER.trace("countdown numUpstreams={} failure={}", numUpstreams, failure);
-            if (numUpstreams == 0) {
-                if (failure == null) {
-                    final ImmutableList<RepeatHandle> repeatHandles = ImmutableList.copyOf(this.repeatHandles);
-                    this.repeatHandles.clear();
-                    delegate.finish(new RepeatHandle() {
-                        @Override
-                        public void repeat() {
-                            if (MultiRowReceiver.this.activeUpstreams.compareAndSet(0, repeatHandles.size())) {
-                                for (RepeatHandle repeatHandle : repeatHandles) {
-                                    repeatHandle.repeat();
-                                }
-                            } else {
-                                throw new IllegalStateException("Repeat called without all upstreams being finished");
-                            }
-                        }
-                    });
-                } else {
-                    delegate.fail(failure);
-                }
-            }
-        }
-
-        @Override
-        public RowReceiver newRowReceiver() {
-            int numUpstreams = activeUpstreams.incrementAndGet();
-            LOGGER.trace("newRowReceiver activeUpstreams={}", numUpstreams);
-            return this;
+        private Receiver(int size) {
+            repeatHandles = new RepeatHandle[size];
         }
 
         @Override
         public Result setNextRow(Row row) {
-            return delegate.setNextRow(row);
+            return downstream.setNextRow(row);
         }
 
         @Override
         public void pauseProcessed(ResumeHandle resumeable) {
-            delegate.pauseProcessed(resumeable);
+            downstream.pauseProcessed(resumeable);
+        }
+
+        public void repeat() {
+            int calls = numFinishCalls.get();
+            if (calls == -1) return;
+            assert calls % collectors.size() == 0 : "Repeat called without all upstreams being finished";
+            repeatHandles[0].repeat();
         }
 
         @Override
         public void finish(RepeatHandle repeatable) {
-            this.repeatHandles.add(repeatable);
-            countdown();
-            listener.onSuccess(null);
+            int calls = numFinishCalls.incrementAndGet();
+            if (calls == 0) {
+                // numFinishedCalls was -1 so killed
+                numFinishCalls.set(-1);
+                return;
+            }
+            repeatHandles[(calls - 1) % repeatHandles.length] = repeatable;
+            if (calls < repeatHandles.length) {
+                // in first collect loop
+                collectors.get(calls).doCollect();
+            } else if (calls % repeatHandles.length == 0) {
+                // a loop over upstreams is finished
+                downstream.finish(this);
+            } else {
+                // in a repeat loop
+                repeatHandles[calls % repeatHandles.length].repeat();
+            }
         }
 
         @Override
         public void fail(Throwable throwable) {
-            this.failure = throwable;
-            countdown();
-            listener.onFailure(throwable);
+            downstream.fail(throwable);
+        }
+
+        private void killFromParent(Throwable throwable) {
+            int calls = numFinishCalls.getAndSet(-1);
+            if (calls >= 0) {
+                collectors.get(calls % repeatHandles.length).kill(throwable);
+            }
+            downstream.kill(throwable);
         }
 
         @Override
         public void kill(Throwable throwable) {
-            listener.onFailure(throwable);
-            delegate.kill(throwable);
+            if (numFinishCalls.get() != -1) {
+                downstream.kill(throwable);
+            }
         }
 
         @Override
         public void prepare() {
-            if (!prepared) {
-                prepared = true;
-                delegate.prepare();
+            if (numFinishCalls.get() == 0) {
+                downstream.prepare();
             }
         }
 
         @Override
         public Set<Requirement> requirements() {
-            return delegate.requirements();
-        }
-
-        @Override
-        public void addListener(CompletionListener listener) {
-            this.listener = CompletionMultiListener.merge(this.listener, listener);
+            return downstream.requirements();
         }
     }
 }
