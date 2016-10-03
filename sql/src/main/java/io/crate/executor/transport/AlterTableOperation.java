@@ -40,8 +40,6 @@ import io.crate.analyze.AddColumnAnalyzedStatement;
 import io.crate.analyze.AlterPartitionedTableParameterInfo;
 import io.crate.analyze.AlterTableAnalyzedStatement;
 import io.crate.analyze.TableParameter;
-import io.crate.concurrent.CompletionListener;
-import io.crate.concurrent.CompletionMultiListener;
 import io.crate.core.MultiFutureCallback;
 import io.crate.core.collections.Row;
 import io.crate.exceptions.AlterTableAliasException;
@@ -104,7 +102,7 @@ public class AlterTableOperation {
                 session.parse(SQLOperations.Session.UNNAMED, stmt, Collections.<DataType>emptyList());
                 session.bind(SQLOperations.Session.UNNAMED, SQLOperations.Session.UNNAMED, Collections.emptyList(), null);
                 session.execute(SQLOperations.Session.UNNAMED, 1, new ResultSetReceiver(analysis, result));
-                session.sync(CompletionListener.NO_OP);
+                session.sync();
             } catch (Throwable t) {
                 result.setException(t);
             }
@@ -117,19 +115,13 @@ public class AlterTableOperation {
     private class ResultSetReceiver implements ResultReceiver {
 
         private final AddColumnAnalyzedStatement analysis;
-        private final SettableFuture<Long> result;
+        private final SettableFuture<?> result;
 
-        private CompletionListener completionListener = CompletionListener.NO_OP;
         private long count;
 
-        ResultSetReceiver(AddColumnAnalyzedStatement analysis, SettableFuture<Long> result) {
+        ResultSetReceiver(AddColumnAnalyzedStatement analysis, SettableFuture<?> result) {
             this.analysis = analysis;
             this.result = result;
-        }
-
-        @Override
-        public void addListener(CompletionListener listener) {
-            this.completionListener = CompletionMultiListener.merge(this.completionListener, listener);
         }
 
         @Override
@@ -145,7 +137,6 @@ public class AlterTableOperation {
         public void allFinished() {
             if (count == 0L) {
                 addColumnToTable(analysis, result);
-                completionListener.onSuccess(null);
             } else {
                 String columnFailure = analysis.newPrimaryKeys() ? "primary key" : "generated";
                 fail(new UnsupportedOperationException(String.format(Locale.ENGLISH,
@@ -156,7 +147,11 @@ public class AlterTableOperation {
         @Override
         public void fail(@Nonnull Throwable t) {
             result.setException(t);
-            completionListener.onFailure(t);
+        }
+
+        @Override
+        public ListenableFuture<?> completionFuture() {
+            return result;
         }
     }
 
@@ -306,7 +301,7 @@ public class AlterTableOperation {
         return listener;
     }
 
-    private void addColumnToTable(AddColumnAnalyzedStatement analysis, final SettableFuture<Long> result) {
+    private void addColumnToTable(AddColumnAnalyzedStatement analysis, final SettableFuture<?> result) {
         boolean updateTemplate = analysis.table().isPartitioned();
         List<ListenableFuture<Long>> results = new ArrayList<>(2);
         final Map<String, Object> mapping = analysis.analyzedTableElements().toMapping();
@@ -323,7 +318,7 @@ public class AlterTableOperation {
         applyMultiFutureCallback(result, results);
     }
 
-    private void applyMultiFutureCallback(final SettableFuture<Long> result, List<ListenableFuture<Long>> futures) {
+    private void applyMultiFutureCallback(final SettableFuture<?> result, List<ListenableFuture<Long>> futures) {
         MultiFutureCallback<Long> multiFutureCallback = new MultiFutureCallback<>(futures.size(), new FutureCallback<List<Long>>() {
             @Override
             public void onSuccess(@Nullable List<Long> future) {

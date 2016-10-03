@@ -24,12 +24,13 @@ package io.crate.protocols.postgres;
 
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.ListenableFuture;
+import com.google.common.util.concurrent.SettableFuture;
 import io.crate.action.sql.ResultReceiver;
 import io.crate.action.sql.SessionContext;
 import io.crate.analyze.Analysis;
 import io.crate.analyze.ParameterContext;
 import io.crate.analyze.symbol.Field;
-import io.crate.concurrent.CompletionListener;
 import io.crate.core.collections.Row;
 import io.crate.core.collections.RowN;
 import io.crate.core.collections.Rows;
@@ -114,7 +115,7 @@ class BulkPortal extends AbstractPortal {
     }
 
     @Override
-    public void sync(Planner planner, StatsTables statsTables, CompletionListener listener) {
+    public ListenableFuture<?> sync(Planner planner, StatsTables statsTables) {
         List<Row> bulkParams = Rows.of(bulkArgs);
         Analysis analysis = portalContext.getAnalyzer().analyze(statement,
             sessionContext,
@@ -128,39 +129,40 @@ class BulkPortal extends AbstractPortal {
             throw t;
         }
         statsTables.logExecutionStart(jobId, query);
-        executeBulk(portalContext.getExecutor(), plan, jobId, statsTables, listener);
+        return executeBulk(portalContext.getExecutor(), plan, jobId, statsTables);
     }
 
-    private void executeBulk(Executor executor, Plan plan, final UUID jobId,
-                             final StatsTables statsTables, final CompletionListener listener) {
-
+    private ListenableFuture<Void> executeBulk(Executor executor, Plan plan, final UUID jobId,
+                             final StatsTables statsTables) {
+        final SettableFuture<Void> future = SettableFuture.create();
         Futures.addCallback(executor.executeBulk(plan), new FutureCallback<List<Long>>() {
-            @Override
-            public void onSuccess(@Nullable List<Long> result) {
-                assert result != null && result.size() == resultReceivers.size()
-                    : "number of result must match number of rowReceivers";
+                @Override
+                public void onSuccess(@Nullable List<Long> result) {
+                    assert result != null && result.size() == resultReceivers.size()
+                        : "number of result must match number of rowReceivers";
 
-                Long[] cells = new Long[1];
-                RowN row = new RowN(cells);
-                for (int i = 0; i < result.size(); i++) {
-                    cells[0] = result.get(i);
-                    ResultReceiver resultReceiver = resultReceivers.get(i);
-                    resultReceiver.setNextRow(row);
-                    resultReceiver.allFinished();
+                    Long[] cells = new Long[1];
+                    RowN row = new RowN(cells);
+                    for (int i = 0; i < result.size(); i++) {
+                        cells[0] = result.get(i);
+                        ResultReceiver resultReceiver = resultReceivers.get(i);
+                        resultReceiver.setNextRow(row);
+                        resultReceiver.allFinished();
+                    }
+                    future.set(null);
+                    statsTables.logExecutionEnd(jobId, null);
                 }
-                listener.onSuccess(null);
-                statsTables.logExecutionEnd(jobId, null);
-            }
 
-            @Override
-            public void onFailure(Throwable t) {
-                for (ResultReceiver resultReceiver : resultReceivers) {
-                    resultReceiver.fail(t);
+                @Override
+                public void onFailure(Throwable t) {
+                    for (ResultReceiver resultReceiver : resultReceivers) {
+                        resultReceiver.fail(t);
+                    }
+                    future.setException(t);
+                    statsTables.logExecutionEnd(jobId, Exceptions.messageOf(t));
+
                 }
-                listener.onFailure(t);
-                statsTables.logExecutionEnd(jobId, Exceptions.messageOf(t));
-
-            }
-        });
+            });
+        return future;
     }
 }

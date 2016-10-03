@@ -23,12 +23,9 @@ package io.crate.operation.join;
 
 import com.google.common.base.Predicate;
 import com.google.common.base.Throwables;
-import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
 import io.crate.concurrent.CompletionListenable;
-import io.crate.concurrent.CompletionListener;
-import io.crate.concurrent.CompletionState;
 import io.crate.core.collections.Row;
 import io.crate.core.collections.RowN;
 import io.crate.core.collections.RowNull;
@@ -144,7 +141,7 @@ import java.util.concurrent.atomic.AtomicReference;
 public class NestedLoopOperation implements CompletionListenable {
 
     private final static ESLogger LOGGER = Loggers.getLogger(NestedLoopOperation.class);
-    private final SettableFuture<CompletionState> completionFuture = SettableFuture.create();
+    private final SettableFuture<Void> completionFuture = SettableFuture.create();
 
     private final LeftRowReceiver left;
     private final RightRowReceiver right;
@@ -158,9 +155,10 @@ public class NestedLoopOperation implements CompletionListenable {
     private volatile boolean stop = false;
     private volatile boolean emitRightJoin = false;
 
+
     @Override
-    public void addListener(CompletionListener listener) {
-        Futures.addCallback(completionFuture, listener);
+    public ListenableFuture<?> completionFuture() {
+        return completionFuture;
     }
 
     private final AtomicBoolean leadAcquired = new AtomicBoolean(false);

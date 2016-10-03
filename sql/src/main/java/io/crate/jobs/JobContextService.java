@@ -21,8 +21,8 @@
 
 package io.crate.jobs;
 
-import io.crate.concurrent.CompletionListener;
-import io.crate.concurrent.CompletionState;
+import com.google.common.util.concurrent.FutureCallback;
+import com.google.common.util.concurrent.Futures;
 import io.crate.exceptions.ContextMissingException;
 import io.crate.operation.collect.StatsTables;
 import org.elasticsearch.ElasticsearchException;
@@ -118,7 +118,7 @@ public class JobContextService extends AbstractLifecycleComponent<JobContextServ
         JobExecutionContext newContext = contextBuilder.build();
         readLock.lock();
         try {
-            newContext.addListener(new JobContextListener(jobId));
+            Futures.addCallback(newContext.completionFuture(), new JobContextCallback(jobId));
             JobExecutionContext existing = activeContexts.putIfAbsent(jobId, newContext);
             if (existing != null) {
                 throw new IllegalArgumentException(
@@ -177,11 +177,11 @@ public class JobContextService extends AbstractLifecycleComponent<JobContextServ
         return numKilled;
     }
 
-    private class JobContextListener implements CompletionListener {
+    private class JobContextCallback implements FutureCallback<Object> {
 
         private UUID jobId;
 
-        public JobContextListener(UUID jobId) {
+        JobContextCallback(UUID jobId) {
             this.jobId = jobId;
         }
 
@@ -195,7 +195,7 @@ public class JobContextService extends AbstractLifecycleComponent<JobContextServ
         }
 
         @Override
-        public void onSuccess(@Nullable CompletionState state) {
+        public void onSuccess(@Nullable Object result) {
             remove(null);
         }
 

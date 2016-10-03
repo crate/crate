@@ -23,8 +23,6 @@ package io.crate.action.sql;
 
 import io.crate.action.ActionListeners;
 import io.crate.analyze.symbol.Field;
-import io.crate.concurrent.CompletionListener;
-import io.crate.concurrent.CompletionMultiListener;
 import io.crate.core.collections.Row;
 import io.crate.exceptions.Exceptions;
 import io.crate.executor.BytesRefUtils;
@@ -96,20 +94,19 @@ public class TransportSQLAction extends TransportAction<SQLRequest, SQLResponse>
                 ResultReceiver resultReceiver = new ResultSetReceiver(listener, outputFields, startTime, request.includeTypesOnResponse());
                 session.execute(UNNAMED, 0, resultReceiver);
             }
-            session.sync(CompletionListener.NO_OP);
+            session.sync();
         } catch (Throwable t) {
             listener.onFailure(Exceptions.createSQLActionException(t));
         }
     }
 
-    private static class ResultSetReceiver implements ResultReceiver {
+    private static class ResultSetReceiver extends BaseResultReceiver {
 
         private final List<Object[]> rows = new ArrayList<>();
         private final ActionListener<SQLResponse> listener;
         private final List<Field> outputFields;
         private final long startTime;
         private final boolean includeTypesOnResponse;
-        private CompletionListener completionListener = CompletionListener.NO_OP;
 
         ResultSetReceiver(ActionListener<SQLResponse> listener,
                           List<Field> outputFields,
@@ -122,29 +119,20 @@ public class TransportSQLAction extends TransportAction<SQLRequest, SQLResponse>
         }
 
         @Override
-        public void addListener(CompletionListener listener) {
-            this.completionListener = CompletionMultiListener.merge(this.completionListener, listener);
-        }
-
-        @Override
         public void setNextRow(Row row) {
             rows.add(row.materialize());
         }
 
         @Override
-        public void batchFinished() {
-        }
-
-        @Override
         public void allFinished() {
             listener.onResponse(createSqlResponse());
-            completionListener.onSuccess(null);
+            super.allFinished();
         }
 
         @Override
         public void fail(@Nonnull Throwable t) {
             listener.onFailure(Exceptions.createSQLActionException(t));
-            completionListener.onFailure(t);
+            super.fail(t);
         }
 
         private SQLResponse createSqlResponse() {
@@ -171,14 +159,13 @@ public class TransportSQLAction extends TransportAction<SQLRequest, SQLResponse>
         }
     }
 
-    private static class RowCountReceiver implements ResultReceiver {
+    private static class RowCountReceiver extends BaseResultReceiver {
 
         private final ActionListener<SQLResponse> listener;
         private final long startTime;
         private final boolean includeTypes;
 
         private long rowCount;
-        private CompletionListener completionListener = CompletionListener.NO_OP;
 
         RowCountReceiver(ActionListener<SQLResponse> listener, long startTime, boolean includeTypes) {
             this.listener = listener;
@@ -187,17 +174,8 @@ public class TransportSQLAction extends TransportAction<SQLRequest, SQLResponse>
         }
 
         @Override
-        public void addListener(CompletionListener listener) {
-            this.completionListener = CompletionMultiListener.merge(this.completionListener, listener);
-        }
-
-        @Override
         public void setNextRow(Row row) {
             rowCount = (long) row.get(0);
-        }
-
-        @Override
-        public void batchFinished() {
         }
 
         @Override
@@ -212,14 +190,14 @@ public class TransportSQLAction extends TransportAction<SQLRequest, SQLResponse>
                 includeTypes
             );
             listener.onResponse(sqlResponse);
-            completionListener.onSuccess(null);
+            super.allFinished();
 
         }
 
         @Override
         public void fail(@Nonnull Throwable t) {
             listener.onFailure(Exceptions.createSQLActionException(t));
-            completionListener.onFailure(t);
+            super.fail(t);
         }
     }
 

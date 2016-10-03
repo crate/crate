@@ -22,21 +22,18 @@
 
 package io.crate.protocols.postgres;
 
-import io.crate.action.sql.ResultReceiver;
-import io.crate.concurrent.CompletionListener;
-import io.crate.concurrent.CompletionMultiListener;
+import io.crate.action.sql.BaseResultReceiver;
 import io.crate.core.collections.Row;
 import io.crate.exceptions.Exceptions;
 import org.jboss.netty.channel.Channel;
 
 import javax.annotation.Nonnull;
 
-class RowCountReceiver implements ResultReceiver {
+class RowCountReceiver extends BaseResultReceiver {
 
     private final Channel channel;
     private final String query;
     private long rowCount;
-    private CompletionListener listener = CompletionListener.NO_OP;
 
     RowCountReceiver(String query, Channel channel) {
         this.query = query;
@@ -56,23 +53,14 @@ class RowCountReceiver implements ResultReceiver {
     }
 
     @Override
-    public void batchFinished() {
-    }
-
-    @Override
     public void allFinished() {
         Messages.sendCommandComplete(channel, query, rowCount);
-        listener.onSuccess(null);
+        super.allFinished();
     }
 
     @Override
     public void fail(@Nonnull Throwable throwable) {
         Messages.sendErrorResponse(channel, Exceptions.createSQLActionException(throwable));
-        listener.onFailure(throwable);
-    }
-
-    @Override
-    public void addListener(CompletionListener listener) {
-        this.listener = CompletionMultiListener.merge(this.listener, listener);
+        super.fail(throwable);
     }
 }

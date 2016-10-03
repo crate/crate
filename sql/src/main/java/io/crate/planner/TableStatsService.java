@@ -25,10 +25,9 @@ package io.crate.planner;
 
 import com.carrotsearch.hppc.ObjectLongHashMap;
 import com.carrotsearch.hppc.ObjectLongMap;
+import io.crate.action.sql.BaseResultReceiver;
 import io.crate.action.sql.Option;
-import io.crate.action.sql.ResultReceiver;
 import io.crate.action.sql.SQLOperations;
-import io.crate.concurrent.CompletionListener;
 import io.crate.core.collections.Row;
 import io.crate.metadata.TableIdent;
 import io.crate.types.DataType;
@@ -104,19 +103,15 @@ public class TableStatsService extends AbstractComponent implements Runnable {
             session.parse(UNNAMED, STMT, Collections.<DataType>emptyList());
             session.bind(UNNAMED, UNNAMED, Collections.emptyList(), null);
             session.execute(UNNAMED, 0, new TableStatsResultReceiver());
-            session.sync(CompletionListener.NO_OP);
+            session.sync();
         } catch (Throwable t) {
             logger.error("error retrieving table stats", t);
         }
     }
 
-    class TableStatsResultReceiver implements ResultReceiver {
+    class TableStatsResultReceiver extends BaseResultReceiver {
 
         private final List<Object[]> rows = new ArrayList<>();
-
-        @Override
-        public void addListener(CompletionListener listener) {
-        }
 
         @Override
         public void setNextRow(Row row) {
@@ -124,17 +119,15 @@ public class TableStatsService extends AbstractComponent implements Runnable {
         }
 
         @Override
-        public void batchFinished() {
-        }
-
-        @Override
         public void allFinished() {
             tableStats = statsFromRows(rows);
+            super.allFinished();
         }
 
         @Override
         public void fail(@Nonnull Throwable t) {
             logger.error("error retrieving table stats", t);
+            super.fail(t);
         }
     }
 

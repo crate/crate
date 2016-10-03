@@ -22,13 +22,12 @@
 package io.crate.jobs;
 
 import com.google.common.base.Function;
-import com.google.common.base.Throwables;
 import com.google.common.collect.Lists;
+import com.google.common.util.concurrent.FutureCallback;
+import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
 import io.crate.concurrent.CompletionListenable;
-import io.crate.concurrent.CompletionListener;
-import io.crate.concurrent.CompletionMultiListener;
-import io.crate.concurrent.CompletionState;
 import io.crate.exceptions.ContextMissingException;
 import io.crate.exceptions.Exceptions;
 import io.crate.operation.collect.StatsTables;
@@ -63,7 +62,6 @@ public class JobExecutionContext implements CompletionListenable {
     private final StatsTables statsTables;
     private final SettableFuture<Void> finishedFuture = SettableFuture.create();
     private final AtomicBoolean killSubContextsOngoing = new AtomicBoolean(false);
-    private CompletionListener listener = CompletionListener.NO_OP;
     private volatile Throwable failure;
 
     public static class Builder {
@@ -122,7 +120,7 @@ public class JobExecutionContext implements CompletionListenable {
 
         for (Map.Entry<Integer, ExecutionSubContext> entry : contextMap.entrySet()) {
             int subContextId = entry.getKey();
-            entry.getValue().addListener(new RemoveSubContextListener(subContextId));
+            Futures.addCallback(entry.getValue().completionFuture(), new RemoveSubContextListener(subContextId));
             subContexts.put(entry.getKey(), entry.getValue());
             LOGGER.trace("adding subContext {}, now there are {} subContexts", subContextId, subContexts.size());
         }
@@ -201,31 +199,31 @@ public class JobExecutionContext implements CompletionListenable {
             }
         }
 
+        // synchronous wait for all contexts to be killed
+        // TODO: make this method async
         try {
-            // synchronous wait for all contexts to be killed
             finishedFuture.get();
-            int currentNumSubContexts = numSubContexts.get();
-            assert currentNumSubContexts == 0 : "unexpected subContexts there: " + currentNumSubContexts;
-        } catch (Exception e) {
-            throw Throwables.propagate(e);
+        } catch (Exception ignored) {
+            // any thrown exception can be ignored since, we just need to wait until all contexts are closed
+            // either because of an interrupt, failure or normal close
         }
 
+        int leftOverSubcontexts = numSubContexts.get();
+        assert leftOverSubcontexts == 0 : "unexpected subContexts there: " + leftOverSubcontexts;
         return numKilled;
     }
 
     private void finish() {
         if (failure != null) {
-            listener.onFailure(failure);
+            finishedFuture.setException(failure);
         } else {
-            listener.onSuccess(null);
+            finishedFuture.set(null);
         }
-        // this future is only needed to make kill() synchronous
-        finishedFuture.set(null);
     }
 
     @Override
-    public void addListener(CompletionListener listener) {
-        this.listener = CompletionMultiListener.merge(this.listener, listener);
+    public ListenableFuture<?> completionFuture() {
+        return finishedFuture;
     }
 
     @Override
@@ -237,7 +235,7 @@ public class JobExecutionContext implements CompletionListenable {
                '}';
     }
 
-    private class RemoveSubContextListener implements CompletionListener {
+    private class RemoveSubContextListener implements FutureCallback<CompletionState> {
 
         private final int id;
 

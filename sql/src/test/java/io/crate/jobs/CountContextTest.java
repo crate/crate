@@ -24,7 +24,6 @@ package io.crate.jobs;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
 import io.crate.analyze.WhereClause;
-import io.crate.concurrent.ContextCompletionListener;
 import io.crate.exceptions.UnknownUpstreamFailure;
 import io.crate.operation.count.CountOperation;
 import io.crate.test.CauseMatcher;
@@ -51,28 +50,24 @@ public class CountContextTest extends CrateUnitTest {
         when(countOperation.count(anyMap(), any(WhereClause.class))).thenReturn(future);
 
         CountContext countContext = new CountContext(1, countOperation, new CollectingRowReceiver(), null, WhereClause.MATCH_ALL);
-        ContextCompletionListener listener = new ContextCompletionListener();
-        countContext.addListener(listener);
         countContext.prepare();
         countContext.start();
         future.set(1L);
         assertTrue(countContext.future.closed());
         // assure that there was no exception
-        listener.get();
+        countContext.completionFuture().get();
 
         // on error
         future = SettableFuture.create();
         when(countOperation.count(anyMap(), any(WhereClause.class))).thenReturn(future);
 
         countContext = new CountContext(2, countOperation, new CollectingRowReceiver(), null, WhereClause.MATCH_ALL);
-        listener = new ContextCompletionListener();
-        countContext.addListener(listener);
         countContext.prepare();
         countContext.start();
         future.setException(new UnknownUpstreamFailure());
         assertTrue(countContext.future.closed());
         expectedException.expectCause(CauseMatcher.cause(UnknownUpstreamFailure.class));
-        listener.get();
+        countContext.completionFuture().get();
     }
 
     @Test

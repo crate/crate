@@ -22,9 +22,10 @@
 
 package io.crate.action.sql;
 
+import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.ListenableFuture;
 import io.crate.analyze.Analyzer;
 import io.crate.analyze.symbol.Field;
-import io.crate.concurrent.CompletionListener;
 import io.crate.exceptions.Exceptions;
 import io.crate.executor.Executor;
 import io.crate.operation.collect.StatsTables;
@@ -247,7 +248,7 @@ public class SQLOperations {
             Portal portal = getSafePortal(portalName);
             portal.execute(resultReceiver, maxRows);
             if (portal.getLastQuery().equalsIgnoreCase("BEGIN")) {
-                portal.sync(planner, statsTables, CompletionListener.NO_OP);
+                portal.sync(planner, statsTables);
                 clearState();
             } else {
                 // delay execution to be able to bundle bulk operations
@@ -255,26 +256,23 @@ public class SQLOperations {
             }
         }
 
-        public void sync(CompletionListener listener) {
+        public ListenableFuture<?> sync() {
             LOGGER.debug("method=sync");
-
             switch (pendingExecutions.size()) {
                 case 0:
-                    listener.onSuccess(null);
-                    return;
-
+                    return Futures.immediateFuture(null);
                 case 1:
                     Portal portal = pendingExecutions.iterator().next();
                     pendingExecutions.clear();
                     clearState();
-                    portal.sync(planner, statsTables, listener);
+                    ListenableFuture<?> result = portal.sync(planner, statsTables);
                     if (UNNAMED.equals(portal.name())) {
                         portal.close();
                     }
-                    return;
+                    return result;
             }
-
-            throw new IllegalStateException("Shouldn't have more than 1 pending execution. Got: " + pendingExecutions);
+            throw new IllegalStateException(
+                "Shouldn't have more than 1 pending execution. Got: " + pendingExecutions);
         }
 
         public void clearState() {

@@ -22,9 +22,9 @@
 
 package io.crate.protocols.postgres;
 
+import com.google.common.util.concurrent.ListenableFuture;
 import io.crate.action.sql.ResultReceiver;
 import io.crate.analyze.symbol.Field;
-import io.crate.concurrent.CompletionListener;
 import io.crate.operation.collect.StatsTables;
 import io.crate.planner.Planner;
 import io.crate.sql.tree.Statement;
@@ -50,7 +50,7 @@ public interface Portal {
 
     void execute(ResultReceiver resultReceiver, int maxRows);
 
-    void sync(Planner planner, StatsTables statsTables, CompletionListener listener);
+    ListenableFuture<?> sync(Planner planner, StatsTables statsTables);
 
     void close();
 }

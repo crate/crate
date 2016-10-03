@@ -23,13 +23,13 @@
 package io.crate.protocols.postgres;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.util.concurrent.FutureCallback;
+import com.google.common.util.concurrent.Futures;
 import io.crate.action.sql.Option;
 import io.crate.action.sql.ResultReceiver;
 import io.crate.action.sql.SQLOperations;
 import io.crate.analyze.symbol.Field;
 import io.crate.analyze.symbol.Symbols;
-import io.crate.concurrent.CompletionListener;
-import io.crate.concurrent.CompletionState;
 import io.crate.protocols.postgres.types.PGType;
 import io.crate.protocols.postgres.types.PGTypes;
 import io.crate.types.DataType;
@@ -206,15 +206,15 @@ class ConnectionContext {
         return sqlOperations.createSession(defaultSchema, Option.NONE, 0);
     }
 
-    private static class ReadyForQueryListener implements CompletionListener {
+    private static class ReadyForQueryCallback implements FutureCallback<Object> {
         private final Channel channel;
 
-        private ReadyForQueryListener(Channel channel) {
+        private ReadyForQueryCallback(Channel channel) {
             this.channel = channel;
         }
 
         @Override
-        public void onSuccess(@Nullable CompletionState result) {
+        public void onSuccess(@Nullable Object result) {
             Messages.sendReadyForQuery(channel);
         }
 
@@ -498,7 +498,7 @@ class ConnectionContext {
             return;
         }
         try {
-            session.sync(new ReadyForQueryListener(channel));
+            Futures.addCallback(session.sync(), new ReadyForQueryCallback(channel));
         } catch (Throwable t) {
             Messages.sendErrorResponse(channel, t);
             Messages.sendReadyForQuery(channel);
@@ -541,7 +541,7 @@ class ConnectionContext {
                 ResultSetReceiver resultSetReceiver = new ResultSetReceiver(query, channel, Symbols.extractTypes(fields), null);
                 session.execute("", 0, resultSetReceiver);
             }
-            session.sync(new ReadyForQueryListener(channel));
+            Futures.addCallback(session.sync(), new ReadyForQueryCallback(channel));
         } catch (Throwable t) {
             session.clearState();
             Messages.sendErrorResponse(channel, t);

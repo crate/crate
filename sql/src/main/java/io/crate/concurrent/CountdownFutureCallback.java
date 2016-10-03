@@ -20,33 +20,48 @@
  * agreement.
  */
 
-package io.crate.protocols.postgres;
+package io.crate.concurrent;
 
+import com.google.common.util.concurrent.AbstractFuture;
 import com.google.common.util.concurrent.FutureCallback;
-import io.crate.exceptions.Exceptions;
-import io.crate.operation.collect.StatsTables;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-import java.util.UUID;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 
-public class StatsTablesUpdateListener implements FutureCallback<Object> {
+/**
+ * A future acting as a FutureCallback. It is set when once numCalls have been made to the callback.
+ * If a failure occurs the last failure will be used as exception. The result is always null.
+ */
+public class CountdownFutureCallback extends AbstractFuture<Void> implements FutureCallback<Object> {
 
-    private final UUID jobId;
-    private final StatsTables statsTables;
+    private final AtomicInteger counter;
+    private final AtomicReference<Throwable> lastFailure = new AtomicReference<>();
 
-    public StatsTablesUpdateListener(UUID jobId, StatsTables statsTables) {
-        this.jobId = jobId;
-        this.statsTables = statsTables;
+    public CountdownFutureCallback(int numCalls) {
+        counter = new AtomicInteger(numCalls);
     }
 
     @Override
     public void onSuccess(@Nullable Object result) {
-        statsTables.logExecutionEnd(jobId, null);
+        countdown();
     }
 
     @Override
     public void onFailure(@Nonnull Throwable t) {
-        statsTables.logExecutionEnd(jobId, Exceptions.messageOf(t));
+        lastFailure.set(t);
+        countdown();
+    }
+
+    private void countdown() {
+        if (counter.decrementAndGet() == 0) {
+            Throwable throwable = lastFailure.get();
+            if (throwable == null) {
+                set(null);
+            } else {
+                setException(throwable);
+            }
+        }
     }
 }

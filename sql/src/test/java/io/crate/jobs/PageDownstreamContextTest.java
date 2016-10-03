@@ -21,10 +21,10 @@
 
 package io.crate.jobs;
 
+import com.google.common.util.concurrent.FutureCallback;
+import com.google.common.util.concurrent.Futures;
 import io.crate.Streamer;
 import io.crate.breaker.RamAccountingContext;
-import io.crate.concurrent.CompletionListener;
-import io.crate.concurrent.CompletionState;
 import io.crate.core.collections.Row1;
 import io.crate.core.collections.SingleRowBucket;
 import io.crate.operation.PageDownstream;
@@ -39,7 +39,6 @@ import org.junit.Test;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
-import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -87,17 +86,19 @@ public class PageDownstreamContextTest extends CrateUnitTest {
 
         final AtomicReference<Throwable> throwable = new AtomicReference<>();
 
-        ctx.addListener(new CompletionListener() {
+        Futures.addCallback(ctx.completionFuture(), new FutureCallback<Object>() {
             @Override
-            public void onSuccess(@Nullable CompletionState state) {
+            public void onSuccess(@Nullable Object result) {
 
             }
 
             @Override
-            public void onFailure(@Nonnull Throwable t) {
+            public void onFailure(Throwable t) {
                 assertTrue(throwable.compareAndSet(null, t));
+
             }
         });
+
         ctx.kill(null);
         assertThat(throwable.get(), Matchers.instanceOf(InterruptedException.class));
         verify(downstream, times(1)).fail(any(InterruptedException.class));

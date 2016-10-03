@@ -26,7 +26,6 @@ import com.carrotsearch.hppc.ObjectLongMap;
 import com.google.common.collect.ImmutableList;
 import io.crate.action.sql.Option;
 import io.crate.action.sql.SQLOperations;
-import io.crate.concurrent.CompletionListener;
 import io.crate.metadata.TableIdent;
 import io.crate.protocols.postgres.FormatCodes;
 import io.crate.test.integration.CrateUnitTest;
@@ -122,7 +121,7 @@ public class TableStatsServiceTest extends CrateUnitTest {
             eq(TableStatsService.UNNAMED),
             eq(0),
             any(TableStatsService.TableStatsResultReceiver.class));
-        verify(session, times(1)).sync(eq(CompletionListener.NO_OP));
+        verify(session, times(1)).sync();
     }
 
     @Test

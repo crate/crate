@@ -20,31 +20,41 @@
  * agreement.
  */
 
-package io.crate.concurrent;
+package io.crate.action.sql;
 
+import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
+import io.crate.core.collections.Row;
 
 import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
+import javax.annotation.OverridingMethodsMustInvokeSuper;
 
-public class ContextCompletionListener implements CompletionListener {
+public class BaseResultReceiver implements ResultReceiver {
 
-    private SettableFuture<Void> future = SettableFuture.create();
+    SettableFuture<Void> completionFuture = SettableFuture.create();
 
-    public Void get() throws InterruptedException, TimeoutException, ExecutionException {
-        return future.get(500, TimeUnit.MILLISECONDS);
+    @Override
+    public void setNextRow(Row row) {
     }
 
     @Override
-    public void onSuccess(@Nullable CompletionState state) {
-        future.set(null);
+    public void batchFinished() {
     }
 
     @Override
-    public void onFailure(@Nonnull Throwable throwable) {
-        future.setException(throwable);
+    @OverridingMethodsMustInvokeSuper
+    public void allFinished() {
+        completionFuture.set(null);
+    }
+
+    @Override
+    @OverridingMethodsMustInvokeSuper
+    public void fail(@Nonnull Throwable t) {
+        completionFuture.setException(t);
+    }
+
+    @Override
+    public ListenableFuture<?> completionFuture() {
+        return completionFuture;
     }
 }

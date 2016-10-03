@@ -21,8 +21,8 @@
 
 package io.crate.jobs;
 
+import com.google.common.util.concurrent.ListenableFuture;
 import io.crate.concurrent.CompletionListenable;
-import io.crate.concurrent.CompletionListener;
 
 import javax.annotation.Nullable;
 
@@ -31,16 +31,14 @@ public interface ExecutionSubContext extends CompletionListenable {
 
     /**
      * In the prepare phase implementations of this interface can allocate any resources.
-     * Exception are required to be thrown directly and must not be set on the downstream nor
-     * {@link CompletionListener#onFailure(Throwable)} should be called.
+     * Exception are required to be thrown directly and must not be set on the downstream.
      */
     void prepare() throws Exception;
 
     /**
      * In the start phase implementations of this interface are required to start any executors.
      * <p>
-     * In this phase failures must not be propagated to downstream phases directly, but instead
-     * {@link CompletionListener#onFailure(Throwable)} must be called.
+     * In this phase failures must not be propagated to downstream phases directly.
      * <p>
      * However, it is ok for the started executors to use their downstreams to propagate failures.
      */
@@ -57,4 +55,6 @@ public interface ExecutionSubContext extends CompletionListenable {
      */
     void cleanup();
 
+    @Override
+    ListenableFuture<CompletionState> completionFuture();
 }

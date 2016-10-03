@@ -1,6 +1,5 @@
 package io.crate.jobs;
 
-import io.crate.concurrent.ContextCompletionListener;
 import io.crate.executor.transport.ShardResponse;
 import io.crate.executor.transport.ShardUpsertRequest;
 import io.crate.planner.node.dml.UpsertById;
@@ -21,7 +20,6 @@ public class UpsertByIdContextTest extends CrateUnitTest {
     public BulkRequestExecutor delegate;
 
     private UpsertByIdContext context;
-    private ContextCompletionListener completionListener;
 
     @Before
     public void setUp() throws Exception {
@@ -29,8 +27,6 @@ public class UpsertByIdContextTest extends CrateUnitTest {
         ShardUpsertRequest request = mock(ShardUpsertRequest.class);
         UpsertById.Item item = mock(UpsertById.Item.class);
         context = new UpsertByIdContext(1, request, item, delegate);
-        completionListener = new ContextCompletionListener();
-        context.addListener(completionListener);
     }
 
     @Test
@@ -47,7 +43,7 @@ public class UpsertByIdContextTest extends CrateUnitTest {
         listener.getValue().onResponse(response);
 
         expectedException.expectCause(CauseMatcher.cause(InterruptedException.class));
-        completionListener.get();
+        context.completionFuture().get();
     }
 
     @Test
@@ -55,7 +51,7 @@ public class UpsertByIdContextTest extends CrateUnitTest {
         context.prepare();
         context.kill(null);
         expectedException.expectCause(CauseMatcher.cause(InterruptedException.class));
-        completionListener.get();
+        context.completionFuture().get();
     }
 
     @Test

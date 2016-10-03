@@ -22,6 +22,8 @@
 
 package io.crate.protocols.postgres;
 
+import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.ListenableFuture;
 import io.crate.Constants;
 import io.crate.action.sql.ResultReceiver;
 import io.crate.action.sql.RowReceiverToResultReceiver;
@@ -32,7 +34,6 @@ import io.crate.analyze.ParameterContext;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.symbol.Field;
 import io.crate.analyze.symbol.Symbols;
-import io.crate.concurrent.CompletionListener;
 import io.crate.core.collections.Row;
 import io.crate.core.collections.RowN;
 import io.crate.exceptions.Exceptions;
@@ -147,7 +148,7 @@ public class SimplePortal extends AbstractPortal {
     }
 
     @Override
-    public void sync(Planner planner, StatsTables statsTables, CompletionListener listener) {
+    public ListenableFuture<?> sync(Planner planner, StatsTables statsTables) {
         UUID jobId = UUID.randomUUID();
         Plan plan;
         try {
@@ -156,9 +157,9 @@ public class SimplePortal extends AbstractPortal {
             statsTables.logPreExecutionFailure(jobId, query, Exceptions.messageOf(t));
             throw t;
         }
-        resultReceiver.addListener(listener);
         statsTables.logExecutionStart(jobId, query);
-        resultReceiver.addListener(new StatsTablesUpdateListener(jobId, statsTables));
+
+        Futures.addCallback(resultReceiver.completionFuture(), new StatsTablesUpdateListener(jobId, statsTables));
 
         if (!analysis.analyzedStatement().isWriteOperation()) {
             resultReceiver = new ResultReceiverRetryWrapper(
@@ -170,10 +171,11 @@ public class SimplePortal extends AbstractPortal {
                 jobId,
                 sessionContext);
         }
-
-        if (resumeIfSuspended()) return;
-        this.rowReceiver = new RowReceiverToResultReceiver(resultReceiver, maxRows);
-        portalContext.getExecutor().execute(plan, rowReceiver);
+        if (!resumeIfSuspended()) {
+            this.rowReceiver = new RowReceiverToResultReceiver(resultReceiver, maxRows);
+            portalContext.getExecutor().execute(plan, rowReceiver);
+        }
+        return resultReceiver.completionFuture();
     }
 
     @Override
@@ -269,8 +271,8 @@ public class SimplePortal extends AbstractPortal {
         }
 
         @Override
-        public void addListener(CompletionListener listener) {
-            throw new UnsupportedOperationException("not supported, listener should be registered already");
+        public ListenableFuture<?> completionFuture() {
+            return delegate.completionFuture();
         }
     }
 }

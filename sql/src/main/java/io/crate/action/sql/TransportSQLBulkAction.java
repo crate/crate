@@ -21,11 +21,10 @@
 
 package io.crate.action.sql;
 
+import com.google.common.util.concurrent.FutureCallback;
+import com.google.common.util.concurrent.Futures;
 import io.crate.action.ActionListeners;
 import io.crate.analyze.symbol.Field;
-import io.crate.concurrent.CompletionListener;
-import io.crate.concurrent.CompletionMultiListener;
-import io.crate.concurrent.CompletionState;
 import io.crate.core.collections.Row;
 import io.crate.exceptions.Exceptions;
 import io.crate.types.DataType;
@@ -81,7 +80,7 @@ public class TransportSQLBulkAction extends TransportAction<SQLBulkRequest, SQLB
             final SQLBulkResponse.Result[] results = new SQLBulkResponse.Result[bulkArgs.length];
             if (results.length == 0) {
                 session.bind(UNNAMED, UNNAMED, Collections.emptyList(), null);
-                session.execute(UNNAMED, 1, ResultReceiver.NO_OP);
+                session.execute(UNNAMED, 1, new BaseResultReceiver());
             } else {
                 for (int i = 0; i < bulkArgs.length; i++) {
                     session.bind(UNNAMED, UNNAMED, Arrays.asList(bulkArgs[i]), null);
@@ -94,9 +93,9 @@ public class TransportSQLBulkAction extends TransportAction<SQLBulkRequest, SQLB
                 throw new UnsupportedOperationException(
                     "Bulk operations for statements that return result sets is not supported");
             }
-            session.sync(new CompletionListener() {
+            Futures.addCallback(session.sync(), new FutureCallback<Object>() {
                 @Override
-                public void onSuccess(@Nullable CompletionState result) {
+                public void onSuccess(@Nullable Object result) {
                     float duration = (float) ((System.nanoTime() - startTime) / 1_000_000.0);
                     listener.onResponse(new SQLBulkResponse(results, duration));
                 }
@@ -104,6 +103,7 @@ public class TransportSQLBulkAction extends TransportAction<SQLBulkRequest, SQLB
                 @Override
                 public void onFailure(@Nonnull Throwable t) {
                     listener.onFailure(Exceptions.createSQLActionException(t));
+
                 }
             });
         } catch (Throwable t) {
@@ -112,11 +112,10 @@ public class TransportSQLBulkAction extends TransportAction<SQLBulkRequest, SQLB
     }
 
 
-    private static class RowCountReceiver implements ResultReceiver {
+    private static class RowCountReceiver extends BaseResultReceiver {
 
         private final SQLBulkResponse.Result[] results;
         private final int resultIdx;
-        private CompletionListener completionListener = CompletionListener.NO_OP;
         private long rowCount;
 
         RowCountReceiver(SQLBulkResponse.Result[] results, int resultIdx) {
@@ -125,29 +124,20 @@ public class TransportSQLBulkAction extends TransportAction<SQLBulkRequest, SQLB
         }
 
         @Override
-        public void addListener(CompletionListener listener) {
-            this.completionListener = CompletionMultiListener.merge(this.completionListener, listener);
-        }
-
-        @Override
         public void setNextRow(Row row) {
             rowCount = ((long) row.get(0));
         }
 
         @Override
-        public void batchFinished() {
-        }
-
-        @Override
         public void allFinished() {
             results[resultIdx] = new SQLBulkResponse.Result(null, rowCount);
-            completionListener.onSuccess(null);
+            super.allFinished();
         }
 
         @Override
         public void fail(@Nonnull Throwable t) {
             results[resultIdx] = new SQLBulkResponse.Result(Exceptions.messageOf(t), rowCount);
-            completionListener.onFailure(t);
+            super.fail(t);
         }
     }
 

@@ -20,24 +20,17 @@
  * agreement.
  */
 
-package io.crate.concurrent;
+package io.crate.jobs;
 
-import com.google.common.util.concurrent.FutureCallback;
+public class CompletionState {
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
+    private long bytesUsed = -1;
 
-public interface CompletionListener extends FutureCallback<CompletionState> {
+    public void bytesUsed(long bytesUsed) {
+        this.bytesUsed = bytesUsed;
+    }
 
-    CompletionListener NO_OP = new CompletionListener() {
-        @Override
-        public void onSuccess(@Nullable CompletionState state) {
-        }
-
-        @Override
-        public void onFailure(@Nonnull Throwable throwable) {
-
-        }
-    };
-
+    public long bytesUsed() {
+        return bytesUsed;
+    }
 }

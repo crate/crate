@@ -24,7 +24,6 @@ package io.crate.jobs;
 
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
-import io.crate.concurrent.CompletionState;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
