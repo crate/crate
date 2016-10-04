@@ -28,7 +28,6 @@ import io.crate.analyze.ParamTypeHints;
 import io.crate.analyze.ParameterContext;
 import io.crate.analyze.expressions.ExpressionAnalysisContext;
 import io.crate.analyze.expressions.ExpressionAnalyzer;
-import io.crate.analyze.expressions.ParamToParamSymbol;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.FieldResolver;
 import io.crate.analyze.relations.FullQualifedNameFieldProvider;
@@ -93,7 +92,7 @@ public class SqlExpressions {
             analysisMetaData,
             SessionContext.SYSTEM_SESSION,
             parameters == null
-                ? new ParamToParamSymbol(ParamTypeHints.EMPTY)
+                ? ParamTypeHints.EMPTY
                 : new ParameterContext(new RowN(parameters), Collections.<Row>emptyList()),
             new FullQualifedNameFieldProvider(sources),
             fieldResolver);

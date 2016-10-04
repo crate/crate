@@ -29,7 +29,6 @@ import io.crate.action.sql.SessionContext;
 import io.crate.analyze.*;
 import io.crate.analyze.expressions.ExpressionAnalysisContext;
 import io.crate.analyze.expressions.ExpressionAnalyzer;
-import io.crate.analyze.expressions.ParamToParamSymbol;
 import io.crate.analyze.relations.select.SelectAnalyzer;
 import io.crate.analyze.symbol.*;
 import io.crate.analyze.symbol.Literal;
@@ -89,7 +88,7 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
     public AnalyzedRelation analyzeUnbound(Query query, SessionContext sessionContext, ParamTypeHints paramTypeHints) {
         return process(query, new StatementAnalysisContext(
             sessionContext,
-            new ParamToParamSymbol(paramTypeHints),
+            paramTypeHints,
             null,
             analysisMetaData,
             Operation.READ));

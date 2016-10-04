@@ -22,13 +22,18 @@
 
 package io.crate.analyze;
 
+import com.google.common.base.Function;
+import io.crate.analyze.symbol.ParameterSymbol;
+import io.crate.analyze.symbol.Symbol;
+import io.crate.sql.tree.ParameterExpression;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 
+import javax.annotation.Nullable;
 import java.util.Collections;
 import java.util.List;
 
-public class ParamTypeHints {
+public class ParamTypeHints implements Function<ParameterExpression, Symbol> {
 
     public static final ParamTypeHints EMPTY = new ParamTypeHints(Collections.<DataType>emptyList());
 
@@ -38,10 +43,42 @@ public class ParamTypeHints {
         this.types = types;
     }
 
-    public DataType get(int index) {
+    /**
+     * get the type for the parameter at position {@code index}
+     *
+     * <p>
+     * If the typeHints don't contain a type for the given index it will return Undefined.
+     * In the case of Undefined it would be necessary to figure out the type from the surrounding context.
+     * But this is not yet implemented:
+     * </p>
+     *
+     * Example:
+     *
+     * In the following case the parameter is used with another integer, so the type is likely a integer.
+     *
+     * <pre>
+     *     select $1 * 10
+     * </pre>
+     *
+     * In the following case the type cannot be determined, this should result in an error:
+     *
+     * <pre>
+     *     select $1
+     * </pre>
+     */
+    public DataType getType(int index) {
         if (index + 1 > types.size()) {
             return DataTypes.UNDEFINED;
         }
         return types.get(index);
+    }
+
+    @Nullable
+    @Override
+    public Symbol apply(@Nullable ParameterExpression input) {
+        if (input == null) {
+            return null;
+        }
+        return new ParameterSymbol(input.index(), getType(input.index()));
     }
 }
