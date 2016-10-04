@@ -93,7 +93,11 @@ public class UpdateStatementAnalyzer extends DefaultTraversalVisitor<AnalyzedSta
     @Override
     public AnalyzedStatement visitUpdate(Update node, Analysis analysis) {
         StatementAnalysisContext statementAnalysisContext = new StatementAnalysisContext(
-            analysis.sessionContext(), analysis.parameterContext(), analysis.statementContext(), analysisMetaData, Operation.UPDATE);
+            analysis.sessionContext(),
+            analysis.parameterContext(),
+            analysis.statementContext(),
+            analysisMetaData,
+            Operation.UPDATE);
         RelationAnalysisContext currentRelationContext = statementAnalysisContext.startRelation();
         AnalyzedRelation analyzedRelation = relationAnalyzer.analyze(node.relation(), statementAnalysisContext);
 

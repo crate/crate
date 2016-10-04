@@ -116,7 +116,7 @@ class BulkPortal extends AbstractPortal {
     @Override
     public void sync(Planner planner, StatsTables statsTables, CompletionListener listener) {
         List<Row> bulkParams = Rows.of(bulkArgs);
-        Analysis analysis = portalContext.getAnalyzer().analyze(statement,
+        Analysis analysis = portalContext.getAnalyzer().boundAnalyze(statement,
             sessionContext,
             new ParameterContext(Row.EMPTY, bulkParams));
         UUID jobId = UUID.randomUUID();

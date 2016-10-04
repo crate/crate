@@ -297,7 +297,7 @@ public abstract class AbstractPlannerTest extends CrateUnitTest {
 
     protected <T extends Plan> T plan(String statement, int maxRows, int softLimit) {
         //noinspection unchecked: for testing this is fine
-        return (T) planner.plan(analyzer.analyze(
+        return (T) planner.plan(analyzer.boundAnalyze(
             SqlParser.createStatement(statement),
             SessionContext.SYSTEM_SESSION,
             new ParameterContext(Row.EMPTY, Collections.<Row>emptyList())),
@@ -311,7 +311,7 @@ public abstract class AbstractPlannerTest extends CrateUnitTest {
     }
 
     protected Plan plan(String statement, Object[][] bulkArgs) {
-        return planner.plan(analyzer.analyze(SqlParser.createStatement(statement),
+        return planner.plan(analyzer.boundAnalyze(SqlParser.createStatement(statement),
             SessionContext.SYSTEM_SESSION,
             new ParameterContext(Row.EMPTY, Rows.of(bulkArgs))), UUID.randomUUID(), 0, 0);
     }

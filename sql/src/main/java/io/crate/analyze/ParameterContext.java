@@ -21,17 +21,22 @@
 
 package io.crate.analyze;
 
+import com.google.common.base.Function;
 import io.crate.analyze.symbol.Literal;
+import io.crate.analyze.symbol.Symbol;
 import io.crate.core.collections.Row;
+import io.crate.sql.tree.ParameterExpression;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 
+import javax.annotation.Nullable;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 
 
-public class ParameterContext {
+public class ParameterContext implements Function<ParameterExpression, Symbol> {
 
     public static final ParameterContext EMPTY = new ParameterContext(Row.EMPTY, Collections.<Row>emptyList());
 
@@ -39,6 +44,7 @@ public class ParameterContext {
     private final List<Row> bulkParameters;
 
     private int currentIdx = 0;
+    private ParamTypeHints typeHints = null;
 
 
     public ParameterContext(Row parameters, List<Row> bulkParameters) {
@@ -97,5 +103,25 @@ public class ParameterContext {
                 "Tried to resolve a parameter but the arguments provided with the " +
                 "SQLRequest don't contain a parameter at position %d", index), e);
         }
+    }
+
+    public ParamTypeHints typeHints() {
+        if (typeHints == null) {
+            List<DataType> types = new ArrayList<>(parameters.size());
+            for (int i = 0; i < parameters.size(); i++) {
+                types.add(guessTypeSafe(parameters.get(i)));
+            }
+            typeHints = new ParamTypeHints(types);
+        }
+        return typeHints;
+    }
+
+    @Nullable
+    @Override
+    public Symbol apply(@Nullable ParameterExpression input) {
+        if (input == null) {
+            return null;
+        }
+        return getAsSymbol(input.index());
     }
 }

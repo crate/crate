@@ -5,6 +5,10 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Extended the postgres wire protocol to support describe for queries with
+   result sets. This removes the requirement to set "prepareThreshold=0" when
+   using the JDBC client.
+
  - Fixed an issue that could cause arrays with null entries to cause a NPE
    during the generation of another error message.
 

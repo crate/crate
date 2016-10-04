@@ -26,6 +26,7 @@ import com.carrotsearch.hppc.IntObjectHashMap;
 import com.carrotsearch.hppc.IntObjectMap;
 import com.google.common.collect.ImmutableMap;
 import io.crate.types.ArrayType;
+import io.crate.types.CollectionType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 
@@ -90,15 +91,16 @@ public class PGTypes {
     }
 
     public static PGType get(DataType type) {
-        // Get the type of the parent of the innermost type
-        DataType parentType = type;
-        DataType targetType = type;
-        while (targetType instanceof ArrayType) {
-            parentType = targetType;
-            targetType = ((ArrayType) targetType).innerType();
+        if (type instanceof CollectionType) {
+            DataType<?> innerType = ((CollectionType) type).innerType();
+            if (innerType instanceof CollectionType) {
+                // if this is a nested collection stream it as JSON because
+                // postgres binary format doesn't support multidimensional arrays with sub-arrays of different length
+                // (something like [ [1, 2], [3] ] is not supported)
+                return JsonType.INSTANCE;
+            }
         }
-
-        PGType pgType = CRATE_TO_PG_TYPES.get(parentType);
+        PGType pgType = CRATE_TO_PG_TYPES.get(type);
         if (pgType == null) {
             throw new IllegalArgumentException(String.format(Locale.ENGLISH,
                 "No type mapping from '%s' to pg_type", type.getName()));

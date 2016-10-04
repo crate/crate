@@ -22,32 +22,45 @@
 
 package io.crate.action.sql;
 
+import io.crate.analyze.ParamTypeHints;
+import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.sql.tree.Statement;
 import io.crate.types.DataType;
 
+import javax.annotation.Nullable;
 import java.util.List;
 
 public class PreparedStmt {
 
     private final Statement statement;
     private final String query;
-    private final List<DataType> paramTypes;
+    private final ParamTypeHints paramTypes;
+    private AnalyzedRelation relation;
 
     public PreparedStmt(Statement statement, String query, List<DataType> paramTypes) {
         this.statement = statement;
         this.query = query;
-        this.paramTypes = paramTypes;
+        this.paramTypes = new ParamTypeHints(paramTypes);
     }
 
     public Statement statement() {
         return statement;
     }
 
-    public List<DataType> paramTypes() {
+    public ParamTypeHints paramTypes() {
         return paramTypes;
     }
 
     public String query() {
         return query;
+    }
+
+    @Nullable
+    public AnalyzedRelation relation() {
+        return relation;
+    }
+
+    public void relation(AnalyzedRelation relation) {
+        this.relation = relation;
     }
 }

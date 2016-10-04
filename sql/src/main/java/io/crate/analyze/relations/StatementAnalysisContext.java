@@ -21,11 +21,13 @@
 
 package io.crate.analyze.relations;
 
+import com.google.common.base.Function;
 import io.crate.action.sql.SessionContext;
 import io.crate.analyze.AnalysisMetaData;
-import io.crate.analyze.ParameterContext;
+import io.crate.analyze.symbol.Symbol;
 import io.crate.metadata.StmtCtx;
 import io.crate.metadata.table.Operation;
+import io.crate.sql.tree.ParameterExpression;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -34,32 +36,21 @@ public class StatementAnalysisContext {
 
     private final Operation currentOperation;
     private final SessionContext sessionContext;
-    private final ParameterContext parameterContext;
+    private final Function<ParameterExpression, Symbol> convertParamFunction;
     private final StmtCtx stmtCtx;
     private final AnalysisMetaData analysisMetaData;
     private final List<RelationAnalysisContext> lastRelationContextQueue = new ArrayList<>();
 
-    StatementAnalysisContext(SessionContext sessionContext,
-                             ParameterContext parameterContext,
-                             StmtCtx stmtCtx,
-                             AnalysisMetaData analysisMetaData) {
-        this(sessionContext, parameterContext, stmtCtx, analysisMetaData, Operation.READ);
-    }
-
     public StatementAnalysisContext(SessionContext sessionContext,
-                                    ParameterContext parameterContext,
+                                    Function<ParameterExpression, Symbol> convertParamFunction,
                                     StmtCtx stmtCtx,
                                     AnalysisMetaData analysisMetaData,
                                     Operation currentOperation) {
         this.sessionContext = sessionContext;
-        this.parameterContext = parameterContext;
+        this.convertParamFunction = convertParamFunction;
         this.stmtCtx = stmtCtx;
         this.analysisMetaData = analysisMetaData;
         this.currentOperation = currentOperation;
-    }
-
-    public ParameterContext parameterContext() {
-        return parameterContext;
     }
 
     public StmtCtx stmtCtx() {
@@ -76,7 +67,7 @@ public class StatementAnalysisContext {
 
     RelationAnalysisContext startRelation(boolean aliasedRelation) {
         RelationAnalysisContext currentRelationContext = new RelationAnalysisContext(
-            sessionContext, parameterContext, stmtCtx, analysisMetaData, aliasedRelation);
+            sessionContext, convertParamFunction, stmtCtx, analysisMetaData, aliasedRelation);
         lastRelationContextQueue.add(currentRelationContext);
         return currentRelationContext;
     }
@@ -94,5 +85,9 @@ public class StatementAnalysisContext {
 
     public SessionContext sessionContext() {
         return sessionContext;
+    }
+
+    public Function<ParameterExpression,Symbol> convertParamFunction() {
+        return convertParamFunction;
     }
 }

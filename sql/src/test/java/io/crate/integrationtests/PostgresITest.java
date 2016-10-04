@@ -63,7 +63,10 @@ public class PostgresITest extends SQLTransportIntegrationTest {
 
     @Before
     public void initProperties() throws Exception {
-        properties.setProperty("prepareThreshold", "0"); // disable prepared statements
+        if (randomBoolean()) {
+            // force binary transfer & use server-side prepared statements
+            properties.setProperty("prepareThreshold", "-1");
+        }
     }
 
     @Test
@@ -71,6 +74,35 @@ public class PostgresITest extends SQLTransportIntegrationTest {
         try (Connection conn = DriverManager.getConnection(JDBC_POSTGRESQL_URL, properties)) {
             int var = conn.getTransactionIsolation();
             assertThat(var, is(Connection.TRANSACTION_READ_UNCOMMITTED));
+        }
+    }
+
+    @Test
+    public void testMultidimensionalArrayWithDifferentSizedArrays() throws Exception {
+        Properties properties = new Properties();
+        properties.setProperty(PGProperty.PREFER_QUERY_MODE.getName(), PreferQueryMode.SIMPLE.value());
+        try (Connection conn = DriverManager.getConnection(JDBC_POSTGRESQL_URL, properties)) {
+            Statement statement = conn.createStatement();
+            statement.executeUpdate("create table t (o1 array(object as (o2 array(object as (x int)))))");
+            ensureYellow();
+
+            statement.setEscapeProcessing(false);
+            statement.executeUpdate("insert into t (o1) values ( [ {o2=[{x=1}, {x=2}]}, {o2=[{x=3}]} ] )");
+            statement.executeUpdate("refresh table t");
+
+            ResultSet resultSet = statement.executeQuery("select o1['o2']['x'] from t");
+            assertThat(resultSet.next(), is(true));
+            String array = resultSet.getString(1);
+            assertThat(array, is("[[1,2],[3]]"));
+        }
+
+        properties = new Properties();
+        properties.setProperty("prepareThreshold", "-1"); // force binary transfer
+        try (Connection conn = DriverManager.getConnection(JDBC_POSTGRESQL_URL, properties)) {
+            ResultSet resultSet = conn.createStatement().executeQuery("select o1['o2']['x'] from t");
+            assertThat(resultSet.next(), is(true));
+            String array = resultSet.getString(1);
+            assertThat(array, is("[[1,2],[3]]"));
         }
     }
 
@@ -123,14 +155,6 @@ public class PostgresITest extends SQLTransportIntegrationTest {
         properties.setProperty("prepareThreshold", "-1");
         try (Connection conn = DriverManager.getConnection(JDBC_POSTGRESQL_URL, properties)) {
             PreparedStatement p1 = conn.prepareStatement("select 1 from sys.cluster");
-
-            /*
-             * {@link io.crate.action.sql.SQLOperations.Session#describe(char, String)} returned "NoData"
-             * because analyzer doesn't work without parameters (= without prior bind call)
-             *
-             * This fails because client expects data due to the Describe request but receives a result
-             */
-            expectedException.expect(IllegalStateException.class);
             ResultSet resultSet = p1.executeQuery();
             assertThat(resultSet.next(), is(true));
             assertThat(resultSet.getInt(1), is(1));
@@ -153,13 +177,6 @@ public class PostgresITest extends SQLTransportIntegrationTest {
         try (Connection conn = DriverManager.getConnection(JDBC_POSTGRESQL_URL, properties)) {
             PreparedStatement p1 = conn.prepareStatement("select ? from sys.cluster");
             p1.setInt(1, 20);
-            /*
-             * {@link io.crate.action.sql.SQLOperations.Session#describe(char, String)} returned "NoData"
-             * because analyzer doesn't work without parameters (= without prior bind call)
-             *
-             * This fails because client expects data due to the Describe request but receives a result
-             */
-            expectedException.expect(IllegalStateException.class);
             ResultSet resultSet = p1.executeQuery();
             /*
              * This execute results in the following messages:

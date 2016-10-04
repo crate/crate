@@ -22,15 +22,16 @@
 
 package io.crate.analyze.relations;
 
+import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
 import io.crate.action.sql.SessionContext;
 import io.crate.analyze.AnalysisMetaData;
-import io.crate.analyze.ParameterContext;
 import io.crate.analyze.expressions.ExpressionAnalysisContext;
 import io.crate.analyze.expressions.ExpressionAnalyzer;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.metadata.StmtCtx;
 import io.crate.planner.node.dql.join.JoinType;
+import io.crate.sql.tree.ParameterExpression;
 import io.crate.sql.tree.QualifiedName;
 
 import javax.annotation.Nullable;
@@ -40,7 +41,7 @@ public class RelationAnalysisContext {
 
     private final ExpressionAnalysisContext expressionAnalysisContext;
     private final SessionContext sessionContext;
-    private final ParameterContext parameterContext;
+    private final Function<ParameterExpression, Symbol> convertParamFunction;
     private final AnalysisMetaData analysisMetaData;
     private final boolean aliasedRelation;
     // keep order of sources.
@@ -54,12 +55,12 @@ public class RelationAnalysisContext {
     private List<JoinPair> joinPairs;
 
     RelationAnalysisContext(SessionContext sessionContext,
-                            ParameterContext parameterContext,
+                            Function<ParameterExpression, Symbol> convertParamFunction,
                             StmtCtx stmtCtx,
                             AnalysisMetaData analysisMetaData,
                             boolean aliasedRelation) {
         this.sessionContext = sessionContext;
-        this.parameterContext = parameterContext;
+        this.convertParamFunction = convertParamFunction;
         this.analysisMetaData = analysisMetaData;
         this.aliasedRelation = aliasedRelation;
         expressionAnalysisContext = new ExpressionAnalysisContext(stmtCtx);
@@ -127,7 +128,7 @@ public class RelationAnalysisContext {
 
     public ExpressionAnalyzer expressionAnalyzer() {
         if (expressionAnalyzer == null) {
-            expressionAnalyzer = new ExpressionAnalyzer(analysisMetaData, sessionContext, parameterContext, fieldProvider(), null);
+            expressionAnalyzer = new ExpressionAnalyzer(analysisMetaData, sessionContext, convertParamFunction, fieldProvider(), null);
         }
         return expressionAnalyzer;
     }

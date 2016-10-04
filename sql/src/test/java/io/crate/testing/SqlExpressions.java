@@ -24,6 +24,7 @@ package io.crate.testing;
 
 import io.crate.action.sql.SessionContext;
 import io.crate.analyze.AnalysisMetaData;
+import io.crate.analyze.ParamTypeHints;
 import io.crate.analyze.ParameterContext;
 import io.crate.analyze.expressions.ExpressionAnalysisContext;
 import io.crate.analyze.expressions.ExpressionAnalyzer;
@@ -33,7 +34,6 @@ import io.crate.analyze.relations.FullQualifedNameFieldProvider;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.core.collections.Row;
 import io.crate.core.collections.RowN;
-import io.crate.core.collections.RowNull;
 import io.crate.metadata.*;
 import io.crate.operation.operator.OperatorModule;
 import io.crate.operation.predicate.PredicateModule;
@@ -91,8 +91,9 @@ public class SqlExpressions {
         expressionAnalyzer = new ExpressionAnalyzer(
             analysisMetaData,
             SessionContext.SYSTEM_SESSION,
-            new ParameterContext(parameters == null
-                ? new RowNull(0): new RowN(parameters), Collections.<Row>emptyList()),
+            parameters == null
+                ? ParamTypeHints.EMPTY
+                : new ParameterContext(new RowN(parameters), Collections.<Row>emptyList()),
             new FullQualifedNameFieldProvider(sources),
             fieldResolver);
         expressionAnalysisCtx = new ExpressionAnalysisContext(new StmtCtx());

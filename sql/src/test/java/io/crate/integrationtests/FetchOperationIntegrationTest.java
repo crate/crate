@@ -83,7 +83,7 @@ public class FetchOperationIntegrationTest extends SQLTransportIntegrationTest {
 
     private Analysis analyze(String stmt) {
         Analyzer analyzer = internalCluster().getInstance(Analyzer.class);
-        return analyzer.analyze(
+        return analyzer.boundAnalyze(
             SqlParser.createStatement(stmt),
             SessionContext.SYSTEM_SESSION,
             ParameterContext.EMPTY

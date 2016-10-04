@@ -40,10 +40,7 @@ import io.crate.metadata.*;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.Operation;
 import io.crate.operation.Input;
-import io.crate.sql.tree.Assignment;
-import io.crate.sql.tree.Expression;
-import io.crate.sql.tree.InsertFromValues;
-import io.crate.sql.tree.ValuesList;
+import io.crate.sql.tree.*;
 import io.crate.types.DataType;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.Nullable;
@@ -98,14 +95,23 @@ public class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
 
         DocTableRelation tableRelation = new DocTableRelation(tableInfo);
         FieldProvider fieldProvider = new NameFieldProvider(tableRelation);
-        ExpressionAnalyzer expressionAnalyzer =
-            new ExpressionAnalyzer(analysisMetaData, analysis.sessionContext(), analysis.parameterContext(), fieldProvider, tableRelation);
+        Function<ParameterExpression, Symbol> convertParamFunction = analysis.parameterContext();
+        ExpressionAnalyzer expressionAnalyzer = new ExpressionAnalyzer(
+            analysisMetaData,
+            analysis.sessionContext(),
+            convertParamFunction,
+            fieldProvider,
+            tableRelation);
         ExpressionAnalysisContext expressionAnalysisContext = new ExpressionAnalysisContext(analysis.statementContext());
         expressionAnalyzer.setResolveFieldsOperation(Operation.INSERT);
 
         ValuesResolver valuesResolver = new ValuesResolver(tableRelation);
         ExpressionAnalyzer valuesAwareExpressionAnalyzer = new ValuesAwareExpressionAnalyzer(
-            analysisMetaData, analysis.sessionContext(), analysis.parameterContext(), fieldProvider, valuesResolver);
+            analysisMetaData,
+            analysis.sessionContext(),
+            convertParamFunction,
+            fieldProvider,
+            valuesResolver);
 
         InsertFromValuesAnalyzedStatement statement = new InsertFromValuesAnalyzedStatement(
             tableInfo, analysis.parameterContext().numBulkParams());
