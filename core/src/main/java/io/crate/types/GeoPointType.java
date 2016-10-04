@@ -23,6 +23,7 @@ package io.crate.types;
 
 import com.google.common.base.Preconditions;
 import com.spatial4j.core.context.SpatialContext;
+import com.spatial4j.core.io.WKTReader;
 import com.spatial4j.core.shape.Point;
 import io.crate.Streamer;
 import org.apache.lucene.util.BytesRef;
@@ -43,7 +44,7 @@ public class GeoPointType extends DataType<Double[]> implements Streamer<Double[
     private GeoPointType() {
     }
 
-    private static final SpatialContext SPATIAL_CONTEXT = SpatialContext.GEO;
+    private static final WKTReader WKT_READER = (WKTReader) SpatialContext.GEO.getFormats().getWktReader();
 
     @Override
     public int id() {
@@ -113,7 +114,7 @@ public class GeoPointType extends DataType<Double[]> implements Streamer<Double[
 
     private static Double[] pointFromString(String value) {
         try {
-            Point point = (Point) SPATIAL_CONTEXT.readShapeFromWkt(value);
+            Point point = (Point) WKT_READER.parse(value);
             return new Double[]{point.getX(), point.getY()};
         } catch (ParseException e) {
             throw new IllegalArgumentException(String.format(Locale.ENGLISH,
