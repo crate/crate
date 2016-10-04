@@ -25,7 +25,6 @@ import com.google.common.base.Predicate;
 import com.google.common.collect.Iterables;
 import io.crate.analyze.expressions.ExpressionAnalysisContext;
 import io.crate.analyze.expressions.ExpressionAnalyzer;
-import io.crate.analyze.expressions.ParamToLiteral;
 import io.crate.analyze.expressions.ValueNormalizer;
 import io.crate.analyze.relations.*;
 import io.crate.analyze.symbol.Symbol;
@@ -95,7 +94,7 @@ public class UpdateStatementAnalyzer extends DefaultTraversalVisitor<AnalyzedSta
     public AnalyzedStatement visitUpdate(Update node, Analysis analysis) {
         StatementAnalysisContext statementAnalysisContext = new StatementAnalysisContext(
             analysis.sessionContext(),
-            new ParamToLiteral(analysis.parameterContext()),
+            analysis.parameterContext(),
             analysis.statementContext(),
             analysisMetaData,
             Operation.UPDATE);
@@ -108,7 +107,7 @@ public class UpdateStatementAnalyzer extends DefaultTraversalVisitor<AnalyzedSta
             new ExpressionAnalyzer(
                 analysisMetaData,
                 analysis.sessionContext(),
-                new ParamToLiteral(analysis.parameterContext()),
+                analysis.parameterContext(),
                 columnFieldProvider,
                 fieldResolver);
         columnExpressionAnalyzer.setResolveFieldsOperation(Operation.UPDATE);
@@ -118,7 +117,7 @@ public class UpdateStatementAnalyzer extends DefaultTraversalVisitor<AnalyzedSta
             new ExpressionAnalyzer(
                 analysisMetaData,
                 analysis.sessionContext(),
-                new ParamToLiteral(analysis.parameterContext()),
+                analysis.parameterContext(),
                 currentRelationContext.fieldProvider(),
                 fieldResolver);
         ExpressionAnalysisContext expressionAnalysisContext = new ExpressionAnalysisContext(analysis.statementContext());

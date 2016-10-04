@@ -27,7 +27,6 @@ import com.google.common.collect.Iterators;
 import io.crate.action.sql.SessionContext;
 import io.crate.analyze.expressions.ExpressionAnalysisContext;
 import io.crate.analyze.expressions.ExpressionAnalyzer;
-import io.crate.analyze.expressions.ParamToLiteral;
 import io.crate.analyze.expressions.ValueNormalizer;
 import io.crate.analyze.relations.*;
 import io.crate.analyze.symbol.*;
@@ -189,9 +188,8 @@ public class InsertFromSubQueryAnalyzer {
                                                             StmtCtx stmtCtx,
                                                             FieldProvider fieldProvider,
                                                             List<Assignment> assignments) {
-        ParamToLiteral convertParamFunction = new ParamToLiteral(parameterContext);
         ExpressionAnalyzer expressionAnalyzer = new ExpressionAnalyzer(
-            analysisMetaData, sessionContext, convertParamFunction, fieldProvider, tableRelation);
+            analysisMetaData, sessionContext, parameterContext, fieldProvider, tableRelation);
         ExpressionAnalysisContext expressionAnalysisContext = new ExpressionAnalysisContext(stmtCtx);
 
         ValueNormalizer valuesNormalizer = new ValueNormalizer(analysisMetaData.schemas(),
@@ -204,7 +202,7 @@ public class InsertFromSubQueryAnalyzer {
 
         ValuesResolver valuesResolver = new ValuesResolver(tableRelation, targetColumns);
         ValuesAwareExpressionAnalyzer valuesAwareExpressionAnalyzer = new ValuesAwareExpressionAnalyzer(
-            analysisMetaData, sessionContext, convertParamFunction, fieldProvider, valuesResolver);
+            analysisMetaData, sessionContext, parameterContext, fieldProvider, valuesResolver);
 
         Map<Reference, Symbol> updateAssignments = new HashMap<>(assignments.size());
         for (Assignment assignment : assignments) {

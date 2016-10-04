@@ -21,10 +21,11 @@
 
 package io.crate.analyze;
 
+import com.google.common.base.Function;
 import io.crate.analyze.expressions.ExpressionAnalysisContext;
 import io.crate.analyze.expressions.ExpressionAnalyzer;
-import io.crate.analyze.expressions.ParamToLiteral;
 import io.crate.analyze.relations.*;
+import io.crate.analyze.symbol.Symbol;
 import io.crate.analyze.symbol.Symbols;
 import io.crate.analyze.where.WhereClauseAnalyzer;
 import io.crate.exceptions.UnsupportedFeatureException;
@@ -33,6 +34,7 @@ import io.crate.metadata.table.Operation;
 import io.crate.sql.tree.DefaultTraversalVisitor;
 import io.crate.sql.tree.Delete;
 import io.crate.sql.tree.Node;
+import io.crate.sql.tree.ParameterExpression;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 
@@ -97,7 +99,7 @@ public class DeleteStatementAnalyzer extends DefaultTraversalVisitor<AnalyzedSta
     public AnalyzedStatement visitDelete(Delete node, Analysis analysis) {
         int numNested = 1;
 
-        ParamToLiteral convertParamFunction = new ParamToLiteral(analysis.parameterContext());
+        Function<ParameterExpression, Symbol> convertParamFunction = analysis.parameterContext();
         StatementAnalysisContext statementAnalysisContext = new StatementAnalysisContext(
             analysis.sessionContext(),
             convertParamFunction,
