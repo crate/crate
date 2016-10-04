@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - All operations on closed partitions result in error now.
+
  - Fixed an issue that might cause queries to fail with a `Same bucket of a
    page set more than once` error.
 
