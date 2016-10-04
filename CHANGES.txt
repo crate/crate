@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - All operations on closed partitions result in error now.
+
  - Fixed an issue that could cause `COPY <table> TO DIRECTORY` statements to
    fail
 
