@@ -589,6 +589,8 @@ Array types are defined as follows::
     Currently arrays cannot be nested. Something like array(array(string))
     won't work.
 
+.. _data-type-array-literals:
+
 Array Literals
 --------------
 

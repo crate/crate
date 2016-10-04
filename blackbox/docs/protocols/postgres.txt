@@ -177,6 +177,14 @@ Limitations
 
 - Transaction limitations as described in the beginning of this document apply.
 
+- Enabled escape processing may prevent the usage of :ref:`Object
+  Literals <data-type-object-literals>` when an object key starting
+  character clashes with a JDBC escape keyword (see also `JDBC escape syntax
+  <https://docs.oracle.com/javadb/10.10.1.2/ref/rrefjdbc1020262.html>`_).
+  Disabling escape processing is currently the only solution, but when
+  using the `Extended Query`_ API this does not work due to a `bug
+  <https://github.com/pgjdbc/pgjdbc/issues/653>`_ at `pgjdbc`_.
+
 
 Connection failover and load balancing
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
