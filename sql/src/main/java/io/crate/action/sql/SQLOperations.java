@@ -305,7 +305,7 @@ public class SQLOperations {
 
         public DataType getParamType(String statementName, int idx) {
             PreparedStmt stmt = getSafeStmt(statementName);
-            return stmt.paramTypes().get(idx);
+            return stmt.paramTypes().getType(idx);
         }
 
         private PreparedStmt getSafeStmt(String statementName) {

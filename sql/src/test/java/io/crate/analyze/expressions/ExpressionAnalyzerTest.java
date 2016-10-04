@@ -67,12 +67,12 @@ public class ExpressionAnalyzerTest extends CrateUnitTest {
     private ImmutableMap<QualifiedName, AnalyzedRelation> dummySources;
     private ExpressionAnalysisContext context;
     private AnalysisMetaData analysisMetaData;
-    private ParamToParamSymbol paramToParamSymbol;
+    private ParamTypeHints paramTypeHints;
 
     @Before
     public void prepare() throws Exception {
         mockedAnalysisMetaData = mock(AnalysisMetaData.class);
-        paramToParamSymbol = new ParamToParamSymbol(ParamTypeHints.EMPTY);
+        paramTypeHints = ParamTypeHints.EMPTY;
         DummyRelation dummyRelation = new DummyRelation("obj.x", "myObj.x", "myObj.x.AbC");
         dummySources = ImmutableMap.of(new QualifiedName("foo"), (AnalyzedRelation) dummyRelation);
         context = new ExpressionAnalysisContext(new StmtCtx());
@@ -93,7 +93,7 @@ public class ExpressionAnalyzerTest extends CrateUnitTest {
         expectedException.expect(UnsupportedOperationException.class);
         expectedException.expectMessage("Unsupported expression IF(1, 3)");
         ExpressionAnalyzer expressionAnalyzer = new ExpressionAnalyzer(
-            mockedAnalysisMetaData, SessionContext.SYSTEM_SESSION, paramToParamSymbol, new FullQualifedNameFieldProvider(dummySources), null);
+            mockedAnalysisMetaData, SessionContext.SYSTEM_SESSION, paramTypeHints, new FullQualifedNameFieldProvider(dummySources), null);
         ExpressionAnalysisContext expressionAnalysisContext = new ExpressionAnalysisContext(new StmtCtx());
 
         expressionAnalyzer.convert(SqlParser.createExpression("IF ( 1 , 3 )"), expressionAnalysisContext);
@@ -104,7 +104,7 @@ public class ExpressionAnalyzerTest extends CrateUnitTest {
         expectedException.expect(UnsupportedOperationException.class);
         expectedException.expectMessage("Unsupported expression current_time");
         ExpressionAnalyzer expressionAnalyzer = new ExpressionAnalyzer(
-            mockedAnalysisMetaData, SessionContext.SYSTEM_SESSION, paramToParamSymbol, new FullQualifedNameFieldProvider(dummySources), null);
+            mockedAnalysisMetaData, SessionContext.SYSTEM_SESSION, paramTypeHints, new FullQualifedNameFieldProvider(dummySources), null);
         ExpressionAnalysisContext expressionAnalysisContext = new ExpressionAnalysisContext(new StmtCtx());
 
         expressionAnalyzer.convert(SqlParser.createExpression("current_time"), expressionAnalysisContext);
@@ -115,7 +115,7 @@ public class ExpressionAnalyzerTest extends CrateUnitTest {
         ExpressionAnalyzer expressionAnalyzer = new ExpressionAnalyzer(
             mockedAnalysisMetaData,
             new SessionContext(0, EnumSet.of(Option.ALLOW_QUOTED_SUBSCRIPT), null),
-            paramToParamSymbol,
+            paramTypeHints,
             new FullQualifedNameFieldProvider(dummySources),
             null);
         ExpressionAnalysisContext expressionAnalysisContext = new ExpressionAnalysisContext(new StmtCtx());
@@ -160,7 +160,7 @@ public class ExpressionAnalyzerTest extends CrateUnitTest {
             new QualifiedName("t2"), tr2
         );
         ExpressionAnalyzer expressionAnalyzer = new ExpressionAnalyzer(
-            analysisMetaData, SessionContext.SYSTEM_SESSION, paramToParamSymbol, new FullQualifedNameFieldProvider(sources), null);
+            analysisMetaData, SessionContext.SYSTEM_SESSION, paramTypeHints, new FullQualifedNameFieldProvider(sources), null);
         Function andFunction = (Function) expressionAnalyzer.convert(
             SqlParser.createExpression("not t1.id = 1 and not t2.id = 1"), context);
 
