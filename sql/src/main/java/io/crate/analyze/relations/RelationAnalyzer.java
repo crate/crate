@@ -29,7 +29,6 @@ import io.crate.action.sql.SessionContext;
 import io.crate.analyze.*;
 import io.crate.analyze.expressions.ExpressionAnalysisContext;
 import io.crate.analyze.expressions.ExpressionAnalyzer;
-import io.crate.analyze.expressions.ParamToLiteral;
 import io.crate.analyze.expressions.ParamToParamSymbol;
 import io.crate.analyze.relations.select.SelectAnalyzer;
 import io.crate.analyze.symbol.*;
@@ -101,7 +100,7 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
             node,
             new StatementAnalysisContext(
                 analysis.sessionContext(),
-                new ParamToLiteral(analysis.parameterContext()),
+                analysis.parameterContext(),
                 analysis.statementContext(),
                 analysisMetaData,
                 Operation.READ

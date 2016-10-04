@@ -24,7 +24,6 @@ package io.crate.analyze;
 import com.google.common.base.Function;
 import io.crate.analyze.expressions.ExpressionAnalysisContext;
 import io.crate.analyze.expressions.ExpressionAnalyzer;
-import io.crate.analyze.expressions.ParamToLiteral;
 import io.crate.analyze.expressions.ValueNormalizer;
 import io.crate.analyze.relations.DocTableRelation;
 import io.crate.analyze.relations.FieldProvider;
@@ -41,10 +40,7 @@ import io.crate.metadata.*;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.Operation;
 import io.crate.operation.Input;
-import io.crate.sql.tree.Assignment;
-import io.crate.sql.tree.Expression;
-import io.crate.sql.tree.InsertFromValues;
-import io.crate.sql.tree.ValuesList;
+import io.crate.sql.tree.*;
 import io.crate.types.DataType;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.Nullable;
@@ -99,7 +95,7 @@ public class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
 
         DocTableRelation tableRelation = new DocTableRelation(tableInfo);
         FieldProvider fieldProvider = new NameFieldProvider(tableRelation);
-        ParamToLiteral convertParamFunction = new ParamToLiteral(analysis.parameterContext());
+        Function<ParameterExpression, Symbol> convertParamFunction = analysis.parameterContext();
         ExpressionAnalyzer expressionAnalyzer = new ExpressionAnalyzer(
             analysisMetaData,
             analysis.sessionContext(),

@@ -21,18 +21,22 @@
 
 package io.crate.analyze;
 
+import com.google.common.base.Function;
 import io.crate.analyze.symbol.Literal;
+import io.crate.analyze.symbol.Symbol;
 import io.crate.core.collections.Row;
+import io.crate.sql.tree.ParameterExpression;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 
+import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 
 
-public class ParameterContext {
+public class ParameterContext implements Function<ParameterExpression, Symbol> {
 
     public static final ParameterContext EMPTY = new ParameterContext(Row.EMPTY, Collections.<Row>emptyList());
 
@@ -110,5 +114,14 @@ public class ParameterContext {
             typeHints = new ParamTypeHints(types);
         }
         return typeHints;
+    }
+
+    @Nullable
+    @Override
+    public Symbol apply(@Nullable ParameterExpression input) {
+        if (input == null) {
+            return null;
+        }
+        return getAsSymbol(input.index());
     }
 }
