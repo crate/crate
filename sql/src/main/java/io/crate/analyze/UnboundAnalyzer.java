@@ -102,6 +102,9 @@ class UnboundAnalyzer {
         protected AnalyzedRelation visitExplain(Explain node, Analysis context) {
             // Sub-relation is ignored for now.
             // This is because the sub-relation might be anything and this unbound analyzer only supports select/show queries
+
+            // this only works because the result here is only used for the Describe message.
+            // Once this analysis is used for more this has to be extended
             return new ExplainAnalyzedStatement(SqlFormatter.formatSql(node), null);
         }
     }

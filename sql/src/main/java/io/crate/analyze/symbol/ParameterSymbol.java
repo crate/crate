@@ -31,9 +31,9 @@ import java.io.IOException;
 
 public class ParameterSymbol extends Symbol {
 
-    public static final SymbolFactory FACTORY = new SymbolFactory() {
+    public static final SymbolFactory<ParameterSymbol> FACTORY = new SymbolFactory<ParameterSymbol>() {
         @Override
-        public Symbol newInstance() {
+        public ParameterSymbol newInstance() {
             return new ParameterSymbol();
         }
     };
@@ -78,5 +78,9 @@ public class ParameterSymbol extends Symbol {
     @Override
     public String toString() {
         return "$" + Integer.toString(index + 1);
+    }
+
+    public int index() {
+        return index;
     }
 }
