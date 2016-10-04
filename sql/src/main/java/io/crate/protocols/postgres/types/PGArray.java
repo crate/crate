@@ -106,15 +106,15 @@ class PGArray extends PGType {
         int dimensions = buffer.readInt();
         buffer.readInt(); // flags bit 0: 0=no-nulls, 1=has-nulls
         buffer.readInt(); // element oid
+        if (dimensions == 0) {
+            return new Object[0];
+        }
         int[] dims = new int[dimensions];
         for (int d = 0; d < dimensions; ++d) {
             dims[d] = buffer.readInt();
             buffer.readInt(); // lowerBound ignored
         }
 
-        if (dimensions == 0) {
-            return java.lang.reflect.Array.newInstance(Object.class, 0);
-        }
         Object[] array = new Object[dims[0]];
 
         readArrayAsBinary(buffer, array, dims, 0);
