@@ -169,7 +169,7 @@ public class LuceneQueryBuilderTest extends CrateUnitTest {
     @Test
     public void testWhereRefEqRef() throws Exception {
         Query query = convert("name = name");
-        assertThat(query, instanceOf(LuceneQueryBuilder.Visitor.FunctionFilter.class));
+        assertThat(query, instanceOf(GenericFunctionQuery.class));
     }
 
     @Test
@@ -185,14 +185,14 @@ public class LuceneQueryBuilderTest extends CrateUnitTest {
         assertThat(query, instanceOf(BooleanQuery.class));
         BooleanQuery booleanQuery = (BooleanQuery) query;
         assertThat(booleanQuery.clauses().get(0).getQuery(), instanceOf(TermsQuery.class));
-        assertThat(booleanQuery.clauses().get(1).getQuery(), instanceOf(LuceneQueryBuilder.Visitor.FunctionFilter.class));
+        assertThat(booleanQuery.clauses().get(1).getQuery(), instanceOf(GenericFunctionQuery.class));
     }
 
     @Test
     public void testEqOnTwoArraysBecomesGenericFunctionQueryAllValuesNull() throws Exception {
         SqlExpressions sqlExpressions = new SqlExpressions(sources, new Object[]{new Object[]{null, null, null}});
         Query query = convert(new WhereClause(normalizer.normalize(sqlExpressions.asSymbol("y_array = ?"), new StmtCtx())));
-        assertThat(query, instanceOf(LuceneQueryBuilder.Visitor.FunctionFilter.class));
+        assertThat(query, instanceOf(GenericFunctionQuery.class));
     }
 
     @Test
@@ -204,7 +204,7 @@ public class LuceneQueryBuilderTest extends CrateUnitTest {
         assertThat(query, instanceOf(BooleanQuery.class));
         BooleanQuery booleanQuery = (BooleanQuery) query;
         assertThat(booleanQuery.clauses().get(0).getQuery(), instanceOf(TermsQuery.class));
-        assertThat(booleanQuery.clauses().get(1).getQuery(), instanceOf(LuceneQueryBuilder.Visitor.FunctionFilter.class));
+        assertThat(booleanQuery.clauses().get(1).getQuery(), instanceOf(GenericFunctionQuery.class));
     }
 
     @Test
@@ -406,14 +406,14 @@ public class LuceneQueryBuilderTest extends CrateUnitTest {
     @Test
     public void testLikeWithBothSidesReferences() throws Exception {
         Query query = convert("name like name");
-        assertThat(query, instanceOf(LuceneQueryBuilder.Visitor.FunctionFilter.class));
+        assertThat(query, instanceOf(GenericFunctionQuery.class));
     }
 
     @Test
     public void testWithinFunctionWithShapeReference() throws Exception {
         // shape references cannot use the inverted index, so use generic function here
         Query eqWithinQuery = convert("within(point, shape)");
-        assertThat(eqWithinQuery, instanceOf(LuceneQueryBuilder.Visitor.FunctionFilter.class));
+        assertThat(eqWithinQuery, instanceOf(GenericFunctionQuery.class));
     }
 
     @Test

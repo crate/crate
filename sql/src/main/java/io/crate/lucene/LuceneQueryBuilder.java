@@ -22,7 +22,6 @@
 package io.crate.lucene;
 
 import com.google.common.base.Preconditions;
-import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
@@ -63,8 +62,6 @@ import io.crate.operation.scalar.geo.WithinFunction;
 import io.crate.types.CollectionType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
-import org.apache.lucene.index.LeafReader;
-import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.queries.TermsQuery;
 import org.apache.lucene.sandbox.queries.regex.JavaUtilRegexCapabilities;
@@ -77,7 +74,6 @@ import org.apache.lucene.spatial.prefix.PrefixTreeStrategy;
 import org.apache.lucene.spatial.query.SpatialArgs;
 import org.apache.lucene.spatial.query.SpatialOperation;
 import org.apache.lucene.spatial.util.GeoDistanceUtils;
-import org.apache.lucene.util.Bits;
 import org.apache.lucene.util.BytesRef;
 import org.apache.lucene.util.automaton.RegExp;
 import org.elasticsearch.ExceptionsHelper;
@@ -1250,118 +1246,9 @@ public class LuceneQueryBuilder {
             for (LuceneCollectorExpression expression : expressions) {
                 expression.startCollect(collectorContext);
             }
-            return new FunctionFilter(function, expressions, collectorContext, condition);
+            return new GenericFunctionQuery(function, expressions, collectorContext, condition);
         }
 
-        public static class FunctionFilter extends Filter {
-
-            private final Function function;
-            private final List<LuceneCollectorExpression> expressions;
-            private final CollectorContext collectorContext;
-            private final Input<Boolean> condition;
-
-            public FunctionFilter(Function function,
-                                  List<LuceneCollectorExpression> expressions,
-                                  CollectorContext collectorContext,
-                                  Input<Boolean> condition) {
-                this.function = function;
-                this.expressions = expressions;
-                this.collectorContext = collectorContext;
-                this.condition = condition;
-            }
-
-            @Override
-            public DocIdSet getDocIdSet(final LeafReaderContext context, Bits acceptDocs) throws IOException {
-                for (LuceneCollectorExpression expression : expressions) {
-                    expression.setNextReader(context.reader().getContext());
-                }
-                DocIdSet docIdSet = new DocIdSet() {
-
-                    @Override
-                    public long ramBytesUsed() {
-                        return 0; // FIXME
-                    }
-
-                    @Override
-                    public DocIdSetIterator iterator() throws IOException {
-                        return DocIdSetIterator.all(context.reader().maxDoc());
-                    }
-                };
-                return BitsFilteredDocIdSet.wrap(
-                    new FunctionDocSet(
-                        context.reader(),
-                        collectorContext.visitor(),
-                        condition,
-                        expressions,
-                        docIdSet
-                    ),
-                    acceptDocs
-                );
-            }
-
-            @Override
-            public boolean equals(Object o) {
-                if (this == o) return true;
-                if (o == null || getClass() != o.getClass()) return false;
-                if (!super.equals(o)) return false;
-                FunctionFilter that = (FunctionFilter) o;
-                if (getBoost() != that.getBoost()) return false;
-                return Objects.equals(function, that.function);
-            }
-
-            @Override
-            public int hashCode() {
-                return Float.floatToIntBits(getBoost()) ^ function.hashCode();
-            }
-
-            @Override
-            public String toString(String field) {
-                return field;
-            }
-        }
-
-        static class FunctionDocSet extends FilteredDocIdSet {
-
-            private final LeafReader reader;
-            private final CollectorFieldsVisitor fieldsVisitor;
-            private final Input<Boolean> condition;
-            private final List<LuceneCollectorExpression> expressions;
-            private final boolean fieldsVisitorEnabled;
-
-            protected FunctionDocSet(LeafReader reader,
-                                     @Nullable CollectorFieldsVisitor fieldsVisitor,
-                                     Input<Boolean> condition,
-                                     List<LuceneCollectorExpression> expressions,
-                                     DocIdSet docIdSet) {
-                super(docIdSet);
-                this.reader = reader;
-                this.fieldsVisitor = fieldsVisitor;
-                //noinspection SimplifiableConditionalExpression
-                this.fieldsVisitorEnabled = fieldsVisitor == null ? false : fieldsVisitor.required();
-                this.condition = condition;
-                this.expressions = expressions;
-            }
-
-            @Override
-            protected boolean match(int doc) {
-                if (fieldsVisitorEnabled) {
-                    fieldsVisitor.reset();
-                    try {
-                        reader.document(doc, fieldsVisitor);
-                    } catch (IOException e) {
-                        throw Throwables.propagate(e);
-                    }
-                }
-                for (LuceneCollectorExpression expression : expressions) {
-                    expression.setNextDocId(doc);
-                }
-                Boolean value = condition.value();
-                if (value == null) {
-                    return false;
-                }
-                return value;
-            }
-        }
 
         private static Query raiseUnsupported(Function function) {
             throw new UnsupportedOperationException(
