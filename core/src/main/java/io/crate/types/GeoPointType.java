@@ -22,7 +22,7 @@
 package io.crate.types;
 
 import com.google.common.base.Preconditions;
-import com.spatial4j.core.context.SpatialContext;
+import com.spatial4j.core.context.jts.JtsSpatialContext;
 import com.spatial4j.core.io.WKTReader;
 import com.spatial4j.core.shape.Point;
 import io.crate.Streamer;
@@ -44,7 +44,7 @@ public class GeoPointType extends DataType<Double[]> implements Streamer<Double[
     private GeoPointType() {
     }
 
-    private static final WKTReader WKT_READER = (WKTReader) SpatialContext.GEO.getFormats().getWktReader();
+    public static final WKTReader WKT_READER = (WKTReader) JtsSpatialContext.GEO.getFormats().getWktReader();
 
     @Override
     public int id() {

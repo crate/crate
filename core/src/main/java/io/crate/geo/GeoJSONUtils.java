@@ -30,6 +30,7 @@ import com.spatial4j.core.shape.Shape;
 import com.spatial4j.core.shape.ShapeCollection;
 import com.vividsolutions.jts.geom.*;
 import io.crate.core.collections.ForEach;
+import io.crate.types.GeoPointType;
 import org.elasticsearch.common.geo.builders.ShapeBuilder;
 import org.elasticsearch.common.lucene.BytesRefs;
 import org.elasticsearch.common.xcontent.XContentFactory;
@@ -43,18 +44,18 @@ public class GeoJSONUtils {
 
     public static final String COORDINATES_FIELD = "coordinates";
     public static final String TYPE_FIELD = "type";
-    public static final String GEOMETRIES_FIELD = "geometries";
+    static final String GEOMETRIES_FIELD = "geometries";
 
     // GEO JSON Types
-    public static final String GEOMETRY_COLLECTION = "GeometryCollection";
+    static final String GEOMETRY_COLLECTION = "GeometryCollection";
     public static final String POINT = "Point";
-    public static final String MULTI_POINT = "MultiPoint";
+    private static final String MULTI_POINT = "MultiPoint";
     public static final String LINE_STRING = "LineString";
-    public static final String MULTI_LINE_STRING = "MultiLineString";
+    private static final String MULTI_LINE_STRING = "MultiLineString";
     public static final String POLYGON = "Polygon";
-    public static final String MULTI_POLYGON = "MultiPolygon";
+    private static final String MULTI_POLYGON = "MultiPolygon";
 
-    public static final ImmutableMap<String, String> GEOSJON_TYPES = ImmutableMap.<String, String>builder()
+    private static final ImmutableMap<String, String> GEOSJON_TYPES = ImmutableMap.<String, String>builder()
         .put(GEOMETRY_COLLECTION, GEOMETRY_COLLECTION)
         .put(GEOMETRY_COLLECTION.toLowerCase(Locale.ENGLISH), GEOMETRY_COLLECTION)
         .put(POINT, POINT)
@@ -96,7 +97,7 @@ public class GeoJSONUtils {
 
     public static Shape wkt2Shape(String wkt) {
         try {
-            return JtsSpatialContext.GEO.readShapeFromWkt(wkt);
+            return GeoPointType.WKT_READER.parse(wkt);
         } catch (Throwable e) {
             throw new IllegalArgumentException(String.format(Locale.ENGLISH,
                 "Cannot convert WKT \"%s\" to shape", wkt), e);
@@ -122,7 +123,7 @@ public class GeoJSONUtils {
         }
     }
 
-    public static Shape geoJSONString2Shape(String geoJSON) {
+    private static Shape geoJSONString2Shape(String geoJSON) {
         try {
             XContentParser parser = JsonXContent.jsonXContent.createParser(geoJSON);
             parser.nextToken();
