@@ -9,6 +9,13 @@ dependencies {
 
 def pluginDir = project(":es").file('upstream/plugins/cloud-aws')
 
+// upstream code - not interested in any warnings
+compileJava {
+    options.warnings = false
+    options.deprecation = false
+}
+compileTestJava.options.warnings = false
+
 sourceSets {
     main {
         java {

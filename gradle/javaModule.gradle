@@ -6,6 +6,12 @@ repositories {
     maven { url "https://jitpack.io" }
 }
 
+
+compileJava {
+    options.warnings = true
+    options.deprecation = true
+}
+
 sourceCompatibility = "7"
 targetCompatibility = "7"
 

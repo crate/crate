@@ -176,15 +176,6 @@ allprojects {
     }
 }
 
-
-configure(subprojects.findAll { it.name != 'es' }) {
-    tasks.withType(JavaCompile) {
-        options.compilerArgs << "-Xlint:deprecation"
-    }
-}
-
-
-
 final testOutputs = [:].withDefault { [] }
 
 

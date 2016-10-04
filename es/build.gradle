@@ -1,10 +1,15 @@
 apply from: "$rootDir/gradle/javaModule.gradle"
 
-tasks.withType(JavaCompile) {
+
+compileJava {
+    // upstream code - not interested in any warnings
+    options.warnings = false
+    options.deprecation = false
     options.compilerArgs << '-XDignore.symbol.file'
     options.fork = true // probably not required when using java 1.8
     options.forkOptions.executable = 'javac'
 }
+compileTestJava.options.warnings = false
 
 dependencies {
     // if you update the versions here
