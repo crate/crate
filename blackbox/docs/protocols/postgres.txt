@@ -180,7 +180,8 @@ Limitations
   <https://docs.oracle.com/javadb/10.10.1.2/ref/rrefjdbc1020262.html>`_).
   Disabling escape processing is currently the only solution, but when
   using the `Extended Query`_ API this does not work due to a `bug
-  <https://github.com/pgjdbc/pgjdbc/issues/653>`_ at `pgjdbc`_.
+  <https://github.com/pgjdbc/pgjdbc/issues/653>`_ at `pgjdbc`_ which is
+  currently only solved by an unreleased snapshot (`9.4.1212.jre7-SNAPSHOT`).
 
 
 Connection failover and load balancing
