@@ -22,18 +22,12 @@ package io.crate.analyze;
 
 import io.crate.action.sql.SessionContext;
 import io.crate.analyze.relations.AnalyzedRelation;
-import io.crate.analyze.relations.AnalyzedRelationVisitor;
 import io.crate.analyze.relations.QueriedRelation;
 import io.crate.analyze.relations.RelationAnalyzer;
-import io.crate.analyze.symbol.Field;
-import io.crate.exceptions.ColumnUnknownException;
-import io.crate.metadata.Path;
-import io.crate.metadata.table.Operation;
+import io.crate.metadata.Schemas;
 import io.crate.sql.tree.*;
 import org.elasticsearch.common.inject.Inject;
 
-import javax.annotation.Nonnull;
-import java.util.List;
 import java.util.Locale;
 
 public class Analyzer {
@@ -67,8 +61,8 @@ public class Analyzer {
     private final UnboundAnalyzer unboundAnalyzer;
 
     @Inject
-    public Analyzer(RelationAnalyzer relationAnalyzer,
-                    DropTableStatementAnalyzer dropTableStatementAnalyzer,
+    public Analyzer(Schemas schemas,
+                    RelationAnalyzer relationAnalyzer,
                     CreateTableStatementAnalyzer createTableStatementAnalyzer,
                     ShowCreateTableAnalyzer showCreateTableAnalyzer,
                     CreateBlobTableStatementAnalyzer createBlobTableStatementAnalyzer,
@@ -90,7 +84,7 @@ public class Analyzer {
                     CreateSnapshotStatementAnalyzer createSnapshotStatementAnalyzer,
                     RestoreSnapshotStatementAnalyzer restoreSnapshotStatementAnalyzer) {
         this.relationAnalyzer = relationAnalyzer;
-        this.dropTableStatementAnalyzer = dropTableStatementAnalyzer;
+        this.dropTableStatementAnalyzer = new DropTableStatementAnalyzer(schemas);
         this.createTableStatementAnalyzer = createTableStatementAnalyzer;
         this.showCreateTableAnalyzer = showCreateTableAnalyzer;
         this.explainStatementAnalyzer = new ExplainStatementAnalyzer(this);
@@ -174,7 +168,7 @@ public class Analyzer {
 
         @Override
         public AnalyzedStatement visitDropTable(DropTable node, Analysis context) {
-            return dropTableStatementAnalyzer.analyze(node, context);
+            return dropTableStatementAnalyzer.analyze(node, context.sessionContext().defaultSchema());
         }
 
         @Override

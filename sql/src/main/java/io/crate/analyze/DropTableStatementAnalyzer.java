@@ -24,34 +24,25 @@ package io.crate.analyze;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.table.Operation;
-import io.crate.sql.tree.DefaultTraversalVisitor;
 import io.crate.sql.tree.DropTable;
-import io.crate.sql.tree.Node;
-import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.inject.Singleton;
 
-@Singleton
-public class DropTableStatementAnalyzer extends DefaultTraversalVisitor<DropTableAnalyzedStatement, Analysis> {
+import javax.annotation.Nullable;
+
+class DropTableStatementAnalyzer {
 
     private final Schemas schemas;
 
-    @Inject
-    public DropTableStatementAnalyzer(Schemas schemas) {
+    DropTableStatementAnalyzer(Schemas schemas) {
         this.schemas = schemas;
     }
 
-    @Override
-    public DropTableAnalyzedStatement visitDropTable(DropTable node, Analysis context) {
+    public DropTableAnalyzedStatement analyze(DropTable node, @Nullable String defaultSchema) {
         DropTableAnalyzedStatement statement = new DropTableAnalyzedStatement(schemas, node.ignoreNonExistentTable());
-        statement.table(TableIdent.of(node.table(), context.sessionContext().defaultSchema()));
+        statement.table(TableIdent.of(node.table(), defaultSchema));
         if (!statement.noop()) {
             Operation.blockedRaiseException(statement.tableInfo, Operation.DROP);
         }
 
         return statement;
-    }
-
-    public AnalyzedStatement analyze(Node node, Analysis analysis) {
-        return process(node, analysis);
     }
 }
