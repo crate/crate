@@ -85,7 +85,7 @@ public class MatchQueryBuilder {
             matchType.matchQueryType(), entry.getKey(), queryString, floatOrNull(entry.getValue()));
         Float boost = this.options.boost();
         if (boost != null) {
-            query.setBoost(boost);
+            return new BoostQuery(query, boost);
         }
         return query;
     }
