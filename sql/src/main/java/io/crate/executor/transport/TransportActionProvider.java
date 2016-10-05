@@ -22,7 +22,6 @@
 package io.crate.executor.transport;
 
 import io.crate.action.job.TransportJobAction;
-import io.crate.action.sql.TransportSQLAction;
 import io.crate.executor.transport.kill.TransportKillAllNodeAction;
 import io.crate.executor.transport.kill.TransportKillJobsNodeAction;
 import org.elasticsearch.action.admin.cluster.repositories.delete.TransportDeleteRepositoryAction;
@@ -82,8 +81,6 @@ public class TransportActionProvider {
     private final Provider<TransportRestoreSnapshotAction> transportRestoreSnapshotActionProvider;
     private final Provider<TransportNodeStatsAction> transportStatTablesActionProvider;
 
-    private final Provider<TransportSQLAction> transportSQLActionProvider;
-
     @Inject
     public TransportActionProvider(Provider<TransportFetchNodeAction> transportFetchNodeActionProvider,
                                    Provider<TransportCreateIndexAction> transportCreateIndexActionProvider,
@@ -109,8 +106,7 @@ public class TransportActionProvider {
                                    Provider<TransportDeleteSnapshotAction> transportDeleteSnapshotActionProvider,
                                    Provider<TransportCreateSnapshotAction> transportCreateSnapshotActionProvider,
                                    Provider<TransportRestoreSnapshotAction> transportRestoreSnapshotActionProvider,
-                                   Provider<TransportNodeStatsAction> transportStatTablesActionProvider,
-                                   Provider<TransportSQLAction> transportSQLActionProvider) {
+                                   Provider<TransportNodeStatsAction> transportStatTablesActionProvider) {
         this.transportCreateIndexActionProvider = transportCreateIndexActionProvider;
         this.transportDeleteIndexActionProvider = transportDeleteIndexActionProvider;
         this.transportPutIndexTemplateActionProvider = transportPutIndexTemplateActionProvider;
@@ -136,7 +132,6 @@ public class TransportActionProvider {
         this.transportCreateSnapshotActionProvider = transportCreateSnapshotActionProvider;
         this.transportRestoreSnapshotActionProvider = transportRestoreSnapshotActionProvider;
         this.transportStatTablesActionProvider = transportStatTablesActionProvider;
-        this.transportSQLActionProvider = transportSQLActionProvider;
     }
 
     public TransportCreateIndexAction transportCreateIndexAction() {
@@ -225,10 +220,6 @@ public class TransportActionProvider {
 
     public TransportDeleteSnapshotAction transportDeleteSnapshotAction() {
         return transportDeleteSnapshotActionProvider.get();
-    }
-
-    public TransportSQLAction transportSQLAction() {
-        return transportSQLActionProvider.get();
     }
 
     public TransportCreateSnapshotAction transportCreateSnapshotAction() {
