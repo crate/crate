@@ -35,14 +35,14 @@ public class Analyzer {
     private final AnalyzerDispatcher dispatcher = new AnalyzerDispatcher();
 
     private final RelationAnalyzer relationAnalyzer;
-    private final DropTableStatementAnalyzer dropTableStatementAnalyzer;
+    private final DropTableAnalyzer dropTableAnalyzer;
     private final CreateTableStatementAnalyzer createTableStatementAnalyzer;
     private final ShowCreateTableAnalyzer showCreateTableAnalyzer;
     private final ExplainStatementAnalyzer explainStatementAnalyzer;
     private final ShowStatementAnalyzer showStatementAnalyzer;
     private final CreateBlobTableStatementAnalyzer createBlobTableStatementAnalyzer;
     private final CreateAnalyzerStatementAnalyzer createAnalyzerStatementAnalyzer;
-    private final DropBlobTableStatementAnalyzer dropBlobTableStatementAnalyzer;
+    private final DropBlobTableAnalyzer dropBlobTableAnalyzer;
     private final RefreshTableAnalyzer refreshTableAnalyzer;
     private final OptimizeTableAnalyzer optimizeTableAnalyzer;
     private final AlterTableAnalyzer alterTableAnalyzer;
@@ -67,7 +67,6 @@ public class Analyzer {
                     ShowCreateTableAnalyzer showCreateTableAnalyzer,
                     CreateBlobTableStatementAnalyzer createBlobTableStatementAnalyzer,
                     CreateAnalyzerStatementAnalyzer createAnalyzerStatementAnalyzer,
-                    DropBlobTableStatementAnalyzer dropBlobTableStatementAnalyzer,
                     RefreshTableAnalyzer refreshTableAnalyzer,
                     OptimizeTableAnalyzer optimizeTableAnalyzer,
                     AlterTableAnalyzer alterTableAnalyzer,
@@ -84,7 +83,8 @@ public class Analyzer {
                     CreateSnapshotStatementAnalyzer createSnapshotStatementAnalyzer,
                     RestoreSnapshotStatementAnalyzer restoreSnapshotStatementAnalyzer) {
         this.relationAnalyzer = relationAnalyzer;
-        this.dropTableStatementAnalyzer = new DropTableStatementAnalyzer(schemas);
+        this.dropTableAnalyzer = new DropTableAnalyzer(schemas);
+        this.dropBlobTableAnalyzer = new DropBlobTableAnalyzer(schemas);
         this.createTableStatementAnalyzer = createTableStatementAnalyzer;
         this.showCreateTableAnalyzer = showCreateTableAnalyzer;
         this.explainStatementAnalyzer = new ExplainStatementAnalyzer(this);
@@ -92,7 +92,6 @@ public class Analyzer {
         this.unboundAnalyzer = new UnboundAnalyzer(relationAnalyzer, showCreateTableAnalyzer, showStatementAnalyzer);
         this.createBlobTableStatementAnalyzer = createBlobTableStatementAnalyzer;
         this.createAnalyzerStatementAnalyzer = createAnalyzerStatementAnalyzer;
-        this.dropBlobTableStatementAnalyzer = dropBlobTableStatementAnalyzer;
         this.refreshTableAnalyzer = refreshTableAnalyzer;
         this.optimizeTableAnalyzer = optimizeTableAnalyzer;
         this.alterTableAnalyzer = alterTableAnalyzer;
@@ -168,7 +167,7 @@ public class Analyzer {
 
         @Override
         public AnalyzedStatement visitDropTable(DropTable node, Analysis context) {
-            return dropTableStatementAnalyzer.analyze(node, context.sessionContext().defaultSchema());
+            return dropTableAnalyzer.analyze(node, context.sessionContext().defaultSchema());
         }
 
         @Override
@@ -213,7 +212,7 @@ public class Analyzer {
 
         @Override
         public AnalyzedStatement visitDropBlobTable(DropBlobTable node, Analysis context) {
-            return dropBlobTableStatementAnalyzer.analyze(node, context);
+            return dropBlobTableAnalyzer.analyze(node);
         }
 
         @Override

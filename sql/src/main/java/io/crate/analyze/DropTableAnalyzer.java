@@ -21,28 +21,39 @@
 
 package io.crate.analyze;
 
+import io.crate.exceptions.ResourceUnknownException;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.TableIdent;
+import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.Operation;
 import io.crate.sql.tree.DropTable;
 
 import javax.annotation.Nullable;
 
-class DropTableStatementAnalyzer {
+class DropTableAnalyzer {
 
     private final Schemas schemas;
 
-    DropTableStatementAnalyzer(Schemas schemas) {
+    DropTableAnalyzer(Schemas schemas) {
         this.schemas = schemas;
     }
 
     public DropTableAnalyzedStatement analyze(DropTable node, @Nullable String defaultSchema) {
-        DropTableAnalyzedStatement statement = new DropTableAnalyzedStatement(schemas, node.ignoreNonExistentTable());
-        statement.table(TableIdent.of(node.table(), defaultSchema));
-        if (!statement.noop()) {
-            Operation.blockedRaiseException(statement.tableInfo, Operation.DROP);
+        TableIdent tableIdent = TableIdent.of(node.table(), defaultSchema);
+        DocTableInfo tableInfo = null;
+        boolean isNoop = false;
+        try {
+            tableInfo = schemas.getDropableTable(tableIdent);
+        } catch (ResourceUnknownException e) {
+            if (node.dropIfExists()) {
+                isNoop = true;
+            } else {
+                throw e;
+            }
         }
-
-        return statement;
+        if (!isNoop) {
+            Operation.blockedRaiseException(tableInfo, Operation.DROP);
+        }
+        return new DropTableAnalyzedStatement(tableInfo, isNoop, node.dropIfExists());
     }
 }

@@ -21,32 +21,16 @@
 
 package io.crate.analyze;
 
-import io.crate.exceptions.ResourceUnknownException;
-import io.crate.metadata.Schemas;
-import io.crate.metadata.TableIdent;
 import io.crate.metadata.doc.DocTableInfo;
 
 public class DropTableAnalyzedStatement extends AbstractDropTableAnalyzedStatement<DocTableInfo> {
 
-    public DropTableAnalyzedStatement(Schemas schemas, boolean ignoreNonExistentTable) {
-        super(schemas, ignoreNonExistentTable);
+    public DropTableAnalyzedStatement(DocTableInfo tableInfo, boolean isNoop, boolean dropIfExists) {
+        super(tableInfo, isNoop, dropIfExists);
     }
 
     @Override
     public <C, R> R accept(AnalyzedStatementVisitor<C, R> analyzedStatementVisitor, C context) {
         return analyzedStatementVisitor.visitDropTableStatement(this, context);
     }
-
-    public void table(TableIdent tableIdent) {
-        try {
-            tableInfo = schemas.getDropableTable(tableIdent);
-        } catch (ResourceUnknownException e) {
-            if (dropIfExists) {
-                noop = true;
-            } else {
-                throw e;
-            }
-        }
-    }
-
 }

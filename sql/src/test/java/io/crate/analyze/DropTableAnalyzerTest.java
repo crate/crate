@@ -139,6 +139,7 @@ public class DropTableAnalyzerTest extends BaseAnalyzerTest {
         assertThat(analyzedStatement, instanceOf(DropTableAnalyzedStatement.class));
         DropTableAnalyzedStatement dropTableAnalysis = (DropTableAnalyzedStatement) analyzedStatement;
         assertThat(dropTableAnalysis.dropIfExists(), is(true));
+        assertThat(dropTableAnalysis.noop(), is(true));
     }
 
     @Test

@@ -21,26 +21,35 @@
 
 package io.crate.analyze;
 
+import io.crate.exceptions.ResourceUnknownException;
 import io.crate.metadata.Schemas;
+import io.crate.metadata.TableIdent;
+import io.crate.metadata.blob.BlobTableInfo;
 import io.crate.sql.tree.DropBlobTable;
-import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.inject.Singleton;
 
-@Singleton
-public class DropBlobTableStatementAnalyzer extends BlobTableAnalyzer<DropBlobTableAnalyzedStatement> {
+import static io.crate.analyze.BlobTableAnalyzer.tableToIdent;
+
+class DropBlobTableAnalyzer {
 
     private final Schemas schemas;
 
-    @Inject
-    public DropBlobTableStatementAnalyzer(Schemas schemas) {
+    DropBlobTableAnalyzer(Schemas schemas) {
         this.schemas = schemas;
     }
 
-    @Override
-    public DropBlobTableAnalyzedStatement visitDropBlobTable(DropBlobTable node, Analysis analysis) {
-        DropBlobTableAnalyzedStatement statement = new DropBlobTableAnalyzedStatement(schemas, node.ignoreNonExistentTable());
-        statement.table(tableToIdent(node.table()));
-        return statement;
+    public DropBlobTableAnalyzedStatement analyze(DropBlobTable node) {
+        TableIdent tableIdent = tableToIdent(node.table());
+        BlobTableInfo tableInfo = null;
+        boolean isNoop = false;
+        try {
+            tableInfo = (BlobTableInfo) schemas.getTableInfo(tableIdent);
+        } catch (ResourceUnknownException e) {
+            if (node.ignoreNonExistentTable()) {
+                isNoop = true;
+            } else {
+                throw e;
+            }
+        }
+        return new DropBlobTableAnalyzedStatement(tableInfo, isNoop, node.ignoreNonExistentTable());
     }
-
 }

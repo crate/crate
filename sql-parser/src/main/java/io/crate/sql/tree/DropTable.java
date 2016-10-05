@@ -27,19 +27,19 @@ import com.google.common.base.Objects;
 public class DropTable
     extends Statement {
     private final Table table;
-    private final boolean ignoreNonExistentTable;
+    private final boolean dropIfExists;
 
-    public DropTable(Table table, boolean ignoreNonExistentTable) {
+    public DropTable(Table table, boolean dropIfExists) {
         this.table = table;
-        this.ignoreNonExistentTable = ignoreNonExistentTable;
+        this.dropIfExists = dropIfExists;
     }
 
     public DropTable(Table table) {
         this(table, false);
     }
 
-    public boolean ignoreNonExistentTable() {
-        return ignoreNonExistentTable;
+    public boolean dropIfExists() {
+        return dropIfExists;
     }
 
     public Table table() {
@@ -53,7 +53,7 @@ public class DropTable
 
     @Override
     public int hashCode() {
-        return Objects.hashCode(table, ignoreNonExistentTable);
+        return Objects.hashCode(table, dropIfExists);
     }
 
     @Override
@@ -65,7 +65,7 @@ public class DropTable
             return false;
         }
         DropTable that = (DropTable) obj;
-        if (this.ignoreNonExistentTable != that.ignoreNonExistentTable) {
+        if (this.dropIfExists != that.dropIfExists) {
             return false;
         }
         return table.equals(that.table);
@@ -76,7 +76,7 @@ public class DropTable
     public String toString() {
         return MoreObjects.toStringHelper(this)
             .add("table", table)
-            .add("ignoreNonExistentTable", ignoreNonExistentTable)
+            .add("dropIfExists", dropIfExists)
             .toString();
     }
 }
