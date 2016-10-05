@@ -45,6 +45,7 @@ dependencies {
         exclude group: 'com.tdunning'
         exclude group: 'commons-cli'
         exclude group: 'org.slf4j'
+        exclude group: 'log4j'
     }
     // required by ES and Lucene Version classes - keep up to date with es dependencies
     // The version module is required by the DiscoveryNode module
