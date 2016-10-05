@@ -37,6 +37,7 @@ import io.crate.operation.scalar.geo.WithinFunction;
 import io.crate.operation.scalar.regex.MatchesFunction;
 import io.crate.operation.scalar.regex.ReplaceFunction;
 import io.crate.operation.scalar.string.LowerFunction;
+import io.crate.operation.scalar.string.Sha1Function;
 import io.crate.operation.scalar.string.UpperFunction;
 import io.crate.operation.scalar.timestamp.CurrentTimestampFunction;
 import org.elasticsearch.common.inject.AbstractModule;
@@ -101,6 +102,7 @@ public class ScalarFunctionModule extends AbstractModule {
 
         LowerFunction.register(this);
         UpperFunction.register(this);
+        Sha1Function.register(this);
 
         ConcatFunction.register(this);
 
