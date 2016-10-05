@@ -998,6 +998,12 @@ system column in the query::
     SELECT 1 row in set (... sec)
 
 
+.. note::
+
+    In some cases internal "sub-jobs" are created. Parts of these sub-jobs may
+    appear in `sys.operations`. These entries don't have corresponding entries
+    in `sys.jobs`.
+
 .. _sys-logs:
 
 Logs

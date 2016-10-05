@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fixed an issue that might cause queries to fail with a `Same bucket of a
+   page set more than once` error.
+
  - Deprecated the ``CrateClient`` class
    You should start using the PostgreSQL JDBC driver instead.
 

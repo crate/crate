@@ -263,10 +263,11 @@ public class SimplePortal extends AbstractPortal {
         }
 
         private void retry() {
-            LOGGER.debug("Retrying statement due to a shard failure, attempt={}, jobId={}", attempt, jobId);
+            UUID newJobId = UUID.randomUUID();
+            LOGGER.debug("Retrying statement due to a shard failure, attempt={}, jobId={}->{}", attempt, jobId, newJobId);
             Analysis analysis = analyzer.boundAnalyze(portal.statement, sessionContext,
                 new ParameterContext(new RowN(portal.params.toArray()), Collections.<Row>emptyList()));
-            Plan plan = planner.plan(analysis, jobId, 0, portal.maxRows);
+            Plan plan = planner.plan(analysis, newJobId, 0, portal.maxRows);
             executor.execute(plan, portal.rowReceiver);
         }
 
