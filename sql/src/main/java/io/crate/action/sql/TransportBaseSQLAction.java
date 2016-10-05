@@ -295,18 +295,21 @@ public abstract class TransportBaseSQLAction<TRequest extends SQLBaseRequest, TR
                          * ORDERED collect operations would raise shard failures, but currently there is no case where
                          * ordered + relative write operations happen
                          */
+                        final UUID newJobId = UUID.randomUUID();
+                        final UUID jobId = plan.jobId();
                         transportKillJobsNodeAction.executeKillOnAllNodes(
-                                new KillJobsRequest(Collections.singletonList(plan.jobId())), new ActionListener<KillResponse>() {
+                                new KillJobsRequest(Collections.singletonList(jobId)), new ActionListener<KillResponse>() {
                                     @Override
                                     public void onResponse(KillResponse killResponse) {
-                                        logger.debug("Killed {} jobs before Retry", killResponse.numKilled());
-                                        doExecute(request, listener, attempt + 1, plan.jobId(), startTime);
+                                        logger.debug("Killed {} jobs with id={} before Retry. New jobId={}",
+                                            killResponse.numKilled(), jobId, newJobId);
+                                        doExecute(request, listener, attempt + 1, newJobId, startTime);
                                     }
 
                                     @Override
                                     public void onFailure(Throwable e) {
                                         logger.warn("Failed to kill job before Retry", e);
-                                        statsTables.jobFinished(plan.jobId(), Exceptions.messageOf(t));
+                                        statsTables.jobFinished(jobId, Exceptions.messageOf(t));
                                         sendResponse(listener, buildSQLActionException(t));
                                     }
                                 }
