@@ -200,6 +200,21 @@ class Messages {
         final String message = Exceptions.messageOf(throwable);
         byte[] msg = message.getBytes(StandardCharsets.UTF_8);
         byte[] severity = "ERROR".getBytes(StandardCharsets.UTF_8);
+        byte[] lineNumber = null;
+        byte[] fileName = null;
+        byte[] methodName = null;
+
+        StackTraceElement[] stackTrace = throwable.getStackTrace();
+        if (stackTrace != null && stackTrace.length > 0) {
+            StackTraceElement stackTraceElement = stackTrace[0];
+            lineNumber = String.valueOf(stackTraceElement.getLineNumber()).getBytes(StandardCharsets.UTF_8);
+            if (stackTraceElement.getFileName() != null) {
+                fileName = stackTraceElement.getFileName().getBytes(StandardCharsets.UTF_8);
+            }
+            if (stackTraceElement.getMethodName() != null) {
+                methodName = stackTraceElement.getMethodName().getBytes(StandardCharsets.UTF_8);
+            }
+        }
 
         // See https://www.postgresql.org/docs/9.2/static/errcodes-appendix.html
         // need to add a throwable -> error code mapping later on
@@ -211,11 +226,13 @@ class Messages {
             // internal_error
             errorCode = "XX000".getBytes(StandardCharsets.UTF_8);
         }
-        int length =
-            4 +
+        int length = 4 +
             1 + (severity.length + 1) +
             1 + (msg.length + 1) +
             1 + (errorCode.length + 1) +
+            (fileName != null ? 1 + (fileName.length + 1) : 0) +
+            (lineNumber != null ? 1 + (lineNumber.length + 1) : 0) +
+            (methodName != null ? 1 + (methodName.length + 1) : 0) +
             1;
         ChannelBuffer buffer = ChannelBuffers.buffer(length + 1);
         buffer.writeByte('E');
@@ -226,7 +243,18 @@ class Messages {
         writeCString(buffer, msg);
         buffer.writeByte(('C'));
         writeCString(buffer, errorCode);
-
+        if (fileName != null) {
+            buffer.writeByte('F');
+            writeCString(buffer, fileName);
+        }
+        if (lineNumber != null) {
+            buffer.writeByte('L');
+            writeCString(buffer, lineNumber);
+        }
+        if (methodName != null) {
+            buffer.writeByte('R');
+            writeCString(buffer, methodName);
+        }
         buffer.writeByte(0);
         ChannelFuture channelFuture = channel.write(buffer);
         if (LOGGER.isTraceEnabled()) {

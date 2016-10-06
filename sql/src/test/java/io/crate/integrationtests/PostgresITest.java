@@ -36,6 +36,9 @@ import org.postgresql.util.PSQLState;
 import java.sql.*;
 import java.util.*;
 
+import static org.hamcrest.Matchers.greaterThan;
+import static org.hamcrest.Matchers.isEmptyOrNullString;
+import static org.hamcrest.Matchers.not;
 import static org.hamcrest.core.Is.is;
 
 @ESIntegTestCase.ClusterScope(numDataNodes = 2, numClientNodes = 0)
@@ -511,6 +514,18 @@ public class PostgresITest extends SQLTransportIntegrationTest {
             }
 
             assertSelectNameFromSysClusterWorks(conn);
+        }
+    }
+
+    @Test
+    public void testErrorDetailsFromStackTraceInErrorResponse() throws Exception {
+        try (Connection conn = DriverManager.getConnection(JDBC_POSTGRESQL_URL, properties)) {
+            conn.setAutoCommit(true);
+            conn.createStatement().executeUpdate("select sqrt('abcd') from sys.cluster");
+        } catch (PSQLException e) {
+            assertThat(e.getServerErrorMessage().getFile(), not(isEmptyOrNullString()));
+            assertThat(e.getServerErrorMessage().getRoutine(), not(isEmptyOrNullString()));
+            assertThat(e.getServerErrorMessage().getLine(), greaterThan(0));
         }
     }
 
