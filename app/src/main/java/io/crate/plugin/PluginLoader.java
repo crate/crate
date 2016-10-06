@@ -29,7 +29,6 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 import io.crate.Plugin;
 import org.apache.xbean.finder.ResourceFinder;
-import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.bootstrap.JarHell;
 import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.Strings;
@@ -67,7 +66,7 @@ public class PluginLoader {
     private final Path pluginsPath;
     private final List<URL> jarsToLoad = new ArrayList<>();
 
-    public PluginLoader(Settings settings) {
+    PluginLoader(Settings settings) {
         this.settings = settings;
 
         String pluginFolder = settings.get("path.crate_plugins");
@@ -276,45 +275,31 @@ public class PluginLoader {
         return list;
     }
 
-    public Collection<Module> nodeModules() {
+    Collection<Module> nodeModules() {
         List<Module> modules = Lists.newArrayList();
         for (Plugin plugin : plugins) {
             modules.addAll(plugin.nodeModules());
-
-            // deprecated methods support
-            Collection<Class<? extends Module>> modulesClasses = Lists.newArrayList();
-            modulesClasses.addAll(plugin.modules());
-            modulesClasses.addAll(plugin.modules(settings));
-            for (Class<? extends Module> moduleClass : modulesClasses) {
-                modules.add(createModule(moduleClass, settings));
-            }
         }
         return modules;
     }
 
-    public Collection<Class<? extends LifecycleComponent>> nodeServices() {
+    Collection<Class<? extends LifecycleComponent>> nodeServices() {
         List<Class<? extends LifecycleComponent>> services = Lists.newArrayList();
         for (Plugin plugin : plugins) {
             services.addAll(plugin.nodeServices());
-            services.addAll(plugin.services());
         }
         return services;
     }
 
-    public Collection<Module> indexModules(Settings indexSettings) {
+    Collection<Module> indexModules(Settings indexSettings) {
         List<Module> modules = Lists.newArrayList();
         for (Plugin plugin : plugins) {
             modules.addAll(plugin.indexModules(indexSettings));
-
-            // deprecated methods support
-            for (Class<? extends Module> moduleClass : plugin.indexModules()) {
-                modules.add(createModule(moduleClass, settings));
-            }
         }
         return modules;
     }
 
-    public Collection<Class<? extends Closeable>> indexServices() {
+    Collection<Class<? extends Closeable>> indexServices() {
         List<Class<? extends Closeable>> services = Lists.newArrayList();
         for (Plugin plugin : plugins) {
             services.addAll(plugin.indexServices());
@@ -322,20 +307,15 @@ public class PluginLoader {
         return services;
     }
 
-    public Collection<Module> shardModules(Settings indexSettings) {
+    Collection<Module> shardModules(Settings indexSettings) {
         List<Module> modules = Lists.newArrayList();
         for (Plugin plugin : plugins) {
             modules.addAll(plugin.shardModules(indexSettings));
-
-            // deprecated methods support
-            for (Class<? extends Module> moduleClass : plugin.shardModules()) {
-                modules.add(createModule(moduleClass, settings));
-            }
         }
         return modules;
     }
 
-    public Collection<Class<? extends Closeable>> shardServices() {
+    Collection<Class<? extends Closeable>> shardServices() {
         List<Class<? extends Closeable>> services = Lists.newArrayList();
         for (Plugin plugin : plugins) {
             services.addAll(plugin.shardServices());
@@ -343,7 +323,7 @@ public class PluginLoader {
         return services;
     }
 
-    public Settings additionalSettings() {
+    Settings additionalSettings() {
         Settings.Builder builder = Settings.settingsBuilder();
         for (Plugin plugin : plugins) {
             builder.put(plugin.additionalSettings());
@@ -374,28 +354,5 @@ public class PluginLoader {
         loadedJars.addAll(jarsToLoad);
         loadedJars.add(url);
         JarHell.checkJarHell(loadedJars.toArray(new URL[0]));
-    }
-
-    private static Module createModule(Class<? extends Module> moduleClass, @Nullable Settings settings) {
-        Constructor<? extends Module> constructor;
-        try {
-            constructor = moduleClass.getConstructor(Settings.class);
-            try {
-                return constructor.newInstance(settings);
-            } catch (Exception e) {
-                throw new ElasticsearchException("Failed to create module [" + moduleClass + "]", e);
-            }
-        } catch (NoSuchMethodException e) {
-            try {
-                constructor = moduleClass.getConstructor();
-                try {
-                    return constructor.newInstance();
-                } catch (Exception e1) {
-                    throw new ElasticsearchException("Failed to create module [" + moduleClass + "]", e);
-                }
-            } catch (NoSuchMethodException e1) {
-                throw new ElasticsearchException("No constructor for [" + moduleClass + "]");
-            }
-        }
     }
 }
