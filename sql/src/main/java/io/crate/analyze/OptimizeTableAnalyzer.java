@@ -26,19 +26,14 @@ import com.google.common.collect.ImmutableMap;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.settings.SettingsApplier;
 import io.crate.metadata.settings.SettingsAppliers;
-import io.crate.sql.tree.DefaultTraversalVisitor;
-import io.crate.sql.tree.Node;
 import io.crate.sql.tree.OptimizeStatement;
-import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.settings.Settings;
 
 import java.util.Set;
 
 import static io.crate.analyze.OptimizeSettings.*;
 
-@Singleton
-public class OptimizeTableAnalyzer extends DefaultTraversalVisitor<OptimizeTableAnalyzedStatement, Analysis> {
+class OptimizeTableAnalyzer {
 
     private static final ImmutableMap<String, SettingsApplier> SETTINGS = ImmutableMap.<String, SettingsApplier>builder()
         .put(MAX_NUM_SEGMENTS.name(), new SettingsAppliers.IntSettingsApplier(MAX_NUM_SEGMENTS))
@@ -48,23 +43,17 @@ public class OptimizeTableAnalyzer extends DefaultTraversalVisitor<OptimizeTable
 
     private final Schemas schemas;
 
-    @Inject
-    public OptimizeTableAnalyzer(Schemas schemas) {
+    OptimizeTableAnalyzer(Schemas schemas) {
         this.schemas = schemas;
     }
 
-    public OptimizeTableAnalyzedStatement analyze(Node node, Analysis analysis) {
-        return super.process(node, analysis);
-    }
-
-    @Override
-    public OptimizeTableAnalyzedStatement visitOptimizeStatement(OptimizeStatement node, Analysis analysis) {
+    public OptimizeTableAnalyzedStatement analyze(OptimizeStatement stmt, Analysis analysis) {
         Set<String> indexNames = TableAnalyzer.getIndexNames(
-            node.tables(), schemas, analysis.parameterContext(), analysis.sessionContext().defaultSchema());
+            stmt.tables(), schemas, analysis.parameterContext(), analysis.sessionContext().defaultSchema());
 
         // validate and extract settings
         Settings.Builder builder = GenericPropertiesConverter.settingsFromProperties(
-            node.properties(), analysis.parameterContext(), SETTINGS);
+            stmt.properties(), analysis.parameterContext(), SETTINGS);
         Settings settings = builder.build();
         return new OptimizeTableAnalyzedStatement(indexNames, settings);
     }

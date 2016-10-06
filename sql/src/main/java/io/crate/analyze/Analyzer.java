@@ -67,7 +67,6 @@ public class Analyzer {
                     ShowCreateTableAnalyzer showCreateTableAnalyzer,
                     CreateBlobTableStatementAnalyzer createBlobTableStatementAnalyzer,
                     CreateAnalyzerStatementAnalyzer createAnalyzerStatementAnalyzer,
-                    OptimizeTableAnalyzer optimizeTableAnalyzer,
                     AlterTableAnalyzer alterTableAnalyzer,
                     AlterBlobTableAnalyzer alterBlobTableAnalyzer,
                     AlterTableAddColumnAnalyzer alterTableAddColumnAnalyzer,
@@ -92,7 +91,7 @@ public class Analyzer {
         this.createBlobTableStatementAnalyzer = createBlobTableStatementAnalyzer;
         this.createAnalyzerStatementAnalyzer = createAnalyzerStatementAnalyzer;
         this.refreshTableAnalyzer = new RefreshTableAnalyzer(schemas);
-        this.optimizeTableAnalyzer = optimizeTableAnalyzer;
+        this.optimizeTableAnalyzer = new OptimizeTableAnalyzer(schemas);
         this.alterTableAnalyzer = alterTableAnalyzer;
         this.alterBlobTableAnalyzer = alterBlobTableAnalyzer;
         this.alterTableAddColumnAnalyzer = alterTableAddColumnAnalyzer;
