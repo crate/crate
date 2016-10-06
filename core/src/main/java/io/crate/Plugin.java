@@ -53,38 +53,9 @@ public interface Plugin {
     Collection<Module> nodeModules();
 
     /**
-     * @deprecated Use {@link #nodeModules()} instead
-     * <p>
-     * Node level modules.
-     */
-    @Deprecated
-    Collection<Class<? extends Module>> modules();
-
-    /**
-     * @param settings The node level settings.
-     * @deprecated Use {@link #nodeModules()} instead
-     * <p>
-     * Node level modules.
-     */
-    @Deprecated
-    Collection<Class<? extends Module>> modules(Settings settings);
-
-    /**
      * Node level services that will be automatically started/stopped/closed.
      */
     Collection<Class<? extends LifecycleComponent>> nodeServices();
-
-    /**
-     * @deprecated Use {@link #nodeServices()} instead
-     */
-    @Deprecated
-    Collection<Class<? extends LifecycleComponent>> services();
-
-    /**
-     * @deprecated Use {@link #indexModules(Settings)} instead
-     */
-    @Deprecated
-    Collection<Class<? extends Module>> indexModules();
 
     /**
      * Per index modules.
@@ -95,12 +66,6 @@ public interface Plugin {
      * Per index services that will be automatically closed.
      */
     Collection<Class<? extends Closeable>> indexServices();
-
-    /**
-     * @deprecated Use {@link #shardModules(Settings)} instead.
-     */
-    @Deprecated
-    Collection<Class<? extends Module>> shardModules();
 
     /**
      * Per index shard module.

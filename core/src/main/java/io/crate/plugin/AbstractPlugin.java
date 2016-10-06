@@ -43,34 +43,11 @@ public abstract class AbstractPlugin implements Plugin {
         return ImmutableList.of();
     }
 
-    @Override
-    public Collection<Class<? extends Module>> modules() {
-        return ImmutableList.of();
-    }
-
-    @Override
-    public Collection<Class<? extends Module>> modules(Settings settings) {
-        return ImmutableList.of();
-    }
-
     /**
      * Defaults to return an empty list.
      */
     @Override
     public Collection<Class<? extends LifecycleComponent>> nodeServices() {
-        return ImmutableList.of();
-    }
-
-    @Override
-    public Collection<Class<? extends LifecycleComponent>> services() {
-        return ImmutableList.of();
-    }
-
-    /**
-     * Defaults to return an empty list.
-     */
-    @Override
-    public Collection<Class<? extends Module>> indexModules() {
         return ImmutableList.of();
     }
 
@@ -89,15 +66,7 @@ public abstract class AbstractPlugin implements Plugin {
     public Collection<Class<? extends Closeable>> indexServices() {
         return ImmutableList.of();
     }
-
-    /**
-     * Defaults to return an empty list.
-     */
-    @Override
-    public Collection<Class<? extends Module>> shardModules() {
-        return ImmutableList.of();
-    }
-
+    
     /**
      * Defaults to return an empty list.
      */

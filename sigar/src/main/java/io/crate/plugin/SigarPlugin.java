@@ -37,7 +37,7 @@ import java.util.Collection;
 public class SigarPlugin extends AbstractPlugin {
 
     public static final String NODE_INFO_EXTENDED_TYPE = "sigar";
-    public static final ESLogger LOGGER = Loggers.getLogger(SigarPlugin.class);
+    private static final ESLogger LOGGER = Loggers.getLogger(SigarPlugin.class);
 
     private final SigarService sigarService;
 
