@@ -101,16 +101,16 @@ Blocks
 Translog
 --------
 
-  .. note::
+.. note::
 
-    The translog provides a persistent log of all operations that have not been
-    transferred (flushed) to disk. Whenever a record is inserted into a table
-    (or updated) that change is appended both to an in-memory buffer **and** the
-    translog. When the translog reaches a certain size
-    (see :ref:`flush.threshold.size <flush_threshold_size>`), or holds a certain
-    amount of operations (see :ref:`flush.threshold.ops <flush_threshold_ops>`), or
-    after a certain interval (see :ref:`flush.threshold.period <flush_threshold_period>`)
-    the translog is ``fsynced``, flushed to disk, and cleared.
+  The translog provides a persistent log of all operations that have not been
+  transferred (flushed) to disk. Whenever a record is inserted into a table
+  (or updated) that change is appended both to an in-memory buffer **and** the
+  translog. When the translog reaches a certain size
+  (see :ref:`flush.threshold.size <flush_threshold_size>`), or holds a certain
+  amount of operations (see :ref:`flush.threshold.ops <flush_threshold_ops>`), or
+  after a certain interval (see :ref:`flush.threshold.period <flush_threshold_period>`)
+  the translog is ``fsynced``, flushed to disk, and cleared.
 
 .. _flush_threshold_ops:
 
@@ -403,7 +403,7 @@ Ports
   of the node is not directly reachable from outside, e.g. running it
   behind a firewall or inside a Docker container.
 
-.. _psql.port:
+.. _psql_port:
 
 **psql.port**
   | *Runtime:*   ``no``

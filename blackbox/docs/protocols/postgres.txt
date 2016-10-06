@@ -6,13 +6,13 @@ Postgres Wire Protocol
 Crate contains experimental support for the `PostgreSQL wire protocol v3`_.
 
 If a node is started with postgres support enabled it will bind to
-``0.0.0.0:5432`` by default. For Crate to use a custom port, the
-setting the corresponding :ref:`conf_ports`
-in the :doc:`Configuration <../configuration>` can be used.
+``0.0.0.0:5432`` by default. To use a custom port,
+set the corresponding :ref:`conf_ports`
+in the :doc:`Configuration <../configuration>`.
 
 However, even though connecting PostgreSQL tools and client libraries is
 supported, the actual SQL statements have to be supported by Crate's SQL
-dialect. A notable difference there is that Crate doesn't support transactions,
+dialect. A notable difference is that Crate doesn't support transactions,
 which is why clients should generally enable ``autocommit``.
 
 .. note::
@@ -32,7 +32,7 @@ which is why clients should generally enable ``autocommit``.
 Server Compatibility & Implementation Status
 ============================================
 
-Crate emulates a PostgreSQL server version ``9.5``
+Crate emulates PostgreSQL server version ``9.5``
 
 Start-up
 --------
@@ -42,8 +42,9 @@ will always respond with ``AuthenticationOK`` and any SSLRequests are answered
 with ``N`` to indicate that it does not support SSL.
 
 Since Crate uses schemas instead of databases, the ``database`` parameter sets
-the default schema name for future queries. Usually this schema is ``doc``.
-Additionally, the only supported charset is ``UTF8``.
+the default schema name for future queries. If no schema is specified, the
+schema ``doc``will be used as default. Additionally, the only
+supported charset is ``UTF8``.
 
 Simple Query
 ------------
@@ -68,7 +69,7 @@ The `Extended Query`_ protocol is implemented with the following limitations:
 Copy Operations
 ---------------
 
-Crate does not support for the ``COPY`` sub-protocol.
+Crate does not support the ``COPY`` sub-protocol.
 
 Function Call
 -------------
@@ -79,7 +80,7 @@ Canceling Requests
 ------------------
 
 Operations can be cancelled using the ``KILL`` statement, hence the
-``CancelRequest`` message  is unsupported. Consequently, the also server won't
+``CancelRequest`` message  is unsupported. Consequently, the server won't
 send a ``BackendKeyData`` message during connection initialization.
 
 
@@ -182,7 +183,7 @@ Connection failover and load balancing is supported as described here:
 .. note::
 
     It is not recommended to use the **targetServerType** parameter since Crate
-    has no Master/Slave nodes.
+    has no concept of Master/Slave nodes.
 
 
 .. _PostgreSQL wire protocol v3: https://www.postgresql.org/docs/current/static/protocol.html

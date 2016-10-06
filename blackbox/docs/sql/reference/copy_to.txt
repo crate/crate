@@ -23,7 +23,7 @@ Description
 
 The ``COPY TO`` command exports the contents of a table to one or more
 files into a given directory with unique filenames. Each node with at least
-one shard of the table will export the contents of these onto their local disk.
+one shard of the table will export its contents onto their local disk.
 
 The created files are JSON formatted and contain one table row per line and,
 due to the distributed nature of Crate, *will remain on the same nodes*
@@ -52,7 +52,7 @@ Parameters
 WHERE Clause
 ------------
 
-`WHERE` clauses use the same syntax as `SELECT` statements, allowing for
+`WHERE` clauses use the same syntax as `SELECT` statements, allowing
 partial exports. (see :ref:`sql_dql_where_clause` for more information).
 
 
