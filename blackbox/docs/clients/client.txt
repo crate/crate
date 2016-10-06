@@ -10,9 +10,10 @@ Connect to a Database
 .. note::
 
     The Crate client and its transport protocol are deprecated in favour of the
-    `PostgreSQL wire protocol v3`_. Please use the `PostgreSQL JDBC driver`_
-    instead of the Crate client. For more detailed information on the support of
-    the PostgreSQL wire protocol by Crate, see `Crate Postgres wire protocol`_.
+    `PostgreSQL wire protocol v3`_. Please use the the latest version of the
+    `Crate JDBC driver`_ instead which supports that protocol.
+    For more detailed information on the support of the PostgreSQL wire protocol
+    by Crate, see `Crate Postgres wire protocol`_.
 
 The ``CrateClient`` class is used to connect to a Crate database. It requires
 one or more hosts as arguments. Note that the Java client talks to Crate via the
@@ -238,5 +239,5 @@ following data::
 .. _`SQL Injection`: http://en.wikipedia.org/wiki/SQL_injection
 .. _prepared statement: http://en.wikipedia.org/wiki/Prepared_statement
 .. _PostgreSQL wire protocol v3: https://www.postgresql.org/docs/current/static/protocol.html
-.. _PostgreSQL JDBC driver: https://jdbc.postgresql.org/
+.. _Crate JDBC driver: https://crate.io/docs/reference/jdbc/
 .. _Crate Postgres wire protocol: https://crate.io/docs/reference/en/latest/protocols/postgres.html
