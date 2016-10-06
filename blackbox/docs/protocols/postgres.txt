@@ -5,17 +5,15 @@ Postgres Wire Protocol
 
 Crate contains experimental support for the `PostgreSQL wire protocol v3`_.
 
-If a node is started with postgres support enabled it will by default bind to
-``0.0.0.0:5432``. See :doc:`Configuration <../configuration>` for options to
-change that.
+If a node is started with postgres support enabled it will bind to
+``0.0.0.0:5432`` by default. For Crate to use a custom port, the
+setting the corresponding :ref:`conf_ports`
+in the :doc:`Configuration <../configuration>` can be used.
 
-The SQL dialect that Crate supports is different to the SQL dialect that
-PostgreSQL supports. So even though the wire protocol is supported it doesn't
-imply that any postgres client can be used as those clients may use SQL
-statements which aren't supported.
-
-One notable difference is that Crate doesn't support transactions.
-Therefore clients should generally enable ``autocommit``.
+However, even though connecting PostgreSQL tools and client libraries is
+supported, the actual SQL statements have to be supported by Crate's SQL
+dialect. A notable difference there is that Crate doesn't support transactions,
+which is why clients should generally enable ``autocommit``.
 
 .. note::
 
@@ -34,21 +32,18 @@ Therefore clients should generally enable ``autocommit``.
 Server Compatibility & Implementation Status
 ============================================
 
-Crate emulates server version ``9.5``
+Crate emulates a PostgreSQL server version ``9.5``
 
 Start-up
 --------
 
 The connection handshake is implemented without authentication support. Crate
-will always respond with ``AuthenticationOK``.
-If a Client sends a SSLRequest the server will answer with ``N`` to indicate
-that it doesn't support SSL.
+will always respond with ``AuthenticationOK`` and any SSLRequests are answered
+with ``N`` to indicate that it does not support SSL.
 
-The ``database`` name a client sends will be used as default schema as Crate
-doesn't have database support.
-
-The server will inform the Client that ``UTF8`` encoding should be used. Any
-other encoding is not supported.
+Since Crate uses schemas instead of databases, the ``database`` parameter sets
+the default schema name for future queries. Usually this schema is ``doc``.
+Additionally, the only supported charset is ``UTF8``.
 
 Simple Query
 ------------
@@ -67,27 +62,25 @@ The `Extended Query`_ protocol is implemented with the following limitations:
 - ``describe`` messages for an unbound prepared statement always result in a
   ``NoData`` message instead of a ``ParameterDescription``.
 
-- In order to optimize the execution of bulk operations the execution of
+- To optimize the execution of bulk operations the execution of
   statements is delayed until the ``Sync`` message is received
 
 Copy Operations
 ---------------
 
-The COPY sub-protocol is not supported as this lacks corresponding SQL support
-in Crate.
+Crate does not support for the ``COPY`` sub-protocol.
 
 Function Call
 -------------
 
-The Function call sub-protocol is not supported as this is considered a legacy
-feature.
+The function call sub-protocol is not supported since it's a legacy feature.
 
-Canceling Requests in Progress
-------------------------------
+Canceling Requests
+------------------
 
-Operations can be cancelled using the ``KILL`` statement. There is no support
-for the ``CancelRequest`` message and the Server also won't send a
-``BackendKeyData`` message during connection initialization.
+Operations can be cancelled using the ``KILL`` statement, hence the
+``CancelRequest`` message  is unsupported. Consequently, the also server won't
+send a ``BackendKeyData`` message during connection initialization.
 
 
 pg_type
@@ -127,7 +120,7 @@ Crate::
     SELECT 20 rows in set (... sec)
 
 
-show transaction isolation
+Show Transaction Isolation
 --------------------------
 
 For compatibility with JDBC the `SHOW TRANSACTION ISOLATION LEVEL` statement is
@@ -142,49 +135,45 @@ implemented::
     SHOW 1 row in set (... sec)
 
 
-Client compatibility
+Client Compatibility
 ====================
 
 JDBC
 ----
 
-The `pgjdbc`_ JDBC driver starting with version ``9.4.1209`` can be used with
-Crate.
+`pgjdbc`_ JDBC drivers version ``9.4.1209`` and above are compatible.
 
 Limitations
 ~~~~~~~~~~~
 
-- *reflection* methods like ``conn.getMetaData().getTables(...)`` will not work
-  since they require postgres specific tables which do not exist in Crate.
-  As a workaround it is possible to query the standard ``information_schema``
-  tables manually using ``SELECT`` statements.
+- *reflection* methods like ``conn.getMetaData().getTables(...)`` won't work
+  since the required tables are unavailable in Crate.
+  As a workaround it's possible to use ``SHOW TABLES`` or query
+  the ``information_schema`` tables manually using ``SELECT`` statements.
 
-- ``OBJECT`` and ``GEO_SHAPE`` can be streamed as ``JSON`` but require at least
-  version ``9.4.1210`` of `pgjdbc`_.
+- ``OBJECT`` and ``GEO_SHAPE`` columns can be streamed as ``JSON`` but require
+  `pgjdbc`_ version ``9.4.1210`` or newer.
 
-- Multidimensional arrays will be streamed as ``JSON`` encoded string. This is
-  done to avoid a limitation of the postgres binary streaming protocol in which
-  all sub-arrays are required to have the same length.
+- Multidimensional arrays will be streamed as ``JSON`` encoded string to avoid
+  a protocol limitation where all sub-arrays are required to have the same length.
 
-- The behaviour of ``PreparedStatement.executeBatch`` in error cases depends on
-  in which stage an error occurs.
-  It may raise ``BatchUpdateException`` without processing any items.
-  Or it may continue processing the items in which case the result might
-  contain individual items marked with ``EXECUTE_FAILED`` (-3).
+- The behavior of ``PreparedStatement.executeBatch`` in error cases depends on
+  in which stage an error occurs: A ``BatchUpdateException`` is thrown if no
+  processing has been done yet, whereas single operations failing after the
+  processing started are indicated by an ``EXECUTE_FAILED`` (-3) return value.
 
-- Transaction limitations as described in the beginning of this document apply.
+- Transaction limitations as described above.
 
-- Enabled escape processing may prevent the usage of :ref:`Object
-  Literals <data-type-object-literals>` when an object key starting
+- Having ``escape processing`` enabled could prevent the usage of :ref:`Object
+  Literals <data-type-object-literals>` in case an object key's starting
   character clashes with a JDBC escape keyword (see also `JDBC escape syntax
   <https://docs.oracle.com/javadb/10.10.1.2/ref/rrefjdbc1020262.html>`_).
-  Disabling escape processing is currently the only solution, but when
-  using the `Extended Query`_ API this does not work due to a `bug
-  <https://github.com/pgjdbc/pgjdbc/issues/653>`_ at `pgjdbc`_ which is
-  currently only solved by an unreleased snapshot (`9.4.1212.jre7-SNAPSHOT`).
+  Currently, disabling ``escape processing`` will remedy this, but prevent
+  the `Extended Query`_ API from working due to a `bug
+  <https://github.com/pgjdbc/pgjdbc/issues/653>`_ at `pgjdbc`_.
 
 
-Connection failover and load balancing
+Connection Failover and Load Balancing
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Connection failover and load balancing is supported as described here:
@@ -192,8 +181,8 @@ Connection failover and load balancing is supported as described here:
 
 .. note::
 
-    **targetServerType** parameter shouldn't be used as for Crate there is no distinction between
-    master and slave nodes.
+    It is not recommended to use the **targetServerType** parameter since Crate
+    has no Master/Slave nodes.
 
 
 .. _PostgreSQL wire protocol v3: https://www.postgresql.org/docs/current/static/protocol.html
