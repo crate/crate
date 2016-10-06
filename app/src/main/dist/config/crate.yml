@@ -148,26 +148,16 @@
 
 #################################### Table ####################################
 
-# You can set a number of options (such as shard/replica options, mapping
+# You can set a number of options (such as replica options, mapping
 # or analyzer definitions, translog settings, ...) for tables globally,
 # in this file.
 #
 # Note, that it makes more sense to configure table settings specifically for
 # a certain table when creating it.
 
-# Set the number of shards (splits) of a table (5 by default):
-#
-#index.number_of_shards: 5
-
 # Set the number of replicas (additional copies) of a table (1 by default):
 #
 #index.number_of_replicas: 1
-
-# Note, that for development on a local machine, with small tables, it usually
-# makes sense to "disable" the distributed features:
-#
-#index.number_of_shards: 1
-#index.number_of_replicas: 0
 
 # Set the refresh interval of a shard in milliseconds.
 #
