@@ -6,7 +6,7 @@ Unreleased
 ==========
 
  - Deprecated the ``CrateClient`` class
-   You should start using the PostgreSQL JDBC driver instead.
+   You should start using the latest Crate JDBC driver instead.
 
  - Extended the postgres wire protocol to support describe for queries with
    result sets. This removes the requirement to set "prepareThreshold=0" when
