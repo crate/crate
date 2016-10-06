@@ -33,8 +33,10 @@ import io.crate.exceptions.RepositoryUnknownException;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.admin.cluster.repositories.delete.DeleteRepositoryRequest;
 import org.elasticsearch.action.admin.cluster.repositories.delete.DeleteRepositoryResponse;
+import org.elasticsearch.action.admin.cluster.repositories.delete.TransportDeleteRepositoryAction;
 import org.elasticsearch.action.admin.cluster.repositories.put.PutRepositoryRequest;
 import org.elasticsearch.action.admin.cluster.repositories.put.PutRepositoryResponse;
+import org.elasticsearch.action.admin.cluster.repositories.put.TransportPutRepositoryAction;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.metadata.RepositoriesMetaData;
 import org.elasticsearch.cluster.metadata.RepositoryMetaData;
@@ -53,13 +55,16 @@ public class RepositoryService {
     private static final ESLogger LOGGER = Loggers.getLogger(RepositoryService.class);
 
     private final ClusterService clusterService;
-    private final TransportActionProvider transportActionProvider;
+    private final TransportDeleteRepositoryAction deleteRepositoryAction;
+    private final TransportPutRepositoryAction putRepositoryAction;
 
     @Inject
     public RepositoryService(ClusterService clusterService,
-                             TransportActionProvider transportActionProvider) {
+                             TransportDeleteRepositoryAction deleteRepositoryAction,
+                             TransportPutRepositoryAction putRepositoryAction) {
         this.clusterService = clusterService;
-        this.transportActionProvider = transportActionProvider;
+        this.deleteRepositoryAction = deleteRepositoryAction;
+        this.putRepositoryAction = putRepositoryAction;
     }
 
     @Nullable
@@ -80,7 +85,7 @@ public class RepositoryService {
     public ListenableFuture<Long> execute(DropRepositoryAnalyzedStatement analyzedStatement) {
         final SettableFuture<Long> future = SettableFuture.create();
         final String repoName = analyzedStatement.repositoryName();
-        transportActionProvider.transportDeleteRepositoryAction().execute(
+        deleteRepositoryAction.execute(
             new DeleteRepositoryRequest(repoName),
             new ActionListener<DeleteRepositoryResponse>() {
                 @Override
@@ -107,7 +112,7 @@ public class RepositoryService {
         PutRepositoryRequest request = new PutRepositoryRequest(repoName);
         request.type(statement.repositoryType());
         request.settings(statement.settings());
-        transportActionProvider.transportPutRepositoryAction().execute(request, new ActionListener<PutRepositoryResponse>() {
+        putRepositoryAction.execute(request, new ActionListener<PutRepositoryResponse>() {
             @Override
             public void onResponse(PutRepositoryResponse putRepositoryResponse) {
                 result.set(1L);

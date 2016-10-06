@@ -24,8 +24,6 @@ package io.crate.executor.transport;
 import io.crate.action.job.TransportJobAction;
 import io.crate.executor.transport.kill.TransportKillAllNodeAction;
 import io.crate.executor.transport.kill.TransportKillJobsNodeAction;
-import org.elasticsearch.action.admin.cluster.repositories.delete.TransportDeleteRepositoryAction;
-import org.elasticsearch.action.admin.cluster.repositories.put.TransportPutRepositoryAction;
 import org.elasticsearch.action.admin.cluster.settings.TransportClusterUpdateSettingsAction;
 import org.elasticsearch.action.admin.cluster.snapshots.create.TransportCreateSnapshotAction;
 import org.elasticsearch.action.admin.cluster.snapshots.delete.TransportDeleteSnapshotAction;
@@ -73,9 +71,6 @@ public class TransportActionProvider {
     private final Provider<TransportKillAllNodeAction> transportKillAllNodeActionProvider;
     private final Provider<TransportKillJobsNodeAction> transportKillJobsNodeActionProvider;
 
-    private final Provider<TransportPutRepositoryAction> transportPutRepositoryActionProvider;
-    private final Provider<TransportDeleteRepositoryAction> transportDeleteRepositoryActionProvider;
-
     private final Provider<TransportCreateSnapshotAction> transportCreateSnapshotActionProvider;
     private final Provider<TransportDeleteSnapshotAction> transportDeleteSnapshotActionProvider;
     private final Provider<TransportRestoreSnapshotAction> transportRestoreSnapshotActionProvider;
@@ -101,8 +96,6 @@ public class TransportActionProvider {
                                    Provider<TransportJobAction> transportJobInitActionProvider,
                                    Provider<TransportBulkCreateIndicesAction> transportBulkCreateIndicesActionProvider,
                                    Provider<TransportKillJobsNodeAction> transportKillJobsNodeActionProvider,
-                                   Provider<TransportPutRepositoryAction> transportPutRepositoryActionProvider,
-                                   Provider<TransportDeleteRepositoryAction> transportDeleteRepositoryActionProvider,
                                    Provider<TransportDeleteSnapshotAction> transportDeleteSnapshotActionProvider,
                                    Provider<TransportCreateSnapshotAction> transportCreateSnapshotActionProvider,
                                    Provider<TransportRestoreSnapshotAction> transportRestoreSnapshotActionProvider,
@@ -126,8 +119,6 @@ public class TransportActionProvider {
         this.transportJobInitActionProvider = transportJobInitActionProvider;
         this.transportBulkCreateIndicesActionProvider = transportBulkCreateIndicesActionProvider;
         this.transportKillJobsNodeActionProvider = transportKillJobsNodeActionProvider;
-        this.transportPutRepositoryActionProvider = transportPutRepositoryActionProvider;
-        this.transportDeleteRepositoryActionProvider = transportDeleteRepositoryActionProvider;
         this.transportDeleteSnapshotActionProvider = transportDeleteSnapshotActionProvider;
         this.transportCreateSnapshotActionProvider = transportCreateSnapshotActionProvider;
         this.transportRestoreSnapshotActionProvider = transportRestoreSnapshotActionProvider;
@@ -208,14 +199,6 @@ public class TransportActionProvider {
 
     public TransportKillJobsNodeAction transportKillJobsNodeAction() {
         return transportKillJobsNodeActionProvider.get();
-    }
-
-    public TransportPutRepositoryAction transportPutRepositoryAction() {
-        return transportPutRepositoryActionProvider.get();
-    }
-
-    public TransportDeleteRepositoryAction transportDeleteRepositoryAction() {
-        return transportDeleteRepositoryActionProvider.get();
     }
 
     public TransportDeleteSnapshotAction transportDeleteSnapshotAction() {

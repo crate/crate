@@ -57,8 +57,10 @@ import org.mockito.Answers;
 import java.util.Collections;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 
-import static org.mockito.Mockito.*;
+import static org.hamcrest.core.Is.is;
+import static org.mockito.Mockito.mock;
 
 public class RepositoryServiceTest extends CrateUnitTest {
 
@@ -100,10 +102,11 @@ public class RepositoryServiceTest extends CrateUnitTest {
             MetaData.builder().putCustom(RepositoriesMetaData.TYPE, repos)).build();
         ClusterService clusterService = new NoopClusterService(state);
 
-        TransportActionProvider transportActionProvider = mock(TransportActionProvider.class);
-
         final ActionFilters actionFilters = mock(ActionFilters.class, Answers.RETURNS_MOCKS.get());
         IndexNameExpressionResolver indexNameExpressionResolver = new IndexNameExpressionResolver(Settings.EMPTY);
+
+
+        final AtomicBoolean deleteRepoCalled = new AtomicBoolean(false);
         TransportDeleteRepositoryAction deleteRepositoryAction = new TransportDeleteRepositoryAction(
             Settings.EMPTY,
             mock(TransportService.class, Answers.RETURNS_MOCKS.get()),
@@ -114,10 +117,10 @@ public class RepositoryServiceTest extends CrateUnitTest {
             indexNameExpressionResolver) {
             @Override
             protected void doExecute(Task task, DeleteRepositoryRequest request, ActionListener<DeleteRepositoryResponse> listener) {
+                deleteRepoCalled.set(true);
                 listener.onResponse(mock(DeleteRepositoryResponse.class));
             }
         };
-        when(transportActionProvider.transportDeleteRepositoryAction()).thenReturn(deleteRepositoryAction);
 
         TransportPutRepositoryAction putRepo = new TransportPutRepositoryAction(
             Settings.EMPTY,
@@ -132,14 +135,13 @@ public class RepositoryServiceTest extends CrateUnitTest {
                 listener.onFailure(new RepositoryException(request.name(), "failure"));
             }
         };
-        when(transportActionProvider.transportPutRepositoryAction()).thenReturn(putRepo);
 
-        RepositoryService repositoryService = new RepositoryService(clusterService, transportActionProvider);
+        RepositoryService repositoryService = new RepositoryService(clusterService, deleteRepositoryAction, putRepo);
         try {
             repositoryService.execute(
                 new CreateRepositoryAnalyzedStatement("repo1", "fs", Settings.EMPTY)).get(10, TimeUnit.SECONDS);
         } catch (ExecutionException e) {
-            verify(transportActionProvider, times(1)).transportDeleteRepositoryAction();
+            assertThat(deleteRepoCalled.get(), is(true));
             throw e.getCause();
         }
     }
