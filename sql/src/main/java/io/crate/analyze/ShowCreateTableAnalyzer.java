@@ -26,18 +26,14 @@ import io.crate.metadata.TableIdent;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.TableInfo;
 import io.crate.sql.tree.Table;
-import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.inject.Singleton;
 
 import javax.annotation.Nullable;
 
-@Singleton
-public class ShowCreateTableAnalyzer {
+class ShowCreateTableAnalyzer {
 
     private Schemas schemas;
 
-    @Inject
-    public ShowCreateTableAnalyzer(Schemas schemas) {
+    ShowCreateTableAnalyzer(Schemas schemas) {
         this.schemas = schemas;
     }
 

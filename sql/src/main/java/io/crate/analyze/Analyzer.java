@@ -26,6 +26,7 @@ import io.crate.analyze.relations.QueriedRelation;
 import io.crate.analyze.relations.RelationAnalyzer;
 import io.crate.metadata.Schemas;
 import io.crate.sql.tree.*;
+import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 
 import java.util.Locale;
@@ -40,7 +41,7 @@ public class Analyzer {
     private final ShowCreateTableAnalyzer showCreateTableAnalyzer;
     private final ExplainStatementAnalyzer explainStatementAnalyzer;
     private final ShowStatementAnalyzer showStatementAnalyzer;
-    private final CreateBlobTableStatementAnalyzer createBlobTableStatementAnalyzer;
+    private final CreateBlobTableAnalyzer createBlobTableAnalyzer;
     private final CreateAnalyzerStatementAnalyzer createAnalyzerStatementAnalyzer;
     private final DropBlobTableAnalyzer dropBlobTableAnalyzer;
     private final RefreshTableAnalyzer refreshTableAnalyzer;
@@ -62,13 +63,11 @@ public class Analyzer {
 
     @Inject
     public Analyzer(Schemas schemas,
+                    ClusterService clusterService,
                     RelationAnalyzer relationAnalyzer,
                     CreateTableStatementAnalyzer createTableStatementAnalyzer,
-                    ShowCreateTableAnalyzer showCreateTableAnalyzer,
-                    CreateBlobTableStatementAnalyzer createBlobTableStatementAnalyzer,
                     CreateAnalyzerStatementAnalyzer createAnalyzerStatementAnalyzer,
                     AlterTableAnalyzer alterTableAnalyzer,
-                    AlterBlobTableAnalyzer alterBlobTableAnalyzer,
                     AlterTableAddColumnAnalyzer alterTableAddColumnAnalyzer,
                     InsertFromValuesAnalyzer insertFromValuesAnalyzer,
                     InsertFromSubQueryAnalyzer insertFromSubQueryAnalyzer,
@@ -84,16 +83,16 @@ public class Analyzer {
         this.dropTableAnalyzer = new DropTableAnalyzer(schemas);
         this.dropBlobTableAnalyzer = new DropBlobTableAnalyzer(schemas);
         this.createTableStatementAnalyzer = createTableStatementAnalyzer;
-        this.showCreateTableAnalyzer = showCreateTableAnalyzer;
+        this.showCreateTableAnalyzer = new ShowCreateTableAnalyzer(schemas);
         this.explainStatementAnalyzer = new ExplainStatementAnalyzer(this);
         this.showStatementAnalyzer = new ShowStatementAnalyzer(this);
         this.unboundAnalyzer = new UnboundAnalyzer(relationAnalyzer, showCreateTableAnalyzer, showStatementAnalyzer);
-        this.createBlobTableStatementAnalyzer = createBlobTableStatementAnalyzer;
+        this.createBlobTableAnalyzer = new CreateBlobTableAnalyzer(schemas, new NumberOfShards(clusterService));
         this.createAnalyzerStatementAnalyzer = createAnalyzerStatementAnalyzer;
         this.refreshTableAnalyzer = new RefreshTableAnalyzer(schemas);
         this.optimizeTableAnalyzer = new OptimizeTableAnalyzer(schemas);
         this.alterTableAnalyzer = alterTableAnalyzer;
-        this.alterBlobTableAnalyzer = alterBlobTableAnalyzer;
+        this.alterBlobTableAnalyzer = new AlterBlobTableAnalyzer(schemas);
         this.alterTableAddColumnAnalyzer = alterTableAddColumnAnalyzer;
         this.insertFromValuesAnalyzer = insertFromValuesAnalyzer;
         this.insertFromSubQueryAnalyzer = insertFromSubQueryAnalyzer;
@@ -205,7 +204,7 @@ public class Analyzer {
 
         @Override
         public AnalyzedStatement visitCreateBlobTable(CreateBlobTable node, Analysis context) {
-            return createBlobTableStatementAnalyzer.analyze(node, context);
+            return createBlobTableAnalyzer.analyze(node, context.parameterContext());
         }
 
         @Override
@@ -215,7 +214,7 @@ public class Analyzer {
 
         @Override
         public AnalyzedStatement visitAlterBlobTable(AlterBlobTable node, Analysis context) {
-            return alterBlobTableAnalyzer.analyze(node, context);
+            return alterBlobTableAnalyzer.analyze(node, context.parameterContext());
         }
 
         @Override

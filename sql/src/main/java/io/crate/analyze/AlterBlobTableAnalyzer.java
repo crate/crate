@@ -23,22 +23,19 @@ package io.crate.analyze;
 
 import io.crate.metadata.Schemas;
 import io.crate.sql.tree.AlterBlobTable;
-import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.inject.Singleton;
 
-@Singleton
-public class AlterBlobTableAnalyzer extends BlobTableAnalyzer<AlterBlobTableAnalyzedStatement> {
+import static io.crate.analyze.BlobTableAnalyzer.tableToIdent;
+
+class AlterBlobTableAnalyzer {
 
     private static final TablePropertiesAnalyzer TABLE_PROPERTIES_ANALYZER = new TablePropertiesAnalyzer();
     private final Schemas schemas;
 
-    @Inject
-    public AlterBlobTableAnalyzer(Schemas schemas) {
+    AlterBlobTableAnalyzer(Schemas schemas) {
         this.schemas = schemas;
     }
 
-    @Override
-    public AlterBlobTableAnalyzedStatement visitAlterBlobTable(AlterBlobTable node, Analysis analysis) {
+    public AlterBlobTableAnalyzedStatement analyze(AlterBlobTable node, ParameterContext parameterContext) {
         AlterBlobTableAnalyzedStatement statement = new AlterBlobTableAnalyzedStatement(schemas);
 
         statement.table(tableToIdent(node.table()));
@@ -46,14 +43,12 @@ public class AlterBlobTableAnalyzer extends BlobTableAnalyzer<AlterBlobTableAnal
         if (node.genericProperties().isPresent()) {
             TABLE_PROPERTIES_ANALYZER.analyze(
                 statement.tableParameter(), statement.table().tableParameterInfo(),
-                node.genericProperties(), analysis.parameterContext().parameters());
+                node.genericProperties(), parameterContext.parameters());
         } else if (!node.resetProperties().isEmpty()) {
             TABLE_PROPERTIES_ANALYZER.analyze(
                 statement.tableParameter(), statement.table().tableParameterInfo(),
                 node.resetProperties());
         }
-
         return statement;
     }
-
 }

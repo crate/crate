@@ -21,9 +21,11 @@
 
 package io.crate.analyze;
 
+import com.google.common.base.Optional;
 import io.crate.analyze.expressions.ExpressionToNumberVisitor;
 import io.crate.core.collections.Row;
 import io.crate.sql.tree.ClusteredBy;
+import io.crate.sql.tree.Expression;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
@@ -31,7 +33,7 @@ import org.elasticsearch.common.inject.Singleton;
 @Singleton
 public class NumberOfShards {
 
-    static final Integer MIN_NUM_SHARDS = 4;
+    private static final Integer MIN_NUM_SHARDS = 4;
 
     private final ClusterService clusterService;
 
@@ -41,8 +43,9 @@ public class NumberOfShards {
     }
 
     int fromClusteredByClause(ClusteredBy clusteredBy, Row parameters) {
-        if (clusteredBy.numberOfShards().isPresent()) {
-            int numShards = ExpressionToNumberVisitor.convert(clusteredBy.numberOfShards().get(), parameters).intValue();
+        Optional<Expression> numberOfShards = clusteredBy.numberOfShards();
+        if (numberOfShards.isPresent()) {
+            int numShards = ExpressionToNumberVisitor.convert(numberOfShards.get(), parameters).intValue();
             if (numShards < 1) {
                 throw new IllegalArgumentException("num_shards in CLUSTERED clause must be greater than 0");
             }

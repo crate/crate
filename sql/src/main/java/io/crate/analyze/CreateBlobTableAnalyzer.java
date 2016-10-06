@@ -21,38 +21,33 @@
 
 package io.crate.analyze;
 
+import com.google.common.base.Optional;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.TableIdent;
+import io.crate.sql.tree.ClusteredBy;
 import io.crate.sql.tree.CreateBlobTable;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
-import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.inject.Singleton;
 
-@Singleton
-public class CreateBlobTableStatementAnalyzer extends BlobTableAnalyzer<CreateBlobTableAnalyzedStatement> {
+class CreateBlobTableAnalyzer {
 
     private static final TablePropertiesAnalyzer TABLE_PROPERTIES_ANALYZER = new TablePropertiesAnalyzer();
     private final Schemas schemas;
     private final NumberOfShards numberOfShards;
 
-    @Inject
-    public CreateBlobTableStatementAnalyzer(Schemas schemas, NumberOfShards numberOfShards) {
+    CreateBlobTableAnalyzer(Schemas schemas, NumberOfShards numberOfShards) {
         this.schemas = schemas;
         this.numberOfShards = numberOfShards;
     }
 
-    @Override
-    public CreateBlobTableAnalyzedStatement visitCreateBlobTable(CreateBlobTable node, Analysis analysis) {
+    public CreateBlobTableAnalyzedStatement analyze(CreateBlobTable node, ParameterContext parameterContext) {
         CreateBlobTableAnalyzedStatement statement = new CreateBlobTableAnalyzedStatement();
-        TableIdent tableIdent = tableToIdent(node.name());
+        TableIdent tableIdent = BlobTableAnalyzer.tableToIdent(node.name());
         statement.table(tableIdent, schemas);
 
         int numShards;
-        if (node.clusteredBy().isPresent()) {
-            numShards = numberOfShards.fromClusteredByClause(
-                node.clusteredBy().get(),
-                analysis.parameterContext().parameters()
-            );
+        Optional<ClusteredBy> clusteredBy = node.clusteredBy();
+        if (clusteredBy.isPresent()) {
+            numShards = numberOfShards.fromClusteredByClause(clusteredBy.get(), parameterContext.parameters());
         } else {
             numShards = numberOfShards.defaultNumberOfShards();
         }
@@ -62,7 +57,7 @@ public class CreateBlobTableStatementAnalyzer extends BlobTableAnalyzer<CreateBl
         // if it is it will get overwritten afterwards.
         TABLE_PROPERTIES_ANALYZER.analyze(
             statement.tableParameter(), new BlobTableParameterInfo(),
-            node.genericProperties(), analysis.parameterContext().parameters(), true);
+            node.genericProperties(), parameterContext.parameters(), true);
 
         return statement;
     }
