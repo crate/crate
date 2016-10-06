@@ -53,11 +53,11 @@ public class Analyzer {
     private final CopyStatementAnalyzer copyStatementAnalyzer;
     private final UpdateStatementAnalyzer updateStatementAnalyzer;
     private final DeleteStatementAnalyzer deleteStatementAnalyzer;
-    private final DropRepositoryStatementAnalyzer dropRepositoryAnalyzer;
+    private final DropRepositoryAnalyzer dropRepositoryAnalyzer;
     private final CreateRepositoryAnalyzer createRepositoryAnalyzer;
     private final DropSnapshotAnalyzer dropSnapshotAnalyzer;
-    private final CreateSnapshotStatementAnalyzer createSnapshotStatementAnalyzer;
-    private final RestoreSnapshotStatementAnalyzer restoreSnapshotStatementAnalyzer;
+    private final CreateSnapshotAnalyzer createSnapshotAnalyzer;
+    private final RestoreSnapshotAnalyzer restoreSnapshotAnalyzer;
     private final UnboundAnalyzer unboundAnalyzer;
 
     @Inject
@@ -75,11 +75,11 @@ public class Analyzer {
                     CopyStatementAnalyzer copyStatementAnalyzer,
                     UpdateStatementAnalyzer updateStatementAnalyzer,
                     DeleteStatementAnalyzer deleteStatementAnalyzer,
-                    DropRepositoryStatementAnalyzer dropRepositoryAnalyzer,
+                    DropRepositoryAnalyzer dropRepositoryAnalyzer,
                     CreateRepositoryAnalyzer createRepositoryAnalyzer,
                     DropSnapshotAnalyzer dropSnapshotAnalyzer,
-                    CreateSnapshotStatementAnalyzer createSnapshotStatementAnalyzer,
-                    RestoreSnapshotStatementAnalyzer restoreSnapshotStatementAnalyzer) {
+                    CreateSnapshotAnalyzer createSnapshotAnalyzer,
+                    RestoreSnapshotAnalyzer restoreSnapshotAnalyzer) {
         this.relationAnalyzer = relationAnalyzer;
         this.dropTableAnalyzer = new DropTableAnalyzer(schemas);
         this.dropBlobTableAnalyzer = new DropBlobTableAnalyzer(schemas);
@@ -103,8 +103,8 @@ public class Analyzer {
         this.dropRepositoryAnalyzer = dropRepositoryAnalyzer;
         this.createRepositoryAnalyzer = createRepositoryAnalyzer;
         this.dropSnapshotAnalyzer = dropSnapshotAnalyzer;
-        this.createSnapshotStatementAnalyzer = createSnapshotStatementAnalyzer;
-        this.restoreSnapshotStatementAnalyzer = restoreSnapshotStatementAnalyzer;
+        this.createSnapshotAnalyzer = createSnapshotAnalyzer;
+        this.restoreSnapshotAnalyzer = restoreSnapshotAnalyzer;
     }
 
     public Analysis boundAnalyze(Statement statement, SessionContext sessionContext, ParameterContext parameterContext) {
@@ -255,27 +255,27 @@ public class Analyzer {
 
         @Override
         public AnalyzedStatement visitDropRepository(DropRepository node, Analysis context) {
-            return dropRepositoryAnalyzer.analyze(node, context);
+            return dropRepositoryAnalyzer.analyze(node);
         }
 
         @Override
         public AnalyzedStatement visitCreateRepository(CreateRepository node, Analysis context) {
-            return createRepositoryAnalyzer.analyze(node, context);
+            return createRepositoryAnalyzer.analyze(node, context.parameterContext());
         }
 
         @Override
         public AnalyzedStatement visitDropSnapshot(DropSnapshot node, Analysis context) {
-            return dropSnapshotAnalyzer.analyze(node, context);
+            return dropSnapshotAnalyzer.analyze(node);
         }
 
         @Override
         public AnalyzedStatement visitCreateSnapshot(CreateSnapshot node, Analysis context) {
-            return createSnapshotStatementAnalyzer.analyze(node, context);
+            return createSnapshotAnalyzer.analyze(node, context);
         }
 
         @Override
         public AnalyzedStatement visitRestoreSnapshot(RestoreSnapshot node, Analysis context) {
-            return restoreSnapshotStatementAnalyzer.analyze(node, context);
+            return restoreSnapshotAnalyzer.analyze(node, context);
         }
 
         @Override

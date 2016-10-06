@@ -54,9 +54,9 @@ import static io.crate.analyze.SnapshotSettings.IGNORE_UNAVAILABLE;
 import static io.crate.analyze.SnapshotSettings.WAIT_FOR_COMPLETION;
 
 @Singleton
-public class CreateSnapshotStatementAnalyzer extends AbstractRepositoryDDLAnalyzer {
+public class CreateSnapshotAnalyzer {
 
-    private static final ESLogger LOGGER = Loggers.getLogger(CreateSnapshotStatementAnalyzer.class);
+    private static final ESLogger LOGGER = Loggers.getLogger(CreateSnapshotAnalyzer.class);
     private final RepositoryService repositoryService;
     private final Schemas schemas;
 
@@ -67,13 +67,12 @@ public class CreateSnapshotStatementAnalyzer extends AbstractRepositoryDDLAnalyz
 
 
     @Inject
-    public CreateSnapshotStatementAnalyzer(RepositoryService repositoryService, Schemas schemas) {
+    public CreateSnapshotAnalyzer(RepositoryService repositoryService, Schemas schemas) {
         this.repositoryService = repositoryService;
         this.schemas = schemas;
     }
 
-    @Override
-    public CreateSnapshotAnalyzedStatement visitCreateSnapshot(CreateSnapshot node, Analysis analysis) {
+    public CreateSnapshotAnalyzedStatement analyze(CreateSnapshot node, Analysis analysis) {
         Optional<QualifiedName> repositoryName = node.name().getPrefix();
         // validate repository
         Preconditions.checkArgument(repositoryName.isPresent(), "Snapshot must be specified by \"<repository_name>\".\"<snapshot_name>\"");

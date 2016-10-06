@@ -30,7 +30,7 @@ import org.elasticsearch.common.inject.Singleton;
 import java.util.List;
 
 @Singleton
-public class DropSnapshotAnalyzer extends AbstractRepositoryDDLAnalyzer {
+public class DropSnapshotAnalyzer {
 
     private final RepositoryService repositoryService;
 
@@ -39,8 +39,7 @@ public class DropSnapshotAnalyzer extends AbstractRepositoryDDLAnalyzer {
         this.repositoryService = repositoryService;
     }
 
-    @Override
-    public DropSnapshotAnalyzedStatement visitDropSnapshot(DropSnapshot node, Analysis context) {
+    public DropSnapshotAnalyzedStatement analyze(DropSnapshot node) {
         List<String> parts = node.name().getParts();
         Preconditions.checkArgument(parts.size() == 2,
             "Snapshot name not supported, only <repository>.<snapshot> works.");

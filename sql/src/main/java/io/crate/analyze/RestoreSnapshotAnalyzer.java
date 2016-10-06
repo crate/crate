@@ -50,7 +50,7 @@ import static io.crate.analyze.SnapshotSettings.IGNORE_UNAVAILABLE;
 import static io.crate.analyze.SnapshotSettings.WAIT_FOR_COMPLETION;
 
 @Singleton
-public class RestoreSnapshotStatementAnalyzer extends AbstractRepositoryDDLAnalyzer {
+public class RestoreSnapshotAnalyzer {
 
     private static final ImmutableMap<String, SettingsApplier> SETTINGS = ImmutableMap.<String, SettingsApplier>builder()
         .put(IGNORE_UNAVAILABLE.name(), new SettingsAppliers.BooleanSettingsApplier(IGNORE_UNAVAILABLE))
@@ -61,13 +61,12 @@ public class RestoreSnapshotStatementAnalyzer extends AbstractRepositoryDDLAnaly
     private final Schemas schemas;
 
     @Inject
-    public RestoreSnapshotStatementAnalyzer(RepositoryService repositoryService, Schemas schemas) {
+    public RestoreSnapshotAnalyzer(RepositoryService repositoryService, Schemas schemas) {
         this.repositoryService = repositoryService;
         this.schemas = schemas;
     }
 
-    @Override
-    public RestoreSnapshotAnalyzedStatement visitRestoreSnapshot(RestoreSnapshot node, Analysis analysis) {
+    public RestoreSnapshotAnalyzedStatement analyze(RestoreSnapshot node, Analysis analysis) {
         List<String> nameParts = node.name().getParts();
         Preconditions.checkArgument(
             nameParts.size() == 2, "Snapshot name not supported, only <repository>.<snapshot> works.");

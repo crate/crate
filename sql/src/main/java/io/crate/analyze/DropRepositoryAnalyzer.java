@@ -22,12 +22,24 @@
 
 package io.crate.analyze;
 
-import io.crate.sql.tree.DefaultTraversalVisitor;
-import io.crate.sql.tree.Node;
+import io.crate.executor.transport.RepositoryService;
+import io.crate.sql.tree.DropRepository;
+import org.elasticsearch.common.inject.Inject;
+import org.elasticsearch.common.inject.Singleton;
 
-public class AbstractRepositoryDDLAnalyzer extends DefaultTraversalVisitor<AnalyzedStatement, Analysis> {
+@Singleton
+public class DropRepositoryAnalyzer {
 
-    public AnalyzedStatement analyze(Node node, Analysis analysis) {
-        return process(node, analysis);
+    private final RepositoryService repositoryService;
+
+    @Inject
+    public DropRepositoryAnalyzer(RepositoryService repositoryService) {
+        this.repositoryService = repositoryService;
+    }
+
+    public DropRepositoryAnalyzedStatement analyze(DropRepository node) {
+        String repositoryName = node.repository();
+        repositoryService.failIfRepositoryDoesNotExist(repositoryName);
+        return new DropRepositoryAnalyzedStatement(repositoryName);
     }
 }
