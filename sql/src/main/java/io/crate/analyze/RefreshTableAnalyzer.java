@@ -22,32 +22,21 @@
 package io.crate.analyze;
 
 import io.crate.metadata.Schemas;
-import io.crate.sql.tree.DefaultTraversalVisitor;
-import io.crate.sql.tree.Node;
 import io.crate.sql.tree.RefreshStatement;
-import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.inject.Singleton;
 
 import java.util.Set;
 
-@Singleton
-public class RefreshTableAnalyzer extends DefaultTraversalVisitor<RefreshTableAnalyzedStatement, Analysis> {
+class RefreshTableAnalyzer {
 
     private final Schemas schemas;
 
-    @Inject
-    public RefreshTableAnalyzer(Schemas schemas) {
+    RefreshTableAnalyzer(Schemas schemas) {
         this.schemas = schemas;
     }
 
-    public RefreshTableAnalyzedStatement analyze(Node node, Analysis analysis) {
-        return super.process(node, analysis);
-    }
-
-    @Override
-    public RefreshTableAnalyzedStatement visitRefreshStatement(RefreshStatement node, Analysis analysis) {
+    public RefreshTableAnalyzedStatement analyze(RefreshStatement refreshStatement, Analysis analysis) {
         Set<String> indexNames = TableAnalyzer.getIndexNames(
-            node.tables(), schemas, analysis.parameterContext(), analysis.sessionContext().defaultSchema());
+            refreshStatement.tables(), schemas, analysis.parameterContext(), analysis.sessionContext().defaultSchema());
         return new RefreshTableAnalyzedStatement(indexNames);
     }
 }
