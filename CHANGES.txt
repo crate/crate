@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fixed an issue that could cause `COPY <table> TO DIRECTORY` statements to
+   fail
+
  - BREAKING: Removed deprecated Plugin interface methods.
 
  - Fixed an issue that might cause queries to fail with a `Same bucket of a
