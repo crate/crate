@@ -5,7 +5,7 @@
 COPY TO
 =======
 
-Export table contents to files on crate node machines.
+Export table contents to files on Crate node machines.
 
 Synopsis
 ========
@@ -22,11 +22,12 @@ Description
 ===========
 
 The ``COPY TO`` command exports the contents of a table to one or more
-files in the given directory, named to prevent filename conflicts. Each
-node of the cluster which contains a shard of the table will export the
-contents of its shards.
+files into a given directory with unique filenames. Each node with at least
+one shard of the table will export the contents of these onto their local disk.
 
-The created files are JSON formatted and contain one table row per line.
+The created files are JSON formatted and contain one table row per line and,
+due to the distributed nature of Crate, *will remain on the same nodes*
+*where the shards are*.
 
 
 .. note::
@@ -51,9 +52,8 @@ Parameters
 WHERE Clause
 ------------
 
-`WHERE` clauses follow the same syntax as used in `SELECT` statements allowing
-for partial exports that meet certain criteria. (see :ref:`sql_dql_where_clause`
-for more information).
+`WHERE` clauses use the same syntax as `SELECT` statements, allowing for
+partial exports. (see :ref:`sql_dql_where_clause` for more information).
 
 
 Output URI
@@ -133,11 +133,11 @@ compression
 -----------
 
 Define if and how the exported data should be compressed.
-Per default no compression is applied.
+By default the output is not compressed.
 
 Possible values for the ``compression`` setting are:
 
-:gzip: The exported data is compressed with gzip_.
+:gzip: Use gzip_ to compress the data output.
 
 .. _format:
 
@@ -148,13 +148,14 @@ Optional parameter to override default output behavior.
 
 Possible values for the ``format`` settings are:
 
-:json_object: Output file contains one independently JSON serialized table row
-              per line. This is the default behavior if no columns are
-              defined. Use this format to import with :ref:`copy_from`.
+:json_object: Each row in the result set is serialized as JSON object and
+              and written to an output file where one line contains one object.
+              This is the default behavior if no columns are defined. Use
+              this format to import with :ref:`copy_from`.
 
-:json_array: Output file contains on each line a JSON array storing column
-             values of one row. This is the default behavior if columns are
-             defined.
+:json_array: Each row in the result set is serialized as JSON array, storing
+             one array per line in an output file. This is the default behavior
+             if columns are defined.
 
 .. _gzip: http://www.gzip.org/
 

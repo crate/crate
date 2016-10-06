@@ -29,11 +29,11 @@ Description
 ``COPY FROM`` copies data from a URI to the specified table as a raw data import.
 
 
-The nodes in the cluster will attempt to access the resources available at
-the URI and import the data. The data must be provided as file(s) containing
-one JSON object per line and have to be encoded using UTF-8. Empty lines
-are skipped and *any additional keys in the object will be added as columns*,
-regardless of the previously defined table.
+The nodes in the cluster will attempt to read the files available at
+the URI and import the data. These files have to be UTF-8 encoded and
+contain a single JSON object per line. Any keys in the object will be
+added as columns, regardless of the previously defined table. Empty lines
+are simply sikpped.
 
 Example JSON data::
 
@@ -93,8 +93,9 @@ Supported Schemes
 file
 ^^^^
 
-The provided (absolute) path should point to files available *on every node* with
-read access to the Crate process there.
+The provided (absolute) path should point to files available
+*on at least one node* with read access to the Crate process
+(with its default user 'crate') there.
 
 By default each node will attempt to read the files specified. In case the URI
 points to a shared folder (where other Crate nodes also have access) the
@@ -120,11 +121,11 @@ Java System Properties - ``aws.accessKeyId`` and ``aws.secretKey``
 If no credentials are set the s3 client will operate in anonymous mode, see
 `AWS Java Documentation`_.
 
-Using a s3 URI will set the ``shared`` option implicitly.
+Using the 's3://' URI scheme sets the ``shared`` option implicitly.
 
 .. note::
 
-   A ``secretkey`` provided by Amazon Web Service can contain characters such
+   A ``secretkey`` provided by Amazon Web Services can contain characters such
    as '/', '+' or '='. These characters must be `URL encoded`_. For a detailed
    explanation read the official `AWS documentation`_.
 
@@ -203,8 +204,8 @@ default value is 10000.
 shared
 ^^^^^^
 
-This option should be set to true if the URI points to a location accessible by
- multiple Crate nodes to prevent them from importing the same file.
+This option should be set to true if the URI's location is accessible by
+ more than one Crate node to prevent them from importing the same file.
 
 The default value depends on the scheme of each URI.
 
@@ -261,7 +262,7 @@ overwrite_duplicates
 Default: false
 
 ``COPY FROM`` by default won't overwrite rows if a document with the same
-primary key already exists. Set to true to overwrite duplicate rows. 
+primary key already exists. Set to true to overwrite duplicate rows.
 
 
 .. _`AWS documentation`: http://docs.aws.amazon.com/AmazonS3/latest/dev/RESTAuthentication.html
