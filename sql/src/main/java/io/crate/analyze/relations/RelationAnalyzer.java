@@ -80,10 +80,13 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
         this.analysisMetaData = analysisMetaData;
     }
 
-    public AnalyzedRelation analyze(Node node, StatementAnalysisContext relationAnalysisContext) {
-        AnalyzedRelation relation = process(node, relationAnalysisContext);
-        return RelationNormalizer.normalize(relation, analysisMetaData,
-            relationAnalysisContext.transactionContext());
+    public AnalyzedRelation analyze(Node node, StatementAnalysisContext statementContext) {
+        AnalyzedRelation relation = process(node, statementContext);
+        return RelationNormalizer.normalize(
+            relation,
+            analysisMetaData.functions(),
+            analysisMetaData.referenceResolver(),
+            statementContext.transactionContext());
     }
 
     public AnalyzedRelation analyzeUnbound(Query query, SessionContext sessionContext, ParamTypeHints paramTypeHints) {
@@ -205,7 +208,8 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
                 relation = new QueriedSelectRelation((QueriedRelation) source, selectAnalysis.outputNames(), querySpec);
             }
             if (tableRelation != null) {
-                tableRelation.normalize(analysisMetaData, statementContext.transactionContext());
+                tableRelation.normalize(
+                    analysisMetaData.functions(), analysisMetaData.referenceResolver(), statementContext.transactionContext());
                 relation = tableRelation;
             }
         } else {

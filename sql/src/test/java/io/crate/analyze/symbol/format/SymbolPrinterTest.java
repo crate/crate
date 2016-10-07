@@ -73,7 +73,7 @@ public class SymbolPrinterTest extends CrateUnitTest {
             .put(QualifiedName.of(TABLE_NAME), new TableRelation(tableInfo))
             .build();
         sqlExpressions = new SqlExpressions(sources);
-        printer = new SymbolPrinter(sqlExpressions.analysisMD().functions());
+        printer = new SymbolPrinter(sqlExpressions.functions());
     }
 
     private void assertPrint(Symbol s, String formatted) {
@@ -332,7 +332,7 @@ public class SymbolPrinterTest extends CrateUnitTest {
     public void testPrintInOperator() throws Exception {
         Symbol inQuery = sqlExpressions.asSymbol("bar in (1)");
         assertPrint(inQuery, "(doc.formatter.bar = ANY(_array(1)))"); // internal in is rewritten to ANY
-        FunctionImplementation impl = sqlExpressions.analysisMD().functions().getSafe(new FunctionIdent(InOperator.NAME, Arrays.<DataType>asList(DataTypes.LONG, new SetType(DataTypes.LONG))));
+        FunctionImplementation impl = sqlExpressions.functions().getSafe(new FunctionIdent(InOperator.NAME, Arrays.<DataType>asList(DataTypes.LONG, new SetType(DataTypes.LONG))));
         Function fn = new Function(impl.info(), Arrays.asList(sqlExpressions.asSymbol("bar"), Literal.of(new SetType(DataTypes.LONG), ImmutableSet.of(1L, 2L))));
         assertPrint(fn, "(doc.formatter.bar IN (1, 2))");
         inQuery = sqlExpressions.asSymbol("bar in (1, abs(-10), 9)");

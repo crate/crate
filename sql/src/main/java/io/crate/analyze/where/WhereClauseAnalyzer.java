@@ -23,7 +23,10 @@ package io.crate.analyze.where;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
-import io.crate.analyze.*;
+import io.crate.analyze.EvaluatingNormalizer;
+import io.crate.analyze.GeneratedColumnComparisonReplacer;
+import io.crate.analyze.ReferenceToTrueVisitor;
+import io.crate.analyze.WhereClause;
 import io.crate.analyze.relations.DocTableRelation;
 import io.crate.analyze.symbol.Literal;
 import io.crate.analyze.symbol.Symbol;
@@ -31,6 +34,7 @@ import io.crate.analyze.symbol.Symbols;
 import io.crate.metadata.*;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.doc.DocTableInfo;
+import io.crate.operation.reference.ReferenceResolver;
 import io.crate.operation.reference.partitioned.PartitionExpression;
 import io.crate.types.DataTypes;
 import org.elasticsearch.common.collect.Tuple;
@@ -42,16 +46,18 @@ public class WhereClauseAnalyzer {
 
     private final static GeneratedColumnComparisonReplacer GENERATED_COLUMN_COMPARISON_REPLACER = new GeneratedColumnComparisonReplacer();
 
-    private final AnalysisMetaData analysisMetaData;
+    private final Functions functions;
+    private final ReferenceResolver<?> refResolver;
     private final DocTableInfo tableInfo;
     private final EqualityExtractor eqExtractor;
     private final EvaluatingNormalizer normalizer;
 
-    public WhereClauseAnalyzer(AnalysisMetaData analysisMetaData, DocTableRelation tableRelation) {
-        this.analysisMetaData = analysisMetaData;
+    public WhereClauseAnalyzer(Functions functions, ReferenceResolver<?> refResolver, DocTableRelation tableRelation) {
+        this.functions = functions;
+        this.refResolver = refResolver;
         this.tableInfo = tableRelation.tableInfo();
-        this.normalizer = new EvaluatingNormalizer(analysisMetaData.functions(), RowGranularity.CLUSTER,
-            analysisMetaData.referenceResolver(), tableRelation, false);
+        this.normalizer = new EvaluatingNormalizer(
+            functions, RowGranularity.CLUSTER, refResolver, tableRelation, ReplaceMode.COPY);
         this.eqExtractor = new EqualityExtractor(normalizer);
     }
 
@@ -109,7 +115,7 @@ public class WhereClauseAnalyzer {
             whereClause.clusteredBy(clusteredBy);
         }
         if (tableInfo.isPartitioned() && !whereClause.docKeys().isPresent()) {
-            whereClause = resolvePartitions(whereClause, tableInfo, analysisMetaData, transactionContext);
+            whereClause = resolvePartitions(whereClause, tableInfo, functions, refResolver, transactionContext);
         }
         return whereClause;
     }
@@ -132,8 +138,8 @@ public class WhereClauseAnalyzer {
     }
 
 
-    private static PartitionReferenceResolver preparePartitionResolver(
-        NestedReferenceResolver referenceResolver, List<Reference> partitionColumns) {
+    private static PartitionReferenceResolver preparePartitionResolver(ReferenceResolver<?> referenceResolver,
+                                                                       List<Reference> partitionColumns) {
         List<PartitionExpression> partitionExpressions = new ArrayList<>(partitionColumns.size());
         int idx = 0;
         for (Reference partitionedByColumn : partitionColumns) {
@@ -143,10 +149,11 @@ public class WhereClauseAnalyzer {
         return new PartitionReferenceResolver(referenceResolver, partitionExpressions);
     }
 
-    public static WhereClause resolvePartitions(WhereClause whereClause,
-                                                DocTableInfo tableInfo,
-                                                AnalysisMetaData analysisMetaData,
-                                                TransactionContext transactionContext) {
+    private static WhereClause resolvePartitions(WhereClause whereClause,
+                                                 DocTableInfo tableInfo,
+                                                 Functions functions,
+                                                 ReferenceResolver<?> refResolver,
+                                                 TransactionContext transactionContext) {
         assert tableInfo.isPartitioned() : "table must be partitioned in order to resolve partitions";
         assert whereClause.partitions().isEmpty() : "partitions must not be analyzed twice";
         if (tableInfo.partitions().isEmpty()) {
@@ -154,12 +161,11 @@ public class WhereClauseAnalyzer {
         }
 
         PartitionReferenceResolver partitionReferenceResolver = preparePartitionResolver(
-            analysisMetaData.referenceResolver(),
-            tableInfo.partitionedByColumns());
+            refResolver, tableInfo.partitionedByColumns());
         EvaluatingNormalizer normalizer =
-            new EvaluatingNormalizer(analysisMetaData.functions(), RowGranularity.PARTITION, partitionReferenceResolver);
+            new EvaluatingNormalizer(functions, RowGranularity.PARTITION, partitionReferenceResolver, null, ReplaceMode.COPY);
 
-        Symbol normalized = null;
+        Symbol normalized;
         Map<Symbol, List<Literal>> queryPartitionMap = new HashMap<>();
 
         for (PartitionName partitionName : tableInfo.partitions()) {

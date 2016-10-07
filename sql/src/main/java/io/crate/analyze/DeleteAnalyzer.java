@@ -29,9 +29,13 @@ import io.crate.analyze.symbol.Symbol;
 import io.crate.analyze.symbol.Symbols;
 import io.crate.analyze.where.WhereClauseAnalyzer;
 import io.crate.exceptions.UnsupportedFeatureException;
+import io.crate.metadata.Functions;
+import io.crate.metadata.ReplaceMode;
+import io.crate.metadata.RowGranularity;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.table.Operation;
+import io.crate.operation.reference.ReferenceResolver;
 import io.crate.sql.tree.Delete;
 import io.crate.sql.tree.ParameterExpression;
 
@@ -42,11 +46,13 @@ class DeleteAnalyzer {
     private static final UnsupportedFeatureException VERSION_SEARCH_EX = new UnsupportedFeatureException(
         VERSION_SEARCH_EX_MSG);
 
-    private AnalysisMetaData analysisMetaData;
+    private final Functions functions;
+    private final ReferenceResolver<?> refResolver;
     private RelationAnalyzer relationAnalyzer;
 
-    DeleteAnalyzer(AnalysisMetaData analysisMetaData, RelationAnalyzer relationAnalyzer) {
-        this.analysisMetaData = analysisMetaData;
+    DeleteAnalyzer(Functions functions, ReferenceResolver<?> refResolver, RelationAnalyzer relationAnalyzer) {
+        this.functions = functions;
+        this.refResolver = refResolver;
         this.relationAnalyzer = relationAnalyzer;
     }
 
@@ -58,22 +64,28 @@ class DeleteAnalyzer {
             analysis.sessionContext(),
             convertParamFunction,
             analysis.transactionContext(),
-            analysisMetaData.functions(),
+            functions,
             Operation.DELETE);
         RelationAnalysisContext relationAnalysisContext = statementAnalysisContext.startRelation();
         AnalyzedRelation analyzedRelation = relationAnalyzer.analyze(node.getRelation(), statementAnalysisContext);
 
         assert analyzedRelation instanceof DocTableRelation;
         DocTableRelation docTableRelation = (DocTableRelation) analyzedRelation;
-        EvaluatingNormalizer normalizer = new EvaluatingNormalizer(analysisMetaData, docTableRelation, true);
+        EvaluatingNormalizer normalizer = new EvaluatingNormalizer(
+            functions,
+            RowGranularity.CLUSTER,
+            refResolver,
+            docTableRelation,
+            ReplaceMode.MUTATE);
         DeleteAnalyzedStatement deleteAnalyzedStatement = new DeleteAnalyzedStatement(docTableRelation);
         ExpressionAnalyzer expressionAnalyzer = new ExpressionAnalyzer(
-            analysisMetaData.functions(),
+            functions,
             analysis.sessionContext(),
             convertParamFunction,
             new FullQualifedNameFieldProvider(relationAnalysisContext.sources()));
         ExpressionAnalysisContext expressionAnalysisContext = new ExpressionAnalysisContext();
-        WhereClauseAnalyzer whereClauseAnalyzer = new WhereClauseAnalyzer(analysisMetaData, deleteAnalyzedStatement.analyzedRelation());
+        WhereClauseAnalyzer whereClauseAnalyzer = new WhereClauseAnalyzer(
+            functions, refResolver, deleteAnalyzedStatement.analyzedRelation());
 
         if (analysis.parameterContext().hasBulkParams()) {
             numNested = analysis.parameterContext().numBulkParams();

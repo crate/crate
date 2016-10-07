@@ -66,37 +66,24 @@ public class EvaluatingNormalizer {
     /**
      * @param functions         function resolver
      * @param granularity       the maximum row granularity the normalizer should try to normalize
+     * @param replaceMode       defines if symbols like functions can be mutated or if they have to be copied
      * @param referenceResolver reference resolver which is used to resolve paths
      * @param fieldResolver     optional field resolver to resolve fields
-     * @param inPlace           defines if symbols like functions can be changed inplace instead of being copied when changed
      */
     public EvaluatingNormalizer(Functions functions,
                                 RowGranularity granularity,
                                 ReferenceResolver<? extends Input<?>> referenceResolver,
                                 @Nullable FieldResolver fieldResolver,
-                                boolean inPlace) {
+                                ReplaceMode replaceMode) {
         this.functions = functions;
         this.granularity = granularity;
         this.referenceResolver = referenceResolver;
         this.fieldResolver = fieldResolver;
-        if (inPlace) {
+        if (replaceMode == ReplaceMode.MUTATE) {
             this.visitor = new InPlaceVisitor();
         } else {
             this.visitor = new CopyingVisitor();
         }
-    }
-
-    public EvaluatingNormalizer(Functions functions,
-                                RowGranularity granularity,
-                                ReferenceResolver<? extends Input<?>> referenceResolver) {
-        this(functions, granularity, referenceResolver, null, false);
-    }
-
-    public EvaluatingNormalizer(AnalysisMetaData analysisMetaData,
-                                FieldResolver fieldResolver,
-                                boolean inPlace) {
-        this(analysisMetaData.functions(), RowGranularity.CLUSTER,
-            analysisMetaData.referenceResolver(), fieldResolver, inPlace);
     }
 
     private abstract class BaseVisitor extends SymbolVisitor<TransactionContext, Symbol> {
@@ -143,7 +130,7 @@ public class EvaluatingNormalizer {
 
 
         @SuppressWarnings("unchecked")
-        protected Symbol normalizeFunctionSymbol(Function function, TransactionContext context) {
+        Symbol normalizeFunctionSymbol(Function function, TransactionContext context) {
             FunctionImplementation impl = functions.get(function.info().ident());
             if (impl != null) {
                 return impl.normalizeSymbol(function, context);

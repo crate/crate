@@ -370,7 +370,7 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
         this.copyStatementPlanner = copyStatementPlanner;
         this.selectStatementPlanner = selectStatementPlanner;
         this.deleteStatementPlanner = deleteStatementPlanner;
-        normalizer = new EvaluatingNormalizer(functions, RowGranularity.CLUSTER, globalResolver);
+        normalizer = new EvaluatingNormalizer(functions, RowGranularity.CLUSTER, globalResolver, null, ReplaceMode.COPY);
     }
 
     /**

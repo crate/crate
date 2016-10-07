@@ -103,7 +103,7 @@ public class ProjectionToProjectorVisitorTest extends CrateUnitTest {
             mock(TransportActionProvider.class, Answers.RETURNS_DEEP_STUBS.get()),
             mock(BulkRetryCoordinatorPool.class),
             symbolvisitor,
-            new EvaluatingNormalizer(functions, RowGranularity.DOC, referenceResolver)
+            new EvaluatingNormalizer(functions, RowGranularity.DOC, referenceResolver, null, ReplaceMode.COPY)
         );
 
         countInfo = new FunctionInfo(new FunctionIdent(CountAggregation.NAME, Arrays.<DataType>asList(DataTypes.STRING)), DataTypes.LONG);

@@ -22,12 +22,10 @@
 package io.crate.lucene;
 
 import com.google.common.collect.ImmutableMap;
-import io.crate.analyze.EvaluatingNormalizer;
 import io.crate.analyze.WhereClause;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.TableRelation;
 import io.crate.metadata.Functions;
-import io.crate.metadata.TransactionContext;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.TestingTableInfo;
@@ -76,7 +74,6 @@ public class LuceneQueryBuilderTest extends CrateUnitTest {
     private SearchContext searchContext;
     private IndexCache indexCache;
     private SqlExpressions expressions;
-    private EvaluatingNormalizer normalizer;
     private Map<QualifiedName, AnalyzedRelation> sources;
 
     @Rule
@@ -96,8 +93,7 @@ public class LuceneQueryBuilderTest extends CrateUnitTest {
         TableRelation usersTr = new TableRelation(users);
         sources = ImmutableMap.<QualifiedName, AnalyzedRelation>of(new QualifiedName("users"), usersTr);
 
-        expressions = new SqlExpressions(sources);
-        normalizer = new EvaluatingNormalizer(expressions.analysisMD(), usersTr, true);
+        expressions = new SqlExpressions(sources, usersTr);
         builder = new LuceneQueryBuilder(expressions.getInstance(Functions.class));
 
         searchContext = mock(SearchContext.class, Answers.RETURNS_MOCKS.get());
@@ -127,7 +123,7 @@ public class LuceneQueryBuilderTest extends CrateUnitTest {
     }
 
     private WhereClause asWhereClause(String expression) {
-        return new WhereClause(normalizer.normalize(expressions.asSymbol(expression), new TransactionContext()));
+        return new WhereClause(expressions.normalize(expressions.asSymbol(expression)));
     }
 
     private Query convert(WhereClause clause) {
@@ -191,7 +187,7 @@ public class LuceneQueryBuilderTest extends CrateUnitTest {
     @Test
     public void testEqOnTwoArraysBecomesGenericFunctionQueryAllValuesNull() throws Exception {
         SqlExpressions sqlExpressions = new SqlExpressions(sources, new Object[]{new Object[]{null, null, null}});
-        Query query = convert(new WhereClause(normalizer.normalize(sqlExpressions.asSymbol("y_array = ?"), new TransactionContext())));
+        Query query = convert(new WhereClause(expressions.normalize(sqlExpressions.asSymbol("y_array = ?"))));
         assertThat(query, instanceOf(GenericFunctionQuery.class));
     }
 
@@ -200,7 +196,7 @@ public class LuceneQueryBuilderTest extends CrateUnitTest {
         Object[] values = new Object[2000]; // should trigger the TooManyClauses exception
         Arrays.fill(values, 10L);
         SqlExpressions sqlExpressions = new SqlExpressions(sources, new Object[]{values});
-        Query query = convert(new WhereClause(normalizer.normalize(sqlExpressions.asSymbol("y_array = ?"), new TransactionContext())));
+        Query query = convert(new WhereClause(expressions.normalize(sqlExpressions.asSymbol("y_array = ?"))));
         assertThat(query, instanceOf(BooleanQuery.class));
         BooleanQuery booleanQuery = (BooleanQuery) query;
         assertThat(booleanQuery.clauses().get(0).getQuery(), instanceOf(TermsQuery.class));

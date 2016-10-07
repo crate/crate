@@ -21,6 +21,7 @@
 
 package io.crate.metadata;
 
+import io.crate.operation.reference.ReferenceResolver;
 import io.crate.operation.reference.partitioned.PartitionExpression;
 
 import java.util.HashMap;
@@ -30,10 +31,10 @@ import java.util.Map;
 public class PartitionReferenceResolver implements NestedReferenceResolver {
 
     private final Map<ReferenceIdent, PartitionExpression> expressionMap;
-    private final NestedReferenceResolver fallbackResolver;
+    private final ReferenceResolver<?> fallbackResolver;
     private final List<PartitionExpression> partitionExpressions;
 
-    public PartitionReferenceResolver(NestedReferenceResolver fallbackReferenceResolver,
+    public PartitionReferenceResolver(ReferenceResolver<?> fallbackReferenceResolver,
                                       List<PartitionExpression> partitionExpressions) {
         this.fallbackResolver = fallbackReferenceResolver;
         this.partitionExpressions = partitionExpressions;

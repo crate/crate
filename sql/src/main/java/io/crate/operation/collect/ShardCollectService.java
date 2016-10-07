@@ -34,6 +34,7 @@ import io.crate.executor.transport.TransportActionProvider;
 import io.crate.lucene.CrateDocIndexService;
 import io.crate.metadata.AbstractReferenceResolver;
 import io.crate.metadata.Functions;
+import io.crate.metadata.ReplaceMode;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.shard.RecoveryShardReferenceResolver;
@@ -129,7 +130,9 @@ public class ShardCollectService {
         this.shardNormalizer = new EvaluatingNormalizer(
             functions,
             RowGranularity.SHARD,
-            shardResolver
+            shardResolver,
+            null,
+            ReplaceMode.COPY
         );
         this.projectorFactory = new ProjectionToProjectorVisitor(
             clusterService,
@@ -152,7 +155,9 @@ public class ShardCollectService {
         EvaluatingNormalizer shardNormalizer = new EvaluatingNormalizer(
             functions,
             RowGranularity.SHARD,
-            new RecoveryShardReferenceResolver(shardResolver, indexShard)
+            new RecoveryShardReferenceResolver(shardResolver, indexShard),
+            null,
+            ReplaceMode.COPY
         );
         collectPhase = collectPhase.normalize(shardNormalizer, null);
         if (collectPhase.whereClause().noMatch()) {

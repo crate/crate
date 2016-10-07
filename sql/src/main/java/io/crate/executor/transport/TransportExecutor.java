@@ -41,6 +41,7 @@ import io.crate.executor.transport.task.elasticsearch.ESGetTask;
 import io.crate.jobs.JobContextService;
 import io.crate.metadata.Functions;
 import io.crate.metadata.NestedReferenceResolver;
+import io.crate.metadata.ReplaceMode;
 import io.crate.metadata.RowGranularity;
 import io.crate.operation.ImplementationSymbolVisitor;
 import io.crate.operation.NodeOperation;
@@ -127,7 +128,12 @@ public class TransportExecutor implements Executor {
         this.indicesService = indicesService;
         this.bulkRetryCoordinatorPool = bulkRetryCoordinatorPool;
         plan2TaskVisitor = new TaskCollectingVisitor();
-        EvaluatingNormalizer normalizer = new EvaluatingNormalizer(functions, RowGranularity.CLUSTER, referenceResolver);
+        EvaluatingNormalizer normalizer = new EvaluatingNormalizer(
+            functions,
+            RowGranularity.CLUSTER,
+            referenceResolver,
+            null,
+            ReplaceMode.COPY);
         ImplementationSymbolVisitor globalImplementationSymbolVisitor = new ImplementationSymbolVisitor(functions);
         globalProjectionToProjectionVisitor = new ProjectionToProjectorVisitor(
             clusterService,

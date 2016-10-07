@@ -49,6 +49,7 @@ import io.crate.metadata.settings.SettingsAppliers;
 import io.crate.metadata.settings.StringSetting;
 import io.crate.metadata.table.Operation;
 import io.crate.metadata.table.TableInfo;
+import io.crate.operation.reference.ReferenceResolver;
 import io.crate.planner.projection.WriterProjection;
 import io.crate.sql.tree.*;
 import io.crate.types.CollectionType;
@@ -62,8 +63,6 @@ import java.util.*;
 @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
 class CopyAnalyzer {
 
-    private final AnalysisMetaData analysisMetaData;
-
     private static final StringSetting COMPRESSION_SETTINGS =
         new StringSetting("compression", ImmutableSet.of("gzip"), true);
 
@@ -75,13 +74,18 @@ class CopyAnalyzer {
             .put(COMPRESSION_SETTINGS.name(), new SettingsAppliers.StringSettingsApplier(COMPRESSION_SETTINGS))
             .put(OUTPUT_FORMAT_SETTINGS.name(), new SettingsAppliers.StringSettingsApplier(OUTPUT_FORMAT_SETTINGS))
             .build();
+    private final Schemas schemas;
+    private final Functions functions;
+    private final ReferenceResolver<?> refResolver;
 
-    CopyAnalyzer(AnalysisMetaData analysisMetaData) {
-        this.analysisMetaData = analysisMetaData;
+    CopyAnalyzer(Schemas schemas, Functions functions, ReferenceResolver<?> refResolver) {
+        this.schemas = schemas;
+        this.functions = functions;
+        this.refResolver = refResolver;
     }
 
     CopyFromAnalyzedStatement convertCopyFrom(CopyFrom node, Analysis analysis) {
-        DocTableInfo tableInfo = analysisMetaData.schemas().getWritableTable(
+        DocTableInfo tableInfo = schemas.getWritableTable(
             TableIdent.of(node.table(), analysis.sessionContext().defaultSchema()));
         DocTableRelation tableRelation = new DocTableRelation(tableInfo);
         Operation.blockedRaiseException(tableInfo, Operation.INSERT);
@@ -94,7 +98,12 @@ class CopyAnalyzer {
                 analysis.parameterContext().parameters());
         }
 
-        EvaluatingNormalizer normalizer = new EvaluatingNormalizer(analysisMetaData, tableRelation, true);
+        EvaluatingNormalizer normalizer = new EvaluatingNormalizer(
+            functions,
+            RowGranularity.CLUSTER,
+            refResolver,
+            tableRelation,
+            ReplaceMode.MUTATE);
         ExpressionAnalyzer expressionAnalyzer = createExpressionAnalyzer(analysis, tableRelation);
         expressionAnalyzer.setResolveFieldsOperation(Operation.INSERT);
         ExpressionAnalysisContext expressionAnalysisContext = new ExpressionAnalysisContext();
@@ -122,7 +131,7 @@ class CopyAnalyzer {
 
     private ExpressionAnalyzer createExpressionAnalyzer(Analysis analysis, DocTableRelation tableRelation) {
         return new ExpressionAnalyzer(
-            analysisMetaData.functions(),
+            functions,
             analysis.sessionContext(),
             analysis.parameterContext(),
             new NameFieldProvider(tableRelation));
@@ -147,7 +156,7 @@ class CopyAnalyzer {
             throw new UnsupportedOperationException("Using COPY TO without specifying a DIRECTORY is deprecated");
         }
 
-        TableInfo tableInfo = analysisMetaData.schemas().getTableInfo(
+        TableInfo tableInfo = schemas.getTableInfo(
             TableIdent.of(node.table(), analysis.sessionContext().defaultSchema()));
         if (!(tableInfo instanceof DocTableInfo)) {
             throw new UnsupportedOperationException(String.format(Locale.ENGLISH,
@@ -156,7 +165,12 @@ class CopyAnalyzer {
         Operation.blockedRaiseException(tableInfo, Operation.READ);
         DocTableRelation tableRelation = new DocTableRelation((DocTableInfo) tableInfo);
 
-        EvaluatingNormalizer normalizer = new EvaluatingNormalizer(analysisMetaData, tableRelation, true);
+        EvaluatingNormalizer normalizer = new EvaluatingNormalizer(
+            functions,
+            RowGranularity.CLUSTER,
+            refResolver,
+            tableRelation,
+            ReplaceMode.MUTATE);
         ExpressionAnalyzer expressionAnalyzer = createExpressionAnalyzer(analysis, tableRelation);
         ExpressionAnalysisContext expressionAnalysisContext = new ExpressionAnalysisContext();
         Settings settings = GenericPropertiesConverter.settingsFromProperties(
@@ -257,7 +271,8 @@ class CopyAnalyzer {
                                           TransactionContext transactionContext) {
         WhereClause whereClause = null;
         if (where.isPresent()) {
-            WhereClauseAnalyzer whereClauseAnalyzer = new WhereClauseAnalyzer(analysisMetaData, tableRelation);
+            WhereClauseAnalyzer whereClauseAnalyzer = new WhereClauseAnalyzer(
+                functions, refResolver, tableRelation);
             Symbol query = expressionAnalyzer.convert(where.get(), expressionAnalysisContext);
             whereClause = new WhereClause(normalizer.normalize(query, transactionContext));
             whereClause = whereClauseAnalyzer.analyze(whereClause, transactionContext);

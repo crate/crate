@@ -123,17 +123,18 @@ public class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
         ReferenceToLiteralConverter.Context referenceToLiteralContext = new ReferenceToLiteralConverter.Context(
             statement.columns(), allReferencedReferences);
 
-        ValueNormalizer valuesNormalizer = new ValueNormalizer(analysisMetaData.schemas(),
-            new EvaluatingNormalizer(
-                analysisMetaData.functions(),
-                RowGranularity.CLUSTER,
-                analysisMetaData.referenceResolver(),
-                tableRelation,
-                false));
+        ValueNormalizer valuesNormalizer = new ValueNormalizer(analysisMetaData.schemas());
+        EvaluatingNormalizer normalizer = new EvaluatingNormalizer(
+            analysisMetaData.functions(),
+            RowGranularity.CLUSTER,
+            analysisMetaData.referenceResolver(),
+            tableRelation,
+            ReplaceMode.COPY);
         for (ValuesList valuesList : node.valuesLists()) {
             analyzeValues(
                 tableRelation,
                 valuesNormalizer,
+                normalizer,
                 expressionAnalyzer,
                 expressionAnalysisContext,
                 analysis.transactionContext(),
@@ -175,6 +176,7 @@ public class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
 
     private void analyzeValues(DocTableRelation tableRelation,
                                ValueNormalizer valueNormalizer,
+                               EvaluatingNormalizer normalizer,
                                ExpressionAnalyzer expressionAnalyzer,
                                ExpressionAnalysisContext expressionAnalysisContext,
                                TransactionContext transactionContext,
@@ -198,6 +200,7 @@ public class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
                     addValues(
                         tableRelation,
                         valueNormalizer,
+                        normalizer,
                         expressionAnalyzer,
                         expressionAnalysisContext,
                         transactionContext,
@@ -216,6 +219,7 @@ public class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
                 addValues(
                     tableRelation,
                     valueNormalizer,
+                    normalizer,
                     expressionAnalyzer,
                     expressionAnalysisContext,
                     transactionContext,
@@ -237,6 +241,7 @@ public class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
 
     private void addValues(DocTableRelation tableRelation,
                            ValueNormalizer valueNormalizer,
+                           EvaluatingNormalizer normalizer,
                            ExpressionAnalyzer expressionAnalyzer,
                            ExpressionAnalysisContext expressionAnalysisContext,
                            TransactionContext transactionContext,
@@ -259,14 +264,16 @@ public class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
 
         for (int i = 0, valuesSize = node.values().size(); i < valuesSize; i++) {
             Expression expression = node.values().get(i);
-            Symbol valuesSymbol = expressionAnalyzer.convert(expression, expressionAnalysisContext);
+            Symbol valuesSymbol = normalizer.normalize(
+                expressionAnalyzer.convert(expression, expressionAnalysisContext),
+                transactionContext);
 
             // implicit type conversion
             Reference column = context.columns().get(i);
             final ColumnIdent columnIdent = column.ident().columnIdent();
             Object value;
             try {
-                valuesSymbol = valueNormalizer.normalizeInputForReference(valuesSymbol, column, transactionContext);
+                valuesSymbol = valueNormalizer.normalizeInputForReference(valuesSymbol, column);
                 value = ((Input) valuesSymbol).value();
             } catch (IllegalArgumentException | UnsupportedOperationException e) {
                 throw new ColumnValidationException(columnIdent.sqlFqn(), e);
@@ -321,12 +328,10 @@ public class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
                     (Field) expressionAnalyzer.convert(assignment.columnName(), expressionAnalysisContext));
                 assert columnName != null;
 
-                Symbol assignmentExpression = valueNormalizer.normalizeInputForReference(
+                Symbol valueSymbol = normalizer.normalize(
                     valuesAwareExpressionAnalyzer.convert(assignment.expression(), expressionAnalysisContext),
-                    columnName,
-                    transactionContext
-                );
-                assignmentExpression = valueNormalizer.normalize(assignmentExpression, transactionContext);
+                    transactionContext);
+                Symbol assignmentExpression = valueNormalizer.normalizeInputForReference(valueSymbol, columnName);
                 onDupKeyAssignments[i] = assignmentExpression;
 
                 if (valuesResolver.assignmentColumns.size() == i) {
@@ -342,7 +347,7 @@ public class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
         GeneratedExpressionContext ctx = new GeneratedExpressionContext(
             tableRelation,
             context,
-            valueNormalizer,
+            normalizer,
             expressionAnalyzer,
             transactionContext,
             referenceToLiteralContext,
@@ -425,7 +430,7 @@ public class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
         private final ReferenceToLiteralConverter.Context referenceToLiteralContext;
         private final TransactionContext transactionContext;
         private final List<BytesRef> primaryKeyValues;
-        private final ValueNormalizer normalizer;
+        private final EvaluatingNormalizer normalizer;
 
         private Object[] insertValues;
         private
@@ -434,7 +439,7 @@ public class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
 
         private GeneratedExpressionContext(DocTableRelation tableRelation,
                                            InsertFromValuesAnalyzedStatement analyzedStatement,
-                                           ValueNormalizer normalizer,
+                                           EvaluatingNormalizer normalizer,
                                            ExpressionAnalyzer expressionAnalyzer,
                                            TransactionContext transactionContext,
                                            ReferenceToLiteralConverter.Context referenceToLiteralContext,

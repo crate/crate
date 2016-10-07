@@ -94,7 +94,7 @@ public class EvaluatingNormalizerTest extends CrateUnitTest {
     @Test
     public void testEvaluation() {
         EvaluatingNormalizer visitor = new EvaluatingNormalizer(
-            functions, RowGranularity.NODE, referenceResolver);
+            functions, RowGranularity.NODE, referenceResolver, null, ReplaceMode.MUTATE);
 
         Function op_or = prepareFunctionTree();
 
@@ -107,7 +107,7 @@ public class EvaluatingNormalizerTest extends CrateUnitTest {
     @Test
     public void testEvaluationClusterGranularity() {
         EvaluatingNormalizer visitor = new EvaluatingNormalizer(
-            functions, RowGranularity.CLUSTER, referenceResolver);
+            functions, RowGranularity.CLUSTER, referenceResolver, null, ReplaceMode.COPY);
 
         Function op_or = prepareFunctionTree();
         Symbol query = visitor.normalize(op_or, transactionContext);

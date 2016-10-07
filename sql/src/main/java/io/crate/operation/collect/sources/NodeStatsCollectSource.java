@@ -28,10 +28,7 @@ import io.crate.analyze.EvaluatingNormalizer;
 import io.crate.analyze.WhereClause;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.executor.transport.TransportActionProvider;
-import io.crate.metadata.Functions;
-import io.crate.metadata.LocalSysColReferenceResolver;
-import io.crate.metadata.RowCollectExpression;
-import io.crate.metadata.RowGranularity;
+import io.crate.metadata.*;
 import io.crate.metadata.sys.SysNodesTableInfo;
 import io.crate.operation.collect.CollectInputSymbolVisitor;
 import io.crate.operation.collect.CrateCollector;
@@ -94,8 +91,9 @@ public class NodeStatsCollectSource implements CollectSource {
     }
 
     @Nullable
-    protected static Collection<DiscoveryNode> nodeIds(WhereClause whereClause, Collection<DiscoveryNode> nodes,
-                                                       Functions functions) {
+    static Collection<DiscoveryNode> nodeIds(WhereClause whereClause,
+                                             Collection<DiscoveryNode> nodes,
+                                             Functions functions) {
         if (!whereClause.hasQuery()) {
             return nodes;
         }
@@ -105,7 +103,9 @@ public class NodeStatsCollectSource implements CollectSource {
         EvaluatingNormalizer normalizer = new EvaluatingNormalizer(
             functions,
             RowGranularity.DOC,
-            localSysColReferenceResolver
+            localSysColReferenceResolver,
+            null,
+            ReplaceMode.COPY
         );
         List<DiscoveryNode> newNodes = new ArrayList<>();
         for (DiscoveryNode node : nodes) {

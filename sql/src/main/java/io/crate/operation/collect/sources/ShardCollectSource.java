@@ -36,6 +36,7 @@ import io.crate.exceptions.UnhandledServerException;
 import io.crate.executor.transport.TransportActionProvider;
 import io.crate.metadata.Functions;
 import io.crate.metadata.PartitionName;
+import io.crate.metadata.ReplaceMode;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.shard.unassigned.UnassignedShard;
 import io.crate.operation.ImplementationSymbolVisitor;
@@ -150,9 +151,12 @@ public class ShardCollectSource implements CollectSource {
         RoutedCollectPhase collectPhase = (RoutedCollectPhase) phase;
         NodeSysReferenceResolver referenceResolver = new NodeSysReferenceResolver(nodeSysExpression);
         ImplementationSymbolVisitor implementationSymbolVisitor = new ImplementationSymbolVisitor(functions);
-        EvaluatingNormalizer nodeNormalizer = new EvaluatingNormalizer(functions,
+        EvaluatingNormalizer nodeNormalizer = new EvaluatingNormalizer(
+            functions,
             RowGranularity.DOC,
-            referenceResolver);
+            referenceResolver,
+            null,
+            ReplaceMode.COPY);
         RoutedCollectPhase normalizedPhase = collectPhase.normalize(nodeNormalizer, null);
 
         ProjectorFactory projectorFactory = new ProjectionToProjectorVisitor(

@@ -192,13 +192,13 @@ public class InsertFromSubQueryAnalyzer {
             analysisMetaData.functions(), sessionContext, parameterContext, fieldProvider);
         ExpressionAnalysisContext expressionAnalysisContext = new ExpressionAnalysisContext();
 
-        ValueNormalizer valuesNormalizer = new ValueNormalizer(analysisMetaData.schemas(),
-            new EvaluatingNormalizer(
-                analysisMetaData.functions(),
-                RowGranularity.CLUSTER,
-                analysisMetaData.referenceResolver(),
-                tableRelation,
-                false));
+        EvaluatingNormalizer normalizer = new EvaluatingNormalizer(
+            analysisMetaData.functions(),
+            RowGranularity.CLUSTER,
+            analysisMetaData.referenceResolver(),
+            tableRelation,
+            ReplaceMode.COPY);
+        ValueNormalizer valuesNormalizer = new ValueNormalizer(analysisMetaData.schemas());
 
         ValuesResolver valuesResolver = new ValuesResolver(tableRelation, targetColumns);
         ValuesAwareExpressionAnalyzer valuesAwareExpressionAnalyzer = new ValuesAwareExpressionAnalyzer(
@@ -210,10 +210,10 @@ public class InsertFromSubQueryAnalyzer {
                 (Field) expressionAnalyzer.convert(assignment.columnName(), expressionAnalysisContext));
             assert columnName != null;
 
-            Symbol assignmentExpression = valuesNormalizer.normalizeInputForReference(
+            Symbol valueSymbol = normalizer.normalize(
                 valuesAwareExpressionAnalyzer.convert(assignment.expression(), expressionAnalysisContext),
-                columnName,
                 transactionContext);
+            Symbol assignmentExpression = valuesNormalizer.normalizeInputForReference(valueSymbol, columnName);
 
             updateAssignments.put(columnName, assignmentExpression);
         }

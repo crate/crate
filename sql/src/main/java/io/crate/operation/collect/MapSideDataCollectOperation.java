@@ -26,6 +26,7 @@ import com.google.common.collect.Collections2;
 import io.crate.analyze.EvaluatingNormalizer;
 import io.crate.metadata.Functions;
 import io.crate.metadata.NestedReferenceResolver;
+import io.crate.metadata.ReplaceMode;
 import io.crate.metadata.RowGranularity;
 import io.crate.operation.ThreadPools;
 import io.crate.operation.collect.sources.CollectSource;
@@ -67,7 +68,8 @@ public class MapSideDataCollectOperation {
         this.collectSourceResolver = collectSourceResolver;
         this.threadPool = threadPool;
 
-        clusterNormalizer = new EvaluatingNormalizer(functions, RowGranularity.CLUSTER, clusterReferenceResolver);
+        clusterNormalizer = new EvaluatingNormalizer(
+            functions, RowGranularity.CLUSTER, clusterReferenceResolver, null, ReplaceMode.COPY);
     }
 
     /**
@@ -102,8 +104,8 @@ public class MapSideDataCollectOperation {
             switch (routedCollectPhase.maxRowGranularity()) {
                 case NODE:
                 case DOC:
-                    EvaluatingNormalizer normalizer =
-                        new EvaluatingNormalizer(functions, RowGranularity.DOC, new NodeSysReferenceResolver(nodeSysExpression));
+                    EvaluatingNormalizer normalizer = new EvaluatingNormalizer(
+                        functions, RowGranularity.DOC, new NodeSysReferenceResolver(nodeSysExpression), null, ReplaceMode.COPY);
                     return collectPhase.normalize(normalizer, null);
             }
         }

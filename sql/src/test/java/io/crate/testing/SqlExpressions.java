@@ -23,7 +23,6 @@
 package io.crate.testing;
 
 import io.crate.action.sql.SessionContext;
-import io.crate.analyze.AnalysisMetaData;
 import io.crate.analyze.EvaluatingNormalizer;
 import io.crate.analyze.ParamTypeHints;
 import io.crate.analyze.ParameterContext;
@@ -49,21 +48,18 @@ import javax.annotation.Nullable;
 import java.util.Collections;
 import java.util.Map;
 
-import static org.mockito.Mockito.mock;
-
 public class SqlExpressions {
 
     private final ExpressionAnalyzer expressionAnalyzer;
     private final ExpressionAnalysisContext expressionAnalysisCtx;
     private final Injector injector;
-    private final AnalysisMetaData analysisMetaData;
     private final TransactionContext transactionContext;
     private final EvaluatingNormalizer normalizer;
+    private final Functions functions;
 
     public SqlExpressions(Map<QualifiedName, AnalyzedRelation> sources) {
         this(sources, null, null);
     }
-
 
     public SqlExpressions(Map<QualifiedName, AnalyzedRelation> sources, Object[] parameters) {
         this(sources, null, parameters);
@@ -89,16 +85,16 @@ public class SqlExpressions {
                 throw new UnsupportedOperationException("getImplementation not implemented");
             }
         };
-        Schemas schemas = mock(Schemas.class);
-        analysisMetaData = new AnalysisMetaData(injector.getInstance(Functions.class), schemas, referenceResolver);
+        functions = injector.getInstance(Functions.class);
         expressionAnalyzer = new ExpressionAnalyzer(
-            analysisMetaData.functions(),
+            functions,
             SessionContext.SYSTEM_SESSION,
             parameters == null
                 ? ParamTypeHints.EMPTY
                 : new ParameterContext(new RowN(parameters), Collections.<Row>emptyList()),
             new FullQualifedNameFieldProvider(sources));
-        normalizer = new EvaluatingNormalizer(analysisMetaData, fieldResolver, false);
+        normalizer = new EvaluatingNormalizer(
+            functions, RowGranularity.DOC, referenceResolver, fieldResolver, ReplaceMode.MUTATE);
         expressionAnalysisCtx = new ExpressionAnalysisContext();
         transactionContext = new TransactionContext();
     }
@@ -115,7 +111,7 @@ public class SqlExpressions {
         return injector.getInstance(clazz);
     }
 
-    public AnalysisMetaData analysisMD() {
-        return analysisMetaData;
+    public Functions functions() {
+        return functions;
     }
 }

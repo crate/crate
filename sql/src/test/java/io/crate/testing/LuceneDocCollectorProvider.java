@@ -84,7 +84,9 @@ public class LuceneDocCollectorProvider implements AutoCloseable {
                 public ReferenceImplementation<?> getImplementation(Reference refInfo) {
                     return null;
                 }
-            }
+            },
+            null,
+            ReplaceMode.COPY
         );
     }
 

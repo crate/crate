@@ -32,13 +32,11 @@ import io.crate.analyze.symbol.Symbols;
 import io.crate.analyze.where.WhereClauseAnalyzer;
 import io.crate.exceptions.ColumnValidationException;
 import io.crate.exceptions.UnsupportedFeatureException;
-import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.Reference;
-import io.crate.metadata.RowGranularity;
-import io.crate.metadata.TransactionContext;
+import io.crate.metadata.*;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.table.Operation;
 import io.crate.metadata.table.TableInfo;
+import io.crate.operation.reference.ReferenceResolver;
 import io.crate.sql.tree.Assignment;
 import io.crate.sql.tree.Update;
 import io.crate.types.ArrayType;
@@ -67,16 +65,17 @@ public class UpdateAnalyzer {
     };
 
 
-    private final AnalysisMetaData analysisMetaData;
+    private final Functions functions;
+    private final ReferenceResolver<?> refResolver;
     private final RelationAnalyzer relationAnalyzer;
     private final ValueNormalizer valueNormalizer;
 
 
-    UpdateAnalyzer(AnalysisMetaData analysisMetaData, RelationAnalyzer relationAnalyzer) {
-        this.analysisMetaData = analysisMetaData;
+    UpdateAnalyzer(Schemas schemas, Functions functions, ReferenceResolver<?> refResolver, RelationAnalyzer relationAnalyzer) {
+        this.functions = functions;
+        this.refResolver = refResolver;
         this.relationAnalyzer = relationAnalyzer;
-        this.valueNormalizer = new ValueNormalizer(analysisMetaData.schemas(), new EvaluatingNormalizer(
-            analysisMetaData.functions(), RowGranularity.CLUSTER, analysisMetaData.referenceResolver()));
+        this.valueNormalizer = new ValueNormalizer(schemas);
     }
 
     public AnalyzedStatement analyze(Update node, Analysis analysis) {
@@ -84,16 +83,21 @@ public class UpdateAnalyzer {
             analysis.sessionContext(),
             analysis.parameterContext(),
             analysis.transactionContext(),
-            analysisMetaData.functions(),
+            functions,
             Operation.UPDATE);
         RelationAnalysisContext currentRelationContext = statementAnalysisContext.startRelation();
         AnalyzedRelation analyzedRelation = relationAnalyzer.analyze(node.relation(), statementAnalysisContext);
 
         FieldResolver fieldResolver = (FieldResolver) analyzedRelation;
-        EvaluatingNormalizer normalizer = new EvaluatingNormalizer(analysisMetaData, fieldResolver, true);
+        EvaluatingNormalizer normalizer = new EvaluatingNormalizer(
+            functions,
+            RowGranularity.CLUSTER,
+            refResolver,
+            fieldResolver,
+            ReplaceMode.MUTATE);
         FieldProvider columnFieldProvider = new NameFieldProvider(analyzedRelation);
         ExpressionAnalyzer columnExpressionAnalyzer = new ExpressionAnalyzer(
-            analysisMetaData.functions(),
+            functions,
             analysis.sessionContext(),
             analysis.parameterContext(),
             columnFieldProvider);
@@ -101,7 +105,7 @@ public class UpdateAnalyzer {
 
         assert Iterables.getOnlyElement(currentRelationContext.sources().values()) == analyzedRelation;
         ExpressionAnalyzer expressionAnalyzer = new ExpressionAnalyzer(
-            analysisMetaData.functions(),
+            functions,
             analysis.sessionContext(),
             analysis.parameterContext(),
             new FullQualifedNameFieldProvider(currentRelationContext.sources()));
@@ -114,7 +118,8 @@ public class UpdateAnalyzer {
 
         WhereClauseAnalyzer whereClauseAnalyzer = null;
         if (analyzedRelation instanceof DocTableRelation) {
-            whereClauseAnalyzer = new WhereClauseAnalyzer(analysisMetaData, ((DocTableRelation) analyzedRelation));
+            whereClauseAnalyzer = new WhereClauseAnalyzer(
+                functions, refResolver, ((DocTableRelation) analyzedRelation));
         }
         TableInfo tableInfo = ((AbstractTableRelation) analyzedRelation).tableInfo();
 
@@ -177,7 +182,7 @@ public class UpdateAnalyzer {
         Symbol value = normalizer.normalize(
             expressionAnalyzer.convert(node.expression(), expressionAnalysisContext), transactionContext);
         try {
-            value = valueNormalizer.normalizeInputForReference(value, reference, transactionContext);
+            value = valueNormalizer.normalizeInputForReference(value, reference);
         } catch (IllegalArgumentException | UnsupportedOperationException e) {
             throw new ColumnValidationException(ident.sqlFqn(), e);
         }

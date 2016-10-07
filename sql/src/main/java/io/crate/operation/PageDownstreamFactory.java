@@ -28,6 +28,7 @@ import io.crate.core.collections.Row;
 import io.crate.executor.transport.TransportActionProvider;
 import io.crate.metadata.Functions;
 import io.crate.metadata.NestedReferenceResolver;
+import io.crate.metadata.ReplaceMode;
 import io.crate.metadata.RowGranularity;
 import io.crate.operation.merge.IteratorPageDownstream;
 import io.crate.operation.merge.PagingIterator;
@@ -65,7 +66,12 @@ public class PageDownstreamFactory {
                                  NestedReferenceResolver referenceResolver,
                                  Functions functions) {
         ImplementationSymbolVisitor implementationSymbolVisitor = new ImplementationSymbolVisitor(functions);
-        EvaluatingNormalizer normalizer = new EvaluatingNormalizer(functions, RowGranularity.DOC, referenceResolver);
+        EvaluatingNormalizer normalizer = new EvaluatingNormalizer(
+            functions,
+            RowGranularity.DOC,
+            referenceResolver,
+            null,
+            ReplaceMode.COPY);
         this.projectionToProjectorVisitor = new ProjectionToProjectorVisitor(
             clusterService,
             functions,

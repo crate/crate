@@ -23,7 +23,6 @@
 package io.crate.analyze.expressions;
 
 import com.google.common.base.Preconditions;
-import io.crate.analyze.EvaluatingNormalizer;
 import io.crate.analyze.symbol.DynamicReference;
 import io.crate.analyze.symbol.Literal;
 import io.crate.analyze.symbol.Symbol;
@@ -35,7 +34,6 @@ import io.crate.exceptions.ConversionException;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
 import io.crate.metadata.Schemas;
-import io.crate.metadata.TransactionContext;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.ColumnPolicy;
 import io.crate.metadata.table.TableInfo;
@@ -50,11 +48,9 @@ import java.util.Map;
 public class ValueNormalizer {
 
     private Schemas schemas;
-    private EvaluatingNormalizer normalizer;
 
-    public ValueNormalizer(Schemas schemas, EvaluatingNormalizer normalizer) {
+    public ValueNormalizer(Schemas schemas) {
         this.schemas = schemas;
-        this.normalizer = normalizer;
     }
 
     /**
@@ -65,8 +61,7 @@ public class ValueNormalizer {
      * @return the normalized Symbol, should be a literal
      * @throws io.crate.exceptions.ColumnValidationException
      */
-    public Symbol normalizeInputForReference(Symbol valueSymbol, Reference reference, TransactionContext transactionContext) {
-        valueSymbol = normalizer.normalize(valueSymbol, transactionContext);
+    public Symbol normalizeInputForReference(Symbol valueSymbol, Reference reference) {
         assert valueSymbol != null : "valueSymbol must not be null";
 
         DataType<?> targetType = getTargetType(valueSymbol, reference);
@@ -180,9 +175,5 @@ public class ValueNormalizer {
                 String.format(Locale.ENGLISH, "Invalid %s", info.valueType().getName())
             );
         }
-    }
-
-    public Symbol normalize(Symbol symbol, TransactionContext transactionContext) {
-        return normalizer.normalize(symbol, transactionContext);
     }
 }

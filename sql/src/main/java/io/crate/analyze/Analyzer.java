@@ -24,6 +24,8 @@ import io.crate.action.sql.SessionContext;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.QueriedRelation;
 import io.crate.analyze.relations.RelationAnalyzer;
+import io.crate.metadata.Functions;
+import io.crate.metadata.NestedReferenceResolver;
 import io.crate.metadata.Schemas;
 import io.crate.sql.tree.*;
 import org.elasticsearch.cluster.ClusterService;
@@ -62,7 +64,9 @@ public class Analyzer {
     private final UnboundAnalyzer unboundAnalyzer;
 
     @Inject
-    public Analyzer(AnalysisMetaData analysisMetaData,
+    public Analyzer(Schemas schemas,
+                    Functions functions,
+                    NestedReferenceResolver refResolver,
                     ClusterService clusterService,
                     RelationAnalyzer relationAnalyzer,
                     CreateTableStatementAnalyzer createTableStatementAnalyzer,
@@ -76,7 +80,6 @@ public class Analyzer {
                     DropSnapshotAnalyzer dropSnapshotAnalyzer,
                     CreateSnapshotAnalyzer createSnapshotAnalyzer,
                     RestoreSnapshotAnalyzer restoreSnapshotAnalyzer) {
-        Schemas schemas = analysisMetaData.schemas();
         this.relationAnalyzer = relationAnalyzer;
         this.dropTableAnalyzer = new DropTableAnalyzer(schemas);
         this.dropBlobTableAnalyzer = new DropBlobTableAnalyzer(schemas);
@@ -94,9 +97,9 @@ public class Analyzer {
         this.alterTableAddColumnAnalyzer = alterTableAddColumnAnalyzer;
         this.insertFromValuesAnalyzer = insertFromValuesAnalyzer;
         this.insertFromSubQueryAnalyzer = insertFromSubQueryAnalyzer;
-        this.copyAnalyzer = new CopyAnalyzer(analysisMetaData);
-        this.updateAnalyzer = new UpdateAnalyzer(analysisMetaData, relationAnalyzer);
-        this.deleteAnalyzer = new DeleteAnalyzer(analysisMetaData, relationAnalyzer);
+        this.copyAnalyzer = new CopyAnalyzer(schemas, functions, refResolver);
+        this.updateAnalyzer = new UpdateAnalyzer(schemas, functions, refResolver, relationAnalyzer);
+        this.deleteAnalyzer = new DeleteAnalyzer(functions, refResolver, relationAnalyzer);
         this.dropRepositoryAnalyzer = dropRepositoryAnalyzer;
         this.createRepositoryAnalyzer = createRepositoryAnalyzer;
         this.dropSnapshotAnalyzer = dropSnapshotAnalyzer;

@@ -132,17 +132,20 @@ public abstract class AbstractPlannerTest extends CrateUnitTest {
             .createInjector();
         analyzer = injector.getInstance(Analyzer.class);
         planner = injector.getInstance(Planner.class);
+        Functions functions = injector.getInstance(Functions.class);
         normalizer = new EvaluatingNormalizer(
-            injector.getInstance(Functions.class),
+            functions,
             RowGranularity.CLUSTER,
             new NestedReferenceResolver() {
                 @Override
                 public ReferenceImplementation<?> getImplementation(Reference refInfo) {
                     return null;
                 }
-            });
+            },
+            null,
+            ReplaceMode.COPY);
 
-        bindGeneratedColumnTable(injector.getInstance(Functions.class));
+        bindGeneratedColumnTable(functions);
     }
 
     @After

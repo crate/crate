@@ -30,6 +30,7 @@ import io.crate.analyze.relations.QuerySplitter;
 import io.crate.analyze.symbol.*;
 import io.crate.metadata.Functions;
 import io.crate.metadata.NestedReferenceResolver;
+import io.crate.metadata.ReplaceMode;
 import io.crate.metadata.RowGranularity;
 import io.crate.operation.operator.AndOperator;
 import io.crate.planner.node.dql.join.JoinType;
@@ -53,7 +54,7 @@ public class Rewriter {
             RowGranularity.CLUSTER,
             globalRefResolver,
             null,
-            false
+            ReplaceMode.COPY
         );
     }
 
