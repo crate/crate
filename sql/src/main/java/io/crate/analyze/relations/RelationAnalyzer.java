@@ -57,15 +57,16 @@ import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 
 import javax.annotation.Nullable;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+import java.util.Locale;
 
 @Singleton
 public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, StatementAnalysisContext> {
 
     private final ClusterService clusterService;
     private final AnalysisMetaData analysisMetaData;
-    private static final EnumSet<Join.Type> ALLOWED_JOIN_TYPES =
-        EnumSet.of(Join.Type.CROSS, Join.Type.INNER, Join.Type.LEFT, Join.Type.RIGHT, Join.Type.FULL);
     private static final List<Relation> SYS_CLUSTER_SOURCE = ImmutableList.<Relation>of(
         new Table(new QualifiedName(
             ImmutableList.of(SysClusterTableInfo.IDENT.schema(), SysClusterTableInfo.IDENT.name()))
@@ -118,10 +119,6 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
 
     @Override
     protected AnalyzedRelation visitJoin(Join node, StatementAnalysisContext statementContext) {
-        if (!ALLOWED_JOIN_TYPES.contains(node.getType())) {
-            throw new UnsupportedOperationException(
-                "Explicit " + node.getType().name() + " join syntax is not supported");
-        }
         process(node.getLeft(), statementContext);
         process(node.getRight(), statementContext);
 
