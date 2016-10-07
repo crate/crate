@@ -34,10 +34,12 @@ import org.elasticsearch.index.query.MultiMatchQueryBuilder;
 import org.junit.Test;
 
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
 
 import static org.elasticsearch.common.collect.MapBuilder.newMapBuilder;
 import static org.hamcrest.Matchers.instanceOf;
+import static org.hamcrest.Matchers.is;
 import static org.hamcrest.core.IsEqual.equalTo;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -94,6 +96,18 @@ public class MatchQueryBuilderTest extends CrateUnitTest {
     }
 
     @Test
+    public void testSingleFieldMultipleTermsMinimumShouldMatch() throws Exception {
+        Map<String, Object> fields = MapBuilder.<String, Object>newMapBuilder().put("col1", null).map();
+        MatchQueryBuilder builder = new MatchQueryBuilder(mockMapperService(), null, new HashMap(){{
+            put("minimum_should_match", "2");
+        }});
+        Query query = builder.query(fields, new BytesRef("foo bar"));
+        assertThat(query, instanceOf(BooleanQuery.class));
+        assertThat(((BooleanQuery) query).getMinimumNumberShouldMatch(), is(2));
+
+    }
+
+    @Test
     public void testSingleFieldWithCutFrequency() throws Exception {
         MatchQueryBuilder builder = new MatchQueryBuilder(
             mockMapperService(), null, newMapBuilder().put("cutoff_frequency", 3).map());
@@ -126,6 +140,22 @@ public class MatchQueryBuilderTest extends CrateUnitTest {
     }
 
     @Test
+    public void testMultipleFieldsMultipleTermsMinimumShouldMatch() throws Exception {
+        MatchQueryBuilder builder = new io.crate.lucene.match.MultiMatchQueryBuilder(
+            mockMapperService(), new BytesRef("best_fields"), new HashMap(){{
+            put("minimum_should_match", "2");
+        }});
+        Map<String, Object> fields = MapBuilder.<String, Object>newMapBuilder()
+            .put("col1", null)
+            .put("col2", null).map();
+        Query query = builder.query(fields, new BytesRef("foo bar"));
+        assertThat(query, instanceOf(DisjunctionMaxQuery.class));
+        for (Query q : ((DisjunctionMaxQuery) query).getDisjuncts()) {
+            assertThat(((BooleanQuery) q).getMinimumNumberShouldMatch(), is(2));
+        }
+    }
+
+    @Test
     public void testCrossFieldMatchType() throws Exception {
         Analyzer analyzer = new GermanAnalyzer();
         // TODO: FIX ME! smartMappers not available anymore
@@ -140,7 +170,7 @@ public class MatchQueryBuilderTest extends CrateUnitTest {
         when(mapperService.searchAnalyzer()).thenReturn(analyzer);
 
         MatchQueryBuilder builder = new io.crate.lucene.match.MultiMatchQueryBuilder(
-                mapperService, cache, new BytesRef("cross_fields"), Collections.emptyMap());
+                mapperService, new BytesRef("cross_fields"), Collections.emptyMap());
         Map<String, Object> fields = MapBuilder.<String, Object>newMapBuilder()
                 .put("col1", null)
                 .put("col2", null)
