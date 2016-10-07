@@ -22,30 +22,33 @@ package io.crate.analyze;
 
 import io.crate.analyze.symbol.Literal;
 import io.crate.analyze.symbol.Symbol;
-import io.crate.analyze.symbol.format.SymbolFormatter;
 import io.crate.analyze.symbol.SymbolVisitor;
+import io.crate.analyze.symbol.format.SymbolFormatter;
 import io.crate.types.*;
 
 public class NegativeLiteralVisitor extends SymbolVisitor<Void, Literal> {
 
     @Override
     public Literal visitLiteral(Literal symbol, Void context) {
-        if (symbol.value() == null) {
+        Object value = symbol.value();
+        if (value == null) {
             return symbol;
         }
-        switch (symbol.valueType().id()) {
+        DataType valueType = symbol.valueType();
+        switch (valueType.id()) {
             case DoubleType.ID:
-                return Literal.newLiteral(symbol.valueType(), (Double)symbol.value() * -1);
+                return Literal.newLiteral(valueType, (Double) value * -1);
             case FloatType.ID:
-                return Literal.newLiteral(symbol.valueType(), (Double)symbol.value() * -1);
+                return Literal.newLiteral(valueType, (Double) value * -1);
             case ShortType.ID:
-                return Literal.newLiteral(symbol.valueType(), (Short)symbol.value() * -1);
+                return Literal.newLiteral(valueType, (Short) value * -1);
             case IntegerType.ID:
-                return Literal.newLiteral(symbol.valueType(), (Integer)symbol.value() * -1);
+                return Literal.newLiteral(valueType, (Integer) value * -1);
             case LongType.ID:
-                return Literal.newLiteral(symbol.valueType(), (Long)symbol.value() * -1);
+                return Literal.newLiteral(valueType, (Long) value * -1);
             default:
-                return symbol;
+                throw new UnsupportedOperationException(SymbolFormatter.format(
+                    "Cannot negate %s. You may need to add explicit type casts", symbol));
         }
     }
 

@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Negations of non-numeric literals now cause a query to fail instead of
+   silently ignoring the negation.
+
  - Fix: The ``minimum_should_match`` fulltext search option was ignored
    which lead to incorrect results for queries with multiple terms when
    ``minimum_should_match`` was explicitly set to a non-default value.
