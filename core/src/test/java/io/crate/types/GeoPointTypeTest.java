@@ -60,7 +60,9 @@ public class GeoPointTypeTest extends CrateUnitTest {
 
     @Test
     public void testInvalidWktToGeoPointValue() throws Exception {
-        expectedException.expectMessage("Bad Y value -123.456 is not in boundary");
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("Cannot convert \"POINT(54.321 -123.456)\" to geo_point." +
+            " Bad Y value -123.456 is not in boundary Rect(minX=-180.0,maxX=180.0,minY=-90.0,maxY=90.0)");
         DataTypes.GEO_POINT.value("POINT(54.321 -123.456)");
     }
 
