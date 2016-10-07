@@ -27,16 +27,21 @@ import com.google.common.base.Predicates;
 import com.google.common.collect.*;
 import io.crate.action.sql.Option;
 import io.crate.action.sql.SessionContext;
-import io.crate.analyze.*;
+import io.crate.analyze.DataTypeAnalyzer;
+import io.crate.analyze.NegativeLiteralVisitor;
+import io.crate.analyze.SubscriptContext;
+import io.crate.analyze.SubscriptVisitor;
 import io.crate.analyze.relations.FieldProvider;
-import io.crate.analyze.relations.FieldResolver;
 import io.crate.analyze.symbol.*;
 import io.crate.analyze.symbol.Literal;
 import io.crate.analyze.symbol.format.SymbolFormatter;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.exceptions.ConversionException;
 import io.crate.exceptions.UnsupportedFeatureException;
-import io.crate.metadata.*;
+import io.crate.metadata.FunctionIdent;
+import io.crate.metadata.FunctionInfo;
+import io.crate.metadata.Functions;
+import io.crate.metadata.Reference;
 import io.crate.metadata.table.Operation;
 import io.crate.operation.aggregation.impl.CollectSetAggregation;
 import io.crate.operation.operator.*;
@@ -84,7 +89,6 @@ public class ExpressionAnalyzer {
     private final static DataTypeAnalyzer DATA_TYPE_ANALYZER = new DataTypeAnalyzer();
     private final static NegativeLiteralVisitor NEGATIVE_LITERAL_VISITOR = new NegativeLiteralVisitor();
     private final static SubscriptVisitor SUBSCRIPT_VISITOR = new SubscriptVisitor();
-    private final EvaluatingNormalizer normalizer;
     private final SessionContext sessionContext;
     private final com.google.common.base.Function<ParameterExpression, Symbol> convertParamFunction;
     private final FieldProvider<?> fieldProvider;
@@ -94,25 +98,15 @@ public class ExpressionAnalyzer {
 
     private static final Pattern SUBSCRIPT_SPLIT_PATTERN = Pattern.compile("^([^\\.\\[]+)(\\.*)([^\\[]*)(\\['.*'\\])");
 
-    public ExpressionAnalyzer(AnalysisMetaData analysisMetaData,
+    public ExpressionAnalyzer(Functions functions,
                               SessionContext sessionContext,
                               com.google.common.base.Function<ParameterExpression, Symbol> convertParamFunction,
-                              FieldProvider fieldProvider,
-                              @Nullable FieldResolver fieldResolver) {
-        this.functions = analysisMetaData.functions();
+                              FieldProvider fieldProvider) {
+        this.functions = functions;
         this.sessionContext = sessionContext;
         this.convertParamFunction = convertParamFunction;
         this.fieldProvider = fieldProvider;
         this.innerAnalyzer = new InnerExpressionAnalyzer();
-        this.normalizer = new EvaluatingNormalizer(
-            functions, RowGranularity.CLUSTER, analysisMetaData.referenceResolver(), fieldResolver, false);
-    }
-
-    /**
-     * Use to normalize a symbol. (For example to normalize a function that contains only literals to a literal)
-     */
-    public Symbol normalize(Symbol symbol, TransactionContext context) {
-        return normalizer.normalize(symbol, context);
     }
 
     /**
@@ -131,13 +125,11 @@ public class ExpressionAnalyzer {
         return innerAnalyzer.process(expression, expressionAnalysisContext);
     }
 
-    public WhereClause generateWhereClause(Optional<Expression> whereExpression,
-                                           ExpressionAnalysisContext context,
-                                           TransactionContext transactionContext) {
+    public Symbol generateQuerySymbol(Optional<Expression> whereExpression, ExpressionAnalysisContext context) {
         if (whereExpression.isPresent()) {
-            return new WhereClause(normalize(convert(whereExpression.get(), context), transactionContext), null, null);
+            return convert(whereExpression.get(), context);
         } else {
-            return WhereClause.MATCH_ALL;
+            return Literal.BOOLEAN_TRUE;
         }
     }
 

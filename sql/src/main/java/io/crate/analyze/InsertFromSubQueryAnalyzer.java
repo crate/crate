@@ -189,7 +189,7 @@ public class InsertFromSubQueryAnalyzer {
                                                             FieldProvider fieldProvider,
                                                             List<Assignment> assignments) {
         ExpressionAnalyzer expressionAnalyzer = new ExpressionAnalyzer(
-            analysisMetaData, sessionContext, parameterContext, fieldProvider, tableRelation);
+            analysisMetaData.functions(), sessionContext, parameterContext, fieldProvider);
         ExpressionAnalysisContext expressionAnalysisContext = new ExpressionAnalysisContext();
 
         ValueNormalizer valuesNormalizer = new ValueNormalizer(analysisMetaData.schemas(),
@@ -202,7 +202,7 @@ public class InsertFromSubQueryAnalyzer {
 
         ValuesResolver valuesResolver = new ValuesResolver(tableRelation, targetColumns);
         ValuesAwareExpressionAnalyzer valuesAwareExpressionAnalyzer = new ValuesAwareExpressionAnalyzer(
-            analysisMetaData, sessionContext, parameterContext, fieldProvider, valuesResolver);
+            analysisMetaData.functions(), sessionContext, parameterContext, fieldProvider, valuesResolver);
 
         Map<Reference, Symbol> updateAssignments = new HashMap<>(assignments.size());
         for (Assignment assignment : assignments) {

@@ -236,7 +236,7 @@ public class AnalyzedTableElements {
 
         TableReferenceResolver tableReferenceResolver = new TableReferenceResolver(tableReferences);
         ExpressionAnalyzer expressionAnalyzer = new ExpressionAnalyzer(
-            analysisMetaData, sessionContext, parameterContext, tableReferenceResolver, null);
+            analysisMetaData.functions(), sessionContext, parameterContext, tableReferenceResolver);
         SymbolPrinter printer = new SymbolPrinter(analysisMetaData.functions());
         ExpressionAnalysisContext expressionAnalysisContext = new ExpressionAnalysisContext();
         for (AnalyzedColumnDefinition columnDefinition : columns) {

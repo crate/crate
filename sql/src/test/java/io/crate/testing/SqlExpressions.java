@@ -24,6 +24,7 @@ package io.crate.testing;
 
 import io.crate.action.sql.SessionContext;
 import io.crate.analyze.AnalysisMetaData;
+import io.crate.analyze.EvaluatingNormalizer;
 import io.crate.analyze.ParamTypeHints;
 import io.crate.analyze.ParameterContext;
 import io.crate.analyze.expressions.ExpressionAnalysisContext;
@@ -57,6 +58,7 @@ public class SqlExpressions {
     private final Injector injector;
     private final AnalysisMetaData analysisMetaData;
     private final TransactionContext transactionContext;
+    private final EvaluatingNormalizer normalizer;
 
     public SqlExpressions(Map<QualifiedName, AnalyzedRelation> sources) {
         this(sources, null, null);
@@ -90,13 +92,13 @@ public class SqlExpressions {
         Schemas schemas = mock(Schemas.class);
         analysisMetaData = new AnalysisMetaData(injector.getInstance(Functions.class), schemas, referenceResolver);
         expressionAnalyzer = new ExpressionAnalyzer(
-            analysisMetaData,
+            analysisMetaData.functions(),
             SessionContext.SYSTEM_SESSION,
             parameters == null
                 ? ParamTypeHints.EMPTY
                 : new ParameterContext(new RowN(parameters), Collections.<Row>emptyList()),
-            new FullQualifedNameFieldProvider(sources),
-            fieldResolver);
+            new FullQualifedNameFieldProvider(sources));
+        normalizer = new EvaluatingNormalizer(analysisMetaData, fieldResolver, false);
         expressionAnalysisCtx = new ExpressionAnalysisContext();
         transactionContext = new TransactionContext();
     }
@@ -106,7 +108,7 @@ public class SqlExpressions {
     }
 
     public Symbol normalize(Symbol symbol) {
-        return expressionAnalyzer.normalize(symbol, transactionContext);
+        return normalizer.normalize(symbol, transactionContext);
     }
 
     public <T> T getInstance(Class<T> clazz) {

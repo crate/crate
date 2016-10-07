@@ -21,6 +21,7 @@
 
 package io.crate.analyze;
 
+import com.google.common.base.Optional;
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableList;
@@ -58,6 +59,7 @@ import org.elasticsearch.common.settings.Settings;
 import javax.annotation.Nullable;
 import java.util.*;
 
+@SuppressWarnings("OptionalUsedAsFieldOrParameterType")
 class CopyAnalyzer {
 
     private final AnalysisMetaData analysisMetaData;
@@ -92,6 +94,7 @@ class CopyAnalyzer {
                 analysis.parameterContext().parameters());
         }
 
+        EvaluatingNormalizer normalizer = new EvaluatingNormalizer(analysisMetaData, tableRelation, true);
         ExpressionAnalyzer expressionAnalyzer = createExpressionAnalyzer(analysis, tableRelation);
         expressionAnalyzer.setResolveFieldsOperation(Operation.INSERT);
         ExpressionAnalysisContext expressionAnalysisContext = new ExpressionAnalysisContext();
@@ -104,7 +107,8 @@ class CopyAnalyzer {
             nodeFilters = discoveryNodePredicate(analysis.parameterContext().parameters(), properties.remove(NodeFilters.NAME));
             settings = settingsFromProperties(properties, expressionAnalyzer, expressionAnalysisContext);
         }
-        Symbol uri = convertAndNormalize(node.path(), expressionAnalyzer, expressionAnalysisContext, analysis.transactionContext());
+        Symbol uri = expressionAnalyzer.convert(node.path(), expressionAnalysisContext);
+        uri = normalizer.normalize(uri, analysis.transactionContext());
 
         if (!(uri.valueType() == DataTypes.STRING ||
               uri.valueType() instanceof CollectionType &&
@@ -115,20 +119,13 @@ class CopyAnalyzer {
         return new CopyFromAnalyzedStatement(tableInfo, settings, uri, partitionIdent, nodeFilters);
     }
 
-    private static Symbol convertAndNormalize(Expression expression,
-                                              ExpressionAnalyzer expressionAnalyzer,
-                                              ExpressionAnalysisContext expressionAnalysisContext,
-                                              TransactionContext transactionContext) {
-        return expressionAnalyzer.normalize(expressionAnalyzer.convert(expression, expressionAnalysisContext), transactionContext);
-    }
 
     private ExpressionAnalyzer createExpressionAnalyzer(Analysis analysis, DocTableRelation tableRelation) {
         return new ExpressionAnalyzer(
-            analysisMetaData,
+            analysisMetaData.functions(),
             analysis.sessionContext(),
             analysis.parameterContext(),
-            new NameFieldProvider(tableRelation),
-            tableRelation);
+            new NameFieldProvider(tableRelation));
     }
 
     private static Predicate<DiscoveryNode> discoveryNodePredicate(Row parameters, @Nullable Expression nodeFiltersExpression) {
@@ -159,6 +156,7 @@ class CopyAnalyzer {
         Operation.blockedRaiseException(tableInfo, Operation.READ);
         DocTableRelation tableRelation = new DocTableRelation((DocTableInfo) tableInfo);
 
+        EvaluatingNormalizer normalizer = new EvaluatingNormalizer(analysisMetaData, tableRelation, true);
         ExpressionAnalyzer expressionAnalyzer = createExpressionAnalyzer(analysis, tableRelation);
         ExpressionAnalysisContext expressionAnalysisContext = new ExpressionAnalysisContext();
         Settings settings = GenericPropertiesConverter.settingsFromProperties(
@@ -167,15 +165,21 @@ class CopyAnalyzer {
         WriterProjection.CompressionType compressionType = settingAsEnum(WriterProjection.CompressionType.class, settings.get(COMPRESSION_SETTINGS.name()));
         WriterProjection.OutputFormat outputFormat = settingAsEnum(WriterProjection.OutputFormat.class, settings.get(OUTPUT_FORMAT_SETTINGS.name()));
 
-        Symbol uri = convertAndNormalize(
-            node.targetUri(), expressionAnalyzer, expressionAnalysisContext, analysis.transactionContext());
+        Symbol uri = expressionAnalyzer.convert(node.targetUri(), expressionAnalysisContext);
+        uri = normalizer.normalize(uri, analysis.transactionContext());
         List<String> partitions = resolvePartitions(node, analysis, tableRelation);
 
         List<Symbol> outputs = new ArrayList<>();
         QuerySpec querySpec = new QuerySpec();
 
         WhereClause whereClause = createWhereClause(
-            node, tableRelation, partitions, expressionAnalyzer, expressionAnalysisContext, analysis.transactionContext());
+            node.whereClause(),
+            tableRelation,
+            partitions,
+            normalizer,
+            expressionAnalyzer,
+            expressionAnalysisContext,
+            analysis.transactionContext());
         querySpec.where(whereClause);
 
         Map<ColumnIdent, Symbol> overwrites = null;
@@ -185,8 +189,8 @@ class CopyAnalyzer {
         if (!node.columns().isEmpty()) {
             outputNames = new ArrayList<>(node.columns().size());
             for (Expression expression : node.columns()) {
-                Symbol symbol = convertAndNormalize(
-                    expression, expressionAnalyzer, expressionAnalysisContext, analysis.transactionContext());
+                Symbol symbol = expressionAnalyzer.convert(expression, expressionAnalysisContext);
+                symbol = normalizer.normalize(symbol, analysis.transactionContext());
                 outputNames.add(SymbolPrinter.INSTANCE.printSimple(symbol));
                 outputs.add(DocReferenceConverter.convertIf(symbol));
             }
@@ -244,18 +248,19 @@ class CopyAnalyzer {
         return partitions;
     }
 
-    private WhereClause createWhereClause(CopyTo node,
+    private WhereClause createWhereClause(Optional<Expression> where,
                                           DocTableRelation tableRelation,
                                           List<String> partitions,
+                                          EvaluatingNormalizer normalizer,
                                           ExpressionAnalyzer expressionAnalyzer,
                                           ExpressionAnalysisContext expressionAnalysisContext,
                                           TransactionContext transactionContext) {
         WhereClause whereClause = null;
-        if (node.whereClause().isPresent()) {
+        if (where.isPresent()) {
             WhereClauseAnalyzer whereClauseAnalyzer = new WhereClauseAnalyzer(analysisMetaData, tableRelation);
-            whereClause = whereClauseAnalyzer.analyze(
-                expressionAnalyzer.generateWhereClause(node.whereClause(), expressionAnalysisContext, transactionContext),
-                transactionContext);
+            Symbol query = expressionAnalyzer.convert(where.get(), expressionAnalysisContext);
+            whereClause = new WhereClause(normalizer.normalize(query, transactionContext));
+            whereClause = whereClauseAnalyzer.analyze(whereClause, transactionContext);
         }
 
         if (whereClause == null) {

@@ -103,6 +103,7 @@ final class RelationNormalizer extends AnalyzedRelationVisitor<RelationNormalize
     @Override
     public AnalyzedRelation visitMultiSourceSelect(MultiSourceSelect multiSourceSelect, Context context) {
         MultiSourceSelect relation = multiSourceSelect;
+        multiSourceSelect.querySpec().normalize(context.normalizer, context.transactionContext);
         if (context.querySpec != null) {
             QuerySpec querySpec = mergeAndReplaceFields(multiSourceSelect, context.querySpec);
             // must create a new MultiSourceSelect because paths and query spec changed
@@ -225,10 +226,12 @@ final class RelationNormalizer extends AnalyzedRelationVisitor<RelationNormalize
         private final AnalysisMetaData analysisMetaData;
         private final List<Field> fields;
         private final TransactionContext transactionContext;
+        private final EvaluatingNormalizer normalizer;
 
         private QuerySpec querySpec;
 
         public Context(AnalysisMetaData analysisMetaData, List<Field> fields, TransactionContext transactionContext) {
+            this.normalizer = new EvaluatingNormalizer(analysisMetaData, null, false);
             this.analysisMetaData = analysisMetaData;
             this.fields = fields;
             this.transactionContext = transactionContext;

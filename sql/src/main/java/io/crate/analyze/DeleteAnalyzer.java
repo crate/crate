@@ -22,7 +22,6 @@
 package io.crate.analyze;
 
 import com.google.common.base.Function;
-import com.google.common.base.Optional;
 import io.crate.analyze.expressions.ExpressionAnalysisContext;
 import io.crate.analyze.expressions.ExpressionAnalyzer;
 import io.crate.analyze.relations.*;
@@ -34,7 +33,6 @@ import io.crate.metadata.TransactionContext;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.table.Operation;
 import io.crate.sql.tree.Delete;
-import io.crate.sql.tree.Expression;
 import io.crate.sql.tree.ParameterExpression;
 
 class DeleteAnalyzer {
@@ -67,40 +65,33 @@ class DeleteAnalyzer {
 
         assert analyzedRelation instanceof DocTableRelation;
         DocTableRelation docTableRelation = (DocTableRelation) analyzedRelation;
+        EvaluatingNormalizer normalizer = new EvaluatingNormalizer(analysisMetaData, docTableRelation, true);
         DeleteAnalyzedStatement deleteAnalyzedStatement = new DeleteAnalyzedStatement(docTableRelation);
         ExpressionAnalyzer expressionAnalyzer = new ExpressionAnalyzer(
-            analysisMetaData,
+            analysisMetaData.functions(),
             analysis.sessionContext(),
             convertParamFunction,
-            new FullQualifedNameFieldProvider(relationAnalysisContext.sources()),
-            docTableRelation);
+            new FullQualifedNameFieldProvider(relationAnalysisContext.sources()));
         ExpressionAnalysisContext expressionAnalysisContext = new ExpressionAnalysisContext();
         WhereClauseAnalyzer whereClauseAnalyzer = new WhereClauseAnalyzer(analysisMetaData, deleteAnalyzedStatement.analyzedRelation());
 
         if (analysis.parameterContext().hasBulkParams()) {
             numNested = analysis.parameterContext().numBulkParams();
         }
+        TransactionContext transactionContext = analysis.transactionContext();
         for (int i = 0; i < numNested; i++) {
             analysis.parameterContext().setBulkIdx(i);
-            deleteAnalyzedStatement.whereClauses.add(generateWhereClause(
-                node.getWhere(),
-                whereClauseAnalyzer,
-                expressionAnalyzer,
-                expressionAnalysisContext,
-                analysis.transactionContext()));
+            Symbol query = expressionAnalyzer.generateQuerySymbol(node.getWhere(), expressionAnalysisContext);
+            WhereClause whereClause = new WhereClause(normalizer.normalize(query, transactionContext));
+            whereClause = validate(whereClauseAnalyzer.analyze(whereClause, transactionContext));
+            deleteAnalyzedStatement.whereClauses.add(whereClause);
         }
 
         statementAnalysisContext.endRelation();
         return deleteAnalyzedStatement;
     }
 
-    private WhereClause generateWhereClause(Optional<Expression> where,
-                                            WhereClauseAnalyzer whereClauseAnalyzer,
-                                            ExpressionAnalyzer expressionAnalyzer,
-                                            ExpressionAnalysisContext expressionAnalysisContext,
-                                            TransactionContext transactionContext) {
-        WhereClause whereClause = whereClauseAnalyzer.analyze(
-            expressionAnalyzer.generateWhereClause(where, expressionAnalysisContext, transactionContext), transactionContext);
+    private WhereClause validate(WhereClause whereClause) {
         if (!whereClause.docKeys().isPresent() && Symbols.containsColumn(whereClause.query(), DocSysColumns.VERSION)) {
             throw VERSION_SEARCH_EX;
         }

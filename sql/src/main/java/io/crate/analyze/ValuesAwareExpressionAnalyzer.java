@@ -29,6 +29,7 @@ import io.crate.analyze.relations.FieldProvider;
 import io.crate.analyze.symbol.Field;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.analyze.symbol.format.SymbolFormatter;
+import io.crate.metadata.Functions;
 import io.crate.sql.tree.Expression;
 import io.crate.sql.tree.FunctionCall;
 import io.crate.sql.tree.ParameterExpression;
@@ -66,17 +67,17 @@ public class ValuesAwareExpressionAnalyzer extends ExpressionAnalyzer {
     /**
      * used to resolve the argument column in VALUES (&lt;argumentColumn&gt;) to the literal or reference
      */
-    public interface ValuesResolver {
+    interface ValuesResolver {
 
         Symbol allocateAndResolve(Field argumentColumn);
     }
 
-    public ValuesAwareExpressionAnalyzer(AnalysisMetaData analysisMetaData,
-                                         SessionContext sessionContext,
-                                         Function<ParameterExpression, Symbol> convertParamFunction,
-                                         FieldProvider fieldProvider,
-                                         ValuesResolver valuesResolver) {
-        super(analysisMetaData, sessionContext, convertParamFunction, fieldProvider, null);
+    ValuesAwareExpressionAnalyzer(Functions functions,
+                                  SessionContext sessionContext,
+                                  Function<ParameterExpression, Symbol> convertParamFunction,
+                                  FieldProvider fieldProvider,
+                                  ValuesResolver valuesResolver) {
+        super(functions, sessionContext, convertParamFunction, fieldProvider);
         this.valuesResolver = valuesResolver;
     }
 

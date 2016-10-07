@@ -25,7 +25,6 @@ package io.crate.analyze.expressions;
 import com.google.common.collect.ImmutableMap;
 import io.crate.action.sql.Option;
 import io.crate.action.sql.SessionContext;
-import io.crate.analyze.AnalysisMetaData;
 import io.crate.analyze.ParamTypeHints;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.FullQualifedNameFieldProvider;
@@ -63,29 +62,18 @@ import static org.mockito.Mockito.when;
  */
 public class ExpressionAnalyzerTest extends CrateUnitTest {
 
-    private AnalysisMetaData mockedAnalysisMetaData;
     private ImmutableMap<QualifiedName, AnalyzedRelation> dummySources;
     private ExpressionAnalysisContext context;
-    private AnalysisMetaData analysisMetaData;
     private ParamTypeHints paramTypeHints;
+    private Functions functions;
 
     @Before
     public void prepare() throws Exception {
-        mockedAnalysisMetaData = mock(AnalysisMetaData.class);
         paramTypeHints = ParamTypeHints.EMPTY;
         DummyRelation dummyRelation = new DummyRelation("obj.x", "myObj.x", "myObj.x.AbC");
         dummySources = ImmutableMap.of(new QualifiedName("foo"), (AnalyzedRelation) dummyRelation);
         context = new ExpressionAnalysisContext();
-
-        analysisMetaData = new AnalysisMetaData(
-            getFunctions(),
-            mock(ReferenceInfos.class),
-            new NestedReferenceResolver() {
-                @Override
-                public ReferenceImplementation getImplementation(Reference refInfo) {
-                    return null;
-                }
-            });
+        functions = getFunctions();
     }
 
     @Test
@@ -93,7 +81,7 @@ public class ExpressionAnalyzerTest extends CrateUnitTest {
         expectedException.expect(UnsupportedOperationException.class);
         expectedException.expectMessage("Unsupported expression IF(1, 3)");
         ExpressionAnalyzer expressionAnalyzer = new ExpressionAnalyzer(
-            mockedAnalysisMetaData, SessionContext.SYSTEM_SESSION, paramTypeHints, new FullQualifedNameFieldProvider(dummySources), null);
+            functions, SessionContext.SYSTEM_SESSION, paramTypeHints, new FullQualifedNameFieldProvider(dummySources));
         ExpressionAnalysisContext expressionAnalysisContext = new ExpressionAnalysisContext();
 
         expressionAnalyzer.convert(SqlParser.createExpression("IF ( 1 , 3 )"), expressionAnalysisContext);
@@ -104,7 +92,7 @@ public class ExpressionAnalyzerTest extends CrateUnitTest {
         expectedException.expect(UnsupportedOperationException.class);
         expectedException.expectMessage("Unsupported expression current_time");
         ExpressionAnalyzer expressionAnalyzer = new ExpressionAnalyzer(
-            mockedAnalysisMetaData, SessionContext.SYSTEM_SESSION, paramTypeHints, new FullQualifedNameFieldProvider(dummySources), null);
+            functions, SessionContext.SYSTEM_SESSION, paramTypeHints, new FullQualifedNameFieldProvider(dummySources));
         ExpressionAnalysisContext expressionAnalysisContext = new ExpressionAnalysisContext();
 
         expressionAnalyzer.convert(SqlParser.createExpression("current_time"), expressionAnalysisContext);
@@ -113,11 +101,10 @@ public class ExpressionAnalyzerTest extends CrateUnitTest {
     @Test
     public void testQuotedSubscriptExpression() throws Exception {
         ExpressionAnalyzer expressionAnalyzer = new ExpressionAnalyzer(
-            mockedAnalysisMetaData,
+            functions,
             new SessionContext(0, EnumSet.of(Option.ALLOW_QUOTED_SUBSCRIPT), null),
             paramTypeHints,
-            new FullQualifedNameFieldProvider(dummySources),
-            null);
+            new FullQualifedNameFieldProvider(dummySources));
         ExpressionAnalysisContext expressionAnalysisContext = new ExpressionAnalysisContext();
 
         Field field1 = (Field) expressionAnalyzer.convert(SqlParser.createExpression("obj['x']"), expressionAnalysisContext);
@@ -160,7 +147,7 @@ public class ExpressionAnalyzerTest extends CrateUnitTest {
             new QualifiedName("t2"), tr2
         );
         ExpressionAnalyzer expressionAnalyzer = new ExpressionAnalyzer(
-            analysisMetaData, SessionContext.SYSTEM_SESSION, paramTypeHints, new FullQualifedNameFieldProvider(sources), null);
+            functions, SessionContext.SYSTEM_SESSION, paramTypeHints, new FullQualifedNameFieldProvider(sources));
         Function andFunction = (Function) expressionAnalyzer.convert(
             SqlParser.createExpression("not t1.id = 1 and not t2.id = 1"), context);
 

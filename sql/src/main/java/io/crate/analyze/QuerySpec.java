@@ -144,7 +144,7 @@ public class QuerySpec {
             this.where(where.normalize(normalizer, context));
         }
         if (having.isPresent()) {
-            Optional.of(having.get().normalize(normalizer, context));
+            having = Optional.of(having.get().normalize(normalizer, context));
         }
     }
 

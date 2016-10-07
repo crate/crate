@@ -126,7 +126,7 @@ public class RelationAnalysisContext {
     public ExpressionAnalyzer expressionAnalyzer() {
         if (expressionAnalyzer == null) {
             expressionAnalyzer = new ExpressionAnalyzer(
-                analysisMetaData, sessionContext, convertParamFunction, new FullQualifedNameFieldProvider(sources), null);
+                analysisMetaData.functions(), sessionContext, convertParamFunction, new FullQualifedNameFieldProvider(sources));
         }
         return expressionAnalyzer;
     }

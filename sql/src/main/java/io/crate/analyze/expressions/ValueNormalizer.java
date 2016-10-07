@@ -181,4 +181,8 @@ public class ValueNormalizer {
             );
         }
     }
+
+    public Symbol normalize(Symbol symbol, TransactionContext transactionContext) {
+        return normalizer.normalize(symbol, transactionContext);
+    }
 }

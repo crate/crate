@@ -43,7 +43,6 @@ import io.crate.exceptions.AmbiguousColumnAliasException;
 import io.crate.exceptions.RelationUnknownException;
 import io.crate.exceptions.ValidationException;
 import io.crate.metadata.TableIdent;
-import io.crate.metadata.TransactionContext;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.sys.SysClusterTableInfo;
 import io.crate.metadata.table.Operation;
@@ -63,6 +62,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Locale;
 
+@SuppressWarnings("OptionalUsedAsFieldOrParameterType")
 @Singleton
 public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, StatementAnalysisContext> {
 
@@ -157,9 +157,10 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
         }
 
         RelationAnalysisContext context = statementContext.currentRelationContext();
+        ExpressionAnalyzer expressionAnalyzer = context.expressionAnalyzer();
         ExpressionAnalysisContext expressionAnalysisContext = context.expressionAnalysisContext();
-        WhereClause whereClause = context.expressionAnalyzer()
-            .generateWhereClause(node.getWhere(), context.expressionAnalysisContext(), statementContext.transactionContext());
+        Symbol querySymbol = expressionAnalyzer.generateQuerySymbol(node.getWhere(), expressionAnalysisContext);
+        WhereClause whereClause = new WhereClause(querySymbol);
 
         SelectAnalyzer.SelectAnalysis selectAnalysis = SelectAnalyzer.analyzeSelect(node.getSelect(), context);
 
@@ -176,16 +177,14 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
         if (groupBy != null && groupBy.isEmpty()) {
             groupBy = null;
         }
-
         QuerySpec querySpec = new QuerySpec()
             .orderBy(analyzeOrderBy(selectAnalysis, node.getOrderBy(), context,
                 expressionAnalysisContext.hasAggregates || groupBy != null, isDistinct))
             .having(analyzeHaving(
                 node.getHaving(),
                 groupBy,
-                context.expressionAnalyzer(),
-                context.expressionAnalysisContext(),
-                statementContext.transactionContext()))
+                expressionAnalyzer,
+                context.expressionAnalysisContext()))
             .limit(optionalIntSymbol(node.getLimit(), context))
             .offset(optionalIntSymbol(node.getOffset(), context))
             .outputs(selectAnalysis.outputSymbols())
@@ -312,15 +311,14 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
     private HavingClause analyzeHaving(Optional<Expression> having,
                                        List<Symbol> groupBy,
                                        ExpressionAnalyzer expressionAnalyzer,
-                                       ExpressionAnalysisContext expressionAnalysisContext,
-                                       TransactionContext transactionContext) {
+                                       ExpressionAnalysisContext expressionAnalysisContext) {
         if (having.isPresent()) {
             if (!expressionAnalysisContext.hasAggregates && (groupBy == null || groupBy.isEmpty())) {
                 throw new IllegalArgumentException("HAVING clause can only be used in GROUP BY or global aggregate queries");
             }
             Symbol symbol = expressionAnalyzer.convert(having.get(), expressionAnalysisContext);
             HavingSymbolValidator.validate(symbol, groupBy);
-            return new HavingClause(expressionAnalyzer.normalize( symbol, transactionContext));
+            return new HavingClause(symbol);
         }
         return null;
     }
@@ -427,17 +425,20 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
     public AnalyzedRelation visitTableFunction(TableFunction node, StatementAnalysisContext statementContext) {
         RelationAnalysisContext context = statementContext.currentRelationContext();
         ExpressionAnalyzer expressionAnalyzer = new ExpressionAnalyzer(
-            analysisMetaData, statementContext.sessionContext(), statementContext.convertParamFunction(), new FieldProvider() {
-            @Override
-            public Symbol resolveField(QualifiedName qualifiedName, Operation operation) {
-                throw new UnsupportedOperationException("Can only resolve literals");
-            }
+            analysisMetaData.functions(),
+            statementContext.sessionContext(),
+            statementContext.convertParamFunction(),
+            new FieldProvider() {
+                @Override
+                public Symbol resolveField(QualifiedName qualifiedName, Operation operation) {
+                    throw new UnsupportedOperationException("Can only resolve literals");
+                }
 
-            @Override
-            public Symbol resolveField(QualifiedName qualifiedName, @Nullable List path, Operation operation) {
-                throw new UnsupportedOperationException("Can only resolve literals");
-            }
-        }, null);
+                @Override
+                public Symbol resolveField(QualifiedName qualifiedName, @Nullable List path, Operation operation) {
+                    throw new UnsupportedOperationException("Can only resolve literals");
+                }
+        });
 
         List<Symbol> arguments = new ArrayList<>(node.arguments().size());
         for (Expression expression : node.arguments()) {

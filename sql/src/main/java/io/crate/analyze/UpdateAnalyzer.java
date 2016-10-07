@@ -90,24 +90,21 @@ public class UpdateAnalyzer {
         AnalyzedRelation analyzedRelation = relationAnalyzer.analyze(node.relation(), statementAnalysisContext);
 
         FieldResolver fieldResolver = (FieldResolver) analyzedRelation;
+        EvaluatingNormalizer normalizer = new EvaluatingNormalizer(analysisMetaData, fieldResolver, true);
         FieldProvider columnFieldProvider = new NameFieldProvider(analyzedRelation);
-        ExpressionAnalyzer columnExpressionAnalyzer =
-            new ExpressionAnalyzer(
-                analysisMetaData,
-                analysis.sessionContext(),
-                analysis.parameterContext(),
-                columnFieldProvider,
-                fieldResolver);
+        ExpressionAnalyzer columnExpressionAnalyzer = new ExpressionAnalyzer(
+            analysisMetaData.functions(),
+            analysis.sessionContext(),
+            analysis.parameterContext(),
+            columnFieldProvider);
         columnExpressionAnalyzer.setResolveFieldsOperation(Operation.UPDATE);
 
         assert Iterables.getOnlyElement(currentRelationContext.sources().values()) == analyzedRelation;
-        ExpressionAnalyzer expressionAnalyzer =
-            new ExpressionAnalyzer(
-                analysisMetaData,
-                analysis.sessionContext(),
-                analysis.parameterContext(),
-                new FullQualifedNameFieldProvider(currentRelationContext.sources()),
-                fieldResolver);
+        ExpressionAnalyzer expressionAnalyzer = new ExpressionAnalyzer(
+            analysisMetaData.functions(),
+            analysis.sessionContext(),
+            analysis.parameterContext(),
+            new FullQualifedNameFieldProvider(currentRelationContext.sources()));
         ExpressionAnalysisContext expressionAnalysisContext = new ExpressionAnalysisContext();
 
         int numNested = 1;
@@ -125,8 +122,9 @@ public class UpdateAnalyzer {
         for (int i = 0; i < numNested; i++) {
             analysis.parameterContext().setBulkIdx(i);
 
-            WhereClause whereClause = expressionAnalyzer.generateWhereClause(
-                node.whereClause(), expressionAnalysisContext, analysis.transactionContext());
+            Symbol querySymbol = expressionAnalyzer.generateQuerySymbol(node.whereClause(), expressionAnalysisContext);
+            WhereClause whereClause = new WhereClause(normalizer.normalize(querySymbol, analysis.transactionContext()));
+
             if (whereClauseAnalyzer != null) {
                 whereClause = whereClauseAnalyzer.analyze(whereClause, analysis.transactionContext());
             }
@@ -144,6 +142,7 @@ public class UpdateAnalyzer {
                     assignment,
                     nestedAnalyzedStatement,
                     tableInfo,
+                    normalizer,
                     expressionAnalyzer,
                     columnExpressionAnalyzer,
                     expressionAnalysisContext,
@@ -160,12 +159,13 @@ public class UpdateAnalyzer {
     private void analyzeAssignment(Assignment node,
                                    UpdateAnalyzedStatement.NestedAnalyzedStatement nestedAnalyzedStatement,
                                    TableInfo tableInfo,
+                                   EvaluatingNormalizer normalizer,
                                    ExpressionAnalyzer expressionAnalyzer,
                                    ExpressionAnalyzer columnExpressionAnalyzer,
                                    ExpressionAnalysisContext expressionAnalysisContext,
                                    TransactionContext transactionContext) {
         // unknown columns in strict objects handled in here
-        Reference reference = (Reference) columnExpressionAnalyzer.normalize(
+        Reference reference = (Reference) normalizer.normalize(
             columnExpressionAnalyzer.convert(node.columnName(), expressionAnalysisContext),
             transactionContext);
 
@@ -174,7 +174,7 @@ public class UpdateAnalyzer {
             // cannot update fields of object arrays
             throw new IllegalArgumentException("Updating fields of object arrays is not supported");
         }
-        Symbol value = expressionAnalyzer.normalize(
+        Symbol value = normalizer.normalize(
             expressionAnalyzer.convert(node.expression(), expressionAnalysisContext), transactionContext);
         try {
             value = valueNormalizer.normalizeInputForReference(value, reference, transactionContext);
