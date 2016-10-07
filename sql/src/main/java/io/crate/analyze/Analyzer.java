@@ -52,7 +52,7 @@ public class Analyzer {
     private final InsertFromValuesAnalyzer insertFromValuesAnalyzer;
     private final InsertFromSubQueryAnalyzer insertFromSubQueryAnalyzer;
     private final CopyStatementAnalyzer copyStatementAnalyzer;
-    private final UpdateStatementAnalyzer updateStatementAnalyzer;
+    private final UpdateAnalyzer updateAnalyzer;
     private final DeleteStatementAnalyzer deleteStatementAnalyzer;
     private final DropRepositoryAnalyzer dropRepositoryAnalyzer;
     private final CreateRepositoryAnalyzer createRepositoryAnalyzer;
@@ -62,7 +62,7 @@ public class Analyzer {
     private final UnboundAnalyzer unboundAnalyzer;
 
     @Inject
-    public Analyzer(Schemas schemas,
+    public Analyzer(AnalysisMetaData analysisMetaData,
                     ClusterService clusterService,
                     RelationAnalyzer relationAnalyzer,
                     CreateTableStatementAnalyzer createTableStatementAnalyzer,
@@ -72,13 +72,13 @@ public class Analyzer {
                     InsertFromValuesAnalyzer insertFromValuesAnalyzer,
                     InsertFromSubQueryAnalyzer insertFromSubQueryAnalyzer,
                     CopyStatementAnalyzer copyStatementAnalyzer,
-                    UpdateStatementAnalyzer updateStatementAnalyzer,
                     DeleteStatementAnalyzer deleteStatementAnalyzer,
                     DropRepositoryAnalyzer dropRepositoryAnalyzer,
                     CreateRepositoryAnalyzer createRepositoryAnalyzer,
                     DropSnapshotAnalyzer dropSnapshotAnalyzer,
                     CreateSnapshotAnalyzer createSnapshotAnalyzer,
                     RestoreSnapshotAnalyzer restoreSnapshotAnalyzer) {
+        Schemas schemas = analysisMetaData.schemas();
         this.relationAnalyzer = relationAnalyzer;
         this.dropTableAnalyzer = new DropTableAnalyzer(schemas);
         this.dropBlobTableAnalyzer = new DropBlobTableAnalyzer(schemas);
@@ -97,7 +97,7 @@ public class Analyzer {
         this.insertFromValuesAnalyzer = insertFromValuesAnalyzer;
         this.insertFromSubQueryAnalyzer = insertFromSubQueryAnalyzer;
         this.copyStatementAnalyzer = copyStatementAnalyzer;
-        this.updateStatementAnalyzer = updateStatementAnalyzer;
+        this.updateAnalyzer = new UpdateAnalyzer(analysisMetaData, relationAnalyzer);
         this.deleteStatementAnalyzer = deleteStatementAnalyzer;
         this.dropRepositoryAnalyzer = dropRepositoryAnalyzer;
         this.createRepositoryAnalyzer = createRepositoryAnalyzer;
@@ -149,7 +149,7 @@ public class Analyzer {
 
         @Override
         public AnalyzedStatement visitUpdate(Update node, Analysis context) {
-            return updateStatementAnalyzer.analyze(node, context);
+            return updateAnalyzer.analyze(node, context);
         }
 
         @Override

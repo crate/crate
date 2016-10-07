@@ -527,7 +527,7 @@ public class UpdateAnalyzerTest extends BaseAnalyzerTest {
     @Test
     public void testUpdateWhereVersionInOperatorColumn() throws Exception {
         expectedException.expect(UnsupportedFeatureException.class);
-        expectedException.expectMessage(UpdateStatementAnalyzer.VERSION_SEARCH_EX_MSG);
+        expectedException.expectMessage(UpdateAnalyzer.VERSION_SEARCH_EX_MSG);
         analyze("update users set col2 = ? where _version in (1,2,3)",
             new Object[]{1});
     }
@@ -535,7 +535,7 @@ public class UpdateAnalyzerTest extends BaseAnalyzerTest {
     @Test
     public void testUpdateWhereVersionOrOperatorColumn() throws Exception {
         expectedException.expect(UnsupportedFeatureException.class);
-        expectedException.expectMessage(UpdateStatementAnalyzer.VERSION_SEARCH_EX_MSG);
+        expectedException.expectMessage(UpdateAnalyzer.VERSION_SEARCH_EX_MSG);
         analyze("update users set col2 = ? where _version = 1 or _version = 2",
             new Object[]{1});
     }
@@ -560,14 +560,14 @@ public class UpdateAnalyzerTest extends BaseAnalyzerTest {
     @Test
     public void testUpdateWhereVersionOrOperator() throws Exception {
         expectedException.expect(UnsupportedFeatureException.class);
-        expectedException.expectMessage(UpdateStatementAnalyzer.VERSION_SEARCH_EX_MSG);
+        expectedException.expectMessage(UpdateAnalyzer.VERSION_SEARCH_EX_MSG);
         analyze("update users set awesome =  true where _version = 1 or _version = 2");
     }
 
     @Test
     public void testUpdateWithVersionZero() throws Exception {
         expectedException.expect(UnsupportedFeatureException.class);
-        expectedException.expectMessage(UpdateStatementAnalyzer.VERSION_SEARCH_EX_MSG);
+        expectedException.expectMessage(UpdateAnalyzer.VERSION_SEARCH_EX_MSG);
         analyze("update users set awesome=true where name='Ford' and _version=0").nestedStatements().get(0);
     }
 

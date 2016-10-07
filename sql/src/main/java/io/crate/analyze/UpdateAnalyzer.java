@@ -39,21 +39,16 @@ import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.table.Operation;
 import io.crate.metadata.table.TableInfo;
 import io.crate.sql.tree.Assignment;
-import io.crate.sql.tree.DefaultTraversalVisitor;
-import io.crate.sql.tree.Node;
 import io.crate.sql.tree.Update;
 import io.crate.types.ArrayType;
 import io.crate.types.DataTypes;
-import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.inject.Singleton;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.List;
 
 
-@Singleton
-public class UpdateStatementAnalyzer extends DefaultTraversalVisitor<AnalyzedStatement, Analysis> {
+public class UpdateAnalyzer {
 
     public static final String VERSION_SEARCH_EX_MSG =
         "_version is not allowed in update queries without specifying a primary key";
@@ -76,22 +71,14 @@ public class UpdateStatementAnalyzer extends DefaultTraversalVisitor<AnalyzedSta
     private final ValueNormalizer valueNormalizer;
 
 
-    @Inject
-    public UpdateStatementAnalyzer(AnalysisMetaData analysisMetaData,
-                                   RelationAnalyzer relationAnalyzer) {
+    UpdateAnalyzer(AnalysisMetaData analysisMetaData, RelationAnalyzer relationAnalyzer) {
         this.analysisMetaData = analysisMetaData;
         this.relationAnalyzer = relationAnalyzer;
         this.valueNormalizer = new ValueNormalizer(analysisMetaData.schemas(), new EvaluatingNormalizer(
             analysisMetaData.functions(), RowGranularity.CLUSTER, analysisMetaData.referenceResolver()));
     }
 
-    public AnalyzedStatement analyze(Node node, Analysis analysis) {
-        return process(node, analysis);
-    }
-
-
-    @Override
-    public AnalyzedStatement visitUpdate(Update node, Analysis analysis) {
+    public AnalyzedStatement analyze(Update node, Analysis analysis) {
         StatementAnalysisContext statementAnalysisContext = new StatementAnalysisContext(
             analysis.sessionContext(),
             analysis.parameterContext(),

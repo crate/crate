@@ -23,7 +23,7 @@ package io.crate.integrationtests;
 
 import io.crate.action.sql.SQLActionException;
 import io.crate.action.sql.SQLBulkResponse;
-import io.crate.analyze.UpdateStatementAnalyzer;
+import io.crate.analyze.UpdateAnalyzer;
 import io.crate.testing.TestingHelpers;
 import io.crate.testing.UseJdbc;
 import org.elasticsearch.common.collect.MapBuilder;
@@ -609,7 +609,7 @@ public class UpdateIntegrationTest extends SQLTransportIntegrationTest {
     @Test
     public void testUpdateVersionOrOperator() throws Exception {
         expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage(UpdateStatementAnalyzer.VERSION_SEARCH_EX_MSG);
+        expectedException.expectMessage(UpdateAnalyzer.VERSION_SEARCH_EX_MSG);
 
         execute("create table test (id int primary key, c int) with (number_of_replicas=0, refresh_interval=0)");
         ensureGreen();
@@ -621,7 +621,7 @@ public class UpdateIntegrationTest extends SQLTransportIntegrationTest {
     @Test
     public void testUpdateVersionInOperator() throws Exception {
         expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage(UpdateStatementAnalyzer.VERSION_SEARCH_EX_MSG);
+        expectedException.expectMessage(UpdateAnalyzer.VERSION_SEARCH_EX_MSG);
 
         execute("create table test (id int primary key, c int) with (number_of_replicas=0, refresh_interval=0)");
         ensureGreen();
