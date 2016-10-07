@@ -117,7 +117,7 @@ public class DeleteStatementAnalyzer extends DefaultTraversalVisitor<AnalyzedSta
                 analysisMetaData,
                 analysis.sessionContext(),
                 convertParamFunction,
-                relationAnalysisContext.fieldProvider(),
+                new FullQualifedNameFieldProvider(relationAnalysisContext.sources()),
                 docTableRelation),
             new ExpressionAnalysisContext(analysis.statementContext()),
             deleteAnalyzedStatement,

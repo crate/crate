@@ -49,7 +49,6 @@ public class RelationAnalysisContext {
     private final Map<QualifiedName, AnalyzedRelation> sources = new LinkedHashMap<>();
 
     private ExpressionAnalyzer expressionAnalyzer;
-    private FieldProvider fieldProvider;
 
     @Nullable
     private List<JoinPair> joinPairs;
@@ -128,19 +127,13 @@ public class RelationAnalysisContext {
 
     public ExpressionAnalyzer expressionAnalyzer() {
         if (expressionAnalyzer == null) {
-            expressionAnalyzer = new ExpressionAnalyzer(analysisMetaData, sessionContext, convertParamFunction, fieldProvider(), null);
+            expressionAnalyzer = new ExpressionAnalyzer(
+                analysisMetaData, sessionContext, convertParamFunction, new FullQualifedNameFieldProvider(sources), null);
         }
         return expressionAnalyzer;
     }
 
     public ExpressionAnalysisContext expressionAnalysisContext() {
         return expressionAnalysisContext;
-    }
-
-    public FieldProvider fieldProvider() {
-        if (fieldProvider == null) {
-            fieldProvider = new FullQualifedNameFieldProvider(sources());
-        }
-        return fieldProvider;
     }
 }

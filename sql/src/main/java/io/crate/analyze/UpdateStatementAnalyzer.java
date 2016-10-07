@@ -118,7 +118,7 @@ public class UpdateStatementAnalyzer extends DefaultTraversalVisitor<AnalyzedSta
                 analysisMetaData,
                 analysis.sessionContext(),
                 analysis.parameterContext(),
-                currentRelationContext.fieldProvider(),
+                new FullQualifedNameFieldProvider(currentRelationContext.sources()),
                 fieldResolver);
         ExpressionAnalysisContext expressionAnalysisContext = new ExpressionAnalysisContext(analysis.statementContext());
 
