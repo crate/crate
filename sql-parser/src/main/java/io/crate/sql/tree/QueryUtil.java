@@ -35,20 +35,7 @@ public class QueryUtil {
         return new Select(false, items.build());
     }
 
-    public static Select selectList(SelectItem... items) {
-        return new Select(false, ImmutableList.copyOf(items));
-    }
-
     public static List<Relation> table(QualifiedName name) {
         return ImmutableList.<Relation>of(new Table(name));
     }
-
-    public static List<Relation> subquery(Query query) {
-        return ImmutableList.<Relation>of(new TableSubquery(query));
-    }
-
-    public static Expression equal(Expression left, Expression right) {
-        return new ComparisonExpression(ComparisonExpression.Type.EQUAL, left, right);
-    }
-
 }
