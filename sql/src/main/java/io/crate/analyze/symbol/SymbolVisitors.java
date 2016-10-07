@@ -28,23 +28,23 @@ public class SymbolVisitors {
 
     private static final AnyPredicateVisitor ANY_VISITOR = new AnyPredicateVisitor();
 
-    public static boolean any(Predicate<Symbol> symbolPredicate, Symbol... symbols) {
+    public static boolean any(Predicate<? super Symbol> symbolPredicate, Symbol symbol) {
+        return ANY_VISITOR.process(symbol, symbolPredicate);
+    }
+
+    public static boolean any(Predicate<? super Symbol> symbolPredicate, Symbol... symbols) {
         for (Symbol symbol : symbols) {
-            if (ANY_VISITOR.any(symbol, symbolPredicate)) {
+            if (ANY_VISITOR.process(symbol, symbolPredicate)) {
                 return true;
             }
         }
         return false;
     }
 
-    public static class AnyPredicateVisitor extends SymbolVisitor<Predicate<Symbol>, Boolean> {
-
-        public boolean any(Symbol symbol, Predicate<Symbol> symbolPredicate) {
-            return process(symbol, symbolPredicate);
-        }
+    private static class AnyPredicateVisitor extends SymbolVisitor<Predicate<? super Symbol>, Boolean> {
 
         @Override
-        public Boolean visitFunction(Function symbol, Predicate<Symbol> symbolPredicate) {
+        public Boolean visitFunction(Function symbol, Predicate<? super Symbol> symbolPredicate) {
             if (symbolPredicate.apply(symbol)) {
                 return true;
             }
@@ -57,14 +57,14 @@ public class SymbolVisitors {
         }
 
         @Override
-        public Boolean visitFetchReference(FetchReference fetchReference, Predicate<Symbol> symbolPredicate) {
+        public Boolean visitFetchReference(FetchReference fetchReference, Predicate<? super Symbol> symbolPredicate) {
             return symbolPredicate.apply(fetchReference)
                    || fetchReference.docId().accept(this, symbolPredicate)
                    || fetchReference.ref().accept(this, symbolPredicate);
         }
 
         @Override
-        public Boolean visitMatchPredicate(MatchPredicate matchPredicate, Predicate<Symbol> symbolPredicate) {
+        public Boolean visitMatchPredicate(MatchPredicate matchPredicate, Predicate<? super Symbol> symbolPredicate) {
             if (symbolPredicate.apply(matchPredicate)) {
                 return true;
             }
@@ -77,7 +77,7 @@ public class SymbolVisitors {
         }
 
         @Override
-        protected Boolean visitSymbol(Symbol symbol, Predicate<Symbol> symbolPredicate) {
+        protected Boolean visitSymbol(Symbol symbol, Predicate<? super Symbol> symbolPredicate) {
             return symbolPredicate.apply(symbol);
         }
     }

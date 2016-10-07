@@ -35,6 +35,7 @@ import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RowGranularity;
+import io.crate.metadata.TransactionContext;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.table.Operation;
 import io.crate.metadata.table.TableInfo;
@@ -107,7 +108,7 @@ public class UpdateAnalyzer {
                 analysis.parameterContext(),
                 new FullQualifedNameFieldProvider(currentRelationContext.sources()),
                 fieldResolver);
-        ExpressionAnalysisContext expressionAnalysisContext = new ExpressionAnalysisContext(analysis.transactionContext());
+        ExpressionAnalysisContext expressionAnalysisContext = new ExpressionAnalysisContext();
 
         int numNested = 1;
         if (analysis.parameterContext().numBulkParams() > 0) {
@@ -124,7 +125,8 @@ public class UpdateAnalyzer {
         for (int i = 0; i < numNested; i++) {
             analysis.parameterContext().setBulkIdx(i);
 
-            WhereClause whereClause = expressionAnalyzer.generateWhereClause(node.whereClause(), expressionAnalysisContext);
+            WhereClause whereClause = expressionAnalyzer.generateWhereClause(
+                node.whereClause(), expressionAnalysisContext, analysis.transactionContext());
             if (whereClauseAnalyzer != null) {
                 whereClause = whereClauseAnalyzer.analyze(whereClause, analysis.transactionContext());
             }
@@ -144,7 +146,8 @@ public class UpdateAnalyzer {
                     tableInfo,
                     expressionAnalyzer,
                     columnExpressionAnalyzer,
-                    expressionAnalysisContext
+                    expressionAnalysisContext,
+                    analysis.transactionContext()
                 );
             }
             nestedAnalyzedStatements.add(nestedAnalyzedStatement);
@@ -159,11 +162,12 @@ public class UpdateAnalyzer {
                                    TableInfo tableInfo,
                                    ExpressionAnalyzer expressionAnalyzer,
                                    ExpressionAnalyzer columnExpressionAnalyzer,
-                                   ExpressionAnalysisContext expressionAnalysisContext) {
+                                   ExpressionAnalysisContext expressionAnalysisContext,
+                                   TransactionContext transactionContext) {
         // unknown columns in strict objects handled in here
         Reference reference = (Reference) columnExpressionAnalyzer.normalize(
             columnExpressionAnalyzer.convert(node.columnName(), expressionAnalysisContext),
-            expressionAnalysisContext.transactionContext());
+            transactionContext);
 
         final ColumnIdent ident = reference.ident().columnIdent();
         if (hasMatchingParent(tableInfo, reference, IS_OBJECT_ARRAY)) {
@@ -171,10 +175,9 @@ public class UpdateAnalyzer {
             throw new IllegalArgumentException("Updating fields of object arrays is not supported");
         }
         Symbol value = expressionAnalyzer.normalize(
-            expressionAnalyzer.convert(node.expression(), expressionAnalysisContext),
-            expressionAnalysisContext.transactionContext());
+            expressionAnalyzer.convert(node.expression(), expressionAnalysisContext), transactionContext);
         try {
-            value = valueNormalizer.normalizeInputForReference(value, reference, expressionAnalysisContext.transactionContext());
+            value = valueNormalizer.normalizeInputForReference(value, reference, transactionContext);
         } catch (IllegalArgumentException | UnsupportedOperationException e) {
             throw new ColumnValidationException(ident.sqlFqn(), e);
         }

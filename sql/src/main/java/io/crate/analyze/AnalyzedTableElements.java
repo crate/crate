@@ -209,11 +209,9 @@ public class AnalyzedTableElements {
                                     @Nullable TableInfo tableInfo,
                                     AnalysisMetaData analysisMetaData,
                                     ParameterContext parameterContext,
-                                    SessionContext sessionContext,
-                                    TransactionContext transactionContext
-    ) {
+                                    SessionContext sessionContext) {
         expandColumnIdents();
-        validateGeneratedColumns(tableIdent, tableInfo, analysisMetaData, parameterContext, sessionContext, transactionContext);
+        validateGeneratedColumns(tableIdent, tableInfo, analysisMetaData, parameterContext, sessionContext);
         for (AnalyzedColumnDefinition column : columns) {
             column.validate();
             addCopyToInfo(column);
@@ -226,8 +224,7 @@ public class AnalyzedTableElements {
                                           @Nullable TableInfo tableInfo,
                                           AnalysisMetaData analysisMetaData,
                                           ParameterContext parameterContext,
-                                          SessionContext sessionContext,
-                                          TransactionContext transactionContext) {
+                                          SessionContext sessionContext) {
         List<Reference> tableReferences = new ArrayList<>();
         for (AnalyzedColumnDefinition columnDefinition : columns) {
             buildReference(tableIdent, columnDefinition, tableReferences);
@@ -241,7 +238,7 @@ public class AnalyzedTableElements {
         ExpressionAnalyzer expressionAnalyzer = new ExpressionAnalyzer(
             analysisMetaData, sessionContext, parameterContext, tableReferenceResolver, null);
         SymbolPrinter printer = new SymbolPrinter(analysisMetaData.functions());
-        ExpressionAnalysisContext expressionAnalysisContext = new ExpressionAnalysisContext(transactionContext);
+        ExpressionAnalysisContext expressionAnalysisContext = new ExpressionAnalysisContext();
         for (AnalyzedColumnDefinition columnDefinition : columns) {
             if (columnDefinition.generatedExpression() != null) {
                 processGeneratedExpression(expressionAnalyzer, printer, columnDefinition, expressionAnalysisContext);

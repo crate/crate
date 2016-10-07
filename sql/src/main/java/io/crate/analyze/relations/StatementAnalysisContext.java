@@ -67,7 +67,7 @@ public class StatementAnalysisContext {
 
     RelationAnalysisContext startRelation(boolean aliasedRelation) {
         RelationAnalysisContext currentRelationContext = new RelationAnalysisContext(
-            sessionContext, convertParamFunction, transactionContext, analysisMetaData, aliasedRelation);
+            sessionContext, convertParamFunction, analysisMetaData, aliasedRelation);
         lastRelationContextQueue.add(currentRelationContext);
         return currentRelationContext;
     }

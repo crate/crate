@@ -43,6 +43,7 @@ import io.crate.exceptions.AmbiguousColumnAliasException;
 import io.crate.exceptions.RelationUnknownException;
 import io.crate.exceptions.ValidationException;
 import io.crate.metadata.TableIdent;
+import io.crate.metadata.TransactionContext;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.sys.SysClusterTableInfo;
 import io.crate.metadata.table.Operation;
@@ -158,7 +159,7 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
         RelationAnalysisContext context = statementContext.currentRelationContext();
         ExpressionAnalysisContext expressionAnalysisContext = context.expressionAnalysisContext();
         WhereClause whereClause = context.expressionAnalyzer()
-            .generateWhereClause(node.getWhere(), context.expressionAnalysisContext());
+            .generateWhereClause(node.getWhere(), context.expressionAnalysisContext(), statementContext.transactionContext());
 
         SelectAnalyzer.SelectAnalysis selectAnalysis = SelectAnalyzer.analyzeSelect(node.getSelect(), context);
 
@@ -179,7 +180,12 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
         QuerySpec querySpec = new QuerySpec()
             .orderBy(analyzeOrderBy(selectAnalysis, node.getOrderBy(), context,
                 expressionAnalysisContext.hasAggregates || groupBy != null, isDistinct))
-            .having(analyzeHaving(node.getHaving(), groupBy, context))
+            .having(analyzeHaving(
+                node.getHaving(),
+                groupBy,
+                context.expressionAnalyzer(),
+                context.expressionAnalysisContext(),
+                statementContext.transactionContext()))
             .limit(optionalIntSymbol(node.getLimit(), context))
             .offset(optionalIntSymbol(node.getOffset(), context))
             .outputs(selectAnalysis.outputSymbols())
@@ -200,7 +206,7 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
                 relation = new QueriedSelectRelation((QueriedRelation) source, selectAnalysis.outputNames(), querySpec);
             }
             if (tableRelation != null) {
-                tableRelation.normalize(analysisMetaData, context.expressionAnalysisContext().transactionContext());
+                tableRelation.normalize(analysisMetaData, statementContext.transactionContext());
                 relation = tableRelation;
             }
         } else {
@@ -303,15 +309,18 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
         return groupBySymbols;
     }
 
-    private HavingClause analyzeHaving(Optional<Expression> having, List<Symbol> groupBy, RelationAnalysisContext context) {
+    private HavingClause analyzeHaving(Optional<Expression> having,
+                                       List<Symbol> groupBy,
+                                       ExpressionAnalyzer expressionAnalyzer,
+                                       ExpressionAnalysisContext expressionAnalysisContext,
+                                       TransactionContext transactionContext) {
         if (having.isPresent()) {
-            if (!context.expressionAnalysisContext().hasAggregates && (groupBy == null || groupBy.isEmpty())) {
+            if (!expressionAnalysisContext.hasAggregates && (groupBy == null || groupBy.isEmpty())) {
                 throw new IllegalArgumentException("HAVING clause can only be used in GROUP BY or global aggregate queries");
             }
-            Symbol symbol = context.expressionAnalyzer().convert(having.get(), context.expressionAnalysisContext());
+            Symbol symbol = expressionAnalyzer.convert(having.get(), expressionAnalysisContext);
             HavingSymbolValidator.validate(symbol, groupBy);
-            return new HavingClause(context.expressionAnalyzer().normalize(
-                symbol, context.expressionAnalysisContext().transactionContext()));
+            return new HavingClause(expressionAnalyzer.normalize( symbol, transactionContext));
         }
         return null;
     }

@@ -190,7 +190,7 @@ public class InsertFromSubQueryAnalyzer {
                                                             List<Assignment> assignments) {
         ExpressionAnalyzer expressionAnalyzer = new ExpressionAnalyzer(
             analysisMetaData, sessionContext, parameterContext, fieldProvider, tableRelation);
-        ExpressionAnalysisContext expressionAnalysisContext = new ExpressionAnalysisContext(transactionContext);
+        ExpressionAnalysisContext expressionAnalysisContext = new ExpressionAnalysisContext();
 
         ValueNormalizer valuesNormalizer = new ValueNormalizer(analysisMetaData.schemas(),
             new EvaluatingNormalizer(

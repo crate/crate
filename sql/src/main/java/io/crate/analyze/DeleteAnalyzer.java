@@ -30,6 +30,7 @@ import io.crate.analyze.symbol.Symbol;
 import io.crate.analyze.symbol.Symbols;
 import io.crate.analyze.where.WhereClauseAnalyzer;
 import io.crate.exceptions.UnsupportedFeatureException;
+import io.crate.metadata.TransactionContext;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.table.Operation;
 import io.crate.sql.tree.Delete;
@@ -73,7 +74,7 @@ class DeleteAnalyzer {
             convertParamFunction,
             new FullQualifedNameFieldProvider(relationAnalysisContext.sources()),
             docTableRelation);
-        ExpressionAnalysisContext expressionAnalysisContext = new ExpressionAnalysisContext(analysis.transactionContext());
+        ExpressionAnalysisContext expressionAnalysisContext = new ExpressionAnalysisContext();
         WhereClauseAnalyzer whereClauseAnalyzer = new WhereClauseAnalyzer(analysisMetaData, deleteAnalyzedStatement.analyzedRelation());
 
         if (analysis.parameterContext().hasBulkParams()) {
@@ -81,8 +82,12 @@ class DeleteAnalyzer {
         }
         for (int i = 0; i < numNested; i++) {
             analysis.parameterContext().setBulkIdx(i);
-            deleteAnalyzedStatement.whereClauses.add(
-                generateWhereClause(node.getWhere(), whereClauseAnalyzer, expressionAnalyzer, expressionAnalysisContext));
+            deleteAnalyzedStatement.whereClauses.add(generateWhereClause(
+                node.getWhere(),
+                whereClauseAnalyzer,
+                expressionAnalyzer,
+                expressionAnalysisContext,
+                analysis.transactionContext()));
         }
 
         statementAnalysisContext.endRelation();
@@ -92,10 +97,10 @@ class DeleteAnalyzer {
     private WhereClause generateWhereClause(Optional<Expression> where,
                                             WhereClauseAnalyzer whereClauseAnalyzer,
                                             ExpressionAnalyzer expressionAnalyzer,
-                                            ExpressionAnalysisContext expressionAnalysisContext) {
+                                            ExpressionAnalysisContext expressionAnalysisContext,
+                                            TransactionContext transactionContext) {
         WhereClause whereClause = whereClauseAnalyzer.analyze(
-            expressionAnalyzer.generateWhereClause(where, expressionAnalysisContext),
-            expressionAnalysisContext.transactionContext());
+            expressionAnalyzer.generateWhereClause(where, expressionAnalysisContext, transactionContext), transactionContext);
         if (!whereClause.docKeys().isPresent() && Symbols.containsColumn(whereClause.query(), DocSysColumns.VERSION)) {
             throw VERSION_SEARCH_EX;
         }

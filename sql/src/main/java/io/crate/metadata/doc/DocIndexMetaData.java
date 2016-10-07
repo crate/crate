@@ -481,7 +481,7 @@ public class DocIndexMetaData {
         ExpressionAnalyzer expressionAnalyzer = new ExpressionAnalyzer(
             new AnalysisMetaData(functions, null, null),
             SessionContext.SYSTEM_SESSION, ParamTypeHints.EMPTY, tableReferenceResolver, null);
-        ExpressionAnalysisContext context = new ExpressionAnalysisContext(new TransactionContext());
+        ExpressionAnalysisContext context = new ExpressionAnalysisContext();
         for (Reference reference : generatedColumnReferences) {
             GeneratedReference generatedReference = (GeneratedReference) reference;
             Expression expression = SqlParser.createExpression(generatedReference.formattedGeneratedExpression());

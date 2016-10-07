@@ -56,6 +56,7 @@ public class SqlExpressions {
     private final ExpressionAnalysisContext expressionAnalysisCtx;
     private final Injector injector;
     private final AnalysisMetaData analysisMetaData;
+    private final TransactionContext transactionContext;
 
     public SqlExpressions(Map<QualifiedName, AnalyzedRelation> sources) {
         this(sources, null, null);
@@ -96,7 +97,8 @@ public class SqlExpressions {
                 : new ParameterContext(new RowN(parameters), Collections.<Row>emptyList()),
             new FullQualifedNameFieldProvider(sources),
             fieldResolver);
-        expressionAnalysisCtx = new ExpressionAnalysisContext(new TransactionContext());
+        expressionAnalysisCtx = new ExpressionAnalysisContext();
+        transactionContext = new TransactionContext();
     }
 
     public Symbol asSymbol(String expression) {
@@ -104,7 +106,7 @@ public class SqlExpressions {
     }
 
     public Symbol normalize(Symbol symbol) {
-        return expressionAnalyzer.normalize(symbol, expressionAnalysisCtx.transactionContext());
+        return expressionAnalyzer.normalize(symbol, transactionContext);
     }
 
     public <T> T getInstance(Class<T> clazz) {

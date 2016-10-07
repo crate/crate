@@ -24,27 +24,16 @@ package io.crate.analyze.expressions;
 import io.crate.analyze.symbol.Function;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.metadata.FunctionInfo;
-import io.crate.metadata.TransactionContext;
 
 import java.util.List;
 
 public class ExpressionAnalysisContext {
 
-    private final TransactionContext transactionContext;
-
     public boolean hasAggregates = false;
-
-    public ExpressionAnalysisContext(TransactionContext transactionContext) {
-        this.transactionContext = transactionContext;
-    }
 
     public Function allocateFunction(FunctionInfo functionInfo, List<Symbol> arguments) {
         Function newFunction = new Function(functionInfo, arguments);
         hasAggregates = hasAggregates || functionInfo.type() == FunctionInfo.Type.AGGREGATE;
         return newFunction;
-    }
-
-    public TransactionContext transactionContext() {
-        return transactionContext;
     }
 }

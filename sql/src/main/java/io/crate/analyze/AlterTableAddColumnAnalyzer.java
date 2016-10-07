@@ -81,8 +81,11 @@ public class AlterTableAddColumnAnalyzer extends DefaultTraversalVisitor<AddColu
         addExistingPrimaryKeys(statement);
         ensureNoIndexDefinitions(statement.analyzedTableElements().columns());
         statement.analyzedTableElements().finalizeAndValidate(
-            statement.table().ident(), statement.table(), analysisMetaData,
-            analysis.parameterContext(), analysis.sessionContext(), analysis.transactionContext());
+            statement.table().ident(),
+            statement.table(),
+            analysisMetaData,
+            analysis.parameterContext(),
+            analysis.sessionContext());
 
         int numCurrentPks = statement.table().primaryKey().size();
         if (statement.table().primaryKey().contains(DocSysColumns.ID)) {

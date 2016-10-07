@@ -23,6 +23,7 @@ package io.crate.analyze.expressions;
 
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
+import com.google.common.base.Predicates;
 import com.google.common.collect.*;
 import io.crate.action.sql.Option;
 import io.crate.action.sql.SessionContext;
@@ -130,9 +131,11 @@ public class ExpressionAnalyzer {
         return innerAnalyzer.process(expression, expressionAnalysisContext);
     }
 
-    public WhereClause generateWhereClause(Optional<Expression> whereExpression, ExpressionAnalysisContext context) {
+    public WhereClause generateWhereClause(Optional<Expression> whereExpression,
+                                           ExpressionAnalysisContext context,
+                                           TransactionContext transactionContext) {
         if (whereExpression.isPresent()) {
-            return new WhereClause(normalize(convert(whereExpression.get(), context), context.transactionContext()), null, null);
+            return new WhereClause(normalize(convert(whereExpression.get(), context), transactionContext), null, null);
         } else {
             return WhereClause.MATCH_ALL;
         }
@@ -422,8 +425,8 @@ public class ExpressionAnalyzer {
                 throw new UnsupportedFeatureException("ALL is not supported");
             }
 
-            Symbol arraySymbol = normalize(process(node.getRight(), context), context.transactionContext());
-            Symbol leftSymbol = normalize(process(node.getLeft(), context), context.transactionContext());
+            Symbol arraySymbol = process(node.getRight(), context);
+            Symbol leftSymbol = process(node.getLeft(), context);
             DataType rightType = arraySymbol.valueType();
 
             if (!DataTypes.isCollectionType(rightType)) {
@@ -435,7 +438,12 @@ public class ExpressionAnalyzer {
                 throw new IllegalArgumentException("ANY on object arrays is not supported");
             }
 
-            if (arraySymbol.symbolType().isValueSymbol()) {
+            // There is no proper type-precedence logic in place yet,
+            // but in this case the side which has a column instead of functions/literals should dictate the type.
+
+            // x = ANY([null])              -> should not result in to-null casts
+            // int_col = ANY([1, 2, 3])     -> should cast to int instead of long (otherwise lucene query would be slow)
+            if (SymbolVisitors.any(Predicates.instanceOf(Field.class), leftSymbol)) {
                 arraySymbol = castIfNeededOrFail(arraySymbol, new ArrayType(leftSymbol.valueType()));
             } else {
                 leftSymbol = castIfNeededOrFail(leftSymbol, rightInnerType);
@@ -454,8 +462,8 @@ public class ExpressionAnalyzer {
             if (node.getEscape() != null) {
                 throw new UnsupportedOperationException("ESCAPE is not supported.");
             }
-            Symbol rightSymbol = normalize(process(node.getValue(), context), context.transactionContext());
-            Symbol leftSymbol = normalize(process(node.getPattern(), context), context.transactionContext());
+            Symbol rightSymbol = process(node.getValue(), context);
+            Symbol leftSymbol = process(node.getPattern(), context);
             DataType rightType = rightSymbol.valueType();
 
             if (!DataTypes.isCollectionType(rightType)) {

@@ -248,7 +248,8 @@ public class CopyStatementAnalyzer {
         if (node.whereClause().isPresent()) {
             WhereClauseAnalyzer whereClauseAnalyzer = new WhereClauseAnalyzer(analysisMetaData, tableRelation);
             whereClause = whereClauseAnalyzer.analyze(
-                context.expressionAnalyzer.generateWhereClause(node.whereClause(), context.expressionAnalysisContext),
+                context.expressionAnalyzer.generateWhereClause(
+                    node.whereClause(), context.expressionAnalysisContext, transactionContext),
                 transactionContext);
         }
 
@@ -318,7 +319,7 @@ public class CopyStatementAnalyzer {
                        TransactionContext transactionContext,
                        DocTableRelation tableRelation,
                        Operation operation) {
-            expressionAnalysisContext = new ExpressionAnalysisContext(transactionContext);
+            expressionAnalysisContext = new ExpressionAnalysisContext();
             this.transactionContext = transactionContext;
             expressionAnalyzer = new ExpressionAnalyzer(
                 analysisMetaData,

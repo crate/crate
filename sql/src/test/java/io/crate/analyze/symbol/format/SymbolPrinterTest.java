@@ -54,10 +54,10 @@ import static org.hamcrest.Matchers.is;
 
 public class SymbolPrinterTest extends CrateUnitTest {
 
-    SqlExpressions sqlExpressions;
-    SymbolPrinter printer;
+    private SqlExpressions sqlExpressions;
+    private SymbolPrinter printer;
 
-    public static final String TABLE_NAME = "formatter";
+    private static final String TABLE_NAME = "formatter";
 
     @Before
     public void prepare() throws Exception {
@@ -350,13 +350,13 @@ public class SymbolPrinterTest extends CrateUnitTest {
 
     @Test
     public void testPrintAnyEqOperator() throws Exception {
-        assertPrintingRoundTrip("foo = ANY (['a', 'b', 'c'])", "(doc.formatter.foo = ANY(['a', 'b', 'c']))");
+        assertPrintingRoundTrip("foo = ANY (['a', 'b', 'c'])", "(doc.formatter.foo = ANY(_array('a', 'b', 'c')))");
         assertPrintingRoundTrip("foo = ANY(s_arr)", "(doc.formatter.foo = ANY(doc.formatter.s_arr))");
     }
 
     @Test
     public void testAnyNeqOperator() throws Exception {
-        assertPrintingRoundTrip("not foo != ANY (['a', 'b', 'c'])", "(NOT (doc.formatter.foo <> ANY(['a', 'b', 'c'])))");
+        assertPrintingRoundTrip("not foo != ANY (['a', 'b', 'c'])", "(NOT (doc.formatter.foo <> ANY(_array('a', 'b', 'c'))))");
         assertPrintingRoundTrip("not foo != ANY(s_arr)", "(NOT (doc.formatter.foo <> ANY(doc.formatter.s_arr)))");
     }
 
@@ -368,6 +368,6 @@ public class SymbolPrinterTest extends CrateUnitTest {
     @Test
     public void testAnyLikeOperator() throws Exception {
         assertPrintingRoundTrip("foo LIKE ANY (s_arr)", "(doc.formatter.foo LIKE ANY(doc.formatter.s_arr))");
-        assertPrintingRoundTrip("foo NOT LIKE ANY (['a', 'b', 'c'])", "(doc.formatter.foo NOT LIKE ANY(['a', 'b', 'c']))");
+        assertPrintingRoundTrip("foo NOT LIKE ANY (['a', 'b', 'c'])", "(doc.formatter.foo NOT LIKE ANY(_array('a', 'b', 'c')))");
     }
 }

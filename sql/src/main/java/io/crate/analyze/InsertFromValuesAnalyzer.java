@@ -102,7 +102,7 @@ public class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
             convertParamFunction,
             fieldProvider,
             tableRelation);
-        ExpressionAnalysisContext expressionAnalysisContext = new ExpressionAnalysisContext(analysis.transactionContext());
+        ExpressionAnalysisContext expressionAnalysisContext = new ExpressionAnalysisContext();
         expressionAnalyzer.setResolveFieldsOperation(Operation.INSERT);
 
         ValuesResolver valuesResolver = new ValuesResolver(tableRelation);
@@ -137,6 +137,7 @@ public class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
                 valuesNormalizer,
                 expressionAnalyzer,
                 expressionAnalysisContext,
+                analysis.transactionContext(),
                 valuesResolver,
                 valuesAwareExpressionAnalyzer,
                 valuesList,
@@ -177,6 +178,7 @@ public class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
                                ValueNormalizer valueNormalizer,
                                ExpressionAnalyzer expressionAnalyzer,
                                ExpressionAnalysisContext expressionAnalysisContext,
+                               TransactionContext transactionContext,
                                ValuesResolver valuesResolver,
                                ExpressionAnalyzer valuesAwareExpressionAnalyzer,
                                ValuesList node,
@@ -199,6 +201,7 @@ public class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
                         valueNormalizer,
                         expressionAnalyzer,
                         expressionAnalysisContext,
+                        transactionContext,
                         valuesResolver,
                         valuesAwareExpressionAnalyzer,
                         node,
@@ -216,6 +219,7 @@ public class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
                     valueNormalizer,
                     expressionAnalyzer,
                     expressionAnalysisContext,
+                    transactionContext,
                     valuesResolver,
                     valuesAwareExpressionAnalyzer,
                     node,
@@ -236,6 +240,7 @@ public class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
                            ValueNormalizer valueNormalizer,
                            ExpressionAnalyzer expressionAnalyzer,
                            ExpressionAnalysisContext expressionAnalysisContext,
+                           TransactionContext transactionContext,
                            ValuesResolver valuesResolver,
                            ExpressionAnalyzer valuesAwareExpressionAnalyzer,
                            ValuesList node,
@@ -262,8 +267,7 @@ public class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
             final ColumnIdent columnIdent = column.ident().columnIdent();
             Object value;
             try {
-                valuesSymbol = valueNormalizer.normalizeInputForReference(
-                    valuesSymbol, column, expressionAnalysisContext.transactionContext());
+                valuesSymbol = valueNormalizer.normalizeInputForReference(valuesSymbol, column, transactionContext);
                 value = ((Input) valuesSymbol).value();
             } catch (IllegalArgumentException | UnsupportedOperationException e) {
                 throw new ColumnValidationException(columnIdent.sqlFqn(), e);
@@ -321,10 +325,9 @@ public class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
                 Symbol assignmentExpression = valueNormalizer.normalizeInputForReference(
                     valuesAwareExpressionAnalyzer.convert(assignment.expression(), expressionAnalysisContext),
                     columnName,
-                    expressionAnalysisContext.transactionContext()
+                    transactionContext
                 );
-                assignmentExpression = valuesAwareExpressionAnalyzer.normalize(
-                    assignmentExpression, expressionAnalysisContext.transactionContext());
+                assignmentExpression = valuesAwareExpressionAnalyzer.normalize(assignmentExpression, transactionContext);
                 onDupKeyAssignments[i] = assignmentExpression;
 
                 if (valuesResolver.assignmentColumns.size() == i) {
@@ -341,7 +344,7 @@ public class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
             tableRelation,
             context,
             expressionAnalyzer,
-            expressionAnalysisContext.transactionContext(),
+            transactionContext,
             referenceToLiteralContext,
             primaryKeyValues,
             insertValues,
