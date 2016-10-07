@@ -23,6 +23,7 @@ package io.crate.types;
 
 import com.google.common.base.Preconditions;
 import com.spatial4j.core.context.jts.JtsSpatialContext;
+import com.spatial4j.core.exception.InvalidShapeException;
 import com.spatial4j.core.io.WKTReader;
 import com.spatial4j.core.shape.Point;
 import io.crate.Streamer;
@@ -116,9 +117,9 @@ public class GeoPointType extends DataType<Double[]> implements Streamer<Double[
         try {
             Point point = (Point) WKT_READER.parse(value);
             return new Double[]{point.getX(), point.getY()};
-        } catch (ParseException e) {
+        } catch (ParseException | InvalidShapeException e) {
             throw new IllegalArgumentException(String.format(Locale.ENGLISH,
-                "Cannot convert \"%s\" to geo_point", value), e);
+                "Cannot convert \"%s\" to geo_point. %s", value, e.getLocalizedMessage()), e);
         }
     }
 
