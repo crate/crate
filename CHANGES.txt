@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fixed an issue that causes the `try_cast` function to fail while casting
+   the WKT representation of a point with invalid coordinates to geo_point.
+
  - All operations on closed partitions result in error now.
 
  - Fixed an issue that might cause queries to fail with a `Same bucket of a
