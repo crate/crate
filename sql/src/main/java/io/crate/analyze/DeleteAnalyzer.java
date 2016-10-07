@@ -22,6 +22,7 @@
 package io.crate.analyze;
 
 import com.google.common.base.Function;
+import com.google.common.base.Optional;
 import io.crate.analyze.expressions.ExpressionAnalysisContext;
 import io.crate.analyze.expressions.ExpressionAnalyzer;
 import io.crate.analyze.relations.*;
@@ -31,8 +32,8 @@ import io.crate.analyze.where.WhereClauseAnalyzer;
 import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.table.Operation;
-import io.crate.sql.tree.DefaultTraversalVisitor;
 import io.crate.sql.tree.Delete;
+import io.crate.sql.tree.Expression;
 import io.crate.sql.tree.ParameterExpression;
 
 class DeleteAnalyzer {
@@ -42,47 +43,12 @@ class DeleteAnalyzer {
     private static final UnsupportedFeatureException VERSION_SEARCH_EX = new UnsupportedFeatureException(
         VERSION_SEARCH_EX_MSG);
 
-
-    private static final DefaultTraversalVisitor<Void, InnerAnalysisContext> INNER_ANALYZER =
-        new DefaultTraversalVisitor<Void, InnerAnalysisContext>() {
-            @Override
-            public Void visitDelete(Delete node, InnerAnalysisContext context) {
-                WhereClause whereClause = context.whereClauseAnalyzer.analyze(
-                    context.expressionAnalyzer.generateWhereClause(node.getWhere(), context.expressionAnalysisContext),
-                    context.expressionAnalysisContext.transactionContext());
-                if (!whereClause.docKeys().isPresent() &&
-                    Symbols.containsColumn(whereClause.query(), DocSysColumns.VERSION)) {
-                    throw VERSION_SEARCH_EX;
-                }
-                context.deleteAnalyzedStatement.whereClauses.add(whereClause);
-                return null;
-            }
-        };
-
     private AnalysisMetaData analysisMetaData;
     private RelationAnalyzer relationAnalyzer;
 
     DeleteAnalyzer(AnalysisMetaData analysisMetaData, RelationAnalyzer relationAnalyzer) {
         this.analysisMetaData = analysisMetaData;
         this.relationAnalyzer = relationAnalyzer;
-    }
-
-    private static class InnerAnalysisContext {
-        private final ExpressionAnalyzer expressionAnalyzer;
-        private final ExpressionAnalysisContext expressionAnalysisContext;
-        private final DeleteAnalyzedStatement deleteAnalyzedStatement;
-        private final WhereClauseAnalyzer whereClauseAnalyzer;
-
-        InnerAnalysisContext(ExpressionAnalyzer expressionAnalyzer,
-                             ExpressionAnalysisContext expressionAnalysisContext,
-                             DeleteAnalyzedStatement deleteAnalyzedStatement,
-                             WhereClauseAnalyzer whereClauseAnalyzer
-        ) {
-            this.expressionAnalyzer = expressionAnalyzer;
-            this.expressionAnalysisContext = expressionAnalysisContext;
-            this.deleteAnalyzedStatement = deleteAnalyzedStatement;
-            this.whereClauseAnalyzer = whereClauseAnalyzer;
-        }
     }
 
     public AnalyzedStatement analyze(Delete node, Analysis analysis) {
@@ -101,27 +67,38 @@ class DeleteAnalyzer {
         assert analyzedRelation instanceof DocTableRelation;
         DocTableRelation docTableRelation = (DocTableRelation) analyzedRelation;
         DeleteAnalyzedStatement deleteAnalyzedStatement = new DeleteAnalyzedStatement(docTableRelation);
-        InnerAnalysisContext innerAnalysisContext = new InnerAnalysisContext(
-            new ExpressionAnalyzer(
-                analysisMetaData,
-                analysis.sessionContext(),
-                convertParamFunction,
-                new FullQualifedNameFieldProvider(relationAnalysisContext.sources()),
-                docTableRelation),
-            new ExpressionAnalysisContext(analysis.transactionContext()),
-            deleteAnalyzedStatement,
-            new WhereClauseAnalyzer(analysisMetaData, deleteAnalyzedStatement.analyzedRelation())
-        );
+        ExpressionAnalyzer expressionAnalyzer = new ExpressionAnalyzer(
+            analysisMetaData,
+            analysis.sessionContext(),
+            convertParamFunction,
+            new FullQualifedNameFieldProvider(relationAnalysisContext.sources()),
+            docTableRelation);
+        ExpressionAnalysisContext expressionAnalysisContext = new ExpressionAnalysisContext(analysis.transactionContext());
+        WhereClauseAnalyzer whereClauseAnalyzer = new WhereClauseAnalyzer(analysisMetaData, deleteAnalyzedStatement.analyzedRelation());
 
         if (analysis.parameterContext().hasBulkParams()) {
             numNested = analysis.parameterContext().numBulkParams();
         }
         for (int i = 0; i < numNested; i++) {
             analysis.parameterContext().setBulkIdx(i);
-            INNER_ANALYZER.process(node, innerAnalysisContext);
+            deleteAnalyzedStatement.whereClauses.add(
+                generateWhereClause(node.getWhere(), whereClauseAnalyzer, expressionAnalyzer, expressionAnalysisContext));
         }
 
         statementAnalysisContext.endRelation();
         return deleteAnalyzedStatement;
+    }
+
+    private WhereClause generateWhereClause(Optional<Expression> where,
+                                            WhereClauseAnalyzer whereClauseAnalyzer,
+                                            ExpressionAnalyzer expressionAnalyzer,
+                                            ExpressionAnalysisContext expressionAnalysisContext) {
+        WhereClause whereClause = whereClauseAnalyzer.analyze(
+            expressionAnalyzer.generateWhereClause(where, expressionAnalysisContext),
+            expressionAnalysisContext.transactionContext());
+        if (!whereClause.docKeys().isPresent() && Symbols.containsColumn(whereClause.query(), DocSysColumns.VERSION)) {
+            throw VERSION_SEARCH_EX;
+        }
+        return whereClause;
     }
 }
