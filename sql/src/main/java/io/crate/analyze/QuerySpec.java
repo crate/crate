@@ -29,7 +29,7 @@ import io.crate.analyze.symbol.DefaultTraversalSymbolVisitor;
 import io.crate.analyze.symbol.Function;
 import io.crate.analyze.symbol.RelationColumn;
 import io.crate.analyze.symbol.Symbol;
-import io.crate.metadata.StmtCtx;
+import io.crate.metadata.TransactionContext;
 import io.crate.operation.scalar.cast.CastFunctionResolver;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
@@ -130,7 +130,7 @@ public class QuerySpec {
         return this;
     }
 
-    public void normalize(EvaluatingNormalizer normalizer, StmtCtx context) {
+    public void normalize(EvaluatingNormalizer normalizer, TransactionContext context) {
         if (groupBy.isPresent()) {
             normalizer.normalizeInplace(groupBy.get(), context);
         }

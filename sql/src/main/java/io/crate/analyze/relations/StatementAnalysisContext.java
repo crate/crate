@@ -25,7 +25,7 @@ import com.google.common.base.Function;
 import io.crate.action.sql.SessionContext;
 import io.crate.analyze.AnalysisMetaData;
 import io.crate.analyze.symbol.Symbol;
-import io.crate.metadata.StmtCtx;
+import io.crate.metadata.TransactionContext;
 import io.crate.metadata.table.Operation;
 import io.crate.sql.tree.ParameterExpression;
 
@@ -37,24 +37,24 @@ public class StatementAnalysisContext {
     private final Operation currentOperation;
     private final SessionContext sessionContext;
     private final Function<ParameterExpression, Symbol> convertParamFunction;
-    private final StmtCtx stmtCtx;
+    private final TransactionContext transactionContext;
     private final AnalysisMetaData analysisMetaData;
     private final List<RelationAnalysisContext> lastRelationContextQueue = new ArrayList<>();
 
     public StatementAnalysisContext(SessionContext sessionContext,
                                     Function<ParameterExpression, Symbol> convertParamFunction,
-                                    StmtCtx stmtCtx,
+                                    TransactionContext transactionContext,
                                     AnalysisMetaData analysisMetaData,
                                     Operation currentOperation) {
         this.sessionContext = sessionContext;
         this.convertParamFunction = convertParamFunction;
-        this.stmtCtx = stmtCtx;
+        this.transactionContext = transactionContext;
         this.analysisMetaData = analysisMetaData;
         this.currentOperation = currentOperation;
     }
 
-    public StmtCtx stmtCtx() {
-        return stmtCtx;
+    public TransactionContext transactionContext() {
+        return transactionContext;
     }
 
     Operation currentOperation() {
@@ -67,7 +67,7 @@ public class StatementAnalysisContext {
 
     RelationAnalysisContext startRelation(boolean aliasedRelation) {
         RelationAnalysisContext currentRelationContext = new RelationAnalysisContext(
-            sessionContext, convertParamFunction, stmtCtx, analysisMetaData, aliasedRelation);
+            sessionContext, convertParamFunction, transactionContext, analysisMetaData, aliasedRelation);
         lastRelationContextQueue.add(currentRelationContext);
         return currentRelationContext;
     }

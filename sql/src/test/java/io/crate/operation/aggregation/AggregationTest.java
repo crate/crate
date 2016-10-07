@@ -30,7 +30,7 @@ import io.crate.core.collections.ArrayBucket;
 import io.crate.core.collections.Row;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.Functions;
-import io.crate.metadata.StmtCtx;
+import io.crate.metadata.TransactionContext;
 import io.crate.operation.collect.InputCollectExpression;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.types.DataType;
@@ -103,6 +103,6 @@ public abstract class AggregationTest extends CrateUnitTest {
         }
         AggregationFunction function =
             (AggregationFunction) functions.get(new FunctionIdent(functionName, Arrays.asList(argTypes)));
-        return function.normalizeSymbol(new Function(function.info(), Arrays.asList(args)), new StmtCtx());
+        return function.normalizeSymbol(new Function(function.info(), Arrays.asList(args)), new TransactionContext());
     }
 }

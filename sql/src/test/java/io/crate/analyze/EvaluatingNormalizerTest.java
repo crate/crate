@@ -29,7 +29,7 @@ public class EvaluatingNormalizerTest extends CrateUnitTest {
     private Functions functions;
     private Reference dummyLoadInfo;
 
-    private final StmtCtx stmtCtx = new StmtCtx();
+    private final TransactionContext transactionContext = new TransactionContext();
 
     @Before
     public void prepare() throws Exception {
@@ -100,7 +100,7 @@ public class EvaluatingNormalizerTest extends CrateUnitTest {
 
         // the dummy reference load == 0.08 evaluates to true,
         // so the whole query can be normalized to a single boolean literal
-        Symbol query = visitor.normalize(op_or, stmtCtx);
+        Symbol query = visitor.normalize(op_or, transactionContext);
         assertThat(query, isLiteral(true));
     }
 
@@ -110,7 +110,7 @@ public class EvaluatingNormalizerTest extends CrateUnitTest {
             functions, RowGranularity.CLUSTER, referenceResolver);
 
         Function op_or = prepareFunctionTree();
-        Symbol query = visitor.normalize(op_or, stmtCtx);
+        Symbol query = visitor.normalize(op_or, transactionContext);
         assertThat(query, instanceOf(Function.class));
     }
 

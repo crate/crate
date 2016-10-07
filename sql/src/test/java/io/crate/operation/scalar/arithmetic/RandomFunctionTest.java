@@ -24,7 +24,7 @@ package io.crate.operation.scalar.arithmetic;
 import io.crate.analyze.symbol.Function;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.metadata.FunctionIdent;
-import io.crate.metadata.StmtCtx;
+import io.crate.metadata.TransactionContext;
 import io.crate.operation.Input;
 import io.crate.operation.scalar.AbstractScalarFunctionsTest;
 import io.crate.types.DataType;
@@ -56,7 +56,7 @@ public class RandomFunctionTest extends AbstractScalarFunctionsTest {
     @Test
     public void normalizeReference() {
         Function function = new Function(random.info(), Collections.<Symbol>emptyList());
-        Function normalized = (Function) random.normalizeSymbol(function, new StmtCtx());
+        Function normalized = (Function) random.normalizeSymbol(function, new TransactionContext());
         assertThat(normalized, sameInstance(function));
     }
 

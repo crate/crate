@@ -31,7 +31,7 @@ import io.crate.analyze.symbol.Symbol;
 import io.crate.analyze.symbol.Symbols;
 import io.crate.metadata.Routing;
 import io.crate.metadata.RowGranularity;
-import io.crate.metadata.StmtCtx;
+import io.crate.metadata.TransactionContext;
 import io.crate.metadata.table.TableInfo;
 import io.crate.operation.Paging;
 import io.crate.planner.Planner;
@@ -274,12 +274,12 @@ public class RoutedCollectPhase extends AbstractProjectionsPhase implements Coll
      *
      * @return a normalized node, if no changes occurred returns this
      */
-    public RoutedCollectPhase normalize(EvaluatingNormalizer normalizer, StmtCtx stmtCtx) {
+    public RoutedCollectPhase normalize(EvaluatingNormalizer normalizer, TransactionContext transactionContext) {
         assert whereClause() != null;
         RoutedCollectPhase result = this;
-        List<Symbol> newToCollect = normalizer.normalize(toCollect(), stmtCtx);
+        List<Symbol> newToCollect = normalizer.normalize(toCollect(), transactionContext);
         boolean changed = newToCollect != toCollect();
-        WhereClause newWhereClause = whereClause().normalize(normalizer, stmtCtx);
+        WhereClause newWhereClause = whereClause().normalize(normalizer, transactionContext);
         if (newWhereClause != whereClause()) {
             changed = changed || newWhereClause != whereClause();
         }
@@ -309,7 +309,7 @@ public class RoutedCollectPhase extends AbstractProjectionsPhase implements Coll
             TableFunctionRelation tableFunctionRelation = (TableFunctionRelation) table.tableRelation();
             List<Symbol> args = new ArrayList<>();
             args.addAll(tableFunctionRelation.arguments());
-            plannerContext.normalizer().normalizeInplace(args, plannerContext.statementContext());
+            plannerContext.normalizer().normalizeInplace(args, plannerContext.transactionContext());
             return new TableFunctionCollectPhase(
                 plannerContext.jobId(),
                 plannerContext.nextExecutionPhaseId(),

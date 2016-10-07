@@ -102,7 +102,7 @@ public class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
             convertParamFunction,
             fieldProvider,
             tableRelation);
-        ExpressionAnalysisContext expressionAnalysisContext = new ExpressionAnalysisContext(analysis.statementContext());
+        ExpressionAnalysisContext expressionAnalysisContext = new ExpressionAnalysisContext(analysis.transactionContext());
         expressionAnalyzer.setResolveFieldsOperation(Operation.INSERT);
 
         ValuesResolver valuesResolver = new ValuesResolver(tableRelation);
@@ -263,7 +263,7 @@ public class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
             Object value;
             try {
                 valuesSymbol = valueNormalizer.normalizeInputForReference(
-                    valuesSymbol, column, expressionAnalysisContext.statementContext());
+                    valuesSymbol, column, expressionAnalysisContext.transactionContext());
                 value = ((Input) valuesSymbol).value();
             } catch (IllegalArgumentException | UnsupportedOperationException e) {
                 throw new ColumnValidationException(columnIdent.sqlFqn(), e);
@@ -321,10 +321,10 @@ public class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
                 Symbol assignmentExpression = valueNormalizer.normalizeInputForReference(
                     valuesAwareExpressionAnalyzer.convert(assignment.expression(), expressionAnalysisContext),
                     columnName,
-                    expressionAnalysisContext.statementContext()
+                    expressionAnalysisContext.transactionContext()
                 );
                 assignmentExpression = valuesAwareExpressionAnalyzer.normalize(
-                    assignmentExpression, expressionAnalysisContext.statementContext());
+                    assignmentExpression, expressionAnalysisContext.transactionContext());
                 onDupKeyAssignments[i] = assignmentExpression;
 
                 if (valuesResolver.assignmentColumns.size() == i) {
@@ -341,7 +341,7 @@ public class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
             tableRelation,
             context,
             expressionAnalyzer,
-            expressionAnalysisContext.statementContext(),
+            expressionAnalysisContext.transactionContext(),
             referenceToLiteralContext,
             primaryKeyValues,
             insertValues,
@@ -420,7 +420,7 @@ public class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
         private final InsertFromValuesAnalyzedStatement analyzedStatement;
         private final ExpressionAnalyzer expressionAnalyzer;
         private final ReferenceToLiteralConverter.Context referenceToLiteralContext;
-        private final StmtCtx stmtCtx;
+        private final TransactionContext transactionContext;
         private final List<BytesRef> primaryKeyValues;
 
         private Object[] insertValues;
@@ -431,7 +431,7 @@ public class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
         private GeneratedExpressionContext(DocTableRelation tableRelation,
                                            InsertFromValuesAnalyzedStatement analyzedStatement,
                                            ExpressionAnalyzer expressionAnalyzer,
-                                           StmtCtx stmtCtx,
+                                           TransactionContext transactionContext,
                                            ReferenceToLiteralConverter.Context referenceToLiteralContext,
                                            List<BytesRef> primaryKeyValues,
                                            Object[] insertValues,
@@ -439,7 +439,7 @@ public class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
             this.tableRelation = tableRelation;
             this.analyzedStatement = analyzedStatement;
             this.expressionAnalyzer = expressionAnalyzer;
-            this.stmtCtx = stmtCtx;
+            this.transactionContext = transactionContext;
             this.primaryKeyValues = primaryKeyValues;
             this.insertValues = insertValues;
             this.routingValue = routingValue;
@@ -452,7 +452,7 @@ public class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
         List<ColumnIdent> primaryKey = context.analyzedStatement.tableInfo().primaryKey();
         for (GeneratedReference reference : context.tableRelation.tableInfo().generatedColumns()) {
             Symbol valueSymbol = TO_LITERAL_CONVERTER.process(reference.generatedExpression(), context.referenceToLiteralContext);
-            valueSymbol = context.expressionAnalyzer.normalize(valueSymbol, context.stmtCtx);
+            valueSymbol = context.expressionAnalyzer.normalize(valueSymbol, context.transactionContext);
             if (valueSymbol.symbolType() == SymbolType.LITERAL) {
                 Object value = ((Input) valueSymbol).value();
                 if (primaryKey.contains(reference.ident().columnIdent()) &&

@@ -4,7 +4,7 @@ import io.crate.analyze.symbol.Function;
 import io.crate.analyze.symbol.Literal;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.metadata.Reference;
-import io.crate.metadata.StmtCtx;
+import io.crate.metadata.TransactionContext;
 import io.crate.test.integration.CrateUnitTest;
 import org.junit.Test;
 
@@ -15,14 +15,14 @@ import static org.hamcrest.CoreMatchers.instanceOf;
 
 public class AndOperatorTest extends CrateUnitTest {
 
-    private final StmtCtx stmtCtx = new StmtCtx();
+    private final TransactionContext transactionContext = new TransactionContext();
 
     @Test
     public void testNormalizeBooleanTrueAndNonLiteral() throws Exception {
         AndOperator operator = new AndOperator();
         Function function = new Function(
             operator.info(), Arrays.<Symbol>asList(Literal.of(true), new Reference()));
-        Symbol symbol = operator.normalizeSymbol(function, stmtCtx);
+        Symbol symbol = operator.normalizeSymbol(function, transactionContext);
         assertThat(symbol, instanceOf(Reference.class));
     }
 
@@ -31,7 +31,7 @@ public class AndOperatorTest extends CrateUnitTest {
         AndOperator operator = new AndOperator();
         Function function = new Function(
             operator.info(), Arrays.<Symbol>asList(Literal.of(false), new Reference()));
-        Symbol symbol = operator.normalizeSymbol(function, stmtCtx);
+        Symbol symbol = operator.normalizeSymbol(function, transactionContext);
 
         assertThat(symbol, isLiteral(false));
     }
@@ -41,7 +41,7 @@ public class AndOperatorTest extends CrateUnitTest {
         AndOperator operator = new AndOperator();
         Function function = new Function(
             operator.info(), Arrays.<Symbol>asList(Literal.of(true), Literal.of(true)));
-        Symbol symbol = operator.normalizeSymbol(function, stmtCtx);
+        Symbol symbol = operator.normalizeSymbol(function, transactionContext);
         assertThat(symbol, isLiteral(true));
     }
 
@@ -50,7 +50,7 @@ public class AndOperatorTest extends CrateUnitTest {
         AndOperator operator = new AndOperator();
         Function function = new Function(
             operator.info(), Arrays.<Symbol>asList(Literal.of(true), Literal.of(false)));
-        Symbol symbol = operator.normalizeSymbol(function, stmtCtx);
+        Symbol symbol = operator.normalizeSymbol(function, transactionContext);
         assertThat(symbol, isLiteral(false));
     }
 

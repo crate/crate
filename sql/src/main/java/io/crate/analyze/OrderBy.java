@@ -28,7 +28,7 @@ import com.google.common.primitives.Booleans;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.analyze.symbol.Symbols;
 import io.crate.exceptions.AmbiguousOrderByException;
-import io.crate.metadata.StmtCtx;
+import io.crate.metadata.TransactionContext;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Streamable;
@@ -68,8 +68,8 @@ public class OrderBy implements Streamable {
         return nullsFirst;
     }
 
-    public void normalize(EvaluatingNormalizer normalizer, StmtCtx stmtCtx) {
-        normalizer.normalizeInplace(orderBySymbols, stmtCtx);
+    public void normalize(EvaluatingNormalizer normalizer, TransactionContext transactionContext) {
+        normalizer.normalizeInplace(orderBySymbols, transactionContext);
     }
 
 

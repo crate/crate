@@ -84,7 +84,7 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
         private final UUID jobId;
         private final ConsumingPlanner consumingPlanner;
         private final EvaluatingNormalizer normalizer;
-        private final StmtCtx stmtCtx;
+        private final TransactionContext transactionContext;
         private final int softLimit;
         private final int fetchSize;
         private int executionPhaseId = 0;
@@ -96,14 +96,14 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
                        UUID jobId,
                        ConsumingPlanner consumingPlanner,
                        EvaluatingNormalizer normalizer,
-                       StmtCtx stmtCtx,
+                       TransactionContext transactionContext,
                        int softLimit,
                        int fetchSize) {
             this.clusterService = clusterService;
             this.jobId = jobId;
             this.consumingPlanner = consumingPlanner;
             this.normalizer = normalizer;
-            this.stmtCtx = stmtCtx;
+            this.transactionContext = transactionContext;
             this.softLimit = softLimit;
             this.fetchSize = fetchSize;
         }
@@ -124,7 +124,7 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
             if (symbol == null) {
                 return null;
             }
-            io.crate.operation.Input input = (io.crate.operation.Input) (normalizer.normalize(symbol, stmtCtx));
+            io.crate.operation.Input input = (io.crate.operation.Input) (normalizer.normalize(symbol, transactionContext));
             return DataTypes.INTEGER.value(input.value());
         }
 
@@ -156,8 +156,8 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
             return fetchSize;
         }
 
-        public StmtCtx statementContext() {
-            return stmtCtx;
+        public TransactionContext transactionContext() {
+            return transactionContext;
         }
 
         static class ReaderAllocations {
@@ -388,7 +388,7 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
     public Plan plan(Analysis analysis, UUID jobId, int softLimit, int fetchSize) {
         AnalyzedStatement analyzedStatement = analysis.analyzedStatement();
         return process(analyzedStatement, new Context(
-            clusterService, jobId, consumingPlanner, normalizer, analysis.statementContext(), softLimit, fetchSize));
+            clusterService, jobId, consumingPlanner, normalizer, analysis.transactionContext(), softLimit, fetchSize));
     }
 
     @Override

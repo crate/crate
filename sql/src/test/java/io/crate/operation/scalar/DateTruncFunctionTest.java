@@ -71,16 +71,16 @@ public class DateTruncFunctionTest extends AbstractScalarFunctionsTest {
         }
     }
 
-    private final StmtCtx stmtCtx = new StmtCtx();
+    private final TransactionContext transactionContext = new TransactionContext();
 
     public Symbol normalize(Symbol interval, Symbol timestamp) {
         Function function = new Function(func.info(), Arrays.asList(interval, timestamp));
-        return func.normalizeSymbol(function, stmtCtx);
+        return func.normalizeSymbol(function, transactionContext);
     }
 
     public Symbol normalize(Symbol interval, Symbol tz, Symbol timestamp) {
         Function function = new Function(funcTZ.info(), Arrays.asList(interval, tz, timestamp));
-        return funcTZ.normalizeSymbol(function, stmtCtx);
+        return funcTZ.normalizeSymbol(function, transactionContext);
     }
 
     private void assertTruncated(String interval, Long timestamp, Long expected) throws Exception {
@@ -132,7 +132,7 @@ public class DateTruncFunctionTest extends AbstractScalarFunctionsTest {
             Literal.of("day"),
             Literal.of(1401777485000L)
         ));
-        Literal day = (Literal) implementation.normalizeSymbol(function, stmtCtx);
+        Literal day = (Literal) implementation.normalizeSymbol(function, transactionContext);
         assertThat((Long) day.value(), is(1401753600000L));
     }
 
@@ -147,7 +147,7 @@ public class DateTruncFunctionTest extends AbstractScalarFunctionsTest {
             Literal.of("day"),
             Literal.of("2014-06-03")
         ));
-        Literal day = (Literal) implementation.normalizeSymbol(function, stmtCtx);
+        Literal day = (Literal) implementation.normalizeSymbol(function, transactionContext);
         assertThat((Long) day.value(), is(1401753600000L));
     }
 
@@ -155,7 +155,7 @@ public class DateTruncFunctionTest extends AbstractScalarFunctionsTest {
     public void testNormalizeSymbolReferenceTimestamp() throws Exception {
         Function function = new Function(func.info(),
             Arrays.<Symbol>asList(new Reference(null, null, DataTypes.STRING), new Reference(null, null, DataTypes.TIMESTAMP)));
-        Symbol result = func.normalizeSymbol(function, stmtCtx);
+        Symbol result = func.normalizeSymbol(function, transactionContext);
         assertSame(function, result);
     }
 
@@ -245,7 +245,7 @@ public class DateTruncFunctionTest extends AbstractScalarFunctionsTest {
             Literal.of("Europe/Vienna"),
             Literal.of("2014-06-03")
         ));
-        Literal day = (Literal) implementation.normalizeSymbol(function, stmtCtx);
+        Literal day = (Literal) implementation.normalizeSymbol(function, transactionContext);
         assertThat((Long) day.value(), is(1401746400000L));
     }
 
@@ -254,7 +254,7 @@ public class DateTruncFunctionTest extends AbstractScalarFunctionsTest {
         Function function = new Function(funcTZ.info(),
             Arrays.<Symbol>asList(Literal.of("day"), Literal.of("+01:00"),
                 new Reference(null, null, DataTypes.TIMESTAMP)));
-        Symbol result = funcTZ.normalizeSymbol(function, stmtCtx);
+        Symbol result = funcTZ.normalizeSymbol(function, transactionContext);
         assertSame(function, result);
     }
 

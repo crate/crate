@@ -24,18 +24,18 @@ package io.crate.analyze.expressions;
 import io.crate.analyze.symbol.Function;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.metadata.FunctionInfo;
-import io.crate.metadata.StmtCtx;
+import io.crate.metadata.TransactionContext;
 
 import java.util.List;
 
 public class ExpressionAnalysisContext {
 
-    private final StmtCtx stmtCtx;
+    private final TransactionContext transactionContext;
 
     public boolean hasAggregates = false;
 
-    public ExpressionAnalysisContext(StmtCtx stmtCtx) {
-        this.stmtCtx = stmtCtx;
+    public ExpressionAnalysisContext(TransactionContext transactionContext) {
+        this.transactionContext = transactionContext;
     }
 
     public Function allocateFunction(FunctionInfo functionInfo, List<Symbol> arguments) {
@@ -44,7 +44,7 @@ public class ExpressionAnalysisContext {
         return newFunction;
     }
 
-    public StmtCtx statementContext() {
-        return stmtCtx;
+    public TransactionContext transactionContext() {
+        return transactionContext;
     }
 }

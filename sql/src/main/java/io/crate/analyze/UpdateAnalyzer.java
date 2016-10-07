@@ -82,7 +82,7 @@ public class UpdateAnalyzer {
         StatementAnalysisContext statementAnalysisContext = new StatementAnalysisContext(
             analysis.sessionContext(),
             analysis.parameterContext(),
-            analysis.statementContext(),
+            analysis.transactionContext(),
             analysisMetaData,
             Operation.UPDATE);
         RelationAnalysisContext currentRelationContext = statementAnalysisContext.startRelation();
@@ -107,7 +107,7 @@ public class UpdateAnalyzer {
                 analysis.parameterContext(),
                 new FullQualifedNameFieldProvider(currentRelationContext.sources()),
                 fieldResolver);
-        ExpressionAnalysisContext expressionAnalysisContext = new ExpressionAnalysisContext(analysis.statementContext());
+        ExpressionAnalysisContext expressionAnalysisContext = new ExpressionAnalysisContext(analysis.transactionContext());
 
         int numNested = 1;
         if (analysis.parameterContext().numBulkParams() > 0) {
@@ -126,7 +126,7 @@ public class UpdateAnalyzer {
 
             WhereClause whereClause = expressionAnalyzer.generateWhereClause(node.whereClause(), expressionAnalysisContext);
             if (whereClauseAnalyzer != null) {
-                whereClause = whereClauseAnalyzer.analyze(whereClause, analysis.statementContext());
+                whereClause = whereClauseAnalyzer.analyze(whereClause, analysis.transactionContext());
             }
 
             if (!whereClause.docKeys().isPresent() &&
@@ -163,7 +163,7 @@ public class UpdateAnalyzer {
         // unknown columns in strict objects handled in here
         Reference reference = (Reference) columnExpressionAnalyzer.normalize(
             columnExpressionAnalyzer.convert(node.columnName(), expressionAnalysisContext),
-            expressionAnalysisContext.statementContext());
+            expressionAnalysisContext.transactionContext());
 
         final ColumnIdent ident = reference.ident().columnIdent();
         if (hasMatchingParent(tableInfo, reference, IS_OBJECT_ARRAY)) {
@@ -172,9 +172,9 @@ public class UpdateAnalyzer {
         }
         Symbol value = expressionAnalyzer.normalize(
             expressionAnalyzer.convert(node.expression(), expressionAnalysisContext),
-            expressionAnalysisContext.statementContext());
+            expressionAnalysisContext.transactionContext());
         try {
-            value = valueNormalizer.normalizeInputForReference(value, reference, expressionAnalysisContext.statementContext());
+            value = valueNormalizer.normalizeInputForReference(value, reference, expressionAnalysisContext.transactionContext());
         } catch (IllegalArgumentException | UnsupportedOperationException e) {
             throw new ColumnValidationException(ident.sqlFqn(), e);
         }

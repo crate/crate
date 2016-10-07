@@ -101,7 +101,7 @@ public class InsertFromSubQueryAnalyzer {
                 targetColumns,
                 analysis.sessionContext(),
                 analysis.parameterContext(),
-                analysis.statementContext(),
+                analysis.transactionContext(),
                 fieldProvider,
                 node.onDuplicateKeyAssignments());
         }
@@ -185,12 +185,12 @@ public class InsertFromSubQueryAnalyzer {
                                                             List<Reference> targetColumns,
                                                             SessionContext sessionContext,
                                                             ParameterContext parameterContext,
-                                                            StmtCtx stmtCtx,
+                                                            TransactionContext transactionContext,
                                                             FieldProvider fieldProvider,
                                                             List<Assignment> assignments) {
         ExpressionAnalyzer expressionAnalyzer = new ExpressionAnalyzer(
             analysisMetaData, sessionContext, parameterContext, fieldProvider, tableRelation);
-        ExpressionAnalysisContext expressionAnalysisContext = new ExpressionAnalysisContext(stmtCtx);
+        ExpressionAnalysisContext expressionAnalysisContext = new ExpressionAnalysisContext(transactionContext);
 
         ValueNormalizer valuesNormalizer = new ValueNormalizer(analysisMetaData.schemas(),
             new EvaluatingNormalizer(
@@ -213,7 +213,7 @@ public class InsertFromSubQueryAnalyzer {
             Symbol assignmentExpression = valuesNormalizer.normalizeInputForReference(
                 valuesAwareExpressionAnalyzer.convert(assignment.expression(), expressionAnalysisContext),
                 columnName,
-                stmtCtx);
+                transactionContext);
 
             updateAssignments.put(columnName, assignmentExpression);
         }

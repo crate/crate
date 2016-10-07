@@ -27,7 +27,7 @@ import io.crate.analyze.symbol.Field;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.metadata.ColumnIndex;
 import io.crate.metadata.Path;
-import io.crate.metadata.StmtCtx;
+import io.crate.metadata.TransactionContext;
 import io.crate.metadata.table.Operation;
 import io.crate.sql.tree.QualifiedName;
 
@@ -70,9 +70,9 @@ public abstract class QueriedTableRelation<TR extends AbstractTableRelation> imp
         return tableRelation;
     }
 
-    public void normalize(AnalysisMetaData analysisMetaData, StmtCtx stmtCtx) {
+    public void normalize(AnalysisMetaData analysisMetaData, TransactionContext transactionContext) {
         EvaluatingNormalizer normalizer = new EvaluatingNormalizer(analysisMetaData, tableRelation, true);
-        querySpec().normalize(normalizer, stmtCtx);
+        querySpec().normalize(normalizer, transactionContext);
     }
 
     @Nullable

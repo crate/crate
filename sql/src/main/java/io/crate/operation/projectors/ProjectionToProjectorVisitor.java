@@ -204,14 +204,14 @@ public class ProjectionToProjectorVisitor
                 inputs.add(symbolVisitor.process(symbol, symbolContext));
             }
         }
-        Map<ColumnIdent, Object> overwrites = symbolMapToObject(projection.overwrites(), symbolContext, context.stmtCtx);
+        Map<ColumnIdent, Object> overwrites = symbolMapToObject(projection.overwrites(), symbolContext, context.transactionContext);
 
-        projection = projection.normalize(normalizer, context.stmtCtx);
+        projection = projection.normalize(normalizer, context.transactionContext);
         String uri = ValueSymbolVisitor.STRING.process(projection.uri());
         assert uri != null : "URI must not be null";
 
         StringBuilder sb = new StringBuilder(uri);
-        Symbol resolvedFileName = normalizer.normalize(WriterProjection.DIRECTORY_TO_FILENAME, context.stmtCtx);
+        Symbol resolvedFileName = normalizer.normalize(WriterProjection.DIRECTORY_TO_FILENAME, context.transactionContext);
         assert resolvedFileName instanceof Literal : "resolvedFileName must be a Literal, but is: " + resolvedFileName;
         assert resolvedFileName.valueType() == StringType.INSTANCE;
         String fileName = ValueSymbolVisitor.STRING.process(resolvedFileName);
@@ -238,14 +238,14 @@ public class ProjectionToProjectorVisitor
 
     private Map<ColumnIdent, Object> symbolMapToObject(Map<ColumnIdent, Symbol> symbolMap,
                                                        ImplementationSymbolVisitor.Context symbolContext,
-                                                       StmtCtx stmtCtx) {
+                                                       TransactionContext transactionContext) {
         Map<ColumnIdent, Object> objectMap = new HashMap<>(symbolMap.size());
         for (Map.Entry<ColumnIdent, Symbol> entry : symbolMap.entrySet()) {
             Symbol symbol = entry.getValue();
             assert symbol != null;
             objectMap.put(
                 entry.getKey(),
-                symbolVisitor.process(normalizer.normalize(symbol, stmtCtx), symbolContext).value()
+                symbolVisitor.process(normalizer.normalize(symbol, transactionContext), symbolContext).value()
             );
         }
         return objectMap;
@@ -434,7 +434,7 @@ public class ProjectionToProjectorVisitor
 
         private final RamAccountingContext ramAccountingContext;
         private final UUID jobId;
-        private final StmtCtx stmtCtx = new StmtCtx();
+        private final TransactionContext transactionContext = new TransactionContext();
 
         public Context(RamAccountingContext ramAccountingContext, UUID jobId) {
             this.ramAccountingContext = ramAccountingContext;

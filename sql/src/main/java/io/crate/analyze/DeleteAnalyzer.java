@@ -49,7 +49,7 @@ class DeleteAnalyzer {
             public Void visitDelete(Delete node, InnerAnalysisContext context) {
                 WhereClause whereClause = context.whereClauseAnalyzer.analyze(
                     context.expressionAnalyzer.generateWhereClause(node.getWhere(), context.expressionAnalysisContext),
-                    context.expressionAnalysisContext.statementContext());
+                    context.expressionAnalysisContext.transactionContext());
                 if (!whereClause.docKeys().isPresent() &&
                     Symbols.containsColumn(whereClause.query(), DocSysColumns.VERSION)) {
                     throw VERSION_SEARCH_EX;
@@ -92,7 +92,7 @@ class DeleteAnalyzer {
         StatementAnalysisContext statementAnalysisContext = new StatementAnalysisContext(
             analysis.sessionContext(),
             convertParamFunction,
-            analysis.statementContext(),
+            analysis.transactionContext(),
             analysisMetaData,
             Operation.DELETE);
         RelationAnalysisContext relationAnalysisContext = statementAnalysisContext.startRelation();
@@ -108,7 +108,7 @@ class DeleteAnalyzer {
                 convertParamFunction,
                 new FullQualifedNameFieldProvider(relationAnalysisContext.sources()),
                 docTableRelation),
-            new ExpressionAnalysisContext(analysis.statementContext()),
+            new ExpressionAnalysisContext(analysis.transactionContext()),
             deleteAnalyzedStatement,
             new WhereClauseAnalyzer(analysisMetaData, deleteAnalyzedStatement.analyzedRelation())
         );

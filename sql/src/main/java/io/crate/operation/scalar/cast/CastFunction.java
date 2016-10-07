@@ -70,7 +70,7 @@ public class CastFunction extends Scalar<Object, Object> implements FunctionForm
     }
 
     @Override
-    public Symbol normalizeSymbol(Function symbol, StmtCtx stmtCtx) {
+    public Symbol normalizeSymbol(Function symbol, TransactionContext transactionContext) {
         assert symbol.arguments().size() == 1 : "Number of arguments must be 1";
         Symbol argument = symbol.arguments().get(0);
         if (argument.symbolType().isValueSymbol()) {

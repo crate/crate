@@ -75,7 +75,7 @@ public class ExpressionAnalyzerTest extends CrateUnitTest {
         paramTypeHints = ParamTypeHints.EMPTY;
         DummyRelation dummyRelation = new DummyRelation("obj.x", "myObj.x", "myObj.x.AbC");
         dummySources = ImmutableMap.of(new QualifiedName("foo"), (AnalyzedRelation) dummyRelation);
-        context = new ExpressionAnalysisContext(new StmtCtx());
+        context = new ExpressionAnalysisContext(new TransactionContext());
 
         analysisMetaData = new AnalysisMetaData(
             getFunctions(),
@@ -94,7 +94,7 @@ public class ExpressionAnalyzerTest extends CrateUnitTest {
         expectedException.expectMessage("Unsupported expression IF(1, 3)");
         ExpressionAnalyzer expressionAnalyzer = new ExpressionAnalyzer(
             mockedAnalysisMetaData, SessionContext.SYSTEM_SESSION, paramTypeHints, new FullQualifedNameFieldProvider(dummySources), null);
-        ExpressionAnalysisContext expressionAnalysisContext = new ExpressionAnalysisContext(new StmtCtx());
+        ExpressionAnalysisContext expressionAnalysisContext = new ExpressionAnalysisContext(new TransactionContext());
 
         expressionAnalyzer.convert(SqlParser.createExpression("IF ( 1 , 3 )"), expressionAnalysisContext);
     }
@@ -105,7 +105,7 @@ public class ExpressionAnalyzerTest extends CrateUnitTest {
         expectedException.expectMessage("Unsupported expression current_time");
         ExpressionAnalyzer expressionAnalyzer = new ExpressionAnalyzer(
             mockedAnalysisMetaData, SessionContext.SYSTEM_SESSION, paramTypeHints, new FullQualifedNameFieldProvider(dummySources), null);
-        ExpressionAnalysisContext expressionAnalysisContext = new ExpressionAnalysisContext(new StmtCtx());
+        ExpressionAnalysisContext expressionAnalysisContext = new ExpressionAnalysisContext(new TransactionContext());
 
         expressionAnalyzer.convert(SqlParser.createExpression("current_time"), expressionAnalysisContext);
     }
@@ -118,7 +118,7 @@ public class ExpressionAnalyzerTest extends CrateUnitTest {
             paramTypeHints,
             new FullQualifedNameFieldProvider(dummySources),
             null);
-        ExpressionAnalysisContext expressionAnalysisContext = new ExpressionAnalysisContext(new StmtCtx());
+        ExpressionAnalysisContext expressionAnalysisContext = new ExpressionAnalysisContext(new TransactionContext());
 
         Field field1 = (Field) expressionAnalyzer.convert(SqlParser.createExpression("obj['x']"), expressionAnalysisContext);
         Field field2 = (Field) expressionAnalyzer.convert(SqlParser.createExpression("\"obj['x']\""), expressionAnalysisContext);
@@ -180,7 +180,7 @@ public class ExpressionAnalyzerTest extends CrateUnitTest {
 
     @Test
     public void testNonDeterministicFunctionsAlwaysNew() throws Exception {
-        ExpressionAnalysisContext localContext = new ExpressionAnalysisContext(new StmtCtx());
+        ExpressionAnalysisContext localContext = new ExpressionAnalysisContext(new TransactionContext());
         FunctionInfo info1 = new FunctionInfo(
             new FunctionIdent("inc", Arrays.<DataType>asList(DataTypes.BOOLEAN)),
             DataTypes.INTEGER,

@@ -4,7 +4,7 @@ import io.crate.analyze.symbol.Function;
 import io.crate.analyze.symbol.Literal;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.metadata.Reference;
-import io.crate.metadata.StmtCtx;
+import io.crate.metadata.TransactionContext;
 import io.crate.test.integration.CrateUnitTest;
 import org.junit.Test;
 
@@ -21,7 +21,7 @@ public class OrOperatorTest extends CrateUnitTest {
 
         Function function = new Function(
             operator.info(), Arrays.<Symbol>asList(new Reference(), Literal.of(true)));
-        Symbol normalizedSymbol = operator.normalizeSymbol(function, new StmtCtx());
+        Symbol normalizedSymbol = operator.normalizeSymbol(function, new TransactionContext());
         assertThat(normalizedSymbol, isLiteral(true));
     }
 
@@ -30,7 +30,7 @@ public class OrOperatorTest extends CrateUnitTest {
         OrOperator operator = new OrOperator();
         Function function = new Function(
             operator.info(), Arrays.<Symbol>asList(new Reference(), Literal.of(false)));
-        Symbol normalizedSymbol = operator.normalizeSymbol(function, new StmtCtx());
+        Symbol normalizedSymbol = operator.normalizeSymbol(function, new TransactionContext());
         assertThat(normalizedSymbol, instanceOf(Reference.class));
     }
 
@@ -40,7 +40,7 @@ public class OrOperatorTest extends CrateUnitTest {
 
         Function function = new Function(
             operator.info(), Arrays.<Symbol>asList(new Reference(), new Reference()));
-        Symbol normalizedSymbol = operator.normalizeSymbol(function, new StmtCtx());
+        Symbol normalizedSymbol = operator.normalizeSymbol(function, new TransactionContext());
         assertThat(normalizedSymbol, instanceOf(Function.class));
     }
 

@@ -57,8 +57,8 @@ final class RelationNormalizer extends AnalyzedRelationVisitor<RelationNormalize
 
     public static AnalyzedRelation normalize(AnalyzedRelation relation,
                                              AnalysisMetaData analysisMetaData,
-                                             StmtCtx stmtCtx) {
-        return INSTANCE.process(relation, new Context(analysisMetaData, relation.fields(), stmtCtx));
+                                             TransactionContext transactionContext) {
+        return INSTANCE.process(relation, new Context(analysisMetaData, relation.fields(), transactionContext));
     }
 
     @Override
@@ -84,7 +84,7 @@ final class RelationNormalizer extends AnalyzedRelationVisitor<RelationNormalize
 
         QuerySpec querySpec = mergeAndReplaceFields(table, context.querySpec);
         QueriedTable relation = new QueriedTable(table.tableRelation(), context.paths(), querySpec);
-        relation.normalize(context.analysisMetaData, context.stmtCtx);
+        relation.normalize(context.analysisMetaData, context.transactionContext);
         return relation;
     }
 
@@ -94,9 +94,9 @@ final class RelationNormalizer extends AnalyzedRelationVisitor<RelationNormalize
         if (context.querySpec != null) {
             QuerySpec querySpec = mergeAndReplaceFields(table, context.querySpec);
             relation = new QueriedDocTable(table.tableRelation(), context.paths(), querySpec);
-            relation.normalize(context.analysisMetaData, context.stmtCtx);
+            relation.normalize(context.analysisMetaData, context.transactionContext);
         }
-        relation.analyzeWhereClause(context.analysisMetaData, context.stmtCtx);
+        relation.analyzeWhereClause(context.analysisMetaData, context.transactionContext);
         return relation;
     }
 
@@ -224,14 +224,14 @@ final class RelationNormalizer extends AnalyzedRelationVisitor<RelationNormalize
     static class Context {
         private final AnalysisMetaData analysisMetaData;
         private final List<Field> fields;
-        private final StmtCtx stmtCtx;
+        private final TransactionContext transactionContext;
 
         private QuerySpec querySpec;
 
-        public Context(AnalysisMetaData analysisMetaData, List<Field> fields, StmtCtx stmtCtx) {
+        public Context(AnalysisMetaData analysisMetaData, List<Field> fields, TransactionContext transactionContext) {
             this.analysisMetaData = analysisMetaData;
             this.fields = fields;
-            this.stmtCtx = stmtCtx;
+            this.transactionContext = transactionContext;
         }
 
         public Collection<? extends Path> paths() {

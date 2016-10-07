@@ -27,7 +27,7 @@ import io.crate.analyze.symbol.Literal;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
-import io.crate.metadata.StmtCtx;
+import io.crate.metadata.TransactionContext;
 import io.crate.operation.operator.input.ObjectInput;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.types.ArrayType;
@@ -39,7 +39,7 @@ import java.util.Arrays;
 
 public class AnyEqOperatorTest extends CrateUnitTest {
 
-    private final StmtCtx stmtCtx = new StmtCtx();
+    private final TransactionContext transactionContext = new TransactionContext();
 
     private Boolean anyEq(Object value, Object arrayExpr) {
 
@@ -64,7 +64,7 @@ public class AnyEqOperatorTest extends CrateUnitTest {
                 Literal.of(DataTypes.INTEGER, value),
                 Literal.of(new ArrayType(DataTypes.INTEGER), arrayExpr))
         );
-        return (Boolean) ((Literal) anyEqOperator.normalizeSymbol(function, stmtCtx)).value();
+        return (Boolean) ((Literal) anyEqOperator.normalizeSymbol(function, transactionContext)).value();
     }
 
     @Test

@@ -101,7 +101,7 @@ public class CopyStatementAnalyzer {
             analysisMetaData,
             analysis.sessionContext(),
             analysis.parameterContext(),
-            analysis.statementContext(),
+            analysis.transactionContext(),
             tableRelation,
             Operation.INSERT);
         Predicate<DiscoveryNode> nodeFilters = Predicates.alwaysTrue();
@@ -156,7 +156,7 @@ public class CopyStatementAnalyzer {
             analysisMetaData,
             analysis.sessionContext(),
             analysis.parameterContext(),
-            analysis.statementContext(),
+            analysis.transactionContext(),
             tableRelation,
             Operation.READ);
         Settings settings = GenericPropertiesConverter.settingsFromProperties(
@@ -171,7 +171,7 @@ public class CopyStatementAnalyzer {
         List<Symbol> outputs = new ArrayList<>();
         QuerySpec querySpec = new QuerySpec();
 
-        WhereClause whereClause = createWhereClause(node, tableRelation, context, partitions, analysis.statementContext());
+        WhereClause whereClause = createWhereClause(node, tableRelation, context, partitions, analysis.transactionContext());
         querySpec.where(whereClause);
 
         Map<ColumnIdent, Symbol> overwrites = null;
@@ -243,13 +243,13 @@ public class CopyStatementAnalyzer {
                                           DocTableRelation tableRelation,
                                           Context context,
                                           List<String> partitions,
-                                          StmtCtx stmtCtx) {
+                                          TransactionContext transactionContext) {
         WhereClause whereClause = null;
         if (node.whereClause().isPresent()) {
             WhereClauseAnalyzer whereClauseAnalyzer = new WhereClauseAnalyzer(analysisMetaData, tableRelation);
             whereClause = whereClauseAnalyzer.analyze(
                 context.expressionAnalyzer.generateWhereClause(node.whereClause(), context.expressionAnalysisContext),
-                stmtCtx);
+                transactionContext);
         }
 
         if (whereClause == null) {
@@ -310,16 +310,16 @@ public class CopyStatementAnalyzer {
 
         private final ExpressionAnalyzer expressionAnalyzer;
         private final ExpressionAnalysisContext expressionAnalysisContext;
-        private final StmtCtx stmtCtx;
+        private final TransactionContext transactionContext;
 
         public Context(AnalysisMetaData analysisMetaData,
                        SessionContext sessionContext,
                        ParameterContext parameterContext,
-                       StmtCtx stmtCtx,
+                       TransactionContext transactionContext,
                        DocTableRelation tableRelation,
                        Operation operation) {
-            expressionAnalysisContext = new ExpressionAnalysisContext(stmtCtx);
-            this.stmtCtx = stmtCtx;
+            expressionAnalysisContext = new ExpressionAnalysisContext(transactionContext);
+            this.transactionContext = transactionContext;
             expressionAnalyzer = new ExpressionAnalyzer(
                 analysisMetaData,
                 sessionContext,
@@ -331,7 +331,7 @@ public class CopyStatementAnalyzer {
 
         public Symbol processExpression(Expression expression) {
             return expressionAnalyzer.normalize(
-                expressionAnalyzer.convert(expression, expressionAnalysisContext), stmtCtx);
+                expressionAnalyzer.convert(expression, expressionAnalysisContext), transactionContext);
         }
     }
 }

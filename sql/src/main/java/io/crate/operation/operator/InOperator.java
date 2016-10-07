@@ -26,7 +26,7 @@ import io.crate.analyze.symbol.Literal;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
-import io.crate.metadata.StmtCtx;
+import io.crate.metadata.TransactionContext;
 import io.crate.operation.Input;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
@@ -58,7 +58,7 @@ public class InOperator extends Operator<Object> {
     }
 
     @Override
-    public Symbol normalizeSymbol(Function function, StmtCtx stmtCtx) {
+    public Symbol normalizeSymbol(Function function, TransactionContext transactionContext) {
         // ... where id in (1,2,3,4,...)
         // arguments.get(0) ... id
         // arguments.get(1) ... SetLiteral<Literal> (1,2,3,4,...)

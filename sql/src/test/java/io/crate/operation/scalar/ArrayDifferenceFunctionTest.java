@@ -27,7 +27,7 @@ import io.crate.analyze.symbol.Literal;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.Scalar;
-import io.crate.metadata.StmtCtx;
+import io.crate.metadata.TransactionContext;
 import io.crate.operation.Input;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
@@ -53,7 +53,7 @@ public class ArrayDifferenceFunctionTest extends AbstractScalarFunctionsTest {
     private static final ArrayType arrayOfIpType = new ArrayType(DataTypes.IP);
     private static final ArrayType arrayOfUndefinedType = new ArrayType(DataTypes.UNDEFINED);
 
-    private final StmtCtx stmtCtx = new StmtCtx();
+    private final TransactionContext transactionContext = new TransactionContext();
 
     private ArrayDifferenceFunction getFunction(ArrayType... args) {
         List<DataType> argumentTypes = new ArrayList<>(args.length);
@@ -159,7 +159,7 @@ public class ArrayDifferenceFunctionTest extends AbstractScalarFunctionsTest {
         Symbol symbol = function.normalizeSymbol(new Function(function.info(), Arrays.<Symbol>asList(
             Literal.of(new Integer[]{10, 20}, type),
             Literal.of(new Integer[]{10, 30}, type)
-        )), stmtCtx);
+        )), transactionContext);
 
         assertThat(symbol, isLiteral(new Integer[]{20}, type));
     }
@@ -173,7 +173,7 @@ public class ArrayDifferenceFunctionTest extends AbstractScalarFunctionsTest {
             createReference("foo", type),
             Literal.of(new Integer[]{10, 30}, type)
         ));
-        Function symbol = (Function) function.normalizeSymbol(functionSymbol, stmtCtx);
+        Function symbol = (Function) function.normalizeSymbol(functionSymbol, transactionContext);
         assertThat(symbol, Matchers.sameInstance(functionSymbol));
     }
 

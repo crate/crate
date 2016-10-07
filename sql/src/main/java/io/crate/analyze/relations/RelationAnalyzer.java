@@ -82,7 +82,7 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
     public AnalyzedRelation analyze(Node node, StatementAnalysisContext relationAnalysisContext) {
         AnalyzedRelation relation = process(node, relationAnalysisContext);
         return RelationNormalizer.normalize(relation, analysisMetaData,
-            relationAnalysisContext.stmtCtx());
+            relationAnalysisContext.transactionContext());
     }
 
     public AnalyzedRelation analyzeUnbound(Query query, SessionContext sessionContext, ParamTypeHints paramTypeHints) {
@@ -100,7 +100,7 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
             new StatementAnalysisContext(
                 analysis.sessionContext(),
                 analysis.parameterContext(),
-                analysis.statementContext(),
+                analysis.transactionContext(),
                 analysisMetaData,
                 Operation.READ
             )
@@ -200,7 +200,7 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
                 relation = new QueriedSelectRelation((QueriedRelation) source, selectAnalysis.outputNames(), querySpec);
             }
             if (tableRelation != null) {
-                tableRelation.normalize(analysisMetaData, context.expressionAnalysisContext().statementContext());
+                tableRelation.normalize(analysisMetaData, context.expressionAnalysisContext().transactionContext());
                 relation = tableRelation;
             }
         } else {
@@ -311,7 +311,7 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
             Symbol symbol = context.expressionAnalyzer().convert(having.get(), context.expressionAnalysisContext());
             HavingSymbolValidator.validate(symbol, groupBy);
             return new HavingClause(context.expressionAnalyzer().normalize(
-                symbol, context.expressionAnalysisContext().statementContext()));
+                symbol, context.expressionAnalysisContext().transactionContext()));
         }
         return null;
     }

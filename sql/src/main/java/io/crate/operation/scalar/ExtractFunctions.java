@@ -137,7 +137,7 @@ public class ExtractFunctions {
         }
 
         @Override
-        public Symbol normalizeSymbol(Function symbol, StmtCtx stmtCtx) {
+        public Symbol normalizeSymbol(Function symbol, TransactionContext transactionContext) {
             Symbol arg1 = symbol.arguments().get(0);
             if (arg1.symbolType().isValueSymbol()) {
                 String field = ValueSymbolVisitor.STRING.process(arg1);
@@ -145,9 +145,9 @@ public class ExtractFunctions {
                 Scalar<Number, Long> scalar = getScalar(Extract.Field.valueOf(field.toUpperCase(Locale.ENGLISH)));
                 //noinspection ArraysAsListWithZeroOrOneArgument # need mutable list as arg to function
                 Function function = new Function(scalar.info(), Arrays.asList(symbol.arguments().get(1)));
-                return scalar.normalizeSymbol(function, stmtCtx);
+                return scalar.normalizeSymbol(function, transactionContext);
             }
-            return super.normalizeSymbol(symbol, stmtCtx);
+            return super.normalizeSymbol(symbol, transactionContext);
         }
 
         @Override

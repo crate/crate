@@ -27,7 +27,7 @@ import io.crate.analyze.WhereClause;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.TableRelation;
 import io.crate.metadata.Functions;
-import io.crate.metadata.StmtCtx;
+import io.crate.metadata.TransactionContext;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.TestingTableInfo;
@@ -127,7 +127,7 @@ public class LuceneQueryBuilderTest extends CrateUnitTest {
     }
 
     private WhereClause asWhereClause(String expression) {
-        return new WhereClause(normalizer.normalize(expressions.asSymbol(expression), new StmtCtx()));
+        return new WhereClause(normalizer.normalize(expressions.asSymbol(expression), new TransactionContext()));
     }
 
     private Query convert(WhereClause clause) {
@@ -191,7 +191,7 @@ public class LuceneQueryBuilderTest extends CrateUnitTest {
     @Test
     public void testEqOnTwoArraysBecomesGenericFunctionQueryAllValuesNull() throws Exception {
         SqlExpressions sqlExpressions = new SqlExpressions(sources, new Object[]{new Object[]{null, null, null}});
-        Query query = convert(new WhereClause(normalizer.normalize(sqlExpressions.asSymbol("y_array = ?"), new StmtCtx())));
+        Query query = convert(new WhereClause(normalizer.normalize(sqlExpressions.asSymbol("y_array = ?"), new TransactionContext())));
         assertThat(query, instanceOf(GenericFunctionQuery.class));
     }
 
@@ -200,7 +200,7 @@ public class LuceneQueryBuilderTest extends CrateUnitTest {
         Object[] values = new Object[2000]; // should trigger the TooManyClauses exception
         Arrays.fill(values, 10L);
         SqlExpressions sqlExpressions = new SqlExpressions(sources, new Object[]{values});
-        Query query = convert(new WhereClause(normalizer.normalize(sqlExpressions.asSymbol("y_array = ?"), new StmtCtx())));
+        Query query = convert(new WhereClause(normalizer.normalize(sqlExpressions.asSymbol("y_array = ?"), new TransactionContext())));
         assertThat(query, instanceOf(BooleanQuery.class));
         BooleanQuery booleanQuery = (BooleanQuery) query;
         assertThat(booleanQuery.clauses().get(0).getQuery(), instanceOf(TermsQuery.class));

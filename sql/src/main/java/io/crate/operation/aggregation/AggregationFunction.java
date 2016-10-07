@@ -25,7 +25,7 @@ import io.crate.analyze.symbol.Function;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.metadata.FunctionImplementation;
-import io.crate.metadata.StmtCtx;
+import io.crate.metadata.TransactionContext;
 import io.crate.operation.Input;
 import io.crate.types.DataType;
 import org.elasticsearch.common.breaker.CircuitBreakingException;
@@ -80,7 +80,7 @@ public abstract class AggregationFunction<TPartial, TFinal> implements FunctionI
     public abstract DataType partialType();
 
     @Override
-    public Symbol normalizeSymbol(Function symbol, StmtCtx stmtCtx) {
+    public Symbol normalizeSymbol(Function symbol, TransactionContext transactionContext) {
         return symbol;
     }
 }

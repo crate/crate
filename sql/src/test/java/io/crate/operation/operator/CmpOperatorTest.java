@@ -4,7 +4,7 @@ import io.crate.analyze.symbol.Function;
 import io.crate.analyze.symbol.Literal;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.analyze.symbol.Value;
-import io.crate.metadata.StmtCtx;
+import io.crate.metadata.TransactionContext;
 import io.crate.operation.Input;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.types.DataTypes;
@@ -24,7 +24,7 @@ public class CmpOperatorTest extends CrateUnitTest {
     private LteOperator op_lte_long;
     private LtOperator op_lt_string;
 
-    private final StmtCtx stmtCtx = new StmtCtx();
+    private final TransactionContext transactionContext = new TransactionContext();
 
     @Before
     public void prepare() {
@@ -40,7 +40,7 @@ public class CmpOperatorTest extends CrateUnitTest {
     }
 
     private Symbol normalize(Operator operator, Symbol... symbols) {
-        return operator.normalizeSymbol(getFunction(operator, symbols), stmtCtx);
+        return operator.normalizeSymbol(getFunction(operator, symbols), transactionContext);
     }
 
     @Test

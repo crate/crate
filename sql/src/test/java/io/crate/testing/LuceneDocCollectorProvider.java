@@ -113,7 +113,7 @@ public class LuceneDocCollectorProvider implements AutoCloseable {
         PlannedAnalyzedRelation plannedAnalyzedRelation = queryAndFetchConsumer.consume(
             analysis.rootRelation(),
             new ConsumerContext(analysis.rootRelation(), new Planner.Context(
-                cluster.clusterService(), UUID.randomUUID(), null, normalizer, new StmtCtx(), 0, 0)));
+                cluster.clusterService(), UUID.randomUUID(), null, normalizer, new TransactionContext(), 0, 0)));
         final RoutedCollectPhase collectPhase = ((RoutedCollectPhase) ((CollectAndMerge) plannedAnalyzedRelation.plan()).collectPhase());
         collectPhase.nodePageSizeHint(nodePageSizeHint);
         Routing routing = collectPhase.routing();

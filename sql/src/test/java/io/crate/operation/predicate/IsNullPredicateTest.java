@@ -45,19 +45,19 @@ public class IsNullPredicateTest extends CrateUnitTest {
         DataTypes.BOOLEAN
     ));
 
-    private final StmtCtx stmtCtx = new StmtCtx();
+    private final TransactionContext transactionContext = new TransactionContext();
 
     @Test
     public void testNormalizeSymbolFalse() throws Exception {
         Function isNull = new Function(predicate.info(), Arrays.<Symbol>asList(Literal.of("a")));
-        Symbol symbol = predicate.normalizeSymbol(isNull, stmtCtx);
+        Symbol symbol = predicate.normalizeSymbol(isNull, transactionContext);
         assertThat(symbol, isLiteral(false));
     }
 
     @Test
     public void testNormalizeSymbolTrue() throws Exception {
         Function isNull = new Function(predicate.info(), Arrays.<Symbol>asList(Literal.NULL));
-        Symbol symbol = predicate.normalizeSymbol(isNull, stmtCtx);
+        Symbol symbol = predicate.normalizeSymbol(isNull, transactionContext);
         assertThat(symbol, isLiteral(true));
     }
 
@@ -68,7 +68,7 @@ public class IsNullPredicateTest extends CrateUnitTest {
             RowGranularity.DOC,
             DataTypes.STRING);
         Function isNull = new Function(predicate.info(), Arrays.<Symbol>asList(name_ref));
-        Symbol symbol = predicate.normalizeSymbol(isNull, stmtCtx);
+        Symbol symbol = predicate.normalizeSymbol(isNull, transactionContext);
         assertThat(symbol, instanceOf(Function.class));
     }
 
@@ -77,7 +77,7 @@ public class IsNullPredicateTest extends CrateUnitTest {
         DynamicReference name_ref = new DynamicReference(
             new ReferenceIdent(new TableIdent(null, "dummy"), "name"), RowGranularity.DOC);
         Function isNull = new Function(predicate.info(), Arrays.<Symbol>asList(name_ref));
-        Symbol symbol = predicate.normalizeSymbol(isNull, stmtCtx);
+        Symbol symbol = predicate.normalizeSymbol(isNull, transactionContext);
         assertThat(symbol, isLiteral(true));
     }
 
@@ -85,7 +85,7 @@ public class IsNullPredicateTest extends CrateUnitTest {
     public void testNormalizeSymbolWithStringLiteralThatIsNull() throws Exception {
         Function isNull = new Function(predicate.info(),
             Arrays.<Symbol>asList(Literal.of(DataTypes.STRING, null)));
-        Symbol symbol = predicate.normalizeSymbol(isNull, stmtCtx);
+        Symbol symbol = predicate.normalizeSymbol(isNull, transactionContext);
         assertThat((Boolean) ((Input) symbol).value(), is(true));
     }
 

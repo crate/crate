@@ -155,10 +155,10 @@ public class NestedLoopConsumer implements Consumer {
 
             // this normalization is required to replace fields of the table relations
             if (left instanceof QueriedTableRelation) {
-                ((QueriedTableRelation) left).normalize(analysisMetaData, context.plannerContext().statementContext());
+                ((QueriedTableRelation) left).normalize(analysisMetaData, context.plannerContext().transactionContext());
             }
             if (right instanceof QueriedTableRelation) {
-                ((QueriedTableRelation) right).normalize(analysisMetaData, context.plannerContext().statementContext());
+                ((QueriedTableRelation) right).normalize(analysisMetaData, context.plannerContext().transactionContext());
             }
 
             PlannedAnalyzedRelation leftPlan = context.plannerContext().planSubRelation(left, context);

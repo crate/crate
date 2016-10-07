@@ -25,9 +25,12 @@ package io.crate.metadata;
 import org.joda.time.DateTimeUtils;
 
 /**
- * StatementContext that can be used to keep state which is valid on the handler during a "statement lifecycle".
+ * TransactionContext is a context that is used to keep state which is valid during a transaction.
+ *
+ * In Crate a transaction is always bound to the lifecycle of a single query/statement execution as there is no
+ * transaction support.
  */
-public class StmtCtx {
+public class TransactionContext {
 
     private Long currentTimeMillis = null;
 

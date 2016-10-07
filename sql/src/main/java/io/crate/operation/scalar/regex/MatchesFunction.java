@@ -72,7 +72,7 @@ public class MatchesFunction extends Scalar<BytesRef[], Object> implements Dynam
     }
 
     @Override
-    public Symbol normalizeSymbol(Function symbol, StmtCtx stmtCtx) {
+    public Symbol normalizeSymbol(Function symbol, TransactionContext transactionContext) {
         final int size = symbol.arguments().size();
         assert (size >= 2 && size <= 3);
 

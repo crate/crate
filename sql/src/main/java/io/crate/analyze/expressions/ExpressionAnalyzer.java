@@ -110,7 +110,7 @@ public class ExpressionAnalyzer {
     /**
      * Use to normalize a symbol. (For example to normalize a function that contains only literals to a literal)
      */
-    public Symbol normalize(Symbol symbol, StmtCtx context) {
+    public Symbol normalize(Symbol symbol, TransactionContext context) {
         return normalizer.normalize(symbol, context);
     }
 
@@ -132,7 +132,7 @@ public class ExpressionAnalyzer {
 
     public WhereClause generateWhereClause(Optional<Expression> whereExpression, ExpressionAnalysisContext context) {
         if (whereExpression.isPresent()) {
-            return new WhereClause(normalize(convert(whereExpression.get(), context), context.statementContext()), null, null);
+            return new WhereClause(normalize(convert(whereExpression.get(), context), context.transactionContext()), null, null);
         } else {
             return WhereClause.MATCH_ALL;
         }
@@ -422,8 +422,8 @@ public class ExpressionAnalyzer {
                 throw new UnsupportedFeatureException("ALL is not supported");
             }
 
-            Symbol arraySymbol = normalize(process(node.getRight(), context), context.statementContext());
-            Symbol leftSymbol = normalize(process(node.getLeft(), context), context.statementContext());
+            Symbol arraySymbol = normalize(process(node.getRight(), context), context.transactionContext());
+            Symbol leftSymbol = normalize(process(node.getLeft(), context), context.transactionContext());
             DataType rightType = arraySymbol.valueType();
 
             if (!DataTypes.isCollectionType(rightType)) {
@@ -454,8 +454,8 @@ public class ExpressionAnalyzer {
             if (node.getEscape() != null) {
                 throw new UnsupportedOperationException("ESCAPE is not supported.");
             }
-            Symbol rightSymbol = normalize(process(node.getValue(), context), context.statementContext());
-            Symbol leftSymbol = normalize(process(node.getPattern(), context), context.statementContext());
+            Symbol rightSymbol = normalize(process(node.getValue(), context), context.transactionContext());
+            Symbol leftSymbol = normalize(process(node.getPattern(), context), context.transactionContext());
             DataType rightType = rightSymbol.valueType();
 
             if (!DataTypes.isCollectionType(rightType)) {

@@ -29,7 +29,7 @@ import io.crate.analyze.AnalysisMetaData;
 import io.crate.analyze.expressions.ExpressionAnalysisContext;
 import io.crate.analyze.expressions.ExpressionAnalyzer;
 import io.crate.analyze.symbol.Symbol;
-import io.crate.metadata.StmtCtx;
+import io.crate.metadata.TransactionContext;
 import io.crate.planner.node.dql.join.JoinType;
 import io.crate.sql.tree.ParameterExpression;
 import io.crate.sql.tree.QualifiedName;
@@ -55,14 +55,14 @@ public class RelationAnalysisContext {
 
     RelationAnalysisContext(SessionContext sessionContext,
                             Function<ParameterExpression, Symbol> convertParamFunction,
-                            StmtCtx stmtCtx,
+                            TransactionContext transactionContext,
                             AnalysisMetaData analysisMetaData,
                             boolean aliasedRelation) {
         this.sessionContext = sessionContext;
         this.convertParamFunction = convertParamFunction;
         this.analysisMetaData = analysisMetaData;
         this.aliasedRelation = aliasedRelation;
-        expressionAnalysisContext = new ExpressionAnalysisContext(stmtCtx);
+        expressionAnalysisContext = new ExpressionAnalysisContext(transactionContext);
     }
 
     boolean isAliasedRelation() {

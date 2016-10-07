@@ -38,14 +38,14 @@ import static org.hamcrest.CoreMatchers.instanceOf;
 
 public class NotPredicateTest extends CrateUnitTest {
 
-    private final StmtCtx stmtCtx = new StmtCtx();
+    private final TransactionContext transactionContext = new TransactionContext();
 
     @Test
     public void testNormalizeSymbolNull() throws Exception {
         NotPredicate predicate = new NotPredicate();
         Function not = new Function(predicate.info(), Arrays.<Symbol>asList(Literal.NULL));
 
-        assertThat(predicate.normalizeSymbol(not, stmtCtx), isLiteral(null));
+        assertThat(predicate.normalizeSymbol(not, transactionContext), isLiteral(null));
     }
 
     @Test
@@ -53,7 +53,7 @@ public class NotPredicateTest extends CrateUnitTest {
         NotPredicate predicate = new NotPredicate();
         Function not = new Function(predicate.info(), Arrays.<Symbol>asList(Literal.of(true)));
 
-        assertThat(predicate.normalizeSymbol(not, stmtCtx), isLiteral(false));
+        assertThat(predicate.normalizeSymbol(not, transactionContext), isLiteral(false));
     }
 
     @Test
@@ -73,7 +73,7 @@ public class NotPredicateTest extends CrateUnitTest {
         );
 
         Function not = new Function(notPredicate.info(), Arrays.<Symbol>asList(eqName));
-        Symbol normalized = notPredicate.normalizeSymbol(not, stmtCtx);
+        Symbol normalized = notPredicate.normalizeSymbol(not, transactionContext);
 
         assertThat(normalized, instanceOf(Function.class));
     }

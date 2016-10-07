@@ -82,7 +82,7 @@ public class WhereClauseAnalyzerTest extends CrateUnitTest {
     private AnalysisMetaData ctxMetaData;
     private ThreadPool threadPool;
 
-    private final StmtCtx stmtCtx = new StmtCtx();
+    private final TransactionContext transactionContext = new TransactionContext();
 
     @Mock
     private SchemaInfo schemaInfo;
@@ -262,9 +262,9 @@ public class WhereClauseAnalyzerTest extends CrateUnitTest {
         });
         DocTableRelation tableRelation = statement.analyzedRelation();
         WhereClauseAnalyzer whereClauseAnalyzer = new WhereClauseAnalyzer(ctxMetaData, tableRelation);
-        assertThat(whereClauseAnalyzer.analyze(statement.whereClauses().get(0), stmtCtx).docKeys().get(), contains(isDocKey("1")));
-        assertThat(whereClauseAnalyzer.analyze(statement.whereClauses().get(1), stmtCtx).docKeys().get(), contains(isDocKey("2")));
-        assertThat(whereClauseAnalyzer.analyze(statement.whereClauses().get(2), stmtCtx).docKeys().get(), contains(isDocKey("3")));
+        assertThat(whereClauseAnalyzer.analyze(statement.whereClauses().get(0), transactionContext).docKeys().get(), contains(isDocKey("1")));
+        assertThat(whereClauseAnalyzer.analyze(statement.whereClauses().get(1), transactionContext).docKeys().get(), contains(isDocKey("2")));
+        assertThat(whereClauseAnalyzer.analyze(statement.whereClauses().get(2), transactionContext).docKeys().get(), contains(isDocKey("3")));
     }
 
     @Test

@@ -52,18 +52,18 @@ public class EqualityExtractor {
         this.normalizer = normalizer;
     }
 
-    public List<List<Symbol>> extractParentMatches(List<ColumnIdent> columns, Symbol symbol, @Nullable StmtCtx stmtCtx) {
-        return extractMatches(columns, symbol, false, stmtCtx);
+    public List<List<Symbol>> extractParentMatches(List<ColumnIdent> columns, Symbol symbol, @Nullable TransactionContext transactionContext) {
+        return extractMatches(columns, symbol, false, transactionContext);
     }
 
-    public List<List<Symbol>> extractExactMatches(List<ColumnIdent> columns, Symbol symbol, @Nullable StmtCtx stmtCtx) {
-        return extractMatches(columns, symbol, true, stmtCtx);
+    public List<List<Symbol>> extractExactMatches(List<ColumnIdent> columns, Symbol symbol, @Nullable TransactionContext transactionContext) {
+        return extractMatches(columns, symbol, true, transactionContext);
     }
 
     private List<List<Symbol>> extractMatches(Collection<ColumnIdent> columns,
                                               Symbol symbol,
                                               boolean exact,
-                                              @Nullable StmtCtx stmtCtx) {
+                                              @Nullable TransactionContext transactionContext) {
         EqualityExtractor.ProxyInjectingVisitor.Context context =
             new EqualityExtractor.ProxyInjectingVisitor.Context(columns, exact);
         Symbol proxiedTree = ProxyInjectingVisitor.INSTANCE.process(symbol, context);
@@ -86,7 +86,7 @@ public class EqualityExtractor {
                     anyNull = true;
                 }
             }
-            Symbol normalized = normalizer.normalize(proxiedTree, stmtCtx);
+            Symbol normalized = normalizer.normalize(proxiedTree, transactionContext);
             if (normalized == Literal.BOOLEAN_TRUE) {
                 if (anyNull) {
                     return null;

@@ -281,7 +281,7 @@ public class TestingTableInfo extends DocTableInfo {
                 new AnalysisMetaData(functions, null, null), SessionContext.SYSTEM_SESSION, null, tableReferenceResolver, null);
             for (GeneratedReference generatedReferenceInfo : generatedColumns.build()) {
                 Expression expression = SqlParser.createExpression(generatedReferenceInfo.formattedGeneratedExpression());
-                ExpressionAnalysisContext context = new ExpressionAnalysisContext(new StmtCtx());
+                ExpressionAnalysisContext context = new ExpressionAnalysisContext(new TransactionContext());
                 generatedReferenceInfo.generatedExpression(expressionAnalyzer.convert(expression, context));
                 generatedReferenceInfo.referencedReferences(ImmutableList.copyOf(tableReferenceResolver.references()));
                 tableReferenceResolver.references().clear();

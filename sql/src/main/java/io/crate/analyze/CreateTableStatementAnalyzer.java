@@ -108,7 +108,7 @@ public class CreateTableStatementAnalyzer extends DefaultTraversalVisitor<Create
             analysisMetaData,
             context.analysis.parameterContext(),
             context.analysis.sessionContext(),
-            context.analysis.statementContext());
+            context.analysis.transactionContext());
 
         // update table settings
         context.statement.tableParameter().settingsBuilder().put(context.statement.analyzedTableElements().settings());

@@ -99,9 +99,9 @@ public class EvaluatingNormalizer {
             analysisMetaData.referenceResolver(), fieldResolver, inPlace);
     }
 
-    private abstract class BaseVisitor extends SymbolVisitor<StmtCtx, Symbol> {
+    private abstract class BaseVisitor extends SymbolVisitor<TransactionContext, Symbol> {
         @Override
-        public Symbol visitField(Field field, StmtCtx context) {
+        public Symbol visitField(Field field, TransactionContext context) {
             if (fieldResolver != null) {
                 Symbol resolved = fieldResolver.resolveField(field);
                 if (resolved != null) {
@@ -112,7 +112,7 @@ public class EvaluatingNormalizer {
         }
 
         @Override
-        public Symbol visitMatchPredicate(MatchPredicate matchPredicate, StmtCtx context) {
+        public Symbol visitMatchPredicate(MatchPredicate matchPredicate, TransactionContext context) {
             if (fieldResolver != null) {
                 // Once the fields can be resolved, rewrite matchPredicate to function
                 Map<Field, Symbol> fieldBoostMap = matchPredicate.identBoostMap();
@@ -143,7 +143,7 @@ public class EvaluatingNormalizer {
 
 
         @SuppressWarnings("unchecked")
-        protected Symbol normalizeFunctionSymbol(Function function, StmtCtx context) {
+        protected Symbol normalizeFunctionSymbol(Function function, TransactionContext context) {
             FunctionImplementation impl = functions.get(function.info().ident());
             if (impl != null) {
                 return impl.normalizeSymbol(function, context);
@@ -155,7 +155,7 @@ public class EvaluatingNormalizer {
         }
 
         @Override
-        public Symbol visitReference(Reference symbol, StmtCtx context) {
+        public Symbol visitReference(Reference symbol, TransactionContext context) {
             if (symbol.granularity().ordinal() > granularity.ordinal()) {
                 return symbol;
             }
@@ -172,14 +172,14 @@ public class EvaluatingNormalizer {
         }
 
         @Override
-        protected Symbol visitSymbol(Symbol symbol, StmtCtx context) {
+        protected Symbol visitSymbol(Symbol symbol, TransactionContext context) {
             return symbol;
         }
     }
 
     private class CopyingVisitor extends BaseVisitor {
         @Override
-        public Symbol visitFunction(Function function, StmtCtx context) {
+        public Symbol visitFunction(Function function, TransactionContext context) {
             List<Symbol> newArgs = normalize(function.arguments(), context);
             if (newArgs != function.arguments()) {
                 function = new Function(function.info(), newArgs);
@@ -190,7 +190,7 @@ public class EvaluatingNormalizer {
 
     private class InPlaceVisitor extends BaseVisitor {
         @Override
-        public Symbol visitFunction(Function function, StmtCtx context) {
+        public Symbol visitFunction(Function function, TransactionContext context) {
             normalizeInplace(function.arguments(), context);
             return normalizeFunctionSymbol(function, context);
         }
@@ -202,7 +202,7 @@ public class EvaluatingNormalizer {
      * @param symbols the list to be normalized
      * @return a list with normalized symbols
      */
-    public List<Symbol> normalize(List<Symbol> symbols, StmtCtx context) {
+    public List<Symbol> normalize(List<Symbol> symbols, TransactionContext context) {
         if (symbols.size() > 0) {
             boolean changed = false;
             Symbol[] newArgs = new Symbol[symbols.size()];
@@ -224,7 +224,7 @@ public class EvaluatingNormalizer {
      *
      * @param symbols the list to be normalized
      */
-    public void normalizeInplace(@Nullable List<Symbol> symbols, @Nullable StmtCtx context) {
+    public void normalizeInplace(@Nullable List<Symbol> symbols, @Nullable TransactionContext context) {
         if (symbols != null) {
             for (int i = 0; i < symbols.size(); i++) {
                 symbols.set(i, normalize(symbols.get(i), context));
@@ -232,7 +232,7 @@ public class EvaluatingNormalizer {
         }
     }
 
-    public Symbol normalize(@Nullable Symbol symbol, @Nullable StmtCtx context) {
+    public Symbol normalize(@Nullable Symbol symbol, @Nullable TransactionContext context) {
         if (symbol == null) {
             return null;
         }
