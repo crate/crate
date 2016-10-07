@@ -314,6 +314,22 @@ public class TestStatementBuilder {
     }
 
     @Test
+    public void testArrayConstructor() {
+        printStatement("select []");
+        printStatement("select [ARRAY[1]]");
+        printStatement("select ARRAY[]");
+        printStatement("select ARRAY[1, 2]");
+        printStatement("select ARRAY[ARRAY[1,2], ARRAY[2]]");
+        printStatement("select ARRAY[ARRAY[1,2], [2]]");
+        printStatement("select ARRAY[ARRAY[1,2], ?]");
+
+        printStatement("select ARRAY[1 + 2]");
+        printStatement("select ARRAY[ARRAY[col, 2 + 3], [col]]");
+        printStatement("select [ARRAY[1 + 2, ?], [1 + 2]]");
+        printStatement("select ARRAY[col_a IS NULL, col_b IS NOT NULL]");
+    }
+
+    @Test
     public void testTableFunctions() throws Exception {
         printStatement("select * from unnest([1, 2], ['Arthur', 'Marvin'])");
         printStatement("select * from unnest(?, ?)");

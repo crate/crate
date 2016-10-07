@@ -22,19 +22,49 @@
 
 package io.crate.operation.scalar.arithmetic;
 
-import io.crate.test.integration.CrateUnitTest;
+import io.crate.analyze.symbol.Literal;
+import io.crate.operation.scalar.AbstractScalarFunctionsTest;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.junit.Test;
 
 import java.util.Arrays;
 
-public class ArrayFunctionTest extends CrateUnitTest {
+import static io.crate.testing.TestingHelpers.isLiteral;
+
+public class ArrayFunctionTest extends AbstractScalarFunctionsTest {
 
     @Test
     public void testTypeValidation() throws Exception {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("All arguments to an array must have the same type. Found integer and string");
         ArrayFunction.createInfo(Arrays.<DataType>asList(DataTypes.INTEGER, DataTypes.STRING));
+    }
+
+    @Test
+    public void testEvaluateArrayWithExpr() {
+        assertEvaluate("ARRAY[1 + 2]", new Long[]{3L});
+        assertEvaluate("[1 + 1]", new Long[]{2L});
+    }
+
+    @Test
+    public void testEvaluateNestedArrays() {
+        assertEvaluate("ARRAY[[]]", new Object[]{new Object[]{}});
+        assertEvaluate("[ARRAY[]]", new Object[]{new Object[]{}});
+        assertEvaluate("[[1 + 1], ARRAY[1 + 2]]", new Object[]{new Long[]{2L}, new Long[]{3L}});
+    }
+
+    public void testEvaluateArrayOnColumnIdents() {
+        assertEvaluate("ARRAY[ARRAY[age], [age]]", new Integer[]{2, 1},
+            Literal.of(DataTypes.INTEGER, 2),
+            Literal.of(DataTypes.INTEGER, 1));
+    }
+
+    @Test
+    public void testNormalizeArrays() {
+        assertNormalize("ARRAY[1 + 2]", isLiteral(new Long[]{3L}));
+        assertNormalize("[ARRAY[1 + 2]]", isLiteral(new Object[]{new Long[]{3L}}));
+        assertNormalize("[[null is null], ARRAY[4 is not null], [false]]",
+            isLiteral(new Object[]{new Boolean[]{true}, new Boolean[]{true}, new Boolean[]{false}}));
     }
 }

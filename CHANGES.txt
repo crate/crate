@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Added support of expressions in the array constructors. Allowed to
+   to write an array constructor in the PostgreSQL form, like `ARRAY[]`.
+
  - Updated Crash to 0.18.1 which contains the following change:
 
     - Fix: crashed in verbose mode if Crate didn't provide an error trace

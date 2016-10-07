@@ -603,27 +603,43 @@ Array types are defined as follows::
 
 .. _data-type-array-literals:
 
-Array Literals
---------------
+Array Constructor
+-----------------
 
-Array literals are given in brackets and may contain zero or more elements.
+Arrays can be written using the array constructor ``ARRAY[]`` or short ``[]``.
+The array constructor is an expression that accepts both literals and expressions
+as its parameters. Parameters may contain zero or more elements.
 
-Synopsis (literal brackets are given in single quotes)::
+Synopsis::
 
-    '[' element [ , ... ] ']'
+    [ ARRAY ] '[' element [ , ... ] ']'
 
-Valid elements are literals and parameters.
+All array elements must have the same data type, which determines the inner
+type of the array. If an array contains no elements, its element type will be
+inferred by the context in which it occurs, if possible.
 
-All array elements have to be of the type of the first element,
-which determines the element type. If an array contains no elements, its element
-type will be inferred by the context in which it occurs, if possible.
+Examples
+........
 
-Some Examples::
+Some valid arrays are::
 
     []
-    [[], []]
-    [1, 2, 3, 4, 5, 6, 7, 8]
     [null]
+    [1, 2, 3, 4, 5, 6, 7, 8]
+    ['Zaphod', 'Ford', 'Arthur']
+    [?]
+    ARRAY[true, false]
+    ARRAY[column_a, column_b]
+    ARRAY[ARRAY[1, 2, 1 + 2], ARRAY[3, 4, 3 + 4]]
+
+
+Array Representation
+....................
+
+Arrays are always represented as zero or more literal elements inside
+square brackets (``[]``), for example::
+
+    [1, 2, 3]
     ['Zaphod', 'Ford', 'Arthur']
 
 

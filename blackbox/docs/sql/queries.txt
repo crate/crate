@@ -566,10 +566,10 @@ contains an element 'netball'::
     +----------------+-----------------------------------------+
     SELECT 1 row in set (... sec)
 
-It can also be used on array literals::
+It can also be used on arrays::
 
     cr> select name, race['interests'] from locations
-    ... where name = ANY (['Bartledan', 'Algol'])
+    ... where name = ANY(ARRAY['Bartledan', 'Algol'])
     ... order by name asc;
     +-----------+-----------------------------------------+
     | name      | race['interests']                       |

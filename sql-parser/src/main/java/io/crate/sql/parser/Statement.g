@@ -518,7 +518,7 @@ exprPrimary
 simpleExpr
     : NULL
     | (dateValue) => dateValue
-    | ('[') => arrayLiteral
+    | arrayExpr
     | ('{') => objectLiteral
     | qnameOrFunction
     | specialFunction
@@ -543,7 +543,7 @@ setExpr
 
 parameterOrLiteral
     : parameterOrSimpleLiteral
-    | ('[') => arrayLiteral
+    | arrayExpr
     | ('{') => objectLiteral
     ;
 
@@ -772,8 +772,8 @@ integer
     : INTEGER_VALUE
     ;
 
-arrayLiteral
-    : '[' ( parameterOrLiteral (',' parameterOrLiteral)* )? ']' -> ^(ARRAY_LITERAL parameterOrLiteral*)
+arrayExpr
+    : ARRAY? '[' ( expr (',' expr)* )? ']' -> ^(ARRAY_LITERAL expr*)
     ;
 
 objectLiteral
