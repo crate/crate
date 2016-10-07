@@ -33,13 +33,9 @@ import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.table.Operation;
 import io.crate.sql.tree.DefaultTraversalVisitor;
 import io.crate.sql.tree.Delete;
-import io.crate.sql.tree.Node;
 import io.crate.sql.tree.ParameterExpression;
-import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.inject.Singleton;
 
-@Singleton
-public class DeleteStatementAnalyzer extends DefaultTraversalVisitor<AnalyzedStatement, Analysis> {
+class DeleteAnalyzer {
 
     private static final String VERSION_SEARCH_EX_MSG =
         "_version is not allowed in delete queries without specifying a primary key";
@@ -66,15 +62,9 @@ public class DeleteStatementAnalyzer extends DefaultTraversalVisitor<AnalyzedSta
     private AnalysisMetaData analysisMetaData;
     private RelationAnalyzer relationAnalyzer;
 
-    @Inject
-    public DeleteStatementAnalyzer(AnalysisMetaData analysisMetaData,
-                                   RelationAnalyzer relationAnalyzer) {
+    DeleteAnalyzer(AnalysisMetaData analysisMetaData, RelationAnalyzer relationAnalyzer) {
         this.analysisMetaData = analysisMetaData;
         this.relationAnalyzer = relationAnalyzer;
-    }
-
-    public AnalyzedStatement analyze(Node node, Analysis analysis) {
-        return process(node, analysis);
     }
 
     private static class InnerAnalysisContext {
@@ -95,8 +85,7 @@ public class DeleteStatementAnalyzer extends DefaultTraversalVisitor<AnalyzedSta
         }
     }
 
-    @Override
-    public AnalyzedStatement visitDelete(Delete node, Analysis analysis) {
+    public AnalyzedStatement analyze(Delete node, Analysis analysis) {
         int numNested = 1;
 
         Function<ParameterExpression, Symbol> convertParamFunction = analysis.parameterContext();

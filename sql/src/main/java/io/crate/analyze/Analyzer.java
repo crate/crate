@@ -53,7 +53,7 @@ public class Analyzer {
     private final InsertFromSubQueryAnalyzer insertFromSubQueryAnalyzer;
     private final CopyStatementAnalyzer copyStatementAnalyzer;
     private final UpdateAnalyzer updateAnalyzer;
-    private final DeleteStatementAnalyzer deleteStatementAnalyzer;
+    private final DeleteAnalyzer deleteAnalyzer;
     private final DropRepositoryAnalyzer dropRepositoryAnalyzer;
     private final CreateRepositoryAnalyzer createRepositoryAnalyzer;
     private final DropSnapshotAnalyzer dropSnapshotAnalyzer;
@@ -72,7 +72,6 @@ public class Analyzer {
                     InsertFromValuesAnalyzer insertFromValuesAnalyzer,
                     InsertFromSubQueryAnalyzer insertFromSubQueryAnalyzer,
                     CopyStatementAnalyzer copyStatementAnalyzer,
-                    DeleteStatementAnalyzer deleteStatementAnalyzer,
                     DropRepositoryAnalyzer dropRepositoryAnalyzer,
                     CreateRepositoryAnalyzer createRepositoryAnalyzer,
                     DropSnapshotAnalyzer dropSnapshotAnalyzer,
@@ -98,7 +97,7 @@ public class Analyzer {
         this.insertFromSubQueryAnalyzer = insertFromSubQueryAnalyzer;
         this.copyStatementAnalyzer = copyStatementAnalyzer;
         this.updateAnalyzer = new UpdateAnalyzer(analysisMetaData, relationAnalyzer);
-        this.deleteStatementAnalyzer = deleteStatementAnalyzer;
+        this.deleteAnalyzer = new DeleteAnalyzer(analysisMetaData, relationAnalyzer);
         this.dropRepositoryAnalyzer = dropRepositoryAnalyzer;
         this.createRepositoryAnalyzer = createRepositoryAnalyzer;
         this.dropSnapshotAnalyzer = dropSnapshotAnalyzer;
@@ -134,7 +133,7 @@ public class Analyzer {
 
         @Override
         public AnalyzedStatement visitDelete(Delete node, Analysis context) {
-            return deleteStatementAnalyzer.analyze(node, context);
+            return deleteAnalyzer.analyze(node, context);
         }
 
         @Override
