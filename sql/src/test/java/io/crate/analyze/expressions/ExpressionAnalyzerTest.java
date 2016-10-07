@@ -50,8 +50,7 @@ import java.util.Arrays;
 import java.util.EnumSet;
 import java.util.Map;
 
-import static io.crate.testing.TestingHelpers.getFunctions;
-import static io.crate.testing.TestingHelpers.isField;
+import static io.crate.testing.TestingHelpers.*;
 import static org.hamcrest.Matchers.*;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -163,6 +162,13 @@ public class ExpressionAnalyzerTest extends CrateUnitTest {
         // the comparison was swapped so the field is on the left side
         assertThat(cmp.info().ident().name(), is("op_<"));
         assertThat(cmp.arguments().get(0), isField("x"));
+    }
+
+    @Test
+    public void testBetweenIsRewrittenToLteAndGte() throws Exception {
+        SqlExpressions expressions = new SqlExpressions(T3.SOURCES);
+        Symbol symbol = expressions.asSymbol("10 between 1 and 10");
+        assertThat(symbol, isSQL("((10 >= 1) AND (10 <= 10))"));
     }
 
     @Test

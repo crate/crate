@@ -225,7 +225,7 @@ public class ExpressionAnalyzer {
         }
     }
 
-    class InnerExpressionAnalyzer extends AstVisitor<Symbol, ExpressionAnalysisContext> {
+    private class InnerExpressionAnalyzer extends AstVisitor<Symbol, ExpressionAnalysisContext> {
 
         @Override
         protected Symbol visitNode(Node node, ExpressionAnalysisContext context) {
@@ -338,7 +338,7 @@ public class ExpressionAnalyzer {
             return resolveSubscriptSymbol(subscriptContext, context);
         }
 
-        protected Symbol resolveSubscriptSymbol(SubscriptContext subscriptContext, ExpressionAnalysisContext context) {
+        Symbol resolveSubscriptSymbol(SubscriptContext subscriptContext, ExpressionAnalysisContext context) {
             // TODO: support nested subscripts as soon as DataTypes.OBJECT elements can be typed
             Symbol subscriptSymbol;
             Expression subscriptExpression = subscriptContext.expression();
@@ -601,6 +601,25 @@ public class ExpressionAnalyzer {
         }
 
         @Override
+        protected Symbol visitBetweenPredicate(BetweenPredicate node, ExpressionAnalysisContext context) {
+            // <value> between <min> and <max>
+            // -> <value> >= <min> and <value> <= max
+            Symbol value = process(node.getValue(), context);
+            Symbol min = process(node.getMin(), context);
+            Symbol max = process(node.getMax(), context);
+
+            Comparison gte = new Comparison(ComparisonExpression.Type.GREATER_THAN_OR_EQUAL, value, min);
+            Function gteFunc = context.allocateFunction(
+                getFunctionInfo(gte.normalize(context).toFunctionIdent()), gte.arguments());
+
+            Comparison lte = new Comparison(ComparisonExpression.Type.LESS_THAN_OR_EQUAL, value, max);
+            Function lteFunc = context.allocateFunction(
+                getFunctionInfo(lte.normalize(context).toFunctionIdent()), lte.arguments());
+
+            return AndOperator.of(gteFunc, lteFunc);
+        }
+
+        @Override
         public Symbol visitMatchPredicate(MatchPredicate node, ExpressionAnalysisContext context) {
             Map<Field, Symbol> identBoostMap = new HashMap<>(node.idents().size());
             DataType columnType = null;
@@ -671,10 +690,11 @@ public class ExpressionAnalyzer {
             this.rightType = right.valueType();
         }
 
-        void normalize(ExpressionAnalysisContext context) {
+        Comparison normalize(ExpressionAnalysisContext context) {
             swapIfNecessary();
             castTypes();
             rewriteNegatingOperators(context);
+            return this;
         }
 
         /**

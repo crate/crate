@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Added support for BETWEEN
+
  - Updated crate-admin to ``0.20.2`` which includes following changes:
 
    - Fixed the chart error that occured when navigating between the overview

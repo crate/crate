@@ -66,7 +66,7 @@ E051	Basic query specification	8	Correlation names in the FROM clause	YES
 E051	Basic query specification	9	Rename columns in the FROM clause	NO		
 E061	Basic predicates and search conditions			NO		
 E061	Basic predicates and search conditions	1	Comparison predicate	YES		
-E061	Basic predicates and search conditions	2	BETWEEN predicate	NO		
+E061	Basic predicates and search conditions	2	BETWEEN predicate	YES		
 E061	Basic predicates and search conditions	3	IN predicate with list of values	YES		
 E061	Basic predicates and search conditions	4	LIKE predicate	YES		
 E061	Basic predicates and search conditions	5	LIKE predicate ESCAPE clause	NO		
