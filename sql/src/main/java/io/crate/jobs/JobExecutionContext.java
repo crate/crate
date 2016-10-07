@@ -182,11 +182,16 @@ public class JobExecutionContext implements CompletionListenable {
         return subContext;
     }
 
+    /**
+     * Issues a kill on all active subcontexts. This method returns immediately. The caller should use the future
+     * returned by {@link CompletionListenable#completionFuture()} to track EOL of the context.
+     *
+     * @return the number of contexts on which kill was called
+     */
     public long kill() {
         int numKilled = 0;
         if (!closed.getAndSet(true)) {
             LOGGER.trace("kill called on JobExecutionContext {}", jobId);
-
             if (numSubContexts.get() == 0) {
                 finish();
             } else {
@@ -198,18 +203,6 @@ public class JobExecutionContext implements CompletionListenable {
                 }
             }
         }
-
-        // synchronous wait for all contexts to be killed
-        // TODO: make this method async
-        try {
-            finishedFuture.get();
-        } catch (Exception ignored) {
-            // any thrown exception can be ignored since, we just need to wait until all contexts are closed
-            // either because of an interrupt, failure or normal close
-        }
-
-        int leftOverSubcontexts = numSubContexts.get();
-        assert leftOverSubcontexts == 0 : "unexpected subContexts there: " + leftOverSubcontexts;
         return numKilled;
     }
 

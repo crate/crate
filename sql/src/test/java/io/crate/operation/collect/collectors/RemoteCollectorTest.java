@@ -141,6 +141,6 @@ public class RemoteCollectorTest {
         ActionListener<JobResponse> listener = listenerCaptor.getValue();
         listener.onResponse(new JobResponse());
 
-        verify(transportKillJobsNodeAction, times(1)).executeKillOnAllNodes(any(KillJobsRequest.class), any(ActionListener.class));
+        verify(transportKillJobsNodeAction, times(1)).broadcast(any(KillJobsRequest.class), any(ActionListener.class));
     }
 }

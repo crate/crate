@@ -28,6 +28,7 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.test.cluster.NoopClusterService;
 import org.elasticsearch.transport.TransportService;
 import org.junit.Test;
+import org.mockito.Answers;
 
 import java.util.List;
 import java.util.UUID;
@@ -41,8 +42,7 @@ public class TransportKillJobsNodeActionTest {
     @Test
     public void testKillIsCalledOnJobContextService() throws Exception {
         TransportService transportService = mock(TransportService.class);
-        JobContextService jobContextService = mock(JobContextService.class);
-
+        JobContextService jobContextService = mock(JobContextService.class, Answers.RETURNS_MOCKS.get());
         TransportKillJobsNodeAction transportKillJobsNodeAction = new TransportKillJobsNodeAction(
             Settings.EMPTY,
             jobContextService,

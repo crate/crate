@@ -46,8 +46,6 @@ import javax.annotation.Nonnull;
 import java.lang.reflect.Field;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 import static org.hamcrest.core.Is.is;
 import static org.mockito.Mockito.*;
@@ -150,53 +148,6 @@ public class JobExecutionContextTest extends CrateUnitTest {
         int size = ((ConcurrentMap<Integer, ExecutionSubContext>) subContexts.get(jobExecutionContext)).size();
 
         assertThat(size, is(0));
-    }
-
-    @Test
-    public void testParallelKillReturnsJoined() throws Exception {
-        final Field subContexts = JobExecutionContext.class.getDeclaredField("subContexts");
-        subContexts.setAccessible(true);
-
-        JobExecutionContext.Builder builder =
-            new JobExecutionContext.Builder(UUID.randomUUID(), coordinatorNode, mock(StatsTables.class));
-        SlowKillExecutionSubContext slowKillExecutionSubContext = new SlowKillExecutionSubContext();
-        builder.addSubContext(slowKillExecutionSubContext);
-        final JobExecutionContext jobExecutionContext = builder.build();
-        try {
-            jobExecutionContext.start();
-        } catch (Throwable throwable) {
-            fail();
-        }
-        Thread killThread = new Thread(new Runnable() {
-            @Override
-            public void run() {
-                jobExecutionContext.kill();
-            }
-        });
-        killThread.start();
-
-        // wait until kill is started
-        final Field closed = JobExecutionContext.class.getDeclaredField("closed");
-        closed.setAccessible(true);
-        assertBusy(new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    assertThat(((AtomicBoolean) closed.get(jobExecutionContext)).get(), is(true));
-                } catch (Throwable t) {
-                    throw Throwables.propagate(t);
-                }
-            }
-        }, 100, TimeUnit.MILLISECONDS);
-
-
-        // call kill again, because the first kill is still in progress nothing is done here, but this kill should
-        // not return before every subContext is killed
-        jobExecutionContext.kill();
-        int size = ((ConcurrentMap<Integer, ExecutionSubContext>) subContexts.get(jobExecutionContext)).size();
-        assertThat(size, is(0));
-
-        killThread.join(500);
     }
 
     private static class SlowKillExecutionSubContext extends AbstractExecutionSubContext {

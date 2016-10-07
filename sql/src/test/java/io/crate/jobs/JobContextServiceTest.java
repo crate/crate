@@ -35,6 +35,7 @@ import java.lang.reflect.Field;
 import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import static org.hamcrest.Matchers.contains;
@@ -129,7 +130,7 @@ public class JobContextServiceTest extends CrateUnitTest {
         @SuppressWarnings("unchecked")
         Map<UUID, JobExecutionContext> activeContexts = (Map<UUID, JobExecutionContext>) activeContextsField.get(jobContextService);
         assertThat(activeContexts.size(), is(1));
-        assertThat(jobContextService.killAll(), is(1L));
+        assertThat(jobContextService.killAll().get(5L, TimeUnit.SECONDS), is(1));
 
         assertThat(killCalled.get(), is(true));
         assertThat(activeContexts.size(), is(0));
@@ -166,7 +167,7 @@ public class JobContextServiceTest extends CrateUnitTest {
         @SuppressWarnings("unchecked")
         Map<UUID, JobExecutionContext> activeContexts = (Map<UUID, JobExecutionContext>) activeContextsField.get(jobContextService);
         assertThat(activeContexts.size(), is(2));
-        assertThat(jobContextService.killJobs(ImmutableList.of(jobId)), is(1L));
+        assertThat(jobContextService.killJobs(ImmutableList.of(jobId)).get(5L, TimeUnit.SECONDS), is(1));
 
         assertThat(killCalled.get(), is(true));
         assertThat(kill2Called.get(), is(false));
@@ -206,7 +207,7 @@ public class JobContextServiceTest extends CrateUnitTest {
         builder.addSubContext(new DummySubContext(1));
         jobContextService.createContext(builder);
 
-        assertThat(jobContextService.killAll(), is(2L));
+        assertThat(jobContextService.killAll().get(), is(2));
     }
 
     @Test
@@ -223,6 +224,6 @@ public class JobContextServiceTest extends CrateUnitTest {
         builder = jobContextService.newBuilder(UUID.randomUUID());
         builder.addSubContext(new DummySubContext());
         jobContextService.createContext(builder);
-        assertThat(jobContextService.killJobs(jobsToKill), is(1L));
+        assertThat(jobContextService.killJobs(jobsToKill).get(5L, TimeUnit.SECONDS), is(1));
     }
 }

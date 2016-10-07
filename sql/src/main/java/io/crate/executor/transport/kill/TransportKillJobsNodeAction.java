@@ -21,71 +21,32 @@
 
 package io.crate.executor.transport.kill;
 
-import io.crate.executor.MultiActionListener;
-import io.crate.executor.transport.DefaultTransportResponseHandler;
-import io.crate.executor.transport.NodeAction;
-import io.crate.executor.transport.NodeActionRequestHandler;
+import com.google.common.util.concurrent.ListenableFuture;
 import io.crate.jobs.JobContextService;
-import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.cluster.ClusterService;
-import org.elasticsearch.cluster.node.DiscoveryNode;
-import org.elasticsearch.cluster.node.DiscoveryNodes;
-import org.elasticsearch.common.component.AbstractComponent;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
 @Singleton
-public class TransportKillJobsNodeAction extends AbstractComponent implements NodeAction<KillJobsRequest, KillResponse> {
-
-    private static final String TRANSPORT_ACTION = "crate/sql/kill_jobs";
-
-    private final JobContextService jobContextService;
-    private final ClusterService clusterService;
-    private final TransportService transportService;
+public class TransportKillJobsNodeAction extends TransportKillNodeAction<KillJobsRequest> {
 
     @Inject
     public TransportKillJobsNodeAction(Settings settings,
                                        JobContextService jobContextService,
                                        ClusterService clusterService,
                                        TransportService transportService) {
-        super(settings);
-        this.jobContextService = jobContextService;
-        this.clusterService = clusterService;
-        this.transportService = transportService;
-
-        transportService.registerRequestHandler(TRANSPORT_ACTION,
-            KillJobsRequest.class,
-            ThreadPool.Names.GENERIC,
-            new NodeActionRequestHandler<KillJobsRequest, KillResponse>(this) {});
-    }
-
-    public void executeKillOnAllNodes(KillJobsRequest request, ActionListener<KillResponse> listener) {
-        DiscoveryNodes nodes = clusterService.state().nodes();
-        listener = new MultiActionListener<>(nodes.size(), KillResponse.MERGE_FUNCTION, listener);
-
-        DefaultTransportResponseHandler<KillResponse> transportResponseHandler =
-            new DefaultTransportResponseHandler<KillResponse>(listener) {
-                @Override
-                public KillResponse newInstance() {
-                    return new KillResponse(0);
-                }
-            };
-
-        logger.trace("Sending {} to {}", request, nodes);
-        for (DiscoveryNode node : nodes) {
-            transportService.sendRequest(node, TRANSPORT_ACTION, request, transportResponseHandler);
-        }
+        super("crate/sql/kill_jobs", settings, jobContextService, clusterService, transportService);
     }
 
     @Override
-    public void nodeOperation(KillJobsRequest request, ActionListener<KillResponse> listener) {
-        try {
-            listener.onResponse(new KillResponse(jobContextService.killJobs(request.toKill())));
-        } catch (Throwable t) {
-            listener.onFailure(t);
-        }
+    protected ListenableFuture<Integer> doKill(KillJobsRequest request) {
+        return jobContextService.killJobs(request.toKill());
+    }
+
+    @Override
+    public KillJobsRequest call() throws Exception {
+        return new KillJobsRequest();
     }
 }

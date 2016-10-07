@@ -36,7 +36,7 @@ public class KillResponse extends TransportResponse {
 
     private long numKilled;
 
-    public KillResponse(long numKilled) {
+    KillResponse(long numKilled) {
         this.numKilled = numKilled;
     }
 

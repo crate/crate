@@ -46,7 +46,7 @@ public class KillJobTask extends JobTask {
     @Override
     public void execute(RowReceiver rowReceiver) {
         KillJobsRequest request = new KillJobsRequest(ImmutableList.of(jobToKill));
-        nodeAction.executeKillOnAllNodes(request,
+        nodeAction.broadcast(request,
             new OneRowActionListener<>(rowReceiver, KillTask.KILL_RESPONSE_TO_ROW_FUNCTION));
     }
 }

@@ -119,7 +119,7 @@ class InterceptingRowReceiver implements RowReceiver, FutureCallback<Void> {
         if (failure == null) {
             rowReceiver.finish(RepeatHandle.UNSUPPORTED);
         } else {
-            transportKillJobsNodeAction.executeKillOnAllNodes(
+            transportKillJobsNodeAction.broadcast(
                 new KillJobsRequest(Collections.singletonList(jobId)), new ActionListener<KillResponse>() {
                     @Override
                     public void onResponse(KillResponse killResponse) {

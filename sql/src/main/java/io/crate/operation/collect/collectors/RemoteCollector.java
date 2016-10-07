@@ -177,7 +177,7 @@ public class RemoteCollector implements CrateCollector {
     }
 
     private void killRemoteContext() {
-        transportKillJobsNodeAction.executeKillOnAllNodes(new KillJobsRequest(Collections.singletonList(jobId)),
+        transportKillJobsNodeAction.broadcast(new KillJobsRequest(Collections.singletonList(jobId)),
             new ActionListener<KillResponse>() {
 
                 @Override
