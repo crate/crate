@@ -44,7 +44,6 @@ import io.crate.operation.operator.any.AnyLikeOperator;
 import io.crate.operation.operator.any.AnyNotLikeOperator;
 import io.crate.operation.operator.any.AnyOperator;
 import io.crate.operation.predicate.NotPredicate;
-import io.crate.operation.reference.ReferenceResolver;
 import io.crate.operation.scalar.ExtractFunctions;
 import io.crate.operation.scalar.SubscriptFunction;
 import io.crate.operation.scalar.arithmetic.ArrayFunction;
@@ -94,28 +93,18 @@ public class ExpressionAnalyzer {
 
     private static final Pattern SUBSCRIPT_SPLIT_PATTERN = Pattern.compile("^([^\\.\\[]+)(\\.*)([^\\[]*)(\\['.*'\\])");
 
-    public ExpressionAnalyzer(Functions functions,
-                              ReferenceResolver<? extends io.crate.operation.Input<?>> referenceResolver,
-                              SessionContext sessionContext,
-                              com.google.common.base.Function<ParameterExpression, Symbol> convertParamFunction,
-                              FieldProvider<?> fieldProvider,
-                              @Nullable FieldResolver fieldResolver) {
-        this.functions = functions;
-        this.sessionContext = sessionContext;
-        this.convertParamFunction = convertParamFunction;
-        this.fieldProvider = fieldProvider;
-        this.innerAnalyzer = new InnerExpressionAnalyzer();
-        this.normalizer = new EvaluatingNormalizer(
-            functions, RowGranularity.CLUSTER, referenceResolver, fieldResolver, false);
-    }
-
     public ExpressionAnalyzer(AnalysisMetaData analysisMetaData,
                               SessionContext sessionContext,
                               com.google.common.base.Function<ParameterExpression, Symbol> convertParamFunction,
                               FieldProvider fieldProvider,
                               @Nullable FieldResolver fieldResolver) {
-        this(analysisMetaData.functions(), analysisMetaData.referenceResolver(),
-            sessionContext, convertParamFunction, fieldProvider, fieldResolver);
+        this.functions = analysisMetaData.functions();
+        this.sessionContext = sessionContext;
+        this.convertParamFunction = convertParamFunction;
+        this.fieldProvider = fieldProvider;
+        this.innerAnalyzer = new InnerExpressionAnalyzer();
+        this.normalizer = new EvaluatingNormalizer(
+            functions, RowGranularity.CLUSTER, analysisMetaData.referenceResolver(), fieldResolver, false);
     }
 
     /**
