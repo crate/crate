@@ -137,7 +137,7 @@ public class AnalyzedTableElements {
         }
     }
 
-    public Set<String> notNullColumns() {
+    Set<String> notNullColumns() {
         if (notNullColumns == null) {
             notNullColumns = new HashSet<>();
             for (AnalyzedColumnDefinition column : columns) {
@@ -205,13 +205,13 @@ public class AnalyzedTableElements {
         return builder.build();
     }
 
-    public void finalizeAndValidate(TableIdent tableIdent,
-                                    @Nullable TableInfo tableInfo,
-                                    AnalysisMetaData analysisMetaData,
-                                    ParameterContext parameterContext,
-                                    SessionContext sessionContext) {
+    void finalizeAndValidate(TableIdent tableIdent,
+                             @Nullable TableInfo tableInfo,
+                             Functions functions,
+                             ParameterContext parameterContext,
+                             SessionContext sessionContext) {
         expandColumnIdents();
-        validateGeneratedColumns(tableIdent, tableInfo, analysisMetaData, parameterContext, sessionContext);
+        validateGeneratedColumns(tableIdent, tableInfo, functions, parameterContext, sessionContext);
         for (AnalyzedColumnDefinition column : columns) {
             column.validate();
             addCopyToInfo(column);
@@ -222,7 +222,7 @@ public class AnalyzedTableElements {
 
     private void validateGeneratedColumns(TableIdent tableIdent,
                                           @Nullable TableInfo tableInfo,
-                                          AnalysisMetaData analysisMetaData,
+                                          Functions functions,
                                           ParameterContext parameterContext,
                                           SessionContext sessionContext) {
         List<Reference> tableReferences = new ArrayList<>();
@@ -236,8 +236,8 @@ public class AnalyzedTableElements {
 
         TableReferenceResolver tableReferenceResolver = new TableReferenceResolver(tableReferences);
         ExpressionAnalyzer expressionAnalyzer = new ExpressionAnalyzer(
-            analysisMetaData.functions(), sessionContext, parameterContext, tableReferenceResolver);
-        SymbolPrinter printer = new SymbolPrinter(analysisMetaData.functions());
+            functions, sessionContext, parameterContext, tableReferenceResolver);
+        SymbolPrinter printer = new SymbolPrinter(functions);
         ExpressionAnalysisContext expressionAnalysisContext = new ExpressionAnalysisContext();
         for (AnalyzedColumnDefinition columnDefinition : columns) {
             if (columnDefinition.generatedExpression() != null) {
@@ -329,7 +329,7 @@ public class AnalyzedTableElements {
         }
     }
 
-    public void addCopyTo(String sourceColumn, String targetIndex) {
+    void addCopyTo(String sourceColumn, String targetIndex) {
         Set<String> targetColumns = copyToMap.get(sourceColumn);
         if (targetColumns == null) {
             targetColumns = new HashSet<>();
@@ -338,7 +338,7 @@ public class AnalyzedTableElements {
         targetColumns.add(targetIndex);
     }
 
-    public Set<ColumnIdent> columnIdents() {
+    Set<ColumnIdent> columnIdents() {
         return columnIdents;
     }
 
@@ -379,7 +379,7 @@ public class AnalyzedTableElements {
         return result;
     }
 
-    public void changeToPartitionedByColumn(ColumnIdent partitionedByIdent, boolean skipIfNotFound) {
+    void changeToPartitionedByColumn(ColumnIdent partitionedByIdent, boolean skipIfNotFound) {
         Preconditions.checkArgument(!partitionedByIdent.name().startsWith("_"),
             "Cannot use system columns in PARTITIONED BY clause");
 
@@ -423,7 +423,7 @@ public class AnalyzedTableElements {
         return columns;
     }
 
-    public boolean hasGeneratedColumns() {
+    boolean hasGeneratedColumns() {
         return numGeneratedColumns > 0;
     }
 }

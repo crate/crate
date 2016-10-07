@@ -58,7 +58,7 @@ class DeleteAnalyzer {
             analysis.sessionContext(),
             convertParamFunction,
             analysis.transactionContext(),
-            analysisMetaData,
+            analysisMetaData.functions(),
             Operation.DELETE);
         RelationAnalysisContext relationAnalysisContext = statementAnalysisContext.startRelation();
         AnalyzedRelation analyzedRelation = relationAnalyzer.analyze(node.getRelation(), statementAnalysisContext);

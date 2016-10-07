@@ -84,7 +84,7 @@ public class UpdateAnalyzer {
             analysis.sessionContext(),
             analysis.parameterContext(),
             analysis.transactionContext(),
-            analysisMetaData,
+            analysisMetaData.functions(),
             Operation.UPDATE);
         RelationAnalysisContext currentRelationContext = statementAnalysisContext.startRelation();
         AnalyzedRelation analyzedRelation = relationAnalyzer.analyze(node.relation(), statementAnalysisContext);

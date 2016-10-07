@@ -25,10 +25,10 @@ package io.crate.analyze.relations;
 import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
 import io.crate.action.sql.SessionContext;
-import io.crate.analyze.AnalysisMetaData;
 import io.crate.analyze.expressions.ExpressionAnalysisContext;
 import io.crate.analyze.expressions.ExpressionAnalyzer;
 import io.crate.analyze.symbol.Symbol;
+import io.crate.metadata.Functions;
 import io.crate.planner.node.dql.join.JoinType;
 import io.crate.sql.tree.ParameterExpression;
 import io.crate.sql.tree.QualifiedName;
@@ -41,7 +41,7 @@ public class RelationAnalysisContext {
     private final ExpressionAnalysisContext expressionAnalysisContext;
     private final SessionContext sessionContext;
     private final Function<ParameterExpression, Symbol> convertParamFunction;
-    private final AnalysisMetaData analysisMetaData;
+    private final Functions functions;
     private final boolean aliasedRelation;
     // keep order of sources.
     //  e.g. something like:  select * from t1, t2 must not become select t2.*, t1.*
@@ -54,11 +54,11 @@ public class RelationAnalysisContext {
 
     RelationAnalysisContext(SessionContext sessionContext,
                             Function<ParameterExpression, Symbol> convertParamFunction,
-                            AnalysisMetaData analysisMetaData,
+                            Functions functions,
                             boolean aliasedRelation) {
         this.sessionContext = sessionContext;
         this.convertParamFunction = convertParamFunction;
-        this.analysisMetaData = analysisMetaData;
+        this.functions = functions;
         this.aliasedRelation = aliasedRelation;
         expressionAnalysisContext = new ExpressionAnalysisContext();
     }
@@ -126,7 +126,7 @@ public class RelationAnalysisContext {
     public ExpressionAnalyzer expressionAnalyzer() {
         if (expressionAnalyzer == null) {
             expressionAnalyzer = new ExpressionAnalyzer(
-                analysisMetaData.functions(), sessionContext, convertParamFunction, new FullQualifedNameFieldProvider(sources));
+                functions, sessionContext, convertParamFunction, new FullQualifedNameFieldProvider(sources));
         }
         return expressionAnalyzer;
     }

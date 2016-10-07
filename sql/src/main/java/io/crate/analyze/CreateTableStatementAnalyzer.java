@@ -22,10 +22,7 @@ package io.crate.analyze;
 
 import com.google.common.collect.ImmutableList;
 import io.crate.analyze.expressions.ExpressionToStringVisitor;
-import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.FulltextAnalyzerResolver;
-import io.crate.metadata.Schemas;
-import io.crate.metadata.TableIdent;
+import io.crate.metadata.*;
 import io.crate.metadata.information.InformationSchemaInfo;
 import io.crate.metadata.pg_catalog.PgCatalogSchemaInfo;
 import io.crate.metadata.sys.SysSchemaInfo;
@@ -45,7 +42,7 @@ public class CreateTableStatementAnalyzer extends DefaultTraversalVisitor<Create
     private static final String CLUSTERED_BY_IN_PARTITIONED_ERROR = "Cannot use CLUSTERED BY column in PARTITIONED BY clause";
     private final Schemas schemas;
     private final FulltextAnalyzerResolver fulltextAnalyzerResolver;
-    private final AnalysisMetaData analysisMetaData;
+    private final Functions functions;
     private final NumberOfShards numberOfShards;
 
     static final Collection<String> READ_ONLY_SCHEMAS = ImmutableList.of(
@@ -70,11 +67,11 @@ public class CreateTableStatementAnalyzer extends DefaultTraversalVisitor<Create
     @Inject
     public CreateTableStatementAnalyzer(Schemas schemas,
                                         FulltextAnalyzerResolver fulltextAnalyzerResolver,
-                                        AnalysisMetaData analysisMetaData,
+                                        Functions functions,
                                         NumberOfShards numberOfShards) {
         this.schemas = schemas;
         this.fulltextAnalyzerResolver = fulltextAnalyzerResolver;
-        this.analysisMetaData = analysisMetaData;
+        this.functions = functions;
         this.numberOfShards = numberOfShards;
     }
 
@@ -105,7 +102,7 @@ public class CreateTableStatementAnalyzer extends DefaultTraversalVisitor<Create
         context.statement.analyzedTableElements().finalizeAndValidate(
             context.statement.tableIdent(),
             null,
-            analysisMetaData,
+            functions,
             context.analysis.parameterContext(),
             context.analysis.sessionContext());
 

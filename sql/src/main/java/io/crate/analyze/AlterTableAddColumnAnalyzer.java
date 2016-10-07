@@ -42,15 +42,15 @@ public class AlterTableAddColumnAnalyzer extends DefaultTraversalVisitor<AddColu
 
     private final Schemas schemas;
     private final FulltextAnalyzerResolver fulltextAnalyzerResolver;
-    private final AnalysisMetaData analysisMetaData;
+    private final Functions functions;
 
     @Inject
     public AlterTableAddColumnAnalyzer(Schemas schemas,
                                        FulltextAnalyzerResolver fulltextAnalyzerResolver,
-                                       AnalysisMetaData analysisMetaData) {
+                                       Functions functions) {
         this.schemas = schemas;
         this.fulltextAnalyzerResolver = fulltextAnalyzerResolver;
-        this.analysisMetaData = analysisMetaData;
+        this.functions = functions;
     }
 
     public AddColumnAnalyzedStatement analyze(Node node, Analysis analysis) {
@@ -83,7 +83,7 @@ public class AlterTableAddColumnAnalyzer extends DefaultTraversalVisitor<AddColu
         statement.analyzedTableElements().finalizeAndValidate(
             statement.table().ident(),
             statement.table(),
-            analysisMetaData,
+            functions,
             analysis.parameterContext(),
             analysis.sessionContext());
 

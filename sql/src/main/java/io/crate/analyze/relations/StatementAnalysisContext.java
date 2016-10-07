@@ -23,8 +23,8 @@ package io.crate.analyze.relations;
 
 import com.google.common.base.Function;
 import io.crate.action.sql.SessionContext;
-import io.crate.analyze.AnalysisMetaData;
 import io.crate.analyze.symbol.Symbol;
+import io.crate.metadata.Functions;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.table.Operation;
 import io.crate.sql.tree.ParameterExpression;
@@ -34,22 +34,22 @@ import java.util.List;
 
 public class StatementAnalysisContext {
 
+    private final Functions functions;
     private final Operation currentOperation;
     private final SessionContext sessionContext;
     private final Function<ParameterExpression, Symbol> convertParamFunction;
     private final TransactionContext transactionContext;
-    private final AnalysisMetaData analysisMetaData;
     private final List<RelationAnalysisContext> lastRelationContextQueue = new ArrayList<>();
 
     public StatementAnalysisContext(SessionContext sessionContext,
                                     Function<ParameterExpression, Symbol> convertParamFunction,
                                     TransactionContext transactionContext,
-                                    AnalysisMetaData analysisMetaData,
+                                    Functions functions,
                                     Operation currentOperation) {
         this.sessionContext = sessionContext;
         this.convertParamFunction = convertParamFunction;
         this.transactionContext = transactionContext;
-        this.analysisMetaData = analysisMetaData;
+        this.functions = functions;
         this.currentOperation = currentOperation;
     }
 
@@ -67,7 +67,7 @@ public class StatementAnalysisContext {
 
     RelationAnalysisContext startRelation(boolean aliasedRelation) {
         RelationAnalysisContext currentRelationContext = new RelationAnalysisContext(
-            sessionContext, convertParamFunction, analysisMetaData, aliasedRelation);
+            sessionContext, convertParamFunction, functions, aliasedRelation);
         lastRelationContextQueue.add(currentRelationContext);
         return currentRelationContext;
     }

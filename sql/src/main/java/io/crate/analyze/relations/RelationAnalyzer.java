@@ -91,7 +91,7 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
             sessionContext,
             paramTypeHints,
             null,
-            analysisMetaData,
+            analysisMetaData.functions(),
             Operation.READ));
     }
 
@@ -102,7 +102,7 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
                 analysis.sessionContext(),
                 analysis.parameterContext(),
                 analysis.transactionContext(),
-                analysisMetaData,
+                analysisMetaData.functions(),
                 Operation.READ
             )
         );
