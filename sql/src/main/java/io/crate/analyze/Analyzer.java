@@ -51,7 +51,7 @@ public class Analyzer {
     private final AlterTableAddColumnAnalyzer alterTableAddColumnAnalyzer;
     private final InsertFromValuesAnalyzer insertFromValuesAnalyzer;
     private final InsertFromSubQueryAnalyzer insertFromSubQueryAnalyzer;
-    private final CopyStatementAnalyzer copyStatementAnalyzer;
+    private final CopyAnalyzer copyAnalyzer;
     private final UpdateAnalyzer updateAnalyzer;
     private final DeleteAnalyzer deleteAnalyzer;
     private final DropRepositoryAnalyzer dropRepositoryAnalyzer;
@@ -71,7 +71,6 @@ public class Analyzer {
                     AlterTableAddColumnAnalyzer alterTableAddColumnAnalyzer,
                     InsertFromValuesAnalyzer insertFromValuesAnalyzer,
                     InsertFromSubQueryAnalyzer insertFromSubQueryAnalyzer,
-                    CopyStatementAnalyzer copyStatementAnalyzer,
                     DropRepositoryAnalyzer dropRepositoryAnalyzer,
                     CreateRepositoryAnalyzer createRepositoryAnalyzer,
                     DropSnapshotAnalyzer dropSnapshotAnalyzer,
@@ -95,7 +94,7 @@ public class Analyzer {
         this.alterTableAddColumnAnalyzer = alterTableAddColumnAnalyzer;
         this.insertFromValuesAnalyzer = insertFromValuesAnalyzer;
         this.insertFromSubQueryAnalyzer = insertFromSubQueryAnalyzer;
-        this.copyStatementAnalyzer = copyStatementAnalyzer;
+        this.copyAnalyzer = new CopyAnalyzer(analysisMetaData);
         this.updateAnalyzer = new UpdateAnalyzer(analysisMetaData, relationAnalyzer);
         this.deleteAnalyzer = new DeleteAnalyzer(analysisMetaData, relationAnalyzer);
         this.dropRepositoryAnalyzer = dropRepositoryAnalyzer;
@@ -153,12 +152,12 @@ public class Analyzer {
 
         @Override
         public AnalyzedStatement visitCopyFrom(CopyFrom node, Analysis context) {
-            return copyStatementAnalyzer.convertCopyFrom(node, context);
+            return copyAnalyzer.convertCopyFrom(node, context);
         }
 
         @Override
         public AnalyzedStatement visitCopyTo(CopyTo node, Analysis context) {
-            return copyStatementAnalyzer.convertCopyTo(node, context);
+            return copyAnalyzer.convertCopyTo(node, context);
         }
 
         @Override
