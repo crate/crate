@@ -773,7 +773,7 @@ integer
     ;
 
 arrayExpr
-    : ARRAY? '[' ( parameterOrLiteral (',' parameterOrLiteral)* )? ']' -> ^(ARRAY_LITERAL parameterOrLiteral*)
+    : ARRAY? '[' ( expr (',' expr)* )? ']' -> ^(ARRAY_LITERAL expr*)
     ;
 
 objectLiteral
