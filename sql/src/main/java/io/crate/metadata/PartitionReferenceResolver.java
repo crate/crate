@@ -21,7 +21,6 @@
 
 package io.crate.metadata;
 
-import io.crate.operation.reference.ReferenceResolver;
 import io.crate.operation.reference.partitioned.PartitionExpression;
 
 import java.util.HashMap;
@@ -31,12 +30,9 @@ import java.util.Map;
 public class PartitionReferenceResolver implements NestedReferenceResolver {
 
     private final Map<ReferenceIdent, PartitionExpression> expressionMap;
-    private final ReferenceResolver<?> fallbackResolver;
     private final List<PartitionExpression> partitionExpressions;
 
-    public PartitionReferenceResolver(ReferenceResolver<?> fallbackReferenceResolver,
-                                      List<PartitionExpression> partitionExpressions) {
-        this.fallbackResolver = fallbackReferenceResolver;
+    public PartitionReferenceResolver(List<PartitionExpression> partitionExpressions) {
         this.partitionExpressions = partitionExpressions;
         this.expressionMap = new HashMap<>(partitionExpressions.size(), 1.0f);
         for (PartitionExpression partitionExpression : partitionExpressions) {
@@ -47,8 +43,7 @@ public class PartitionReferenceResolver implements NestedReferenceResolver {
     @Override
     public ReferenceImplementation getImplementation(Reference ref) {
         PartitionExpression expression = expressionMap.get(ref.ident());
-        assert expression != null || fallbackResolver.getImplementation(ref) == null
-            : "granularity < PARTITION should have been resolved already";
+        assert expression != null : "granularity < PARTITION should have been resolved already";
         return expression;
     }
 

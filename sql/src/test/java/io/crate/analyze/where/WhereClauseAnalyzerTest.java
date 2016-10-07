@@ -261,8 +261,7 @@ public class WhereClauseAnalyzerTest extends CrateUnitTest {
             new Object[]{3},
         });
         DocTableRelation tableRelation = statement.analyzedRelation();
-        WhereClauseAnalyzer whereClauseAnalyzer = new WhereClauseAnalyzer(
-            ctxMetaData.functions(), ctxMetaData.referenceResolver(), tableRelation);
+        WhereClauseAnalyzer whereClauseAnalyzer = new WhereClauseAnalyzer(ctxMetaData.functions(), tableRelation);
         assertThat(whereClauseAnalyzer.analyze(statement.whereClauses().get(0), transactionContext).docKeys().get(), contains(isDocKey("1")));
         assertThat(whereClauseAnalyzer.analyze(statement.whereClauses().get(1), transactionContext).docKeys().get(), contains(isDocKey("2")));
         assertThat(whereClauseAnalyzer.analyze(statement.whereClauses().get(2), transactionContext).docKeys().get(), contains(isDocKey("3")));

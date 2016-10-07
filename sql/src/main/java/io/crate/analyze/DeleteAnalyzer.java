@@ -35,7 +35,6 @@ import io.crate.metadata.RowGranularity;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.table.Operation;
-import io.crate.operation.reference.ReferenceResolver;
 import io.crate.sql.tree.Delete;
 import io.crate.sql.tree.ParameterExpression;
 
@@ -47,12 +46,10 @@ class DeleteAnalyzer {
         VERSION_SEARCH_EX_MSG);
 
     private final Functions functions;
-    private final ReferenceResolver<?> refResolver;
     private RelationAnalyzer relationAnalyzer;
 
-    DeleteAnalyzer(Functions functions, ReferenceResolver<?> refResolver, RelationAnalyzer relationAnalyzer) {
+    DeleteAnalyzer(Functions functions, RelationAnalyzer relationAnalyzer) {
         this.functions = functions;
-        this.refResolver = refResolver;
         this.relationAnalyzer = relationAnalyzer;
     }
 
@@ -74,9 +71,9 @@ class DeleteAnalyzer {
         EvaluatingNormalizer normalizer = new EvaluatingNormalizer(
             functions,
             RowGranularity.CLUSTER,
-            refResolver,
-            docTableRelation,
-            ReplaceMode.MUTATE);
+            ReplaceMode.MUTATE,
+            null,
+            docTableRelation);
         DeleteAnalyzedStatement deleteAnalyzedStatement = new DeleteAnalyzedStatement(docTableRelation);
         ExpressionAnalyzer expressionAnalyzer = new ExpressionAnalyzer(
             functions,
@@ -85,7 +82,7 @@ class DeleteAnalyzer {
             new FullQualifedNameFieldProvider(relationAnalysisContext.sources()));
         ExpressionAnalysisContext expressionAnalysisContext = new ExpressionAnalysisContext();
         WhereClauseAnalyzer whereClauseAnalyzer = new WhereClauseAnalyzer(
-            functions, refResolver, deleteAnalyzedStatement.analyzedRelation());
+            functions, deleteAnalyzedStatement.analyzedRelation());
 
         if (analysis.parameterContext().hasBulkParams()) {
             numNested = analysis.parameterContext().numBulkParams();

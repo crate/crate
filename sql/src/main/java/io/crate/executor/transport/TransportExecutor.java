@@ -40,9 +40,7 @@ import io.crate.executor.transport.task.elasticsearch.ESDeleteTask;
 import io.crate.executor.transport.task.elasticsearch.ESGetTask;
 import io.crate.jobs.JobContextService;
 import io.crate.metadata.Functions;
-import io.crate.metadata.NestedReferenceResolver;
 import io.crate.metadata.ReplaceMode;
-import io.crate.metadata.RowGranularity;
 import io.crate.operation.ImplementationSymbolVisitor;
 import io.crate.operation.NodeOperation;
 import io.crate.operation.NodeOperationTree;
@@ -111,7 +109,6 @@ public class TransportExecutor implements Executor {
                              IndexNameExpressionResolver indexNameExpressionResolver,
                              ThreadPool threadPool,
                              Functions functions,
-                             NestedReferenceResolver referenceResolver,
                              DDLStatementDispatcher ddlAnalysisDispatcherProvider,
                              ShowStatementDispatcher showStatementDispatcherProvider,
                              ClusterService clusterService,
@@ -128,12 +125,7 @@ public class TransportExecutor implements Executor {
         this.indicesService = indicesService;
         this.bulkRetryCoordinatorPool = bulkRetryCoordinatorPool;
         plan2TaskVisitor = new TaskCollectingVisitor();
-        EvaluatingNormalizer normalizer = new EvaluatingNormalizer(
-            functions,
-            RowGranularity.CLUSTER,
-            referenceResolver,
-            null,
-            ReplaceMode.COPY);
+        EvaluatingNormalizer normalizer = EvaluatingNormalizer.functionOnlyNormalizer(functions, ReplaceMode.COPY);
         ImplementationSymbolVisitor globalImplementationSymbolVisitor = new ImplementationSymbolVisitor(functions);
         globalProjectionToProjectionVisitor = new ProjectionToProjectorVisitor(
             clusterService,

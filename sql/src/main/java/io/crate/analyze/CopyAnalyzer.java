@@ -49,7 +49,6 @@ import io.crate.metadata.settings.SettingsAppliers;
 import io.crate.metadata.settings.StringSetting;
 import io.crate.metadata.table.Operation;
 import io.crate.metadata.table.TableInfo;
-import io.crate.operation.reference.ReferenceResolver;
 import io.crate.planner.projection.WriterProjection;
 import io.crate.sql.tree.*;
 import io.crate.types.CollectionType;
@@ -76,12 +75,10 @@ class CopyAnalyzer {
             .build();
     private final Schemas schemas;
     private final Functions functions;
-    private final ReferenceResolver<?> refResolver;
 
-    CopyAnalyzer(Schemas schemas, Functions functions, ReferenceResolver<?> refResolver) {
+    CopyAnalyzer(Schemas schemas, Functions functions) {
         this.schemas = schemas;
         this.functions = functions;
-        this.refResolver = refResolver;
     }
 
     CopyFromAnalyzedStatement convertCopyFrom(CopyFrom node, Analysis analysis) {
@@ -101,9 +98,9 @@ class CopyAnalyzer {
         EvaluatingNormalizer normalizer = new EvaluatingNormalizer(
             functions,
             RowGranularity.CLUSTER,
-            refResolver,
-            tableRelation,
-            ReplaceMode.MUTATE);
+            ReplaceMode.MUTATE,
+            null,
+            tableRelation);
         ExpressionAnalyzer expressionAnalyzer = createExpressionAnalyzer(analysis, tableRelation);
         expressionAnalyzer.setResolveFieldsOperation(Operation.INSERT);
         ExpressionAnalysisContext expressionAnalysisContext = new ExpressionAnalysisContext();
@@ -168,9 +165,9 @@ class CopyAnalyzer {
         EvaluatingNormalizer normalizer = new EvaluatingNormalizer(
             functions,
             RowGranularity.CLUSTER,
-            refResolver,
-            tableRelation,
-            ReplaceMode.MUTATE);
+            ReplaceMode.MUTATE,
+            null,
+            tableRelation);
         ExpressionAnalyzer expressionAnalyzer = createExpressionAnalyzer(analysis, tableRelation);
         ExpressionAnalysisContext expressionAnalysisContext = new ExpressionAnalysisContext();
         Settings settings = GenericPropertiesConverter.settingsFromProperties(
@@ -271,8 +268,7 @@ class CopyAnalyzer {
                                           TransactionContext transactionContext) {
         WhereClause whereClause = null;
         if (where.isPresent()) {
-            WhereClauseAnalyzer whereClauseAnalyzer = new WhereClauseAnalyzer(
-                functions, refResolver, tableRelation);
+            WhereClauseAnalyzer whereClauseAnalyzer = new WhereClauseAnalyzer(functions, tableRelation);
             Symbol query = expressionAnalyzer.convert(where.get(), expressionAnalysisContext);
             whereClause = new WhereClause(normalizer.normalize(query, transactionContext));
             whereClause = whereClauseAnalyzer.analyze(whereClause, transactionContext);

@@ -97,9 +97,9 @@ public class Analyzer {
         this.alterTableAddColumnAnalyzer = alterTableAddColumnAnalyzer;
         this.insertFromValuesAnalyzer = insertFromValuesAnalyzer;
         this.insertFromSubQueryAnalyzer = insertFromSubQueryAnalyzer;
-        this.copyAnalyzer = new CopyAnalyzer(schemas, functions, refResolver);
-        this.updateAnalyzer = new UpdateAnalyzer(schemas, functions, refResolver, relationAnalyzer);
-        this.deleteAnalyzer = new DeleteAnalyzer(functions, refResolver, relationAnalyzer);
+        this.copyAnalyzer = new CopyAnalyzer(schemas, functions);
+        this.updateAnalyzer = new UpdateAnalyzer(schemas, functions, relationAnalyzer);
+        this.deleteAnalyzer = new DeleteAnalyzer(functions, relationAnalyzer);
         this.dropRepositoryAnalyzer = dropRepositoryAnalyzer;
         this.createRepositoryAnalyzer = createRepositoryAnalyzer;
         this.dropSnapshotAnalyzer = dropSnapshotAnalyzer;

@@ -34,7 +34,9 @@ import io.crate.core.collections.ArrayBucket;
 import io.crate.core.collections.Bucket;
 import io.crate.core.collections.BucketPage;
 import io.crate.executor.transport.TransportActionProvider;
-import io.crate.metadata.*;
+import io.crate.metadata.FunctionIdent;
+import io.crate.metadata.FunctionInfo;
+import io.crate.metadata.Functions;
 import io.crate.operation.aggregation.impl.MinimumAggregation;
 import io.crate.operation.projectors.FlatProjectorChain;
 import io.crate.operation.projectors.TopN;
@@ -62,7 +64,6 @@ import org.junit.Test;
 import org.mockito.Answers;
 
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.Iterator;
 import java.util.UUID;
 import java.util.concurrent.Executor;
@@ -80,7 +81,6 @@ public class PageDownstreamFactoryTest extends CrateUnitTest {
 
     private GroupProjection groupProjection;
     private Functions functions;
-    private NestedReferenceResolver referenceResolver;
     private ThreadPool threadPool;
 
     @Before
@@ -88,8 +88,6 @@ public class PageDownstreamFactoryTest extends CrateUnitTest {
     public void prepare() {
         threadPool = new ThreadPool("testing");
         functions = getFunctions();
-        referenceResolver = new GlobalReferenceResolver(
-            Collections.<ReferenceIdent, ReferenceImplementation>emptyMap());
 
         FunctionIdent minAggIdent = new FunctionIdent(MinimumAggregation.NAME, Arrays.<DataType>asList(DataTypes.DOUBLE));
         FunctionInfo minAggInfo = new FunctionInfo(minAggIdent, DataTypes.DOUBLE);
@@ -131,7 +129,6 @@ public class PageDownstreamFactoryTest extends CrateUnitTest {
             Settings.EMPTY,
             mock(TransportActionProvider.class, Answers.RETURNS_DEEP_STUBS.get()),
             mock(BulkRetryCoordinatorPool.class),
-            referenceResolver,
             functions
         );
         CollectingRowReceiver rowReceiver = new CollectingRowReceiver();
@@ -178,7 +175,6 @@ public class PageDownstreamFactoryTest extends CrateUnitTest {
             Settings.EMPTY,
             mock(TransportActionProvider.class, Answers.RETURNS_DEEP_STUBS.get()),
             mock(BulkRetryCoordinatorPool.class),
-            referenceResolver,
             functions
         );
         CollectingRowReceiver rowReceiver = new CollectingRowReceiver();

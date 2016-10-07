@@ -35,7 +35,10 @@ import io.crate.core.collections.Row;
 import io.crate.core.collections.RowN;
 import io.crate.jobs.JobContextService;
 import io.crate.jobs.JobExecutionContext;
-import io.crate.metadata.*;
+import io.crate.metadata.Functions;
+import io.crate.metadata.ReplaceMode;
+import io.crate.metadata.Routing;
+import io.crate.metadata.TransactionContext;
 import io.crate.operation.collect.CrateCollector;
 import io.crate.operation.collect.JobCollectContext;
 import io.crate.operation.collect.MapSideDataCollectOperation;
@@ -76,18 +79,8 @@ public class LuceneDocCollectorProvider implements AutoCloseable {
         this.cluster = cluster;
         this.analyzer = cluster.getDataNodeInstance(Analyzer.class);
         this.queryAndFetchConsumer = cluster.getDataNodeInstance(QueryAndFetchConsumer.class);
-        this.normalizer = new EvaluatingNormalizer(
-            cluster.getInstance(Functions.class),
-            RowGranularity.CLUSTER,
-            new NestedReferenceResolver() {
-                @Override
-                public ReferenceImplementation<?> getImplementation(Reference refInfo) {
-                    return null;
-                }
-            },
-            null,
-            ReplaceMode.COPY
-        );
+        this.normalizer = EvaluatingNormalizer.functionOnlyNormalizer(
+            cluster.getInstance(Functions.class), ReplaceMode.COPY);
     }
 
     private Iterable<CrateCollector> createNodeCollectors(String nodeId, RoutedCollectPhase collectPhase, RowReceiver downstream) throws Exception {

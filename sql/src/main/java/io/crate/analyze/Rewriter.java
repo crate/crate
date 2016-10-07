@@ -29,9 +29,7 @@ import io.crate.analyze.relations.JoinPair;
 import io.crate.analyze.relations.QuerySplitter;
 import io.crate.analyze.symbol.*;
 import io.crate.metadata.Functions;
-import io.crate.metadata.NestedReferenceResolver;
 import io.crate.metadata.ReplaceMode;
-import io.crate.metadata.RowGranularity;
 import io.crate.operation.operator.AndOperator;
 import io.crate.planner.node.dql.join.JoinType;
 import io.crate.sql.tree.QualifiedName;
@@ -48,14 +46,8 @@ public class Rewriter {
     private final EvaluatingNormalizer normalizer;
 
     @Inject
-    public Rewriter(Functions functions, NestedReferenceResolver globalRefResolver) {
-        normalizer = new EvaluatingNormalizer(
-            functions,
-            RowGranularity.CLUSTER,
-            globalRefResolver,
-            null,
-            ReplaceMode.COPY
-        );
+    public Rewriter(Functions functions) {
+        normalizer = EvaluatingNormalizer.functionOnlyNormalizer(functions, ReplaceMode.COPY);
     }
 
 

@@ -62,6 +62,9 @@ public class EvaluatingNormalizer {
     private final FieldResolver fieldResolver;
     private final BaseVisitor visitor;
 
+    public static EvaluatingNormalizer functionOnlyNormalizer(Functions functions, ReplaceMode replaceMode) {
+        return new EvaluatingNormalizer(functions, RowGranularity.CLUSTER, replaceMode, null, null);
+    }
 
     /**
      * @param functions         function resolver
@@ -72,9 +75,9 @@ public class EvaluatingNormalizer {
      */
     public EvaluatingNormalizer(Functions functions,
                                 RowGranularity granularity,
-                                ReferenceResolver<? extends Input<?>> referenceResolver,
-                                @Nullable FieldResolver fieldResolver,
-                                ReplaceMode replaceMode) {
+                                ReplaceMode replaceMode,
+                                @Nullable ReferenceResolver<? extends Input<?>> referenceResolver,
+                                @Nullable FieldResolver fieldResolver) {
         this.functions = functions;
         this.granularity = granularity;
         this.referenceResolver = referenceResolver;
@@ -143,7 +146,7 @@ public class EvaluatingNormalizer {
 
         @Override
         public Symbol visitReference(Reference symbol, TransactionContext context) {
-            if (symbol.granularity().ordinal() > granularity.ordinal()) {
+            if (referenceResolver == null || symbol.granularity().ordinal() > granularity.ordinal()) {
                 return symbol;
             }
 

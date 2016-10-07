@@ -27,7 +27,6 @@ import io.crate.analyze.symbol.Field;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.metadata.*;
 import io.crate.metadata.table.Operation;
-import io.crate.operation.reference.ReferenceResolver;
 import io.crate.sql.tree.QualifiedName;
 
 import javax.annotation.Nullable;
@@ -69,9 +68,9 @@ public abstract class QueriedTableRelation<TR extends AbstractTableRelation> imp
         return tableRelation;
     }
 
-    public void normalize(Functions functions, ReferenceResolver refResolver, TransactionContext transactionContext) {
+    public void normalize(Functions functions, TransactionContext transactionContext) {
         EvaluatingNormalizer normalizer = new EvaluatingNormalizer(
-            functions, RowGranularity.CLUSTER, refResolver, tableRelation, ReplaceMode.MUTATE);
+            functions, RowGranularity.CLUSTER, ReplaceMode.MUTATE, null, tableRelation);
         querySpec().normalize(normalizer, transactionContext);
     }
 

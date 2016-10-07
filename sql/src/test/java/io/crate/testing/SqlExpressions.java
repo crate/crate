@@ -34,7 +34,10 @@ import io.crate.analyze.relations.FullQualifedNameFieldProvider;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.core.collections.Row;
 import io.crate.core.collections.RowN;
-import io.crate.metadata.*;
+import io.crate.metadata.Functions;
+import io.crate.metadata.ReplaceMode;
+import io.crate.metadata.RowGranularity;
+import io.crate.metadata.TransactionContext;
 import io.crate.operation.operator.OperatorModule;
 import io.crate.operation.predicate.PredicateModule;
 import io.crate.operation.scalar.ScalarFunctionModule;
@@ -79,12 +82,6 @@ public class SqlExpressions {
             .add(new TableFunctionModule())
             .add(new PredicateModule());
         injector = modulesBuilder.createInjector();
-        NestedReferenceResolver referenceResolver = new NestedReferenceResolver() {
-            @Override
-            public ReferenceImplementation<?> getImplementation(Reference refInfo) {
-                throw new UnsupportedOperationException("getImplementation not implemented");
-            }
-        };
         functions = injector.getInstance(Functions.class);
         expressionAnalyzer = new ExpressionAnalyzer(
             functions,
@@ -94,7 +91,7 @@ public class SqlExpressions {
                 : new ParameterContext(new RowN(parameters), Collections.<Row>emptyList()),
             new FullQualifedNameFieldProvider(sources));
         normalizer = new EvaluatingNormalizer(
-            functions, RowGranularity.DOC, referenceResolver, fieldResolver, ReplaceMode.MUTATE);
+            functions, RowGranularity.DOC, ReplaceMode.MUTATE, null, fieldResolver);
         expressionAnalysisCtx = new ExpressionAnalysisContext();
         transactionContext = new TransactionContext();
     }

@@ -85,7 +85,6 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
         return RelationNormalizer.normalize(
             relation,
             analysisMetaData.functions(),
-            analysisMetaData.referenceResolver(),
             statementContext.transactionContext());
     }
 
@@ -208,8 +207,7 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
                 relation = new QueriedSelectRelation((QueriedRelation) source, selectAnalysis.outputNames(), querySpec);
             }
             if (tableRelation != null) {
-                tableRelation.normalize(
-                    analysisMetaData.functions(), analysisMetaData.referenceResolver(), statementContext.transactionContext());
+                tableRelation.normalize(analysisMetaData.functions(), statementContext.transactionContext());
                 relation = tableRelation;
             }
         } else {

@@ -22,7 +22,6 @@
 package io.crate.analyze;
 
 import io.crate.metadata.Functions;
-import io.crate.metadata.NestedReferenceResolver;
 import io.crate.metadata.Schemas;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
@@ -35,15 +34,11 @@ public class AnalysisMetaData {
 
     private final Functions functions;
     private final Schemas schemas;
-    private final NestedReferenceResolver referenceResolver;
 
     @Inject
-    public AnalysisMetaData(Functions functions,
-                            Schemas schemas,
-                            NestedReferenceResolver referenceResolver) {
+    public AnalysisMetaData(Functions functions, Schemas schemas) {
         this.functions = functions;
         this.schemas = schemas;
-        this.referenceResolver = referenceResolver;
     }
 
     public Functions functions() {
@@ -52,9 +47,5 @@ public class AnalysisMetaData {
 
     public Schemas schemas() {
         return schemas;
-    }
-
-    public NestedReferenceResolver referenceResolver() {
-        return referenceResolver;
     }
 }

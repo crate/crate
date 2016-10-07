@@ -358,7 +358,6 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
     @Inject
     public Planner(ClusterService clusterService,
                    Functions functions,
-                   NestedReferenceResolver globalResolver,
                    ConsumingPlanner consumingPlanner,
                    UpdateConsumer updateConsumer,
                    CopyStatementPlanner copyStatementPlanner,
@@ -370,7 +369,7 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
         this.copyStatementPlanner = copyStatementPlanner;
         this.selectStatementPlanner = selectStatementPlanner;
         this.deleteStatementPlanner = deleteStatementPlanner;
-        normalizer = new EvaluatingNormalizer(functions, RowGranularity.CLUSTER, globalResolver, null, ReplaceMode.COPY);
+        normalizer = EvaluatingNormalizer.functionOnlyNormalizer(functions, ReplaceMode.COPY);
     }
 
     /**

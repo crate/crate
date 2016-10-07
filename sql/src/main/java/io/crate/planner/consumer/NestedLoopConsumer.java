@@ -31,9 +31,7 @@ import io.crate.analyze.relations.*;
 import io.crate.analyze.symbol.*;
 import io.crate.exceptions.ValidationException;
 import io.crate.metadata.Functions;
-import io.crate.metadata.NestedReferenceResolver;
 import io.crate.metadata.TableIdent;
-import io.crate.operation.reference.ReferenceResolver;
 import io.crate.planner.Limits;
 import io.crate.planner.TableStatsService;
 import io.crate.planner.distribution.DistributionInfo;
@@ -68,9 +66,8 @@ public class NestedLoopConsumer implements Consumer {
     @Inject
     public NestedLoopConsumer(ClusterService clusterService,
                               Functions functions,
-                              NestedReferenceResolver refResolver,
                               TableStatsService tableStatsService) {
-        visitor = new Visitor(clusterService, functions, refResolver, tableStatsService);
+        visitor = new Visitor(clusterService, functions, tableStatsService);
     }
 
     @Override
@@ -95,16 +92,13 @@ public class NestedLoopConsumer implements Consumer {
 
         private final ClusterService clusterService;
         private final Functions functions;
-        private final ReferenceResolver<?> refResolver;
         private final TableStatsService tableStatsService;
 
         public Visitor(ClusterService clusterService,
                        Functions functions,
-                       ReferenceResolver<?> refResolver,
                        TableStatsService tableStatsService) {
             this.clusterService = clusterService;
             this.functions = functions;
-            this.refResolver = refResolver;
             this.tableStatsService = tableStatsService;
         }
 
@@ -167,11 +161,11 @@ public class NestedLoopConsumer implements Consumer {
             // this normalization is required to replace fields of the table relations
             if (left instanceof QueriedTableRelation) {
                 ((QueriedTableRelation) left).normalize(
-                    functions, refResolver, context.plannerContext().transactionContext());
+                    functions, context.plannerContext().transactionContext());
             }
             if (right instanceof QueriedTableRelation) {
                 ((QueriedTableRelation) right).normalize(
-                    functions, refResolver, context.plannerContext().transactionContext());
+                    functions, context.plannerContext().transactionContext());
             }
 
             PlannedAnalyzedRelation leftPlan = context.plannerContext().planSubRelation(left, context);

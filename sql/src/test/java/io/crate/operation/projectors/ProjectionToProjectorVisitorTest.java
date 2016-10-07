@@ -58,7 +58,6 @@ import org.mockito.Answers;
 import org.mockito.MockitoAnnotations;
 
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
@@ -90,7 +89,6 @@ public class ProjectionToProjectorVisitorTest extends CrateUnitTest {
     @Before
     public void prepare() {
         MockitoAnnotations.initMocks(this);
-        NestedReferenceResolver referenceResolver = new GlobalReferenceResolver(new HashMap<ReferenceIdent, ReferenceImplementation>());
         functions = getFunctions();
         threadPool = new ThreadPool("testing");
         ImplementationSymbolVisitor symbolvisitor = new ImplementationSymbolVisitor(functions);
@@ -103,7 +101,7 @@ public class ProjectionToProjectorVisitorTest extends CrateUnitTest {
             mock(TransportActionProvider.class, Answers.RETURNS_DEEP_STUBS.get()),
             mock(BulkRetryCoordinatorPool.class),
             symbolvisitor,
-            new EvaluatingNormalizer(functions, RowGranularity.DOC, referenceResolver, null, ReplaceMode.COPY)
+            EvaluatingNormalizer.functionOnlyNormalizer(functions, ReplaceMode.COPY)
         );
 
         countInfo = new FunctionInfo(new FunctionIdent(CountAggregation.NAME, Arrays.<DataType>asList(DataTypes.STRING)), DataTypes.LONG);

@@ -106,20 +106,14 @@ public class NestedLoopConsumerTest extends CrateUnitTest {
         analyzer = injector.getInstance(Analyzer.class);
         planner = injector.getInstance(Planner.class);
         Functions functions = injector.getInstance(Functions.class);
-        NestedReferenceResolver referenceResolver = new NestedReferenceResolver() {
-            @Override
-            public ReferenceImplementation<?> getImplementation(Reference refInfo) {
-                return null;
-            }
-        };
         EvaluatingNormalizer normalizer = new EvaluatingNormalizer(
             functions,
             RowGranularity.CLUSTER,
-            referenceResolver,
+            ReplaceMode.COPY,
             null,
-            ReplaceMode.COPY);
+            null);
         plannerContext = new Planner.Context(clusterService, UUID.randomUUID(), null, normalizer, new TransactionContext(), 0, 0);
-        consumer = new NestedLoopConsumer(clusterService, functions, referenceResolver, statsService);
+        consumer = new NestedLoopConsumer(clusterService, functions, statsService);
     }
 
     private static final TableInfo EMPTY_ROUTING_TABLE = TestingTableInfo.builder(new TableIdent(DocSchemaInfo.NAME, "empty"),

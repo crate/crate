@@ -29,30 +29,14 @@ import io.crate.types.DataTypes;
 import org.junit.Test;
 
 import static org.hamcrest.Matchers.containsString;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 public class PartitionReferenceResolverTest extends CrateUnitTest {
 
     @Test
     public void testClusterExpressionsNotAllowed() throws Exception {
-        NestedReferenceResolver fallbackRefResolver = mock(NestedReferenceResolver.class);
         Reference refInfo = TestingHelpers.refInfo("foo.bar", DataTypes.STRING, RowGranularity.CLUSTER);
-        when(fallbackRefResolver.getImplementation(refInfo)).thenReturn(new ReferenceImplementation() {
-            @Override
-            public Object value() {
-                return null;
-            }
-
-            @Override
-            public ReferenceImplementation getChildImplementation(String name) {
-                return null;
-            }
-        });
         PartitionReferenceResolver referenceResolver = new PartitionReferenceResolver(
-            fallbackRefResolver,
-            ImmutableList.<PartitionExpression>of()
-        );
+            ImmutableList.<PartitionExpression>of());
 
         if (assertionsEnabled()) {
             try {

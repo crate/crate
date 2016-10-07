@@ -130,9 +130,9 @@ public class ShardCollectService {
         this.shardNormalizer = new EvaluatingNormalizer(
             functions,
             RowGranularity.SHARD,
+            ReplaceMode.COPY,
             shardResolver,
-            null,
-            ReplaceMode.COPY
+            null
         );
         this.projectorFactory = new ProjectionToProjectorVisitor(
             clusterService,
@@ -155,9 +155,9 @@ public class ShardCollectService {
         EvaluatingNormalizer shardNormalizer = new EvaluatingNormalizer(
             functions,
             RowGranularity.SHARD,
+            ReplaceMode.COPY,
             new RecoveryShardReferenceResolver(shardResolver, indexShard),
-            null,
-            ReplaceMode.COPY
+            null
         );
         collectPhase = collectPhase.normalize(shardNormalizer, null);
         if (collectPhase.whereClause().noMatch()) {

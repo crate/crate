@@ -195,9 +195,9 @@ public class InsertFromSubQueryAnalyzer {
         EvaluatingNormalizer normalizer = new EvaluatingNormalizer(
             analysisMetaData.functions(),
             RowGranularity.CLUSTER,
-            analysisMetaData.referenceResolver(),
-            tableRelation,
-            ReplaceMode.COPY);
+            ReplaceMode.COPY,
+            null,
+            tableRelation);
         ValueNormalizer valuesNormalizer = new ValueNormalizer(analysisMetaData.schemas());
 
         ValuesResolver valuesResolver = new ValuesResolver(tableRelation, targetColumns);

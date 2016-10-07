@@ -127,9 +127,9 @@ public class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
         EvaluatingNormalizer normalizer = new EvaluatingNormalizer(
             analysisMetaData.functions(),
             RowGranularity.CLUSTER,
-            analysisMetaData.referenceResolver(),
-            tableRelation,
-            ReplaceMode.COPY);
+            ReplaceMode.COPY,
+            null,
+            tableRelation);
         for (ValuesList valuesList : node.valuesLists()) {
             analyzeValues(
                 tableRelation,
@@ -348,7 +348,6 @@ public class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
             tableRelation,
             context,
             normalizer,
-            expressionAnalyzer,
             transactionContext,
             referenceToLiteralContext,
             primaryKeyValues,
@@ -426,7 +425,6 @@ public class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
 
         private final DocTableRelation tableRelation;
         private final InsertFromValuesAnalyzedStatement analyzedStatement;
-        private final ExpressionAnalyzer expressionAnalyzer;
         private final ReferenceToLiteralConverter.Context referenceToLiteralContext;
         private final TransactionContext transactionContext;
         private final List<BytesRef> primaryKeyValues;
@@ -440,7 +438,6 @@ public class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
         private GeneratedExpressionContext(DocTableRelation tableRelation,
                                            InsertFromValuesAnalyzedStatement analyzedStatement,
                                            EvaluatingNormalizer normalizer,
-                                           ExpressionAnalyzer expressionAnalyzer,
                                            TransactionContext transactionContext,
                                            ReferenceToLiteralConverter.Context referenceToLiteralContext,
                                            List<BytesRef> primaryKeyValues,
@@ -448,7 +445,6 @@ public class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
                                            @Nullable String routingValue) {
             this.tableRelation = tableRelation;
             this.analyzedStatement = analyzedStatement;
-            this.expressionAnalyzer = expressionAnalyzer;
             this.transactionContext = transactionContext;
             this.primaryKeyValues = primaryKeyValues;
             this.insertValues = insertValues;

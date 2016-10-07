@@ -34,7 +34,6 @@ import io.crate.analyze.symbol.Symbols;
 import io.crate.metadata.*;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.doc.DocTableInfo;
-import io.crate.operation.reference.ReferenceResolver;
 import io.crate.operation.reference.partitioned.PartitionExpression;
 import io.crate.types.DataTypes;
 import org.elasticsearch.common.collect.Tuple;
@@ -47,17 +46,15 @@ public class WhereClauseAnalyzer {
     private final static GeneratedColumnComparisonReplacer GENERATED_COLUMN_COMPARISON_REPLACER = new GeneratedColumnComparisonReplacer();
 
     private final Functions functions;
-    private final ReferenceResolver<?> refResolver;
     private final DocTableInfo tableInfo;
     private final EqualityExtractor eqExtractor;
     private final EvaluatingNormalizer normalizer;
 
-    public WhereClauseAnalyzer(Functions functions, ReferenceResolver<?> refResolver, DocTableRelation tableRelation) {
+    public WhereClauseAnalyzer(Functions functions, DocTableRelation tableRelation) {
         this.functions = functions;
-        this.refResolver = refResolver;
         this.tableInfo = tableRelation.tableInfo();
         this.normalizer = new EvaluatingNormalizer(
-            functions, RowGranularity.CLUSTER, refResolver, tableRelation, ReplaceMode.COPY);
+            functions, RowGranularity.CLUSTER, ReplaceMode.COPY, null, tableRelation);
         this.eqExtractor = new EqualityExtractor(normalizer);
     }
 
@@ -115,7 +112,7 @@ public class WhereClauseAnalyzer {
             whereClause.clusteredBy(clusteredBy);
         }
         if (tableInfo.isPartitioned() && !whereClause.docKeys().isPresent()) {
-            whereClause = resolvePartitions(whereClause, tableInfo, functions, refResolver, transactionContext);
+            whereClause = resolvePartitions(whereClause, tableInfo, functions, transactionContext);
         }
         return whereClause;
     }
@@ -138,21 +135,19 @@ public class WhereClauseAnalyzer {
     }
 
 
-    private static PartitionReferenceResolver preparePartitionResolver(ReferenceResolver<?> referenceResolver,
-                                                                       List<Reference> partitionColumns) {
+    private static PartitionReferenceResolver preparePartitionResolver(List<Reference> partitionColumns) {
         List<PartitionExpression> partitionExpressions = new ArrayList<>(partitionColumns.size());
         int idx = 0;
         for (Reference partitionedByColumn : partitionColumns) {
             partitionExpressions.add(new PartitionExpression(partitionedByColumn, idx));
             idx++;
         }
-        return new PartitionReferenceResolver(referenceResolver, partitionExpressions);
+        return new PartitionReferenceResolver(partitionExpressions);
     }
 
     private static WhereClause resolvePartitions(WhereClause whereClause,
                                                  DocTableInfo tableInfo,
                                                  Functions functions,
-                                                 ReferenceResolver<?> refResolver,
                                                  TransactionContext transactionContext) {
         assert tableInfo.isPartitioned() : "table must be partitioned in order to resolve partitions";
         assert whereClause.partitions().isEmpty() : "partitions must not be analyzed twice";
@@ -161,9 +156,9 @@ public class WhereClauseAnalyzer {
         }
 
         PartitionReferenceResolver partitionReferenceResolver = preparePartitionResolver(
-            refResolver, tableInfo.partitionedByColumns());
-        EvaluatingNormalizer normalizer =
-            new EvaluatingNormalizer(functions, RowGranularity.PARTITION, partitionReferenceResolver, null, ReplaceMode.COPY);
+            tableInfo.partitionedByColumns());
+        EvaluatingNormalizer normalizer = new EvaluatingNormalizer(
+            functions, RowGranularity.PARTITION, ReplaceMode.COPY, partitionReferenceResolver, null);
 
         Symbol normalized;
         Map<Symbol, List<Literal>> queryPartitionMap = new HashMap<>();

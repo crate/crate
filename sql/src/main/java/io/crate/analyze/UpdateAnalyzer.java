@@ -36,7 +36,6 @@ import io.crate.metadata.*;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.table.Operation;
 import io.crate.metadata.table.TableInfo;
-import io.crate.operation.reference.ReferenceResolver;
 import io.crate.sql.tree.Assignment;
 import io.crate.sql.tree.Update;
 import io.crate.types.ArrayType;
@@ -66,14 +65,12 @@ public class UpdateAnalyzer {
 
 
     private final Functions functions;
-    private final ReferenceResolver<?> refResolver;
     private final RelationAnalyzer relationAnalyzer;
     private final ValueNormalizer valueNormalizer;
 
 
-    UpdateAnalyzer(Schemas schemas, Functions functions, ReferenceResolver<?> refResolver, RelationAnalyzer relationAnalyzer) {
+    UpdateAnalyzer(Schemas schemas, Functions functions, RelationAnalyzer relationAnalyzer) {
         this.functions = functions;
-        this.refResolver = refResolver;
         this.relationAnalyzer = relationAnalyzer;
         this.valueNormalizer = new ValueNormalizer(schemas);
     }
@@ -92,9 +89,9 @@ public class UpdateAnalyzer {
         EvaluatingNormalizer normalizer = new EvaluatingNormalizer(
             functions,
             RowGranularity.CLUSTER,
-            refResolver,
-            fieldResolver,
-            ReplaceMode.MUTATE);
+            ReplaceMode.MUTATE,
+            null,
+            fieldResolver);
         FieldProvider columnFieldProvider = new NameFieldProvider(analyzedRelation);
         ExpressionAnalyzer columnExpressionAnalyzer = new ExpressionAnalyzer(
             functions,
@@ -118,8 +115,7 @@ public class UpdateAnalyzer {
 
         WhereClauseAnalyzer whereClauseAnalyzer = null;
         if (analyzedRelation instanceof DocTableRelation) {
-            whereClauseAnalyzer = new WhereClauseAnalyzer(
-                functions, refResolver, ((DocTableRelation) analyzedRelation));
+            whereClauseAnalyzer = new WhereClauseAnalyzer(functions, ((DocTableRelation) analyzedRelation));
         }
         TableInfo tableInfo = ((AbstractTableRelation) analyzedRelation).tableInfo();
 

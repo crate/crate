@@ -33,7 +33,6 @@ import io.crate.analyze.symbol.Symbol;
 import io.crate.analyze.symbol.SymbolVisitor;
 import io.crate.metadata.*;
 import io.crate.operation.operator.AndOperator;
-import io.crate.operation.reference.ReferenceResolver;
 import io.crate.operation.scalar.conditional.LeastFunction;
 import io.crate.planner.Limits;
 import io.crate.sql.tree.QualifiedName;
@@ -58,9 +57,8 @@ final class RelationNormalizer extends AnalyzedRelationVisitor<RelationNormalize
 
     public static AnalyzedRelation normalize(AnalyzedRelation relation,
                                              Functions functions,
-                                             ReferenceResolver<?> refResolver,
                                              TransactionContext transactionContext) {
-        return INSTANCE.process(relation, new Context(functions, refResolver, relation.fields(), transactionContext));
+        return INSTANCE.process(relation, new Context(functions, relation.fields(), transactionContext));
     }
 
     @Override
@@ -86,7 +84,7 @@ final class RelationNormalizer extends AnalyzedRelationVisitor<RelationNormalize
 
         QuerySpec querySpec = mergeAndReplaceFields(table, context.querySpec);
         QueriedTable relation = new QueriedTable(table.tableRelation(), context.paths(), querySpec);
-        relation.normalize(context.functions, context.refResolver, context.transactionContext);
+        relation.normalize(context.functions, context.transactionContext);
         return relation;
     }
 
@@ -96,9 +94,9 @@ final class RelationNormalizer extends AnalyzedRelationVisitor<RelationNormalize
         if (context.querySpec != null) {
             QuerySpec querySpec = mergeAndReplaceFields(table, context.querySpec);
             relation = new QueriedDocTable(table.tableRelation(), context.paths(), querySpec);
-            relation.normalize(context.functions, context.refResolver, context.transactionContext);
+            relation.normalize(context.functions, context.transactionContext);
         }
-        relation.analyzeWhereClause(context.functions, context.refResolver, context.transactionContext);
+        relation.analyzeWhereClause(context.functions, context.transactionContext);
         return relation;
     }
 
@@ -229,17 +227,14 @@ final class RelationNormalizer extends AnalyzedRelationVisitor<RelationNormalize
         private final TransactionContext transactionContext;
         private final EvaluatingNormalizer normalizer;
         private final Functions functions;
-        private final ReferenceResolver<?> refResolver;
 
         private QuerySpec querySpec;
 
         public Context(Functions functions,
-                       ReferenceResolver<?> refResolver,
                        List<Field> fields,
                        TransactionContext transactionContext) {
             this.functions = functions;
-            this.refResolver = refResolver;
-            this.normalizer = new EvaluatingNormalizer(functions, RowGranularity.CLUSTER, refResolver, null, ReplaceMode.COPY);
+            this.normalizer = EvaluatingNormalizer.functionOnlyNormalizer(functions, ReplaceMode.COPY);
             this.fields = fields;
             this.transactionContext = transactionContext;
         }
