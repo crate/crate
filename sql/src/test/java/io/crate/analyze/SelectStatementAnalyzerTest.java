@@ -1967,4 +1967,10 @@ public class SelectStatementAnalyzerTest extends BaseAnalyzerTest {
         assertThat(stmt.relation().querySpec().having().get().query(),
             isSQL("(NOT (collect_set(sys.shards.recovery['size']['percent']) = [100.0]))"));
     }
+
+    @Test
+    public void testNegationOfNonNumericLiteralsShouldFail() throws Exception {
+        expectedException.expectMessage("Cannot negate 'foo'. You may need to add explicit type casts");
+        analyze("select - 'foo'");
+    }
 }
