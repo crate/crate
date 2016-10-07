@@ -179,8 +179,10 @@ public class MatchQueryBuilder {
                                         BytesRef queryString,
                                         Float boost) {
         Query query = singleQuery(type, fieldName, queryString);
-        if (query instanceof BooleanQuery) {
-            Queries.applyMinimumShouldMatch((BooleanQuery) query, options.minimumShouldMatch());
+        if (query instanceof BooleanQuery && !((BooleanQuery) query).isCoordDisabled()) {
+            query = Queries.applyMinimumShouldMatch((BooleanQuery) query, options.minimumShouldMatch());
+        } else if (query instanceof ExtendedCommonTermsQuery) {
+            ((ExtendedCommonTermsQuery)query).setLowFreqMinimumNumberShouldMatch(options.minimumShouldMatch());
         }
         if (boost != null && query != null) {
             query.setBoost(boost);

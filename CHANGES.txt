@@ -5,6 +5,10 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fix: The ``minimum_should_match`` fulltext search option was ignored
+   which lead to incorrect results for queries with multiple terms when
+   ``minimum_should_match`` was explicitly set to a non-default value.
+
  - Fixed an issue that causes the `try_cast` function to fail while casting
    the WKT representation of a point with invalid coordinates to geo_point.
 
