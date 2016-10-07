@@ -30,8 +30,10 @@ import io.crate.analyze.*;
 import io.crate.analyze.expressions.ExpressionAnalysisContext;
 import io.crate.analyze.expressions.ExpressionAnalyzer;
 import io.crate.analyze.relations.select.SelectAnalyzer;
-import io.crate.analyze.symbol.*;
+import io.crate.analyze.symbol.Aggregations;
 import io.crate.analyze.symbol.Literal;
+import io.crate.analyze.symbol.Symbol;
+import io.crate.analyze.symbol.Symbols;
 import io.crate.analyze.symbol.format.SymbolFormatter;
 import io.crate.analyze.symbol.format.SymbolPrinter;
 import io.crate.analyze.validator.GroupBySymbolValidator;
@@ -40,7 +42,6 @@ import io.crate.analyze.validator.SemanticSortValidator;
 import io.crate.exceptions.AmbiguousColumnAliasException;
 import io.crate.exceptions.RelationUnknownException;
 import io.crate.exceptions.ValidationException;
-import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.sys.SysClusterTableInfo;
@@ -60,8 +61,6 @@ import java.util.*;
 
 @Singleton
 public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, StatementAnalysisContext> {
-
-    private final static AggregationSearcher AGGREGATION_SEARCHER = new AggregationSearcher();
 
     private final ClusterService clusterService;
     private final AnalysisMetaData analysisMetaData;
@@ -235,7 +234,7 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
     private List<Symbol> rewriteGlobalDistinct(List<Symbol> outputSymbols) {
         List<Symbol> groupBy = new ArrayList<>(outputSymbols.size());
         for (Symbol symbol : outputSymbols) {
-            if (!isAggregate(symbol)) {
+            if (!Aggregations.containsAggregation(symbol)) {
                 GroupBySymbolValidator.validate(symbol);
                 groupBy.add(symbol);
             }
@@ -246,43 +245,12 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
     private void ensureNonAggregatesInGroupBy(List<Symbol> outputSymbols, List<Symbol> groupBy) throws IllegalArgumentException {
         for (Symbol output : outputSymbols) {
             if (groupBy == null || !groupBy.contains(output)) {
-                if (!isAggregate(output)) {
+                if (!Aggregations.containsAggregation(output)) {
                     throw new IllegalArgumentException(
                         SymbolFormatter.format("column '%s' must appear in the GROUP BY clause " +
                                                "or be used in an aggregation function", output));
                 }
             }
-        }
-    }
-
-    private boolean isAggregate(Symbol s) {
-        return AGGREGATION_SEARCHER.process(s, null);
-    }
-
-    private static class AggregationSearcher extends SymbolVisitor<Void, Boolean> {
-
-        @Override
-        protected Boolean visitSymbol(Symbol symbol, Void context) {
-            return false;
-        }
-
-        @Override
-        public Boolean visitFunction(Function symbol, Void context) {
-            if (symbol.info().type() == FunctionInfo.Type.AGGREGATE) {
-                return true;
-            } else {
-                for (Symbol argument : symbol.arguments()) {
-                    if (process(argument, context)) {
-                        return true;
-                    }
-                }
-            }
-            return false;
-        }
-
-        @Override
-        public Boolean visitAggregation(Aggregation symbol, Void context) {
-            return true;
         }
     }
 
