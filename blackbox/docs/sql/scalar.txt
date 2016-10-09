@@ -749,6 +749,24 @@ The second argument (``b``) is optional. If not present, base 10 is used::
     The same is true for arguments which lead to a ``division by zero``, as
     e.g. log(10, 1) does.
 
+power(a: number, b: number) returns double
+------------------------------------------
+
+Returns the given argument ``a`` raised to the power of argument ``b``.
+
+The return type of the power function is always double, even when both the 
+inputs are integral types, in order to be consistent across positive and 
+negative exponents (which will yield decimal types)
+
+See below for an example:
+
+    cr> SELECT power(2,3) FROM sys.cluster;
+    +-------------+
+    | power(2, 3) |
+    +-------------+
+    |         8.0 |
+    +-------------+
+    SELECT 1 row in set (... sec)
 
 random() returns double
 -----------------------
