@@ -70,7 +70,7 @@ def wait_for_schema_update(schema, table, column):
     count = 0
     while count == 0:
         c.execute(('select count(*) from information_schema.columns '
-                    'where schema_name = ? and table_name = ? '
+                    'where table_schema = ? and table_name = ? '
                     'and column_name = ?'),
                     (schema, table, column))
         count = c.fetchone()[0]

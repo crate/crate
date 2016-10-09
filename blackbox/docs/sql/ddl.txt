@@ -48,13 +48,13 @@ it will be created::
 
 ::
 
-    cr> select schema_name, table_name from information_schema.tables
+    cr> select table_schema, table_name from information_schema.tables
     ... where table_name='my_table';
-    +-------------+------------+
-    | schema_name | table_name |
-    +-------------+------------+
-    | my_schema   | my_table   |
-    +-------------+------------+
+    +--------------+------------+
+    | table_schema | table_name |
+    +--------------+------------+
+    | my_schema    | my_table   |
+    +--------------+------------+
     SELECT 1 row in set (... sec)
 
 The following schema names are reserved and may not be used:
@@ -86,13 +86,13 @@ the ``doc`` schema::
 
 ::
 
-    cr> select schema_name, table_name from information_schema.tables
+    cr> select table_schema, table_name from information_schema.tables
     ... where table_name='my_doc_table';
-    +-------------+--------------+
-    | schema_name | table_name   |
-    +-------------+--------------+
-    | doc         | my_doc_table |
-    +-------------+--------------+
+    +--------------+--------------+
+    | table_schema | table_name   |
+    +--------------+--------------+
+    | doc          | my_doc_table |
+    +--------------+--------------+
     SELECT 1 row in set (... sec)
 
 

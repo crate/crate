@@ -36,6 +36,7 @@ public class InformationTableInfo extends StaticTableInfo {
 
     public static class Columns {
         public static final ColumnIdent TABLE_NAME = new ColumnIdent("table_name");
+        public static final ColumnIdent TABLE_SCHEMA = new ColumnIdent("table_schema");
         public static final ColumnIdent SCHEMA_NAME = new ColumnIdent("schema_name");
         public static final ColumnIdent PARTITION_IDENT = new ColumnIdent("partition_ident");
         public static final ColumnIdent VALUES = new ColumnIdent("values");

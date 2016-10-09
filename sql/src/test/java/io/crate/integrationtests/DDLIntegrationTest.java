@@ -399,7 +399,7 @@ public class DDLIntegrationTest extends SQLTransportIntegrationTest {
         ensureYellow();
         execute("alter table t add column name string primary key");
         execute("select constraint_name from information_schema.table_constraints " +
-                "where table_name = 't' and schema_name = 'doc' and constraint_type = 'PRIMARY_KEY'");
+                "where table_name = 't' and table_schema = 'doc' and constraint_type = 'PRIMARY_KEY'");
 
         assertThat(response.rowCount(), is(1L));
         assertThat((Object[]) response.rows()[0][0], arrayContaining(new Object[]{"name", "id"}));
@@ -462,7 +462,7 @@ public class DDLIntegrationTest extends SQLTransportIntegrationTest {
             assertThat(e.getMessage(), containsString("The table doc.t already has a column named o"));
         }
         execute("select * from information_schema.columns where " +
-                "table_name = 't' and schema_name='doc'" +
+                "table_name = 't' and table_schema='doc'" +
                 "order by column_name asc");
         assertThat(response.rowCount(), is(3L));
 
@@ -484,7 +484,7 @@ public class DDLIntegrationTest extends SQLTransportIntegrationTest {
         execute("alter table my_table add column book['author'] object as (\"authorId\" integer)");
         waitNoPendingTasksOnAll();
         execute("select column_name from information_schema.columns where " +
-                "table_name = 'my_table' and schema_name='doc'" +
+                "table_name = 'my_table' and table_schema='doc'" +
                 "order by column_name asc");
         assertThat(response.rowCount(), is(6L));
         assertThat(TestingHelpers.getColumn(response.rows(), 0),
@@ -492,7 +492,7 @@ public class DDLIntegrationTest extends SQLTransportIntegrationTest {
         execute("alter table my_table add column book['author']['authorName'] string");
         waitNoPendingTasksOnAll();
         execute("select column_name from information_schema.columns where " +
-                "table_name = 'my_table' and schema_name='doc'" +
+                "table_name = 'my_table' and table_schema='doc'" +
                 "order by column_name asc");
         assertThat(response.rowCount(), is(7L));
         assertThat(TestingHelpers.getColumn(response.rows(), 0),
@@ -507,7 +507,7 @@ public class DDLIntegrationTest extends SQLTransportIntegrationTest {
         execute("ALTER TABLE my_table ADD COLUMN col1['col2'] object as (col3 array(string))");
         waitNoPendingTasksOnAll();
         execute("SELECT column_name, data_type FROM information_schema.columns " +
-                "WHERE table_name = 'my_table' AND schema_name = 'doc' " +
+                "WHERE table_name = 'my_table' AND table_schema = 'doc' " +
                 "ORDER BY column_name asc");
         assertThat(TestingHelpers.getColumn(response.rows(), 0),
             is(Matchers.<Object>arrayContaining("col1", "col1['col2']", "col1['col2']['col3']")));
@@ -522,7 +522,7 @@ public class DDLIntegrationTest extends SQLTransportIntegrationTest {
         execute("ALTER TABLE my_table ADD COLUMN col1['col2']['col3'] object as (col4 array(long))");
         waitNoPendingTasksOnAll();
         execute("SELECT column_name, data_type FROM information_schema.columns " +
-                "WHERE table_name = 'my_table' AND schema_name = 'doc' " +
+                "WHERE table_name = 'my_table' AND table_schema = 'doc' " +
                 "ORDER BY column_name asc");
         assertThat(TestingHelpers.getColumn(response.rows(), 0),
             is(Matchers.<Object>arrayContaining("col1", "col1['col2']", "col1['col2']['col3']", "col1['col2']['col3']['col4']")));
@@ -586,7 +586,7 @@ public class DDLIntegrationTest extends SQLTransportIntegrationTest {
         execute("create blob table screenshots with (number_of_replicas=0)");
         execute("alter blob table screenshots set (number_of_replicas=1)");
         execute("select number_of_replicas from information_schema.tables " +
-                "where schema_name = 'blob' and table_name = 'screenshots'");
+                "where table_schema = 'blob' and table_name = 'screenshots'");
         assertEquals("1", response.rows()[0][0]);
         execute("drop blob table screenshots");
     }
@@ -646,7 +646,7 @@ public class DDLIntegrationTest extends SQLTransportIntegrationTest {
         assertThat(response.rowCount(), is(1L));
         assertThat((String) response.rows()[0][0], is("Ford"));
 
-        execute("select schema_name from information_schema.tables where table_name = 't'");
+        execute("select table_schema from information_schema.tables where table_name = 't'");
         assertThat(response.rowCount(), is(1L));
         assertThat((String) response.rows()[0][0], is("a"));
     }
@@ -666,7 +666,7 @@ public class DDLIntegrationTest extends SQLTransportIntegrationTest {
         execute("drop table a.t");
         assertThat(response.rowCount(), is(1L));
 
-        execute("select schema_name from information_schema.tables where table_name = 't'");
+        execute("select table_schema from information_schema.tables where table_name = 't'");
         assertThat(response.rowCount(), is(0L));
     }
 

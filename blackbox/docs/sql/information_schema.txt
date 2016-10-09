@@ -17,12 +17,12 @@ The information schema contains a table called `tables`.
 This table can be queried to get a list of all available tables and their
 settings like the ``number of shards`` or ``number of replicas``::
 
-    cr> select schema_name, table_name, number_of_shards, number_of_replicas
+    cr> select table_schema, table_name, number_of_shards, number_of_replicas
     ... from information_schema.tables
     ... where table_name not like 'my_table%'
-    ... order by schema_name asc, table_name asc;
+    ... order by table_schema asc, table_name asc;
     +--------------------+-------------------+------------------+--------------------+
-    | schema_name        | table_name        | number_of_shards | number_of_replicas |
+    | table_schema       | table_name        | number_of_shards | number_of_replicas |
     +--------------------+-------------------+------------------+--------------------+
     | blob               | myblobs           |                3 |                  1 |
     | doc                | documents         |                4 |                  1 |
@@ -59,8 +59,8 @@ columns::
     cr> select table_name, clustered_by, partitioned_by, blobs_path
     ... from information_schema.tables
     ... where table_name not like 'my_table%'
-    ...   and (schema_name = 'doc' or schema_name = 'blob')
-    ... order by schema_name asc, table_name asc;
+    ...   and (table_schema = 'doc' or table_schema = 'blob')
+    ... order by table_schema asc, table_name asc;
     +-------------------+--------------+----------------+--------...-+
     | table_name        | clustered_by | partitioned_by | blobs_path |
     +-------------------+--------------+----------------+--------...-+
@@ -81,7 +81,7 @@ definition like data type and ordinal position inside the table::
 
     cr> select table_name, column_name, ordinal_position as pos, data_type
     ... from information_schema.columns
-    ... where schema_name = 'doc' and table_name not like 'my_table%'
+    ... where table_schema = 'doc' and table_name not like 'my_table%'
     ... order by table_name asc, column_name asc;
     +-------------------+--------------------------------+-----+--------------+
     | table_name        | column_name                    | pos | data_type    |
@@ -114,7 +114,7 @@ You can even query this tables' own columns (attention: this might lead to infin
 
     cr> select column_name, data_type, ordinal_position
     ... from information_schema.columns
-    ... where schema_name = 'information_schema'
+    ... where table_schema = 'information_schema'
     ... and table_name = 'columns' order by ordinal_position asc;
     +-----------------------+-----------+------------------+
     | column_name           | data_type | ordinal_position |
@@ -127,8 +127,9 @@ You can even query this tables' own columns (attention: this might lead to infin
     | ordinal_position      | short     |                6 |
     | schema_name           | string    |                7 |
     | table_name            | string    |                8 |
+    | table_schema          | string    |                9 |
     +-----------------------+-----------+------------------+
-    SELECT 8 rows in set (... sec)
+    SELECT 9 rows in set (... sec)
 
 .. note::
 
@@ -149,19 +150,19 @@ their type, name and which table they are defined in.
 
 ::
 
-    cr> select schema_name, table_name, constraint_name, constraint_type as type
+    cr> select table_schema, table_name, constraint_name, constraint_type as type
     ... from information_schema.table_constraints
     ... where table_name = 'tables'
     ...   or table_name = 'quotes'
     ...   or table_name = 'documents'
-    ... order by schema_name desc, table_name desc limit 10;
-    +--------------------+------------+-------------------------------+-------------+
-    | schema_name        | table_name | constraint_name               | type        |
-    +--------------------+------------+-------------------------------+-------------+
-    | information_schema | tables     | ["schema_name", "table_name"] | PRIMARY_KEY |
-    | doc                | quotes     | ["id"]                        | PRIMARY_KEY |
-    | doc                | documents  | ["_id"]                       | PRIMARY_KEY |
-    +--------------------+------------+-------------------------------+-------------+
+    ... order by table_schema desc, table_name desc limit 10;
+    +--------------------+------------+--------------------------------+-------------+
+    | table_schema       | table_name | constraint_name                | type        |
+    +--------------------+------------+--------------------------------+-------------+
+    | information_schema | tables     | ["table_schema", "table_name"] | PRIMARY_KEY |
+    | doc                | quotes     | ["id"]                         | PRIMARY_KEY |
+    | doc                | documents  | ["_id"]                        | PRIMARY_KEY |
+    +--------------------+------------+--------------------------------+-------------+
     SELECT 3 rows in set (... sec)
 
 

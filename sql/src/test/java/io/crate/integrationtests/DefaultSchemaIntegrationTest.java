@@ -88,7 +88,7 @@ public class DefaultSchemaIntegrationTest extends SQLTransportIntegrationTest {
     }
 
     private long getTableCount(String schema, String tableName) {
-        execute("select count(*) from information_schema.tables where schema_name = ? and table_name = ?",
+        execute("select count(*) from information_schema.tables where table_schema = ? and table_name = ?",
             new Object[]{schema, tableName});
         return ((long) response.rows()[0][0]);
     }

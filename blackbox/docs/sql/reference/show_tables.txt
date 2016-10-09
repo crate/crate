@@ -11,7 +11,7 @@ Synopsis
 
 ::
 
-    SHOW TABLES [{FROM | IN} schema_name] [LIKE 'pattern' | WHERE expression]
+    SHOW TABLES [{FROM | IN} table_schema] [LIKE 'pattern' | WHERE expression]
 
 Description
 ===========
@@ -26,7 +26,7 @@ System and BLOB tables are only listed when they are explicitly specified in
 Parameters
 ==========
 
-:schema_name: The name of the schema the tables are appropriate to.
+:table_schema: The name of the schema the tables are appropriate to.
 
 LIKE Clause
 ===========

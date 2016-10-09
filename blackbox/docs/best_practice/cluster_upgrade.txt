@@ -211,9 +211,9 @@ In case of ``primaries`` availability only the primary shards of tables with
 
 .. code-block:: psql
 
-   cr> SELECT schema_name as schema, table_name as "table"
+   cr> SELECT table_schema as schema, table_name as "table"
    ... FROM information_schema.tables
-   ... WHERE number_of_replicas = 0 and schema_name in ('blob', 'doc')
+   ... WHERE number_of_replicas = 0 and table_schema in ('blob', 'doc')
    ... ORDER BY schema, "table" ;
    +--------+-------...+
    | schema | table ...|

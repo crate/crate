@@ -57,7 +57,7 @@ public class TableSettingsTest extends SQLTransportIntegrationTest {
     @Test
     public void testSelectSettingsColumn() throws Exception {
         // system tables have no settings
-        execute("select settings from information_schema.tables where schema_name = 'sys'");
+        execute("select settings from information_schema.tables where table_schema = 'sys'");
         for (Object[] row : response.rows()) {
             assertNull(row[0]);
         }

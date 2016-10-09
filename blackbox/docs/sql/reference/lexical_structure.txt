@@ -269,7 +269,7 @@ Example::
 
   SELECT *
     FROM information_schema.tables
-    WHERE schema_name = 'doc'; -- query information schema for doc tables
+    WHERE table_schema = 'doc'; -- query information schema for doc tables
 
 
 .. _`crash`: https://github.com/crate/crash/

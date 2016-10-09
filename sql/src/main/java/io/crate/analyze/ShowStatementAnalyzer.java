@@ -117,7 +117,7 @@ class ShowStatementAnalyzer {
          * <code>
          * SELECT column_name, data_type
          * FROM information_schema.columns
-         * WHERE schema_name = {'doc' | ['%s'] }
+         * WHERE table_schema = {'doc' | ['%s'] }
          * [ AND WHERE table_name LIKE '%s' | column_name LIKE '%s']
          * ORDER BY column_name;
          * </code>
@@ -130,7 +130,7 @@ class ShowStatementAnalyzer {
         params.add(node.table().toString());
         sb.append("WHERE table_name = ? ");
 
-        sb.append("AND schema_name = ? ");
+        sb.append("AND table_schema = ? ");
         if (node.schema().isPresent()) {
             params.add(node.schema().get().toString());
         } else {
@@ -166,13 +166,13 @@ class ShowStatementAnalyzer {
     public Tuple<Query, ParameterContext> rewriteShow(ShowTables node) {
         /*
          * <code>
-         *     SHOW TABLES [{ FROM | IN } schema_name ] [ { LIKE 'pattern' | WHERE expr } ];
+         *     SHOW TABLES [{ FROM | IN } table_schema ] [ { LIKE 'pattern' | WHERE expr } ];
          * </code>
          * needs to be rewritten to select query:
          * <code>
          *     SELECT distinct(table_name) as table_name
          *     FROM information_schema.tables
-         *     [ WHERE ( schema_name = 'schema_name' | schema_name NOT IN ( 'sys', 'information_schema' ) )
+         *     [ WHERE ( table_schema = 'table_schema' | table_schema NOT IN ( 'sys', 'information_schema' ) )
          *      [ AND ( table_name LIKE 'pattern' | <where-clause > ) ]
          *     ]
          *     ORDER BY 1;
@@ -183,9 +183,9 @@ class ShowStatementAnalyzer {
         Optional<QualifiedName> schema = node.schema();
         if (schema.isPresent()) {
             params.add(schema.get().toString());
-            sb.append("WHERE schema_name = ?");
+            sb.append("WHERE table_schema = ?");
         } else {
-            sb.append("WHERE schema_name NOT IN (");
+            sb.append("WHERE table_schema NOT IN (");
             for (int i = 0; i < explicitSchemas.length; i++) {
                 params.add(explicitSchemas[i]);
                 sb.append("?");

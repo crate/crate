@@ -90,7 +90,8 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
                 "quote string index using fulltext" +
                 ") partitioned by (date) with (number_of_replicas=0)");
         ensureYellow();
-        execute("copy quotes partition (date=1400507539938) from ?", new Object[]{copyFilePath + "test_copy_from.json"});
+        execute("copy quotes partition (date=1400507539938) from ?", new Object[]{
+            copyFilePath + "test_copy_from.json"});
         assertEquals(3L, response.rowCount());
         refresh();
         execute("select id, date, quote from quotes order by id asc");
@@ -102,7 +103,8 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
         execute("select count(*) from information_schema.table_partitions where table_name = 'quotes'");
         assertThat((Long) response.rows()[0][0], is(1L));
 
-        execute("copy quotes partition (date=1800507539938) from ?", new Object[]{copyFilePath + "test_copy_from.json"});
+        execute("copy quotes partition (date=1800507539938) from ?", new Object[]{
+            copyFilePath + "test_copy_from.json"});
         refresh();
 
         execute("select partition_ident from information_schema.table_partitions " +
@@ -200,12 +202,12 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
         ensureGreen();
         waitNoPendingTasksOnAll();
 
-        execute("select schema_name, table_name, number_of_shards, number_of_replicas, clustered_by, partitioned_by " +
-                "from information_schema.tables where schema_name='my_schema' and table_name='parted'");
+        execute("select table_schema, table_name, number_of_shards, number_of_replicas, clustered_by, partitioned_by " +
+                "from information_schema.tables where table_schema='my_schema' and table_name='parted'");
         assertThat(TestingHelpers.printedTable(response.rows()), is("my_schema| parted| 4| 0| _id| [month]\n"));
 
         // no other tables with that name, e.g. partitions considered as tables or such
-        execute("select schema_name, table_name from information_schema.tables where table_name like '%parted%'");
+        execute("select table_schema, table_name from information_schema.tables where table_name like '%parted%'");
         assertThat(TestingHelpers.printedTable(response.rows()), is(
             "my_schema| parted\n"));
 
@@ -220,7 +222,7 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
                 "partitioned by(timestamp) with (number_of_replicas=0)");
         ensureYellow();
 
-        execute("select * from information_schema.tables where schema_name='doc' order by table_name");
+        execute("select * from information_schema.tables where table_schema='doc' order by table_name");
         assertEquals(1L, response.rowCount());
         assertEquals("quotes", response.rows()[0][8]);
 
@@ -2022,7 +2024,7 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
 
         execute("alter table device_event SET (number_of_replicas='3')");
 
-        execute("select table_name, number_of_replicas from information_schema.tables where schema_name = 'doc' order by table_name");
+        execute("select table_name, number_of_replicas from information_schema.tables where table_schema = 'doc' order by table_name");
         assertThat((String) response.rows()[0][1], is("3"));
         assertThat((String) response.rows()[1][1], is("0"));
     }

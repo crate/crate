@@ -52,23 +52,23 @@ public class StaticInformationSchemaQueryTest extends SQLTransportIntegrationTes
 
     @Test
     public void testGroupByOnInformationSchema() throws Exception {
-        execute("select count(*) from information_schema.columns where schema_name = 'doc' group by table_name order by count(*) desc");
+        execute("select count(*) from information_schema.columns where table_schema = 'doc' group by table_name order by count(*) desc");
         assertEquals(3L, response.rowCount());
 
-        execute("select count(*) from information_schema.columns where schema_name = 'doc' group by column_name order by count(*) desc");
+        execute("select count(*) from information_schema.columns where table_schema = 'doc' group by column_name order by count(*) desc");
         assertEquals(2L, response.rowCount());
         assertEquals(3L, response.rows()[0][0]);
     }
 
     @Test
     public void testSelectStar() throws Exception {
-        execute("select * from information_schema.tables where schema_name = 'doc'");
+        execute("select * from information_schema.tables where table_schema = 'doc'");
         assertEquals(3L, response.rowCount());
     }
 
     @Test
     public void testLike() throws Exception {
-        execute("select * from information_schema.tables where schema_name = 'doc' and table_name like 't%'");
+        execute("select * from information_schema.tables where table_schema = 'doc' and table_name like 't%'");
         assertEquals(3L, response.rowCount());
     }
 
@@ -80,7 +80,7 @@ public class StaticInformationSchemaQueryTest extends SQLTransportIntegrationTes
 
     @Test
     public void testIsNotNull() throws Exception {
-        execute("select * from information_schema.tables where table_name is not null and schema_name = 'doc'");
+        execute("select * from information_schema.tables where table_name is not null and table_schema = 'doc'");
         assertEquals(3L, response.rowCount());
     }
 
@@ -140,7 +140,7 @@ public class StaticInformationSchemaQueryTest extends SQLTransportIntegrationTes
 
     @Test
     public void testNotEqualsString() throws Exception {
-        execute("select table_name from information_schema.tables where schema_name = 'doc' and table_name != 't1'");
+        execute("select table_name from information_schema.tables where table_schema = 'doc' and table_name != 't1'");
         assertEquals(2L, response.rowCount());
         assertTrue(!response.rows()[0][0].equals("t1"));
         assertTrue(!response.rows()[1][0].equals("t1"));
@@ -148,7 +148,7 @@ public class StaticInformationSchemaQueryTest extends SQLTransportIntegrationTes
 
     @Test
     public void testNotEqualsNumber() throws Exception {
-        execute("select table_name, number_of_shards from information_schema.tables where schema_name = 'doc' and number_of_shards != 7");
+        execute("select table_name, number_of_shards from information_schema.tables where table_schema = 'doc' and number_of_shards != 7");
         assertEquals(2L, response.rowCount());
         assertTrue((int) response.rows()[0][1] != 7);
         assertTrue((int) response.rows()[1][1] != 7);
@@ -156,7 +156,7 @@ public class StaticInformationSchemaQueryTest extends SQLTransportIntegrationTes
 
     @Test
     public void testEqualsNumber() throws Exception {
-        execute("select table_name from information_schema.tables where schema_name = 'doc' and number_of_shards = 7");
+        execute("select table_name from information_schema.tables where table_schema = 'doc' and number_of_shards = 7");
         assertEquals(1L, response.rowCount());
         assertEquals("t1", response.rows()[0][0]);
     }
@@ -178,7 +178,7 @@ public class StaticInformationSchemaQueryTest extends SQLTransportIntegrationTes
     @Test
     public void testOrderByStringAndLimit() throws Exception {
         execute("select table_name, number_of_shards, number_of_replicas from information_schema.tables " +
-                " where schema_name = 'doc' order by table_name desc limit 2");
+                " where table_schema = 'doc' order by table_name desc limit 2");
         assertEquals(2L, response.rowCount());
         assertEquals("t3", response.rows()[0][0]);
         assertEquals("t2", response.rows()[1][0]);

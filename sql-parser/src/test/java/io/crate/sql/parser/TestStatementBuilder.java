@@ -253,25 +253,25 @@ public class TestStatementBuilder {
 
         printStatement("show columns from table_name");
         printStatement("show columns in table_name");
-        printStatement("show columns from table_name from schema_name");
-        printStatement("show columns in table_name from schema_name");
+        printStatement("show columns from table_name from table_schema");
+        printStatement("show columns in table_name from table_schema");
         printStatement("show columns in foo like '*'");
         printStatement("show columns from foo like '*'");
-        printStatement("show columns from table_name from schema_name like '*'");
-        printStatement("show columns in table_name from schema_name like '*'");
+        printStatement("show columns from table_name from table_schema like '*'");
+        printStatement("show columns in table_name from table_schema like '*'");
         printStatement("show columns from table_name where column_name = 'foo'");
-        printStatement("show columns from table_name from schema_name where column_name = 'foo'");
+        printStatement("show columns from table_name from table_schema where column_name = 'foo'");
 
         printStatement("show tables");
         printStatement("show tables like '.*'");
-        printStatement("show tables from schema_name");
-        printStatement("show tables in schema_name");
+        printStatement("show tables from table_schema");
+        printStatement("show tables in table_schema");
         printStatement("show tables from foo like '.*'");
         printStatement("show tables in foo like '.*'");
-        printStatement("show tables from schema_name like '.*'");
-        printStatement("show tables in schema_name like '*'");
-        printStatement("show tables from schema_name where table_name = 'foo'");
-        printStatement("show tables in schema_name where table_name = 'foo'");
+        printStatement("show tables from table_schema like '.*'");
+        printStatement("show tables in table_schema like '*'");
+        printStatement("show tables from table_schema where table_name = 'foo'");
+        printStatement("show tables in table_schema where table_name = 'foo'");
     }
 
     @Test

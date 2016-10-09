@@ -5,6 +5,11 @@ Changes for Crate
 Unreleased
 ==========
 
+ - added column ``table_schema`` in ``information_schema.columns``,
+   ``information_schema.tables`` and ``information_schema.table_constraints``
+   in order to be conform with the SQL standard. The column ``schema_name``
+   is deprecated.
+
  - Added support for BETWEEN
 
  - Added support of expressions in the array constructors. Allowed to

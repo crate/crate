@@ -1351,14 +1351,14 @@ have the same value, returns NULL; otherwise returns the first argument.
 
 ::
 
-    cr> select nullif(schema_name, 'sys')
+    cr> select nullif(table_schema, 'sys')
     ...   from information_schema.tables
     ...   where table_name='nodes';
-    +----------------------------+
-    | nullif(schema_name, 'sys') |
-    +----------------------------+
-    | NULL                       |
-    +----------------------------+
+    +-----------------------------+
+    | nullif(table_schema, 'sys') |
+    +-----------------------------+
+    | NULL                        |
+    +-----------------------------+
     SELECT 1 row in set (... sec)
 
 

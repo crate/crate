@@ -123,7 +123,7 @@ public class HandlerSideLevelCollectTest extends SQLTransportIntegrationTest {
 
         RoutedCollectPhase collectNode = collectNode(routing, toCollect, RowGranularity.DOC, new WhereClause(whereClause));
         Bucket result = collect(collectNode);
-        assertThat(TestingHelpers.printedTable(result), is("NULL| NULL| strict| 0| 1| NULL| sys| NULL| shards\n"));
+        assertThat(TestingHelpers.printedTable(result), is("NULL| NULL| strict| 0| 1| NULL| sys| NULL| shards| sys\n"));
     }
 
     @Test
@@ -139,10 +139,10 @@ public class HandlerSideLevelCollectTest extends SQLTransportIntegrationTest {
         RoutedCollectPhase collectNode = collectNode(routing, toCollect, RowGranularity.DOC);
         Bucket result = collect(collectNode);
 
-        String expected = "id| string| NULL| false| true| 1| sys| cluster\n" +
-                          "master_node| string| NULL| false| true| 2| sys| cluster\n" +
-                          "name| string| NULL| false| true| 3| sys| cluster\n" +
-                          "settings| object| NULL| false| true| 4| sys| cluster\n";
+        String expected = "id| string| NULL| false| true| 1| sys| cluster| sys\n" +
+                          "master_node| string| NULL| false| true| 2| sys| cluster| sys\n" +
+                          "name| string| NULL| false| true| 3| sys| cluster| sys\n" +
+                          "settings| object| NULL| false| true| 4| sys| cluster| sys\n";
 
 
         assertThat(TestingHelpers.printedTable(result), Matchers.containsString(expected));

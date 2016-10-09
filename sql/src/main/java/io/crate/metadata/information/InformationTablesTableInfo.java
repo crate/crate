@@ -35,7 +35,7 @@ public class InformationTablesTableInfo extends InformationTableInfo {
     public static final TableIdent IDENT = new TableIdent(InformationSchemaInfo.NAME, NAME);
 
     public static class References {
-        public static final Reference SCHEMA_NAME = createRef(Columns.SCHEMA_NAME, DataTypes.STRING);
+        public static final Reference TABLE_SCHEMA = createRef(Columns.TABLE_SCHEMA, DataTypes.STRING);
         public static final Reference TABLE_NAME = createRef(Columns.TABLE_NAME, DataTypes.STRING);
         public static final Reference NUMBER_OF_SHARDS = createRef(Columns.NUMBER_OF_SHARDS, DataTypes.INTEGER);
         public static final Reference NUMBER_OF_REPLICAS = createRef(Columns.NUMBER_OF_REPLICAS, DataTypes.STRING);
@@ -100,6 +100,10 @@ public class InformationTablesTableInfo extends InformationTableInfo {
             Columns.TABLE_SETTINGS_UNASSIGNED_NODE_LEFT, DataTypes.OBJECT);
         public static final Reference TABLE_SETTINGS_UNASSIGNED_NODE_LEFT_DELAYED_TIMEOUT = createRef(
             Columns.TABLE_SETTINGS_UNASSIGNED_NODE_LEFT_DELAYED_TIMEOUT, DataTypes.LONG);
+        /**
+         * @deprecated use {@link #TABLE_SCHEMA} instead.
+         */
+        public static final Reference SCHEMA_NAME = createRef(Columns.SCHEMA_NAME, DataTypes.STRING);
     }
 
     private static Reference createRef(ColumnIdent columnIdent, DataType dataType) {
@@ -109,9 +113,9 @@ public class InformationTablesTableInfo extends InformationTableInfo {
     public InformationTablesTableInfo(ClusterService clusterService) {
         super(clusterService,
             IDENT,
-            ImmutableList.of(Columns.SCHEMA_NAME, Columns.TABLE_NAME),
+            ImmutableList.of(Columns.TABLE_SCHEMA, Columns.TABLE_NAME), // TODO: add deprecated SCHEMA_NAME as well?
             ImmutableSortedMap.<ColumnIdent, Reference>naturalOrder()
-                .put(Columns.SCHEMA_NAME, References.SCHEMA_NAME)
+                .put(Columns.TABLE_SCHEMA, References.TABLE_SCHEMA)
                 .put(Columns.TABLE_NAME, References.TABLE_NAME)
                 .put(Columns.NUMBER_OF_SHARDS, References.NUMBER_OF_SHARDS)
                 .put(Columns.NUMBER_OF_REPLICAS, References.NUMBER_OF_REPLICAS)
@@ -144,6 +148,7 @@ public class InformationTablesTableInfo extends InformationTableInfo {
                 .put(Columns.TABLE_SETTINGS_UNASSIGNED, References.TABLE_SETTINGS_UNASSIGNED)
                 .put(Columns.TABLE_SETTINGS_UNASSIGNED_NODE_LEFT, References.TABLE_SETTINGS_UNASSIGNED_NODE_LEFT)
                 .put(Columns.TABLE_SETTINGS_UNASSIGNED_NODE_LEFT_DELAYED_TIMEOUT, References.TABLE_SETTINGS_UNASSIGNED_NODE_LEFT_DELAYED_TIMEOUT)
+                .put(Columns.SCHEMA_NAME, References.SCHEMA_NAME) // @deprecated use TABLE_SCHEMA instead
                 .build(),
             ImmutableList.of(
                 References.BLOBS_PATH,
@@ -152,9 +157,10 @@ public class InformationTablesTableInfo extends InformationTableInfo {
                 References.NUMBER_OF_REPLICAS,
                 References.NUMBER_OF_SHARDS,
                 References.PARTITIONED_BY,
-                References.SCHEMA_NAME,
+                References.SCHEMA_NAME, // @deprecated
                 References.TABLE_SETTINGS,
-                References.TABLE_NAME
+                References.TABLE_NAME,
+                References.TABLE_SCHEMA
             )
         );
     }

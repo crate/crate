@@ -43,7 +43,7 @@ public class ShowStatementsAnalyzerTest extends CrateUnitTest {
 
         assertThat(analyzedStatement.relation().querySpec(), isSQL(
             "SELECT information_schema.tables.table_name " +
-            "WHERE (information_schema.tables.schema_name = 'qname') " +
+            "WHERE (information_schema.tables.table_schema = 'qname') " +
             "GROUP BY information_schema.tables.table_name " +
             "ORDER BY information_schema.tables.table_name"));
 
@@ -51,17 +51,18 @@ public class ShowStatementsAnalyzerTest extends CrateUnitTest {
 
         assertThat(analyzedStatement.relation().querySpec(), isSQL(
             "SELECT information_schema.tables.table_name " +
-            "WHERE (NOT (information_schema.tables.schema_name = ANY(['information_schema', 'sys', 'pg_catalog']))) " +
+            "WHERE (NOT (information_schema.tables.table_schema = ANY(['information_schema', 'sys', 'pg_catalog']))) " +
             "GROUP BY information_schema.tables.table_name " +
             "ORDER BY information_schema.tables.table_name"));
     }
+
     @Test
     public void testVisitShowTablesLike() throws Exception {
         SelectAnalyzedStatement analyzedStatement = analyze("show tables in QNAME like 'likePattern'");
 
         assertThat(analyzedStatement.relation().querySpec(), isSQL(
             "SELECT information_schema.tables.table_name " +
-            "WHERE ((information_schema.tables.schema_name = 'qname') " +
+            "WHERE ((information_schema.tables.table_schema = 'qname') " +
             "AND (information_schema.tables.table_name LIKE 'likePattern')) " +
             "GROUP BY information_schema.tables.table_name " +
             "ORDER BY information_schema.tables.table_name"));
@@ -70,7 +71,7 @@ public class ShowStatementsAnalyzerTest extends CrateUnitTest {
 
         assertThat(analyzedStatement.relation().querySpec(), isSQL(
             "SELECT information_schema.tables.table_name " +
-            "WHERE ((NOT (information_schema.tables.schema_name = ANY(['information_schema', 'sys', 'pg_catalog']))) " +
+            "WHERE ((NOT (information_schema.tables.table_schema = ANY(['information_schema', 'sys', 'pg_catalog']))) " +
             "AND (information_schema.tables.table_name LIKE '%')) " +
             "GROUP BY information_schema.tables.table_name " +
             "ORDER BY information_schema.tables.table_name"));
@@ -83,7 +84,7 @@ public class ShowStatementsAnalyzerTest extends CrateUnitTest {
 
         assertThat(analyzedStatement.relation().querySpec(), isSQL(
             "SELECT information_schema.tables.table_name " +
-            "WHERE ((information_schema.tables.schema_name = 'qname') " +
+            "WHERE ((information_schema.tables.table_schema = 'qname') " +
             "AND ((information_schema.tables.table_name = 'foo') OR (information_schema.tables.table_name LIKE '%bar%'))) " +
             "GROUP BY information_schema.tables.table_name " +
             "ORDER BY information_schema.tables.table_name"));
@@ -92,7 +93,7 @@ public class ShowStatementsAnalyzerTest extends CrateUnitTest {
 
         assertThat(analyzedStatement.relation().querySpec(), isSQL(
             "SELECT information_schema.tables.table_name " +
-            "WHERE ((NOT (information_schema.tables.schema_name = ANY(['information_schema', 'sys', 'pg_catalog']))) " +
+            "WHERE ((NOT (information_schema.tables.table_schema = ANY(['information_schema', 'sys', 'pg_catalog']))) " +
             "AND (information_schema.tables.table_name LIKE '%')) " +
             "GROUP BY information_schema.tables.table_name " +
             "ORDER BY information_schema.tables.table_name"));
@@ -134,7 +135,7 @@ public class ShowStatementsAnalyzerTest extends CrateUnitTest {
         assertThat(querySpec, isSQL(
             "SELECT information_schema.columns.column_name, information_schema.columns.data_type" +
             " WHERE (((information_schema.columns.table_name = 'schemata')" +
-            " AND (information_schema.columns.schema_name = 'information_schema'))" +
+            " AND (information_schema.columns.table_schema = 'information_schema'))" +
             " AND (information_schema.columns.column_name LIKE '%'))" +
             " ORDER BY information_schema.columns.column_name"));
     }
@@ -148,7 +149,7 @@ public class ShowStatementsAnalyzerTest extends CrateUnitTest {
         assertThat(querySpec, isSQL(
             "SELECT information_schema.columns.column_name, information_schema.columns.data_type" +
             " WHERE (((information_schema.columns.table_name = 'schemata')" +
-            " AND (information_schema.columns.schema_name = 'information_schema'))" +
+            " AND (information_schema.columns.table_schema = 'information_schema'))" +
             " AND (information_schema.columns.column_name = 'id'))" +
             " ORDER BY information_schema.columns.column_name"));
     }
@@ -161,7 +162,7 @@ public class ShowStatementsAnalyzerTest extends CrateUnitTest {
         assertThat(querySpec, isSQL(
             "SELECT information_schema.columns.column_name, information_schema.columns.data_type" +
             " WHERE (((information_schema.columns.table_name = 'schemata')" +
-            " AND (information_schema.columns.schema_name = 'doc'))" +
+            " AND (information_schema.columns.table_schema = 'doc'))" +
             " AND (information_schema.columns.column_name LIKE '%'))" +
             " ORDER BY information_schema.columns.column_name"));
     }
@@ -174,7 +175,7 @@ public class ShowStatementsAnalyzerTest extends CrateUnitTest {
         assertThat(querySpec, isSQL(
             "SELECT information_schema.columns.column_name, information_schema.columns.data_type" +
             " WHERE ((information_schema.columns.table_name = 'schemata')" +
-            " AND (information_schema.columns.schema_name = 'doc'))" +
+            " AND (information_schema.columns.table_schema = 'doc'))" +
             " ORDER BY information_schema.columns.column_name"));
     }
 

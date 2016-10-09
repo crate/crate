@@ -11,7 +11,7 @@ Synopsis
 
 ::
 
-    SHOW COLUMNS { FROM | IN } table_name [ FROM | IN schema_name ] [ LIKE 'pattern' | WHERE expression ]
+    SHOW COLUMNS { FROM | IN } table_name [ FROM | IN table_schema ] [ LIKE 'pattern' | WHERE expression ]
 
 Description
 ===========
@@ -26,8 +26,8 @@ Parameters
 
 :table_name:  The name of the table of which the column information is printed.
 
-:schema_name: The name of the schema the tables are appropriate to. If no
-              schema name is specified the default schema is set to ``doc``.
+:table_schema: The name of the schema the tables are appropriate to. If no
+               schema name is specified the default schema is set to ``doc``.
 
 LIKE Clause
 ===========

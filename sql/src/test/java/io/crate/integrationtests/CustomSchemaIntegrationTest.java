@@ -37,8 +37,8 @@ public class CustomSchemaIntegrationTest extends SQLTransportIntegrationTest {
         execute("create table foobar (id int primary key) with (number_of_replicas = 0)");
         execute("create table foo.bar (id int primary key) with (number_of_replicas = 0)");
 
-        execute("select schema_name, table_name from information_schema.tables " +
-                "where table_name like 'foo%' or schema_name = 'foo' order by table_name");
+        execute("select table_schema, table_name from information_schema.tables " +
+                "where table_name like 'foo%' or table_schema = 'foo' order by table_name");
         assertThat(TestingHelpers.printedTable(response.rows()), is("" +
                                                                     "foo| bar\n" +
                                                                     "doc| foobar\n"));

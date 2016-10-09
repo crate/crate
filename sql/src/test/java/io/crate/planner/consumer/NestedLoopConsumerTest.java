@@ -217,7 +217,7 @@ public class NestedLoopConsumerTest extends CrateUnitTest {
     @Test
     public void testNoLimitPushDownWithJoinCondition() throws Exception {
         NestedLoop plan = plan("select * from information_schema.tables, information_schema .columns " +
-                               "where tables.schema_name = columns.schema_name " +
+                               "where tables.table_schema = columns.table_schema " +
                                "and tables.table_name = columns.table_name limit 10");
         assertThat(((CollectAndMerge) plan.left()).collectPhase().projections().size(), is(0));
         assertThat(((CollectAndMerge) plan.right()).collectPhase().projections().size(), is(0));
@@ -226,7 +226,7 @@ public class NestedLoopConsumerTest extends CrateUnitTest {
     @Test
     public void testNoNodePageSizeHintPushDownWithJoinCondition() throws Exception {
         NestedLoop plan = plan("select * from information_schema.tables, information_schema .columns " +
-                               "where tables.schema_name = columns.schema_name " +
+                               "where tables.table_schema = columns.table_schema " +
                                "and tables.table_name = columns.table_name limit 10");
         assertThat(((RoutedCollectPhase) ((CollectAndMerge) plan.left()).collectPhase()).nodePageSizeHint(), nullValue());
         assertThat(((RoutedCollectPhase) ((CollectAndMerge) plan.right()).collectPhase()).nodePageSizeHint(), nullValue());

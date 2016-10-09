@@ -77,7 +77,7 @@ This table shows up in the ``information_schema.tables`` table,
 recognizable as partitioned table by a non null ``partitioned_by`` column
 (aliased as ``p_b`` here)::
 
-    cr> SELECT schema_name as schema,
+    cr> SELECT table_schema as schema,
     ...   table_name,
     ...   number_of_shards as num_shards,
     ...   number_of_replicas as num_reps,
@@ -95,10 +95,10 @@ recognizable as partitioned table by a non null ``partitioned_by`` column
 
 ::
 
-    cr> SELECT schema_name as schema, table_name, column_name, data_type
+    cr> SELECT table_schema as schema, table_name, column_name, data_type
     ... FROM information_schema.columns
-    ... WHERE schema_name = 'doc' AND table_name = 'parted_table'
-    ... ORDER BY schema_name, table_name, column_name;
+    ... WHERE table_schema = 'doc' AND table_name = 'parted_table'
+    ... ORDER BY table_schema, table_name, column_name;
     +--------+--------------+-------------+-----------+
     | schema | table_name   | column_name | data_type |
     +--------+--------------+-------------+-----------+

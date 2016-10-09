@@ -77,7 +77,7 @@ public class InformationSchemaExpressionFactories {
 
     public static Map<ColumnIdent, RowCollectExpressionFactory> tableConstraintFactories() {
         return ImmutableMap.<ColumnIdent, RowCollectExpressionFactory>builder()
-            .put(InformationTableConstraintsTableInfo.Columns.SCHEMA_NAME, new RowCollectExpressionFactory() {
+            .put(InformationTableConstraintsTableInfo.Columns.TABLE_SCHEMA, new RowCollectExpressionFactory() {
 
                 @Override
                 public RowCollectExpression create() {
@@ -103,6 +103,14 @@ public class InformationSchemaExpressionFactories {
                 @Override
                 public RowCollectExpression create() {
                     return new InformationTableConstraintsExpression.TableConstraintsConstraintTypeExpression();
+                }
+            })
+            // @deprecated
+            .put(InformationTableConstraintsTableInfo.Columns.SCHEMA_NAME, new RowCollectExpressionFactory() {
+
+                @Override
+                public RowCollectExpression create() {
+                    return new InformationTableConstraintsExpression.TableConstraintsSchemaNameExpression();
                 }
             }).build();
     }
@@ -158,13 +166,12 @@ public class InformationSchemaExpressionFactories {
                 public RowCollectExpression create() {
                     return new PartitionsSettingsExpression();
                 }
-            })
-            .build();
+            }).build();
     }
 
     public static Map<ColumnIdent, RowCollectExpressionFactory> columnsFactories() {
         return ImmutableMap.<ColumnIdent, RowCollectExpressionFactory>builder()
-            .put(InformationColumnsTableInfo.Columns.SCHEMA_NAME, new RowCollectExpressionFactory() {
+            .put(InformationColumnsTableInfo.Columns.TABLE_SCHEMA, new RowCollectExpressionFactory() {
 
                 @Override
                 public RowCollectExpression create() {
@@ -229,12 +236,20 @@ public class InformationSchemaExpressionFactories {
                         }
                     };
                 }
+            })
+            // @deprecated
+            .put(InformationColumnsTableInfo.Columns.SCHEMA_NAME, new RowCollectExpressionFactory() {
+
+                @Override
+                public RowCollectExpression create() {
+                    return new InformationColumnsExpression.ColumnsSchemaNameExpression();
+                }
             }).build();
     }
 
     public static Map<ColumnIdent, RowCollectExpressionFactory> tablesFactories() {
         return ImmutableMap.<ColumnIdent, RowCollectExpressionFactory>builder()
-            .put(InformationTablesTableInfo.Columns.SCHEMA_NAME, new RowCollectExpressionFactory() {
+            .put(InformationTablesTableInfo.Columns.TABLE_SCHEMA, new RowCollectExpressionFactory() {
 
                 @Override
                 public RowCollectExpression create() {
@@ -372,7 +387,22 @@ public class InformationSchemaExpressionFactories {
                         return new TablesSettingsExpression();
                     }
                 }
-            ).build();
+            )
+            // @deprecated
+            .put(InformationTablesTableInfo.Columns.SCHEMA_NAME, new RowCollectExpressionFactory() {
+
+                @Override
+                public RowCollectExpression create() {
+                    return new RowContextCollectorExpression<TableInfo, BytesRef>() {
+
+                        @Override
+                        public BytesRef value() {
+                            return new BytesRef(row.ident().schema());
+                        }
+                    };
+                }
+            }).build();
+
     }
 
     public static Map<ColumnIdent, RowCollectExpressionFactory> sqlFeaturesFactories() {
@@ -455,7 +485,6 @@ public class InformationSchemaExpressionFactories {
                         }
                     };
                 }
-            })
-            .build();
+            }).build();
     }
 }

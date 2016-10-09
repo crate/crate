@@ -230,9 +230,9 @@ public class JoinIntegrationTest extends SQLTransportIntegrationTest {
     public void testJoinOnSysTables() throws Exception {
         execute("select column_policy, column_name from information_schema.tables, information_schema.columns " +
                 "where " +
-                "tables.schema_name = 'sys' " +
+                "tables.table_schema = 'sys' " +
                 "and tables.table_name = 'shards' " +
-                "and tables.schema_name = columns.schema_name " +
+                "and tables.table_schema = columns.table_schema " +
                 "and tables.table_name = columns.table_name " +
                 "order by columns.column_name " +
                 "limit 4");
@@ -326,9 +326,9 @@ public class JoinIntegrationTest extends SQLTransportIntegrationTest {
         execute("select * from t as t1, t as t2");
         assertThat(response.rowCount(), is(4L));
         assertThat(Arrays.asList(response.rows()), containsInAnyOrder(new Object[]{1, 1},
-                                                                      new Object[]{1, 2},
-                                                                      new Object[]{2, 1},
-                                                                      new Object[]{2, 2}));
+            new Object[]{1, 2},
+            new Object[]{2, 1},
+            new Object[]{2, 2}));
     }
 
     @Test
