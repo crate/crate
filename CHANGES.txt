@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+2016/10/10 0.55.6
+=================
+
  - Negations of non-numeric literals now cause a query to fail instead of
    silently ignoring the negation.
 
