@@ -48,6 +48,8 @@ import org.elasticsearch.common.xcontent.json.JsonXContent;
 import org.elasticsearch.rest.RestStatus;
 import org.hamcrest.Matchers;
 import org.postgresql.util.PGobject;
+import org.postgresql.util.PSQLException;
+import org.postgresql.util.ServerErrorMessage;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
@@ -152,6 +154,18 @@ public class SQLTransportExecutor {
                 }
                 return executeAndConvertResult(preparedStatement);
             }
+        } catch (PSQLException e) {
+            ServerErrorMessage serverErrorMessage = e.getServerErrorMessage();
+            StackTraceElement stackTraceElement = new StackTraceElement(
+                serverErrorMessage.getFile(),
+                serverErrorMessage.getRoutine(),
+                serverErrorMessage.getFile(),
+                serverErrorMessage.getLine());
+            throw new SQLActionException(
+                e.getMessage(),
+                0,
+                RestStatus.BAD_REQUEST,
+                new StackTraceElement[]{stackTraceElement});
         } catch (SQLException e) {
             throw new SQLActionException(e.getMessage(), 0, RestStatus.BAD_REQUEST);
         }
