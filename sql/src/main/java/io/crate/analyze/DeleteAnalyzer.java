@@ -60,11 +60,11 @@ class DeleteAnalyzer {
         StatementAnalysisContext statementAnalysisContext = new StatementAnalysisContext(
             analysis.sessionContext(),
             convertParamFunction,
-            analysis.transactionContext(),
             functions,
             Operation.DELETE);
         RelationAnalysisContext relationAnalysisContext = statementAnalysisContext.startRelation();
-        AnalyzedRelation analyzedRelation = relationAnalyzer.analyze(node.getRelation(), statementAnalysisContext);
+        AnalyzedRelation analyzedRelation = relationAnalyzer.analyze(
+            node.getRelation(), statementAnalysisContext, analysis.transactionContext());
 
         assert analyzedRelation instanceof DocTableRelation;
         DocTableRelation docTableRelation = (DocTableRelation) analyzedRelation;

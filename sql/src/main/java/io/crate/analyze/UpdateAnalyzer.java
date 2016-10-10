@@ -79,11 +79,11 @@ public class UpdateAnalyzer {
         StatementAnalysisContext statementAnalysisContext = new StatementAnalysisContext(
             analysis.sessionContext(),
             analysis.parameterContext(),
-            analysis.transactionContext(),
             functions,
             Operation.UPDATE);
         RelationAnalysisContext currentRelationContext = statementAnalysisContext.startRelation();
-        AnalyzedRelation analyzedRelation = relationAnalyzer.analyze(node.relation(), statementAnalysisContext);
+        AnalyzedRelation analyzedRelation = relationAnalyzer.analyze(
+            node.relation(), statementAnalysisContext, analysis.transactionContext());
 
         FieldResolver fieldResolver = (FieldResolver) analyzedRelation;
         EvaluatingNormalizer normalizer = new EvaluatingNormalizer(
