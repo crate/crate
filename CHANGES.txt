@@ -5,6 +5,11 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Removed arbitrary limit on timestamp values. Now also dates before
+   1653-02-10 and after 2286-11-20 are supported.
+   However, there is still a limitation that the year needs to be within in the
+   integer range (-292275054 <= year <= 292278993).
+
  - Expose bound psql port in ``sys.nodes``
 
  - BREAKING: Removed deprecated Plugin interface methods.

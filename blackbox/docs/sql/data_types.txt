@@ -152,14 +152,21 @@ Example::
 timestamp
 =========
 
-The timestamp type is a special type which maps to a formatted string. Internally it maps to
-the UTC milliseconds since 1970-01-01T00:00:00Z stored as ``long``. They are always returned as ``long``.
+The timestamp type is a special type which maps to a formatted string.
+Internally it maps to the UTC milliseconds since 1970-01-01T00:00:00Z stored
+as ``long``. Timestamps are always returned as ``long`` values.
 The default format is dateOptionalTime_ and cannot be changed currently.
 Formatted date strings containing timezone offset information will be converted to UTC.
 Formated string without timezone offset information will be treated as UTC.
 Timestamps will also accept a ``long`` representing UTC milliseconds since the epoch or
 a ``float`` or ``double`` representing UTC seconds since the epoch with milliseconds as
-fractions. Example::
+fractions.
+
+Due to internal date parsing, not the full ``long`` range is supported for
+timestamp values, but only dates between year ``292275054BC`` and ``292278993AD``,
+which is slightly smaller.
+
+Examples::
 
     cr> create table my_table4 (
     ...   id integer,
@@ -194,6 +201,11 @@ fractions. Example::
     cr> insert into my_table4 (id, first_column) values (3, 'wrong');
     SQLActionException[ColumnValidationException: Validation failed for first_column: 'wrong' cannot be cast to type timestamp]
 
+.. note::
+
+    When inserting timestamps smaller than ``-999999999999999`` (equals to
+    ``-29719-04-05T22:13:20.001Z``) or bigger than ``999999999999999`` (equals to
+    ``33658-09-27T01:46:39.999Z``) rouding issues may occur.
 
 .. note::
 
