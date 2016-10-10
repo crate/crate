@@ -79,6 +79,7 @@ final class RelationNormalizer extends AnalyzedRelationVisitor<RelationNormalize
     @Override
     public AnalyzedRelation visitQueriedTable(QueriedTable table, Context context) {
         if (context.querySpec == null) {
+            table.normalize(context.functions, context.transactionContext);
             return table;
         }
 
@@ -94,8 +95,8 @@ final class RelationNormalizer extends AnalyzedRelationVisitor<RelationNormalize
         if (context.querySpec != null) {
             QuerySpec querySpec = mergeAndReplaceFields(table, context.querySpec);
             relation = new QueriedDocTable(table.tableRelation(), context.paths(), querySpec);
-            relation.normalize(context.functions, context.transactionContext);
         }
+        relation.normalize(context.functions, context.transactionContext);
         relation.analyzeWhereClause(context.functions, context.transactionContext);
         return relation;
     }

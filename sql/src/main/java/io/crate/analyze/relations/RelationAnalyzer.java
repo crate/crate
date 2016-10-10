@@ -46,6 +46,7 @@ import io.crate.exceptions.ValidationException;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.TableIdent;
+import io.crate.metadata.TransactionContext;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.sys.SysClusterTableInfo;
 import io.crate.metadata.table.Operation;
@@ -85,19 +86,17 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
         this.schemas = schemas;
     }
 
-    public AnalyzedRelation analyze(Node node, StatementAnalysisContext statementContext) {
+    public AnalyzedRelation analyze(Node node,
+                                    StatementAnalysisContext statementContext,
+                                    TransactionContext transactionContext) {
         AnalyzedRelation relation = process(node, statementContext);
-        return RelationNormalizer.normalize(
-            relation,
-            functions,
-            statementContext.transactionContext());
+        return RelationNormalizer.normalize(relation, functions, transactionContext);
     }
 
     public AnalyzedRelation analyzeUnbound(Query query, SessionContext sessionContext, ParamTypeHints paramTypeHints) {
         return process(query, new StatementAnalysisContext(
             sessionContext,
             paramTypeHints,
-            null,
             functions,
             Operation.READ));
     }
@@ -108,10 +107,10 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
             new StatementAnalysisContext(
                 analysis.sessionContext(),
                 analysis.parameterContext(),
-                analysis.transactionContext(),
                 functions,
                 Operation.READ
-            )
+            ),
+            analysis.transactionContext()
         );
     }
 
@@ -199,21 +198,16 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
             .groupBy(groupBy)
             .hasAggregates(expressionAnalysisContext.hasAggregates);
 
-        QueriedRelation relation = null;
+        QueriedRelation relation;
         if (context.sources().size() == 1) {
             AnalyzedRelation source = Iterables.getOnlyElement(context.sources().values());
-            QueriedTableRelation tableRelation = null;
             if (source instanceof DocTableRelation) {
-                tableRelation = new QueriedDocTable((DocTableRelation) source, selectAnalysis.outputNames(), querySpec);
+                relation = new QueriedDocTable((DocTableRelation) source, selectAnalysis.outputNames(), querySpec);
             } else if (source instanceof TableRelation) {
-                tableRelation = new QueriedTable((TableRelation) source, selectAnalysis.outputNames(), querySpec);
+                relation = new QueriedTable((TableRelation) source, selectAnalysis.outputNames(), querySpec);
             } else {
                 assert source instanceof QueriedRelation : "expecting relation to be an instance of QueriedRelation";
                 relation = new QueriedSelectRelation((QueriedRelation) source, selectAnalysis.outputNames(), querySpec);
-            }
-            if (tableRelation != null) {
-                tableRelation.normalize(functions, statementContext.transactionContext());
-                relation = tableRelation;
             }
         } else {
             // TODO: implement multi table selects
