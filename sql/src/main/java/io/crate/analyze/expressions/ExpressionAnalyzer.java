@@ -31,6 +31,7 @@ import io.crate.analyze.DataTypeAnalyzer;
 import io.crate.analyze.NegativeLiteralVisitor;
 import io.crate.analyze.SubscriptContext;
 import io.crate.analyze.SubscriptVisitor;
+import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.FieldProvider;
 import io.crate.analyze.symbol.*;
 import io.crate.analyze.symbol.Literal;
@@ -92,6 +93,9 @@ public class ExpressionAnalyzer {
     private final SessionContext sessionContext;
     private final com.google.common.base.Function<ParameterExpression, Symbol> convertParamFunction;
     private final FieldProvider<?> fieldProvider;
+
+    @Nullable
+    private final SubqueryAnalyzer subQueryAnalyzer;
     private final Functions functions;
     private final InnerExpressionAnalyzer innerAnalyzer;
     private Operation operation = Operation.READ;
@@ -101,11 +105,13 @@ public class ExpressionAnalyzer {
     public ExpressionAnalyzer(Functions functions,
                               SessionContext sessionContext,
                               com.google.common.base.Function<ParameterExpression, Symbol> convertParamFunction,
-                              FieldProvider fieldProvider) {
+                              FieldProvider fieldProvider,
+                              @Nullable SubqueryAnalyzer subQueryAnalyzer) {
         this.functions = functions;
         this.sessionContext = sessionContext;
         this.convertParamFunction = convertParamFunction;
         this.fieldProvider = fieldProvider;
+        this.subQueryAnalyzer = subQueryAnalyzer;
         this.innerAnalyzer = new InnerExpressionAnalyzer();
     }
 
@@ -628,6 +634,21 @@ public class ExpressionAnalyzer {
             }
             Function options = context.allocateFunction(MapFunction.createInfo(Symbols.extractTypes(mapArgs)), mapArgs);
             return new io.crate.analyze.symbol.MatchPredicate(identBoostMap, columnType, queryTerm, matchType, options);
+        }
+
+        @Override
+        protected Symbol visitSubqueryExpression(SubqueryExpression node, ExpressionAnalysisContext context) {
+            if (subQueryAnalyzer == null) {
+                throw new UnsupportedOperationException("This ExpressionAnalyzer cannot be used to analyze subqueries");
+            }
+            /* note: This does not support analysis columns in the subquery which belong to the parent relation
+             * this would require {@link StatementAnalysisContext#startRelation} to somehow inherit the parent context
+             */
+            AnalyzedRelation relation = subQueryAnalyzer.analyze(node.getQuery());
+            if (relation.fields().size() > 1) {
+                throw new UnsupportedOperationException("Subqueries with more than 1 column are not supported.");
+            }
+            throw new UnsupportedOperationException("SelectSymbol NYI");
         }
 
         private void verifyTypesForMatch(Iterable<? extends Symbol> columns, DataType columnType) {

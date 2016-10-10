@@ -24,6 +24,7 @@ package io.crate.analyze.relations;
 import com.google.common.base.Function;
 import io.crate.action.sql.SessionContext;
 import io.crate.analyze.symbol.Symbol;
+import io.crate.metadata.TransactionContext;
 import io.crate.metadata.table.Operation;
 import io.crate.sql.tree.ParameterExpression;
 
@@ -33,16 +34,23 @@ import java.util.List;
 public class StatementAnalysisContext {
 
     private final Operation currentOperation;
+    private final TransactionContext transactionContext;
     private final SessionContext sessionContext;
     private final Function<ParameterExpression, Symbol> convertParamFunction;
     private final List<RelationAnalysisContext> lastRelationContextQueue = new ArrayList<>();
 
     public StatementAnalysisContext(SessionContext sessionContext,
                                     Function<ParameterExpression, Symbol> convertParamFunction,
-                                    Operation currentOperation) {
+                                    Operation currentOperation,
+                                    TransactionContext transactionContext) {
         this.sessionContext = sessionContext;
         this.convertParamFunction = convertParamFunction;
         this.currentOperation = currentOperation;
+        this.transactionContext = transactionContext;
+    }
+
+    public TransactionContext transactionContext() {
+        return transactionContext;
     }
 
     Operation currentOperation() {

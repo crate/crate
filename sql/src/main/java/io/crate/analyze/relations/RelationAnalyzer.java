@@ -29,6 +29,7 @@ import io.crate.action.sql.SessionContext;
 import io.crate.analyze.*;
 import io.crate.analyze.expressions.ExpressionAnalysisContext;
 import io.crate.analyze.expressions.ExpressionAnalyzer;
+import io.crate.analyze.expressions.SubqueryAnalyzer;
 import io.crate.analyze.relations.select.SelectAnalyzer;
 import io.crate.analyze.symbol.Aggregations;
 import io.crate.analyze.symbol.Literal;
@@ -45,7 +46,6 @@ import io.crate.exceptions.ValidationException;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.TableIdent;
-import io.crate.metadata.TransactionContext;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.sys.SysClusterTableInfo;
 import io.crate.metadata.table.Operation;
@@ -85,22 +85,23 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
         this.schemas = schemas;
     }
 
-    public AnalyzedRelation analyze(Node node,
-                                    StatementAnalysisContext statementContext,
-                                    TransactionContext transactionContext) {
+    public AnalyzedRelation analyze(Node node, StatementAnalysisContext statementContext) {
         AnalyzedRelation relation = process(node, statementContext);
-        return RelationNormalizer.normalize(relation, functions, transactionContext);
+        return RelationNormalizer.normalize(relation, functions, statementContext.transactionContext());
     }
 
     public AnalyzedRelation analyzeUnbound(Query query, SessionContext sessionContext, ParamTypeHints paramTypeHints) {
-        return process(query, new StatementAnalysisContext(sessionContext, paramTypeHints, Operation.READ));
+        return process(query, new StatementAnalysisContext(sessionContext, paramTypeHints, Operation.READ, null));
     }
 
     public AnalyzedRelation analyze(Node node, Analysis analysis) {
         return analyze(
             node,
-            new StatementAnalysisContext(analysis.sessionContext(), analysis.parameterContext(), Operation.READ),
-            analysis.transactionContext()
+            new StatementAnalysisContext(
+                analysis.sessionContext(),
+                analysis.parameterContext(),
+                Operation.READ,
+                analysis.transactionContext())
         );
     }
 
@@ -129,7 +130,8 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
                     functions,
                     statementContext.sessionContext(),
                     statementContext.convertParamFunction(),
-                    new FullQualifedNameFieldProvider(relationContext.sources()));
+                    new FullQualifedNameFieldProvider(relationContext.sources()),
+                    new SubqueryAnalyzer(this, statementContext));
                 try {
                     joinCondition = expressionAnalyzer.convert(
                         ((JoinOn) joinCriteria).getExpression(), relationContext.expressionAnalysisContext());
@@ -162,7 +164,8 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
             functions,
             statementContext.sessionContext(),
             statementContext.convertParamFunction(),
-            new FullQualifedNameFieldProvider(context.sources()));
+            new FullQualifedNameFieldProvider(context.sources()),
+            new SubqueryAnalyzer(this, statementContext));
         ExpressionAnalysisContext expressionAnalysisContext = context.expressionAnalysisContext();
         Symbol querySymbol = expressionAnalyzer.generateQuerySymbol(node.getWhere(), expressionAnalysisContext);
         WhereClause whereClause = new WhereClause(querySymbol);
@@ -453,7 +456,9 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
                 public Symbol resolveField(QualifiedName qualifiedName, @Nullable List path, Operation operation) {
                     throw new UnsupportedOperationException("Can only resolve literals");
                 }
-        });
+            },
+            null
+        );
 
         List<Symbol> arguments = new ArrayList<>(node.arguments().size());
         for (Expression expression : node.arguments()) {
