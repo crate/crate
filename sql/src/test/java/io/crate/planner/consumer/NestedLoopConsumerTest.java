@@ -112,7 +112,8 @@ public class NestedLoopConsumerTest extends CrateUnitTest {
             ReplaceMode.COPY,
             null,
             null);
-        plannerContext = new Planner.Context(clusterService, UUID.randomUUID(), null, normalizer, new TransactionContext(), 0, 0);
+        plannerContext = new Planner.Context(
+            planner, clusterService, UUID.randomUUID(), null, normalizer, new TransactionContext(), 0, 0);
         consumer = new NestedLoopConsumer(clusterService, functions, statsService);
     }
 

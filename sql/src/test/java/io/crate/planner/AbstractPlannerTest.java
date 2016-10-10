@@ -111,7 +111,7 @@ public abstract class AbstractPlannerTest extends CrateUnitTest {
     protected ClusterService clusterService;
     private ThreadPool threadPool;
     private Analyzer analyzer;
-    private Planner planner;
+    Planner planner;
     protected EvaluatingNormalizer normalizer;
 
     @Mock

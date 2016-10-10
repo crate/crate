@@ -38,8 +38,7 @@ import io.crate.collections.Lists2;
 import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.exceptions.VersionInvalidException;
 import io.crate.operation.predicate.MatchPredicate;
-import io.crate.planner.Limits;
-import io.crate.planner.Planner;
+import io.crate.planner.*;
 import io.crate.planner.node.dql.CollectAndMerge;
 import io.crate.planner.node.dql.MergePhase;
 import io.crate.planner.node.dql.RoutedCollectPhase;
@@ -84,13 +83,20 @@ public class QueryAndFetchConsumer implements Consumer {
         @Override
         public PlannedAnalyzedRelation visitQueriedTable(QueriedTable table, ConsumerContext context) {
             QuerySpec querySpec = table.querySpec();
+            SubqueryPlanner subqueryPlanner = new SubqueryPlanner(context.plannerContext());
+            querySpec.replace(subqueryPlanner);
             if (querySpec.hasAggregates()) {
                 return null;
             }
             if (querySpec.where().hasQuery()) {
                 ensureNoLuceneOnlyPredicates(querySpec.where().query());
             }
-            return normalSelect(table, context, querySpec.outputs());
+            PlannedAnalyzedRelation plannedAnalyzedRelation = normalSelect(table, context, querySpec.outputs());
+            List<Plan> subQueries = subqueryPlanner.subQueries();
+            if (!subQueries.isEmpty()) {
+                return new MultiPhasePlan(plannedAnalyzedRelation, subQueries);
+            }
+            return plannedAnalyzedRelation;
         }
 
         private void ensureNoLuceneOnlyPredicates(Symbol query) {

@@ -98,8 +98,11 @@ public class SelectStatementPlanner {
         }
 
         @Override
-        public Plan visitQueriedDocTable(QueriedDocTable table, Planner.Context context) {
+        public Plan visitQueriedDocTable(QueriedDocTable table, final Planner.Context context) {
             QuerySpec querySpec = table.querySpec();
+            SubqueryPlanner subqueryPlanner = new SubqueryPlanner(context);
+            querySpec.replace(subqueryPlanner);
+
             if (querySpec.hasAggregates() || querySpec.groupBy().isPresent()) {
                 return consumingPlanner.plan(table, context);
             }

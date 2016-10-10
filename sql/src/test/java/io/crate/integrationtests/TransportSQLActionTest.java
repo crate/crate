@@ -1968,4 +1968,12 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         assertThat(response.rowCount(), is(2L));
 
     }
+
+    @Test
+    @UseJdbc(false)
+    public void testSingleRowSubselectInWhereClause() throws Exception {
+        execute("select name from sys.cluster where name = " +
+                "(select 'level1.2' from sys.cluster where name = (select 'level2.1' from sys.cluster)) " +
+                "or name = (select 'level1.1' from sys.cluster)");
+    }
 }

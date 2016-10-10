@@ -39,6 +39,10 @@ public class SelectSymbol extends Symbol {
         this.type = type;
     }
 
+    public AnalyzedRelation relation() {
+        return relation;
+    }
+
     public static final SymbolFactory FACTORY = new SymbolFactory() {
         @Override
         public Symbol newInstance() {

@@ -1549,7 +1549,7 @@ public class PlannerTest extends AbstractPlannerTest {
         TableIdent custom = new TableIdent("custom", "t1");
         TableInfo tableInfo = TestingTableInfo.builder(
             custom, shardRouting("t1")).add("id", DataTypes.INTEGER, null).build();
-        Planner.Context plannerContext = new Planner.Context(
+        Planner.Context plannerContext = new Planner.Context(planner,
             clusterService, UUID.randomUUID(), null, normalizer, new TransactionContext(), 0, 0);
         plannerContext.allocateRouting(tableInfo, WhereClause.MATCH_ALL, null);
 
@@ -1584,7 +1584,7 @@ public class PlannerTest extends AbstractPlannerTest {
         TableInfo tableInfo2 =
             TestingTableInfo.builder(custom, shardRoutingForReplicas("t1")).add("id", DataTypes.INTEGER, null).build();
         Planner.Context plannerContext =
-            new Planner.Context(clusterService, UUID.randomUUID(), null, normalizer, new TransactionContext(), 0, 0);
+            new Planner.Context(planner, clusterService, UUID.randomUUID(), null, normalizer, new TransactionContext(), 0, 0);
 
         WhereClause whereClause = new WhereClause(
             new Function(new FunctionInfo(
@@ -1614,7 +1614,7 @@ public class PlannerTest extends AbstractPlannerTest {
     @Test
     public void testExecutionPhaseIdSequence() throws Exception {
         Planner.Context plannerContext = new Planner.Context(
-            clusterService, UUID.randomUUID(), null, normalizer, new TransactionContext(), 0, 0);
+            planner, clusterService, UUID.randomUUID(), null, normalizer, new TransactionContext(), 0, 0);
 
         assertThat(plannerContext.nextExecutionPhaseId(), is(0));
         assertThat(plannerContext.nextExecutionPhaseId(), is(1));
@@ -1801,7 +1801,7 @@ public class PlannerTest extends AbstractPlannerTest {
     public void testNoSoftLimitOnUnlimitedChildRelation() throws Exception {
         int softLimit = 10_000;
         Planner.Context plannerContext = new Planner.Context(
-            clusterService, UUID.randomUUID(), null, normalizer, new TransactionContext(), softLimit, 0);
+            planner, clusterService, UUID.randomUUID(), null, normalizer, new TransactionContext(), softLimit, 0);
         Limits limits = plannerContext.getLimits(false, new QuerySpec());
         assertThat(limits.finalLimit(), is(TopN.NO_LIMIT));
     }
