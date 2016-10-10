@@ -21,17 +21,19 @@
 
 package io.crate.operation.scalar.cast;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Maps;
+import io.crate.analyze.symbol.Symbol;
+import io.crate.exceptions.ConversionException;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
-import io.crate.types.ArrayType;
-import io.crate.types.DataType;
-import io.crate.types.DataTypes;
-import io.crate.types.SetType;
+import io.crate.types.*;
 
+import java.util.Arrays;
 import java.util.Locale;
 import java.util.Map;
 
@@ -123,10 +125,24 @@ public class CastFunctionResolver {
         .putAll(SET_FUNCTION_MAP)
         .build();
 
+    public static Symbol generateCastFunction(Symbol sourceSymbol, DataType targetType, boolean tryCast) {
+        DataType sourceType = sourceSymbol.valueType();
+        if (sourceType.id() == RowType.ID) {
+            if (Iterables.getOnlyElement(((RowType) sourceType).types()).equals(targetType)) {
+                return sourceSymbol;
+            }
+            throw new ConversionException(sourceSymbol, targetType);
+        }
+        FunctionInfo functionInfo = functionInfo(sourceType, targetType, tryCast);
+        //noinspection ArraysAsListWithZeroOrOneArgument  # arguments of Function must be mutable
+        return new io.crate.analyze.symbol.Function(functionInfo, Arrays.asList(sourceSymbol));
+    }
+
     /**
      * resolve the needed conversion function info based on the wanted return data type
      */
-    public static FunctionInfo functionInfo(DataType dataType, DataType returnType, boolean tryCast) {
+    @VisibleForTesting
+    static FunctionInfo functionInfo(DataType dataType, DataType returnType, boolean tryCast) {
         String functionName = FUNCTION_MAP.get(returnType);
         if (functionName == null) {
             throw new IllegalArgumentException(

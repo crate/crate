@@ -1977,5 +1977,7 @@ public class SelectStatementAnalyzerTest extends BaseAnalyzerTest {
     @Test
     public void testSubquery() throws Exception {
         SelectAnalyzedStatement statement = analyze("select * from users where name = (select max(name) from users)");
+        WhereClause where = statement.relation().querySpec().where();
+        assertThat(where.query(), isSQL("(doc.users.name = SelectSymbol{row})"));
     }
 }

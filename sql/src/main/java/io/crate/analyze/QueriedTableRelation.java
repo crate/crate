@@ -97,4 +97,12 @@ public abstract class QueriedTableRelation<TR extends AbstractTableRelation> imp
     public void setQualifiedName(QualifiedName qualifiedName) {
         tableRelation.setQualifiedName(qualifiedName);
     }
+
+    @Override
+    public String toString() {
+        return "QueriedTableRelation{" +
+               "t=" + tableRelation +
+               ", qs=" + querySpec +
+               '}';
+    }
 }

@@ -200,9 +200,7 @@ public class ExpressionAnalyzer {
         if (sourceSymbol.symbolType().isValueSymbol()) {
             return Literal.convert(sourceSymbol, targetType);
         }
-        FunctionInfo functionInfo = CastFunctionResolver.functionInfo(sourceSymbol.valueType(), targetType, tryCast);
-        //noinspection ArraysAsListWithZeroOrOneArgument  Function needs mutable arguments
-        return new Function(functionInfo, Arrays.asList(sourceSymbol));
+        return CastFunctionResolver.generateCastFunction(sourceSymbol, targetType, tryCast);
     }
 
     @Nullable
@@ -648,7 +646,7 @@ public class ExpressionAnalyzer {
             if (relation.fields().size() > 1) {
                 throw new UnsupportedOperationException("Subqueries with more than 1 column are not supported.");
             }
-            throw new UnsupportedOperationException("SelectSymbol NYI");
+            return new SelectSymbol(relation, new RowType(Symbols.extractTypes(relation.fields())));
         }
 
         private void verifyTypesForMatch(Iterable<? extends Symbol> columns, DataType columnType) {

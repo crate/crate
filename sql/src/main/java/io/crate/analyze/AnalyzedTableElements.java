@@ -24,12 +24,10 @@ package io.crate.analyze;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Lists;
 import io.crate.action.sql.SessionContext;
 import io.crate.analyze.expressions.ExpressionAnalysisContext;
 import io.crate.analyze.expressions.ExpressionAnalyzer;
 import io.crate.analyze.expressions.TableReferenceResolver;
-import io.crate.analyze.symbol.Function;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.analyze.symbol.format.SymbolPrinter;
 import io.crate.exceptions.ColumnUnknownException;
@@ -263,7 +261,7 @@ public class AnalyzedTableElements {
             Preconditions.checkArgument(valueType.isConvertableTo(definedType),
                 "generated expression value type '%s' not supported for conversion to '%s'", valueType, definedType.getName());
 
-            Function castFunction = new Function(CastFunctionResolver.functionInfo(valueType, definedType, false), Lists.newArrayList(function));
+            Symbol castFunction = CastFunctionResolver.generateCastFunction(function, definedType, false);
             formattedExpression = symbolPrinter.print(castFunction, SymbolPrinter.Style.PARSEABLE_NOT_QUALIFIED); // no full qualified references here
         } else {
             columnDefinition.dataType(function.valueType().getName());

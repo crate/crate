@@ -147,6 +147,8 @@ public class DataTypes {
         .put(OBJECT.id(), ImmutableSet.<DataType>of(GEO_SHAPE))
         .put(ArrayType.ID, ImmutableSet.<DataType>of()) // convertability handled in ArrayType
         .put(SetType.ID, ImmutableSet.<DataType>of()) // convertability handled in SetType
+        .put(RowType.ID, ImmutableSet.<DataType>builder()
+            .addAll(PRIMITIVE_TYPES).build())
         .build();
 
     public static boolean isCollectionType(DataType type) {
