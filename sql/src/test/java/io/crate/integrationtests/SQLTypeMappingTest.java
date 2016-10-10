@@ -26,9 +26,12 @@ import io.crate.action.sql.SQLAction;
 import io.crate.action.sql.SQLActionException;
 import io.crate.action.sql.SQLRequest;
 import io.crate.action.sql.SQLResponse;
+import io.crate.rest.CrateRestFilter;
 import io.crate.testing.TestingHelpers;
 import io.crate.testing.UseJdbc;
 import org.elasticsearch.client.Client;
+import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.node.Node;
 import org.elasticsearch.test.ESIntegTestCase;
 import org.junit.Test;
 
@@ -517,5 +520,26 @@ public class SQLTypeMappingTest extends SQLTransportIntegrationTest {
         SQLResponse response = execute("select categories[1]['subcategories']['id'] from assets");
         assertEquals(response.rowCount(), 1L);
         assertThat((Integer) response.rows()[0][0], is(10));
+    }
+
+    @Test
+    public void testInsertTimestamp() throws Exception {
+        // This is a regression test that we allow timestamps that have more than 13 digits.
+        execute("create table ts_table (ts timestamp) clustered into 2 shards with (number_of_replicas=0)");
+        ensureYellow();
+        // biggest Long that can be converted to Double without losing precision
+        // equivalent to 33658-09-27T01:46:39.999Z
+        long maxDateMillis = 999999999999999L;
+        // smallest Long that can be converted to Double without losing precision
+        // equivalent to -29719-04-05T22:13:20.001Z
+        long minDateMillis = -999999999999999L;
+
+        execute("insert into ts_table (ts) values (?)", new Object[]{ minDateMillis });
+        execute("insert into ts_table (ts) values (?)", new Object[]{ 0L });
+        execute("insert into ts_table (ts) values (?)", new Object[]{ maxDateMillis });
+        // TODO: select timestamps with correct sorting
+        refresh();
+        SQLResponse response = execute("select * from ts_table order by ts desc");
+        assertEquals(response.rowCount(), 3L);
     }
 }
