@@ -92,14 +92,20 @@ public class LuceneQueryBuilderIntegrationTest extends SQLTransportIntegrationTe
 
     @Test
     public void testAnyFunctionWithSubscript() throws Exception {
-        execute("create table t (a array(object as (b array(object as (s string))))) " +
+        execute("create table t (a array(object as (b array(object as (n integer))))) " +
                 "clustered into 1 shards with (number_of_replicas = 0)");
         ensureYellow();
-        execute("insert into t (a) values ([{b=[{s='hello world'}, {s='hello world2'}, {s='hello world3'}]}])");
+        execute("insert into t (a) values ([{b=[{n=1}, {n=2}, {n=3}]}])");
+        execute("insert into t (a) values ([{b=[{n=3}, {n=4}, {n=5}]}])");
         refresh();
 
-        execute("select * from t where 'hello world' = any(a[1]['b']['s'])");
+        execute("select * from t where 3 = any(a[1]['b']['n'])");
+        assertThat(response.rowCount(), is(2L));
+        execute("select a[1]['b']['n'] from t where 1 = any(a[1]['b']['n'])");
         assertThat(response.rowCount(), is(1L));
+        assertThat((Integer) ((Object[]) response.rows()[0][0])[0], is(1));
+        assertThat((Integer) ((Object[]) response.rows()[0][0])[1], is(2));
+        assertThat((Integer) ((Object[]) response.rows()[0][0])[2], is(3));
     }
 
     @Test
