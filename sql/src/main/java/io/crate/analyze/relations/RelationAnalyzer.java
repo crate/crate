@@ -42,6 +42,8 @@ import io.crate.analyze.validator.SemanticSortValidator;
 import io.crate.exceptions.AmbiguousColumnAliasException;
 import io.crate.exceptions.RelationUnknownException;
 import io.crate.exceptions.ValidationException;
+import io.crate.metadata.Functions;
+import io.crate.metadata.Schemas;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.sys.SysClusterTableInfo;
@@ -67,7 +69,8 @@ import java.util.Locale;
 public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, StatementAnalysisContext> {
 
     private final ClusterService clusterService;
-    private final AnalysisMetaData analysisMetaData;
+    private final Functions functions;
+    private final Schemas schemas;
     private static final List<Relation> SYS_CLUSTER_SOURCE = ImmutableList.<Relation>of(
         new Table(new QualifiedName(
             ImmutableList.of(SysClusterTableInfo.IDENT.schema(), SysClusterTableInfo.IDENT.name()))
@@ -75,16 +78,17 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
     );
 
     @Inject
-    public RelationAnalyzer(ClusterService clusterService, AnalysisMetaData analysisMetaData) {
+    public RelationAnalyzer(ClusterService clusterService, Functions functions, Schemas schemas) {
         this.clusterService = clusterService;
-        this.analysisMetaData = analysisMetaData;
+        this.functions = functions;
+        this.schemas = schemas;
     }
 
     public AnalyzedRelation analyze(Node node, StatementAnalysisContext statementContext) {
         AnalyzedRelation relation = process(node, statementContext);
         return RelationNormalizer.normalize(
             relation,
-            analysisMetaData.functions(),
+            functions,
             statementContext.transactionContext());
     }
 
@@ -93,7 +97,7 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
             sessionContext,
             paramTypeHints,
             null,
-            analysisMetaData.functions(),
+            functions,
             Operation.READ));
     }
 
@@ -104,7 +108,7 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
                 analysis.sessionContext(),
                 analysis.parameterContext(),
                 analysis.transactionContext(),
-                analysisMetaData.functions(),
+                functions,
                 Operation.READ
             )
         );
@@ -207,7 +211,7 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
                 relation = new QueriedSelectRelation((QueriedRelation) source, selectAnalysis.outputNames(), querySpec);
             }
             if (tableRelation != null) {
-                tableRelation.normalize(analysisMetaData.functions(), statementContext.transactionContext());
+                tableRelation.normalize(functions, statementContext.transactionContext());
                 relation = tableRelation;
             }
         } else {
@@ -408,8 +412,7 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
 
     @Override
     protected AnalyzedRelation visitTable(Table node, StatementAnalysisContext context) {
-        TableInfo tableInfo = analysisMetaData.schemas().getTableInfo(
-            TableIdent.of(node, context.sessionContext().defaultSchema()));
+        TableInfo tableInfo = schemas.getTableInfo(TableIdent.of(node, context.sessionContext().defaultSchema()));
         Operation.blockedRaiseException(tableInfo, context.currentOperation());
         AnalyzedRelation tableRelation;
         // Dispatching of doc relations is based on the returned class of the schema information.
@@ -427,7 +430,7 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
     public AnalyzedRelation visitTableFunction(TableFunction node, StatementAnalysisContext statementContext) {
         RelationAnalysisContext context = statementContext.currentRelationContext();
         ExpressionAnalyzer expressionAnalyzer = new ExpressionAnalyzer(
-            analysisMetaData.functions(),
+            functions,
             statementContext.sessionContext(),
             statementContext.convertParamFunction(),
             new FieldProvider() {
@@ -447,7 +450,7 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
             Symbol symbol = expressionAnalyzer.convert(expression, context.expressionAnalysisContext());
             arguments.add(symbol);
         }
-        TableFunctionImplementation tableFunction = analysisMetaData.functions().getTableFunctionSafe(node.name());
+        TableFunctionImplementation tableFunction = functions.getTableFunctionSafe(node.name());
         TableInfo tableInfo = tableFunction.createTableInfo(clusterService, Symbols.extractTypes(arguments));
         Operation.blockedRaiseException(tableInfo, statementContext.currentOperation());
         TableRelation tableRelation = new TableFunctionRelation(tableInfo, node.name(), arguments);

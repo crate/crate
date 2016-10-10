@@ -84,12 +84,12 @@ public class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
     }
 
     @Inject
-    public InsertFromValuesAnalyzer(AnalysisMetaData analysisMetaData) {
-        super(analysisMetaData);
+    public InsertFromValuesAnalyzer(Functions functions, Schemas schemas) {
+        super(functions, schemas);
     }
 
     public AnalyzedStatement analyze(InsertFromValues node, Analysis analysis) {
-        DocTableInfo tableInfo = analysisMetaData.schemas().getWritableTable(
+        DocTableInfo tableInfo = schemas.getWritableTable(
             TableIdent.of(node.table(), analysis.sessionContext().defaultSchema()));
         Operation.blockedRaiseException(tableInfo, Operation.INSERT);
 
@@ -97,7 +97,7 @@ public class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
         FieldProvider fieldProvider = new NameFieldProvider(tableRelation);
         Function<ParameterExpression, Symbol> convertParamFunction = analysis.parameterContext();
         ExpressionAnalyzer expressionAnalyzer = new ExpressionAnalyzer(
-            analysisMetaData.functions(),
+            functions,
             analysis.sessionContext(),
             convertParamFunction,
             fieldProvider);
@@ -106,7 +106,7 @@ public class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
 
         ValuesResolver valuesResolver = new ValuesResolver(tableRelation);
         ExpressionAnalyzer valuesAwareExpressionAnalyzer = new ValuesAwareExpressionAnalyzer(
-            analysisMetaData.functions(),
+            functions,
             analysis.sessionContext(),
             convertParamFunction,
             fieldProvider,
@@ -123,9 +123,9 @@ public class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
         ReferenceToLiteralConverter.Context referenceToLiteralContext = new ReferenceToLiteralConverter.Context(
             statement.columns(), allReferencedReferences);
 
-        ValueNormalizer valuesNormalizer = new ValueNormalizer(analysisMetaData.schemas());
+        ValueNormalizer valuesNormalizer = new ValueNormalizer(schemas);
         EvaluatingNormalizer normalizer = new EvaluatingNormalizer(
-            analysisMetaData.functions(),
+            functions,
             RowGranularity.CLUSTER,
             ReplaceMode.COPY,
             null,

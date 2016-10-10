@@ -23,20 +23,20 @@ package io.crate.analyze;
 
 import com.google.common.base.Preconditions;
 import io.crate.exceptions.InvalidColumnNameException;
-import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.GeneratedReference;
-import io.crate.metadata.Reference;
+import io.crate.metadata.*;
 import io.crate.sql.tree.Insert;
 
 import java.util.ArrayList;
 import java.util.Locale;
 
-public abstract class AbstractInsertAnalyzer {
+abstract class AbstractInsertAnalyzer {
 
-    protected final AnalysisMetaData analysisMetaData;
+    final Functions functions;
+    final Schemas schemas;
 
-    protected AbstractInsertAnalyzer(AnalysisMetaData analysisMetaData) {
-        this.analysisMetaData = analysisMetaData;
+    AbstractInsertAnalyzer(Functions functions, Schemas schemas) {
+        this.functions = functions;
+        this.schemas = schemas;
     }
 
     private IllegalArgumentException tooManyValuesException(int actual, int expected) {
@@ -46,7 +46,7 @@ public abstract class AbstractInsertAnalyzer {
                 actual, expected));
     }
 
-    protected void handleInsertColumns(Insert node, int maxInsertValues, AbstractInsertAnalyzedStatement context) {
+    void handleInsertColumns(Insert node, int maxInsertValues, AbstractInsertAnalyzedStatement context) {
         // allocate columnsLists
         int numColumns;
 

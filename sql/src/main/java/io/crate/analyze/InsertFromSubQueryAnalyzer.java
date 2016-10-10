@@ -46,7 +46,8 @@ import java.util.*;
 @Singleton
 public class InsertFromSubQueryAnalyzer {
 
-    private final AnalysisMetaData analysisMetaData;
+    private final Functions functions;
+    private final Schemas schemas;
     private final RelationAnalyzer relationAnalyzer;
 
 
@@ -75,14 +76,15 @@ public class InsertFromSubQueryAnalyzer {
     }
 
     @Inject
-    public InsertFromSubQueryAnalyzer(AnalysisMetaData analysisMetaData, RelationAnalyzer relationAnalyzer) {
-        this.analysisMetaData = analysisMetaData;
+    public InsertFromSubQueryAnalyzer(Functions functions, Schemas schemas, RelationAnalyzer relationAnalyzer) {
+        this.functions = functions;
+        this.schemas = schemas;
         this.relationAnalyzer = relationAnalyzer;
     }
 
 
     public AnalyzedStatement analyze(InsertFromSubquery node, Analysis analysis) {
-        DocTableInfo tableInfo = analysisMetaData.schemas().getWritableTable(
+        DocTableInfo tableInfo = schemas.getWritableTable(
             TableIdent.of(node.table(), analysis.sessionContext().defaultSchema()));
         Operation.blockedRaiseException(tableInfo, Operation.INSERT);
 
@@ -189,20 +191,20 @@ public class InsertFromSubQueryAnalyzer {
                                                             FieldProvider fieldProvider,
                                                             List<Assignment> assignments) {
         ExpressionAnalyzer expressionAnalyzer = new ExpressionAnalyzer(
-            analysisMetaData.functions(), sessionContext, parameterContext, fieldProvider);
+            functions, sessionContext, parameterContext, fieldProvider);
         ExpressionAnalysisContext expressionAnalysisContext = new ExpressionAnalysisContext();
 
         EvaluatingNormalizer normalizer = new EvaluatingNormalizer(
-            analysisMetaData.functions(),
+            functions,
             RowGranularity.CLUSTER,
             ReplaceMode.COPY,
             null,
             tableRelation);
-        ValueNormalizer valuesNormalizer = new ValueNormalizer(analysisMetaData.schemas());
+        ValueNormalizer valuesNormalizer = new ValueNormalizer(schemas);
 
         ValuesResolver valuesResolver = new ValuesResolver(tableRelation, targetColumns);
         ValuesAwareExpressionAnalyzer valuesAwareExpressionAnalyzer = new ValuesAwareExpressionAnalyzer(
-            analysisMetaData.functions(), sessionContext, parameterContext, fieldProvider, valuesResolver);
+            functions, sessionContext, parameterContext, fieldProvider, valuesResolver);
 
         Map<Reference, Symbol> updateAssignments = new HashMap<>(assignments.size());
         for (Assignment assignment : assignments) {

@@ -79,13 +79,13 @@ public class WhereClauseAnalyzerTest extends CrateUnitTest {
     public ExpectedException expectedException = ExpectedException.none();
 
     private Analyzer analyzer;
-    private AnalysisMetaData ctxMetaData;
     private ThreadPool threadPool;
 
     private final TransactionContext transactionContext = new TransactionContext();
 
     @Mock
     private SchemaInfo schemaInfo;
+    private Functions functions;
 
     @Before
     public void setUp() throws Exception {
@@ -100,8 +100,7 @@ public class WhereClauseAnalyzerTest extends CrateUnitTest {
             .add(new RepositorySettingsModule())
             .add(new TestMetaDataModule()).createInjector();
         analyzer = injector.getInstance(Analyzer.class);
-        ctxMetaData = injector.getInstance(AnalysisMetaData.class);
-        Functions functions = injector.getInstance(Functions.class);
+        functions = injector.getInstance(Functions.class);
 
         TableInfo genInfo =
             TestingTableInfo.builder(new TableIdent(DocSchemaInfo.NAME, GENERATED_COL_TABLE_NAME), new Routing(ImmutableMap.<String, Map<String, List<Integer>>>of()))
@@ -261,7 +260,7 @@ public class WhereClauseAnalyzerTest extends CrateUnitTest {
             new Object[]{3},
         });
         DocTableRelation tableRelation = statement.analyzedRelation();
-        WhereClauseAnalyzer whereClauseAnalyzer = new WhereClauseAnalyzer(ctxMetaData.functions(), tableRelation);
+        WhereClauseAnalyzer whereClauseAnalyzer = new WhereClauseAnalyzer(functions, tableRelation);
         assertThat(whereClauseAnalyzer.analyze(statement.whereClauses().get(0), transactionContext).docKeys().get(), contains(isDocKey("1")));
         assertThat(whereClauseAnalyzer.analyze(statement.whereClauses().get(1), transactionContext).docKeys().get(), contains(isDocKey("2")));
         assertThat(whereClauseAnalyzer.analyze(statement.whereClauses().get(2), transactionContext).docKeys().get(), contains(isDocKey("3")));
