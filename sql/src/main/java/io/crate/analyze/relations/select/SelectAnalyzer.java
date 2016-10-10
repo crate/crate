@@ -45,8 +45,10 @@ public class SelectAnalyzer {
     private static final InnerVisitor INSTANCE = new InnerVisitor();
 
     public static SelectAnalysis analyzeSelect(Select select,
-                                               RelationAnalysisContext context) {
-        SelectAnalysis selectAnalysis = new SelectAnalysis(context);
+                                               RelationAnalysisContext context,
+                                               ExpressionAnalyzer expressionAnalyzer,
+                                               ExpressionAnalysisContext expressionAnalysisContext) {
+        SelectAnalysis selectAnalysis = new SelectAnalysis(context, expressionAnalyzer, expressionAnalysisContext);
         INSTANCE.process(select, selectAnalysis);
         SelectSymbolValidator.validate(selectAnalysis.outputSymbols);
         return selectAnalysis;
@@ -61,10 +63,12 @@ public class SelectAnalyzer {
         private List<Symbol> outputSymbols = new ArrayList<>();
         private Multimap<String, Symbol> outputMultiMap = HashMultimap.create();
 
-        private SelectAnalysis(RelationAnalysisContext context) {
+        private SelectAnalysis(RelationAnalysisContext context,
+                               ExpressionAnalyzer expressionAnalyzer,
+                               ExpressionAnalysisContext expressionAnalysisContext) {
             this.sources = context.sources();
-            this.expressionAnalyzer = context.expressionAnalyzer();
-            this.expressionAnalysisContext = context.expressionAnalysisContext();
+            this.expressionAnalyzer = expressionAnalyzer;
+            this.expressionAnalysisContext = expressionAnalysisContext;
         }
 
         public List<Path> outputNames() {
