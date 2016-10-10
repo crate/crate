@@ -124,7 +124,7 @@ disk, memory, heap, or network throughput. Running::
     +-------------------------------------------------...+-----------...+
     ...
     +-------------------------------------------------...+-----------...+
-    SHOW 99 rows in set (... sec)
+    SHOW ... rows in set (... sec)
 
 lists all available attributes. This object has the same structure as
 the **_node** system column of **sys.operations** from the previous

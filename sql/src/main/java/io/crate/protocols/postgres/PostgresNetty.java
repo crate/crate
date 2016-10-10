@@ -22,17 +22,24 @@
 
 package io.crate.protocols.postgres;
 
+import com.carrotsearch.hppc.IntHashSet;
+import com.carrotsearch.hppc.IntSet;
 import com.google.common.annotations.VisibleForTesting;
 import io.crate.action.sql.SQLOperations;
 import io.crate.metadata.settings.CrateSettings;
+import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.component.AbstractLifecycleComponent;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.network.NetworkAddress;
 import org.elasticsearch.common.network.NetworkService;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.common.transport.BoundTransportAddress;
 import org.elasticsearch.common.transport.InetSocketTransportAddress;
 import org.elasticsearch.common.transport.PortsRange;
+import org.elasticsearch.common.transport.TransportAddress;
+import org.elasticsearch.http.BindHttpException;
+import org.elasticsearch.transport.BindTransportException;
 import org.jboss.netty.bootstrap.ServerBootstrap;
 import org.jboss.netty.channel.Channel;
 import org.jboss.netty.channel.ChannelPipeline;
@@ -44,10 +51,7 @@ import java.io.IOException;
 import java.net.Inet4Address;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
+import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -70,6 +74,8 @@ public class PostgresNetty extends AbstractLifecycleComponent {
 
     private volatile List<Channel> serverChannels = new ArrayList<>();
     private final List<InetSocketTransportAddress> boundAddresses = new ArrayList<>();
+    @Nullable
+    private  BoundTransportAddress boundAddress = null;
 
     @Inject
     public PostgresNetty(Settings settings, SQLOperations sqlOperations, NetworkService networkService) {
@@ -79,6 +85,11 @@ public class PostgresNetty extends AbstractLifecycleComponent {
 
         enabled = CrateSettings.PSQL_ENABLED.extract(settings);
         port = CrateSettings.PSQL_PORT.extract(settings);
+    }
+
+    @Nullable
+    public BoundTransportAddress boundAddress() {
+        return boundAddress;
     }
 
     @Override
@@ -105,10 +116,32 @@ public class PostgresNetty extends AbstractLifecycleComponent {
             }
         });
 
-        resolveBindAddress();
+        boundAddress = resolveBindAddress();
     }
 
-    private void resolveBindAddress() {
+
+    static int resolvePublishPort(List<InetSocketTransportAddress> boundAddresses, InetAddress publishInetAddress) {
+        for (InetSocketTransportAddress boundAddress : boundAddresses) {
+            InetAddress boundInetAddress = boundAddress.address().getAddress();
+            if (boundInetAddress.isAnyLocalAddress() || boundInetAddress.equals(publishInetAddress)) {
+                return boundAddress.getPort();
+            }
+        }
+
+        // if no matching boundAddress found, check if there is a unique port for all bound addresses
+        final IntSet ports = new IntHashSet();
+        for (InetSocketTransportAddress boundAddress : boundAddresses) {
+            ports.add(boundAddress.getPort());
+        }
+        if (ports.size() == 1) {
+            return ports.iterator().next().value;
+        }
+
+        throw new BindHttpException("Failed to auto-resolve psql publish port, multiple bound addresses " + boundAddresses +
+                                    " with distinct ports and none of them matched the publish address (" + publishInetAddress + "). ");
+    }
+
+    private BoundTransportAddress resolveBindAddress() {
         // Bind and start to accept incoming connections.
         try {
             InetAddress[] hostAddresses = networkService.resolveBindHostAddresses(null);
@@ -120,6 +153,15 @@ public class PostgresNetty extends AbstractLifecycleComponent {
         } catch (IOException e) {
             throw new BindPostgresException("Failed to resolve binding network host", e);
         }
+        final InetAddress publishInetAddress;
+        try {
+            publishInetAddress = networkService.resolvePublishHostAddresses(null);
+        } catch (Exception e) {
+            throw new BindTransportException("Failed to resolve publish address", e);
+        }
+        final int publishPort = resolvePublishPort(boundAddresses, publishInetAddress);
+        final InetSocketAddress publishAddress = new InetSocketAddress(publishInetAddress, publishPort);
+        return new BoundTransportAddress(boundAddresses.toArray(new TransportAddress[boundAddresses.size()]), new InetSocketTransportAddress(publishAddress));
     }
 
     private InetSocketTransportAddress bindAddress(final InetAddress hostAddress) {

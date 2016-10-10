@@ -26,6 +26,7 @@ class NodePortStatsExpression extends NestedNodeStatsExpression {
 
     private static final String HTTP = "http";
     private static final String TRANSPORT = "transport";
+    private static final String PSQL = "psql";
 
     NodePortStatsExpression() {
         childImplementations.put(HTTP, new SimpleNodeStatsExpression<Integer>() {
@@ -38,6 +39,12 @@ class NodePortStatsExpression extends NestedNodeStatsExpression {
             @Override
             public Integer innerValue() {
                 return this.row.port().get("transport");
+            }
+        });
+        childImplementations.put(PSQL, new SimpleNodeStatsExpression<Integer>() {
+            @Override
+            public Integer innerValue() {
+                return this.row.port().get("psql");
             }
         });
     }

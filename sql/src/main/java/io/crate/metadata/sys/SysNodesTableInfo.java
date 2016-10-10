@@ -69,6 +69,7 @@ public class SysNodesTableInfo extends StaticTableInfo {
         public static final ColumnIdent PORT = new ColumnIdent(SYS_COL_PORT);
         public static final ColumnIdent PORT_HTTP = new ColumnIdent(SYS_COL_PORT, ImmutableList.of("http"));
         public static final ColumnIdent PORT_TRANSPORT = new ColumnIdent(SYS_COL_PORT, ImmutableList.of("transport"));
+        public static final ColumnIdent PORT_PSQL = new ColumnIdent(SYS_COL_PORT, ImmutableList.of("psql"));
 
         public static final ColumnIdent LOAD = new ColumnIdent(SYS_COL_LOAD);
         public static final ColumnIdent LOAD_1 = new ColumnIdent(SYS_COL_LOAD, ImmutableList.of("1"));
@@ -186,6 +187,7 @@ public class SysNodesTableInfo extends StaticTableInfo {
                 .register(Columns.PORT, DataTypes.OBJECT)
                 .register(Columns.PORT_HTTP, DataTypes.INTEGER)
                 .register(Columns.PORT_TRANSPORT, DataTypes.INTEGER)
+                .register(Columns.PORT_PSQL, DataTypes.INTEGER)
 
                 .register(Columns.LOAD, DataTypes.OBJECT)
                 .register(Columns.LOAD_1, DataTypes.DOUBLE)

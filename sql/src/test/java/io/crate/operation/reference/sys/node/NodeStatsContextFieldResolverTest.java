@@ -26,8 +26,14 @@ import com.google.common.collect.ImmutableSet;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.sys.SysNodesTableInfo;
 import io.crate.monitor.ExtendedNodeInfo;
+import io.crate.protocols.postgres.PostgresNetty;
+import org.elasticsearch.action.admin.cluster.node.info.NodeInfo;
+import org.elasticsearch.action.admin.cluster.node.stats.NodeStats;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.node.DiscoveryNode;
+import org.elasticsearch.common.transport.BoundTransportAddress;
+import org.elasticsearch.common.transport.InetSocketTransportAddress;
+import org.elasticsearch.common.transport.TransportAddress;
 import org.elasticsearch.monitor.jvm.JvmService;
 import org.elasticsearch.monitor.os.OsService;
 import org.elasticsearch.node.service.NodeService;
@@ -36,6 +42,9 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
+
+import java.io.IOException;
+import java.net.Inet4Address;
 
 import static org.hamcrest.CoreMatchers.*;
 import static org.junit.Assert.assertThat;
@@ -50,6 +59,7 @@ public class NodeStatsContextFieldResolverTest {
     private final JvmService jvmService = mock(JvmService.class);
     private final ThreadPool threadPool = mock(ThreadPool.class);
     private final ExtendedNodeInfo extendedNodeInfo = mock(ExtendedNodeInfo.class);
+    private final PostgresNetty postgresNetty = mock(PostgresNetty.class);
 
     private NodeStatsContextFieldResolver resolver;
 
@@ -69,7 +79,8 @@ public class NodeStatsContextFieldResolverTest {
             nodeService,
             jvmService,
             threadPool,
-            extendedNodeInfo);
+            extendedNodeInfo,
+            postgresNetty);
     }
 
     @Test
@@ -88,6 +99,25 @@ public class NodeStatsContextFieldResolverTest {
         assertThat(context.id(), is(notNullValue()));
         assertThat(context.name(), is(notNullValue()));
         assertThat(context.hostname(), is(nullValue()));
+    }
+
+    @Test
+    public void testPSQLPortResolution() throws IOException {
+        NodeInfo nodeInfo = mock(NodeInfo.class);
+        when(nodeService.info()).thenReturn(nodeInfo);
+        NodeStats stats = mock(NodeStats.class);
+        when(nodeService.stats()).thenReturn(stats);
+        when(stats.getNode()).thenReturn(mock(DiscoveryNode.class));
+
+        InetSocketTransportAddress inetAddress = new InetSocketTransportAddress(Inet4Address.getLocalHost(), 5432);
+        BoundTransportAddress boundAddress = new BoundTransportAddress(new TransportAddress[]{inetAddress}, inetAddress);
+        when(postgresNetty.boundAddress()).thenReturn(boundAddress);
+
+        NodeStatsContext context = resolver.forColumns(ImmutableSet.of(
+            new ColumnIdent(SysNodesTableInfo.Columns.PORT.name())
+        ));
+        assertThat(context.isComplete(), is(true));
+        assertThat(context.port().get("psql"), is(5432));
     }
 
     @Test

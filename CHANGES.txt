@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Expose bound psql port in ``sys.nodes``
+
  - BREAKING: Removed deprecated Plugin interface methods.
 
  - Deprecated the ``CrateClient`` class

@@ -29,6 +29,7 @@ import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.sys.SysNodesTableInfo;
 import io.crate.monitor.ExtendedNodeInfo;
 import io.crate.monitor.ThreadPools;
+import io.crate.protocols.postgres.PostgresNetty;
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.action.admin.cluster.node.info.NodeInfo;
 import org.elasticsearch.cluster.ClusterService;
@@ -64,6 +65,7 @@ public class NodeStatsContextFieldResolver {
     private final NodeService nodeService;
     private final ThreadPool threadPool;
     private final ExtendedNodeInfo extendedNodeInfo;
+    private final PostgresNetty postgresNetty;
 
     @Inject
     public NodeStatsContextFieldResolver(ClusterService clusterService,
@@ -71,13 +73,15 @@ public class NodeStatsContextFieldResolver {
                                          NodeService nodeService,
                                          JvmService jvmService,
                                          ThreadPool threadPool,
-                                         ExtendedNodeInfo extendedNodeInfo) {
+                                         ExtendedNodeInfo extendedNodeInfo,
+                                         PostgresNetty postgresNetty) {
         this.osService = osService;
         this.jvmService = jvmService;
         this.clusterService = clusterService;
         this.nodeService = nodeService;
         this.threadPool = threadPool;
         this.extendedNodeInfo = extendedNodeInfo;
+        this.postgresNetty = postgresNetty;
     }
 
     public NodeStatsContext forColumns(Collection<ColumnIdent> columns) {
@@ -140,6 +144,7 @@ public class NodeStatsContextFieldResolver {
                 @Override
                 public void accept(NodeStatsContext context) {
                     Integer http = null;
+                    Integer pgsql = null;
                     Integer transport;
                     NodeInfo info = nodeService.info();
                     if (info.getHttp() != null) {
@@ -150,9 +155,13 @@ public class NodeStatsContextFieldResolver {
                     } catch (IOException e) {
                         throw new ElasticsearchException("unable to get node transport statistics", e);
                     }
+                    if (postgresNetty.boundAddress() != null) {
+                        pgsql = portFromAddress(postgresNetty.boundAddress().publishAddress());
+                    }
                     Map<String, Integer> port = new HashMap<>(2);
                     port.put("http", http);
                     port.put("transport", transport);
+                    port.put("psql", pgsql);
                     context.port(port);
                 }
             })

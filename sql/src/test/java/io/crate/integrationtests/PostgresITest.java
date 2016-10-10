@@ -36,9 +36,7 @@ import org.postgresql.util.PSQLState;
 import java.sql.*;
 import java.util.*;
 
-import static org.hamcrest.Matchers.greaterThan;
-import static org.hamcrest.Matchers.isEmptyOrNullString;
-import static org.hamcrest.Matchers.not;
+import static org.hamcrest.Matchers.*;
 import static org.hamcrest.core.Is.is;
 
 @ESIntegTestCase.ClusterScope(numDataNodes = 2, numClientNodes = 0)
@@ -526,6 +524,16 @@ public class PostgresITest extends SQLTransportIntegrationTest {
             assertThat(e.getServerErrorMessage().getFile(), not(isEmptyOrNullString()));
             assertThat(e.getServerErrorMessage().getRoutine(), not(isEmptyOrNullString()));
             assertThat(e.getServerErrorMessage().getLine(), greaterThan(0));
+        }
+    }
+
+    @Test
+    public void testGetPostgresPort() throws Exception {
+        try (Connection conn = DriverManager.getConnection(JDBC_POSTGRESQL_URL, properties)) {
+            ResultSet resultSet = conn.createStatement().executeQuery("select port['psql'] from sys.nodes limit 1");
+            assertThat(resultSet.next(), is(true));
+            Integer port = resultSet.getInt(1);
+            assertThat(port, isOneOf(4242, 4243));
         }
     }
 
