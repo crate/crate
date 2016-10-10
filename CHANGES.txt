@@ -5,6 +5,25 @@ Changes for Crate
 Unreleased
 ==========
 
+ - BREAKING: Removed deprecated Plugin interface methods.
+
+ - Deprecated the ``CrateClient`` class
+   You should start using the PostgreSQL JDBC driver instead.
+
+ - Extended the postgres wire protocol to support describe for queries with
+   result sets. This removes the requirement to set "prepareThreshold=0" when
+   using the JDBC client.
+
+ - Added support for SET LOCAL|SESSION statements.
+
+ - Support ``SELECT`` queries without the ``FROM`` clause. Such queries are
+   executed against the ``sys.cluster`` table.
+
+ - The PostgreSQL wire protocol is enabled by default.
+
+2016/10/10 0.56.1
+=================
+
  - Negations of non-numeric literals now cause a query to fail instead of
    silently ignoring the negation.
 
@@ -20,17 +39,8 @@ Unreleased
  - Fixed an issue that could cause `COPY <table> TO DIRECTORY` statements to
    fail
 
- - BREAKING: Removed deprecated Plugin interface methods.
-
  - Fixed an issue that might cause queries to fail with a `Same bucket of a
    page set more than once` error.
-
- - Deprecated the ``CrateClient`` class
-   You should start using the PostgreSQL JDBC driver instead.
-
- - Extended the postgres wire protocol to support describe for queries with
-   result sets. This removes the requirement to set "prepareThreshold=0" when
-   using the JDBC client.
 
  - Fixed an issue that could cause arrays with null entries to cause a NPE
    during the generation of another error message.
@@ -39,20 +49,13 @@ Unreleased
    used in where clause.
    E.g. FROM table t1, table t2 WHERE t1.col = 'foo' and t2.col = 'bar';
 
- - Added support for SET LOCAL|SESSION statements.
-
  - Fix: ``ANY`` operator fails in the ``WHERE`` clause if a subscript is
    used as an expression.
    E.g. 'value' = any(obj_array[1]['a']['b'])
 
- - Support ``SELECT`` queries without the ``FROM`` clause. Such queries are
-   executed against the ``sys.cluster`` table.
-
  - Fix: ``WHERE`` clauses with a ``NOT`` operator where the column
    reference resolves to ``NULL`` now return the correct results:
    ``NOT NULL`` -> ``NULL`` -> no match
-
- - The PostgreSQL wire protocol is enabled by default.
 
  - Fix: The ``count`` aggregation function counts null values.
    E.g. count(cast(null as string))
