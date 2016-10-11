@@ -22,6 +22,7 @@
 package io.crate.executor.transport;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import io.crate.action.job.ContextPreparer;
 import io.crate.action.sql.DDLStatementDispatcher;
@@ -44,8 +45,8 @@ import io.crate.metadata.ReplaceMode;
 import io.crate.operation.ImplementationSymbolVisitor;
 import io.crate.operation.NodeOperation;
 import io.crate.operation.NodeOperationTree;
-import io.crate.operation.projectors.ProjectionToProjectorVisitor;
-import io.crate.operation.projectors.RowReceiver;
+import io.crate.operation.projectors.*;
+import io.crate.planner.MultiPhasePlan;
 import io.crate.planner.NoopPlan;
 import io.crate.planner.Plan;
 import io.crate.planner.PlanVisitor;
@@ -251,6 +252,23 @@ public class TransportExecutor implements Executor {
         @Override
         public Task visitESDeletePartition(ESDeletePartition plan, Void context) {
             return new ESDeletePartitionTask(plan, transportActionProvider.transportDeleteIndexAction());
+        }
+
+        @Override
+        public Task visitMultiPhasePlan(MultiPhasePlan multiPhasePlan, Void context) {
+            List<Plan> dependencies = multiPhasePlan.dependencies();
+            ListIterator<Plan> it = dependencies.listIterator();
+            List<ListenableFuture<?>> futures = new ArrayList<>();
+            while (it.hasNext()) {
+                Plan dependency = it.next();
+                Task task = process(dependency, context);
+                SingleRowSubselectReceiver singleRowSubselectReceiver =
+                    new SingleRowSubselectReceiver(it.previousIndex(), multiPhasePlan.subSelectParents());
+                futures.add(singleRowSubselectReceiver.completionFuture());
+                task.execute(singleRowSubselectReceiver);
+            }
+            Task rootTask = process(multiPhasePlan.rootPlan(), context);
+            return new DelayedTask(Futures.allAsList(futures), rootTask);
         }
     }
 

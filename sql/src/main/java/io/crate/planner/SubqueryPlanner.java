@@ -28,8 +28,7 @@ import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.QueriedRelation;
 import io.crate.analyze.symbol.SelectSymbol;
 import io.crate.analyze.symbol.Symbol;
-import io.crate.metadata.ReplaceMode;
-import io.crate.metadata.ReplacingSymbolVisitor;
+import io.crate.analyze.symbol.SymbolVisitor;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
@@ -40,6 +39,8 @@ public class SubqueryPlanner implements Function<Symbol, Symbol> {
     private final Planner.Context plannerContext;
     private final Visitor visitor;
     private final List<Plan> subQueries = new ArrayList<>();
+    private int currentIndex = 0;
+    private final List<Symbol> subSelectSymbolParents = new ArrayList<>();
 
     public SubqueryPlanner(Planner.Context plannerContext) {
         this.plannerContext = plannerContext;
@@ -49,30 +50,47 @@ public class SubqueryPlanner implements Function<Symbol, Symbol> {
     private Symbol planSubquery(SelectSymbol selectSymbol) {
         AnalyzedRelation relation = selectSymbol.relation();
         SelectAnalyzedStatement selectAnalyzedStatement = new SelectAnalyzedStatement(((QueriedRelation) relation));
-        Plan subPlan = plannerContext.plan(selectAnalyzedStatement);
+        Plan subPlan = plannerContext.planSingleRowSubselect(selectAnalyzedStatement);
         subQueries.add(subPlan);
+        selectSymbol.index(currentIndex);
+        currentIndex++;
         return selectSymbol;
     }
 
     @Nullable
     @Override
     public Symbol apply(@Nullable Symbol input) {
-        return visitor.process(input, null);
+        visitor.process(input, null);
+        return input;
     }
 
     public List<Plan> subQueries() {
         return subQueries;
     }
 
-    private class Visitor extends ReplacingSymbolVisitor<Void> {
+    public List<Symbol> subSelectSymbolParents() {
+        return subSelectSymbolParents;
+    }
 
-        public Visitor() {
-            super(ReplaceMode.MUTATE);
+    private class Visitor extends SymbolVisitor<Symbol, Void> {
+
+        @Override
+        public Void visitFunction(io.crate.analyze.symbol.Function function, Symbol parent) {
+            for (Symbol arg : function.arguments()) {
+                process(arg, function);
+            }
+            return null;
         }
 
         @Override
-        public Symbol visitSelectSymbol(SelectSymbol selectSymbol, Void context) {
-            return planSubquery(selectSymbol);
+        public Void visitSelectSymbol(SelectSymbol selectSymbol, Symbol parent) {
+            planSubquery(selectSymbol);
+            if (parent == null) {
+                throw new UnsupportedOperationException("TODO");
+            } else {
+                subSelectSymbolParents.add(parent);
+            }
+            return null;
         }
     }
 }

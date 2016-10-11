@@ -25,6 +25,7 @@ package io.crate.planner;
 import io.crate.analyze.relations.AnalyzedRelationVisitor;
 import io.crate.analyze.relations.PlannedAnalyzedRelation;
 import io.crate.analyze.symbol.Field;
+import io.crate.analyze.symbol.Symbol;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.metadata.Path;
 import io.crate.metadata.table.Operation;
@@ -54,10 +55,22 @@ public class MultiPhasePlan implements PlannedAnalyzedRelation, Plan {
 
     private final PlannedAnalyzedRelation plannedAnalyzedRelation;
     private final List<Plan> dependencies;
+    private final List<Symbol> subSelectParents;
 
-    public MultiPhasePlan(PlannedAnalyzedRelation plannedAnalyzedRelation, List<Plan> dependencies) {
+    public MultiPhasePlan(PlannedAnalyzedRelation plannedAnalyzedRelation,
+                          List<Plan> dependencies,
+                          List<Symbol> subSelectParents) {
         this.plannedAnalyzedRelation = plannedAnalyzedRelation;
         this.dependencies = dependencies;
+        this.subSelectParents = subSelectParents;
+    }
+
+    public List<Plan> dependencies() {
+        return dependencies;
+    }
+
+    public Plan rootPlan() {
+        return plannedAnalyzedRelation.plan();
     }
 
     @Override
@@ -115,4 +128,7 @@ public class MultiPhasePlan implements PlannedAnalyzedRelation, Plan {
         plannedAnalyzedRelation.setQualifiedName(qualifiedName);
     }
 
+    public List<Symbol> subSelectParents() {
+        return subSelectParents;
+    }
 }

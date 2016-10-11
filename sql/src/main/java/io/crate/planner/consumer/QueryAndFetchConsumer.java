@@ -94,7 +94,7 @@ public class QueryAndFetchConsumer implements Consumer {
             PlannedAnalyzedRelation plannedAnalyzedRelation = normalSelect(table, context, querySpec.outputs());
             List<Plan> subQueries = subqueryPlanner.subQueries();
             if (!subQueries.isEmpty()) {
-                return new MultiPhasePlan(plannedAnalyzedRelation, subQueries);
+                return new MultiPhasePlan(plannedAnalyzedRelation, subQueries, subqueryPlanner.subSelectSymbolParents());
             }
             return plannedAnalyzedRelation;
         }

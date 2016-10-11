@@ -33,6 +33,7 @@ public class SelectSymbol extends Symbol {
 
     private final AnalyzedRelation relation;
     private final DataType type;
+    private int index = -1;
 
     public SelectSymbol(AnalyzedRelation relation, DataType type) {
         this.relation = relation;
@@ -78,5 +79,13 @@ public class SelectSymbol extends Symbol {
     @Override
     public String toString() {
         return "SelectSymbol{" + type.toString() + "}";
+    }
+
+    public void index(int index) {
+        this.index = index;
+    }
+
+    public int index() {
+        return index;
     }
 }

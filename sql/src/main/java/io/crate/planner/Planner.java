@@ -163,8 +163,10 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
             return transactionContext;
         }
 
-        public Plan plan(AnalyzedStatement statement) {
-            return planner.process(statement, this);
+        public Plan planSingleRowSubselect(AnalyzedStatement statement) {
+            UUID subJobId = UUID.randomUUID();
+            return planner.process(statement, new Planner.Context(
+                planner, clusterService, subJobId, consumingPlanner, normalizer, transactionContext, 2, 2));
         }
 
         static class ReaderAllocations {

@@ -1975,5 +1975,11 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         execute("select name from sys.cluster where name = " +
                 "(select 'level1.2' from sys.cluster where name = (select 'level2.1' from sys.cluster)) " +
                 "or name = (select 'level1.1' from sys.cluster)");
+
+    }
+
+    @Test
+    public void testBooleanSingleRowSubselectInWhereClause() throws Exception {
+        assertThat(execute("select name where (select true)").rowCount(), is(1L));
     }
 }
