@@ -23,6 +23,7 @@ package io.crate.planner.consumer;
 
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.QueriedTable;
 import io.crate.analyze.QueriedTableRelation;
@@ -48,6 +49,7 @@ import io.crate.planner.projection.TopNProjection;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @Singleton
@@ -160,31 +162,20 @@ public class QueryAndFetchConsumer implements Consumer {
 
                 // MERGE
                 if (context.isRoot()) {
-                    TopNProjection tnp = new TopNProjection(limits.finalLimit(), limits.offset());
+                    final TopNProjection tnp = new TopNProjection(limits.finalLimit(), limits.offset());
                     tnp.outputs(finalOutputs);
-                    if (!orderBy.isPresent()) {
-                        // no sorting needed
-                        mergeNode = MergePhase.localMerge(
-                            plannerContext.jobId(),
-                            plannerContext.nextExecutionPhaseId(),
-                            ImmutableList.<Projection>of(tnp),
-                            collectPhase.executionNodes().size(),
-                            collectPhase.outputTypes()
-                        );
-                    } else {
-                        // no order by needed in TopN as we already sorted on collector
-                        // and we merge sorted with SortedBucketMerger
-                        mergeNode = MergePhase.sortedMerge(
-                            plannerContext.jobId(),
-                            plannerContext.nextExecutionPhaseId(),
-                            orderBy.get(),
-                            allOutputs,
-                            InputColumn.fromSymbols(orderBy.get().orderBySymbols(), toCollect),
-                            ImmutableList.<Projection>of(tnp),
-                            collectPhase.executionNodes().size(),
-                            collectPhase.outputTypes()
-                        );
-                    }
+                    ArrayList<Projection> mergeProjections = new ArrayList<Projection>(1) {{
+                        add(tnp);
+                    }};
+                    mergeNode = MergePhase.mergePhase(
+                        context.plannerContext(),
+                        ImmutableSet.<String>of(),
+                        collectPhase.executionNodes().size(),
+                        orderBy.orNull(),
+                        orderBy.isPresent() ? InputColumn.fromSymbols(orderBy.get().orderBySymbols(), toCollect) : null,
+                        mergeProjections,
+                        allOutputs,
+                        collectPhase.outputTypes());
                 }
             } else {
                 collectPhase = RoutedCollectPhase.forQueriedTable(

@@ -28,6 +28,7 @@ import com.google.common.collect.Lists;
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.analyze.symbol.Symbols;
+import io.crate.planner.Planner;
 import io.crate.planner.consumer.OrderByPositionVisitor;
 import io.crate.planner.distribution.DistributionInfo;
 import io.crate.planner.distribution.UpstreamPhase;
@@ -135,6 +136,45 @@ public class MergePhase extends AbstractProjectionsPhase implements UpstreamPhas
         mergeNode.reverseFlags = orderBy.reverseFlags();
         mergeNode.nullsFirst = orderBy.nullsFirst();
         return mergeNode;
+    }
+
+    /**
+     * @param orderBySymbols Can be used to override orderBySymbols of {@param orderBy}
+     * @param inputTypes Can be used if available to avoid extracting them again from {@param inputs}
+     */
+    @Nullable
+    public static MergePhase mergePhase(Planner.Context plannerContext,
+                                        Collection<String> executionNodes,
+                                        int upstreamPhaseExecutionNodesSize,
+                                        @Nullable OrderBy orderBy,
+                                        @Nullable List<? extends Symbol> orderBySymbols,
+                                        List<Projection> projections,
+                                        List<Symbol> inputs,
+                                        @Nullable List<DataType> inputTypes) {
+        MergePhase mergePhase;
+        if (orderBy != null) {
+            mergePhase = MergePhase.sortedMerge(
+                plannerContext.jobId(),
+                plannerContext.nextExecutionPhaseId(),
+                orderBy,
+                inputs,
+                orderBySymbols != null ? orderBySymbols : orderBy.orderBySymbols(),
+                projections,
+                upstreamPhaseExecutionNodesSize,
+                inputTypes != null ? inputTypes : Symbols.extractTypes(inputs)
+            );
+        } else {
+            // no sorting needed
+            mergePhase = MergePhase.localMerge(
+                plannerContext.jobId(),
+                plannerContext.nextExecutionPhaseId(),
+                projections,
+                upstreamPhaseExecutionNodesSize,
+                inputTypes != null ? inputTypes : Symbols.extractTypes(inputs)
+            );
+        }
+        mergePhase.executionNodes(executionNodes);
+        return mergePhase;
     }
 
     @Override

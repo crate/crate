@@ -35,7 +35,6 @@ import io.crate.metadata.TableIdent;
 import io.crate.planner.Limits;
 import io.crate.planner.TableStatsService;
 import io.crate.planner.distribution.DistributionInfo;
-import io.crate.planner.distribution.UpstreamPhase;
 import io.crate.planner.node.NoopPlannedAnalyzedRelation;
 import io.crate.planner.node.dql.MergePhase;
 import io.crate.planner.node.dql.join.JoinType;
@@ -53,15 +52,14 @@ import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 
-import javax.annotation.Nullable;
 import java.util.*;
 
 
 @Singleton
 public class NestedLoopConsumer implements Consumer {
 
-    private final Visitor visitor;
     private final static ESLogger LOGGER = Loggers.getLogger(NestedLoopConsumer.class);
+    private final Visitor visitor;
 
     @Inject
     public NestedLoopConsumer(ClusterService clusterService,
@@ -200,13 +198,17 @@ public class NestedLoopConsumer implements Consumer {
                 leftPlan.resultPhase().distributionInfo(DistributionInfo.DEFAULT_SAME_NODE);
                 nlExecutionNodes = leftPlan.resultPhase().executionNodes();
             } else {
-                leftMerge = mergePhase(
-                    context,
-                    nlExecutionNodes,
-                    leftPlan.resultPhase(),
-                    left.querySpec().orderBy().orNull(),
-                    left.querySpec().outputs(),
-                    false);
+                if (isMergePhaseNeeded(nlExecutionNodes, leftPlan.resultPhase().executionNodes(), false)) {
+                    leftMerge = MergePhase.mergePhase(
+                        context.plannerContext(),
+                        nlExecutionNodes,
+                        leftPlan.resultPhase().executionNodes().size(),
+                        left.querySpec().orderBy().orNull(),
+                        null,
+                        ImmutableList.<Projection>of(),
+                        left.querySpec().outputs(),
+                        null);
+                }
             }
             if (nlExecutionNodes.size() == 1
                 && nlExecutionNodes.equals(rightPlan.resultPhase().executionNodes())) {
@@ -215,13 +217,17 @@ public class NestedLoopConsumer implements Consumer {
                 // are on the same node
                 rightPlan.resultPhase().distributionInfo(DistributionInfo.DEFAULT_SAME_NODE);
             } else {
-                rightMerge = mergePhase(
-                    context,
-                    nlExecutionNodes,
-                    rightPlan.resultPhase(),
-                    right.querySpec().orderBy().orNull(),
-                    right.querySpec().outputs(),
-                    isDistributed);
+                if (isMergePhaseNeeded(nlExecutionNodes, rightPlan.resultPhase().executionNodes(), isDistributed)) {
+                    rightMerge = MergePhase.mergePhase(
+                        context.plannerContext(),
+                        nlExecutionNodes,
+                        rightPlan.resultPhase().executionNodes().size(),
+                        right.querySpec().orderBy().orNull(),
+                        null,
+                        ImmutableList.<Projection>of(),
+                        right.querySpec().outputs(),
+                        null);
+                }
                 rightPlan.resultPhase().distributionInfo(DistributionInfo.DEFAULT_BROADCAST);
             }
 
@@ -285,7 +291,17 @@ public class NestedLoopConsumer implements Consumer {
             MergePhase localMergePhase = null;
             // TODO: build local merge phases somewhere else for any subplan
             if (isDistributed && context.isRoot()) {
-                localMergePhase = mergePhase(context, handlerNodes, nl, orderByBeforeSplit, postNLOutputs, true);
+                if (isMergePhaseNeeded(handlerNodes, nl.executionNodes(), true)) {
+                    localMergePhase = MergePhase.mergePhase(
+                        context.plannerContext(),
+                        handlerNodes,
+                        nl.executionNodes().size(),
+                        orderByBeforeSplit,
+                        null,
+                        ImmutableList.<Projection>of(),
+                        postNLOutputs,
+                        null);
+                }
                 assert localMergePhase != null : "local merge phase must not be null";
                 TopNProjection finalTopN = ProjectionBuilder.topNProjection(
                     postNLOutputs,
@@ -333,43 +349,16 @@ public class NestedLoopConsumer implements Consumer {
             return false;
         }
 
-        // TODO: this is a duplicate, it coecists in QueryThenFetchConsumer
-        public static MergePhase mergePhase(ConsumerContext context,
-                                            Collection<String> executionNodes,
-                                            UpstreamPhase upstreamPhase,
-                                            @Nullable OrderBy orderBy,
-                                            List<Symbol> previousOutputs,
-                                            boolean isDistributed) {
-            assert !upstreamPhase.executionNodes().isEmpty() : "upstreamPhase must be executed somewhere";
-            if (!isDistributed && upstreamPhase.executionNodes().equals(executionNodes)) {
+        private static boolean isMergePhaseNeeded(Collection<String> executionNodes,
+                                                  Collection<String> upstreamPhaseExecutionNodes,
+                                                  boolean isDistributed) {
+            assert !upstreamPhaseExecutionNodes.isEmpty() : "upstreamPhase must be executed somewhere";
+            if (!isDistributed && upstreamPhaseExecutionNodes.equals(executionNodes)) {
                 // if the nested loop is on the same node we don't need a mergePhase to receive requests
                 // but can access the RowReceiver of the nestedLoop directly
-                return null;
+                return false;
             }
-
-            MergePhase mergePhase;
-            if (orderBy != null) {
-                mergePhase = MergePhase.sortedMerge(
-                    context.plannerContext().jobId(),
-                    context.plannerContext().nextExecutionPhaseId(),
-                    orderBy,
-                    previousOutputs,
-                    orderBy.orderBySymbols(),
-                    ImmutableList.<Projection>of(),
-                    upstreamPhase.executionNodes().size(),
-                    Symbols.extractTypes(previousOutputs)
-                );
-            } else {
-                mergePhase = MergePhase.localMerge(
-                    context.plannerContext().jobId(),
-                    context.plannerContext().nextExecutionPhaseId(),
-                    ImmutableList.<Projection>of(),
-                    upstreamPhase.executionNodes().size(),
-                    Symbols.extractTypes(previousOutputs)
-                );
-            }
-            mergePhase.executionNodes(executionNodes);
-            return mergePhase;
+            return true;
         }
     }
 

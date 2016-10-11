@@ -1935,7 +1935,6 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
         assertThat(response.rowCount(), is(lessThanOrEqualTo(1L)));
     }
 
-
     @Test
     public void testDeleteOrphanedPartitions() throws Throwable {
         execute("create table foo (name string, p string) partitioned by (p) with (number_of_replicas=0, refresh_interval = 0)");
