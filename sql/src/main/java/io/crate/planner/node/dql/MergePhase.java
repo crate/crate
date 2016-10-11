@@ -22,7 +22,6 @@
 package io.crate.planner.node.dql;
 
 import com.google.common.base.MoreObjects;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
@@ -139,13 +138,15 @@ public class MergePhase extends AbstractProjectionsPhase implements UpstreamPhas
         return mergeNode;
     }
 
-    // TODO: this is a duplicate, it coexists in QueryThenFetchConsumer
     @Nullable
     public static MergePhase mergePhase(ConsumerContext context,
                                         Collection<String> executionNodes,
                                         UpstreamPhase upstreamPhase,
                                         @Nullable OrderBy orderBy,
-                                        List<Symbol> previousOutputs,
+                                        @Nullable List<? extends Symbol> orderBySymbols,
+                                        List<Projection> projections,
+                                        List<Symbol> inputs,
+                                        @Nullable List<DataType> inputTypes,
                                         boolean isDistributed) {
         assert !upstreamPhase.executionNodes().isEmpty() : "upstreamPhase must be executed somewhere";
         if (!isDistributed && upstreamPhase.executionNodes().equals(executionNodes)) {
@@ -160,20 +161,20 @@ public class MergePhase extends AbstractProjectionsPhase implements UpstreamPhas
                 context.plannerContext().jobId(),
                 context.plannerContext().nextExecutionPhaseId(),
                 orderBy,
-                previousOutputs,
-                orderBy.orderBySymbols(),
-                ImmutableList.<Projection>of(),
+                inputs,
+                orderBySymbols != null ? orderBySymbols : orderBy.orderBySymbols(),
+                projections,
                 upstreamPhase.executionNodes().size(),
-                Symbols.extractTypes(previousOutputs)
+                inputTypes != null ? inputTypes : Symbols.extractTypes(inputs)
             );
         } else {
             // no sorting needed
             mergePhase = MergePhase.localMerge(
                 context.plannerContext().jobId(),
                 context.plannerContext().nextExecutionPhaseId(),
-                ImmutableList.<Projection>of(),
+                projections,
                 upstreamPhase.executionNodes().size(),
-                Symbols.extractTypes(previousOutputs)
+                inputTypes != null ? inputTypes : Symbols.extractTypes(inputs)
             );
         }
         mergePhase.executionNodes(executionNodes);

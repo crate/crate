@@ -82,7 +82,10 @@ public class UnionConsumer implements Consumer {
                     handlerNodes,
                     plannedAnalyzedRelation.resultPhase(),
                     querySpec.orderBy().orNull(),
+                    null,
+                    ImmutableList.<Projection>of(),
                     querySpec.outputs(),
+                    null,
                     false));
             }
 

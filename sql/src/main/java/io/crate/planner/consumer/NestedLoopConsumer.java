@@ -22,6 +22,7 @@
 package io.crate.planner.consumer;
 
 import com.google.common.base.Optional;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
@@ -57,8 +58,8 @@ import java.util.*;
 @Singleton
 public class NestedLoopConsumer implements Consumer {
 
-    private final Visitor visitor;
     private final static ESLogger LOGGER = Loggers.getLogger(NestedLoopConsumer.class);
+    private final Visitor visitor;
 
     @Inject
     public NestedLoopConsumer(ClusterService clusterService,
@@ -202,7 +203,10 @@ public class NestedLoopConsumer implements Consumer {
                     nlExecutionNodes,
                     leftPlan.resultPhase(),
                     left.querySpec().orderBy().orNull(),
+                    null,
+                    ImmutableList.<Projection>of(),
                     left.querySpec().outputs(),
+                    null,
                     false);
             }
             if (nlExecutionNodes.size() == 1
@@ -217,7 +221,10 @@ public class NestedLoopConsumer implements Consumer {
                     nlExecutionNodes,
                     rightPlan.resultPhase(),
                     right.querySpec().orderBy().orNull(),
+                    null,
+                    ImmutableList.<Projection>of(),
                     right.querySpec().outputs(),
+                    null,
                     isDistributed);
                 rightPlan.resultPhase().distributionInfo(DistributionInfo.DEFAULT_BROADCAST);
             }
@@ -282,7 +289,16 @@ public class NestedLoopConsumer implements Consumer {
             MergePhase localMergePhase = null;
             // TODO: build local merge phases somewhere else for any subplan
             if (isDistributed && context.isRoot()) {
-                localMergePhase = MergePhase.mergePhase(context, handlerNodes, nl, orderByBeforeSplit, postNLOutputs, true);
+                localMergePhase = MergePhase.mergePhase(
+                    context,
+                    handlerNodes,
+                    nl,
+                    orderByBeforeSplit,
+                    null,
+                    ImmutableList.<Projection>of(),
+                    postNLOutputs,
+                    null,
+                    true);
                 assert localMergePhase != null : "local merge phase must not be null";
                 TopNProjection finalTopN = ProjectionBuilder.topNProjection(
                     postNLOutputs,
