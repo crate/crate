@@ -1,5 +1,6 @@
 import unittest
 import os
+import faulthandler
 from functools import partial
 from testutils.ports import GLOBAL_PORT_POOL
 from testutils.paths import crate_path, project_root
@@ -11,6 +12,9 @@ CRATE_TRANSPORT_PORT = GLOBAL_PORT_POOL.get()
 
 tests_path = os.path.abspath(os.path.join(
     project_root, 'blackbox', 'sqllogictest', 'src', 'tests'))
+
+# Enable to be able to dump threads in case something gets stuck
+faulthandler.enable()
 
 
 class TestMaker(type):
@@ -38,7 +42,10 @@ def test_suite():
         'crate-sqllogic',
         crate_home=crate_path(),
         port=CRATE_HTTP_PORT,
-        transport_port=CRATE_TRANSPORT_PORT
+        transport_port=CRATE_TRANSPORT_PORT,
+        settings={
+            'stats.enabled': True
+        }
     )
     suite.layer = crate_layer
     return suite
