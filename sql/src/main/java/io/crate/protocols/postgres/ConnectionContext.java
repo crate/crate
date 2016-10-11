@@ -259,7 +259,7 @@ class ConnectionContext {
                     session = readStartupMessage(buffer);
                     Messages.sendAuthenticationOK(channel);
 
-                    Messages.sendParameterStatus(channel, "server_version", "95000");
+                    Messages.sendParameterStatus(channel, "server_version", "9.5.0");
                     Messages.sendParameterStatus(channel, "server_encoding", "UTF8");
                     Messages.sendParameterStatus(channel, "client_encoding", "UTF8");
                     Messages.sendParameterStatus(channel, "datestyle", "ISO");
