@@ -672,6 +672,8 @@ You can expand this limit by using an explicit LIMIT-clause.
 But you are encouraged to make use of a windowing using LIMIT and OFFSET to iterate through all the results
 of a potentially large resultset instead of expanding the default limit.
 
+When using the PostgreSQL wire protocol, there is no implicit **10000** row limit on SELECT statements.
+
 .. _sql_dql_objects:
 
 Inner/Nested Objects
