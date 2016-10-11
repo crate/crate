@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Changed the server_version formatting sent via the postgres wire protocol to
+   be compatible with clients which can't handle the numeric notation.
+
  - Updated Crash to 0.18.1 which contains the following change:
 
     - Fix: crashed in verbose mode if Crate didn't provide an error trace
