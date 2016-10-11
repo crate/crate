@@ -208,6 +208,9 @@ project.gradle.addListener(new TestListener() {
             testOutputs[test].each { e ->
                 print e
             }
+            result.getExceptions().each { e ->
+                e.printStackTrace();
+            }
         }
         testOutputs.remove(test)
     }
