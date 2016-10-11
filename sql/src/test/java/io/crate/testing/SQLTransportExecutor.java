@@ -156,16 +156,22 @@ public class SQLTransportExecutor {
             }
         } catch (PSQLException e) {
             ServerErrorMessage serverErrorMessage = e.getServerErrorMessage();
-            StackTraceElement stackTraceElement = new StackTraceElement(
-                serverErrorMessage.getFile(),
-                serverErrorMessage.getRoutine(),
-                serverErrorMessage.getFile(),
-                serverErrorMessage.getLine());
+            StackTraceElement[] stacktrace;
+            if (serverErrorMessage != null) {
+                StackTraceElement stackTraceElement = new StackTraceElement(
+                    serverErrorMessage.getFile(),
+                    serverErrorMessage.getRoutine(),
+                    serverErrorMessage.getFile(),
+                    serverErrorMessage.getLine());
+                stacktrace = new StackTraceElement[]{stackTraceElement};
+            } else {
+                stacktrace = new StackTraceElement[]{};
+            }
             throw new SQLActionException(
                 e.getMessage(),
                 0,
                 RestStatus.BAD_REQUEST,
-                new StackTraceElement[]{stackTraceElement});
+                stacktrace);
         } catch (SQLException e) {
             throw new SQLActionException(e.getMessage(), 0, RestStatus.BAD_REQUEST);
         }
