@@ -26,6 +26,8 @@ import com.google.common.util.concurrent.UncheckedExecutionException;
 import io.crate.action.sql.SQLActionException;
 import io.crate.metadata.PartitionName;
 import io.crate.sql.parser.ParsingException;
+import org.elasticsearch.common.logging.ESLogger;
+import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.util.concurrent.UncategorizedExecutionException;
 import org.elasticsearch.index.IndexNotFoundException;
 import org.elasticsearch.index.engine.DocumentAlreadyExistsException;
@@ -48,6 +50,8 @@ import java.util.concurrent.ExecutionException;
 
 public class Exceptions {
 
+    private final static ESLogger LOGGER = Loggers.getLogger(Exceptions.class);
+
     public static Throwable unwrap(@Nonnull Throwable t) {
         int counter = 0;
         Throwable result = t;
@@ -63,6 +67,7 @@ public class Exceptions {
                 return result;
             }
             if (counter > 10) {
+                LOGGER.warn("Exception cause unwrapping ran for 10 levels. Aborting unwrap", t);
                 return result;
             }
             counter++;
