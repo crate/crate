@@ -48,51 +48,8 @@ public class SelectAnalyzer {
                                                RelationAnalysisContext context) {
         SelectAnalysis selectAnalysis = new SelectAnalysis(context);
         INSTANCE.process(select, selectAnalysis);
-        SelectSymbolValidator.validate(selectAnalysis.outputSymbols);
+        SelectSymbolValidator.validate(selectAnalysis.outputSymbols());
         return selectAnalysis;
-    }
-
-    public static class SelectAnalysis {
-
-        private Map<QualifiedName, AnalyzedRelation> sources;
-        private ExpressionAnalyzer expressionAnalyzer;
-        private ExpressionAnalysisContext expressionAnalysisContext;
-        private List<Path> outputNames = new ArrayList<>();
-        private List<Symbol> outputSymbols = new ArrayList<>();
-        private Multimap<String, Symbol> outputMultiMap = HashMultimap.create();
-
-        private SelectAnalysis(RelationAnalysisContext context) {
-            this.sources = context.sources();
-            this.expressionAnalyzer = context.expressionAnalyzer();
-            this.expressionAnalysisContext = context.expressionAnalysisContext();
-        }
-
-        public List<Path> outputNames() {
-            return outputNames;
-        }
-
-        public List<Symbol> outputSymbols() {
-            return outputSymbols;
-        }
-
-        Symbol toSymbol(Expression expression) {
-            return expressionAnalyzer.convert(expression, expressionAnalysisContext);
-        }
-
-        /**
-         * multiMap containing outputNames() as keys and outputSymbols() as values.
-         * Can be used to resolve expressions in ORDER BY or GROUP BY where it is important to know
-         * if a outputName is unique
-         */
-        public Multimap<String, Symbol> outputMultiMap() {
-            return outputMultiMap;
-        }
-
-        void add(Path path, Symbol symbol) {
-            outputNames.add(path);
-            outputSymbols.add(symbol);
-            outputMultiMap.put(path.outputName(), symbol);
-        }
     }
 
     private static class InnerVisitor extends DefaultTraversalVisitor<Void, SelectAnalysis> {
@@ -114,7 +71,7 @@ public class SelectAnalyzer {
                 // prefix is either: <tableOrAlias>.* or <schema>.<table>
 
                 QualifiedName prefix = node.getPrefix().get();
-                AnalyzedRelation relation = context.sources.get(prefix);
+                AnalyzedRelation relation = context.sources().get(prefix);
                 if (relation != null) {
                     addAllFieldsFromRelation(context, relation);
                     return null;
@@ -125,7 +82,7 @@ public class SelectAnalyzer {
                     // e.g.  select mytable.* from foo.mytable; prefix is mytable, source is [foo, mytable]
                     // if prefix matches second part of qualified name this is okay
                     String prefixName = prefix.getParts().get(0);
-                    for (Map.Entry<QualifiedName, AnalyzedRelation> entry : context.sources.entrySet()) {
+                    for (Map.Entry<QualifiedName, AnalyzedRelation> entry : context.sources().entrySet()) {
                         List<String> parts = entry.getKey().getParts();
                         // schema.table
                         if (parts.size() == 2 && prefixName.equals(parts.get(1))) {
@@ -144,7 +101,7 @@ public class SelectAnalyzer {
                         throw new IllegalArgumentException(String.format(Locale.ENGLISH, "referenced relation \"%s\" is ambiguous", prefix));
                 }
             } else {
-                for (AnalyzedRelation relation : context.sources.values()) {
+                for (AnalyzedRelation relation : context.sources().values()) {
                     addAllFieldsFromRelation(context, relation);
                 }
             }

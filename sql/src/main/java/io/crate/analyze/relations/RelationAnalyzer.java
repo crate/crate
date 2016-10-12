@@ -29,6 +29,7 @@ import io.crate.action.sql.SessionContext;
 import io.crate.analyze.*;
 import io.crate.analyze.expressions.ExpressionAnalysisContext;
 import io.crate.analyze.expressions.ExpressionAnalyzer;
+import io.crate.analyze.relations.select.SelectAnalysis;
 import io.crate.analyze.relations.select.SelectAnalyzer;
 import io.crate.analyze.symbol.Aggregations;
 import io.crate.analyze.symbol.Literal;
@@ -168,7 +169,7 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
         Symbol querySymbol = expressionAnalyzer.generateQuerySymbol(node.getWhere(), expressionAnalysisContext);
         WhereClause whereClause = new WhereClause(querySymbol);
 
-        SelectAnalyzer.SelectAnalysis selectAnalysis = SelectAnalyzer.analyzeSelect(node.getSelect(), context);
+        SelectAnalysis selectAnalysis = SelectAnalyzer.analyzeSelect(node.getSelect(), context);
 
         List<Symbol> groupBy = analyzeGroupBy(selectAnalysis, node.getGroupBy(), context);
 
@@ -263,7 +264,7 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
     }
 
     @Nullable
-    private OrderBy analyzeOrderBy(SelectAnalyzer.SelectAnalysis selectAnalysis,
+    private OrderBy analyzeOrderBy(SelectAnalysis selectAnalysis,
                                    List<SortItem> orderBy,
                                    RelationAnalysisContext context,
                                    boolean hasAggregatesOrGrouping,
@@ -302,7 +303,7 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
         return new OrderBy(symbols, reverseFlags, nullsFirst);
     }
 
-    private List<Symbol> analyzeGroupBy(SelectAnalyzer.SelectAnalysis selectAnalysis, List<Expression> groupBy,
+    private List<Symbol> analyzeGroupBy(SelectAnalysis selectAnalysis, List<Expression> groupBy,
                                         RelationAnalysisContext context) {
         List<Symbol> groupBySymbols = new ArrayList<>(groupBy.size());
         for (Expression expression : groupBy) {
@@ -346,7 +347,7 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
      * </pre>
      */
     private Symbol symbolFromSelectOutputReferenceOrExpression(Expression expression,
-                                                               SelectAnalyzer.SelectAnalysis selectAnalysis,
+                                                               SelectAnalysis selectAnalysis,
                                                                String clause,
                                                                RelationAnalysisContext context) {
         Symbol symbol;
