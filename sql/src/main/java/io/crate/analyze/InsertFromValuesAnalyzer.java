@@ -44,15 +44,12 @@ import io.crate.sql.tree.*;
 import io.crate.types.DataType;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.Nullable;
-import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.lucene.BytesRefs;
 
 import java.io.IOException;
 import java.util.*;
 
-@Singleton
-public class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
+class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
 
     private static final ReferenceToLiteralConverter TO_LITERAL_CONVERTER = new ReferenceToLiteralConverter();
 
@@ -83,8 +80,7 @@ public class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
         }
     }
 
-    @Inject
-    public InsertFromValuesAnalyzer(Functions functions, Schemas schemas) {
+    InsertFromValuesAnalyzer(Functions functions, Schemas schemas) {
         super(functions, schemas);
     }
 

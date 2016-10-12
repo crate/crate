@@ -27,8 +27,6 @@ import io.crate.metadata.FulltextAnalyzerResolver;
 import io.crate.sql.tree.*;
 import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.Strings;
-import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.logging.DeprecationLogger;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.Settings;
@@ -36,16 +34,14 @@ import org.elasticsearch.common.settings.Settings;
 import java.util.Locale;
 import java.util.Map;
 
-@Singleton
-public class CreateAnalyzerStatementAnalyzer extends DefaultTraversalVisitor<
+class CreateAnalyzerStatementAnalyzer extends DefaultTraversalVisitor<
     CreateAnalyzerAnalyzedStatement, CreateAnalyzerStatementAnalyzer.Context> {
 
     private final FulltextAnalyzerResolver fulltextAnalyzerResolver;
 
     private final DeprecationLogger deprecationLogger;
 
-    @Inject
-    public CreateAnalyzerStatementAnalyzer(FulltextAnalyzerResolver fulltextAnalyzerResolver, Settings settings) {
+    CreateAnalyzerStatementAnalyzer(FulltextAnalyzerResolver fulltextAnalyzerResolver, Settings settings) {
         this.fulltextAnalyzerResolver = fulltextAnalyzerResolver;
         deprecationLogger = new DeprecationLogger(Loggers.getLogger(CreateAnalyzerStatementAnalyzer.class, settings));
     }

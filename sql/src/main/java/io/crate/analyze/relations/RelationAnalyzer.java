@@ -57,8 +57,6 @@ import io.crate.planner.node.dql.join.JoinType;
 import io.crate.sql.tree.*;
 import io.crate.types.DataTypes;
 import org.elasticsearch.cluster.ClusterService;
-import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.inject.Singleton;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
@@ -67,7 +65,6 @@ import java.util.List;
 import java.util.Locale;
 
 @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
-@Singleton
 public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, StatementAnalysisContext> {
 
     private final ClusterService clusterService;
@@ -79,7 +76,6 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
         )
     );
 
-    @Inject
     public RelationAnalyzer(ClusterService clusterService, Functions functions, Schemas schemas) {
         this.clusterService = clusterService;
         this.functions = functions;

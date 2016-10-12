@@ -42,8 +42,6 @@ import io.crate.sql.tree.CreateSnapshot;
 import io.crate.sql.tree.QualifiedName;
 import io.crate.sql.tree.Table;
 import org.elasticsearch.cluster.metadata.SnapshotId;
-import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.Settings;
@@ -53,8 +51,7 @@ import java.util.*;
 import static io.crate.analyze.SnapshotSettings.IGNORE_UNAVAILABLE;
 import static io.crate.analyze.SnapshotSettings.WAIT_FOR_COMPLETION;
 
-@Singleton
-public class CreateSnapshotAnalyzer {
+class CreateSnapshotAnalyzer {
 
     private static final ESLogger LOGGER = Loggers.getLogger(CreateSnapshotAnalyzer.class);
     private final RepositoryService repositoryService;
@@ -66,8 +63,7 @@ public class CreateSnapshotAnalyzer {
         .build();
 
 
-    @Inject
-    public CreateSnapshotAnalyzer(RepositoryService repositoryService, Schemas schemas) {
+    CreateSnapshotAnalyzer(RepositoryService repositoryService, Schemas schemas) {
         this.repositoryService = repositoryService;
         this.schemas = schemas;
     }

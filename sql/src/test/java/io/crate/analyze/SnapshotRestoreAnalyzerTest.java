@@ -56,9 +56,10 @@ public class SnapshotRestoreAnalyzerTest extends BaseAnalyzerTest {
     private RepositoriesMetaData repositoriesMetaData;
 
     private class MyMockedClusterServiceModule extends MockedClusterServiceModule {
+
         @Override
-        protected void configureMetaData(MetaData metaData) {
-            when(metaData.custom(RepositoriesMetaData.TYPE)).thenReturn(repositoriesMetaData);
+        protected void extendMetaData(MetaData.Builder builder) {
+            builder.putCustom(RepositoriesMetaData.TYPE, repositoriesMetaData);
         }
     }
 

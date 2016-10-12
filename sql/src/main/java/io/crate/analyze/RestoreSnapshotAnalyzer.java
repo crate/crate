@@ -37,8 +37,6 @@ import io.crate.metadata.settings.SettingsAppliers;
 import io.crate.metadata.table.TableInfo;
 import io.crate.sql.tree.RestoreSnapshot;
 import io.crate.sql.tree.Table;
-import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.settings.Settings;
 
 import java.util.HashSet;
@@ -49,8 +47,7 @@ import java.util.Set;
 import static io.crate.analyze.SnapshotSettings.IGNORE_UNAVAILABLE;
 import static io.crate.analyze.SnapshotSettings.WAIT_FOR_COMPLETION;
 
-@Singleton
-public class RestoreSnapshotAnalyzer {
+class RestoreSnapshotAnalyzer {
 
     private static final ImmutableMap<String, SettingsApplier> SETTINGS = ImmutableMap.<String, SettingsApplier>builder()
         .put(IGNORE_UNAVAILABLE.name(), new SettingsAppliers.BooleanSettingsApplier(IGNORE_UNAVAILABLE))
@@ -60,8 +57,7 @@ public class RestoreSnapshotAnalyzer {
     private final RepositoryService repositoryService;
     private final Schemas schemas;
 
-    @Inject
-    public RestoreSnapshotAnalyzer(RepositoryService repositoryService, Schemas schemas) {
+    RestoreSnapshotAnalyzer(RepositoryService repositoryService, Schemas schemas) {
         this.repositoryService = repositoryService;
         this.schemas = schemas;
     }

@@ -21,13 +21,14 @@
 
 package io.crate.testing;
 
+import com.google.common.base.Throwables;
 import io.crate.executor.transport.TransportActionProvider;
+import io.crate.metadata.FulltextAnalyzerResolver;
 import org.elasticsearch.action.admin.cluster.repositories.delete.TransportDeleteRepositoryAction;
 import org.elasticsearch.action.admin.cluster.repositories.put.TransportPutRepositoryAction;
 import org.elasticsearch.action.admin.indices.template.put.TransportPutIndexTemplateAction;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.ClusterState;
-import org.elasticsearch.cluster.metadata.IndexTemplateMetaData;
 import org.elasticsearch.cluster.metadata.MetaData;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.node.DiscoveryNodes;
@@ -38,6 +39,8 @@ import org.elasticsearch.discovery.Discovery;
 import org.elasticsearch.monitor.os.OsService;
 import org.elasticsearch.monitor.os.OsStats;
 
+import java.io.IOException;
+
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -46,13 +49,9 @@ public class MockedClusterServiceModule extends AbstractModule {
     protected void configure() {
         ClusterService clusterService = mock(ClusterService.class);
         ClusterState state = mock(ClusterState.class);
-        MetaData metaData = mock(MetaData.class);
-        when(metaData.settings()).thenReturn(Settings.EMPTY);
-        when(metaData.persistentSettings()).thenReturn(Settings.EMPTY);
-        when(metaData.transientSettings()).thenReturn(Settings.EMPTY);
-        when(metaData.concreteAllOpenIndices()).thenReturn(new String[0]);
-        when(metaData.getTemplates()).thenReturn(ImmutableOpenMap.<String, IndexTemplateMetaData>of());
-        when(metaData.templates()).thenReturn(ImmutableOpenMap.<String, IndexTemplateMetaData>of());
+        MetaData.Builder builder = MetaData.builder();
+        extendMetaData(builder);
+        MetaData metaData = builder.build();
         when(state.metaData()).thenReturn(metaData);
         when(clusterService.state()).thenReturn(state);
         bind(ClusterService.class).toInstance(clusterService);
@@ -90,7 +89,6 @@ public class MockedClusterServiceModule extends AbstractModule {
 
         configureClusterService(clusterService);
         configureClusterState(state);
-        configureMetaData(metaData);
     }
 
     protected void configureClusterService(ClusterService clusterService) {
@@ -99,6 +97,6 @@ public class MockedClusterServiceModule extends AbstractModule {
     protected void configureClusterState(ClusterState clusterState) {
     }
 
-    protected void configureMetaData(MetaData metaData) {
+    protected void extendMetaData(MetaData.Builder builder) {
     }
 }

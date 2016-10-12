@@ -28,13 +28,10 @@ import io.crate.metadata.pg_catalog.PgCatalogSchemaInfo;
 import io.crate.metadata.sys.SysSchemaInfo;
 import io.crate.sql.tree.*;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
-import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.inject.Singleton;
 
 import java.util.Collection;
 import java.util.Locale;
 
-@Singleton
 public class CreateTableStatementAnalyzer extends DefaultTraversalVisitor<CreateTableAnalyzedStatement,
     CreateTableStatementAnalyzer.Context> {
 
@@ -64,7 +61,6 @@ public class CreateTableStatementAnalyzer extends DefaultTraversalVisitor<Create
         return super.process(node, new Context(analysis));
     }
 
-    @Inject
     public CreateTableStatementAnalyzer(Schemas schemas,
                                         FulltextAnalyzerResolver fulltextAnalyzerResolver,
                                         Functions functions,

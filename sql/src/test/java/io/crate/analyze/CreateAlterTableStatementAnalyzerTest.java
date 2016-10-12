@@ -22,6 +22,7 @@
 package io.crate.analyze;
 
 import com.google.common.base.Joiner;
+import com.google.common.base.Throwables;
 import io.crate.action.sql.Option;
 import io.crate.action.sql.SessionContext;
 import io.crate.core.collections.Row;
@@ -35,12 +36,14 @@ import io.crate.operation.operator.OperatorModule;
 import io.crate.operation.scalar.ScalarFunctionModule;
 import io.crate.sql.parser.SqlParser;
 import io.crate.testing.MockedClusterServiceModule;
+import org.elasticsearch.cluster.metadata.MetaData;
 import org.elasticsearch.common.inject.Module;
 import org.elasticsearch.common.settings.Settings;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
+import java.io.IOException;
 import java.util.*;
 
 import static com.carrotsearch.randomizedtesting.RandomizedTest.$;
@@ -55,17 +58,6 @@ public class CreateAlterTableStatementAnalyzerTest extends BaseAnalyzerTest {
     public ExpectedException expectedException = ExpectedException.none();
 
     static class TestMetaDataModule extends MetaDataModule {
-        @Override
-        protected void configure() {
-            FulltextAnalyzerResolver fulltextAnalyzerResolver = mock(FulltextAnalyzerResolver.class);
-            when(fulltextAnalyzerResolver.hasCustomAnalyzer("german")).thenReturn(false);
-            when(fulltextAnalyzerResolver.hasCustomAnalyzer("ft_search")).thenReturn(true);
-            Settings.Builder settingsBuilder = Settings.builder();
-            settingsBuilder.put("search", "foobar");
-            when(fulltextAnalyzerResolver.resolveFullCustomAnalyzerSettings("ft_search")).thenReturn(settingsBuilder.build());
-            bind(FulltextAnalyzerResolver.class).toInstance(fulltextAnalyzerResolver);
-            super.configure();
-        }
 
         @Override
         protected void bindSchemas() {
@@ -81,7 +73,25 @@ public class CreateAlterTableStatementAnalyzerTest extends BaseAnalyzerTest {
     protected List<Module> getModules() {
         List<Module> modules = super.getModules();
         modules.addAll(Arrays.<Module>asList(
-            new MockedClusterServiceModule(),
+            new MockedClusterServiceModule() {
+                @Override
+                protected void extendMetaData(MetaData.Builder builder) {
+                    String analyzerSettings;
+                    try {
+                        analyzerSettings = FulltextAnalyzerResolver.encodeSettings(
+                            Settings.builder().put("search", "foobar").build()).toUtf8();
+                    } catch (IOException e) {
+                        throw Throwables.propagate(e);
+                    }
+
+                    builder.persistentSettings(
+                        Settings.builder()
+                            .put(builder.persistentSettings())
+                            .put("crate.analysis.custom.analyzer.ft_search", analyzerSettings)
+                        .build());
+                    super.extendMetaData(builder);
+                }
+            },
             new MetaDataInformationModule(),
             new TestMetaDataModule(),
             new MetaDataSysModule(),

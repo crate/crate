@@ -24,18 +24,16 @@ package io.crate.analyze;
 import com.google.common.base.Preconditions;
 import io.crate.executor.transport.RepositoryService;
 import io.crate.sql.tree.DropSnapshot;
-import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 
 import java.util.List;
 
 @Singleton
-public class DropSnapshotAnalyzer {
+class DropSnapshotAnalyzer {
 
     private final RepositoryService repositoryService;
 
-    @Inject
-    public DropSnapshotAnalyzer(RepositoryService repositoryService) {
+    DropSnapshotAnalyzer(RepositoryService repositoryService) {
         this.repositoryService = repositoryService;
     }
 

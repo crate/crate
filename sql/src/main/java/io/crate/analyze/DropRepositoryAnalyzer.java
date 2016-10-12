@@ -24,16 +24,12 @@ package io.crate.analyze;
 
 import io.crate.executor.transport.RepositoryService;
 import io.crate.sql.tree.DropRepository;
-import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.inject.Singleton;
 
-@Singleton
-public class DropRepositoryAnalyzer {
+class DropRepositoryAnalyzer {
 
     private final RepositoryService repositoryService;
 
-    @Inject
-    public DropRepositoryAnalyzer(RepositoryService repositoryService) {
+    DropRepositoryAnalyzer(RepositoryService repositoryService) {
         this.repositoryService = repositoryService;
     }
 

@@ -24,15 +24,21 @@ import io.crate.action.sql.SessionContext;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.QueriedRelation;
 import io.crate.analyze.relations.RelationAnalyzer;
+import io.crate.analyze.repositories.RepositoryParamValidator;
+import io.crate.executor.transport.RepositoryService;
+import io.crate.metadata.FulltextAnalyzerResolver;
 import io.crate.metadata.Functions;
-import io.crate.metadata.NestedReferenceResolver;
 import io.crate.metadata.Schemas;
 import io.crate.sql.tree.*;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.inject.Inject;
+import org.elasticsearch.common.inject.Singleton;
+import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.indices.analysis.IndicesAnalysisService;
 
 import java.util.Locale;
 
+@Singleton
 public class Analyzer {
 
     private final AnalyzerDispatcher dispatcher = new AnalyzerDispatcher();
@@ -64,47 +70,46 @@ public class Analyzer {
     private final UnboundAnalyzer unboundAnalyzer;
 
     @Inject
-    public Analyzer(Schemas schemas,
+    public Analyzer(Settings settings,
+                    Schemas schemas,
                     Functions functions,
-                    NestedReferenceResolver refResolver,
                     ClusterService clusterService,
-                    RelationAnalyzer relationAnalyzer,
-                    CreateTableStatementAnalyzer createTableStatementAnalyzer,
-                    CreateAnalyzerStatementAnalyzer createAnalyzerStatementAnalyzer,
-                    AlterTableAnalyzer alterTableAnalyzer,
-                    AlterTableAddColumnAnalyzer alterTableAddColumnAnalyzer,
-                    InsertFromValuesAnalyzer insertFromValuesAnalyzer,
-                    InsertFromSubQueryAnalyzer insertFromSubQueryAnalyzer,
-                    DropRepositoryAnalyzer dropRepositoryAnalyzer,
-                    CreateRepositoryAnalyzer createRepositoryAnalyzer,
-                    DropSnapshotAnalyzer dropSnapshotAnalyzer,
-                    CreateSnapshotAnalyzer createSnapshotAnalyzer,
-                    RestoreSnapshotAnalyzer restoreSnapshotAnalyzer) {
-        this.relationAnalyzer = relationAnalyzer;
+                    IndicesAnalysisService indicesAnalysisService,
+                    RepositoryService repositoryService,
+                    RepositoryParamValidator repositoryParamValidator) {
+        NumberOfShards numberOfShards = new NumberOfShards(clusterService);
+        this.relationAnalyzer = new RelationAnalyzer(clusterService, functions, schemas);
         this.dropTableAnalyzer = new DropTableAnalyzer(schemas);
         this.dropBlobTableAnalyzer = new DropBlobTableAnalyzer(schemas);
-        this.createTableStatementAnalyzer = createTableStatementAnalyzer;
+        FulltextAnalyzerResolver fulltextAnalyzerResolver =
+            new FulltextAnalyzerResolver(clusterService, indicesAnalysisService);
+        this.createTableStatementAnalyzer = new CreateTableStatementAnalyzer(
+            schemas,
+            fulltextAnalyzerResolver,
+            functions,
+            numberOfShards
+        );
         this.showCreateTableAnalyzer = new ShowCreateTableAnalyzer(schemas);
         this.explainStatementAnalyzer = new ExplainStatementAnalyzer(this);
         this.showStatementAnalyzer = new ShowStatementAnalyzer(this);
         this.unboundAnalyzer = new UnboundAnalyzer(relationAnalyzer, showCreateTableAnalyzer, showStatementAnalyzer);
-        this.createBlobTableAnalyzer = new CreateBlobTableAnalyzer(schemas, new NumberOfShards(clusterService));
-        this.createAnalyzerStatementAnalyzer = createAnalyzerStatementAnalyzer;
+        this.createBlobTableAnalyzer = new CreateBlobTableAnalyzer(schemas, numberOfShards);
+        this.createAnalyzerStatementAnalyzer = new CreateAnalyzerStatementAnalyzer(fulltextAnalyzerResolver, settings);
         this.refreshTableAnalyzer = new RefreshTableAnalyzer(schemas);
         this.optimizeTableAnalyzer = new OptimizeTableAnalyzer(schemas);
-        this.alterTableAnalyzer = alterTableAnalyzer;
+        this.alterTableAnalyzer = new AlterTableAnalyzer(schemas);
         this.alterBlobTableAnalyzer = new AlterBlobTableAnalyzer(schemas);
-        this.alterTableAddColumnAnalyzer = alterTableAddColumnAnalyzer;
-        this.insertFromValuesAnalyzer = insertFromValuesAnalyzer;
-        this.insertFromSubQueryAnalyzer = insertFromSubQueryAnalyzer;
+        this.alterTableAddColumnAnalyzer = new AlterTableAddColumnAnalyzer(schemas , fulltextAnalyzerResolver, functions);
+        this.insertFromValuesAnalyzer = new InsertFromValuesAnalyzer(functions, schemas);
+        this.insertFromSubQueryAnalyzer = new InsertFromSubQueryAnalyzer(functions, schemas, relationAnalyzer);
         this.copyAnalyzer = new CopyAnalyzer(schemas, functions);
         this.updateAnalyzer = new UpdateAnalyzer(schemas, functions, relationAnalyzer);
         this.deleteAnalyzer = new DeleteAnalyzer(functions, relationAnalyzer);
-        this.dropRepositoryAnalyzer = dropRepositoryAnalyzer;
-        this.createRepositoryAnalyzer = createRepositoryAnalyzer;
-        this.dropSnapshotAnalyzer = dropSnapshotAnalyzer;
-        this.createSnapshotAnalyzer = createSnapshotAnalyzer;
-        this.restoreSnapshotAnalyzer = restoreSnapshotAnalyzer;
+        this.dropRepositoryAnalyzer = new DropRepositoryAnalyzer(repositoryService);
+        this.createRepositoryAnalyzer = new CreateRepositoryAnalyzer(repositoryService, repositoryParamValidator);
+        this.dropSnapshotAnalyzer = new DropSnapshotAnalyzer(repositoryService);
+        this.createSnapshotAnalyzer = new CreateSnapshotAnalyzer(repositoryService, schemas);
+        this.restoreSnapshotAnalyzer = new RestoreSnapshotAnalyzer(repositoryService, schemas);
     }
 
     public Analysis boundAnalyze(Statement statement, SessionContext sessionContext, ParameterContext parameterContext) {

@@ -25,18 +25,14 @@ import io.crate.analyze.repositories.RepositoryParamValidator;
 import io.crate.exceptions.RepositoryAlreadyExistsException;
 import io.crate.executor.transport.RepositoryService;
 import io.crate.sql.tree.CreateRepository;
-import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.settings.Settings;
 
-@Singleton
-public class CreateRepositoryAnalyzer {
+class CreateRepositoryAnalyzer {
 
     private final RepositoryParamValidator repositoryParamValidator;
     private final RepositoryService repositoryService;
 
-    @Inject
-    public CreateRepositoryAnalyzer(RepositoryService repositoryService, RepositoryParamValidator repositoryParamValidator) {
+    CreateRepositoryAnalyzer(RepositoryService repositoryService, RepositoryParamValidator repositoryParamValidator) {
         this.repositoryService = repositoryService;
         this.repositoryParamValidator = repositoryParamValidator;
     }

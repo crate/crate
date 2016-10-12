@@ -30,24 +30,20 @@ import io.crate.sql.tree.DefaultTraversalVisitor;
 import io.crate.sql.tree.Node;
 import io.crate.sql.tree.Table;
 import io.crate.types.CollectionType;
-import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.inject.Singleton;
 
 import javax.annotation.Nullable;
 import java.util.List;
 import java.util.Locale;
 
-@Singleton
-public class AlterTableAddColumnAnalyzer extends DefaultTraversalVisitor<AddColumnAnalyzedStatement, Analysis> {
+class AlterTableAddColumnAnalyzer extends DefaultTraversalVisitor<AddColumnAnalyzedStatement, Analysis> {
 
     private final Schemas schemas;
     private final FulltextAnalyzerResolver fulltextAnalyzerResolver;
     private final Functions functions;
 
-    @Inject
-    public AlterTableAddColumnAnalyzer(Schemas schemas,
-                                       FulltextAnalyzerResolver fulltextAnalyzerResolver,
-                                       Functions functions) {
+    AlterTableAddColumnAnalyzer(Schemas schemas,
+                                FulltextAnalyzerResolver fulltextAnalyzerResolver,
+                                Functions functions) {
         this.schemas = schemas;
         this.fulltextAnalyzerResolver = fulltextAnalyzerResolver;
         this.functions = functions;

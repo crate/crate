@@ -38,13 +38,10 @@ import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.Operation;
 import io.crate.sql.tree.Assignment;
 import io.crate.sql.tree.InsertFromSubquery;
-import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.inject.Singleton;
 
 import java.util.*;
 
-@Singleton
-public class InsertFromSubQueryAnalyzer {
+class InsertFromSubQueryAnalyzer {
 
     private final Functions functions;
     private final Schemas schemas;
@@ -75,8 +72,7 @@ public class InsertFromSubQueryAnalyzer {
         }
     }
 
-    @Inject
-    public InsertFromSubQueryAnalyzer(Functions functions, Schemas schemas, RelationAnalyzer relationAnalyzer) {
+    InsertFromSubQueryAnalyzer(Functions functions, Schemas schemas, RelationAnalyzer relationAnalyzer) {
         this.functions = functions;
         this.schemas = schemas;
         this.relationAnalyzer = relationAnalyzer;
