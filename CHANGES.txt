@@ -5,6 +5,12 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Prefer milliseconds unit for timestamps that are ambiguous, such as ``"1000"``,
+   which could be interpreted as ``1000-01-01T00:00:00Z`` (as in year ``1000AD``)
+   or ``1970-01-01T00:00:01Z`` (as in ``1000ms`` since-the-epoch).
+   This change only effects INSERTs into tables that have been created after this
+   change.
+
  - Added support for BETWEEN
 
  - Updated crate-admin to ``0.20.2`` which includes following changes:

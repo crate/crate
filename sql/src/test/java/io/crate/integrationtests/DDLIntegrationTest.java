@@ -679,8 +679,8 @@ public class DDLIntegrationTest extends SQLTransportIntegrationTest {
                                  "\"_meta\":{\"generated_columns\":{\"day\":\"date_trunc('day', ts)\"}}," +
                                  "\"_all\":{\"enabled\":false}," +
                                  "\"properties\":{" +
-                                 "\"day\":{\"type\":\"date\",\"format\":\"strict_date_optional_time||epoch_millis\"}," +
-                                 "\"ts\":{\"type\":\"date\",\"format\":\"strict_date_optional_time||epoch_millis\"}" +
+                                 "\"day\":{\"type\":\"date\",\"format\":\"epoch_millis||strict_date_optional_time\"}," +
+                                 "\"ts\":{\"type\":\"date\",\"format\":\"epoch_millis||strict_date_optional_time\"}" +
                                  "}}}";
 
         assertEquals(expectedMapping, getIndexMapping("test"));

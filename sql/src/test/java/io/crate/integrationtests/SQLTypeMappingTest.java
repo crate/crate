@@ -541,4 +541,16 @@ public class SQLTypeMappingTest extends SQLTransportIntegrationTest {
         SQLResponse response = execute("select * from ts_table order by ts desc");
         assertEquals(response.rowCount(), 3L);
     }
+
+    @Test
+    public void testInsertTimestampPreferMillis() throws Exception {
+        execute("create table ts_table (ts timestamp) clustered into 2 shards with (number_of_replicas=0)");
+        ensureYellow();
+        execute("insert into ts_table (ts) values (?)", new Object[]{ 1000L });
+        execute("insert into ts_table (ts) values (?)", new Object[]{ "2016" });
+        refresh();
+        SQLResponse response = execute("select ts from ts_table order by ts asc");
+        assertThat((Long) response.rows()[0][0], is(1000L));
+        assertThat((Long) response.rows()[1][0], is(2016L));
+    }
 }

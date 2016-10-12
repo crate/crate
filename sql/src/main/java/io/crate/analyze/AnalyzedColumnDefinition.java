@@ -214,6 +214,14 @@ public class AnalyzedColumnDefinition {
         Map<String, Object> mapping = new HashMap<>();
 
         mapping.put("type", dataType());
+
+        if ("date".equals(dataType())) {
+            /**
+             * We want 1000 not be be interpreted as year 1000AD but as 1970-01-01T00:00:01.000
+             * so prefer date mapping format epoch_millis over strict_date_optional_time
+             */
+            mapping.put("format", "epoch_millis||strict_date_optional_time");
+        }
         if (!NO_DOC_VALUES_SUPPORT.contains(dataType)) {
             mapping.put("doc_values", docValues());
             mapping.put("index", index());
