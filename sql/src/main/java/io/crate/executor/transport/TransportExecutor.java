@@ -292,24 +292,27 @@ public class TransportExecutor implements Executor {
      * class used to generate the NodeOperationTree
      * <p>
      * <p>
+     *
      * E.g. a plan like NL:
-     * <p>
-     * NL
-     * 1 NLPhase
-     * 2 MergePhase
-     * /               \
-     * /                 \
-     * QAF                 QAF
-     * 3 CollectPhase      5 CollectPhase
-     * 4 MergePhase        6 MergePhase
-     * <p>
-     * <p>
+     *
+     * <pre>
+     *              NL
+     *           1 NLPhase
+     *           2 MergePhase
+     *        /               \
+     *       /                 \
+     *     QAF                 QAF
+     *   3 CollectPhase      5 CollectPhase
+     *   4 MergePhase        6 MergePhase
+     * </pre>
+     *
      * Will have a data flow like this:
-     * <p>
-     * 3 -- 4
-     * -- 1 -- 2
-     * 5 -- 6
-     * <p>
+     *
+     * <pre>
+     *   3 -- 4
+     *          -- 1 -- 2
+     *   5 -- 6
+     * </pre>
      * The NodeOperation tree will have 5 NodeOperations (3-4, 4-1, 5-6, 6-1, 1-2)
      * And leaf will be 2 (the Phase which will provide the final result)
      * <p>
