@@ -72,25 +72,31 @@ public class DateFormatFunction extends Scalar<BytesRef, Object> {
 
     @Override
     public BytesRef evaluate(Input<Object>... args) {
-        if (hasNullInputs(args)) {
-            return null;
-        }
         BytesRef format;
         Input<?> timezoneLiteral = null;
         if (args.length == 1) {
             format = DEFAULT_FORMAT;
         } else {
             format = (BytesRef) args[0].value();
+            if (format == null) {
+                return null;
+            }
             if (args.length == 3) {
                 timezoneLiteral = args[1];
             }
         }
         Object tsValue = args[args.length - 1].value();
+        if (tsValue == null) {
+            return null;
+        }
         Long timestamp = TimestampType.INSTANCE.value(tsValue);
         DateTimeZone timezone = DateTimeZone.UTC;
         if (timezoneLiteral != null) {
-            timezone = TimeZoneParser.parseTimeZone(
-                BytesRefs.toBytesRef(timezoneLiteral.value()));
+            Object timezoneValue = timezoneLiteral.value();
+            if (timezoneValue == null) {
+                return null;
+            }
+            timezone = TimeZoneParser.parseTimeZone(BytesRefs.toBytesRef(timezoneValue));
         }
         DateTime dateTime = new DateTime(timestamp, timezone);
         return TimestampFormatter.format(format, dateTime);

@@ -69,15 +69,6 @@ public abstract class Scalar<ReturnType, InputType> implements FunctionImplement
         return false;
     }
 
-    protected static boolean hasNullInputs(Input[] args) {
-        for (Input arg : args) {
-            if (arg.value() == null) {
-                return true;
-            }
-        }
-        return false;
-    }
-
     protected static boolean containsNullLiteral(Collection<Symbol> symbols) {
         return Iterables.any(symbols, NULL_LITERAL);
     }
