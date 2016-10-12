@@ -53,6 +53,8 @@ public class SingleRowSource implements CollectSource {
         if (collectPhase.whereClause().noMatch()) {
             return ImmutableList.<CrateCollector>of(RowsCollector.empty(downstream));
         }
+        assert !collectPhase.whereClause().hasQuery()
+            : "WhereClause should have been normalized to either MATCH_ALL or NO_MATCH";
         ImplementationSymbolVisitor.Context ctx = nodeImplementationSymbolVisitor.extractImplementations(collectPhase.toCollect());
         return ImmutableList.<CrateCollector>of(RowsCollector.single(new InputRow(ctx.topLevelInputs()), downstream));
     }
