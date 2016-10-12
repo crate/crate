@@ -5,6 +5,10 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Postgres clients do not accept negative years in timestamp string but
+   require ``BC`` suffix for dates before Christ. Now the correct date format
+   string is sent to client.
+
  - Removed arbitrary limit on timestamp values. Now also dates before
    1653-02-10 and after 2286-11-20 are supported.
    However, there is still a limitation that the year needs to be within in the

@@ -28,6 +28,7 @@ import org.joda.time.format.DateTimeFormatter;
 
 import javax.annotation.Nonnull;
 import java.nio.charset.StandardCharsets;
+import java.util.Locale;
 
 class TimestampType extends PGType {
 
@@ -48,7 +49,7 @@ class TimestampType extends PGType {
 
 
     // ISO is the default - postgres allows changing the format but that's currently not supported
-    private static final DateTimeFormatter ISO_FORMATTER = DateTimeFormat.forPattern("yyyy-MM-dd HH:mm:ss.SSS +00").withZoneUTC();
+    private static final DateTimeFormatter ISO_FORMATTER = DateTimeFormat.forPattern("YYYY-MM-dd HH:mm:ss.SSS +00 G").withZoneUTC().withLocale(Locale.ENGLISH);
 
 
     private TimestampType() {
@@ -86,7 +87,7 @@ class TimestampType extends PGType {
 
     @Override
     byte[] encodeAsUTF8Text(@Nonnull Object value) {
-        return ISO_FORMATTER.print(((long) value)).getBytes(StandardCharsets.UTF_8);
+        return ISO_FORMATTER.print((long) value).getBytes(StandardCharsets.UTF_8);
     }
 
 
