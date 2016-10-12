@@ -215,7 +215,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
     }
 
     @Test
-    @UseJdbc(false) // $1 style parameter substitution not supported
+    @UseJdbc(0) // $1 style parameter substitution not supported
     public void testSelectWithParams() throws Exception {
         execute("create table test (first_name string, last_name string, age double) with (number_of_replicas = 0)");
         ensureYellow();

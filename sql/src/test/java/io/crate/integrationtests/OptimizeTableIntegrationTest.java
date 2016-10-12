@@ -33,7 +33,7 @@ import static org.hamcrest.Matchers.lessThanOrEqualTo;
 import static org.hamcrest.core.Is.is;
 
 @ESIntegTestCase.ClusterScope(minNumDataNodes = 2)
-@UseJdbc(false) // optimize has no rowcount
+@UseJdbc(0) // optimize has no rowcount
 public class OptimizeTableIntegrationTest extends SQLTransportIntegrationTest {
 
     @Rule

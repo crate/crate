@@ -82,7 +82,7 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
     }
 
     @Test
-    @UseJdbc(false) // no copy row count
+    @UseJdbc(0) // no copy row count
     public void testCopyFromIntoPartitionedTableWithPARTITIONKeyword() throws Exception {
         execute("create table quotes (" +
                 "id integer primary key," +
@@ -120,7 +120,7 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
      * Otherwise the rowCount returned from the copy from statement is ambiguous.
      */
     @Test
-    @UseJdbc(false) // no copy rowcount
+    @UseJdbc(0) // no copy rowcount
     public void testCopyFromIntoPartitionedTable() throws Exception {
         execute("create table quotes (" +
                 "  id integer primary key, " +
@@ -177,7 +177,7 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
     }
 
     @Test
-    @UseJdbc(false) // no copy rowcount
+    @UseJdbc(0) // no copy rowcount
     public void testCopyFromPartitionedTableCustomSchema() throws Exception {
         execute("create table my_schema.parted (" +
                 "  id long, " +
@@ -1007,7 +1007,7 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
     }
 
     @Test
-    @UseJdbc(false) // no drop table rowcount
+    @UseJdbc(0) // no drop table rowcount
     public void testDropPartitionedTable() throws Exception {
         execute("create table quotes (" +
                 "  id integer, " +
@@ -1096,7 +1096,7 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
     }
 
     @Test
-    @UseJdbc(false) // no drop table rowcount
+    @UseJdbc(0) // no drop table rowcount
     public void testPartitionedTableAllConstraintsRoundTrip() throws Exception {
         execute("create table quotes (id integer primary key, quote string, " +
                 "date timestamp primary key, user_id string primary key) " +
@@ -1134,7 +1134,7 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
     }
 
     @Test
-    @UseJdbc(false) // no drop table rowcount
+    @UseJdbc(0) // no drop table rowcount
     public void testPartitionedTableSchemaAllConstraintsRoundTrip() throws Exception {
         execute("create table my_schema.quotes (id integer primary key, quote string, " +
                 "date timestamp primary key, user_id string primary key) " +
@@ -1198,7 +1198,7 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
     }
 
     @Test
-    @UseJdbc(false) // drop table has no row count
+    @UseJdbc(0) // drop table has no row count
     public void testPartitionedTableNestedAllConstraintsRoundTrip() throws Exception {
         execute("create table quotes (" +
                 "id integer, " +
@@ -1466,7 +1466,7 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
     }
 
     @Test
-    @UseJdbc(false) // no refresh row count
+    @UseJdbc(0) // no refresh row count
     public void testRefreshPartitionedTableAllPartitions() throws Exception {
         execute("create table parted (id integer, name string, date timestamp) partitioned by (date) with (refresh_interval=0)");
         ensureYellow();
@@ -1505,7 +1505,7 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
     }
 
     @Test
-    @UseJdbc(false) // refresh has no row count
+    @UseJdbc(0) // refresh has no row count
     public void testRefreshPartitionedTableSinglePartitions() throws Exception {
         execute("create table parted (id integer, name string, date timestamp) partitioned by (date) " +
                 "with (number_of_replicas=0, refresh_interval=-1)");
@@ -1549,7 +1549,7 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
     }
 
     @Test
-    @UseJdbc(false) // no refresh row count
+    @UseJdbc(0) // no refresh row count
     public void testRefreshMultipleTablesWithPartition() throws Exception {
         execute("create table t1 (" +
                 "  id integer, " +

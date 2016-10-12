@@ -531,7 +531,7 @@ public class DDLIntegrationTest extends SQLTransportIntegrationTest {
     }
 
     @Test
-    @UseJdbc(false) // drop table has no rowcount
+    @UseJdbc(0) // drop table has no rowcount
     public void testDropTable() throws Exception {
         execute("create table test (col1 integer primary key, col2 string)");
         ensureYellow();
@@ -562,7 +562,7 @@ public class DDLIntegrationTest extends SQLTransportIntegrationTest {
     }
 
     @Test
-    @UseJdbc(false) // drop table has no rowcount
+    @UseJdbc(0) // drop table has no rowcount
     public void testDropTableIfExists() {
         execute("create table test (col1 integer primary key, col2 string)");
         ensureYellow();
@@ -592,7 +592,7 @@ public class DDLIntegrationTest extends SQLTransportIntegrationTest {
     }
 
     @Test
-    @UseJdbc(false) // drop table has no rowcount
+    @UseJdbc(0) // drop table has no rowcount
     public void testDropIfExistsBlobTable() throws Exception {
         execute("create blob table screenshots with (number_of_replicas=0)");
         execute("drop blob table if exists screenshots");
@@ -659,7 +659,7 @@ public class DDLIntegrationTest extends SQLTransportIntegrationTest {
     }
 
     @Test
-    @UseJdbc(false) // drop table has no rowcount
+    @UseJdbc(0) // drop table has no rowcount
     public void testDropTableWithCustomSchema() throws Exception {
         execute("create table a.t (name string) with (number_of_replicas=0)");
         ensureYellow();

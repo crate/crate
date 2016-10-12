@@ -63,7 +63,7 @@ public class NodeStatsTest extends SQLTransportIntegrationTest {
 
     @SuppressWarnings("ConstantConditions")
     @Test
-    @UseJdbc(false) // because of json some values are transfered as integer instead of long
+    @UseJdbc(0) // because of json some values are transfered as integer instead of long
     public void testThreadPools() throws Exception {
         SQLResponse response = execute("select thread_pools from sys.nodes limit 1");
 
@@ -163,7 +163,7 @@ public class NodeStatsTest extends SQLTransportIntegrationTest {
     }
 
     @Test
-    @UseJdbc(false) // because of json some values are transfered as integer instead of long
+    @UseJdbc(0) // because of json some values are transfered as integer instead of long
     public void testSysNodesOs() throws Exception {
         SQLResponse response = execute("select os from sys.nodes limit 1");
         Map results = (Map) response.rows()[0][0];
@@ -218,7 +218,7 @@ public class NodeStatsTest extends SQLTransportIntegrationTest {
     }
 
     @Test
-    @UseJdbc(false) // because of json some values are transfered as integer instead of long
+    @UseJdbc(0) // because of json some values are transfered as integer instead of long
     public void testFs() throws Exception {
         SQLResponse response = execute("select fs from sys.nodes limit 1");
         assertThat(response.rowCount(), is(1L));

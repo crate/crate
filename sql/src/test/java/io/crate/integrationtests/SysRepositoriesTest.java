@@ -45,7 +45,7 @@ import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.Matchers.is;
 
 @ESIntegTestCase.ClusterScope(transportClientRatio = 0)
-@UseJdbc(false) // missing column types
+@UseJdbc(0) // missing column types
 public class SysRepositoriesTest extends SQLTransportIntegrationTest {
 
     @ClassRule

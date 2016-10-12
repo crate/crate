@@ -48,7 +48,7 @@ public class RepositoryIntegrationTest extends SQLTransportIntegrationTest {
     }
 
     @Test
-    @UseJdbc(false) // drop repository has no rowcount
+    @UseJdbc(0) // drop repository has no rowcount
     public void testDropExistingRepository() throws Exception {
         execute("CREATE REPOSITORY existing_repo TYPE \"fs\" with (location=?, compress=True)",
             new Object[]{

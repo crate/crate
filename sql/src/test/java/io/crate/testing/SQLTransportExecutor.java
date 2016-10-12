@@ -103,7 +103,8 @@ public class SQLTransportExecutor {
     public SQLResponse exec(SQLRequest request, TimeValue timeout) {
         String pgUrl = clientProvider.pgUrl();
         Random random = RandomizedContext.current().getRandom();
-        if (pgUrl != null && random.nextBoolean() && isJdbcCompatible()) {
+        if (pgUrl != null && isJdbcEnabled()) {
+            LOGGER.trace("Executing with pgJDBC: {}", request.stmt());
             return executeWithPg(request, pgUrl, random);
         }
         try {
@@ -115,11 +116,12 @@ public class SQLTransportExecutor {
     }
 
     /**
-     * @return true if a class or method in the stacktrace contains a @UseJdbc(true) annotation.
+     * @return true if a class or method in the stacktrace contains a @UseJdbc annotation
+     * and based on the ration provided
      * <p>
      * Method annotations have higher priority than class annotations.
      */
-    private boolean isJdbcCompatible() {
+    private boolean isJdbcEnabled() {
         StackTraceElement[] stackTrace = Thread.currentThread().getStackTrace();
         for (StackTraceElement element : stackTrace) {
             try {
@@ -132,7 +134,15 @@ public class SQLTransportExecutor {
                         continue;
                     }
                 }
-                return annotation.value();
+                double ratio = annotation.value();
+                assert ratio >= 0.0 && ratio <= 1.0;
+                if (ratio == 0) {
+                    return false;
+                }
+                if (ratio == 1) {
+                    return true;
+                }
+                return RandomizedContext.current().getRandom().nextDouble() < ratio;
             } catch (NoSuchMethodException | ClassNotFoundException ignored) {
             }
         }
