@@ -5,6 +5,10 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Updated Crash to 0.18.1 which contains the following change:
+
+    - Fix: crashed in verbose mode if Crate didn't provide an error trace
+
  - Postgres clients do not accept negative years in timestamp string but
    require ``BC`` suffix for dates before Christ. Now the correct date format
    string is sent to client.
