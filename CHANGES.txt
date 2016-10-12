@@ -5,6 +5,16 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Updated crate-admin to ``0.20.2`` which includes following changes:
+
+   - Fixed the chart error that occured when navigating between the overview
+     and other pages.
+
+   - Fixed the logo URL which was not redirecting correctly.
+
+   - Fixed an issue that caused the query history in the console view to be
+     inconsistent.
+
  - Changed the server_version formatting sent via the postgres wire protocol to
    be compatible with clients which can't handle the numeric notation.
 
