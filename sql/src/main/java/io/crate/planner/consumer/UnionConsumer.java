@@ -22,7 +22,6 @@
 
 package io.crate.planner.consumer;
 
-import com.google.common.base.Function;
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -30,8 +29,6 @@ import io.crate.analyze.OrderBy;
 import io.crate.analyze.QuerySpec;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.PlannedAnalyzedRelation;
-import io.crate.analyze.symbol.InputColumn;
-import io.crate.analyze.symbol.Literal;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.planner.Limits;
 import io.crate.planner.Plan;
@@ -45,7 +42,6 @@ import io.crate.planner.projection.builder.ProjectionBuilder;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 
-import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
@@ -103,17 +99,6 @@ public class UnionConsumer implements Consumer {
             Optional<OrderBy> rootOrderBy = relationsUnion.querySpec().orderBy();
             List<Projection> projections = ImmutableList.of();
             if (limits.hasLimit() || rootOrderBy.isPresent()) {
-                // Convert orderBy symbols referring to the 1st relation of the union to InputColumns
-                // as rootOrderBy must apply to corresponding columns of all relations
-                if (rootOrderBy.isPresent()) {
-                    rootOrderBy.get().replace(new Function<Symbol, Symbol>() {
-                        @Nullable
-                        @Override
-                        public Symbol apply(@Nullable Symbol symbol) {
-                            return InputColumn.fromSymbol(symbol, outputs);
-                        }
-                    });
-                }
                 projections = new ArrayList<>(1);
                 TopNProjection topN = ProjectionBuilder.topNProjection(
                     outputs,

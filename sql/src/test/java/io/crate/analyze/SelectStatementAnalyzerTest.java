@@ -900,10 +900,14 @@ public class SelectStatementAnalyzerTest extends BaseAnalyzerTest {
         assertThat(tableUnion.first(), instanceOf(QueriedDocTable.class));
         assertThat(tableUnion.second(), instanceOf(QueriedDocTable.class));
         assertThat(tableUnion.querySpec(), isSQL("SELECT doc.users.id, doc.users.text " +
-                                                 "ORDER BY doc.users.id, doc.users.text LIMIT 10 OFFSET 20"));
-        assertThat(tableUnion.first().querySpec(), isSQL("SELECT doc.users.id, doc.users.text LIMIT add(10, 20)"));
-        assertThat(tableUnion.second().querySpec(), isSQL("SELECT doc.users_multi_pk.id, " +
-                                                          "doc.users_multi_pk.name LIMIT add(10, 20)"));
+                                                 "ORDER BY INPUT(0), INPUT(1) " +
+                                                 "LIMIT 10 OFFSET 20"));
+        assertThat(tableUnion.first().querySpec(), isSQL("SELECT doc.users.id, doc.users.text " +
+                                                         "ORDER BY doc.users.id, doc.users.text " +
+                                                         "LIMIT add(10, 20)"));
+        assertThat(tableUnion.second().querySpec(), isSQL("SELECT doc.users_multi_pk.id, doc.users_multi_pk.name " +
+                                                          "ORDER BY doc.users_multi_pk.id, doc.users_multi_pk.name " +
+                                                          "LIMIT add(10, 20)"));
     }
 
     @Test
@@ -920,11 +924,17 @@ public class SelectStatementAnalyzerTest extends BaseAnalyzerTest {
         assertThat(tableUnion1.first(), instanceOf(TwoRelationsUnion.class));
         assertThat(tableUnion1.second(), instanceOf(QueriedDocTable.class));
         assertThat(tableUnion1.querySpec(), isSQL("SELECT doc.users.id, doc.users.text " +
-                                                  "ORDER BY doc.users.text LIMIT 10 OFFSET 20"));
+                                                  "ORDER BY INPUT(1) LIMIT 10 OFFSET 20"));
+        assertThat(tableUnion1.second().querySpec(), isSQL("SELECT doc.users.id, doc.users.name " +
+                                                           "ORDER BY doc.users.name LIMIT add(10, 20)"));
 
         TwoRelationsUnion tableUnion2 = (TwoRelationsUnion) tableUnion1.first();
         assertThat(tableUnion2.first(), instanceOf(QueriedDocTable.class));
         assertThat(tableUnion2.second(), instanceOf(QueriedDocTable.class));
+        assertThat(tableUnion2.first().querySpec(), isSQL("SELECT doc.users.id, doc.users.text " +
+                                                          "ORDER BY doc.users.text LIMIT add(10, 20)"));
+        assertThat(tableUnion2.second().querySpec(), isSQL("SELECT doc.users_multi_pk.id, doc.users_multi_pk.name " +
+                                                           "ORDER BY doc.users_multi_pk.name LIMIT add(10, 20)"));
     }
 
     @Test
