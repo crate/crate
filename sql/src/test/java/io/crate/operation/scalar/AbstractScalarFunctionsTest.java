@@ -138,20 +138,24 @@ public abstract class AbstractScalarFunctionsTest extends CrateUnitTest {
         }
         Function function = (Function) functionSymbol;
         Scalar scalar = (Scalar) functions.get(function.info().ident());
+        assert scalar != null : "function must be registered";
 
-        Input[] arguments = new Input[function.arguments().size()];
+        AssertingInput[] arguments = new AssertingInput[function.arguments().size()];
         int idx = 0;
         for (int i = 0; i < function.arguments().size(); i++) {
             Symbol arg = function.arguments().get(i);
             if (arg instanceof Input) {
-                arguments[i] = ((Input) arg);
+                arguments[i] = new AssertingInput(((Input) arg));
             } else {
-                arguments[i] = inputs[idx];
+                arguments[i] = new AssertingInput(inputs[idx]);
                 idx++;
             }
         }
-        assertThat(scalar.compile(function.arguments()).evaluate(arguments), is(expectedValue));
-        assertThat(scalar.evaluate(arguments), is(expectedValue));
+        assertThat(scalar.compile(function.arguments()).evaluate((Input[] )arguments), is(expectedValue));
+        for (AssertingInput argument : arguments) {
+            argument.calls = 0;
+        }
+        assertThat(scalar.evaluate((Input[]) arguments), is(expectedValue));
 
     }
 
@@ -186,5 +190,23 @@ public abstract class AbstractScalarFunctionsTest extends CrateUnitTest {
         FunctionImplementation<Function> function = getFunction(functionName, argTypes);
         return function.normalizeSymbol(new Function(function.info(),
             Arrays.asList(args)), new TransactionContext());
+    }
+
+    private class AssertingInput implements Input {
+        private final Input delegate;
+        int calls = 0;
+
+        AssertingInput(Input delegate) {
+            this.delegate = delegate;
+        }
+
+        @Override
+        public Object value() {
+            calls++;
+            if (calls == 1) {
+                return delegate.value();
+            }
+            throw new AssertionError("Input.value() should only be called once");
+        }
     }
 }
