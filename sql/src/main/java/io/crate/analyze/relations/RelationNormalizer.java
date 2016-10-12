@@ -27,10 +27,7 @@ import com.google.common.collect.Collections2;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Maps;
 import io.crate.analyze.*;
-import io.crate.analyze.symbol.Field;
-import io.crate.analyze.symbol.Function;
-import io.crate.analyze.symbol.Symbol;
-import io.crate.analyze.symbol.SymbolVisitor;
+import io.crate.analyze.symbol.*;
 import io.crate.metadata.*;
 import io.crate.operation.operator.AndOperator;
 import io.crate.operation.scalar.conditional.LeastFunction;
@@ -118,24 +115,61 @@ final class RelationNormalizer extends AnalyzedRelationVisitor<RelationNormalize
 
     @Override
     public AnalyzedRelation visitTwoRelationsUnion(TwoRelationsUnion twoTableUnion, Context context) {
-        process(twoTableUnion.first(), context);
-        process(twoTableUnion.second(), context);
+        QuerySpec querySpec = twoTableUnion.querySpec();
+        QuerySpec firstQuerySpec = twoTableUnion.first().querySpec();
+        QuerySpec secondQuerySpec = twoTableUnion.second().querySpec();
 
         // PushDown limit to the relations of the union since as the union tree is built
         // by the parser the limit exists only in the top level TwoRelationsUnion
-        Optional<Symbol> pushDownLimit = Limits.add(twoTableUnion.querySpec().limit(),
-                                                    twoTableUnion.querySpec().offset());
-
-        assert !twoTableUnion.first().querySpec().limit().isPresent() :
+        Optional<Symbol> pushDownLimit = Limits.add(querySpec.limit(), querySpec.offset());
+        assert !firstQuerySpec.limit().isPresent() :
             "Limit on the individual relations of the union should be empty";
-        twoTableUnion.first().querySpec().limit(pushDownLimit);
-        assert !twoTableUnion.second().querySpec().limit().isPresent() :
+        firstQuerySpec.limit(pushDownLimit);
+        assert !secondQuerySpec.limit().isPresent() :
             "Limit on the individual relations of the union should be empty";
-        twoTableUnion.second().querySpec().limit(pushDownLimit);
+        secondQuerySpec.limit(pushDownLimit);
 
-        // TODO: push down order by
-        replaceFieldReferences(twoTableUnion.querySpec());
+        // Push down orderBy to the relations of the union for performance optimization
+        replaceFieldReferences(querySpec);
+        Optional<OrderBy> orderBy = querySpec.orderBy();
+        // Convert orderBy symbols referring to the 1st relation of the union to InputColumns
+        // as rootOrderBy must apply to corresponding columns of all relations
+        if (orderBy.isPresent()) {
+            final List<Symbol> outputs = querySpec.outputs();
+            orderBy.get().replace(new com.google.common.base.Function<Symbol, Symbol>() {
+                @Nullable
+                @Override
+                public Symbol apply(@Nullable Symbol symbol) {
+                    return InputColumn.fromSymbol(symbol, outputs);
+                }
+            });
+
+            OrderBy newFirstOrderBy = rewritePushedDownOrderBy(
+                mergeOrderBy(firstQuerySpec.orderBy(), orderBy), firstQuerySpec.outputs());
+            firstQuerySpec.orderBy(newFirstOrderBy);
+
+            OrderBy newSecondOrderBy = rewritePushedDownOrderBy(
+                mergeOrderBy(secondQuerySpec.orderBy(), orderBy), secondQuerySpec.outputs());
+            secondQuerySpec.orderBy(newSecondOrderBy);
+        }
+
+        process(twoTableUnion.first(), context);
+        process(twoTableUnion.second(), context);
         return twoTableUnion;
+    }
+
+    private static OrderBy rewritePushedDownOrderBy(OrderBy orderBy, final List<Symbol> outputs) {
+        return orderBy.copyAndReplace(new com.google.common.base.Function<Symbol, Symbol>() {
+            @Nullable
+            @Override
+            public Symbol apply(@Nullable Symbol symbol) {
+                if (symbol instanceof InputColumn) {
+                    InputColumn inputColumn = (InputColumn) symbol;
+                    return outputs.get(inputColumn.index());
+                }
+                return symbol;
+            }
+        });
     }
 
     private Map<QualifiedName, AnalyzedRelation> mapSourceRelations(MultiSourceSelect multiSourceSelect) {
