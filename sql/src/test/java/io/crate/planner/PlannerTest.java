@@ -8,6 +8,7 @@ import io.crate.analyze.WhereClause;
 import io.crate.analyze.relations.PlannedAnalyzedRelation;
 import io.crate.analyze.symbol.*;
 import io.crate.exceptions.UnsupportedFeatureException;
+import io.crate.exceptions.ValidationException;
 import io.crate.exceptions.VersionInvalidException;
 import io.crate.metadata.*;
 import io.crate.metadata.doc.DocSysColumns;
