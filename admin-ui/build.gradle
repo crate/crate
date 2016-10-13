@@ -5,13 +5,13 @@ archivesBaseName = 'crate-admin-ui'
 dependencies {
     compile project(':es')
     compile project(':core')
+    testCompile project(':testing')
 }
 
 ext {
     plugin_crateadmin_version = '0.20.4'
     downloadDir = new File(buildDir, 'downloads')
 }
-
 
 def extractTopfolder(File src, String trg) {
     copy {
@@ -28,7 +28,6 @@ def extractTopfolder(File src, String trg) {
         into trg
     }
 }
-
 
 task writePropertiesFile << {
     def file = new File("${buildDir}/crate-admin/plugin-descriptor.properties");
@@ -56,3 +55,20 @@ task downloadPlugin(dependsOn: [writePropertiesFile]) << {
     )
     extractTopfolder(dest, "${buildDir}/crate-admin/_site")
 }
+
+sourceSets {
+    main {
+        java {
+            srcDir 'src/main/java'
+        }
+    }
+
+    test {
+        java {
+            srcDir 'src/test/java'
+        }
+    }
+}
+
+sourceSets.main.output.resourcesDir = null
+sourceSets.test.output.resourcesDir = null

@@ -25,9 +25,7 @@ package io.crate.module;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.SettableFuture;
-import io.crate.ClusterIdService;
-import io.crate.Version;
-import io.crate.rest.CrateRestMainAction;
+import io.crate.rest.action.admin.AdminUIFrontpageAction;
 import org.elasticsearch.common.inject.AbstractModule;
 import org.elasticsearch.common.inject.TypeLiteral;
 import org.elasticsearch.common.inject.matcher.AbstractMatcher;
@@ -36,55 +34,34 @@ import org.elasticsearch.common.inject.spi.TypeEncounter;
 import org.elasticsearch.common.inject.spi.TypeListener;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
-import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.rest.action.main.RestMainAction;
 
-import java.util.concurrent.TimeUnit;
 
-public class CrateCoreModule extends AbstractModule {
+public class AdminUIModule extends AbstractModule {
 
-    private final ESLogger logger;
+    private final ESLogger logger =  Loggers.getLogger(getClass());
 
-    public CrateCoreModule(Settings settings) {
-        logger = Loggers.getLogger(getClass().getPackage().getName(), settings);
+    public AdminUIModule() {
     }
 
     @Override
     protected void configure() {
-        Version version = Version.CURRENT;
-        logger.info("configuring crate. version: {}", version);
-
-
-        /*
-         * This is a rather hacky method to overwrite the handler for "/"
-         * The ES plugins are loaded before the core ES components. That means that the registration for
-         * "/" in {@link CrateRestMainAction} is overwritten once {@link RestMainAction} is instantiated.
-         *
-         * By using a listener that is called after {@link RestMainAction} is instantiated we can call
-         * {@link io.crate.rest.CrateRestMainAction#registerHandler()}  and overwrite it "back".
-         */
-
-        // the crateListener is used to retrieve the CrateRestMainAction instance.
-        // otherwise there is no way to retrieve it at this point.
-        CrateRestMainActionListener crateListener = new CrateRestMainActionListener();
+        AdminUIFrontpageActionListener adminUIListener = new AdminUIFrontpageActionListener();
         bindListener(
-            new SubclassOfMatcher(CrateRestMainAction.class),
-            crateListener);
+            new SubclassOf(AdminUIFrontpageAction.class),
+            adminUIListener);
 
-        // this listener will use the CrateRestMainAction instance and call registerHandler
+        // this listener will use the AdminUIFrontpageAction instance and call registerHandler
         // after RestMainAction is created.
         bindListener(
-            new SubclassOfMatcher(RestMainAction.class),
-            new RestMainActionListener(crateListener.instanceFuture));
-
-        bind(ClusterIdService.class).asEagerSingleton();
+            new SubclassOf(RestMainAction.class),
+            new RestMainActionListener(adminUIListener.instanceFuture));
     }
 
     private class RestMainActionListener implements TypeListener {
 
-        private final SettableFuture<CrateRestMainAction> instanceFuture;
-
-        RestMainActionListener(SettableFuture<CrateRestMainAction> instanceFuture) {
+        private final SettableFuture<AdminUIFrontpageAction> instanceFuture;
+        RestMainActionListener(SettableFuture<AdminUIFrontpageAction> instanceFuture) {
             this.instanceFuture = instanceFuture;
         }
 
@@ -93,15 +70,15 @@ public class CrateCoreModule extends AbstractModule {
             encounter.register(new InjectionListener<I>() {
                 @Override
                 public void afterInjection(I injectee) {
-                    Futures.addCallback(instanceFuture, new FutureCallback<CrateRestMainAction>() {
+                    Futures.addCallback(instanceFuture, new FutureCallback<AdminUIFrontpageAction>() {
                         @Override
-                        public void onSuccess(CrateRestMainAction result) {
+                        public void onSuccess(AdminUIFrontpageAction result) {
                             result.registerHandler();
                         }
 
                         @Override
                         public void onFailure(Throwable t) {
-                            logger.error("Could not register CrateRestMainAction handler", t);
+                            logger.error("Could not register AdminUIFrontpageAction handler", t);
                         }
                     });
                 }
@@ -109,25 +86,24 @@ public class CrateCoreModule extends AbstractModule {
         }
     }
 
-    private static class SubclassOfMatcher extends AbstractMatcher<TypeLiteral<?>> {
+    private static class SubclassOf extends AbstractMatcher<TypeLiteral<?>> {
 
-        private final Class<?> klass;
+        private final Class<?> classz;
 
-        SubclassOfMatcher(Class<?> klass) {
-            this.klass = klass;
+        SubclassOf(Class<?> classz) {
+            this.classz = classz;
         }
 
         @Override
         public boolean matches(TypeLiteral<?> typeLiteral) {
-            return klass.isAssignableFrom(typeLiteral.getRawType());
+            return classz.isAssignableFrom(typeLiteral.getRawType());
         }
     }
 
-    private static class CrateRestMainActionListener implements TypeListener {
+    private static class AdminUIFrontpageActionListener implements TypeListener {
 
-        private final SettableFuture<CrateRestMainAction> instanceFuture;
-
-        CrateRestMainActionListener() {
+        private final SettableFuture<AdminUIFrontpageAction> instanceFuture;
+        AdminUIFrontpageActionListener() {
             this.instanceFuture = SettableFuture.create();
 
         }
@@ -137,7 +113,7 @@ public class CrateCoreModule extends AbstractModule {
             encounter.register(new InjectionListener<I>() {
                 @Override
                 public void afterInjection(I injectee) {
-                    instanceFuture.set((CrateRestMainAction) injectee);
+                    instanceFuture.set((AdminUIFrontpageAction) injectee);
                 }
             });
         }

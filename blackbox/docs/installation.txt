@@ -51,9 +51,12 @@ The Crate distribution also comes with a web based administration
 interface. It is served on port ``4200`` and you can access it with
 your browser once Crate is started::
 
-  http://host1.example.com:4200/admin/
+  http://host1.example.com:4200/
 
 **The admin interface runs on each node where Crate is installed.**
+**If the previous URL is accessed via libraries (eg. cURL),
+or via offline browsers (eg. wget) the request will be handled
+by the Crate Rest API, and the response will be JSON.**
 
 
 Install using Docker

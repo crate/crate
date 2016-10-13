@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Allow ``admin-ui`` to be served from ``/`` if accessed via browser.
+   Otherwise the request is handled by the REST API.
+   
  - Upgraded Elasticsearch to 2.4.1
 
  - Improved parameter de-serialization of the "Bind" message. If a Client

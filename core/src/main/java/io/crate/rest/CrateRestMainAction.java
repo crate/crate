@@ -57,7 +57,6 @@ public class CrateRestMainAction extends BaseRestHandler {
         this.controller = controller;
         this.clusterName = clusterName;
         this.clusterService = clusterService;
-        registerHandler();
         controller.registerFilter(crateRestFilter);
     }
 
