@@ -22,37 +22,33 @@
 package io.crate.analyze;
 
 import com.google.common.collect.ImmutableSet;
-import io.crate.metadata.MetaDataModule;
-import io.crate.operation.operator.OperatorModule;
 import io.crate.sql.tree.SetStatement;
-import io.crate.testing.MockedClusterServiceModule;
-import org.elasticsearch.common.inject.Module;
+import io.crate.test.integration.CrateUnitTest;
+import io.crate.testing.SQLExecutor;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.test.cluster.NoopClusterService;
 import org.hamcrest.Matchers;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
-import java.util.Arrays;
-import java.util.List;
 import java.util.Set;
 
 import static org.hamcrest.Matchers.*;
 
-public class SetAnalyzerTest extends BaseAnalyzerTest {
+public class SetAnalyzerTest extends CrateUnitTest {
 
     @Rule
     public ExpectedException expectedException = ExpectedException.none();
 
-    @Override
-    protected List<Module> getModules() {
-        List<Module> modules = super.getModules();
-        modules.addAll(Arrays.<Module>asList(
-            new MockedClusterServiceModule(),
-            new MetaDataModule(),
-            new OperatorModule())
-        );
-        return modules;
+    private SQLExecutor executor = SQLExecutor.builder(new NoopClusterService()).build();
+
+    private <T> T analyze(String stmt) {
+        return executor.analyze(stmt);
+    }
+
+    private <T> T analyze(String stmt, Object[] args) {
+        return executor.analyze(stmt, args);
     }
 
     @Test

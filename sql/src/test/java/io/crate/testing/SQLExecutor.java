@@ -27,12 +27,16 @@ import io.crate.analyze.Analysis;
 import io.crate.analyze.Analyzer;
 import io.crate.analyze.ParameterContext;
 import io.crate.analyze.repositories.RepositoryParamValidator;
-import io.crate.analyze.repositories.TypeSettings;
+import io.crate.analyze.repositories.RepositorySettingsModule;
 import io.crate.core.collections.Row;
 import io.crate.core.collections.RowN;
+import io.crate.core.collections.Rows;
 import io.crate.executor.transport.RepositoryService;
+import io.crate.metadata.Functions;
 import io.crate.metadata.ReferenceInfos;
 import io.crate.metadata.TableIdent;
+import io.crate.metadata.blob.BlobSchemaInfo;
+import io.crate.metadata.blob.BlobTableInfo;
 import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.metadata.doc.DocSchemaInfoFactory;
 import io.crate.metadata.doc.DocTableInfo;
@@ -40,10 +44,12 @@ import io.crate.metadata.doc.TestingDocTableInfoFactory;
 import io.crate.metadata.information.InformationSchemaInfo;
 import io.crate.metadata.sys.SysSchemaInfo;
 import io.crate.metadata.table.SchemaInfo;
+import io.crate.metadata.table.TestingTableInfo;
 import io.crate.sql.parser.SqlParser;
 import org.elasticsearch.action.admin.cluster.repositories.delete.TransportDeleteRepositoryAction;
 import org.elasticsearch.action.admin.cluster.repositories.put.TransportPutRepositoryAction;
 import org.elasticsearch.cluster.ClusterService;
+import org.elasticsearch.common.inject.ModulesBuilder;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.indices.analysis.IndicesAnalysisService;
 
@@ -51,7 +57,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
-import static io.crate.analyze.BaseAnalyzerTest.*;
+import static io.crate.analyze.TableDefinitions.*;
 import static io.crate.testing.TestingHelpers.getFunctions;
 import static org.mockito.Mockito.mock;
 
@@ -62,18 +68,21 @@ import static org.mockito.Mockito.mock;
  */
 public class SQLExecutor {
 
-    private final Analyzer analyzer;
+    public final Analyzer analyzer;
 
     public static class Builder {
 
         private final ClusterService clusterService;
         private final Map<String, SchemaInfo> schemas = new HashMap<>();
         private final Map<TableIdent, DocTableInfo> docTables = new HashMap<>();
+        private final Map<TableIdent, BlobTableInfo> blobTables = new HashMap<>();
+        private final Functions functions;
 
         public Builder(ClusterService clusterService) {
             this.clusterService = clusterService;
             schemas.put("sys", new SysSchemaInfo(clusterService));
             schemas.put("information_schema", new InformationSchemaInfo(clusterService));
+            functions = getFunctions();
         }
 
         public Builder enableDefaultTables() {
@@ -82,11 +91,14 @@ public class SQLExecutor {
             addDocTable(USER_TABLE_INFO_CLUSTERED_BY_ONLY);
             addDocTable(USER_TABLE_INFO_MULTI_PK);
             addDocTable(DEEPLY_NESTED_TABLE_INFO);
+            addDocTable(NESTED_PK_TABLE_INFO);
             addDocTable(TEST_PARTITIONED_TABLE_INFO);
+            addDocTable(TEST_NESTED_PARTITIONED_TABLE_INFO);
             addDocTable(TEST_MULTIPLE_PARTITIONED_TABLE_INFO);
             addDocTable(TEST_DOC_TRANSACTIONS_TABLE_INFO);
             addDocTable(TEST_DOC_LOCATIONS_TABLE_INFO);
             addDocTable(TEST_CLUSTER_BY_STRING_TABLE_INFO);
+            addDocTable(USER_TABLE_INFO_REFRESH_INTERVAL_BY_ONLY);
             addDocTable(T3.T1_INFO);
             addDocTable(T3.T2_INFO);
             addDocTable(T3.T3_INFO);
@@ -95,6 +107,9 @@ public class SQLExecutor {
 
         public SQLExecutor build() {
             schemas.put("doc", new DocSchemaInfo(clusterService, new TestingDocTableInfoFactory(docTables)));
+            if (!blobTables.isEmpty()) {
+                schemas.put(BlobSchemaInfo.NAME, new BlobSchemaInfo(clusterService, new TestingBlobTableInfoFactory(blobTables)));
+            }
             return new SQLExecutor(new Analyzer(
                 Settings.EMPTY,
                 new ReferenceInfos(
@@ -102,7 +117,7 @@ public class SQLExecutor {
                     clusterService,
                     new DocSchemaInfoFactory(new TestingDocTableInfoFactory(Collections.<TableIdent, DocTableInfo>emptyMap()))
                 ),
-                getFunctions(),
+                functions,
                 clusterService,
                 new IndicesAnalysisService(Settings.EMPTY),
                 new RepositoryService(
@@ -110,7 +125,9 @@ public class SQLExecutor {
                     mock(TransportDeleteRepositoryAction.class),
                     mock(TransportPutRepositoryAction.class)
                 ),
-                new RepositoryParamValidator(Collections.<String, TypeSettings>emptyMap())
+                new ModulesBuilder().add(new RepositorySettingsModule())
+                    .createInjector()
+                    .getInstance(RepositoryParamValidator.class)
             ));
         }
 
@@ -123,6 +140,16 @@ public class SQLExecutor {
             docTables.put(table.ident(), table);
             return this;
         }
+
+        public Builder addDocTable(TestingTableInfo.Builder builder) {
+            return addDocTable(builder.build(functions));
+        }
+
+        public Builder addBlobTable(BlobTableInfo tableInfo) {
+            blobTables.put(tableInfo.ident(), tableInfo);
+            return this;
+        }
+
     }
 
     public static Builder builder(ClusterService clusterService) {
@@ -133,16 +160,26 @@ public class SQLExecutor {
         this.analyzer = analyzer;
     }
 
+    private <T> T analyze(String stmt, ParameterContext parameterContext) {
+        Analysis analysis = analyzer.boundAnalyze(
+            SqlParser.createStatement(stmt), SessionContext.SYSTEM_SESSION, parameterContext);
+        //noinspection unchecked
+        return (T) analysis.analyzedStatement();
+    }
+
     public <T> T analyze(String statement) {
-        return analyze(statement, new Object[0]);
+        return analyze(statement, ParameterContext.EMPTY);
     }
 
     public <T> T analyze(String statement, Object[] arguments) {
-        ParameterContext parameterContext = arguments.length == 0 ? ParameterContext.EMPTY
-            : new ParameterContext(new RowN(arguments), Collections.<Row>emptyList());
-        Analysis analysis = analyzer.boundAnalyze(
-            SqlParser.createStatement(statement), SessionContext.SYSTEM_SESSION, parameterContext);
-        //noinspection unchecked
-        return (T) analysis.analyzedStatement();
+        return analyze(
+            statement,
+            arguments.length == 0
+                ? ParameterContext.EMPTY
+                : new ParameterContext(new RowN(arguments), Collections.<Row>emptyList()));
+    }
+
+    public <T> T analyze(String statement, Object[][] bulkArgs) {
+        return analyze(statement, new ParameterContext(Row.EMPTY, Rows.of(bulkArgs)));
     }
 }

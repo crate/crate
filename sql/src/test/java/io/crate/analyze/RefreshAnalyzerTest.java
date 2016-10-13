@@ -22,91 +22,59 @@
 package io.crate.analyze;
 
 import io.crate.exceptions.TableUnknownException;
-import io.crate.metadata.MetaDataModule;
 import io.crate.metadata.PartitionName;
-import io.crate.metadata.Schemas;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.blob.BlobSchemaInfo;
-import io.crate.metadata.blob.BlobTableInfo;
-import io.crate.metadata.sys.MetaDataSysModule;
-import io.crate.metadata.table.SchemaInfo;
-import io.crate.testing.MockedClusterServiceModule;
+import io.crate.test.integration.CrateUnitTest;
+import io.crate.testing.SQLExecutor;
 import org.apache.lucene.util.BytesRef;
-import org.elasticsearch.common.inject.Module;
+import org.elasticsearch.test.cluster.NoopClusterService;
 import org.hamcrest.Matchers;
-import org.junit.Rule;
+import org.junit.Before;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 
 import java.util.Arrays;
-import java.util.List;
 
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.is;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
-public class RefreshAnalyzerTest extends BaseAnalyzerTest {
+public class RefreshAnalyzerTest extends CrateUnitTest {
 
-    @Rule
-    public ExpectedException expectedException = ExpectedException.none();
+    private TableIdent myBlobsIdent = new TableIdent(BlobSchemaInfo.NAME, "blobs");
+    private SQLExecutor e;
 
-
-    private final static TableIdent TEST_BLOB_TABLE_IDENT = new TableIdent("blob", "blobs");
-
-    static class TestMetaDataModule extends MetaDataModule {
-
-        @Override
-        protected void bindSchemas() {
-            super.bindSchemas();
-            SchemaInfo schemaInfo = mock(SchemaInfo.class);
-            BlobTableInfo blobTableInfo = mock(BlobTableInfo.class);
-            when(blobTableInfo.ident()).thenReturn(TEST_BLOB_TABLE_IDENT);
-            when(schemaInfo.getTableInfo(TEST_BLOB_TABLE_IDENT.name())).thenReturn(blobTableInfo);
-            schemaBinder.addBinding(BlobSchemaInfo.NAME).toInstance(schemaInfo);
-
-            SchemaInfo docSchemaInfo = mock(SchemaInfo.class);
-            when(docSchemaInfo.getTableInfo(TEST_PARTITIONED_TABLE_IDENT.name()))
-                .thenReturn(TEST_PARTITIONED_TABLE_INFO);
-            when(docSchemaInfo.getTableInfo(USER_TABLE_IDENT.name())).thenReturn(USER_TABLE_INFO);
-
-            schemaBinder.addBinding(Schemas.DEFAULT_SCHEMA_NAME).toInstance(docSchemaInfo);
-        }
-    }
-
-    @Override
-    protected List<Module> getModules() {
-        List<Module> modules = super.getModules();
-        modules.addAll(Arrays.<Module>asList(
-            new MockedClusterServiceModule(),
-            new TestMetaDataModule(),
-            new MetaDataSysModule()
-        ));
-        return modules;
+    @Before
+    public void init() throws Exception {
+        NoopClusterService clusterService = new NoopClusterService();
+        TestingBlobTableInfo myBlobsTableInfo = TableDefinitions.createBlobTable(myBlobsIdent, clusterService);
+        e = SQLExecutor.builder(clusterService)
+            .enableDefaultTables()
+            .addBlobTable(myBlobsTableInfo)
+            .build();
     }
 
     @Test
     public void testRefreshSystemTable() throws Exception {
         expectedException.expect(IllegalArgumentException.class);
-        analyze("refresh table sys.shards");
+        e.analyze("refresh table sys.shards");
     }
 
     @Test
     public void testRefreshBlobTable() throws Exception {
         expectedException.expect(IllegalArgumentException.class);
-        analyze("refresh table blob.blobs");
+        e.analyze("refresh table blob.blobs");
     }
 
     @Test
     public void testRefreshPartition() throws Exception {
         PartitionName partition = new PartitionName("parted", Arrays.asList(new BytesRef("1395874800000")));
-        RefreshTableAnalyzedStatement analysis = (RefreshTableAnalyzedStatement) analyze("refresh table parted PARTITION (date=1395874800000)");
+        RefreshTableAnalyzedStatement analysis = e.analyze("refresh table parted PARTITION (date=1395874800000)");
         assertThat(analysis.indexNames(), contains(".partitioned.parted.04732cpp6ks3ed1o60o30c1g"));
     }
 
     @Test(expected = TableUnknownException.class)
     public void testRefreshMultipleTablesUnknown() throws Exception {
-        RefreshTableAnalyzedStatement analysis = (RefreshTableAnalyzedStatement) analyze("refresh table parted, foo, bar");
+        RefreshTableAnalyzedStatement analysis = e.analyze("refresh table parted, foo, bar");
 
         assertThat(analysis.indexNames().size(), is(1));
         assertThat(analysis.indexNames(), contains(Matchers.hasToString("doc.parted")));
@@ -115,31 +83,30 @@ public class RefreshAnalyzerTest extends BaseAnalyzerTest {
     @Test
     public void testRefreshInvalidPartitioned() throws Exception {
         expectedException.expect(IllegalArgumentException.class);
-        analyze("refresh table parted partition (invalid_column='hddsGNJHSGFEFZÜ')");
+        e.analyze("refresh table parted partition (invalid_column='hddsGNJHSGFEFZÜ')");
     }
 
     @Test
     public void testRefreshNonPartitioned() throws Exception {
         expectedException.expect(IllegalArgumentException.class);
-        analyze("refresh table users partition (foo='n')");
+        e.analyze("refresh table users partition (foo='n')");
     }
 
     @Test
     public void testRefreshSysPartitioned() throws Exception {
         expectedException.expect(IllegalArgumentException.class);
-        analyze("refresh table sys.shards partition (id='n')");
+        e.analyze("refresh table sys.shards partition (id='n')");
     }
 
     @Test
     public void testRefreshBlobPartitioned() throws Exception {
         expectedException.expect(IllegalArgumentException.class);
-        analyze("refresh table blob.blobs partition (n='n')");
+        e.analyze("refresh table blob.blobs partition (n='n')");
     }
 
     @Test
     public void testRefreshPartitionedTableNullPartition() throws Exception {
-        RefreshTableAnalyzedStatement analysis = (RefreshTableAnalyzedStatement) analyze("refresh table parted PARTITION (date=null)");
-        assertThat(analysis.indexNames(), contains(Matchers.hasToString(".partitioned.parted.0400"))
-        );
+        RefreshTableAnalyzedStatement analysis = e.analyze("refresh table parted PARTITION (date=null)");
+        assertThat(analysis.indexNames(), contains(Matchers.hasToString(".partitioned.parted.0400")));
     }
 }

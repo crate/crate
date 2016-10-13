@@ -129,8 +129,8 @@ public class NestedLoopConsumerTest extends CrateUnitTest {
             super.configure();
             bind(ThreadPool.class).toInstance(newMockedThreadPool());
             statsService = mock(TableStatsService.class);
-            when(statsService.numDocs(eq(BaseAnalyzerTest.USER_TABLE_IDENT))).thenReturn(10L);
-            when(statsService.numDocs(eq(BaseAnalyzerTest.USER_TABLE_IDENT_MULTI_PK))).thenReturn(5000L);
+            when(statsService.numDocs(eq(TableDefinitions.USER_TABLE_IDENT))).thenReturn(10L);
+            when(statsService.numDocs(eq(TableDefinitions.USER_TABLE_IDENT_MULTI_PK))).thenReturn(5000L);
             when(statsService.numDocs(eq(EMPTY_ROUTING_TABLE.ident()))).thenReturn(0L);
             bind(TableStatsService.class).toInstance(statsService);
         }
@@ -139,8 +139,8 @@ public class NestedLoopConsumerTest extends CrateUnitTest {
         protected void bindSchemas() {
             super.bindSchemas();
             SchemaInfo schemaInfo = mock(SchemaInfo.class);
-            when(schemaInfo.getTableInfo(BaseAnalyzerTest.USER_TABLE_IDENT.name())).thenReturn(BaseAnalyzerTest.USER_TABLE_INFO);
-            when(schemaInfo.getTableInfo(BaseAnalyzerTest.USER_TABLE_IDENT_MULTI_PK.name())).thenReturn(BaseAnalyzerTest.USER_TABLE_INFO_MULTI_PK);
+            when(schemaInfo.getTableInfo(TableDefinitions.USER_TABLE_IDENT.name())).thenReturn(TableDefinitions.USER_TABLE_INFO);
+            when(schemaInfo.getTableInfo(TableDefinitions.USER_TABLE_IDENT_MULTI_PK.name())).thenReturn(TableDefinitions.USER_TABLE_INFO_MULTI_PK);
             when(schemaInfo.getTableInfo(EMPTY_ROUTING_TABLE.ident().name())).thenReturn(EMPTY_ROUTING_TABLE);
             schemaBinder.addBinding(Schemas.DEFAULT_SCHEMA_NAME).toInstance(schemaInfo);
         }

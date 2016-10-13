@@ -22,145 +22,100 @@
 package io.crate.analyze;
 
 import com.google.common.collect.ImmutableMap;
-import io.crate.action.sql.SessionContext;
 import io.crate.analyze.relations.DocTableRelation;
 import io.crate.analyze.symbol.DynamicReference;
 import io.crate.analyze.symbol.Function;
 import io.crate.analyze.symbol.Literal;
 import io.crate.analyze.symbol.Symbol;
-import io.crate.core.collections.Row;
-import io.crate.core.collections.RowN;
-import io.crate.core.collections.Rows;
 import io.crate.exceptions.ColumnValidationException;
 import io.crate.exceptions.TableUnknownException;
 import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.metadata.*;
-import io.crate.metadata.sys.MetaDataSysModule;
-import io.crate.metadata.table.SchemaInfo;
-import io.crate.metadata.table.TableInfo;
+import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.TestingTableInfo;
-import io.crate.operation.operator.OperatorModule;
-import io.crate.operation.predicate.PredicateModule;
-import io.crate.operation.scalar.ScalarFunctionModule;
-import io.crate.sql.parser.SqlParser;
-import io.crate.testing.MockedClusterServiceModule;
+import io.crate.test.integration.CrateUnitTest;
+import io.crate.testing.SQLExecutor;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.DoubleType;
-import org.elasticsearch.common.inject.Module;
+import org.elasticsearch.test.cluster.NoopClusterService;
 import org.junit.Assert;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
-import org.mockito.Mock;
 
 import java.util.*;
 
+import static io.crate.analyze.TableDefinitions.SHARD_ROUTING;
+import static io.crate.analyze.TableDefinitions.USER_TABLE_INFO;
 import static io.crate.testing.TestingHelpers.*;
 import static org.hamcrest.Matchers.*;
-import static org.mockito.Mockito.when;
 
-public class UpdateAnalyzerTest extends BaseAnalyzerTest {
+public class UpdateAnalyzerTest extends CrateUnitTest {
 
     private static final String VERSION_EX_FROM_VALIDATOR = "Filtering \"_version\" in WHERE clause only works using the \"=\" operator, checking for a numeric value";
-    @Rule
-    public ExpectedException expectedException = ExpectedException.none();
 
-    private final static TableIdent NESTED_CLUSTERED_BY_TABLE_IDENT = new TableIdent("doc", "nestedclustered");
-    private final static TableInfo NESTED_CLUSTERED_BY_TABLE_INFO = TestingTableInfo.builder(
-        NESTED_CLUSTERED_BY_TABLE_IDENT, SHARD_ROUTING)
+    private final TableIdent nestedClusteredByTableIdent = new TableIdent("doc", "nestedclustered");
+    private final DocTableInfo nestedClusteredByTableInfo = TestingTableInfo.builder(
+        nestedClusteredByTableIdent, SHARD_ROUTING)
         .add("obj", DataTypes.OBJECT, null)
         .add("obj", DataTypes.STRING, Collections.singletonList("name"))
         .add("other_obj", DataTypes.OBJECT, null)
         .clusteredBy("obj.name").build();
 
-    private final static TableIdent TEST_ALIAS_TABLE_IDENT = new TableIdent(Schemas.DEFAULT_SCHEMA_NAME, "alias");
-    private final static TableInfo TEST_ALIAS_TABLE_INFO = new TestingTableInfo.Builder(
-        TEST_ALIAS_TABLE_IDENT, new Routing(ImmutableMap.<String, Map<String, List<Integer>>>of()))
+    private final TableIdent testAliasTableIdent = new TableIdent(Schemas.DEFAULT_SCHEMA_NAME, "alias");
+    private final DocTableInfo testAliasTableInfo = new TestingTableInfo.Builder(
+        testAliasTableIdent, new Routing(ImmutableMap.<String, Map<String, List<Integer>>>of()))
         .add("bla", DataTypes.STRING, null)
         .isAlias(true).build();
 
-    private final static TableIdent NESTED_PK = new TableIdent(Schemas.DEFAULT_SCHEMA_NAME, "t_nested_pk");
-    private final static TableInfo TI_NESTED_PK = new TestingTableInfo.Builder(
-        NESTED_PK, SHARD_ROUTING)
+    private final TableIdent nestedPk = new TableIdent(Schemas.DEFAULT_SCHEMA_NAME, "t_nested_pk");
+    private final DocTableInfo tiNestedPk = new TestingTableInfo.Builder(
+        nestedPk, SHARD_ROUTING)
         .add("o", DataTypes.OBJECT)
         .add("o", DataTypes.INTEGER, Collections.singletonList("x"))
         .add("o", DataTypes.INTEGER, Collections.singletonList("y"))
         .addPrimaryKey("o.x")
         .build();
 
-
-    @Mock
-    private SchemaInfo schemaInfo;
-
-    private class TestMetaDataModule extends MetaDataModule {
-        @Override
-        protected void bindSchemas() {
-            super.bindSchemas();
-            when(schemaInfo.getTableInfo(USER_TABLE_IDENT.name())).thenReturn(USER_TABLE_INFO);
-            when(schemaInfo.getTableInfo(TEST_ALIAS_TABLE_IDENT.name())).thenReturn(TEST_ALIAS_TABLE_INFO);
-            when(schemaInfo.getTableInfo(USER_TABLE_IDENT_CLUSTERED_BY_ONLY.name())).thenReturn(USER_TABLE_INFO_CLUSTERED_BY_ONLY);
-            when(schemaInfo.getTableInfo(TEST_PARTITIONED_TABLE_IDENT.name()))
-                .thenReturn(TEST_PARTITIONED_TABLE_INFO);
-            when(schemaInfo.getTableInfo(DEEPLY_NESTED_TABLE_IDENT.name())).thenReturn(DEEPLY_NESTED_TABLE_INFO);
-            when(schemaInfo.getTableInfo(NESTED_CLUSTERED_BY_TABLE_IDENT.name())).thenReturn(NESTED_CLUSTERED_BY_TABLE_INFO);
-            when(schemaInfo.getTableInfo(NESTED_PK.name())).thenReturn(TI_NESTED_PK);
-            schemaBinder.addBinding(Schemas.DEFAULT_SCHEMA_NAME).toInstance(schemaInfo);
-        }
-    }
-
-    @Override
-    protected List<Module> getModules() {
-        List<Module> modules = super.getModules();
-        modules.addAll(Arrays.<Module>asList(
-            new MockedClusterServiceModule(),
-            new TestMetaDataModule(),
-            new OperatorModule(),
-            new PredicateModule(),
-            new MetaDataSysModule(),
-            new ScalarFunctionModule()
-        ));
-        return modules;
-    }
+    private SQLExecutor e;
 
     @Before
-    public void bindGeneratedColumnTables() {
+    public void init() {
+        SQLExecutor.Builder builder = SQLExecutor.builder(new NoopClusterService())
+            .enableDefaultTables()
+            .addDocTable(nestedClusteredByTableInfo)
+            .addDocTable(testAliasTableInfo)
+            .addDocTable(tiNestedPk);
+
         TableIdent partedGeneratedColumnTableIdent = new TableIdent(null, "parted_generated_column");
-        TableInfo partedGeneratedColumnTableInfo = new TestingTableInfo.Builder(
+        TestingTableInfo.Builder partedGeneratedColumnTableInfo = new TestingTableInfo.Builder(
             partedGeneratedColumnTableIdent, new Routing(ImmutableMap.<String, Map<String, List<Integer>>>of()))
             .add("ts", DataTypes.TIMESTAMP, null)
-            .addGeneratedColumn("day", DataTypes.TIMESTAMP, "date_trunc('day', ts)", true)
-            .build(injector.getInstance(Functions.class));
-        when(schemaInfo.getTableInfo(partedGeneratedColumnTableIdent.name()))
-            .thenReturn(partedGeneratedColumnTableInfo);
+            .addGeneratedColumn("day", DataTypes.TIMESTAMP, "date_trunc('day', ts)", true);
+        builder.addDocTable(partedGeneratedColumnTableInfo);
 
         TableIdent nestedPartedGeneratedColumnTableIdent = new TableIdent(null, "nested_parted_generated_column");
-        TableInfo nestedPartedGeneratedColumnTableInfo = new TestingTableInfo.Builder(
+        TestingTableInfo.Builder nestedPartedGeneratedColumnTableInfo = new TestingTableInfo.Builder(
             nestedPartedGeneratedColumnTableIdent, new Routing(ImmutableMap.<String, Map<String, List<Integer>>>of()))
             .add("user", DataTypes.OBJECT, null)
             .add("user", DataTypes.STRING, Arrays.asList("name"))
-            .addGeneratedColumn("name", DataTypes.STRING, "concat(user['name'], 'bar')", true)
-            .build(injector.getInstance(Functions.class));
-        when(schemaInfo.getTableInfo(nestedPartedGeneratedColumnTableIdent.name()))
-            .thenReturn(nestedPartedGeneratedColumnTableInfo);
+            .addGeneratedColumn("name", DataTypes.STRING, "concat(user['name'], 'bar')", true);
+        builder.addDocTable(nestedPartedGeneratedColumnTableInfo);
+
+        e = builder.build();
     }
 
     protected UpdateAnalyzedStatement analyze(String statement) {
-        return analyze(statement, new Object[0]);
+        return e.analyze(statement);
     }
 
     protected UpdateAnalyzedStatement analyze(String statement, Object[] params) {
-        return (UpdateAnalyzedStatement) analyzer.boundAnalyze(SqlParser.createStatement(statement),
-            SessionContext.SYSTEM_SESSION,
-            new ParameterContext(new RowN(params), Collections.<Row>emptyList())).analyzedStatement();
+        return (UpdateAnalyzedStatement) e.analyze(statement, params);
     }
 
     protected UpdateAnalyzedStatement analyze(String statement, Object[][] bulkArgs) {
-        return (UpdateAnalyzedStatement) analyzer.boundAnalyze(SqlParser.createStatement(statement),
-            SessionContext.SYSTEM_SESSION,
-            new ParameterContext(Row.EMPTY, Rows.of(bulkArgs))).analyzedStatement();
+        return (UpdateAnalyzedStatement) e.analyze(statement, bulkArgs);
     }
 
     @Test

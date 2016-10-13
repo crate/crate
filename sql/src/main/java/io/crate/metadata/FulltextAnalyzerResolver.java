@@ -21,6 +21,7 @@
 
 package io.crate.metadata;
 
+import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableSet;
 import io.crate.Constants;
 import io.crate.exceptions.AnalyzerInvalidException;
@@ -197,16 +198,21 @@ public class FulltextAnalyzerResolver {
         return result;
     }
 
-    public static BytesReference encodeSettings(Settings settings) throws IOException {
-        BytesStreamOutput bso = new BytesStreamOutput();
-        XContentBuilder builder = XContentFactory.jsonBuilder(bso);
-        builder.startObject();
-        for (Map.Entry<String, String> entry : settings.getAsMap().entrySet()) {
-            builder.field(entry.getKey(), entry.getValue());
+    public static BytesReference encodeSettings(Settings settings) {
+        try {
+            BytesStreamOutput bso = new BytesStreamOutput();
+            XContentBuilder builder = XContentFactory.jsonBuilder(bso);
+            builder.startObject();
+            for (Map.Entry<String, String> entry : settings.getAsMap().entrySet()) {
+                builder.field(entry.getKey(), entry.getValue());
+            }
+            builder.endObject();
+            builder.flush();
+            return bso.bytes();
+        } catch (IOException e) {
+            // this is a memory stream so no real I/O happens and a IOException can't really happen at runtime
+            throw Throwables.propagate(e);
         }
-        builder.endObject();
-        builder.flush();
-        return bso.bytes();
     }
 
     public static Settings decodeSettings(String encodedSettings) throws IOException {

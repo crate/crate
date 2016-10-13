@@ -20,22 +20,30 @@
  * agreement.
  */
 
-package io.crate.analyze.relations;
+package io.crate.testing;
 
-import io.crate.exceptions.ValidationException;
-import io.crate.test.integration.CrateUnitTest;
-import io.crate.testing.SQLExecutor;
-import org.elasticsearch.test.cluster.NoopClusterService;
-import org.junit.Test;
+import io.crate.exceptions.TableUnknownException;
+import io.crate.metadata.TableIdent;
+import io.crate.metadata.blob.BlobTableInfo;
+import io.crate.metadata.blob.BlobTableInfoFactory;
+import org.elasticsearch.cluster.ClusterService;
 
-public class RelationAnalyzerTest extends CrateUnitTest {
+import java.util.Map;
 
-    private SQLExecutor executor = SQLExecutor.builder(new NoopClusterService()).enableDefaultTables().build();
+class TestingBlobTableInfoFactory implements BlobTableInfoFactory {
 
-    @Test
-    public void testValidateUsedRelationsInJoinConditions() throws Exception {
-        expectedException.expect(ValidationException.class);
-        expectedException.expectMessage("missing FROM-clause entry for relation 't3'");
-        executor.analyze("select * from t1 join t2 on t1.a = t3.c join t3 on t2.b = t3.c");
+    private final Map<TableIdent, BlobTableInfo> tables;
+
+    TestingBlobTableInfoFactory(Map<TableIdent, BlobTableInfo> blobTables) {
+        this.tables = blobTables;
+    }
+
+    @Override
+    public BlobTableInfo create(TableIdent ident, ClusterService clusterService) {
+        BlobTableInfo blobTableInfo = tables.get(ident);
+        if (blobTableInfo == null) {
+            throw new TableUnknownException(ident);
+        }
+        return blobTableInfo;
     }
 }

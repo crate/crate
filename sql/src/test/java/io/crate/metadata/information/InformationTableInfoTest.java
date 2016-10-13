@@ -25,11 +25,8 @@ package io.crate.metadata.information;
 import io.crate.metadata.Reference;
 import io.crate.metadata.table.TableInfo;
 import io.crate.test.integration.CrateUnitTest;
-import io.crate.testing.MockedClusterServiceModule;
 import io.crate.testing.TestingHelpers;
-import org.elasticsearch.cluster.ClusterService;
-import org.elasticsearch.common.inject.Injector;
-import org.elasticsearch.common.inject.ModulesBuilder;
+import org.elasticsearch.test.cluster.NoopClusterService;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -41,11 +38,7 @@ public class InformationTableInfoTest extends CrateUnitTest {
 
     @Before
     public void prepare() throws Exception {
-        Injector injector = new ModulesBuilder()
-            .add(new MockedClusterServiceModule())
-            .createInjector();
-        ClusterService clusterService = injector.getInstance(ClusterService.class);
-        informationSchemaInfo = new InformationSchemaInfo(clusterService);
+        informationSchemaInfo = new InformationSchemaInfo(new NoopClusterService());
     }
 
     @Test

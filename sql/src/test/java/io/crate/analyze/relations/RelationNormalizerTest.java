@@ -22,44 +22,25 @@
 
 package io.crate.analyze.relations;
 
-import io.crate.analyze.BaseAnalyzerTest;
 import io.crate.analyze.MultiSourceSelect;
 import io.crate.analyze.QueriedSelectRelation;
 import io.crate.analyze.SelectAnalyzedStatement;
-import io.crate.operation.aggregation.impl.AggregationImplModule;
-import io.crate.operation.operator.OperatorModule;
-import io.crate.operation.scalar.ScalarFunctionModule;
-import io.crate.testing.MockedClusterServiceModule;
+import io.crate.test.integration.CrateUnitTest;
+import io.crate.testing.SQLExecutor;
 import io.crate.testing.T3;
-import org.elasticsearch.common.inject.Module;
+import org.elasticsearch.test.cluster.NoopClusterService;
 import org.junit.Test;
 
-import java.util.Arrays;
-import java.util.List;
-
-import static io.crate.testing.T3.META_DATA_MODULE;
 import static io.crate.testing.TestingHelpers.isSQL;
 import static org.hamcrest.Matchers.instanceOf;
 
-public class RelationNormalizerTest extends BaseAnalyzerTest {
+public class RelationNormalizerTest extends CrateUnitTest {
 
-    @Override
-    protected List<Module> getModules() {
-        List<Module> modules = super.getModules();
-        modules.addAll(Arrays.<Module>asList(
-            new MockedClusterServiceModule(),
-            META_DATA_MODULE,
-            new ScalarFunctionModule(),
-            new AggregationImplModule(),
-            new OperatorModule()
-        ));
-        return modules;
-    }
+    private SQLExecutor executor = SQLExecutor.builder(new NoopClusterService()).enableDefaultTables().build();
 
     private QueriedRelation normalize(String stmt) {
-        SelectAnalyzedStatement statement = analyze(stmt);
-        QueriedRelation relation = statement.relation();
-        return relation;
+        SelectAnalyzedStatement statement = executor.analyze(stmt);
+        return statement.relation();
     }
 
     @Test

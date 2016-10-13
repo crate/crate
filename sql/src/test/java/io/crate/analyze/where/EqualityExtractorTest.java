@@ -22,7 +22,6 @@
 package io.crate.analyze.where;
 
 import com.google.common.collect.ImmutableList;
-import io.crate.analyze.BaseAnalyzerTest;
 import io.crate.analyze.EvaluatingNormalizer;
 import io.crate.analyze.symbol.Function;
 import io.crate.analyze.symbol.Literal;
@@ -30,50 +29,35 @@ import io.crate.analyze.symbol.Symbol;
 import io.crate.metadata.*;
 import io.crate.operation.operator.AndOperator;
 import io.crate.operation.operator.EqOperator;
-import io.crate.operation.operator.OperatorModule;
 import io.crate.operation.operator.OrOperator;
 import io.crate.operation.operator.any.AnyEqOperator;
-import io.crate.testing.MockedClusterServiceModule;
+import io.crate.test.integration.CrateUnitTest;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
-import org.elasticsearch.common.inject.Module;
 import org.junit.Test;
 
 import java.util.Arrays;
 import java.util.List;
 
+import static io.crate.testing.TestingHelpers.getFunctions;
 import static io.crate.testing.TestingHelpers.isLiteral;
 import static org.hamcrest.Matchers.*;
 import static org.hamcrest.core.Is.is;
 
 @SuppressWarnings("unchecked")
-public class EqualityExtractorTest extends BaseAnalyzerTest {
+public class EqualityExtractorTest extends CrateUnitTest {
 
-    TransactionContext transactionContext = new TransactionContext();
-
-    @Override
-    protected List<Module> getModules() {
-        List<Module> modules = super.getModules();
-        modules.addAll(Arrays.<Module>asList(
-            new MockedClusterServiceModule(),
-            new MetaDataModule(),
-            new OperatorModule())
-        );
-        return modules;
-    }
-
+    private TransactionContext transactionContext = new TransactionContext();
 
     private List<List<Symbol>> analyzeParentX(Symbol query) {
         return getExtractor().extractParentMatches(ImmutableList.of(Ref("x").ident().columnIdent()), query, transactionContext);
-
     }
 
     private List<List<Symbol>> analyzeExactX(Symbol query) {
         return analyzeExact(query, ImmutableList.of(Ref("x").ident().columnIdent()));
     }
-
 
     private List<List<Symbol>> analyzeExactXY(Symbol query) {
         return analyzeExact(query, ImmutableList.of(Ref("x").ident().columnIdent(), Ref("y").ident().columnIdent()));
@@ -85,13 +69,9 @@ public class EqualityExtractorTest extends BaseAnalyzerTest {
     }
 
     private EqualityExtractor getExtractor() {
-        EvaluatingNormalizer normalizer = EvaluatingNormalizer.functionOnlyNormalizer(
-            injector.getInstance(Functions.class),
-            ReplaceMode.COPY);
-
+        EvaluatingNormalizer normalizer = EvaluatingNormalizer.functionOnlyNormalizer(getFunctions(), ReplaceMode.COPY);
         return new EqualityExtractor(normalizer);
     }
-
 
     private Function And(Symbol left, Symbol right) {
         return new Function(AndOperator.INFO, Arrays.asList(left, right));

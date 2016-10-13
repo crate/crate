@@ -22,38 +22,23 @@
 package io.crate.analyze;
 
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Lists;
-import io.crate.action.sql.SessionContext;
-import io.crate.analyze.repositories.RepositorySettingsModule;
-import io.crate.core.collections.Row;
-import io.crate.core.collections.RowN;
-import io.crate.core.collections.Rows;
 import io.crate.core.collections.TreeMapBuilder;
 import io.crate.metadata.*;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.ColumnPolicy;
 import io.crate.metadata.table.TableInfo;
 import io.crate.metadata.table.TestingTableInfo;
-import io.crate.operation.tablefunctions.TableFunctionModule;
-import io.crate.sql.parser.SqlParser;
-import io.crate.test.integration.CrateUnitTest;
 import io.crate.types.ArrayType;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
-import org.elasticsearch.common.inject.Binder;
-import org.elasticsearch.common.inject.Injector;
-import org.elasticsearch.common.inject.Module;
-import org.elasticsearch.common.inject.ModulesBuilder;
-import org.elasticsearch.threadpool.ThreadPool;
-import org.junit.After;
-import org.junit.Before;
+import org.elasticsearch.cluster.ClusterService;
 
-import java.util.*;
-import java.util.concurrent.TimeUnit;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
 
-import static io.crate.testing.TestingHelpers.newMockedThreadPool;
-
-public abstract class BaseAnalyzerTest extends CrateUnitTest {
+public final class TableDefinitions {
 
     static final Routing SHARD_ROUTING = new Routing(TreeMapBuilder.<String, Map<String, List<Integer>>>newMapBuilder()
         .put("nodeOne", TreeMapBuilder.<String, List<Integer>>newMapBuilder().put("t1", Arrays.asList(1, 2)).map())
@@ -105,13 +90,13 @@ public abstract class BaseAnalyzerTest extends CrateUnitTest {
         .clusteredBy("id")
         .build();
     static final TableIdent USER_TABLE_REFRESH_INTERVAL_BY_ONLY = new TableIdent(Schemas.DEFAULT_SCHEMA_NAME, "user_refresh_interval");
-    static final TableInfo USER_TABLE_INFO_REFRESH_INTERVAL_BY_ONLY = TestingTableInfo.builder(USER_TABLE_REFRESH_INTERVAL_BY_ONLY, SHARD_ROUTING)
+    public static final DocTableInfo USER_TABLE_INFO_REFRESH_INTERVAL_BY_ONLY = TestingTableInfo.builder(USER_TABLE_REFRESH_INTERVAL_BY_ONLY, SHARD_ROUTING)
         .add("id", DataTypes.LONG, null)
         .add("content", DataTypes.STRING, null)
         .clusteredBy("id")
         .build();
     static final TableIdent NESTED_PK_TABLE_IDENT = new TableIdent(Schemas.DEFAULT_SCHEMA_NAME, "nested_pk");
-    static final TableInfo NESTED_PK_TABLE_INFO = TestingTableInfo.builder(NESTED_PK_TABLE_IDENT, SHARD_ROUTING)
+    public static final DocTableInfo NESTED_PK_TABLE_INFO = TestingTableInfo.builder(NESTED_PK_TABLE_IDENT, SHARD_ROUTING)
         .add("id", DataTypes.LONG, null)
         .add("o", DataTypes.OBJECT, null, ColumnPolicy.DYNAMIC)
         .add("o", DataTypes.BYTE, Arrays.asList("b"))
@@ -149,7 +134,7 @@ public abstract class BaseAnalyzerTest extends CrateUnitTest {
             new PartitionName("multi_parted", Arrays.asList(null, new BytesRef("-100"))).asIndexName())
         .build();
     static final TableIdent TEST_NESTED_PARTITIONED_TABLE_IDENT = new TableIdent(Schemas.DEFAULT_SCHEMA_NAME, "nested_parted");
-    static final TableInfo TEST_NESTED_PARTITIONED_TABLE_INFO = new TestingTableInfo.Builder(
+    public static final DocTableInfo TEST_NESTED_PARTITIONED_TABLE_INFO = new TestingTableInfo.Builder(
         TEST_NESTED_PARTITIONED_TABLE_IDENT, new Routing(ImmutableMap.<String, Map<String, List<Integer>>>of()))
         .add("id", DataTypes.INTEGER, null)
         .add("date", DataTypes.TIMESTAMP, null, true)
@@ -205,70 +190,17 @@ public abstract class BaseAnalyzerTest extends CrateUnitTest {
         .clusteredBy("name")
         .build();
 
-    protected Injector injector;
-    Analyzer analyzer;
 
-
-    private ThreadPool threadPool;
-
-    protected <T extends AnalyzedStatement> T analyze(String statement) {
-        //noinspection unchecked
-        return (T) analysis(statement).analyzedStatement();
-    }
-
-    protected <T extends AnalyzedStatement> T analyze(String statement, Object[] params) {
-        //noinspection unchecked
-        return (T) analysis(statement, params).analyzedStatement();
-    }
-
-    protected <T extends AnalyzedStatement> T analyze(String statement, Object[][] bulkArgs) {
-        //noinspection unchecked
-        return (T) analysis(statement, bulkArgs).analyzedStatement();
-    }
-
-    protected Analysis analysis(String statement) {
-        return analysis(statement, new Object[0]);
-    }
-
-    protected Analysis analysis(String statement, Object[][] bulkArgs) {
-        return analyzer.boundAnalyze(SqlParser.createStatement(statement),
-            SessionContext.SYSTEM_SESSION,
-            new ParameterContext(Row.EMPTY, Rows.of(bulkArgs)));
-    }
-
-    protected Analysis analysis(String statement, Object[] params) {
-        return analyzer.boundAnalyze(SqlParser.createStatement(statement),
-            SessionContext.SYSTEM_SESSION,
-            new ParameterContext(new RowN(params), Collections.<Row>emptyList()));
-    }
-
-    protected List<Module> getModules() {
-        return Lists.<Module>newArrayList(
-            new RepositorySettingsModule()
+    static TestingBlobTableInfo createBlobTable(TableIdent ident, ClusterService clusterService) {
+        return new TestingBlobTableInfo(
+            ident,
+            ident.indexName(),
+            clusterService,
+            5,
+            new BytesRef("0"),
+            ImmutableMap.<String, Object>of(),
+            null,
+            SHARD_ROUTING
         );
-    }
-
-    @Before
-    public void prepareModules() throws Exception {
-        threadPool = newMockedThreadPool();
-        ModulesBuilder builder = new ModulesBuilder();
-        builder.add(new TableFunctionModule());
-        builder.add(new Module() {
-            @Override
-            public void configure(Binder binder) {
-                binder.bind(ThreadPool.class).toInstance(threadPool);
-            }
-        });
-        for (Module m : getModules()) {
-            builder.add(m);
-        }
-        injector = builder.createInjector();
-        analyzer = injector.getInstance(Analyzer.class);
-    }
-
-    @After
-    public void tearDownThreadPool() throws Exception {
-        threadPool.shutdown();
-        threadPool.awaitTermination(1, TimeUnit.SECONDS);
     }
 }

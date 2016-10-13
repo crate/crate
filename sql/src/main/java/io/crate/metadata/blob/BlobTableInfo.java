@@ -22,7 +22,6 @@
 package io.crate.metadata.blob;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import io.crate.analyze.AlterBlobTableParameterInfo;
 import io.crate.analyze.TableParameterInfo;
 import io.crate.analyze.WhereClause;
@@ -54,7 +53,7 @@ public class BlobTableInfo implements TableInfo, ShardedTable {
     private final LinkedHashSet<Reference> columns = new LinkedHashSet<>();
     private final BytesRef blobsPath;
     private final TableParameterInfo tableParameterInfo;
-    private final ImmutableMap<String, Object> tableParameters;
+    private final Map<String, Object> tableParameters;
 
     private static final Map<ColumnIdent, Reference> INFOS = new LinkedHashMap<>();
 
@@ -69,7 +68,7 @@ public class BlobTableInfo implements TableInfo, ShardedTable {
                          ClusterService clusterService,
                          int numberOfShards,
                          BytesRef numberOfReplicas,
-                         ImmutableMap<String, Object> tableParameters,
+                         Map<String, Object> tableParameters,
                          BytesRef blobsPath) {
         this.ident = ident;
         this.index = index;

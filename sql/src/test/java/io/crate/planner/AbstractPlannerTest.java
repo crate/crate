@@ -25,7 +25,7 @@ package io.crate.planner;
 import com.google.common.collect.ImmutableMap;
 import io.crate.action.sql.SessionContext;
 import io.crate.analyze.Analyzer;
-import io.crate.analyze.BaseAnalyzerTest;
+import io.crate.analyze.TableDefinitions;
 import io.crate.analyze.EvaluatingNormalizer;
 import io.crate.analyze.ParameterContext;
 import io.crate.analyze.repositories.RepositorySettingsModule;
@@ -249,7 +249,7 @@ public abstract class AbstractPlannerTest extends CrateUnitTest {
             when(schemaInfo.getTableInfo(emptyPartedTableIdent.name())).thenReturn(emptyPartedTableInfo);
             when(schemaInfo.getTableInfo(multiplePartitionedTableIdent.name())).thenReturn(multiplePartitionedTableInfo);
             when(schemaInfo.getTableInfo(clusteredByPartitionedIdent.name())).thenReturn(clusteredByPartitionedTableInfo);
-            when(schemaInfo.getTableInfo(BaseAnalyzerTest.IGNORED_NESTED_TABLE_IDENT.name())).thenReturn(BaseAnalyzerTest.IGNORED_NESTED_TABLE_INFO);
+            when(schemaInfo.getTableInfo(TableDefinitions.IGNORED_NESTED_TABLE_IDENT.name())).thenReturn(TableDefinitions.IGNORED_NESTED_TABLE_INFO);
             when(schemaInfo.getTableInfo(T3.T1_INFO.ident().name())).thenReturn(T3.T1_INFO);
             schemaBinder.addBinding(Schemas.DEFAULT_SCHEMA_NAME).toInstance(schemaInfo);
             schemaBinder.addBinding(SysSchemaInfo.NAME).toInstance(mockSysSchemaInfo());

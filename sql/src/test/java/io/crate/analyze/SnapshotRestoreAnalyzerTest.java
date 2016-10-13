@@ -38,7 +38,7 @@ import org.elasticsearch.test.cluster.NoopClusterService;
 import org.junit.Before;
 import org.junit.Test;
 
-import static io.crate.analyze.BaseAnalyzerTest.*;
+import static io.crate.analyze.TableDefinitions.*;
 import static org.hamcrest.Matchers.*;
 
 public class SnapshotRestoreAnalyzerTest extends CrateUnitTest {
