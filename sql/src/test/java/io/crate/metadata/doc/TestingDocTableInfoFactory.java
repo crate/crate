@@ -22,6 +22,7 @@
 
 package io.crate.metadata.doc;
 
+import io.crate.exceptions.TableUnknownException;
 import io.crate.metadata.TableIdent;
 import org.elasticsearch.cluster.ClusterService;
 
@@ -37,6 +38,10 @@ public class TestingDocTableInfoFactory implements DocTableInfoFactory {
 
     @Override
     public DocTableInfo create(TableIdent ident, ClusterService clusterService) {
-        return tables.get(ident);
+        DocTableInfo tableInfo = tables.get(ident);
+        if (tableInfo == null) {
+            throw new TableUnknownException(ident);
+        }
+        return tableInfo;
     }
 }

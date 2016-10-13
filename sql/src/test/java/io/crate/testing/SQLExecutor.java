@@ -33,10 +33,15 @@ import io.crate.core.collections.RowN;
 import io.crate.executor.transport.RepositoryService;
 import io.crate.metadata.ReferenceInfos;
 import io.crate.metadata.TableIdent;
-import io.crate.metadata.doc.*;
+import io.crate.metadata.doc.DocSchemaInfo;
+import io.crate.metadata.doc.DocSchemaInfoFactory;
+import io.crate.metadata.doc.DocTableInfo;
+import io.crate.metadata.doc.TestingDocTableInfoFactory;
 import io.crate.metadata.sys.SysSchemaInfo;
 import io.crate.metadata.table.SchemaInfo;
 import io.crate.sql.parser.SqlParser;
+import org.elasticsearch.action.admin.cluster.repositories.delete.TransportDeleteRepositoryAction;
+import org.elasticsearch.action.admin.cluster.repositories.put.TransportPutRepositoryAction;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.indices.analysis.IndicesAnalysisService;
@@ -70,15 +75,19 @@ public class SQLExecutor {
         }
 
         public Builder enableDefaultTables() {
-            docTables.put(USER_TABLE_INFO.ident(), USER_TABLE_INFO);
-            docTables.put(USER_TABLE_IDENT_CLUSTERED_BY_ONLY, USER_TABLE_INFO_CLUSTERED_BY_ONLY);
-            docTables.put(USER_TABLE_IDENT_MULTI_PK, USER_TABLE_INFO_MULTI_PK);
-            docTables.put(DEEPLY_NESTED_TABLE_IDENT, DEEPLY_NESTED_TABLE_INFO);
-            docTables.put(TEST_PARTITIONED_TABLE_IDENT, TEST_PARTITIONED_TABLE_INFO);
-            docTables.put(TEST_MULTIPLE_PARTITIONED_TABLE_IDENT, TEST_MULTIPLE_PARTITIONED_TABLE_INFO);
-            docTables.put(TEST_DOC_TRANSACTIONS_TABLE_IDENT, TEST_DOC_TRANSACTIONS_TABLE_INFO);
-            docTables.put(TEST_DOC_LOCATIONS_TABLE_IDENT, TEST_DOC_LOCATIONS_TABLE_INFO);
-            docTables.put(TEST_CLUSTER_BY_STRING_TABLE_INFO.ident(), TEST_CLUSTER_BY_STRING_TABLE_INFO);
+            // we should try to reduce the number of tables here eventually...
+            addDocTable(USER_TABLE_INFO);
+            addDocTable(USER_TABLE_INFO_CLUSTERED_BY_ONLY);
+            addDocTable(USER_TABLE_INFO_MULTI_PK);
+            addDocTable(DEEPLY_NESTED_TABLE_INFO);
+            addDocTable(TEST_PARTITIONED_TABLE_INFO);
+            addDocTable(TEST_MULTIPLE_PARTITIONED_TABLE_INFO);
+            addDocTable(TEST_DOC_TRANSACTIONS_TABLE_INFO);
+            addDocTable(TEST_DOC_LOCATIONS_TABLE_INFO);
+            addDocTable(TEST_CLUSTER_BY_STRING_TABLE_INFO);
+            addDocTable(T3.T1_INFO);
+            addDocTable(T3.T2_INFO);
+            addDocTable(T3.T3_INFO);
             return this;
         }
 
@@ -89,18 +98,27 @@ public class SQLExecutor {
                 new ReferenceInfos(
                     schemas,
                     clusterService,
-                    new DocSchemaInfoFactory(mock(DocTableInfoFactory.class))
+                    new DocSchemaInfoFactory(new TestingDocTableInfoFactory(Collections.<TableIdent, DocTableInfo>emptyMap()))
                 ),
                 getFunctions(),
                 clusterService,
                 new IndicesAnalysisService(Settings.EMPTY),
-                mock(RepositoryService.class),
+                new RepositoryService(
+                    clusterService,
+                    mock(TransportDeleteRepositoryAction.class),
+                    mock(TransportPutRepositoryAction.class)
+                ),
                 new RepositoryParamValidator(Collections.<String, TypeSettings>emptyMap())
             ));
         }
 
         public Builder addSchema(SchemaInfo schema) {
             schemas.put(schema.name(), schema);
+            return this;
+        }
+
+        public Builder addDocTable(DocTableInfo table) {
+            docTables.put(table.ident(), table);
             return this;
         }
     }

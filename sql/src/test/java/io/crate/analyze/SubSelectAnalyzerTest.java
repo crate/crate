@@ -24,35 +24,28 @@ package io.crate.analyze;
 
 import io.crate.analyze.relations.QueriedDocTable;
 import io.crate.exceptions.AmbiguousColumnAliasException;
-import io.crate.operation.scalar.ScalarFunctionModule;
-import io.crate.testing.MockedClusterServiceModule;
-import org.elasticsearch.common.inject.Module;
+import io.crate.test.integration.CrateUnitTest;
+import io.crate.testing.SQLExecutor;
+import org.elasticsearch.test.cluster.NoopClusterService;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
-import java.util.Arrays;
-import java.util.List;
-
-import static io.crate.testing.T3.META_DATA_MODULE;
 import static io.crate.testing.T3.T1_INFO;
 import static io.crate.testing.TestingHelpers.isField;
 import static org.hamcrest.Matchers.is;
 
-public class SubSelectAnalyzerTest extends BaseAnalyzerTest {
+public class SubSelectAnalyzerTest extends CrateUnitTest {
 
     @Rule
     public ExpectedException expectedException = ExpectedException.none();
 
-    @Override
-    protected List<Module> getModules() {
-        List<Module> modules = super.getModules();
-        modules.addAll(Arrays.<Module>asList(
-            new MockedClusterServiceModule(),
-            META_DATA_MODULE,
-            new ScalarFunctionModule()
-        ));
-        return modules;
+    private SQLExecutor executor = SQLExecutor.builder(new NoopClusterService())
+        .enableDefaultTables()
+        .build();
+
+    private SelectAnalyzedStatement analyze(String stmt) {
+        return executor.analyze(stmt);
     }
 
     @Test

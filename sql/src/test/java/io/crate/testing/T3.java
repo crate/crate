@@ -32,7 +32,6 @@ import io.crate.metadata.Schemas;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.SchemaInfo;
-import io.crate.metadata.table.TableInfo;
 import io.crate.metadata.table.TestingTableInfo;
 import io.crate.sql.tree.QualifiedName;
 import io.crate.types.DataTypes;
@@ -59,7 +58,7 @@ public class T3 {
         .build();
     public static final DocTableRelation TR_2 = new DocTableRelation(T2_INFO);
 
-    public static final TableInfo T3_INFO = new TestingTableInfo.Builder(new TableIdent(null, "t3"), null)
+    public static final DocTableInfo T3_INFO = new TestingTableInfo.Builder(new TableIdent(null, "t3"), null)
         .add("c", DataTypes.STRING)
         .add("z", DataTypes.INTEGER)
         .build();
