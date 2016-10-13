@@ -71,7 +71,6 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
     private final UpdateConsumer updateConsumer;
     private final CopyStatementPlanner copyStatementPlanner;
     private final SelectStatementPlanner selectStatementPlanner;
-    private final DeleteStatementPlanner deleteStatementPlanner;
     private final EvaluatingNormalizer normalizer;
 
 
@@ -358,17 +357,12 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
     @Inject
     public Planner(ClusterService clusterService,
                    Functions functions,
-                   ConsumingPlanner consumingPlanner,
-                   UpdateConsumer updateConsumer,
-                   CopyStatementPlanner copyStatementPlanner,
-                   SelectStatementPlanner selectStatementPlanner,
-                   DeleteStatementPlanner deleteStatementPlanner) {
+                   TableStatsService tableStatsService) {
         this.clusterService = clusterService;
-        this.updateConsumer = updateConsumer;
-        this.consumingPlanner = consumingPlanner;
-        this.copyStatementPlanner = copyStatementPlanner;
-        this.selectStatementPlanner = selectStatementPlanner;
-        this.deleteStatementPlanner = deleteStatementPlanner;
+        this.updateConsumer = new UpdateConsumer();
+        this.consumingPlanner = new ConsumingPlanner(clusterService, functions, tableStatsService);
+        this.copyStatementPlanner = new CopyStatementPlanner(clusterService);
+        this.selectStatementPlanner = new SelectStatementPlanner(consumingPlanner);
         normalizer = EvaluatingNormalizer.functionOnlyNormalizer(functions, ReplaceMode.COPY);
     }
 
@@ -429,7 +423,7 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
 
     @Override
     protected Plan visitDeleteStatement(DeleteAnalyzedStatement analyzedStatement, Context context) {
-        return deleteStatementPlanner.planDelete(analyzedStatement, context);
+        return DeleteStatementPlanner.planDelete(analyzedStatement, context);
     }
 
     @Override

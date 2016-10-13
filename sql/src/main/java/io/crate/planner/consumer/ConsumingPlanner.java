@@ -25,37 +25,32 @@ import io.crate.analyze.Rewriter;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.PlannedAnalyzedRelation;
 import io.crate.exceptions.ValidationException;
+import io.crate.metadata.Functions;
 import io.crate.planner.Plan;
 import io.crate.planner.Planner;
-import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.inject.Singleton;
+import io.crate.planner.TableStatsService;
+import org.elasticsearch.cluster.ClusterService;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.List;
 
-@Singleton
 public class ConsumingPlanner {
 
     private final List<Consumer> consumers = new ArrayList<>();
 
-    @Inject
-    public ConsumingPlanner(NonDistributedGroupByConsumer nonDistributedGroupByConsumer,
-                            ReduceOnCollectorGroupByConsumer reduceOnCollectorGroupByConsumer,
-                            DistributedGroupByConsumer distributedGroupByConsumer,
-                            GlobalAggregateConsumer globalAggregateConsumer,
-                            NestedLoopConsumer nestedLoopConsumer,
-                            QueryAndFetchConsumer queryAndFetchConsumer,
-                            Rewriter rewriter) {
-        consumers.add(nonDistributedGroupByConsumer);
-        consumers.add(reduceOnCollectorGroupByConsumer);
-        consumers.add(distributedGroupByConsumer);
+    public ConsumingPlanner(ClusterService clusterService,
+                            Functions functions,
+                            TableStatsService tableStatsService) {
+        consumers.add(new NonDistributedGroupByConsumer(functions));
+        consumers.add(new ReduceOnCollectorGroupByConsumer(functions));
+        consumers.add(new DistributedGroupByConsumer(functions));
         consumers.add(new CountConsumer());
-        consumers.add(globalAggregateConsumer);
+        consumers.add(new GlobalAggregateConsumer(functions));
         consumers.add(new InsertFromSubQueryConsumer());
-        consumers.add(queryAndFetchConsumer);
-        consumers.add(new ManyTableConsumer(this, rewriter));
-        consumers.add(nestedLoopConsumer);
+        consumers.add(new QueryAndFetchConsumer());
+        consumers.add(new ManyTableConsumer(this, new Rewriter(functions)));
+        consumers.add(new NestedLoopConsumer(clusterService, functions, tableStatsService));
     }
 
     @Nullable

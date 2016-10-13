@@ -22,23 +22,17 @@
 package io.crate.planner.consumer;
 
 import com.google.common.collect.ImmutableMap;
-import io.crate.action.sql.SessionContext;
-import io.crate.analyze.*;
+import io.crate.analyze.EvaluatingNormalizer;
+import io.crate.analyze.QueriedTable;
+import io.crate.analyze.TableDefinitions;
 import io.crate.analyze.relations.PlannedAnalyzedRelation;
-import io.crate.analyze.repositories.RepositorySettingsModule;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.exceptions.ValidationException;
 import io.crate.metadata.*;
 import io.crate.metadata.doc.DocSchemaInfo;
-import io.crate.metadata.information.MetaDataInformationModule;
-import io.crate.metadata.table.SchemaInfo;
-import io.crate.metadata.table.TableInfo;
+import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.TestingTableInfo;
-import io.crate.operation.aggregation.impl.AggregationImplModule;
-import io.crate.operation.operator.OperatorModule;
-import io.crate.operation.predicate.PredicateModule;
 import io.crate.operation.projectors.TopN;
-import io.crate.operation.scalar.ScalarFunctionModule;
 import io.crate.planner.NoopPlan;
 import io.crate.planner.Plan;
 import io.crate.planner.Planner;
@@ -50,14 +44,11 @@ import io.crate.planner.node.dql.join.NestedLoopPhase;
 import io.crate.planner.projection.FetchProjection;
 import io.crate.planner.projection.FilterProjection;
 import io.crate.planner.projection.TopNProjection;
-import io.crate.sql.parser.SqlParser;
 import io.crate.test.integration.CrateUnitTest;
-import io.crate.testing.MockedClusterServiceModule;
+import io.crate.testing.SQLExecutor;
 import io.crate.types.DataTypes;
 import org.elasticsearch.cluster.ClusterService;
-import org.elasticsearch.common.inject.Injector;
-import org.elasticsearch.common.inject.ModulesBuilder;
-import org.elasticsearch.threadpool.ThreadPool;
+import org.elasticsearch.test.cluster.NoopClusterService;
 import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.Rule;
@@ -80,79 +71,51 @@ import static org.mockito.Mockito.when;
 
 public class NestedLoopConsumerTest extends CrateUnitTest {
 
-    private Analyzer analyzer;
-    private Planner planner;
-
-    @Rule
-    public ExpectedException expectedException = ExpectedException.none();
-
-    private final ClusterService clusterService = mock(ClusterService.class);
-    private NestedLoopConsumer consumer;
-    private Planner.Context plannerContext;
-    private TableStatsService statsService;
-
-    @Before
-    public void initPlanner() throws Exception {
-        Injector injector = new ModulesBuilder()
-            .add(new MockedClusterServiceModule())
-            .add(new TestModule())
-            .add(new MetaDataInformationModule())
-            .add(new AggregationImplModule())
-            .add(new ScalarFunctionModule())
-            .add(new PredicateModule())
-            .add(new OperatorModule())
-            .add(new RepositorySettingsModule())
-            .createInjector();
-        analyzer = injector.getInstance(Analyzer.class);
-        planner = injector.getInstance(Planner.class);
-        Functions functions = injector.getInstance(Functions.class);
-        EvaluatingNormalizer normalizer = new EvaluatingNormalizer(
-            functions,
-            RowGranularity.CLUSTER,
-            ReplaceMode.COPY,
-            null,
-            null);
-        plannerContext = new Planner.Context(clusterService, UUID.randomUUID(), null, normalizer, new TransactionContext(), 0, 0);
-        consumer = new NestedLoopConsumer(clusterService, functions, statsService);
-    }
-
-    private static final TableInfo EMPTY_ROUTING_TABLE = TestingTableInfo.builder(new TableIdent(DocSchemaInfo.NAME, "empty"),
+    private final DocTableInfo emptyRoutingTable = TestingTableInfo.builder(new TableIdent(DocSchemaInfo.NAME, "empty"),
         new Routing(ImmutableMap.<String, Map<String, List<Integer>>>of()))
         .add("nope", DataTypes.BOOLEAN)
         .build();
 
+    @Rule
+    public ExpectedException expectedException = ExpectedException.none();
 
-    private class TestModule extends MetaDataModule {
+    private NestedLoopConsumer consumer;
+    private Planner.Context plannerContext;
+    private SQLExecutor e;
 
-        @Override
-        protected void configure() {
-            super.configure();
-            bind(ThreadPool.class).toInstance(newMockedThreadPool());
-            statsService = mock(TableStatsService.class);
-            when(statsService.numDocs(eq(TableDefinitions.USER_TABLE_IDENT))).thenReturn(10L);
-            when(statsService.numDocs(eq(TableDefinitions.USER_TABLE_IDENT_MULTI_PK))).thenReturn(5000L);
-            when(statsService.numDocs(eq(EMPTY_ROUTING_TABLE.ident()))).thenReturn(0L);
-            bind(TableStatsService.class).toInstance(statsService);
-        }
-
-        @Override
-        protected void bindSchemas() {
-            super.bindSchemas();
-            SchemaInfo schemaInfo = mock(SchemaInfo.class);
-            when(schemaInfo.getTableInfo(TableDefinitions.USER_TABLE_IDENT.name())).thenReturn(TableDefinitions.USER_TABLE_INFO);
-            when(schemaInfo.getTableInfo(TableDefinitions.USER_TABLE_IDENT_MULTI_PK.name())).thenReturn(TableDefinitions.USER_TABLE_INFO_MULTI_PK);
-            when(schemaInfo.getTableInfo(EMPTY_ROUTING_TABLE.ident().name())).thenReturn(EMPTY_ROUTING_TABLE);
-            schemaBinder.addBinding(Schemas.DEFAULT_SCHEMA_NAME).toInstance(schemaInfo);
-        }
+    @Before
+    public void initPlanner() throws Exception {
+        TableStatsService statsService = getTableStatsService();
+        ClusterService clusterService = new NoopClusterService();
+        e = SQLExecutor.builder(clusterService)
+            .enableDefaultTables()
+            .setTableStatsService(statsService)
+            .addDocTable(emptyRoutingTable)
+            .build();
+        Functions functions = e.functions();
+        EvaluatingNormalizer normalizer = EvaluatingNormalizer.functionOnlyNormalizer(functions, ReplaceMode.COPY);
+        plannerContext = new Planner.Context(
+            clusterService,
+            UUID.randomUUID(),
+            new ConsumingPlanner(clusterService, functions, statsService),
+            normalizer,
+            new TransactionContext(),
+            0,
+            0);
+        consumer = new NestedLoopConsumer(clusterService, functions, statsService);
     }
 
-    public <T> T plan(String statement) {
-        Analysis analysis = analyzer.boundAnalyze(
-            SqlParser.createStatement(statement),
-            SessionContext.SYSTEM_SESSION,
-            ParameterContext.EMPTY);
-        //noinspection unchecked
-        return (T) planner.plan(analysis, UUID.randomUUID(), 0, 0);
+    private TableStatsService getTableStatsService() {
+        TableStatsService statsService;
+        statsService = mock(TableStatsService.class);
+        when(statsService.numDocs(eq(TableDefinitions.USER_TABLE_IDENT))).thenReturn(10L);
+        when(statsService.numDocs(eq(TableDefinitions.USER_TABLE_IDENT_MULTI_PK))).thenReturn(5000L);
+        when(statsService.numDocs(eq(emptyRoutingTable.ident()))).thenReturn(0L);
+        return statsService;
+    }
+
+    public <T extends Plan> T plan(String statement) {
+        return e.plan(statement, UUID.randomUUID(), 0, 0);
     }
 
     @Test

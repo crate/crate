@@ -47,24 +47,19 @@ import io.crate.planner.projection.builder.InputCreatingVisitor;
 import io.crate.planner.projection.builder.ProjectionBuilder;
 import io.crate.sql.tree.QualifiedName;
 import org.elasticsearch.cluster.ClusterService;
-import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 
 import java.util.*;
 
-
-@Singleton
-public class NestedLoopConsumer implements Consumer {
+class NestedLoopConsumer implements Consumer {
 
     private final static ESLogger LOGGER = Loggers.getLogger(NestedLoopConsumer.class);
     private final Visitor visitor;
 
-    @Inject
-    public NestedLoopConsumer(ClusterService clusterService,
-                              Functions functions,
-                              TableStatsService tableStatsService) {
+    NestedLoopConsumer(ClusterService clusterService,
+                       Functions functions,
+                       TableStatsService tableStatsService) {
         visitor = new Visitor(clusterService, functions, tableStatsService);
     }
 

@@ -59,12 +59,10 @@ import org.elasticsearch.common.inject.Singleton;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
-@Singleton
 public class CopyStatementPlanner {
 
     private final ClusterService clusterService;
 
-    @Inject
     public CopyStatementPlanner(ClusterService clusterService) {
         this.clusterService = clusterService;
     }

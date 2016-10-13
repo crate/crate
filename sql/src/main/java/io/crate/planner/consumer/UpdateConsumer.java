@@ -49,20 +49,16 @@ import io.crate.planner.projection.UpdateProjection;
 import io.crate.types.DataTypes;
 import org.elasticsearch.cluster.routing.Preference;
 import org.elasticsearch.common.collect.Tuple;
-import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.inject.Singleton;
 
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 
-@Singleton
 public class UpdateConsumer implements Consumer {
 
     private final Visitor visitor;
 
-    @Inject
     public UpdateConsumer() {
         visitor = new Visitor();
     }

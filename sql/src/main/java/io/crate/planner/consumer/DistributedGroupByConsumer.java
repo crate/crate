@@ -50,7 +50,6 @@ import io.crate.planner.projection.Projection;
 import io.crate.planner.projection.TopNProjection;
 import io.crate.planner.projection.builder.ProjectionBuilder;
 import io.crate.planner.projection.builder.SplitPoints;
-import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 
 import java.util.ArrayList;
@@ -58,12 +57,11 @@ import java.util.LinkedList;
 import java.util.List;
 
 @Singleton
-public class DistributedGroupByConsumer implements Consumer {
+class DistributedGroupByConsumer implements Consumer {
 
     private final Visitor visitor;
 
-    @Inject
-    public DistributedGroupByConsumer(Functions functions) {
+    DistributedGroupByConsumer(Functions functions) {
         visitor = new Visitor(functions);
     }
 

@@ -48,22 +48,18 @@ import io.crate.planner.projection.Projection;
 import io.crate.planner.projection.TopNProjection;
 import io.crate.planner.projection.builder.ProjectionBuilder;
 import io.crate.planner.projection.builder.SplitPoints;
-import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.inject.Singleton;
 
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
 
-@Singleton
-public class GlobalAggregateConsumer implements Consumer {
+class GlobalAggregateConsumer implements Consumer {
 
     private static final AggregationOutputValidator AGGREGATION_OUTPUT_VALIDATOR = new AggregationOutputValidator();
     private final RelationPlanningVisitor visitor;
 
-    @Inject
-    public GlobalAggregateConsumer(Functions functions) {
+    GlobalAggregateConsumer(Functions functions) {
         visitor = new Visitor(functions);
     }
 

@@ -50,14 +50,12 @@ import io.crate.planner.projection.MergeCountProjection;
 import io.crate.planner.projection.Projection;
 import io.crate.types.DataTypes;
 import org.elasticsearch.cluster.routing.Preference;
-import org.elasticsearch.common.inject.Singleton;
 
 import java.util.*;
 
-@Singleton
-public class DeleteStatementPlanner {
+public final class DeleteStatementPlanner {
 
-    public Plan planDelete(DeleteAnalyzedStatement analyzedStatement, Planner.Context context) {
+    public static Plan planDelete(DeleteAnalyzedStatement analyzedStatement, Planner.Context context) {
         DocTableRelation tableRelation = analyzedStatement.analyzedRelation();
         List<WhereClause> whereClauses = new ArrayList<>(analyzedStatement.whereClauses().size());
         List<DocKeys.DocKey> docKeys = new ArrayList<>(analyzedStatement.whereClauses().size());
@@ -93,7 +91,7 @@ public class DeleteStatementPlanner {
         return new NoopPlan(context.jobId());
     }
 
-    private Plan deleteByQuery(DocTableInfo tableInfo,
+    private static Plan deleteByQuery(DocTableInfo tableInfo,
                                List<WhereClause> whereClauses,
                                Planner.Context context) {
 
@@ -120,7 +118,7 @@ public class DeleteStatementPlanner {
         return new Delete(planNodes, context.jobId());
     }
 
-    private Plan collectWithDeleteProjection(TableInfo tableInfo,
+    private static Plan collectWithDeleteProjection(TableInfo tableInfo,
                                              WhereClause whereClause,
                                              Planner.Context plannerContext) {
         // for delete, we always need to collect the `_uid`

@@ -24,6 +24,7 @@ package io.crate.testing;
 
 import io.crate.action.sql.SessionContext;
 import io.crate.analyze.Analysis;
+import io.crate.analyze.AnalyzedStatement;
 import io.crate.analyze.Analyzer;
 import io.crate.analyze.ParameterContext;
 import io.crate.analyze.repositories.RepositoryParamValidator;
@@ -45,6 +46,9 @@ import io.crate.metadata.information.InformationSchemaInfo;
 import io.crate.metadata.sys.SysSchemaInfo;
 import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.table.TestingTableInfo;
+import io.crate.planner.Plan;
+import io.crate.planner.Planner;
+import io.crate.planner.TableStatsService;
 import io.crate.sql.parser.SqlParser;
 import org.elasticsearch.action.admin.cluster.repositories.delete.TransportDeleteRepositoryAction;
 import org.elasticsearch.action.admin.cluster.repositories.put.TransportPutRepositoryAction;
@@ -56,6 +60,7 @@ import org.elasticsearch.indices.analysis.IndicesAnalysisService;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.UUID;
 
 import static io.crate.analyze.TableDefinitions.*;
 import static io.crate.testing.TestingHelpers.getFunctions;
@@ -68,7 +73,9 @@ import static org.mockito.Mockito.mock;
  */
 public class SQLExecutor {
 
+    private final Functions functions;
     public final Analyzer analyzer;
+    private final Planner planner;
 
     public static class Builder {
 
@@ -77,6 +84,8 @@ public class SQLExecutor {
         private final Map<TableIdent, DocTableInfo> docTables = new HashMap<>();
         private final Map<TableIdent, BlobTableInfo> blobTables = new HashMap<>();
         private final Functions functions;
+
+        private TableStatsService tableStatsService = mock(TableStatsService.class);
 
         public Builder(ClusterService clusterService) {
             this.clusterService = clusterService;
@@ -110,25 +119,33 @@ public class SQLExecutor {
             if (!blobTables.isEmpty()) {
                 schemas.put(BlobSchemaInfo.NAME, new BlobSchemaInfo(clusterService, new TestingBlobTableInfoFactory(blobTables)));
             }
-            return new SQLExecutor(new Analyzer(
-                Settings.EMPTY,
-                new ReferenceInfos(
-                    schemas,
-                    clusterService,
-                    new DocSchemaInfoFactory(new TestingDocTableInfoFactory(Collections.<TableIdent, DocTableInfo>emptyMap()))
-                ),
+            return new SQLExecutor(
                 functions,
-                clusterService,
-                new IndicesAnalysisService(Settings.EMPTY),
-                new RepositoryService(
+                new Analyzer(
+                    Settings.EMPTY,
+                    new ReferenceInfos(
+                        schemas,
+                        clusterService,
+                        new DocSchemaInfoFactory(new TestingDocTableInfoFactory(Collections.<TableIdent, DocTableInfo>emptyMap()))
+                    ),
+                    functions,
                     clusterService,
-                    mock(TransportDeleteRepositoryAction.class),
-                    mock(TransportPutRepositoryAction.class)
+                    new IndicesAnalysisService(Settings.EMPTY),
+                    new RepositoryService(
+                        clusterService,
+                        mock(TransportDeleteRepositoryAction.class),
+                        mock(TransportPutRepositoryAction.class)
+                    ),
+                    new ModulesBuilder().add(new RepositorySettingsModule())
+                        .createInjector()
+                        .getInstance(RepositoryParamValidator.class)
                 ),
-                new ModulesBuilder().add(new RepositorySettingsModule())
-                    .createInjector()
-                    .getInstance(RepositoryParamValidator.class)
-            ));
+                new Planner(
+                    clusterService,
+                    functions,
+                    tableStatsService
+                )
+            );
         }
 
         public Builder addSchema(SchemaInfo schema) {
@@ -150,28 +167,38 @@ public class SQLExecutor {
             return this;
         }
 
+        public Builder setTableStatsService(TableStatsService tableStatsService) {
+            this.tableStatsService = tableStatsService;
+            return this;
+        }
     }
 
     public static Builder builder(ClusterService clusterService) {
         return new Builder(clusterService);
     }
 
-    private SQLExecutor(Analyzer analyzer) {
+    private SQLExecutor(Functions functions, Analyzer analyzer, Planner planner) {
+        this.functions = functions;
         this.analyzer = analyzer;
+        this.planner = planner;
     }
 
-    private <T> T analyze(String stmt, ParameterContext parameterContext) {
+    public Functions functions() {
+        return functions;
+    }
+
+    private <T extends AnalyzedStatement> T analyze(String stmt, ParameterContext parameterContext) {
         Analysis analysis = analyzer.boundAnalyze(
             SqlParser.createStatement(stmt), SessionContext.SYSTEM_SESSION, parameterContext);
         //noinspection unchecked
         return (T) analysis.analyzedStatement();
     }
 
-    public <T> T analyze(String statement) {
+    public <T extends AnalyzedStatement> T analyze(String statement) {
         return analyze(statement, ParameterContext.EMPTY);
     }
 
-    public <T> T analyze(String statement, Object[] arguments) {
+    public <T extends AnalyzedStatement> T analyze(String statement, Object[] arguments) {
         return analyze(
             statement,
             arguments.length == 0
@@ -179,7 +206,14 @@ public class SQLExecutor {
                 : new ParameterContext(new RowN(arguments), Collections.<Row>emptyList()));
     }
 
-    public <T> T analyze(String statement, Object[][] bulkArgs) {
+    public <T extends AnalyzedStatement> T analyze(String statement, Object[][] bulkArgs) {
         return analyze(statement, new ParameterContext(Row.EMPTY, Rows.of(bulkArgs)));
+    }
+
+    public <T extends Plan> T plan(String statement, UUID jobId, int softLimit, int fetchSize) {
+        Analysis analysis = analyzer.boundAnalyze(
+            SqlParser.createStatement(statement), SessionContext.SYSTEM_SESSION, ParameterContext.EMPTY);
+        //noinspection unchecked
+        return (T) planner.plan(analysis, jobId, softLimit, fetchSize);
     }
 }

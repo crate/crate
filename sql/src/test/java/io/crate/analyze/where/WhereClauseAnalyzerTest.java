@@ -23,86 +23,60 @@ package io.crate.analyze.where;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import io.crate.action.sql.SessionContext;
-import io.crate.analyze.*;
+import io.crate.analyze.DeleteAnalyzedStatement;
+import io.crate.analyze.SelectAnalyzedStatement;
+import io.crate.analyze.UpdateAnalyzedStatement;
+import io.crate.analyze.WhereClause;
 import io.crate.analyze.relations.DocTableRelation;
-import io.crate.analyze.repositories.RepositorySettingsModule;
-import io.crate.core.collections.Row;
-import io.crate.core.collections.RowN;
-import io.crate.core.collections.Rows;
 import io.crate.core.collections.TreeMapBuilder;
-import io.crate.metadata.*;
+import io.crate.metadata.PartitionName;
+import io.crate.metadata.Routing;
+import io.crate.metadata.TableIdent;
+import io.crate.metadata.TransactionContext;
 import io.crate.metadata.doc.DocSchemaInfo;
-import io.crate.metadata.sys.MetaDataSysModule;
 import io.crate.metadata.table.ColumnPolicy;
-import io.crate.metadata.table.SchemaInfo;
-import io.crate.metadata.table.TableInfo;
 import io.crate.metadata.table.TestingTableInfo;
-import io.crate.operation.operator.OperatorModule;
 import io.crate.operation.operator.any.AnyEqOperator;
 import io.crate.operation.operator.any.AnyLikeOperator;
-import io.crate.operation.predicate.PredicateModule;
-import io.crate.operation.scalar.ScalarFunctionModule;
-import io.crate.sql.parser.SqlParser;
 import io.crate.test.integration.CrateUnitTest;
-import io.crate.testing.MockedClusterServiceModule;
+import io.crate.testing.SQLExecutor;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.SetType;
 import org.apache.lucene.util.BytesRef;
-import org.elasticsearch.common.inject.Injector;
-import org.elasticsearch.common.inject.ModulesBuilder;
-import org.elasticsearch.threadpool.ThreadPool;
+import org.elasticsearch.test.cluster.NoopClusterService;
 import org.hamcrest.Matchers;
-import org.junit.After;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
-import org.mockito.Mock;
 
-import java.util.*;
-import java.util.concurrent.TimeUnit;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
 
 import static io.crate.testing.TestingHelpers.*;
 import static org.hamcrest.Matchers.*;
-import static org.mockito.Mockito.when;
 
 @SuppressWarnings("unchecked")
 public class WhereClauseAnalyzerTest extends CrateUnitTest {
 
-    public static final String GENERATED_COL_TABLE_NAME = "generated_col";
-    public static final String DOUBLE_GEN_PARTITIONED_TABLE_NAME = "double_gen_parted";
+    private static final String GENERATED_COL_TABLE_NAME = "generated_col";
+    private static final String DOUBLE_GEN_PARTITIONED_TABLE_NAME = "double_gen_parted";
 
-    @Rule
-    public ExpectedException expectedException = ExpectedException.none();
-
-    private Analyzer analyzer;
-    private ThreadPool threadPool;
-
+    private final Routing twoNodeRouting = new Routing(TreeMapBuilder.<String, Map<String, List<Integer>>>newMapBuilder()
+        .put("nodeOne", TreeMapBuilder.<String, List<Integer>>newMapBuilder().put("t1", Arrays.asList(1, 2)).map())
+        .put("nodeTow", TreeMapBuilder.<String, List<Integer>>newMapBuilder().put("t1", Arrays.asList(3, 4)).map())
+        .map());
     private final TransactionContext transactionContext = new TransactionContext();
-
-    @Mock
-    private SchemaInfo schemaInfo;
-    private Functions functions;
+    private SQLExecutor e;
 
     @Before
-    public void setUp() throws Exception {
-        super.setUp();
-        threadPool = newMockedThreadPool();
-        Injector injector = new ModulesBuilder()
-            .add(new MockedClusterServiceModule())
-            .add(new PredicateModule())
-            .add(new OperatorModule())
-            .add(new ScalarFunctionModule())
-            .add(new MetaDataSysModule())
-            .add(new RepositorySettingsModule())
-            .add(new TestMetaDataModule()).createInjector();
-        analyzer = injector.getInstance(Analyzer.class);
-        functions = injector.getInstance(Functions.class);
+    public void init() throws Exception {
+        SQLExecutor.Builder builder = SQLExecutor.builder(new NoopClusterService());
+        registerTables(builder);
 
-        TableInfo genInfo =
+        TestingTableInfo.Builder genInfo =
             TestingTableInfo.builder(new TableIdent(DocSchemaInfo.NAME, GENERATED_COL_TABLE_NAME), new Routing(ImmutableMap.<String, Map<String, List<Integer>>>of()))
                 .add("ts", DataTypes.TIMESTAMP, null)
                 .add("x", DataTypes.INTEGER, null)
@@ -113,12 +87,11 @@ public class WhereClauseAnalyzerTest extends CrateUnitTest {
                 .addPartitions(
                     new PartitionName("generated_col", Arrays.asList(new BytesRef("1420070400000"), new BytesRef("-1"))).asIndexName(),
                     new PartitionName("generated_col", Arrays.asList(new BytesRef("1420156800000"), new BytesRef("-2"))).asIndexName()
-                )
-                .build(injector.getInstance(Functions.class));
-        when(schemaInfo.getTableInfo(GENERATED_COL_TABLE_NAME)).thenReturn(genInfo);
+                );
+        builder.addDocTable(genInfo);
 
         TableIdent ident = new TableIdent(DocSchemaInfo.NAME, DOUBLE_GEN_PARTITIONED_TABLE_NAME);
-        TableInfo doubleGenPartedInfo =
+        TestingTableInfo.Builder doubleGenPartedInfo =
             TestingTableInfo.builder(ident, new Routing(ImmutableMap.<String, Map<String, List<Integer>>>of()))
                 .add("x", DataTypes.INTEGER, null)
                 .addGeneratedColumn("x1", DataTypes.LONG, "x+1", true)
@@ -126,125 +99,93 @@ public class WhereClauseAnalyzerTest extends CrateUnitTest {
                 .addPartitions(
                     new PartitionName(ident, Arrays.asList(new BytesRef("4"), new BytesRef("5"))).toString(),
                     new PartitionName(ident, Arrays.asList(new BytesRef("5"), new BytesRef("6"))).toString()
-                )
-                .build(functions);
-        when(schemaInfo.getTableInfo(DOUBLE_GEN_PARTITIONED_TABLE_NAME)).thenReturn(doubleGenPartedInfo);
+                );
+        builder.addDocTable(doubleGenPartedInfo);
+        e = builder.build();
     }
 
-    @After
-    public void after() throws Exception {
-        threadPool.shutdown();
-        threadPool.awaitTermination(1, TimeUnit.SECONDS);
-    }
-
-    static final Routing twoNodeRouting = new Routing(TreeMapBuilder.<String, Map<String, List<Integer>>>newMapBuilder()
-        .put("nodeOne", TreeMapBuilder.<String, List<Integer>>newMapBuilder().put("t1", Arrays.asList(1, 2)).map())
-        .put("nodeTow", TreeMapBuilder.<String, List<Integer>>newMapBuilder().put("t1", Arrays.asList(3, 4)).map())
-        .map());
-
-    class TestMetaDataModule extends MetaDataModule {
-        @Override
-        protected void bindSchemas() {
-            super.bindSchemas();
-            bind(ThreadPool.class).toInstance(threadPool);
-            when(schemaInfo.name()).thenReturn(Schemas.DEFAULT_SCHEMA_NAME);
-            when(schemaInfo.getTableInfo("users")).thenReturn(
-                TestingTableInfo.builder(new TableIdent("doc", "users"), twoNodeRouting)
-                    .add("id", DataTypes.STRING, null)
-                    .add("name", DataTypes.STRING, null)
-                    .add("tags", new ArrayType(DataTypes.STRING), null)
-                    .addPrimaryKey("id")
-                    .clusteredBy("id")
-                    .build());
-            when(schemaInfo.getTableInfo("parted")).thenReturn(
-                TestingTableInfo.builder(new TableIdent("doc", "parted"), twoNodeRouting)
-                    .add("id", DataTypes.INTEGER, null)
-                    .add("name", DataTypes.STRING, null)
-                    .add("date", DataTypes.TIMESTAMP, null, true)
-                    .add("obj", DataTypes.OBJECT, null, ColumnPolicy.IGNORED)
-                    .addPartitions(
-                        new PartitionName("parted", Arrays.asList(new BytesRef("1395874800000"))).asIndexName(),
-                        new PartitionName("parted", Arrays.asList(new BytesRef("1395961200000"))).asIndexName(),
-                        new PartitionName("parted", new ArrayList<BytesRef>() {{
-                            add(null);
-                        }}).asIndexName())
-                    .build());
-            when(schemaInfo.getTableInfo("parted_pk")).thenReturn(
-                TestingTableInfo.builder(new TableIdent("doc", "parted"), twoNodeRouting)
-                    .addPrimaryKey("id").addPrimaryKey("date")
-                    .add("id", DataTypes.INTEGER, null)
-                    .add("name", DataTypes.STRING, null)
-                    .add("date", DataTypes.TIMESTAMP, null, true)
-                    .add("obj", DataTypes.OBJECT, null, ColumnPolicy.IGNORED)
-                    .addPartitions(
-                        new PartitionName("parted_pk", Arrays.asList(new BytesRef("1395874800000"))).asIndexName(),
-                        new PartitionName("parted_pk", Arrays.asList(new BytesRef("1395961200000"))).asIndexName(),
-                        new PartitionName("parted_pk", new ArrayList<BytesRef>() {{
-                            add(null);
-                        }}).asIndexName())
-                    .build());
-            when(schemaInfo.getTableInfo("bystring")).thenReturn(
-                TestingTableInfo.builder(new TableIdent("doc", "bystring"), twoNodeRouting)
-                    .add("name", DataTypes.STRING, null)
-                    .add("score", DataTypes.DOUBLE, null)
-                    .addPrimaryKey("name")
-                    .clusteredBy("name")
-                    .build());
-            when(schemaInfo.getTableInfo("users_multi_pk")).thenReturn(
-                TestingTableInfo.builder(new TableIdent("doc", "users_multi_pk"), twoNodeRouting)
-                    .add("id", DataTypes.LONG, null)
-                    .add("name", DataTypes.STRING, null)
-                    .add("details", DataTypes.OBJECT, null)
-                    .add("awesome", DataTypes.BOOLEAN, null)
-                    .add("friends", new ArrayType(DataTypes.OBJECT), null, ColumnPolicy.DYNAMIC)
-                    .addPrimaryKey("id")
-                    .addPrimaryKey("name")
-                    .clusteredBy("id")
-                    .build());
-            when(schemaInfo.getTableInfo("pk4")).thenReturn(
-                TestingTableInfo.builder(new TableIdent("doc", "pk4"), twoNodeRouting)
-                    .add("i1", DataTypes.INTEGER, null)
-                    .add("i2", DataTypes.INTEGER, null)
-                    .add("i3", DataTypes.INTEGER, null)
-                    .add("i4", DataTypes.INTEGER, null)
-                    .addPrimaryKey("i1")
-                    .addPrimaryKey("i2")
-                    .addPrimaryKey("i3")
-                    .addPrimaryKey("i4")
-                    .build());
-            when(schemaInfo.getTableInfo("users_clustered_by_only")).thenReturn(
-                TestingTableInfo.builder(new TableIdent("doc", "users_clustered_by_only"), twoNodeRouting)
-                    .add("id", DataTypes.LONG, null)
-                    .add("name", DataTypes.STRING, null)
-                    .add("details", DataTypes.OBJECT, null)
-                    .add("awesome", DataTypes.BOOLEAN, null)
-                    .add("friends", new ArrayType(DataTypes.OBJECT), null, ColumnPolicy.DYNAMIC)
-                    .clusteredBy("id")
-                    .build());
-            schemaBinder.addBinding(Schemas.DEFAULT_SCHEMA_NAME).toInstance(schemaInfo);
-        }
-    }
-
-    private DeleteAnalyzedStatement analyzeDelete(String stmt, Object[][] bulkArgs) {
-        return (DeleteAnalyzedStatement) analyzer.boundAnalyze(SqlParser.createStatement(stmt),
-            SessionContext.SYSTEM_SESSION,
-            new ParameterContext(Row.EMPTY, Rows.of(bulkArgs))).analyzedStatement();
-    }
-
-    private DeleteAnalyzedStatement analyzeDelete(String stmt) {
-        return analyzeDelete(stmt, new Object[0][]);
+    private void registerTables(SQLExecutor.Builder builder) {
+        builder.addDocTable(
+            TestingTableInfo.builder(new TableIdent("doc", "users"), twoNodeRouting)
+                .add("id", DataTypes.STRING, null)
+                .add("name", DataTypes.STRING, null)
+                .add("tags", new ArrayType(DataTypes.STRING), null)
+                .addPrimaryKey("id")
+                .clusteredBy("id")
+                .build());
+        builder.addDocTable(
+            TestingTableInfo.builder(new TableIdent("doc", "parted"), twoNodeRouting)
+                .add("id", DataTypes.INTEGER, null)
+                .add("name", DataTypes.STRING, null)
+                .add("date", DataTypes.TIMESTAMP, null, true)
+                .add("obj", DataTypes.OBJECT, null, ColumnPolicy.IGNORED)
+                .addPartitions(
+                    new PartitionName("parted", Arrays.asList(new BytesRef("1395874800000"))).asIndexName(),
+                    new PartitionName("parted", Arrays.asList(new BytesRef("1395961200000"))).asIndexName(),
+                    new PartitionName("parted", new ArrayList<BytesRef>() {{
+                        add(null);
+                    }}).asIndexName())
+                .build());
+        builder.addDocTable(
+            TestingTableInfo.builder(new TableIdent("doc", "parted_pk"), twoNodeRouting)
+                .addPrimaryKey("id").addPrimaryKey("date")
+                .add("id", DataTypes.INTEGER, null)
+                .add("name", DataTypes.STRING, null)
+                .add("date", DataTypes.TIMESTAMP, null, true)
+                .add("obj", DataTypes.OBJECT, null, ColumnPolicy.IGNORED)
+                .addPartitions(
+                    new PartitionName("parted_pk", Arrays.asList(new BytesRef("1395874800000"))).asIndexName(),
+                    new PartitionName("parted_pk", Arrays.asList(new BytesRef("1395961200000"))).asIndexName(),
+                    new PartitionName("parted_pk", new ArrayList<BytesRef>() {{
+                        add(null);
+                    }}).asIndexName())
+                .build());
+        builder.addDocTable(
+            TestingTableInfo.builder(new TableIdent("doc", "bystring"), twoNodeRouting)
+                .add("name", DataTypes.STRING, null)
+                .add("score", DataTypes.DOUBLE, null)
+                .addPrimaryKey("name")
+                .clusteredBy("name")
+                .build());
+        builder.addDocTable(
+            TestingTableInfo.builder(new TableIdent("doc", "users_multi_pk"), twoNodeRouting)
+                .add("id", DataTypes.LONG, null)
+                .add("name", DataTypes.STRING, null)
+                .add("details", DataTypes.OBJECT, null)
+                .add("awesome", DataTypes.BOOLEAN, null)
+                .add("friends", new ArrayType(DataTypes.OBJECT), null, ColumnPolicy.DYNAMIC)
+                .addPrimaryKey("id")
+                .addPrimaryKey("name")
+                .clusteredBy("id")
+                .build());
+        builder.addDocTable(
+            TestingTableInfo.builder(new TableIdent("doc", "pk4"), twoNodeRouting)
+                .add("i1", DataTypes.INTEGER, null)
+                .add("i2", DataTypes.INTEGER, null)
+                .add("i3", DataTypes.INTEGER, null)
+                .add("i4", DataTypes.INTEGER, null)
+                .addPrimaryKey("i1")
+                .addPrimaryKey("i2")
+                .addPrimaryKey("i3")
+                .addPrimaryKey("i4")
+                .build());
+        builder.addDocTable(
+            TestingTableInfo.builder(new TableIdent("doc", "users_clustered_by_only"), twoNodeRouting)
+                .add("id", DataTypes.LONG, null)
+                .add("name", DataTypes.STRING, null)
+                .add("details", DataTypes.OBJECT, null)
+                .add("awesome", DataTypes.BOOLEAN, null)
+                .add("friends", new ArrayType(DataTypes.OBJECT), null, ColumnPolicy.DYNAMIC)
+                .clusteredBy("id")
+                .build());
     }
 
     private UpdateAnalyzedStatement analyzeUpdate(String stmt) {
-        return (UpdateAnalyzedStatement) analyzer.boundAnalyze(SqlParser.createStatement(stmt),
-            SessionContext.SYSTEM_SESSION,
-            new ParameterContext(Row.EMPTY, Collections.<Row>emptyList())).analyzedStatement();
+        return e.analyze(stmt);
     }
 
     private WhereClause analyzeSelect(String stmt, Object... args) {
-        SelectAnalyzedStatement statement = (SelectAnalyzedStatement) analyzer.boundAnalyze(SqlParser.createStatement(stmt),
-            SessionContext.SYSTEM_SESSION,
-            new ParameterContext(new RowN(args), Collections.<Row>emptyList())).analyzedStatement();
+        SelectAnalyzedStatement statement = e.analyze(stmt, args);
         return statement.relation().querySpec().where();
     }
 
@@ -254,13 +195,13 @@ public class WhereClauseAnalyzerTest extends CrateUnitTest {
 
     @Test
     public void testWhereSinglePKColumnEq() throws Exception {
-        DeleteAnalyzedStatement statement = analyzeDelete("delete from users where id = ?", new Object[][]{
+        DeleteAnalyzedStatement statement = e.analyze("delete from users where id = ?", new Object[][]{
             new Object[]{1},
             new Object[]{2},
             new Object[]{3},
         });
         DocTableRelation tableRelation = statement.analyzedRelation();
-        WhereClauseAnalyzer whereClauseAnalyzer = new WhereClauseAnalyzer(functions, tableRelation);
+        WhereClauseAnalyzer whereClauseAnalyzer = new WhereClauseAnalyzer(e.functions(), tableRelation);
         assertThat(whereClauseAnalyzer.analyze(statement.whereClauses().get(0), transactionContext).docKeys().get(), contains(isDocKey("1")));
         assertThat(whereClauseAnalyzer.analyze(statement.whereClauses().get(1), transactionContext).docKeys().get(), contains(isDocKey("2")));
         assertThat(whereClauseAnalyzer.analyze(statement.whereClauses().get(2), transactionContext).docKeys().get(), contains(isDocKey("3")));
@@ -304,7 +245,7 @@ public class WhereClauseAnalyzerTest extends CrateUnitTest {
 
     @Test
     public void testWherePartitionedByColumn() throws Exception {
-        DeleteAnalyzedStatement statement = analyzeDelete("delete from parted where date = 1395874800000");
+        DeleteAnalyzedStatement statement = e.analyze("delete from parted where date = 1395874800000");
         WhereClause whereClause = statement.whereClauses().get(0);
 
         assertThat(whereClause.hasQuery(), is(false));

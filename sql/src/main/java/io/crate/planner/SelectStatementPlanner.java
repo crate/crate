@@ -53,19 +53,15 @@ import io.crate.planner.node.fetch.FetchSource;
 import io.crate.planner.projection.FetchProjection;
 import io.crate.planner.projection.TopNProjection;
 import io.crate.planner.projection.builder.ProjectionBuilder;
-import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.inject.Singleton;
 
 import java.util.ArrayList;
 import java.util.Map;
 
-@Singleton
-public class SelectStatementPlanner {
+class SelectStatementPlanner {
 
     private final Visitor visitor;
 
-    @Inject
-    public SelectStatementPlanner(ConsumingPlanner consumingPlanner) {
+    SelectStatementPlanner(ConsumingPlanner consumingPlanner) {
         visitor = new Visitor(consumingPlanner);
     }
 

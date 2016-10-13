@@ -27,58 +27,31 @@ import com.google.common.collect.ImmutableSet;
 import io.crate.action.sql.SessionContext;
 import io.crate.analyze.*;
 import io.crate.analyze.relations.JoinPair;
-import io.crate.analyze.repositories.RepositorySettingsModule;
-import io.crate.operation.aggregation.impl.AggregationImplModule;
-import io.crate.operation.operator.OperatorModule;
-import io.crate.operation.predicate.PredicateModule;
-import io.crate.operation.scalar.ScalarFunctionModule;
 import io.crate.planner.node.dql.join.JoinType;
 import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.QualifiedName;
-import io.crate.testing.MockedClusterServiceModule;
+import io.crate.test.integration.CrateUnitTest;
+import io.crate.testing.SQLExecutor;
 import io.crate.testing.T3;
-import org.elasticsearch.common.inject.AbstractModule;
-import org.elasticsearch.common.inject.Injector;
-import org.elasticsearch.common.inject.ModulesBuilder;
-import org.elasticsearch.threadpool.ThreadPool;
+import org.elasticsearch.test.cluster.NoopClusterService;
 import org.hamcrest.Matchers;
-import org.junit.Before;
 import org.junit.Test;
 
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Set;
 
-import static io.crate.testing.TestingHelpers.*;
+import static io.crate.testing.TestingHelpers.getFunctions;
+import static io.crate.testing.TestingHelpers.isSQL;
 import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertThat;
 
-public class ManyTableConsumerTest {
+public class ManyTableConsumerTest extends CrateUnitTest {
 
-    private Analyzer analyzer;
-
-    @Before
-    public void setUp() throws Exception {
-        Injector injector = new ModulesBuilder()
-            .add(new MockedClusterServiceModule())
-            .add(T3.META_DATA_MODULE)
-            .add(new AbstractModule() {
-                @Override
-                protected void configure() {
-                    bind(ThreadPool.class).toInstance(newMockedThreadPool());
-                }
-            })
-            .add(new AggregationImplModule())
-            .add(new ScalarFunctionModule())
-            .add(new PredicateModule())
-            .add(new RepositorySettingsModule())
-            .add(new OperatorModule())
-            .createInjector();
-        analyzer = injector.getInstance(Analyzer.class);
-    }
+    private SQLExecutor e = SQLExecutor.builder(new NoopClusterService()).enableDefaultTables().build();
 
     private MultiSourceSelect analyze(String statement) {
-        Analysis analysis = analyzer.boundAnalyze(SqlParser.createStatement(statement), SessionContext.SYSTEM_SESSION, ParameterContext.EMPTY);
+        Analysis analysis = e.analyzer.boundAnalyze(
+            SqlParser.createStatement(statement), SessionContext.SYSTEM_SESSION, ParameterContext.EMPTY);
         MultiSourceSelect mss = (MultiSourceSelect) ((SelectAnalyzedStatement) analysis.analyzedStatement()).relation();
         ManyTableConsumer.replaceFieldsWithRelationColumns(mss);
         return mss;

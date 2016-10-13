@@ -40,16 +40,13 @@ import org.elasticsearch.common.inject.Singleton;
 import javax.annotation.Nullable;
 import java.util.*;
 
-@Singleton
 public class Rewriter {
 
     private final EvaluatingNormalizer normalizer;
 
-    @Inject
     public Rewriter(Functions functions) {
         normalizer = EvaluatingNormalizer.functionOnlyNormalizer(functions, ReplaceMode.COPY);
     }
-
 
     /**
      * Rewrite an Outer join to an inner join if possible.

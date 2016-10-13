@@ -46,19 +46,15 @@ import io.crate.planner.projection.GroupProjection;
 import io.crate.planner.projection.Projection;
 import io.crate.planner.projection.builder.ProjectionBuilder;
 import io.crate.planner.projection.builder.SplitPoints;
-import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.inject.Singleton;
 
 import java.util.ArrayList;
 import java.util.List;
 
-@Singleton
-public class NonDistributedGroupByConsumer implements Consumer {
+class NonDistributedGroupByConsumer implements Consumer {
 
     private final Visitor visitor;
 
-    @Inject
-    public NonDistributedGroupByConsumer(Functions functions) {
+    NonDistributedGroupByConsumer(Functions functions) {
         this.visitor = new Visitor(functions);
     }
 

@@ -46,18 +46,14 @@ import io.crate.planner.node.dql.MergePhase;
 import io.crate.planner.node.dql.RoutedCollectPhase;
 import io.crate.planner.projection.Projection;
 import io.crate.planner.projection.TopNProjection;
-import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.inject.Singleton;
 
 import java.util.ArrayList;
 import java.util.List;
 
-@Singleton
 public class QueryAndFetchConsumer implements Consumer {
 
     private final Visitor visitor;
 
-    @Inject
     public QueryAndFetchConsumer() {
         visitor = new Visitor();
     }
