@@ -37,9 +37,9 @@ public class TwoRelationsUnion implements QueriedRelation {
 
     private final QueriedRelation first;
     private final QueriedRelation second;
-    private final QualifiedName name;
     private final boolean distinct;
     private final QuerySpec querySpec = new QuerySpec();
+    private QualifiedName name;
 
     public TwoRelationsUnion(QueriedRelation first, QueriedRelation second, boolean distinct) {
         this.first = first;
@@ -82,7 +82,7 @@ public class TwoRelationsUnion implements QueriedRelation {
 
     @Override
     public void setQualifiedName(@Nonnull QualifiedName qualifiedName) {
-        throw new UnsupportedOperationException("method not supported");
+        name = qualifiedName;
     }
 
     @Override
