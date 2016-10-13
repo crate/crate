@@ -76,8 +76,6 @@ public class HttpBlobHandler extends SimpleChannelUpstreamHandler implements
     private HttpMessage currentMessage;
     private ChannelHandlerContext ctx;
 
-    private RemoteDigestBlob digestBlob;
-
     public HttpBlobHandler(BlobService blobService, BlobIndices blobIndices, boolean sslEnabled) {
         this.blobService = blobService;
         this.blobIndices = blobIndices;
@@ -150,7 +148,6 @@ public class HttpBlobHandler extends SimpleChannelUpstreamHandler implements
     }
 
     private void handleBlobRequest(HttpRequest request, Matcher matcher) throws IOException {
-        digestBlob = null;
         String index = matcher.group(1);
         String digest = matcher.group(2);
 
@@ -406,12 +403,6 @@ public class HttpBlobHandler extends SimpleChannelUpstreamHandler implements
 
     private void put(HttpRequest request, String index, String digest) throws IOException {
 
-        if (digestBlob != null) {
-            throw new IllegalStateException(
-                "received new PUT Request " + HttpRequest.class.getSimpleName() +
-                "with existing " + DigestBlob.class.getSimpleName());
-        }
-
         // shortcut check if the file existsLocally locally, so we can immediatly return
         // if (blobService.existsLocally(digest)) {
         //    simpleResponse(HttpResponseStatus.CONFLICT, null);
@@ -419,18 +410,18 @@ public class HttpBlobHandler extends SimpleChannelUpstreamHandler implements
 
         // TODO: Respond with 413 Request Entity Too Large
 
-        digestBlob = blobService.newBlob(index, digest);
+        RemoteDigestBlob digestBlob = blobService.newBlob(index, digest);
 
         if (request.isChunked()) {
-            writeToFile(request.getContent(), false, HttpHeaders.is100ContinueExpected(request));
+            writeToFile(digestBlob, request.getContent(), false, HttpHeaders.is100ContinueExpected(request));
         } else {
-            writeToFile(request.getContent(), true, HttpHeaders.is100ContinueExpected(request));
+            writeToFile(digestBlob, request.getContent(), true, HttpHeaders.is100ContinueExpected(request));
             reset();
         }
     }
 
     private void delete(String index, String digest) throws IOException {
-        digestBlob = blobService.newBlob(index, digest);
+        RemoteDigestBlob digestBlob = blobService.newBlob(index, digest);
         if (digestBlob.delete()) {
             // 204 for success
             simpleResponse(HttpResponseStatus.NO_CONTENT);
@@ -439,11 +430,8 @@ public class HttpBlobHandler extends SimpleChannelUpstreamHandler implements
         }
     }
 
-    protected void writeToFile(ChannelBuffer input, boolean last, final boolean continueExpected) throws
+    protected void writeToFile(RemoteDigestBlob digestBlob, ChannelBuffer input, boolean last, final boolean continueExpected) throws
         IOException {
-        if (digestBlob == null) {
-            throw new IllegalStateException("digestBlob is null in writeToFile");
-        }
 
         RemoteDigestBlob.Status status = digestBlob.addContent(input, last);
         HttpResponseStatus exitStatus = null;
