@@ -27,14 +27,16 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.QuerySpec;
+import io.crate.analyze.UnionSelect;
 import io.crate.analyze.relations.AnalyzedRelation;
+import io.crate.analyze.relations.PlanOutputSymbolExtractor;
+import io.crate.analyze.relations.QueriedRelation;
 import io.crate.analyze.symbol.Literal;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.analyze.symbol.Symbols;
 import io.crate.planner.Limits;
 import io.crate.planner.Plan;
 import io.crate.planner.PositionalOrderBy;
-import io.crate.planner.RelationsUnion;
 import io.crate.planner.node.dql.MergePhase;
 import io.crate.planner.node.dql.UnionPhase;
 import io.crate.planner.node.dql.UnionPlan;
@@ -69,24 +71,28 @@ class UnionConsumer implements Consumer {
         }
 
         @Override
-        public Plan visitRelationsUnion(RelationsUnion relationsUnion, ConsumerContext context) {
+        public Plan visitUnionSelect(UnionSelect unionSelect, ConsumerContext context) {
             Set<String> handlerNodes = ImmutableSet.of(clusterService.localNode().id());
-            Limits limits = context.plannerContext().getLimits(relationsUnion.querySpec());
+            Limits limits = context.plannerContext().getLimits(unionSelect.querySpec());
             List<MergePhase> mergePhases = new ArrayList<>();
             List<Plan> subPlans = new ArrayList<>();
 
-            for (int i = 0; i < relationsUnion.relations().size(); i++) {
-                Plan subplan = relationsUnion.relations().get(i);
-                QuerySpec querySpec = relationsUnion.querySpecs().get(i);
-                subPlans.add(subplan);
+            List<? extends Symbol> outputs = unionSelect.querySpec().outputs();
 
-                if (handlerNodes.equals(subplan.resultDescription().nodeIds())) {
+            for (QueriedRelation queriedRelation : unionSelect.relations()) {
+                Plan subPlan = context.plannerContext().planSubRelation(queriedRelation, context);
+                subPlans.add(subPlan);
+
+                outputs = PlanOutputSymbolExtractor.extract(subPlan);
+                QuerySpec querySpec = queriedRelation.querySpec();
+
+                if (handlerNodes.equals(subPlan.resultDescription().nodeIds())) {
                     mergePhases.add(null);
                 } else {
                     mergePhases.add(MergePhase.mergePhase(
                         context.plannerContext(),
                         handlerNodes,
-                        subplan.resultDescription().nodeIds().size(),
+                        subPlan.resultDescription().nodeIds().size(),
                         PositionalOrderBy.of(querySpec.orderBy().orNull(), querySpec.outputs()),
                         ImmutableList.of(),
                         Symbols.extractTypes(querySpec.outputs())));
@@ -94,12 +100,11 @@ class UnionConsumer implements Consumer {
             }
 
             // Add a new symbol as first which acts as a placeholder for the
-             // upstream inputId that is prepended in the union phase
-            List<Symbol> outputsWithPrependedInputId = new ArrayList<>(relationsUnion.querySpec().outputs());
+            // upstream inputId that is prepended in the union phase
+            List<Symbol> outputsWithPrependedInputId = new ArrayList<>(unionSelect.querySpec().outputs());
             outputsWithPrependedInputId.add(0, Literal.ZERO);
 
-            final List<Symbol> outputs = relationsUnion.querySpec().outputs();
-            Optional<OrderBy> rootOrderBy = relationsUnion.querySpec().orderBy();
+            Optional<OrderBy> rootOrderBy = unionSelect.querySpec().orderBy();
             List<Projection> projections = ImmutableList.of();
             if (limits.hasLimit() || rootOrderBy.isPresent()) {
                 projections = new ArrayList<>(1);
@@ -118,7 +123,7 @@ class UnionConsumer implements Consumer {
                 "union",
                 projections,
                 mergePhases,
-                relationsUnion.querySpec().outputs(),
+                unionSelect.querySpec().outputs(),
                 handlerNodes);
             return new UnionPlan(unionPhase, subPlans);
         }

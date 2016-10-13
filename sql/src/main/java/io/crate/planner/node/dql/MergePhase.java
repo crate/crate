@@ -214,7 +214,9 @@ public class MergePhase extends AbstractProjectionsPhase implements UpstreamPhas
             }
         }
 
-        positionalOrderBy = PositionalOrderBy.fromStream(in);
+        if (in.readBoolean()) {
+            positionalOrderBy = PositionalOrderBy.fromStream(in);
+        }
     }
 
     @Override

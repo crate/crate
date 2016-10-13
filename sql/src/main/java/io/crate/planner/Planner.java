@@ -169,7 +169,7 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
             return handlerNode;
         }
 
-        static class ReaderAllocations {
+        public static class ReaderAllocations {
 
             private final TreeMap<Integer, String> readerIndices = new TreeMap<>();
             private final Map<String, IntSet> nodeReaders = new HashMap<>();
@@ -228,7 +228,7 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
             }
         }
 
-        ReaderAllocations buildReaderAllocations() {
+        public ReaderAllocations buildReaderAllocations() {
             if (readerAllocations != null) {
                 return readerAllocations;
             }

@@ -24,6 +24,7 @@ package io.crate.planner.projection;
 import com.google.common.base.Function;
 import com.google.common.base.MoreObjects;
 import com.google.common.collect.ImmutableList;
+import io.crate.analyze.symbol.InputColumn;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.analyze.symbol.Symbols;
 import io.crate.collections.Lists2;
@@ -114,6 +115,13 @@ public class TopNProjection extends Projection {
         return reverseFlags != null && reverseFlags.length > 0;
     }
 
+    @Override
+    public void prependOutput(Symbol symbol) {
+        InputColumn.shiftRight(outputs);
+        outputs.add(0, symbol);
+
+        InputColumn.shiftRight(orderBy);
+    }
 
     @Override
     public void replaceSymbols(Function<Symbol, Symbol> replaceFunction) {
