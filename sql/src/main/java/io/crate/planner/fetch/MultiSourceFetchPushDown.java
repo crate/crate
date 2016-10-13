@@ -44,14 +44,7 @@ public class MultiSourceFetchPushDown {
     private List<Symbol> remainingOutputs;
     private Map<TableIdent, FetchSource> fetchSources;
 
-
-    public static MultiSourceFetchPushDown pushDown(MultiSourceSelect statement) {
-        MultiSourceFetchPushDown pd = new MultiSourceFetchPushDown(statement);
-        pd.process();
-        return pd;
-    }
-
-    private MultiSourceFetchPushDown(MultiSourceSelect statement) {
+    MultiSourceFetchPushDown(MultiSourceSelect statement) {
         this.statement = statement;
         this.fetchSources = new HashMap<>(statement.sources().size());
     }
@@ -64,7 +57,7 @@ public class MultiSourceFetchPushDown {
         return remainingOutputs;
     }
 
-    private void process() {
+    void process() {
         remainingOutputs = statement.querySpec().outputs();
         statement.querySpec().outputs(new ArrayList<Symbol>());
 

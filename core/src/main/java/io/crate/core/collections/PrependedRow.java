@@ -27,27 +27,35 @@ package io.crate.core.collections;
  */
 public class PrependedRow implements Row {
 
-    private final Row delegateRow;
     private final byte inputId;
+    private Row delegateRow;
 
-    public PrependedRow(Row delegateRow, byte inputId) {
-        this.delegateRow = delegateRow;
+    /**
+     * Before using this special row {@link #setDelegate(Row)} must be called first.
+     */
+    public PrependedRow(byte inputId) {
         this.inputId = inputId;
+    }
+
+    public void setDelegate(Row row) {
+        delegateRow = row;
     }
 
     @Override
     public int size() {
+        assert delegateRow != null : "delegateRow must be set first";
         return delegateRow.size() + 1;
     }
 
     @Override
     public Object get(int index) {
+        assert delegateRow != null : "delegateRow must be set first";
         return index == 0 ? inputId : delegateRow.get(index - 1);
     }
 
     @Override
     public Object[] materialize() {
-        Object[] materializedRow = new Object[delegateRow.size() + 1];
+        Object[] materializedRow = new Object[size()];
         materializedRow[0] = inputId;
         System.arraycopy(delegateRow.materialize(), 0, materializedRow, 1, delegateRow.size());
         return materializedRow;
