@@ -33,7 +33,7 @@ import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
-import org.elasticsearch.cluster.metadata.MetaData;
+import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.env.Environment;
 import org.elasticsearch.index.IndexNotFoundException;
@@ -41,47 +41,39 @@ import org.elasticsearch.index.IndexNotFoundException;
 import java.io.File;
 import java.nio.file.Path;
 
-class BlobTableInfoBuilder {
+public class InternalBlobTableInfoFactory implements BlobTableInfoFactory {
 
-    private final TableIdent ident;
-    private final ClusterService clusterService;
     private final IndexNameExpressionResolver indexNameExpressionResolver;
     private final BlobEnvironment blobEnvironment;
     private final Environment environment;
-    private final ClusterState state;
-    private final MetaData metaData;
-    private String[] concreteIndices;
 
-    BlobTableInfoBuilder(TableIdent ident,
-                         ClusterService clusterService,
-                         IndexNameExpressionResolver indexNameExpressionResolver,
-                         BlobEnvironment blobEnvironment,
-                         Environment environment) {
-        this.clusterService = clusterService;
+    @Inject
+    public InternalBlobTableInfoFactory(IndexNameExpressionResolver indexNameExpressionResolver,
+                                        BlobEnvironment blobEnvironment,
+                                        Environment environment) {
         this.indexNameExpressionResolver = indexNameExpressionResolver;
         this.blobEnvironment = blobEnvironment;
         this.environment = environment;
-        this.state = clusterService.state();
-        this.metaData = state.metaData();
-        this.ident = ident;
     }
 
-    private IndexMetaData resolveIndexMetaData() {
-        String index = BlobIndices.fullIndexName(ident.name());
+    private IndexMetaData resolveIndexMetaData(String tableName, ClusterState state) {
+        String index = BlobIndices.fullIndexName(tableName);
+        String[] concreteIndices;
         try {
             concreteIndices = indexNameExpressionResolver.concreteIndices(
                 state, IndicesOptions.strictExpandOpen(), index);
         } catch (IndexNotFoundException ex) {
             throw new TableUnknownException(index, ex);
         }
-        return metaData.index(concreteIndices[0]);
+        return state.metaData().index(concreteIndices[0]);
     }
 
-    public BlobTableInfo build() {
-        IndexMetaData indexMetaData = resolveIndexMetaData();
+    @Override
+    public BlobTableInfo create(TableIdent ident, ClusterService clusterService) {
+        IndexMetaData indexMetaData = resolveIndexMetaData(ident.name(), clusterService.state());
         return new BlobTableInfo(
             ident,
-            concreteIndices[0],
+            indexMetaData.getIndex(),
             clusterService,
             indexMetaData.getNumberOfShards(),
             NumberOfReplicas.fromSettings(indexMetaData.getSettings()),
