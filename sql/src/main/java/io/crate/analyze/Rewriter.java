@@ -195,7 +195,7 @@ public class Rewriter {
      * <p>
      * Also collects any RelationColumn which are being replaced and no longer required to be collected into {@link #symbolsToNotCollect()}
      */
-    private class DereferenceRelationColumnFunction implements Function<RelationColumn, Symbol> {
+    private static class DereferenceRelationColumnFunction implements Function<RelationColumn, Symbol> {
         private final QualifiedName outerRelation;
         private final QuerySpec outerSpec;
         private final List<Symbol> mssOutputSymbols;

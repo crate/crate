@@ -29,7 +29,7 @@ public class Paging {
 
     // this must not be final so tests could adjust it
     public static int PAGE_SIZE = 500_000;
-    private final static double OVERHEAD_FACTOR = 1.5;
+    private static final double OVERHEAD_FACTOR = 1.5;
 
     public static int getWeightedPageSize(@Nullable Integer limit, double weight) {
         return getWeightedPageSize(limit, weight, OVERHEAD_FACTOR);

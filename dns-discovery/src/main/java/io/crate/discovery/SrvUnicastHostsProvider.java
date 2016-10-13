@@ -71,7 +71,7 @@ public class SrvUnicastHostsProvider extends AbstractComponent implements Unicas
                 hostname = parts[0];
                 if (parts.length > 1) {
                     try {
-                        port = Integer.valueOf(parts[1]);
+                        port = Integer.parseInt(parts[1]);
                     } catch (Exception e) {
                         logger.warn("Resolver port '{}' is not an integer. Using default port 53", parts[1]);
                     }

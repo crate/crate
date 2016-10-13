@@ -229,7 +229,7 @@ public class UpsertByIdTask extends JobTask {
     }
 
     private List<SettableFuture<Long>> initializeBulkShardProcessor(Settings settings) {
-        assert upsertById.updateColumns() != null | upsertById.insertColumns() != null;
+        assert upsertById.updateColumns() != null || upsertById.insertColumns() != null;
         ShardUpsertRequest.Builder builder = new ShardUpsertRequest.Builder(
             CrateSettings.BULK_REQUEST_TIMEOUT.extractTimeValue(settings),
             false, // do not overwrite duplicates

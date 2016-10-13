@@ -50,7 +50,7 @@ class UnboundAnalyzer {
         return dispatcher.process(statement, new Analysis(sessionContext, ParameterContext.EMPTY, paramTypeHints));
     }
 
-    private class UnboundDispatcher extends AstVisitor<AnalyzedRelation, Analysis> {
+    private static class UnboundDispatcher extends AstVisitor<AnalyzedRelation, Analysis> {
 
         private final RelationAnalyzer relationAnalyzer;
         private final ShowCreateTableAnalyzer showCreateTableAnalyzer;

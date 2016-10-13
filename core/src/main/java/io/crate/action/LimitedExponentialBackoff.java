@@ -50,11 +50,13 @@ public class LimitedExponentialBackoff extends BackoffPolicy {
 
     private static class LimitedExponentialBackoffIterator implements Iterator<TimeValue> {
 
+        private static final float FACTOR = 1.8f;
+
         private final int startValue;
         private final int maxIterations;
         private final int limit;
         private int currentIterations;
-        private final float factor = 1.8f;
+
 
         public LimitedExponentialBackoffIterator(int limit) {
             this(0, Integer.MAX_VALUE, limit);
@@ -67,7 +69,7 @@ public class LimitedExponentialBackoff extends BackoffPolicy {
         }
 
         public int calculate(int iteration) {
-            return Math.min(limit, (int) Math.pow(iteration / Math.E, factor));
+            return Math.min(limit, (int) Math.pow(iteration / Math.E, FACTOR));
         }
 
         @Override
