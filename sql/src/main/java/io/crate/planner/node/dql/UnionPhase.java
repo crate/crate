@@ -24,7 +24,7 @@ package io.crate.planner.node.dql;
 
 import com.google.common.base.MoreObjects;
 import com.google.common.collect.Iterables;
-import io.crate.analyze.symbol.Literal;
+import io.crate.analyze.symbol.InputColumn;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.analyze.symbol.Symbols;
 import io.crate.planner.PositionalOrderBy;
@@ -35,12 +35,12 @@ import io.crate.planner.node.ExecutionPhaseVisitor;
 import io.crate.planner.projection.FetchProjection;
 import io.crate.planner.projection.Projection;
 import io.crate.types.DataType;
+import io.crate.types.DataTypes;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.UUID;
@@ -67,7 +67,7 @@ public class UnionPhase extends AbstractProjectionsPhase implements UpstreamPhas
                       int limit,
                       int offset,
                       List<Projection> projections,
-                      List<Symbol> outputs,
+                      List<? extends Symbol> outputs,
                       Collection<String> executionNodes) {
         super(jobId, executionNodeId, name, projections);
 
@@ -92,16 +92,19 @@ public class UnionPhase extends AbstractProjectionsPhase implements UpstreamPhas
 
     @Override
     public void addProjection(Projection projection) {
-        super.addProjection(projection);
         if (projection instanceof FetchProjection) {
             fetchRequired = true;
-            // Add a new symbol as first which acts as a placeholder for the
-            // upstream inputId that is prepended in the union phase
-            List<Symbol> outputsWithPrependedInputId = new ArrayList<>(projections.get(0).outputs());
-            outputsWithPrependedInputId.add(0, Literal.ZERO);
 
-            //TODO: replace intputs/outputs on all projections.
+            // prepend an output symbol, the inputId byte value will be injected by the union phase as the first column
+            for (Projection existingProjection : projections) {
+                existingProjection.prependOutput(new InputColumn(0, DataTypes.BYTE));
+            }
+
+            // fetch projections is always the last one, so just shift input columns without adding the one injected
+            // by the union phase
+            ((FetchProjection) projection).outputsPerRelation().forEach(InputColumn::shiftRight);
         }
+        super.addProjection(projection);
     }
 
     @Override

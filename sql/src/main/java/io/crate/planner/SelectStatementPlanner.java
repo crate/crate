@@ -22,8 +22,6 @@
 
 package io.crate.planner;
 
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import io.crate.analyze.*;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.AnalyzedRelationVisitor;
@@ -32,17 +30,12 @@ import io.crate.analyze.relations.QueriedRelation;
 import io.crate.analyze.symbol.SelectSymbol;
 import io.crate.exceptions.ValidationException;
 import io.crate.exceptions.VersionInvalidException;
-import io.crate.metadata.Reference;
-import io.crate.metadata.TableIdent;
 import io.crate.planner.consumer.ConsumerContext;
 import io.crate.planner.consumer.ConsumingPlanner;
 import io.crate.planner.consumer.ESGetStatementPlanner;
 import io.crate.planner.fetch.FetchPushDown;
-import io.crate.planner.fetch.MultiSourceFetchPushDown;
+import io.crate.planner.node.ExecutionPhases;
 import io.crate.planner.node.dql.QueryThenFetch;
-import io.crate.planner.node.fetch.FetchPhase;
-import io.crate.planner.node.fetch.FetchSource;
-import io.crate.planner.projection.FetchProjection;
 import io.crate.sql.tree.QualifiedName;
 
 import java.util.ArrayList;
@@ -121,30 +114,28 @@ class SelectStatementPlanner {
             }
             table.tableRelation().validateOrderBy(querySpec.orderBy());
 
-            FetchPushDown fetchPushDown = new FetchPushDown(querySpec, table.tableRelation());
-            QueriedDocTable subRelation = fetchPushDown.pushDown();
-            if (subRelation == null) {
+            FetchPushDown.Builder fetchPhaseBuilder = FetchPushDown.pushDown(table);
+            if (fetchPhaseBuilder == null) {
+                // no fetch required
                 return MultiPhasePlan.createIfNeeded(invokeConsumingPlanner(table, context), subQueries);
             }
+            AnalyzedRelation subRelation = fetchPhaseBuilder.replacedRelation();
             Plan plannedSubQuery = subPlan(subRelation, context);
             assert plannedSubQuery != null : "consumingPlanner should have created a subPlan";
             plannedSubQuery = Merge.mergeToHandler(plannedSubQuery, context);
 
-            Planner.Context.ReaderAllocations readerAllocations = context.buildReaderAllocations();
+            // fetch phase and projection can only be build after the sub-plan was processed (shards/readers allocated)
+            FetchPushDown.PhaseAndProjection fetchPhaseAndProjection = fetchPhaseBuilder.build(context);
+            plannedSubQuery.addProjection(
+                fetchPhaseAndProjection.projection,
+                null,
+                null,
+                fetchPhaseAndProjection.projection.outputs().size(),
+                null);
 
-            FetchPhase fetchPhase = new FetchPhase(
-                context.nextExecutionPhaseId(),
-                readerAllocations.nodeReaders().keySet(),
-                readerAllocations.bases(),
-                readerAllocations.tableIndices(),
-                fetchPushDown.fetchRefs()
-            );
-            FetchProjection fp = createFetchProjection(
-                table, querySpec, fetchPushDown, readerAllocations, fetchPhase, context.fetchSize());
-            plannedSubQuery.addProjection(fp, null, null, fp.outputs().size(), null);
-
-            QueryThenFetch queryThenFetch = new QueryThenFetch(plannedSubQuery, fetchPhase);
-            return MultiPhasePlan.createIfNeeded(queryThenFetch, subQueries);
+            return MultiPhasePlan.createIfNeeded(
+                new QueryThenFetch(plannedSubQuery, fetchPhaseAndProjection.phase),
+                subQueries);
         }
 
         @Override
@@ -162,34 +153,26 @@ class SelectStatementPlanner {
             if (mss.canBeFetched().isEmpty()) {
                 return MultiPhasePlan.createIfNeeded(invokeConsumingPlanner(mss, context), subQueries);
             }
-            MultiSourceFetchPushDown pd = MultiSourceFetchPushDown.pushDown(mss);
+            FetchPushDown.Builder fetchPhaseBuilder = FetchPushDown.pushDown(mss);
+            assert fetchPhaseBuilder != null : "expecting fetchPhaseBuilder not to be null";
+
+            // plan sub relation as if root so that it adds a mergePhase
             Plan plannedSubQuery = invokeConsumingPlanner(mss, context);
             assert plannedSubQuery != null : "consumingPlanner should have created a subPlan";
-
-            Planner.Context.ReaderAllocations readerAllocations = context.buildReaderAllocations();
-            ArrayList<Reference> docRefs = new ArrayList<>();
-            for (Map.Entry<TableIdent, FetchSource> entry : pd.fetchSources().entrySet()) {
-                docRefs.addAll(entry.getValue().references());
+            // NestedLoopConsumer can return NoopPlannedAnalyzedRelation if its left or right plan
+            // is noop. E.g. it is the case with creating NestedLoopConsumer for empty partitioned tables.
+            if (plannedSubQuery instanceof NoopPlan) {
+                return plannedSubQuery;
             }
 
-            FetchPhase fetchPhase = new FetchPhase(
-                context.nextExecutionPhaseId(),
-                readerAllocations.nodeReaders().keySet(),
-                readerAllocations.bases(),
-                readerAllocations.tableIndices(),
-                docRefs
-            );
-            FetchProjection fp = new FetchProjection(
-                fetchPhase.phaseId(),
-                context.fetchSize(),
-                pd.fetchSources(),
-                pd.remainingOutputs(),
-                readerAllocations.nodeReaders(),
-                readerAllocations.indices(),
-                readerAllocations.indicesToIdents());
-
-            plannedSubQuery.addProjection(fp, null, null, fp.outputs().size(), null);
-            QueryThenFetch queryThenFetch = new QueryThenFetch(plannedSubQuery, fetchPhase);
+            FetchPushDown.PhaseAndProjection fetchPhaseAndProjection = fetchPhaseBuilder.build(context);
+            plannedSubQuery.addProjection(
+                fetchPhaseAndProjection.projection,
+                null,
+                null,
+                fetchPhaseAndProjection.projection.outputs().size(),
+                null);
+            QueryThenFetch queryThenFetch = new QueryThenFetch(plannedSubQuery, fetchPhaseAndProjection.phase);
             return MultiPhasePlan.createIfNeeded(Merge.mergeToHandler(queryThenFetch, context), subQueries);
         }
 
@@ -199,34 +182,31 @@ class SelectStatementPlanner {
             UnionFlatteningVisitorContext visitorContext = new UnionFlatteningVisitorContext();
             UnionFlatteningVisitor.INSTANCE.process(twoRelationsUnion, visitorContext);
             UnionSelect unionSelect = new UnionSelect(visitorContext.relations, twoRelationsUnion.querySpec());
-            return consumingPlanner.plan(unionSelect, context);
+
+            FetchPushDown.Builder fetchPhaseBuilder = FetchPushDown.pushDown(unionSelect);
+            ConsumerContext consumerContext = new ConsumerContext(unionSelect, context);
+            Plan plannedSubQuery = consumingPlanner.plan(unionSelect, consumerContext);
+            if (plannedSubQuery instanceof NoopPlan) {
+                return plannedSubQuery;
+            }
+            assert plannedSubQuery != null : "consumingPlanner should have created a subPlan";
+            assert ExecutionPhases.executesOnHandler(context.handlerNode(), plannedSubQuery.resultDescription().nodeIds())
+                : "subQuery must not have a distributed result";
+
+            if (fetchPhaseBuilder == null) {
+                // no fetch required
+                return plannedSubQuery;
+            }
+
+            FetchPushDown.PhaseAndProjection fetchPhaseAndProjection = fetchPhaseBuilder.build(context);
+            plannedSubQuery.addProjection(fetchPhaseAndProjection.projection, null, null, null, null);
+            return new QueryThenFetch(plannedSubQuery, fetchPhaseAndProjection.phase);
         }
 
         @Override
         public Plan visitQueriedSelectRelation(QueriedSelectRelation relation, Planner.Context context) {
             throw new UnsupportedOperationException("complex sub selects are not supported");
         }
-    }
-
-    private static FetchProjection createFetchProjection(QueriedDocTable table,
-                                                         QuerySpec querySpec,
-                                                         FetchPushDown fetchPushDown,
-                                                         Planner.Context.ReaderAllocations readerAllocations,
-                                                         FetchPhase fetchPhase,
-                                                         int fetchSize) {
-        Map<TableIdent, FetchSource> fetchSources = ImmutableMap.of(table.tableRelation().tableInfo().ident(),
-            new FetchSource(table.tableRelation().tableInfo().partitionedByColumns(),
-                ImmutableList.of(fetchPushDown.docIdCol()),
-                fetchPushDown.fetchRefs()));
-
-        return new FetchProjection(
-            fetchPhase.phaseId(),
-            fetchSize,
-            fetchSources,
-            querySpec.outputs(),
-            readerAllocations.nodeReaders(),
-            readerAllocations.indices(),
-            readerAllocations.indicesToIdents());
     }
 
     private static class UnionFlatteningVisitor extends AnalyzedRelationVisitor<UnionFlatteningVisitorContext, Void> {
@@ -251,13 +231,11 @@ class SelectStatementPlanner {
             return null;
         }
 
-        @Override
         public Void visitQueriedSelectRelation(QueriedSelectRelation relation, UnionFlatteningVisitorContext context) {
             context.relations.add(0, relation);
             return null;
         }
 
-        @Override
         public Void visitTwoRelationsUnion(TwoRelationsUnion twoRelationsUnion, UnionFlatteningVisitorContext context) {
             process(twoRelationsUnion.first(), context);
             process(twoRelationsUnion.second(), context);

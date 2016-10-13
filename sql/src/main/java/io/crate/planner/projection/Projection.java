@@ -32,6 +32,7 @@ import org.elasticsearch.common.io.stream.Streamable;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
+import java.util.Collection;
 import java.util.List;
 
 public abstract class Projection implements Streamable {
@@ -69,6 +70,16 @@ public abstract class Projection implements Streamable {
     public abstract <C, R> R accept(ProjectionVisitor<C, R> visitor, C context);
 
     public abstract List<? extends Symbol> outputs();
+
+    /**
+     * Prepends an output symbol to the existing ones.
+     *
+     * All possible existing {@link io.crate.analyze.symbol.InputColumn} symbols must be shifted right,
+     * see {@link io.crate.analyze.symbol.InputColumn#shiftRight(Collection)}.
+     */
+    public void prependOutput(Symbol symbol) {
+        throw new UnsupportedOperationException("prepend an output symbol is not supported by this projection");
+    }
 
     public static void toStream(Projection projection, StreamOutput out) throws IOException {
         out.writeVInt(projection.projectionType().ordinal());

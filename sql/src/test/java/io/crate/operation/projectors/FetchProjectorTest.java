@@ -130,7 +130,7 @@ public class FetchProjectorTest extends CrateUnitTest {
                 fetchOperation,
                 executorService,
                 TestingHelpers.getFunctions(),
-                buildOutputSymbols(),
+                Collections.singletonList(buildOutputSymbols()),
                 buildFetchProjectorContext(),
                 fetchSize
             );

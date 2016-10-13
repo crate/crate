@@ -37,7 +37,6 @@ import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.TestingTableInfo;
 import io.crate.operation.scalar.arithmetic.AbsFunction;
-import io.crate.operation.scalar.arithmetic.AddFunction;
 import io.crate.types.DataTypes;
 import org.junit.Test;
 
@@ -47,7 +46,7 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
 import static org.mockito.Mockito.mock;
 
-public class FetchPushDownTest {
+public class QueriedDocTableFetchPushDownTest {
 
     private static final TableIdent TABLE_IDENT = new TableIdent("s", "t");
     private static final DocTableInfo TABLE_INFO = TestingTableInfo.builder(TABLE_IDENT, mock(Routing.class)).build();
@@ -72,7 +71,7 @@ public class FetchPushDownTest {
         qs.limit(Optional.of(Literal.of(10)));
         qs.offset(Optional.of(Literal.of(100)));
 
-        FetchPushDown pd = new FetchPushDown(qs, TABLE_REL);
+        QueriedDocTableFetchPushDown pd = new QueriedDocTableFetchPushDown(new QueriedDocTable(TABLE_REL, qs));
         QueriedDocTable sub = pd.pushDown();
         assertThat(sub.querySpec().limit().get(), is(Literal.of(10)));
         assertThat(sub.querySpec().offset().get(), is(Literal.of(100)));
@@ -87,7 +86,7 @@ public class FetchPushDownTest {
         qs.outputs(Lists.<Symbol>newArrayList(REF_I, REF_A));
         qs.where(WhereClause.NO_MATCH);
 
-        FetchPushDown pd = new FetchPushDown(qs, TABLE_REL);
+        QueriedDocTableFetchPushDown pd = new QueriedDocTableFetchPushDown(new QueriedDocTable(TABLE_REL, qs));
         QueriedDocTable sub = pd.pushDown();
 
         assertThat(sub.querySpec().where(), is(WhereClause.NO_MATCH));
@@ -99,7 +98,7 @@ public class FetchPushDownTest {
     public void testPushDownWithoutOrder() throws Exception {
         QuerySpec qs = new QuerySpec();
         qs.outputs(Lists.<Symbol>newArrayList(REF_A, REF_I));
-        FetchPushDown pd = new FetchPushDown(qs, TABLE_REL);
+        QueriedDocTableFetchPushDown pd = new QueriedDocTableFetchPushDown(new QueriedDocTable(TABLE_REL, qs));
         QueriedDocTable sub = pd.pushDown();
         assertThat(qs, isSQL("SELECT FETCH(INPUT(0), s.t._doc['a']), FETCH(INPUT(0), s.t._doc['i'])"));
         assertThat(sub.querySpec(), isSQL("SELECT s.t._docid"));
@@ -110,7 +109,7 @@ public class FetchPushDownTest {
         QuerySpec qs = new QuerySpec();
         qs.outputs(Lists.<Symbol>newArrayList(REF_A, REF_I));
         qs.orderBy(new OrderBy(Lists.<Symbol>newArrayList(REF_I), new boolean[]{true}, new Boolean[]{false}));
-        FetchPushDown pd = new FetchPushDown(qs, TABLE_REL);
+        QueriedDocTableFetchPushDown pd = new QueriedDocTableFetchPushDown(new QueriedDocTable(TABLE_REL, qs));
         QueriedDocTable sub = pd.pushDown();
         assertThat(qs, isSQL("SELECT FETCH(INPUT(0), s.t._doc['a']), INPUT(1) ORDER BY INPUT(1) DESC NULLS LAST"));
         assertThat(sub.querySpec(), isSQL("SELECT s.t._docid, s.t.i ORDER BY s.t.i DESC NULLS LAST"));
@@ -127,7 +126,7 @@ public class FetchPushDownTest {
 
         qs.outputs(Lists.<Symbol>newArrayList(REF_A, REF_I));
         qs.orderBy(new OrderBy(Lists.<Symbol>newArrayList(abs(REF_I)), new boolean[]{true}, new Boolean[]{false}));
-        FetchPushDown pd = new FetchPushDown(qs, TABLE_REL);
+        QueriedDocTableFetchPushDown pd = new QueriedDocTableFetchPushDown(new QueriedDocTable(TABLE_REL, qs));
         QueriedDocTable sub = pd.pushDown();
         assertThat(qs, isSQL("SELECT FETCH(INPUT(0), s.t._doc['a']), FETCH(INPUT(0), s.t._doc['i']) ORDER BY INPUT(1) DESC NULLS LAST"));
         assertThat(sub.querySpec(), isSQL("SELECT s.t._docid, abs(s.t.i) ORDER BY abs(s.t.i) DESC NULLS LAST"));
@@ -142,7 +141,7 @@ public class FetchPushDownTest {
 
         qs.outputs(Lists.newArrayList(REF_A, REF_I, funcOfI));
         qs.orderBy(new OrderBy(Lists.<Symbol>newArrayList(funcOfI), new boolean[]{true}, new Boolean[]{false}));
-        FetchPushDown pd = new FetchPushDown(qs, TABLE_REL);
+        QueriedDocTableFetchPushDown pd = new QueriedDocTableFetchPushDown(new QueriedDocTable(TABLE_REL, qs));
         QueriedDocTable sub = pd.pushDown();
         assertThat(qs, isSQL("SELECT FETCH(INPUT(0), s.t._doc['a']), FETCH(INPUT(0), s.t._doc['i']), INPUT(1) ORDER BY INPUT(1) DESC NULLS LAST"));
         assertThat(sub.querySpec(), isSQL("SELECT s.t._docid, abs(s.t.i) ORDER BY abs(s.t.i) DESC NULLS LAST"));
@@ -156,7 +155,7 @@ public class FetchPushDownTest {
         qs.outputs(Lists.newArrayList(REF_A, REF_I, funcOfI));
         qs.orderBy(new OrderBy(
             Lists.<Symbol>newArrayList(REF_I), new boolean[]{true}, new Boolean[]{false}));
-        FetchPushDown pd = new FetchPushDown(qs, TABLE_REL);
+        QueriedDocTableFetchPushDown pd = new QueriedDocTableFetchPushDown(new QueriedDocTable(TABLE_REL, qs));
         QueriedDocTable sub = pd.pushDown();
         assertThat(qs, isSQL("SELECT FETCH(INPUT(0), s.t._doc['a']), INPUT(1), abs(INPUT(1)) ORDER BY INPUT(1) DESC NULLS LAST"));
         assertThat(sub.querySpec(), isSQL("SELECT s.t._docid, s.t.i ORDER BY s.t.i DESC NULLS LAST"));
@@ -168,7 +167,7 @@ public class FetchPushDownTest {
         QuerySpec qs = new QuerySpec();
         qs.outputs(Lists.<Symbol>newArrayList(REF_I));
         qs.orderBy(new OrderBy(ImmutableList.<Symbol>of(REF_I), new boolean[]{true}, new Boolean[]{false}));
-        FetchPushDown pd = new FetchPushDown(qs, TABLE_REL);
+        QueriedDocTableFetchPushDown pd = new QueriedDocTableFetchPushDown(new QueriedDocTable(TABLE_REL, qs));
         assertNull(pd.pushDown());
         assertThat(qs, isSQL("SELECT s.t.i ORDER BY s.t.i DESC NULLS LAST"));
     }
@@ -178,7 +177,7 @@ public class FetchPushDownTest {
         QuerySpec qs = new QuerySpec();
         qs.outputs(Lists.<Symbol>newArrayList(REF_I, REF_SCORE));
         qs.orderBy(new OrderBy(ImmutableList.<Symbol>of(REF_I), new boolean[]{true}, new Boolean[]{false}));
-        FetchPushDown pd = new FetchPushDown(qs, TABLE_REL);
+        QueriedDocTableFetchPushDown pd = new QueriedDocTableFetchPushDown(new QueriedDocTable(TABLE_REL, qs));
         assertNull(pd.pushDown());
     }
 
@@ -187,7 +186,7 @@ public class FetchPushDownTest {
         QuerySpec qs = new QuerySpec();
         qs.outputs(Lists.<Symbol>newArrayList(REF_A, REF_I, REF_SCORE));
         qs.orderBy(new OrderBy(Lists.<Symbol>newArrayList(REF_I), new boolean[]{true}, new Boolean[]{false}));
-        FetchPushDown pd = new FetchPushDown(qs, TABLE_REL);
+        QueriedDocTableFetchPushDown pd = new QueriedDocTableFetchPushDown(new QueriedDocTable(TABLE_REL, qs));
         QueriedDocTable sub = pd.pushDown();
         assertThat(qs, isSQL("SELECT FETCH(INPUT(0), s.t._doc['a']), INPUT(1), INPUT(2) ORDER BY INPUT(1) DESC NULLS LAST"));
         assertThat(sub.querySpec(), isSQL("SELECT s.t._docid, s.t.i, s.t._score ORDER BY s.t.i DESC NULLS LAST"));

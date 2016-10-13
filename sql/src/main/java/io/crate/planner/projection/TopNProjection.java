@@ -117,6 +117,13 @@ public class TopNProjection extends Projection {
         return reverseFlags != null && reverseFlags.length > 0;
     }
 
+    @Override
+    public void prependOutput(Symbol symbol) {
+        InputColumn.shiftRight(outputs);
+        outputs.add(0, symbol);
+
+        InputColumn.shiftRight(orderBy);
+    }
 
     @Override
     public void replaceSymbols(Function<Symbol, Symbol> replaceFunction) {

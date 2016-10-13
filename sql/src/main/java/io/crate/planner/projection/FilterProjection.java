@@ -23,6 +23,7 @@ package io.crate.planner.projection;
 
 import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
+import io.crate.analyze.symbol.InputColumn;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.analyze.symbol.Symbols;
 import io.crate.collections.Lists2;
@@ -70,8 +71,8 @@ public class FilterProjection extends Projection {
     }
 
     public FilterProjection(Symbol query, List<Symbol> outputs) {
-        outputs(outputs);
-        this.query = query;
+        this(query);
+        this.outputs = outputs;
     }
 
 
@@ -98,8 +99,10 @@ public class FilterProjection extends Projection {
         return outputs;
     }
 
-    public void outputs(List<Symbol> outputs) {
-        this.outputs = outputs;
+    @Override
+    public void prependOutput(Symbol symbol) {
+        InputColumn.shiftRight(outputs);
+        outputs.add(0, symbol);
     }
 
     @Override
