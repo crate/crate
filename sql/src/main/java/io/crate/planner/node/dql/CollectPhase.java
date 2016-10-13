@@ -34,7 +34,7 @@ import java.util.UUID;
 public interface CollectPhase extends UpstreamPhase {
     UUID jobId();
 
-    List<? extends Symbol> toCollect();
+    List<Symbol> toCollect();
 
     List<Projection> projections();
 

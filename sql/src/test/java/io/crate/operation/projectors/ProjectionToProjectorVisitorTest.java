@@ -236,8 +236,8 @@ public class ProjectionToProjectorVisitorTest extends CrateUnitTest {
             new FunctionIdent(EqOperator.NAME, ImmutableList.<DataType>of(DataTypes.INTEGER, DataTypes.INTEGER)));
         Function function = new Function(
             op.info(), Arrays.<Symbol>asList(Literal.of(2), new InputColumn(1)));
-        FilterProjection projection = new FilterProjection(function);
-        projection.outputs(Arrays.<Symbol>asList(new InputColumn(0), new InputColumn(1)));
+        FilterProjection projection = new FilterProjection(function,
+            Arrays.<Symbol>asList(new InputColumn(0), new InputColumn(1)));
 
         CollectingRowReceiver collectingProjector = new CollectingRowReceiver();
         Projector projector = visitor.create(projection, RAM_ACCOUNTING_CONTEXT, UUID.randomUUID());

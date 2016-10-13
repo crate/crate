@@ -23,6 +23,7 @@ package io.crate.planner.projection;
 
 import com.google.common.base.MoreObjects;
 import com.google.common.collect.ImmutableList;
+import io.crate.analyze.symbol.InputColumn;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.analyze.symbol.Symbols;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -110,6 +111,13 @@ public class TopNProjection extends Projection {
         return reverseFlags != null && reverseFlags.length > 0;
     }
 
+    @Override
+    public void prependOutput(Symbol symbol) {
+        InputColumn.shiftRight(outputs);
+        outputs.add(0, symbol);
+
+        InputColumn.shiftRight(orderBy);
+    }
 
     @Override
     public ProjectionType projectionType() {

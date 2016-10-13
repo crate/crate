@@ -33,6 +33,7 @@ import io.crate.planner.node.dql.QueryThenFetch;
 import io.crate.planner.projection.FetchProjection;
 import io.crate.sql.parser.SqlParser;
 import io.crate.testing.CollectingRowReceiver;
+import io.crate.testing.TestingHelpers;
 import io.crate.testing.UseJdbc;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.test.ESIntegTestCase;
@@ -63,16 +64,29 @@ public class FetchOperationIntegrationTest extends SQLTransportIntegrationTest {
     }
 
     private void setUpCharacters() {
-        sqlExecutor.exec("create table characters (id int primary key, name string) " +
+        execute("create table characters (id int primary key, name string) " +
                          "clustered into 2 shards with(number_of_replicas=0)");
-        sqlExecutor.ensureYellowOrGreen();
-        sqlExecutor.execBulk("insert into characters (id, name) values (?, ?)",
+        ensureYellow();
+        execute("insert into characters (id, name) values (?, ?)",
             new Object[][]{
                 new Object[]{1, "Arthur"},
                 new Object[]{2, "Ford"},
             }
         );
-        sqlExecutor.exec("refresh table characters");
+        execute("refresh table characters");
+    }
+
+    private void setUpPlanets() {
+        execute("create table planets (id int primary key, name string) " +
+                "clustered into 2 shards with(number_of_replicas=0)");
+        ensureYellow();
+        execute("insert into planets (id, name) values (?, ?)",
+            new Object[][]{
+                new Object[]{1, "Earth"},
+                new Object[]{2, "Rupert"},
+            }
+        );
+        execute("refresh table planets");
     }
 
     private Plan analyzeAndPlan(String stmt) {
@@ -115,5 +129,20 @@ public class FetchOperationIntegrationTest extends SQLTransportIntegrationTest {
         assertThat((Integer) rowReceiver.rows.get(1)[0], is(2));
         assertThat((BytesRef) rowReceiver.rows.get(1)[1], is(new BytesRef("Ford")));
         assertThat((BytesRef) rowReceiver.rows.get(1)[2], is(new BytesRef("ord")));
+    }
+
+    @Test
+    public void testUnionFetch() throws Exception {
+        setUpCharacters();
+        setUpPlanets();
+
+        execute("select id, name from characters " +
+                "union all " +
+                "select id, name from planets " +
+                "order by name desc");
+        assertThat(TestingHelpers.printedTable(response.rows()), is("2| Rupert\n" +
+                                                                    "2| Ford\n" +
+                                                                    "1| Earth\n" +
+                                                                    "1| Arthur\n"));
     }
 }

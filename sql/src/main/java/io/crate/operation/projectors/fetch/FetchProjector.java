@@ -54,7 +54,23 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
+/**
+ * Projector implementation for the FETCH phase.
+ *
+ * It collects docId and readerId values from the input row and sends corresponding request to the related nodes
+ * in order to fetch the required columns.
+ * After receiving the fetched columns it will build the required output row by composing it using the
+ * input, fetched and partitioned row (outputRow == composition of these 3 rows).
+ *
+ * Different fetch sources at one row are supported (e.g. joined rows).
+ *
+ * It also supports switching output rows based on a byte value collected from the input row.
+ * This value will then be used as an list index to resolve the correct output row from the list of output rows.
+ * (e.g. rows of a union)
+ */
 public class FetchProjector extends AbstractProjector {
+
+    private static final ESLogger LOGGER = Loggers.getLogger(FetchProjector.class);
 
     private final int fetchSize;
     private final FetchProjectorContext context;
@@ -82,10 +98,9 @@ public class FetchProjector extends AbstractProjector {
     private final ArrayList<Object[]> inputValues = new ArrayList<>();
     private final Executor resultExecutor;
 
-    private final Row outputRow;
     private final AtomicInteger remainingRequests = new AtomicInteger(0);
 
-    private static final ESLogger LOGGER = Loggers.getLogger(FetchProjector.class);
+    private final OutputRowResolver outputRowResolver;
 
     /**
      * An array backed row, which returns the inner array upon materialize
@@ -101,7 +116,7 @@ public class FetchProjector extends AbstractProjector {
 
         @Override
         public Object get(int index) {
-            assert cells != null;
+            assert cells != null : "cells must not be null";
             return cells[index];
         }
 
@@ -114,7 +129,7 @@ public class FetchProjector extends AbstractProjector {
     public FetchProjector(FetchOperation fetchOperation,
                           Executor resultExecutor,
                           Functions functions,
-                          List<Symbol> outputSymbols,
+                          List<List<Symbol>> outputSymbolsPerRelation,
                           FetchProjectorContext fetchProjectorContext,
                           int fetchSize) {
         this.fetchSize = fetchSize;
@@ -126,11 +141,20 @@ public class FetchProjector extends AbstractProjector {
         FetchRowInputSymbolVisitor rowInputSymbolVisitor = new FetchRowInputSymbolVisitor(functions);
         this.collectRowContext = new FetchRowInputSymbolVisitor.Context(fetchProjectorContext.tableToFetchSource);
 
-        List<Input<?>> inputs = new ArrayList<>(outputSymbols.size());
-        for (Symbol symbol : outputSymbols) {
-            inputs.add(rowInputSymbolVisitor.process(symbol, collectRowContext));
+        List<Row> outputRows = new ArrayList<>(outputSymbolsPerRelation.size());
+        for (List<Symbol> outputSymbols : outputSymbolsPerRelation) {
+            List<Input<?>> inputs = new ArrayList<>(outputSymbols.size());
+            for (Symbol symbol : outputSymbols) {
+                inputs.add(rowInputSymbolVisitor.process(symbol, collectRowContext));
+            }
+            outputRows.add(new InputRow(inputs));
         }
-        outputRow = new InputRow(inputs);
+
+        if (outputRows.size() == 1) {
+            outputRowResolver = new SingleOutputRowResolver(outputRows.get(0));
+        } else {
+            outputRowResolver = new MultiOutputRowResolver(outputRows);
+        }
     }
 
     private boolean nextStage(Stage from, Stage to) {
@@ -145,7 +169,7 @@ public class FetchProjector extends AbstractProjector {
 
     @Override
     public void prepare() {
-        assert stage.get() == Stage.INIT;
+        assert stage.get() == Stage.INIT : "current state is expected to be INIT but is: " + stage.get();
         nextStage(Stage.INIT, Stage.COLLECT);
     }
 
@@ -253,11 +277,13 @@ public class FetchProjector extends AbstractProjector {
                 int readerId = (int) (doc >> 32);
                 int docId = (int) (long) doc;
                 ReaderBucket readerBucket = context.getReaderBucket(readerId);
-                assert readerBucket != null;
+                assert readerBucket != null : "readerBucket must not be null";
                 setPartitionRow(partitionRows, j, readerBucket);
                 fetchRows[j].cells = readerBucket.get(docId);
-                assert !readerBucket.fetchRequired() || fetchRows[j].cells != null;
+                assert !readerBucket.fetchRequired() || fetchRows[j].cells != null :
+                    "expecting ether fetchRequired to be false or fetchRow cells to be set";
             }
+            Row outputRow = outputRowResolver.resolveOutputRow(cells);
             Result result = downstream.setNextRow(outputRow);
             switch (result) {
                 case CONTINUE:
@@ -315,7 +341,7 @@ public class FetchProjector extends AbstractProjector {
     private void setPartitionRow(ArrayBackedRow[] partitionRows, int i, ReaderBucket readerBucket) {
         // TODO: could be improved by handling non partitioned requests differently
         if (partitionRows != null && partitionRows[i] != null) {
-            assert readerBucket.partitionValues != null;
+            assert readerBucket.partitionValues != null : "readerBucker partitionValues must not be null";
             partitionRows[i].cells = readerBucket.partitionValues;
         }
     }
@@ -392,6 +418,40 @@ public class FetchProjector extends AbstractProjector {
         @Override
         protected void doRun() throws Exception {
             sendToDownstream(isLast, 0);
+        }
+    }
+
+    interface OutputRowResolver {
+
+        Row resolveOutputRow(Object[] inputCells);
+    }
+
+    private static class SingleOutputRowResolver implements OutputRowResolver {
+
+        private final Row outputRow;
+
+        SingleOutputRowResolver(Row outputRow) {
+            this.outputRow = outputRow;
+        }
+
+        @Override
+        public Row resolveOutputRow(Object[] inputCells) {
+            return outputRow;
+        }
+    }
+
+    private static class MultiOutputRowResolver implements OutputRowResolver {
+
+        private final List<Row> outputRows;
+
+        MultiOutputRowResolver(List<Row> outputRows) {
+            this.outputRows = outputRows;
+        }
+
+        @Override
+        public Row resolveOutputRow(Object[] inputCells) {
+            int relationInputIdx = ((Byte) inputCells[0]).intValue();
+            return outputRows.get(relationInputIdx);
         }
     }
 }

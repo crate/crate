@@ -46,7 +46,8 @@ public class MultiSourceFetchPushDownTest extends CrateUnitTest {
         SelectAnalyzedStatement a = e.analyze(stmt);
         assertThat(a.relation(), instanceOf(MultiSourceSelect.class));
         mss = (MultiSourceSelect) a.relation();
-        pd = MultiSourceFetchPushDown.pushDown(mss);
+        pd = new MultiSourceFetchPushDown(mss);
+        pd.process();
     }
 
     private QuerySpec srcSpec(String tableName) {

@@ -49,7 +49,7 @@ public class FetchRowInputSymbolVisitor extends BaseImplementationSymbolVisitor<
         private final Object[][] nullCells;
 
         public Context(Map<TableIdent, FetchSource> fetchSources) {
-            assert !fetchSources.isEmpty();
+            assert !fetchSources.isEmpty() : "fetchSources must not be empty";
             this.fetchSources = fetchSources;
 
             int numDocIds = 0;
@@ -122,7 +122,7 @@ public class FetchRowInputSymbolVisitor extends BaseImplementationSymbolVisitor<
                 }
                 fetchIdx++;
             }
-            assert fs != null;
+            assert fs != null : "fetchSource must not be null";
             if (partitionRows == null) {
                 partitionRows = new FetchProjector.ArrayBackedRow[fetchSources.size()];
             }
@@ -151,7 +151,7 @@ public class FetchRowInputSymbolVisitor extends BaseImplementationSymbolVisitor<
                     fetchIdx += entry.getValue().docIdCols().size();
                 }
             }
-            assert fs != null;
+            assert fs != null : "fetchSource must not be null";
             Row row = fetchRows[fetchIdx];
             int idx = 0;
             RowInput input = null;
@@ -162,7 +162,7 @@ public class FetchRowInputSymbolVisitor extends BaseImplementationSymbolVisitor<
                 }
                 idx++;
             }
-            assert input != null;
+            assert input != null : "input must not be null";
             return input;
         }
 
@@ -203,7 +203,7 @@ public class FetchRowInputSymbolVisitor extends BaseImplementationSymbolVisitor<
         if (fetchReference.ref().granularity() == RowGranularity.DOC) {
             return context.allocateInput(fetchReference);
         }
-        assert fetchReference.ref().granularity() == RowGranularity.PARTITION;
+        assert fetchReference.ref().granularity() == RowGranularity.PARTITION : "row granularity is expected to be PARTITION";
         return context.allocatePartitionedInput(fetchReference);
 
     }
