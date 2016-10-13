@@ -22,85 +22,19 @@
 
 package io.crate.analyze;
 
-import com.google.common.collect.ImmutableMap;
-import io.crate.metadata.MetaDataModule;
-import io.crate.metadata.Routing;
-import io.crate.metadata.TableIdent;
-import io.crate.metadata.information.InformationSchemaInfo;
-import io.crate.metadata.table.SchemaInfo;
-import io.crate.metadata.table.TableInfo;
-import io.crate.metadata.table.TestingTableInfo;
-import io.crate.operation.operator.OperatorModule;
-import io.crate.testing.MockedClusterServiceModule;
-import io.crate.types.ArrayType;
-import io.crate.types.DataTypes;
-import org.elasticsearch.common.inject.Module;
+import io.crate.test.integration.CrateUnitTest;
+import io.crate.testing.SQLExecutor;
+import org.elasticsearch.test.cluster.NoopClusterService;
 import org.junit.Test;
 
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
-
 import static io.crate.testing.TestingHelpers.isSQL;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
-public class ShowStatementsAnalyzerTest extends BaseAnalyzerTest {
+public class ShowStatementsAnalyzerTest extends CrateUnitTest {
 
-    public static final TableIdent SCHEMATA = new TableIdent(InformationSchemaInfo.NAME, "schemata");
-    public static final TableInfo SCHEMATA_INFO = new TestingTableInfo.Builder(
-        SCHEMATA, new Routing(ImmutableMap.<String, Map<String, List<Integer>>>of()))
-        .add("schema_name", DataTypes.STRING, null)
-        .build();
+    private SQLExecutor executor = SQLExecutor.builder(new NoopClusterService()).build();
 
-    public static final TableIdent COLUMNS = new TableIdent(InformationSchemaInfo.NAME, "columns");
-    public static final TableInfo COLUMNS_INFO = new TestingTableInfo.Builder(
-        COLUMNS, new Routing(ImmutableMap.<String, Map<String, List<Integer>>>of()))
-        .add("column_name", DataTypes.STRING, null)
-        .add("schema_name", DataTypes.STRING, null)
-        .add("table_name", DataTypes.STRING, null)
-        .add("data_type", DataTypes.STRING, null)
-        .build();
-
-    public static final TableIdent TABLES = new TableIdent(InformationSchemaInfo.NAME, "tables");
-    public static final TableInfo TABLES_INFO = new TestingTableInfo.Builder(
-        TABLES, new Routing(ImmutableMap.<String, Map<String, List<Integer>>>of()))
-        .add("table_name", DataTypes.STRING, null)
-        .add("schema_name", DataTypes.STRING, null)
-        .build();
-
-    public static final TableIdent CONSTRAINTS = new TableIdent(InformationSchemaInfo.NAME, "table_constraints");
-    public static final TableInfo CONSTRAINTS_INFO = new TestingTableInfo.Builder(
-        CONSTRAINTS, new Routing(ImmutableMap.<String, Map<String, List<Integer>>>of()))
-        .add("table_name", DataTypes.STRING, null)
-        .add("schema_name", DataTypes.STRING, null)
-        .add("constraint_type", DataTypes.STRING, null)
-        .add("constraint_name", new ArrayType(DataTypes.STRING), null)
-        .build();
-
-    static class TestMetaDataModule extends MetaDataModule {
-
-        @Override
-        protected void bindSchemas() {
-            super.bindSchemas();
-            SchemaInfo schemaInfo = mock(SchemaInfo.class);
-            when(schemaInfo.getTableInfo(SCHEMATA.name())).thenReturn(SCHEMATA_INFO);
-            when(schemaInfo.getTableInfo(COLUMNS.name())).thenReturn(COLUMNS_INFO);
-            when(schemaInfo.getTableInfo(CONSTRAINTS.name())).thenReturn(CONSTRAINTS_INFO);
-            when(schemaInfo.getTableInfo(TABLES.name())).thenReturn(TABLES_INFO);
-            schemaBinder.addBinding(InformationSchemaInfo.NAME).toInstance(schemaInfo);
-        }
-    }
-
-    @Override
-    protected List<Module> getModules() {
-        List<Module> modules = super.getModules();
-        modules.addAll(Arrays.<Module>asList(
-            new MockedClusterServiceModule(),
-            new TestMetaDataModule(),
-            new OperatorModule()
-        ));
-        return modules;
+    private SelectAnalyzedStatement analyze(String stmt) {
+        return executor.analyze(stmt);
     }
 
     @Test
@@ -117,11 +51,10 @@ public class ShowStatementsAnalyzerTest extends BaseAnalyzerTest {
 
         assertThat(analyzedStatement.relation().querySpec(), isSQL(
             "SELECT information_schema.tables.table_name " +
-            "WHERE (NOT (information_schema.tables.schema_name = ANY(_array('information_schema', 'sys', 'pg_catalog')))) " +
+            "WHERE (NOT (information_schema.tables.schema_name = ANY(['information_schema', 'sys', 'pg_catalog']))) " +
             "GROUP BY information_schema.tables.table_name " +
             "ORDER BY information_schema.tables.table_name"));
     }
-
     @Test
     public void testVisitShowTablesLike() throws Exception {
         SelectAnalyzedStatement analyzedStatement = analyze("show tables in QNAME like 'likePattern'");
@@ -137,7 +70,7 @@ public class ShowStatementsAnalyzerTest extends BaseAnalyzerTest {
 
         assertThat(analyzedStatement.relation().querySpec(), isSQL(
             "SELECT information_schema.tables.table_name " +
-            "WHERE ((NOT (information_schema.tables.schema_name = ANY(_array('information_schema', 'sys', 'pg_catalog')))) " +
+            "WHERE ((NOT (information_schema.tables.schema_name = ANY(['information_schema', 'sys', 'pg_catalog']))) " +
             "AND (information_schema.tables.table_name LIKE '%')) " +
             "GROUP BY information_schema.tables.table_name " +
             "ORDER BY information_schema.tables.table_name"));
@@ -159,7 +92,7 @@ public class ShowStatementsAnalyzerTest extends BaseAnalyzerTest {
 
         assertThat(analyzedStatement.relation().querySpec(), isSQL(
             "SELECT information_schema.tables.table_name " +
-            "WHERE ((NOT (information_schema.tables.schema_name = ANY(_array('information_schema', 'sys', 'pg_catalog')))) " +
+            "WHERE ((NOT (information_schema.tables.schema_name = ANY(['information_schema', 'sys', 'pg_catalog']))) " +
             "AND (information_schema.tables.table_name LIKE '%')) " +
             "GROUP BY information_schema.tables.table_name " +
             "ORDER BY information_schema.tables.table_name"));

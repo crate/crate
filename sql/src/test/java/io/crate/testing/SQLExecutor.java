@@ -37,6 +37,7 @@ import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.metadata.doc.DocSchemaInfoFactory;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.doc.TestingDocTableInfoFactory;
+import io.crate.metadata.information.InformationSchemaInfo;
 import io.crate.metadata.sys.SysSchemaInfo;
 import io.crate.metadata.table.SchemaInfo;
 import io.crate.sql.parser.SqlParser;
@@ -72,6 +73,7 @@ public class SQLExecutor {
         public Builder(ClusterService clusterService) {
             this.clusterService = clusterService;
             schemas.put("sys", new SysSchemaInfo(clusterService));
+            schemas.put("information_schema", new InformationSchemaInfo(clusterService));
         }
 
         public Builder enableDefaultTables() {
