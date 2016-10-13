@@ -10,7 +10,6 @@ import io.crate.analyze.*;
 import io.crate.metadata.*;
 import io.crate.metadata.table.ColumnPolicy;
 import io.crate.metadata.table.SchemaInfo;
-import io.crate.operation.scalar.ScalarFunctionModule;
 import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.Statement;
 import io.crate.test.integration.CrateUnitTest;
@@ -21,14 +20,11 @@ import io.crate.types.GeoPointType;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.Version;
 import org.elasticsearch.action.admin.indices.template.put.TransportPutIndexTemplateAction;
-import org.elasticsearch.cluster.ClusterName;
 import org.elasticsearch.cluster.ClusterService;
-import org.elasticsearch.cluster.ClusterState;
-import org.elasticsearch.cluster.metadata.*;
-import org.elasticsearch.common.collect.ImmutableOpenMap;
-import org.elasticsearch.common.inject.AbstractModule;
-import org.elasticsearch.common.inject.Injector;
-import org.elasticsearch.common.inject.ModulesBuilder;
+import org.elasticsearch.cluster.metadata.AliasMetaData;
+import org.elasticsearch.cluster.metadata.IndexMetaData;
+import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
+import org.elasticsearch.cluster.metadata.MappingMetaData;
 import org.elasticsearch.common.inject.Provider;
 import org.elasticsearch.common.lucene.BytesRefs;
 import org.elasticsearch.common.settings.Settings;
@@ -37,7 +33,6 @@ import org.elasticsearch.common.xcontent.XContentFactory;
 import org.elasticsearch.common.xcontent.XContentHelper;
 import org.elasticsearch.indices.analysis.IndicesAnalysisService;
 import org.elasticsearch.test.cluster.NoopClusterService;
-import org.elasticsearch.threadpool.ThreadPool;
 import org.hamcrest.Matchers;
 import org.junit.After;
 import org.junit.Before;
@@ -46,38 +41,19 @@ import org.junit.Test;
 import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.*;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
 import static io.crate.testing.TestingHelpers.*;
 import static org.hamcrest.Matchers.*;
 import static org.hamcrest.collection.IsCollectionWithSize.hasSize;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 public class DocIndexMetaDataTest extends CrateUnitTest {
 
-    private ThreadPool threadPool;
-
     private Functions functions;
-
-    private class TestModule extends AbstractModule {
-
-        @Override
-        protected void configure() {
-            bind(ThreadPool.class).toInstance(threadPool);
-            ClusterService clusterService = mock(ClusterService.class);
-            ClusterState state = mock(ClusterState.class);
-            MetaData metaData = mock(MetaData.class);
-            when(metaData.concreteAllOpenIndices()).thenReturn(new String[0]);
-            when(metaData.templates()).thenReturn(ImmutableOpenMap.<String, IndexTemplateMetaData>of());
-            when(state.metaData()).thenReturn(metaData);
-            when(clusterService.state()).thenReturn(state);
-            bind(ClusterService.class).toInstance(clusterService);
-            bind(TransportPutIndexTemplateAction.class).toInstance(mock(TransportPutIndexTemplateAction.class));
-            bind(Settings.class).toInstance(Settings.EMPTY);
-        }
-    }
-
+    private ExecutorService executorService;
 
     private IndexMetaData getIndexMetaData(String indexName, XContentBuilder builder) throws IOException {
         return getIndexMetaData(indexName, builder, Settings.Builder.EMPTY_SETTINGS, null);
@@ -111,21 +87,14 @@ public class DocIndexMetaDataTest extends CrateUnitTest {
 
     @Before
     public void before() throws Exception {
-        threadPool = newMockedThreadPool();
-
-        ModulesBuilder builder = new ModulesBuilder().add(
-            new ScalarFunctionModule(),
-            new TestModule(),
-            new MetaDataModule());
-        Injector injector = builder.createInjector();
-
-        functions = injector.getInstance(Functions.class);
+        executorService = Executors.newFixedThreadPool(1);
+        functions = getFunctions();
     }
 
     @After
     public void after() throws Exception {
-        threadPool.shutdown();
-        threadPool.awaitTermination(1, TimeUnit.SECONDS);
+        executorService.shutdown();
+        executorService.awaitTermination(1, TimeUnit.SECONDS);
     }
 
     @Test
@@ -913,8 +882,7 @@ public class DocIndexMetaDataTest extends CrateUnitTest {
     private DocIndexMetaData getDocIndexMetaDataFromStatement(String stmt) throws IOException {
         Statement statement = SqlParser.createStatement(stmt);
 
-        ClusterService clusterService = new NoopClusterService(ClusterState.builder(new ClusterName("testing")).build());
-
+        ClusterService clusterService = new NoopClusterService();
         final TransportPutIndexTemplateAction transportPutIndexTemplateAction = mock(TransportPutIndexTemplateAction.class);
         Provider<TransportPutIndexTemplateAction> indexTemplateActionProvider = new Provider<TransportPutIndexTemplateAction>() {
             @Override
@@ -922,21 +890,19 @@ public class DocIndexMetaDataTest extends CrateUnitTest {
                 return transportPutIndexTemplateAction;
             }
         };
-        DocSchemaInfo docSchemaInfo = new DocSchemaInfo(
-            clusterService,
-            threadPool,
-            indexTemplateActionProvider,
+        DocTableInfoFactory docTableInfoFactory = new InternalDocTableInfoFactory(
+            functions,
             new IndexNameExpressionResolver(Settings.EMPTY),
-            functions);
+            indexTemplateActionProvider,
+            executorService
+        );
+        DocSchemaInfo docSchemaInfo = new DocSchemaInfo(clusterService, docTableInfoFactory);
         CreateTableStatementAnalyzer analyzer = new CreateTableStatementAnalyzer(
             new ReferenceInfos(
                 ImmutableMap.<String, SchemaInfo>of("doc", docSchemaInfo),
                 clusterService,
-                new IndexNameExpressionResolver(Settings.EMPTY),
-                threadPool,
-                indexTemplateActionProvider,
-                functions),
-            new FulltextAnalyzerResolver(clusterService, mock(IndicesAnalysisService.class)),
+                new DocSchemaInfoFactory(docTableInfoFactory)),
+            new FulltextAnalyzerResolver(clusterService, new IndicesAnalysisService(Settings.EMPTY)),
             functions,
             new NumberOfShards(clusterService)
         );

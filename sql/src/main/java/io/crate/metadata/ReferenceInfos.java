@@ -26,30 +26,25 @@ import com.google.common.collect.Sets;
 import io.crate.exceptions.SchemaUnknownException;
 import io.crate.exceptions.TableUnknownException;
 import io.crate.metadata.blob.BlobSchemaInfo;
-import io.crate.metadata.doc.DocSchemaInfo;
+import io.crate.metadata.doc.DocSchemaInfoFactory;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.information.InformationSchemaInfo;
 import io.crate.metadata.sys.SysSchemaInfo;
 import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.table.TableInfo;
-import org.elasticsearch.action.admin.indices.template.put.TransportPutIndexTemplateAction;
 import org.elasticsearch.cluster.ClusterChangedEvent;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.ClusterStateListener;
-import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.metadata.MetaData;
 import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.inject.Provider;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
-import org.elasticsearch.threadpool.ThreadPool;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ExecutorService;
 import java.util.regex.Matcher;
 
 import static com.google.common.base.MoreObjects.firstNonNull;
@@ -60,26 +55,16 @@ public class ReferenceInfos implements ClusterStateListener, Schemas {
     private final static ESLogger LOGGER = Loggers.getLogger(ReferenceInfos.class);
 
     private final ClusterService clusterService;
-    private final IndexNameExpressionResolver indexNameExpressionResolver;
-    private final ExecutorService executorService;
-    private final Provider<TransportPutIndexTemplateAction> transportPutIndexTemplateAction;
-    private final Functions functions;
-
+    private final DocSchemaInfoFactory docSchemaInfoFactory;
     private final Map<String, SchemaInfo> schemas = new ConcurrentHashMap<>();
     private final Map<String, SchemaInfo> builtInSchemas;
 
     @Inject
     public ReferenceInfos(Map<String, SchemaInfo> builtInSchemas,
                           ClusterService clusterService,
-                          IndexNameExpressionResolver indexNameExpressionResolver,
-                          ThreadPool threadPool,
-                          Provider<TransportPutIndexTemplateAction> transportPutIndexTemplateAction,
-                          Functions functions) {
+                          DocSchemaInfoFactory docSchemaInfoFactory) {
         this.clusterService = clusterService;
-        this.indexNameExpressionResolver = indexNameExpressionResolver;
-        this.transportPutIndexTemplateAction = transportPutIndexTemplateAction;
-        this.functions = functions;
-        this.executorService = (ExecutorService) threadPool.executor(ThreadPool.Names.SUGGEST);
+        this.docSchemaInfoFactory = docSchemaInfoFactory;
         schemas.putAll(builtInSchemas);
         this.builtInSchemas = builtInSchemas;
         clusterService.add(this);
@@ -199,8 +184,7 @@ public class ReferenceInfos implements ClusterStateListener, Schemas {
      * @return an instance of SchemaInfo for the given name
      */
     private SchemaInfo getCustomSchemaInfo(String name) {
-        return new DocSchemaInfo(name, executorService, clusterService, indexNameExpressionResolver,
-            transportPutIndexTemplateAction, functions);
+        return docSchemaInfoFactory.create(name, clusterService);
     }
 
     /**
@@ -208,7 +192,7 @@ public class ReferenceInfos implements ClusterStateListener, Schemas {
      *
      * @param schemaName The schema name as a string.
      */
-    public static boolean isDefaultOrCustomSchema(@Nullable String schemaName) {
+    static boolean isDefaultOrCustomSchema(@Nullable String schemaName) {
         if (schemaName == null) {
             return true;
         }

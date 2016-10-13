@@ -38,27 +38,25 @@ import com.google.common.util.concurrent.UncheckedExecutionException;
 import io.crate.blob.v2.BlobIndices;
 import io.crate.exceptions.ResourceUnknownException;
 import io.crate.exceptions.UnhandledServerException;
-import io.crate.metadata.Functions;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.table.TableInfo;
-import org.elasticsearch.action.admin.indices.template.put.TransportPutIndexTemplateAction;
 import org.elasticsearch.cluster.ClusterChangedEvent;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.ClusterStateListener;
-import org.elasticsearch.cluster.metadata.*;
+import org.elasticsearch.cluster.metadata.AliasMetaData;
+import org.elasticsearch.cluster.metadata.IndexMetaData;
+import org.elasticsearch.cluster.metadata.IndexTemplateMetaData;
+import org.elasticsearch.cluster.metadata.MetaData;
 import org.elasticsearch.common.collect.ImmutableOpenMap;
 import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.inject.Provider;
-import org.elasticsearch.threadpool.ThreadPool;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.*;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
 import java.util.regex.Matcher;
 
 public class DocSchemaInfo implements SchemaInfo, ClusterStateListener {
@@ -66,9 +64,7 @@ public class DocSchemaInfo implements SchemaInfo, ClusterStateListener {
     public static final String NAME = "doc";
 
     private final ClusterService clusterService;
-    private final IndexNameExpressionResolver indexNameExpressionResolver;
-    private final Provider<TransportPutIndexTemplateAction> transportPutIndexTemplateAction;
-    private final Functions functions;
+    private final DocTableInfoFactory docTableInfoFactory;
 
     private final static Predicate<String> DOC_SCHEMA_TABLES_FILTER = new Predicate<String>() {
         @Override
@@ -94,7 +90,6 @@ public class DocSchemaInfo implements SchemaInfo, ClusterStateListener {
 
     private final Function<String, TableInfo> tableInfoFunction;
     private final String schemaName;
-    private final ExecutorService executorService;
     private final Function<String, String> indexToTableName;
     private final static Function<String, String> AS_IS_FUNCTION = new Function<String, String>() {
         @Nullable
@@ -108,16 +103,10 @@ public class DocSchemaInfo implements SchemaInfo, ClusterStateListener {
      * DocSchemaInfo constructor for the default (doc) schema.
      */
     @Inject
-    public DocSchemaInfo(ClusterService clusterService,
-                         ThreadPool threadPool,
-                         Provider<TransportPutIndexTemplateAction> transportPutIndexTemplateAction,
-                         IndexNameExpressionResolver indexNameExpressionResolver,
-                         Functions functions) {
+    public DocSchemaInfo(ClusterService clusterService, DocTableInfoFactory docTableInfoFactory) {
         this(Schemas.DEFAULT_SCHEMA_NAME,
             clusterService,
-            indexNameExpressionResolver,
-            (ExecutorService) threadPool.executor(ThreadPool.Names.SUGGEST),
-            transportPutIndexTemplateAction, functions,
+            docTableInfoFactory,
             Predicates.and(Predicates.notNull(), DOC_SCHEMA_TABLES_FILTER),
             AS_IS_FUNCTION);
     }
@@ -125,14 +114,8 @@ public class DocSchemaInfo implements SchemaInfo, ClusterStateListener {
     /**
      * constructor used for custom schemas
      */
-    public DocSchemaInfo(final String schemaName,
-                         ExecutorService executorService,
-                         ClusterService clusterService,
-                         IndexNameExpressionResolver indexNameExpressionResolver,
-                         Provider<TransportPutIndexTemplateAction> transportPutIndexTemplateAction,
-                         Functions functions) {
-        this(schemaName, clusterService, indexNameExpressionResolver,
-            executorService, transportPutIndexTemplateAction, functions,
+    public DocSchemaInfo(final String schemaName, ClusterService clusterService, DocTableInfoFactory docTableInfoFactory) {
+        this(schemaName, clusterService, docTableInfoFactory,
             createSchemaNamePredicate(schemaName), new Function<String, String>() {
                 @Nullable
                 @Override
@@ -148,19 +131,13 @@ public class DocSchemaInfo implements SchemaInfo, ClusterStateListener {
 
     private DocSchemaInfo(final String schemaName,
                           ClusterService clusterService,
-                          IndexNameExpressionResolver indexNameExpressionResolver,
-                          ExecutorService executorService,
-                          Provider<TransportPutIndexTemplateAction> transportPutIndexTemplateAction,
-                          Functions functions,
+                          DocTableInfoFactory docTableInfoFactory,
                           Predicate<String> tableFilter,
                           final Function<String, String> fqTableNameToTableName) {
         this.schemaName = schemaName;
         this.clusterService = clusterService;
-        this.indexNameExpressionResolver = indexNameExpressionResolver;
-        this.transportPutIndexTemplateAction = transportPutIndexTemplateAction;
+        this.docTableInfoFactory = docTableInfoFactory;
         this.clusterService.add(this);
-        this.executorService = executorService;
-        this.functions = functions;
         this.tablesFilter = tableFilter;
         this.tableInfoFunction = new Function<String, TableInfo>() {
             @Nullable
@@ -198,18 +175,8 @@ public class DocSchemaInfo implements SchemaInfo, ClusterStateListener {
         });
     }
 
-    private DocTableInfo innerGetTableInfo(String name) {
-        boolean checkAliasSchema = clusterService.state().metaData().settings().getAsBoolean("crate.table_alias.schema_check", true);
-        DocTableInfoBuilder builder = new DocTableInfoBuilder(
-            functions,
-            new TableIdent(name(), name),
-            clusterService,
-            indexNameExpressionResolver,
-            transportPutIndexTemplateAction.get(),
-            executorService,
-            checkAliasSchema
-        );
-        return builder.build();
+    private DocTableInfo innerGetTableInfo(String tableName) {
+        return docTableInfoFactory.create(new TableIdent(schemaName, tableName), clusterService);
     }
 
     @Override
