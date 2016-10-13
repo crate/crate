@@ -31,7 +31,10 @@ import io.crate.exceptions.AmbiguousColumnAliasException;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.exceptions.RelationUnknownException;
 import io.crate.exceptions.UnsupportedFeatureException;
-import io.crate.metadata.*;
+import io.crate.metadata.FunctionInfo;
+import io.crate.metadata.MetaDataModule;
+import io.crate.metadata.Schemas;
+import io.crate.metadata.TableIdent;
 import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.sys.MetaDataSysModule;
@@ -55,7 +58,6 @@ import io.crate.operation.scalar.regex.MatchesFunction;
 import io.crate.sql.parser.ParsingException;
 import io.crate.sql.tree.QualifiedName;
 import io.crate.testing.MockedClusterServiceModule;
-import io.crate.testing.SleepScalarFunction;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
@@ -127,13 +129,6 @@ public class SelectStatementAnalyzerTest extends BaseAnalyzerTest {
             when(schemaInfo.getTableInfo(TEST_CLUSTER_BY_STRING_TABLE_INFO.ident().name()))
                 .thenReturn(TEST_CLUSTER_BY_STRING_TABLE_INFO);
             schemaBinder.addBinding(Schemas.DEFAULT_SCHEMA_NAME).toInstance(schemaInfo);
-        }
-
-        @Override
-        protected void bindFunctions() {
-            super.bindFunctions();
-            functionBinder.addBinding(new FunctionIdent(SleepScalarFunction.NAME, ImmutableList.<DataType>of(DataTypes.LONG)))
-                .toInstance(new SleepScalarFunction());
         }
     }
 
@@ -1744,10 +1739,10 @@ public class SelectStatementAnalyzerTest extends BaseAnalyzerTest {
     @Test
     public void testNonDeterministicFunctionsAreNotAllocated() throws Exception {
         SelectAnalyzedStatement stmt = analyze(
-            "select sleep(1), sleep(id), sleep(1) " +
+            "select random(), random(), random() " +
             "from transactions " +
-            "where sleep(1) = true " +
-            "order by 1, sleep(1), sleep(id)");
+            "where random() = 13.2 " +
+            "order by 1, random(), random()");
         List<Symbol> outputs = stmt.relation().querySpec().outputs();
         List<Symbol> orderBySymbols = stmt.relation().querySpec().orderBy().get().orderBySymbols();
 
