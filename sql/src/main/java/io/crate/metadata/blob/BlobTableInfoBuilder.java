@@ -21,92 +21,77 @@
 
 package io.crate.metadata.blob;
 
+import io.crate.analyze.NumberOfReplicas;
+import io.crate.analyze.TableParameterInfo;
 import io.crate.blob.BlobEnvironment;
 import io.crate.blob.v2.BlobIndices;
 import io.crate.exceptions.TableUnknownException;
-import io.crate.exceptions.UnhandledServerException;
-import io.crate.metadata.Functions;
 import io.crate.metadata.TableIdent;
-import io.crate.metadata.doc.DocIndexMetaData;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.ClusterState;
+import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.metadata.MetaData;
+import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.env.Environment;
 import org.elasticsearch.index.IndexNotFoundException;
 
 import java.io.File;
-import java.io.IOException;
 import java.nio.file.Path;
 
-public class BlobTableInfoBuilder {
+class BlobTableInfoBuilder {
 
     private final TableIdent ident;
     private final ClusterService clusterService;
     private final IndexNameExpressionResolver indexNameExpressionResolver;
     private final BlobEnvironment blobEnvironment;
     private final Environment environment;
-    private final Functions functions;
     private final ClusterState state;
     private final MetaData metaData;
     private String[] concreteIndices;
 
-    public BlobTableInfoBuilder(TableIdent ident,
-                                ClusterService clusterService,
-                                IndexNameExpressionResolver indexNameExpressionResolver,
-                                BlobEnvironment blobEnvironment,
-                                Environment environment,
-                                Functions functions) {
+    BlobTableInfoBuilder(TableIdent ident,
+                         ClusterService clusterService,
+                         IndexNameExpressionResolver indexNameExpressionResolver,
+                         BlobEnvironment blobEnvironment,
+                         Environment environment) {
         this.clusterService = clusterService;
         this.indexNameExpressionResolver = indexNameExpressionResolver;
         this.blobEnvironment = blobEnvironment;
         this.environment = environment;
-        this.functions = functions;
         this.state = clusterService.state();
         this.metaData = state.metaData();
         this.ident = ident;
     }
 
-    public DocIndexMetaData docIndexMetaData() {
-        DocIndexMetaData docIndexMetaData;
+    private IndexMetaData resolveIndexMetaData() {
         String index = BlobIndices.fullIndexName(ident.name());
         try {
-            concreteIndices = indexNameExpressionResolver.concreteIndices(state, IndicesOptions.strictExpandOpen(), index);
+            concreteIndices = indexNameExpressionResolver.concreteIndices(
+                state, IndicesOptions.strictExpandOpen(), index);
         } catch (IndexNotFoundException ex) {
             throw new TableUnknownException(index, ex);
         }
-        docIndexMetaData = buildDocIndexMetaData(concreteIndices[0]);
-        return docIndexMetaData;
-    }
-
-    private DocIndexMetaData buildDocIndexMetaData(String index) {
-        DocIndexMetaData docIndexMetaData;
-        try {
-            docIndexMetaData = new DocIndexMetaData(functions, metaData.index(index), ident);
-        } catch (IOException e) {
-            throw new UnhandledServerException("Unable to build DocIndexMetaData", e);
-        }
-        return docIndexMetaData.build();
+        return metaData.index(concreteIndices[0]);
     }
 
     public BlobTableInfo build() {
-        DocIndexMetaData md = docIndexMetaData();
+        IndexMetaData indexMetaData = resolveIndexMetaData();
         return new BlobTableInfo(
             ident,
             concreteIndices[0],
             clusterService,
-            md.numberOfShards(),
-            md.numberOfReplicas(),
-            md.tableParameters(),
-            blobsPath(md));
+            indexMetaData.getNumberOfShards(),
+            NumberOfReplicas.fromSettings(indexMetaData.getSettings()),
+            TableParameterInfo.tableParametersFromIndexMetaData(indexMetaData),
+            blobsPath(indexMetaData.getSettings()));
     }
 
-    private BytesRef blobsPath(DocIndexMetaData md) {
+    private BytesRef blobsPath(Settings indexMetaDataSettings) {
         BytesRef blobsPath;
-        String blobsPathStr = metaData.index(md.concreteIndexName())
-            .getSettings().get(BlobIndices.SETTING_INDEX_BLOBS_PATH);
+        String blobsPathStr = indexMetaDataSettings.get(BlobIndices.SETTING_INDEX_BLOBS_PATH);
         if (blobsPathStr != null) {
             blobsPath = new BytesRef(blobsPathStr);
         } else {
@@ -120,5 +105,4 @@ public class BlobTableInfoBuilder {
         }
         return blobsPath;
     }
-
 }
