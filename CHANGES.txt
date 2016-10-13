@@ -5,39 +5,10 @@ Changes for Crate
 Unreleased
 ==========
 
- - Prefer milliseconds unit for timestamps that are ambiguous, such as ``"1000"``,
-   which could be interpreted as ``1000-01-01T00:00:00Z`` (as in year ``1000AD``)
-   or ``1970-01-01T00:00:01Z`` (as in ``1000ms`` since-the-epoch).
-   This change only effects INSERTs into tables that have been created after this
-   change.
-
  - Added support for BETWEEN
-
- - Updated crate-admin to ``0.20.2`` which includes following changes:
-
-   - Fixed the chart error that occured when navigating between the overview
-     and other pages.
-
-   - Fixed the logo URL which was not redirecting correctly.
-
-   - Fixed an issue that caused the query history in the console view to be
-     inconsistent.
 
  - Added support of expressions in the array constructors. Allowed to
    to write an array constructor in the PostgreSQL form, like `ARRAY[]`.
-
- - Updated Crash to 0.18.1 which contains the following change:
-
-    - Fix: crashed in verbose mode if Crate didn't provide an error trace
-
- - Postgres clients do not accept negative years in timestamp string but
-   require ``BC`` suffix for dates before Christ. Now the correct date format
-   string is sent to client.
-
- - Removed arbitrary limit on timestamp values. Now also dates before
-   1653-02-10 and after 2286-11-20 are supported.
-   However, there is still a limitation that the year needs to be within in the
-   integer range (-292275054 <= year <= 292278993).
 
  - Expose bound psql port in ``sys.nodes``
 
@@ -56,6 +27,35 @@ Unreleased
    executed against the ``sys.cluster`` table.
 
  - The PostgreSQL wire protocol is enabled by default.
+
+2016/10/13 0.56.2
+=================
+
+ - Updated crate-admin to ``0.20.2`` which includes following changes:
+
+   - Fixed the chart error that occured when navigating between the overview
+     and other pages.
+
+   - Fixed the logo URL which was not redirecting correctly.
+
+   - Fixed an issue that caused the query history in the console view to be
+     inconsistent.
+
+ - Changed the server_version formatting sent via the postgres wire protocol to
+   be compatible with clients which can't handle the numeric notation.
+
+ - Updated Crash to 0.18.1 which contains the following change:
+
+    - Fix: crashed in verbose mode if Crate didn't provide an error trace
+
+ - Postgres clients do not accept negative years in timestamp string but
+   require ``BC`` suffix for dates before Christ. Now the correct date format
+   string is sent to client.
+
+ - Removed arbitrary limit on timestamp values. Now also dates before
+   1653-02-10 and after 2286-11-20 are supported.
+   However, there is still a limitation that the year needs to be within in the
+   integer range (-292275054 <= year <= 292278993).
 
 2016/10/10 0.56.1
 =================
