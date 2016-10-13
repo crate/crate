@@ -40,16 +40,17 @@ import java.util.Set;
 public class PrependInputIdRowReceiver implements RowReceiver {
 
     private final RowReceiver delegate;
-    private final byte inputId;
+    private final PrependedRow prependedRow;
 
     public PrependInputIdRowReceiver(RowReceiver delegate, byte inputId) {
         this.delegate = delegate;
-        this.inputId = inputId;
+        prependedRow = new PrependedRow(inputId);
     }
 
     @Override
     public Result setNextRow(Row row) {
-        return delegate.setNextRow(new PrependedRow(row, inputId));
+        prependedRow.setDelegate(row);
+        return delegate.setNextRow(prependedRow);
     }
 
     @Override

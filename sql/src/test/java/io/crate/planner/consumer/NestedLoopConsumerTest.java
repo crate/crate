@@ -190,7 +190,6 @@ public class NestedLoopConsumerTest extends CrateUnitTest {
         assertThat(collect.collectPhase().distributionInfo().distributionType(), is(DistributionType.BROADCAST));
     }
 
-
     @Test
     public void testExplicitCrossJoinWithoutLimitOrOrderBy() throws Exception {
         QueryThenFetch plan = plan("select u1.name, u2.name from users u1 cross join users u2");
@@ -208,7 +207,6 @@ public class NestedLoopConsumerTest extends CrateUnitTest {
         MergePhase rightMerge = nestedLoop.nestedLoopPhase().rightMergePhase();
         assertThat(rightMerge.projections().size(), is(0));
     }
-
 
     @Test
     public void testNoLimitPushDownWithJoinCondition() throws Exception {

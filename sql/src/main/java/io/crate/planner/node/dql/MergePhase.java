@@ -68,8 +68,7 @@ public class MergePhase extends AbstractProjectionsPhase implements UpstreamPhas
                       Collection<? extends DataType> inputTypes,
                       List<Projection> projections,
                       DistributionInfo distributionInfo,
-                      @Nullable PositionalOrderBy positionalOrderBy
-    ) {
+                      @Nullable PositionalOrderBy positionalOrderBy) {
         super(jobId, executionNodeId, name, projections);
         this.inputTypes = inputTypes;
         this.numUpstreams = numUpstreams;
