@@ -39,7 +39,7 @@ import java.util.List;
 public class InputColumn extends Symbol implements Comparable<InputColumn> {
 
     private final DataType dataType;
-    private final int index;
+    private int index;
 
     public static List<Symbol> numInputs(int size) {
         List<Symbol> inputColumns = new ArrayList<>(size);
@@ -67,6 +67,22 @@ public class InputColumn extends Symbol implements Comparable<InputColumn> {
             inputColumns.add(fromSymbol(symbol, sourceList));
         }
         return inputColumns;
+    }
+
+    /**
+     * Shifts the index at all given input columns right by 1
+     */
+    public static void shiftRight(@Nullable Collection<? extends Symbol> symbols) {
+        if (symbols == null) {
+            return;
+        }
+        for (Symbol symbol : symbols) {
+            if (symbol instanceof FetchReference) {
+                symbol = ((FetchReference) symbol).docId();
+            }
+            assert symbol instanceof InputColumn : "expecting symbol to be an InputColumn";
+            ((InputColumn) symbol).index += 1;
+        }
     }
 
     /**

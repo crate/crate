@@ -131,13 +131,11 @@ public class ProjectionBuilder {
         return new FilterProjection(query, outputs);
     }
 
-    public static TopNProjection topNProjection(
-        Collection<? extends Symbol> inputs,
-        @Nullable OrderBy orderBy,
-        int offset,
-        int limit,
-        @Nullable Collection<Symbol> outputs) {
-
+    public static TopNProjection topNProjection(Collection<? extends Symbol> inputs,
+                                                @Nullable OrderBy orderBy,
+                                                int offset,
+                                                int limit,
+                                                @Nullable Collection<? extends Symbol> outputs) {
         InputCreatingVisitor.Context context = new InputCreatingVisitor.Context(inputs);
         List<Symbol> inputsProcessed = inputVisitor.process(inputs, context);
         List<Symbol> outputsProcessed;

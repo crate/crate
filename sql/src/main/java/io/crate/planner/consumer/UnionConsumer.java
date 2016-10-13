@@ -28,7 +28,6 @@ import io.crate.analyze.OrderBy;
 import io.crate.analyze.UnionSelect;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.QueriedRelation;
-import io.crate.analyze.symbol.Literal;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.planner.Limits;
 import io.crate.planner.Merge;
@@ -63,11 +62,6 @@ class UnionConsumer implements Consumer {
                 Plan subPlan = context.plannerContext().planSubRelation(queriedRelation, context);
                 subPlans.add(Merge.ensureOnHandlerNoDirectResult(subPlan, context.plannerContext()));
             }
-
-            // Add a new symbol as first which acts as a placeholder for the
-            // upstream inputId that is prepended in the union phase
-            List<Symbol> outputsWithPrependedInputId = new ArrayList<>(unionSelect.querySpec().outputs());
-            outputsWithPrependedInputId.add(0, Literal.ZERO);
 
             final List<Symbol> outputs = unionSelect.querySpec().outputs();
             Optional<OrderBy> rootOrderBy = unionSelect.querySpec().orderBy();
