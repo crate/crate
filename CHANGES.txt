@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+2016/10/13 0.56.2
+=================
+
  - Updated crate-admin to ``0.20.2`` which includes following changes:
 
    - Fixed the chart error that occured when navigating between the overview
