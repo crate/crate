@@ -30,6 +30,7 @@ import io.crate.core.collections.RowN;
 import io.crate.core.collections.Rows;
 import io.crate.core.collections.TreeMapBuilder;
 import io.crate.metadata.*;
+import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.ColumnPolicy;
 import io.crate.metadata.table.TableInfo;
 import io.crate.metadata.table.TestingTableInfo;
@@ -61,7 +62,7 @@ public abstract class BaseAnalyzerTest extends CrateUnitTest {
 
     public static final TableIdent USER_TABLE_IDENT = new TableIdent(Schemas.DEFAULT_SCHEMA_NAME, "users");
 
-    public static final TableInfo USER_TABLE_INFO = TestingTableInfo.builder(USER_TABLE_IDENT, SHARD_ROUTING)
+    public static final DocTableInfo USER_TABLE_INFO = TestingTableInfo.builder(USER_TABLE_IDENT, SHARD_ROUTING)
         .add("id", DataTypes.LONG, null)
         .add("other_id", DataTypes.LONG, null)
         .add("name", DataTypes.STRING, null)
@@ -84,7 +85,7 @@ public abstract class BaseAnalyzerTest extends CrateUnitTest {
         .clusteredBy("id")
         .build();
     public static final TableIdent USER_TABLE_IDENT_MULTI_PK = new TableIdent(Schemas.DEFAULT_SCHEMA_NAME, "users_multi_pk");
-    public static final TableInfo USER_TABLE_INFO_MULTI_PK = TestingTableInfo.builder(USER_TABLE_IDENT_MULTI_PK, SHARD_ROUTING)
+    public static final DocTableInfo USER_TABLE_INFO_MULTI_PK = TestingTableInfo.builder(USER_TABLE_IDENT_MULTI_PK, SHARD_ROUTING)
         .add("id", DataTypes.LONG, null)
         .add("name", DataTypes.STRING, null)
         .add("details", DataTypes.OBJECT, null)
@@ -94,8 +95,8 @@ public abstract class BaseAnalyzerTest extends CrateUnitTest {
         .addPrimaryKey("name")
         .clusteredBy("id")
         .build();
-    static final TableIdent USER_TABLE_IDENT_CLUSTERED_BY_ONLY = new TableIdent(Schemas.DEFAULT_SCHEMA_NAME, "users_clustered_by_only");
-    static final TableInfo USER_TABLE_INFO_CLUSTERED_BY_ONLY = TestingTableInfo.builder(USER_TABLE_IDENT_CLUSTERED_BY_ONLY, SHARD_ROUTING)
+    public static final TableIdent USER_TABLE_IDENT_CLUSTERED_BY_ONLY = new TableIdent(Schemas.DEFAULT_SCHEMA_NAME, "users_clustered_by_only");
+    public static final DocTableInfo USER_TABLE_INFO_CLUSTERED_BY_ONLY = TestingTableInfo.builder(USER_TABLE_IDENT_CLUSTERED_BY_ONLY, SHARD_ROUTING)
         .add("id", DataTypes.LONG, null)
         .add("name", DataTypes.STRING, null)
         .add("details", DataTypes.OBJECT, null)
@@ -118,8 +119,8 @@ public abstract class BaseAnalyzerTest extends CrateUnitTest {
         .addPrimaryKey("o.b")
         .clusteredBy("o.b")
         .build();
-    static final TableIdent TEST_PARTITIONED_TABLE_IDENT = new TableIdent(Schemas.DEFAULT_SCHEMA_NAME, "parted");
-    static final TableInfo TEST_PARTITIONED_TABLE_INFO = new TestingTableInfo.Builder(
+    public static final TableIdent TEST_PARTITIONED_TABLE_IDENT = new TableIdent(Schemas.DEFAULT_SCHEMA_NAME, "parted");
+    public static final DocTableInfo TEST_PARTITIONED_TABLE_INFO = new TestingTableInfo.Builder(
         TEST_PARTITIONED_TABLE_IDENT, new Routing(ImmutableMap.<String, Map<String, List<Integer>>>of()))
         .add("id", DataTypes.INTEGER, null)
         .add("name", DataTypes.STRING, null)
@@ -133,8 +134,8 @@ public abstract class BaseAnalyzerTest extends CrateUnitTest {
                 add(null);
             }}).asIndexName())
         .build();
-    static final TableIdent TEST_MULTIPLE_PARTITIONED_TABLE_IDENT = new TableIdent(Schemas.DEFAULT_SCHEMA_NAME, "multi_parted");
-    static final TableInfo TEST_MULTIPLE_PARTITIONED_TABLE_INFO = new TestingTableInfo.Builder(
+    public static final TableIdent TEST_MULTIPLE_PARTITIONED_TABLE_IDENT = new TableIdent(Schemas.DEFAULT_SCHEMA_NAME, "multi_parted");
+    public static final DocTableInfo TEST_MULTIPLE_PARTITIONED_TABLE_INFO = new TestingTableInfo.Builder(
         TEST_MULTIPLE_PARTITIONED_TABLE_IDENT, new Routing(ImmutableMap.<String, Map<String, List<Integer>>>of()))
         .add("id", DataTypes.INTEGER, null)
         .add("date", DataTypes.TIMESTAMP, null, true)
@@ -160,8 +161,8 @@ public abstract class BaseAnalyzerTest extends CrateUnitTest {
             new PartitionName("nested_parted", Arrays.asList(new BytesRef("1395961200000"), new BytesRef("Ford"))).asIndexName(),
             new PartitionName("nested_parted", Arrays.asList(null, new BytesRef("Zaphod"))).asIndexName())
         .build();
-    static final TableIdent TEST_DOC_TRANSACTIONS_TABLE_IDENT = new TableIdent(Schemas.DEFAULT_SCHEMA_NAME, "transactions");
-    static final TableInfo TEST_DOC_TRANSACTIONS_TABLE_INFO = new TestingTableInfo.Builder(
+    public static final TableIdent TEST_DOC_TRANSACTIONS_TABLE_IDENT = new TableIdent(Schemas.DEFAULT_SCHEMA_NAME, "transactions");
+    public static final DocTableInfo TEST_DOC_TRANSACTIONS_TABLE_INFO = new TestingTableInfo.Builder(
         TEST_DOC_TRANSACTIONS_TABLE_IDENT, new Routing(ImmutableMap.<String, Map<String, List<Integer>>>of()))
         .add("id", DataTypes.LONG, null)
         .add("sender", DataTypes.STRING, null)
@@ -169,8 +170,8 @@ public abstract class BaseAnalyzerTest extends CrateUnitTest {
         .add("amount", DataTypes.DOUBLE, null)
         .add("timestamp", DataTypes.TIMESTAMP, null)
         .build();
-    static final TableIdent DEEPLY_NESTED_TABLE_IDENT = new TableIdent(Schemas.DEFAULT_SCHEMA_NAME, "deeply_nested");
-    static final TableInfo DEEPLY_NESTED_TABLE_INFO = new TestingTableInfo.Builder(
+    public static final TableIdent DEEPLY_NESTED_TABLE_IDENT = new TableIdent(Schemas.DEFAULT_SCHEMA_NAME, "deeply_nested");
+    public static final DocTableInfo DEEPLY_NESTED_TABLE_INFO = new TestingTableInfo.Builder(
         DEEPLY_NESTED_TABLE_IDENT, new Routing(ImmutableMap.<String, Map<String, List<Integer>>>of()))
         .add("details", DataTypes.OBJECT, null, ColumnPolicy.DYNAMIC)
         .add("details", DataTypes.BOOLEAN, Arrays.asList("awesome"))
@@ -191,13 +192,13 @@ public abstract class BaseAnalyzerTest extends CrateUnitTest {
         .add("details", DataTypes.OBJECT, null, ColumnPolicy.IGNORED)
         .build();
 
-    static final TableIdent TEST_DOC_LOCATIONS_TABLE_IDENT = new TableIdent(Schemas.DEFAULT_SCHEMA_NAME, "locations");
-    static final TableInfo TEST_DOC_LOCATIONS_TABLE_INFO = TestingTableInfo.builder(TEST_DOC_LOCATIONS_TABLE_IDENT, SHARD_ROUTING)
+    public static final TableIdent TEST_DOC_LOCATIONS_TABLE_IDENT = new TableIdent(Schemas.DEFAULT_SCHEMA_NAME, "locations");
+    public static final DocTableInfo TEST_DOC_LOCATIONS_TABLE_INFO = TestingTableInfo.builder(TEST_DOC_LOCATIONS_TABLE_IDENT, SHARD_ROUTING)
         .add("id", DataTypes.LONG, null)
         .add("loc", DataTypes.GEO_POINT, null)
         .build();
 
-    static final TableInfo TEST_CLUSTER_BY_STRING_TABLE_INFO = TestingTableInfo.builder(new TableIdent(Schemas.DEFAULT_SCHEMA_NAME, "bystring"), SHARD_ROUTING)
+    public static final DocTableInfo TEST_CLUSTER_BY_STRING_TABLE_INFO = TestingTableInfo.builder(new TableIdent(Schemas.DEFAULT_SCHEMA_NAME, "bystring"), SHARD_ROUTING)
         .add("name", DataTypes.STRING, null)
         .add("score", DataTypes.DOUBLE, null)
         .addPrimaryKey("name")

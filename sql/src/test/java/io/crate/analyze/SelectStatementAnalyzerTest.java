@@ -23,6 +23,7 @@ package io.crate.analyze;
 
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.QueriedRelation;
@@ -32,24 +33,19 @@ import io.crate.exceptions.ColumnUnknownException;
 import io.crate.exceptions.RelationUnknownException;
 import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.metadata.FunctionInfo;
-import io.crate.metadata.MetaDataModule;
-import io.crate.metadata.Schemas;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.metadata.doc.DocTableInfo;
-import io.crate.metadata.sys.MetaDataSysModule;
+import io.crate.metadata.doc.DocTableInfoFactory;
+import io.crate.metadata.doc.TestingDocTableInfoFactory;
 import io.crate.metadata.sys.SysNodesTableInfo;
-import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.table.TestingTableInfo;
-import io.crate.operation.aggregation.impl.AggregationImplModule;
 import io.crate.operation.aggregation.impl.AverageAggregation;
 import io.crate.operation.operator.*;
 import io.crate.operation.operator.any.AnyEqOperator;
 import io.crate.operation.predicate.IsNullPredicate;
 import io.crate.operation.predicate.MatchPredicate;
 import io.crate.operation.predicate.NotPredicate;
-import io.crate.operation.predicate.PredicateModule;
-import io.crate.operation.scalar.ScalarFunctionModule;
 import io.crate.operation.scalar.SubscriptFunction;
 import io.crate.operation.scalar.arithmetic.AddFunction;
 import io.crate.operation.scalar.cast.CastFunctionResolver;
@@ -57,17 +53,19 @@ import io.crate.operation.scalar.geo.DistanceFunction;
 import io.crate.operation.scalar.regex.MatchesFunction;
 import io.crate.sql.parser.ParsingException;
 import io.crate.sql.tree.QualifiedName;
-import io.crate.testing.MockedClusterServiceModule;
+import io.crate.test.integration.CrateUnitTest;
+import io.crate.testing.SQLExecutor;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
+import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.collect.MapBuilder;
-import org.elasticsearch.common.inject.Module;
 import org.elasticsearch.common.lucene.BytesRefs;
-import org.elasticsearch.node.service.NodeService;
+import org.elasticsearch.test.cluster.NoopClusterService;
 import org.hamcrest.Matchers;
 import org.hamcrest.core.IsInstanceOf;
+import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -79,82 +77,41 @@ import java.util.List;
 import java.util.Map;
 
 import static com.carrotsearch.randomizedtesting.RandomizedTest.$;
+import static io.crate.analyze.BaseAnalyzerTest.SHARD_ROUTING;
 import static io.crate.testing.TestingHelpers.*;
 import static org.hamcrest.Matchers.*;
 import static org.hamcrest.core.Is.is;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 
 @SuppressWarnings("ConstantConditions")
-public class SelectStatementAnalyzerTest extends BaseAnalyzerTest {
+public class SelectStatementAnalyzerTest extends CrateUnitTest {
 
     @Rule
     public ExpectedException expectedException = ExpectedException.none();
+    private SQLExecutor sqlExecutor;
 
-    static class TestMetaDataModule extends MetaDataModule {
-
-        @Override
-        protected void configure() {
-            super.configure();
-            bind(NodeService.class).toInstance(mock(NodeService.class));
-        }
-
-        @Override
-        protected void bindSchemas() {
-            super.bindSchemas();
-            DocSchemaInfo fooSchema = mock(DocSchemaInfo.class);
-            when(fooSchema.name()).thenReturn("foo");
-            DocTableInfo fooUserTableInfo = TestingTableInfo.builder(new TableIdent("foo", "users"), SHARD_ROUTING)
-                .add("id", DataTypes.LONG, null)
-                .add("name", DataTypes.STRING, null)
-                .addPrimaryKey("id")
-                .build();
-            when(fooSchema.getTableInfo(USER_TABLE_IDENT.name())).thenReturn(fooUserTableInfo);
-            schemaBinder.addBinding("foo").toInstance(fooSchema);
-
-            SchemaInfo schemaInfo = mock(SchemaInfo.class);
-            when(schemaInfo.getTableInfo(USER_TABLE_IDENT.name())).thenReturn(USER_TABLE_INFO);
-            when(schemaInfo.getTableInfo(USER_TABLE_IDENT_CLUSTERED_BY_ONLY.name())).thenReturn(USER_TABLE_INFO_CLUSTERED_BY_ONLY);
-            when(schemaInfo.getTableInfo(USER_TABLE_IDENT_MULTI_PK.name())).thenReturn(USER_TABLE_INFO_MULTI_PK);
-            when(schemaInfo.getTableInfo(DEEPLY_NESTED_TABLE_IDENT.name())).thenReturn(DEEPLY_NESTED_TABLE_INFO);
-            when(schemaInfo.getTableInfo(TEST_PARTITIONED_TABLE_IDENT.name()))
-                .thenReturn(TEST_PARTITIONED_TABLE_INFO);
-            when(schemaInfo.getTableInfo(TEST_MULTIPLE_PARTITIONED_TABLE_IDENT.name()))
-                .thenReturn(TEST_MULTIPLE_PARTITIONED_TABLE_INFO);
-            when(schemaInfo.getTableInfo(TEST_DOC_TRANSACTIONS_TABLE_IDENT.name()))
-                .thenReturn(TEST_DOC_TRANSACTIONS_TABLE_INFO);
-            when(schemaInfo.getTableInfo(TEST_DOC_LOCATIONS_TABLE_IDENT.name()))
-                .thenReturn(TEST_DOC_LOCATIONS_TABLE_INFO);
-            when(schemaInfo.getTableInfo(TEST_CLUSTER_BY_STRING_TABLE_INFO.ident().name()))
-                .thenReturn(TEST_CLUSTER_BY_STRING_TABLE_INFO);
-            schemaBinder.addBinding(Schemas.DEFAULT_SCHEMA_NAME).toInstance(schemaInfo);
-        }
+    @Before
+    public void init() throws Exception {
+        DocTableInfo fooUserTableInfo = TestingTableInfo.builder(new TableIdent("foo", "users"), SHARD_ROUTING)
+            .add("id", DataTypes.LONG, null)
+            .add("name", DataTypes.STRING, null)
+            .addPrimaryKey("id")
+            .build();
+        DocTableInfoFactory fooTableFactory = new TestingDocTableInfoFactory(
+            ImmutableMap.of(fooUserTableInfo.ident(), fooUserTableInfo));
+        ClusterService clusterService = new NoopClusterService();
+        sqlExecutor = SQLExecutor.builder(clusterService)
+            .enableDefaultTables()
+            .addSchema(new DocSchemaInfo("foo", clusterService, fooTableFactory))
+            .build();
     }
 
-    @Override
-    protected List<Module> getModules() {
-        List<Module> modules = super.getModules();
-        modules.addAll(Arrays.<Module>asList(
-            new MockedClusterServiceModule(),
-            new TestMetaDataModule(),
-            new MetaDataSysModule(),
-            new OperatorModule(),
-            new AggregationImplModule(),
-            new PredicateModule(),
-            new ScalarFunctionModule()
-        ));
-        return modules;
+    private SelectAnalyzedStatement analyze(String statement) {
+        return sqlExecutor.analyze(statement);
     }
 
-    @Override
-    protected SelectAnalyzedStatement analyze(String statement) {
-        return (SelectAnalyzedStatement) super.analyze(statement);
-    }
-
-    @Override
-    protected SelectAnalyzedStatement analyze(String statement, Object[] arguments) {
-        return (SelectAnalyzedStatement) super.analyze(statement, arguments);
+    private SelectAnalyzedStatement analyze(String statement, Object[] arguments) {
+        return (SelectAnalyzedStatement) sqlExecutor.analyze(statement, arguments);
     }
 
     @Test(expected = IllegalArgumentException.class)

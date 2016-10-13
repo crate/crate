@@ -28,6 +28,7 @@ import io.crate.metadata.PartitionName;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.sys.MetaDataSysModule;
 import io.crate.metadata.table.SchemaInfo;
+import io.crate.metadata.table.TableInfo;
 import io.crate.operation.operator.OperatorModule;
 import io.crate.testing.MockedClusterServiceModule;
 import org.apache.lucene.util.BytesRef;
@@ -72,7 +73,7 @@ public class SnapshotRestoreAnalyzerTest extends BaseAnalyzerTest {
             when(schemaInfo.getTableInfo(TEST_DOC_LOCATIONS_TABLE_IDENT.name())).thenReturn(TEST_DOC_LOCATIONS_TABLE_INFO);
             when(schemaInfo.getTableInfo(TEST_PARTITIONED_TABLE_IDENT.name()))
                 .thenReturn(TEST_PARTITIONED_TABLE_INFO);
-            when(schemaInfo.iterator()).thenReturn(Collections.singletonList(USER_TABLE_INFO).iterator());
+            when(schemaInfo.iterator()).thenReturn(Collections.singletonList((TableInfo) USER_TABLE_INFO).iterator());
             schemaBinder.addBinding(Schemas.DEFAULT_SCHEMA_NAME).toInstance(schemaInfo);
         }
     }

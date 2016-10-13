@@ -24,9 +24,19 @@ package io.crate.metadata.doc;
 
 import io.crate.metadata.TableIdent;
 import org.elasticsearch.cluster.ClusterService;
-import org.elasticsearch.common.inject.ImplementedBy;
 
-@ImplementedBy(InternalDocTableInfoFactory.class)
-public interface DocTableInfoFactory {
-    DocTableInfo create(TableIdent ident, ClusterService clusterService);
+import java.util.Map;
+
+public class TestingDocTableInfoFactory implements DocTableInfoFactory {
+
+    private final Map<TableIdent, DocTableInfo> tables;
+
+    public TestingDocTableInfoFactory(Map<TableIdent, DocTableInfo> tables) {
+        this.tables = tables;
+    }
+
+    @Override
+    public DocTableInfo create(TableIdent ident, ClusterService clusterService) {
+        return tables.get(ident);
+    }
 }
