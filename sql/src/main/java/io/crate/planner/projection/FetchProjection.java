@@ -38,7 +38,7 @@ public class FetchProjection extends Projection {
     private final int collectPhaseId;
     private final int fetchSize;
     private final Map<TableIdent, FetchSource> fetchSources;
-    private final List<Symbol> outputSymbols;
+    private final List<List<Symbol>> outputSymbols;
     private final Map<String, IntSet> nodeReaders;
     private final TreeMap<Integer, String> readerIndices;
     private final Map<String, TableIdent> indicesToIdents;
@@ -46,7 +46,7 @@ public class FetchProjection extends Projection {
     public FetchProjection(int collectPhaseId,
                            int fetchSize,
                            Map<TableIdent, FetchSource> fetchSources,
-                           List<Symbol> outputSymbols,
+                           List<List<Symbol>> outputSymbols,
                            Map<String, IntSet> nodeReaders,
                            TreeMap<Integer, String> readerIndices,
                            Map<String, TableIdent> indicesToIdents) {
@@ -71,7 +71,7 @@ public class FetchProjection extends Projection {
         return fetchSources;
     }
 
-    public List<Symbol> outputSymbols() {
+    public List<List<Symbol>> outputsPerRelation() {
         return outputSymbols;
     }
 
@@ -99,7 +99,7 @@ public class FetchProjection extends Projection {
 
     @Override
     public List<? extends Symbol> outputs() {
-        return outputSymbols;
+        return outputSymbols.get(0);
     }
 
     @Override
@@ -117,11 +117,11 @@ public class FetchProjection extends Projection {
 
     @Override
     public void readFrom(StreamInput in) throws IOException {
-        throw new UnsupportedOperationException();
+        throw new UnsupportedOperationException("readFrom not supported");
     }
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
-        throw new UnsupportedOperationException();
+        throw new UnsupportedOperationException("writeTo not supported");
     }
 }

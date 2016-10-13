@@ -91,6 +91,22 @@ public class UnionIntegrationTest extends SQLTransportIntegrationTest {
         assertThat(TestingHelpers.printedTable(response.rows()), is("small\n"));
     }
 
+    @Test
+    public void testUnionAllWithJoin() throws Exception {
+        createColorsAndSizes();
+        execute("select colors.name from sizes, colors " +
+                "union all " +
+                "select * from sizes");
+        assertThat(Arrays.asList(response.rows()), containsInAnyOrder(new Object[]{"small"},
+                                                                      new Object[]{"large"},
+                                                                      new Object[]{"red"},
+                                                                      new Object[]{"blue"},
+                                                                      new Object[]{"green"},
+                                                                      new Object[]{"red"},
+                                                                      new Object[]{"blue"},
+                                                                      new Object[]{"green"}));
+    }
+
     private void createColorsAndSizes() {
         execute("create table colors (name string) ");
         execute("create table sizes (name string) ");

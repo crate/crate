@@ -20,11 +20,9 @@
  * agreement.
  */
 
-package io.crate.planner;
+package io.crate.analyze;
 
-import io.crate.analyze.QuerySpec;
 import io.crate.analyze.relations.AnalyzedRelationVisitor;
-import io.crate.analyze.relations.PlannedAnalyzedRelation;
 import io.crate.analyze.relations.QueriedRelation;
 import io.crate.analyze.symbol.Field;
 import io.crate.exceptions.ColumnUnknownException;
@@ -35,53 +33,47 @@ import io.crate.sql.tree.QualifiedName;
 import javax.annotation.Nonnull;
 import java.util.List;
 
-public class RelationsUnion implements QueriedRelation {
+public class UnionSelect implements QueriedRelation {
 
-    private final List<PlannedAnalyzedRelation> relations;
-    private final List<QuerySpec> querySpecs;
-    private final QuerySpec rootQuerySpec;
+    private final List<QueriedRelation> relations;
+    private final QuerySpec querySpec;
 
-    RelationsUnion(List<PlannedAnalyzedRelation> relations, List<QuerySpec> querySpecs, QuerySpec rootQuerySpec) {
+    public UnionSelect(List<QueriedRelation> relations, QuerySpec rootQuerySpec) {
         this.relations = relations;
-        this.querySpecs = querySpecs;
-        this.rootQuerySpec = rootQuerySpec;
+        this.querySpec = rootQuerySpec;
     }
 
-    public List<PlannedAnalyzedRelation> relations() {
+    public List<QueriedRelation> relations() {
         return relations;
-    }
-
-    public List<QuerySpec> querySpecs() {
-        return querySpecs;
-    }
-
-    @Override
-    public <C, R> R accept(AnalyzedRelationVisitor<C, R> visitor, C context) {
-        return visitor.visitRelationsUnion(this, context);
-    }
-
-    @Override
-    public Field getField(Path path, Operation operation) throws UnsupportedOperationException, ColumnUnknownException {
-        throw new UnsupportedOperationException("method not supported");
-    }
-
-    @Override
-    public List<Field> fields() {
-        throw new UnsupportedOperationException("method not supported");
-    }
-
-    @Override
-    public QualifiedName getQualifiedName() {
-        throw new UnsupportedOperationException("method not supported");
-    }
-
-    @Override
-    public void setQualifiedName(@Nonnull QualifiedName qualifiedName) {
-        throw new UnsupportedOperationException("method not supported");
     }
 
     @Override
     public QuerySpec querySpec() {
-        return rootQuerySpec;
+        return querySpec;
+    }
+
+    @Override
+    public <C, R> R accept(AnalyzedRelationVisitor<C, R> visitor, C context) {
+        return visitor.visitUnionSelect(this, context);
+    }
+
+    @Override
+    public Field getField(Path path, Operation operation) throws UnsupportedOperationException, ColumnUnknownException {
+        throw new UnsupportedOperationException("getField not supported");
+    }
+
+    @Override
+    public List<Field> fields() {
+        throw new UnsupportedOperationException("fields not supported");
+    }
+
+    @Override
+    public QualifiedName getQualifiedName() {
+        throw new UnsupportedOperationException("getQualifiedName not supported");
+    }
+
+    @Override
+    public void setQualifiedName(@Nonnull QualifiedName qualifiedName) {
+        throw new UnsupportedOperationException("setQualifiedName not supported");
     }
 }

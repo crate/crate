@@ -78,6 +78,22 @@ public class InputColumn extends Symbol implements Comparable<InputColumn> {
     }
 
     /**
+     * Shifts the index at all given input columns right by 1
+     */
+    public static void shiftRight(@Nullable Collection<? extends Symbol> symbols) {
+        if (symbols == null) {
+            return;
+        }
+        for (Symbol symbol : symbols) {
+            if (symbol instanceof FetchReference) {
+                symbol = ((FetchReference) symbol).docId();
+            }
+            assert symbol instanceof InputColumn : "expecting symbol to be an InputColumn";
+            ((InputColumn) symbol).index += 1;
+        }
+    }
+
+    /**
      * generate an inputColumn which points to some symbol that is part of sourceList
      */
     public static InputColumn fromSymbol(Symbol symbol, List<? extends Symbol> sourceList) {

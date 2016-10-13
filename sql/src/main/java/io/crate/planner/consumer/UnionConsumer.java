@@ -27,15 +27,15 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.QuerySpec;
+import io.crate.analyze.UnionSelect;
 import io.crate.analyze.relations.AnalyzedRelation;
+import io.crate.analyze.relations.PlanOutputSymbolExtractor;
 import io.crate.analyze.relations.PlannedAnalyzedRelation;
+import io.crate.analyze.relations.QueriedRelation;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.planner.Limits;
 import io.crate.planner.Plan;
-import io.crate.planner.RelationsUnion;
-import io.crate.planner.node.dql.MergePhase;
-import io.crate.planner.node.dql.UnionPhase;
-import io.crate.planner.node.dql.UnionPlan;
+import io.crate.planner.node.dql.*;
 import io.crate.planner.projection.Projection;
 import io.crate.planner.projection.TopNProjection;
 import io.crate.planner.projection.builder.ProjectionBuilder;
@@ -67,16 +67,24 @@ class UnionConsumer implements Consumer {
         }
 
         @Override
-        public PlannedAnalyzedRelation visitRelationsUnion(final RelationsUnion relationsUnion, ConsumerContext context) {
+        public PlannedAnalyzedRelation visitUnionSelect(UnionSelect unionSelect, ConsumerContext context) {
             Set<String> handlerNodes = ImmutableSet.of(clusterService.localNode().id());
-            Limits limits = context.plannerContext().getLimits(true, relationsUnion.querySpec());
+            Limits limits = context.plannerContext().getLimits(true, unionSelect.querySpec());
             List<MergePhase> mergePhases = new ArrayList<>();
             List<Plan> subPlans = new ArrayList<>();
 
-            for (int i = 0; i < relationsUnion.relations().size(); i++) {
-                PlannedAnalyzedRelation plannedAnalyzedRelation = relationsUnion.relations().get(i);
-                QuerySpec querySpec = relationsUnion.querySpecs().get(i);
-                subPlans.add(plannedAnalyzedRelation.plan());
+            List<? extends Symbol> outputs = unionSelect.querySpec().outputs();
+
+            for (QueriedRelation queriedRelation : unionSelect.relations()) {
+                PlannedAnalyzedRelation plannedAnalyzedRelation =
+                    context.plannerContext().planSubRelation(queriedRelation, context);
+
+                Plan plan = plannedAnalyzedRelation.plan();
+                subPlans.add(plan);
+
+                outputs = PlanOutputSymbolExtractor.extract(plan);
+
+                QuerySpec querySpec = queriedRelation.querySpec();
 
                 if (handlerNodes.equals(plannedAnalyzedRelation.resultPhase().executionNodes())) {
                     mergePhases.add(null);
@@ -88,13 +96,12 @@ class UnionConsumer implements Consumer {
                         querySpec.orderBy().orNull(),
                         null,
                         ImmutableList.<Projection>of(),
-                        querySpec.outputs(),
+                        outputs,
                         null));
                 }
             }
 
-            final List<Symbol> outputs = relationsUnion.querySpec().outputs();
-            Optional<OrderBy> rootOrderBy = relationsUnion.querySpec().orderBy();
+            Optional<OrderBy> rootOrderBy = unionSelect.querySpec().orderBy();
             List<Projection> projections = ImmutableList.of();
             if (limits.hasLimit() || rootOrderBy.isPresent()) {
                 projections = new ArrayList<>(1);

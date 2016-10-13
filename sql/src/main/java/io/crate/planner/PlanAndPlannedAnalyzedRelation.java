@@ -55,11 +55,11 @@ public abstract class PlanAndPlannedAnalyzedRelation implements PlannedAnalyzedR
 
     @Override
     public QualifiedName getQualifiedName() {
-        throw new UnsupportedOperationException("method not supported");
+        throw new UnsupportedOperationException("getQualifiedName not supported");
     }
 
     @Override
     public void setQualifiedName(QualifiedName qualifiedName) {
-        throw new UnsupportedOperationException("method not supported");
+        throw new UnsupportedOperationException("setQualifiedName not supported");
     }
 }

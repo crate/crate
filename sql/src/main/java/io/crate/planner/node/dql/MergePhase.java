@@ -149,7 +149,7 @@ public class MergePhase extends AbstractProjectionsPhase implements UpstreamPhas
                                         @Nullable OrderBy orderBy,
                                         @Nullable List<? extends Symbol> orderBySymbols,
                                         List<Projection> projections,
-                                        List<Symbol> inputs,
+                                        List<? extends Symbol> inputs,
                                         @Nullable List<DataType> inputTypes) {
         MergePhase mergePhase;
         if (orderBy != null) {
