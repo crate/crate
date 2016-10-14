@@ -31,6 +31,8 @@ import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.component.AbstractLifecycleComponent;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
+import org.elasticsearch.common.logging.ESLogger;
+import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.network.NetworkAddress;
 import org.elasticsearch.common.network.NetworkService;
 import org.elasticsearch.common.settings.Settings;
@@ -51,7 +53,10 @@ import java.io.IOException;
 import java.net.Inet4Address;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -67,6 +72,7 @@ public class PostgresNetty extends AbstractLifecycleComponent {
 
     private final boolean enabled;
     private final String port;
+    private final ESLogger namedLogger;
 
     private ServerBootstrap bootstrap;
     private ExecutorService bossExecutor;
@@ -80,6 +86,7 @@ public class PostgresNetty extends AbstractLifecycleComponent {
     @Inject
     public PostgresNetty(Settings settings, SQLOperations sqlOperations, NetworkService networkService) {
         super(settings);
+        namedLogger = Loggers.getLogger("psql", settings);
         this.sqlOperations = sqlOperations;
         this.networkService = networkService;
 
@@ -117,6 +124,7 @@ public class PostgresNetty extends AbstractLifecycleComponent {
         });
 
         boundAddress = resolveBindAddress();
+        namedLogger.info("{}", boundAddress);
     }
 
 
