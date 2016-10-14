@@ -1,74 +1,43 @@
 package io.crate.operation.operator;
 
-import io.crate.analyze.symbol.Function;
-import io.crate.analyze.symbol.Literal;
-import io.crate.analyze.symbol.Symbol;
-import io.crate.metadata.Reference;
-import io.crate.metadata.TransactionContext;
-import io.crate.test.integration.CrateUnitTest;
+import io.crate.operation.scalar.AbstractScalarFunctionsTest;
 import org.junit.Test;
 
-import java.util.Arrays;
-
+import static io.crate.testing.SymbolMatchers.isField;
 import static io.crate.testing.SymbolMatchers.isLiteral;
-import static org.hamcrest.CoreMatchers.instanceOf;
 
-public class AndOperatorTest extends CrateUnitTest {
-
-    private final TransactionContext transactionContext = new TransactionContext();
+public class AndOperatorTest extends AbstractScalarFunctionsTest {
 
     @Test
     public void testNormalizeBooleanTrueAndNonLiteral() throws Exception {
-        AndOperator operator = new AndOperator();
-        Function function = new Function(
-            operator.info(), Arrays.<Symbol>asList(Literal.of(true), new Reference()));
-        Symbol symbol = operator.normalizeSymbol(function, transactionContext);
-        assertThat(symbol, instanceOf(Reference.class));
+        assertNormalize("is_awesome and true", isField("is_awesome"));
     }
 
     @Test
     public void testNormalizeBooleanFalseAndNonLiteral() throws Exception {
-        AndOperator operator = new AndOperator();
-        Function function = new Function(
-            operator.info(), Arrays.<Symbol>asList(Literal.of(false), new Reference()));
-        Symbol symbol = operator.normalizeSymbol(function, transactionContext);
-
-        assertThat(symbol, isLiteral(false));
+        assertNormalize("is_awesome and false", isLiteral(false));
     }
 
     @Test
     public void testNormalizeLiteralAndLiteral() throws Exception {
-        AndOperator operator = new AndOperator();
-        Function function = new Function(
-            operator.info(), Arrays.<Symbol>asList(Literal.of(true), Literal.of(true)));
-        Symbol symbol = operator.normalizeSymbol(function, transactionContext);
-        assertThat(symbol, isLiteral(true));
+        assertNormalize("true and true", isLiteral(true));
     }
 
     @Test
     public void testNormalizeLiteralAndLiteralFalse() throws Exception {
-        AndOperator operator = new AndOperator();
-        Function function = new Function(
-            operator.info(), Arrays.<Symbol>asList(Literal.of(true), Literal.of(false)));
-        Symbol symbol = operator.normalizeSymbol(function, transactionContext);
-        assertThat(symbol, isLiteral(false));
-    }
-
-    private Boolean and(Boolean left, Boolean right) {
-        AndOperator operator = new AndOperator();
-        return operator.evaluate(Literal.of(left), Literal.of(right));
+        assertNormalize("true and false", isLiteral(false));
     }
 
     @Test
     public void testEvaluateAndOperator() {
-        assertTrue(and(true, true));
-        assertFalse(and(false, false));
-        assertFalse(and(true, false));
-        assertFalse(and(false, true));
-        assertNull(and(true, null));
-        assertNull(and(null, true));
-        assertFalse(and(false, null));
-        assertFalse(and(null, false));
-        assertNull(and(null, null));
+        assertEvaluate("true and true", true);
+        assertEvaluate("false and false", false);
+        assertEvaluate("true and false", false);
+        assertEvaluate("false and true", false);
+        assertEvaluate("true and null", null);
+        assertEvaluate("null and true", null);
+        assertEvaluate("false and null", false);
+        assertEvaluate("null and false", false);
+        assertEvaluate("null and null", null);
     }
 }
