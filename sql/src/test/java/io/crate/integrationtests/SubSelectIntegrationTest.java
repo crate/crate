@@ -232,4 +232,70 @@ public class SubSelectIntegrationTest extends SQLTransportIntegrationTest {
             is("aa| 58\n" +
                "bb| NULL\n"));
     }
+
+    @Test
+    public void testSingleRowSubselectInWhereClauseOnSysTables() throws Exception {
+        assertThat(execute("select 1 where 2 = (select 2)").rowCount(), is(1L));
+    }
+
+    @Test
+    public void testSingleRowSubSelectInWhereClauseOnDocTables() throws Exception {
+        execute("create table t1 (x int)");
+        execute("create table t2 (y int)");
+        ensureYellow();
+        execute("insert into t1 (x) values (1), (2)");
+        execute("insert into t2 (y) values (2)");
+        execute("refresh table t1, t2");
+
+        execute("select * from t1 where x = (select y from t2)");
+        assertThat(TestingHelpers.printedTable(response.rows()), is("2\n"));
+    }
+
+    @Test
+    public void testNestedSingleRowSubSelect() throws Exception {
+        execute("create table t1 (x int)");
+        execute("create table t2 (y int)");
+        execute("create table t3 (z int)");
+        ensureYellow();
+        execute("insert into t1 (x) values (1), (2)");
+        execute("insert into t2 (y) values (2), (3)");
+        execute("insert into t3 (z) values (2)");
+        execute("refresh table t1, t2, t3");
+
+        execute("select * from t1 where x = (select y from t2 where y = (select z from t3))");
+        assertThat(TestingHelpers.printedTable(response.rows()), is("2\n"));
+    }
+
+    @Test
+    public void testSingleRowSubSelectInGlobalAggregationWhereClause() throws Exception {
+        execute("create table t1 (x long)");
+        ensureYellow();
+        execute("insert into t1 (x) values (1)");
+        execute("refresh table t1");
+
+        execute("select sum(x) from t1 where x = (select 1)");
+        assertThat(TestingHelpers.printedTable(response.rows()), is("1.0\n"));
+    }
+
+    @Test
+    public void testSingleRowSubSelectInGroupByWhereClause() throws Exception {
+        execute("create table t1 (x long)");
+        ensureYellow();
+        execute("insert into t1 (x) values (1)");
+        execute("refresh table t1");
+
+        execute("select sum(x), x from t1 where x = (select 1) group by x");
+        assertThat(TestingHelpers.printedTable(response.rows()), is("1.0| 1\n"));
+    }
+
+    @Test
+    public void testSingleRowSubselectWithMultipleRowsReturning() throws Exception {
+        execute("create table t1 (x long)");
+        ensureYellow();
+        execute("insert into t1 (x) values (1), (2)");
+        execute("refresh table t1");
+
+        expectedException.expectMessage("Subquery returned more than 1 row");
+        execute("select name from sys.cluster where 1 = (select x from t1)");
+    }
 }

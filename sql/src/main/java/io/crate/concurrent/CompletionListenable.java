@@ -27,5 +27,4 @@ import com.google.common.util.concurrent.ListenableFuture;
 public interface CompletionListenable {
 
     ListenableFuture<?> completionFuture();
-
 }

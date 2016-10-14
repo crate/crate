@@ -27,6 +27,7 @@ import com.google.common.collect.ImmutableMap;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.DocTableRelation;
 import io.crate.analyze.relations.TableRelation;
+import io.crate.metadata.Routing;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.doc.DocTableInfo;
@@ -35,25 +36,39 @@ import io.crate.sql.tree.QualifiedName;
 import io.crate.types.DataTypes;
 
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 
 public class T3 {
 
-    public static final DocTableInfo T1_INFO = new TestingTableInfo.Builder(new TableIdent(null, "t1"), null)
+    private static final Routing t1Routing = new Routing(
+        ImmutableMap.<String, Map<String, List<Integer>>>of("noop_id",
+            ImmutableMap.of("t1", Collections.singletonList(0))));
+
+    private static final Routing t2Routing = new Routing(
+        ImmutableMap.<String, Map<String, List<Integer>>>of("noop_id",
+            ImmutableMap.of("t2", Arrays.asList(0, 1))));
+
+    private static final Routing t3Routing = new Routing(
+        ImmutableMap.<String, Map<String, List<Integer>>>of("noop_id",
+            ImmutableMap.of("t3", Arrays.asList(0, 1, 2))));
+
+    public static final DocTableInfo T1_INFO = new TestingTableInfo.Builder(new TableIdent(null, "t1"), t1Routing)
         .add("a", DataTypes.STRING)
         .add("x", DataTypes.INTEGER)
         .add("i", DataTypes.INTEGER)
         .build();
     public static final DocTableRelation TR_1 = new DocTableRelation(T1_INFO);
 
-    public static final DocTableInfo T2_INFO = new TestingTableInfo.Builder(new TableIdent(null, "t2"), null)
+    public static final DocTableInfo T2_INFO = new TestingTableInfo.Builder(new TableIdent(null, "t2"), t2Routing)
         .add("b", DataTypes.STRING)
         .add("y", DataTypes.INTEGER)
         .add("i", DataTypes.INTEGER)
         .build();
     public static final DocTableRelation TR_2 = new DocTableRelation(T2_INFO);
 
-    public static final DocTableInfo T3_INFO = new TestingTableInfo.Builder(new TableIdent(null, "t3"), null)
+    public static final DocTableInfo T3_INFO = new TestingTableInfo.Builder(new TableIdent(null, "t3"), t3Routing)
         .add("c", DataTypes.STRING)
         .add("z", DataTypes.INTEGER)
         .build();
