@@ -163,7 +163,7 @@ public class OrderBy implements Streamable {
 
     public OrderBy merge(@Nullable OrderBy otherOrderBy) {
         if (otherOrderBy != null) {
-            List<Symbol> newOrderBySymbols = otherOrderBy.orderBySymbols();
+            List<Symbol> newOrderBySymbols = new ArrayList<>(otherOrderBy.orderBySymbols());
             List<Boolean> newReverseFlags = new ArrayList<>(Booleans.asList(otherOrderBy.reverseFlags()));
             List<Boolean> newNullsFirst = new ArrayList<>(Arrays.asList(otherOrderBy.nullsFirst()));
 
@@ -189,5 +189,13 @@ public class OrderBy implements Streamable {
             this.nullsFirst = newNullsFirst.toArray(new Boolean[0]);
         }
         return this;
+    }
+
+    @Nullable
+    public static OrderBy merge(com.google.common.base.Optional<OrderBy> o1, com.google.common.base.Optional<OrderBy> o2) {
+        if (!o1.isPresent() || !o2.isPresent()) {
+            return o1.or(o2).orNull();
+        }
+        return o1.get().merge(o2.get());
     }
 }

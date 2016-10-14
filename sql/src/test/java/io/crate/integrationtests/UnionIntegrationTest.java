@@ -37,7 +37,7 @@ import static org.hamcrest.Matchers.is;
 public class UnionIntegrationTest extends SQLTransportIntegrationTest {
 
     @Test
-    public void testUnionAll2Tables() throws Exception {
+    public void testUnionAll2Tables() {
         createColorsAndSizes();
         execute("select * from colors " +
                 "union all " +
@@ -50,7 +50,7 @@ public class UnionIntegrationTest extends SQLTransportIntegrationTest {
     }
 
     @Test
-    public void testUnionAll3Tables() throws Exception {
+    public void testUnionAll3Tables() {
         createColorsAndSizes();
         execute("select * from sizes " +
                 "union all " +
@@ -67,7 +67,7 @@ public class UnionIntegrationTest extends SQLTransportIntegrationTest {
     }
 
     @Test
-    public void testUnionAllWithOrderBy() throws Exception {
+    public void testUnionAllWithOrderBy() {
         createColorsAndSizes();
         execute("select * from colors " +
                 "union all " +
