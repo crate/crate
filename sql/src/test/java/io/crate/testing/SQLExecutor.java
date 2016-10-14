@@ -94,6 +94,13 @@ public class SQLExecutor {
             functions = getFunctions();
         }
 
+        /**
+         * Adds a couple of tables which are defined in {@link T3} and {@link io.crate.analyze.TableDefinitions}.
+         * <p>
+         *     Note that these tables do have a static routing which doesn't necessarily match the nodes that
+         *     are part of the clusterState of the {@code clusterService} provided to the builder.
+         * </p>
+         */
         public Builder enableDefaultTables() {
             // we should try to reduce the number of tables here eventually...
             addDocTable(USER_TABLE_INFO);

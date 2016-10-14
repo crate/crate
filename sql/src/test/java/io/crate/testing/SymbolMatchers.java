@@ -180,4 +180,14 @@ public class SymbolMatchers {
         //noinspection unchecked
         return isFunction(name, argMatchers);
     }
+
+    public static Matcher<Symbol> isAggregation(String name) {
+        FeatureMatcher<Symbol, String> fm = new FeatureMatcher<Symbol, String>(equalTo(name), "name", "name") {
+            @Override
+            protected String featureValueOf(Symbol actual) {
+                return ((Aggregation) actual).functionIdent().name();
+            }
+        };
+        return both(Matchers.<Symbol>instanceOf(Aggregation.class)).and(fm);
+    }
 }
