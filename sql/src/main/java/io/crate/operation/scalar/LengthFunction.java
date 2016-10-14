@@ -32,9 +32,9 @@ import org.apache.lucene.util.BytesRef;
 
 import java.util.List;
 
-public abstract class LengthFunction extends Scalar<Integer, BytesRef> {
+abstract class LengthFunction extends Scalar<Integer, BytesRef> {
 
-    private static final List<DataType> DATA_TYPES = ImmutableList.<DataType>of(DataTypes.STRING, DataTypes.UNDEFINED);
+    private static final List<DataType> SUPPORTED_ARG_TYPES = ImmutableList.<DataType>of(DataTypes.STRING, DataTypes.UNDEFINED);
 
     private final FunctionInfo functionInfo;
 
@@ -48,67 +48,65 @@ public abstract class LengthFunction extends Scalar<Integer, BytesRef> {
     }
 
     public static void register(ScalarFunctionModule module) {
-        for (DataType type : DATA_TYPES) {
+        for (DataType type : SUPPORTED_ARG_TYPES) {
             module.register(new OctetLengthFunction(createInfo(OctetLengthFunction.NAME, type)));
             module.register(new BitLengthFunction(createInfo(BitLengthFunction.NAME, type)));
             module.register(new CharLengthFunction(createInfo(CharLengthFunction.NAME, type)));
         }
     }
 
-    protected static FunctionInfo createInfo(String functionName, DataType dataType) {
+    private static FunctionInfo createInfo(String functionName, DataType dataType) {
         return new FunctionInfo(
             new FunctionIdent(functionName, ImmutableList.of(dataType)), DataTypes.INTEGER
         );
     }
 
-    protected BytesRef evaluateInput(Input[] args) {
-        assert args.length == 1;
-        Object string = args[0].value();
-        if (string == null) {
+    abstract Integer eval(BytesRef val);
+
+    @Override
+    @SafeVarargs
+    public final Integer evaluate(Input<BytesRef>... args) {
+        assert args.length == 1: "length functions take exactly 1 argument";
+        BytesRef value = args[0].value();
+        if (value == null) {
             return null;
         }
-        return (BytesRef) string;
+        return eval(value);
     }
 
-    static class OctetLengthFunction extends LengthFunction {
+    private static class OctetLengthFunction extends LengthFunction {
         public static final String NAME = "octet_length";
 
-        protected OctetLengthFunction(FunctionInfo info) {
+        OctetLengthFunction(FunctionInfo info) {
             super(info);
         }
 
-        public Integer evaluate(Input[] args) {
-            BytesRef string = evaluateInput(args);
-            return string != null ? string.length : null;
+        protected Integer eval(BytesRef val) {
+            return val.length;
         }
     }
 
-    static class BitLengthFunction extends LengthFunction {
+    private static class BitLengthFunction extends LengthFunction {
         public static final String NAME = "bit_length";
 
-        protected BitLengthFunction(FunctionInfo info) {
+        BitLengthFunction(FunctionInfo info) {
             super(info);
         }
 
-        @Override
-        public Integer evaluate(Input[] args) {
-            BytesRef string = evaluateInput(args);
-            return string != null ? string.length * Byte.SIZE : null;
+        protected Integer eval(BytesRef val) {
+            return val.length * Byte.SIZE;
         }
     }
 
-    static class CharLengthFunction extends LengthFunction {
+    private static class CharLengthFunction extends LengthFunction {
         public static final String NAME = "char_length";
 
-        protected CharLengthFunction(FunctionInfo info) {
+        CharLengthFunction(FunctionInfo info) {
             super(info);
         }
 
-        @Override
-        public Integer evaluate(Input[] args) {
-            BytesRef string = evaluateInput(args);
-            return string != null ? string.utf8ToString().length() : null;
+        protected Integer eval(BytesRef val) {
+            return val.utf8ToString().length();
         }
     }
-
 }

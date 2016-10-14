@@ -23,71 +23,57 @@
 package io.crate.operation.scalar;
 
 import io.crate.analyze.symbol.Literal;
-import io.crate.operation.Input;
-import io.crate.types.DataType;
 import io.crate.types.DataTypes;
-import org.apache.lucene.util.BytesRef;
 import org.junit.Test;
 
-import static io.crate.testing.SymbolMatchers.isLiteral;
-import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.CoreMatchers.nullValue;
+import static io.crate.testing.SymbolMatchers.isFunction;
 
 public class LengthFunctionTest extends AbstractScalarFunctionsTest {
 
-    private static final String BIT_LENGTH_FUNCTION_NAME = LengthFunction.BitLengthFunction.NAME;
-    private static final String CHAR_LENGTH_FUNCTION_NAME = LengthFunction.CharLengthFunction.NAME;
-    private static final String OCTET_LENGTH_FUNCTION_NAME = LengthFunction.OctetLengthFunction.NAME;
-
-    private Integer evaluate(String functionName, Object value, DataType dataType) {
-        return ((LengthFunction) getFunction(functionName, dataType))
-            .evaluate((Input) Literal.of(dataType, value));
-    }
-
     @Test
     public void testOctetLengthEvaluateOnString() throws Exception {
-        assertThat(evaluate(OCTET_LENGTH_FUNCTION_NAME, new BytesRef("©rate"), DataTypes.STRING), is(6));
-        assertThat(evaluate(OCTET_LENGTH_FUNCTION_NAME, new BytesRef("crate"), DataTypes.STRING), is(5));
-        assertThat(evaluate(OCTET_LENGTH_FUNCTION_NAME, new BytesRef(""), DataTypes.STRING), is(0));
+        assertEvaluate("octet_length('©rate')", 6);
+        assertEvaluate("octet_length('crate')", 5);
+        assertEvaluate("octet_length('')", 0);
     }
 
     @Test
     public void testBitLengthEvaluateOnString() throws Exception {
-        assertThat(evaluate(BIT_LENGTH_FUNCTION_NAME, new BytesRef("©rate"), DataTypes.STRING), is(48));
-        assertThat(evaluate(BIT_LENGTH_FUNCTION_NAME, new BytesRef("crate"), DataTypes.STRING), is(40));
-        assertThat(evaluate(BIT_LENGTH_FUNCTION_NAME, new BytesRef(""), DataTypes.STRING), is(0));
+        assertEvaluate("bit_length('©rate')", 48);
+        assertEvaluate("bit_length('crate')", 40);
+        assertEvaluate("bit_length('')", 0);
     }
 
     @Test
     public void testCharLengthEvaluateOnString() throws Exception {
-        assertThat(evaluate(CHAR_LENGTH_FUNCTION_NAME, new BytesRef("©rate"), DataTypes.STRING), is(5));
-        assertThat(evaluate(CHAR_LENGTH_FUNCTION_NAME, new BytesRef("crate"), DataTypes.STRING), is(5));
-        assertThat(evaluate(CHAR_LENGTH_FUNCTION_NAME, new BytesRef(""), DataTypes.STRING), is(0));
+        assertEvaluate("char_length('©rate')", 5);
+        assertEvaluate("char_length('crate')", 5);
+        assertEvaluate("char_length('')", 0);
     }
 
     @Test
     public void testOctetLengthEvaluateOnNull() throws Exception {
-        assertThat(evaluate(BIT_LENGTH_FUNCTION_NAME, null, DataTypes.UNDEFINED), nullValue());
-        assertThat(evaluate(BIT_LENGTH_FUNCTION_NAME, null, DataTypes.STRING), nullValue());
+        assertEvaluate("octet_length(null)", null);
+        assertEvaluate("octet_length(name)", null, Literal.of(DataTypes.STRING, null));
     }
 
     @Test
     public void testBitLengthEvaluateOnNull() throws Exception {
-        assertThat(evaluate(BIT_LENGTH_FUNCTION_NAME, null, DataTypes.UNDEFINED), nullValue());
-        assertThat(evaluate(BIT_LENGTH_FUNCTION_NAME, null, DataTypes.STRING), nullValue());
+        assertEvaluate("bit_length(null)", null);
+        assertEvaluate("bit_length(name)", null, Literal.of(DataTypes.STRING, null));
     }
 
     @Test
     public void testCharLengthEvaluateOnNull() throws Exception {
-        assertThat(evaluate(CHAR_LENGTH_FUNCTION_NAME, null, DataTypes.UNDEFINED), nullValue());
-        assertThat(evaluate(CHAR_LENGTH_FUNCTION_NAME, null, DataTypes.STRING), nullValue());
+        assertEvaluate("char_length(null)", null);
+        assertEvaluate("char_length(name)", null, Literal.of(DataTypes.STRING, null));
     }
 
     @Test
     public void testNormalizeReference() throws Exception {
-        assertThat(normalize(BIT_LENGTH_FUNCTION_NAME, new BytesRef("©"), DataTypes.STRING), isLiteral(16));
-        assertThat(normalize(OCTET_LENGTH_FUNCTION_NAME, new BytesRef("©"), DataTypes.STRING), isLiteral(2));
-        assertThat(normalize(CHAR_LENGTH_FUNCTION_NAME, new BytesRef("©"), DataTypes.STRING), isLiteral(1));
-        assertThat(normalize(BIT_LENGTH_FUNCTION_NAME, null, DataTypes.UNDEFINED), isLiteral(null, DataTypes.INTEGER));
+        assertNormalize("bit_length(name)", isFunction("bit_length"));
+        assertEvaluate("bit_length(name)", 16, Literal.of("©"));
+        assertEvaluate("octet_length(name)", 2, Literal.of("©"));
+        assertEvaluate("char_length(name)", 1, Literal.of("©"));
     }
 }
