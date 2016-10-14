@@ -114,10 +114,6 @@ public class UpdateAnalyzerTest extends CrateUnitTest {
         return (UpdateAnalyzedStatement) e.analyze(statement, params);
     }
 
-    protected UpdateAnalyzedStatement analyze(String statement, Object[][] bulkArgs) {
-        return (UpdateAnalyzedStatement) e.analyze(statement, bulkArgs);
-    }
-
     @Test
     public void testUpdateAnalysis() throws Exception {
         AnalyzedStatement analyzedStatement = analyze("update users set name='Ford Prefect'");

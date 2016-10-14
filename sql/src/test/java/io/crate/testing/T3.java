@@ -27,20 +27,15 @@ import com.google.common.collect.ImmutableMap;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.DocTableRelation;
 import io.crate.analyze.relations.TableRelation;
-import io.crate.metadata.MetaDataModule;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.doc.DocTableInfo;
-import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.table.TestingTableInfo;
 import io.crate.sql.tree.QualifiedName;
 import io.crate.types.DataTypes;
 
 import java.util.Arrays;
 import java.util.Map;
-
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 public class T3 {
 
@@ -63,19 +58,6 @@ public class T3 {
         .add("z", DataTypes.INTEGER)
         .build();
     public static final TableRelation TR_3 = new TableRelation(T3_INFO);
-
-    public static final MetaDataModule META_DATA_MODULE = new MetaDataModule() {
-        @Override
-        protected void bindSchemas() {
-            super.bindSchemas();
-            SchemaInfo schemaInfo = mock(SchemaInfo.class);
-            when(schemaInfo.getTableInfo(T1_INFO.ident().name())).thenReturn(T1_INFO);
-            when(schemaInfo.getTableInfo(T2_INFO.ident().name())).thenReturn(T2_INFO);
-            when(schemaInfo.getTableInfo(T3_INFO.ident().name())).thenReturn(T3_INFO);
-            when(schemaInfo.name()).thenReturn(Schemas.DEFAULT_SCHEMA_NAME);
-            schemaBinder.addBinding(Schemas.DEFAULT_SCHEMA_NAME).toInstance(schemaInfo);
-        }
-    };
 
     public static final QualifiedName T1 = new QualifiedName(Arrays.asList(Schemas.DEFAULT_SCHEMA_NAME, "t1"));
     public static final QualifiedName T2 = new QualifiedName(Arrays.asList(Schemas.DEFAULT_SCHEMA_NAME, "t2"));

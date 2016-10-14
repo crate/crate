@@ -32,15 +32,6 @@ public class SymbolVisitors {
         return ANY_VISITOR.process(symbol, symbolPredicate);
     }
 
-    public static boolean any(Predicate<? super Symbol> symbolPredicate, Symbol... symbols) {
-        for (Symbol symbol : symbols) {
-            if (ANY_VISITOR.process(symbol, symbolPredicate)) {
-                return true;
-            }
-        }
-        return false;
-    }
-
     private static class AnyPredicateVisitor extends SymbolVisitor<Predicate<? super Symbol>, Boolean> {
 
         @Override

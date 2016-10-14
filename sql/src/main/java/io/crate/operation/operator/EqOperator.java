@@ -22,7 +22,6 @@
 package io.crate.operation.operator;
 
 import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableList;
 import io.crate.analyze.symbol.Function;
 import io.crate.core.collections.MapComparator;
 import io.crate.metadata.DynamicFunctionResolver;
@@ -45,10 +44,6 @@ public class EqOperator extends CmpOperator {
 
     public static void register(OperatorModule module) {
         module.registerDynamicOperatorFunction(NAME, dynamicResolver);
-    }
-
-    public static FunctionInfo createInfo(DataType targetType) {
-        return createInfo(ImmutableList.of(targetType, targetType));
     }
 
     private static FunctionInfo createInfo(List<DataType> dataTypes) {
