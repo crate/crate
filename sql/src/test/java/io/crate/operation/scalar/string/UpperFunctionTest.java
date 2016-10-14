@@ -26,7 +26,7 @@ import io.crate.operation.scalar.AbstractScalarFunctionsTest;
 import io.crate.types.DataTypes;
 import org.junit.Test;
 
-import static io.crate.testing.TestingHelpers.isLiteral;
+import static io.crate.testing.SymbolMatchers.isLiteral;
 
 public class UpperFunctionTest extends AbstractScalarFunctionsTest {
 

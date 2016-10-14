@@ -48,7 +48,7 @@ import java.util.*;
 
 import static io.crate.analyze.TableDefinitions.SHARD_ROUTING;
 import static io.crate.analyze.TableDefinitions.USER_TABLE_INFO;
-import static io.crate.testing.TestingHelpers.*;
+import static io.crate.testing.SymbolMatchers.*;
 import static org.hamcrest.Matchers.*;
 
 public class UpdateAnalyzerTest extends CrateUnitTest {

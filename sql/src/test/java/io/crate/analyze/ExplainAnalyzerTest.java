@@ -29,7 +29,7 @@ import org.elasticsearch.test.cluster.NoopClusterService;
 import org.hamcrest.Matchers;
 import org.junit.Test;
 
-import static io.crate.testing.TestingHelpers.isField;
+import static io.crate.testing.SymbolMatchers.isField;
 import static org.hamcrest.Matchers.instanceOf;
 
 public class ExplainAnalyzerTest extends CrateUnitTest {

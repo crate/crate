@@ -36,7 +36,9 @@ import org.junit.Test;
 import java.lang.reflect.Field;
 import java.util.*;
 
-import static io.crate.testing.TestingHelpers.*;
+import static io.crate.testing.SymbolMatchers.*;
+import static io.crate.testing.TestingHelpers.isDocKey;
+import static io.crate.testing.TestingHelpers.isSQL;
 import static org.hamcrest.Matchers.*;
 import static org.hamcrest.core.Is.is;
 

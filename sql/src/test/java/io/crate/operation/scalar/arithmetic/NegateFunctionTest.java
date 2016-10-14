@@ -26,7 +26,8 @@ import io.crate.analyze.symbol.Literal;
 import io.crate.operation.scalar.AbstractScalarFunctionsTest;
 import org.junit.Test;
 
-import static io.crate.testing.TestingHelpers.isFunction;
+import static io.crate.testing.SymbolMatchers.isFunction;
+
 
 public class NegateFunctionTest extends AbstractScalarFunctionsTest {
 

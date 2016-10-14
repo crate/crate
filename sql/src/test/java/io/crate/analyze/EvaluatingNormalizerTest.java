@@ -19,8 +19,8 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 
+import static io.crate.testing.SymbolMatchers.isLiteral;
 import static io.crate.testing.TestingHelpers.getFunctions;
-import static io.crate.testing.TestingHelpers.isLiteral;
 import static org.hamcrest.CoreMatchers.instanceOf;
 
 public class EvaluatingNormalizerTest extends CrateUnitTest {

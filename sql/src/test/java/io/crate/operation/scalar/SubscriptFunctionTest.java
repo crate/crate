@@ -29,8 +29,9 @@ import org.junit.Test;
 
 import java.util.Arrays;
 
-import static io.crate.testing.TestingHelpers.isFunction;
-import static io.crate.testing.TestingHelpers.isLiteral;
+import static io.crate.testing.SymbolMatchers.isFunction;
+import static io.crate.testing.SymbolMatchers.isLiteral;
+
 
 public class SubscriptFunctionTest extends AbstractScalarFunctionsTest {
 

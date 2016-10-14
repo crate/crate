@@ -50,7 +50,7 @@ import java.util.*;
 
 import static io.crate.analyze.TableDefinitions.SHARD_ROUTING;
 import static io.crate.analyze.TableDefinitions.USER_TABLE_IDENT;
-import static io.crate.testing.TestingHelpers.*;
+import static io.crate.testing.SymbolMatchers.*;
 import static org.hamcrest.Matchers.*;
 import static org.hamcrest.core.Is.is;
 

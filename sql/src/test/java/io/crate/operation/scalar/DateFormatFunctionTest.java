@@ -31,7 +31,8 @@ import org.junit.Test;
 import java.util.Locale;
 import java.util.Map;
 
-import static io.crate.testing.TestingHelpers.isLiteral;
+import static io.crate.testing.SymbolMatchers.isLiteral;
+
 
 public class DateFormatFunctionTest extends AbstractScalarFunctionsTest {
 

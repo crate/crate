@@ -40,7 +40,9 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
-import static io.crate.testing.TestingHelpers.*;
+import static io.crate.testing.SymbolMatchers.isField;
+import static io.crate.testing.SymbolMatchers.isFunction;
+import static io.crate.testing.TestingHelpers.isSQL;
 import static org.hamcrest.Matchers.*;
 import static org.hamcrest.core.Is.is;
 

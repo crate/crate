@@ -21,7 +21,6 @@
 
 package io.crate.analyze;
 
-import io.crate.analyze.relations.QueriedDocTable;
 import io.crate.analyze.symbol.Function;
 import io.crate.analyze.symbol.InputColumn;
 import io.crate.analyze.symbol.Symbol;
@@ -33,7 +32,6 @@ import io.crate.operation.scalar.SubstrFunction;
 import io.crate.operation.scalar.cast.CastFunctionResolver;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.testing.SQLExecutor;
-import io.crate.testing.TestingHelpers;
 import io.crate.types.DataTypes;
 import io.crate.types.StringType;
 import org.elasticsearch.test.cluster.NoopClusterService;
@@ -45,7 +43,7 @@ import java.util.List;
 import java.util.Map;
 
 import static io.crate.analyze.TableDefinitions.SHARD_ROUTING;
-import static io.crate.testing.TestingHelpers.*;
+import static io.crate.testing.SymbolMatchers.*;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 
@@ -172,13 +170,13 @@ public class InsertFromSubQueryAnalyzerTest extends CrateUnitTest {
                       "  where name = 'Trillian'" +
                       ")");
 
-        List<Symbol> outputSymbols = ((QueriedDocTable) statement.subQueryRelation()).querySpec().outputs();
+        List<Symbol> outputSymbols = statement.subQueryRelation().querySpec().outputs();
         assertThat(statement.columns().size(), is(outputSymbols.size()));
         assertThat(outputSymbols.get(1), instanceOf(Function.class));
         Function castFunction = (Function) outputSymbols.get(1);
-        assertThat(castFunction, TestingHelpers.isFunction(CastFunctionResolver.FunctionNames.TO_STRING));
+        assertThat(castFunction, isFunction(CastFunctionResolver.FunctionNames.TO_STRING));
         Function geoCastFunction = (Function) outputSymbols.get(2);
-        assertThat(geoCastFunction, TestingHelpers.isFunction(CastFunctionResolver.FunctionNames.TO_GEO_SHAPE));
+        assertThat(geoCastFunction, isFunction(CastFunctionResolver.FunctionNames.TO_GEO_SHAPE));
     }
 
     @Test

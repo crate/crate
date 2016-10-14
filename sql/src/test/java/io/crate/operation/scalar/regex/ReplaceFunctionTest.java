@@ -25,8 +25,9 @@ import io.crate.analyze.symbol.Literal;
 import io.crate.operation.scalar.AbstractScalarFunctionsTest;
 import org.junit.Test;
 
-import static io.crate.testing.TestingHelpers.isFunction;
-import static io.crate.testing.TestingHelpers.isLiteral;
+import static io.crate.testing.SymbolMatchers.isFunction;
+import static io.crate.testing.SymbolMatchers.isLiteral;
+
 
 public class ReplaceFunctionTest extends AbstractScalarFunctionsTest {
 

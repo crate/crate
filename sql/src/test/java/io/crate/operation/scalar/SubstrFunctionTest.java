@@ -27,7 +27,7 @@ import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
 import org.junit.Test;
 
-import static io.crate.testing.TestingHelpers.isLiteral;
+import static io.crate.testing.SymbolMatchers.isLiteral;
 import static org.hamcrest.core.Is.is;
 
 public class SubstrFunctionTest extends AbstractScalarFunctionsTest {

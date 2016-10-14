@@ -31,8 +31,8 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
+import static io.crate.testing.SymbolMatchers.isField;
 import static io.crate.testing.T3.T1_INFO;
-import static io.crate.testing.TestingHelpers.isField;
 import static org.hamcrest.Matchers.is;
 
 public class SubSelectAnalyzerTest extends CrateUnitTest {

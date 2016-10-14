@@ -45,7 +45,8 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
-import static io.crate.testing.TestingHelpers.*;
+import static io.crate.testing.SymbolMatchers.*;
+import static io.crate.testing.TestingHelpers.getFunctions;
 import static org.hamcrest.Matchers.*;
 import static org.hamcrest.collection.IsCollectionWithSize.hasSize;
 import static org.mockito.Mockito.mock;

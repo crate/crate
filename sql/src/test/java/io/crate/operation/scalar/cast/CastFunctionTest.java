@@ -26,7 +26,8 @@ import io.crate.operation.scalar.AbstractScalarFunctionsTest;
 import org.apache.lucene.util.BytesRef;
 import org.junit.Test;
 
-import static io.crate.testing.TestingHelpers.isFunction;
+import static io.crate.testing.SymbolMatchers.isFunction;
+
 
 public class CastFunctionTest extends AbstractScalarFunctionsTest {
 

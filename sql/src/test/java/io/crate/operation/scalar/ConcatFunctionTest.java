@@ -42,7 +42,9 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-import static io.crate.testing.TestingHelpers.*;
+import static io.crate.testing.SymbolMatchers.isFunction;
+import static io.crate.testing.SymbolMatchers.isLiteral;
+import static io.crate.testing.TestingHelpers.createReference;
 import static org.hamcrest.Matchers.is;
 
 public class ConcatFunctionTest extends AbstractScalarFunctionsTest {

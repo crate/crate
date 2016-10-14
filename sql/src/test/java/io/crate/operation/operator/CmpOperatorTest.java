@@ -13,7 +13,7 @@ import org.junit.Test;
 
 import java.util.Arrays;
 
-import static io.crate.testing.TestingHelpers.isLiteral;
+import static io.crate.testing.SymbolMatchers.isLiteral;
 import static org.hamcrest.CoreMatchers.instanceOf;
 
 public class CmpOperatorTest extends CrateUnitTest {

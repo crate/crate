@@ -41,8 +41,8 @@ import org.junit.Test;
 import java.util.Arrays;
 import java.util.List;
 
+import static io.crate.testing.SymbolMatchers.isLiteral;
 import static io.crate.testing.TestingHelpers.getFunctions;
-import static io.crate.testing.TestingHelpers.isLiteral;
 import static org.hamcrest.Matchers.*;
 import static org.hamcrest.core.Is.is;
 

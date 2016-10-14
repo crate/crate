@@ -36,8 +36,8 @@ import org.junit.Test;
 
 import java.util.Arrays;
 
+import static io.crate.testing.SymbolMatchers.isLiteral;
 import static io.crate.testing.TestingHelpers.createReference;
-import static io.crate.testing.TestingHelpers.isLiteral;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.core.IsNull.nullValue;
 

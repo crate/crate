@@ -59,7 +59,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
-import static io.crate.testing.TestingHelpers.*;
+import static io.crate.testing.SymbolMatchers.*;
+import static io.crate.testing.TestingHelpers.isSQL;
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.Matchers.contains;

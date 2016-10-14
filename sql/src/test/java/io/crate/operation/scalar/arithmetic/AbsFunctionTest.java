@@ -24,7 +24,8 @@ package io.crate.operation.scalar.arithmetic;
 import io.crate.operation.scalar.AbstractScalarFunctionsTest;
 import org.junit.Test;
 
-import static io.crate.testing.TestingHelpers.isFunction;
+import static io.crate.testing.SymbolMatchers.isFunction;
+
 
 public class AbsFunctionTest extends AbstractScalarFunctionsTest {
 

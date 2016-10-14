@@ -29,7 +29,8 @@ import io.crate.types.DataTypes;
 import org.elasticsearch.common.collect.MapBuilder;
 import org.junit.Test;
 
-import static io.crate.testing.TestingHelpers.isLiteral;
+import static io.crate.testing.SymbolMatchers.isLiteral;
+
 
 public class ReferenceToLiteralConverterTest extends CrateUnitTest {
 

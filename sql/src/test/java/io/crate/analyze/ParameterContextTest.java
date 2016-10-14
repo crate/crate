@@ -35,7 +35,7 @@ import java.util.Collections;
 import java.util.HashMap;
 
 import static com.carrotsearch.randomizedtesting.RandomizedTest.$;
-import static io.crate.testing.TestingHelpers.isLiteral;
+import static io.crate.testing.SymbolMatchers.isLiteral;
 import static org.hamcrest.Matchers.is;
 
 

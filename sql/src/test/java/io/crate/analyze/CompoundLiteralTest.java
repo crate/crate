@@ -39,7 +39,7 @@ import org.junit.Test;
 import java.util.HashMap;
 import java.util.Map;
 
-import static io.crate.testing.TestingHelpers.isFunction;
+import static io.crate.testing.SymbolMatchers.isFunction;
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 

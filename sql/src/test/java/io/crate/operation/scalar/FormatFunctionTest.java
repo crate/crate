@@ -24,7 +24,8 @@ package io.crate.operation.scalar;
 import io.crate.analyze.symbol.Literal;
 import org.junit.Test;
 
-import static io.crate.testing.TestingHelpers.isLiteral;
+import static io.crate.testing.SymbolMatchers.isLiteral;
+
 
 public class FormatFunctionTest extends AbstractScalarFunctionsTest {
 

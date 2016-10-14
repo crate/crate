@@ -78,7 +78,9 @@ import java.util.Map;
 
 import static com.carrotsearch.randomizedtesting.RandomizedTest.$;
 import static io.crate.analyze.TableDefinitions.SHARD_ROUTING;
-import static io.crate.testing.TestingHelpers.*;
+import static io.crate.testing.SymbolMatchers.*;
+import static io.crate.testing.TestingHelpers.isSQL;
+import static io.crate.testing.TestingHelpers.mapToSortedString;
 import static org.hamcrest.Matchers.*;
 import static org.hamcrest.core.Is.is;
 

@@ -50,7 +50,9 @@ import java.util.Arrays;
 import java.util.EnumSet;
 import java.util.Map;
 
-import static io.crate.testing.TestingHelpers.*;
+import static io.crate.testing.SymbolMatchers.isField;
+import static io.crate.testing.TestingHelpers.getFunctions;
+import static io.crate.testing.TestingHelpers.isSQL;
 import static org.hamcrest.Matchers.*;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;

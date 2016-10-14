@@ -32,7 +32,8 @@ import io.crate.types.DataTypes;
 import org.junit.Before;
 import org.junit.Test;
 
-import static io.crate.testing.TestingHelpers.isLiteral;
+import static io.crate.testing.SymbolMatchers.isLiteral;
+
 
 public class ReferenceToTrueVisitorTest extends CrateUnitTest {
 

@@ -32,7 +32,9 @@ import org.junit.Test;
 
 import java.util.Arrays;
 
-import static io.crate.testing.TestingHelpers.*;
+import static io.crate.testing.SymbolMatchers.isFunction;
+import static io.crate.testing.SymbolMatchers.isLiteral;
+import static io.crate.testing.TestingHelpers.jsonMap;
 import static org.hamcrest.Matchers.*;
 
 public class IntersectsFunctionTest extends AbstractScalarFunctionsTest {

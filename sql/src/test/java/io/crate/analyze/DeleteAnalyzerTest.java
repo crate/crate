@@ -34,8 +34,8 @@ import org.elasticsearch.test.cluster.NoopClusterService;
 import org.junit.Test;
 
 import static io.crate.analyze.TableDefinitions.USER_TABLE_IDENT;
-import static io.crate.testing.TestingHelpers.isLiteral;
-import static io.crate.testing.TestingHelpers.isReference;
+import static io.crate.testing.SymbolMatchers.isLiteral;
+import static io.crate.testing.SymbolMatchers.isReference;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 
