@@ -1206,25 +1206,24 @@ The ``array_unique`` function merges two arrays into one array with unique eleme
 
 ::
 
-    cr> select array_unique([1,2,3],[3,4,5,6]) from sys.cluster;
-    +----------------------------------+
-    | array_unique([1,2,3], [3,4,5,6]) |
-    +----------------------------------+
-    | [1, 2, 3, 4, 5, 6]               |
-    +----------------------------------+
+    cr> select array_unique([1, 2, 3], [3, 4, 4]) from sys.cluster;
+    +--------------------------------+
+    | array_unique([1,2,3], [3,4,4]) |
+    +--------------------------------+
+    | [1, 2, 3, 4]                   |
+    +--------------------------------+
     SELECT 1 row in set (... sec)
 
 
-It can be used with one argument
+If the arrays have different types all elements will be cast to the element
+type of the first array with a defined type::
 
-::
-
-    cr> select array_unique([1,2,3,3,4,5,6,7,5,6,9,10]) from sys.cluster;
-    +------------------------------------------+
-    | array_unique([1,2,3,3,4,5,6,7,5,6,9,10]) |
-    +------------------------------------------+
-    | [1, 2, 3, 4, 5, 6, 7, 9, 10]             |
-    +------------------------------------------+
+    cr> select array_unique([10, 20], [10.2, 20.3]) from sys.cluster;
+    +------------------------------------+
+    | array_unique([10,20], [10.2,20.3]) |
+    +------------------------------------+
+    | [10, 20]                           |
+    +------------------------------------+
     SELECT 1 row in set (... sec)
 
 
