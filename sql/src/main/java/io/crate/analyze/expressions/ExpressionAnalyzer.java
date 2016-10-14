@@ -195,9 +195,7 @@ public class ExpressionAnalyzer {
         if (sourceSymbol.symbolType().isValueSymbol()) {
             return Literal.convert(sourceSymbol, targetType);
         }
-        FunctionInfo functionInfo = CastFunctionResolver.functionInfo(sourceSymbol.valueType(), targetType, tryCast);
-        //noinspection ArraysAsListWithZeroOrOneArgument  Function needs mutable arguments
-        return new Function(functionInfo, Arrays.asList(sourceSymbol));
+        return CastFunctionResolver.generateCastFunction(sourceSymbol, targetType, tryCast);
     }
 
     @Nullable
