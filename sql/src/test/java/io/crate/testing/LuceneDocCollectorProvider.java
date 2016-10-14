@@ -72,12 +72,14 @@ public class LuceneDocCollectorProvider implements AutoCloseable {
     private final Analyzer analyzer;
     private final QueryAndFetchConsumer queryAndFetchConsumer;
     private final EvaluatingNormalizer normalizer;
+    private final Planner planner;
 
     private List<JobCollectContext> collectContexts = new ArrayList<>();
 
     public LuceneDocCollectorProvider(InternalTestCluster cluster) {
         this.cluster = cluster;
         this.analyzer = cluster.getDataNodeInstance(Analyzer.class);
+        this.planner = cluster.getDataNodeInstance(Planner.class);
         this.queryAndFetchConsumer = cluster.getDataNodeInstance(QueryAndFetchConsumer.class);
         this.normalizer = EvaluatingNormalizer.functionOnlyNormalizer(
             cluster.getInstance(Functions.class), ReplaceMode.COPY);
@@ -107,7 +109,7 @@ public class LuceneDocCollectorProvider implements AutoCloseable {
             new ParameterContext(new RowN(args), Collections.<Row>emptyList()));
         PlannedAnalyzedRelation plannedAnalyzedRelation = queryAndFetchConsumer.consume(
             analysis.rootRelation(),
-            new ConsumerContext(analysis.rootRelation(), new Planner.Context(
+            new ConsumerContext(analysis.rootRelation(), new Planner.Context(planner,
                 cluster.clusterService(), UUID.randomUUID(), null, normalizer, new TransactionContext(), 0, 0)));
         final RoutedCollectPhase collectPhase = ((RoutedCollectPhase) ((CollectAndMerge) plannedAnalyzedRelation.plan()).collectPhase());
         collectPhase.nodePageSizeHint(nodePageSizeHint);

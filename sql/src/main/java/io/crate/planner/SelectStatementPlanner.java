@@ -24,14 +24,12 @@ package io.crate.planner;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import io.crate.analyze.MultiSourceSelect;
-import io.crate.analyze.QueriedSelectRelation;
-import io.crate.analyze.QuerySpec;
-import io.crate.analyze.SelectAnalyzedStatement;
+import io.crate.analyze.*;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.AnalyzedRelationVisitor;
 import io.crate.analyze.relations.PlannedAnalyzedRelation;
 import io.crate.analyze.relations.QueriedDocTable;
+import io.crate.analyze.symbol.SelectSymbol;
 import io.crate.exceptions.ValidationException;
 import io.crate.exceptions.VersionInvalidException;
 import io.crate.metadata.Reference;
@@ -94,10 +92,30 @@ class SelectStatementPlanner {
         }
 
         @Override
+        public Plan visitQueriedTable(QueriedTable table, Planner.Context context) {
+            SubqueryPlanner subqueryPlanner = new SubqueryPlanner(context);
+            QuerySpec querySpec = table.querySpec();
+            Map<Plan, SelectSymbol> subQueries = subqueryPlanner.planSubQueries(querySpec);
+            if (subQueries.isEmpty()) {
+                return super.visitQueriedTable(table, context);
+            }
+            return new MultiPhasePlan(
+                (PlannedAnalyzedRelation) super.visitQueriedTable(table, context),
+                subQueries,
+                querySpec);
+        }
+
+        @Override
         public Plan visitQueriedDocTable(QueriedDocTable table, Planner.Context context) {
             QuerySpec querySpec = table.querySpec();
+            SubqueryPlanner subqueryPlanner = new SubqueryPlanner(context);
+            Map<Plan, SelectSymbol> subQueries = subqueryPlanner.planSubQueries(querySpec);
             if (querySpec.hasAggregates() || querySpec.groupBy().isPresent()) {
-                return consumingPlanner.plan(table, context);
+                Plan subPlan = consumingPlanner.plan(table, context);
+                if (subQueries.isEmpty()) {
+                    return subPlan;
+                }
+                return new MultiPhasePlan(((PlannedAnalyzedRelation) subPlan), subQueries, querySpec);
             }
             if (querySpec.where().docKeys().isPresent() && !table.tableRelation().tableInfo().isAlias()) {
                 return ESGetStatementPlanner.convert(table, context);
@@ -171,8 +189,12 @@ class SelectStatementPlanner {
             SimpleSelect.enablePagingIfApplicable(
                 collectPhase, localMergePhase, limits.finalLimit(), limits.offset(),
                 context.clusterService().localNode().id());
-            CollectAndMerge subPlan = new CollectAndMerge(collectPhase, null);
-            return new QueryThenFetch(subPlan, fetchPhase, localMergePhase, context.jobId());
+            QueryThenFetch queryThenFetch = new QueryThenFetch(
+                plannedSubQuery.plan(), fetchPhase, localMergePhase, context.jobId());
+            if (subQueries.isEmpty()) {
+                return queryThenFetch;
+            }
+            return new MultiPhasePlan(queryThenFetch, subQueries, subRelation.querySpec());
         }
 
         @Override

@@ -32,6 +32,7 @@ import io.crate.metadata.TransactionContext;
 import io.crate.operation.scalar.cast.CastFunctionResolver;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
+import org.elasticsearch.common.util.Consumer;
 
 import javax.annotation.Nullable;
 import java.util.*;
@@ -270,6 +271,45 @@ public class QuerySpec {
         }
         if (orderBy.isPresent()) {
             orderBy.get().replace(replaceFunction);
+        }
+    }
+
+    /**
+     * Visit all symbols present in this query spec.
+     * <p>
+     * (non-recursive, so function symbols won't be walked into)
+     * </p>
+     */
+    public void visitSymbols(Consumer<Symbol> consumer) {
+        for (Symbol output : outputs) {
+            consumer.accept(output);
+        }
+        if (where.hasQuery()) {
+            consumer.accept(where.query());
+        }
+        if (groupBy.isPresent()) {
+            List<Symbol> groupBySymbols = groupBy.get();
+            for (Symbol groupBySymbol : groupBySymbols) {
+                consumer.accept(groupBySymbol);
+            }
+        }
+        if (having.isPresent()) {
+            HavingClause havingClause = having.get();
+            if (havingClause.hasQuery()) {
+                consumer.accept(havingClause.query());
+            }
+        }
+        if (orderBy.isPresent()) {
+            OrderBy orderBy = this.orderBy.get();
+            for (Symbol orderBySymbol : orderBy.orderBySymbols()) {
+                consumer.accept(orderBySymbol);
+            }
+        }
+        if (limit.isPresent()) {
+            consumer.accept(limit.get());
+        }
+        if (offset.isPresent()) {
+            consumer.accept(offset.get());
         }
     }
 

@@ -123,4 +123,8 @@ public class PlanVisitor<C, R> {
     public R visitESDeletePartition(ESDeletePartition plan, C context) {
         return visitPlan(plan, context);
     }
+
+    public R visitMultiPhasePlan(MultiPhasePlan multiPhasePlan, C context) {
+        return visitPlan(multiPhasePlan, context);
+    }
 }

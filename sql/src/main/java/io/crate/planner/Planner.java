@@ -79,6 +79,7 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
         //index, shardId, node
         private Map<String, Map<Integer, String>> shardNodes;
 
+        private final Planner planner;
         private final ClusterService clusterService;
         private final UUID jobId;
         private final ConsumingPlanner consumingPlanner;
@@ -91,13 +92,15 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
         private ReaderAllocations readerAllocations;
         private HashMultimap<TableIdent, String> tableIndices;
 
-        public Context(ClusterService clusterService,
+        public Context(Planner planner,
+                       ClusterService clusterService,
                        UUID jobId,
                        ConsumingPlanner consumingPlanner,
                        EvaluatingNormalizer normalizer,
                        TransactionContext transactionContext,
                        int softLimit,
                        int fetchSize) {
+            this.planner = planner;
             this.clusterService = clusterService;
             this.jobId = jobId;
             this.consumingPlanner = consumingPlanner;
@@ -157,6 +160,12 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
 
         public TransactionContext transactionContext() {
             return transactionContext;
+        }
+
+        public Plan planSingleRowSubselect(AnalyzedStatement statement) {
+            UUID subJobId = UUID.randomUUID();
+            return planner.process(statement, new Planner.Context(
+                planner, clusterService, subJobId, consumingPlanner, normalizer, transactionContext, 2, 2));
         }
 
         static class ReaderAllocations {
@@ -311,6 +320,7 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
             Routing routing;
             if (existingRoutings.isEmpty()) {
                 routing = tableInfo.getRouting(where, preference);
+                assert routing != null : tableInfo + " returned empty routing. Routing must not be null";
             } else {
                 for (TableRouting existing : existingRoutings) {
                     assert preference == null || preference.equals(existing.preference);
@@ -380,7 +390,7 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
      */
     public Plan plan(Analysis analysis, UUID jobId, int softLimit, int fetchSize) {
         AnalyzedStatement analyzedStatement = analysis.analyzedStatement();
-        return process(analyzedStatement, new Context(
+        return process(analyzedStatement, new Context(this,
             clusterService, jobId, consumingPlanner, normalizer, analysis.transactionContext(), softLimit, fetchSize));
     }
 

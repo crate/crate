@@ -96,6 +96,7 @@ public class NestedLoopConsumerTest extends CrateUnitTest {
         Functions functions = e.functions();
         EvaluatingNormalizer normalizer = EvaluatingNormalizer.functionOnlyNormalizer(functions, ReplaceMode.COPY);
         plannerContext = new Planner.Context(
+            e.planner,
             clusterService,
             UUID.randomUUID(),
             new ConsumingPlanner(clusterService, functions, statsService),
