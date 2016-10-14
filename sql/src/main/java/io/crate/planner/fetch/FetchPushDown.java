@@ -148,7 +148,7 @@ public class FetchPushDown {
 
         Optional<Symbol> limit = querySpec.limit();
         if (limit.isPresent()) {
-            sub.limit(Limits.add(limit, querySpec.offset()));
+            sub.limit(Limits.mergeAdd(limit, querySpec.offset()));
         }
         return subRelation;
     }
