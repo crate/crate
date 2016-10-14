@@ -1,7 +1,6 @@
 package io.crate.planner;
 
 import com.carrotsearch.hppc.IntSet;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
 import io.crate.analyze.QuerySpec;
@@ -25,7 +24,6 @@ import io.crate.planner.node.dml.*;
 import io.crate.planner.node.dql.*;
 import io.crate.planner.node.dql.join.JoinType;
 import io.crate.planner.node.dql.join.NestedLoop;
-import io.crate.planner.node.management.ExplainPlan;
 import io.crate.planner.node.management.KillPlan;
 import io.crate.planner.projection.*;
 import io.crate.types.DataType;
@@ -44,17 +42,6 @@ import static org.hamcrest.core.Is.is;
 
 @SuppressWarnings("ConstantConditions")
 public class PlannerTest extends AbstractPlannerTest {
-
-
-    private static final List<String> EXPLAIN_TEST_STATEMENTS = ImmutableList.of(
-        "select id from sys.cluster",
-        "select id from users order by id",
-        "select * from users",
-        "select count(*) from users",
-        "select name, count(distinct id) from users group by name",
-        "select avg(id) from users"
-    );
-
 
     private final static String LOCAL_NODE_ID = "noop_id";
 
@@ -1692,30 +1679,6 @@ public class PlannerTest extends AbstractPlannerTest {
         assertThat(collectPhase.projections().size(), is(1));
         assertThat(collectPhase.projections().get(0), instanceOf(GroupProjection.class));
         assertThat(collectPhase.projections().get(0).requiredGranularity(), is(RowGranularity.SHARD));
-    }
-
-    @Test
-    public void testExplain() throws Exception {
-        for (String statement : EXPLAIN_TEST_STATEMENTS) {
-            ExplainPlan plan = plan("explain " + statement);
-            assertNotNull(plan);
-            assertNotNull(plan.subPlan());
-        }
-    }
-
-    @Test
-    public void testPrinter() throws Exception {
-        for (String statement : EXPLAIN_TEST_STATEMENTS) {
-            Plan plan = plan(statement);
-            Map<String, Object> map = null;
-            try {
-                map = PlanPrinter.objectMap(plan);
-            } catch (Exception e) {
-                fail("statement not printable: " + statement);
-            }
-            assertNotNull(map);
-            assertThat(map.size(), greaterThan(0));
-        }
     }
 
     @Test

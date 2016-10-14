@@ -216,4 +216,8 @@ public class SQLExecutor {
         //noinspection unchecked
         return (T) planner.plan(analysis, jobId, softLimit, fetchSize);
     }
+
+    public <T extends Plan> T plan(String stmt) {
+        return plan(stmt, UUID.randomUUID(), 0, 0);
+    }
 }
