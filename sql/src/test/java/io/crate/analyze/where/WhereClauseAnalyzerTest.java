@@ -43,7 +43,6 @@ import io.crate.testing.SQLExecutor;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
-import io.crate.types.SetType;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.test.cluster.NoopClusterService;
 import org.hamcrest.Matchers;
@@ -626,7 +625,8 @@ public class WhereClauseAnalyzerTest extends CrateUnitTest {
         String s = sb.toString();
 
         WhereClause whereClause = analyzeSelectWhere(s);
-        assertThat(whereClause.query(), isFunction(AnyEqOperator.NAME, ImmutableList.<DataType>of(DataTypes.INTEGER, new SetType(DataTypes.INTEGER))));
+        assertThat(whereClause.query(), isFunction(AnyEqOperator.NAME,
+            ImmutableList.<DataType>of(DataTypes.INTEGER, new ArrayType(DataTypes.INTEGER))));
     }
 
     @Test
