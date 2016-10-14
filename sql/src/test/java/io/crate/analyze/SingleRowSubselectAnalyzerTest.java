@@ -1,0 +1,88 @@
+/*
+ * Licensed to Crate under one or more contributor license agreements.
+ * See the NOTICE file distributed with this work for additional
+ * information regarding copyright ownership.  Crate licenses this file
+ * to you under the Apache License, Version 2.0 (the "License"); you may
+ * not use this file except in compliance with the License.  You may
+ * obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+ * implied.  See the License for the specific language governing
+ * permissions and limitations under the License.
+ *
+ * However, if you have executed another commercial license agreement
+ * with Crate these terms will supersede the license and you may use the
+ * software solely pursuant to the terms of the relevant commercial
+ * agreement.
+ */
+
+package io.crate.analyze;
+
+import io.crate.analyze.symbol.SelectSymbol;
+import io.crate.test.integration.CrateUnitTest;
+import io.crate.testing.SQLExecutor;
+import org.elasticsearch.test.cluster.NoopClusterService;
+import org.hamcrest.Matchers;
+import org.junit.Test;
+
+import static io.crate.testing.TestingHelpers.isSQL;
+import static org.hamcrest.Matchers.allOf;
+
+public class SingleRowSubselectAnalyzerTest extends CrateUnitTest {
+
+    SQLExecutor e = SQLExecutor.builder(new NoopClusterService())
+        .enableDefaultTables()
+        .build();
+
+    @Test
+    public void testSingleRowSubselectInWhereClause() throws Exception {
+        SelectAnalyzedStatement stmt = e.analyze("select * from t1 where x = (select y from t2)");
+        assertThat(stmt.relation().querySpec().where().query(),
+            isSQL("(doc.t1.x = SelectSymbol{row(integer)})"));
+    }
+
+    @Test
+    public void testSingleRowSubselectInWhereClauseNested() throws Exception {
+        SelectAnalyzedStatement stmt = e.analyze(
+            "select a from t1 where x = (select y from t2 where y = (select z from t3))");
+        assertThat(stmt.relation().querySpec().where().query(),
+            isSQL("(doc.t1.x = SelectSymbol{row(integer)})"));
+    }
+
+    @Test
+    public void testSingleRowSubselectInSelectList() throws Exception {
+        SelectAnalyzedStatement stmt = e.analyze("select (select b from t2 limit 1) from t1");
+        assertThat(stmt.relation().querySpec().outputs(), isSQL("SelectSymbol{row(string)}"));
+    }
+
+    @Test
+    public void testSubselectWithMultipleColumns() throws Exception {
+        expectedException.expectMessage("Subqueries with more than 1 column are not supported.");
+        e.analyze("select (select b, b from t2 limit 1) from t1");
+    }
+
+    @Test
+    public void testSingleRowSubselectInAssignmentOfUpdate() throws Exception {
+        UpdateAnalyzedStatement stmt = e.analyze("update t1 set x = (select y from t2)");
+        assertThat(
+            stmt.nestedStatements().get(0).assignments().values().iterator().next(),
+            Matchers.instanceOf(SelectSymbol.class));
+    }
+
+    @Test
+    public void testSingleRowSubselectInWhereClauseOfDelete() throws Exception {
+        DeleteAnalyzedStatement stmt = e.analyze("delete from t1 where x = (select y from t2)");
+        assertThat(stmt.whereClauses().get(0).query(),
+            isSQL("(doc.t1.x = SelectSymbol{row(integer)})"));
+    }
+
+    @Test
+    public void testSubselectInWhereIn() throws Exception {
+        expectedException.expectMessage(allOf(Matchers.startsWith("Expression"), Matchers.endsWith("is not supported in IN")));
+        e.analyze("select * from t1 where x in (select y from t2)");
+    }
+}

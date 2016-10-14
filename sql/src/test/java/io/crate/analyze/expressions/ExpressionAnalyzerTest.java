@@ -82,7 +82,7 @@ public class ExpressionAnalyzerTest extends CrateUnitTest {
         expectedException.expect(UnsupportedOperationException.class);
         expectedException.expectMessage("Unsupported expression IF(1, 3)");
         ExpressionAnalyzer expressionAnalyzer = new ExpressionAnalyzer(
-            functions, SessionContext.SYSTEM_SESSION, paramTypeHints, new FullQualifedNameFieldProvider(dummySources));
+            functions, SessionContext.SYSTEM_SESSION, paramTypeHints, new FullQualifedNameFieldProvider(dummySources), null);
         ExpressionAnalysisContext expressionAnalysisContext = new ExpressionAnalysisContext();
 
         expressionAnalyzer.convert(SqlParser.createExpression("IF ( 1 , 3 )"), expressionAnalysisContext);
@@ -93,7 +93,7 @@ public class ExpressionAnalyzerTest extends CrateUnitTest {
         expectedException.expect(UnsupportedOperationException.class);
         expectedException.expectMessage("Unsupported expression current_time");
         ExpressionAnalyzer expressionAnalyzer = new ExpressionAnalyzer(
-            functions, SessionContext.SYSTEM_SESSION, paramTypeHints, new FullQualifedNameFieldProvider(dummySources));
+            functions, SessionContext.SYSTEM_SESSION, paramTypeHints, new FullQualifedNameFieldProvider(dummySources), null);
         ExpressionAnalysisContext expressionAnalysisContext = new ExpressionAnalysisContext();
 
         expressionAnalyzer.convert(SqlParser.createExpression("current_time"), expressionAnalysisContext);
@@ -105,7 +105,8 @@ public class ExpressionAnalyzerTest extends CrateUnitTest {
             functions,
             new SessionContext(0, EnumSet.of(Option.ALLOW_QUOTED_SUBSCRIPT), null),
             paramTypeHints,
-            new FullQualifedNameFieldProvider(dummySources));
+            new FullQualifedNameFieldProvider(dummySources),
+            null);
         ExpressionAnalysisContext expressionAnalysisContext = new ExpressionAnalysisContext();
 
         Field field1 = (Field) expressionAnalyzer.convert(SqlParser.createExpression("obj['x']"), expressionAnalysisContext);
@@ -148,7 +149,7 @@ public class ExpressionAnalyzerTest extends CrateUnitTest {
             new QualifiedName("t2"), tr2
         );
         ExpressionAnalyzer expressionAnalyzer = new ExpressionAnalyzer(
-            functions, SessionContext.SYSTEM_SESSION, paramTypeHints, new FullQualifedNameFieldProvider(sources));
+            functions, SessionContext.SYSTEM_SESSION, paramTypeHints, new FullQualifedNameFieldProvider(sources), null);
         Function andFunction = (Function) expressionAnalyzer.convert(
             SqlParser.createExpression("not t1.id = 1 and not t2.id = 1"), context);
 

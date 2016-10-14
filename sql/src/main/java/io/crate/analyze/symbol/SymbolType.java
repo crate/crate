@@ -42,7 +42,8 @@ public enum SymbolType {
     INDEX_REFERENCE(IndexReference.FACTORY),
     GEO_REFERENCE(GeoReference.FACTORY),
     GENERATED_REFERENCE(GeneratedReference.FACTORY),
-    PARAMETER(ParameterSymbol.FACTORY);
+    PARAMETER(ParameterSymbol.FACTORY),
+    SELECT_SYMBOL(SelectSymbol.FACTORY);
 
     private final Symbol.SymbolFactory factory;
 
