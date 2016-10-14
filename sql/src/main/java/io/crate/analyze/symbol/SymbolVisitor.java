@@ -83,5 +83,9 @@ public class SymbolVisitor<C, R> {
     public R visitParameterSymbol(ParameterSymbol parameterSymbol, C context) {
         return visitSymbol(parameterSymbol, context);
     }
+
+    public R visitSelectSymbol(SelectSymbol selectSymbol, C context) {
+        return visitSymbol(selectSymbol, context);
+    }
 }
 

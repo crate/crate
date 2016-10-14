@@ -29,6 +29,7 @@ import io.crate.action.sql.SessionContext;
 import io.crate.analyze.*;
 import io.crate.analyze.expressions.ExpressionAnalysisContext;
 import io.crate.analyze.expressions.ExpressionAnalyzer;
+import io.crate.analyze.expressions.SubqueryAnalyzer;
 import io.crate.analyze.relations.select.SelectAnalysis;
 import io.crate.analyze.relations.select.SelectAnalyzer;
 import io.crate.analyze.symbol.Aggregations;
@@ -46,7 +47,6 @@ import io.crate.exceptions.ValidationException;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.TableIdent;
-import io.crate.metadata.TransactionContext;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.sys.SysClusterTableInfo;
 import io.crate.metadata.table.Operation;
@@ -82,19 +82,13 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
         this.schemas = schemas;
     }
 
-    public AnalyzedRelation analyze(Node node,
-                                    StatementAnalysisContext statementContext,
-                                    TransactionContext transactionContext) {
+    public AnalyzedRelation analyze(Node node, StatementAnalysisContext statementContext) {
         AnalyzedRelation relation = process(node, statementContext);
-        return RelationNormalizer.normalize(relation, functions, transactionContext);
+        return RelationNormalizer.normalize(relation, functions, statementContext.transactionContext());
     }
 
     public AnalyzedRelation analyzeUnbound(Query query, SessionContext sessionContext, ParamTypeHints paramTypeHints) {
-        return process(query, new StatementAnalysisContext(
-            sessionContext,
-            paramTypeHints,
-            functions,
-            Operation.READ));
+        return process(query, new StatementAnalysisContext(sessionContext, paramTypeHints, Operation.READ, null));
     }
 
     public AnalyzedRelation analyze(Node node, Analysis analysis) {
@@ -103,10 +97,8 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
             new StatementAnalysisContext(
                 analysis.sessionContext(),
                 analysis.parameterContext(),
-                functions,
-                Operation.READ
-            ),
-            analysis.transactionContext()
+                Operation.READ,
+                analysis.transactionContext())
         );
     }
 
@@ -131,8 +123,14 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
         if (optCriteria.isPresent()) {
             JoinCriteria joinCriteria = optCriteria.get();
             if (joinCriteria instanceof JoinOn) {
+                ExpressionAnalyzer expressionAnalyzer = new ExpressionAnalyzer(
+                    functions,
+                    statementContext.sessionContext(),
+                    statementContext.convertParamFunction(),
+                    new FullQualifedNameFieldProvider(relationContext.sources()),
+                    new SubqueryAnalyzer(this, statementContext));
                 try {
-                    joinCondition = relationContext.expressionAnalyzer().convert(
+                    joinCondition = expressionAnalyzer.convert(
                         ((JoinOn) joinCriteria).getExpression(), relationContext.expressionAnalysisContext());
                 } catch (RelationUnknownException e) {
                     throw new ValidationException(String.format(Locale.ENGLISH,
@@ -159,14 +157,24 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
         }
 
         RelationAnalysisContext context = statementContext.currentRelationContext();
-        ExpressionAnalyzer expressionAnalyzer = context.expressionAnalyzer();
+        ExpressionAnalyzer expressionAnalyzer = new ExpressionAnalyzer(
+            functions,
+            statementContext.sessionContext(),
+            statementContext.convertParamFunction(),
+            new FullQualifedNameFieldProvider(context.sources()),
+            new SubqueryAnalyzer(this, statementContext));
         ExpressionAnalysisContext expressionAnalysisContext = context.expressionAnalysisContext();
         Symbol querySymbol = expressionAnalyzer.generateQuerySymbol(node.getWhere(), expressionAnalysisContext);
         WhereClause whereClause = new WhereClause(querySymbol);
 
-        SelectAnalysis selectAnalysis = SelectAnalyzer.analyzeSelect(node.getSelect(), context);
+        SelectAnalysis selectAnalysis = SelectAnalyzer.analyzeSelect(
+            node.getSelect(), context, expressionAnalyzer, expressionAnalysisContext);
 
-        List<Symbol> groupBy = analyzeGroupBy(selectAnalysis, node.getGroupBy(), context);
+        List<Symbol> groupBy = analyzeGroupBy(
+            selectAnalysis,
+            node.getGroupBy(),
+            expressionAnalyzer,
+            expressionAnalysisContext);
 
         if (!node.getGroupBy().isEmpty() || expressionAnalysisContext.hasAggregates) {
             ensureNonAggregatesInGroupBy(selectAnalysis.outputSymbols(), groupBy);
@@ -180,15 +188,19 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
             groupBy = null;
         }
         QuerySpec querySpec = new QuerySpec()
-            .orderBy(analyzeOrderBy(selectAnalysis, node.getOrderBy(), context,
+            .orderBy(analyzeOrderBy(
+                selectAnalysis,
+                node.getOrderBy(),
+                expressionAnalyzer,
+                expressionAnalysisContext,
                 expressionAnalysisContext.hasAggregates || groupBy != null, isDistinct))
             .having(analyzeHaving(
                 node.getHaving(),
                 groupBy,
                 expressionAnalyzer,
                 context.expressionAnalysisContext()))
-            .limit(optionalIntSymbol(node.getLimit(), context))
-            .offset(optionalIntSymbol(node.getOffset(), context))
+            .limit(optionalIntSymbol(node.getLimit(), expressionAnalyzer, expressionAnalysisContext))
+            .offset(optionalIntSymbol(node.getOffset(), expressionAnalyzer, expressionAnalysisContext))
             .outputs(selectAnalysis.outputSymbols())
             .where(whereClause)
             .groupBy(groupBy)
@@ -221,9 +233,11 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
         return relation;
     }
 
-    private Optional<Symbol> optionalIntSymbol(Optional<Expression> optExpression, RelationAnalysisContext relCtx) {
+    private Optional<Symbol> optionalIntSymbol(Optional<Expression> optExpression,
+                                               ExpressionAnalyzer expressionAnalyzer,
+                                               ExpressionAnalysisContext expressionAnalysisContext) {
         if (optExpression.isPresent()) {
-            Symbol symbol = relCtx.expressionAnalyzer().convert(optExpression.get(), relCtx.expressionAnalysisContext());
+            Symbol symbol = expressionAnalyzer.convert(optExpression.get(), expressionAnalysisContext);
             return Optional.of(ExpressionAnalyzer.castIfNeededOrFail(symbol, DataTypes.INTEGER));
         }
         return Optional.absent();
@@ -256,7 +270,8 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
     @Nullable
     private OrderBy analyzeOrderBy(SelectAnalysis selectAnalysis,
                                    List<SortItem> orderBy,
-                                   RelationAnalysisContext context,
+                                   ExpressionAnalyzer expressionAnalyzer,
+                                   ExpressionAnalysisContext expressionAnalysisContext,
                                    boolean hasAggregatesOrGrouping,
                                    boolean isDistinct) {
         int size = orderBy.size();
@@ -270,7 +285,8 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
         for (int i = 0; i < size; i++) {
             SortItem sortItem = orderBy.get(i);
             Expression sortKey = sortItem.getSortKey();
-            Symbol symbol = symbolFromSelectOutputReferenceOrExpression(sortKey, selectAnalysis, "ORDER BY", context);
+            Symbol symbol = symbolFromSelectOutputReferenceOrExpression(
+                sortKey, selectAnalysis, "ORDER BY", expressionAnalyzer, expressionAnalysisContext);
             SemanticSortValidator.validate(symbol);
             if (hasAggregatesOrGrouping) {
                 OrderByWithAggregationValidator.validate(symbol, selectAnalysis.outputSymbols(), isDistinct);
@@ -293,12 +309,14 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
         return new OrderBy(symbols, reverseFlags, nullsFirst);
     }
 
-    private List<Symbol> analyzeGroupBy(SelectAnalysis selectAnalysis, List<Expression> groupBy,
-                                        RelationAnalysisContext context) {
+    private List<Symbol> analyzeGroupBy(SelectAnalysis selectAnalysis,
+                                        List<Expression> groupBy,
+                                        ExpressionAnalyzer expressionAnalyzer,
+                                        ExpressionAnalysisContext expressionAnalysisContext) {
         List<Symbol> groupBySymbols = new ArrayList<>(groupBy.size());
         for (Expression expression : groupBy) {
             Symbol symbol = symbolFromSelectOutputReferenceOrExpression(
-                expression, selectAnalysis, "GROUP BY", context);
+                expression, selectAnalysis, "GROUP BY", expressionAnalyzer, expressionAnalysisContext);
             GroupBySymbolValidator.validate(symbol);
             groupBySymbols.add(symbol);
         }
@@ -339,7 +357,8 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
     private Symbol symbolFromSelectOutputReferenceOrExpression(Expression expression,
                                                                SelectAnalysis selectAnalysis,
                                                                String clause,
-                                                               RelationAnalysisContext context) {
+                                                               ExpressionAnalyzer expressionAnalyzer,
+                                                               ExpressionAnalysisContext expressionAnalysisContext) {
         Symbol symbol;
         if (expression instanceof QualifiedNameReference) {
             List<String> parts = ((QualifiedNameReference) expression).getName().getParts();
@@ -350,7 +369,7 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
                 }
             }
         }
-        symbol = context.expressionAnalyzer().convert(expression, context.expressionAnalysisContext());
+        symbol = expressionAnalyzer.convert(expression, expressionAnalysisContext);
         if (symbol.symbolType().isValueSymbol()) {
             Literal longLiteral;
             try {
@@ -434,7 +453,9 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
                 public Symbol resolveField(QualifiedName qualifiedName, @Nullable List path, Operation operation) {
                     throw new UnsupportedOperationException("Can only resolve literals");
                 }
-        });
+            },
+            null
+        );
 
         List<Symbol> arguments = new ArrayList<>(node.arguments().size());
         for (Expression expression : node.arguments()) {

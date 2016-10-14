@@ -24,6 +24,7 @@ package io.crate.analyze;
 import com.google.common.base.Function;
 import io.crate.analyze.expressions.ExpressionAnalysisContext;
 import io.crate.analyze.expressions.ExpressionAnalyzer;
+import io.crate.analyze.expressions.SubqueryAnalyzer;
 import io.crate.analyze.relations.*;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.analyze.symbol.Symbols;
@@ -60,11 +61,10 @@ class DeleteAnalyzer {
         StatementAnalysisContext statementAnalysisContext = new StatementAnalysisContext(
             analysis.sessionContext(),
             convertParamFunction,
-            functions,
-            Operation.DELETE);
+            Operation.DELETE,
+            analysis.transactionContext());
         RelationAnalysisContext relationAnalysisContext = statementAnalysisContext.startRelation();
-        AnalyzedRelation analyzedRelation = relationAnalyzer.analyze(
-            node.getRelation(), statementAnalysisContext, analysis.transactionContext());
+        AnalyzedRelation analyzedRelation = relationAnalyzer.analyze(node.getRelation(), statementAnalysisContext);
 
         assert analyzedRelation instanceof DocTableRelation;
         DocTableRelation docTableRelation = (DocTableRelation) analyzedRelation;
@@ -79,7 +79,8 @@ class DeleteAnalyzer {
             functions,
             analysis.sessionContext(),
             convertParamFunction,
-            new FullQualifedNameFieldProvider(relationAnalysisContext.sources()));
+            new FullQualifedNameFieldProvider(relationAnalysisContext.sources()),
+            new SubqueryAnalyzer(relationAnalyzer, statementAnalysisContext));
         ExpressionAnalysisContext expressionAnalysisContext = new ExpressionAnalysisContext();
         WhereClauseAnalyzer whereClauseAnalyzer = new WhereClauseAnalyzer(
             functions, deleteAnalyzedStatement.analyzedRelation());

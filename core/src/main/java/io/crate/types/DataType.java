@@ -21,7 +21,9 @@
 
 package io.crate.types;
 
+import com.google.common.base.Function;
 import io.crate.Streamer;
+import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Streamable;
@@ -30,6 +32,14 @@ import java.io.IOException;
 import java.util.Set;
 
 public abstract class DataType<T> implements Comparable, Streamable {
+
+    public static final Function<DataType, String> TO_NAME = new Function<DataType, String>() {
+        @Nullable
+        @Override
+        public String apply(DataType input) {
+            return input == null ? null : input.getName();
+        }
+    };
 
     public abstract int id();
 
