@@ -22,11 +22,13 @@
 package io.crate.executor.transport;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import io.crate.action.job.ContextPreparer;
 import io.crate.action.sql.DDLStatementDispatcher;
 import io.crate.action.sql.ShowStatementDispatcher;
 import io.crate.analyze.EvaluatingNormalizer;
+import io.crate.analyze.symbol.SelectSymbol;
 import io.crate.executor.Executor;
 import io.crate.executor.Task;
 import io.crate.executor.task.DDLTask;
@@ -46,6 +48,7 @@ import io.crate.operation.NodeOperation;
 import io.crate.operation.NodeOperationTree;
 import io.crate.operation.projectors.ProjectionToProjectorVisitor;
 import io.crate.operation.projectors.RowReceiver;
+import io.crate.planner.MultiPhasePlan;
 import io.crate.planner.NoopPlan;
 import io.crate.planner.Plan;
 import io.crate.planner.PlanVisitor;
@@ -252,6 +255,50 @@ public class TransportExecutor implements Executor {
         public Task visitESDeletePartition(ESDeletePartition plan, Void context) {
             return new ESDeletePartitionTask(plan, transportActionProvider.transportDeleteIndexAction());
         }
+
+        @Override
+        public Task visitMultiPhasePlan(MultiPhasePlan multiPhasePlan, Void context) {
+            /*
+             * This triggers a sequential execution of a multiPhasePlan:
+             * First the dependencies (concurrently)
+             * Then via a DelayedTask the root plan.
+             *
+             * The rootTask and each dependency will be executed as separate job.
+             *
+             * This can be recursive.
+             * E.g.
+             *
+             * MultiPhaseTask
+             *      rootPlan: QueryThenFetch
+             *      deps: [
+             *          MultiPhasePlan
+             *              rootPlan: QueryThenFetch
+             *              deps: [CollectAndMerge, CollectAndMerge]
+             *      ]
+             *
+             * Note that a MultiPhaseTask always has to be the parent. Something like:
+             *
+             *      QueryThenFetch
+             *          subPlan: MultiPhaseTask
+             *
+             * Wouldn't work because QueryThenFetch would be handled by the NodeOperationTreeGenerator
+             */
+            Map<Plan, SelectSymbol> dependencies = multiPhasePlan.dependencies();
+            List<ListenableFuture<?>> futures = new ArrayList<>();
+            for (final Map.Entry<Plan, SelectSymbol> entry : dependencies.entrySet()) {
+                Plan dependency = entry.getKey();
+                Task task = process(dependency, context);
+                SingleRowSingleValueRowReceiver singleRowSingleValueRowReceiver = new SingleRowSingleValueRowReceiver();
+                ListenableFuture<?> future = singleRowSingleValueRowReceiver.completionFuture();
+                Futures.addCallback(
+                    future,
+                    new SubSelectSymbolReplacer(multiPhasePlan.parentQuerySpec(), entry.getValue()));
+                futures.add(future);
+                task.execute(singleRowSingleValueRowReceiver);
+            }
+            Task rootTask = process(multiPhasePlan.rootPlan(), context);
+            return new DelayedTask(Futures.allAsList(futures), rootTask);
+        }
     }
 
     static class BulkNodeOperationTreeGenerator extends PlanVisitor<BulkNodeOperationTreeGenerator.Context, Void> {
@@ -292,7 +339,6 @@ public class TransportExecutor implements Executor {
      * class used to generate the NodeOperationTree
      * <p>
      * <p>
-     *
      * E.g. a plan like NL:
      *
      * <pre>

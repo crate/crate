@@ -25,9 +25,9 @@ package io.crate.planner;
 import com.google.common.collect.ImmutableMap;
 import io.crate.action.sql.SessionContext;
 import io.crate.analyze.Analyzer;
-import io.crate.analyze.TableDefinitions;
 import io.crate.analyze.EvaluatingNormalizer;
 import io.crate.analyze.ParameterContext;
+import io.crate.analyze.TableDefinitions;
 import io.crate.analyze.repositories.RepositorySettingsModule;
 import io.crate.core.collections.Row;
 import io.crate.core.collections.Rows;
@@ -111,7 +111,7 @@ public abstract class AbstractPlannerTest extends CrateUnitTest {
     protected ClusterService clusterService;
     private ThreadPool threadPool;
     private Analyzer analyzer;
-    private Planner planner;
+    protected Planner planner;
     protected EvaluatingNormalizer normalizer;
 
     @Mock
