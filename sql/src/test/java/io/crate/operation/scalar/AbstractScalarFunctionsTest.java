@@ -71,6 +71,7 @@ public abstract class AbstractScalarFunctionsTest extends CrateUnitTest {
             .add("geoshape", DataTypes.GEO_SHAPE)
             .add("geopoint", DataTypes.GEO_POINT)
             .add("geostring", DataTypes.STRING)
+            .add("is_awesome", DataTypes.BOOLEAN)
             .build();
         TableRelation tableRelation = new TableRelation(tableInfo);
         tableSources = ImmutableMap.<QualifiedName, AnalyzedRelation>of(new QualifiedName("users"), tableRelation);
