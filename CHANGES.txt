@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+2016/10/14 0.55.7
+=================
+
  - Updated crate-admin to ``0.18.2`` which contains following changes:
 
    - Fixed hyperlink on logo in navigation bar which incorreclty pointed to
