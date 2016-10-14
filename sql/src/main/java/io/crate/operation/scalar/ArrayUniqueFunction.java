@@ -35,10 +35,11 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Set;
 
-public class ArrayUniqueFunction extends Scalar<Object[], Object> {
+class ArrayUniqueFunction extends Scalar<Object[], Object> {
 
     public static final String NAME = "array_unique";
-    private FunctionInfo functionInfo;
+    private final FunctionInfo functionInfo;
+    private final DataType<?> elementType;
 
     private static FunctionInfo createInfo(List<DataType> types) {
         ArrayType arrayType = (ArrayType) types.get(0);
@@ -52,8 +53,9 @@ public class ArrayUniqueFunction extends Scalar<Object[], Object> {
         module.register(NAME, new Resolver());
     }
 
-    protected ArrayUniqueFunction(FunctionInfo functionInfo) {
+    private ArrayUniqueFunction(FunctionInfo functionInfo) {
         this.functionInfo = functionInfo;
+        this.elementType = ((ArrayType) functionInfo.returnType()).innerType();
     }
 
     @Override
@@ -63,24 +65,17 @@ public class ArrayUniqueFunction extends Scalar<Object[], Object> {
 
     @Override
     public Object[] evaluate(Input[] args) {
-
-        DataType innerType = ((ArrayType) this.info().returnType()).innerType();
         Set<Object> uniqueSet = new LinkedHashSet<>();
         for (Input array : args) {
-            if (array == null) {
-                continue;
-            }
-            Object arrayValue = array.value();
+            assert array != null : "inputs must never be null";
+            Object[] arrayValue = (Object[]) array.value();
             if (arrayValue == null) {
                 continue;
             }
-
-            Object[] arg = (Object[]) arrayValue;
-            for (Object element : arg) {
-                uniqueSet.add(innerType.value(element));
+            for (Object element : arrayValue) {
+                uniqueSet.add(elementType.value(element));
             }
         }
-
         return uniqueSet.toArray();
     }
 
@@ -116,7 +111,6 @@ public class ArrayUniqueFunction extends Scalar<Object[], Object> {
                 Preconditions.checkArgument(!innerType.equals(DataTypes.UNDEFINED),
                     "When used with only one argument, the inner type of the array argument cannot be undefined");
             }
-
             return new ArrayUniqueFunction(createInfo(dataTypes));
         }
     }
