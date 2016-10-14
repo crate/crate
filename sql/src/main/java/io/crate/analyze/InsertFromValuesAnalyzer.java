@@ -96,7 +96,9 @@ class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
             functions,
             analysis.sessionContext(),
             convertParamFunction,
-            fieldProvider);
+            fieldProvider,
+            null
+            );
         ExpressionAnalysisContext expressionAnalysisContext = new ExpressionAnalysisContext();
         expressionAnalyzer.setResolveFieldsOperation(Operation.INSERT);
 

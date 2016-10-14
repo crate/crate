@@ -77,7 +77,7 @@ public class ValuesAwareExpressionAnalyzer extends ExpressionAnalyzer {
                                   Function<ParameterExpression, Symbol> convertParamFunction,
                                   FieldProvider fieldProvider,
                                   ValuesResolver valuesResolver) {
-        super(functions, sessionContext, convertParamFunction, fieldProvider);
+        super(functions, sessionContext, convertParamFunction, fieldProvider, null);
         this.valuesResolver = valuesResolver;
     }
 

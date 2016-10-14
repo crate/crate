@@ -25,6 +25,7 @@ import com.google.common.base.Predicate;
 import com.google.common.collect.Iterables;
 import io.crate.analyze.expressions.ExpressionAnalysisContext;
 import io.crate.analyze.expressions.ExpressionAnalyzer;
+import io.crate.analyze.expressions.SubqueryAnalyzer;
 import io.crate.analyze.expressions.ValueNormalizer;
 import io.crate.analyze.relations.*;
 import io.crate.analyze.symbol.Symbol;
@@ -79,11 +80,10 @@ public class UpdateAnalyzer {
         StatementAnalysisContext statementAnalysisContext = new StatementAnalysisContext(
             analysis.sessionContext(),
             analysis.parameterContext(),
-            functions,
-            Operation.UPDATE);
+            Operation.UPDATE,
+            analysis.transactionContext());
         RelationAnalysisContext currentRelationContext = statementAnalysisContext.startRelation();
-        AnalyzedRelation analyzedRelation = relationAnalyzer.analyze(
-            node.relation(), statementAnalysisContext, analysis.transactionContext());
+        AnalyzedRelation analyzedRelation = relationAnalyzer.analyze(node.relation(), statementAnalysisContext);
 
         FieldResolver fieldResolver = (FieldResolver) analyzedRelation;
         EvaluatingNormalizer normalizer = new EvaluatingNormalizer(
@@ -97,7 +97,8 @@ public class UpdateAnalyzer {
             functions,
             analysis.sessionContext(),
             analysis.parameterContext(),
-            columnFieldProvider);
+            columnFieldProvider,
+            new SubqueryAnalyzer(relationAnalyzer, statementAnalysisContext));
         columnExpressionAnalyzer.setResolveFieldsOperation(Operation.UPDATE);
 
         assert Iterables.getOnlyElement(currentRelationContext.sources().values()) == analyzedRelation;
@@ -105,7 +106,8 @@ public class UpdateAnalyzer {
             functions,
             analysis.sessionContext(),
             analysis.parameterContext(),
-            new FullQualifedNameFieldProvider(currentRelationContext.sources()));
+            new FullQualifedNameFieldProvider(currentRelationContext.sources()),
+            new SubqueryAnalyzer(relationAnalyzer, statementAnalysisContext));
         ExpressionAnalysisContext expressionAnalysisContext = new ExpressionAnalysisContext();
 
         int numNested = 1;

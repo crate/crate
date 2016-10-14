@@ -131,7 +131,8 @@ class CopyAnalyzer {
             functions,
             analysis.sessionContext(),
             analysis.parameterContext(),
-            new NameFieldProvider(tableRelation));
+            new NameFieldProvider(tableRelation),
+            null);
     }
 
     private static Predicate<DiscoveryNode> discoveryNodePredicate(Row parameters, @Nullable Expression nodeFiltersExpression) {

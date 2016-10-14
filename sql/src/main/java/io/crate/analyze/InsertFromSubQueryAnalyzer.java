@@ -187,7 +187,7 @@ class InsertFromSubQueryAnalyzer {
                                                             FieldProvider fieldProvider,
                                                             List<Assignment> assignments) {
         ExpressionAnalyzer expressionAnalyzer = new ExpressionAnalyzer(
-            functions, sessionContext, parameterContext, fieldProvider);
+            functions, sessionContext, parameterContext, fieldProvider, null);
         ExpressionAnalysisContext expressionAnalysisContext = new ExpressionAnalysisContext();
 
         EvaluatingNormalizer normalizer = new EvaluatingNormalizer(
