@@ -1,23 +1,22 @@
 /*
- * Licensed to Crate under one or more contributor license agreements.
- * See the NOTICE file distributed with this work for additional
- * information regarding copyright ownership.  Crate licenses this file
- * to you under the Apache License, Version 2.0 (the "License"); you may
- * not use this file except in compliance with the License.  You may
+ * Licensed to CRATE Technology GmbH ("Crate") under one or more contributor
+ * license agreements.  See the NOTICE file distributed with this work for
+ * additional information regarding copyright ownership.  Crate licenses
+ * this file to you under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.  You may
  * obtain a copy of the License at
  *
  *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
- * implied.  See the License for the specific language governing
- * permissions and limitations under the License.
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  See the
+ * License for the specific language governing permissions and limitations
+ * under the License.
  *
  * However, if you have executed another commercial license agreement
  * with Crate these terms will supersede the license and you may use the
- * software solely pursuant to the terms of the relevant commercial
- * agreement.
+ * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
 package io.crate.analyze.expressions;
@@ -32,6 +31,7 @@ import io.crate.analyze.DataTypeAnalyzer;
 import io.crate.analyze.NegativeLiteralVisitor;
 import io.crate.analyze.SubscriptContext;
 import io.crate.analyze.SubscriptVisitor;
+import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.FieldProvider;
 import io.crate.analyze.symbol.*;
 import io.crate.analyze.symbol.Literal;
@@ -93,6 +93,9 @@ public class ExpressionAnalyzer {
     private final SessionContext sessionContext;
     private final com.google.common.base.Function<ParameterExpression, Symbol> convertParamFunction;
     private final FieldProvider<?> fieldProvider;
+
+    @Nullable
+    private final SubqueryAnalyzer subQueryAnalyzer;
     private final Functions functions;
     private final InnerExpressionAnalyzer innerAnalyzer;
     private Operation operation = Operation.READ;
@@ -102,11 +105,13 @@ public class ExpressionAnalyzer {
     public ExpressionAnalyzer(Functions functions,
                               SessionContext sessionContext,
                               com.google.common.base.Function<ParameterExpression, Symbol> convertParamFunction,
-                              FieldProvider fieldProvider) {
+                              FieldProvider fieldProvider,
+                              @Nullable SubqueryAnalyzer subQueryAnalyzer) {
         this.functions = functions;
         this.sessionContext = sessionContext;
         this.convertParamFunction = convertParamFunction;
         this.fieldProvider = fieldProvider;
+        this.subQueryAnalyzer = subQueryAnalyzer;
         this.innerAnalyzer = new InnerExpressionAnalyzer();
     }
 
@@ -304,7 +309,12 @@ public class ExpressionAnalyzer {
                 return Literal.NULL;
             }
 
-            List<Expression> expressions = ((InListExpression) node.getValueList()).getValues();
+            Expression valueList = node.getValueList();
+            if (!(valueList instanceof InListExpression)) {
+                throw new UnsupportedOperationException(String.format(Locale.ENGLISH,
+                    "Expression %s is not supported in IN", ExpressionFormatter.formatExpression(valueList)));
+            }
+            List<Expression> expressions = ((InListExpression) valueList).getValues();
             List<Symbol> symbols = new ArrayList<>(expressions.size());
 
             for (Expression expression : expressions) {
@@ -646,6 +656,21 @@ public class ExpressionAnalyzer {
             }
             Function options = context.allocateFunction(MapFunction.createInfo(Symbols.extractTypes(mapArgs)), mapArgs);
             return new io.crate.analyze.symbol.MatchPredicate(identBoostMap, columnType, queryTerm, matchType, options);
+        }
+
+        @Override
+        protected Symbol visitSubqueryExpression(SubqueryExpression node, ExpressionAnalysisContext context) {
+            if (subQueryAnalyzer == null) {
+                throw new UnsupportedOperationException("This ExpressionAnalyzer cannot be used to analyze subqueries");
+            }
+            /* note: This does not support analysis columns in the subquery which belong to the parent relation
+             * this would require {@link StatementAnalysisContext#startRelation} to somehow inherit the parent context
+             */
+            AnalyzedRelation relation = subQueryAnalyzer.analyze(node.getQuery());
+            if (relation.fields().size() > 1) {
+                throw new UnsupportedOperationException("Subqueries with more than 1 column are not supported.");
+            }
+            return new SelectSymbol(relation, new RowType(Symbols.extractTypes(relation.fields())));
         }
 
         private void verifyTypesForMatch(Iterable<? extends Symbol> columns, DataType columnType) {

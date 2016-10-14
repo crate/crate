@@ -21,8 +21,6 @@
 
 package io.crate.analyze.relations.select;
 
-import com.google.common.collect.HashMultimap;
-import com.google.common.collect.Multimap;
 import io.crate.analyze.OutputNameFormatter;
 import io.crate.analyze.expressions.ExpressionAnalysisContext;
 import io.crate.analyze.expressions.ExpressionAnalyzer;
@@ -32,10 +30,8 @@ import io.crate.analyze.symbol.Field;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.analyze.validator.SelectSymbolValidator;
 import io.crate.metadata.OutputName;
-import io.crate.metadata.Path;
 import io.crate.sql.tree.*;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -45,8 +41,10 @@ public class SelectAnalyzer {
     private static final InnerVisitor INSTANCE = new InnerVisitor();
 
     public static SelectAnalysis analyzeSelect(Select select,
-                                               RelationAnalysisContext context) {
-        SelectAnalysis selectAnalysis = new SelectAnalysis(context);
+                                               RelationAnalysisContext context,
+                                               ExpressionAnalyzer expressionAnalyzer,
+                                               ExpressionAnalysisContext expressionAnalysisContext) {
+        SelectAnalysis selectAnalysis = new SelectAnalysis(context, expressionAnalyzer, expressionAnalysisContext);
         INSTANCE.process(select, selectAnalysis);
         SelectSymbolValidator.validate(selectAnalysis.outputSymbols());
         return selectAnalysis;

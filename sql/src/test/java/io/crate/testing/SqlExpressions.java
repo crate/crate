@@ -89,7 +89,9 @@ public class SqlExpressions {
             parameters == null
                 ? ParamTypeHints.EMPTY
                 : new ParameterContext(new RowN(parameters), Collections.<Row>emptyList()),
-            new FullQualifedNameFieldProvider(sources));
+            new FullQualifedNameFieldProvider(sources),
+            null
+        );
         normalizer = new EvaluatingNormalizer(
             functions, RowGranularity.DOC, ReplaceMode.MUTATE, null, fieldResolver);
         expressionAnalysisCtx = new ExpressionAnalysisContext();

@@ -46,10 +46,12 @@ public class SelectAnalysis {
     private final List<Symbol> outputSymbols = new ArrayList<>();
     private final Multimap<String, Symbol> outputMultiMap = HashMultimap.create();
 
-    public SelectAnalysis(RelationAnalysisContext context) {
+    public SelectAnalysis(RelationAnalysisContext context,
+                          ExpressionAnalyzer expressionAnalyzer,
+                          ExpressionAnalysisContext expressionAnalysisContext) {
         this.sources = context.sources();
-        this.expressionAnalyzer = context.expressionAnalyzer();
-        this.expressionAnalysisContext = context.expressionAnalysisContext();
+        this.expressionAnalyzer = expressionAnalyzer;
+        this.expressionAnalysisContext = expressionAnalysisContext;
     }
 
     public List<Path> outputNames() {
