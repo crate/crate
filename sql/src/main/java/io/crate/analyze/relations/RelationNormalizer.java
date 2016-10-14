@@ -30,12 +30,10 @@ import io.crate.analyze.*;
 import io.crate.analyze.symbol.*;
 import io.crate.metadata.*;
 import io.crate.operation.operator.AndOperator;
-import io.crate.operation.scalar.conditional.LeastFunction;
 import io.crate.planner.Limits;
 import io.crate.sql.tree.QualifiedName;
 
 import javax.annotation.Nullable;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -116,60 +114,35 @@ final class RelationNormalizer extends AnalyzedRelationVisitor<RelationNormalize
     @Override
     public AnalyzedRelation visitTwoRelationsUnion(TwoRelationsUnion twoTableUnion, Context context) {
         QuerySpec querySpec = twoTableUnion.querySpec();
-        QuerySpec firstQuerySpec = twoTableUnion.first().querySpec();
-        QuerySpec secondQuerySpec = twoTableUnion.second().querySpec();
-
-        // PushDown limit to the relations of the union since as the union tree is built
-        // by the parser the limit exists only in the top level TwoRelationsUnion
-        Optional<Symbol> pushDownLimit = Limits.add(querySpec.limit(), querySpec.offset());
-        assert !firstQuerySpec.limit().isPresent() :
-            "Limit on the individual relations of the union should be empty";
-        firstQuerySpec.limit(pushDownLimit);
-        assert !secondQuerySpec.limit().isPresent() :
-            "Limit on the individual relations of the union should be empty";
-        secondQuerySpec.limit(pushDownLimit);
-
-        // Push down orderBy to the relations of the union for performance optimization
         replaceFieldReferences(querySpec);
-        Optional<OrderBy> orderBy = querySpec.orderBy();
+
+        // Build PushDown limit to the relations of the union since as the union tree is built
+        // by the parser the limit exists only in the top level TwoRelationsUnion
+        Optional<Symbol> pushDownLimit = Limits.mergeAdd(querySpec.limit(), querySpec.offset());
+
+        // Build PushDown orderBy to the relations of the union for performance optimization
+        Optional<OrderBy> pushDownOrderBy = querySpec.orderBy();
         // Convert orderBy symbols referring to the 1st relation of the union to InputColumns
         // as rootOrderBy must apply to corresponding columns of all relations
-        if (orderBy.isPresent()) {
+        if (pushDownOrderBy.isPresent()) {
             final List<Symbol> outputs = querySpec.outputs();
-            orderBy.get().replace(new com.google.common.base.Function<Symbol, Symbol>() {
+            pushDownOrderBy.get().replace(new com.google.common.base.Function<Symbol, Symbol>() {
                 @Nullable
                 @Override
                 public Symbol apply(@Nullable Symbol symbol) {
                     return InputColumn.fromSymbol(symbol, outputs);
                 }
             });
-
-            OrderBy newFirstOrderBy = rewritePushedDownOrderBy(
-                mergeOrderBy(firstQuerySpec.orderBy(), orderBy), firstQuerySpec.outputs());
-            firstQuerySpec.orderBy(newFirstOrderBy);
-
-            OrderBy newSecondOrderBy = rewritePushedDownOrderBy(
-                mergeOrderBy(secondQuerySpec.orderBy(), orderBy), secondQuerySpec.outputs());
-            secondQuerySpec.orderBy(newSecondOrderBy);
         }
+
+        // Push Down orderBy and limit
+        UnionPushDownContext unionPushDownContext = new UnionPushDownContext(pushDownLimit, pushDownOrderBy);
+        UnionPushDownVisitor.INSTANCE.process(twoTableUnion.first(), unionPushDownContext);
+        UnionPushDownVisitor.INSTANCE.process(twoTableUnion.second(), unionPushDownContext);
 
         process(twoTableUnion.first(), context);
         process(twoTableUnion.second(), context);
         return twoTableUnion;
-    }
-
-    private static OrderBy rewritePushedDownOrderBy(OrderBy orderBy, final List<Symbol> outputs) {
-        return orderBy.copyAndReplace(new com.google.common.base.Function<Symbol, Symbol>() {
-            @Nullable
-            @Override
-            public Symbol apply(@Nullable Symbol symbol) {
-                if (symbol instanceof InputColumn) {
-                    InputColumn inputColumn = (InputColumn) symbol;
-                    return outputs.get(inputColumn.index());
-                }
-                return symbol;
-            }
-        });
     }
 
     private Map<QualifiedName, AnalyzedRelation> mapSourceRelations(MultiSourceSelect multiSourceSelect) {
@@ -195,9 +168,9 @@ final class RelationNormalizer extends AnalyzedRelationVisitor<RelationNormalize
         return new QuerySpec()
             .outputs(querySpec1.outputs())
             .where(mergeWhere(querySpec1.where(), querySpec2.where()))
-            .orderBy(mergeOrderBy(querySpec1.orderBy(), querySpec2.orderBy()))
-            .offset(Limits.add(querySpec1.offset(), querySpec2.offset()))
-            .limit(mergeLimit(querySpec1.limit(), querySpec2.limit()))
+            .orderBy(OrderBy.merge(querySpec1.orderBy(), querySpec2.orderBy()))
+            .offset(Limits.mergeAdd(querySpec1.offset(), querySpec2.offset()))
+            .limit(Limits.mergeMin(querySpec1.limit(), querySpec2.limit()))
             .groupBy(pushGroupBy(querySpec1.groupBy(), querySpec2.groupBy()))
             .having(pushHaving(querySpec1.having(), querySpec2.having()))
             .hasAggregates(querySpec1.hasAggregates() || querySpec2.hasAggregates());
@@ -211,24 +184,6 @@ final class RelationNormalizer extends AnalyzedRelationVisitor<RelationNormalize
         }
 
         return new WhereClause(AndOperator.join(ImmutableList.of(where2.query(), where1.query())));
-    }
-
-    @Nullable
-    private static OrderBy mergeOrderBy(Optional<OrderBy> o1, Optional<OrderBy> o2) {
-        if (!o1.isPresent() || !o2.isPresent()) {
-            return o1.or(o2).orNull();
-        }
-        return o1.get().merge(o2.get());
-    }
-
-    private static Optional<Symbol> mergeLimit(Optional<Symbol> limit1, Optional<Symbol> limit2) {
-        if (limit1.isPresent()) {
-            if (limit2.isPresent()) {
-                return Optional.of((Symbol) new Function(LeastFunction.TWO_INT_INFO, Arrays.asList(limit1.get(), limit2.get())));
-            }
-            return limit1;
-        }
-        return limit2;
     }
 
     @Nullable
@@ -396,6 +351,96 @@ final class RelationNormalizer extends AnalyzedRelationVisitor<RelationNormalize
         private R visitQueriedRelation(QueriedRelation relation, Field field) {
             Symbol output = relation.querySpec().outputs().get(field.index());
             return symbolVisitor.process(output, null);
+        }
+    }
+
+    private static class UnionPushDownContext {
+
+        private Optional<Symbol> limit;
+        private Optional<OrderBy> orderBy;
+
+        private UnionPushDownContext(Optional<Symbol> limit, Optional<OrderBy> orderBy) {
+            this.limit = limit;
+            this.orderBy = orderBy;
+        }
+    }
+
+    private static class UnionPushDownVisitor extends AnalyzedRelationVisitor<UnionPushDownContext, Void> {
+
+        private static final UnionPushDownVisitor INSTANCE = new UnionPushDownVisitor();
+
+        private UnionPushDownVisitor() {
+        }
+
+        @Override
+        protected Void visitAnalyzedRelation(AnalyzedRelation relation, UnionPushDownContext context) {
+            return null;
+        }
+
+        @Override
+        public Void visitQueriedSelectRelation(QueriedSelectRelation relation, UnionPushDownContext context) {
+            return process(relation.relation(), context);
+        }
+
+        @Override
+        public Void visitQueriedTable(QueriedTable table, UnionPushDownContext context) {
+            QuerySpec querySpec = table.querySpec();
+            pushDownLimit(querySpec, context.limit);
+            pushDownOrderBy(querySpec, context.orderBy);
+            // The pushedDown OrderBy is passed InputColumn and must
+            // be rewritten to their output symbol counterparts
+            rewritePushedDownOrderBy(querySpec);
+            return null;
+        }
+
+        @Override
+        public Void visitQueriedDocTable(QueriedDocTable table, UnionPushDownContext context) {
+            QuerySpec querySpec = table.querySpec();
+            pushDownLimit(querySpec, context.limit);
+            pushDownOrderBy(querySpec, context.orderBy);
+            // The pushedDown OrderBy is passed InputColumn and must
+            // be rewritten to their output symbol counterparts
+            rewritePushedDownOrderBy(querySpec);
+            return null;
+        }
+
+        @Override
+        public Void visitMultiSourceSelect(MultiSourceSelect multiSourceSelect, UnionPushDownContext context) {
+            // Doesn't make sense to push down the orderBy to joins
+            pushDownLimit(multiSourceSelect.querySpec(), context.limit);
+            return null;
+        }
+
+        @Override
+        public Void visitTwoRelationsUnion(TwoRelationsUnion twoRelationsUnion, UnionPushDownContext context) {
+            process(twoRelationsUnion.first(), context);
+            process(twoRelationsUnion.second(), context);
+            return null;
+        }
+
+        private void pushDownOrderBy(QuerySpec querySpec, Optional<OrderBy> orderBy) {
+            querySpec.orderBy(OrderBy.merge(querySpec.orderBy(), orderBy));
+        }
+
+        private void pushDownLimit(QuerySpec querySpec, Optional<Symbol> limit) {
+            querySpec.limit(Limits.mergeMin(querySpec.limit(), limit));
+        }
+
+        private static void rewritePushedDownOrderBy(final QuerySpec querySpec) {
+            Optional<OrderBy> orderBy = querySpec.orderBy();
+            if (orderBy.isPresent()) {
+                querySpec.orderBy(orderBy.get().copyAndReplace(new com.google.common.base.Function<Symbol, Symbol>() {
+                    @Nullable
+                    @Override
+                    public Symbol apply(@Nullable Symbol symbol) {
+                        if (symbol instanceof InputColumn) {
+                            InputColumn inputColumn = (InputColumn) symbol;
+                            return querySpec.outputs().get(inputColumn.index());
+                        }
+                        return symbol;
+                    }
+                }));
+            }
         }
     }
 }
