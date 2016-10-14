@@ -26,7 +26,6 @@ import com.google.common.base.Predicate;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import io.crate.analyze.symbol.DefaultTraversalSymbolVisitor;
-import io.crate.analyze.symbol.Function;
 import io.crate.analyze.symbol.RelationColumn;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.metadata.TransactionContext;
@@ -166,14 +165,12 @@ public class QuerySpec {
             DataType sourceType = output.valueType();
             if (!sourceType.equals(targetType)) {
                 if (sourceType.isConvertableTo(targetType)) {
-                    Function castFunction = new Function(
-                        CastFunctionResolver.functionInfo(sourceType, targetType, false),
-                        Arrays.asList(output));
-                    if (groupBy().isPresent()) {
-                        Collections.replaceAll(groupBy().get(), output, castFunction);
+                    Symbol castFunction = CastFunctionResolver.generateCastFunction(output, targetType, false);
+                    if (groupBy.isPresent()) {
+                        Collections.replaceAll(groupBy.get(), output, castFunction);
                     }
-                    if (orderBy().isPresent()) {
-                        Collections.replaceAll(orderBy().get().orderBySymbols(), output, castFunction);
+                    if (orderBy.isPresent()) {
+                        Collections.replaceAll(orderBy.get().orderBySymbols(), output, castFunction);
                     }
                     outputsIt.set(castFunction);
                 } else if (!targetType.equals(DataTypes.UNDEFINED)) {
