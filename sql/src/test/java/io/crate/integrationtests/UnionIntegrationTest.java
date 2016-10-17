@@ -80,6 +80,17 @@ public class UnionIntegrationTest extends SQLTransportIntegrationTest {
                                                                     "small\n"));
     }
 
+    @Test
+    public void testUnionAllWithSubSelect() {
+        createColorsAndSizes();
+        execute("select * from (select name from sizes order by name limit 2) a " +
+                "union all " +
+                "select * from (select name from sizes order by name limit 1) b " +
+                "order by 1 " +
+                "limit 10 offset 2");
+        assertThat(TestingHelpers.printedTable(response.rows()), is("small\n"));
+    }
+
     private void createColorsAndSizes() {
         execute("create table colors (name string) ");
         execute("create table sizes (name string) ");

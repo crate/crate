@@ -127,16 +127,12 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
 
             QuerySpec querySpec = twoRelationsUnion.querySpec();
             if (node.getLimit().isPresent()) {
-                querySpec.limit(Optional.fromNullable(analysisContext.expressionAnalyzer().convert(
-                    node.getLimit().get(),
-                    analysisContext.expressionAnalysisContext())));
+                querySpec.limit(optionalLongSymbol(node.getLimit(), analysisContext));
             }
             if (node.getOffset().isPresent()) {
-                querySpec.offset(Optional.fromNullable(analysisContext.expressionAnalyzer().convert(
-                    node.getOffset().get(),
-                    analysisContext.expressionAnalysisContext())));
+                querySpec.offset(optionalLongSymbol(node.getOffset(), analysisContext));
             }
-            querySpec.orderBy(analyzeOrderBy(selectAnalysis, node.getOrderBy(), analysisContext, false, false));
+             querySpec.orderBy(analyzeOrderBy(selectAnalysis, node.getOrderBy(), analysisContext, false, false));
 
             return twoRelationsUnion;
         }
