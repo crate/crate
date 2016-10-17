@@ -1197,14 +1197,6 @@ public class SelectStatementAnalyzerTest extends CrateUnitTest {
     }
 
     @Test
-    public void testWhereFullMatchPredicateNullQuery() throws Exception {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("query_term is not a valid literal nor a parameter");
-        analyze("select * from users " +
-                "where match ((name 1.2, text), null) using best_fields with (analyzer='german')");
-    }
-
-    @Test
     public void testWhereMatchUnknownType() throws Exception {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("invalid MATCH type 'some_fields'");
