@@ -61,21 +61,26 @@ public class SqlExpressions {
     private final Functions functions;
 
     public SqlExpressions(Map<QualifiedName, AnalyzedRelation> sources) {
-        this(sources, null, null);
+        this(sources, null, null, SessionContext.SYSTEM_SESSION);
     }
 
     public SqlExpressions(Map<QualifiedName, AnalyzedRelation> sources, Object[] parameters) {
-        this(sources, null, parameters);
+        this(sources, null, parameters, SessionContext.SYSTEM_SESSION);
     }
 
     public SqlExpressions(Map<QualifiedName, AnalyzedRelation> sources,
                           @Nullable FieldResolver fieldResolver) {
-        this(sources, fieldResolver, null);
+        this(sources, fieldResolver, null, SessionContext.SYSTEM_SESSION);
     }
 
     public SqlExpressions(Map<QualifiedName, AnalyzedRelation> sources,
+                          SessionContext sessionContext) {
+        this(sources, null, null, sessionContext);
+    }
+    public SqlExpressions(Map<QualifiedName, AnalyzedRelation> sources,
                           @Nullable FieldResolver fieldResolver,
-                          @Nullable Object[] parameters) {
+                          @Nullable Object[] parameters,
+                          SessionContext sessionContext) {
         ModulesBuilder modulesBuilder = new ModulesBuilder()
             .add(new OperatorModule())
             .add(new ScalarFunctionModule())
@@ -85,7 +90,7 @@ public class SqlExpressions {
         functions = injector.getInstance(Functions.class);
         expressionAnalyzer = new ExpressionAnalyzer(
             functions,
-            SessionContext.SYSTEM_SESSION,
+            sessionContext,
             parameters == null
                 ? ParamTypeHints.EMPTY
                 : new ParameterContext(new RowN(parameters), Collections.<Row>emptyList()),
@@ -93,7 +98,7 @@ public class SqlExpressions {
         normalizer = new EvaluatingNormalizer(
             functions, RowGranularity.DOC, ReplaceMode.MUTATE, null, fieldResolver);
         expressionAnalysisCtx = new ExpressionAnalysisContext();
-        transactionContext = new TransactionContext();
+        transactionContext = new TransactionContext(sessionContext);
     }
 
     public Symbol asSymbol(String expression) {

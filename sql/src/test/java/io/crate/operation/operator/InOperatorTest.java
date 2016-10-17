@@ -21,6 +21,7 @@
 package io.crate.operation.operator;
 
 import com.google.common.collect.Sets;
+import io.crate.action.sql.SessionContext;
 import io.crate.analyze.symbol.Function;
 import io.crate.analyze.symbol.Literal;
 import io.crate.analyze.symbol.Symbol;
@@ -45,7 +46,7 @@ import static org.hamcrest.Matchers.is;
 
 public class InOperatorTest extends CrateUnitTest {
 
-    private final TransactionContext transactionContext = new TransactionContext();
+    private final TransactionContext transactionContext = new TransactionContext(SessionContext.SYSTEM_SESSION);
 
     private static final DataType INTEGER_SET_TYPE = new SetType(DataTypes.INTEGER);
     private static final DataType STRING_SET_TYPE = new SetType(DataTypes.STRING);

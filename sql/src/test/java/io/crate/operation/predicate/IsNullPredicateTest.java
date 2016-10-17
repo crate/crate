@@ -21,6 +21,7 @@
 
 package io.crate.operation.predicate;
 
+import io.crate.action.sql.SessionContext;
 import io.crate.analyze.symbol.DynamicReference;
 import io.crate.analyze.symbol.Function;
 import io.crate.analyze.symbol.Literal;
@@ -45,7 +46,7 @@ public class IsNullPredicateTest extends CrateUnitTest {
         DataTypes.BOOLEAN
     ));
 
-    private final TransactionContext transactionContext = new TransactionContext();
+    private final TransactionContext transactionContext = new TransactionContext(SessionContext.SYSTEM_SESSION);
 
     @Test
     public void testNormalizeSymbolFalse() throws Exception {

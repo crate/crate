@@ -22,6 +22,7 @@
 
 package io.crate.metadata;
 
+import io.crate.action.sql.SessionContext;
 import org.joda.time.DateTimeUtils;
 
 /**
@@ -32,7 +33,12 @@ import org.joda.time.DateTimeUtils;
  */
 public class TransactionContext {
 
+    private final SessionContext sessionContext;
     private Long currentTimeMillis = null;
+
+    public TransactionContext(SessionContext sessionContext) {
+        this.sessionContext = sessionContext;
+    }
 
     /**
      * @return current timestamp in ms. Subsequent calls will always return the same value. (Not thread-safe)
@@ -43,5 +49,9 @@ public class TransactionContext {
             currentTimeMillis = DateTimeUtils.currentTimeMillis();
         }
         return currentTimeMillis;
+    }
+
+    public SessionContext sessionContext() {
+        return sessionContext;
     }
 }

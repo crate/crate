@@ -24,14 +24,12 @@ package io.crate.sql;
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Ordering;
 import com.google.common.collect.TreeMultimap;
 import io.crate.sql.tree.*;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
+import java.util.*;
 
 import static com.google.common.collect.Iterables.transform;
 import static io.crate.sql.SqlFormatter.formatSql;
@@ -41,6 +39,9 @@ public final class ExpressionFormatter {
 
     private static final Joiner COMMA_JOINER = Joiner.on(", ");
     private static final Joiner WHITESPACE_JOINER = Joiner.on(' ');
+
+    private static final Set<String> FUNCTION_CALLS_WITHOUT_PARENTHESIS = ImmutableSet.of(
+        "current_catalog", "current_schema", "current_user", "session_user", "user");
 
     private ExpressionFormatter() {
     }
@@ -227,8 +228,10 @@ public final class ExpressionFormatter {
                 arguments = "DISTINCT " + arguments;
             }
 
-            builder.append(node.getName())
-                .append('(').append(arguments).append(')');
+            builder.append(node.getName());
+            if (!FUNCTION_CALLS_WITHOUT_PARENTHESIS.contains(node.getName().toString())) {
+                builder.append('(').append(arguments).append(')');
+            }
 
             if (node.getWindow().isPresent()) {
                 builder.append(" OVER ").append(visitWindow(node.getWindow().get(), null));

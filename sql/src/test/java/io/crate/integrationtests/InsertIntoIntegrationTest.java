@@ -24,6 +24,7 @@ package io.crate.integrationtests;
 import com.carrotsearch.randomizedtesting.annotations.Repeat;
 import io.crate.action.sql.SQLActionException;
 import io.crate.action.sql.SQLBulkResponse;
+import io.crate.action.sql.SQLRequest;
 import io.crate.action.sql.SQLResponse;
 import io.crate.testing.TestingHelpers;
 import org.elasticsearch.action.get.GetResponse;
@@ -943,6 +944,25 @@ public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
         execute("select id, created from t");
         assertThat((int) response.rows()[0][0], is(1));
         assertThat(response.rows()[0][1], notNullValue());
+    }
+
+    @Test
+    public void testInsertOnCurrentSchemaGeneratedColumn() {
+        execute("create table t (id int, schema string generated always as current_schema)", (String) null);
+        execute("create table t (id int, schema string generated always as current_schema)", "foo");
+        ensureYellow();
+
+        execute("insert into t (id) values (1)", (String) null);
+        execute("refresh table t", (String) null);
+        execute("select id, schema from t", (String) null);
+        assertThat((Integer) response.rows()[0][0], is(1));
+        assertThat((String) response.rows()[0][1], is("doc"));
+
+        execute("insert into t (id) values (2)", "foo");
+        execute("refresh table t", "foo");
+        execute("select id, schema from t", "foo");
+        assertThat((Integer) response.rows()[0][0], is(2));
+        assertThat((String) response.rows()[0][1], is("foo"));
     }
 
     @Test

@@ -3,6 +3,7 @@ package io.crate.planner;
 import com.carrotsearch.hppc.IntSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
+import io.crate.action.sql.SessionContext;
 import io.crate.analyze.QuerySpec;
 import io.crate.analyze.WhereClause;
 import io.crate.analyze.relations.PlannedAnalyzedRelation;
@@ -1111,7 +1112,7 @@ public class PlannerTest extends AbstractPlannerTest {
         TableInfo tableInfo = TestingTableInfo.builder(
             custom, shardRouting("t1")).add("id", DataTypes.INTEGER, null).build();
         Planner.Context plannerContext = new Planner.Context(
-            clusterService, UUID.randomUUID(), null, normalizer, new TransactionContext(), 0, 0);
+            clusterService, UUID.randomUUID(), null, normalizer, new TransactionContext(SessionContext.SYSTEM_SESSION), 0, 0);
         plannerContext.allocateRouting(tableInfo, WhereClause.MATCH_ALL, null);
 
         Planner.Context.ReaderAllocations readerAllocations = plannerContext.buildReaderAllocations();
@@ -1145,7 +1146,7 @@ public class PlannerTest extends AbstractPlannerTest {
         TableInfo tableInfo2 =
             TestingTableInfo.builder(custom, shardRoutingForReplicas("t1")).add("id", DataTypes.INTEGER, null).build();
         Planner.Context plannerContext =
-            new Planner.Context(clusterService, UUID.randomUUID(), null, normalizer, new TransactionContext(), 0, 0);
+            new Planner.Context(clusterService, UUID.randomUUID(), null, normalizer, new TransactionContext(SessionContext.SYSTEM_SESSION), 0, 0);
 
         WhereClause whereClause = new WhereClause(
             new Function(new FunctionInfo(
@@ -1175,7 +1176,7 @@ public class PlannerTest extends AbstractPlannerTest {
     @Test
     public void testExecutionPhaseIdSequence() throws Exception {
         Planner.Context plannerContext = new Planner.Context(
-            clusterService, UUID.randomUUID(), null, normalizer, new TransactionContext(), 0, 0);
+            clusterService, UUID.randomUUID(), null, normalizer, new TransactionContext(SessionContext.SYSTEM_SESSION), 0, 0);
 
         assertThat(plannerContext.nextExecutionPhaseId(), is(0));
         assertThat(plannerContext.nextExecutionPhaseId(), is(1));
@@ -1319,7 +1320,7 @@ public class PlannerTest extends AbstractPlannerTest {
     public void testNoSoftLimitOnUnlimitedChildRelation() throws Exception {
         int softLimit = 10_000;
         Planner.Context plannerContext = new Planner.Context(
-            clusterService, UUID.randomUUID(), null, normalizer, new TransactionContext(), softLimit, 0);
+            clusterService, UUID.randomUUID(), null, normalizer, new TransactionContext(SessionContext.SYSTEM_SESSION), softLimit, 0);
         Limits limits = plannerContext.getLimits(false, new QuerySpec());
         assertThat(limits.finalLimit(), is(TopN.NO_LIMIT));
     }

@@ -21,6 +21,7 @@
 
 package io.crate.operation.scalar.arithmetic;
 
+import io.crate.action.sql.SessionContext;
 import io.crate.analyze.symbol.Function;
 import io.crate.analyze.symbol.Literal;
 import io.crate.analyze.symbol.Symbol;
@@ -43,7 +44,7 @@ import static org.hamcrest.core.IsNull.nullValue;
 
 public class LogFunctionTest extends AbstractScalarFunctionsTest {
 
-    private TransactionContext transactionContext = new TransactionContext();
+    private TransactionContext transactionContext = new TransactionContext(SessionContext.SYSTEM_SESSION);
 
     private LogFunction getFunction(String name, DataType value) {
         return (LogFunction) functions.get(new FunctionIdent(name, Arrays.asList(value)));

@@ -1927,4 +1927,5 @@ public class SelectStatementAnalyzerTest extends CrateUnitTest {
         expectedException.expectMessage("Cannot negate 'foo'. You may need to add explicit type casts");
         analyze("select - 'foo'");
     }
+
 }

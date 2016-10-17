@@ -21,6 +21,7 @@
 package io.crate.operation.scalar;
 
 import com.google.common.collect.ImmutableList;
+import io.crate.action.sql.SessionContext;
 import io.crate.analyze.symbol.Function;
 import io.crate.analyze.symbol.InputColumn;
 import io.crate.analyze.symbol.Literal;
@@ -71,7 +72,7 @@ public class DateTruncFunctionTest extends AbstractScalarFunctionsTest {
         }
     }
 
-    private final TransactionContext transactionContext = new TransactionContext();
+    private final TransactionContext transactionContext = new TransactionContext(SessionContext.SYSTEM_SESSION);
 
     public Symbol normalize(Symbol interval, Symbol timestamp) {
         Function function = new Function(func.info(), Arrays.asList(interval, timestamp));

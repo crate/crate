@@ -21,6 +21,7 @@
 
 package io.crate.operation.operator.any;
 
+import io.crate.action.sql.SessionContext;
 import io.crate.analyze.symbol.Function;
 import io.crate.analyze.symbol.Literal;
 import io.crate.analyze.symbol.Symbol;
@@ -55,7 +56,7 @@ public class AnyNotLikeOperatorTest extends CrateUnitTest {
             impl.info(),
             Arrays.<Symbol>asList(patternLiteral, valuesLiteral)
         );
-        return impl.normalizeSymbol(function, new TransactionContext());
+        return impl.normalizeSymbol(function, new TransactionContext(SessionContext.SYSTEM_SESSION));
     }
 
     private Boolean anyNotLikeNormalize(String pattern, String... expressions) {
@@ -159,7 +160,7 @@ public class AnyNotLikeOperatorTest extends CrateUnitTest {
             Arrays.asList(DataTypes.STRING, valuesLiteral.valueType())
         );
         Function anyNotLikeFunction = new Function(impl.info(), Arrays.<Symbol>asList(patternLiteral, valuesLiteral));
-        Input<Boolean> normalized = (Input<Boolean>) impl.normalizeSymbol(anyNotLikeFunction, new TransactionContext());
+        Input<Boolean> normalized = (Input<Boolean>) impl.normalizeSymbol(anyNotLikeFunction, new TransactionContext(SessionContext.SYSTEM_SESSION));
         assertThat(normalized.value(), is(true));
         assertThat(new NotPredicate().evaluate(normalized), is(false));
     }

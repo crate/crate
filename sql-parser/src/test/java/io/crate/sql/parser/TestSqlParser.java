@@ -36,6 +36,8 @@ import static io.crate.sql.tree.QueryUtil.selectList;
 import static io.crate.sql.tree.QueryUtil.table;
 import static java.lang.String.format;
 import static java.util.Collections.nCopies;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.core.IsInstanceOf.instanceOf;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 
@@ -262,6 +264,17 @@ public class TestSqlParser {
     public void testCurrentTimestamp()
         throws Exception {
         assertExpression("CURRENT_TIMESTAMP", new CurrentTime(CurrentTime.Type.TIMESTAMP));
+    }
+
+    @Test
+    public void testSpecialFunctions() throws Exception {
+        assertInstanceOf("CURRENT_SCHEMA", FunctionCall.class);
+        assertInstanceOf("CURRENT_SCHEMA()", FunctionCall.class);
+    }
+
+    private void assertInstanceOf(String expr, Class<? extends Node> cls) {
+        Expression expression = SqlParser.createExpression(expr);
+        assertThat(expression, instanceOf(cls));
     }
 
     @Test

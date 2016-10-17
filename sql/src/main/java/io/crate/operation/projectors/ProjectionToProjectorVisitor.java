@@ -23,6 +23,7 @@ package io.crate.operation.projectors;
 
 import com.google.common.base.Predicate;
 import com.google.common.base.Supplier;
+import io.crate.action.sql.SessionContext;
 import io.crate.analyze.EvaluatingNormalizer;
 import io.crate.analyze.symbol.*;
 import io.crate.breaker.RamAccountingContext;
@@ -434,7 +435,7 @@ public class ProjectionToProjectorVisitor
 
         private final RamAccountingContext ramAccountingContext;
         private final UUID jobId;
-        private final TransactionContext transactionContext = new TransactionContext();
+        private final TransactionContext transactionContext = new TransactionContext(SessionContext.SYSTEM_SESSION);
 
         public Context(RamAccountingContext ramAccountingContext, UUID jobId) {
             this.ramAccountingContext = ramAccountingContext;

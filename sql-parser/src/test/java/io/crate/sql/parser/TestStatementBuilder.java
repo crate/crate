@@ -275,6 +275,14 @@ public class TestStatementBuilder {
     }
 
     @Test
+    public void testSystemInformationFunctions() {
+        printStatement("select current_schema");
+        printStatement("select current_schema()");
+        printStatement("select * from information_schema.tables where table_schema = current_schema");
+        printStatement("select * from information_schema.tables where table_schema = current_schema()");
+    }
+
+    @Test
     public void testStatementBuilderTpch()
         throws Exception {
         printTpchQuery(1, 3);

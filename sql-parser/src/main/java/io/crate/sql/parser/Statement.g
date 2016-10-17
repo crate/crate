@@ -618,8 +618,9 @@ specialFunction
     : CURRENT_DATE
     | CURRENT_TIME ('(' integer ')')?              -> ^(CURRENT_TIME integer?)
     | CURRENT_TIMESTAMP ('(' integer ')')?         -> ^(CURRENT_TIMESTAMP integer?)
+    | CURRENT_SCHEMA ('(' ')')?                    -> ^(FUNCTION_CALL ^(QNAME IDENT["current_schema"]) )
     | SUBSTRING '(' expr FROM expr (FOR expr)? ')' -> ^(FUNCTION_CALL ^(QNAME IDENT["substr"]) expr expr expr?)
-    | EXTRACT '(' identExpr FROM expr ')'       -> ^(EXTRACT identExpr expr)
+    | EXTRACT '(' identExpr FROM expr ')'          -> ^(EXTRACT identExpr expr)
     | CAST '(' expr AS dataType ')'                -> ^(CAST expr dataType)
     | TRY_CAST '(' expr AS dataType ')'            -> ^(TRY_CAST expr dataType)
     ;
@@ -1200,6 +1201,7 @@ SECOND: 'SECOND';
 CURRENT_DATE: 'CURRENT_DATE';
 CURRENT_TIME: 'CURRENT_TIME';
 CURRENT_TIMESTAMP: 'CURRENT_TIMESTAMP';
+CURRENT_SCHEMA: 'CURRENT_SCHEMA';
 EXTRACT: 'EXTRACT';
 CASE: 'CASE';
 WHEN: 'WHEN';

@@ -22,6 +22,7 @@
 
 package io.crate.operation.scalar;
 
+import io.crate.action.sql.SessionContext;
 import io.crate.analyze.symbol.Function;
 import io.crate.analyze.symbol.Literal;
 import io.crate.analyze.symbol.Symbol;
@@ -53,7 +54,7 @@ public class ArrayDifferenceFunctionTest extends AbstractScalarFunctionsTest {
     private static final ArrayType arrayOfIpType = new ArrayType(DataTypes.IP);
     private static final ArrayType arrayOfUndefinedType = new ArrayType(DataTypes.UNDEFINED);
 
-    private final TransactionContext transactionContext = new TransactionContext();
+    private final TransactionContext transactionContext = new TransactionContext(SessionContext.SYSTEM_SESSION);
 
     private ArrayDifferenceFunction getFunction(ArrayType... args) {
         List<DataType> argumentTypes = new ArrayList<>(args.length);

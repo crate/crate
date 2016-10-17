@@ -38,6 +38,7 @@ import io.crate.operation.scalar.regex.MatchesFunction;
 import io.crate.operation.scalar.regex.ReplaceFunction;
 import io.crate.operation.scalar.string.LowerFunction;
 import io.crate.operation.scalar.string.UpperFunction;
+import io.crate.operation.scalar.systeminformation.CurrentSchemaFunction;
 import io.crate.operation.scalar.timestamp.CurrentTimestampFunction;
 import org.elasticsearch.common.inject.AbstractModule;
 import org.elasticsearch.common.inject.multibindings.MapBinder;
@@ -117,6 +118,8 @@ public class ScalarFunctionModule extends AbstractModule {
         GreatestFunction.register(this);
         LeastFunction.register(this);
         NullIfFunction.register(this);
+
+        CurrentSchemaFunction.register(this);
 
         // bind all registered functions and resolver
         // by doing it here instead of the register functions, plugins can also use the

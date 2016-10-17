@@ -22,6 +22,7 @@
 package io.crate.operation.operator.any;
 
 import com.google.common.collect.ImmutableMap;
+import io.crate.action.sql.SessionContext;
 import io.crate.analyze.symbol.Function;
 import io.crate.analyze.symbol.Literal;
 import io.crate.analyze.symbol.Symbol;
@@ -39,7 +40,7 @@ import java.util.Arrays;
 
 public class AnyEqOperatorTest extends CrateUnitTest {
 
-    private final TransactionContext transactionContext = new TransactionContext();
+    private final TransactionContext transactionContext = new TransactionContext(SessionContext.SYSTEM_SESSION);
 
     private Boolean anyEq(Object value, Object arrayExpr) {
 

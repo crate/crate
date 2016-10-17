@@ -21,6 +21,7 @@
 
 package io.crate.operation.operator;
 
+import io.crate.action.sql.SessionContext;
 import io.crate.analyze.symbol.Function;
 import io.crate.analyze.symbol.Literal;
 import io.crate.analyze.symbol.Symbol;
@@ -40,7 +41,7 @@ public class RegexpMatchCaseInsensitiveOperatorTest extends CrateUnitTest {
             op.info(),
             Arrays.<Symbol>asList(Literal.of(source), Literal.of(pattern))
         );
-        return op.normalizeSymbol(function, new TransactionContext());
+        return op.normalizeSymbol(function, new TransactionContext(SessionContext.SYSTEM_SESSION));
     }
 
     private Boolean regexpNormalize(String source, String pattern) {

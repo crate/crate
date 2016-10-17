@@ -57,6 +57,7 @@ import org.elasticsearch.client.Requests;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.cluster.metadata.MappingMetaData;
 import org.elasticsearch.cluster.metadata.MetaData;
+import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.transport.InetSocketTransportAddress;
 import org.elasticsearch.common.unit.TimeValue;
@@ -281,6 +282,21 @@ public abstract class SQLTransportIntegrationTest extends ESIntegTestCase {
      */
     public SQLResponse execute(String stmt, Object[] args, TimeValue timeout) {
         response = sqlExecutor.exec(stmt, args, timeout);
+        return response;
+    }
+
+    /**
+     * Execute an SQL Statement on a random node of the cluster
+     *
+     * @param stmt    the SQL statement
+     * @param schema  the schema that should be used for this statement
+     *                schema is nullable, which means default schema ("doc") is used
+     * @return the SQLResponse
+     */
+    public SQLResponse execute(String stmt, @Nullable String schema) {
+        SQLRequest request = new SQLRequest(stmt, SQLRequest.EMPTY_ARGS);
+        request.setDefaultSchema(schema);
+        response = sqlExecutor.exec(request);
         return response;
     }
 

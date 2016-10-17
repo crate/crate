@@ -1,5 +1,6 @@
 package io.crate.operation.operator;
 
+import io.crate.action.sql.SessionContext;
 import io.crate.analyze.symbol.Function;
 import io.crate.analyze.symbol.Literal;
 import io.crate.analyze.symbol.Symbol;
@@ -24,7 +25,7 @@ public class CmpOperatorTest extends CrateUnitTest {
     private LteOperator op_lte_long;
     private LtOperator op_lt_string;
 
-    private final TransactionContext transactionContext = new TransactionContext();
+    private final TransactionContext transactionContext = new TransactionContext(SessionContext.SYSTEM_SESSION);
 
     @Before
     public void prepare() {

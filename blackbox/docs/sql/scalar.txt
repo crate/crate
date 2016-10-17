@@ -1362,6 +1362,38 @@ have the same value, returns NULL; otherwise returns the first argument.
     SELECT 1 row in set (... sec)
 
 
+System Information Functions
+============================
+
+CURRENT_SCHEMA returns STRING
+-----------------------------
+
+The ``CURRENT_SCHEMA`` system information function returns the name of the
+current schema of the session. If no current schema is set, this function will
+return the default schema, which is ``doc``.
+
+The default schema can be set when using the `JDBC <https://crate.io/docs/reference/jdbc/#jdbc-url-format>`_
+and `HTTP clients <https://crate.io/docs/reference/protocols/http.html#default-schema>`_
+such as `Crate PDO`_.
+
+The ``CURRENT_SCHEMA`` function has a special SQL syntax, meaning that it must
+be called without trailing parenthesis (``()``). However, Crate also supports
+the optional parenthesis.
+
+Synopsis::
+
+    CURRENT_SCHEMA [ ( ) ]
+
+Example::
+
+    cr> SELECT CURRENT_SCHEMA;
+    +----------------+
+    | current_schema |
+    +----------------+
+    |            doc |
+    +----------------+
+    SELECT 1 row in set (... sec)
+
 
 .. rubric:: Footnotes
 
@@ -1371,3 +1403,4 @@ have the same value, returns NULL; otherwise returns the first argument.
 .. _Java Regular Expressions: http://docs.oracle.com/javase/8/docs/api/java/util/regex/Pattern.html
 .. _`MySQL date_format`: http://dev.mysql.com/doc/refman/5.6/en/date-and-time-functions.html#function_date-format
 .. _`Haversine formula`: https://en.wikipedia.org/wiki/Haversine_formula
+.. _`Crate PDO`: https://crate.io/docs/reference/pdo/usage.html#dsn

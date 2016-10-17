@@ -22,6 +22,7 @@
 package io.crate.operation.scalar.geo;
 
 import com.google.common.collect.Lists;
+import io.crate.action.sql.SessionContext;
 import io.crate.analyze.symbol.Function;
 import io.crate.analyze.symbol.Literal;
 import io.crate.analyze.symbol.Symbol;
@@ -63,7 +64,7 @@ public class DistanceFunctionTest extends AbstractScalarFunctionsTest {
     @SuppressWarnings("unchecked")
     private Symbol normalize(List<? extends Symbol> args) {
         DistanceFunction distanceFunction = functionFromArgs(args);
-        return distanceFunction.normalizeSymbol(new Function(distanceFunction.info(), (List<Symbol>) args), new TransactionContext());
+        return distanceFunction.normalizeSymbol(new Function(distanceFunction.info(), (List<Symbol>) args), new TransactionContext(SessionContext.SYSTEM_SESSION));
     }
 
     @Test
@@ -181,7 +182,7 @@ public class DistanceFunctionTest extends AbstractScalarFunctionsTest {
             createReference("foo2", DataTypes.GEO_POINT));
         DistanceFunction distanceFunction = functionFromArgs(args);
         Function functionSymbol = new Function(distanceFunction.info(), args);
-        Function normalizedFunction = (Function) distanceFunction.normalizeSymbol(functionSymbol, new TransactionContext());
+        Function normalizedFunction = (Function) distanceFunction.normalizeSymbol(functionSymbol, new TransactionContext(SessionContext.SYSTEM_SESSION));
         assertThat(functionSymbol, Matchers.sameInstance(normalizedFunction));
     }
 

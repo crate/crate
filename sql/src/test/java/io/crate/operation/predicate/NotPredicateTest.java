@@ -21,6 +21,7 @@
 
 package io.crate.operation.predicate;
 
+import io.crate.action.sql.SessionContext;
 import io.crate.analyze.symbol.Function;
 import io.crate.analyze.symbol.Literal;
 import io.crate.analyze.symbol.Symbol;
@@ -38,7 +39,7 @@ import static org.hamcrest.CoreMatchers.instanceOf;
 
 public class NotPredicateTest extends CrateUnitTest {
 
-    private final TransactionContext transactionContext = new TransactionContext();
+    private final TransactionContext transactionContext = new TransactionContext(SessionContext.SYSTEM_SESSION);
 
     @Test
     public void testNormalizeSymbolNull() throws Exception {

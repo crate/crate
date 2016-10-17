@@ -1,6 +1,7 @@
 package io.crate.analyze;
 
 import com.google.common.collect.ImmutableList;
+import io.crate.action.sql.SessionContext;
 import io.crate.analyze.symbol.Function;
 import io.crate.analyze.symbol.Literal;
 import io.crate.analyze.symbol.Symbol;
@@ -29,7 +30,7 @@ public class EvaluatingNormalizerTest extends CrateUnitTest {
     private Functions functions;
     private Reference dummyLoadInfo;
 
-    private final TransactionContext transactionContext = new TransactionContext();
+    private final TransactionContext transactionContext = new TransactionContext(SessionContext.SYSTEM_SESSION);
 
     @Before
     public void prepare() throws Exception {

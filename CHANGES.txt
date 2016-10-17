@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Added ``CURRENT_SCHEMA`` system information function
+
  - added column ``table_schema`` in ``information_schema.columns``,
    ``information_schema.tables`` and ``information_schema.table_constraints``
    in order to be conform with the SQL standard. The column ``schema_name``

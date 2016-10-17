@@ -22,6 +22,7 @@
 package io.crate.operation.aggregation;
 
 import com.google.common.collect.ImmutableList;
+import io.crate.action.sql.SessionContext;
 import io.crate.analyze.symbol.Function;
 import io.crate.analyze.symbol.Literal;
 import io.crate.analyze.symbol.Symbol;
@@ -103,6 +104,6 @@ public abstract class AggregationTest extends CrateUnitTest {
         }
         AggregationFunction function =
             (AggregationFunction) functions.get(new FunctionIdent(functionName, Arrays.asList(argTypes)));
-        return function.normalizeSymbol(new Function(function.info(), Arrays.asList(args)), new TransactionContext());
+        return function.normalizeSymbol(new Function(function.info(), Arrays.asList(args)), new TransactionContext(SessionContext.SYSTEM_SESSION));
     }
 }

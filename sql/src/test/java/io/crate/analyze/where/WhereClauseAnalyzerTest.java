@@ -23,6 +23,7 @@ package io.crate.analyze.where;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import io.crate.action.sql.SessionContext;
 import io.crate.analyze.DeleteAnalyzedStatement;
 import io.crate.analyze.SelectAnalyzedStatement;
 import io.crate.analyze.UpdateAnalyzedStatement;
@@ -69,7 +70,7 @@ public class WhereClauseAnalyzerTest extends CrateUnitTest {
         .put("nodeOne", TreeMapBuilder.<String, List<Integer>>newMapBuilder().put("t1", Arrays.asList(1, 2)).map())
         .put("nodeTow", TreeMapBuilder.<String, List<Integer>>newMapBuilder().put("t1", Arrays.asList(3, 4)).map())
         .map());
-    private final TransactionContext transactionContext = new TransactionContext();
+    private final TransactionContext transactionContext = new TransactionContext(SessionContext.SYSTEM_SESSION);
     private SQLExecutor e;
 
     @Before

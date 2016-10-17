@@ -22,6 +22,7 @@
 package io.crate.planner.consumer;
 
 import com.google.common.collect.ImmutableMap;
+import io.crate.action.sql.SessionContext;
 import io.crate.analyze.EvaluatingNormalizer;
 import io.crate.analyze.QueriedTable;
 import io.crate.analyze.TableDefinitions;
@@ -100,7 +101,7 @@ public class NestedLoopConsumerTest extends CrateUnitTest {
             UUID.randomUUID(),
             new ConsumingPlanner(clusterService, functions, statsService),
             normalizer,
-            new TransactionContext(),
+            new TransactionContext(SessionContext.SYSTEM_SESSION),
             0,
             0);
         consumer = new NestedLoopConsumer(clusterService, functions, statsService);

@@ -22,6 +22,7 @@
 package io.crate.analyze.where;
 
 import com.google.common.collect.ImmutableList;
+import io.crate.action.sql.SessionContext;
 import io.crate.analyze.EvaluatingNormalizer;
 import io.crate.analyze.symbol.Function;
 import io.crate.analyze.symbol.Literal;
@@ -49,7 +50,7 @@ import static org.hamcrest.core.Is.is;
 @SuppressWarnings("unchecked")
 public class EqualityExtractorTest extends CrateUnitTest {
 
-    private TransactionContext transactionContext = new TransactionContext();
+    private TransactionContext transactionContext = new TransactionContext(SessionContext.SYSTEM_SESSION);
 
     private List<List<Symbol>> analyzeParentX(Symbol query) {
         return getExtractor().extractParentMatches(ImmutableList.of(Ref("x").ident().columnIdent()), query, transactionContext);

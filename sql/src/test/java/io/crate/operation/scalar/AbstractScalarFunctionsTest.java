@@ -22,6 +22,7 @@
 package io.crate.operation.scalar;
 
 import com.google.common.collect.ImmutableMap;
+import io.crate.action.sql.SessionContext;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.TableRelation;
 import io.crate.analyze.symbol.Function;
@@ -87,6 +88,10 @@ public abstract class AbstractScalarFunctionsTest extends CrateUnitTest {
      */
     @SuppressWarnings("unchecked")
     public void assertNormalize(String functionExpression, Matcher<? super Symbol> expectedSymbol) {
+        assertNormalize(functionExpression, expectedSymbol, true);
+    }
+
+    public void assertNormalize(String functionExpression, Matcher<? super Symbol> expectedSymbol, boolean evaluate) {
         Symbol functionSymbol = sqlExpressions.asSymbol(functionExpression);
         if (functionSymbol instanceof Literal) {
             assertThat(functionSymbol, expectedSymbol);
@@ -102,7 +107,7 @@ public abstract class AbstractScalarFunctionsTest extends CrateUnitTest {
             normalized,
             expectedSymbol);
 
-        if (normalized instanceof Input && allArgsAreInputs(function.arguments())) {
+        if (evaluate && normalized instanceof Input && allArgsAreInputs(function.arguments())) {
             Input[] inputs = new Input[function.arguments().size()];
             for (int i = 0; i < inputs.length; i++) {
                 inputs[i] = ((Input) function.arguments().get(i));
@@ -183,14 +188,18 @@ public abstract class AbstractScalarFunctionsTest extends CrateUnitTest {
         return normalize(functionName, Literal.of(type, value));
     }
 
-    protected Symbol normalize(String functionName, Symbol... args) {
+    protected Symbol normalize(TransactionContext transactionContext, String functionName, Symbol... args) {
         DataType[] argTypes = new DataType[args.length];
         for (int i = 0; i < args.length; i++) {
             argTypes[i] = args[i].valueType();
         }
         FunctionImplementation<Function> function = getFunction(functionName, argTypes);
         return function.normalizeSymbol(new Function(function.info(),
-            Arrays.asList(args)), new TransactionContext());
+            Arrays.asList(args)), transactionContext);
+    }
+
+    protected Symbol normalize(String functionName, Symbol... args) {
+        return normalize(new TransactionContext(SessionContext.SYSTEM_SESSION), functionName, args);
     }
 
     private class AssertingInput implements Input {
