@@ -171,8 +171,7 @@ class SelectStatementPlanner {
             SimpleSelect.enablePagingIfApplicable(
                 collectPhase, localMergePhase, limits.finalLimit(), limits.offset(),
                 context.clusterService().localNode().id());
-            CollectAndMerge subPlan = new CollectAndMerge(collectPhase, null);
-            return new QueryThenFetch(subPlan, fetchPhase, localMergePhase, context.jobId());
+            return new QueryThenFetch(plannedSubQuery.plan(), fetchPhase, localMergePhase, context.jobId());
         }
 
         @Override
