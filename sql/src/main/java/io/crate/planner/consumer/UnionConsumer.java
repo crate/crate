@@ -87,7 +87,7 @@ class UnionConsumer implements Consumer {
                         plannedAnalyzedRelation.resultPhase().executionNodes().size(),
                         querySpec.orderBy().orNull(),
                         null,
-                        ImmutableList.<Projection>of(),
+                        plannedAnalyzedRelation.resultPhase().projections(),
                         querySpec.outputs(),
                         null));
                 }

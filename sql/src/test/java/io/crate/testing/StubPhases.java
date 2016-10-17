@@ -22,10 +22,12 @@
 
 package io.crate.testing;
 
+import com.google.common.collect.ImmutableList;
 import io.crate.planner.distribution.DistributionInfo;
 import io.crate.planner.distribution.UpstreamPhase;
 import io.crate.planner.node.ExecutionPhase;
 import io.crate.planner.node.ExecutionPhaseVisitor;
+import io.crate.planner.projection.Projection;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
@@ -109,6 +111,11 @@ public class StubPhases {
         @Override
         public void distributionInfo(DistributionInfo distributionInfo) {
             this.distributionInfo = distributionInfo;
+        }
+
+        @Override
+        public List<Projection> projections() {
+            return ImmutableList.of();
         }
     }
 }

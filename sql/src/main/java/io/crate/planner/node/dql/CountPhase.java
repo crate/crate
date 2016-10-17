@@ -21,15 +21,18 @@
 
 package io.crate.planner.node.dql;
 
+import com.google.common.collect.ImmutableList;
 import io.crate.analyze.WhereClause;
 import io.crate.metadata.Routing;
 import io.crate.planner.distribution.DistributionInfo;
 import io.crate.planner.distribution.UpstreamPhase;
 import io.crate.planner.node.ExecutionPhaseVisitor;
+import io.crate.planner.projection.Projection;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
 import java.io.IOException;
+import java.util.List;
 import java.util.Set;
 
 public class CountPhase implements UpstreamPhase {
@@ -94,6 +97,11 @@ public class CountPhase implements UpstreamPhase {
     @Override
     public void distributionInfo(DistributionInfo distributionInfo) {
         this.distributionInfo = distributionInfo;
+    }
+
+    @Override
+    public List<Projection> projections() {
+        return ImmutableList.of();
     }
 
     @Override

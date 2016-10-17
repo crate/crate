@@ -22,10 +22,15 @@
 package io.crate.planner.distribution;
 
 import io.crate.planner.node.ExecutionPhase;
+import io.crate.planner.projection.Projection;
+
+import java.util.List;
 
 public interface UpstreamPhase extends ExecutionPhase {
 
     DistributionInfo distributionInfo();
 
     void distributionInfo(DistributionInfo distributionInfo);
+
+    List<Projection> projections();
 }
