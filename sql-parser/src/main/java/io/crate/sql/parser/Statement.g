@@ -468,7 +468,7 @@ predicate
     ;
 
 matchPredicate
-    : MATCH '(' matchPredicateIdentList ',' s=parameterOrLiteral ')' (USING matchMethod=ident ((WITH '(') => WITH '(' genericProperties ')' )?)? -> ^(MATCH matchPredicateIdentList $s $matchMethod? genericProperties?)
+    : MATCH '(' matchPredicateIdentList ',' s=exprPrimary ')' (USING matchMethod=ident ((WITH '(') => WITH '(' genericProperties ')' )?)? -> ^(MATCH matchPredicateIdentList $s $matchMethod? genericProperties?)
     ;
 
 matchPredicateIdentList

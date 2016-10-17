@@ -106,7 +106,6 @@ import org.elasticsearch.index.search.geo.InMemoryGeoBoundingBoxQuery;
 import java.io.IOException;
 import java.util.*;
 
-import static com.google.common.base.Preconditions.checkArgument;
 import static io.crate.operation.scalar.regex.RegexMatcher.isPcrePattern;
 import static org.apache.lucene.spatial.util.GeoEncodingUtils.TOLERANCE;
 
@@ -722,14 +721,18 @@ public class LuceneQueryBuilder {
                 assert Symbol.isLiteral(arguments.get(2), DataTypes.STRING); // matchType
 
                 Symbol queryTerm = arguments.get(1);
-                if (queryTerm.valueType().equals(DataTypes.GEO_SHAPE)) {
-                    return geoMatch(context, arguments, queryTerm);
+                Preconditions.checkArgument(queryTerm instanceof Input, "queryTerm must be a literal");
+                Object queryTermVal = ((Input) queryTerm).value();
+                if (queryTermVal == null) {
+                    throw new IllegalArgumentException("cannot use NULL as query term in match predicate");
                 }
-                return stringMatch(context, arguments, queryTerm);
+                if (queryTerm.valueType().equals(DataTypes.GEO_SHAPE)) {
+                    return geoMatch(context, arguments, queryTermVal);
+                }
+                return stringMatch(context, arguments, queryTermVal);
             }
 
-            private Query geoMatch(Context context, List<Symbol> arguments, Symbol queryTerm) {
-                assert Symbol.isLiteral(arguments.get(1), DataTypes.GEO_SHAPE);
+            private Query geoMatch(Context context, List<Symbol> arguments, Object queryTerm) {
 
                 Map fields = (Map) ((Literal) arguments.get(0)).value();
                 String fieldName = ((String) Iterables.getOnlyElement(fields.keySet()));
@@ -737,7 +740,7 @@ public class LuceneQueryBuilder {
                 GeoShapeFieldMapper.GeoShapeFieldType geoShapeFieldType = (GeoShapeFieldMapper.GeoShapeFieldType) fieldType;
                 String matchType = ((BytesRef) ((Input) arguments.get(2)).value()).utf8ToString();
                 @SuppressWarnings("unchecked")
-                Shape shape = GeoJSONUtils.map2Shape(((Map<String, Object>) ((Input) queryTerm).value()));
+                Shape shape = GeoJSONUtils.map2Shape((Map<String, Object>) queryTerm);
 
                 ShapeRelation relation = ShapeRelation.getRelationByName(matchType);
                 assert relation != null : "invalid matchType: " + matchType;
@@ -781,19 +784,16 @@ public class LuceneQueryBuilder {
                     "Invalid match type: %s. Analyzer should have made sure that it is valid", matchType));
             }
 
-            private Query stringMatch(Context context, List<Symbol> arguments, Symbol queryTerm) throws IOException {
-                assert Symbol.isLiteral(queryTerm, DataTypes.STRING);
-                assert Symbol.isLiteral(arguments.get(3), DataTypes.OBJECT);
+            private Query stringMatch(Context context, List<Symbol> arguments, Object queryTerm) throws IOException {
 
                 @SuppressWarnings("unchecked")
                 Map<String, Object> fields = (Map) ((Literal) arguments.get(0)).value();
-                BytesRef queryString = (BytesRef) ((Literal) queryTerm).value();
+                BytesRef queryString = (BytesRef) queryTerm;
                 BytesRef matchType = (BytesRef) ((Literal) arguments.get(2)).value();
                 //noinspection unchecked
                 Map<String, Object> options = (Map<String, Object>) ((Literal) arguments.get(3)).value();
 
                 MatchOptionsAnalysis.validate(options);
-                checkArgument(queryString != null, "cannot use NULL as query term in match predicate");
 
                 MatchQueryBuilder queryBuilder;
                 if (fields.size() == 1) {
