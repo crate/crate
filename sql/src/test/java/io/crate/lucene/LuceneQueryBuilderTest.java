@@ -418,4 +418,18 @@ public class LuceneQueryBuilderTest extends CrateUnitTest {
         assertThat(query, instanceOf(TermsQuery.class));
         assertThat(query.toString(), is("name:bar name:foo"));
     }
+
+    @Test
+    public void testMatchQueryTermMustNotBeNull() throws Exception {
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("cannot use NULL as query term in match predicate");
+        convert("match(name, null)");
+    }
+
+    @Test
+    public void testMatchQueryTermMustBeALiteral() throws Exception {
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("queryTerm must be a literal");
+        convert("match(name, name)");
+    }
 }

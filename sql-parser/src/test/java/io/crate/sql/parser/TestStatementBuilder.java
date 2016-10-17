@@ -486,6 +486,7 @@ public class TestStatementBuilder {
         printStatement("select * from foo where match ((a ?, b 2.0), {type= 'Point', coordinates= [0.0,0.0] })");
         printStatement("select * from foo where match ((a 1, b 2.0), 'abc') using best_fields");
         printStatement("select * from foo where match ((a 1, b 2.0), 'abc') using best_fields with (prop=val, foo=1)");
+        printStatement("select * from foo where match (a, (select shape from countries limit 1))");
     }
 
     @Test
