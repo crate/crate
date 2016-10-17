@@ -42,7 +42,7 @@ public class SingleRowSubselectAnalyzerTest extends CrateUnitTest {
     public void testSingleRowSubselectInWhereClause() throws Exception {
         SelectAnalyzedStatement stmt = e.analyze("select * from t1 where x = (select y from t2)");
         assertThat(stmt.relation().querySpec().where().query(),
-            isSQL("(doc.t1.x = SelectSymbol{row(integer)})"));
+            isSQL("(doc.t1.x = SelectSymbol{integer})"));
     }
 
     @Test
@@ -50,13 +50,13 @@ public class SingleRowSubselectAnalyzerTest extends CrateUnitTest {
         SelectAnalyzedStatement stmt = e.analyze(
             "select a from t1 where x = (select y from t2 where y = (select z from t3))");
         assertThat(stmt.relation().querySpec().where().query(),
-            isSQL("(doc.t1.x = SelectSymbol{row(integer)})"));
+            isSQL("(doc.t1.x = SelectSymbol{integer})"));
     }
 
     @Test
     public void testSingleRowSubselectInSelectList() throws Exception {
         SelectAnalyzedStatement stmt = e.analyze("select (select b from t2 limit 1) from t1");
-        assertThat(stmt.relation().querySpec().outputs(), isSQL("SelectSymbol{row(string)}"));
+        assertThat(stmt.relation().querySpec().outputs(), isSQL("SelectSymbol{string}"));
     }
 
     @Test
@@ -77,7 +77,7 @@ public class SingleRowSubselectAnalyzerTest extends CrateUnitTest {
     public void testSingleRowSubselectInWhereClauseOfDelete() throws Exception {
         DeleteAnalyzedStatement stmt = e.analyze("delete from t1 where x = (select y from t2)");
         assertThat(stmt.whereClauses().get(0).query(),
-            isSQL("(doc.t1.x = SelectSymbol{row(integer)})"));
+            isSQL("(doc.t1.x = SelectSymbol{integer})"));
     }
 
     @Test
@@ -91,6 +91,20 @@ public class SingleRowSubselectAnalyzerTest extends CrateUnitTest {
         SelectAnalyzedStatement stmt = e.analyze(
             "select * from users where match(shape 1.2, (select shape from users limit 1))");
         assertThat(stmt.relation().querySpec().where().query(),
-            isSQL("match({\"shape\"=1.2}, SelectSymbol{row(geo_shape)}, 'intersects', {})"));
+            isSQL("match({\"shape\"=1.2}, SelectSymbol{geo_shape}, 'intersects', {})"));
+    }
+
+    @Test
+    public void testLikeSupportsSubQueries() throws Exception {
+        SelectAnalyzedStatement stmt = e.analyze("select * from users where name like (select 'foo')");
+        assertThat(stmt.relation().querySpec().where().query(),
+            isSQL("(doc.users.name LIKE SelectSymbol{string})"));
+    }
+
+    @Test
+    public void testAnySupportsSubQueries() throws Exception {
+        SelectAnalyzedStatement stmt = e.analyze("select * from users where (select 'bar') = ANY (tags)");
+        assertThat(stmt.relation().querySpec().where().query(),
+            isSQL("(SelectSymbol{string} = ANY(doc.users.tags))"));
     }
 }

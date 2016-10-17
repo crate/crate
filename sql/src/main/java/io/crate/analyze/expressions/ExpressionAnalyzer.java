@@ -668,10 +668,19 @@ public class ExpressionAnalyzer {
              * this would require {@link StatementAnalysisContext#startRelation} to somehow inherit the parent context
              */
             AnalyzedRelation relation = subQueryAnalyzer.analyze(node.getQuery());
-            if (relation.fields().size() > 1) {
+            List<Field> fields = relation.fields();
+            if (fields.size() > 1) {
                 throw new UnsupportedOperationException("Subqueries with more than 1 column are not supported.");
             }
-            return new SelectSymbol(relation, new RowType(Symbols.extractTypes(relation.fields())));
+            /*
+             * The SelectSymbol should actually have a RowType as it is a row-expression.
+             *
+             * But there are no other row-expressions yet. In addition the cast functions and operators don't work with
+             * row types (yet).
+             *
+             * Since we only support 1 column and only single-row subselects it is okay to use the inner type directly.
+             */
+            return new SelectSymbol(relation, fields.get(0).valueType());
         }
 
         private void verifyTypesForMatch(Iterable<? extends Symbol> columns, DataType columnType) {
