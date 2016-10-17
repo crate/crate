@@ -140,8 +140,9 @@ final class RelationNormalizer extends AnalyzedRelationVisitor<RelationNormalize
         UnionPushDownVisitor.INSTANCE.process(twoTableUnion.first(), unionPushDownContext);
         UnionPushDownVisitor.INSTANCE.process(twoTableUnion.second(), unionPushDownContext);
 
-        process(twoTableUnion.first(), context);
-        process(twoTableUnion.second(), context);
+        twoTableUnion.first((QueriedRelation) process(twoTableUnion.first(), context));
+        context.querySpec = null; // Reset the querySpec of the context to avoid mixing it with the second relation
+        twoTableUnion.second((QueriedRelation) process(twoTableUnion.second(), context));
         return twoTableUnion;
     }
 
