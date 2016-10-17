@@ -37,6 +37,7 @@ import io.crate.exceptions.UnhandledServerException;
 import io.crate.metadata.*;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.TableInfo;
+import io.crate.operation.Input;
 import io.crate.operation.projectors.TopN;
 import io.crate.planner.consumer.ConsumerContext;
 import io.crate.planner.consumer.ConsumingPlanner;
@@ -123,7 +124,7 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
             if (symbol == null) {
                 return null;
             }
-            io.crate.operation.Input input = (io.crate.operation.Input) (normalizer.normalize(symbol, transactionContext));
+            Input input = (Input) (normalizer.normalize(symbol, transactionContext));
             return DataTypes.INTEGER.value(input.value());
         }
 

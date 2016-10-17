@@ -37,8 +37,9 @@ import java.util.List;
 public class LeastFunction extends ConditionalCompareFunction {
 
     public final static String NAME = "least";
-    public final static FunctionInfo TWO_INT_INFO = new FunctionInfo(
-        new FunctionIdent(NAME, Arrays.<DataType>asList(DataTypes.INTEGER, DataTypes.INTEGER)), DataTypes.INTEGER);
+
+    public final static FunctionInfo TWO_LONG_INFO = new FunctionInfo(
+        new FunctionIdent(NAME, Arrays.<DataType>asList(DataTypes.LONG, DataTypes.LONG)), DataTypes.LONG);
 
     private LeastFunction(FunctionInfo info) {
         super(info);

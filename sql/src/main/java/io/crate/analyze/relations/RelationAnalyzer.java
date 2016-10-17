@@ -187,8 +187,8 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
                 groupBy,
                 expressionAnalyzer,
                 context.expressionAnalysisContext()))
-            .limit(optionalIntSymbol(node.getLimit(), context))
-            .offset(optionalIntSymbol(node.getOffset(), context))
+            .limit(optionalLongSymbol(node.getLimit(), context))
+            .offset(optionalLongSymbol(node.getOffset(), context))
             .outputs(selectAnalysis.outputSymbols())
             .where(whereClause)
             .groupBy(groupBy)
@@ -221,10 +221,10 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
         return relation;
     }
 
-    private Optional<Symbol> optionalIntSymbol(Optional<Expression> optExpression, RelationAnalysisContext relCtx) {
+    private Optional<Symbol> optionalLongSymbol(Optional<Expression> optExpression, RelationAnalysisContext relCtx) {
         if (optExpression.isPresent()) {
             Symbol symbol = relCtx.expressionAnalyzer().convert(optExpression.get(), relCtx.expressionAnalysisContext());
-            return Optional.of(ExpressionAnalyzer.castIfNeededOrFail(symbol, DataTypes.INTEGER));
+            return Optional.of(ExpressionAnalyzer.castIfNeededOrFail(symbol, DataTypes.LONG));
         }
         return Optional.absent();
     }

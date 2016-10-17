@@ -168,7 +168,8 @@ final class RelationNormalizer extends AnalyzedRelationVisitor<RelationNormalize
     private static Optional<Symbol> mergeLimit(Optional<Symbol> limit1, Optional<Symbol> limit2) {
         if (limit1.isPresent()) {
             if (limit2.isPresent()) {
-                return Optional.of((Symbol) new Function(LeastFunction.TWO_INT_INFO, Arrays.asList(limit1.get(), limit2.get())));
+                return Optional.of((Symbol) new Function(LeastFunction.TWO_LONG_INFO,
+                    Arrays.asList(limit1.get(), limit2.get())));
             }
             return limit1;
         }

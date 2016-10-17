@@ -206,7 +206,7 @@ public class SelectStatementAnalyzerTest extends CrateUnitTest {
     @Test
     public void testSimpleSelect() throws Exception {
         QueriedRelation relation = analyze("select load['5'] from sys.nodes limit 2").relation();
-        assertThat(relation.querySpec().limit().get(), is((Symbol) Literal.of(2)));
+        assertThat(relation.querySpec().limit().get(), is((Symbol) Literal.of(2L)));
 
         assertFalse(relation.querySpec().groupBy().isPresent());
         assertEquals(1, relation.querySpec().outputs().size());
@@ -394,7 +394,7 @@ public class SelectStatementAnalyzerTest extends CrateUnitTest {
     @Test
     public void testOffsetSupportInAnalyzer() throws Exception {
         SelectAnalyzedStatement analyze = analyze("select * from sys.nodes limit 1 offset 3");
-        assertThat(analyze.relation().querySpec().offset(), is(Optional.of((Symbol) Literal.of(3))));
+        assertThat(analyze.relation().querySpec().offset(), is(Optional.of((Symbol) Literal.of(3L))));
     }
 
     @Test
