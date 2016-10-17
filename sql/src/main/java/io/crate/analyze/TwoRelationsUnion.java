@@ -35,10 +35,10 @@ import java.util.List;
 
 public class TwoRelationsUnion implements QueriedRelation {
 
-    private final QueriedRelation first;
-    private final QueriedRelation second;
     private final boolean distinct;
     private final QuerySpec querySpec = new QuerySpec();
+    private QueriedRelation first;
+    private QueriedRelation second;
     private QualifiedName name;
 
     public TwoRelationsUnion(QueriedRelation first, QueriedRelation second, boolean distinct) {
@@ -58,6 +58,14 @@ public class TwoRelationsUnion implements QueriedRelation {
 
     public QueriedRelation second() {
         return second;
+    }
+
+    public void first(QueriedRelation first) {
+        this.first = first;
+    }
+
+    public void second(QueriedRelation second) {
+        this.second = second;
     }
 
     @Override

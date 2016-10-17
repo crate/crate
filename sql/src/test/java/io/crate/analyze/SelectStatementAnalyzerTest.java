@@ -922,15 +922,14 @@ public class SelectStatementAnalyzerTest extends CrateUnitTest {
                                                    "limit 10 offset 20");
         assertThat(analysis.relation(), instanceOf(TwoRelationsUnion.class));
         TwoRelationsUnion tableUnion = (TwoRelationsUnion) analysis.relation();
-        assertThat(tableUnion.first(), instanceOf(QueriedSelectRelation.class));
+        assertThat(tableUnion.first(), instanceOf(QueriedDocTable.class));
         assertThat(tableUnion.second(), instanceOf(QueriedDocTable.class));
         assertThat(tableUnion.querySpec(), isSQL("SELECT doc.users.id " +
                                                  "ORDER BY INPUT(0) " +
                                                  "LIMIT 10 OFFSET 20"));
-        assertThat(((QueriedSelectRelation) tableUnion.first()).relation().querySpec(),
-            isSQL("SELECT doc.users.id " +
-                  "ORDER BY doc.users.id, doc.users.name " +
-                  "LIMIT least(5, add(10, 20))"));
+        assertThat(tableUnion.first().querySpec(), isSQL("SELECT doc.users.id " +
+                                                         "ORDER BY doc.users.id, doc.users.name " +
+                                                         "LIMIT least(5, add(10, 20))"));
         assertThat(tableUnion.second().querySpec(), isSQL("SELECT doc.users_multi_pk.id " +
                                                           "ORDER BY doc.users_multi_pk.id " +
                                                           "LIMIT add(10, 20)"));
