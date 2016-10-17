@@ -29,7 +29,10 @@ import com.google.common.collect.Maps;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
-import io.crate.types.*;
+import io.crate.types.ArrayType;
+import io.crate.types.DataType;
+import io.crate.types.DataTypes;
+import io.crate.types.SetType;
 
 import java.util.Arrays;
 import java.util.Locale;
@@ -125,11 +128,6 @@ public class CastFunctionResolver {
 
     public static Symbol generateCastFunction(Symbol sourceSymbol, DataType targetType, boolean tryCast) {
         DataType sourceType = sourceSymbol.valueType();
-        if (sourceType.id() == RowType.ID) {
-            // this check must be made by the callee
-            assert sourceType.isConvertableTo(targetType) : "sourceType must be convertible to targetType";
-            return sourceSymbol;
-        }
         FunctionInfo functionInfo = functionInfo(sourceType, targetType, tryCast);
         //noinspection ArraysAsListWithZeroOrOneArgument  # arguments of Function must be mutable
         return new io.crate.analyze.symbol.Function(functionInfo, Arrays.asList(sourceSymbol));

@@ -23,7 +23,7 @@
 package io.crate.analyze.symbol;
 
 import io.crate.analyze.relations.AnalyzedRelation;
-import io.crate.types.RowType;
+import io.crate.types.DataType;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
@@ -35,9 +35,9 @@ import java.io.IOException;
 public class SelectSymbol extends Symbol {
 
     private final AnalyzedRelation relation;
-    private final RowType type;
+    private final DataType type;
 
-    public SelectSymbol(AnalyzedRelation relation, RowType type) {
+    public SelectSymbol(AnalyzedRelation relation, DataType type) {
         this.relation = relation;
         this.type = type;
     }
@@ -74,7 +74,7 @@ public class SelectSymbol extends Symbol {
     }
 
     @Override
-    public RowType valueType() {
+    public DataType valueType() {
         return type;
     }
 
