@@ -254,5 +254,19 @@ public class PlanPrinter {
                 .put("subPlan", toMap(merge.subPlan()))
                 .put("mergePhase", phaseMap(merge.mergePhase()));
         }
+
+        @Override
+        public ImmutableMap.Builder<String, Object> visitUnion(UnionPlan plan, Void context) {
+            ImmutableMap.Builder<String, Object> builder = newBuilder()
+                .put("planType", plan.getClass().getSimpleName())
+                .put("unionPhase", phaseMap(plan.unionPhase()));
+
+            List<Map<String, Object>> subPlans = new ArrayList<>(plan.relations().size());
+            for (Plan subPlan : plan.relations())  {
+                subPlans.add(toMap(subPlan));
+            }
+            builder.put("relations", subPlans);
+            return builder;
+        }
     }
 }

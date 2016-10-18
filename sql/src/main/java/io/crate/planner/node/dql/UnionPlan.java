@@ -27,7 +27,6 @@ import io.crate.planner.ResultDescription;
 import io.crate.planner.distribution.DistributionInfo;
 import io.crate.planner.projection.Projection;
 
-import javax.annotation.Nullable;
 import java.util.Collection;
 import java.util.UUID;
 
@@ -74,10 +73,5 @@ public class UnionPlan implements Plan {
     @Override
     public UUID jobId() {
         return jobId;
-    }
-
-    @Nullable
-    public MergePhase localMerge() {
-        return null;
     }
 }
