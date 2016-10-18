@@ -63,7 +63,6 @@ public class MultiUpstreamRowReceiver implements RowReceiver, RowDownstream {
     private final RowReceiver delegate;
     private final List<ResumeHandle> resumeHandles = Collections.synchronizedList(new ArrayList<ResumeHandle>());
     private final AtomicInteger activeUpstreams = new AtomicInteger(0);
-    private final AtomicBoolean prepared = new AtomicBoolean(false);
     private final AtomicBoolean pauseTriggered = new AtomicBoolean(false);
     private final AtomicReference<Throwable> failure = new AtomicReference<>();
     private final Object lock = new Object();
@@ -199,9 +198,7 @@ public class MultiUpstreamRowReceiver implements RowReceiver, RowDownstream {
 
     @Override
     public void prepare() {
-        if (prepared.compareAndSet(false, true)) {
-            delegate.prepare();
-        }
+        // this is just a multi-upstream wrapper, delegates should be prepared elsewhere already
     }
 
     @Override
