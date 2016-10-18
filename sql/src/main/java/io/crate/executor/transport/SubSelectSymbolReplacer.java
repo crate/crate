@@ -50,7 +50,11 @@ class SubSelectSymbolReplacer implements FutureCallback<Object> {
 
     @Override
     public void onSuccess(@Nullable Object result) {
-        querySpec.replace(new Visitor(selectSymbolToReplace, result));
+        // need to synchronize here in case there are multiple sub-selects executed concurrently.
+        // replace on querySpec is not thread-safe
+        synchronized (querySpec) {
+            querySpec.replace(new Visitor(selectSymbolToReplace, result));
+        }
     }
 
     @Override
