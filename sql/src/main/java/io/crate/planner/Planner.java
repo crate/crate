@@ -58,6 +58,8 @@ import io.crate.types.DataTypes;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
+import org.elasticsearch.common.logging.ESLogger;
+import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.Settings;
 
 import javax.annotation.Nullable;
@@ -66,6 +68,8 @@ import java.util.*;
 
 @Singleton
 public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
+
+    private static final ESLogger LOGGER = Loggers.getLogger(Planner.class);
 
     private final ConsumingPlanner consumingPlanner;
     private final ClusterService clusterService;
@@ -506,8 +510,15 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
     public Plan visitSetStatement(SetAnalyzedStatement setStatement, Context context) {
         if (setStatement.settings() == null) {
             return new NoopPlan(context.jobId());
+        } else if (SetStatement.Scope.LOCAL.equals(setStatement.scope())) {
+            LOGGER.warn("SET LOCAL STATEMENTS WILL BE IGNORED: {}", setStatement.settings());
+            return new NoopPlan(context.jobId());
         } else if (SetStatement.Scope.SESSION.equals(setStatement.scope())) {
-            return new SetSessionPlan(context.jobId(), setStatement.settings());
+            return new SetSessionPlan(
+                context.jobId(),
+                setStatement.settings(),
+                context.transactionContext().sessionContext()
+            );
         } else if (setStatement.isPersistent()) {
             return new ESClusterUpdateSettingsPlan(context.jobId(), setStatement.settings());
         } else {

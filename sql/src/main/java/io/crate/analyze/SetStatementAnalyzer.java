@@ -44,66 +44,37 @@ public class SetStatementAnalyzer {
 
     public static SetAnalyzedStatement analyze(SetStatement node, Analysis context) {
         boolean isPersistent = node.settingType().equals(SetStatement.SettingType.PERSISTENT);
-        Row parameters = context.parameterContext().parameters();
 
-        if (SetStatement.Scope.SESSION.equals(node.scope())) {
+        if (!SetStatement.Scope.GLOBAL.equals(node.scope())) {
             Assignment assignment = node.assignments().get(0);
-            String setting = ExpressionToStringVisitor.convert(assignment.columnName(), parameters);
-            verifySessionOrLocalSetting(setting);
-
-            Settings.Builder builder = Settings.builder().put(setting, assignment.expressions());
-            // The search_path takes a schema name as a string or comma-separated list of schema names.
-            // In the second case only the first schema in the list will be used.
-            if (setting.equals("search_path")) {
-                Expression value = assignment.expression();
-                if (value != null) {
-                    String searchPath = ExpressionToStringVisitor.convert(value, parameters);
-                    String schemas[] = searchPath.split(",");
-                    assert schemas.length > 0 : "at least one schema should be provided";
-                    context.sessionContext().setDefaultSchema(schemas[0].trim());
-                } else {
-                    context.sessionContext().setDefaultSchema(null);
-                }
-                return new SetAnalyzedStatement(node.scope(), builder.build(), isPersistent);
+            String setting = ExpressionToStringVisitor.convert(assignment.columnName(), Row.EMPTY);
+            Set<String> settingParts = CrateSettings.settingNamesByPrefix(setting);
+            if (settingParts.size() != 0) {
+                throw new IllegalArgumentException(String.format(
+                    Locale.ENGLISH, "GLOBAL Cluster setting '%s' cannot be used with SET SESSION / LOCAL ", setting));
             }
-
-            logger.warn("SET SESSION STATEMENT WILL BE IGNORED: {}", node);
-            return new SetAnalyzedStatement(node.scope(), builder.build(), isPersistent);
-        } else if (SetStatement.Scope.LOCAL.equals(node.scope())) {
-            Assignment assignment = node.assignments().get(0);
-            String setting = ExpressionToStringVisitor.convert(assignment.columnName(), parameters);
-            verifySessionOrLocalSetting(setting);
-
-            Settings.Builder builder = Settings.builder().put(setting, assignment.expressions());
-            logger.warn("SET LOCAL STATEMENT WILL BE IGNORED: {}", node);
+            Settings.Builder builder = Settings.builder()
+                .put(setting, assignment.expressions());
             return new SetAnalyzedStatement(node.scope(), builder.build(), isPersistent);
         }
 
         Settings.Builder builder = Settings.builder();
         for (Assignment assignment : node.assignments()) {
-            String settingsName = ExpressionToStringVisitor.convert(assignment.columnName(), parameters);
+            String settingsName = ExpressionToStringVisitor.convert(assignment.columnName(), Row.EMPTY);
 
             SettingsApplier settingsApplier = CrateSettings.getSettingsApplier(settingsName);
             for (String setting : ExpressionToSettingNameListVisitor.convert(assignment)) {
                 checkIfSettingIsRuntime(setting);
             }
-            settingsApplier.apply(builder, parameters, assignment.expression());
+            settingsApplier.apply(builder, context.parameterContext().parameters(), assignment.expression());
         }
         return new SetAnalyzedStatement(node.scope(), builder.build(), isPersistent);
     }
 
-    private static void verifySessionOrLocalSetting(String name) {
-        Set<String> settingParts = CrateSettings.settingNamesByPrefix(name);
-        if (settingParts.size() != 0) {
-            throw new IllegalArgumentException(String.format(
-                Locale.ENGLISH, "GLOBAL Cluster setting '%s' cannot be used with SET SESSION / LOCAL ", name));
-        }
-    }
-
-    public static ResetAnalyzedStatement analyze(ResetStatement node, ParameterContext parameterContext) {
+    public static ResetAnalyzedStatement analyze(ResetStatement node) {
         Set<String> settingsToRemove = Sets.newHashSet();
         for (Expression expression : node.columns()) {
-            String settingsName = ExpressionToStringVisitor.convert(expression, parameterContext.parameters());
+            String settingsName = ExpressionToStringVisitor.convert(expression, Row.EMPTY);
             if (!settingsToRemove.contains(settingsName)) {
                 Set<String> settingNames = CrateSettings.settingNamesByPrefix(settingsName);
                 if (settingNames.size() == 0) {
@@ -146,7 +117,7 @@ public class SetStatementAnalyzer {
 
         @Override
         public Collection<String> visitAssignment(Assignment node, String context) {
-            String left = ExpressionToStringVisitor.convert(node.columnName(), null);
+            String left = ExpressionToStringVisitor.convert(node.columnName(), Row.EMPTY);
             return node.expression().accept(this, left);
         }
 
@@ -179,5 +150,4 @@ public class SetStatementAnalyzer {
             return ImmutableList.of(context);
         }
     }
-
 }

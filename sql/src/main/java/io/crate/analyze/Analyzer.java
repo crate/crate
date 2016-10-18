@@ -250,7 +250,7 @@ public class Analyzer {
 
         @Override
         public AnalyzedStatement visitResetStatement(ResetStatement node, Analysis context) {
-            return SetStatementAnalyzer.analyze(node, context.parameterContext());
+            return SetStatementAnalyzer.analyze(node);
         }
 
         @Override

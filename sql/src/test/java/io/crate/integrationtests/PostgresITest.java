@@ -565,6 +565,7 @@ public class PostgresITest extends SQLTransportIntegrationTest {
         try (Connection conn = DriverManager.getConnection(JDBC_POSTGRESQL_URL, properties)) {
             conn.setAutoCommit(true);
 
+            conn.createStatement().execute("set global stats.operations_log_size=2");
             conn.createStatement().execute("set session search_path to bar ,custom");
             conn.createStatement().executeUpdate("create table foo (id int) with (number_of_replicas=0)");
             conn.createStatement().executeQuery("select * from bar.foo");
