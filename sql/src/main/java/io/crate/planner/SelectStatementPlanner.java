@@ -51,6 +51,7 @@ import io.crate.planner.node.fetch.FetchSource;
 import io.crate.planner.projection.FetchProjection;
 import io.crate.planner.projection.TopNProjection;
 import io.crate.planner.projection.builder.ProjectionBuilder;
+import io.crate.sql.tree.QualifiedName;
 
 import java.util.ArrayList;
 import java.util.Map;
@@ -188,11 +189,17 @@ class SelectStatementPlanner {
 
         @Override
         public Plan visitMultiSourceSelect(MultiSourceSelect mss, Planner.Context context) {
-            if (mss.querySpec().where().noMatch() && !mss.querySpec().hasAggregates()) {
+            QuerySpec querySpec = mss.querySpec();
+            if (querySpec.where().noMatch() && !querySpec.hasAggregates()) {
                 return new NoopPlan(context.jobId());
             }
+            SubqueryPlanner subqueryPlanner = new SubqueryPlanner(context);
+            Map<Plan, SelectSymbol> subQueries = subqueryPlanner.planSubQueries(querySpec);
+            for (Map.Entry<QualifiedName, MultiSourceSelect.Source> entry : mss.sources().entrySet()) {
+                subQueries.putAll(subqueryPlanner.planSubQueries(entry.getValue().querySpec()));
+            }
             if (mss.canBeFetched().isEmpty()) {
-                return consumingPlanner.plan(mss, context);
+                return MultiPhasePlan.createIfNeeded(consumingPlanner.plan(mss, context), subQueries);
             }
             MultiSourceFetchPushDown pd = MultiSourceFetchPushDown.pushDown(mss);
             ConsumerContext consumerContext = new ConsumerContext(mss, context);
@@ -229,7 +236,8 @@ class SelectStatementPlanner {
                 readerAllocations.indicesToIdents());
 
             plannedSubQuery.addProjection(fp);
-            return new QueryThenFetch(plannedSubQuery.plan(), fetchPhase, null, context.jobId());
+            return MultiPhasePlan.createIfNeeded(
+                new QueryThenFetch(plannedSubQuery.plan(), fetchPhase, null, context.jobId()), subQueries);
         }
 
         @Override

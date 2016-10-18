@@ -25,6 +25,7 @@ package io.crate.planner;
 import io.crate.planner.node.dql.CollectAndMerge;
 import io.crate.planner.node.dql.ESGet;
 import io.crate.planner.node.dql.QueryThenFetch;
+import io.crate.planner.node.dql.join.NestedLoop;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.testing.SQLExecutor;
 import org.elasticsearch.test.cluster.NoopClusterService;
@@ -62,6 +63,14 @@ public class SingleRowSubselectPlannerTest extends CrateUnitTest {
     public void testSingleRowSubSelectAndDocKeysInWhereClause() throws Exception {
         MultiPhasePlan plan = e.plan("select (select 'foo' from sys.cluster) from users where id = 10");
         assertThat(plan.rootPlan(), instanceOf(ESGet.class));
+        assertThat(plan.dependencies().keySet(), contains(instanceOf(CollectAndMerge.class)));
+    }
+
+    @Test
+    public void testSingleRowSubSelectOfWhereInJoin() throws Exception {
+        MultiPhasePlan plan = e.plan("select * from users u1, users u2 where u1.name = (select 'Arthur')");
+        assertThat(plan.rootPlan(), instanceOf(QueryThenFetch.class));
+        assertThat(((QueryThenFetch) plan.rootPlan()).subPlan(), instanceOf(NestedLoop.class));
         assertThat(plan.dependencies().keySet(), contains(instanceOf(CollectAndMerge.class)));
     }
 }
