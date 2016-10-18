@@ -42,7 +42,8 @@ public class ExplainPlannerTest extends CrateUnitTest {
         "select * from users",
         "select count(*) from users",
         "select name, count(distinct id) from users group by name",
-        "select avg(id) from users"
+        "select avg(id) from users",
+        "select * from users where name = (select 'name')"
     );
 
     private SQLExecutor e = SQLExecutor.builder(new NoopClusterService()) .enableDefaultTables() .build();
