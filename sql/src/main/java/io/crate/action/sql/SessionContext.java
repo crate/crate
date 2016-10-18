@@ -33,7 +33,7 @@ public class SessionContext {
     private final Set<Option> options;
 
     @Nullable
-    private final String defaultSchema;
+    private String defaultSchema;
 
     public SessionContext(int defaultLimit, Set<Option> options, @Nullable String defaultSchema ) {
         this.defaultLimit = defaultLimit;
@@ -48,6 +48,10 @@ public class SessionContext {
     @Nullable
     public String defaultSchema() {
         return defaultSchema;
+    }
+
+    public void setDefaultSchema(String schema) {
+        defaultSchema = schema;
     }
 
     public int defaultLimit() {

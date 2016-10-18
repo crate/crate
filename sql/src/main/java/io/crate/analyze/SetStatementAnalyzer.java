@@ -24,6 +24,7 @@ package io.crate.analyze;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Sets;
 import io.crate.analyze.expressions.ExpressionToStringVisitor;
+import io.crate.core.collections.Row;
 import io.crate.metadata.settings.CrateSettings;
 import io.crate.metadata.settings.Setting;
 import io.crate.metadata.settings.SettingsApplier;
@@ -41,36 +42,63 @@ public class SetStatementAnalyzer {
     private SetStatementAnalyzer() {
     }
 
-    public static SetAnalyzedStatement analyze(SetStatement node, ParameterContext parameterContext) {
-        Settings.Builder builder = Settings.builder();
+    public static SetAnalyzedStatement analyze(SetStatement node, Analysis context) {
+        boolean isPersistent = node.settingType().equals(SetStatement.SettingType.PERSISTENT);
+        Row parameters = context.parameterContext().parameters();
 
-        if (!SetStatement.Scope.GLOBAL.equals(node.scope())) {
-            logger.warn("SET STATEMENT WITH SESSION OR LOCAL WILL BE IGNORED: {}", node);
+        if (SetStatement.Scope.SESSION.equals(node.scope())) {
             Assignment assignment = node.assignments().get(0);
-            String settingsName = ExpressionToStringVisitor.convert(assignment.columnName(),
-                parameterContext.parameters());
-            Set<String> settingNames = CrateSettings.settingNamesByPrefix(settingsName);
-            if (settingNames.size() != 0) {
-                throw new IllegalArgumentException(String.format(Locale.ENGLISH, "GLOBAL Cluster setting '%s' cannot be used with SET SESSION / LOCAL", settingsName));
+            String setting = ExpressionToStringVisitor.convert(assignment.columnName(), parameters);
+            verifySessionOrLocalSetting(setting);
+
+            Settings.Builder builder = Settings.builder().put(setting, assignment.expressions());
+            // The search_path takes a schema name as a string or comma-separated list of schema names.
+            // In the second case only the first schema in the list will be used.
+            if (setting.equals("search_path")) {
+                Expression value = assignment.expression();
+                if (value != null) {
+                    String searchPath = ExpressionToStringVisitor.convert(value, parameters);
+                    String schemas[] = searchPath.split(",");
+                    assert schemas.length > 0 : "at least one schema should be provided";
+                    context.sessionContext().setDefaultSchema(schemas[0].trim());
+                } else {
+                    context.sessionContext().setDefaultSchema(null);
+                }
+                return new SetAnalyzedStatement(node.scope(), builder.build(), isPersistent);
             }
-            builder.put(settingsName, assignment.expressions());
-            return new SetAnalyzedStatement(node.scope(), builder.build(),
-                node.settingType().equals(SetStatement.SettingType.PERSISTENT));
+
+            logger.warn("SET SESSION STATEMENT WILL BE IGNORED: {}", node);
+            return new SetAnalyzedStatement(node.scope(), builder.build(), isPersistent);
+        } else if (SetStatement.Scope.LOCAL.equals(node.scope())) {
+            Assignment assignment = node.assignments().get(0);
+            String setting = ExpressionToStringVisitor.convert(assignment.columnName(), parameters);
+            verifySessionOrLocalSetting(setting);
+
+            Settings.Builder builder = Settings.builder().put(setting, assignment.expressions());
+            logger.warn("SET LOCAL STATEMENT WILL BE IGNORED: {}", node);
+            return new SetAnalyzedStatement(node.scope(), builder.build(), isPersistent);
         }
 
+        Settings.Builder builder = Settings.builder();
         for (Assignment assignment : node.assignments()) {
-            String settingsName = ExpressionToStringVisitor.convert(assignment.columnName(),
-                parameterContext.parameters());
+            String settingsName = ExpressionToStringVisitor.convert(assignment.columnName(), parameters);
 
             SettingsApplier settingsApplier = CrateSettings.getSettingsApplier(settingsName);
             for (String setting : ExpressionToSettingNameListVisitor.convert(assignment)) {
                 checkIfSettingIsRuntime(setting);
             }
-            settingsApplier.apply(builder, parameterContext.parameters(), assignment.expression());
+            settingsApplier.apply(builder, parameters, assignment.expression());
 
         }
-        return new SetAnalyzedStatement(node.scope(), builder.build(),
-            node.settingType().equals(SetStatement.SettingType.PERSISTENT));
+        return new SetAnalyzedStatement(node.scope(), builder.build(), isPersistent);
+    }
+
+    private static void verifySessionOrLocalSetting(String name) {
+        Set<String> settingParts = CrateSettings.settingNamesByPrefix(name);
+        if (settingParts.size() != 0) {
+            throw new IllegalArgumentException(String.format(
+                Locale.ENGLISH, "GLOBAL Cluster setting '%s' cannot be used with SET SESSION / LOCAL ", name));
+        }
     }
 
     public static ResetAnalyzedStatement analyze(ResetStatement node, ParameterContext parameterContext) {

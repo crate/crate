@@ -544,4 +544,35 @@ public class PostgresITest extends SQLTransportIntegrationTest {
         assertThat(resultSet.next(), is(true));
         assertThat(resultSet.getString(1), Matchers.startsWith("SUITE-CHILD"));
     }
+
+    @Test
+    public void testSetSchemaOnSession() throws Exception {
+        try (Connection conn = DriverManager.getConnection(JDBC_POSTGRESQL_URL, properties)) {
+            conn.setAutoCommit(true);
+
+            conn.createStatement().execute("set session search_path to bar");
+            conn.createStatement().executeUpdate("create table foo (id int) with (number_of_replicas=0)");
+            conn.createStatement().execute("select * from bar.foo");
+
+            conn.createStatement().execute("set session search_path to DEFAULT");
+            expectedException.expect(PSQLException.class);
+            expectedException.expectMessage("TableUnknownException: Table 'doc.foo' unknown");
+            conn.createStatement().execute("select * from foo");
+        }
+    }
+
+    @Test
+    public void testSetMultipleSchemasOnSession() throws Exception {
+        try (Connection conn = DriverManager.getConnection(JDBC_POSTGRESQL_URL, properties)) {
+            conn.setAutoCommit(true);
+
+            conn.createStatement().execute("set session search_path to bar ,custom");
+            conn.createStatement().executeUpdate("create table foo (id int) with (number_of_replicas=0)");
+            conn.createStatement().executeQuery("select * from bar.foo");
+
+            expectedException.expect(PSQLException.class);
+            expectedException.expectMessage("SchemaUnknownException: Schema 'custom' unknown");
+            conn.createStatement().execute("select * from custom.foo");
+        }
+    }
 }
