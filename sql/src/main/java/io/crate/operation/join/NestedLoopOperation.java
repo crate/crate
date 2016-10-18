@@ -141,6 +141,8 @@ import java.util.concurrent.atomic.AtomicReference;
 public class NestedLoopOperation implements CompletionListenable {
 
     private final static ESLogger LOGGER = Loggers.getLogger(NestedLoopOperation.class);
+    private final boolean traceEnabled = LOGGER.isTraceEnabled();
+
     private final SettableFuture<Void> completionFuture = SettableFuture.create();
 
     private final LeftRowReceiver left;
@@ -242,7 +244,7 @@ public class NestedLoopOperation implements CompletionListenable {
         boolean firstCall = true;
 
         private boolean finishDownstreamIfBothSidesFinished() {
-            if (LOGGER.isTraceEnabled()) {
+            if (traceEnabled) {
                 LOGGER.trace("phase={} method=tryFinish side={} leftFinished={} rightFinished={}",
                     phaseId, getClass().getSimpleName(), left.upstreamFinished, right.upstreamFinished);
             }
@@ -273,7 +275,7 @@ public class NestedLoopOperation implements CompletionListenable {
                 firstCall = false;
                 stop = true;
                 if (leadAcquired.compareAndSet(false, true)) {
-                    if (LOGGER.isTraceEnabled()) {
+                    if (traceEnabled) {
                         LOGGER.trace("phase={} side={} method=exitIfFirstCallAndLead leadAcquired",
                             phaseId, getClass().getSimpleName());
                     }
@@ -479,7 +481,7 @@ public class NestedLoopOperation implements CompletionListenable {
 
         RowReceiver.Result emitRowAndTrace(Row row) {
             RowReceiver.Result result = downstream.setNextRow(row);
-            if (LOGGER.isTraceEnabled() && result != Result.CONTINUE) {
+            if (traceEnabled && result != Result.CONTINUE) {
                 LOGGER.trace("phase={} side=right method=emitRow result={}", phaseId, result);
             }
             if (result == Result.STOP) {

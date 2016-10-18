@@ -69,6 +69,7 @@ public class DistributingDownstream implements RowReceiver {
     private final Object lock = new Object();
     private final AtomicInteger finishedDownstreams = new AtomicInteger(0);
     private final Bucket[] buckets;
+    private final boolean traceEnabled;
 
     private volatile Result setNextRowResult = Result.CONTINUE;
     private volatile boolean killed = false;
@@ -104,6 +105,7 @@ public class DistributingDownstream implements RowReceiver {
             downstreams[i] = new Downstream(downstreamNodeId);
             i++;
         }
+        traceEnabled = logger.isTraceEnabled();
     }
 
     @Override
@@ -146,7 +148,7 @@ public class DistributingDownstream implements RowReceiver {
     }
 
     private void traceLog(String msg) {
-        if (logger.isTraceEnabled()) {
+        if (traceEnabled) {
             logger.trace("{}. targetPhase={}/{} bucket={}", msg, targetExecutionPhaseId, inputId, bucketIdx);
         }
     }
@@ -196,7 +198,7 @@ public class DistributingDownstream implements RowReceiver {
                 traceLog("all upstreams finished. Sending last requests");
                 multiBucketBuilder.build(buckets);
                 sendRequests(true);
-            } else if (logger.isTraceEnabled()) {
+            } else {
                 traceLog("all upstreams finished. Doing nothing since there are pending requests");
             }
         } else {
@@ -218,7 +220,7 @@ public class DistributingDownstream implements RowReceiver {
         }
 
         private void traceLog(String msg) {
-            if (logger.isTraceEnabled()) {
+            if (traceEnabled) {
                 logger.trace("{} targetNode={} targetPhase={}/{} bucket={}", msg, targetNode, targetExecutionPhaseId, inputId, bucketIdx);
             }
         }
@@ -260,7 +262,7 @@ public class DistributingDownstream implements RowReceiver {
             finished = !needMore;
             final int numPending = requestsPending.decrementAndGet();
 
-            if (logger.isTraceEnabled()) {
+            if (traceEnabled) {
                 logger.trace("Received response fromNode={} phase={}/{} bucket={} requiresMore={} pendingRequests={} finished={}",
                     targetNode, targetExecutionPhaseId, inputId, bucketIdx, needMore, numPending, hasUpstreamFinished);
             }

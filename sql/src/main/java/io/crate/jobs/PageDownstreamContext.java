@@ -43,6 +43,7 @@ public class PageDownstreamContext extends AbstractExecutionSubContext implement
 
     private final Object lock = new Object();
     private final String nodeName;
+    private final boolean traceEnabled;
     private String name;
     private final PageDownstream pageDownstream;
     private final Streamer<?>[] streamers;
@@ -77,6 +78,7 @@ public class PageDownstreamContext extends AbstractExecutionSubContext implement
         allFuturesSet = new BitSet(numBuckets);
         exhausted = new BitSet(numBuckets);
         initBucketFutures();
+        traceEnabled = logger.isTraceEnabled();
     }
 
     private void initBucketFutures() {
@@ -130,13 +132,13 @@ public class PageDownstreamContext extends AbstractExecutionSubContext implement
     }
 
     private void traceLog(String msg, int bucketIdx) {
-        if (logger.isTraceEnabled()) {
+        if (traceEnabled) {
             logger.trace("{} phaseId={} bucket={}", msg, id, bucketIdx);
         }
     }
 
     private void traceLog(String msg, int bucketIdx, Throwable t) {
-        if (logger.isTraceEnabled()) {
+        if (traceEnabled) {
             logger.trace("{} phaseId={} bucket={} throwable={}", msg, id, bucketIdx, t);
         }
     }
@@ -254,7 +256,7 @@ public class PageDownstreamContext extends AbstractExecutionSubContext implement
         public void needMore() {
             boolean allExhausted = allExhausted();
             synchronized (listeners) {
-                if (logger.isTraceEnabled()) {
+                if (traceEnabled) {
                     logger.trace("phase={} allExhausted={}", id, allExhausted);
                     logger.trace("calling needMore on all listeners({}) phase={}", listeners.size(), id);
                 }
@@ -275,7 +277,7 @@ public class PageDownstreamContext extends AbstractExecutionSubContext implement
         @Override
         public void finish() {
             synchronized (listeners) {
-                if (logger.isTraceEnabled()) {
+                if (traceEnabled) {
                     logger.trace("calling finish() on all listeners({}) phase={}", listeners.size(), id);
                 }
                 for (PageResultListener listener : listeners) {

@@ -318,15 +318,7 @@ class Messages {
         }
 
         buffer.setInt(1, length);
-        ChannelFuture channelFuture = channel.write(buffer);
-        if (LOGGER.isTraceEnabled()) {
-            channelFuture.addListener(new ChannelFutureListener() {
-                @Override
-                public void operationComplete(ChannelFuture future) throws Exception {
-                    LOGGER.trace("sentDataRow");
-                }
-            });
-        }
+        channel.write(buffer);
     }
 
     static void writeCString(ChannelBuffer buffer, byte[] valBytes) {
