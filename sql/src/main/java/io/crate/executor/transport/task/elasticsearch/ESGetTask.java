@@ -25,6 +25,7 @@ import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import io.crate.Constants;
+import io.crate.analyze.EvaluatingNormalizer;
 import io.crate.analyze.symbol.InputColumn;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.analyze.symbol.ValueSymbolVisitor;
@@ -34,10 +35,7 @@ import io.crate.executor.transport.TransportActionProvider;
 import io.crate.jobs.AbstractExecutionSubContext;
 import io.crate.jobs.JobContextService;
 import io.crate.jobs.JobExecutionContext;
-import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.Functions;
-import io.crate.metadata.PartitionName;
-import io.crate.metadata.Reference;
+import io.crate.metadata.*;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.operation.projectors.*;
@@ -283,6 +281,10 @@ public class ESGetTask extends JobTask {
         assert esGet.docKeys().size() > 0;
         assert esGet.limit() != 0 : "shouldn't execute ESGetTask if limit is 0";
 
+        EvaluatingNormalizer normalizer = EvaluatingNormalizer.functionOnlyNormalizer(functions, ReplaceMode.MUTATE);
+        for (DocKeys.DocKey docKey : esGet.docKeys()) {
+            normalizer.normalizeInplace(docKey.values(), null);
+        }
         GetResponseContext ctx = new GetResponseContext(functions, esGet);
         extractors = getFieldExtractors(esGet, ctx);
         fsc = getFetchSourceContext(ctx.references());

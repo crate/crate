@@ -301,7 +301,7 @@ public class SubSelectIntegrationTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testSingleRowSubSelectCanBeUsedInSelectListAndWhereOfPrimaryKeyLookup() throws Exception {
-        execute("create table t1 (x long primary key)");
+        execute("create table t1 (x int primary key)");
         ensureYellow();
         execute("insert into t1 (x) values (1), (2)");
         execute("refresh table t1");
