@@ -22,20 +22,8 @@
 
 package io.crate.planner;
 
-import io.crate.analyze.QuerySpec;
-import io.crate.analyze.relations.AnalyzedRelationVisitor;
-import io.crate.analyze.relations.PlannedAnalyzedRelation;
-import io.crate.analyze.symbol.Field;
 import io.crate.analyze.symbol.SelectSymbol;
-import io.crate.exceptions.ColumnUnknownException;
-import io.crate.metadata.Path;
-import io.crate.metadata.table.Operation;
-import io.crate.planner.distribution.UpstreamPhase;
-import io.crate.planner.projection.Projection;
-import io.crate.sql.tree.QualifiedName;
 
-import javax.annotation.Nonnull;
-import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -52,19 +40,21 @@ import java.util.UUID;
  *
  * The dependencies themselves may also be MultiPhasePlans.
  */
-public class MultiPhasePlan implements PlannedAnalyzedRelation, Plan {
+public class MultiPhasePlan implements Plan {
 
-
-    private final PlannedAnalyzedRelation plannedAnalyzedRelation;
+    private final Plan rootPlan;
     private final Map<Plan, SelectSymbol> dependencies;
-    private final QuerySpec querySpec;
 
-    MultiPhasePlan(PlannedAnalyzedRelation plannedAnalyzedRelation,
-                   Map<Plan, SelectSymbol> dependencies,
-                   QuerySpec querySpec) {
-        this.plannedAnalyzedRelation = plannedAnalyzedRelation;
+    static Plan createIfNeeded(Plan subPlan, Map<Plan, SelectSymbol> dependencies) {
+        if (dependencies.isEmpty()) {
+            return subPlan;
+        }
+        return new MultiPhasePlan(subPlan, dependencies);
+    }
+
+    private MultiPhasePlan(Plan rootPlan, Map<Plan, SelectSymbol> dependencies) {
+        this.rootPlan = rootPlan;
         this.dependencies = dependencies;
-        this.querySpec = querySpec;
     }
 
     public Map<Plan, SelectSymbol> dependencies() {
@@ -72,11 +62,7 @@ public class MultiPhasePlan implements PlannedAnalyzedRelation, Plan {
     }
 
     public Plan rootPlan() {
-        return plannedAnalyzedRelation.plan();
-    }
-
-    public QuerySpec parentQuerySpec() {
-        return querySpec;
+        return rootPlan;
     }
 
     @Override
@@ -86,51 +72,6 @@ public class MultiPhasePlan implements PlannedAnalyzedRelation, Plan {
 
     @Override
     public UUID jobId() {
-        return plannedAnalyzedRelation.plan().jobId();
-    }
-
-    @Override
-    public Plan plan() {
-        return this;
-    }
-
-    @Override
-    public void addProjection(Projection projection) {
-        plannedAnalyzedRelation.addProjection(projection);
-    }
-
-    @Override
-    public boolean resultIsDistributed() {
-        return plannedAnalyzedRelation.resultIsDistributed();
-    }
-
-    @Override
-    public UpstreamPhase resultPhase() {
-        return plannedAnalyzedRelation.resultPhase();
-    }
-
-    @Override
-    public <C, R> R accept(AnalyzedRelationVisitor<C, R> visitor, C context) {
-        return plannedAnalyzedRelation.accept(visitor, context);
-    }
-
-    @Override
-    public Field getField(Path path, Operation operation) throws UnsupportedOperationException, ColumnUnknownException {
-        return plannedAnalyzedRelation.getField(path, operation);
-    }
-
-    @Override
-    public List<Field> fields() {
-        return plannedAnalyzedRelation.fields();
-    }
-
-    @Override
-    public QualifiedName getQualifiedName() {
-        return plannedAnalyzedRelation.getQualifiedName();
-    }
-
-    @Override
-    public void setQualifiedName(@Nonnull QualifiedName qualifiedName) {
-        plannedAnalyzedRelation.setQualifiedName(qualifiedName);
+        return rootPlan.jobId();
     }
 }

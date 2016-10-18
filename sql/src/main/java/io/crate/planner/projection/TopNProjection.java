@@ -21,10 +21,12 @@
 
 package io.crate.planner.projection;
 
+import com.google.common.base.Function;
 import com.google.common.base.MoreObjects;
 import com.google.common.collect.ImmutableList;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.analyze.symbol.Symbols;
+import io.crate.collections.Lists2;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
@@ -110,6 +112,12 @@ public class TopNProjection extends Projection {
         return reverseFlags != null && reverseFlags.length > 0;
     }
 
+
+    @Override
+    public void replaceSymbols(Function<Symbol, Symbol> replaceFunction) {
+        Lists2.replaceItems(outputs, replaceFunction);
+        Lists2.replaceItems(orderBy, replaceFunction);
+    }
 
     @Override
     public ProjectionType projectionType() {

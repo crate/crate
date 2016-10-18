@@ -22,6 +22,7 @@
 
 package io.crate.planner.projection;
 
+import com.google.common.base.Function;
 import io.crate.analyze.symbol.Symbol;
 
 public class DeleteProjection extends DMLProjection {
@@ -38,6 +39,11 @@ public class DeleteProjection extends DMLProjection {
     }
 
     public DeleteProjection() {
+    }
+
+    @Override
+    public void replaceSymbols(Function<Symbol, Symbol> replaceFunction) {
+        uidSymbol = replaceFunction.apply(uidSymbol);
     }
 
     @Override

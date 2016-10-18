@@ -24,9 +24,11 @@ package io.crate.executor.transport;
 
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
+import io.crate.analyze.symbol.SelectSymbol;
 import io.crate.concurrent.CompletionListenable;
 import io.crate.core.collections.Row;
 import io.crate.operation.projectors.*;
+import io.crate.planner.Plan;
 
 import java.util.Set;
 
@@ -37,7 +39,12 @@ class SingleRowSingleValueRowReceiver implements RowReceiver, CompletionListenab
 
     private final SettableFuture<Object> completionFuture = SettableFuture.create();
     private final static Object SENTINEL = new Object();
+    private final SubSelectSymbolReplacer replacer;
     private Object value = SENTINEL;
+
+    SingleRowSingleValueRowReceiver(Plan rootPlan, SelectSymbol selectSymbolToReplace) {
+        replacer = new SubSelectSymbolReplacer(rootPlan, selectSymbolToReplace);
+    }
 
     @Override
     public Result setNextRow(Row row) {
@@ -55,6 +62,12 @@ class SingleRowSingleValueRowReceiver implements RowReceiver, CompletionListenab
 
     @Override
     public void finish(RepeatHandle repeatable) {
+        try {
+            replacer.onSuccess(this.value);
+        } catch (Throwable e) {
+            completionFuture.setException(e);
+            return;
+        }
         completionFuture.set(value);
     }
 

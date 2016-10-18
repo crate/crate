@@ -24,6 +24,7 @@ package io.crate.planner.projection;
 import com.google.common.collect.ImmutableList;
 import io.crate.analyze.EvaluatingNormalizer;
 import io.crate.analyze.symbol.*;
+import io.crate.collections.Lists2;
 import io.crate.metadata.*;
 import io.crate.metadata.sys.SysShardsTableInfo;
 import io.crate.operation.scalar.FormatFunction;
@@ -121,6 +122,14 @@ public class WriterProjection extends Projection {
 
     public List<Symbol> inputs() {
         return inputs;
+    }
+
+    @Override
+    public void replaceSymbols(com.google.common.base.Function<Symbol, Symbol> replaceFunction) {
+        Lists2.replaceItems(inputs, replaceFunction);
+        for (Map.Entry<ColumnIdent, Symbol> entry : overwrites.entrySet()) {
+            entry.setValue(replaceFunction.apply(entry.getValue()));
+        }
     }
 
     @Override

@@ -298,4 +298,15 @@ public class SubSelectIntegrationTest extends SQLTransportIntegrationTest {
         expectedException.expectMessage("Subquery returned more than 1 row");
         execute("select name from sys.cluster where 1 = (select x from t1)");
     }
+
+    @Test
+    public void testSingleRowSubSelectCanBeUsedInSelectListAndWhereOfPrimaryKeyLookup() throws Exception {
+        execute("create table t1 (x long primary key)");
+        ensureYellow();
+        execute("insert into t1 (x) values (1), (2)");
+        execute("refresh table t1");
+
+        execute("select x, (select 'foo') from t1 where x = (select 1)");
+        assertThat(TestingHelpers.printedTable(response.rows()), is("1| foo\n"));
+    }
 }

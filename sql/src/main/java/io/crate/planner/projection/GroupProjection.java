@@ -21,9 +21,11 @@
 
 package io.crate.planner.projection;
 
+import com.google.common.base.Function;
 import io.crate.analyze.symbol.Aggregation;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.analyze.symbol.Symbols;
+import io.crate.collections.Lists2;
 import io.crate.metadata.RowGranularity;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
@@ -53,6 +55,12 @@ public class GroupProjection extends Projection {
     public GroupProjection(List<Symbol> keys, List<Aggregation> values) {
         this.keys = keys;
         this.values = values;
+    }
+
+    @Override
+    public void replaceSymbols(Function<Symbol, Symbol> replaceFunction) {
+        Lists2.replaceItems(keys, replaceFunction);
+        Lists2.replaceItems(outputs, replaceFunction);
     }
 
     public List<Symbol> keys() {

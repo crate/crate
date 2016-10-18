@@ -22,6 +22,7 @@
 
 package io.crate.planner.projection;
 
+import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.analyze.symbol.Value;
@@ -72,6 +73,10 @@ public class MergeCountProjection extends Projection {
     @Override
     public RowGranularity requiredGranularity() {
         return RowGranularity.CLUSTER;
+    }
+
+    @Override
+    public void replaceSymbols(Function<Symbol, Symbol> replaceFunction) {
     }
 
     @Override

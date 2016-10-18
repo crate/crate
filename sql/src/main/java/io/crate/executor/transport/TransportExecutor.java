@@ -21,6 +21,7 @@
 
 package io.crate.executor.transport;
 
+import com.google.common.base.Supplier;
 import com.google.common.collect.ImmutableList;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
@@ -257,7 +258,7 @@ public class TransportExecutor implements Executor {
         }
 
         @Override
-        public Task visitMultiPhasePlan(MultiPhasePlan multiPhasePlan, Void context) {
+        public Task visitMultiPhasePlan(MultiPhasePlan multiPhasePlan, final Void context) {
             /*
              * This triggers a sequential execution of a multiPhasePlan:
              * First the dependencies (concurrently)
@@ -285,19 +286,26 @@ public class TransportExecutor implements Executor {
              */
             Map<Plan, SelectSymbol> dependencies = multiPhasePlan.dependencies();
             List<ListenableFuture<?>> futures = new ArrayList<>();
+            final Plan rootPlan = multiPhasePlan.rootPlan();
             for (final Map.Entry<Plan, SelectSymbol> entry : dependencies.entrySet()) {
                 Plan dependency = entry.getKey();
                 Task task = process(dependency, context);
-                SingleRowSingleValueRowReceiver singleRowSingleValueRowReceiver = new SingleRowSingleValueRowReceiver();
-                ListenableFuture<?> future = singleRowSingleValueRowReceiver.completionFuture();
-                Futures.addCallback(
-                    future,
-                    new SubSelectSymbolReplacer(multiPhasePlan.parentQuerySpec(), entry.getValue()));
-                futures.add(future);
+                SingleRowSingleValueRowReceiver singleRowSingleValueRowReceiver = new SingleRowSingleValueRowReceiver(
+                    rootPlan, entry.getValue());
+                futures.add(singleRowSingleValueRowReceiver.completionFuture());
                 task.execute(singleRowSingleValueRowReceiver);
             }
-            Task rootTask = process(multiPhasePlan.rootPlan(), context);
-            return new DelayedTask(Futures.allAsList(futures), rootTask);
+            // Creation of the rootTask is delayed until the DelayedTask actually wants to use it.
+            // This is done because some Tasks might access the Symbols in the constructor and they might not be able
+            // to handle SelectSymbols.
+            // This ensures the Symbols are replaced once accessed
+            Supplier<Task> rootTaskSupplier = new Supplier<Task>() {
+                @Override
+                public Task get() {
+                    return process(rootPlan, context);
+                }
+            };
+            return new DelayedTask(Futures.allAsList(futures), rootTaskSupplier);
         }
     }
 

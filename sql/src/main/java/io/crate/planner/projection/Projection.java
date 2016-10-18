@@ -21,6 +21,7 @@
 
 package io.crate.planner.projection;
 
+import com.google.common.base.Function;
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import io.crate.analyze.symbol.Symbol;
@@ -56,6 +57,8 @@ public abstract class Projection implements Streamable {
     public RowGranularity requiredGranularity() {
         return RowGranularity.CLUSTER;
     }
+
+    public abstract void replaceSymbols(Function<Symbol, Symbol> replaceFunction);
 
     public interface ProjectionFactory<T extends Projection> {
         T newInstance();

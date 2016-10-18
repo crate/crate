@@ -21,6 +21,7 @@
 
 package io.crate.planner.node.dql;
 
+import com.google.common.base.Function;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
@@ -101,6 +102,12 @@ public abstract class AbstractProjectionsPhase implements Streamable, ExecutionP
             return Optional.absent();
         } else {
             return Optional.of(projections.get(projections.size() - 1));
+        }
+    }
+
+    public void replaceSymbols(Function<Symbol, Symbol> replaceFunction) {
+        for (Projection projection : projections) {
+            projection.replaceSymbols(replaceFunction);
         }
     }
 
