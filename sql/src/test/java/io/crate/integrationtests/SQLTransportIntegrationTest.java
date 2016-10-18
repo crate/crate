@@ -50,7 +50,10 @@ import io.crate.plugin.SQLPlugin;
 import io.crate.protocols.postgres.PostgresNetty;
 import io.crate.sql.parser.SqlParser;
 import io.crate.test.GroovyTestSanitizer;
-import io.crate.testing.*;
+import io.crate.testing.CollectingRowReceiver;
+import io.crate.testing.SQLBulkResponse;
+import io.crate.testing.SQLResponse;
+import io.crate.testing.SQLTransportExecutor;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateRequest;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateResponse;
 import org.elasticsearch.client.Client;
@@ -72,7 +75,6 @@ import org.elasticsearch.test.ESIntegTestCase;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.hamcrest.Matchers;
 import org.junit.After;
-import org.junit.Before;
 import org.junit.Rule;
 import org.junit.rules.ExpectedException;
 import org.junit.rules.Timeout;
@@ -109,11 +111,6 @@ public abstract class SQLTransportIntegrationTest extends ESIntegTestCase {
             .build();
     }
 
-    @Before
-    public void initDriver() throws Exception {
-        Class.forName("org.postgresql.Driver");
-    }
-
     @Override
     protected Collection<Class<? extends Plugin>> nodePlugins() {
         return pluginList(BlobPlugin.class, SQLPlugin.class, CrateCorePlugin.class);
@@ -135,7 +132,7 @@ public abstract class SQLTransportIntegrationTest extends ESIntegTestCase {
                     Iterator<InetSocketTransportAddress> addressIter = postgresNetty.boundAddresses().iterator();
                     if (addressIter.hasNext()) {
                         InetSocketTransportAddress address = addressIter.next();
-                        return String.format(Locale.ENGLISH, "jdbc:postgresql://%s:%d/",
+                        return String.format(Locale.ENGLISH, "jdbc:crate://%s:%d/",
                             address.getHost(), address.getPort());
                     }
                     return null;

@@ -3,6 +3,7 @@ apply plugin: "maven"
 
 repositories {
     mavenCentral()
+    jcenter()
     maven { url "https://jitpack.io" }
 }
 

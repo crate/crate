@@ -401,10 +401,7 @@ public class SQLTransportExecutor {
             case "int2":
                 value = resultSet.getShort(i + 1);
                 break;
-            case "_char":
-                value = getCharArray(resultSet, i);
-                break;
-            case "char":
+            case "byte":
                 value = resultSet.getByte(i + 1);
                 break;
             case "_json":
