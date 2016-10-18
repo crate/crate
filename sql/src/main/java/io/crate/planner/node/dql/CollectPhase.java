@@ -22,6 +22,7 @@
 
 package io.crate.planner.node.dql;
 
+import com.google.common.base.Function;
 import io.crate.analyze.EvaluatingNormalizer;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.metadata.TransactionContext;
@@ -34,11 +35,13 @@ import java.util.UUID;
 public interface CollectPhase extends UpstreamPhase {
     UUID jobId();
 
-    List<? extends Symbol> toCollect();
+    List<Symbol> toCollect();
 
     List<Projection> projections();
 
     void addProjection(Projection projection);
 
     CollectPhase normalize(EvaluatingNormalizer phase, TransactionContext transactionContext);
+
+    void replaceSymbols(Function<Symbol, Symbol> replaceFunction);
 }

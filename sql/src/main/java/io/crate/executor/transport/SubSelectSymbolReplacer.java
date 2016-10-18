@@ -24,12 +24,16 @@ package io.crate.executor.transport;
 
 import com.google.common.base.Function;
 import com.google.common.util.concurrent.FutureCallback;
-import io.crate.analyze.QuerySpec;
 import io.crate.analyze.symbol.Literal;
 import io.crate.analyze.symbol.SelectSymbol;
 import io.crate.analyze.symbol.Symbol;
+import io.crate.analyze.where.DocKeys;
+import io.crate.collections.Lists2;
 import io.crate.metadata.ReplaceMode;
 import io.crate.metadata.ReplacingSymbolVisitor;
+import io.crate.planner.Plan;
+import io.crate.planner.PlanVisitor;
+import io.crate.planner.node.dql.*;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -40,29 +44,80 @@ import javax.annotation.Nullable;
  */
 class SubSelectSymbolReplacer implements FutureCallback<Object> {
 
-    private final QuerySpec querySpec;
+    private final Plan plan;
     private final SelectSymbol selectSymbolToReplace;
+    private static final PlanSymbolVisitor PLAN_SYMBOL_VISITOR = new PlanSymbolVisitor();
 
-    SubSelectSymbolReplacer(QuerySpec querySpec, SelectSymbol selectSymbolToReplace) {
-        this.querySpec = querySpec;
+    SubSelectSymbolReplacer(Plan plan, SelectSymbol selectSymbolToReplace) {
+        this.plan = plan;
         this.selectSymbolToReplace = selectSymbolToReplace;
     }
 
     @Override
     public void onSuccess(@Nullable Object result) {
-        querySpec.replace(new Visitor(selectSymbolToReplace, result));
+        // sub-selects on the same level may run concurrently, but symbol mutation is not thread-safe
+        synchronized (plan) {
+            PLAN_SYMBOL_VISITOR.process(plan, new SymbolReplacer(selectSymbolToReplace, result));
+        }
     }
 
     @Override
     public void onFailure(@Nonnull Throwable t) {
     }
 
-    private static class Visitor extends ReplacingSymbolVisitor<Void> implements Function<Symbol, Symbol> {
+    private static class PlanSymbolVisitor extends PlanVisitor<SymbolReplacer, Void> {
+
+        private void process(@Nullable MergePhase mergePhase, SymbolReplacer replacer) {
+            if (mergePhase != null) {
+                mergePhase.replaceSymbols(replacer);
+            }
+        }
+
+        @Override
+        protected Void visitPlan(Plan plan, SymbolReplacer context) {
+            throw new UnsupportedOperationException("Subselect not supported in " + plan);
+        }
+
+        @Override
+        public Void visitQueryThenFetch(QueryThenFetch plan, SymbolReplacer replacer) {
+            process(plan.subPlan(), replacer);
+            process(plan.localMerge(), replacer);
+            // plan.fetchPhase() -> has only references - no selectSymbols
+            return null;
+        }
+
+        @Override
+        public Void visitCollectAndMerge(CollectAndMerge plan, SymbolReplacer replacer) {
+            plan.collectPhase().replaceSymbols(replacer);
+            process(plan.localMerge(), replacer);
+            return null;
+        }
+
+        @Override
+        public Void visitDistributedGroupBy(DistributedGroupBy node, SymbolReplacer replacer) {
+            node.collectNode().replaceSymbols(replacer);
+            process(node.localMergeNode(), replacer);
+            process(node.reducerMergeNode(), replacer);
+            return null;
+        }
+
+        @Override
+        public Void visitGetPlan(ESGet plan, SymbolReplacer replacer) {
+            Lists2.replaceItems(plan.outputs(), replacer);
+            Lists2.replaceItems(plan.sortSymbols(), replacer);
+            for (DocKeys.DocKey current : plan.docKeys()) {
+                Lists2.replaceItems(current.values(), replacer);
+            }
+            return null;
+        }
+    }
+
+    private static class SymbolReplacer extends ReplacingSymbolVisitor<Void> implements Function<Symbol, Symbol> {
 
         private final SelectSymbol selectSymbolToReplace;
         private final Object value;
 
-        public Visitor(SelectSymbol selectSymbolToReplace, Object value) {
+        private SymbolReplacer(SelectSymbol selectSymbolToReplace, Object value) {
             super(ReplaceMode.MUTATE);
             this.selectSymbolToReplace = selectSymbolToReplace;
             this.value = value;

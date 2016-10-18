@@ -22,8 +22,13 @@
 
 package io.crate.collections;
 
+import com.google.common.base.Function;
+import com.google.common.collect.Lists;
+
+import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.ListIterator;
 
 public class Lists2 {
 
@@ -36,5 +41,21 @@ public class Lists2 {
             }
         }
         return result;
+    }
+
+    /**
+     * Apply the replace function on each item of the list and replaces the item.
+     *
+     * This is similar to {@link Lists#transform(List, Function)}, but instead of creating a view on a backing list
+     * this function is actually mutating the provided list
+     */
+    public static <T> void replaceItems(@Nullable List<T> list, Function<T, T> replaceFunction) {
+        if (list == null || list.isEmpty()) {
+            return;
+        }
+        ListIterator<T> it = list.listIterator();
+        while (it.hasNext()) {
+            it.set(replaceFunction.apply(it.next()));
+        }
     }
 }

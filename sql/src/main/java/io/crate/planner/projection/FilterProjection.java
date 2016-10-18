@@ -21,9 +21,11 @@
 
 package io.crate.planner.projection;
 
+import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.analyze.symbol.Symbols;
+import io.crate.collections.Lists2;
 import io.crate.metadata.RowGranularity;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
@@ -51,6 +53,12 @@ public class FilterProjection extends Projection {
     @Override
     public RowGranularity requiredGranularity() {
         return requiredGranularity;
+    }
+
+    @Override
+    public void replaceSymbols(Function<Symbol, Symbol> replaceFunction) {
+        query = replaceFunction.apply(query);
+        Lists2.replaceItems(outputs, replaceFunction);
     }
 
     public void requiredGranularity(RowGranularity requiredRowGranularity) {

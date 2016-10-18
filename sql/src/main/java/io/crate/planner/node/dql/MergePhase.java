@@ -21,6 +21,7 @@
 
 package io.crate.planner.node.dql;
 
+import com.google.common.base.Function;
 import com.google.common.base.MoreObjects;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
@@ -231,7 +232,6 @@ public class MergePhase extends AbstractProjectionsPhase implements UpstreamPhas
     public Boolean[] nullsFirst() {
         return nullsFirst;
     }
-
 
     @Override
     public <C, R> R accept(ExecutionPhaseVisitor<C, R> visitor, C context) {
