@@ -88,7 +88,6 @@ public class SetStatementAnalyzer {
                 checkIfSettingIsRuntime(setting);
             }
             settingsApplier.apply(builder, parameters, assignment.expression());
-
         }
         return new SetAnalyzedStatement(node.scope(), builder.build(), isPersistent);
     }

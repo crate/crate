@@ -1592,14 +1592,12 @@ Parameters can be set with the ``SET/SET SESSION`` statement, see :ref:`ref-set`
 
 **search_path**
   | *Default:* ``doc``
-  | *Runtime:* ``yes``
 
-  The parameter holds the schema search path. The value of ``search_path`` can
-  be a string which contains the searched schema name or a comma-separated
-  list of schema names. Crate will consider only the first schema name and
-  ignore the rest, if the list of schema names is provided as the value for
-  the ``search_path`` parameter.
-
+   This parameter holds the default schema for a session that should be used when
+   no schema is provided in queries.
+   The value of ``search_path`` can be either a string or a comma-separated
+   list of strings. However, Crate only considers the first element when a
+   list is provided.
 
 Logging
 =======

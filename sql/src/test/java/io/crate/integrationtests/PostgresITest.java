@@ -552,7 +552,6 @@ public class PostgresITest extends SQLTransportIntegrationTest {
 
             conn.createStatement().execute("set session search_path to bar");
             conn.createStatement().executeUpdate("create table foo (id int) with (number_of_replicas=0)");
-            conn.createStatement().execute("select * from bar.foo");
 
             conn.createStatement().execute("set session search_path to DEFAULT");
             expectedException.expect(PSQLException.class);

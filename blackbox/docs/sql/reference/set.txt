@@ -69,4 +69,3 @@ so that the setting will not be discarded if the cluster restarts.
 .. NOTE::
 
    The persistence keyword can only be used within a ``SET`` statement.
-host:/?
