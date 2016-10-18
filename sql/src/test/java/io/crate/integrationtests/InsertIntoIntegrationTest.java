@@ -1171,6 +1171,20 @@ public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
     }
 
     @Test
+    public void testInsertFromSubQueryWithUnion() throws Exception {
+        execute("create table source(col1 integer)");
+        execute("create table target(col1 integer primary key)");
+        ensureYellow();
+        execute("insert into source (col1) values (1)");
+        refresh();
+        execute("insert into target (col1) (select col1 from source union all select col1 + 1 from source)");
+        refresh();
+        execute("select col1 from target order by 1");
+        assertThat(TestingHelpers.printedTable(response.rows()), is("1\n" +
+                                                                    "2\n"));
+    }
+
+    @Test
     public void testGeneratedColumnAsPrimaryKeyValueEvaluateToNull() throws Exception {
         // test that correct exception message is thrown
         execute("create table generated_test (" +

@@ -81,25 +81,25 @@ public class PageDownstreamFactory {
         return projectionToProjectorVisitor;
     }
 
-    public PageDownstream createMergeNodePageDownstream(MergePhase mergeNode,
+    public PageDownstream createMergeNodePageDownstream(MergePhase mergePhase,
                                                         RowReceiver downstream,
                                                         boolean requiresRepeatSupport,
                                                         RamAccountingContext ramAccountingContext,
                                                         Optional<Executor> executorOptional) {
-        if (!mergeNode.projections().isEmpty()) {
+        if (!mergePhase.projections().isEmpty()) {
             FlatProjectorChain projectorChain = FlatProjectorChain.withAttachedDownstream(
                 projectionToProjectorVisitor,
                 ramAccountingContext,
-                mergeNode.projections(),
+                mergePhase.projections(),
                 downstream,
-                mergeNode.jobId()
+                mergePhase.jobId()
             );
             downstream = projectorChain.firstProjector();
         }
 
         PagingIterator<Void, Row> pagingIterator;
-        PositionalOrderBy positionalOrderBy = mergeNode.orderByPositions();
-        if (positionalOrderBy != null && mergeNode.numUpstreams() > 1) {
+        PositionalOrderBy positionalOrderBy = mergePhase.orderByPositions();
+        if (positionalOrderBy != null && mergePhase.numUpstreams() > 1) {
             pagingIterator = new SortedPagingIterator<>(
                 OrderingByPosition.rowOrdering(positionalOrderBy),
                 requiresRepeatSupport

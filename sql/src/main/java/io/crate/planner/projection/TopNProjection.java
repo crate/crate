@@ -119,10 +119,12 @@ public class TopNProjection extends Projection {
 
     @Override
     public void prependOutput(Symbol symbol) {
+        if (orderBy != null) {
+            InputColumn.shiftRight(orderBy);
+        }
+
         InputColumn.shiftRight(outputs);
         outputs.add(0, symbol);
-
-        InputColumn.shiftRight(orderBy);
     }
 
     @Override

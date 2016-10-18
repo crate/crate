@@ -338,7 +338,7 @@ public class TransportExecutor implements Executor {
 
         NodeOperationTreeGenerator nodeOperationTreeGenerator = new NodeOperationTreeGenerator();
 
-        public List<NodeOperationTree> createNodeOperationTrees(Plan plan, String localNodeId) {
+        List<NodeOperationTree> createNodeOperationTrees(Plan plan, String localNodeId) {
             Context context = new Context(localNodeId);
             process(plan, context);
             return context.nodeOperationTrees;
@@ -413,7 +413,7 @@ public class TransportExecutor implements Executor {
             private final Stack<ExecutionPhase> phases = new Stack<>();
             private final byte inputId;
 
-            public Branch(byte inputId) {
+            Branch(byte inputId) {
                 this.inputId = inputId;
             }
         }
@@ -426,7 +426,7 @@ public class TransportExecutor implements Executor {
             private final Branch root;
             private Branch currentBranch;
 
-            public NodeOperationTreeContext(String localNodeId) {
+            NodeOperationTreeContext(String localNodeId) {
                 this.localNodeId = localNodeId;
                 root = new Branch((byte) 0);
                 currentBranch = root;
@@ -439,11 +439,11 @@ public class TransportExecutor implements Executor {
              * E.g. in a plan where data flows from CollectPhase to MergePhase
              * it should be called first for MergePhase and then for CollectPhase
              */
-            public void addPhase(@Nullable ExecutionPhase executionPhase) {
+            void addPhase(@Nullable ExecutionPhase executionPhase) {
                 addPhase(executionPhase, nodeOperations, true);
             }
 
-            public void addContextPhase(@Nullable ExecutionPhase executionPhase) {
+            void addContextPhase(@Nullable ExecutionPhase executionPhase) {
                 addPhase(executionPhase, nodeOperations, false);
             }
 
@@ -489,22 +489,21 @@ public class TransportExecutor implements Executor {
                 return true;
             }
 
-            public void branch(byte inputId) {
+            void branch(byte inputId) {
                 branches.add(currentBranch);
                 currentBranch = new Branch(inputId);
             }
 
-            public void leaveBranch() {
+            void leaveBranch() {
                 currentBranch = branches.pop();
             }
-
 
             public Collection<NodeOperation> nodeOperations() {
                 return nodeOperations;
             }
         }
 
-        public NodeOperationTree fromPlan(Plan plan, String localNodeId) {
+        NodeOperationTree fromPlan(Plan plan, String localNodeId) {
             NodeOperationTreeContext nodeOperationTreeContext = new NodeOperationTreeContext(localNodeId);
             process(plan, nodeOperationTreeContext);
             return new NodeOperationTree(nodeOperationTreeContext.nodeOperations(),
@@ -520,8 +519,8 @@ public class TransportExecutor implements Executor {
 
         @Override
         public Void visitCountPlan(CountPlan plan, NodeOperationTreeContext context) {
-            context.addPhase(plan.mergeNode());
-            context.addPhase(plan.countNode());
+            context.addPhase(plan.mergePhase());
+            context.addPhase(plan.countPhase());
             return null;
         }
 

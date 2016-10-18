@@ -892,6 +892,25 @@ public class SelectStatementAnalyzerTest extends CrateUnitTest {
     }
 
     @Test
+    public void testUnionOrderByFunctions() throws Exception {
+        SelectAnalyzedStatement analysis = analyze("select abs(id), text from users " +
+                                                   "union all " +
+                                                   "select id, lower(name) from users_multi_pk " +
+                                                   "order by sqrt(abs(id)), upper(text) ");
+        assertThat(analysis.relation(), instanceOf(TwoRelationsUnion.class));
+        TwoRelationsUnion tableUnion = (TwoRelationsUnion) analysis.relation();
+        assertThat(tableUnion.first(), instanceOf(QueriedDocTable.class));
+        assertThat(tableUnion.second(), instanceOf(QueriedDocTable.class));
+        assertThat(tableUnion.querySpec(), isSQL("SELECT abs(doc.users.id), doc.users.text " +
+                                                 "ORDER BY sqrt(INPUT(0)), upper(INPUT(1))"));
+        assertThat(tableUnion.first().querySpec(), isSQL("SELECT abs(doc.users.id), doc.users.text " +
+                                                         "ORDER BY sqrt(abs(doc.users.id)), upper(doc.users.text)"));
+        assertThat(tableUnion.second().querySpec(),
+                   isSQL("SELECT doc.users_multi_pk.id, lower(doc.users_multi_pk.name) " +
+                         "ORDER BY sqrt(doc.users_multi_pk.id), upper(lower(doc.users_multi_pk.name))"));
+    }
+
+    @Test
     public void testUnionWithJoin() throws Exception {
         SelectAnalyzedStatement analysis = analyze("select u1.id, u2.name from users u1, users_multi_pk u2 " +
                                                         "where u1.id = u2.id " +
@@ -1091,12 +1110,22 @@ public class SelectStatementAnalyzerTest extends CrateUnitTest {
 
     @Test
     public void testUnionWrongOrderBy() throws Exception {
-        expectedException.expect(ColumnUnknownException.class);
-        expectedException.expectMessage("Column name unknown");
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("Unable to resolve order by symbol: name");
         analyze("select id, text from users " +
                 "union all " +
                 "select id, name from users_multi_pk " +
                 "order by name");
+    }
+
+    @Test
+    public void testUnionWrongOrderByWithFunctions() throws Exception {
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("Unable to resolve order by symbol: text");
+        analyze("select id, lower(text) from users " +
+                "union all " +
+                "select id, name from users_multi_pk " +
+                "order by upper(text)");
     }
 
     @Test(expected = IllegalArgumentException.class)
