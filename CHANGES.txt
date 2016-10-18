@@ -5,6 +5,13 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Updated crate-admin to ``0.20.3`` which includes following changes:
+
+    - Fixed broken execute button in the console view.
+
+    - Fix : Reduced the amount of log output to browseonsole when issuing
+      SQL statements.
+
  - Added ``CURRENT_SCHEMA`` system information function
 
  - added column ``table_schema`` in ``information_schema.columns``,
