@@ -915,9 +915,9 @@ public class SelectStatementAnalyzerTest extends CrateUnitTest {
 
     @Test
     public void testUnionWithSubSelect() throws Exception {
-        SelectAnalyzedStatement analysis = analyze("select * from (select id from users order by name limit 5) a " +
+        SelectAnalyzedStatement analysis = analyze("select id from (select id, name from users order by name limit 5) a " +
                                                    "union all " +
-                                                   "select id from users_multi_pk " +
+                                                   "select id from (select id, name from users_multi_pk order by id) b " +
                                                    "order by id " +
                                                    "limit 10 offset 20");
         assertThat(analysis.relation(), instanceOf(TwoRelationsUnion.class));
