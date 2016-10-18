@@ -306,6 +306,7 @@ public class RoutedCollectPhase extends AbstractProjectionsPhase implements Coll
                 newWhereClause,
                 distributionInfo
             );
+            result.orderBy(orderBy);
         }
         return result;
     }

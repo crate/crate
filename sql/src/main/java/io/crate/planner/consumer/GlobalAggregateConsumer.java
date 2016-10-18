@@ -156,7 +156,7 @@ class GlobalAggregateConsumer implements Consumer {
             plannerContext.nextExecutionPhaseId(),
             "mergeOnHandler",
             collectPhase.nodeIds().size(),
-            Collections.emptyList(),
+            Collections.singletonList(plannerContext.handlerNode()),
             Symbols.extractTypes(ap.outputs()),
             mergeProjections,
             DistributionInfo.DEFAULT_SAME_NODE,

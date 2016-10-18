@@ -38,21 +38,21 @@ import java.util.UUID;
 public class CountPlan implements Plan, ResultDescription {
 
     private final CountPhase countNode;
-    private final MergePhase mergeNode;
+    private final MergePhase mergePhase;
     private final UUID id;
 
-    public CountPlan(CountPhase countNode, MergePhase mergeNode) {
+    public CountPlan(CountPhase countNode, MergePhase mergePhase) {
         this.countNode = countNode;
-        this.mergeNode = mergeNode;
-        this.id = mergeNode.jobId();
+        this.mergePhase = mergePhase;
+        this.id = mergePhase.jobId();
     }
 
     public CountPhase countNode() {
         return countNode;
     }
 
-    public MergePhase mergeNode() {
-        return mergeNode;
+    public MergePhase mergePhase() {
+        return mergePhase;
     }
 
     @Override
@@ -71,7 +71,7 @@ public class CountPlan implements Plan, ResultDescription {
                               @Nullable Integer newOffset,
                               @Nullable Integer newNumOutputs,
                               @Nullable PositionalOrderBy newOrderBy) {
-        mergeNode.addProjection(projection);
+        mergePhase.addProjection(projection);
     }
 
     @Override
@@ -81,12 +81,12 @@ public class CountPlan implements Plan, ResultDescription {
 
     @Override
     public void setDistributionInfo(DistributionInfo distributionInfo) {
-        mergeNode.distributionInfo(distributionInfo);
+        mergePhase.distributionInfo(distributionInfo);
     }
 
     @Override
     public Collection<String> nodeIds() {
-        return mergeNode.nodeIds();
+        return mergePhase.nodeIds();
     }
 
     @Nullable
@@ -112,11 +112,11 @@ public class CountPlan implements Plan, ResultDescription {
 
     @Override
     public int numOutputs() {
-        return mergeNode.outputTypes.size();
+        return mergePhase.outputTypes.size();
     }
 
     @Override
     public List<DataType> streamOutputs() {
-        return mergeNode.outputTypes();
+        return mergePhase.outputTypes();
     }
 }
