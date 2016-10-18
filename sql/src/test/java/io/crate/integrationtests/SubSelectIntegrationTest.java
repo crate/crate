@@ -309,4 +309,15 @@ public class SubSelectIntegrationTest extends SQLTransportIntegrationTest {
         execute("select x, (select 'foo') from t1 where x = (select 1)");
         assertThat(TestingHelpers.printedTable(response.rows()), is("1| foo\n"));
     }
+
+    @Test
+    public void testSingleRowSubSelectWorksWithJoins() throws Exception {
+        execute("create table t (x long primary key)");
+        ensureYellow();
+        execute("insert into t (x) values (1), (2)");
+        execute("refresh table t");
+
+        execute("select * from t as t1, t as t2 where t1.x = (select 1) order by t2.x");
+        assertThat(TestingHelpers.printedTable(response.rows()), is("1| 1\n1| 2\n"));
+    }
 }

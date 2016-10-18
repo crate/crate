@@ -34,6 +34,7 @@ import io.crate.metadata.ReplacingSymbolVisitor;
 import io.crate.planner.Plan;
 import io.crate.planner.PlanVisitor;
 import io.crate.planner.node.dql.*;
+import io.crate.planner.node.dql.join.NestedLoop;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -108,6 +109,15 @@ class SubSelectSymbolReplacer implements FutureCallback<Object> {
             for (DocKeys.DocKey current : plan.docKeys()) {
                 Lists2.replaceItems(current.values(), replacer);
             }
+            return null;
+        }
+
+        @Override
+        public Void visitNestedLoop(NestedLoop plan, SymbolReplacer replacer) {
+            process(plan.left().plan(), replacer);
+            process(plan.right().plan(), replacer);
+            process(plan.localMerge(), replacer);
+            plan.nestedLoopPhase().replaceSymbols(replacer);
             return null;
         }
     }
