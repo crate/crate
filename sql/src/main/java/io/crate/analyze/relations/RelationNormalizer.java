@@ -388,8 +388,13 @@ final class RelationNormalizer {
                 multiSourceSelect.joinPairs());
         }
 
+
         @Override
         public AnalyzedRelation visitTwoRelationsUnion(TwoRelationsUnion twoTableUnion, Context context) {
+            if (context.currentParentQSpec != null) {
+                throw new UnsupportedOperationException("UNION as a sub query is not supported");
+            }
+
             QuerySpec querySpec = twoTableUnion.querySpec();
             replaceFieldReferences(querySpec);
 
@@ -456,9 +461,6 @@ final class RelationNormalizer {
                 QuerySpec querySpec = table.querySpec();
                 pushDownLimit(querySpec, context.limit);
                 pushDownOrderBy(querySpec, context.orderBy);
-                // The pushedDown OrderBy is passed InputColumn and must
-                // be rewritten to their output symbol counterparts
-                rewritePushedDownOrderBy(querySpec);
                 return null;
             }
 
@@ -467,9 +469,6 @@ final class RelationNormalizer {
                 QuerySpec querySpec = table.querySpec();
                 pushDownLimit(querySpec, context.limit);
                 pushDownOrderBy(querySpec, context.orderBy);
-                // The pushedDown OrderBy is passed InputColumn and must
-                // be rewritten to their output symbol counterparts
-                rewritePushedDownOrderBy(querySpec);
                 return null;
             }
 
@@ -488,28 +487,33 @@ final class RelationNormalizer {
             }
 
             private void pushDownOrderBy(QuerySpec querySpec, Optional<OrderBy> orderBy) {
-                querySpec.orderBy(tryReplace(querySpec.orderBy(), orderBy));
+                querySpec.orderBy(tryReplace(querySpec.orderBy(),
+                    // The pushedDown OrderBy is passed as InputColumn and must
+                    // be rewritten to their output symbol counterparts
+                    rewritePushedDownOrderBy(orderBy, querySpec.outputs())));
             }
 
             private void pushDownLimit(QuerySpec querySpec, Optional<Symbol> limit) {
                 querySpec.limit(Limits.mergeMin(querySpec.limit(), limit));
             }
 
-            private static void rewritePushedDownOrderBy(final QuerySpec querySpec) {
-                Optional<OrderBy> orderBy = querySpec.orderBy();
-                if (orderBy.isPresent()) {
-                    querySpec.orderBy(orderBy.get().copyAndReplace(new com.google.common.base.Function<Symbol, Symbol>() {
-                        @Nullable
-                        @Override
-                        public Symbol apply(@Nullable Symbol symbol) {
-                            if (symbol instanceof InputColumn) {
-                                InputColumn inputColumn = (InputColumn) symbol;
-                                return querySpec.outputs().get(inputColumn.index());
-                            }
-                            return symbol;
-                        }
-                    }));
+            private static Optional<OrderBy> rewritePushedDownOrderBy(Optional<OrderBy> orderBy,
+                                                                      final List<Symbol> outputs) {
+                if (!orderBy.isPresent()) {
+                    return orderBy;
                 }
+
+                return Optional.of(orderBy.get().copyAndReplace(new com.google.common.base.Function<Symbol, Symbol>() {
+                    @Nullable
+                    @Override
+                    public Symbol apply(@Nullable Symbol symbol) {
+                        if (symbol instanceof InputColumn) {
+                            InputColumn inputColumn = (InputColumn) symbol;
+                            return outputs.get(inputColumn.index());
+                        }
+                        return symbol;
+                    }
+                }));
             }
         }
     }

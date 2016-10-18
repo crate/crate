@@ -31,9 +31,9 @@ public class UnionPlannerTest extends AbstractPlannerTest {
     public void testUnionAsPartOfJoin() {
         expectedException.expect(ValidationException.class);
         expectedException.expectMessage("JOIN with sub queries is not supported");
-        plan("select a.name from users a, " +
+        plan("select * from sys.cluster, " +
              "(select name from users " +
              "union all " +
-             "select name from characters) b");
+             "select name from sys.nodes) b");
     }
 }

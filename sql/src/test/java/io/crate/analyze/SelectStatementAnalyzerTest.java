@@ -915,9 +915,9 @@ public class SelectStatementAnalyzerTest extends CrateUnitTest {
 
     @Test
     public void testUnionWithSubSelectRewritten() throws Exception {
-        SelectAnalyzedStatement analysis = analyze("select * from (select id from users order by name) a " +
+        SelectAnalyzedStatement analysis = analyze("select id from (select id, name from users order by name) a " +
                                                    "union all " +
-                                                   "select id from users_multi_pk " +
+                                                   "select id from (select id, name from users_multi_pk order by id) b " +
                                                    "order by id " +
                                                    "limit 10 offset 20");
         assertThat(analysis.relation(), instanceOf(TwoRelationsUnion.class));
@@ -938,9 +938,9 @@ public class SelectStatementAnalyzerTest extends CrateUnitTest {
     //TODO: Fix
     @Test
     public void testUnionWithSubSelectNotRewritten() throws Exception {
-        SelectAnalyzedStatement analysis = analyze("select * from (select id from users order by name limit 5) a " +
+        SelectAnalyzedStatement analysis = analyze("select id from (select id, name from users order by name limit 5) a " +
                                                    "union all " +
-                                                   "select id from users_multi_pk " +
+                                                   "select id from (select id, name from users_multi_pk order by id) b " +
                                                    "order by id " +
                                                    "limit 10 offset 20");
         assertThat(analysis.relation(), instanceOf(TwoRelationsUnion.class));
@@ -956,6 +956,19 @@ public class SelectStatementAnalyzerTest extends CrateUnitTest {
         assertThat(tableUnion.second().querySpec(), isSQL("SELECT doc.users_multi_pk.id " +
                                                           "ORDER BY doc.users_multi_pk.id " +
                                                           "LIMIT add(10, 20)"));
+    }
+
+    @Test
+    public void testUnionAsSubSelect() throws Exception {
+        expectedException.expect(UnsupportedOperationException.class);
+        expectedException.expectMessage("UNION as a sub query is not supported");
+        analyze("select id, name from (" +
+                    "select id, name, text from users " +
+                    "union all " +
+                    "select id, name, name from users_multi_pk " +
+                    "order by id " +
+                    "limit 10 offset 20) a " +
+                "order by 2 limit 5") ;
     }
 
     @Test
