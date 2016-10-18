@@ -5,19 +5,7 @@
 Scalar Functions
 ================
 
-Scalar functions return a single data value (not a table).
-
-.. note::
-
-    In DELETE statements scalar functions cannot be used in the WHERE
-    clause unless otherwise described in the function description below.
-
-    In the case it is stated below that the scalar function can always be used
-    in a WHERE clause it is still not possible to compare one scalar function
-    with another in DELETE statements.
-
-See below for a list of available scalar functions.
-
+Scalar functions return a single value (not a table).
 
 String Functions
 ================
@@ -25,8 +13,8 @@ String Functions
 concat('first_arg', second_arg, [ parameter , ... ]) returns string
 -------------------------------------------------------------------
 
-The ``concat`` function takes two or more arguments and will return the text
-representations of all the arguments concatenated. NULL values are ignored.
+Concatenates a variable number of arguments into a single string. It ignores
+``NULL`` values.
 
 ::
 
@@ -39,7 +27,7 @@ representations of all the arguments concatenated. NULL values are ignored.
     SELECT 1 row in set (... sec)
 
 
-There is also a special concat operator ``||`` which can also be used::
+You can also use the ``||`` operator::
 
     cr> select 'foo' || 'bar' from sys.cluster;
     +----------------------+
@@ -53,8 +41,10 @@ There is also a special concat operator ``||`` which can also be used::
 format('format_string', parameter, [ parameter , ... ]) returns string
 ----------------------------------------------------------------------
 
-The ``format`` function takes a format string and a variable number of
-arguments and returns a formatted string::
+Formats a string similar to the C function ``printf``. For details about the
+format string syntax, see `formatter`_
+
+::
 
     cr> select format('%s.%s', schema_name, table_name) from sys.shards
     ... where table_name = 'locations'
@@ -79,14 +69,14 @@ arguments and returns a formatted string::
     +---------------------+
     SELECT 2 rows in set (... sec)
 
-For details about the format string syntax see `formatter`_
 
 substr('string', from, [ count ]) returns string
 ------------------------------------------------
 
-The ``substr`` function extracts a substring from a given string
-starting at character ``from``. It takes an optional argument ``count``
-which defines the length of the substring::
+Extracts a part of a string. ``from`` specifies where to start and ``count``
+the length of the part.
+
+::
 
     cr> select substr(name, 3, 2) from sys.nodes
     ... limit 1;
@@ -103,12 +93,9 @@ which defines the length of the substring::
 char_length('string') returns integer
 -------------------------------------
 
-The ``char_length`` function returns the number of characters in the string.
+Counts the number of characters in a string.
 
-A multibyte character counts as a single character. This means if a string
-contains two bytes character it will be counted as a single character.
-
-Example::
+::
 
     cr> select char_length('crate.io') from sys.cluster;
     +-------------------------+
@@ -117,6 +104,8 @@ Example::
     |                       8 |
     +-------------------------+
     SELECT 1 row in set (... sec)
+
+Each character counts only once, regardless of its byte size.
 
 ::
 
@@ -134,15 +123,14 @@ Example::
 bit_length('string') returns integer
 ------------------------------------
 
-The ``bit_length`` function returns the number of bits in the input string.
+Counts the number of bits in a string.
 
 .. note::
 
-    Crate.io internally uses UTF-8 encoded strings. This means that a single
-    character may be represented as single byte (e.g. most ascii characters)
-    or up to 4 bytes (e.g. emoji or other unicode characters).
+    Crate.io uses UTF-8 encoding internally, which uses between 1 and 4 bytes
+    per character.
 
-Example::
+::
 
     cr> select bit_length('crate.io') from sys.cluster;
     +------------------------+
@@ -168,10 +156,9 @@ Example::
 octet_length('string') returns integer
 --------------------------------------
 
-The ``octet_length`` function returns the number of bytes (octets) in the input
-string.
+Counts the number of bytes (octets) in a string.
 
-Example::
+::
 
     cr> select octet_length('crate.io') from sys.cluster;
     +--------------------------+
@@ -195,8 +182,7 @@ Example::
 lower('string') returns string
 ------------------------------
 
-The ``lower`` function transforms any upper case characters into their
-corresponding lower case versions. ``lower`` however does not perform
+Converts all characters to lowercase. ``lower`` does not perform
 locale-sensitive or context-sensitive mappings.
 
 ::
@@ -214,8 +200,7 @@ locale-sensitive or context-sensitive mappings.
 upper('string') returns string
 ------------------------------
 
-The ``upper`` function transforms any lower case characters into their
-corresponding upper case versions. ``upper`` however does not perform
+Converts all characters to uppercase. ``upper`` does not perform
 locale-sensitive or context-sensitive mappings.
 
 ::
@@ -238,8 +223,7 @@ Date/Time Functions
 date_trunc('interval', ['timezone',] timestamp) returns timestamp
 -----------------------------------------------------------------
 
-The ``date_trunc`` function truncates a timestamp to a given interval
-for a specific timezone.
+Limits a timestamps precision to a given interval.
 
 Valid intervals are:
 
@@ -282,7 +266,7 @@ day based histogram in the ``Europe/Moscow`` timezone::
     +---------------+---------------+
     SELECT 3 rows in set (... sec)
 
-If the time zone is not specified, truncation is based on UTC time::
+If you don't specify a time zone, ``truncate`` uses UTC time::
 
     cr> select date_trunc('day', date) as day, count(*) as num_locations
     ... from locations
