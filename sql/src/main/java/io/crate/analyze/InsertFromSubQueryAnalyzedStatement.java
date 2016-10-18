@@ -54,7 +54,8 @@ public class InsertFromSubQueryAnalyzedStatement implements AnalyzedRelation, An
     private final List<Reference> targetColumns;
     private final List<Symbol> primaryKeySymbols;
     private final List<Symbol> partitionedBySymbols;
-    private final int clusteredByIdx;
+    @Nullable
+    private final Symbol clusteredBySymbol;
 
     public InsertFromSubQueryAnalyzedStatement(QueriedRelation subQueryRelation,
                                                DocTableInfo tableInfo,
@@ -66,7 +67,13 @@ public class InsertFromSubQueryAnalyzedStatement implements AnalyzedRelation, An
         this.targetColumns = targetColumns;
         Map<ColumnIdent, Integer> columnPositions = toPositionMap(targetColumns);
 
-        clusteredByIdx = MoreObjects.firstNonNull(columnPositions.get(tableInfo.clusteredBy()), -1);
+
+        int clusteredByIdx = MoreObjects.firstNonNull(columnPositions.get(tableInfo.clusteredBy()), -1);
+        if (clusteredByIdx > -1) {
+            clusteredBySymbol = new InputColumn(clusteredByIdx,  targetColumns.get(clusteredByIdx).valueType());
+        } else {
+            clusteredBySymbol = null;
+        }
         ImmutableMap<ColumnIdent, GeneratedReference> generatedColumns =
             Maps.uniqueIndex(tableInfo.generatedColumns(), Reference.TO_COLUMN_IDENT);
 
@@ -213,7 +220,8 @@ public class InsertFromSubQueryAnalyzedStatement implements AnalyzedRelation, An
         return partitionedBySymbols;
     }
 
-    public int clusteredByIdx() {
-        return clusteredByIdx;
+    @Nullable
+    public Symbol clusteredBySymbol() {
+        return clusteredBySymbol;
     }
 }

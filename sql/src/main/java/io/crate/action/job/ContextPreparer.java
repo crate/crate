@@ -443,7 +443,7 @@ public class ContextPreparer extends AbstractComponent {
             String localNodeId = clusterService.localNode().id();
             final Map<String, List<Integer>> indexShardMap = locations.get(localNodeId);
             if (indexShardMap == null) {
-                throw new IllegalArgumentException("The routing of the countNode doesn't contain the current nodeId");
+                throw new IllegalArgumentException("The routing of the countPhase doesn't contain the current nodeId");
             }
 
             RowReceiver rowReceiver = context.getRowReceiver(phase, 0);
