@@ -94,11 +94,18 @@ public class ESGetTask extends JobTask {
             this.downstream = downstream;
         }
 
+        @Nullable
         protected abstract Request prepareRequest(ESGet node, FetchSourceContext fsc);
 
         @Override
         protected void innerStart() {
-            transportAction.execute(request, this);
+            if (request == null) {
+                // request can be null if id is null -> since primary keys cannot be null this is a no-match
+                downstream.finish(RepeatHandle.UNSUPPORTED);
+                close();
+            } else {
+                transportAction.execute(request, this);
+            }
         }
     }
 
@@ -227,8 +234,12 @@ public class ESGetTask extends JobTask {
         @Override
         protected GetRequest prepareRequest(ESGet node, FetchSourceContext fsc) {
             DocKeys.DocKey docKey = node.docKeys().getOnlyKey();
+            String id = docKey.id();
+            if (id == null) {
+                return null;
+            }
             GetRequest getRequest = new GetRequest(indexName(node.tableInfo(), docKey.partitionValues().orNull()),
-                Constants.DEFAULT_MAPPING_TYPE, docKey.id());
+                Constants.DEFAULT_MAPPING_TYPE, id);
             getRequest.fetchSourceContext(fsc);
             getRequest.realtime(true);
             getRequest.routing(docKey.routing());

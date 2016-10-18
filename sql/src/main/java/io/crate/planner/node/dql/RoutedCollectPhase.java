@@ -21,6 +21,7 @@
 
 package io.crate.planner.node.dql;
 
+import com.google.common.base.Function;
 import com.google.common.collect.ImmutableSet;
 import io.crate.analyze.EvaluatingNormalizer;
 import io.crate.analyze.OrderBy;
@@ -29,6 +30,7 @@ import io.crate.analyze.WhereClause;
 import io.crate.analyze.relations.TableFunctionRelation;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.analyze.symbol.Symbols;
+import io.crate.collections.Lists2;
 import io.crate.metadata.Routing;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.TransactionContext;
@@ -95,6 +97,22 @@ public class RoutedCollectPhase extends AbstractProjectionsPhase implements Coll
         this.toCollect = toCollect;
         this.distributionInfo = distributionInfo;
         this.outputTypes = extractOutputTypes(toCollect, projections);
+    }
+
+    @Override
+    public void replaceSymbols(Function<Symbol, Symbol> replaceFunction) {
+        super.replaceSymbols(replaceFunction);
+        if (whereClause.hasQuery()) {
+            Symbol query = whereClause.query();
+            Symbol newQuery = replaceFunction.apply(query);
+            if (query != newQuery) {
+                whereClause = new WhereClause(newQuery, whereClause.docKeys().orNull(), whereClause.partitions());
+            }
+        }
+        Lists2.replaceItems(toCollect, replaceFunction);
+        if (orderBy != null) {
+            orderBy.replace(replaceFunction);
+        }
     }
 
     @Override

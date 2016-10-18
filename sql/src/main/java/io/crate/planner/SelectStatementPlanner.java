@@ -96,13 +96,8 @@ class SelectStatementPlanner {
             SubqueryPlanner subqueryPlanner = new SubqueryPlanner(context);
             QuerySpec querySpec = table.querySpec();
             Map<Plan, SelectSymbol> subQueries = subqueryPlanner.planSubQueries(querySpec);
-            if (subQueries.isEmpty()) {
-                return super.visitQueriedTable(table, context);
-            }
-            return new MultiPhasePlan(
-                (PlannedAnalyzedRelation) super.visitQueriedTable(table, context),
-                subQueries,
-                querySpec);
+            Plan plan = super.visitQueriedTable(table, context);
+            return MultiPhasePlan.createIfNeeded(plan, subQueries);
         }
 
         @Override
@@ -112,13 +107,10 @@ class SelectStatementPlanner {
             Map<Plan, SelectSymbol> subQueries = subqueryPlanner.planSubQueries(querySpec);
             if (querySpec.hasAggregates() || querySpec.groupBy().isPresent()) {
                 Plan subPlan = consumingPlanner.plan(table, context);
-                if (subQueries.isEmpty()) {
-                    return subPlan;
-                }
-                return new MultiPhasePlan(((PlannedAnalyzedRelation) subPlan), subQueries, querySpec);
+                return MultiPhasePlan.createIfNeeded(subPlan, subQueries);
             }
             if (querySpec.where().docKeys().isPresent() && !table.tableRelation().tableInfo().isAlias()) {
-                return ESGetStatementPlanner.convert(table, context);
+                return MultiPhasePlan.createIfNeeded(ESGetStatementPlanner.convert(table, context), subQueries);
             }
             if (querySpec.where().hasVersions()) {
                 throw new VersionInvalidException();
@@ -132,7 +124,7 @@ class SelectStatementPlanner {
             FetchPushDown fetchPushDown = new FetchPushDown(querySpec, table.tableRelation());
             QueriedDocTable subRelation = fetchPushDown.pushDown();
             if (subRelation == null) {
-                return consumingPlanner.plan(table, context);
+                return MultiPhasePlan.createIfNeeded(consumingPlanner.plan(table, context), subQueries);
             }
             PlannedAnalyzedRelation plannedSubQuery = subPlan(subRelation, context);
             assert plannedSubQuery != null : "consumingPlanner should have created a subPlan";
@@ -191,10 +183,7 @@ class SelectStatementPlanner {
                 context.clusterService().localNode().id());
             QueryThenFetch queryThenFetch = new QueryThenFetch(
                 plannedSubQuery.plan(), fetchPhase, localMergePhase, context.jobId());
-            if (subQueries.isEmpty()) {
-                return queryThenFetch;
-            }
-            return new MultiPhasePlan(queryThenFetch, subQueries, subRelation.querySpec());
+            return MultiPhasePlan.createIfNeeded(queryThenFetch, subQueries);
         }
 
         @Override

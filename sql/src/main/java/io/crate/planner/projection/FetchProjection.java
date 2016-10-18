@@ -22,7 +22,9 @@
 package io.crate.planner.projection;
 
 import com.carrotsearch.hppc.IntSet;
+import com.google.common.base.Function;
 import io.crate.analyze.symbol.Symbol;
+import io.crate.collections.Lists2;
 import io.crate.metadata.TableIdent;
 import io.crate.planner.node.fetch.FetchSource;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -85,6 +87,11 @@ public class FetchProjection extends Projection {
 
     public Map<String, TableIdent> indicesToIdents() {
         return indicesToIdents;
+    }
+
+    @Override
+    public void replaceSymbols(Function<Symbol, Symbol> replaceFunction) {
+        Lists2.replaceItems(outputSymbols, replaceFunction);
     }
 
     @Override

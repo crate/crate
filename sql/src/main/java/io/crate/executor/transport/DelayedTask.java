@@ -22,6 +22,7 @@
 
 package io.crate.executor.transport;
 
+import com.google.common.base.Supplier;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
@@ -38,9 +39,9 @@ import java.util.List;
 class DelayedTask implements Task {
 
     private final ListenableFuture<?> listenableFuture;
-    private final Task rootTask;
+    private final Supplier<Task> rootTask;
 
-    DelayedTask(ListenableFuture<?> listenableFuture, Task rootTask) {
+    DelayedTask(ListenableFuture<?> listenableFuture, Supplier<Task> rootTask) {
         this.listenableFuture = listenableFuture;
         this.rootTask = rootTask;
     }
@@ -50,7 +51,7 @@ class DelayedTask implements Task {
         Futures.addCallback(listenableFuture, new FutureCallback<Object>() {
             @Override
             public void onSuccess(@Nullable Object result) {
-                rootTask.execute(rowReceiver);
+                rootTask.get().execute(rowReceiver);
             }
 
             @Override

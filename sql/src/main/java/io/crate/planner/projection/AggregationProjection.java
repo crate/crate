@@ -21,6 +21,7 @@
 
 package io.crate.planner.projection;
 
+import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
 import io.crate.analyze.symbol.Aggregation;
 import io.crate.analyze.symbol.Symbol;
@@ -60,6 +61,10 @@ public class AggregationProjection extends Projection {
     @Override
     public RowGranularity requiredGranularity() {
         return contextGranularity;
+    }
+
+    @Override
+    public void replaceSymbols(Function<Symbol, Symbol> replaceFunction) {
     }
 
     public List<Aggregation> aggregations() {

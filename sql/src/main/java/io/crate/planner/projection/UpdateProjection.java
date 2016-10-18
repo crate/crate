@@ -21,6 +21,7 @@
 
 package io.crate.planner.projection;
 
+import com.google.common.base.Function;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.analyze.symbol.Symbols;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -69,6 +70,14 @@ public class UpdateProjection extends DMLProjection {
     @Nullable
     public Long requiredVersion() {
         return requiredVersion;
+    }
+
+    @Override
+    public void replaceSymbols(Function<Symbol, Symbol> replaceFunction) {
+        for (int i = 0; i < assignments.length; i++) {
+            assignments[i] = replaceFunction.apply(assignments[i]);
+        }
+        uidSymbol = replaceFunction.apply(uidSymbol);
     }
 
     @Override

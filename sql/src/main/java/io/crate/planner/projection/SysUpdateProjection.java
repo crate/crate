@@ -22,6 +22,7 @@
 
 package io.crate.planner.projection;
 
+import com.google.common.base.Function;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.analyze.symbol.Symbols;
 import io.crate.analyze.symbol.Value;
@@ -50,6 +51,16 @@ public class SysUpdateProjection extends Projection {
 
     public SysUpdateProjection(Map<Reference, Symbol> assignments) {
         this.assignments = assignments;
+    }
+
+    @Override
+    public void replaceSymbols(Function<Symbol, Symbol> replaceFunction) {
+        if (assignments.isEmpty()) {
+            return;
+        }
+        for (Map.Entry<Reference, Symbol> entry : assignments.entrySet()) {
+            entry.setValue(replaceFunction.apply(entry.getValue()));
+        }
     }
 
     @Override

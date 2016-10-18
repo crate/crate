@@ -21,6 +21,7 @@
 
 package io.crate.planner.projection;
 
+import com.google.common.base.Function;
 import io.crate.analyze.symbol.InputColumn;
 import io.crate.analyze.symbol.Literal;
 import io.crate.analyze.symbol.Symbol;
@@ -155,6 +156,10 @@ public class SourceIndexWriterProjection extends AbstractIndexWriterProjection {
     @Nullable
     public String[] excludes() {
         return excludes;
+    }
+
+    @Override
+    public void replaceSymbols(Function<Symbol, Symbol> replaceFunction) {
     }
 
     @Override

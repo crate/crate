@@ -48,10 +48,6 @@ public class ESGetStatementPlanner {
         if (docKeys.withVersions()){
             throw new VersionInvalidException();
         }
-        if (docKeys.size() == 1 && docKeys.iterator().next().id() == null) {
-            // handle: where id in (null)
-            return new NoopPlan(context.jobId());
-        }
         Limits limits = context.getLimits(true, querySpec);
         if (limits.hasLimit() && limits.finalLimit() == 0) {
             return new NoopPlan(context.jobId());

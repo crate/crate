@@ -21,9 +21,11 @@
 
 package io.crate.planner.projection;
 
+import com.google.common.base.Function;
 import io.crate.analyze.symbol.InputColumn;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.analyze.symbol.Symbols;
+import io.crate.collections.Lists2;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
 import io.crate.metadata.TableIdent;
@@ -109,6 +111,16 @@ public class ColumnIndexWriterProjection extends AbstractIndexWriterProjection {
     @Override
     public <C, R> R accept(ProjectionVisitor<C, R> visitor, C context) {
         return visitor.visitColumnIndexWriterProjection(this, context);
+    }
+
+    @Override
+    public void replaceSymbols(Function<Symbol, Symbol> replaceFunction) {
+        Lists2.replaceItems(columnSymbols, replaceFunction);
+        if (onDuplicateKeyAssignments != null && !onDuplicateKeyAssignments.isEmpty()) {
+            for (Map.Entry<Reference, Symbol> entry : onDuplicateKeyAssignments.entrySet()) {
+                entry.setValue(replaceFunction.apply(entry.getValue()));
+            }
+        }
     }
 
     @Override
