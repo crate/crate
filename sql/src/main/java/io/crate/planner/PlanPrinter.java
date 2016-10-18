@@ -256,5 +256,16 @@ public class PlanPrinter {
             b.put("fetchPhase", phaseMap(plan.fetchPhase()));
             return b;
         }
+
+        @Override
+        public ImmutableMap.Builder<String, Object> visitMultiPhasePlan(MultiPhasePlan multiPhasePlan, Void context) {
+            List<Map<String, Object>> dependencies = new ArrayList<>(multiPhasePlan.dependencies().size());
+            for (Plan dependency : multiPhasePlan.dependencies().keySet()) {
+                dependencies.add(toMap(dependency));
+            }
+            return visitPlan(multiPhasePlan, context)
+                .put("rootPlan", toMap(multiPhasePlan.rootPlan()))
+                .put("dependencies", dependencies);
+        }
     }
 }
