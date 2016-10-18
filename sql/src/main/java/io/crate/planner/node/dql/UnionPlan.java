@@ -21,14 +21,12 @@
  */
 package io.crate.planner.node.dql;
 
-import io.crate.analyze.relations.PlannedAnalyzedRelation;
 import io.crate.planner.Plan;
 import io.crate.planner.PlanAndPlannedAnalyzedRelation;
 import io.crate.planner.PlanVisitor;
 import io.crate.planner.distribution.UpstreamPhase;
 import io.crate.planner.projection.Projection;
 
-import javax.annotation.Nullable;
 import java.util.Collection;
 import java.util.UUID;
 
@@ -40,8 +38,8 @@ public class UnionPlan extends PlanAndPlannedAnalyzedRelation {
 
     public UnionPlan(UnionPhase unionPhase, Collection<Plan> relations) {
         this.jobId = unionPhase.jobId();
-        this.relations= relations;
-        this.unionPhase= unionPhase;
+        this.relations = relations;
+        this.unionPhase = unionPhase;
     }
 
     public Collection<Plan> relations() {
@@ -75,10 +73,5 @@ public class UnionPlan extends PlanAndPlannedAnalyzedRelation {
     @Override
     public UUID jobId() {
         return jobId;
-    }
-
-    @Nullable
-    public MergePhase localMerge() {
-        return null;
     }
 }
