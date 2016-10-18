@@ -51,27 +51,6 @@ public class Merge implements Plan, ResultDescription {
     @Nullable
     private PositionalOrderBy orderBy;
 
-    public static Merge create(Plan subPlan,
-                               Planner.Context context,
-                               List<Projection> projections,
-                               int limit,
-                               int offset,
-                               int numOutputs,
-                               int maxRowsPerNode) {
-        MergePhase mergePhase = new MergePhase(
-            context.jobId(),
-            context.nextExecutionPhaseId(),
-            "mergeOnHandler",
-            subPlan.resultDescription().nodeIds().size(),
-            Collections.emptyList(),
-            subPlan.resultDescription().streamOutputs(),
-            projections,
-            DistributionInfo.DEFAULT_SAME_NODE,
-            null
-        );
-        return new Merge(subPlan, mergePhase, limit, offset, numOutputs, maxRowsPerNode, null);
-    }
-
     /**
      * Wrap the subPlan into a Merge plan if it isn't executed on the handler.
      * @param projections projections to be applied on the subPlan or merge plan.

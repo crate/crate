@@ -92,7 +92,9 @@ class QueriedDocTableFetchPushDown {
 
     @Nullable
     QueriedDocTable pushDown() {
-        assert !querySpec.groupBy().isPresent() && !querySpec.having().isPresent() && !querySpec.hasAggregates();
+        if (querySpec.groupBy().isPresent() || querySpec.having().isPresent() || querySpec.hasAggregates()) {
+            return null;
+        }
 
         Optional<OrderBy> orderBy = querySpec.orderBy();
 
@@ -149,10 +151,6 @@ class QueriedDocTableFetchPushDown {
 
         sub.limit(querySpec.limit());
         sub.offset(querySpec.offset());
-//        Optional<Symbol> limit = querySpec.limit();
-//        if (limit.isPresent()) {
-//            sub.limit(Limits.mergeAdd(limit, querySpec.offset()));
-//        }
         return subRelation;
     }
 

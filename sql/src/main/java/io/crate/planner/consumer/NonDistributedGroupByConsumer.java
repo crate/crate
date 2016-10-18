@@ -39,8 +39,11 @@ import io.crate.operation.projectors.TopN;
 import io.crate.planner.Limits;
 import io.crate.planner.Merge;
 import io.crate.planner.Plan;
+import io.crate.planner.Planner;
+import io.crate.planner.distribution.DistributionInfo;
 import io.crate.planner.node.dql.Collect;
 import io.crate.planner.node.dql.GroupByConsumer;
+import io.crate.planner.node.dql.MergePhase;
 import io.crate.planner.node.dql.RoutedCollectPhase;
 import io.crate.planner.projection.GroupProjection;
 import io.crate.planner.projection.Projection;
@@ -48,6 +51,7 @@ import io.crate.planner.projection.builder.ProjectionBuilder;
 import io.crate.planner.projection.builder.SplitPoints;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 class NonDistributedGroupByConsumer implements Consumer {
@@ -112,6 +116,7 @@ class NonDistributedGroupByConsumer implements Consumer {
         private Plan nonDistributedGroupBy(QueriedTableRelation table,
                                            ConsumerContext context,
                                            RowGranularity groupProjectionGranularity) {
+            Planner.Context plannerContext = context.plannerContext();
             QuerySpec querySpec = table.querySpec();
             List<Symbol> groupKeys = querySpec.groupBy().get();
 
@@ -128,7 +133,7 @@ class NonDistributedGroupByConsumer implements Consumer {
                 groupProjectionGranularity);
 
             RoutedCollectPhase collectPhase = RoutedCollectPhase.forQueriedTable(
-                context.plannerContext(),
+                plannerContext,
                 table,
                 splitPoints.leaves(),
                 ImmutableList.<Projection>of(groupProjection)
@@ -159,7 +164,7 @@ class NonDistributedGroupByConsumer implements Consumer {
                 HavingClause having = havingClause.get();
                 mergeProjections.add(ProjectionBuilder.filterProjection(collectOutputs, having));
             }
-            Limits limits = context.plannerContext().getLimits(querySpec);
+            Limits limits = plannerContext.getLimits(querySpec);
             List<Symbol> qsOutputs = querySpec.outputs();
             mergeProjections.add(ProjectionBuilder.topNProjection(
                 collectOutputs,
@@ -168,15 +173,22 @@ class NonDistributedGroupByConsumer implements Consumer {
                 limits.finalLimit(),
                 qsOutputs
             ));
-            return Merge.create(
-                collect,
-                context.plannerContext(),
+
+            MergePhase mergePhase = new MergePhase(
+                plannerContext.jobId(),
+                plannerContext.nextExecutionPhaseId(),
+                "mergeOnHandler",
+                collect.resultDescription().nodeIds().size(),
+                // if not root relation then no direct result can be used
+                table == context.rootRelation() ?
+                    Collections.emptyList() :
+                    Collections.singletonList(context.plannerContext().handlerNode()),
+                collect.resultDescription().streamOutputs(),
                 mergeProjections,
-                TopN.NO_LIMIT,
-                0,
-                qsOutputs.size(),
-                limits.finalLimit()
+                DistributionInfo.DEFAULT_SAME_NODE,
+                null
             );
+            return new Merge(collect, mergePhase, TopN.NO_LIMIT, 0, qsOutputs.size(), limits.finalLimit(), null);
         }
     }
 }
