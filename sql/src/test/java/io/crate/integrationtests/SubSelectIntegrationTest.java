@@ -320,4 +320,13 @@ public class SubSelectIntegrationTest extends SQLTransportIntegrationTest {
         execute("select * from t as t1, t as t2 where t1.x = (select 1) order by t2.x");
         assertThat(TestingHelpers.printedTable(response.rows()), is("1| 1\n1| 2\n"));
     }
+
+    @Test
+    public void testSubSelectReturnsNoRowIsHandledAsNullValue() throws Exception {
+        execute("select name from sys.cluster where name = (select name from sys.nodes where 1 = 2)");
+        assertThat(response.rowCount(), is(0L));
+
+        execute("select name from sys.cluster where (select name from sys.nodes where 1 = 2) is null");
+        assertThat(response.rowCount(), is(1L));
+    }
 }

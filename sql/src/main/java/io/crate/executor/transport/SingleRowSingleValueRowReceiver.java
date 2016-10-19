@@ -63,7 +63,8 @@ class SingleRowSingleValueRowReceiver implements RowReceiver, CompletionListenab
     @Override
     public void finish(RepeatHandle repeatable) {
         try {
-            replacer.onSuccess(this.value);
+            Object value = this.value == SENTINEL ? null : this.value;
+            replacer.onSuccess(value);
         } catch (Throwable e) {
             completionFuture.setException(e);
             return;
