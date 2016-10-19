@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Added support for scalar subquery expressions to SELECT statements.
+
  - Updated crate-admin to ``0.20.3`` which includes following changes:
 
     - Fixed broken execute button in the console view.
