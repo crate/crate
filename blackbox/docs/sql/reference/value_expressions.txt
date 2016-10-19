@@ -1,0 +1,187 @@
+.. highlight:: psql
+.. _sql_reference_expression:
+
+=================
+Value Expressions
+=================
+
+Value expressions are expressions which return a single value.
+They can be used in many contexts of many statements.
+
+A value expression can be:
+
+- A literal value
+
+- A column reference
+
+- A parameter reference
+
+- A operator invocation
+
+- A subscript expression
+
+- A function call
+
+- A type cast
+
+- An object constructor
+
+- An array constructor
+
+
+Literal value
+=============
+
+A literal is a notation to represent a value within a statement.
+
+Different types have different notations. The simplest forms are:
+
+- boolean literals: ``true`` or ``false``
+
+- string literals: ``'this is a string literal'``
+
+- numeric literals: ``42``
+
+
+.. seealso::
+
+    - :doc:`/sql/reference/lexical_structure`
+    - :doc:`/sql/data_types`
+
+Column Reference
+================
+
+A column reference is the name of a column. It's represented using an
+identifier. An identifier is an unquoted or double quoted string.
+
+- unquoted: ``columnname``
+
+- quoted: ``"columnName"``
+
+It's also possible to include the name of a table or alias in order to
+unambiguously identify a column of a specific relation if a statement contains
+multiple alias or table definitions::
+
+    tab0.columnname
+
+.. seealso::
+
+    - :doc:`/sql/reference/lexical_structure`
+
+
+Parameter reference
+===================
+
+A parameter reference is a placeholder for a value.
+Crate clients usually have some kind of API to provide those values.
+
+Parameter references can either be unnumbered or numbered:
+
+- Question mark as an unnumbered placeholder: ``select * from t where x = ?``
+
+- ``$n`` as numbered placeholder: ``select * from t where x = $1 or x = $2``
+
+
+Operator invocation
+===================
+
+There are two different types of operators in Crate:
+
+- Binary: ``expression operator expression``
+
+- Unary: ``operator expression``
+
+.. seealso::
+
+    - :ref:`sql_dql_where_clause`
+    - :doc:`/sql/arithmetic`
+
+.. _sql_expressions_subscript:
+
+Subscript expression
+====================
+
+A subscript expression is an expression which contains a subscript operator
+(``[ ]``). It can be used to access a sub value of a composite type value.
+
+array subscript
+---------------
+
+The subscript operator can be used on array expressions to retrieve a single
+element of an array::
+
+    array_expression[ array_index ]
+
+``array_index`` is a 1 based integer specifying the position of the element in
+the array which should be retrieved.
+
+.. seealso::
+
+    - :ref:`sql_dql_object_arrays_select`
+
+object subscript
+----------------
+
+On object expressions the subscript operator can be used to access an inner
+element of the object::
+
+    obj_expression['key']
+
+The ``key`` must be a string literal which is the name of the element which
+should be retrieved.
+
+.. seealso::
+
+    - :ref:`sql_dql_objects`
+
+Function call
+=============
+
+A function is declared by its name followed by its arguments enclosed in
+parentheses::
+
+    function_name([expression [, expression ... ]])
+
+.. seealso::
+
+    - :doc:`/sql/scalar`
+    - :doc:`/sql/aggregation`
+
+Type cast
+=========
+
+A type cast specifies the conversion from one type to another. The syntax is::
+
+    CAST ( expression as type )
+
+.. seealso::
+
+    - :doc:`/sql/data_types`
+
+
+Object constructor
+==================
+
+A object constructor is an expression which builds an object using its arguments.
+It consists of one ore more ``ident = expression``, separated by commas and
+enclosed in curly brackets::
+
+    { elementNameIdent = valueExpression [, elementNameIdent = valueExpression ...] }
+
+.. seealso::
+
+    - :ref:`data-type-object-literals`
+
+Array constructor
+=================
+
+
+A array constructor is an expression which builds an array. It consists of one
+or more expressions separated by commas, enclosed in square brackets and
+optionally prefixed with ``ARRAY``::
+
+    [ ARRAY ] '[' expression [, expression ... ] ']'
+
+.. seealso::
+
+    - :ref:`data-type-array-literals`

@@ -234,27 +234,6 @@ please refer to the sections where the respective syntax elements are described.
     and table names, e.g. ``blob.my_blob_table``.
 
 
-.. _sql_lexical_subscript:
-
-Subscript Syntax
-================
-
-Crate uses the **subscript syntax** to describe paths of object columns.
-The subscript syntax consists of subscribed object (identifier) and a
-single quoted (``'``) key enclosed in square brackets (``[]``).
-
-.. note::
-
-  Keys of a subscript are strings and not identifiers and therefore
-  case sensitive.
-
-Example::
-
-  object_column['key']
-
-Subscripts can be arbitrarily deeply nested.
-
-
 .. _sql_lexical_comments:
 
 Comments
