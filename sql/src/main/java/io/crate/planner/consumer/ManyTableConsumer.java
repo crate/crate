@@ -501,14 +501,16 @@ public class ManyTableConsumer implements Consumer {
         @Override
         public Symbol visitField(Field field, FieldToRelationColumnCtx ctx) {
             QualifiedName qualifiedName = ctx.relationToName.get(field.relation());
-            int idx = 0;
-            for (Symbol symbol : ctx.mss.sources().get(qualifiedName).querySpec().outputs()) {
-                if (symbol instanceof Field) {
-                    if (((Field) symbol).path().equals(field.path())) {
-                        return new RelationColumn(qualifiedName, idx, field.valueType());
+            if (qualifiedName != null) {
+                int idx = 0;
+                for (Symbol symbol : ctx.mss.sources().get(qualifiedName).querySpec().outputs()) {
+                    if (symbol instanceof Field) {
+                        if (((Field) symbol).path().equals(field.path())) {
+                            return new RelationColumn(qualifiedName, idx, field.valueType());
+                        }
                     }
+                    idx++;
                 }
-                idx++;
             }
             return field;
         }
