@@ -9,3 +9,4 @@ Client/Server Protocol
 
     http
     postgres
+    crate-postgres-sql

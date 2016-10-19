@@ -39,6 +39,8 @@ not be filled.
 If the expression for any column is not of the correct data type,
 automatic type conversion will be attempted.
 
+.. _on_duplicate_key_update:
+
 On Duplicate Key Update
 -----------------------
 

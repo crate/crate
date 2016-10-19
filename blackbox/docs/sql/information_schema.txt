@@ -349,6 +349,8 @@ available: ``blob``, ``doc``, ``information_schema`` and ``sys``::
     +--------------------+
     SELECT 5 rows in set (... sec)
 
+.. _sql_features:
+
 SQL Features
 ============
 

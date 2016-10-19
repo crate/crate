@@ -372,6 +372,8 @@ Alternatively a `WKT`_ string can be used to represent a geo_shape as well::
     using either :ref:`ref-create-table` or :ref:`ref-alter-table`.
 
 
+.. _object_data_type:
+
 object
 ======
 
@@ -642,6 +644,8 @@ square brackets (``[]``), for example::
     [1, 2, 3]
     ['Zaphod', 'Ford', 'Arthur']
 
+
+.. _type_conversion:
 
 Type Conversion
 ===============

@@ -616,6 +616,8 @@ Example::
 Due to a limitation on the :ref:`geo_shape_data_type` datatype
 this function cannot be used in the :ref:`sql_reference_order_by`.
 
+.. _mathematical_functions:
+
 Mathematical Functions
 ======================
 
@@ -738,8 +740,8 @@ power(a: number, b: number) returns double
 
 Returns the given argument ``a`` raised to the power of argument ``b``.
 
-The return type of the power function is always double, even when both the 
-inputs are integral types, in order to be consistent across positive and 
+The return type of the power function is always double, even when both the
+inputs are integral types, in order to be consistent across positive and
 negative exponents (which will yield decimal types)
 
 See below for an example:

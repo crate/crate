@@ -31,3 +31,4 @@ see :doc:`sql`. For general information about SQL please refer to
    optimize
    sql
    features
+   crate-standard-sql
