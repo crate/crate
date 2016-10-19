@@ -25,7 +25,6 @@ import com.google.common.base.Predicate;
 import com.google.common.collect.Iterables;
 import io.crate.analyze.expressions.ExpressionAnalysisContext;
 import io.crate.analyze.expressions.ExpressionAnalyzer;
-import io.crate.analyze.expressions.SubqueryAnalyzer;
 import io.crate.analyze.expressions.ValueNormalizer;
 import io.crate.analyze.relations.*;
 import io.crate.analyze.symbol.Symbol;
@@ -98,7 +97,7 @@ public class UpdateAnalyzer {
             analysis.sessionContext(),
             analysis.parameterContext(),
             columnFieldProvider,
-            new SubqueryAnalyzer(relationAnalyzer, statementAnalysisContext));
+            null);
         columnExpressionAnalyzer.setResolveFieldsOperation(Operation.UPDATE);
 
         assert Iterables.getOnlyElement(currentRelationContext.sources().values()) == analyzedRelation;
@@ -107,7 +106,7 @@ public class UpdateAnalyzer {
             analysis.sessionContext(),
             analysis.parameterContext(),
             new FullQualifedNameFieldProvider(currentRelationContext.sources()),
-            new SubqueryAnalyzer(relationAnalyzer, statementAnalysisContext));
+            null);
         ExpressionAnalysisContext expressionAnalysisContext = new ExpressionAnalysisContext();
 
         int numNested = 1;

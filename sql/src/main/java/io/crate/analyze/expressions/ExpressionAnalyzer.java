@@ -662,7 +662,7 @@ public class ExpressionAnalyzer {
         @Override
         protected Symbol visitSubqueryExpression(SubqueryExpression node, ExpressionAnalysisContext context) {
             if (subQueryAnalyzer == null) {
-                throw new UnsupportedOperationException("This ExpressionAnalyzer cannot be used to analyze subqueries");
+                throw new UnsupportedOperationException("Subquery not supported in this statement");
             }
             /* note: This does not support analysis columns in the subquery which belong to the parent relation
              * this would require {@link StatementAnalysisContext#startRelation} to somehow inherit the parent context

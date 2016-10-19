@@ -22,7 +22,6 @@
 
 package io.crate.analyze;
 
-import io.crate.analyze.symbol.SelectSymbol;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.testing.SQLExecutor;
 import org.elasticsearch.test.cluster.NoopClusterService;
@@ -67,17 +66,23 @@ public class SingleRowSubselectAnalyzerTest extends CrateUnitTest {
 
     @Test
     public void testSingleRowSubselectInAssignmentOfUpdate() throws Exception {
+        expectedException.expectMessage("Subquery not supported in this statement");
         UpdateAnalyzedStatement stmt = e.analyze("update t1 set x = (select y from t2)");
+        /*
         assertThat(
             stmt.nestedStatements().get(0).assignments().values().iterator().next(),
             Matchers.instanceOf(SelectSymbol.class));
+            */
     }
 
     @Test
     public void testSingleRowSubselectInWhereClauseOfDelete() throws Exception {
+        expectedException.expectMessage("Subquery not supported in this statement");
         DeleteAnalyzedStatement stmt = e.analyze("delete from t1 where x = (select y from t2)");
+        /*
         assertThat(stmt.whereClauses().get(0).query(),
             isSQL("(doc.t1.x = SelectSymbol{integer})"));
+        */
     }
 
     @Test

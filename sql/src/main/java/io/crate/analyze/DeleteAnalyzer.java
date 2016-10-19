@@ -80,7 +80,7 @@ class DeleteAnalyzer {
             analysis.sessionContext(),
             convertParamFunction,
             new FullQualifedNameFieldProvider(relationAnalysisContext.sources()),
-            new SubqueryAnalyzer(relationAnalyzer, statementAnalysisContext));
+            null);
         ExpressionAnalysisContext expressionAnalysisContext = new ExpressionAnalysisContext();
         WhereClauseAnalyzer whereClauseAnalyzer = new WhereClauseAnalyzer(
             functions, deleteAnalyzedStatement.analyzedRelation());
