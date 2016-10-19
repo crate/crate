@@ -329,4 +329,19 @@ public class SubSelectIntegrationTest extends SQLTransportIntegrationTest {
         execute("select name from sys.cluster where (select name from sys.nodes where 1 = 2) is null");
         assertThat(response.rowCount(), is(1L));
     }
+
+    @Test
+    public void testScalarSubqueryCanBeUsedInGroupByAndHaving() throws Exception {
+        execute("select (select 'foo'), count(*) from unnest([1, 2]) group by 1 having count(*) = (select 2)");
+        assertThat(TestingHelpers.printedTable(response.rows()), is("foo| 2\n"));
+    }
+
+    @Test
+    public void testSubqueryInOrderResultsInAnError() throws Exception {
+        execute("create table t (x long primary key)");
+        ensureYellow();
+
+        expectedException.expectMessage("Using a non-integer constant in ORDER BY is not supported");
+        execute("select x from t order by (select 1)");
+    }
 }

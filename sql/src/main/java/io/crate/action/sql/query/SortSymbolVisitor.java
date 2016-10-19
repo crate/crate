@@ -159,7 +159,7 @@ public class SortSymbolVisitor extends SymbolVisitor<SortSymbolVisitor.SortSymbo
     @Override
     protected SortField visitSymbol(Symbol symbol, SortSymbolContext context) {
         throw new UnsupportedOperationException(
-            SymbolFormatter.format("sorting on %s is not supported", symbol));
+            SymbolFormatter.format("Using a non-integer constant in ORDER BY is not supported", symbol));
     }
 
     private SortField customSortField(String name,
