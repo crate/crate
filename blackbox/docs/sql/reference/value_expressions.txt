@@ -28,6 +28,8 @@ A value expression can be:
 
 - An array constructor
 
+- A scalar subquery
+
 
 Literal value
 =============
@@ -185,3 +187,18 @@ optionally prefixed with ``ARRAY``::
 .. seealso::
 
     - :ref:`data-type-array-literals`
+
+
+Scalar subquery
+===============
+
+A scalar subquery is a regular SELECT statement in parentheses that returns
+zero or one row with one column.
+
+If zero rows are returned it is treated as null value. In case more than one
+row is returned it is an error.
+
+.. note::
+
+    Scalar subqueries are restricted to SELECT statements and cannot be used in
+    other statements.
