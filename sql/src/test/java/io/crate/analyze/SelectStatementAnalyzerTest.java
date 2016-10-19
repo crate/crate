@@ -936,6 +936,19 @@ public class SelectStatementAnalyzerTest extends CrateUnitTest {
     }
 
     @Test
+    public void testUnionAsSubSelect() throws Exception {
+        expectedException.expect(UnsupportedOperationException.class);
+        expectedException.expectMessage("UNION as a sub query is not supported");
+        analyze("select id, name from (" +
+                    "select id, name, text from users " +
+                    "union all " +
+                    "select id, name, name from users_multi_pk " +
+                    "order by id " +
+                    "limit 10 offset 20) a " +
+                "order by 2 limit 5") ;
+    }
+
+    @Test
     public void testUnionDifferentNumberOfOutputs() throws Exception {
         expectedException.expect(UnsupportedOperationException.class);
         expectedException.expectMessage("Number of output columns must be the same for all parts of a UNION");

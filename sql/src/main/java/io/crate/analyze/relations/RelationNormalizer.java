@@ -113,6 +113,10 @@ final class RelationNormalizer extends AnalyzedRelationVisitor<RelationNormalize
 
     @Override
     public AnalyzedRelation visitTwoRelationsUnion(TwoRelationsUnion twoTableUnion, Context context) {
+        if (context.querySpec != null) {
+            throw new UnsupportedOperationException("UNION as a sub query is not supported");
+        }
+
         QuerySpec querySpec = twoTableUnion.querySpec();
         replaceFieldReferences(querySpec);
 
