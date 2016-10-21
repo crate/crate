@@ -28,7 +28,6 @@ import io.crate.analyze.QueriedTable;
 import io.crate.analyze.QueriedTableRelation;
 import io.crate.analyze.relations.AbstractTableRelation;
 import io.crate.analyze.relations.AnalyzedRelation;
-import io.crate.analyze.relations.PlannedAnalyzedRelation;
 import io.crate.analyze.relations.QueriedDocTable;
 import io.crate.analyze.symbol.*;
 import io.crate.analyze.symbol.format.SymbolFormatter;
@@ -38,8 +37,9 @@ import io.crate.metadata.Functions;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RowGranularity;
 import io.crate.planner.Limits;
+import io.crate.planner.NoopPlan;
+import io.crate.planner.Plan;
 import io.crate.planner.Planner;
-import io.crate.planner.node.NoopPlannedAnalyzedRelation;
 import io.crate.planner.node.dql.CollectAndMerge;
 import io.crate.planner.node.dql.MergePhase;
 import io.crate.planner.node.dql.RoutedCollectPhase;
@@ -64,7 +64,7 @@ class GlobalAggregateConsumer implements Consumer {
     }
 
     @Override
-    public PlannedAnalyzedRelation consume(AnalyzedRelation rootRelation, ConsumerContext context) {
+    public Plan consume(AnalyzedRelation rootRelation, ConsumerContext context) {
         return visitor.process(rootRelation, context);
     }
 
@@ -77,7 +77,7 @@ class GlobalAggregateConsumer implements Consumer {
         }
 
         @Override
-        public PlannedAnalyzedRelation visitQueriedDocTable(QueriedDocTable table, ConsumerContext context) {
+        public Plan visitQueriedDocTable(QueriedDocTable table, ConsumerContext context) {
             if (table.querySpec().where().hasVersions()) {
                 context.validationException(new VersionInvalidException());
                 return null;
@@ -87,13 +87,13 @@ class GlobalAggregateConsumer implements Consumer {
         }
 
         @Override
-        public PlannedAnalyzedRelation visitQueriedTable(QueriedTable table, ConsumerContext context) {
+        public Plan visitQueriedTable(QueriedTable table, ConsumerContext context) {
             return globalAggregates(functions, table, context, RowGranularity.CLUSTER);
         }
 
     }
 
-    private static PlannedAnalyzedRelation globalAggregates(Functions functions,
+    private static Plan globalAggregates(Functions functions,
                                                             QueriedTableRelation table,
                                                             ConsumerContext context,
                                                             RowGranularity projectionGranularity) {
@@ -104,7 +104,7 @@ class GlobalAggregateConsumer implements Consumer {
         Planner.Context plannerContext = context.plannerContext();
         Limits limits = plannerContext.getLimits(context.isRoot(), table.querySpec());
         if (limits.finalLimit() == 0 || limits.offset() > 0) {
-            return new NoopPlannedAnalyzedRelation(table, plannerContext.jobId());
+            return new NoopPlan(plannerContext.jobId());
         }
 
         validateAggregationOutputs(table.tableRelation(), table.querySpec().outputs());
@@ -141,7 +141,7 @@ class GlobalAggregateConsumer implements Consumer {
         Optional<HavingClause> havingClause = table.querySpec().having();
         if (havingClause.isPresent()) {
             if (havingClause.get().noMatch()) {
-                return new NoopPlannedAnalyzedRelation(table, plannerContext.jobId());
+                return new NoopPlan(plannerContext.jobId());
             } else if (havingClause.get().hasQuery()) {
                 projections.add(ProjectionBuilder.filterProjection(
                     splitPoints.aggregates(),

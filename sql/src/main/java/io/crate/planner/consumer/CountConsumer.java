@@ -23,7 +23,6 @@ package io.crate.planner.consumer;
 
 import io.crate.analyze.QuerySpec;
 import io.crate.analyze.relations.AnalyzedRelation;
-import io.crate.analyze.relations.PlannedAnalyzedRelation;
 import io.crate.analyze.relations.QueriedDocTable;
 import io.crate.analyze.symbol.Function;
 import io.crate.analyze.symbol.Symbol;
@@ -32,9 +31,10 @@ import io.crate.metadata.Routing;
 import io.crate.metadata.table.TableInfo;
 import io.crate.operation.aggregation.impl.CountAggregation;
 import io.crate.planner.Limits;
+import io.crate.planner.NoopPlan;
+import io.crate.planner.Plan;
 import io.crate.planner.Planner;
 import io.crate.planner.distribution.DistributionInfo;
-import io.crate.planner.node.NoopPlannedAnalyzedRelation;
 import io.crate.planner.node.dql.CountPhase;
 import io.crate.planner.node.dql.CountPlan;
 import io.crate.planner.node.dql.MergePhase;
@@ -50,14 +50,14 @@ public class CountConsumer implements Consumer {
     private static final Visitor VISITOR = new Visitor();
 
     @Override
-    public PlannedAnalyzedRelation consume(AnalyzedRelation rootRelation, ConsumerContext context) {
+    public Plan consume(AnalyzedRelation rootRelation, ConsumerContext context) {
         return VISITOR.process(rootRelation, context);
     }
 
     private static class Visitor extends RelationPlanningVisitor {
 
         @Override
-        public PlannedAnalyzedRelation visitQueriedDocTable(QueriedDocTable table, ConsumerContext context) {
+        public Plan visitQueriedDocTable(QueriedDocTable table, ConsumerContext context) {
             QuerySpec querySpec = table.querySpec();
             if (!querySpec.hasAggregates() || querySpec.groupBy().isPresent()) {
                 return null;
@@ -72,7 +72,7 @@ public class CountConsumer implements Consumer {
 
             Limits limits = context.plannerContext().getLimits(context.isRoot(), querySpec);
             if ((limits.finalLimit() == 0 || limits.offset() > 0)) {
-                return new NoopPlannedAnalyzedRelation(table, context.plannerContext().jobId());
+                return new NoopPlan(context.plannerContext().jobId());
             }
 
             TableInfo tableInfo = table.tableRelation().tableInfo();

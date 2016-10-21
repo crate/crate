@@ -20,57 +20,19 @@
  * agreement.
  */
 
-package io.crate.planner.node.dql;
+package io.crate.planner;
 
-import io.crate.planner.Plan;
-import io.crate.planner.PlanVisitor;
 import io.crate.planner.distribution.UpstreamPhase;
-import io.crate.planner.node.fetch.FetchPhase;
 import io.crate.planner.projection.Projection;
 
-import javax.annotation.Nullable;
-import java.util.UUID;
-
-public class QueryThenFetch implements Plan {
-
-    private final FetchPhase fetchPhase;
-    private final Plan subPlan;
-    private final MergePhase localMerge;
-    private final UUID id;
-
-    public QueryThenFetch(Plan subPlan, FetchPhase fetchPhase, @Nullable MergePhase localMerge, UUID id) {
-        this.subPlan = subPlan;
-        this.fetchPhase = fetchPhase;
-        this.localMerge = localMerge;
-        this.id = id;
-    }
-
-    public FetchPhase fetchPhase() {
-        return fetchPhase;
-    }
-
-    @Nullable
-    public MergePhase localMerge() {
-        return localMerge;
-    }
-
-    public Plan subPlan() {
-        return subPlan;
-    }
-
-    @Override
-    public <C, R> R accept(PlanVisitor<C, R> visitor, C context) {
-        return visitor.visitQueryThenFetch(this, context);
-    }
-
-    @Override
-    public UUID jobId() {
-        return id;
-    }
+/**
+ * A Plan that can only be used as root plan and cannot be used as sub-plan of another plan.
+ */
+public abstract class UnnestablePlan implements Plan {
 
     @Override
     public void addProjection(Projection projection) {
-        throw new UnsupportedOperationException("Adding projections to QTF is not possible");
+        throw new UnsupportedOperationException("addProjection() is not supported on " + getClass().getSimpleName());
     }
 
     @Override
@@ -80,7 +42,6 @@ public class QueryThenFetch implements Plan {
 
     @Override
     public UpstreamPhase resultPhase() {
-        assert localMerge != null;
-        return localMerge;
+        throw new UnsupportedOperationException("resultPhase() is not supported on " + getClass().getSimpleName());
     }
 }

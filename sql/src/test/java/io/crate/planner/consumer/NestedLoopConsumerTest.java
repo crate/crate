@@ -26,7 +26,6 @@ import io.crate.action.sql.SessionContext;
 import io.crate.analyze.EvaluatingNormalizer;
 import io.crate.analyze.QueriedTable;
 import io.crate.analyze.TableDefinitions;
-import io.crate.analyze.relations.PlannedAnalyzedRelation;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.exceptions.ValidationException;
 import io.crate.metadata.*;
@@ -132,7 +131,7 @@ public class NestedLoopConsumerTest extends CrateUnitTest {
     @Test
     public void testInvalidRelation() throws Exception {
         QueriedTable queriedTable = mock(QueriedTable.class);
-        PlannedAnalyzedRelation relation = consumer.consume(
+        Plan relation = consumer.consume(
             queriedTable, new ConsumerContext(queriedTable, plannerContext));
 
         assertThat(relation, Matchers.nullValue());
@@ -243,7 +242,7 @@ public class NestedLoopConsumerTest extends CrateUnitTest {
         NestedLoop plan = plan("select u1.name, u2.name from users u1, users u2 order by u1.name, u2.name");
 
         assertThat(plan.left().resultPhase(), instanceOf(RoutedCollectPhase.class));
-        CollectAndMerge leftPlan = (CollectAndMerge) plan.left().plan();
+        CollectAndMerge leftPlan = (CollectAndMerge) plan.left();
         CollectPhase collectPhase = leftPlan.collectPhase();
         assertThat(collectPhase.projections().size(), is(0));
         assertThat(collectPhase.toCollect().get(0), isReference("name"));
@@ -252,10 +251,10 @@ public class NestedLoopConsumerTest extends CrateUnitTest {
     @Test
     public void testNodePageSizePushDown() throws Exception {
         NestedLoop plan = plan("select u1.name from users u1, users u2 order by 1 limit 1000");
-        RoutedCollectPhase cpL = ((RoutedCollectPhase) ((CollectAndMerge) plan.left().plan()).collectPhase());
+        RoutedCollectPhase cpL = ((RoutedCollectPhase) ((CollectAndMerge) plan.left()).collectPhase());
         assertThat(cpL.nodePageSizeHint(), is(750));
 
-        RoutedCollectPhase cpR = ((RoutedCollectPhase) ((CollectAndMerge) plan.right().plan()).collectPhase());
+        RoutedCollectPhase cpR = ((RoutedCollectPhase) ((CollectAndMerge) plan.right()).collectPhase());
         assertThat(cpR.nodePageSizeHint(), is(750));
     }
 
@@ -306,9 +305,9 @@ public class NestedLoopConsumerTest extends CrateUnitTest {
     @Test
     public void testRefsAreNotConvertedToSourceLookups() throws Exception {
         NestedLoop nl = plan("select u1.name from users u1, users u2 where u1.id = u2.id order by 1");
-        CollectPhase cpLeft = ((CollectAndMerge) nl.left().plan()).collectPhase();
+        CollectPhase cpLeft = ((CollectAndMerge) nl.left()).collectPhase();
         assertThat(cpLeft.toCollect(), contains(isReference("id"), isReference("name")));
-        CollectPhase cpRight = ((CollectAndMerge) nl.right().plan()).collectPhase();
+        CollectPhase cpRight = ((CollectAndMerge) nl.right()).collectPhase();
         assertThat(cpRight.toCollect(), contains(isReference("id")));
     }
 

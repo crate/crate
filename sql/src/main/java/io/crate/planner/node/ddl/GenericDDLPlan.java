@@ -22,12 +22,12 @@
 package io.crate.planner.node.ddl;
 
 import io.crate.analyze.AbstractDDLAnalyzedStatement;
-import io.crate.planner.Plan;
 import io.crate.planner.PlanVisitor;
+import io.crate.planner.UnnestablePlan;
 
 import java.util.UUID;
 
-public class GenericDDLPlan implements Plan {
+public class GenericDDLPlan extends UnnestablePlan {
 
     private final UUID id;
     private final AbstractDDLAnalyzedStatement statement;

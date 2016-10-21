@@ -22,12 +22,12 @@
 package io.crate.planner.node.ddl;
 
 import io.crate.metadata.doc.DocTableInfo;
-import io.crate.planner.Plan;
 import io.crate.planner.PlanVisitor;
+import io.crate.planner.UnnestablePlan;
 
 import java.util.UUID;
 
-public class DropTablePlan implements Plan {
+public class DropTablePlan extends UnnestablePlan {
 
     private final UUID jobId;
     private final DocTableInfo table;

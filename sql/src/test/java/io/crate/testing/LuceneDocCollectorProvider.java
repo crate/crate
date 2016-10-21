@@ -29,7 +29,6 @@ import io.crate.analyze.Analysis;
 import io.crate.analyze.Analyzer;
 import io.crate.analyze.EvaluatingNormalizer;
 import io.crate.analyze.ParameterContext;
-import io.crate.analyze.relations.PlannedAnalyzedRelation;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.core.collections.Row;
 import io.crate.core.collections.RowN;
@@ -43,6 +42,7 @@ import io.crate.operation.collect.CrateCollector;
 import io.crate.operation.collect.JobCollectContext;
 import io.crate.operation.collect.MapSideDataCollectOperation;
 import io.crate.operation.projectors.RowReceiver;
+import io.crate.planner.Plan;
 import io.crate.planner.Planner;
 import io.crate.planner.consumer.ConsumerContext;
 import io.crate.planner.consumer.QueryAndFetchConsumer;
@@ -107,11 +107,11 @@ public class LuceneDocCollectorProvider implements AutoCloseable {
             SqlParser.createStatement(statement),
             SessionContext.SYSTEM_SESSION,
             new ParameterContext(new RowN(args), Collections.<Row>emptyList()));
-        PlannedAnalyzedRelation plannedAnalyzedRelation = queryAndFetchConsumer.consume(
+        Plan plan = queryAndFetchConsumer.consume(
             analysis.rootRelation(),
             new ConsumerContext(analysis.rootRelation(), new Planner.Context(planner,
                 cluster.clusterService(), UUID.randomUUID(), null, normalizer, new TransactionContext(SessionContext.SYSTEM_SESSION), 0, 0)));
-        final RoutedCollectPhase collectPhase = ((RoutedCollectPhase) ((CollectAndMerge) plannedAnalyzedRelation.plan()).collectPhase());
+        final RoutedCollectPhase collectPhase = ((RoutedCollectPhase) ((CollectAndMerge) plan).collectPhase());
         collectPhase.nodePageSizeHint(nodePageSizeHint);
         Routing routing = collectPhase.routing();
         String nodeId = Iterables.getOnlyElement(routing.nodes());

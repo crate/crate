@@ -26,7 +26,6 @@ import io.crate.analyze.HavingClause;
 import io.crate.analyze.QueriedTable;
 import io.crate.analyze.QueriedTableRelation;
 import io.crate.analyze.relations.AnalyzedRelation;
-import io.crate.analyze.relations.PlannedAnalyzedRelation;
 import io.crate.analyze.relations.QueriedDocTable;
 import io.crate.analyze.symbol.Aggregation;
 import io.crate.analyze.symbol.Symbol;
@@ -37,7 +36,8 @@ import io.crate.metadata.RowGranularity;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.operation.projectors.TopN;
 import io.crate.planner.Limits;
-import io.crate.planner.node.NoopPlannedAnalyzedRelation;
+import io.crate.planner.NoopPlan;
+import io.crate.planner.Plan;
 import io.crate.planner.node.dql.CollectAndMerge;
 import io.crate.planner.node.dql.GroupByConsumer;
 import io.crate.planner.node.dql.MergePhase;
@@ -59,7 +59,7 @@ class NonDistributedGroupByConsumer implements Consumer {
     }
 
     @Override
-    public PlannedAnalyzedRelation consume(AnalyzedRelation relation, ConsumerContext context) {
+    public Plan consume(AnalyzedRelation relation, ConsumerContext context) {
         return visitor.process(relation, context);
     }
 
@@ -72,7 +72,7 @@ class NonDistributedGroupByConsumer implements Consumer {
         }
 
         @Override
-        public PlannedAnalyzedRelation visitQueriedDocTable(QueriedDocTable table, ConsumerContext context) {
+        public Plan visitQueriedDocTable(QueriedDocTable table, ConsumerContext context) {
             if (!table.querySpec().groupBy().isPresent()) {
                 return null;
             }
@@ -92,7 +92,7 @@ class NonDistributedGroupByConsumer implements Consumer {
         }
 
         @Override
-        public PlannedAnalyzedRelation visitQueriedTable(QueriedTable table, ConsumerContext context) {
+        public Plan visitQueriedTable(QueriedTable table, ConsumerContext context) {
             if (!table.querySpec().groupBy().isPresent()) {
                 return null;
             }
@@ -109,8 +109,8 @@ class NonDistributedGroupByConsumer implements Consumer {
          * Collect ( GroupProjection ITER -> PARTIAL )
          * LocalMerge ( GroupProjection PARTIAL -> FINAL, [FilterProjection], TopN )
          */
-        private PlannedAnalyzedRelation nonDistributedGroupBy(QueriedTableRelation table,
-                                                              ConsumerContext context,
+        private Plan nonDistributedGroupBy(QueriedTableRelation table,
+                                           ConsumerContext context,
                                                               RowGranularity groupProjectionGranularity) {
             List<Symbol> groupBy = table.querySpec().groupBy().get();
 
@@ -155,7 +155,7 @@ class NonDistributedGroupByConsumer implements Consumer {
             Optional<HavingClause> havingClause = table.querySpec().having();
             if (havingClause.isPresent()) {
                 if (havingClause.get().noMatch()) {
-                    return new NoopPlannedAnalyzedRelation(table, context.plannerContext().jobId());
+                    return new NoopPlan(context.plannerContext().jobId());
                 } else if (havingClause.get().hasQuery()) {
                     projections.add(ProjectionBuilder.filterProjection(
                         collectOutputs,

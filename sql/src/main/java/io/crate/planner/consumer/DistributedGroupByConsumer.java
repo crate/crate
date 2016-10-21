@@ -28,7 +28,6 @@ import com.google.common.collect.Sets;
 import io.crate.analyze.HavingClause;
 import io.crate.analyze.QuerySpec;
 import io.crate.analyze.relations.AnalyzedRelation;
-import io.crate.analyze.relations.PlannedAnalyzedRelation;
 import io.crate.analyze.relations.QueriedDocTable;
 import io.crate.analyze.symbol.Aggregation;
 import io.crate.analyze.symbol.Symbol;
@@ -38,9 +37,10 @@ import io.crate.metadata.Routing;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.planner.Limits;
+import io.crate.planner.NoopPlan;
+import io.crate.planner.Plan;
 import io.crate.planner.Planner;
 import io.crate.planner.distribution.DistributionInfo;
-import io.crate.planner.node.NoopPlannedAnalyzedRelation;
 import io.crate.planner.node.dql.DistributedGroupBy;
 import io.crate.planner.node.dql.GroupByConsumer;
 import io.crate.planner.node.dql.MergePhase;
@@ -66,7 +66,7 @@ class DistributedGroupByConsumer implements Consumer {
     }
 
     @Override
-    public PlannedAnalyzedRelation consume(AnalyzedRelation relation, ConsumerContext context) {
+    public Plan consume(AnalyzedRelation relation, ConsumerContext context) {
         return visitor.process(relation, context);
     }
 
@@ -79,7 +79,7 @@ class DistributedGroupByConsumer implements Consumer {
         }
 
         @Override
-        public PlannedAnalyzedRelation visitQueriedDocTable(QueriedDocTable table, ConsumerContext context) {
+        public Plan visitQueriedDocTable(QueriedDocTable table, ConsumerContext context) {
             if (!table.querySpec().groupBy().isPresent()) {
                 return null;
             }
@@ -140,7 +140,7 @@ class DistributedGroupByConsumer implements Consumer {
             Optional<HavingClause> havingClause = querySpec.having();
             if (havingClause.isPresent()) {
                 if (havingClause.get().noMatch()) {
-                    return new NoopPlannedAnalyzedRelation(table, plannerContext.jobId());
+                    return new NoopPlan(plannerContext.jobId());
                 } else if (havingClause.get().hasQuery()) {
                     reducerProjections.add(ProjectionBuilder.filterProjection(
                         collectOutputs,

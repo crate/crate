@@ -27,7 +27,6 @@ import io.crate.analyze.HavingClause;
 import io.crate.analyze.QuerySpec;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.DocTableRelation;
-import io.crate.analyze.relations.PlannedAnalyzedRelation;
 import io.crate.analyze.relations.QueriedDocTable;
 import io.crate.analyze.symbol.Aggregation;
 import io.crate.analyze.symbol.Symbol;
@@ -36,7 +35,8 @@ import io.crate.metadata.Functions;
 import io.crate.metadata.RowGranularity;
 import io.crate.operation.projectors.TopN;
 import io.crate.planner.Limits;
-import io.crate.planner.node.NoopPlannedAnalyzedRelation;
+import io.crate.planner.NoopPlan;
+import io.crate.planner.Plan;
 import io.crate.planner.node.dql.CollectAndMerge;
 import io.crate.planner.node.dql.GroupByConsumer;
 import io.crate.planner.node.dql.MergePhase;
@@ -59,7 +59,7 @@ class ReduceOnCollectorGroupByConsumer implements Consumer {
     }
 
     @Override
-    public PlannedAnalyzedRelation consume(AnalyzedRelation relation, ConsumerContext context) {
+    public Plan consume(AnalyzedRelation relation, ConsumerContext context) {
         return visitor.process(relation, context);
     }
 
@@ -72,7 +72,7 @@ class ReduceOnCollectorGroupByConsumer implements Consumer {
         }
 
         @Override
-        public PlannedAnalyzedRelation visitQueriedDocTable(QueriedDocTable table, ConsumerContext context) {
+        public Plan visitQueriedDocTable(QueriedDocTable table, ConsumerContext context) {
             if (!table.querySpec().groupBy().isPresent()) {
                 return null;
             }
@@ -99,7 +99,7 @@ class ReduceOnCollectorGroupByConsumer implements Consumer {
          * CollectNode ( GroupProjection, [FilterProjection], [TopN] )
          * LocalMergeNode ( TopN )
          */
-        private PlannedAnalyzedRelation optimizedReduceOnCollectorGroupBy(QueriedDocTable table, DocTableRelation tableRelation, ConsumerContext context) {
+        private Plan optimizedReduceOnCollectorGroupBy(QueriedDocTable table, DocTableRelation tableRelation, ConsumerContext context) {
             QuerySpec querySpec = table.querySpec();
             assert GroupByConsumer.groupedByClusteredColumnOrPrimaryKeys(
                 tableRelation, querySpec.where(), querySpec.groupBy().get()) : "not grouped by clustered column or primary keys";
@@ -138,7 +138,7 @@ class ReduceOnCollectorGroupByConsumer implements Consumer {
             Optional<HavingClause> havingClause = querySpec.having();
             if (havingClause.isPresent()) {
                 if (havingClause.get().noMatch()) {
-                    return new NoopPlannedAnalyzedRelation(table, context.plannerContext().jobId());
+                    return new NoopPlan(context.plannerContext().jobId());
                 } else if (havingClause.get().hasQuery()) {
                     FilterProjection fp = ProjectionBuilder.filterProjection(
                         collectOutputs,

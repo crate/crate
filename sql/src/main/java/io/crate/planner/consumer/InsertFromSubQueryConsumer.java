@@ -26,11 +26,15 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Sets;
 import io.crate.analyze.InsertFromSubQueryAnalyzedStatement;
 import io.crate.analyze.QuerySpec;
-import io.crate.analyze.relations.*;
+import io.crate.analyze.relations.AnalyzedRelation;
+import io.crate.analyze.relations.AnalyzedRelationVisitor;
+import io.crate.analyze.relations.QueriedDocTable;
+import io.crate.analyze.relations.QueriedRelation;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.analyze.symbol.Symbols;
 import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.metadata.DocReferenceConverter;
+import io.crate.planner.Plan;
 import io.crate.planner.Planner;
 import io.crate.planner.node.dml.InsertFromSubQuery;
 import io.crate.planner.node.dql.MergePhase;
@@ -47,7 +51,7 @@ public class InsertFromSubQueryConsumer implements Consumer {
     private static final Visitor VISITOR = new Visitor();
 
     @Override
-    public PlannedAnalyzedRelation consume(AnalyzedRelation relation, ConsumerContext context) {
+    public Plan consume(AnalyzedRelation relation, ConsumerContext context) {
         return VISITOR.process(relation, context);
     }
 
@@ -56,8 +60,8 @@ public class InsertFromSubQueryConsumer implements Consumer {
         private static final ToSourceLookupConverter SOURCE_LOOKUP_CONVERTER = new ToSourceLookupConverter();
 
         @Override
-        public PlannedAnalyzedRelation visitInsertFromQuery(InsertFromSubQueryAnalyzedStatement statement,
-                                                            ConsumerContext context) {
+        public Plan visitInsertFromQuery(InsertFromSubQueryAnalyzedStatement statement,
+                                         ConsumerContext context) {
 
             ColumnIndexWriterProjection indexWriterProjection = new ColumnIndexWriterProjection(
                 statement.tableInfo().ident(),
@@ -85,7 +89,7 @@ public class InsertFromSubQueryConsumer implements Consumer {
                                                       "supported on insert using a sub-query");
             }
             SOURCE_LOOKUP_CONVERTER.process(subRelation, null);
-            PlannedAnalyzedRelation plannedSubQuery = plannerContext.planSubRelation(subRelation, context);
+            Plan plannedSubQuery = plannerContext.planSubRelation(subRelation, context);
             if (plannedSubQuery == null) {
                 return null;
             }
@@ -104,7 +108,7 @@ public class InsertFromSubQueryConsumer implements Consumer {
                     Symbols.extractTypes(indexWriterProjection.outputs()));
                 mergeNode.executionNodes(Sets.newHashSet(plannerContext.clusterService().localNode().id()));
             }
-            return new InsertFromSubQuery(plannedSubQuery.plan(), mergeNode, plannerContext.jobId());
+            return new InsertFromSubQuery(plannedSubQuery, mergeNode, plannerContext.jobId());
         }
     }
 

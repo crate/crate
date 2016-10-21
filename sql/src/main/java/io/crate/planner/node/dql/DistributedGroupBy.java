@@ -21,7 +21,7 @@
 
 package io.crate.planner.node.dql;
 
-import io.crate.planner.PlanAndPlannedAnalyzedRelation;
+import io.crate.planner.Plan;
 import io.crate.planner.PlanVisitor;
 import io.crate.planner.distribution.UpstreamPhase;
 import io.crate.planner.projection.Projection;
@@ -29,7 +29,7 @@ import io.crate.planner.projection.Projection;
 import javax.annotation.Nullable;
 import java.util.UUID;
 
-public class DistributedGroupBy extends PlanAndPlannedAnalyzedRelation {
+public class DistributedGroupBy implements Plan {
 
     private final RoutedCollectPhase collectNode;
     private final MergePhase reducerMergeNode;

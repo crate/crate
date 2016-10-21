@@ -28,7 +28,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import io.crate.analyze.CopyFromAnalyzedStatement;
 import io.crate.analyze.CopyToAnalyzedStatement;
-import io.crate.analyze.relations.PlannedAnalyzedRelation;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.analyze.symbol.Symbols;
 import io.crate.metadata.ColumnIdent;
@@ -53,8 +52,6 @@ import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.node.DiscoveryNodes;
-import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.inject.Singleton;
 
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -198,22 +195,21 @@ public class CopyStatementPlanner {
             statement.outputNames(),
             outputFormat);
 
-        PlannedAnalyzedRelation plannedSubQuery = context.planSubRelation(statement.subQueryRelation(),
-            new ConsumerContext(statement, context));
-        if (plannedSubQuery == null) {
+        Plan plan = context.planSubRelation(statement.subQueryRelation(), new ConsumerContext(statement, context));
+        if (plan == null) {
             return null;
         }
 
-        plannedSubQuery.addProjection(projection);
+        plan.addProjection(projection);
 
         MergePhase mergePhase = MergePhase.localMerge(
             context.jobId(),
             context.nextExecutionPhaseId(),
             ImmutableList.<Projection>of(MergeCountProjection.INSTANCE),
-            plannedSubQuery.resultPhase().executionNodes().size(),
+            plan.resultPhase().executionNodes().size(),
             Symbols.extractTypes(projection.outputs()));
 
-        return new CopyTo(context.jobId(), plannedSubQuery.plan(), mergePhase);
+        return new CopyTo(context.jobId(), plan, mergePhase);
     }
 
     private static Collection<String> getExecutionNodes(DiscoveryNodes allNodes,

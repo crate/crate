@@ -24,7 +24,6 @@ package io.crate.planner.node.dml;
 
 import com.google.common.base.Optional;
 import io.crate.planner.Plan;
-import io.crate.planner.PlanAndPlannedAnalyzedRelation;
 import io.crate.planner.PlanVisitor;
 import io.crate.planner.distribution.UpstreamPhase;
 import io.crate.planner.node.dql.MergePhase;
@@ -33,7 +32,7 @@ import io.crate.planner.projection.Projection;
 import javax.annotation.Nullable;
 import java.util.UUID;
 
-public class CopyTo extends PlanAndPlannedAnalyzedRelation {
+public class CopyTo implements Plan {
 
     private final UUID id;
     private final Plan innerPlan;

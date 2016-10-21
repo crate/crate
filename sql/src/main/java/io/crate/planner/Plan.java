@@ -21,6 +21,9 @@
 
 package io.crate.planner;
 
+import io.crate.planner.distribution.UpstreamPhase;
+import io.crate.planner.projection.Projection;
+
 import java.util.UUID;
 
 public interface Plan {
@@ -28,4 +31,10 @@ public interface Plan {
     <C, R> R accept(PlanVisitor<C, R> visitor, C context);
 
     UUID jobId();
+
+    void addProjection(Projection projection);
+
+    boolean resultIsDistributed();
+
+    UpstreamPhase resultPhase();
 }

@@ -24,10 +24,11 @@ package io.crate.planner.node.management;
 
 import io.crate.planner.Plan;
 import io.crate.planner.PlanVisitor;
+import io.crate.planner.UnnestablePlan;
 
 import java.util.UUID;
 
-public class ExplainPlan implements Plan {
+public class ExplainPlan extends UnnestablePlan {
 
     private final Plan subPlan;
 

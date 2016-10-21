@@ -22,8 +22,8 @@
 
 package io.crate.planner.statement;
 
-import io.crate.planner.Plan;
 import io.crate.planner.PlanVisitor;
+import io.crate.planner.UnnestablePlan;
 import org.elasticsearch.common.settings.Settings;
 
 import java.util.UUID;
@@ -31,7 +31,7 @@ import java.util.UUID;
 /**
  * A plan with an empty result
  */
-public class SetSessionPlan implements Plan {
+public class SetSessionPlan extends UnnestablePlan {
 
     private final UUID id;
     private final Settings settings;

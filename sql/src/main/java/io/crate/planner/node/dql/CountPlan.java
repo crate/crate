@@ -21,14 +21,14 @@
 
 package io.crate.planner.node.dql;
 
-import io.crate.planner.PlanAndPlannedAnalyzedRelation;
+import io.crate.planner.Plan;
 import io.crate.planner.PlanVisitor;
 import io.crate.planner.distribution.UpstreamPhase;
 import io.crate.planner.projection.Projection;
 
 import java.util.UUID;
 
-public class CountPlan extends PlanAndPlannedAnalyzedRelation {
+public class CountPlan implements Plan {
 
     private final CountPhase countNode;
     private final MergePhase mergeNode;

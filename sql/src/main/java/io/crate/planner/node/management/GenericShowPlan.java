@@ -22,12 +22,13 @@
 package io.crate.planner.node.management;
 
 import io.crate.analyze.AbstractShowAnalyzedStatement;
-import io.crate.planner.Plan;
 import io.crate.planner.PlanVisitor;
+import io.crate.planner.UnnestablePlan;
 
 import java.util.UUID;
 
-public class GenericShowPlan implements Plan {
+public class GenericShowPlan extends UnnestablePlan {
+
     private final UUID id;
     private final AbstractShowAnalyzedStatement statement;
 

@@ -6,7 +6,6 @@ import com.google.common.collect.Multimap;
 import io.crate.action.sql.SessionContext;
 import io.crate.analyze.QuerySpec;
 import io.crate.analyze.WhereClause;
-import io.crate.analyze.relations.PlannedAnalyzedRelation;
 import io.crate.analyze.symbol.*;
 import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.exceptions.VersionInvalidException;
@@ -545,7 +544,6 @@ public class PlannerTest extends AbstractPlannerTest {
     @Test
     public void testGlobalCountPlan() throws Exception {
         CountPlan plan = plan("select count(*) from users");
-        assertThat(plan, instanceOf(PlannedAnalyzedRelation.class));
 
         assertThat(plan.countNode().whereClause(), equalTo(WhereClause.MATCH_ALL));
 
@@ -946,7 +944,6 @@ public class PlannerTest extends AbstractPlannerTest {
     @Test
     public void testCountOnPartitionedTable() throws Exception {
         CountPlan plan = plan("select count(*) from parted where date = 123");
-        assertThat(plan, instanceOf(PlannedAnalyzedRelation.class));
         assertThat(plan.countNode().whereClause().partitions(), containsInAnyOrder(".partitioned.parted.04232chj"));
     }
 
@@ -1307,7 +1304,7 @@ public class PlannerTest extends AbstractPlannerTest {
                                   "and u2.id > 1 ");
         NestedLoop nl = (NestedLoop) qtf.subPlan();
         assertThat(nl.nestedLoopPhase().joinType(), is(JoinType.INNER));
-        CollectAndMerge rightCM = (CollectAndMerge) nl.right().plan();
+        CollectAndMerge rightCM = (CollectAndMerge) nl.right();
         assertThat(((RoutedCollectPhase) rightCM.collectPhase()).whereClause().query(),
             isSQL("((doc.users.name = 'Arthur') AND (doc.users.id > 1))"));
 

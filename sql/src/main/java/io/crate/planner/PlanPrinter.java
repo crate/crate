@@ -235,8 +235,8 @@ public class PlanPrinter {
         public ImmutableMap.Builder<String, Object> visitNestedLoop(NestedLoop plan, Void context) {
             ImmutableMap.Builder<String, Object> builder = newBuilder()
                 .put("planType", plan.getClass().getSimpleName())
-                .put("left", process(plan.left().plan(), context).build())
-                .put("right", process(plan.right().plan(), context).build())
+                .put("left", process(plan.left(), context).build())
+                .put("right", process(plan.right(), context).build())
                 .put("nestedLoopPhase", phaseMap(plan.nestedLoopPhase()));
 
             MergePhase mergePhase = plan.localMerge();

@@ -25,7 +25,10 @@ import com.google.common.collect.ImmutableList;
 import io.crate.analyze.UpdateAnalyzedStatement;
 import io.crate.analyze.VersionRewriter;
 import io.crate.analyze.WhereClause;
-import io.crate.analyze.relations.*;
+import io.crate.analyze.relations.AnalyzedRelation;
+import io.crate.analyze.relations.AnalyzedRelationVisitor;
+import io.crate.analyze.relations.DocTableRelation;
+import io.crate.analyze.relations.TableRelation;
 import io.crate.analyze.symbol.Assignments;
 import io.crate.analyze.symbol.InputColumn;
 import io.crate.analyze.symbol.Symbol;
@@ -33,10 +36,10 @@ import io.crate.analyze.symbol.ValueSymbolVisitor;
 import io.crate.analyze.where.DocKeys;
 import io.crate.metadata.*;
 import io.crate.metadata.doc.DocTableInfo;
+import io.crate.planner.NoopPlan;
 import io.crate.planner.Plan;
 import io.crate.planner.Planner;
 import io.crate.planner.distribution.DistributionInfo;
-import io.crate.planner.node.NoopPlannedAnalyzedRelation;
 import io.crate.planner.node.dml.Upsert;
 import io.crate.planner.node.dml.UpsertById;
 import io.crate.planner.node.dql.CollectAndMerge;
@@ -64,7 +67,7 @@ public class UpdateConsumer implements Consumer {
     }
 
     @Override
-    public PlannedAnalyzedRelation consume(AnalyzedRelation rootRelation, ConsumerContext context) {
+    public Plan consume(AnalyzedRelation rootRelation, ConsumerContext context) {
         return visitor.process(rootRelation, context);
     }
 
@@ -78,10 +81,10 @@ public class UpdateConsumer implements Consumer {
         }
     }
 
-    private static class RelationVisitor extends AnalyzedRelationVisitor<Context, PlannedAnalyzedRelation> {
+    private static class RelationVisitor extends AnalyzedRelationVisitor<Context, Plan> {
 
         @Override
-        public PlannedAnalyzedRelation visitDocTableRelation(DocTableRelation relation, Context context) {
+        public Plan visitDocTableRelation(DocTableRelation relation, Context context) {
             UpdateAnalyzedStatement statement = context.statement;
             Planner.Context plannerContext = context.consumerContext.plannerContext();
 
@@ -125,11 +128,11 @@ public class UpdateConsumer implements Consumer {
                 assert childNodes.isEmpty() : "all bulk operations must resolve to the same sub-plan, either update-by-id or update-by-query";
                 return upsertById;
             }
-            return createUpsertPlan(statement, childNodes, plannerContext.jobId());
+            return createUpsertPlan(childNodes, plannerContext.jobId());
         }
 
         @Override
-        public PlannedAnalyzedRelation visitTableRelation(TableRelation tableRelation, Context context) {
+        public Plan visitTableRelation(TableRelation tableRelation, Context context) {
             UpdateAnalyzedStatement statement = context.statement;
             Planner.Context plannerContext = context.consumerContext.plannerContext();
 
@@ -140,13 +143,13 @@ public class UpdateConsumer implements Consumer {
                 }
                 childPlans.add(createSysTableUpdatePlan(tableRelation, plannerContext, nestedStatement));
             }
-            return createUpsertPlan(statement, childPlans, plannerContext.jobId());
+            return createUpsertPlan(childPlans, plannerContext.jobId());
         }
     }
 
-    private static PlannedAnalyzedRelation createUpsertPlan(UpdateAnalyzedStatement statement, List<Plan> childPlans, UUID jobId) {
+    private static Plan createUpsertPlan(List<Plan> childPlans, UUID jobId) {
         if (childPlans.isEmpty()) {
-            return new NoopPlannedAnalyzedRelation(statement, jobId);
+            return new NoopPlan(jobId);
         }
         return new Upsert(childPlans, jobId);
     }
@@ -192,7 +195,7 @@ public class UpdateConsumer implements Consumer {
         }
 
         @Override
-        public PlannedAnalyzedRelation visitUpdateAnalyzedStatement(UpdateAnalyzedStatement statement, ConsumerContext context) {
+        public Plan visitUpdateAnalyzedStatement(UpdateAnalyzedStatement statement, ConsumerContext context) {
             return relationVisitor.process(statement.sourceRelation(), new Context(statement, context));
         }
     }

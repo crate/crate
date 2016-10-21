@@ -29,7 +29,7 @@ import io.crate.analyze.symbol.Symbol;
 import io.crate.analyze.symbol.Symbols;
 import io.crate.analyze.where.DocKeys;
 import io.crate.metadata.doc.DocTableInfo;
-import io.crate.planner.PlanAndPlannedAnalyzedRelation;
+import io.crate.planner.Plan;
 import io.crate.planner.PlanVisitor;
 import io.crate.planner.distribution.UpstreamPhase;
 import io.crate.planner.projection.Projection;
@@ -39,7 +39,7 @@ import java.util.List;
 import java.util.UUID;
 
 
-public class ESGet extends PlanAndPlannedAnalyzedRelation {
+public class ESGet implements Plan {
 
     private final DocTableInfo tableInfo;
     private final List<Symbol> sortSymbols;

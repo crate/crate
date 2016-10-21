@@ -22,9 +22,9 @@
 package io.crate.planner.consumer;
 
 import io.crate.analyze.relations.AnalyzedRelation;
-import io.crate.analyze.relations.PlannedAnalyzedRelation;
+import io.crate.planner.Plan;
 
 public interface Consumer {
 
-    PlannedAnalyzedRelation consume(AnalyzedRelation relation, ConsumerContext context);
+    Plan consume(AnalyzedRelation relation, ConsumerContext context);
 }

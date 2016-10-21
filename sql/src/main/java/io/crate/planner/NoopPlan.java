@@ -26,7 +26,7 @@ import java.util.UUID;
 /**
  * A plan with an empty result
  */
-public class NoopPlan implements Plan {
+public class NoopPlan extends UnnestablePlan {
 
     private final UUID id;
 

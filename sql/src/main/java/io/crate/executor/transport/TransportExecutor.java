@@ -542,11 +542,11 @@ public class TransportExecutor implements Executor {
             context.addPhase(plan.nestedLoopPhase());
 
             context.branch((byte) 0);
-            process(plan.left().plan(), context);
+            process(plan.left(), context);
             context.leaveBranch();
 
             context.branch((byte) 1);
-            process(plan.right().plan(), context);
+            process(plan.right(), context);
             context.leaveBranch();
 
             return null;

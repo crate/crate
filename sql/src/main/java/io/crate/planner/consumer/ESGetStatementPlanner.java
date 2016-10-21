@@ -61,6 +61,6 @@ public class ESGetStatementPlanner {
             querySpec.orderBy(),
             limits.finalLimit(),
             limits.offset(),
-            context.jobId()).plan();
+            context.jobId());
     }
 }

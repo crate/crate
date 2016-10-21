@@ -23,14 +23,14 @@ package io.crate.planner.node.dml;
 
 import io.crate.analyze.where.DocKeys;
 import io.crate.metadata.doc.DocTableInfo;
-import io.crate.planner.Plan;
 import io.crate.planner.PlanVisitor;
+import io.crate.planner.UnnestablePlan;
 
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
-public class ESDelete implements Plan {
+public class ESDelete extends UnnestablePlan {
 
     private final UUID jobId;
     private final int executionPhaseId;

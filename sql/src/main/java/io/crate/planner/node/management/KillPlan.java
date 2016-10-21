@@ -22,12 +22,12 @@
 package io.crate.planner.node.management;
 
 import com.google.common.base.Optional;
-import io.crate.planner.Plan;
 import io.crate.planner.PlanVisitor;
+import io.crate.planner.UnnestablePlan;
 
 import java.util.UUID;
 
-public class KillPlan implements Plan {
+public class KillPlan extends UnnestablePlan {
 
     private final UUID id;
     private final Optional<UUID> jobToKill;

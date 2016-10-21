@@ -27,7 +27,6 @@ import com.google.common.collect.ImmutableMap;
 import io.crate.analyze.*;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.AnalyzedRelationVisitor;
-import io.crate.analyze.relations.PlannedAnalyzedRelation;
 import io.crate.analyze.relations.QueriedDocTable;
 import io.crate.analyze.symbol.SelectSymbol;
 import io.crate.exceptions.ValidationException;
@@ -41,7 +40,6 @@ import io.crate.planner.consumer.ESGetStatementPlanner;
 import io.crate.planner.consumer.SimpleSelect;
 import io.crate.planner.fetch.FetchPushDown;
 import io.crate.planner.fetch.MultiSourceFetchPushDown;
-import io.crate.planner.node.NoopPlannedAnalyzedRelation;
 import io.crate.planner.node.dql.CollectAndMerge;
 import io.crate.planner.node.dql.MergePhase;
 import io.crate.planner.node.dql.QueryThenFetch;
@@ -68,10 +66,10 @@ class SelectStatementPlanner {
         return visitor.process(statement.relation(), context);
     }
 
-    private static PlannedAnalyzedRelation subPlan(AnalyzedRelation rel, Planner.Context context) {
+    private static Plan subPlan(AnalyzedRelation rel, Planner.Context context) {
         ConsumerContext consumerContext = new ConsumerContext(rel, context);
-        PlannedAnalyzedRelation subPlan = context.planSubRelation(rel, consumerContext);
-        assert subPlan != null;
+        Plan subPlan = context.planSubRelation(rel, consumerContext);
+        assert subPlan != null : "plan must not be null";
         ValidationException validationException = consumerContext.validationException();
         if (validationException != null) {
             throw validationException;
@@ -127,7 +125,7 @@ class SelectStatementPlanner {
             if (subRelation == null) {
                 return MultiPhasePlan.createIfNeeded(consumingPlanner.plan(table, context), subQueries);
             }
-            PlannedAnalyzedRelation plannedSubQuery = subPlan(subRelation, context);
+            Plan plannedSubQuery = subPlan(subRelation, context);
             assert plannedSubQuery != null : "consumingPlanner should have created a subPlan";
 
             CollectAndMerge qaf = (CollectAndMerge) plannedSubQuery;
@@ -183,7 +181,7 @@ class SelectStatementPlanner {
                 collectPhase, localMergePhase, limits.finalLimit(), limits.offset(),
                 context.clusterService().localNode().id());
             QueryThenFetch queryThenFetch = new QueryThenFetch(
-                plannedSubQuery.plan(), fetchPhase, localMergePhase, context.jobId());
+                plannedSubQuery, fetchPhase, localMergePhase, context.jobId());
             return MultiPhasePlan.createIfNeeded(queryThenFetch, subQueries);
         }
 
@@ -204,11 +202,11 @@ class SelectStatementPlanner {
             MultiSourceFetchPushDown pd = MultiSourceFetchPushDown.pushDown(mss);
             ConsumerContext consumerContext = new ConsumerContext(mss, context);
             // plan sub relation as if root so that it adds a mergePhase
-            PlannedAnalyzedRelation plannedSubQuery = consumingPlanner.plan(mss, consumerContext);
+            Plan plannedSubQuery = consumingPlanner.plan(mss, consumerContext);
             // NestedLoopConsumer can return NoopPlannedAnalyzedRelation if its left or right plan
             // is noop. E.g. it is the case with creating NestedLoopConsumer for empty partitioned tables.
-            if (plannedSubQuery instanceof NoopPlannedAnalyzedRelation) {
-                return new NoopPlan(context.jobId());
+            if (plannedSubQuery instanceof NoopPlan) {
+                return plannedSubQuery;
             }
             assert plannedSubQuery != null : "consumingPlanner should have created a subPlan";
             assert !plannedSubQuery.resultIsDistributed() : "subQuery must not have a distributed result";
@@ -237,7 +235,7 @@ class SelectStatementPlanner {
 
             plannedSubQuery.addProjection(fp);
             return MultiPhasePlan.createIfNeeded(
-                new QueryThenFetch(plannedSubQuery.plan(), fetchPhase, null, context.jobId()), subQueries);
+                new QueryThenFetch(plannedSubQuery, fetchPhase, null, context.jobId()), subQueries);
         }
 
         @Override

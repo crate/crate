@@ -36,6 +36,7 @@ import io.crate.exceptions.ValidationException;
 import io.crate.metadata.ReplaceMode;
 import io.crate.metadata.ReplacingSymbolVisitor;
 import io.crate.operation.operator.AndOperator;
+import io.crate.planner.Plan;
 import io.crate.sql.tree.QualifiedName;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
@@ -54,7 +55,7 @@ public class ManyTableConsumer implements Consumer {
     }
 
     @Override
-    public PlannedAnalyzedRelation consume(AnalyzedRelation relation, ConsumerContext context) {
+    public Plan consume(AnalyzedRelation relation, ConsumerContext context) {
         return visitor.process(relation, context);
     }
 
@@ -354,7 +355,7 @@ public class ManyTableConsumer implements Consumer {
         }
 
         @Override
-        public PlannedAnalyzedRelation visitMultiSourceSelect(MultiSourceSelect mss, ConsumerContext context) {
+        public Plan visitMultiSourceSelect(MultiSourceSelect mss, ConsumerContext context) {
             if (isUnsupportedStatement(mss, context)) return null;
             replaceFieldsWithRelationColumns(mss);
             if (mss.sources().size() == 2) {
@@ -377,7 +378,7 @@ public class ManyTableConsumer implements Consumer {
             return false;
         }
 
-        private PlannedAnalyzedRelation planSubRelation(ConsumerContext context, AnalyzedRelation relation) {
+        private Plan planSubRelation(ConsumerContext context, AnalyzedRelation relation) {
             if (context.isRoot()) {
                 return consumingPlanner.plan(relation, context);
             }

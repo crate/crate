@@ -114,8 +114,8 @@ class SubSelectSymbolReplacer implements FutureCallback<Object> {
 
         @Override
         public Void visitNestedLoop(NestedLoop plan, SymbolReplacer replacer) {
-            process(plan.left().plan(), replacer);
-            process(plan.right().plan(), replacer);
+            process(plan.left(), replacer);
+            process(plan.right(), replacer);
             process(plan.localMerge(), replacer);
             plan.nestedLoopPhase().replaceSymbols(replacer);
             return null;

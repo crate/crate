@@ -21,15 +21,15 @@
 
 package io.crate.planner.node.ddl;
 
-import io.crate.planner.Plan;
 import io.crate.planner.PlanVisitor;
+import io.crate.planner.UnnestablePlan;
 import org.elasticsearch.common.settings.Settings;
 
 import javax.annotation.Nullable;
 import java.util.Set;
 import java.util.UUID;
 
-public class ESClusterUpdateSettingsPlan implements Plan {
+public class ESClusterUpdateSettingsPlan extends UnnestablePlan {
 
     private final Settings persistentSettings;
     private final Settings transientSettings;

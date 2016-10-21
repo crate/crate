@@ -23,6 +23,8 @@
 package io.crate.planner;
 
 import io.crate.analyze.symbol.SelectSymbol;
+import io.crate.planner.distribution.UpstreamPhase;
+import io.crate.planner.projection.Projection;
 
 import java.util.Map;
 import java.util.UUID;
@@ -73,5 +75,20 @@ public class MultiPhasePlan implements Plan {
     @Override
     public UUID jobId() {
         return rootPlan.jobId();
+    }
+
+    @Override
+    public void addProjection(Projection projection) {
+        rootPlan.addProjection(projection);
+    }
+
+    @Override
+    public boolean resultIsDistributed() {
+        return rootPlan.resultIsDistributed();
+    }
+
+    @Override
+    public UpstreamPhase resultPhase() {
+        return rootPlan.resultPhase();
     }
 }

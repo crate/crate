@@ -23,7 +23,6 @@ package io.crate.planner.consumer;
 
 import io.crate.analyze.Rewriter;
 import io.crate.analyze.relations.AnalyzedRelation;
-import io.crate.analyze.relations.PlannedAnalyzedRelation;
 import io.crate.exceptions.ValidationException;
 import io.crate.metadata.Functions;
 import io.crate.planner.Plan;
@@ -56,19 +55,15 @@ public class ConsumingPlanner {
     @Nullable
     public Plan plan(AnalyzedRelation rootRelation, Planner.Context plannerContext) {
         ConsumerContext consumerContext = new ConsumerContext(rootRelation, plannerContext);
-        PlannedAnalyzedRelation plannedAnalyzedRelation = plan(rootRelation, consumerContext);
-        if (plannedAnalyzedRelation != null) {
-            return plannedAnalyzedRelation.plan();
-        }
-        return null;
+        return plan(rootRelation, consumerContext);
     }
 
     @Nullable
-    public PlannedAnalyzedRelation plan(AnalyzedRelation relation, ConsumerContext consumerContext) {
+    public Plan plan(AnalyzedRelation relation, ConsumerContext consumerContext) {
         for (Consumer consumer : consumers) {
-            PlannedAnalyzedRelation plannedAnalyzedRelation = consumer.consume(relation, consumerContext);
-            if (plannedAnalyzedRelation != null) {
-                return plannedAnalyzedRelation;
+            Plan plan = consumer.consume(relation, consumerContext);
+            if (plan != null) {
+                return plan;
             }
         }
         ValidationException validationException = consumerContext.validationException();

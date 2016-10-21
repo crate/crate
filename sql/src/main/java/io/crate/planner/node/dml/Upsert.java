@@ -22,7 +22,6 @@
 package io.crate.planner.node.dml;
 
 import io.crate.planner.Plan;
-import io.crate.planner.PlanAndPlannedAnalyzedRelation;
 import io.crate.planner.PlanVisitor;
 import io.crate.planner.distribution.UpstreamPhase;
 import io.crate.planner.projection.Projection;
@@ -30,7 +29,7 @@ import io.crate.planner.projection.Projection;
 import java.util.List;
 import java.util.UUID;
 
-public class Upsert extends PlanAndPlannedAnalyzedRelation {
+public class Upsert implements Plan {
 
     private final List<Plan> nodes;
     private final UUID id;

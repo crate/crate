@@ -20,8 +20,7 @@
 */
 package io.crate.planner.node.dql.join;
 
-import io.crate.analyze.relations.PlannedAnalyzedRelation;
-import io.crate.planner.PlanAndPlannedAnalyzedRelation;
+import io.crate.planner.Plan;
 import io.crate.planner.PlanVisitor;
 import io.crate.planner.distribution.UpstreamPhase;
 import io.crate.planner.node.dql.MergePhase;
@@ -54,11 +53,11 @@ import java.util.UUID;
  * can assume the same order of symbols, first symbols from left, then from right.
  * If sth. else is selected a projection has to reorder those.
  */
-public class NestedLoop extends PlanAndPlannedAnalyzedRelation {
+public class NestedLoop implements Plan {
 
 
-    private final PlannedAnalyzedRelation left;
-    private final PlannedAnalyzedRelation right;
+    private final Plan left;
+    private final Plan right;
     private final NestedLoopPhase nestedLoopPhase;
     private final UUID jobId;
 
@@ -93,8 +92,8 @@ public class NestedLoop extends PlanAndPlannedAnalyzedRelation {
      * b | 3
      */
     public NestedLoop(NestedLoopPhase nestedLoopPhase,
-                      PlannedAnalyzedRelation left,
-                      PlannedAnalyzedRelation right,
+                      Plan left,
+                      Plan right,
                       @Nullable MergePhase localMerge,
                       Collection<String> handlerNodes) {
         this.jobId = nestedLoopPhase.jobId();
@@ -105,11 +104,11 @@ public class NestedLoop extends PlanAndPlannedAnalyzedRelation {
         this.resultIsDistributed = localMerge == null && !nestedLoopPhase.executionNodes().equals(handlerNodes);
     }
 
-    public PlannedAnalyzedRelation left() {
+    public Plan left() {
         return left;
     }
 
-    public PlannedAnalyzedRelation right() {
+    public Plan right() {
         return right;
     }
 

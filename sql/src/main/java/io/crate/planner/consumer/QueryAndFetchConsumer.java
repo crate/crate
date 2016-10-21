@@ -29,7 +29,6 @@ import io.crate.analyze.QueriedTable;
 import io.crate.analyze.QueriedTableRelation;
 import io.crate.analyze.QuerySpec;
 import io.crate.analyze.relations.AnalyzedRelation;
-import io.crate.analyze.relations.PlannedAnalyzedRelation;
 import io.crate.analyze.relations.QueriedDocTable;
 import io.crate.analyze.symbol.Function;
 import io.crate.analyze.symbol.InputColumn;
@@ -40,6 +39,7 @@ import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.exceptions.VersionInvalidException;
 import io.crate.operation.predicate.MatchPredicate;
 import io.crate.planner.Limits;
+import io.crate.planner.Plan;
 import io.crate.planner.Planner;
 import io.crate.planner.node.dql.CollectAndMerge;
 import io.crate.planner.node.dql.MergePhase;
@@ -59,7 +59,7 @@ public class QueryAndFetchConsumer implements Consumer {
     }
 
     @Override
-    public PlannedAnalyzedRelation consume(AnalyzedRelation relation, ConsumerContext context) {
+    public Plan consume(AnalyzedRelation relation, ConsumerContext context) {
         return visitor.process(relation, context);
     }
 
@@ -68,7 +68,7 @@ public class QueryAndFetchConsumer implements Consumer {
         private static final NoPredicateVisitor NO_PREDICATE_VISITOR = new NoPredicateVisitor();
 
         @Override
-        public PlannedAnalyzedRelation visitQueriedDocTable(QueriedDocTable table, ConsumerContext context) {
+        public Plan visitQueriedDocTable(QueriedDocTable table, ConsumerContext context) {
             if (table.querySpec().hasAggregates()) {
                 return null;
             }
@@ -80,7 +80,7 @@ public class QueryAndFetchConsumer implements Consumer {
         }
 
         @Override
-        public PlannedAnalyzedRelation visitQueriedTable(QueriedTable table, ConsumerContext context) {
+        public Plan visitQueriedTable(QueriedTable table, ConsumerContext context) {
             QuerySpec querySpec = table.querySpec();
             if (querySpec.hasAggregates()) {
                 return null;
@@ -108,9 +108,7 @@ public class QueryAndFetchConsumer implements Consumer {
             }
         }
 
-        private PlannedAnalyzedRelation normalSelect(QueriedTableRelation table,
-                                                     ConsumerContext context,
-                                                     List<Symbol> outputSymbols) {
+        private Plan normalSelect(QueriedTableRelation table, ConsumerContext context, List<Symbol> outputSymbols) {
             QuerySpec querySpec = table.querySpec();
 
             RoutedCollectPhase collectPhase;

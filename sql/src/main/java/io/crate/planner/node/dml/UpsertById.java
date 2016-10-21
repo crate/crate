@@ -23,7 +23,7 @@ package io.crate.planner.node.dml;
 
 import io.crate.analyze.symbol.Symbol;
 import io.crate.metadata.Reference;
-import io.crate.planner.PlanAndPlannedAnalyzedRelation;
+import io.crate.planner.Plan;
 import io.crate.planner.PlanVisitor;
 import io.crate.planner.distribution.UpstreamPhase;
 import io.crate.planner.projection.Projection;
@@ -34,7 +34,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
-public class UpsertById extends PlanAndPlannedAnalyzedRelation {
+public class UpsertById implements Plan {
 
     @Override
     public void addProjection(Projection projection) {

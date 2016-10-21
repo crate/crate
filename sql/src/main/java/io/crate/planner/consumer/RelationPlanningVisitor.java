@@ -24,15 +24,15 @@ package io.crate.planner.consumer;
 
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.AnalyzedRelationVisitor;
-import io.crate.analyze.relations.PlannedAnalyzedRelation;
+import io.crate.planner.Plan;
 
-public class RelationPlanningVisitor extends AnalyzedRelationVisitor<ConsumerContext, PlannedAnalyzedRelation> {
+public class RelationPlanningVisitor extends AnalyzedRelationVisitor<ConsumerContext, Plan> {
 
     /**
      * This method returns null to indicate that it does not provide an implementation for the given relation
      */
     @Override
-    protected PlannedAnalyzedRelation visitAnalyzedRelation(AnalyzedRelation relation, ConsumerContext context) {
+    protected Plan visitAnalyzedRelation(AnalyzedRelation relation, ConsumerContext context) {
         return null;
     }
 }

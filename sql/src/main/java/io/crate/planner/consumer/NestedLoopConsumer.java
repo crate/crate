@@ -22,6 +22,8 @@
 package io.crate.planner.consumer;
 
 import com.google.common.base.Optional;
+import com.google.common.base.Predicate;
+import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
@@ -33,9 +35,12 @@ import io.crate.exceptions.ValidationException;
 import io.crate.metadata.Functions;
 import io.crate.metadata.TableIdent;
 import io.crate.planner.Limits;
+import io.crate.planner.NoopPlan;
+import io.crate.planner.Plan;
 import io.crate.planner.TableStatsService;
 import io.crate.planner.distribution.DistributionInfo;
-import io.crate.planner.node.NoopPlannedAnalyzedRelation;
+import io.crate.planner.distribution.UpstreamPhase;
+import io.crate.planner.node.dql.CollectPhase;
 import io.crate.planner.node.dql.MergePhase;
 import io.crate.planner.node.dql.join.JoinType;
 import io.crate.planner.node.dql.join.NestedLoop;
@@ -50,9 +55,31 @@ import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 
+import javax.annotation.Nullable;
 import java.util.*;
 
 class NestedLoopConsumer implements Consumer {
+
+    private static final Predicate<? super Plan> IS_NOOP = Predicates.or(Predicates.<Plan>instanceOf(NoopPlan.class),
+        new Predicate<Plan>() {
+            @Override
+            public boolean apply(@Nullable Plan input) {
+                if (input == null) {
+                    return true;
+                }
+                /*
+                 * executionNodes are currently required to plan a distributed NL on the same nodes.
+                 * This logic is not really correct but works for current cases - it should be removed in the future.
+                 */
+                UpstreamPhase upstreamPhase = input.resultPhase();
+                if (upstreamPhase.executionNodes().isEmpty()) {
+                    // executionNodes may be empty in CollectPhase if e.g. a partitioned table has no records / shards yet.
+                    assert upstreamPhase instanceof CollectPhase: "Only CollectPhase can become a NOOP without executionNodes";
+                    return true;
+                }
+                return false;
+            }
+        });
 
     private final static ESLogger LOGGER = Loggers.getLogger(NestedLoopConsumer.class);
     private final Visitor visitor;
@@ -64,7 +91,7 @@ class NestedLoopConsumer implements Consumer {
     }
 
     @Override
-    public PlannedAnalyzedRelation consume(AnalyzedRelation rootRelation, ConsumerContext context) {
+    public Plan consume(AnalyzedRelation rootRelation, ConsumerContext context) {
         return visitor.process(rootRelation, context);
     }
 
@@ -96,10 +123,10 @@ class NestedLoopConsumer implements Consumer {
         }
 
         @Override
-        public PlannedAnalyzedRelation visitTwoTableJoin(TwoTableJoin statement, ConsumerContext context) {
+        public Plan visitTwoTableJoin(TwoTableJoin statement, ConsumerContext context) {
             QuerySpec querySpec = statement.querySpec();
             if (querySpec.where().noMatch()) {
-                return new NoopPlannedAnalyzedRelation(statement, context.plannerContext().jobId());
+                return new NoopPlan(context.plannerContext().jobId());
             }
 
             List<RelationColumn> nlOutputs = new ArrayList<>();
@@ -161,20 +188,20 @@ class NestedLoopConsumer implements Consumer {
                     functions, context.plannerContext().transactionContext());
             }
 
-            PlannedAnalyzedRelation leftPlan = context.plannerContext().planSubRelation(left, context);
-            PlannedAnalyzedRelation rightPlan = context.plannerContext().planSubRelation(right, context);
+            Plan leftPlan = context.plannerContext().planSubRelation(left, context);
+            Plan rightPlan = context.plannerContext().planSubRelation(right, context);
             context.requiredPageSize(null);
 
-            if (Iterables.any(Arrays.asList(leftPlan, rightPlan), PlannedAnalyzedRelation.IS_NOOP)) {
+            if (Iterables.any(Arrays.asList(leftPlan, rightPlan), IS_NOOP)) {
                 // one of the plans or both are noops
-                return new NoopPlannedAnalyzedRelation(statement, context.plannerContext().jobId());
+                return new NoopPlan(context.plannerContext().jobId());
             }
 
             boolean broadcastLeftTable = false;
             if (isDistributed) {
                 broadcastLeftTable = isLeftSmallerThanRight(left, right);
                 if (broadcastLeftTable) {
-                    PlannedAnalyzedRelation tmpPlan = leftPlan;
+                    Plan tmpPlan = leftPlan;
                     leftPlan = rightPlan;
                     rightPlan = tmpPlan;
 
@@ -228,7 +255,7 @@ class NestedLoopConsumer implements Consumer {
 
 
             if (broadcastLeftTable) {
-                PlannedAnalyzedRelation tmpPlan = leftPlan;
+                Plan tmpPlan = leftPlan;
                 leftPlan = rightPlan;
                 rightPlan = tmpPlan;
                 leftMerge = rightMerge;

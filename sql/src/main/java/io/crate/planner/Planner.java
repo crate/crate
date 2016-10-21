@@ -30,7 +30,6 @@ import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
 import io.crate.analyze.*;
 import io.crate.analyze.relations.AnalyzedRelation;
-import io.crate.analyze.relations.PlannedAnalyzedRelation;
 import io.crate.analyze.symbol.Literal;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.exceptions.UnhandledServerException;
@@ -262,11 +261,11 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
             return clusterService;
         }
 
-        public PlannedAnalyzedRelation planSubRelation(AnalyzedRelation relation, ConsumerContext consumerContext) {
+        public Plan planSubRelation(AnalyzedRelation relation, ConsumerContext consumerContext) {
             assert consumingPlanner != null;
             boolean isRoot = consumerContext.isRoot();
             consumerContext.isRoot(false);
-            PlannedAnalyzedRelation subPlan = consumingPlanner.plan(relation, consumerContext);
+            Plan subPlan = consumingPlanner.plan(relation, consumerContext);
             consumerContext.isRoot(isRoot);
             return subPlan;
         }
@@ -425,11 +424,11 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
     @Override
     protected Plan visitUpdateStatement(UpdateAnalyzedStatement statement, Context context) {
         ConsumerContext consumerContext = new ConsumerContext(statement, context);
-        PlannedAnalyzedRelation plannedAnalyzedRelation = updateConsumer.consume(statement, consumerContext);
-        if (plannedAnalyzedRelation == null) {
+        Plan plan = updateConsumer.consume(statement, consumerContext);
+        if (plan == null) {
             throw new IllegalArgumentException("Couldn't plan Update statement");
         }
-        return plannedAnalyzedRelation.plan();
+        return plan;
     }
 
     @Override
