@@ -1685,6 +1685,18 @@ parent directory of the directory containing the ``bin/crate`` executable.
              All configured relative paths will use this directory as
              a parent.
 
+CRATE_JAVA_OPTS
+---------------
+
+This variable allows you to set `Java options`_ for Crate, such as as the thread
+stack size.
+
+For example, to change the stack size in order to avoid stack overflow
+exceptions::
+
+    CRATE_JAVA_OPTS=-Xss500k
+
+
 CRATE_HEAP_SIZE
 ---------------
 
@@ -1769,3 +1781,4 @@ running on it.
 .. _`Compressed Oops`: https://wiki.openjdk.java.net/display/HotSpot/CompressedOops
 .. _`Azure Portal`: https://portal.azure.com
 .. _`Active Directory application`: https://azure.microsoft.com/en-us/documentation/articles/resource-group-authenticate-service-principal-cli/#_create-ad-application-with-password
+.. _`Java options`: http://docs.oracle.com/javase/7/docs/technotes/tools/windows/java.html#CBBIJCHG
