@@ -1,31 +1,36 @@
 /*
- * Licensed to CRATE Technology GmbH ("Crate") under one or more contributor
- * license agreements.  See the NOTICE file distributed with this work for
- * additional information regarding copyright ownership.  Crate licenses
- * this file to you under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.  You may
+ * Licensed to Crate under one or more contributor license agreements.
+ * See the NOTICE file distributed with this work for additional
+ * information regarding copyright ownership.  Crate licenses this file
+ * to you under the Apache License, Version 2.0 (the "License"); you may
+ * not use this file except in compliance with the License.  You may
  * obtain a copy of the License at
  *
  *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
- * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  See the
- * License for the specific language governing permissions and limitations
- * under the License.
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+ * implied.  See the License for the specific language governing
+ * permissions and limitations under the License.
  *
  * However, if you have executed another commercial license agreement
  * with Crate these terms will supersede the license and you may use the
- * software solely pursuant to the terms of the relevant commercial agreement.
+ * software solely pursuant to the terms of the relevant commercial
+ * agreement.
  */
 
 package io.crate.analyze;
 
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.LinkedListMultimap;
+import com.google.common.collect.Multimap;
+import io.crate.sql.tree.Expression;
+import io.crate.sql.tree.Literal;
+import io.crate.sql.tree.ObjectLiteral;
 import io.crate.sql.tree.SetStatement;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.testing.SQLExecutor;
-import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.test.cluster.NoopClusterService;
 import org.hamcrest.Matchers;
 import org.junit.Rule;
@@ -47,93 +52,81 @@ public class SetAnalyzerTest extends CrateUnitTest {
         return executor.analyze(stmt);
     }
 
-    private <T> T analyze(String stmt, Object[] args) {
-        return executor.analyze(stmt, args);
-    }
-
     @Test
     public void testSetGlobal() throws Exception {
         SetAnalyzedStatement analysis = analyze("SET GLOBAL PERSISTENT stats.operations_log_size=1");
         assertThat(analysis.isPersistent(), is(true));
         assertThat(analysis.scope(), is(SetStatement.Scope.GLOBAL));
-        assertThat(analysis.settings().toDelimitedString(','), is("stats.operations_log_size=1,"));
+        assertThat(
+            analysis.settings().get("stats.operations_log_size").get(0),
+            Matchers.<Expression>is(Literal.fromObject(1))
+        );
 
         analysis = analyze("SET GLOBAL TRANSIENT stats.jobs_log_size=2");
         assertThat(analysis.isPersistent(), is(false));
         assertThat(analysis.scope(), is(SetStatement.Scope.GLOBAL));
-        assertThat(analysis.settings().toDelimitedString(','), is("stats.jobs_log_size=2,"));
+        assertThat(
+            analysis.settings().get("stats.jobs_log_size").get(0),
+            Matchers.<Expression>is(Literal.fromObject(2))
+        );
 
-        analysis = analyze("SET GLOBAL TRANSIENT stats.enabled=false, stats.operations_log_size=0, stats.jobs_log_size='0'");
+        analysis = analyze("SET GLOBAL TRANSIENT stats.enabled=false, stats.operations_log_size=0, stats.jobs_log_size=0");
         assertThat(analysis.scope(), is(SetStatement.Scope.GLOBAL));
         assertThat(analysis.isPersistent(), is(false));
-        assertThat(analysis.settings(), is(Settings.builder()
-            .put("stats.enabled", false)
-            .put("stats.operations_log_size", 0)
-            .put("stats.jobs_log_size", 0)
-            .build()));
+        assertThat(
+            analysis.settings().get("stats.operations_log_size").get(0),
+            Matchers.<Expression>is(Literal.fromObject(0))
+        );
+        assertThat(
+            analysis.settings().get("stats.jobs_log_size").get(0),
+            Matchers.<Expression>is(Literal.fromObject(0))
+        );
     }
 
     @Test
     public void testSetLocal() throws Exception {
         SetAnalyzedStatement analysis = analyze("SET LOCAL something TO 2");
         assertThat(analysis.scope(), is(SetStatement.Scope.LOCAL));
-        assertThat(analysis.settings().toDelimitedString(','), is("something=[2],"));
+        assertThat(analysis.settings().get("something").get(0), Matchers.<Expression>is(Literal.fromObject(2)));
 
         analysis = analyze("SET LOCAL something TO DEFAULT");
         assertThat(analysis.scope(), is(SetStatement.Scope.LOCAL));
-        assertThat(analysis.settings().toDelimitedString(','), is("something=[],"));
+        assertThat(analysis.settings().get("something").size(), is(0));
     }
 
     @Test
     public void testSetSession() throws Exception {
         SetAnalyzedStatement analysis = analyze("SET SESSION something TO 2");
         assertThat(analysis.scope(), is(SetStatement.Scope.SESSION));
-        assertThat(analysis.settings().toDelimitedString(','), is("something=[2],"));
+        assertThat(analysis.settings().get("something").size(), is(1));
+        assertThat(analysis.settings().get("something").get(0), Matchers.<Expression>is(Literal.fromObject(2)));
 
         analysis = analyze("SET SESSION something = 1,2,3");
         assertThat(analysis.scope(), is(SetStatement.Scope.SESSION));
-        assertThat(analysis.settings().toDelimitedString(','), is("something=[1, 2, 3],"));
+        assertThat(analysis.settings().get("something").size(), is(3));
+        assertThat(analysis.settings().get("something").get(1), Matchers.<Expression>is(Literal.fromObject(2)));
     }
 
     @Test
     public void testSet() throws Exception {
         SetAnalyzedStatement analysis = analyze("SET something TO 2");
         assertThat(analysis.scope(), is(SetStatement.Scope.SESSION));
-        assertThat(analysis.settings().toDelimitedString(','), is("something=[2],"));
+        assertThat(analysis.settings().get("something").get(0), Matchers.<Expression>is(Literal.fromObject(2)));
 
         analysis = analyze("SET something = DEFAULT");
         assertThat(analysis.scope(), is(SetStatement.Scope.SESSION));
-        assertThat(analysis.settings().toDelimitedString(','), is("something=[],"));
+        assertThat(analysis.settings().get("something").size(), is(0));
 
         analysis = analyze("SET something = default");
         assertThat(analysis.scope(), is(SetStatement.Scope.SESSION));
-        assertThat(analysis.settings().toDelimitedString(','), is("something=[],"));
+        assertThat(analysis.settings().get("something").size(), is(0));
     }
 
     @Test
     public void testSetFullQualified() throws Exception {
         SetAnalyzedStatement analysis = analyze("SET GLOBAL PERSISTENT stats['operations_log_size']=1");
         assertThat(analysis.isPersistent(), is(true));
-        assertThat(analysis.settings().toDelimitedString(','), is("stats.operations_log_size=1,"));
-    }
-
-    @Test
-    public void testSetTimeValue() throws Exception {
-        SetAnalyzedStatement analysis = analyze("SET GLOBAL PERSISTENT cluster.graceful_stop.timeout = 60000");
-        assertThat(analysis.settings().toDelimitedString(','), is("cluster.graceful_stop.timeout=60000ms,"));
-
-        analysis = analyze("SET GLOBAL PERSISTENT cluster.graceful_stop.timeout = '2.5m'");
-        assertThat(analysis.settings().toDelimitedString(','), is("cluster.graceful_stop.timeout=150000ms,"));
-
-        analysis = analyze("SET GLOBAL PERSISTENT cluster.graceful_stop.timeout = ?", new Object[]{1000.0});
-        assertThat(analysis.settings().toDelimitedString(','), is("cluster.graceful_stop.timeout=1000ms,"));
-    }
-
-    @Test
-    public void testSetInvalidTimeValue() throws Exception {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Invalid value for argument 'cluster.graceful_stop.timeout'");
-        analyze("SET GLOBAL PERSISTENT cluster.graceful_stop.timeout = '-1h'");
+        assertThat(analysis.settings().get("stats.operations_log_size").get(0), Matchers.<Expression>is(Literal.fromObject(1)));
     }
 
     @Test
@@ -144,147 +137,20 @@ public class SetAnalyzerTest extends CrateUnitTest {
     }
 
     @Test
-    public void testSetStringValue() throws Exception {
-        SetAnalyzedStatement analysis = analyze("SET GLOBAL PERSISTENT cluster.graceful_stop.min_availability = 'full'");
-        assertThat(analysis.settings().toDelimitedString(','), is("cluster.graceful_stop.min_availability=full,"));
-    }
-
-    @Test
-    public void testSetInvalidStringValue() throws Exception {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("'something' is not an allowed value. Allowed values are:");
-        analyze("SET GLOBAL PERSISTENT cluster.graceful_stop.min_availability = 'something'");
-    }
-
-    @Test
-    public void testSetInvalidStringValueObject() throws Exception {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Object values are not allowed at 'indices.store.throttle.type'");
-        analyze("SET GLOBAL PERSISTENT \"indices.store.throttle.type\" = {foo='bar'}");
-    }
-
-    @Test
-    public void testSetByteSizeValue() throws Exception {
-        SetAnalyzedStatement analysis = analyze("SET GLOBAL PERSISTENT indices.recovery.file_chunk_size = '1024kb'");
-        assertThat(analysis.settings().toDelimitedString(','), is("indices.recovery.file_chunk_size=1048576b,"));
-
-        analysis = analyze("SET GLOBAL PERSISTENT indices.recovery.file_chunk_size = ?", new Object[]{"1mb"});
-        assertThat(analysis.settings().toDelimitedString(','), is("indices.recovery.file_chunk_size=1048576b,"));
-    }
-
-    @Test
-    public void testSetInvalidByteSizeValue() throws Exception {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Invalid value for argument 'indices.recovery.file_chunk_size'");
-        analyze("SET GLOBAL PERSISTENT indices.recovery.file_chunk_size = 'something'");
-    }
-
-    @Test
-    public void testSetMemorySizeValue() throws Exception {
-        SetAnalyzedStatement analysis = analyze("SET GLOBAL PERSISTENT \"indices.breaker.query.limit\" = '70%'");
-        assertThat(analysis.settings().toDelimitedString(','), startsWith("indices.breaker.query.limit="));
-
-        analysis = analyze("SET GLOBAL PERSISTENT \"indices.breaker.query.limit\" = '100mb'");
-        assertThat(analysis.settings().toDelimitedString(','), is("indices.breaker.query.limit=100mb,"));
-
-        analysis = analyze("SET GLOBAL PERSISTENT \"indices.breaker.query.limit\" = 1024");
-        assertThat(analysis.settings().toDelimitedString(','), is("indices.breaker.query.limit=1kb,"));
-
-        analysis = analyze("SET GLOBAL PERSISTENT \"indices.breaker.query.limit\" = ?", new Object[]{"100mb"});
-        assertThat(analysis.settings().toDelimitedString(','), is("indices.breaker.query.limit=100mb,"));
-    }
-
-    @Test
-    public void testSetInvalidMemorySizeValue() throws Exception {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Invalid value for argument 'indices.breaker.query.limit'");
-        analyze("SET GLOBAL PERSISTENT \"indices.breaker.query.limit\" = '80x'");
-
-    }
-
-    @Test
     public void testObjectValue() throws Exception {
-        SetAnalyzedStatement analysis = analyze("SET GLOBAL PERSISTENT cluster.graceful_stop = {timeout='1h',force=false}");
-        assertThat(analysis.settings().toDelimitedString(','), is("cluster.graceful_stop.force=false,cluster.graceful_stop.timeout=3600000ms,"));
-    }
-
-    @Test
-    public void testNestedObjectValue() throws Exception {
-        SetAnalyzedStatement analysis = analyze("SET GLOBAL PERSISTENT cluster.routing.allocation = {disk ={threshold_enabled = false, watermark = {high= '75%'}}}");
-        assertThat(analysis.settings(), is(Settings.builder()
-            .put("cluster.routing.allocation.disk.watermark.high", "75%")
-            .put("cluster.routing.allocation.disk.threshold_enabled", false).build()));
+        SetAnalyzedStatement analysis = analyze("SET GLOBAL PERSISTENT cluster.graceful_stop = {timeout='1h'}");
+        Multimap<String, Expression> map = LinkedListMultimap.create();
+        map.put("timeout", Literal.fromObject("1h"));
+        Literal expected = new ObjectLiteral(map);
+        assertThat(analysis.settings().get("cluster.graceful_stop").get(0), Matchers.<Expression>is(expected));
     }
 
     @Test
     public void testSetRuntimeSettingSubscript() {
-        SetAnalyzedStatement analysis = analyze("SET GLOBAL TRANSIENT cluster['routing']['allocation']['include'] = {_host = 'host1.example.com'}");
-        assertThat(analysis.settings().toDelimitedString(','), is("cluster.routing.allocation.include._host=host1.example.com,"));
-    }
-
-    @Test
-    public void testNestedObjectValueInvalid() throws Exception {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Only object values are allowed at 'cluster.routing.allocation.disk'");
-        analyze("SET GLOBAL PERSISTENT cluster.routing.allocation = {disk = 1}");
-    }
-
-    @Test
-    public void testSetParameter() throws Exception {
-        SetAnalyzedStatement analysis = analyze("SET GLOBAL PERSISTENT stats.operations_log_size=?, stats.jobs_log_size=?", new Object[]{1, 2});
-        assertThat(analysis.isPersistent(), is(true));
-        assertThat(analysis.settings(), is(Settings.builder()
-            .put("stats.operations_log_size", 1)
-            .put("stats.jobs_log_size", 2).build()));
-    }
-
-    @Test
-    public void testSetParameterInvalidType() throws Exception {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Invalid value for argument 'stats.operations_log_size'");
-        analyze("SET GLOBAL PERSISTENT stats.operations_log_size=?", new Object[]{"foobar"});
-    }
-
-    @Test
-    public void testSetParameterInvalidBooleanType() throws Exception {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Invalid value for argument 'stats.enabled'");
-        analyze("SET GLOBAL PERSISTENT stats.enabled=?", new Object[]{"foobar"});
-    }
-
-    @Test
-    public void testSetInvalidSetting() throws Exception {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("setting 'forbidden' not supported");
-        analyze("SET GLOBAL PERSISTENT forbidden=1");
-    }
-
-    @Test
-    public void testSetInvalidValue() throws Exception {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Invalid value for argument 'stats.jobs_log_size'");
-        analyze("SET GLOBAL TRANSIENT stats.jobs_log_size=-1");
-    }
-
-    @Test
-    public void testSetInvalidValueType() throws Exception {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Invalid value for argument 'stats.jobs_log_size'");
-        analyze("SET GLOBAL TRANSIENT stats.jobs_log_size='some value'");
-    }
-
-    @Test
-    public void testSetInvalidBooleanValue() throws Exception {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Invalid value for argument 'stats.enabled'");
-        analyze("SET GLOBAL TRANSIENT stats.enabled = 'hello'");
-    }
-
-    @Test
-    public void testSetInvalidNumberValue() throws Exception {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Invalid value for argument 'stats.jobs_log_size'");
-        analyze("SET GLOBAL TRANSIENT stats = { jobs_log_size = 'hello' }");
+        SetAnalyzedStatement analysis =
+            analyze("SET GLOBAL TRANSIENT cluster['routing']['allocation']['include'] = {_host = 'host1.example.com'}");
+        Expression expression = analysis.settings().get("cluster.routing.allocation.include").get(0);
+        assertThat(expression.toString(), is("{\"_host\"= 'host1.example.com'}"));
     }
 
     @Test
@@ -293,7 +159,10 @@ public class SetAnalyzerTest extends CrateUnitTest {
         assertThat(analysis.settingsToRemove(), contains("stats.enabled"));
 
         analysis = analyze("RESET GLOBAL stats");
-        assertThat(analysis.settingsToRemove(), containsInAnyOrder("stats.enabled", "stats.jobs_log_size", "stats.operations_log_size"));
+        assertThat(
+            analysis.settingsToRemove(),
+            containsInAnyOrder("stats.enabled", "stats.jobs_log_size", "stats.operations_log_size")
+        );
     }
 
     @Test
@@ -326,22 +195,17 @@ public class SetAnalyzerTest extends CrateUnitTest {
 
     @Test
     public void testSetLoggingSetting() {
-        SetAnalyzedStatement setAnalyzedStatement = analyze("SET GLOBAL TRANSIENT \"logger.action\" = 'INFo'");
-        assertThat(setAnalyzedStatement.isPersistent(), is(false));
-        assertThat(setAnalyzedStatement.settings().get("logger.action"), is("INFo"));
-    }
-
-    @Test
-    public void testSetLoggingSettingWithNotAllowedLoggingValue() {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("\'INF\' is not an allowed value. Allowed values are: TRACE, DEBUG, INFO, WARN, ERROR");
-        analyze("SET GLOBAL TRANSIENT \"logger.action\" = 'INF'");
+        SetAnalyzedStatement analysis = analyze("SET GLOBAL TRANSIENT \"logger.action\" = 'INFo'");
+        assertThat(analysis.isPersistent(), is(false));
+        assertThat(
+            analysis.settings().get("logger.action").get(0),
+            Matchers.<Expression>is(Literal.fromObject("INFo"))
+        );
     }
 
     @Test
     public void testResetLoggingSetting() {
-        ResetAnalyzedStatement resetStatement = analyze("RESET GLOBAL \"logger.action\"");
-        assertThat(resetStatement.settingsToRemove(), Matchers.<Set<String>>is(ImmutableSet.of("logger.action")));
+        ResetAnalyzedStatement analysis = analyze("RESET GLOBAL \"logger.action\"");
+        assertThat(analysis.settingsToRemove(), Matchers.<Set<String>>is(ImmutableSet.of("logger.action")));
     }
-
 }

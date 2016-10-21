@@ -42,6 +42,7 @@ import io.crate.planner.consumer.ConsumerContext;
 import io.crate.planner.consumer.ConsumingPlanner;
 import io.crate.planner.consumer.UpdateConsumer;
 import io.crate.planner.fetch.IndexBaseVisitor;
+import io.crate.planner.node.ddl.CreateAnalyzerPlan;
 import io.crate.planner.node.ddl.DropTablePlan;
 import io.crate.planner.node.ddl.ESClusterUpdateSettingsPlan;
 import io.crate.planner.node.ddl.GenericDDLPlan;
@@ -52,6 +53,7 @@ import io.crate.planner.node.management.KillPlan;
 import io.crate.planner.statement.CopyStatementPlanner;
 import io.crate.planner.statement.DeleteStatementPlanner;
 import io.crate.planner.statement.SetSessionPlan;
+import io.crate.sql.tree.Expression;
 import io.crate.sql.tree.SetStatement;
 import io.crate.types.DataTypes;
 import org.elasticsearch.cluster.ClusterService;
@@ -488,8 +490,7 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
         } catch (IOException ioe) {
             throw new UnhandledServerException("Could not build analyzer Settings", ioe);
         }
-
-        return new ESClusterUpdateSettingsPlan(context.jobId(), analyzerSettings);
+        return new CreateAnalyzerPlan(context.jobId(), analyzerSettings);
     }
 
     @Override
@@ -510,7 +511,11 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
         } else if (setStatement.isPersistent()) {
             return new ESClusterUpdateSettingsPlan(context.jobId(), setStatement.settings());
         } else {
-            return new ESClusterUpdateSettingsPlan(context.jobId(), Settings.EMPTY, setStatement.settings());
+            return new ESClusterUpdateSettingsPlan(
+                context.jobId(),
+                Collections.<String, List<Expression>>emptyMap(),
+                setStatement.settings()
+            );
         }
     }
 

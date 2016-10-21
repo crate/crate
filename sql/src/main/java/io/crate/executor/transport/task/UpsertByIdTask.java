@@ -26,6 +26,7 @@ import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
 import io.crate.Constants;
+import io.crate.core.collections.Row;
 import io.crate.core.collections.Row1;
 import io.crate.executor.Executor;
 import io.crate.executor.JobTask;
@@ -99,7 +100,7 @@ public class UpsertByIdTask extends JobTask {
     }
 
     @Override
-    public void execute(final RowReceiver rowReceiver) {
+    public void execute(final RowReceiver rowReceiver, Row parameters) {
         ListenableFuture<Long> result;
         if (upsertById.items().size() > 1) {
             try {

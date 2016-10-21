@@ -326,7 +326,7 @@ public abstract class SQLTransportIntegrationTest extends ESIntegTestCase {
     public CollectingRowReceiver execute(PlanForNode planForNode) {
         TransportExecutor transportExecutor = internalCluster().getInstance(TransportExecutor.class, planForNode.nodeName);
         CollectingRowReceiver downstream = new CollectingRowReceiver();
-        transportExecutor.execute(planForNode.plan, downstream);
+        transportExecutor.execute(planForNode.plan, downstream, Row.EMPTY);
         return downstream;
     }
 

@@ -32,6 +32,7 @@ import io.crate.action.job.JobRequest;
 import io.crate.action.job.SharedShardContexts;
 import io.crate.action.job.TransportJobAction;
 import io.crate.core.collections.Bucket;
+import io.crate.core.collections.Row;
 import io.crate.executor.JobTask;
 import io.crate.executor.transport.kill.TransportKillJobsNodeAction;
 import io.crate.jobs.*;
@@ -94,7 +95,7 @@ public class ExecutionPhasesTask extends JobTask {
     }
 
     @Override
-    public void execute(RowReceiver rowReceiver) {
+    public void execute(RowReceiver rowReceiver, Row parameters) {
         assert nodeOperationTrees.size() == 1 : "must only have 1 NodeOperationTree for non-bulk operations";
         NodeOperationTree nodeOperationTree = nodeOperationTrees.get(0);
         Map<String, Collection<NodeOperation>> operationByServer = NodeOperationGrouper.groupByServer(nodeOperationTree.nodeOperations());

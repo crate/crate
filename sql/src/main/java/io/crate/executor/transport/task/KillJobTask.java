@@ -22,6 +22,7 @@
 package io.crate.executor.transport.task;
 
 import com.google.common.collect.ImmutableList;
+import io.crate.core.collections.Row;
 import io.crate.executor.JobTask;
 import io.crate.executor.transport.OneRowActionListener;
 import io.crate.executor.transport.kill.KillJobsRequest;
@@ -44,7 +45,7 @@ public class KillJobTask extends JobTask {
     }
 
     @Override
-    public void execute(RowReceiver rowReceiver) {
+    public void execute(RowReceiver rowReceiver, Row parameters) {
         KillJobsRequest request = new KillJobsRequest(ImmutableList.of(jobToKill));
         nodeAction.broadcast(request,
             new OneRowActionListener<>(rowReceiver, KillTask.KILL_RESPONSE_TO_ROW_FUNCTION));

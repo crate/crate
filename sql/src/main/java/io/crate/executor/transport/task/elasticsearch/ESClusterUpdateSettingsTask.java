@@ -23,42 +23,69 @@ package io.crate.executor.transport.task.elasticsearch;
 
 import com.google.common.base.Function;
 import com.google.common.base.Functions;
+import com.google.common.collect.Iterables;
 import io.crate.core.collections.Row;
 import io.crate.core.collections.Row1;
 import io.crate.executor.JobTask;
 import io.crate.executor.transport.OneRowActionListener;
+import io.crate.metadata.settings.CrateSettings;
+import io.crate.metadata.settings.SettingsApplier;
 import io.crate.operation.projectors.RowReceiver;
 import io.crate.planner.node.ddl.ESClusterUpdateSettingsPlan;
+import io.crate.sql.tree.Expression;
 import org.elasticsearch.action.admin.cluster.settings.ClusterUpdateSettingsRequest;
 import org.elasticsearch.action.admin.cluster.settings.ClusterUpdateSettingsResponse;
 import org.elasticsearch.action.admin.cluster.settings.TransportClusterUpdateSettingsAction;
+import org.elasticsearch.common.settings.Settings;
+
+import java.util.List;
+import java.util.Map;
 
 public class ESClusterUpdateSettingsTask extends JobTask {
 
     private static final Function<Object, Row> TO_ONE_ROW = Functions.<Row>constant(new Row1(1L));
-    ;
+
+    private final ESClusterUpdateSettingsPlan plan;
     private final TransportClusterUpdateSettingsAction transport;
-    private final ClusterUpdateSettingsRequest request;
 
     public ESClusterUpdateSettingsTask(ESClusterUpdateSettingsPlan plan,
                                        TransportClusterUpdateSettingsAction transport) {
         super(plan.jobId());
+        this.plan = plan;
         this.transport = transport;
+    }
 
-        request = new ClusterUpdateSettingsRequest();
-        request.persistentSettings(plan.persistentSettings());
-        request.transientSettings(plan.transientSettings());
+    @Override
+    public void execute(RowReceiver rowReceiver, Row parameters) {
+        ClusterUpdateSettingsRequest request = buildESUpdateClusterSettingRequest(
+            buildSettingsFrom(plan.persistentSettings(), parameters),
+            buildSettingsFrom(plan.transientSettings(), parameters)
+        );
+        OneRowActionListener<ClusterUpdateSettingsResponse> actionListener = new OneRowActionListener<>(rowReceiver, TO_ONE_ROW);
+        transport.execute(request, actionListener);
+    }
+
+    static Settings buildSettingsFrom(Map<String, List<Expression>> settingsMap, Row parameters) {
+        Settings.Builder settings = Settings.builder();
+        for (Map.Entry<String, List<Expression>> entry : settingsMap.entrySet()) {
+            String settingsName = entry.getKey();
+            SettingsApplier settingsApplier = CrateSettings.getSettingsApplier(settingsName);
+            settingsApplier.apply(settings, parameters, Iterables.getOnlyElement(entry.getValue()));
+        }
+        return settings.build();
+    }
+
+    private ClusterUpdateSettingsRequest buildESUpdateClusterSettingRequest(Settings persistentSettings,
+                                                                            Settings transientSettings) {
+        ClusterUpdateSettingsRequest request = new ClusterUpdateSettingsRequest();
+        request.persistentSettings(persistentSettings);
+        request.transientSettings(transientSettings);
         if (plan.persistentSettingsToRemove() != null) {
             request.persistentSettingsToRemove(plan.persistentSettingsToRemove());
         }
         if (plan.transientSettingsToRemove() != null) {
             request.transientSettingsToRemove(plan.transientSettingsToRemove());
         }
-    }
-
-    @Override
-    public void execute(RowReceiver rowReceiver) {
-        OneRowActionListener<ClusterUpdateSettingsResponse> actionListener = new OneRowActionListener<>(rowReceiver, TO_ONE_ROW);
-        transport.execute(request, actionListener);
+        return request;
     }
 }

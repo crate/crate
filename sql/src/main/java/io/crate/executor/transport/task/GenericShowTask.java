@@ -24,6 +24,7 @@ package io.crate.executor.transport.task;
 import com.google.common.util.concurrent.ListenableFuture;
 import io.crate.action.sql.ShowStatementDispatcher;
 import io.crate.analyze.AbstractShowAnalyzedStatement;
+import io.crate.core.collections.Row;
 import io.crate.core.collections.Row1;
 import io.crate.executor.Task;
 import io.crate.operation.projectors.RepeatHandle;
@@ -45,7 +46,7 @@ public class GenericShowTask implements Task {
     }
 
     @Override
-    public void execute(RowReceiver rowReceiver) {
+    public void execute(RowReceiver rowReceiver, Row parameters) {
         try {
             rowReceiver.setNextRow(new Row1(showStatementDispatcher.process(statement, jobId)));
             rowReceiver.finish(RepeatHandle.UNSUPPORTED);

@@ -23,6 +23,7 @@ package io.crate.executor.task;
 
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
+import io.crate.core.collections.Row;
 import io.crate.executor.Task;
 import io.crate.operation.projectors.RepeatHandle;
 import io.crate.operation.projectors.RowReceiver;
@@ -39,7 +40,7 @@ public class NoopTask implements Task {
     }
 
     @Override
-    public void execute(RowReceiver rowReceiver) {
+    public void execute(RowReceiver rowReceiver, Row parameters) {
         rowReceiver.finish(RepeatHandle.UNSUPPORTED);
     }
 

@@ -21,16 +21,19 @@
 
 package io.crate.analyze;
 
+import io.crate.sql.tree.Expression;
 import io.crate.sql.tree.SetStatement;
-import org.elasticsearch.common.settings.Settings;
+
+import java.util.List;
+import java.util.Map;
 
 public class SetAnalyzedStatement implements AnalyzedStatement {
 
-    private final Settings settings;
+    private final Map<String, List<Expression>> settings;
     private final SetStatement.Scope scope;
     private final boolean persistent;
 
-    public SetAnalyzedStatement(SetStatement.Scope scope, Settings settings, boolean persistent) {
+    SetAnalyzedStatement(SetStatement.Scope scope, Map<String, List<Expression>> settings, boolean persistent) {
         this.scope = scope;
         this.settings = settings;
         this.persistent = persistent;
@@ -40,7 +43,7 @@ public class SetAnalyzedStatement implements AnalyzedStatement {
         return scope;
     }
 
-    public Settings settings() {
+    public Map<String, List<Expression>> settings() {
         return settings;
     }
 

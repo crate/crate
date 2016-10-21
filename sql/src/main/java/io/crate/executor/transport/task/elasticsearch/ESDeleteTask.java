@@ -27,6 +27,7 @@ import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
 import io.crate.Constants;
 import io.crate.analyze.where.DocKeys;
+import io.crate.core.collections.Row;
 import io.crate.core.collections.Row1;
 import io.crate.exceptions.Exceptions;
 import io.crate.executor.JobTask;
@@ -114,7 +115,7 @@ public class ESDeleteTask extends JobTask {
     }
 
     @Override
-    public void execute(final RowReceiver rowReceiver) {
+    public void execute(final RowReceiver rowReceiver, Row parameters) {
         SettableFuture<Long> result = results.get(0);
         try {
             startContext();

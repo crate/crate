@@ -30,6 +30,7 @@ import io.crate.action.sql.DDLStatementDispatcher;
 import io.crate.action.sql.ShowStatementDispatcher;
 import io.crate.analyze.EvaluatingNormalizer;
 import io.crate.analyze.symbol.SelectSymbol;
+import io.crate.core.collections.Row;
 import io.crate.executor.Executor;
 import io.crate.executor.Task;
 import io.crate.executor.task.DDLTask;
@@ -37,10 +38,7 @@ import io.crate.executor.task.ExplainTask;
 import io.crate.executor.task.NoopTask;
 import io.crate.executor.transport.executionphases.ExecutionPhasesTask;
 import io.crate.executor.transport.task.*;
-import io.crate.executor.transport.task.elasticsearch.ESClusterUpdateSettingsTask;
-import io.crate.executor.transport.task.elasticsearch.ESDeletePartitionTask;
-import io.crate.executor.transport.task.elasticsearch.ESDeleteTask;
-import io.crate.executor.transport.task.elasticsearch.ESGetTask;
+import io.crate.executor.transport.task.elasticsearch.*;
 import io.crate.jobs.JobContextService;
 import io.crate.metadata.Functions;
 import io.crate.metadata.ReplaceMode;
@@ -57,6 +55,7 @@ import io.crate.planner.distribution.DistributionType;
 import io.crate.planner.distribution.UpstreamPhase;
 import io.crate.planner.node.ExecutionPhase;
 import io.crate.planner.node.ExecutionPhases;
+import io.crate.planner.node.ddl.CreateAnalyzerPlan;
 import io.crate.planner.node.ddl.DropTablePlan;
 import io.crate.planner.node.ddl.ESClusterUpdateSettingsPlan;
 import io.crate.planner.node.ddl.ESDeletePartition;
@@ -144,8 +143,8 @@ public class TransportExecutor implements Executor {
     }
 
     @Override
-    public void execute(Plan plan, RowReceiver rowReceiver) {
-        plan2TaskVisitor.process(plan, null).execute(rowReceiver);
+    public void execute(Plan plan, RowReceiver rowReceiver, Row parameters) {
+        plan2TaskVisitor.process(plan, null).execute(rowReceiver, parameters);
     }
 
     @Override
@@ -234,6 +233,11 @@ public class TransportExecutor implements Executor {
         }
 
         @Override
+        public Task visitCreateAnalyzerPlan(CreateAnalyzerPlan plan, Void context) {
+            return new CreateAnalyzerTask(plan, transportActionProvider.transportClusterUpdateSettingsAction());
+        }
+
+        @Override
         public Task visitESDelete(ESDelete plan, Void context) {
             return new ESDeleteTask(plan, transportActionProvider.transportDeleteAction(), jobContextService);
         }
@@ -293,7 +297,7 @@ public class TransportExecutor implements Executor {
                 SingleRowSingleValueRowReceiver singleRowSingleValueRowReceiver = new SingleRowSingleValueRowReceiver(
                     rootPlan, entry.getValue());
                 futures.add(singleRowSingleValueRowReceiver.completionFuture());
-                task.execute(singleRowSingleValueRowReceiver);
+                task.execute(singleRowSingleValueRowReceiver, Row.EMPTY);
             }
             // Creation of the rootTask is delayed until the DelayedTask actually wants to use it.
             // This is done because some Tasks might access the Symbols in the constructor and they might not be able

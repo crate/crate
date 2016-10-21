@@ -21,6 +21,7 @@
 
 package io.crate.planner;
 
+import io.crate.planner.node.ddl.CreateAnalyzerPlan;
 import io.crate.planner.node.ddl.DropTablePlan;
 import io.crate.planner.node.ddl.ESClusterUpdateSettingsPlan;
 import io.crate.planner.node.ddl.ESDeletePartition;
@@ -109,6 +110,10 @@ public class PlanVisitor<C, R> {
     }
 
     public R visitESClusterUpdateSettingsPlan(ESClusterUpdateSettingsPlan plan, C context) {
+        return visitPlan(plan, context);
+    }
+
+    public R visitCreateAnalyzerPlan(CreateAnalyzerPlan plan, C context) {
         return visitPlan(plan, context);
     }
 

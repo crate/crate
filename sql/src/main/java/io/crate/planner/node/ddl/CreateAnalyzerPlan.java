@@ -20,40 +20,36 @@
  * agreement.
  */
 
-package io.crate.planner.statement;
+package io.crate.planner.node.ddl;
+
 
 import io.crate.planner.PlanVisitor;
 import io.crate.planner.UnnestablePlan;
-import io.crate.sql.tree.Expression;
+import org.elasticsearch.common.settings.Settings;
 
-import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 
-/**
- * A plan with an empty result
- */
-public class SetSessionPlan extends UnnestablePlan {
+public class CreateAnalyzerPlan extends UnnestablePlan {
 
-    private final UUID id;
-    private final Map<String, List<Expression>> settings;
+    private final UUID jobId;
+    private final Settings analyzerSettings;
 
-    public SetSessionPlan(UUID id, Map<String, List<Expression>> settings) {
-        this.id = id;
-        this.settings = settings;
+    public CreateAnalyzerPlan(UUID jobId, Settings analyzerSettings) {
+        this.jobId = jobId;
+        this.analyzerSettings = analyzerSettings;
     }
 
     @Override
     public <C, R> R accept(PlanVisitor<C, R> visitor, C context) {
-        return visitor.visitSetSessionPlan(this, context);
+        return visitor.visitCreateAnalyzerPlan(this, context);
     }
 
     @Override
     public UUID jobId() {
-        return id;
+        return jobId;
     }
 
-    public Map<String, List<Expression>> settings() {
-        return settings;
+    public Settings createAnalyzerSettings() {
+        return analyzerSettings;
     }
 }

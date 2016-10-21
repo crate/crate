@@ -21,6 +21,7 @@
 
 package io.crate.executor.transport.task;
 
+import io.crate.core.collections.Row;
 import io.crate.executor.transport.kill.KillAllRequest;
 import io.crate.executor.transport.kill.TransportKillAllNodeAction;
 import io.crate.test.integration.CrateUnitTest;
@@ -40,7 +41,7 @@ public class KillTaskTest extends CrateUnitTest {
         TransportKillAllNodeAction killAllNodeAction = mock(TransportKillAllNodeAction.class);
         KillTask task = new KillTask(killAllNodeAction, UUID.randomUUID());
 
-        task.execute(new CollectingRowReceiver());
+        task.execute(new CollectingRowReceiver(), Row.EMPTY);
         verify(killAllNodeAction, times(1)).broadcast(any(KillAllRequest.class), any(ActionListener.class));
         verify(killAllNodeAction, times(0)).nodeOperation(any(KillAllRequest.class), any(ActionListener.class));
     }

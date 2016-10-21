@@ -26,6 +26,8 @@ import io.crate.planner.node.dql.join.JoinType;
 import io.crate.planner.node.dql.join.NestedLoop;
 import io.crate.planner.node.management.KillPlan;
 import io.crate.planner.projection.*;
+import io.crate.sql.tree.Expression;
+import io.crate.sql.tree.LongLiteral;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
@@ -556,13 +558,13 @@ public class PlannerTest extends AbstractPlannerTest {
         ESClusterUpdateSettingsPlan plan = plan("set GLOBAL PERSISTENT stats.jobs_log_size=1024");
 
         // set transient settings too when setting persistent ones
-        assertThat(plan.transientSettings().toDelimitedString(','), is("stats.jobs_log_size=1024,"));
-        assertThat(plan.persistentSettings().toDelimitedString(','), is("stats.jobs_log_size=1024,"));
+        assertThat(plan.transientSettings().get("stats.jobs_log_size").get(0), Is.<Expression>is(new LongLiteral("1024")));
+        assertThat(plan.persistentSettings().get("stats.jobs_log_size").get(0), Is.<Expression>is(new LongLiteral("1024")));
 
         plan = plan("set GLOBAL TRANSIENT stats.enabled=false,stats.jobs_log_size=0");
 
-        assertThat(plan.persistentSettings().getAsMap().size(), is(0));
-        assertThat(plan.transientSettings().toDelimitedString(','), is("stats.enabled=false,stats.jobs_log_size=0,"));
+        assertThat(plan.persistentSettings().size(), is(0));
+        assertThat(plan.transientSettings().size(), is(2));
     }
 
     @Test

@@ -21,36 +21,38 @@
 
 package io.crate.planner.node.ddl;
 
+import com.google.common.collect.ImmutableMap;
 import io.crate.planner.PlanVisitor;
 import io.crate.planner.UnnestablePlan;
-import org.elasticsearch.common.settings.Settings;
+import io.crate.sql.tree.Expression;
 
 import javax.annotation.Nullable;
-import java.util.Set;
-import java.util.UUID;
+import java.util.*;
 
 public class ESClusterUpdateSettingsPlan extends UnnestablePlan {
 
-    private final Settings persistentSettings;
-    private final Settings transientSettings;
+    private final Map<String, List<Expression>> persistentSettings;
+    private final Map<String, List<Expression>> transientSettings;
     private final Set<String> transientSettingsToRemove;
     private final Set<String> persistentSettingsToRemove;
     private final UUID jobId;
 
     public ESClusterUpdateSettingsPlan(UUID jobId,
-                                       Settings persistentSettings,
-                                       Settings transientSettings) {
+                                       Map<String, List<Expression>> persistentSettings,
+                                       Map<String, List<Expression>> transientSettings) {
         this.jobId = jobId;
         this.persistentSettings = persistentSettings;
         // always override transient settings with persistent ones, so they won't get overridden
         // on cluster settings merge, which prefers the transient ones over the persistent ones
         // which we don't
-        this.transientSettings = Settings.builder().put(persistentSettings).put(transientSettings).build();
+        this.transientSettings = new HashMap<>(persistentSettings);
+        this.transientSettings.putAll(transientSettings);
+
         persistentSettingsToRemove = null;
         transientSettingsToRemove = null;
     }
 
-    public ESClusterUpdateSettingsPlan(UUID jobId, Settings persistentSettings) {
+    public ESClusterUpdateSettingsPlan(UUID jobId, Map<String, List<Expression>> persistentSettings) {
         this(jobId, persistentSettings, persistentSettings); // override stale transient settings too in that case
     }
 
@@ -58,15 +60,15 @@ public class ESClusterUpdateSettingsPlan extends UnnestablePlan {
         this.jobId = jobId;
         this.persistentSettingsToRemove = persistentSettingsToRemove;
         this.transientSettingsToRemove = transientSettingsToRemove;
-        persistentSettings = Settings.EMPTY;
-        transientSettings = Settings.EMPTY;
+        persistentSettings = ImmutableMap.of();
+        transientSettings = ImmutableMap.of();
     }
 
-    public Settings persistentSettings() {
+    public Map<String, List<Expression>> persistentSettings() {
         return persistentSettings;
     }
 
-    public Settings transientSettings() {
+    public Map<String, List<Expression>> transientSettings() {
         return transientSettings;
     }
 

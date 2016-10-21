@@ -26,6 +26,7 @@ import io.crate.analyze.Analysis;
 import io.crate.analyze.Analyzer;
 import io.crate.analyze.ParameterContext;
 import io.crate.core.collections.Bucket;
+import io.crate.core.collections.Row;
 import io.crate.executor.transport.TransportExecutor;
 import io.crate.planner.Plan;
 import io.crate.planner.Planner;
@@ -104,7 +105,7 @@ public class FetchOperationIntegrationTest extends SQLTransportIntegrationTest {
 
 
         CollectingRowReceiver rowReceiver = new CollectingRowReceiver();
-        executor.execute(plan, rowReceiver);
+        executor.execute(plan, rowReceiver, Row.EMPTY);
 
         Bucket result = rowReceiver.result();
         assertThat(result.size(), is(2));

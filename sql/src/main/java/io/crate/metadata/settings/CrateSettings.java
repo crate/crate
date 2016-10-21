@@ -1590,6 +1590,20 @@ public class CrateSettings {
         return settingNames;
     }
 
+    public static void checkIfRuntimeSetting(String name) {
+        checkIfRuntimeSetting(SETTINGS, name);
+    }
+
+    private static void checkIfRuntimeSetting(List<Setting> settings, String name) {
+        for (Setting<?, ?> setting : settings) {
+            if (setting.settingName().equals(name) && !setting.isRuntime()) {
+                throw new UnsupportedOperationException(String.format(Locale.ENGLISH,
+                    "setting '%s' cannot be set/reset at runtime", name));
+            }
+            checkIfRuntimeSetting(setting.children(), name);
+        }
+    }
+
     private static boolean isLoggingSetting(String settingName) {
         return settingName.startsWith("logger.");
     }

@@ -141,7 +141,7 @@ class BatchPortal extends AbstractPortal {
             Futures.addCallback(resultReceiver.completionFuture(), new StatsTablesUpdateListener(jobId, statsTables));
             Futures.addCallback(resultReceiver.completionFuture(), completionCallback);
             RowReceiver rowReceiver = new RowReceiverToResultReceiver(resultReceiver, 0);
-            portalContext.getExecutor().execute(plan, rowReceiver);
+            portalContext.getExecutor().execute(plan, rowReceiver, new RowN(batchParams.toArray()));
         }
         return completionCallback;
     }

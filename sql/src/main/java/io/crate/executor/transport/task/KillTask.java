@@ -51,7 +51,7 @@ public class KillTask extends JobTask {
     }
 
     @Override
-    public void execute(RowReceiver rowReceiver) {
+    public void execute(RowReceiver rowReceiver, Row parameters) {
         nodeAction.broadcast(new KillAllRequest(),
             new OneRowActionListener<>(rowReceiver, KILL_RESPONSE_TO_ROW_FUNCTION));
     }

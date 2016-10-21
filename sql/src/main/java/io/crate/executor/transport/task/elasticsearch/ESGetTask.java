@@ -30,6 +30,7 @@ import io.crate.analyze.symbol.InputColumn;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.analyze.symbol.ValueSymbolVisitor;
 import io.crate.analyze.where.DocKeys;
+import io.crate.core.collections.Row;
 import io.crate.executor.JobTask;
 import io.crate.executor.transport.TransportActionProvider;
 import io.crate.jobs.AbstractExecutionSubContext;
@@ -291,7 +292,7 @@ public class ESGetTask extends JobTask {
     }
 
     @Override
-    public void execute(RowReceiver rowReceiver) {
+    public void execute(RowReceiver rowReceiver, Row parameters) {
         JobContext jobContext;
         if (esGet.docKeys().size() == 1) {
             jobContext = new SingleGetJobContext(this, transportActionProvider.transportGetAction(), rowReceiver);

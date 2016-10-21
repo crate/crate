@@ -23,6 +23,7 @@
 package io.crate.executor.task;
 
 import com.google.common.util.concurrent.ListenableFuture;
+import io.crate.core.collections.Row;
 import io.crate.core.collections.Row1;
 import io.crate.executor.Task;
 import io.crate.operation.projectors.RepeatHandle;
@@ -42,7 +43,7 @@ public class ExplainTask implements Task {
     }
 
     @Override
-    public void execute(RowReceiver rowReceiver) {
+    public void execute(RowReceiver rowReceiver, Row parameters) {
         try {
             Map<String, Object> map = PlanPrinter.objectMap(explainPlan.subPlan());
             rowReceiver.setNextRow(new Row1(map));

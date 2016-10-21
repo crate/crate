@@ -26,6 +26,7 @@ import com.google.common.base.Supplier;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
+import io.crate.core.collections.Row;
 import io.crate.executor.Task;
 import io.crate.operation.projectors.RowReceiver;
 
@@ -47,11 +48,11 @@ class DelayedTask implements Task {
     }
 
     @Override
-    public void execute(final RowReceiver rowReceiver) {
+    public void execute(final RowReceiver rowReceiver, final Row parameters) {
         Futures.addCallback(listenableFuture, new FutureCallback<Object>() {
             @Override
             public void onSuccess(@Nullable Object result) {
-                rootTask.get().execute(rowReceiver);
+                rootTask.get().execute(rowReceiver, parameters);
             }
 
             @Override

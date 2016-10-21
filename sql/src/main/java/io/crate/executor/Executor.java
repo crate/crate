@@ -22,6 +22,7 @@
 package io.crate.executor;
 
 import com.google.common.util.concurrent.ListenableFuture;
+import io.crate.core.collections.Row;
 import io.crate.operation.projectors.RowReceiver;
 import io.crate.planner.Plan;
 
@@ -32,7 +33,7 @@ public interface Executor {
     long ROWCOUNT_ERROR = -2L;
     long ROWCOUNT_UNKNOWN = -1L;
 
-    void execute(Plan plan, RowReceiver rowReceiver);
+    void execute(Plan plan, RowReceiver rowReceiver, Row parameters);
 
     ListenableFuture<List<Long>> executeBulk(Plan plan);
 }

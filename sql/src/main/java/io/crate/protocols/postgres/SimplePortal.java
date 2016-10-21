@@ -69,6 +69,7 @@ public class SimplePortal extends AbstractPortal {
     private RowReceiverToResultReceiver rowReceiver = null;
     private int maxRows = 0;
     private int defaultLimit;
+    private Row rowParams;
 
     public SimplePortal(String name,
                         Analyzer analyzer,
@@ -118,12 +119,13 @@ public class SimplePortal extends AbstractPortal {
         this.query = query;
         this.statement = statement;
         this.params = params;
+        this.rowParams = new RowN(params.toArray());
         this.resultFormatCodes = resultFormatCodes;
         if (analysis == null) {
             analysis = portalContext.getAnalyzer().boundAnalyze(
                 statement,
                 sessionContext,
-                new ParameterContext(new RowN(params.toArray()), Collections.<Row>emptyList()));
+                new ParameterContext(this.rowParams, Collections.<Row>emptyList()));
             AnalyzedRelation rootRelation = analysis.rootRelation();
             if (rootRelation != null) {
                 this.outputTypes = Symbols.extractTypes(rootRelation.fields());
@@ -173,7 +175,7 @@ public class SimplePortal extends AbstractPortal {
         }
         if (!resumeIfSuspended()) {
             this.rowReceiver = new RowReceiverToResultReceiver(resultReceiver, maxRows);
-            portalContext.getExecutor().execute(plan, rowReceiver);
+            portalContext.getExecutor().execute(plan, rowReceiver, this.rowParams);
         }
         return resultReceiver.completionFuture();
     }
@@ -266,9 +268,10 @@ public class SimplePortal extends AbstractPortal {
             UUID newJobId = UUID.randomUUID();
             LOGGER.debug("Retrying statement due to a shard failure, attempt={}, jobId={}->{}", attempt, jobId, newJobId);
             Analysis analysis = analyzer.boundAnalyze(portal.statement, sessionContext,
-                new ParameterContext(new RowN(portal.params.toArray()), Collections.<Row>emptyList()));
+                new ParameterContext(portal.rowParams, Collections.<Row>emptyList()));
+
             Plan plan = planner.plan(analysis, newJobId, 0, portal.maxRows);
-            executor.execute(plan, portal.rowReceiver);
+            executor.execute(plan, portal.rowReceiver, portal.rowParams);
         }
 
         @Override
