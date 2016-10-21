@@ -198,4 +198,21 @@ public class GeoShapeIntegrationTest extends SQLTransportIntegrationTest {
         assertThat(response.rowCount(), is(1L));
         assertThat(response.rows()[0][0], is((Object) 1L));
     }
+
+    @Test
+    public void testGeoPointInPolygonQueryLuceneBug() {
+        // Relates to https://github.com/elastic/elasticsearch/issues/20333
+        // and fails if GeoPointInPolygonQuery is used in LuceneQueryBuilder.getPolygonQuery()
+        execute("create table test(id integer, geopos geo_point)");
+        ensureYellow();
+        execute("insert into test (id, geopos) values(1, 'POINT(-0.35842 51.46961)')");
+        execute("refresh table test");
+        execute("select * from test where within(geopos, 'POLYGON((-0.129089 51.536726, -0.126686 51.536726, " +
+                "-0.125999 51.536512, -0.125656 51.536512, -0.125312 51.536299, -0.125312 51.535444, " +
+                "-0.125656 51.535231, -0.128402 51.53395, -0.128746 51.53395, -0.129432 51.533736, " +
+                "-0.129776 51.533736, -0.130462 51.53395, -0.130805 51.53395, -0.131149 51.534163, " +
+                "-0.131835 51.534804, -0.131835 51.535017, -0.131492 51.535444, -0.129776 51.536512, " +
+                "-0.129089 51.536726))')");
+        assertThat(response.rowCount(), is(0L));
+    }
 }
