@@ -29,7 +29,6 @@ import com.spatial4j.core.context.jts.JtsSpatialContext;
 import com.spatial4j.core.shape.Rectangle;
 import com.spatial4j.core.shape.Shape;
 import com.vividsolutions.jts.geom.Coordinate;
-import com.vividsolutions.jts.geom.CoordinateArrays;
 import com.vividsolutions.jts.geom.Geometry;
 import io.crate.Constants;
 import io.crate.analyze.MatchOptionsAnalysis;
@@ -69,7 +68,6 @@ import org.apache.lucene.sandbox.queries.regex.RegexQuery;
 import org.apache.lucene.search.*;
 import org.apache.lucene.spatial.geopoint.document.GeoPointField;
 import org.apache.lucene.spatial.geopoint.search.GeoPointDistanceRangeQuery;
-import org.apache.lucene.spatial.geopoint.search.GeoPointInPolygonQuery;
 import org.apache.lucene.spatial.prefix.PrefixTreeStrategy;
 import org.apache.lucene.spatial.query.SpatialArgs;
 import org.apache.lucene.spatial.query.SpatialOperation;
@@ -924,6 +922,23 @@ public class LuceneQueryBuilder {
             }
 
             private Query getPolygonQuery(Context context, Geometry geometry, IndexGeoPointFieldData fieldData) {
+                Coordinate[] coordinates = geometry.getCoordinates();
+                GeoPoint[] points = new GeoPoint[coordinates.length];
+                for (int i = 0; i < coordinates.length; i++) {
+                    Coordinate coordinate = coordinates[i];
+                    points[i] = new GeoPoint(coordinate.y, coordinate.x);
+                }
+                return new GeoPolygonQuery(fieldData, points);
+            }
+
+            // FIXME: Once https://github.com/elastic/elasticsearch/issues/20333 is resolved
+            // The issue is resolved in elasticsearch master (5.x).
+            // Enable this method so that the new optimized query is used.
+            // Check test GeoShapeIntegrationTest.testGeoPointInPolygonQueryLuceneBug
+            // Enable test: LuceneQueryBuilderTest.testWithinFunctionTooFewPoints
+            // and change test: LuceneQueryBuilderTest.testWithinFunction
+/*
+            private Query getPolygonQuery(Context context, Geometry geometry, IndexGeoPointFieldData fieldData) {
                 final Version indexCreated = Version.indexCreated(context.indexCache.indexSettings());
                 Coordinate[] coordinates = geometry.getCoordinates();
                 final Query query;
@@ -954,7 +969,7 @@ public class LuceneQueryBuilder {
                 }
                 return query;
             }
-
+*/
             private Query getBoundingBoxQuery(Shape shape, IndexGeoPointFieldData fieldData) {
                 Rectangle boundingBox = shape.getBoundingBox();
                 return new InMemoryGeoBoundingBoxQuery(

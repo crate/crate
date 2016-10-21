@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fix: Revert usage of new Lucene queries for geo point ``within`` queries
+   because of an unresolved bug in Lucene 5.x versions.
+
  - Updated crate-admin to ``0.20.4`` which includes following changes:
 
     - Fix: removed chinese language from i18n configuration.
