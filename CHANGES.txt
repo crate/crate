@@ -5,6 +5,12 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Updated crate-admin to ``0.20.4`` which includes following changes:
+
+    - Fix: removed chinese language from i18n configuration.
+
+    - Fix: added english as a fallback language for translation files.
+
  - Added support for scalar subquery expressions to SELECT statements.
 
  - Updated crate-admin to ``0.20.3`` which includes following changes:
