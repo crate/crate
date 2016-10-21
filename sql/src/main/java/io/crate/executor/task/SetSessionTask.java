@@ -20,45 +20,44 @@
  * agreement.
  */
 
-package io.crate.planner.statement;
+package io.crate.executor.task;
 
 import io.crate.action.sql.SessionContext;
-import io.crate.planner.Plan;
-import io.crate.planner.PlanVisitor;
+import io.crate.executor.JobTask;
+import io.crate.metadata.settings.session.SessionSettingApplier;
+import io.crate.metadata.settings.session.SessionSettingRegistry;
+import io.crate.operation.projectors.RepeatHandle;
+import io.crate.operation.projectors.RowReceiver;
+import org.elasticsearch.common.logging.ESLogger;
+import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.Settings;
 
 import java.util.UUID;
 
-/**
- * A plan with an empty result
- */
-public class SetSessionPlan implements Plan {
+public class SetSessionTask extends JobTask {
 
-    private final UUID id;
-    private final Settings settings;
+    private static final ESLogger LOGGER = Loggers.getLogger(SetSessionTask.class);
+
     private final SessionContext sessionContext;
+    private final Settings settings;
 
-    public SetSessionPlan(UUID id, Settings settings, SessionContext sessionContext) {
-        this.id = id;
-        this.settings = settings;
+    public SetSessionTask(UUID jobId, Settings settings, SessionContext sessionContext) {
+        super(jobId);
         this.sessionContext = sessionContext;
+        this.settings = settings;
     }
 
     @Override
-    public <C, R> R accept(PlanVisitor<C, R> visitor, C context) {
-        return visitor.visitSetSessionPlan(this, context);
-    }
-
-    @Override
-    public UUID jobId() {
-        return id;
-    }
-
-    public Settings settings() {
-        return settings;
-    }
-
-    public SessionContext sessionContext() {
-        return sessionContext;
+    public void execute(final RowReceiver rowReceiver) {
+        for (String setting : settings.names()) {
+            SessionSettingApplier applier = SessionSettingRegistry.getApplier(setting);
+            if (applier != null) {
+                applier.apply(settings.get(setting), sessionContext);
+            } else {
+                LOGGER.warn("SET LOCAL STATEMENTS WILL BE IGNORED: {}", setting);
+            }
+            rowReceiver.finish(RepeatHandle.UNSUPPORTED);
+        }
     }
 }
+

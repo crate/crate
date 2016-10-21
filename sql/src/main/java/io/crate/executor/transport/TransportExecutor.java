@@ -35,6 +35,7 @@ import io.crate.executor.Task;
 import io.crate.executor.task.DDLTask;
 import io.crate.executor.task.ExplainTask;
 import io.crate.executor.task.NoopTask;
+import io.crate.executor.task.SetSessionTask;
 import io.crate.executor.transport.executionphases.ExecutionPhasesTask;
 import io.crate.executor.transport.task.*;
 import io.crate.executor.transport.task.elasticsearch.ESClusterUpdateSettingsTask;
@@ -163,7 +164,7 @@ public class TransportExecutor implements Executor {
 
         @Override
         public Task visitSetSessionPlan(SetSessionPlan plan, Void context) {
-            return NoopTask.INSTANCE;
+            return new SetSessionTask(plan.jobId(), plan.settings(), plan.sessionContext());
         }
 
         @Override

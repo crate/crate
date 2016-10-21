@@ -6,6 +6,8 @@ Unreleased
 ==========
 
  - Added support for scalar subquery expressions to SELECT statements.
+ - Added the ``search_path`` session setting parameter. The default table
+   schema can be set with ``SET SESSION search_path = schema_name``.
 
  - Updated crate-admin to ``0.20.3`` which includes following changes:
 

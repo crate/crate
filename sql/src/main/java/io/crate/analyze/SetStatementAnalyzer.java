@@ -24,6 +24,7 @@ package io.crate.analyze;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Sets;
 import io.crate.analyze.expressions.ExpressionToStringVisitor;
+import io.crate.core.collections.Row;
 import io.crate.metadata.settings.CrateSettings;
 import io.crate.metadata.settings.Setting;
 import io.crate.metadata.settings.SettingsApplier;
@@ -41,42 +42,39 @@ public class SetStatementAnalyzer {
     private SetStatementAnalyzer() {
     }
 
-    public static SetAnalyzedStatement analyze(SetStatement node, ParameterContext parameterContext) {
-        Settings.Builder builder = Settings.builder();
+    public static SetAnalyzedStatement analyze(SetStatement node, Analysis context) {
+        boolean isPersistent = node.settingType().equals(SetStatement.SettingType.PERSISTENT);
 
         if (!SetStatement.Scope.GLOBAL.equals(node.scope())) {
-            logger.warn("SET STATEMENT WITH SESSION OR LOCAL WILL BE IGNORED: {}", node);
             Assignment assignment = node.assignments().get(0);
-            String settingsName = ExpressionToStringVisitor.convert(assignment.columnName(),
-                parameterContext.parameters());
-            Set<String> settingNames = CrateSettings.settingNamesByPrefix(settingsName);
-            if (settingNames.size() != 0) {
-                throw new IllegalArgumentException(String.format(Locale.ENGLISH, "GLOBAL Cluster setting '%s' cannot be used with SET SESSION / LOCAL", settingsName));
+            String setting = ExpressionToStringVisitor.convert(assignment.columnName(), Row.EMPTY);
+            Set<String> settingParts = CrateSettings.settingNamesByPrefix(setting);
+            if (settingParts.size() != 0) {
+                throw new IllegalArgumentException(String.format(
+                    Locale.ENGLISH, "GLOBAL Cluster setting '%s' cannot be used with SET SESSION / LOCAL ", setting));
             }
-            builder.put(settingsName, assignment.expressions());
-            return new SetAnalyzedStatement(node.scope(), builder.build(),
-                node.settingType().equals(SetStatement.SettingType.PERSISTENT));
+            Settings.Builder builder = Settings.builder()
+                .put(setting, assignment.expressions());
+            return new SetAnalyzedStatement(node.scope(), builder.build(), isPersistent);
         }
 
+        Settings.Builder builder = Settings.builder();
         for (Assignment assignment : node.assignments()) {
-            String settingsName = ExpressionToStringVisitor.convert(assignment.columnName(),
-                parameterContext.parameters());
+            String settingsName = ExpressionToStringVisitor.convert(assignment.columnName(), Row.EMPTY);
 
             SettingsApplier settingsApplier = CrateSettings.getSettingsApplier(settingsName);
             for (String setting : ExpressionToSettingNameListVisitor.convert(assignment)) {
                 checkIfSettingIsRuntime(setting);
             }
-            settingsApplier.apply(builder, parameterContext.parameters(), assignment.expression());
-
+            settingsApplier.apply(builder, context.parameterContext().parameters(), assignment.expression());
         }
-        return new SetAnalyzedStatement(node.scope(), builder.build(),
-            node.settingType().equals(SetStatement.SettingType.PERSISTENT));
+        return new SetAnalyzedStatement(node.scope(), builder.build(), isPersistent);
     }
 
-    public static ResetAnalyzedStatement analyze(ResetStatement node, ParameterContext parameterContext) {
+    public static ResetAnalyzedStatement analyze(ResetStatement node) {
         Set<String> settingsToRemove = Sets.newHashSet();
         for (Expression expression : node.columns()) {
-            String settingsName = ExpressionToStringVisitor.convert(expression, parameterContext.parameters());
+            String settingsName = ExpressionToStringVisitor.convert(expression, Row.EMPTY);
             if (!settingsToRemove.contains(settingsName)) {
                 Set<String> settingNames = CrateSettings.settingNamesByPrefix(settingsName);
                 if (settingNames.size() == 0) {
@@ -119,7 +117,7 @@ public class SetStatementAnalyzer {
 
         @Override
         public Collection<String> visitAssignment(Assignment node, String context) {
-            String left = ExpressionToStringVisitor.convert(node.columnName(), null);
+            String left = ExpressionToStringVisitor.convert(node.columnName(), Row.EMPTY);
             return node.expression().accept(this, left);
         }
 
@@ -152,5 +150,4 @@ public class SetStatementAnalyzer {
             return ImmutableList.of(context);
         }
     }
-
 }
