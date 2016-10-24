@@ -8,6 +8,7 @@ import io.crate.Constants;
 import io.crate.action.sql.SessionContext;
 import io.crate.analyze.*;
 import io.crate.metadata.*;
+import io.crate.metadata.blob.BlobTableInfoFactory;
 import io.crate.metadata.table.ColumnPolicy;
 import io.crate.metadata.table.SchemaInfo;
 import io.crate.sql.parser.SqlParser;
@@ -897,9 +898,10 @@ public class DocIndexMetaDataTest extends CrateUnitTest {
             indexTemplateActionProvider,
             executorService
         );
-        DocSchemaInfo docSchemaInfo = new DocSchemaInfo(clusterService, docTableInfoFactory);
+        DocSchemaInfo docSchemaInfo = new DocSchemaInfo(Schemas.DEFAULT_SCHEMA_NAME, clusterService, docTableInfoFactory);
         CreateTableStatementAnalyzer analyzer = new CreateTableStatementAnalyzer(
-            new ReferenceInfos(
+            new Schemas(
+                Settings.EMPTY,
                 ImmutableMap.<String, SchemaInfo>of("doc", docSchemaInfo),
                 clusterService,
                 new DocSchemaInfoFactory(docTableInfoFactory)),

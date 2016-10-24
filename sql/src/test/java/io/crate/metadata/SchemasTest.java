@@ -32,6 +32,7 @@ import org.elasticsearch.cluster.metadata.IndexTemplateMetaData;
 import org.elasticsearch.cluster.metadata.MetaData;
 import org.elasticsearch.common.collect.ImmutableOpenMap;
 import org.elasticsearch.common.inject.Provider;
+import org.elasticsearch.common.settings.Settings;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -45,7 +46,7 @@ import java.util.Map;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-public class ReferenceInfosTest {
+public class SchemasTest {
 
     @Rule
     public ExpectedException expectedException = ExpectedException.none();
@@ -111,6 +112,6 @@ public class ReferenceInfosTest {
     private Schemas getReferenceInfos(SchemaInfo schemaInfo) {
         Map<String, SchemaInfo> builtInSchema = new HashMap<>();
         builtInSchema.put(schemaInfo.name(), schemaInfo);
-        return new ReferenceInfos(builtInSchema, clusterService, mock(DocSchemaInfoFactory.class));
+        return new Schemas(Settings.EMPTY, builtInSchema, clusterService, mock(DocSchemaInfoFactory.class));
     }
 }

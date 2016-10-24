@@ -21,7 +21,7 @@
 
 package io.crate.integrationtests;
 
-import io.crate.blob.v2.BlobIndices;
+import io.crate.blob.v2.BlobIndicesService;
 import io.crate.testing.UseJdbc;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.common.settings.Settings;
@@ -101,12 +101,12 @@ public class ShardStatsTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testTableNameBlobTable() throws Exception {
-        BlobIndices blobIndices = internalCluster().getInstance(BlobIndices.class);
+        BlobIndicesService blobIndicesService = internalCluster().getInstance(BlobIndicesService.class);
         Settings indexSettings = Settings.builder()
             .put(IndexMetaData.SETTING_NUMBER_OF_REPLICAS, 1)
             .put(IndexMetaData.SETTING_NUMBER_OF_SHARDS, 1)
             .build();
-        blobIndices.createBlobTable("blobs", indexSettings).get();
+        blobIndicesService.createBlobTable("blobs", indexSettings).get();
         ensureGreen();
 
         execute("select schema_name, table_name from sys.shards where table_name = 'blobs'");

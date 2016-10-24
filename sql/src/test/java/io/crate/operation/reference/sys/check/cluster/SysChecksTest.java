@@ -23,7 +23,7 @@ package io.crate.operation.reference.sys.check.cluster;
 
 import io.crate.metadata.NestedReferenceResolver;
 import io.crate.metadata.PartitionName;
-import io.crate.metadata.ReferenceInfos;
+import io.crate.metadata.Schemas;
 import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.settings.CrateSettings;
@@ -92,7 +92,7 @@ public class SysChecksTest extends CrateUnitTest {
     @Test
     public void testNumberOfPartitionCorrectPartitioning() {
         NumberOfPartitionsSysCheck numberOfPartitionsSysCheck = new NumberOfPartitionsSysCheck(
-            mock(ReferenceInfos.class));
+            mock(Schemas.class));
 
         when(docSchemaInfo.iterator()).thenReturn(docSchemaInfoItr);
         when(docSchemaInfoItr.hasNext()).thenReturn(true, true, false);
@@ -111,7 +111,7 @@ public class SysChecksTest extends CrateUnitTest {
     @SuppressWarnings("unchecked")
     @Test
     public void testNumberOfPartitionsWrongPartitioning() {
-        NumberOfPartitionsSysCheck numberOfPartitionsSysCheck = new NumberOfPartitionsSysCheck(mock(ReferenceInfos.class));
+        NumberOfPartitionsSysCheck numberOfPartitionsSysCheck = new NumberOfPartitionsSysCheck(mock(Schemas.class));
         List<PartitionName> partitions = buildPartitions(1001);
 
         when(docSchemaInfo.iterator()).thenReturn(docSchemaInfoItr);

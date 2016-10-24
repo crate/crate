@@ -27,7 +27,7 @@ import io.crate.blob.RemoteDigestBlob;
 import io.crate.blob.exceptions.DigestMismatchException;
 import io.crate.blob.exceptions.DigestNotFoundException;
 import io.crate.blob.exceptions.MissingHTTPEndpointException;
-import io.crate.blob.v2.BlobIndices;
+import io.crate.blob.v2.BlobIndicesService;
 import io.crate.blob.v2.BlobShard;
 import io.crate.blob.v2.BlobsDisabledException;
 import org.elasticsearch.common.logging.ESLogger;
@@ -70,7 +70,7 @@ public class HttpBlobHandler extends SimpleChannelUpstreamHandler implements
 
     private final Matcher blobsMatcher = BLOBS_PATTERN.matcher("");
     private final BlobService blobService;
-    private final BlobIndices blobIndices;
+    private final BlobIndicesService blobIndicesService;
     private final boolean sslEnabled;
     private final String scheme;
     private HttpMessage currentMessage;
@@ -78,9 +78,9 @@ public class HttpBlobHandler extends SimpleChannelUpstreamHandler implements
 
     private RemoteDigestBlob digestBlob;
 
-    public HttpBlobHandler(BlobService blobService, BlobIndices blobIndices, boolean sslEnabled) {
+    public HttpBlobHandler(BlobService blobService, BlobIndicesService blobIndicesService, boolean sslEnabled) {
         this.blobService = blobService;
-        this.blobIndices = blobIndices;
+        this.blobIndicesService = blobIndicesService;
         this.sslEnabled = sslEnabled;
         this.scheme = sslEnabled ? "https://" : "http://";
     }
@@ -157,7 +157,7 @@ public class HttpBlobHandler extends SimpleChannelUpstreamHandler implements
         LOGGER.trace("matches index:{} digest:{}", index, digest);
         LOGGER.trace("HTTPMessage:%n{}", request);
 
-        index = BlobIndices.fullIndexName(index);
+        index = BlobIndicesService.fullIndexName(index);
 
         if (possibleRedirect(request, index, digest)) {
             reset();
@@ -290,7 +290,7 @@ public class HttpBlobHandler extends SimpleChannelUpstreamHandler implements
     }
 
     private BlobShard localBlobShard(String index, String digest) {
-        return blobIndices.localBlobShard(index, digest);
+        return blobIndicesService.localBlobShard(index, digest);
     }
 
     private void partialContentResponse(String range, HttpRequest request, String index, final String digest)

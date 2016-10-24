@@ -58,7 +58,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
 @Singleton
-public class DecommissioningService extends AbstractLifecycleComponent implements SignalHandler {
+public class DecommissioningService extends AbstractLifecycleComponent implements SignalHandler, ClusterStateListener {
 
     static final String DECOMMISSION_PREFIX = "crate.internal.decommission.";
 
@@ -95,12 +95,6 @@ public class DecommissioningService extends AbstractLifecycleComponent implement
         applySettings.onRefreshSettings(settings);
         nodeSettingsService.addListener(applySettings);
 
-        clusterService.add(new ClusterStateListener() {
-            @Override
-            public void clusterChanged(ClusterChangedEvent event) {
-                removeRemovedNodes(event);
-            }
-        });
         try {
             Signal signal = new Signal("USR2");
             Signal.handle(signal, this);
@@ -137,6 +131,13 @@ public class DecommissioningService extends AbstractLifecycleComponent implement
 
     @Override
     protected void doStart() {
+        // add listener here to avoid guice proxy errors if the ClusterService could not be build
+        clusterService.add(this);
+    }
+
+    @Override
+    public void clusterChanged(ClusterChangedEvent event) {
+        removeRemovedNodes(event);
     }
 
     private void decommission() {
@@ -232,6 +233,7 @@ public class DecommissioningService extends AbstractLifecycleComponent implement
 
     @Override
     protected void doStop() {
+        clusterService.remove(this);
     }
 
     @Override

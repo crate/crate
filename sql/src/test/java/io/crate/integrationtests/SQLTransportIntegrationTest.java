@@ -43,6 +43,7 @@ import io.crate.operation.Paging;
 import io.crate.planner.Plan;
 import io.crate.planner.Planner;
 import io.crate.plugin.BlobPlugin;
+import io.crate.plugin.CrateCorePlugin;
 import io.crate.plugin.SQLPlugin;
 import io.crate.protocols.postgres.PostgresNetty;
 import io.crate.sql.parser.SqlParser;
@@ -114,7 +115,7 @@ public abstract class SQLTransportIntegrationTest extends ESIntegTestCase {
 
     @Override
     protected Collection<Class<? extends Plugin>> nodePlugins() {
-        return pluginList(BlobPlugin.class, SQLPlugin.class);
+        return pluginList(BlobPlugin.class, SQLPlugin.class, CrateCorePlugin.class);
     }
 
     @Override

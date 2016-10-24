@@ -31,7 +31,7 @@ public class BlobIndicesModule extends AbstractModule {
 
     @Override
     protected void configure() {
-        bind(BlobIndices.class).asEagerSingleton();
+        bind(BlobIndicesService.class).asEagerSingleton();
         bind(BlobRecoverySource.class).asEagerSingleton();
         bind(BlobRecoveryTarget.class).asEagerSingleton();
         bind(BlobTransferTarget.class).asEagerSingleton();

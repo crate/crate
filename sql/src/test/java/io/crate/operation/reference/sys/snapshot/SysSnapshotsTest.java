@@ -23,7 +23,7 @@
 package io.crate.operation.reference.sys.snapshot;
 
 import com.google.common.collect.ImmutableMap;
-import io.crate.operation.reference.sys.repositories.SysRepositories;
+import io.crate.operation.reference.sys.repositories.SysRepositoriesService;
 import io.crate.operation.reference.sys.repositories.SysRepository;
 import io.crate.test.integration.CrateUnitTest;
 import org.elasticsearch.snapshots.SnapshotsService;
@@ -43,7 +43,7 @@ public class SysSnapshotsTest extends CrateUnitTest {
 
     @Test
     public void testErrorsOnRetrievingSnapshotsAreIgnored() throws Exception {
-        SysRepositories sysRepos = mock(SysRepositories.class);
+        SysRepositoriesService sysRepos = mock(SysRepositoriesService.class);
 
         final Iterable<?> objects =
             Collections.singletonList((Object) new SysRepository("foo", "url", ImmutableMap.<String, Object>of()));

@@ -22,8 +22,10 @@
 
 package io.crate.plugin;
 
+import io.crate.ClusterIdService;
 import io.crate.module.CrateCoreModule;
 import io.crate.rest.CrateRestMainAction;
+import org.elasticsearch.common.component.LifecycleComponent;
 import org.elasticsearch.common.inject.Module;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.plugins.Plugin;
@@ -48,6 +50,11 @@ public class CrateCorePlugin extends Plugin {
     @Override
     public String description() {
         return "Crate Core";
+    }
+
+    @Override
+    public Collection<Class<? extends LifecycleComponent>> nodeServices() {
+        return Collections.<Class<? extends LifecycleComponent>>singletonList(ClusterIdService.class);
     }
 
     @Override

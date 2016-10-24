@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Show meaningful error when a node is started with invalid settings,
+   e.g. invalid unicast host.
+
  - Fix the NPE that occured if `distinct` was applied on expressions
    which resulted in null values.
 

@@ -24,7 +24,7 @@ package io.crate.metadata.blob;
 import io.crate.analyze.NumberOfReplicas;
 import io.crate.analyze.TableParameterInfo;
 import io.crate.blob.BlobEnvironment;
-import io.crate.blob.v2.BlobIndices;
+import io.crate.blob.v2.BlobIndicesService;
 import io.crate.exceptions.TableUnknownException;
 import io.crate.metadata.TableIdent;
 import org.apache.lucene.util.BytesRef;
@@ -57,7 +57,7 @@ public class InternalBlobTableInfoFactory implements BlobTableInfoFactory {
     }
 
     private IndexMetaData resolveIndexMetaData(String tableName, ClusterState state) {
-        String index = BlobIndices.fullIndexName(tableName);
+        String index = BlobIndicesService.fullIndexName(tableName);
         String[] concreteIndices;
         try {
             concreteIndices = indexNameExpressionResolver.concreteIndices(
@@ -83,7 +83,7 @@ public class InternalBlobTableInfoFactory implements BlobTableInfoFactory {
 
     private BytesRef blobsPath(Settings indexMetaDataSettings) {
         BytesRef blobsPath;
-        String blobsPathStr = indexMetaDataSettings.get(BlobIndices.SETTING_INDEX_BLOBS_PATH);
+        String blobsPathStr = indexMetaDataSettings.get(BlobIndicesService.SETTING_INDEX_BLOBS_PATH);
         if (blobsPathStr != null) {
             blobsPath = new BytesRef(blobsPathStr);
         } else {

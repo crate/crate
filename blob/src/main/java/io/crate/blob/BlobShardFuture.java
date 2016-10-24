@@ -21,7 +21,7 @@
 
 package io.crate.blob;
 
-import io.crate.blob.v2.BlobIndices;
+import io.crate.blob.v2.BlobIndicesService;
 import io.crate.blob.v2.BlobShard;
 import org.elasticsearch.common.util.concurrent.BaseFuture;
 import org.elasticsearch.index.shard.IndexShard;
@@ -29,9 +29,9 @@ import org.elasticsearch.indices.IndicesLifecycle;
 
 public class BlobShardFuture extends BaseFuture<BlobShard> {
 
-    public BlobShardFuture(final BlobIndices blobIndices, final IndicesLifecycle indicesLifecycle,
+    public BlobShardFuture(final BlobIndicesService blobIndicesService, final IndicesLifecycle indicesLifecycle,
                            final String index, final int shardId) {
-        BlobShard blobShard = blobIndices.blobShard(index, shardId);
+        BlobShard blobShard = blobIndicesService.blobShard(index, shardId);
         if (blobShard != null) {
             set(blobShard);
             return;
@@ -43,7 +43,7 @@ public class BlobShardFuture extends BaseFuture<BlobShard> {
             public void afterIndexShardCreated(IndexShard indexShard) {
                 super.afterIndexShardCreated(indexShard);
                 if (indexShard.shardId().index().getName().equals(index)) {
-                    set(blobIndices.blobShardSafe(index, shardId));
+                    set(blobIndicesService.blobShardSafe(index, shardId));
                     indicesLifecycle.removeListener(this);
                 }
             }
@@ -56,7 +56,7 @@ public class BlobShardFuture extends BaseFuture<BlobShard> {
          * but after the first blobShard() call
          */
         if (!isDone()) {
-            blobShard = blobIndices.blobShard(index, shardId);
+            blobShard = blobIndicesService.blobShard(index, shardId);
             if (blobShard != null) {
                 indicesLifecycle.removeListener(listener);
                 set(blobShard);

@@ -40,7 +40,7 @@ import io.crate.operation.reference.sys.RowContextReferenceResolver;
 import io.crate.operation.reference.sys.check.SysCheck;
 import io.crate.operation.reference.sys.check.SysChecker;
 import io.crate.operation.reference.sys.check.SysNodeCheck;
-import io.crate.operation.reference.sys.repositories.SysRepositories;
+import io.crate.operation.reference.sys.repositories.SysRepositoriesService;
 import io.crate.operation.reference.sys.snapshot.SysSnapshots;
 import io.crate.planner.node.dql.CollectPhase;
 import io.crate.planner.node.dql.RoutedCollectPhase;
@@ -71,7 +71,7 @@ public class SystemCollectSource implements CollectSource {
                                InformationSchemaIterables informationSchemaIterables,
                                Set<SysCheck> sysChecks,
                                Set<SysNodeCheck> sysNodeChecks,
-                               SysRepositories sysRepositories,
+                               SysRepositoriesService sysRepositoriesService,
                                SysSnapshots sysSnapshots,
                                PgCatalogTables pgCatalogTables) {
         docInputSymbolVisitor = new CollectInputSymbolVisitor<>(functions, RowContextReferenceResolver.INSTANCE);
@@ -90,7 +90,7 @@ public class SystemCollectSource implements CollectSource {
             .put(SysOperationsLogTableInfo.IDENT.fqn(), statsTables.operationsLogGetter())
             .put(SysChecksTableInfo.IDENT.fqn(), new SysChecker(sysChecks))
             .put(SysNodeChecksTableInfo.IDENT.fqn(), new SysChecker(sysNodeChecks))
-            .put(SysRepositoriesTableInfo.IDENT.fqn(), sysRepositories)
+            .put(SysRepositoriesTableInfo.IDENT.fqn(), sysRepositoriesService)
             .put(SysSnapshotsTableInfo.IDENT.fqn(), sysSnapshots)
             .put(SysSummitsTableInfo.IDENT.fqn(), new SummitsIterable())
             .put(PgTypeTable.IDENT.fqn(), pgCatalogTables.pgTypes())

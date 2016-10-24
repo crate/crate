@@ -23,7 +23,7 @@
 package io.crate.testing;
 
 import io.crate.blob.BlobService;
-import io.crate.blob.v2.BlobIndices;
+import io.crate.blob.v2.BlobIndicesService;
 import io.crate.http.netty.CrateNettyHttpServerTransport;
 import io.crate.plugin.BlobPlugin;
 import org.elasticsearch.cluster.node.DiscoveryNodeService;
@@ -61,9 +61,9 @@ public class SslDummyPlugin extends BlobPlugin {
                                       NetworkService networkService,
                                       BigArrays bigArrays,
                                       BlobService blobService,
-                                      BlobIndices blobIndices,
+                                      BlobIndicesService blobIndicesService,
                                       DiscoveryNodeService discoveryNodeService) {
-            super(settings, networkService, bigArrays, blobService, blobIndices, discoveryNodeService);
+            super(settings, networkService, bigArrays, blobService, blobIndicesService, discoveryNodeService);
         }
 
         @Override

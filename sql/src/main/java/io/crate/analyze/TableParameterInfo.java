@@ -23,7 +23,7 @@ package io.crate.analyze;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import io.crate.blob.v2.BlobIndices;
+import io.crate.blob.v2.BlobIndicesService;
 import io.crate.metadata.settings.CrateTableSettings;
 import io.crate.metadata.table.ColumnPolicy;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
@@ -48,7 +48,7 @@ public class TableParameterInfo {
     public static final String BLOCKS_READ = IndexMetaData.SETTING_BLOCKS_READ;
     public static final String BLOCKS_WRITE = IndexMetaData.SETTING_BLOCKS_WRITE;
     public static final String BLOCKS_METADATA = IndexMetaData.SETTING_BLOCKS_METADATA;
-    public static final String BLOBS_PATH = BlobIndices.SETTING_INDEX_BLOBS_PATH;
+    public static final String BLOBS_PATH = BlobIndicesService.SETTING_INDEX_BLOBS_PATH;
     public static final String FLUSH_THRESHOLD_OPS = TranslogService.INDEX_TRANSLOG_FLUSH_THRESHOLD_OPS;
     public static final String FLUSH_THRESHOLD_SIZE = TranslogService.INDEX_TRANSLOG_FLUSH_THRESHOLD_SIZE;
     public static final String FLUSH_THRESHOLD_PERIOD = TranslogService.INDEX_TRANSLOG_FLUSH_THRESHOLD_PERIOD;

@@ -35,7 +35,7 @@ import com.google.common.collect.Collections2;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.UnmodifiableIterator;
 import com.google.common.util.concurrent.UncheckedExecutionException;
-import io.crate.blob.v2.BlobIndices;
+import io.crate.blob.v2.BlobIndicesService;
 import io.crate.exceptions.ResourceUnknownException;
 import io.crate.exceptions.UnhandledServerException;
 import io.crate.metadata.PartitionName;
@@ -45,13 +45,11 @@ import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.table.TableInfo;
 import org.elasticsearch.cluster.ClusterChangedEvent;
 import org.elasticsearch.cluster.ClusterService;
-import org.elasticsearch.cluster.ClusterStateListener;
 import org.elasticsearch.cluster.metadata.AliasMetaData;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.cluster.metadata.IndexTemplateMetaData;
 import org.elasticsearch.cluster.metadata.MetaData;
 import org.elasticsearch.common.collect.ImmutableOpenMap;
-import org.elasticsearch.common.inject.Inject;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -59,19 +57,12 @@ import java.util.*;
 import java.util.concurrent.ExecutionException;
 import java.util.regex.Matcher;
 
-public class DocSchemaInfo implements SchemaInfo, ClusterStateListener {
+public class DocSchemaInfo implements SchemaInfo {
 
     public static final String NAME = "doc";
 
     private final ClusterService clusterService;
     private final DocTableInfoFactory docTableInfoFactory;
-
-    private final static Predicate<String> DOC_SCHEMA_TABLES_FILTER = new Predicate<String>() {
-        @Override
-        public boolean apply(String input) {
-            return !Schemas.SCHEMA_PATTERN.matcher(input).matches();
-        }
-    };
 
     private final Predicate<String> tablesFilter;
 
@@ -91,60 +82,23 @@ public class DocSchemaInfo implements SchemaInfo, ClusterStateListener {
     private final Function<String, TableInfo> tableInfoFunction;
     private final String schemaName;
     private final Function<String, String> indexToTableName;
-    private final static Function<String, String> AS_IS_FUNCTION = new Function<String, String>() {
-        @Nullable
-        @Override
-        public String apply(@Nullable String input) {
-            return input;
-        }
-    };
 
     /**
-     * DocSchemaInfo constructor for the default (doc) schema.
+     * DocSchemaInfo constructor for the all schemas.
      */
-    @Inject
-    public DocSchemaInfo(ClusterService clusterService, DocTableInfoFactory docTableInfoFactory) {
-        this(Schemas.DEFAULT_SCHEMA_NAME,
-            clusterService,
-            docTableInfoFactory,
-            Predicates.and(Predicates.notNull(), DOC_SCHEMA_TABLES_FILTER),
-            AS_IS_FUNCTION);
-    }
-
-    /**
-     * constructor used for custom schemas
-     */
-    public DocSchemaInfo(final String schemaName, ClusterService clusterService, DocTableInfoFactory docTableInfoFactory) {
-        this(schemaName, clusterService, docTableInfoFactory,
-            createSchemaNamePredicate(schemaName), new Function<String, String>() {
-                @Nullable
-                @Override
-                public String apply(String input) {
-                    Matcher matcher = Schemas.SCHEMA_PATTERN.matcher(input);
-                    if (matcher.matches()) {
-                        input = matcher.group(2);
-                    }
-                    return input;
-                }
-            });
-    }
-
-    private DocSchemaInfo(final String schemaName,
-                          ClusterService clusterService,
-                          DocTableInfoFactory docTableInfoFactory,
-                          Predicate<String> tableFilter,
-                          final Function<String, String> fqTableNameToTableName) {
+    public DocSchemaInfo(final String schemaName,
+                         ClusterService clusterService,
+                         DocTableInfoFactory docTableInfoFactory) {
         this.schemaName = schemaName;
         this.clusterService = clusterService;
         this.docTableInfoFactory = docTableInfoFactory;
-        this.clusterService.add(this);
-        this.tablesFilter = tableFilter;
+        this.tablesFilter = createSchemaNamePredicate(schemaName);
         this.tableInfoFunction = new Function<String, TableInfo>() {
             @Nullable
             @Override
             public TableInfo apply(@Nullable String input) {
                 assert input != null : "input must not be null";
-                return getTableInfo(fqTableNameToTableName.apply(input));
+                return getTableInfo(getTableNameFromFQN(input));
             }
         };
         this.indexToTableName = new Function<String, String>() {
@@ -154,7 +108,7 @@ public class DocSchemaInfo implements SchemaInfo, ClusterStateListener {
                 if (input == null) {
                     return null;
                 }
-                if (BlobIndices.isBlobIndex(input)) {
+                if (BlobIndicesService.isBlobIndex(input)) {
                     return null;
                 }
                 if (PartitionName.isPartition(input)) {
@@ -170,9 +124,22 @@ public class DocSchemaInfo implements SchemaInfo, ClusterStateListener {
             @Override
             public boolean apply(String input) {
                 Matcher matcher = Schemas.SCHEMA_PATTERN.matcher(input);
-                return (matcher.matches() && matcher.group(1).equals(schemaName));
+                if (matcher.matches()) {
+                    return matcher.group(1).equals(schemaName);
+                } else {
+                    return Schemas.DEFAULT_SCHEMA_NAME.equals(schemaName);
+                }
+
             }
         });
+    }
+
+    private String getTableNameFromFQN(String fqn) {
+        Matcher matcher = Schemas.SCHEMA_PATTERN.matcher(fqn);
+        if (matcher.matches()) {
+            return matcher.group(2);
+        }
+        return fqn;
     }
 
     private DocTableInfo innerGetTableInfo(String tableName) {
@@ -197,7 +164,7 @@ public class DocSchemaInfo implements SchemaInfo, ClusterStateListener {
         }
     }
 
-    public Collection<String> tableNames() {
+    private Collection<String> tableNames() {
         // TODO: once we support closing/opening tables change this to concreteIndices()
         // and add  state info to the TableInfo.
 
@@ -237,7 +204,7 @@ public class DocSchemaInfo implements SchemaInfo, ClusterStateListener {
     }
 
     @Override
-    public synchronized void clusterChanged(ClusterChangedEvent event) {
+    public void update(ClusterChangedEvent event) {
         if (event.metaDataChanged()) {
 
             // search for aliases of deleted and created indices, they must be invalidated also
@@ -324,6 +291,5 @@ public class DocSchemaInfo implements SchemaInfo, ClusterStateListener {
 
     @Override
     public void close() throws Exception {
-        clusterService.remove(this);
     }
 }

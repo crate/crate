@@ -34,7 +34,7 @@ import io.crate.core.collections.RowN;
 import io.crate.core.collections.Rows;
 import io.crate.executor.transport.RepositoryService;
 import io.crate.metadata.Functions;
-import io.crate.metadata.ReferenceInfos;
+import io.crate.metadata.Schemas;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.blob.BlobSchemaInfo;
 import io.crate.metadata.blob.BlobTableInfo;
@@ -122,7 +122,7 @@ public class SQLExecutor {
         }
 
         public SQLExecutor build() {
-            schemas.put("doc", new DocSchemaInfo(clusterService, new TestingDocTableInfoFactory(docTables)));
+            schemas.put(Schemas.DEFAULT_SCHEMA_NAME, new DocSchemaInfo(Schemas.DEFAULT_SCHEMA_NAME, clusterService, new TestingDocTableInfoFactory(docTables)));
             if (!blobTables.isEmpty()) {
                 schemas.put(BlobSchemaInfo.NAME, new BlobSchemaInfo(clusterService, new TestingBlobTableInfoFactory(blobTables)));
             }
@@ -130,7 +130,8 @@ public class SQLExecutor {
                 functions,
                 new Analyzer(
                     Settings.EMPTY,
-                    new ReferenceInfos(
+                    new Schemas(
+                        Settings.EMPTY,
                         schemas,
                         clusterService,
                         new DocSchemaInfoFactory(new TestingDocTableInfoFactory(Collections.<TableIdent, DocTableInfo>emptyMap()))

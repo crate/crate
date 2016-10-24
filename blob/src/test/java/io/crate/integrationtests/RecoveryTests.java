@@ -27,7 +27,7 @@ import io.crate.blob.PutChunkAction;
 import io.crate.blob.PutChunkRequest;
 import io.crate.blob.StartBlobAction;
 import io.crate.blob.StartBlobRequest;
-import io.crate.blob.v2.BlobIndices;
+import io.crate.blob.v2.BlobIndicesService;
 import io.crate.blob.v2.BlobShard;
 import io.crate.common.Hex;
 import io.crate.test.utils.Blobs;
@@ -106,11 +106,11 @@ public class RecoveryTests extends BlobIntegrationTestBase {
         BytesArray bytes = new BytesArray(new byte[]{contentBytes[0]});
         if (content.length() == 1) {
             client.execute(StartBlobAction.INSTANCE,
-                new StartBlobRequest(BlobIndices.fullIndexName("test"), digest, bytes, true))
+                new StartBlobRequest(BlobIndicesService.fullIndexName("test"), digest, bytes, true))
                 .actionGet();
         } else {
             StartBlobRequest startBlobRequest = new StartBlobRequest(
-                BlobIndices.fullIndexName("test"), digest, bytes, false);
+                BlobIndicesService.fullIndexName("test"), digest, bytes, false);
             client.execute(StartBlobAction.INSTANCE, startBlobRequest).actionGet();
             for (int i = 1; i < contentBytes.length; i++) {
                 try {
@@ -122,7 +122,7 @@ public class RecoveryTests extends BlobIntegrationTestBase {
                 try {
                     client.execute(PutChunkAction.INSTANCE,
                         new PutChunkRequest(
-                            BlobIndices.fullIndexName("test"), digest,
+                            BlobIndicesService.fullIndexName("test"), digest,
                             startBlobRequest.transferId(), bytes, i,
                             (i + 1) == content.length())
                     ).actionGet();
@@ -158,14 +158,14 @@ public class RecoveryTests extends BlobIntegrationTestBase {
 
         final String node1 = internalCluster().startNode();
 
-        BlobIndices blobIndices = internalCluster().getInstance(BlobIndices.class, node1);
+        BlobIndicesService blobIndicesService = internalCluster().getInstance(BlobIndicesService.class, node1);
 
         logger.trace("--> creating test index ...");
         Settings indexSettings = Settings.builder()
             .put(IndexMetaData.SETTING_NUMBER_OF_REPLICAS, 0)
             .put(IndexMetaData.SETTING_NUMBER_OF_SHARDS, 1)
             .build();
-        blobIndices.createBlobTable("test", indexSettings).get();
+        blobIndicesService.createBlobTable("test", indexSettings).get();
 
         logger.trace("--> starting [node2] ...");
         final String node2 = internalCluster().startNode();
@@ -221,7 +221,7 @@ public class RecoveryTests extends BlobIntegrationTestBase {
             String toNode = node1.equals(fromNode) ? node2 : node1;
             logger.trace("--> START relocate the shard from {} to {}", fromNode, toNode);
             internalCluster().client(node1).admin().cluster().prepareReroute()
-                .add(new MoveAllocationCommand(new ShardId(BlobIndices.fullIndexName("test"), 0), fromNode, toNode))
+                .add(new MoveAllocationCommand(new ShardId(BlobIndicesService.fullIndexName("test"), 0), fromNode, toNode))
                 .execute().actionGet();
             ClusterHealthResponse clusterHealthResponse = internalCluster().client(node1).admin().cluster()
                 .prepareHealth()
@@ -249,9 +249,9 @@ public class RecoveryTests extends BlobIntegrationTestBase {
         logger.trace("--> expected {} got {}", indexCounter.get(), uploadedDigests.size());
         assertEquals(indexCounter.get(), uploadedDigests.size());
 
-        blobIndices = internalCluster().getInstance(BlobIndices.class, node2);
+        blobIndicesService = internalCluster().getInstance(BlobIndicesService.class, node2);
         for (String digest : uploadedDigests) {
-            BlobShard blobShard = blobIndices.localBlobShard(BlobIndices.fullIndexName("test"), digest);
+            BlobShard blobShard = blobIndicesService.localBlobShard(BlobIndicesService.fullIndexName("test"), digest);
             long length = blobShard.blobContainer().getFile(digest).length();
             assertThat(length, greaterThanOrEqualTo(1L));
         }

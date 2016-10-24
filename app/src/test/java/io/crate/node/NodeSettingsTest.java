@@ -27,11 +27,10 @@ import org.apache.log4j.Logger;
 import org.apache.log4j.varia.NullAppender;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.common.cli.Terminal;
+import org.elasticsearch.common.inject.CreationException;
 import org.elasticsearch.common.lease.Releasables;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.env.Environment;
-import org.elasticsearch.node.Node;
-import org.elasticsearch.node.NodeBuilder;
 import org.elasticsearch.node.internal.CrateSettingsPreparer;
 import org.junit.After;
 import org.junit.Rule;
@@ -43,8 +42,9 @@ import java.io.IOException;
 import java.net.URISyntaxException;
 import java.nio.file.Paths;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.hamcrest.Matchers.instanceOf;
+import static org.hamcrest.core.Is.is;
+import static org.junit.Assert.*;
 
 
 public class NodeSettingsTest {
@@ -52,7 +52,7 @@ public class NodeSettingsTest {
     @Rule
     public TemporaryFolder tmp = new TemporaryFolder();
 
-    protected Node node;
+    protected CrateNode node;
     protected Client client;
     private boolean loggingConfigured = false;
 
@@ -85,9 +85,7 @@ public class NodeSettingsTest {
 
         Terminal terminal = Terminal.DEFAULT;
         Environment environment = CrateSettingsPreparer.prepareEnvironment(builder.build(), terminal);
-        node = NodeBuilder.nodeBuilder()
-            .settings(environment.settings())
-            .build();
+        node = new CrateNode(environment);
         node.start();
         client = node.client();
         client.admin().indices().prepareCreate("test").execute().actionGet();
@@ -103,8 +101,6 @@ public class NodeSettingsTest {
             Releasables.close(node);
             node = null;
         }
-
-
     }
 
     /**
@@ -163,5 +159,25 @@ public class NodeSettingsTest {
             Constants.TRANSPORT_PORT_RANGE,
             node.settings().get("transport.tcp.port")
         );
+    }
+
+    @Test
+    public void testInvalidUnicastHost() throws Exception {
+        Settings.Builder builder = Settings.settingsBuilder()
+            .put("discovery.zen.ping.multicast.enabled", false)
+            .put("discovery.zen.ping.unicast.hosts", "nonexistinghost:4300")
+            .put("path.home", CRATE_CONFIG_PATH);
+        Terminal terminal = Terminal.DEFAULT;
+        Environment environment = CrateSettingsPreparer.prepareEnvironment(builder.build(), terminal);
+
+        try {
+            node = new CrateNode(environment);
+            fail("Exception expected (failed to resolve address)");
+        } catch (Throwable t) {
+            assertThat(t, instanceOf(CreationException.class));
+            Throwable rootCause = ((CreationException) t).getErrorMessages().iterator().next().getCause();
+            assertThat(rootCause, instanceOf(IllegalArgumentException.class));
+            assertThat(rootCause.getMessage(), is("Failed to resolve address for [nonexistinghost:4300]"));
+        }
     }
 }

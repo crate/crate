@@ -24,7 +24,7 @@ package io.crate.operation.reference.sys.snapshot;
 import com.google.common.base.Function;
 import com.google.common.base.Supplier;
 import com.google.common.collect.Lists;
-import io.crate.operation.reference.sys.repositories.SysRepositories;
+import io.crate.operation.reference.sys.repositories.SysRepositoriesService;
 import io.crate.operation.reference.sys.repositories.SysRepository;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
@@ -40,20 +40,20 @@ import java.util.List;
 @Singleton
 public class SysSnapshots implements Supplier<Iterable<?>> {
 
-    private final SysRepositories sysRepositories;
+    private final SysRepositoriesService sysRepositoriesService;
     private final SnapshotsService snapshotsService;
     private static final ESLogger LOGGER = Loggers.getLogger(SysSnapshots.class);
 
     @Inject
-    public SysSnapshots(SysRepositories sysRepositories, SnapshotsService snapshotsService) {
-        this.sysRepositories = sysRepositories;
+    public SysSnapshots(SysRepositoriesService sysRepositoriesService, SnapshotsService snapshotsService) {
+        this.sysRepositoriesService = sysRepositoriesService;
         this.snapshotsService = snapshotsService;
     }
 
     @Override
     public Iterable<?> get() {
         List<SysSnapshot> sysSnapshots = new ArrayList<>();
-        for (Object entry : sysRepositories.get()) {
+        for (Object entry : sysRepositoriesService.get()) {
             final String repositoryName = ((SysRepository) entry).name();
 
             List<Snapshot> snapshots;

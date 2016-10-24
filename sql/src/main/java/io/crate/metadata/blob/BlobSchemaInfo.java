@@ -27,7 +27,7 @@ import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
 import com.google.common.collect.FluentIterable;
 import com.google.common.util.concurrent.UncheckedExecutionException;
-import io.crate.blob.v2.BlobIndices;
+import io.crate.blob.v2.BlobIndicesService;
 import io.crate.exceptions.ResourceUnknownException;
 import io.crate.exceptions.UnhandledServerException;
 import io.crate.metadata.TableIdent;
@@ -35,15 +35,15 @@ import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.table.TableInfo;
 import org.elasticsearch.cluster.ClusterChangedEvent;
 import org.elasticsearch.cluster.ClusterService;
-import org.elasticsearch.cluster.ClusterStateListener;
 import org.elasticsearch.common.inject.Inject;
 
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.concurrent.ExecutionException;
 
-public class BlobSchemaInfo implements SchemaInfo, ClusterStateListener {
+public class BlobSchemaInfo implements SchemaInfo {
 
     public static final String NAME = "blob";
 
@@ -55,7 +55,7 @@ public class BlobSchemaInfo implements SchemaInfo, ClusterStateListener {
         .build(
             new CacheLoader<String, BlobTableInfo>() {
                 @Override
-                public BlobTableInfo load(String key) throws Exception {
+                public BlobTableInfo load(@Nonnull String key) throws Exception {
                     return innerGetTableInfo(key);
                 }
             }
@@ -64,10 +64,10 @@ public class BlobSchemaInfo implements SchemaInfo, ClusterStateListener {
     private final Function<String, TableInfo> tableInfoFunction;
 
     @Inject
-    public BlobSchemaInfo(ClusterService clusterService, BlobTableInfoFactory blobTableInfoFactory) {
+    public BlobSchemaInfo(ClusterService clusterService,
+                          BlobTableInfoFactory blobTableInfoFactory) {
         this.clusterService = clusterService;
         this.blobTableInfoFactory = blobTableInfoFactory;
-        clusterService.add(this);
         tableInfoFunction = new Function<String, TableInfo>() {
             @Nullable
             @Override
@@ -106,7 +106,7 @@ public class BlobSchemaInfo implements SchemaInfo, ClusterStateListener {
     }
 
     @Override
-    public void clusterChanged(ClusterChangedEvent event) {
+    public void update(ClusterChangedEvent event) {
         if (event.metaDataChanged()) {
             cache.invalidateAll();
         }
@@ -122,12 +122,11 @@ public class BlobSchemaInfo implements SchemaInfo, ClusterStateListener {
         // and add  state info to the TableInfo.
         return FluentIterable
             .from(Arrays.asList(clusterService.state().metaData().concreteAllOpenIndices()))
-            .filter(BlobIndices.indicesFilter)
-            .transform(BlobIndices.STRIP_PREFIX);
+            .filter(BlobIndicesService.indicesFilter)
+            .transform(BlobIndicesService.STRIP_PREFIX);
     }
 
     @Override
     public void close() throws Exception {
-        clusterService.remove(this);
     }
 }

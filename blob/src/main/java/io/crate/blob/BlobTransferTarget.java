@@ -24,7 +24,7 @@ package io.crate.blob;
 import com.google.common.util.concurrent.SettableFuture;
 import io.crate.blob.exceptions.DigestMismatchException;
 import io.crate.blob.pending_transfer.*;
-import io.crate.blob.v2.BlobIndices;
+import io.crate.blob.v2.BlobIndicesService;
 import io.crate.blob.v2.BlobShard;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.node.DiscoveryNode;
@@ -48,7 +48,7 @@ public class BlobTransferTarget extends AbstractComponent {
     private final ConcurrentMap<UUID, BlobTransferStatus> activeTransfers =
         ConcurrentCollections.newConcurrentMap();
 
-    private final BlobIndices blobIndices;
+    private final BlobIndicesService blobIndicesService;
     private final ThreadPool threadPool;
     private final TransportService transportService;
     private final ClusterService clusterService;
@@ -62,7 +62,7 @@ public class BlobTransferTarget extends AbstractComponent {
     private final TimeValue STATE_REMOVAL_DELAY;
 
     @Inject
-    public BlobTransferTarget(Settings settings, BlobIndices blobIndices,
+    public BlobTransferTarget(Settings settings, BlobIndicesService blobIndicesService,
                               ThreadPool threadPool,
                               TransportService transportService,
                               ClusterService clusterService) {
@@ -73,7 +73,7 @@ public class BlobTransferTarget extends AbstractComponent {
         } else {
             STATE_REMOVAL_DELAY = new TimeValue(2, TimeUnit.SECONDS);
         }
-        this.blobIndices = blobIndices;
+        this.blobIndicesService = blobIndicesService;
         this.threadPool = threadPool;
         this.transportService = transportService;
         this.clusterService = clusterService;
@@ -88,7 +88,7 @@ public class BlobTransferTarget extends AbstractComponent {
     public void startTransfer(int shardId, StartBlobRequest request, StartBlobResponse response) {
         logger.debug("startTransfer {} {}", request.transferId(), request.isLast());
 
-        BlobShard blobShard = blobIndices.blobShardSafe(request.index(), shardId);
+        BlobShard blobShard = blobIndicesService.blobShardSafe(request.index(), shardId);
         File existing = blobShard.blobContainer().getFile(request.id());
         long size = existing.length();
         if (existing.exists()) {
@@ -163,7 +163,7 @@ public class BlobTransferTarget extends AbstractComponent {
 
         BlobShard blobShard;
         try {
-            blobShard = blobIndices.blobShardFuture(transferInfoResponse.index, shardId).get();
+            blobShard = blobIndicesService.blobShardFuture(transferInfoResponse.index, shardId).get();
         } catch (InterruptedException | ExecutionException e) {
             throw new TransferRestoreException("failure loading blobShard", request.transferId, e);
         }

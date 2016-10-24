@@ -27,7 +27,7 @@ import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import io.crate.action.FutureActionListener;
 import io.crate.analyze.*;
-import io.crate.blob.v2.BlobIndices;
+import io.crate.blob.v2.BlobIndicesService;
 import io.crate.executor.transport.*;
 import org.elasticsearch.action.admin.indices.forcemerge.ForceMergeRequest;
 import org.elasticsearch.action.admin.indices.forcemerge.ForceMergeResponse;
@@ -50,7 +50,7 @@ import java.util.UUID;
 @Singleton
 public class DDLStatementDispatcher {
 
-    private final BlobIndices blobIndices;
+    private final BlobIndicesService blobIndicesService;
     private final TransportActionProvider transportActionProvider;
     private final TableCreator tableCreator;
     private final AlterTableOperation alterTableOperation;
@@ -61,13 +61,13 @@ public class DDLStatementDispatcher {
 
 
     @Inject
-    public DDLStatementDispatcher(BlobIndices blobIndices,
+    public DDLStatementDispatcher(BlobIndicesService blobIndicesService,
                                   TableCreator tableCreator,
                                   AlterTableOperation alterTableOperation,
                                   RepositoryService repositoryService,
                                   SnapshotRestoreDDLDispatcher snapshotRestoreDDLDispatcher,
                                   TransportActionProvider transportActionProvider) {
-        this.blobIndices = blobIndices;
+        this.blobIndicesService = blobIndicesService;
         this.tableCreator = tableCreator;
         this.alterTableOperation = alterTableOperation;
         this.transportActionProvider = transportActionProvider;
@@ -142,7 +142,7 @@ public class DDLStatementDispatcher {
         public ListenableFuture<Long> visitCreateBlobTableStatement(
             CreateBlobTableAnalyzedStatement analysis, UUID jobId) {
             return wrapRowCountFuture(
-                blobIndices.createBlobTable(
+                blobIndicesService.createBlobTable(
                     analysis.tableName(),
                     analysis.tableParameter().settings()
                 ),
@@ -153,13 +153,13 @@ public class DDLStatementDispatcher {
         @Override
         public ListenableFuture<Long> visitAlterBlobTableStatement(AlterBlobTableAnalyzedStatement analysis, UUID jobId) {
             return wrapRowCountFuture(
-                blobIndices.alterBlobTable(analysis.table().ident().name(), analysis.tableParameter().settings()),
+                blobIndicesService.alterBlobTable(analysis.table().ident().name(), analysis.tableParameter().settings()),
                 1L);
         }
 
         @Override
         public ListenableFuture<Long> visitDropBlobTableStatement(DropBlobTableAnalyzedStatement analysis, UUID jobId) {
-            return wrapRowCountFuture(blobIndices.dropBlobTable(analysis.table().ident().name()), 1L);
+            return wrapRowCountFuture(blobIndicesService.dropBlobTable(analysis.table().ident().name()), 1L);
         }
 
         @Override

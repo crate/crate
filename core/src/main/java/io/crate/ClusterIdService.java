@@ -26,28 +26,27 @@ import com.google.common.util.concurrent.SettableFuture;
 import org.elasticsearch.cluster.*;
 import org.elasticsearch.cluster.block.ClusterBlocks;
 import org.elasticsearch.cluster.metadata.MetaData;
+import org.elasticsearch.common.component.AbstractLifecycleComponent;
 import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.logging.ESLogger;
-import org.elasticsearch.common.logging.Loggers;
+import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.settings.Settings;
 
 import static org.elasticsearch.cluster.ClusterState.builder;
 
-public class ClusterIdService implements ClusterStateListener {
+@Singleton
+public class ClusterIdService extends AbstractLifecycleComponent<ClusterIdService> implements ClusterStateListener {
+
+    private static final String CLUSTER_ID_SETTINGS_KEY = "cluster_id";
 
     private final ClusterService clusterService;
-    private static final ESLogger logger = Loggers.getLogger(ClusterIdService.class);
-    private ClusterId clusterId = null;
     private final SettableFuture<ClusterId> clusterIdFuture = SettableFuture.create();
+    private ClusterId clusterId = null;
 
-    public static final String clusterIdSettingsKey = "cluster_id";
 
     @Inject
-    public ClusterIdService(ClusterService clusterService) {
+    public ClusterIdService(Settings settings, ClusterService clusterService) {
+        super(settings);
         this.clusterService = clusterService;
-
-        // Add to listen for state changes
-        this.clusterService.add(this);
     }
 
     @Override
@@ -60,7 +59,7 @@ public class ClusterIdService implements ClusterStateListener {
             // State recovered, read cluster_id
             boolean success = applyClusterIdFromSettings();
 
-            if (event.localNodeMaster() && success == false) {
+            if (event.localNodeMaster() && !success) {
                 // None found, generate cluster_id and broadcast it to all nodes
                 generateClusterId();
                 saveClusterIdToSettings();
@@ -90,7 +89,7 @@ public class ClusterIdService implements ClusterStateListener {
     }
 
     private String readClusterIdFromSettings() {
-        return clusterService.state().metaData().transientSettings().get(clusterIdSettingsKey);
+        return clusterService.state().metaData().transientSettings().get(CLUSTER_ID_SETTINGS_KEY);
     }
 
     private boolean applyClusterIdFromSettings() {
@@ -122,7 +121,7 @@ public class ClusterIdService implements ClusterStateListener {
             public ClusterState execute(ClusterState currentState) throws Exception {
                 Settings.Builder transientSettings = Settings.settingsBuilder();
                 transientSettings.put(currentState.metaData().transientSettings());
-                transientSettings.put(clusterIdSettingsKey, clusterId.value().toString());
+                transientSettings.put(CLUSTER_ID_SETTINGS_KEY, clusterId.value().toString());
 
                 MetaData.Builder metaData = MetaData.builder(currentState.metaData())
                     .persistentSettings(currentState.metaData().persistentSettings())
@@ -148,4 +147,18 @@ public class ClusterIdService implements ClusterStateListener {
         });
     }
 
+    @Override
+    protected void doStart() {
+        // add listener here to avoid guice proxy errors if the ClusterService could not be build
+        clusterService.add(this);
+    }
+
+    @Override
+    protected void doStop() {
+        clusterService.remove(this);
+    }
+
+    @Override
+    protected void doClose() {
+    }
 }

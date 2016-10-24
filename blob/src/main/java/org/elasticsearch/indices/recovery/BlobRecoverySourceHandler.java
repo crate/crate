@@ -24,7 +24,7 @@ package org.elasticsearch.indices.recovery;
 import com.google.common.collect.Iterables;
 import io.crate.blob.BlobTransferTarget;
 import io.crate.blob.recovery.BlobRecoveryHandler;
-import io.crate.blob.v2.BlobIndices;
+import io.crate.blob.v2.BlobIndicesService;
 import org.apache.lucene.index.CorruptIndexException;
 import org.apache.lucene.index.IndexFormatTooNewException;
 import org.apache.lucene.index.IndexFormatTooOldException;
@@ -113,7 +113,7 @@ public class BlobRecoverySourceHandler extends RecoverySourceHandler {
 
     public BlobRecoverySourceHandler(final IndexShard shard, final StartRecoveryRequest request, final RecoverySettings recoverySettings,
                                      final TransportService transportService, final ESLogger logger,
-                                     BlobTransferTarget blobTransferTarget, BlobIndices blobIndices) {
+                                     BlobTransferTarget blobTransferTarget, BlobIndicesService blobIndicesService) {
         super(shard, request, recoverySettings, transportService, logger);
         this.shard = shard;
         this.request = request;
@@ -124,9 +124,9 @@ public class BlobRecoverySourceHandler extends RecoverySourceHandler {
         this.shardId = this.request.shardId().id();
 
         this.response = new RecoveryResponse();
-        if (BlobIndices.isBlobIndex(shard.shardId().getIndex())) {
+        if (BlobIndicesService.isBlobIndex(shard.shardId().getIndex())) {
             blobRecoveryHandler = new BlobRecoveryHandler(
-                transportService, recoverySettings, blobTransferTarget, blobIndices, shard, request);
+                transportService, recoverySettings, blobTransferTarget, blobIndicesService, shard, request);
         } else {
             blobRecoveryHandler = null;
         }

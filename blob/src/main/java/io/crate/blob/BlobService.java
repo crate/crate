@@ -23,7 +23,7 @@ package io.crate.blob;
 
 import io.crate.blob.exceptions.MissingHTTPEndpointException;
 import io.crate.blob.pending_transfer.BlobHeadRequestHandler;
-import io.crate.blob.v2.BlobIndices;
+import io.crate.blob.v2.BlobIndicesService;
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.node.DiscoveryNode;
@@ -140,7 +140,7 @@ public class BlobService extends AbstractLifecycleComponent<BlobService> {
             DiscoveryNode node = nodes.get(shard.currentNodeId());
             String httpAddress = node.getAttributes().get("http_address");
             if (httpAddress != null) {
-                return httpAddress + "/_blobs/" + BlobIndices.indexName(index) + "/" + digest;
+                return httpAddress + "/_blobs/" + BlobIndicesService.indexName(index) + "/" + digest;
             }
         }
         throw new MissingHTTPEndpointException("Can't find a suitable http server to serve the blob");
