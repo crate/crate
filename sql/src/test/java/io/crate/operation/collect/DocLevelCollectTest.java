@@ -35,7 +35,6 @@ import io.crate.integrationtests.SQLTransportIntegrationTest;
 import io.crate.jobs.JobContextService;
 import io.crate.jobs.JobExecutionContext;
 import io.crate.metadata.*;
-import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.operation.NodeOperation;
 import io.crate.operation.operator.EqOperator;
 import io.crate.planner.distribution.DistributionInfo;
@@ -80,12 +79,12 @@ public class DocLevelCollectTest extends SQLTransportIntegrationTest {
     private static final String PARTITIONED_TABLE_NAME = "parted_table";
 
     private Functions functions;
-    private DocSchemaInfo docSchemaInfo;
+    private Schemas schemas;
 
     @Before
     public void prepare() {
         functions = internalCluster().getDataNodeInstance(Functions.class);
-        docSchemaInfo = internalCluster().getDataNodeInstance(DocSchemaInfo.class);
+        schemas = internalCluster().getDataNodeInstance(Schemas.class);
 
         execute(String.format(Locale.ENGLISH, "create table %s (" +
                                               "  id integer," +
@@ -115,7 +114,7 @@ public class DocLevelCollectTest extends SQLTransportIntegrationTest {
     @After
     public void cleanUp() {
         functions = null;
-        docSchemaInfo = null;
+        schemas = null;
     }
 
     private Routing routing(String table) {
@@ -184,8 +183,8 @@ public class DocLevelCollectTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testCollectWithPartitionedColumns() throws Throwable {
-        Routing routing = docSchemaInfo.getTableInfo(PARTITIONED_TABLE_NAME).getRouting(WhereClause.MATCH_ALL, null);
         TableIdent tableIdent = new TableIdent(Schemas.DEFAULT_SCHEMA_NAME, PARTITIONED_TABLE_NAME);
+        Routing routing = schemas.getTableInfo(tableIdent).getRouting(WhereClause.MATCH_ALL, null);
         RoutedCollectPhase collectNode = getCollectNode(
             Arrays.<Symbol>asList(
                 new Reference(new ReferenceIdent(tableIdent, "id"),

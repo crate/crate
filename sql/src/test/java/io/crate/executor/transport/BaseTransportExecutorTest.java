@@ -50,7 +50,7 @@ public class BaseTransportExecutorTest extends SQLTransportIntegrationTest {
     Setup setup = new Setup(sqlExecutor);
 
     TransportExecutor executor;
-    DocSchemaInfo docSchemaInfo;
+    Schemas schemas;
 
     TableIdent charactersIdent = new TableIdent(null, "characters");
 
@@ -78,13 +78,13 @@ public class BaseTransportExecutorTest extends SQLTransportIntegrationTest {
         String[] nodeNames = internalCluster().getNodeNames();
         String handlerNodeName = nodeNames[randomIntBetween(0, nodeNames.length - 1)];
         executor = internalCluster().getInstance(TransportExecutor.class, handlerNodeName);
-        docSchemaInfo = internalCluster().getInstance(DocSchemaInfo.class, handlerNodeName);
+        schemas = internalCluster().getInstance(Schemas.class, handlerNodeName);
     }
 
     @After
     public void transportTearDown() {
         executor = null;
-        docSchemaInfo = null;
+        schemas = null;
     }
 
     protected ESGet newGetNode(String tableName, List<Symbol> outputs, String singleStringKey, int executionNodeId) {
@@ -92,7 +92,7 @@ public class BaseTransportExecutorTest extends SQLTransportIntegrationTest {
     }
 
     protected ESGet newGetNode(String tableName, List<Symbol> outputs, List<String> singleStringKeys, int executionNodeId) {
-        return newGetNode(docSchemaInfo.getTableInfo(tableName), outputs, singleStringKeys, executionNodeId);
+        return newGetNode((DocTableInfo) schemas.getTableInfo(new TableIdent(DocSchemaInfo.NAME, tableName)), outputs, singleStringKeys, executionNodeId);
     }
 
     protected Planner.Context newPlannerContext() {

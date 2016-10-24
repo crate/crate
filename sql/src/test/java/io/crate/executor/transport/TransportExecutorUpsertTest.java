@@ -30,6 +30,7 @@ import io.crate.analyze.symbol.Literal;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.core.collections.Bucket;
 import io.crate.metadata.*;
+import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.metadata.table.TableInfo;
 import io.crate.operation.operator.EqOperator;
 import io.crate.planner.Plan;
@@ -269,7 +270,7 @@ public class TransportExecutorUpsertTest extends BaseTransportExecutorTest {
         List<Plan> childNodes = new ArrayList<>();
         Planner.Context plannerContext = newPlannerContext();
 
-        TableInfo tableInfo = docSchemaInfo.getTableInfo("characters");
+        TableInfo tableInfo = schemas.getTableInfo(new TableIdent(DocSchemaInfo.NAME, "characters"));
         assert tableInfo != null;
         Reference uidReference = new Reference(
             new ReferenceIdent(tableInfo.ident(), "_uid"), RowGranularity.DOC, DataTypes.STRING);

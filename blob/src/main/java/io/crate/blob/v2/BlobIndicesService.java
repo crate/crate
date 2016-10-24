@@ -45,7 +45,7 @@ import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.ClusterStateListener;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.cluster.metadata.MetaData;
-import org.elasticsearch.common.component.AbstractComponent;
+import org.elasticsearch.common.component.AbstractLifecycleComponent;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Injector;
 import org.elasticsearch.common.inject.Provider;
@@ -61,11 +61,11 @@ import org.elasticsearch.indices.IndicesService;
 import java.io.File;
 import java.io.IOException;
 
-public class BlobIndices extends AbstractComponent implements ClusterStateListener {
+public class BlobIndicesService extends AbstractLifecycleComponent<BlobIndicesService> implements ClusterStateListener {
 
     public static final String SETTING_INDEX_BLOBS_ENABLED = "index.blobs.enabled";
     public static final String SETTING_INDEX_BLOBS_PATH = "index.blobs.path";
-    public static final String INDEX_PREFIX = ".blob_";
+    private static final String INDEX_PREFIX = ".blob_";
 
     private final Provider<TransportUpdateSettingsAction> transportUpdateSettingsActionProvider;
     private final Provider<TransportCreateIndexAction> transportCreateIndexActionProvider;
@@ -73,6 +73,7 @@ public class BlobIndices extends AbstractComponent implements ClusterStateListen
     private final IndicesService indicesService;
     private final IndicesLifecycle indicesLifecycle;
     private final BlobEnvironment blobEnvironment;
+    private final ClusterService clusterService;
 
     public static final Predicate<String> indicesFilter = new Predicate<String>() {
         @Override
@@ -89,14 +90,14 @@ public class BlobIndices extends AbstractComponent implements ClusterStateListen
     };
 
     @Inject
-    public BlobIndices(Settings settings,
-                       Provider<TransportCreateIndexAction> transportCreateIndexActionProvider,
-                       Provider<TransportDeleteIndexAction> transportDeleteIndexActionProvider,
-                       Provider<TransportUpdateSettingsAction> transportUpdateSettingsActionProvider,
-                       IndicesService indicesService,
-                       IndicesLifecycle indicesLifecycle,
-                       BlobEnvironment blobEnvironment,
-                       ClusterService clusterService) {
+    public BlobIndicesService(Settings settings,
+                              Provider<TransportCreateIndexAction> transportCreateIndexActionProvider,
+                              Provider<TransportDeleteIndexAction> transportDeleteIndexActionProvider,
+                              Provider<TransportUpdateSettingsAction> transportUpdateSettingsActionProvider,
+                              IndicesService indicesService,
+                              IndicesLifecycle indicesLifecycle,
+                              BlobEnvironment blobEnvironment,
+                              ClusterService clusterService) {
         super(settings);
         this.transportCreateIndexActionProvider = transportCreateIndexActionProvider;
         this.transportDeleteIndexActionProvider = transportDeleteIndexActionProvider;
@@ -104,8 +105,23 @@ public class BlobIndices extends AbstractComponent implements ClusterStateListen
         this.indicesService = indicesService;
         this.indicesLifecycle = indicesLifecycle;
         this.blobEnvironment = blobEnvironment;
-        clusterService.addFirst(this);
+        this.clusterService = clusterService;
         logger.setLevel("debug");
+    }
+
+    @Override
+    protected void doStart() {
+        // add listener here to avoid guice proxy errors if the ClusterService could not be build
+        clusterService.addFirst(this);
+    }
+
+    @Override
+    protected void doStop() {
+        clusterService.remove(this);
+    }
+
+    @Override
+    protected void doClose() {
     }
 
     public BlobShard blobShardSafe(ShardId shardId) {
@@ -175,11 +191,11 @@ public class BlobIndices extends AbstractComponent implements ClusterStateListen
         throw new BlobsDisabledException(index);
     }
 
-    public BlobIndex blobIndex(String index) {
+    private BlobIndex blobIndex(String index) {
         return indicesService.indexServiceSafe(index).injector().getInstance(BlobIndex.class);
     }
 
-    public ShardId localShardId(String index, String digest) {
+    private ShardId localShardId(String index, String digest) {
         return blobIndex(index).shardId(digest);
     }
 
@@ -256,8 +272,8 @@ public class BlobIndices extends AbstractComponent implements ClusterStateListen
     private void deleteBlobIndexLocation(IndexMetaData current, String index) {
         File indexLocation = null;
         File customBlobsPath = null;
-        if (current.getSettings().get(BlobIndices.SETTING_INDEX_BLOBS_PATH) != null) {
-            customBlobsPath = new File(current.getSettings().get(BlobIndices.SETTING_INDEX_BLOBS_PATH));
+        if (current.getSettings().get(BlobIndicesService.SETTING_INDEX_BLOBS_PATH) != null) {
+            customBlobsPath = new File(current.getSettings().get(BlobIndicesService.SETTING_INDEX_BLOBS_PATH));
             indexLocation = blobEnvironment.indexLocation(new Index(index), customBlobsPath);
         } else if (blobEnvironment.blobsPath() != null) {
             indexLocation = blobEnvironment.indexLocation(new Index(index));

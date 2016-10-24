@@ -55,7 +55,7 @@ public class DropTableAnalyzedStatementTest extends CrateUnitTest {
         expectedException.expectMessage(String.format(Locale.ENGLISH, "Table '%s.%s' unknown", IRRELEVANT, IRRELEVANT));
 
         TableIdent tableIdent = new TableIdent(IRRELEVANT, IRRELEVANT);
-        when(schemas.getDropableTable(tableIdent)).thenThrow(new TableUnknownException(tableIdent));
+        when(schemas.getDroppableTable(tableIdent)).thenThrow(new TableUnknownException(tableIdent));
 
         dropTableAnalyzedStatement = new DropTableAnalyzedStatement(schemas, false);
         dropTableAnalyzedStatement.table(tableIdent);
@@ -64,7 +64,7 @@ public class DropTableAnalyzedStatementTest extends CrateUnitTest {
     @Test
     public void unknownTableSetsNoopIfIgnoreNonExistentTablesIsSet() throws Exception {
         TableIdent tableIdent = new TableIdent(IRRELEVANT, IRRELEVANT);
-        when(schemas.getDropableTable(tableIdent)).thenThrow(new TableUnknownException(tableIdent));
+        when(schemas.getDroppableTable(tableIdent)).thenThrow(new TableUnknownException(tableIdent));
 
         dropTableAnalyzedStatement = new DropTableAnalyzedStatement(schemas, true);
         dropTableAnalyzedStatement.table(tableIdent);
@@ -79,7 +79,7 @@ public class DropTableAnalyzedStatementTest extends CrateUnitTest {
         when(tableInfo.isPartitioned()).thenReturn(false);
         when(tableInfo.isAlias()).thenReturn(false);
 
-        when(schemas.getDropableTable(tableIdent)).thenReturn(tableInfo);
+        when(schemas.getDroppableTable(tableIdent)).thenReturn(tableInfo);
         dropTableAnalyzedStatement = new DropTableAnalyzedStatement(schemas, true);
 
         dropTableAnalyzedStatement.table(tableIdent);

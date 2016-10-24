@@ -22,7 +22,7 @@
 package io.crate.analyze;
 
 import com.google.common.collect.ImmutableMap;
-import io.crate.blob.v2.BlobIndices;
+import io.crate.blob.v2.BlobIndicesService;
 import io.crate.exceptions.InvalidTableNameException;
 import io.crate.exceptions.TableAlreadyExistsException;
 import io.crate.exceptions.TableUnknownException;
@@ -169,7 +169,7 @@ public class BlobTableAnalyzerTest extends BaseAnalyzerTest {
             "create blob table screenshots with (blobs_path='/tmp/crate_blob_data')");
 
         assertThat(analysis.tableIdent().name(), is("screenshots"));
-        assertThat(analysis.tableParameter().settings().get(BlobIndices.SETTING_INDEX_BLOBS_PATH), is("/tmp/crate_blob_data"));
+        assertThat(analysis.tableParameter().settings().get(BlobIndicesService.SETTING_INDEX_BLOBS_PATH), is("/tmp/crate_blob_data"));
     }
 
     @Test
@@ -178,7 +178,7 @@ public class BlobTableAnalyzerTest extends BaseAnalyzerTest {
             "create blob table screenshots with (blobs_path=?)", new Object[]{"/tmp/crate_blob_data"});
 
         assertThat(analysis.tableIdent().name(), is("screenshots"));
-        assertThat(analysis.tableParameter().settings().get(BlobIndices.SETTING_INDEX_BLOBS_PATH), is("/tmp/crate_blob_data"));
+        assertThat(analysis.tableParameter().settings().get(BlobIndicesService.SETTING_INDEX_BLOBS_PATH), is("/tmp/crate_blob_data"));
     }
 
     @Test

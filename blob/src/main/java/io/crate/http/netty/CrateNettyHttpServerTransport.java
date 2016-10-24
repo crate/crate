@@ -24,7 +24,7 @@ package io.crate.http.netty;
 
 import com.google.common.collect.ImmutableMap;
 import io.crate.blob.BlobService;
-import io.crate.blob.v2.BlobIndices;
+import io.crate.blob.v2.BlobIndicesService;
 import org.elasticsearch.cluster.node.DiscoveryNodeService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.network.NetworkService;
@@ -40,7 +40,7 @@ import java.util.Map;
 public class CrateNettyHttpServerTransport extends NettyHttpServerTransport {
 
     private final BlobService blobService;
-    private final BlobIndices blobIndices;
+    private final BlobIndicesService blobIndicesService;
     private final DiscoveryNodeService discoveryNodeService;
 
     @Inject
@@ -48,11 +48,11 @@ public class CrateNettyHttpServerTransport extends NettyHttpServerTransport {
                                          NetworkService networkService,
                                          BigArrays bigArrays,
                                          BlobService blobService,
-                                         BlobIndices blobIndices,
+                                         BlobIndicesService blobIndicesService,
                                          DiscoveryNodeService discoveryNodeService) {
         super(settings, networkService, bigArrays);
         this.blobService = blobService;
-        this.blobIndices = blobIndices;
+        this.blobIndicesService = blobIndicesService;
         this.discoveryNodeService = discoveryNodeService;
     }
 
@@ -92,7 +92,7 @@ public class CrateNettyHttpServerTransport extends NettyHttpServerTransport {
         public ChannelPipeline getPipeline() throws Exception {
             ChannelPipeline pipeline = super.getPipeline();
 
-            HttpBlobHandler blobHandler = new HttpBlobHandler(transport.blobService, transport.blobIndices, sslEnabled);
+            HttpBlobHandler blobHandler = new HttpBlobHandler(transport.blobService, transport.blobIndicesService, sslEnabled);
             pipeline.addBefore("aggregator", "blob_handler", blobHandler);
 
             if (sslEnabled) {

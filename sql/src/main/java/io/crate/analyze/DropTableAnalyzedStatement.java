@@ -39,7 +39,7 @@ public class DropTableAnalyzedStatement extends AbstractDropTableAnalyzedStateme
 
     public void table(TableIdent tableIdent) {
         try {
-            tableInfo = schemas.getDropableTable(tableIdent);
+            tableInfo = schemas.getDroppableTable(tableIdent);
         } catch (ResourceUnknownException e) {
             if (dropIfExists) {
                 noop = true;

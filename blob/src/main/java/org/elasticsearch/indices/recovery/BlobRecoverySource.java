@@ -22,7 +22,7 @@
 package org.elasticsearch.indices.recovery;
 
 import io.crate.blob.BlobTransferTarget;
-import io.crate.blob.v2.BlobIndices;
+import io.crate.blob.v2.BlobIndicesService;
 import org.elasticsearch.ExceptionsHelper;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
@@ -63,7 +63,7 @@ public class BlobRecoverySource extends AbstractComponent {
 
     private final ClusterService clusterService;
     private final BlobTransferTarget blobTransferTarget;
-    private final BlobIndices blobIndices;
+    private final BlobIndicesService blobIndicesService;
 
     private final OngoingRecoveres ongoingRecoveries = new OngoingRecoveres();
 
@@ -71,13 +71,13 @@ public class BlobRecoverySource extends AbstractComponent {
     @Inject
     public BlobRecoverySource(Settings settings, TransportService transportService, IndicesService indicesService,
                               RecoverySettings recoverySettings, ClusterService clusterService,
-                              BlobTransferTarget blobTransferTarget, BlobIndices blobIndices) {
+                              BlobTransferTarget blobTransferTarget, BlobIndicesService blobIndicesService) {
         super(settings);
         this.transportService = transportService;
         this.indicesService = indicesService;
         this.clusterService = clusterService;
         this.blobTransferTarget = blobTransferTarget;
-        this.blobIndices = blobIndices;
+        this.blobIndicesService = blobIndicesService;
         this.indicesService.indicesLifecycle().addListener(new IndicesLifecycle.Listener() {
             @Override
             public void beforeIndexShardClosed(ShardId shardId, @Nullable IndexShard indexShard,
@@ -135,7 +135,7 @@ public class BlobRecoverySource extends AbstractComponent {
         } else {
             // CRATE CHANGE:
             handler = new BlobRecoverySourceHandler(
-                shard, request, recoverySettings, transportService, logger, blobTransferTarget, blobIndices);
+                shard, request, recoverySettings, transportService, logger, blobTransferTarget, blobIndicesService);
         }
         ongoingRecoveries.add(shard, handler);
         try {

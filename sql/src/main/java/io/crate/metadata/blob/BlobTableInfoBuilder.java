@@ -22,7 +22,7 @@
 package io.crate.metadata.blob;
 
 import io.crate.blob.BlobEnvironment;
-import io.crate.blob.v2.BlobIndices;
+import io.crate.blob.v2.BlobIndicesService;
 import io.crate.exceptions.TableUnknownException;
 import io.crate.exceptions.UnhandledServerException;
 import io.crate.metadata.Functions;
@@ -71,7 +71,7 @@ public class BlobTableInfoBuilder {
 
     public DocIndexMetaData docIndexMetaData() {
         DocIndexMetaData docIndexMetaData;
-        String index = BlobIndices.fullIndexName(ident.name());
+        String index = BlobIndicesService.fullIndexName(ident.name());
         try {
             concreteIndices = indexNameExpressionResolver.concreteIndices(state, IndicesOptions.strictExpandOpen(), index);
         } catch (IndexNotFoundException ex) {
@@ -106,7 +106,7 @@ public class BlobTableInfoBuilder {
     private BytesRef blobsPath(DocIndexMetaData md) {
         BytesRef blobsPath;
         String blobsPathStr = metaData.index(md.concreteIndexName())
-            .getSettings().get(BlobIndices.SETTING_INDEX_BLOBS_PATH);
+            .getSettings().get(BlobIndicesService.SETTING_INDEX_BLOBS_PATH);
         if (blobsPathStr != null) {
             blobsPath = new BytesRef(blobsPathStr);
         } else {

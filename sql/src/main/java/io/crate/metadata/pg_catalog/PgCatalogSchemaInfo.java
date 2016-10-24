@@ -25,6 +25,7 @@ package io.crate.metadata.pg_catalog;
 import com.google.common.collect.ImmutableSortedMap;
 import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.table.TableInfo;
+import org.elasticsearch.cluster.ClusterChangedEvent;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 
@@ -65,5 +66,10 @@ public class PgCatalogSchemaInfo implements SchemaInfo {
     @Override
     public Iterator<TableInfo> iterator() {
         return tableInfoMap.values().iterator();
+    }
+
+    @Override
+    public void update(ClusterChangedEvent event) {
+
     }
 }

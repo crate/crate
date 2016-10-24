@@ -38,7 +38,7 @@ import static org.hamcrest.Matchers.isOneOf;
 import static org.hamcrest.core.Is.is;
 
 @ESIntegTestCase.ClusterScope(numDataNodes = 2, numClientNodes = 0)
-public class ReferenceInfosITest extends SQLTransportIntegrationTest {
+public class SchemasITest extends SQLTransportIntegrationTest {
 
     private Schemas schemas;
 

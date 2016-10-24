@@ -23,7 +23,7 @@ package io.crate.integrationtests;
 
 import io.crate.action.sql.SQLActionException;
 import io.crate.action.sql.SQLResponse;
-import io.crate.blob.v2.BlobIndices;
+import io.crate.blob.v2.BlobIndicesService;
 import io.crate.metadata.PartitionName;
 import io.crate.testing.TestingHelpers;
 import io.crate.testing.UseJdbc;
@@ -50,12 +50,12 @@ public class SysShardsTest extends SQLTransportIntegrationTest {
         setup.groupBySetup();
         sqlExecutor.exec(
             "create table quotes (id integer primary key, quote string) with(number_of_replicas=1)");
-        BlobIndices blobIndices = internalCluster().getInstance(BlobIndices.class);
+        BlobIndicesService blobIndicesService = internalCluster().getInstance(BlobIndicesService.class);
         Settings indexSettings = Settings.builder()
             .put(IndexMetaData.SETTING_NUMBER_OF_REPLICAS, 1)
             .put(IndexMetaData.SETTING_NUMBER_OF_SHARDS, 5)
             .build();
-        blobIndices.createBlobTable("blobs", indexSettings);
+        blobIndicesService.createBlobTable("blobs", indexSettings);
         sqlExecutor.ensureGreen();
     }
 

@@ -80,7 +80,7 @@ public class ExpressionAnalyzerTest extends CrateUnitTest {
 
         analysisMetaData = new AnalysisMetaData(
             getFunctions(),
-            mock(ReferenceInfos.class),
+            mock(Schemas.class),
             new NestedReferenceResolver() {
                 @Override
                 public ReferenceImplementation getImplementation(Reference refInfo) {

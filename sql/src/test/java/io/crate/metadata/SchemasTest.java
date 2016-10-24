@@ -47,7 +47,7 @@ import java.util.Map;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-public class ReferenceInfosTest {
+public class SchemasTest {
 
     @Rule
     public ExpectedException expectedException = ExpectedException.none();
@@ -114,7 +114,8 @@ public class ReferenceInfosTest {
         Map<String, SchemaInfo> builtInSchema = new HashMap<>();
         builtInSchema.put(schemaInfo.name(), schemaInfo);
 
-        return new ReferenceInfos(
+        return new Schemas(
+            Settings.EMPTY,
             builtInSchema,
             clusterService,
             new IndexNameExpressionResolver(Settings.EMPTY),

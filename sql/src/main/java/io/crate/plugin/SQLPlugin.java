@@ -38,8 +38,8 @@ import io.crate.jobs.JobModule;
 import io.crate.jobs.transport.NodeDisconnectJobMonitorService;
 import io.crate.lucene.CrateIndexModule;
 import io.crate.metadata.MetaDataModule;
+import io.crate.metadata.Schemas;
 import io.crate.metadata.blob.MetaDataBlobModule;
-import io.crate.metadata.doc.MetaDataDocModule;
 import io.crate.metadata.information.MetaDataInformationModule;
 import io.crate.metadata.pg_catalog.PgCatalogModule;
 import io.crate.metadata.settings.CrateSettings;
@@ -59,6 +59,8 @@ import io.crate.operation.reference.sys.check.SysChecksModule;
 import io.crate.operation.reference.sys.check.SysNodeChecksModule;
 import io.crate.operation.reference.sys.cluster.SysClusterExpressionModule;
 import io.crate.operation.reference.sys.node.local.SysNodeExpressionModule;
+import io.crate.operation.reference.sys.repositories.SysRepositoriesModule;
+import io.crate.operation.reference.sys.repositories.SysRepositoriesService;
 import io.crate.operation.reference.sys.shard.SysShardExpressionModule;
 import io.crate.operation.reference.sys.shard.blob.BlobShardExpressionModule;
 import io.crate.operation.scalar.ScalarFunctionModule;
@@ -119,7 +121,9 @@ public class SQLPlugin extends Plugin {
             BulkRetryCoordinatorPool.class,
             NodeDisconnectJobMonitorService.class,
             PostgresNetty.class,
-            JobContextService.class);
+            JobContextService.class,
+            Schemas.class,
+            SysRepositoriesService.class);
     }
 
     @Override
@@ -135,7 +139,6 @@ public class SQLPlugin extends Plugin {
         modules.add(new MergeOperationModule());
         modules.add(new MetaDataModule());
         modules.add(new MetaDataSysModule());
-        modules.add(new MetaDataDocModule());
         modules.add(new MetaDataBlobModule());
         modules.add(new PgCatalogModule());
         modules.add(new MetaDataInformationModule());
@@ -151,6 +154,7 @@ public class SQLPlugin extends Plugin {
         modules.add(new SysChecksModule());
         modules.add(new SysNodeChecksModule());
         modules.add(new RepositorySettingsModule());
+        modules.add(new SysRepositoriesModule());
         return modules;
     }
 

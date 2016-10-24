@@ -43,7 +43,7 @@ public class DocReferenceConverter {
 
             ReferenceIdent ident = input.ident();
             String schema = ident.tableIdent().schema();
-            return ReferenceInfos.isDefaultOrCustomSchema(schema);
+            return Schemas.isDefaultOrCustomSchema(schema);
         }
     };
 

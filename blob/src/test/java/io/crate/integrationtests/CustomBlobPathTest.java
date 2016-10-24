@@ -22,7 +22,7 @@
 package io.crate.integrationtests;
 
 import io.crate.blob.BlobEnvironment;
-import io.crate.blob.v2.BlobIndices;
+import io.crate.blob.v2.BlobIndicesService;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.Index;
@@ -72,7 +72,7 @@ public class CustomBlobPathTest extends BlobIntegrationTestBase {
 
     @Test
     public void testGlobalBlobPath() throws Exception {
-        BlobIndices blobIndices = internalCluster().getInstance(BlobIndices.class, node1);
+        BlobIndicesService blobIndicesService = internalCluster().getInstance(BlobIndicesService.class, node1);
         BlobEnvironment blobEnvironment = internalCluster().getInstance(BlobEnvironment.class, node1);
         BlobEnvironment blobEnvironment2 = internalCluster().getInstance(BlobEnvironment.class, node2);
         assertThat(blobEnvironment.blobsPath().getAbsolutePath(), is(globalBlobPath.getAbsolutePath()));
@@ -81,14 +81,14 @@ public class CustomBlobPathTest extends BlobIntegrationTestBase {
             .put(IndexMetaData.SETTING_NUMBER_OF_REPLICAS, 0)
             .put(IndexMetaData.SETTING_NUMBER_OF_SHARDS, 2)
             .build();
-        blobIndices.createBlobTable("test", indexSettings).get();
+        blobIndicesService.createBlobTable("test", indexSettings).get();
         ensureGreen();
         assertTrue(blobEnvironment.shardLocation(new ShardId(".blob_test", 0)).exists()
                    || blobEnvironment.shardLocation(new ShardId(".blob_test", 1)).exists());
         assertTrue(blobEnvironment2.shardLocation(new ShardId(".blob_test", 0)).exists()
                    || blobEnvironment2.shardLocation(new ShardId(".blob_test", 1)).exists());
 
-        blobIndices.dropBlobTable("test").get();
+        blobIndicesService.dropBlobTable("test").get();
 
         File loc1 = blobEnvironment.indexLocation(new Index(".blob_test"));
         File loc2 = blobEnvironment2.indexLocation(new Index(".blob_test"));
@@ -98,7 +98,7 @@ public class CustomBlobPathTest extends BlobIntegrationTestBase {
 
     @Test
     public void testPerTableBlobPath() throws Exception {
-        BlobIndices blobIndices = internalCluster().getInstance(BlobIndices.class, node1);
+        BlobIndicesService blobIndicesService = internalCluster().getInstance(BlobIndicesService.class, node1);
         BlobEnvironment blobEnvironment = internalCluster().getInstance(BlobEnvironment.class, node1);
         BlobEnvironment blobEnvironment2 = internalCluster().getInstance(BlobEnvironment.class, node2);
         assertThat(blobEnvironment.blobsPath().getAbsolutePath(), is(globalBlobPath.getAbsolutePath()));
@@ -107,23 +107,23 @@ public class CustomBlobPathTest extends BlobIntegrationTestBase {
         Settings indexSettings = Settings.builder()
             .put(IndexMetaData.SETTING_NUMBER_OF_REPLICAS, 0)
             .put(IndexMetaData.SETTING_NUMBER_OF_SHARDS, 2)
-            .put(BlobIndices.SETTING_INDEX_BLOBS_PATH, tempBlobPath.getAbsolutePath())
+            .put(BlobIndicesService.SETTING_INDEX_BLOBS_PATH, tempBlobPath.getAbsolutePath())
             .build();
-        blobIndices.createBlobTable("test", indexSettings).get();
+        blobIndicesService.createBlobTable("test", indexSettings).get();
         ensureGreen();
         assertTrue(blobEnvironment.shardLocation(new ShardId(".blob_test", 0), tempBlobPath).exists()
                    || blobEnvironment.shardLocation(new ShardId(".blob_test", 1), tempBlobPath).exists());
         assertTrue(blobEnvironment2.shardLocation(new ShardId(".blob_test", 0), tempBlobPath).exists()
                    || blobEnvironment2.shardLocation(new ShardId(".blob_test", 1), tempBlobPath).exists());
 
-        blobIndices.createBlobTable("test2", indexSettings).get();
+        blobIndicesService.createBlobTable("test2", indexSettings).get();
         ensureGreen();
         assertTrue(blobEnvironment.shardLocation(new ShardId(".blob_test2", 0), tempBlobPath).exists()
                    || blobEnvironment.shardLocation(new ShardId(".blob_test2", 1), tempBlobPath).exists());
         assertTrue(blobEnvironment2.shardLocation(new ShardId(".blob_test2", 0), tempBlobPath).exists()
                    || blobEnvironment2.shardLocation(new ShardId(".blob_test2", 1), tempBlobPath).exists());
 
-        blobIndices.dropBlobTable("test").get();
+        blobIndicesService.dropBlobTable("test").get();
 
         File loc1 = blobEnvironment.indexLocation(new Index(".blob_test"));
         File loc2 = blobEnvironment2.indexLocation(new Index(".blob_test"));
@@ -133,7 +133,7 @@ public class CustomBlobPathTest extends BlobIntegrationTestBase {
         // blobs path still exists because other index is using it
         assertTrue(tempBlobPath.exists());
 
-        blobIndices.dropBlobTable("test2").get();
+        blobIndicesService.dropBlobTable("test2").get();
         loc1 = blobEnvironment.indexLocation(new Index(".blob_test2"));
         loc2 = blobEnvironment2.indexLocation(new Index(".blob_test2"));
         assertFalse(loc1.exists());
@@ -142,13 +142,13 @@ public class CustomBlobPathTest extends BlobIntegrationTestBase {
         assertThat(tempBlobPath.exists(), is(true));
         assertThat(tempBlobPath.listFiles().length, is(0));
 
-        blobIndices.createBlobTable("test", indexSettings).get();
+        blobIndicesService.createBlobTable("test", indexSettings).get();
         ensureGreen();
 
         File customFile = new File(tempBlobPath, "test_file");
         customFile.createNewFile();
 
-        blobIndices.dropBlobTable("test").get();
+        blobIndicesService.dropBlobTable("test").get();
 
         // blobs path still exists because a user defined file exists at the path
         assertTrue(tempBlobPath.exists());

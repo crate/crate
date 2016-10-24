@@ -21,7 +21,7 @@
 
 package io.crate.operation.reference.sys.shard.blob;
 
-import io.crate.blob.v2.BlobIndices;
+import io.crate.blob.v2.BlobIndicesService;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.shard.blob.BlobShardReferenceImplementation;
 import io.crate.metadata.sys.SysShardsTableInfo;
@@ -41,7 +41,7 @@ public class BlobShardExpressionModule extends AbstractModule {
     protected void configure() {
         MapBinder<ReferenceIdent, BlobShardReferenceImplementation> binder = MapBinder
             .newMapBinder(binder(), ReferenceIdent.class, BlobShardReferenceImplementation.class);
-        if (settings.getAsBoolean(BlobIndices.SETTING_INDEX_BLOBS_ENABLED, false)) {
+        if (settings.getAsBoolean(BlobIndicesService.SETTING_INDEX_BLOBS_ENABLED, false)) {
 
             binder.addBinding(SysShardsTableInfo.ReferenceIdents.ID).to(BlobShardIdExpression.class).asEagerSingleton();
             binder.addBinding(SysShardsTableInfo.ReferenceIdents.NUM_DOCS).to(BlobShardNumDocsExpression.class).asEagerSingleton();

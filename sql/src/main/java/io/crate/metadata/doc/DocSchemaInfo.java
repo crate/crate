@@ -35,7 +35,7 @@ import com.google.common.collect.Collections2;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.UnmodifiableIterator;
 import com.google.common.util.concurrent.UncheckedExecutionException;
-import io.crate.blob.v2.BlobIndices;
+import io.crate.blob.v2.BlobIndicesService;
 import io.crate.exceptions.ResourceUnknownException;
 import io.crate.exceptions.UnhandledServerException;
 import io.crate.metadata.Functions;
@@ -47,10 +47,8 @@ import io.crate.metadata.table.TableInfo;
 import org.elasticsearch.action.admin.indices.template.put.TransportPutIndexTemplateAction;
 import org.elasticsearch.cluster.ClusterChangedEvent;
 import org.elasticsearch.cluster.ClusterService;
-import org.elasticsearch.cluster.ClusterStateListener;
 import org.elasticsearch.cluster.metadata.*;
 import org.elasticsearch.common.collect.ImmutableOpenMap;
-import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Provider;
 import org.elasticsearch.threadpool.ThreadPool;
 
@@ -61,7 +59,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.regex.Matcher;
 
-public class DocSchemaInfo implements SchemaInfo, ClusterStateListener {
+public class DocSchemaInfo implements SchemaInfo {
 
     public static final String NAME = "doc";
 
@@ -69,13 +67,6 @@ public class DocSchemaInfo implements SchemaInfo, ClusterStateListener {
     private final IndexNameExpressionResolver indexNameExpressionResolver;
     private final Provider<TransportPutIndexTemplateAction> transportPutIndexTemplateAction;
     private final Functions functions;
-
-    private final static Predicate<String> DOC_SCHEMA_TABLES_FILTER = new Predicate<String>() {
-        @Override
-        public boolean apply(String input) {
-            return !Schemas.SCHEMA_PATTERN.matcher(input).matches();
-        }
-    };
 
     private final Predicate<String> tablesFilter;
 
@@ -96,78 +87,38 @@ public class DocSchemaInfo implements SchemaInfo, ClusterStateListener {
     private final String schemaName;
     private final ExecutorService executorService;
     private final Function<String, String> indexToTableName;
-    private final static Function<String, String> AS_IS_FUNCTION = new Function<String, String>() {
-        @Nullable
-        @Override
-        public String apply(@Nullable String input) {
-            return input;
-        }
-    };
 
     /**
-     * DocSchemaInfo constructor for the default (doc) schema.
+     * DocSchemaInfo constructor for the all schemas.
      */
-    @Inject
-    public DocSchemaInfo(ClusterService clusterService,
+    public DocSchemaInfo(final String schemaName,
                          ThreadPool threadPool,
-                         Provider<TransportPutIndexTemplateAction> transportPutIndexTemplateAction,
+                         ClusterService clusterService,
                          IndexNameExpressionResolver indexNameExpressionResolver,
+                         Provider<TransportPutIndexTemplateAction> transportPutIndexTemplateAction,
                          Functions functions) {
-        this(Schemas.DEFAULT_SCHEMA_NAME,
-            clusterService,
-            indexNameExpressionResolver,
-            (ExecutorService) threadPool.executor(ThreadPool.Names.SUGGEST),
-            transportPutIndexTemplateAction, functions,
-            Predicates.and(Predicates.notNull(), DOC_SCHEMA_TABLES_FILTER),
-            AS_IS_FUNCTION);
+        this(schemaName, (ExecutorService) threadPool.executor(ThreadPool.Names.SUGGEST), clusterService,
+            indexNameExpressionResolver, transportPutIndexTemplateAction, functions);
     }
-
-    /**
-     * constructor used for custom schemas
-     */
     public DocSchemaInfo(final String schemaName,
                          ExecutorService executorService,
                          ClusterService clusterService,
                          IndexNameExpressionResolver indexNameExpressionResolver,
                          Provider<TransportPutIndexTemplateAction> transportPutIndexTemplateAction,
                          Functions functions) {
-        this(schemaName, clusterService, indexNameExpressionResolver,
-            executorService, transportPutIndexTemplateAction, functions,
-            createSchemaNamePredicate(schemaName), new Function<String, String>() {
-                @Nullable
-                @Override
-                public String apply(String input) {
-                    Matcher matcher = Schemas.SCHEMA_PATTERN.matcher(input);
-                    if (matcher.matches()) {
-                        input = matcher.group(2);
-                    }
-                    return input;
-                }
-            });
-    }
-
-    private DocSchemaInfo(final String schemaName,
-                          ClusterService clusterService,
-                          IndexNameExpressionResolver indexNameExpressionResolver,
-                          ExecutorService executorService,
-                          Provider<TransportPutIndexTemplateAction> transportPutIndexTemplateAction,
-                          Functions functions,
-                          Predicate<String> tableFilter,
-                          final Function<String, String> fqTableNameToTableName) {
         this.schemaName = schemaName;
         this.clusterService = clusterService;
         this.indexNameExpressionResolver = indexNameExpressionResolver;
         this.transportPutIndexTemplateAction = transportPutIndexTemplateAction;
-        this.clusterService.add(this);
         this.executorService = executorService;
         this.functions = functions;
-        this.tablesFilter = tableFilter;
+        this.tablesFilter = createSchemaNamePredicate(schemaName);
         this.tableInfoFunction = new Function<String, TableInfo>() {
             @Nullable
             @Override
             public TableInfo apply(@Nullable String input) {
                 assert input != null : "input must not be null";
-                return getTableInfo(fqTableNameToTableName.apply(input));
+                return getTableInfo(getTableNameFromFQN(input));
             }
         };
         this.indexToTableName = new Function<String, String>() {
@@ -177,7 +128,7 @@ public class DocSchemaInfo implements SchemaInfo, ClusterStateListener {
                 if (input == null) {
                     return null;
                 }
-                if (BlobIndices.isBlobIndex(input)) {
+                if (BlobIndicesService.isBlobIndex(input)) {
                     return null;
                 }
                 if (PartitionName.isPartition(input)) {
@@ -193,7 +144,12 @@ public class DocSchemaInfo implements SchemaInfo, ClusterStateListener {
             @Override
             public boolean apply(String input) {
                 Matcher matcher = Schemas.SCHEMA_PATTERN.matcher(input);
-                return (matcher.matches() && matcher.group(1).equals(schemaName));
+                if (matcher.matches()) {
+                    return matcher.group(1).equals(schemaName);
+                } else {
+                    return Schemas.DEFAULT_SCHEMA_NAME.equals(schemaName);
+                }
+
             }
         });
     }
@@ -210,6 +166,14 @@ public class DocSchemaInfo implements SchemaInfo, ClusterStateListener {
             checkAliasSchema
         );
         return builder.build();
+    }
+
+    private String getTableNameFromFQN(String fqn) {
+        Matcher matcher = Schemas.SCHEMA_PATTERN.matcher(fqn);
+        if (matcher.matches()) {
+            return matcher.group(2);
+        }
+        return fqn;
     }
 
     @Override
@@ -230,7 +194,7 @@ public class DocSchemaInfo implements SchemaInfo, ClusterStateListener {
         }
     }
 
-    public Collection<String> tableNames() {
+    private Collection<String> tableNames() {
         // TODO: once we support closing/opening tables change this to concreteIndices()
         // and add  state info to the TableInfo.
 
@@ -270,7 +234,7 @@ public class DocSchemaInfo implements SchemaInfo, ClusterStateListener {
     }
 
     @Override
-    public synchronized void clusterChanged(ClusterChangedEvent event) {
+    public void update(ClusterChangedEvent event) {
         if (event.metaDataChanged()) {
 
             // search for aliases of deleted and created indices, they must be invalidated also
@@ -357,6 +321,5 @@ public class DocSchemaInfo implements SchemaInfo, ClusterStateListener {
 
     @Override
     public void close() throws Exception {
-        clusterService.remove(this);
     }
 }

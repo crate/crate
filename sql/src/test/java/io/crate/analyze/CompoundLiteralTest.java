@@ -88,7 +88,8 @@ public class CompoundLiteralTest extends CrateUnitTest {
                 Collections.<FunctionIdent, FunctionImplementation>emptyMap(),
                 Collections.<String, DynamicFunctionResolver>emptyMap(),
                 Collections.<String, TableFunctionImplementation>emptyMap()),
-            new ReferenceInfos(
+            new Schemas(
+                Settings.EMPTY,
                 Collections.<String, SchemaInfo>emptyMap(),
                 clusterService,
                 new IndexNameExpressionResolver(Settings.EMPTY),

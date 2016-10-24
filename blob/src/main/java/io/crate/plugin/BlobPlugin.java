@@ -22,8 +22,10 @@
 package io.crate.plugin;
 
 
+import com.google.common.collect.ImmutableList;
 import io.crate.blob.*;
 import io.crate.blob.v2.BlobIndexModule;
+import io.crate.blob.v2.BlobIndicesService;
 import io.crate.blob.v2.BlobIndicesModule;
 import io.crate.blob.v2.BlobShardModule;
 import io.crate.http.netty.CrateNettyHttpServerTransport;
@@ -71,7 +73,7 @@ public class BlobPlugin extends Plugin {
         if (settings.getAsBoolean("node.client", false)) {
             return Collections.emptyList();
         }
-        return Collections.<Class<? extends LifecycleComponent>>singletonList(BlobService.class);
+        return ImmutableList.<Class<? extends LifecycleComponent>>of(BlobService.class, BlobIndicesService.class);
     }
 
     @Override

@@ -28,7 +28,7 @@ import io.crate.action.sql.query.CrateSearchContext;
 import io.crate.action.sql.query.LuceneSortGenerator;
 import io.crate.analyze.EvaluatingNormalizer;
 import io.crate.analyze.symbol.Symbols;
-import io.crate.blob.v2.BlobIndices;
+import io.crate.blob.v2.BlobIndicesService;
 import io.crate.core.collections.Row;
 import io.crate.executor.transport.TransportActionProvider;
 import io.crate.lucene.CrateDocIndexService;
@@ -87,7 +87,7 @@ public class ShardCollectService {
     private final EvaluatingNormalizer shardNormalizer;
     private final ProjectionToProjectorVisitor projectorFactory;
     private final boolean isBlobShard;
-    private final BlobIndices blobIndices;
+    private final BlobIndicesService blobIndicesService;
     private final MapperService mapperService;
     private final IndexFieldDataService indexFieldDataService;
     private final Functions functions;
@@ -105,7 +105,7 @@ public class ShardCollectService {
                                IndexShard indexShard,
                                Functions functions,
                                ShardReferenceResolver referenceResolver,
-                               BlobIndices blobIndices,
+                               BlobIndicesService blobIndicesService,
                                MapperService mapperService,
                                IndexFieldDataService indexFieldDataService,
                                BlobShardReferenceResolver blobShardReferenceResolver,
@@ -115,10 +115,10 @@ public class ShardCollectService {
         this.clusterService = clusterService;
         this.shardId = shardId;
         this.indexShard = indexShard;
-        this.blobIndices = blobIndices;
+        this.blobIndicesService = blobIndicesService;
         this.mapperService = mapperService;
         this.indexFieldDataService = indexFieldDataService;
-        isBlobShard = BlobIndices.isBlobShard(this.shardId);
+        isBlobShard = BlobIndicesService.isBlobShard(this.shardId);
 
         shardResolver = isBlobShard ? blobShardReferenceResolver : referenceResolver;
         docInputSymbolVisitor = crateDocIndexService.docInputSymbolVisitor();
@@ -220,7 +220,7 @@ public class ShardCollectService {
 
     @VisibleForTesting
     Iterable<Row> getBlobRows(RoutedCollectPhase collectPhase, boolean requiresRepeat) {
-        Iterable<File> files = blobIndices.blobShardSafe(shardId).blobContainer().getFiles();
+        Iterable<File> files = blobIndicesService.blobShardSafe(shardId).blobContainer().getFiles();
         Iterable<Row> rows = RowsTransformer.toRowsIterable(docInputSymbolVisitor, collectPhase, files);
         if (requiresRepeat) {
             return ImmutableList.copyOf(rows);

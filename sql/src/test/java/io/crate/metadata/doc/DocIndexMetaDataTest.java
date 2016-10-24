@@ -922,13 +922,15 @@ public class DocIndexMetaDataTest extends CrateUnitTest {
             }
         };
         DocSchemaInfo docSchemaInfo = new DocSchemaInfo(
-            clusterService,
+            DocSchemaInfo.NAME,
             threadPool,
-            indexTemplateActionProvider,
+            clusterService,
             new IndexNameExpressionResolver(Settings.EMPTY),
+            indexTemplateActionProvider,
             functions);
         CreateTableStatementAnalyzer analyzer = new CreateTableStatementAnalyzer(
-            new ReferenceInfos(
+            new Schemas(
+                Settings.EMPTY,
                 ImmutableMap.<String, SchemaInfo>of("doc", docSchemaInfo),
                 clusterService,
                 new IndexNameExpressionResolver(Settings.EMPTY),

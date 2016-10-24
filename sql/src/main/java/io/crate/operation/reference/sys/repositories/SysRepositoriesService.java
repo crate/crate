@@ -27,8 +27,10 @@ import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.ClusterStateListener;
 import org.elasticsearch.cluster.metadata.RepositoriesMetaData;
 import org.elasticsearch.cluster.metadata.RepositoryMetaData;
+import org.elasticsearch.common.component.AbstractLifecycleComponent;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
+import org.elasticsearch.common.settings.Settings;
 
 import javax.annotation.Nullable;
 import java.util.Collections;
@@ -36,15 +38,16 @@ import java.util.HashMap;
 import java.util.Map;
 
 @Singleton
-public class SysRepositories implements ClusterStateListener, Supplier<Iterable<?>> {
+public class SysRepositoriesService extends AbstractLifecycleComponent<SysRepositoriesService>
+    implements ClusterStateListener, Supplier<Iterable<?>> {
 
-    protected Map<String, SysRepository> repositoriesTable = new HashMap<>();
+    private final ClusterService clusterService;
+    private Map<String, SysRepository> repositoriesTable = new HashMap<>();
 
     @Inject
-    public SysRepositories(ClusterService clusterService) {
-        RepositoriesMetaData repositoriesMetaData = clusterService.state().metaData().custom(RepositoriesMetaData.TYPE);
-        addRepositories(repositoriesMetaData);
-        clusterService.add(this);
+    public SysRepositoriesService(Settings settings, ClusterService clusterService) {
+        super(settings);
+        this.clusterService = clusterService;
     }
 
     private void addRepositories(@Nullable RepositoriesMetaData repositoriesMetaData) {
@@ -58,6 +61,24 @@ public class SysRepositories implements ClusterStateListener, Supplier<Iterable<
                 repositoryMetaData.settings().getAsStructuredMap());
             repositoriesTable.put(repositoryMetaData.name(), repository);
         }
+    }
+
+    @Override
+    protected void doStart() {
+        // access ClusterService here to avoid guice proxy errors if the ClusterService could not be build
+        RepositoriesMetaData repositoriesMetaData = clusterService.state().metaData().custom(RepositoriesMetaData.TYPE);
+        addRepositories(repositoriesMetaData);
+        clusterService.add(this);
+    }
+
+    @Override
+    protected void doStop() {
+        clusterService.remove(this);
+    }
+
+    @Override
+    protected void doClose() {
+
     }
 
     @Override

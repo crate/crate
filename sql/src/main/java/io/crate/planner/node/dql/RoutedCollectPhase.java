@@ -274,7 +274,7 @@ public class RoutedCollectPhase extends AbstractProjectionsPhase implements Coll
      * @return a normalized node, if no changes occurred returns this
      */
     public RoutedCollectPhase normalize(EvaluatingNormalizer normalizer, StmtCtx stmtCtx) {
-        assert whereClause() != null;
+        assert whereClause() != null : "whereClause must not be null";
         RoutedCollectPhase result = this;
         List<Symbol> newToCollect = normalizer.normalize(toCollect(), stmtCtx);
         boolean changed = newToCollect != toCollect();

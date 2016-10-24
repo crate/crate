@@ -23,7 +23,7 @@ package io.crate.blob.recovery;
 
 import io.crate.blob.BlobContainer;
 import io.crate.blob.BlobTransferTarget;
-import io.crate.blob.v2.BlobIndices;
+import io.crate.blob.v2.BlobIndicesService;
 import io.crate.blob.v2.BlobShard;
 import io.crate.common.Hex;
 import org.elasticsearch.ElasticsearchException;
@@ -60,10 +60,10 @@ public class BlobRecoveryHandler {
     public BlobRecoveryHandler(TransportService transportService,
                                RecoverySettings recoverySettings,
                                BlobTransferTarget blobTransferTarget,
-                               BlobIndices blobIndices,
+                               BlobIndicesService blobIndicesService,
                                IndexShard shard, StartRecoveryRequest request) {
         this.recoverySettings = recoverySettings;
-        this.blobShard = blobIndices.blobShardSafe(request.shardId().index().name(), request.shardId().id());
+        this.blobShard = blobIndicesService.blobShardSafe(request.shardId().index().name(), request.shardId().id());
         this.request = request;
         this.transportService = transportService;
         this.blobTransferTarget = blobTransferTarget;
