@@ -248,7 +248,7 @@ public class AzureUnicastHostsProvider extends AbstractComponent implements Unic
                             InetAddress privateIp = InetAddress.getByName(ipConfiguration.getPrivateIpAddress());
 
                             if (privateIp != null) {
-                                networkAddress = NetworkAddress.formatAddress(privateIp);
+                                networkAddress = NetworkAddress.format(privateIp);
                             } else {
                                 logger.trace("no private ip provided. ignoring [{}]...", nic.getName());
                             }
@@ -259,7 +259,7 @@ public class AzureUnicastHostsProvider extends AbstractComponent implements Unic
                                 PublicIpAddress pip = networkResourceProviderClient.getPublicIpAddressesOperations()
                                     .get(rgName, pipID[pipID.length - 1]).getPublicIpAddress();
 
-                                networkAddress = NetworkAddress.formatAddress(InetAddress.getByName(pip.getIpAddress()));
+                                networkAddress = NetworkAddress.format(InetAddress.getByName(pip.getIpAddress()));
                             }
 
                             if (networkAddress == null) {

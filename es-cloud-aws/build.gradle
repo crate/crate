@@ -3,8 +3,8 @@ apply plugin: 'idea'
 
 dependencies {
     compile project(':es')
-    compile 'com.amazonaws:aws-java-sdk-ec2:1.10.33'
-    compile 'com.amazonaws:aws-java-sdk-s3:1.10.33'
+    compile 'com.amazonaws:aws-java-sdk-ec2:1.10.69'
+    compile 'com.amazonaws:aws-java-sdk-s3:1.10.69'
 }
 
 def pluginDir = project(":es").file('upstream/plugins/cloud-aws')

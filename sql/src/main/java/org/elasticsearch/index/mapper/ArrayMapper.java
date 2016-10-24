@@ -215,7 +215,9 @@ public class ArrayMapper extends FieldMapper implements ArrayValueMapperParser {
          * and then parse the contents of the object to set it into the "inner" field of the outer array type.
          */
         XContentBuilder innerBuilder = new XContentBuilder(builder.contentType().xContent(), new BytesStreamOutput(0));
+        innerBuilder.startObject();
         innerBuilder = innerMapper.toXContent(innerBuilder, params);
+        innerBuilder.endObject();
         innerBuilder.close();
         XContentParser parser = builder.contentType().xContent().createParser(innerBuilder.bytes());
 
@@ -223,7 +225,11 @@ public class ArrayMapper extends FieldMapper implements ArrayValueMapperParser {
         while ((parser.nextToken() != XContentParser.Token.START_OBJECT)) {
             // consume tokens until start of object
         }
-        Map<String, Object> innerMap = parser.mapOrdered();
+
+        //noinspection unchecked
+        Map<String, Object> innerMap = (Map<String, Object>) parser.mapOrdered().get(innerMapper.simpleName());
+
+        assert innerMap != null: "innerMap was null";
 
         builder.startObject(simpleName());
         builder.field("type", contentType());

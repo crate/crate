@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Upgraded Elasticsearch to 2.4.1
+
  - Improved parameter de-serialization of the "Bind" message. If a Client
    doesn't provide parameter types in the parse message, bind will now default
    to text/varchar instead of text/json.

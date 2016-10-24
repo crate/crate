@@ -42,6 +42,7 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.transport.InetSocketTransportAddress;
 import org.elasticsearch.common.transport.TransportAddress;
 import org.elasticsearch.common.util.BigArrays;
+import org.elasticsearch.indices.breaker.NoneCircuitBreakerService;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 import org.elasticsearch.transport.netty.NettyTransport;
@@ -102,7 +103,8 @@ public class CrateClient {
             new NetworkService(settings),
             new BigArrays(new PageCacheRecycler(settings, threadPool), null),
             Version.CURRENT,
-            new NamedWriteableRegistry()
+            new NamedWriteableRegistry(),
+            new NoneCircuitBreakerService()
         );
         transportService = new TransportService(settings, nettyTransport, threadPool);
         transportService.start();
