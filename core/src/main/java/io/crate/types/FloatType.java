@@ -27,11 +27,18 @@ import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
 import java.io.IOException;
+import java.util.Comparator;
 
 public class FloatType extends DataType<Float> implements Streamer<Float>, DataTypeFactory, FixedWidthType {
 
     public static final FloatType INSTANCE = new FloatType();
     public static final int ID = 7;
+    private static final Comparator<Float> CMP = new Comparator<Float>() {
+        @Override
+        public int compare(Float v1, Float v2) {
+            return Float.compare(v1, v2);
+        }
+    };
 
     private FloatType() {
     }
@@ -74,7 +81,7 @@ public class FloatType extends DataType<Float> implements Streamer<Float>, DataT
 
     @Override
     public int compareValueTo(Float val1, Float val2) {
-        return Float.compare(val1, val2);
+        return nullSafeCompareValueTo(val1, val2, CMP);
     }
 
     @Override

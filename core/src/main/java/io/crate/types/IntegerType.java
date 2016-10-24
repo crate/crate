@@ -27,11 +27,18 @@ import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
 import java.io.IOException;
+import java.util.Comparator;
 
 public class IntegerType extends DataType<Integer> implements Streamer<Integer>, DataTypeFactory, FixedWidthType {
 
     public static final IntegerType INSTANCE = new IntegerType();
     public static final int ID = 9;
+    private static final Comparator<Integer> CMP = new Comparator<Integer>() {
+        @Override
+        public int compare(Integer v1, Integer v2) {
+            return Integer.compare(v1, v2);
+        }
+    };
 
     private IntegerType() {
     }
@@ -75,9 +82,8 @@ public class IntegerType extends DataType<Integer> implements Streamer<Integer>,
 
     @Override
     public int compareValueTo(Integer val1, Integer val2) {
-        return Integer.compare(val1, val2);
+        return nullSafeCompareValueTo(val1, val2, CMP);
     }
-
 
     @Override
     public Integer readValueFrom(StreamInput in) throws IOException {

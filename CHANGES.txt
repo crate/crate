@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fix the NPE that occured if `distinct` was applied on expressions
+   which resulted in null values.
+
  - Fix: Revert usage of new Lucene queries for geo point ``within`` queries
    because of an unresolved bug in Lucene 5.x versions.
 

@@ -29,7 +29,10 @@ import org.junit.Test;
 
 import java.util.*;
 
+import static org.apache.commons.lang3.ObjectUtils.firstNonNull;
+import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.core.IsNot.not;
 
 public class DataTypesTest extends CrateUnitTest {
 
@@ -239,5 +242,77 @@ public class DataTypesTest extends CrateUnitTest {
     @Test(expected = ClassCastException.class)
     public void testConvertBooleanToByte() {
         DataTypes.BYTE.value(true);
+    }
+
+    @Test
+    public void testLongTypeCompareValueToWith() {
+        assertCompareValueTo(DataTypes.LONG, null, null, 0);
+        assertCompareValueTo(null, 2L, -1);
+        assertCompareValueTo(3L, 2L, 1);
+        assertCompareValueTo(2L, 2L, 0);
+        assertCompareValueTo(2L, null, 1);
+    }
+
+    @Test
+    public void testShortTypeCompareValueToWith() {
+        assertCompareValueTo(DataTypes.LONG, null, null, 0);
+        assertCompareValueTo(null, (short) 2, -1);
+        assertCompareValueTo((short) 3, (short) 2, 1);
+        assertCompareValueTo((short) 2, (short) 2, 0);
+        assertCompareValueTo((short) 2, null, 1);
+    }
+
+    @Test
+    public void testIntTypeCompareValueTo() {
+        assertCompareValueTo(DataTypes.INTEGER, null, null, 0);
+        assertCompareValueTo(null, 2, -1);
+        assertCompareValueTo(3, 2, 1);
+        assertCompareValueTo(2, 2, 0);
+        assertCompareValueTo(2, null, 1);
+    }
+
+    @Test
+    public void testDoubleTypeCompareValueTo() {
+        assertCompareValueTo(DataTypes.DOUBLE, null, null, 0);
+        assertCompareValueTo(null, 2.0d, -1);
+        assertCompareValueTo(3.0d, 2.0d, 1);
+        assertCompareValueTo(2.0d, 2.0d, 0);
+        assertCompareValueTo(2.0d, null, 1);
+    }
+
+    @Test
+    public void testFloatTypeCompareValueTo() {
+        assertCompareValueTo(DataTypes.FLOAT, null, null, 0);
+        assertCompareValueTo(null, 2.0f, -1);
+        assertCompareValueTo(2.0f, 3.0f, -1);
+        assertCompareValueTo(2.0f, 2.0f, 0);
+        assertCompareValueTo(2.0f, null, 1);
+    }
+
+    @Test
+    public void testByteTypeCompareValueTo() {
+        assertCompareValueTo(DataTypes.BYTE, null, null, 0);
+        assertCompareValueTo(null, (byte) 2, -1);
+        assertCompareValueTo((byte) 3, (byte) 2, 1);
+        assertCompareValueTo((byte) 2, (byte) 2, 0);
+        assertCompareValueTo((byte) 2, null, 1);
+    }
+
+    @Test
+    public void testBooleanTypeCompareValueTo() {
+        assertCompareValueTo(DataTypes.BOOLEAN, null, null, 0);
+        assertCompareValueTo(null, true, -1);
+        assertCompareValueTo(true, false, 1);
+        assertCompareValueTo(true, null, 1);
+    }
+
+    private static void assertCompareValueTo(Object val1, Object val2, int expected) {
+        DataType type = DataTypes.guessType(firstNonNull(val1, val2));
+        assertThat(type, not(instanceOf(DataTypes.UNDEFINED.getClass())));
+        assertCompareValueTo(type, val1, val2, expected);
+    }
+
+    private static void assertCompareValueTo(DataType dt, Object val1, Object val2, int expected) {
+        assertThat(dt.compareValueTo(dt.value(val1), dt.value(val2)), is(expected));
     }
 }

@@ -27,6 +27,8 @@ import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Streamable;
 
 import java.io.IOException;
+import java.util.Comparator;
+import java.util.Objects;
 import java.util.Set;
 
 public abstract class DataType<T> implements Comparable, Streamable {
@@ -57,6 +59,19 @@ public abstract class DataType<T> implements Comparable, Streamable {
             return false;
         }
         return possibleConversions.contains(other);
+    }
+
+    static <T> int nullSafeCompareValueTo(T val1, T val2, Comparator<T> cmp) {
+        if (val1 == null) {
+            if (val2 == null) {
+                return 0;
+            }
+            return -1;
+        }
+        if (val2 == null) {
+            return 1;
+        }
+        return Objects.compare(val1, val2, cmp);
     }
 
     public int hashCode() {
