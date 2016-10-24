@@ -27,11 +27,18 @@ import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
 import java.io.IOException;
+import java.util.Comparator;
 
 public class ByteType extends DataType<Byte> implements DataTypeFactory, Streamer<Byte>, FixedWidthType {
 
     public final static ByteType INSTANCE = new ByteType();
     public final static int ID = 2;
+    private static final Comparator<Byte> CMP = new Comparator<Byte>() {
+        @Override
+        public int compare(Byte v1, Byte v2) {
+            return Byte.compare(v1, v2);
+        }
+    } ;
 
     private ByteType() {
     }
@@ -71,7 +78,7 @@ public class ByteType extends DataType<Byte> implements DataTypeFactory, Streame
 
     @Override
     public int compareValueTo(Byte val1, Byte val2) {
-        return Byte.compare(val1, val2);
+        return nullSafeCompareValueTo(val1, val2, CMP);
     }
 
     @Override

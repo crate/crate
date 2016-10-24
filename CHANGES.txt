@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fix the NPE that occured if `distinct` was applied on expressions
+   which resulted in null values.
+
  - Upgraded Elasticsearch to 2.4.1
 
  - Improved parameter de-serialization of the "Bind" message. If a Client

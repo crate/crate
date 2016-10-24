@@ -27,11 +27,18 @@ import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
 import java.io.IOException;
+import java.util.Comparator;
 
 public class ShortType extends DataType<Short> implements DataTypeFactory, Streamer<Short>, FixedWidthType {
 
     public static final ShortType INSTANCE = new ShortType();
     public static final int ID = 8;
+    private static final Comparator<Short> CMP = new Comparator<Short>() {
+        @Override
+        public int compare(Short v1, Short v2) {
+            return Short.compare(v1, v2);
+        }
+    } ;
 
     private ShortType() {
     }
@@ -74,7 +81,7 @@ public class ShortType extends DataType<Short> implements DataTypeFactory, Strea
 
     @Override
     public int compareValueTo(Short val1, Short val2) {
-        return Short.compare(val1, val2);
+        return nullSafeCompareValueTo(val1, val2, CMP);
     }
 
     @Override

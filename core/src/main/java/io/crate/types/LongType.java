@@ -27,12 +27,19 @@ import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
 import java.io.IOException;
+import java.util.Comparator;
 
 public class
 LongType extends DataType<Long> implements FixedWidthType, Streamer<Long>, DataTypeFactory {
 
     public static final LongType INSTANCE = new LongType();
     public static final int ID = 10;
+    private static final Comparator<Long> CMP = new Comparator<Long>() {
+        @Override
+        public int compare(Long v1, Long v2) {
+            return Long.compare(v1, v2);
+        }
+    };
 
     @Override
     public int id() {
@@ -102,9 +109,7 @@ LongType extends DataType<Long> implements FixedWidthType, Streamer<Long>, DataT
             if (len == 1) { // lone '+' or '-'
                 throw new NumberFormatException(value.utf8ToString());
             }
-
             i++;
-            ;
         }
         multmin = limit / radix;
         while (i < len + value.offset) {
@@ -127,7 +132,7 @@ LongType extends DataType<Long> implements FixedWidthType, Streamer<Long>, DataT
 
     @Override
     public int compareValueTo(Long val1, Long val2) {
-        return Long.compare(val1, val2);
+        return nullSafeCompareValueTo(val1, val2, CMP);
     }
 
     @Override
