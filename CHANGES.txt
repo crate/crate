@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Added support for the "Flush" message in the postgres wire protocol.
+
  - Fix: Revert usage of new Lucene queries for geo point ``within`` queries
    because of an unresolved bug in Lucene 5.x versions.
 

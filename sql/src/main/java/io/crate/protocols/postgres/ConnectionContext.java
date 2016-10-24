@@ -289,6 +289,9 @@ class ConnectionContext {
                         case 'E':
                             handleExecute(buffer, channel);
                             return;
+                        case 'H':
+                            handleFlush(channel);
+                            return;
                         case 'S':
                             handleSync(channel);
                             return;
@@ -337,6 +340,29 @@ class ConnectionContext {
             LOGGER.trace("channelDisconnected");
             closeSession();
             super.channelDisconnected(ctx, e);
+        }
+    }
+
+    /**
+     * Flush Message
+     *  | 'H' | int32 len
+     *
+     * Flush forces the backend to deliver any data pending in it's output buffers.
+     */
+    private void handleFlush(Channel channel) {
+        /*
+         * Currently we don't buffer data. It is always send to the client immediately.
+         * So flush would be a no-op except that we delay execution until sync to be able to execute bulk operations
+         * more efficiently.
+         * If a Client sends flush we also need to trigger execution because a Client is expecting to receive data after
+         * a Flush.
+         *
+         * Note that there is no ReadyForQueryCallback here because handleSync will still be called and it is done there.
+         */
+        try {
+            session.sync();
+        } catch (Throwable t) {
+            Messages.sendErrorResponse(channel, t);
         }
     }
 

@@ -22,10 +22,12 @@
 
 package io.crate.protocols.postgres;
 
+import io.crate.action.sql.Option;
 import io.crate.action.sql.SQLOperations;
 import org.jboss.netty.buffer.ChannelBuffer;
 import org.jboss.netty.buffer.ChannelBuffers;
 import org.jboss.netty.channel.Channel;
+import org.jboss.netty.handler.codec.embedder.DecoderEmbedder;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 
@@ -55,5 +57,22 @@ public class ConnectionContextTest {
         byte[] responseBytes = new byte[5];
         firstResponse.readBytes(responseBytes);
         assertThat(responseBytes, is(new byte[]{'I', 0, 0, 0, 4}));
+    }
+
+    @Test
+    public void testFlushMessageResultsInSyncCallOnSession() throws Exception {
+        SQLOperations sqlOperations = mock(SQLOperations.class);
+        SQLOperations.Session session = mock(SQLOperations.Session.class);
+        when(sqlOperations.createSession(anyString(), anySetOf(Option.class), anyInt())).thenReturn(session);
+        ConnectionContext ctx = new ConnectionContext(sqlOperations);
+        DecoderEmbedder<ChannelBuffer> e = new DecoderEmbedder<>(ctx.decoder, ctx.handler);
+
+        ChannelBuffer buffer = ChannelBuffers.dynamicBuffer();
+        ClientMessages.sendStartupMessage(buffer, "doc");
+        ClientMessages.sendParseMessage(buffer, "", "select ?", new int[0]);
+        ClientMessages.sendFlush(buffer);
+        e.offer(buffer);
+
+        verify(session, times(1)).sync();
     }
 }
