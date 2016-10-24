@@ -314,6 +314,6 @@ public class NestedLoopConsumerTest extends CrateUnitTest {
     @Test
     public void testEmptyRoutingSource() throws Exception {
         Plan plan = plan("select e.nope, u.name from empty e, users u order by e.nope, u.name");
-        assertThat(plan, instanceOf(NoopPlan.class));
+        assertThat(plan, instanceOf(NestedLoop.class));
     }
 }

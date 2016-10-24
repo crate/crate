@@ -26,7 +26,6 @@ import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import io.crate.analyze.*;
 import io.crate.analyze.relations.*;
@@ -40,7 +39,6 @@ import io.crate.planner.Plan;
 import io.crate.planner.TableStatsService;
 import io.crate.planner.distribution.DistributionInfo;
 import io.crate.planner.distribution.UpstreamPhase;
-import io.crate.planner.node.dql.CollectPhase;
 import io.crate.planner.node.dql.MergePhase;
 import io.crate.planner.node.dql.join.JoinType;
 import io.crate.planner.node.dql.join.NestedLoop;
@@ -55,32 +53,11 @@ import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 
-import javax.annotation.Nullable;
 import java.util.*;
 
 class NestedLoopConsumer implements Consumer {
 
-    private static final Predicate<? super Plan> IS_NOOP = Predicates.or(Predicates.<Plan>instanceOf(NoopPlan.class),
-        new Predicate<Plan>() {
-            @Override
-            public boolean apply(@Nullable Plan input) {
-                if (input == null) {
-                    return true;
-                }
-                /*
-                 * executionNodes are currently required to plan a distributed NL on the same nodes.
-                 * This logic is not really correct but works for current cases - it should be removed in the future.
-                 */
-                UpstreamPhase upstreamPhase = input.resultPhase();
-                if (upstreamPhase.executionNodes().isEmpty()) {
-                    // executionNodes may be empty in CollectPhase if e.g. a partitioned table has no records / shards yet.
-                    assert upstreamPhase instanceof CollectPhase: "Only CollectPhase can become a NOOP without executionNodes";
-                    return true;
-                }
-                return false;
-            }
-        });
-
+    private static final Predicate<? super Plan> IS_NOOP = Predicates.<Plan>instanceOf(NoopPlan.class);
     private final static ESLogger LOGGER = Loggers.getLogger(NestedLoopConsumer.class);
     private final Visitor visitor;
 
@@ -192,11 +169,11 @@ class NestedLoopConsumer implements Consumer {
             Plan rightPlan = context.plannerContext().planSubRelation(right, context);
             context.requiredPageSize(null);
 
-            if (Iterables.any(Arrays.asList(leftPlan, rightPlan), IS_NOOP)) {
-                // one of the plans or both are noops
-                return new NoopPlan(context.plannerContext().jobId());
-            }
 
+            UpstreamPhase leftResultPhase = leftPlan.resultPhase();
+            UpstreamPhase rightResultPhase = rightPlan.resultPhase();
+            isDistributed = isDistributed &&
+                            (!leftResultPhase.executionNodes().isEmpty() && !rightResultPhase.executionNodes().isEmpty());
             boolean broadcastLeftTable = false;
             if (isDistributed) {
                 broadcastLeftTable = isLeftSmallerThanRight(left, right);
@@ -209,6 +186,8 @@ class NestedLoopConsumer implements Consumer {
                     left = right;
                     right = tmpRelation;
                     joinType = joinType.invert();
+                    leftResultPhase = leftPlan.resultPhase();
+                    rightResultPhase = rightPlan.resultPhase();
                 }
             }
             Set<String> handlerNodes = ImmutableSet.of(clusterService.localNode().id());
@@ -217,14 +196,14 @@ class NestedLoopConsumer implements Consumer {
             MergePhase leftMerge = null;
             MergePhase rightMerge = null;
             if (isDistributed) {
-                leftPlan.resultPhase().distributionInfo(DistributionInfo.DEFAULT_SAME_NODE);
-                nlExecutionNodes = leftPlan.resultPhase().executionNodes();
+                leftResultPhase.distributionInfo(DistributionInfo.DEFAULT_SAME_NODE);
+                nlExecutionNodes = leftResultPhase.executionNodes();
             } else {
-                if (isMergePhaseNeeded(nlExecutionNodes, leftPlan.resultPhase().executionNodes(), false)) {
+                if (isMergePhaseNeeded(nlExecutionNodes, leftResultPhase.executionNodes(), false)) {
                     leftMerge = MergePhase.mergePhase(
                         context.plannerContext(),
                         nlExecutionNodes,
-                        leftPlan.resultPhase().executionNodes().size(),
+                        leftResultPhase.executionNodes().size(),
                         left.querySpec().orderBy().orNull(),
                         null,
                         ImmutableList.<Projection>of(),
@@ -233,24 +212,24 @@ class NestedLoopConsumer implements Consumer {
                 }
             }
             if (nlExecutionNodes.size() == 1
-                && nlExecutionNodes.equals(rightPlan.resultPhase().executionNodes())) {
+                && nlExecutionNodes.equals(rightResultPhase.executionNodes())) {
                 // if the left and the right plan are executed on the same single node the mergePhase
                 // should be omitted. This is the case if the left and right table have only one shards which
                 // are on the same node
-                rightPlan.resultPhase().distributionInfo(DistributionInfo.DEFAULT_SAME_NODE);
+                rightResultPhase.distributionInfo(DistributionInfo.DEFAULT_SAME_NODE);
             } else {
-                if (isMergePhaseNeeded(nlExecutionNodes, rightPlan.resultPhase().executionNodes(), isDistributed)) {
+                if (isMergePhaseNeeded(nlExecutionNodes, rightResultPhase.executionNodes(), isDistributed)) {
                     rightMerge = MergePhase.mergePhase(
                         context.plannerContext(),
                         nlExecutionNodes,
-                        rightPlan.resultPhase().executionNodes().size(),
+                        rightResultPhase.executionNodes().size(),
                         right.querySpec().orderBy().orNull(),
                         null,
                         ImmutableList.<Projection>of(),
                         right.querySpec().outputs(),
                         null);
                 }
-                rightPlan.resultPhase().distributionInfo(DistributionInfo.DEFAULT_BROADCAST);
+                rightResultPhase.distributionInfo(DistributionInfo.DEFAULT_BROADCAST);
             }
 
 
@@ -260,6 +239,8 @@ class NestedLoopConsumer implements Consumer {
                 rightPlan = tmpPlan;
                 leftMerge = rightMerge;
                 rightMerge = null;
+                leftResultPhase = leftPlan.resultPhase();
+                rightResultPhase = rightPlan.resultPhase();
             }
             List<Projection> projections = new ArrayList<>();
 
@@ -374,7 +355,6 @@ class NestedLoopConsumer implements Consumer {
         private static boolean isMergePhaseNeeded(Collection<String> executionNodes,
                                                   Collection<String> upstreamPhaseExecutionNodes,
                                                   boolean isDistributed) {
-            assert !upstreamPhaseExecutionNodes.isEmpty() : "upstreamPhase must be executed somewhere";
             if (!isDistributed && upstreamPhaseExecutionNodes.equals(executionNodes)) {
                 // if the nested loop is on the same node we don't need a mergePhase to receive requests
                 // but can access the RowReceiver of the nestedLoop directly
