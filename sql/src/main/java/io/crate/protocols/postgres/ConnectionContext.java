@@ -400,17 +400,19 @@ class ConnectionContext {
      * | 'B' | int32 len
      * <p>
      * Body:
+     * <pre>
      * | string portalName | string statementName
      * | int16 numFormatCodes
-     * foreach
-     * | int16 formatCode
+     *      foreach
+     *      | int16 formatCode
      * | int16 numParams
-     * foreach
-     * | int32 valueLength
-     * | byteN value
+     *      foreach
+     *      | int32 valueLength
+     *      | byteN value
      * | int16 numResultColumnFormatCodes
-     * foreach
-     * | int16 formatCode
+     *      foreach
+     *      | int16 formatCode
+     * </pre>
      */
     private void handleBindMessage(ChannelBuffer buffer, Channel channel) {
         String portalName = readCString(buffer);

@@ -5,6 +5,11 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Improved parameter de-serialization of the "Bind" message. If a Client
+   doesn't provide parameter types in the parse message, bind will now default
+   to text/varchar instead of text/json.
+   This enables support for clients like pg-nodejs
+
  - Added support for the "Flush" message in the postgres wire protocol.
 
  - Fix: Revert usage of new Lucene queries for geo point ``within`` queries

@@ -22,9 +22,12 @@
 
 package io.crate.protocols.postgres;
 
+import io.crate.types.DataTypes;
+import org.apache.lucene.util.BytesRef;
 import org.jboss.netty.buffer.ChannelBuffer;
 
 import java.nio.charset.StandardCharsets;
+import java.util.List;
 
 /**
  * Class to encode postgres client messages and write them onto a buffer.
@@ -71,5 +74,40 @@ class ClientMessages {
     static void sendFlush(ChannelBuffer buffer) {
         buffer.writeByte('H');
         buffer.writeInt(4);
+    }
+
+    static void sendBindMessage(ChannelBuffer buffer,
+                                String portalName,
+                                String statementName,
+                                List<Object> params) {
+        buffer.writeByte('B');
+        byte[] portalBytes = portalName.getBytes(StandardCharsets.UTF_8);
+        byte[] statementBytes = statementName.getBytes(StandardCharsets.UTF_8);
+
+        int beforeLengthWriterIndex = buffer.writerIndex();
+        buffer.writeInt(0);
+        writeCString(buffer, portalBytes);
+        writeCString(buffer, statementBytes);
+        buffer.writeShort(0); // formatCode use 0 to default to text for all
+        buffer.writeShort(params.size());
+
+        int paramsLength = 0;
+        for (Object param : params) {
+            BytesRef value = DataTypes.STRING.value(param);
+            buffer.writeInt(value.length + 1);
+            buffer.writeBytes(value.bytes, value.offset, value.length);
+            buffer.writeByte(0);
+            paramsLength += 4 + value.length + 1;
+        }
+        buffer.writeShort(0); // numResultFormatCodes - 0 to default to text for all
+
+        buffer.setInt(beforeLengthWriterIndex,
+            4 +
+            portalBytes.length + 1 +
+            statementBytes.length + 1 +
+            2 + // numFormatCodes
+            2 + // numParams
+            paramsLength +
+            2); // numResultColumnFormatCodes
     }
 }
