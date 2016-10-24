@@ -206,7 +206,7 @@ public class CopyStatementPlanner {
             context.jobId(),
             context.nextExecutionPhaseId(),
             ImmutableList.<Projection>of(MergeCountProjection.INSTANCE),
-            plan.resultPhase().executionNodes().size(),
+            plan.resultDescription().executionNodes().size(),
             Symbols.extractTypes(projection.outputs()));
 
         return new CopyTo(context.jobId(), plan, mergePhase);

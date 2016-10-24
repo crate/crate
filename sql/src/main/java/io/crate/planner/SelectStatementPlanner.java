@@ -40,6 +40,7 @@ import io.crate.planner.consumer.ESGetStatementPlanner;
 import io.crate.planner.consumer.SimpleSelect;
 import io.crate.planner.fetch.FetchPushDown;
 import io.crate.planner.fetch.MultiSourceFetchPushDown;
+import io.crate.planner.node.ExecutionPhases;
 import io.crate.planner.node.dql.CollectAndMerge;
 import io.crate.planner.node.dql.MergePhase;
 import io.crate.planner.node.dql.QueryThenFetch;
@@ -212,7 +213,8 @@ class SelectStatementPlanner {
                 return plannedSubQuery;
             }
             assert plannedSubQuery != null : "consumingPlanner should have created a subPlan";
-            assert !plannedSubQuery.resultIsDistributed() : "subQuery must not have a distributed result";
+            assert ExecutionPhases.executesOnHandler(context.handlerNode(), plannedSubQuery.resultDescription().executionNodes())
+                : "subPlan result should already be on handlerNode";
 
             Planner.Context.ReaderAllocations readerAllocations = context.buildReaderAllocations();
             ArrayList<Reference> docRefs = new ArrayList<>();

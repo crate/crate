@@ -140,7 +140,7 @@ public class NestedLoopConsumerTest extends CrateUnitTest {
     @Test
     public void testFetch() throws Exception {
         QueryThenFetch plan = plan("select u1.name, u2.id from users u1, users u2 order by 2");
-        NestedLoopPhase nlp = (NestedLoopPhase) ((NestedLoop) plan.subPlan()).resultPhase();
+        NestedLoopPhase nlp = ((NestedLoop) plan.subPlan()).nestedLoopPhase();
         assertThat(nlp.projections().get(0).outputs(), isSQL("INPUT(1), INPUT(0)"));
     }
 
@@ -174,7 +174,7 @@ public class NestedLoopConsumerTest extends CrateUnitTest {
         assertThat(topN.outputs().size(), is(3));
 
         assertThat(plan.localMerge(), nullValue()); // NL Plan is non-distributed and contains localMerge
-        MergePhase localMergePhase = ((MergePhase) ((NestedLoop) plan.subPlan()).resultPhase());
+        MergePhase localMergePhase = ((NestedLoop) plan.subPlan()).localMerge();
         assertThat(localMergePhase.projections(),
             Matchers.contains(instanceOf(TopNProjection.class), instanceOf(FetchProjection.class)));
 
@@ -192,7 +192,7 @@ public class NestedLoopConsumerTest extends CrateUnitTest {
         NestedLoop plan = plan("select users.name, u2.name from users, users_multi_pk u2 " +
                                "where users.name = u2.name " +
                                "order by users.name, u2.name ");
-        assertThat(plan.left().resultPhase().distributionInfo().distributionType(), is(DistributionType.BROADCAST));
+        assertThat(plan.left().resultDescription().distributionInfo().distributionType(), is(DistributionType.BROADCAST));
     }
 
 
@@ -241,7 +241,7 @@ public class NestedLoopConsumerTest extends CrateUnitTest {
 
         NestedLoop plan = plan("select u1.name, u2.name from users u1, users u2 order by u1.name, u2.name");
 
-        assertThat(plan.left().resultPhase(), instanceOf(RoutedCollectPhase.class));
+        assertThat(plan.left().resultDescription(), instanceOf(RoutedCollectPhase.class));
         CollectAndMerge leftPlan = (CollectAndMerge) plan.left();
         CollectPhase collectPhase = leftPlan.collectPhase();
         assertThat(collectPhase.projections().size(), is(0));

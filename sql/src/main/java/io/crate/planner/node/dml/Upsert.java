@@ -23,13 +23,13 @@ package io.crate.planner.node.dml;
 
 import io.crate.planner.Plan;
 import io.crate.planner.PlanVisitor;
-import io.crate.planner.distribution.UpstreamPhase;
+import io.crate.planner.UnnestablePlan;
 import io.crate.planner.projection.Projection;
 
 import java.util.List;
 import java.util.UUID;
 
-public class Upsert implements Plan {
+public class Upsert extends UnnestablePlan {
 
     private final List<Plan> nodes;
     private final UUID id;
@@ -57,15 +57,4 @@ public class Upsert implements Plan {
     public void addProjection(Projection projection) {
         throw new UnsupportedOperationException("adding projection not supported");
     }
-
-    @Override
-    public boolean resultIsDistributed() {
-        throw new UnsupportedOperationException("resultIsDistributed is not supported");
-    }
-
-    @Override
-    public UpstreamPhase resultPhase() {
-        throw new UnsupportedOperationException("resultPhase is not supported");
-    }
-
 }

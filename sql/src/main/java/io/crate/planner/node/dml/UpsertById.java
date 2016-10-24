@@ -25,16 +25,32 @@ import io.crate.analyze.symbol.Symbol;
 import io.crate.metadata.Reference;
 import io.crate.planner.Plan;
 import io.crate.planner.PlanVisitor;
-import io.crate.planner.distribution.UpstreamPhase;
+import io.crate.planner.ResultDescription;
+import io.crate.planner.distribution.DistributionInfo;
 import io.crate.planner.projection.Projection;
 import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.lucene.uid.Versions;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
 
 public class UpsertById implements Plan {
+
+    private final static ResultDescription HANDLER_ROW_COUNT = new ResultDescription() {
+        @Override
+        public Collection<String> executionNodes() {
+            return Collections.emptyList();
+        }
+
+        @Override
+        public DistributionInfo distributionInfo() {
+            return DistributionInfo.DEFAULT_BROADCAST;
+        }
+
+        @Override
+        public void distributionInfo(DistributionInfo distributionInfo) {
+            throw new UnsupportedOperationException("Cannot overwrite distributionInfo of HANLDER_ROW_COUNT ResultDescription");
+        }
+    };
 
     @Override
     public void addProjection(Projection projection) {
@@ -42,13 +58,8 @@ public class UpsertById implements Plan {
     }
 
     @Override
-    public boolean resultIsDistributed() {
-        return false;
-    }
-
-    @Override
-    public UpstreamPhase resultPhase() {
-        throw new UnsupportedOperationException("UpsertById doesn't have a resultPhase");
+    public ResultDescription resultDescription() {
+        return HANDLER_ROW_COUNT;
     }
 
     /**

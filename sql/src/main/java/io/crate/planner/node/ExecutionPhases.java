@@ -30,6 +30,23 @@ import java.util.Collection;
 
 public class ExecutionPhases {
 
+    /**
+     * @return true if the executionNodes indicate a execution on the handler node.
+     *
+     * size == 0 is also true
+     * (this currently is the case on MergePhases if there is a direct-response from previous phase to MergePhase)
+     */
+    public static boolean executesOnHandler(String handlerNode, Collection<String> executionNodes) {
+        switch (executionNodes.size()) {
+            case 0:
+                return true;
+            case 1:
+                return executionNodes.iterator().next().equals(handlerNode);
+            default:
+                return false;
+        }
+    }
+
     public static ExecutionPhase fromStream(StreamInput in) throws IOException {
         ExecutionPhase.Type type = ExecutionPhase.Type.values()[in.readVInt()];
         ExecutionPhase node = type.factory().create();

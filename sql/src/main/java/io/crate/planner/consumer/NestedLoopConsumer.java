@@ -22,8 +22,6 @@
 package io.crate.planner.consumer;
 
 import com.google.common.base.Optional;
-import com.google.common.base.Predicate;
-import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
@@ -33,12 +31,8 @@ import io.crate.analyze.symbol.*;
 import io.crate.exceptions.ValidationException;
 import io.crate.metadata.Functions;
 import io.crate.metadata.TableIdent;
-import io.crate.planner.Limits;
-import io.crate.planner.NoopPlan;
-import io.crate.planner.Plan;
-import io.crate.planner.TableStatsService;
+import io.crate.planner.*;
 import io.crate.planner.distribution.DistributionInfo;
-import io.crate.planner.distribution.UpstreamPhase;
 import io.crate.planner.node.dql.MergePhase;
 import io.crate.planner.node.dql.join.JoinType;
 import io.crate.planner.node.dql.join.NestedLoop;
@@ -57,7 +51,6 @@ import java.util.*;
 
 class NestedLoopConsumer implements Consumer {
 
-    private static final Predicate<? super Plan> IS_NOOP = Predicates.<Plan>instanceOf(NoopPlan.class);
     private final static ESLogger LOGGER = Loggers.getLogger(NestedLoopConsumer.class);
     private final Visitor visitor;
 
@@ -170,10 +163,10 @@ class NestedLoopConsumer implements Consumer {
             context.requiredPageSize(null);
 
 
-            UpstreamPhase leftResultPhase = leftPlan.resultPhase();
-            UpstreamPhase rightResultPhase = rightPlan.resultPhase();
+            ResultDescription leftResultDesc = leftPlan.resultDescription();
+            ResultDescription rightResultDesc = rightPlan.resultDescription();
             isDistributed = isDistributed &&
-                            (!leftResultPhase.executionNodes().isEmpty() && !rightResultPhase.executionNodes().isEmpty());
+                            (!leftResultDesc.executionNodes().isEmpty() && !rightResultDesc.executionNodes().isEmpty());
             boolean broadcastLeftTable = false;
             if (isDistributed) {
                 broadcastLeftTable = isLeftSmallerThanRight(left, right);
@@ -186,8 +179,8 @@ class NestedLoopConsumer implements Consumer {
                     left = right;
                     right = tmpRelation;
                     joinType = joinType.invert();
-                    leftResultPhase = leftPlan.resultPhase();
-                    rightResultPhase = rightPlan.resultPhase();
+                    leftResultDesc = leftPlan.resultDescription();
+                    rightResultDesc = rightPlan.resultDescription();
                 }
             }
             Set<String> handlerNodes = ImmutableSet.of(clusterService.localNode().id());
@@ -195,15 +188,16 @@ class NestedLoopConsumer implements Consumer {
 
             MergePhase leftMerge = null;
             MergePhase rightMerge = null;
+            ResultDescription leftResultDescription = leftPlan.resultDescription();
             if (isDistributed) {
-                leftResultPhase.distributionInfo(DistributionInfo.DEFAULT_SAME_NODE);
-                nlExecutionNodes = leftResultPhase.executionNodes();
+                leftResultDesc.distributionInfo(DistributionInfo.DEFAULT_SAME_NODE);
+                nlExecutionNodes = leftResultDesc.executionNodes();
             } else {
-                if (isMergePhaseNeeded(nlExecutionNodes, leftResultPhase.executionNodes(), false)) {
+                if (isMergePhaseNeeded(nlExecutionNodes, leftResultDesc.executionNodes(), false)) {
                     leftMerge = MergePhase.mergePhase(
                         context.plannerContext(),
                         nlExecutionNodes,
-                        leftResultPhase.executionNodes().size(),
+                        leftResultDesc.executionNodes().size(),
                         left.querySpec().orderBy().orNull(),
                         null,
                         ImmutableList.<Projection>of(),
@@ -211,25 +205,26 @@ class NestedLoopConsumer implements Consumer {
                         null);
                 }
             }
+            ResultDescription rightResultDescription = rightPlan.resultDescription();
             if (nlExecutionNodes.size() == 1
-                && nlExecutionNodes.equals(rightResultPhase.executionNodes())) {
+                && nlExecutionNodes.equals(rightResultDesc.executionNodes())) {
                 // if the left and the right plan are executed on the same single node the mergePhase
                 // should be omitted. This is the case if the left and right table have only one shards which
                 // are on the same node
-                rightResultPhase.distributionInfo(DistributionInfo.DEFAULT_SAME_NODE);
+                rightResultDesc.distributionInfo(DistributionInfo.DEFAULT_SAME_NODE);
             } else {
-                if (isMergePhaseNeeded(nlExecutionNodes, rightResultPhase.executionNodes(), isDistributed)) {
+                if (isMergePhaseNeeded(nlExecutionNodes, rightResultDesc.executionNodes(), isDistributed)) {
                     rightMerge = MergePhase.mergePhase(
                         context.plannerContext(),
                         nlExecutionNodes,
-                        rightResultPhase.executionNodes().size(),
+                        rightResultDesc.executionNodes().size(),
                         right.querySpec().orderBy().orNull(),
                         null,
                         ImmutableList.<Projection>of(),
                         right.querySpec().outputs(),
                         null);
                 }
-                rightResultPhase.distributionInfo(DistributionInfo.DEFAULT_BROADCAST);
+                rightResultDesc.distributionInfo(DistributionInfo.DEFAULT_BROADCAST);
             }
 
 
@@ -239,8 +234,8 @@ class NestedLoopConsumer implements Consumer {
                 rightPlan = tmpPlan;
                 leftMerge = rightMerge;
                 rightMerge = null;
-                leftResultPhase = leftPlan.resultPhase();
-                rightResultPhase = rightPlan.resultPhase();
+                leftResultDesc = leftPlan.resultDescription();
+                rightResultDesc = rightPlan.resultDescription();
             }
             List<Projection> projections = new ArrayList<>();
 

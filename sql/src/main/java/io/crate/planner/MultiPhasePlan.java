@@ -23,7 +23,6 @@
 package io.crate.planner;
 
 import io.crate.analyze.symbol.SelectSymbol;
-import io.crate.planner.distribution.UpstreamPhase;
 import io.crate.planner.projection.Projection;
 
 import java.util.Map;
@@ -83,12 +82,7 @@ public class MultiPhasePlan implements Plan {
     }
 
     @Override
-    public boolean resultIsDistributed() {
-        return rootPlan.resultIsDistributed();
-    }
-
-    @Override
-    public UpstreamPhase resultPhase() {
-        return rootPlan.resultPhase();
+    public ResultDescription resultDescription() {
+        return rootPlan.resultDescription();
     }
 }

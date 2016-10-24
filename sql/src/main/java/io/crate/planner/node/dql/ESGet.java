@@ -29,17 +29,15 @@ import io.crate.analyze.symbol.Symbol;
 import io.crate.analyze.symbol.Symbols;
 import io.crate.analyze.where.DocKeys;
 import io.crate.metadata.doc.DocTableInfo;
-import io.crate.planner.Plan;
 import io.crate.planner.PlanVisitor;
-import io.crate.planner.distribution.UpstreamPhase;
-import io.crate.planner.projection.Projection;
+import io.crate.planner.UnnestablePlan;
 import io.crate.types.DataType;
 
 import java.util.List;
 import java.util.UUID;
 
 
-public class ESGet implements Plan {
+public class ESGet extends UnnestablePlan {
 
     private final DocTableInfo tableInfo;
     private final List<Symbol> sortSymbols;
@@ -132,22 +130,6 @@ public class ESGet implements Plan {
             .add("docKeys", docKeys)
             .add("outputs", outputs)
             .toString();
-    }
-
-    @Override
-    public void addProjection(Projection projection) {
-        throw new UnsupportedOperationException("ESGetNode doesn't support projections");
-    }
-
-    @Override
-    public boolean resultIsDistributed() {
-        return false;
-    }
-
-    @Override
-    public UpstreamPhase resultPhase() {
-        //return this;
-        throw new UnsupportedOperationException("resultPhase is not supported");
     }
 
     @Override

@@ -21,7 +21,6 @@
 
 package io.crate.planner.node.dql;
 
-import com.google.common.base.Function;
 import com.google.common.base.MoreObjects;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
@@ -30,6 +29,7 @@ import io.crate.analyze.OrderBy;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.analyze.symbol.Symbols;
 import io.crate.planner.Planner;
+import io.crate.planner.ResultDescription;
 import io.crate.planner.consumer.OrderByPositionVisitor;
 import io.crate.planner.distribution.DistributionInfo;
 import io.crate.planner.distribution.UpstreamPhase;
@@ -47,7 +47,7 @@ import java.util.*;
 /**
  * A plan node which merges results from upstreams
  */
-public class MergePhase extends AbstractProjectionsPhase implements UpstreamPhase {
+public class MergePhase extends AbstractProjectionsPhase implements UpstreamPhase, ResultDescription {
 
     public static final ExecutionPhaseFactory<MergePhase> FACTORY = new ExecutionPhaseFactory<MergePhase>() {
         @Override

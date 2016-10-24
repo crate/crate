@@ -36,6 +36,8 @@ import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.metadata.DocReferenceConverter;
 import io.crate.planner.Plan;
 import io.crate.planner.Planner;
+import io.crate.planner.ResultDescription;
+import io.crate.planner.node.ExecutionPhases;
 import io.crate.planner.node.dml.InsertFromSubQuery;
 import io.crate.planner.node.dql.MergePhase;
 import io.crate.planner.projection.ColumnIndexWriterProjection;
@@ -97,14 +99,15 @@ public class InsertFromSubQueryConsumer implements Consumer {
             plannedSubQuery.addProjection(indexWriterProjection);
 
             MergePhase mergeNode = null;
-            if (plannedSubQuery.resultIsDistributed()) {
+            ResultDescription resultDescription = plannedSubQuery.resultDescription();
+            if (!ExecutionPhases.executesOnHandler(plannerContext.handlerNode(), resultDescription.executionNodes())) {
                 // add local merge Node which aggregates the distributed results
                 MergeCountProjection mergeCountProjection = MergeCountProjection.INSTANCE;
                 mergeNode = MergePhase.localMerge(
                     plannerContext.jobId(),
                     plannerContext.nextExecutionPhaseId(),
                     ImmutableList.<Projection>of(mergeCountProjection),
-                    plannedSubQuery.resultPhase().executionNodes().size(),
+                    resultDescription.executionNodes().size(),
                     Symbols.extractTypes(indexWriterProjection.outputs()));
                 mergeNode.executionNodes(Sets.newHashSet(plannerContext.clusterService().localNode().id()));
             }

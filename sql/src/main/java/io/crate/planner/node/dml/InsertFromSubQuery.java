@@ -25,14 +25,13 @@ package io.crate.planner.node.dml;
 import com.google.common.base.Optional;
 import io.crate.planner.Plan;
 import io.crate.planner.PlanVisitor;
-import io.crate.planner.distribution.UpstreamPhase;
+import io.crate.planner.UnnestablePlan;
 import io.crate.planner.node.dql.MergePhase;
-import io.crate.planner.projection.Projection;
 
 import javax.annotation.Nullable;
 import java.util.UUID;
 
-public class InsertFromSubQuery implements Plan {
+public class InsertFromSubQuery extends UnnestablePlan {
 
 
     private final Optional<MergePhase> handlerMergeNode;
@@ -63,20 +62,5 @@ public class InsertFromSubQuery implements Plan {
 
     public Optional<MergePhase> handlerMergeNode() {
         return handlerMergeNode;
-    }
-
-    @Override
-    public void addProjection(Projection projection) {
-        throw new UnsupportedOperationException("addingProjection not supported");
-    }
-
-    @Override
-    public boolean resultIsDistributed() {
-        throw new UnsupportedOperationException("resultIsDistributed is not supported");
-    }
-
-    @Override
-    public UpstreamPhase resultPhase() {
-        throw new UnsupportedOperationException("resultPhase is not supported");
     }
 }

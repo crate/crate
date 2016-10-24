@@ -26,13 +26,14 @@ import com.google.common.base.Function;
 import io.crate.analyze.EvaluatingNormalizer;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.metadata.TransactionContext;
+import io.crate.planner.ResultDescription;
 import io.crate.planner.distribution.UpstreamPhase;
 import io.crate.planner.projection.Projection;
 
 import java.util.List;
 import java.util.UUID;
 
-public interface CollectPhase extends UpstreamPhase {
+public interface CollectPhase extends UpstreamPhase, ResultDescription {
     UUID jobId();
 
     List<Symbol> toCollect();

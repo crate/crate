@@ -1264,7 +1264,6 @@ public class LuceneQueryBuilder {
             return new GenericFunctionQuery(function, expressions, collectorContext, condition);
         }
 
-
         private static Query raiseUnsupported(Function function) {
             throw new UnsupportedOperationException(
                 SymbolFormatter.format("Cannot convert function %s into a query", function));

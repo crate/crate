@@ -191,8 +191,8 @@ public class PlannerTest extends AbstractPlannerTest {
         RoutedCollectPhase collectPhase = ((RoutedCollectPhase) ((CollectAndMerge) plan).collectPhase());
         assertTrue(collectPhase.whereClause().hasQuery());
 
-        assertThat(((CollectAndMerge) plan).resultPhase(), instanceOf(MergePhase.class));
-        MergePhase mergePhase = (MergePhase) ((CollectAndMerge) plan).resultPhase();
+        assertThat(plan.resultDescription(), instanceOf(MergePhase.class));
+        MergePhase mergePhase = ((CollectAndMerge) plan).localMerge();
         assertThat(mergePhase.outputTypes().size(), is(1));
         assertEquals(DataTypes.STRING, mergePhase.outputTypes().get(0));
 
