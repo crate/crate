@@ -149,7 +149,7 @@ class DistributedGroupByConsumer implements Consumer {
                 }
             }
 
-            Limits limits = plannerContext.getLimits(context.isRoot(), querySpec);
+            Limits limits = plannerContext.getLimits(querySpec);
             boolean isRootRelation = context.rootRelation() == table;
             if (isRootRelation) {
                 reducerProjections.add(ProjectionBuilder.topNProjection(

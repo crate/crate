@@ -142,7 +142,7 @@ class NestedLoopConsumer implements Consumer {
             boolean filterNeeded = where.hasQuery() && !(where.query() instanceof Literal);
             boolean hasDocTables = left instanceof QueriedDocTable || right instanceof QueriedDocTable;
             boolean isDistributed = hasDocTables && filterNeeded && !joinType.isOuter();
-            Limits limits = context.plannerContext().getLimits(context.isRoot(), querySpec);
+            Limits limits = context.plannerContext().getLimits(querySpec);
 
             if (filterNeeded || joinCondition != null || statement.remainingOrderBy().isPresent()) {
                 left.querySpec().limit(Optional.<Symbol>absent());
