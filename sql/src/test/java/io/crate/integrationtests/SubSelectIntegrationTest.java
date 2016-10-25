@@ -39,9 +39,9 @@ public class SubSelectIntegrationTest extends SQLTransportIntegrationTest {
         execute("select i, name from (select id as i, name from characters order by name) as ch order by i desc");
         assertThat(TestingHelpers.printedTable(response.rows()),
             is("4| Arthur\n" +
-               "1| Arthur\n" +
+               "3| Trillian\n" +
                "2| Ford\n" +
-               "3| Trillian\n"));
+               "1| Arthur\n"));
     }
 
     @Test

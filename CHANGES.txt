@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+  - Fix: ``ORDER BY`` was applied in wrong order in case of rewritable
+    subselects.
+
  - Show meaningful error when a node is started with invalid settings,
    e.g. invalid unicast host.
 
