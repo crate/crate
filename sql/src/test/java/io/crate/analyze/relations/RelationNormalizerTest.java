@@ -75,7 +75,7 @@ public class RelationNormalizerTest extends BaseAnalyzerTest {
         QueriedRelation relation = normalize(
             "select x from (select * from (select concat(a, a) as aa, x from t1) as t order by aa) as tt order by x");
         assertThat(relation, instanceOf(QueriedDocTable.class));
-        assertThat(relation.querySpec(), isSQL("SELECT doc.t1.x ORDER BY concat(doc.t1.a, doc.t1.a), doc.t1.x"));
+        assertThat(relation.querySpec(), isSQL("SELECT doc.t1.x ORDER BY doc.t1.x, concat(doc.t1.a, doc.t1.a)"));
     }
 
     @Test
@@ -101,7 +101,8 @@ public class RelationNormalizerTest extends BaseAnalyzerTest {
         QueriedRelation relation = normalize(
             "select x from (select x, (i + i) as ii from t1 where a = 'a') as tt where ii > 10");
         assertThat(relation, instanceOf(QueriedDocTable.class));
-        assertThat(relation.querySpec(), isSQL("SELECT doc.t1.x WHERE ((doc.t1.a = 'a') AND (add(doc.t1.i, doc.t1.i) > 10))"));
+        assertThat(relation.querySpec(),
+            isSQL("SELECT doc.t1.x WHERE ((add(doc.t1.i, doc.t1.i) > 10) AND (doc.t1.a = 'a'))"));
     }
 
     @Test
@@ -246,9 +247,9 @@ public class RelationNormalizerTest extends BaseAnalyzerTest {
 
         // make sure that where clause was pushed down and didn't disappear somehow
         MultiSourceSelect.Source t1 = ((MultiSourceSelect) relation).sources().get(T3.T1);
-        assertThat(t1.querySpec().where().query(), isSQL("(true AND (doc.t1.a = 'a'))"));
+        assertThat(t1.querySpec().where().query(), isSQL("(doc.t1.a = 'a')"));
         MultiSourceSelect.Source t2 = ((MultiSourceSelect) relation).sources().get(T3.T2);
-        assertThat(t2.querySpec().where().query(), isSQL("(doc.t2.y > 60)"));
+        assertThat(t2.querySpec().where().query(), isSQL("(true AND (doc.t2.y > 60))"));
     }
 
     @Test
@@ -260,7 +261,7 @@ public class RelationNormalizerTest extends BaseAnalyzerTest {
             "where col1 = 'a' order by col3");
         assertThat(relation, instanceOf(MultiSourceSelect.class));
         assertThat(relation.querySpec(), isSQL(
-            "SELECT doc.t1.a, doc.t2.i WHERE ((doc.t2.y > 60) AND true) ORDER BY doc.t2.y"));
+            "SELECT doc.t1.a, doc.t2.i WHERE (true AND (doc.t2.y > 60)) ORDER BY doc.t2.y"));
         assertThat(((MultiSourceSelect) relation).joinPairs().get(0).condition(), isSQL("(doc.t1.a = doc.t2.b)"));
 
         // make sure that where clause was pushed down and didn't disappear somehow
@@ -279,7 +280,7 @@ public class RelationNormalizerTest extends BaseAnalyzerTest {
             "where col2 = 10 order by col3");
         assertThat(relation, instanceOf(MultiSourceSelect.class));
         assertThat(relation.querySpec(), isSQL(
-            "SELECT doc.t1.a, doc.t2.i WHERE ((doc.t1.x > 60) AND true) ORDER BY doc.t2.y"));
+            "SELECT doc.t1.a, doc.t2.i WHERE (true AND (doc.t1.x > 60)) ORDER BY doc.t2.y"));
         assertThat(((MultiSourceSelect) relation).joinPairs().get(0).condition(), isSQL("(doc.t1.a = doc.t2.b)"));
 
         // make sure that where clause was pushed down and didn't disappear somehow
@@ -298,7 +299,7 @@ public class RelationNormalizerTest extends BaseAnalyzerTest {
             "where col1 = 'a' order by col3");
         assertThat(relation, instanceOf(MultiSourceSelect.class));
         assertThat(relation.querySpec(), isSQL(
-            "SELECT doc.t1.a, doc.t2.i WHERE ((doc.t2.y > 60) AND (doc.t1.a = 'a')) ORDER BY doc.t2.y"));
+            "SELECT doc.t1.a, doc.t2.i WHERE ((doc.t1.a = 'a') AND (doc.t2.y > 60)) ORDER BY doc.t2.y"));
 
         // make sure that where clause wasn't pushed down since but be applied after the FULL join
         MultiSourceSelect.Source t1 = ((MultiSourceSelect) relation).sources().get(T3.T1);
@@ -315,7 +316,6 @@ public class RelationNormalizerTest extends BaseAnalyzerTest {
             "  from t1, t2 limit 5 offset 5) as t " +
             "order by col3 limit 10 offset 2");
         assertThat(relation, instanceOf(MultiSourceSelect.class));
-        assertThat(relation.querySpec(), isSQL(
-            "SELECT doc.t1.a, doc.t2.i ORDER BY doc.t2.y LIMIT 5 OFFSET 7"));
+        assertThat(relation.querySpec(), isSQL("SELECT doc.t1.a, doc.t2.i ORDER BY doc.t2.y LIMIT 5 OFFSET 7"));
     }
 }

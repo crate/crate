@@ -69,7 +69,7 @@ final class RelationNormalizer extends AnalyzedRelationVisitor<RelationNormalize
             return relation;
         }
 
-        context.querySpec = mergeQuerySpec(context.querySpec, relation.querySpec());
+        context.querySpec = mergeQuerySpec(relation.querySpec(), context.querySpec);
         return process(relation.relation(), context);
     }
 
@@ -120,28 +120,26 @@ final class RelationNormalizer extends AnalyzedRelationVisitor<RelationNormalize
         });
     }
 
-    private QuerySpec mergeAndReplaceFields(QueriedRelation table, QuerySpec querySpec) {
-        QuerySpec mergedQuerySpec = mergeQuerySpec(querySpec, table.querySpec());
+    private QuerySpec mergeAndReplaceFields(QueriedRelation table, QuerySpec parentQSpec) {
+        QuerySpec mergedQuerySpec = mergeQuerySpec(table.querySpec(), parentQSpec);
         replaceFieldReferences(mergedQuerySpec);
         return mergedQuerySpec;
     }
 
-    private static QuerySpec mergeQuerySpec(@Nullable QuerySpec querySpec1, QuerySpec querySpec2) {
-        if (querySpec1 == null) {
-            return querySpec2;
+    private static QuerySpec mergeQuerySpec(QuerySpec childQSpec, @Nullable QuerySpec parentQSpec) {
+        if (parentQSpec == null) {
+            return childQSpec;
         }
 
-        QuerySpec querySpec = new QuerySpec()
-            .outputs(querySpec1.outputs())
-            .where(mergeWhere(querySpec1.where(), querySpec2.where()))
-            .orderBy(mergeOrderBy(querySpec1.orderBy(), querySpec2.orderBy()))
-            .offset(querySpec1.offset() + querySpec2.offset())
-            .limit(mergeLimit(querySpec1.limit(), querySpec2.limit()))
-            .groupBy(pushGroupBy(querySpec1.groupBy(), querySpec2.groupBy()))
-            .having(pushHaving(querySpec1.having(), querySpec2.having()))
-            .hasAggregates(querySpec1.hasAggregates() || querySpec2.hasAggregates());
-
-        return querySpec;
+        return new QuerySpec()
+            .outputs(parentQSpec.outputs())
+            .where(mergeWhere(childQSpec.where(), parentQSpec.where()))
+            .orderBy(mergeOrderBy(childQSpec.orderBy(), parentQSpec.orderBy()))
+            .offset(childQSpec.offset() + parentQSpec.offset())
+            .limit(mergeLimit(childQSpec.limit(), parentQSpec.limit()))
+            .groupBy(pushGroupBy(childQSpec.groupBy(), parentQSpec.groupBy()))
+            .having(pushHaving(childQSpec.having(), parentQSpec.having()))
+            .hasAggregates(childQSpec.hasAggregates() || parentQSpec.hasAggregates());
     }
 
     private static WhereClause mergeWhere(WhereClause where1, WhereClause where2) {
@@ -154,12 +152,28 @@ final class RelationNormalizer extends AnalyzedRelationVisitor<RelationNormalize
         return new WhereClause(AndOperator.join(ImmutableList.of(where2.query(), where1.query())));
     }
 
+    /**
+     * Merge OrderBy symbols with the ones of the parent being prepended
+     * to the ones of the child as the have bigger priority.
+     * <p/>
+     * eg.
+     * <pre>
+     *      childOrderBy: col1, col2
+     *      parentOrderBy: col2, col3, col4
+     *
+     *      merged OrderBy returned: col2, col3, col4, col1
+     * </pre>
+     *
+     * @param childOrderBy The OrderBy of the relation being processed
+     * @param parentOrderBy The OrderBy of the parent relation (outer select,  union, etc.)
+     * @return The merged orderBy
+     */
     @Nullable
-    private static OrderBy mergeOrderBy(Optional<OrderBy> o1, Optional<OrderBy> o2) {
-        if (!o1.isPresent() || !o2.isPresent()) {
-            return o1.or(o2).orNull();
+    private static OrderBy mergeOrderBy(Optional<OrderBy> childOrderBy, Optional<OrderBy> parentOrderBy) {
+        if (!childOrderBy.isPresent() || !parentOrderBy.isPresent()) {
+            return childOrderBy.or(parentOrderBy).orNull();
         }
-        return o1.get().merge(o2.get());
+        return childOrderBy.get().merge(parentOrderBy.get());
     }
 
     @Nullable
