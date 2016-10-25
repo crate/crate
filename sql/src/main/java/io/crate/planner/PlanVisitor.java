@@ -21,12 +21,11 @@
 
 package io.crate.planner;
 
-import io.crate.planner.node.ddl.CreateAnalyzerPlan;
-import io.crate.planner.node.ddl.DropTablePlan;
-import io.crate.planner.node.ddl.ESClusterUpdateSettingsPlan;
-import io.crate.planner.node.ddl.ESDeletePartition;
-import io.crate.planner.node.ddl.GenericDDLPlan;
-import io.crate.planner.node.dml.*;
+import io.crate.planner.node.ddl.*;
+import io.crate.planner.node.dml.CopyTo;
+import io.crate.planner.node.dml.ESDelete;
+import io.crate.planner.node.dml.Upsert;
+import io.crate.planner.node.dml.UpsertById;
 import io.crate.planner.node.dql.*;
 import io.crate.planner.node.dql.join.NestedLoop;
 import io.crate.planner.node.management.ExplainPlan;
@@ -61,11 +60,7 @@ public class PlanVisitor<C, R> {
         return visitPlan(node, context);
     }
 
-    public R visitInsertByQuery(InsertFromSubQuery node, C context) {
-        return visitPlan(node, context);
-    }
-
-    public R visitCollectAndMerge(CollectAndMerge plan, C context) {
+    public R visitCollect(Collect plan, C context) {
         return visitPlan(plan, context);
     }
 
@@ -131,5 +126,9 @@ public class PlanVisitor<C, R> {
 
     public R visitMultiPhasePlan(MultiPhasePlan multiPhasePlan, C context) {
         return visitPlan(multiPhasePlan, context);
+    }
+
+    public R visitMerge(Merge merge, C context) {
+        return visitPlan(merge, context);
     }
 }

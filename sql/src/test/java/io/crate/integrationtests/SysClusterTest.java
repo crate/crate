@@ -57,6 +57,8 @@ public class SysClusterTest extends SQLTransportIntegrationTest {
     public void testExplainSysCluster() throws Exception {
         execute("explain select * from sys.cluster limit 2"); // using limit to test projection serialization as well
         assertThat(response.rowCount(), is(1L));
-        assertThat((String) ((Map<String, Object>) response.rows()[0][0]).get("planType"), is("CollectAndMerge"));
+        Map<String, Object> map = (Map<String, Object>) response.rows()[0][0];
+        assertThat((String) map.get("planType"), is("Merge"));
+        assertThat(((String) ((Map) map.get("subPlan")).get("planType")), is("Collect"));
     }
 }

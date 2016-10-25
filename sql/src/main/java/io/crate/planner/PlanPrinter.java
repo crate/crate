@@ -30,7 +30,6 @@ import io.crate.planner.distribution.DistributionInfo;
 import io.crate.planner.distribution.UpstreamPhase;
 import io.crate.planner.node.ExecutionPhase;
 import io.crate.planner.node.ExecutionPhaseVisitor;
-import io.crate.planner.node.dml.InsertFromSubQuery;
 import io.crate.planner.node.dql.*;
 import io.crate.planner.node.dql.join.NestedLoop;
 import io.crate.planner.node.dql.join.NestedLoopPhase;
@@ -211,50 +210,26 @@ public class PlanPrinter {
         }
 
         @Override
-        public ImmutableMap.Builder<String, Object> visitCollectAndMerge(CollectAndMerge plan, Void context) {
+        public ImmutableMap.Builder<String, Object> visitCollect(Collect plan, Void context) {
             ImmutableMap.Builder<String, Object> b = visitPlan(plan, context)
                 .put("collectPhase", phaseMap(plan.collectPhase()));
-            if (plan.localMerge() != null) {
-                b.put("localMerge", phaseMap(plan.localMerge()));
-            }
             return b;
-        }
-
-        @Override
-        public ImmutableMap.Builder<String, Object> visitInsertByQuery(InsertFromSubQuery node, Void context) {
-            ImmutableMap.Builder<String, Object> builder = visitPlan(node, context);
-            builder.put("innerPlan", process(node.innerPlan(), context).build());
-
-            if (node.handlerMergeNode().isPresent()) {
-                builder.put("localMerge", phaseMap(node.handlerMergeNode().get()));
-            }
-            return builder;
         }
 
         @Override
         public ImmutableMap.Builder<String, Object> visitNestedLoop(NestedLoop plan, Void context) {
-            ImmutableMap.Builder<String, Object> builder = newBuilder()
+            return newBuilder()
                 .put("planType", plan.getClass().getSimpleName())
                 .put("left", process(plan.left(), context).build())
                 .put("right", process(plan.right(), context).build())
                 .put("nestedLoopPhase", phaseMap(plan.nestedLoopPhase()));
-
-            MergePhase mergePhase = plan.localMerge();
-            if (mergePhase != null) {
-                builder.put("localMerge", phaseMap(mergePhase));
-            }
-            return builder;
         }
 
         @Override
         public ImmutableMap.Builder<String, Object> visitQueryThenFetch(QueryThenFetch plan, Void context) {
-            ImmutableMap.Builder<String, Object> b = visitPlan(plan, context)
-                .put("subPlan", toMap(plan.subPlan()));
-            if (plan.localMerge() != null) {
-                b.put("localMerge", phaseMap(plan.localMerge()));
-            }
-            b.put("fetchPhase", phaseMap(plan.fetchPhase()));
-            return b;
+            return visitPlan(plan, context)
+                .put("subPlan", toMap(plan.subPlan()))
+                .put("fetchPhase", phaseMap(plan.fetchPhase()));
         }
 
         @Override
@@ -266,6 +241,13 @@ public class PlanPrinter {
             return visitPlan(multiPhasePlan, context)
                 .put("rootPlan", toMap(multiPhasePlan.rootPlan()))
                 .put("dependencies", dependencies);
+        }
+
+        @Override
+        public ImmutableMap.Builder<String, Object> visitMerge(Merge merge, Void context) {
+            return visitPlan(merge, context)
+                .put("subPlan", toMap(merge.subPlan()))
+                .put("mergePhase", phaseMap(merge.mergePhase()));
         }
     }
 }

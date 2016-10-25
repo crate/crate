@@ -27,21 +27,16 @@ import io.crate.planner.ResultDescription;
 import io.crate.planner.distribution.DistributionInfo;
 import io.crate.planner.projection.Projection;
 
-import javax.annotation.Nullable;
 import java.util.UUID;
 
 public class DistributedGroupBy implements Plan {
 
-    private final RoutedCollectPhase collectNode;
+    private final RoutedCollectPhase collectPhase;
     private final MergePhase reducerMergeNode;
-    private MergePhase localMergeNode;
-    private final UUID id;
 
-    public DistributedGroupBy(RoutedCollectPhase collectNode, MergePhase reducerMergeNode, @Nullable MergePhase localMergeNode, UUID id) {
-        this.collectNode = collectNode;
+    public DistributedGroupBy(RoutedCollectPhase collectPhase, MergePhase reducerMergeNode) {
+        this.collectPhase = collectPhase;
         this.reducerMergeNode = reducerMergeNode;
-        this.localMergeNode = localMergeNode;
-        this.id = id;
     }
 
     @Override
@@ -51,44 +46,29 @@ public class DistributedGroupBy implements Plan {
 
     @Override
     public UUID jobId() {
-        return id;
+        return collectPhase.jobId();
     }
 
-    public RoutedCollectPhase collectNode() {
-        return collectNode;
+    public RoutedCollectPhase collectPhase() {
+        return collectPhase;
     }
 
     public MergePhase reducerMergeNode() {
         return reducerMergeNode;
     }
 
-    public MergePhase localMergeNode() {
-        return localMergeNode;
-    }
-
     @Override
     public void addProjection(Projection projection) {
-        if (localMergeNode != null) {
-            localMergeNode.addProjection(projection);
-        } else {
-            reducerMergeNode.addProjection(projection);
-        }
+        reducerMergeNode.addProjection(projection);
     }
 
     @Override
     public ResultDescription resultDescription() {
-        if (localMergeNode == null) {
-            return reducerMergeNode;
-        }
-        return localMergeNode;
+        return reducerMergeNode;
     }
 
     @Override
     public void setDistributionInfo(DistributionInfo distributionInfo) {
-        if (localMergeNode == null) {
-            reducerMergeNode.distributionInfo(distributionInfo);
-        } else {
-            reducerMergeNode.distributionInfo(distributionInfo);
-        }
+        reducerMergeNode.distributionInfo(distributionInfo);
     }
 }

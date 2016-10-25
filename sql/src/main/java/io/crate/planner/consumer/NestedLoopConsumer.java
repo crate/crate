@@ -281,20 +281,16 @@ class NestedLoopConsumer implements Consumer {
                 left.querySpec().outputs().size(),
                 right.querySpec().outputs().size()
             );
-            MergePhase localMergePhase = null;
+            NestedLoop nestedLoop = new NestedLoop(nl, leftPlan, rightPlan);
             // TODO: build local merge phases somewhere else for any subplan
             if (isDistributed && context.isRoot()) {
-                if (isMergePhaseNeeded(handlerNodes, nl.nodeIds(), true)) {
-                    localMergePhase = MergePhase.mergePhase(
-                        context.plannerContext(),
-                        handlerNodes,
-                        nl.nodeIds().size(),
-                        PositionalOrderBy.of(orderByBeforeSplit, postNLOutputs),
-                        ImmutableList.of(),
-                        Symbols.extractTypes(postNLOutputs)
-                    );
-                }
-                assert localMergePhase != null : "local merge phase must not be null";
+                MergePhase localMergePhase = MergePhase.mergePhase(
+                    context.plannerContext(),
+                    handlerNodes,
+                    nl.nodeIds().size(),
+                    PositionalOrderBy.of(orderByBeforeSplit, postNLOutputs),
+                    ImmutableList.of(),
+                    Symbols.extractTypes(postNLOutputs));
                 TopNProjection finalTopN = ProjectionBuilder.topNProjection(
                     postNLOutputs,
                     null, // orderBy = null because mergePhase receives data sorted
@@ -303,8 +299,9 @@ class NestedLoopConsumer implements Consumer {
                     querySpec.outputs()
                 );
                 localMergePhase.addProjection(finalTopN);
+                return new Merge(nestedLoop, localMergePhase);
             }
-            return new NestedLoop(nl, leftPlan, rightPlan, localMergePhase, handlerNodes);
+            return nestedLoop;
         }
 
         private void addOutputsAndSymbolMap(Iterable<? extends Symbol> outputs,

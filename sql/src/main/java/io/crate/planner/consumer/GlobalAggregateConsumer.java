@@ -36,11 +36,8 @@ import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RowGranularity;
-import io.crate.planner.Limits;
-import io.crate.planner.NoopPlan;
-import io.crate.planner.Plan;
-import io.crate.planner.Planner;
-import io.crate.planner.node.dql.CollectAndMerge;
+import io.crate.planner.*;
+import io.crate.planner.node.dql.Collect;
 import io.crate.planner.node.dql.MergePhase;
 import io.crate.planner.node.dql.RoutedCollectPhase;
 import io.crate.planner.projection.AggregationProjection;
@@ -164,7 +161,7 @@ class GlobalAggregateConsumer implements Consumer {
             projections,
             collectPhase.nodeIds().size(),
             collectPhase.outputTypes());
-        return new CollectAndMerge(collectPhase, localMergeNode);
+        return new Merge(new Collect(collectPhase), localMergeNode);
     }
 
     private static void validateAggregationOutputs(AbstractTableRelation tableRelation, Collection<? extends Symbol> outputSymbols) {

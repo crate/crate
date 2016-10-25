@@ -34,11 +34,11 @@ import io.crate.analyze.symbol.Symbol;
 import io.crate.analyze.symbol.Symbols;
 import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.metadata.DocReferenceConverter;
+import io.crate.planner.Merge;
 import io.crate.planner.Plan;
 import io.crate.planner.Planner;
 import io.crate.planner.ResultDescription;
 import io.crate.planner.node.ExecutionPhases;
-import io.crate.planner.node.dml.InsertFromSubQuery;
 import io.crate.planner.node.dql.MergePhase;
 import io.crate.planner.projection.ColumnIndexWriterProjection;
 import io.crate.planner.projection.MergeCountProjection;
@@ -98,20 +98,21 @@ public class InsertFromSubQueryConsumer implements Consumer {
 
             plannedSubQuery.addProjection(indexWriterProjection);
 
-            MergePhase mergeNode = null;
             ResultDescription resultDescription = plannedSubQuery.resultDescription();
             if (!ExecutionPhases.executesOnHandler(plannerContext.handlerNode(), resultDescription.nodeIds())) {
                 // add local merge Node which aggregates the distributed results
                 MergeCountProjection mergeCountProjection = MergeCountProjection.INSTANCE;
-                mergeNode = MergePhase.localMerge(
+                MergePhase localMerge = MergePhase.localMerge(
                     plannerContext.jobId(),
                     plannerContext.nextExecutionPhaseId(),
                     ImmutableList.<Projection>of(mergeCountProjection),
                     resultDescription.nodeIds().size(),
                     Symbols.extractTypes(indexWriterProjection.outputs()));
-                mergeNode.executionNodes(Sets.newHashSet(plannerContext.clusterService().localNode().id()));
+                localMerge.executionNodes(Sets.newHashSet(plannerContext.clusterService().localNode().id()));
+
+                return new Merge(plannedSubQuery, localMerge);
             }
-            return new InsertFromSubQuery(plannedSubQuery, mergeNode, plannerContext.jobId());
+            return plannedSubQuery;
         }
     }
 

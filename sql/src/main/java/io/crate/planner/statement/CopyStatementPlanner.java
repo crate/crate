@@ -36,11 +36,12 @@ import io.crate.metadata.PartitionName;
 import io.crate.metadata.Reference;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.doc.DocTableInfo;
+import io.crate.planner.Merge;
 import io.crate.planner.Plan;
 import io.crate.planner.Planner;
 import io.crate.planner.consumer.ConsumerContext;
 import io.crate.planner.node.dml.CopyTo;
-import io.crate.planner.node.dql.CollectAndMerge;
+import io.crate.planner.node.dql.Collect;
 import io.crate.planner.node.dql.FileUriCollectPhase;
 import io.crate.planner.node.dql.MergePhase;
 import io.crate.planner.projection.MergeCountProjection;
@@ -172,7 +173,7 @@ public class CopyStatementPlanner {
             analysis.settings().getAsBoolean("shared", null)
         );
 
-        return new CollectAndMerge(collectPhase, MergePhase.localMerge(
+        return new Merge(new Collect(collectPhase), MergePhase.localMerge(
             context.jobId(),
             context.nextExecutionPhaseId(),
             ImmutableList.<Projection>of(MergeCountProjection.INSTANCE),

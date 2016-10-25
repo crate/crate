@@ -31,6 +31,7 @@ import io.crate.analyze.where.DocKeys;
 import io.crate.collections.Lists2;
 import io.crate.metadata.ReplaceMode;
 import io.crate.metadata.ReplacingSymbolVisitor;
+import io.crate.planner.Merge;
 import io.crate.planner.Plan;
 import io.crate.planner.PlanVisitor;
 import io.crate.planner.node.dql.*;
@@ -82,22 +83,26 @@ class SubSelectSymbolReplacer implements FutureCallback<Object> {
         @Override
         public Void visitQueryThenFetch(QueryThenFetch plan, SymbolReplacer replacer) {
             process(plan.subPlan(), replacer);
-            process(plan.localMerge(), replacer);
             // plan.fetchPhase() -> has only references - no selectSymbols
             return null;
         }
 
         @Override
-        public Void visitCollectAndMerge(CollectAndMerge plan, SymbolReplacer replacer) {
+        public Void visitCollect(Collect plan, SymbolReplacer replacer) {
             plan.collectPhase().replaceSymbols(replacer);
-            process(plan.localMerge(), replacer);
+            return null;
+        }
+
+        @Override
+        public Void visitMerge(Merge merge, SymbolReplacer replacer) {
+            merge.mergePhase().replaceSymbols(replacer);
+            process(merge.subPlan(), replacer);
             return null;
         }
 
         @Override
         public Void visitDistributedGroupBy(DistributedGroupBy node, SymbolReplacer replacer) {
-            node.collectNode().replaceSymbols(replacer);
-            process(node.localMergeNode(), replacer);
+            node.collectPhase().replaceSymbols(replacer);
             process(node.reducerMergeNode(), replacer);
             return null;
         }
@@ -116,7 +121,6 @@ class SubSelectSymbolReplacer implements FutureCallback<Object> {
         public Void visitNestedLoop(NestedLoop plan, SymbolReplacer replacer) {
             process(plan.left(), replacer);
             process(plan.right(), replacer);
-            process(plan.localMerge(), replacer);
             plan.nestedLoopPhase().replaceSymbols(replacer);
             return null;
         }

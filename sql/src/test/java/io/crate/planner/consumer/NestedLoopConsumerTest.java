@@ -152,17 +152,19 @@ public class NestedLoopConsumerTest extends CrateUnitTest {
 
     @Test
     public void testNoLimitPushDownWithJoinConditionOnDocTables() throws Exception {
-        NestedLoop plan = plan("select u1.name, u2.name from users u1, users u2 where u1.name = u2.name  order by 1, 2 limit 10");
-        assertThat(((CollectAndMerge) plan.left()).collectPhase().projections().size(), is(0));
-        assertThat(((CollectAndMerge) plan.right()).collectPhase().projections().size(), is(0));
+        Merge merge = plan("select u1.name, u2.name from users u1, users u2 where u1.name = u2.name  order by 1, 2 limit 10");
+        NestedLoop nl = (NestedLoop) merge.subPlan();
+        assertThat(((Collect) nl.left()).collectPhase().projections().size(), is(0));
+        assertThat(((Collect) nl.right()).collectPhase().projections().size(), is(0));
     }
 
     @SuppressWarnings("unchecked")
     @Test
     public void testJoinConditionInWhereClause() throws Exception {
-        QueryThenFetch plan = plan("select u1.floats, u2.name from users u1, users u2 where u1.name || u2.name = 'foobar'");
+        QueryThenFetch qtf = plan("select u1.floats, u2.name from users u1, users u2 where u1.name || u2.name = 'foobar'");
+        Merge merge = (Merge) qtf.subPlan();
 
-        NestedLoop nestedLoop = (NestedLoop) plan.subPlan();
+        NestedLoop nestedLoop = (NestedLoop) merge.subPlan();
         assertThat(nestedLoop.nestedLoopPhase().projections(),
             Matchers.contains(instanceOf(FilterProjection.class), instanceOf(TopNProjection.class)));
 
@@ -171,8 +173,7 @@ public class NestedLoopConsumerTest extends CrateUnitTest {
         assertThat(topN.offset(), is(0));
         assertThat(topN.outputs().size(), is(3));
 
-        assertThat(plan.localMerge(), nullValue()); // NL Plan is non-distributed and contains localMerge
-        MergePhase localMergePhase = ((NestedLoop) plan.subPlan()).localMerge();
+        MergePhase localMergePhase = merge.mergePhase();
         assertThat(localMergePhase.projections(),
             Matchers.contains(instanceOf(TopNProjection.class), instanceOf(FetchProjection.class)));
 
@@ -187,10 +188,11 @@ public class NestedLoopConsumerTest extends CrateUnitTest {
 
     @Test
     public void testLeftSideIsBroadcastIfLeftTableIsSmaller() throws Exception {
-        NestedLoop plan = plan("select users.name, u2.name from users, users_multi_pk u2 " +
-                               "where users.name = u2.name " +
-                               "order by users.name, u2.name ");
-        ResultDescription resultDescription = plan.left().resultDescription();
+        Merge merge = plan("select users.name, u2.name from users, users_multi_pk u2 " +
+                           "where users.name = u2.name " +
+                           "order by users.name, u2.name ");
+        NestedLoop nl = (NestedLoop) merge.subPlan();
+        ResultDescription resultDescription = nl.left().resultDescription();
         assertThat(((UpstreamPhase) resultDescription).distributionInfo().distributionType(), is(DistributionType.BROADCAST));
     }
 
@@ -219,8 +221,8 @@ public class NestedLoopConsumerTest extends CrateUnitTest {
         NestedLoop plan = plan("select * from information_schema.tables, information_schema .columns " +
                                "where tables.table_schema = columns.table_schema " +
                                "and tables.table_name = columns.table_name limit 10");
-        assertThat(((CollectAndMerge) plan.left()).collectPhase().projections().size(), is(0));
-        assertThat(((CollectAndMerge) plan.right()).collectPhase().projections().size(), is(0));
+        assertThat(((Collect) plan.left()).collectPhase().projections().size(), is(0));
+        assertThat(((Collect) plan.right()).collectPhase().projections().size(), is(0));
     }
 
     @Test
@@ -228,8 +230,8 @@ public class NestedLoopConsumerTest extends CrateUnitTest {
         NestedLoop plan = plan("select * from information_schema.tables, information_schema .columns " +
                                "where tables.table_schema = columns.table_schema " +
                                "and tables.table_name = columns.table_name limit 10");
-        assertThat(((RoutedCollectPhase) ((CollectAndMerge) plan.left()).collectPhase()).nodePageSizeHint(), nullValue());
-        assertThat(((RoutedCollectPhase) ((CollectAndMerge) plan.right()).collectPhase()).nodePageSizeHint(), nullValue());
+        assertThat(((RoutedCollectPhase) ((Collect) plan.left()).collectPhase()).nodePageSizeHint(), nullValue());
+        assertThat(((RoutedCollectPhase) ((Collect) plan.right()).collectPhase()).nodePageSizeHint(), nullValue());
     }
 
     @SuppressWarnings("ConstantConditions")
@@ -241,7 +243,7 @@ public class NestedLoopConsumerTest extends CrateUnitTest {
         NestedLoop plan = plan("select u1.name, u2.name from users u1, users u2 order by u1.name, u2.name");
 
         assertThat(plan.left().resultDescription(), instanceOf(RoutedCollectPhase.class));
-        CollectAndMerge leftPlan = (CollectAndMerge) plan.left();
+        Collect leftPlan = (Collect) plan.left();
         CollectPhase collectPhase = leftPlan.collectPhase();
         assertThat(collectPhase.projections().size(), is(0));
         assertThat(collectPhase.toCollect().get(0), isReference("name"));
@@ -250,10 +252,10 @@ public class NestedLoopConsumerTest extends CrateUnitTest {
     @Test
     public void testNodePageSizePushDown() throws Exception {
         NestedLoop plan = plan("select u1.name from users u1, users u2 order by 1 limit 1000");
-        RoutedCollectPhase cpL = ((RoutedCollectPhase) ((CollectAndMerge) plan.left()).collectPhase());
+        RoutedCollectPhase cpL = ((RoutedCollectPhase) ((Collect) plan.left()).collectPhase());
         assertThat(cpL.nodePageSizeHint(), is(750));
 
-        RoutedCollectPhase cpR = ((RoutedCollectPhase) ((CollectAndMerge) plan.right()).collectPhase());
+        RoutedCollectPhase cpR = ((RoutedCollectPhase) ((Collect) plan.right()).collectPhase());
         assertThat(cpR.nodePageSizeHint(), is(750));
     }
 
@@ -290,23 +292,25 @@ public class NestedLoopConsumerTest extends CrateUnitTest {
 
     @Test
     public void testLimitIncludesOffsetOnNestedLoopTopNProjection() throws Exception {
-        NestedLoop nl = plan("select u1.name, u2.name from users u1, users u2 where u1.id = u2.id order by u1.name, u2.name limit 15 offset 10");
+        Merge merge = plan("select u1.name, u2.name from users u1, users u2 where u1.id = u2.id order by u1.name, u2.name limit 15 offset 10");
+        NestedLoop nl = (NestedLoop) merge.subPlan();
         TopNProjection distTopN = (TopNProjection) nl.nestedLoopPhase().projections().get(1);
 
         assertThat(distTopN.limit(), is(25));
         assertThat(distTopN.offset(), is(0));
 
-        TopNProjection localTopN = (TopNProjection) nl.localMerge().projections().get(0);
+        TopNProjection localTopN = (TopNProjection) merge.mergePhase().projections().get(0);
         assertThat(localTopN.limit(), is(15));
         assertThat(localTopN.offset(), is(10));
     }
 
     @Test
     public void testRefsAreNotConvertedToSourceLookups() throws Exception {
-        NestedLoop nl = plan("select u1.name from users u1, users u2 where u1.id = u2.id order by 1");
-        CollectPhase cpLeft = ((CollectAndMerge) nl.left()).collectPhase();
+        Merge merge = plan("select u1.name from users u1, users u2 where u1.id = u2.id order by 1");
+        NestedLoop nl = (NestedLoop) merge.subPlan();
+        CollectPhase cpLeft = ((Collect) nl.left()).collectPhase();
         assertThat(cpLeft.toCollect(), contains(isReference("id"), isReference("name")));
-        CollectPhase cpRight = ((CollectAndMerge) nl.right()).collectPhase();
+        CollectPhase cpRight = ((Collect) nl.right()).collectPhase();
         assertThat(cpRight.toCollect(), contains(isReference("id")));
     }
 

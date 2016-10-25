@@ -47,20 +47,16 @@ import io.crate.operation.NodeOperation;
 import io.crate.operation.NodeOperationTree;
 import io.crate.operation.projectors.ProjectionToProjectorVisitor;
 import io.crate.operation.projectors.RowReceiver;
-import io.crate.planner.MultiPhasePlan;
-import io.crate.planner.NoopPlan;
-import io.crate.planner.Plan;
-import io.crate.planner.PlanVisitor;
+import io.crate.planner.*;
 import io.crate.planner.distribution.DistributionType;
 import io.crate.planner.distribution.UpstreamPhase;
 import io.crate.planner.node.ExecutionPhase;
 import io.crate.planner.node.ExecutionPhases;
-import io.crate.planner.node.ddl.CreateAnalyzerPlan;
-import io.crate.planner.node.ddl.DropTablePlan;
-import io.crate.planner.node.ddl.ESClusterUpdateSettingsPlan;
-import io.crate.planner.node.ddl.ESDeletePartition;
-import io.crate.planner.node.ddl.GenericDDLPlan;
-import io.crate.planner.node.dml.*;
+import io.crate.planner.node.ddl.*;
+import io.crate.planner.node.dml.CopyTo;
+import io.crate.planner.node.dml.ESDelete;
+import io.crate.planner.node.dml.Upsert;
+import io.crate.planner.node.dml.UpsertById;
 import io.crate.planner.node.dql.*;
 import io.crate.planner.node.dql.join.NestedLoop;
 import io.crate.planner.node.management.ExplainPlan;
@@ -502,19 +498,9 @@ public class TransportExecutor implements Executor {
         }
 
         @Override
-        public Void visitInsertByQuery(InsertFromSubQuery node, NodeOperationTreeContext context) {
-            if (node.handlerMergeNode().isPresent()) {
-                context.addPhase(node.handlerMergeNode().get());
-            }
-            process(node.innerPlan(), context);
-            return null;
-        }
-
-        @Override
         public Void visitDistributedGroupBy(DistributedGroupBy node, NodeOperationTreeContext context) {
-            context.addPhase(node.localMergeNode());
             context.addPhase(node.reducerMergeNode());
-            context.addCollectExecutionPhase(node.collectNode());
+            context.addCollectExecutionPhase(node.collectPhase());
             return null;
         }
 
@@ -526,15 +512,19 @@ public class TransportExecutor implements Executor {
         }
 
         @Override
-        public Void visitCollectAndMerge(CollectAndMerge plan, NodeOperationTreeContext context) {
-            context.addPhase(plan.localMerge());
+        public Void visitCollect(Collect plan, NodeOperationTreeContext context) {
             context.addCollectExecutionPhase(plan.collectPhase());
+            return null;
+        }
 
+        @Override
+        public Void visitMerge(Merge merge, NodeOperationTreeContext context) {
+            context.addPhase(merge.mergePhase());
+            process(merge.subPlan(), context);
             return null;
         }
 
         public Void visitQueryThenFetch(QueryThenFetch node, NodeOperationTreeContext context) {
-            context.addPhase(node.localMerge());
             process(node.subPlan(), context);
             context.addContextPhase(node.fetchPhase());
             return null;
@@ -542,7 +532,6 @@ public class TransportExecutor implements Executor {
 
         @Override
         public Void visitNestedLoop(NestedLoop plan, NodeOperationTreeContext context) {
-            context.addPhase(plan.localMerge());
             context.addPhase(plan.nestedLoopPhase());
 
             context.branch((byte) 0);

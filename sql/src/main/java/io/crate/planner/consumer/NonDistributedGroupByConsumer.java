@@ -36,9 +36,10 @@ import io.crate.metadata.RowGranularity;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.operation.projectors.TopN;
 import io.crate.planner.Limits;
+import io.crate.planner.Merge;
 import io.crate.planner.NoopPlan;
 import io.crate.planner.Plan;
-import io.crate.planner.node.dql.CollectAndMerge;
+import io.crate.planner.node.dql.Collect;
 import io.crate.planner.node.dql.GroupByConsumer;
 import io.crate.planner.node.dql.MergePhase;
 import io.crate.planner.node.dql.RoutedCollectPhase;
@@ -192,7 +193,7 @@ class NonDistributedGroupByConsumer implements Consumer {
                 projections,
                 collectPhase.nodeIds().size(),
                 collectPhase.outputTypes());
-            return new CollectAndMerge(collectPhase, localMergeNode);
+            return new Merge(new Collect(collectPhase), localMergeNode);
         }
     }
 

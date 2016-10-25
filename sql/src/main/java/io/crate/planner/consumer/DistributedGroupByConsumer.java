@@ -36,10 +36,7 @@ import io.crate.metadata.Functions;
 import io.crate.metadata.Routing;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.doc.DocTableInfo;
-import io.crate.planner.Limits;
-import io.crate.planner.NoopPlan;
-import io.crate.planner.Plan;
-import io.crate.planner.Planner;
+import io.crate.planner.*;
 import io.crate.planner.distribution.DistributionInfo;
 import io.crate.planner.node.dql.DistributedGroupBy;
 import io.crate.planner.node.dql.GroupByConsumer;
@@ -106,7 +103,7 @@ class DistributedGroupByConsumer implements Consumer {
 
             Planner.Context plannerContext = context.plannerContext();
             Routing routing = plannerContext.allocateRouting(tableInfo, querySpec.where(), null);
-            RoutedCollectPhase collectNode = new RoutedCollectPhase(
+            RoutedCollectPhase collectPhase = new RoutedCollectPhase(
                 plannerContext.jobId(),
                 plannerContext.nextExecutionPhaseId(),
                 "distributing collect",
@@ -160,19 +157,19 @@ class DistributedGroupByConsumer implements Consumer {
                     querySpec.outputs()));
             }
 
-            MergePhase mergePhase = new MergePhase(
+            MergePhase reducerMerge = new MergePhase(
                 plannerContext.jobId(),
                 plannerContext.nextExecutionPhaseId(),
                 "distributed merge",
-                collectNode.nodeIds().size(),
-                collectNode.outputTypes(),
+                collectPhase.nodeIds().size(),
+                collectPhase.outputTypes(),
                 reducerProjections,
                 DistributionInfo.DEFAULT_BROADCAST
             );
-            mergePhase.executionNodes(ImmutableSet.copyOf(collectNode.nodeIds()));
+            reducerMerge.executionNodes(ImmutableSet.copyOf(collectPhase.nodeIds()));
             // end: Reducer
 
-            MergePhase localMergeNode = null;
+            DistributedGroupBy distributedGroupBy = new DistributedGroupBy(collectPhase, reducerMerge);
             String localNodeId = plannerContext.clusterService().state().nodes().localNodeId();
             if (isRootRelation) {
                 TopNProjection topN = ProjectionBuilder.topNProjection(
@@ -181,21 +178,17 @@ class DistributedGroupByConsumer implements Consumer {
                     limits.offset(),
                     limits.finalLimit(),
                     null);
-                localMergeNode = MergePhase.localMerge(
+                MergePhase localMerge = MergePhase.localMerge(
                     plannerContext.jobId(),
                     plannerContext.nextExecutionPhaseId(),
                     ImmutableList.<Projection>of(topN),
-                    mergePhase.nodeIds().size(),
-                    mergePhase.outputTypes());
-                localMergeNode.executionNodes(Sets.newHashSet(localNodeId));
-            }
+                    reducerMerge.nodeIds().size(),
+                    reducerMerge.outputTypes());
+                localMerge.executionNodes(Sets.newHashSet(localNodeId));
 
-            return new DistributedGroupBy(
-                collectNode,
-                mergePhase,
-                localMergeNode,
-                plannerContext.jobId()
-            );
+                return new Merge(distributedGroupBy, localMerge);
+            }
+            return distributedGroupBy;
         }
     }
 }

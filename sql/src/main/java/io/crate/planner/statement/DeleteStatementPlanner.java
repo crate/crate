@@ -35,6 +35,7 @@ import io.crate.metadata.Routing;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.TableInfo;
+import io.crate.planner.Merge;
 import io.crate.planner.NoopPlan;
 import io.crate.planner.Plan;
 import io.crate.planner.Planner;
@@ -42,7 +43,7 @@ import io.crate.planner.distribution.DistributionInfo;
 import io.crate.planner.node.ddl.ESDeletePartition;
 import io.crate.planner.node.dml.Delete;
 import io.crate.planner.node.dml.ESDelete;
-import io.crate.planner.node.dql.CollectAndMerge;
+import io.crate.planner.node.dql.Collect;
 import io.crate.planner.node.dql.MergePhase;
 import io.crate.planner.node.dql.RoutedCollectPhase;
 import io.crate.planner.projection.DeleteProjection;
@@ -147,6 +148,6 @@ public final class DeleteStatementPlanner {
             collectPhase.nodeIds().size(),
             collectPhase.outputTypes()
         );
-        return new CollectAndMerge(collectPhase, mergeNode);
+        return new Merge(new Collect(collectPhase), mergeNode);
     }
 }

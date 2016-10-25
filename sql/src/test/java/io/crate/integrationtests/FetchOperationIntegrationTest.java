@@ -28,6 +28,7 @@ import io.crate.analyze.ParameterContext;
 import io.crate.core.collections.Bucket;
 import io.crate.core.collections.Row;
 import io.crate.executor.transport.TransportExecutor;
+import io.crate.planner.Merge;
 import io.crate.planner.Plan;
 import io.crate.planner.Planner;
 import io.crate.planner.node.dql.QueryThenFetch;
@@ -97,11 +98,11 @@ public class FetchOperationIntegrationTest extends SQLTransportIntegrationTest {
         setUpCharacters();
 
         Plan plan = analyzeAndPlan("select id, name, substr(name, 2) from characters order by id");
-        assertThat(plan, instanceOf(QueryThenFetch.class));
-        QueryThenFetch qtf = (QueryThenFetch) plan;
+        Merge merge = (Merge) plan;
+        assertThat(merge.subPlan(), instanceOf(QueryThenFetch.class));
 
-        assertThat(((FetchProjection) qtf.localMerge().projections().get(1)).nodeReaders(), notNullValue());
-        assertThat(((FetchProjection) qtf.localMerge().projections().get(1)).readerIndices(), notNullValue());
+        assertThat(((FetchProjection) merge.mergePhase().projections().get(1)).nodeReaders(), notNullValue());
+        assertThat(((FetchProjection) merge.mergePhase().projections().get(1)).readerIndices(), notNullValue());
 
 
         CollectingRowReceiver rowReceiver = new CollectingRowReceiver();
@@ -110,11 +111,11 @@ public class FetchOperationIntegrationTest extends SQLTransportIntegrationTest {
         Bucket result = rowReceiver.result();
         assertThat(result.size(), is(2));
         assertThat(rowReceiver.rows.get(0).length, is(3));
-        assertThat((Integer) rowReceiver.rows.get(0)[0], is(1));
-        assertThat((BytesRef) rowReceiver.rows.get(0)[1], is(new BytesRef("Arthur")));
-        assertThat((BytesRef) rowReceiver.rows.get(0)[2], is(new BytesRef("rthur")));
-        assertThat((Integer) rowReceiver.rows.get(1)[0], is(2));
-        assertThat((BytesRef) rowReceiver.rows.get(1)[1], is(new BytesRef("Ford")));
-        assertThat((BytesRef) rowReceiver.rows.get(1)[2], is(new BytesRef("ord")));
+        assertThat(rowReceiver.rows.get(0)[0], is(1));
+        assertThat(rowReceiver.rows.get(0)[1], is(new BytesRef("Arthur")));
+        assertThat(rowReceiver.rows.get(0)[2], is(new BytesRef("rthur")));
+        assertThat(rowReceiver.rows.get(1)[0], is(2));
+        assertThat(rowReceiver.rows.get(1)[1], is(new BytesRef("Ford")));
+        assertThat(rowReceiver.rows.get(1)[2], is(new BytesRef("ord")));
     }
 }

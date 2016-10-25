@@ -20,38 +20,27 @@
  * agreement.
  */
 
-package io.crate.planner.node.dql;
+package io.crate.planner;
 
-import io.crate.planner.Plan;
-import io.crate.planner.PlanVisitor;
-import io.crate.planner.ResultDescription;
 import io.crate.planner.distribution.DistributionInfo;
-import io.crate.planner.node.fetch.FetchPhase;
+import io.crate.planner.node.dql.MergePhase;
 import io.crate.planner.projection.Projection;
 
 import java.util.UUID;
 
-public class QueryThenFetch implements Plan {
+public class Merge implements Plan {
 
-    private final FetchPhase fetchPhase;
     private final Plan subPlan;
+    private final MergePhase mergePhase;
 
-    public QueryThenFetch(Plan subPlan, FetchPhase fetchPhase) {
+    public Merge(Plan subPlan, MergePhase mergePhase) {
         this.subPlan = subPlan;
-        this.fetchPhase = fetchPhase;
-    }
-
-    public FetchPhase fetchPhase() {
-        return fetchPhase;
-    }
-
-    public Plan subPlan() {
-        return subPlan;
+        this.mergePhase = mergePhase;
     }
 
     @Override
     public <C, R> R accept(PlanVisitor<C, R> visitor, C context) {
-        return visitor.visitQueryThenFetch(this, context);
+        return visitor.visitMerge(this, context);
     }
 
     @Override
@@ -61,16 +50,24 @@ public class QueryThenFetch implements Plan {
 
     @Override
     public void addProjection(Projection projection) {
-        throw new UnsupportedOperationException("Adding projections to QTF is not possible");
+        mergePhase.addProjection(projection);
     }
 
     @Override
     public ResultDescription resultDescription() {
-        return subPlan.resultDescription();
+        return mergePhase;
     }
 
     @Override
     public void setDistributionInfo(DistributionInfo distributionInfo) {
-        subPlan.setDistributionInfo(distributionInfo);
+        mergePhase.distributionInfo(distributionInfo);
+    }
+
+    public MergePhase mergePhase() {
+        return mergePhase;
+    }
+
+    public Plan subPlan() {
+        return subPlan;
     }
 }

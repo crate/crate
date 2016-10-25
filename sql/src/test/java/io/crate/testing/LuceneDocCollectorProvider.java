@@ -42,11 +42,12 @@ import io.crate.operation.collect.CrateCollector;
 import io.crate.operation.collect.JobCollectContext;
 import io.crate.operation.collect.MapSideDataCollectOperation;
 import io.crate.operation.projectors.RowReceiver;
+import io.crate.planner.Merge;
 import io.crate.planner.Plan;
 import io.crate.planner.Planner;
 import io.crate.planner.consumer.ConsumerContext;
 import io.crate.planner.consumer.QueryAndFetchConsumer;
-import io.crate.planner.node.dql.CollectAndMerge;
+import io.crate.planner.node.dql.Collect;
 import io.crate.planner.node.dql.RoutedCollectPhase;
 import io.crate.sql.parser.SqlParser;
 import org.elasticsearch.common.breaker.CircuitBreaker;
@@ -111,7 +112,8 @@ public class LuceneDocCollectorProvider implements AutoCloseable {
             analysis.rootRelation(),
             new ConsumerContext(analysis.rootRelation(), new Planner.Context(planner,
                 cluster.clusterService(), UUID.randomUUID(), null, normalizer, new TransactionContext(SessionContext.SYSTEM_SESSION), 0, 0)));
-        final RoutedCollectPhase collectPhase = ((RoutedCollectPhase) ((CollectAndMerge) plan).collectPhase());
+        Collect collect = (Collect) ((Merge) plan).subPlan();
+        final RoutedCollectPhase collectPhase = ((RoutedCollectPhase) collect.collectPhase());
         collectPhase.nodePageSizeHint(nodePageSizeHint);
         Routing routing = collectPhase.routing();
         String nodeId = Iterables.getOnlyElement(routing.nodes());

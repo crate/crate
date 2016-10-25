@@ -36,13 +36,14 @@ import io.crate.analyze.symbol.ValueSymbolVisitor;
 import io.crate.analyze.where.DocKeys;
 import io.crate.metadata.*;
 import io.crate.metadata.doc.DocTableInfo;
+import io.crate.planner.Merge;
 import io.crate.planner.NoopPlan;
 import io.crate.planner.Plan;
 import io.crate.planner.Planner;
 import io.crate.planner.distribution.DistributionInfo;
 import io.crate.planner.node.dml.Upsert;
 import io.crate.planner.node.dml.UpsertById;
-import io.crate.planner.node.dql.CollectAndMerge;
+import io.crate.planner.node.dql.Collect;
 import io.crate.planner.node.dql.MergePhase;
 import io.crate.planner.node.dql.RoutedCollectPhase;
 import io.crate.planner.projection.MergeCountProjection;
@@ -183,7 +184,7 @@ public class UpdateConsumer implements Consumer {
             collectPhase.nodeIds().size(),
             collectPhase.outputTypes()
         );
-        return new CollectAndMerge(collectPhase, mergePhase);
+        return new Merge(new Collect(collectPhase), mergePhase);
     }
 
     static class Visitor extends RelationPlanningVisitor {
@@ -248,7 +249,7 @@ public class UpdateConsumer implements Consumer {
                 collectPhase.nodeIds().size(),
                 collectPhase.outputTypes()
             );
-            return new CollectAndMerge(collectPhase, mergeNode);
+            return new Merge(new Collect(collectPhase), mergeNode);
         } else {
             return null;
         }

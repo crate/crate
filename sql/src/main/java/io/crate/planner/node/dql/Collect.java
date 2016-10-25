@@ -19,48 +19,50 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.planner.node.dml;
+package io.crate.planner.node.dql;
 
-
-import com.google.common.base.Optional;
 import io.crate.planner.Plan;
 import io.crate.planner.PlanVisitor;
-import io.crate.planner.UnnestablePlan;
-import io.crate.planner.node.dql.MergePhase;
+import io.crate.planner.ResultDescription;
+import io.crate.planner.distribution.DistributionInfo;
+import io.crate.planner.projection.Projection;
 
-import javax.annotation.Nullable;
 import java.util.UUID;
 
-public class InsertFromSubQuery extends UnnestablePlan {
+public class Collect implements Plan {
 
+    private final CollectPhase collectPhase;
 
-    private final Optional<MergePhase> handlerMergeNode;
+    public Collect(CollectPhase collectPhase) {
+        this.collectPhase = collectPhase;
+    }
 
-    private final Plan innerPlan;
-
-    private final UUID id;
-
-    public InsertFromSubQuery(Plan innerPlan, @Nullable MergePhase handlerMergeNode, UUID id) {
-        this.innerPlan = innerPlan;
-        this.handlerMergeNode = Optional.fromNullable(handlerMergeNode);
-        this.id = id;
+    public CollectPhase collectPhase() {
+        return collectPhase;
     }
 
     @Override
     public <C, R> R accept(PlanVisitor<C, R> visitor, C context) {
-        return visitor.visitInsertByQuery(this, context);
+        return visitor.visitCollect(this, context);
     }
 
     @Override
     public UUID jobId() {
-        return id;
+        return collectPhase.jobId();
     }
 
-    public Plan innerPlan() {
-        return innerPlan;
+    @Override
+    public void addProjection(Projection projection) {
+        collectPhase.addProjection(projection);
     }
 
-    public Optional<MergePhase> handlerMergeNode() {
-        return handlerMergeNode;
+    @Override
+    public ResultDescription resultDescription() {
+        return collectPhase;
+    }
+
+    @Override
+    public void setDistributionInfo(DistributionInfo distributionInfo) {
+        collectPhase.distributionInfo(distributionInfo);
     }
 }
