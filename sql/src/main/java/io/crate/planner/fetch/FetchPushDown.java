@@ -39,6 +39,9 @@ import io.crate.types.DataTypes;
 import javax.annotation.Nullable;
 import java.util.*;
 
+/**
+ * See {@link #pushDown()} for explanation what this class does.
+ */
 public class FetchPushDown {
 
     private final QuerySpec querySpec;
@@ -89,9 +92,34 @@ public class FetchPushDown {
         return fRef;
     }
 
+    /**
+     * Create a new relation that has all columns which are only relevant for the final result replaced with a docid.
+     *
+     * If values are only relevant for the final result the retrieval can be delayed until the last possible moment.
+     * This should usually be used to avoid retrieving intermediate values which might be discarded.
+     *
+     * <p>
+     *     Example
+     * </p>
+     * <pre>
+     *     select a, b, c from t order by a limit 10
+     *
+     *     Becomes
+     *
+     *     select _docid, a from t order by a limit 10      <-- executed per node
+     *                                                          Result is num_nodes * limit
+     *                                                          Order by value is included because it's necessary
+     *                                                          to do ordered merge
+     *
+     *     apply limit 10                                   <-- once on handler via topN
+     *                                                          (num_nodes * limit - limit) rows are discarded
+     *     fetch columns from nodes using _docids
+     * </pre>
+     */
     @Nullable
     public QueriedDocTable pushDown() {
-        assert !querySpec.groupBy().isPresent() && !querySpec.having().isPresent() && !querySpec.hasAggregates();
+        assert !querySpec.groupBy().isPresent() && !querySpec.having().isPresent() && !querySpec.hasAggregates()
+            : "groupBy/having/aggregations must not be present. Aggregations need all values so fetch pushdown doesn't make sense";
 
         Optional<OrderBy> orderBy = querySpec.orderBy();
 
