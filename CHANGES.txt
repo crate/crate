@@ -5,15 +5,6 @@ Changes for Crate
 Unreleased
 ==========
 
-  - Fix: ``ORDER BY`` was applied in wrong order in case of rewritable
-    subselects.
-
- - Show meaningful error when a node is started with invalid settings,
-   e.g. invalid unicast host.
-
- - Fix the NPE that occured if `distinct` was applied on expressions
-   which resulted in null values.
-
  - Upgraded Elasticsearch to 2.4.1
 
  - Improved parameter de-serialization of the "Bind" message. If a Client
@@ -23,27 +14,11 @@ Unreleased
 
  - Added support for the "Flush" message in the postgres wire protocol.
 
- - Fix: Revert usage of new Lucene queries for geo point ``within`` queries
-   because of an unresolved bug in Lucene 5.x versions.
-
- - Updated crate-admin to ``0.20.4`` which includes following changes:
-
-    - Fix: removed chinese language from i18n configuration.
-
-    - Fix: added english as a fallback language for translation files.
-
  - Added support for scalar subquery expressions to SELECT statements.
-
- - Updated crate-admin to ``0.20.3`` which includes following changes:
-
-    - Fixed broken execute button in the console view.
-
-    - Fix : Reduced the amount of log output to browseonsole when issuing
-      SQL statements.
 
  - Added ``CURRENT_SCHEMA`` system information function
 
- - added column ``table_schema`` in ``information_schema.columns``,
+ - Added column ``table_schema`` in ``information_schema.columns``,
    ``information_schema.tables`` and ``information_schema.table_constraints``
    in order to be conform with the SQL standard. The column ``schema_name``
    is deprecated.
@@ -70,6 +45,32 @@ Unreleased
    executed against the ``sys.cluster`` table.
 
  - The PostgreSQL wire protocol is enabled by default.
+
+2016/10/25 0.56.3
+=================
+
+ - Fix: ``ORDER BY`` was applied in wrong order in case of rewritable
+   subselects.
+
+ - Show meaningful error when a node is started with invalid settings,
+   e.g. invalid unicast host.
+
+ - Fix the NPE that occured if `distinct` was applied on expressions
+   which resulted in null values.
+
+ - Fix: Revert usage of new Lucene queries for geo point ``within`` queries
+   because of an unresolved bug in Lucene 5.x versions.
+
+ - Updated crate-admin to ``0.20.4`` which includes following changes:
+
+    - Fix: removed chinese language from i18n configuration.
+
+    - Fix: added english as a fallback language for translation files.
+
+    - Fixed broken execute button in the console view.
+
+    - Fix: Reduced the amount of log output to browseonsole when issuing
+      SQL statements.
 
 2016/10/13 0.56.2
 =================
