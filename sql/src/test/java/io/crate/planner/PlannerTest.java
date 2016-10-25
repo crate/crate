@@ -1320,7 +1320,7 @@ public class PlannerTest extends AbstractPlannerTest {
         int softLimit = 10_000;
         Planner.Context plannerContext = new Planner.Context(planner,
             clusterService, UUID.randomUUID(), null, normalizer, new TransactionContext(SessionContext.SYSTEM_SESSION), softLimit, 0);
-        Limits limits = plannerContext.getLimits(false, new QuerySpec());
+        Limits limits = plannerContext.getLimits(new QuerySpec());
         assertThat(limits.finalLimit(), is(TopN.NO_LIMIT));
     }
 }

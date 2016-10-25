@@ -93,7 +93,7 @@ class SelectStatementPlanner {
         @Override
         public Plan visitQueriedTable(QueriedTable table, Planner.Context context) {
             SubqueryPlanner subqueryPlanner = new SubqueryPlanner(context);
-            QuerySpec querySpec = table.querySpec();
+            QuerySpec querySpec = context.applySoftLimit(table.querySpec());
             Map<Plan, SelectSymbol> subQueries = subqueryPlanner.planSubQueries(querySpec);
             Plan plan = super.visitQueriedTable(table, context);
             return MultiPhasePlan.createIfNeeded(plan, subQueries);
@@ -101,7 +101,7 @@ class SelectStatementPlanner {
 
         @Override
         public Plan visitQueriedDocTable(QueriedDocTable table, Planner.Context context) {
-            QuerySpec querySpec = table.querySpec();
+            QuerySpec querySpec = context.applySoftLimit(table.querySpec());
             SubqueryPlanner subqueryPlanner = new SubqueryPlanner(context);
             Map<Plan, SelectSymbol> subQueries = subqueryPlanner.planSubQueries(querySpec);
             if (querySpec.hasAggregates() || querySpec.groupBy().isPresent()) {
@@ -114,7 +114,7 @@ class SelectStatementPlanner {
             if (querySpec.where().hasVersions()) {
                 throw new VersionInvalidException();
             }
-            Limits limits = context.getLimits(true, querySpec);
+            Limits limits = context.getLimits(querySpec);
             if (querySpec.where().noMatch() || (querySpec.limit().isPresent() && limits.finalLimit() == 0)) {
                 return new NoopPlan(context.jobId());
             }
@@ -187,7 +187,7 @@ class SelectStatementPlanner {
 
         @Override
         public Plan visitMultiSourceSelect(MultiSourceSelect mss, Planner.Context context) {
-            QuerySpec querySpec = mss.querySpec();
+            QuerySpec querySpec = context.applySoftLimit(mss.querySpec());
             if (querySpec.where().noMatch() && !querySpec.hasAggregates()) {
                 return new NoopPlan(context.jobId());
             }

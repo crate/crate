@@ -106,7 +106,7 @@ class ReduceOnCollectorGroupByConsumer implements Consumer {
             GroupByConsumer.validateGroupBySymbols(tableRelation, querySpec.groupBy().get());
             List<Symbol> groupBy = querySpec.groupBy().get();
 
-            Limits limits = context.plannerContext().getLimits(context.isRoot(), querySpec);
+            Limits limits = context.plannerContext().getLimits(querySpec);
             boolean ignoreSorting = context.rootRelation() != table
                                     && !limits.hasLimit()
                                     && limits.offset() == TopN.NO_OFFSET;

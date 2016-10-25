@@ -102,7 +102,7 @@ class GlobalAggregateConsumer implements Consumer {
         }
 
         Planner.Context plannerContext = context.plannerContext();
-        Limits limits = plannerContext.getLimits(context.isRoot(), table.querySpec());
+        Limits limits = plannerContext.getLimits(table.querySpec());
         if (limits.finalLimit() == 0 || limits.offset() > 0) {
             return new NoopPlan(plannerContext.jobId());
         }

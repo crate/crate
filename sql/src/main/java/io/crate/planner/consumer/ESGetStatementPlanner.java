@@ -48,7 +48,7 @@ public class ESGetStatementPlanner {
         if (docKeys.withVersions()){
             throw new VersionInvalidException();
         }
-        Limits limits = context.getLimits(true, querySpec);
+        Limits limits = context.getLimits(querySpec);
         if (limits.hasLimit() && limits.finalLimit() == 0) {
             return new NoopPlan(context.jobId());
         }
