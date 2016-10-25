@@ -193,13 +193,17 @@ final class RelationNormalizer extends AnalyzedRelationVisitor<RelationNormalize
     }
 
     @Nullable
-    private static List<Symbol> pushGroupBy(Optional<List<Symbol>> groupBy1, Optional<List<Symbol>> groupBy2) {
-        return groupBy1.or(groupBy2).orNull();
+    private static List<Symbol> pushGroupBy(Optional<List<Symbol>> childGroupBy, Optional<List<Symbol>> parentGroupBy) {
+        assert !(childGroupBy.isPresent() && parentGroupBy.isPresent()) :
+            "Cannot merge 'group by' if exists in both parent and child relations";
+        return childGroupBy.or(parentGroupBy).orNull();
     }
 
     @Nullable
-    private static HavingClause pushHaving(Optional<HavingClause> having1, Optional<HavingClause> having2) {
-        return having1.or(having2).orNull();
+    private static HavingClause pushHaving(Optional<HavingClause> childHaving, Optional<HavingClause> parentHaving) {
+        assert !(childHaving.isPresent() && parentHaving.isPresent()) :
+            "Cannot merge 'having' if exists in both parent and child relations";
+        return childHaving.or(parentHaving).orNull();
     }
 
     private static void replaceFieldReferences(QuerySpec querySpec) {
