@@ -176,7 +176,7 @@ class NonDistributedGroupByConsumer implements Consumer {
             boolean outputsMatch = table.querySpec().outputs().size() == collectOutputs.size() &&
                                    collectOutputs.containsAll(table.querySpec().outputs());
             if (isRootRelation || !outputsMatch) {
-                Limits limits = context.plannerContext().getLimits(context.isRoot(), table.querySpec());
+                Limits limits = context.plannerContext().getLimits(table.querySpec());
                 Integer offset = (isRootRelation ? limits.offset() : TopN.NO_OFFSET);
                 projections.add(ProjectionBuilder.topNProjection(
                     collectOutputs,

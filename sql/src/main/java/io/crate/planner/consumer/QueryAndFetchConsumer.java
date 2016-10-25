@@ -116,7 +116,7 @@ public class QueryAndFetchConsumer implements Consumer {
             Optional<OrderBy> orderBy = querySpec.orderBy();
             Planner.Context plannerContext = context.plannerContext();
 
-            Limits limits = plannerContext.getLimits(context.isRoot(), querySpec);
+            Limits limits = plannerContext.getLimits(querySpec);
             if (limits.hasLimit() || orderBy.isPresent()) {
                 /**
                  * select id, name, order by id, date

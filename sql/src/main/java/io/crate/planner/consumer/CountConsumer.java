@@ -70,7 +70,7 @@ public class CountConsumer implements Consumer {
                 return null;
             }
 
-            Limits limits = context.plannerContext().getLimits(context.isRoot(), querySpec);
+            Limits limits = context.plannerContext().getLimits(querySpec);
             if ((limits.finalLimit() == 0 || limits.offset() > 0)) {
                 return new NoopPlan(context.plannerContext().jobId());
             }

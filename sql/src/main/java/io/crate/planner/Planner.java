@@ -116,13 +116,6 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
             return normalizer;
         }
 
-        private static int finalLimit(@Nullable Integer queryLimit, int softLimit) {
-            if (queryLimit == null) {
-                return softLimit > 0 ? softLimit : TopN.NO_LIMIT;
-            }
-            return queryLimit;
-        }
-
         @Nullable
         private Integer toInteger(@Nullable Symbol symbol) {
             if (symbol == null) {
@@ -132,28 +125,21 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
             return DataTypes.INTEGER.value(input.value());
         }
 
-        public Limits getLimits(boolean isRootRelation, QuerySpec querySpec) {
+        public Limits getLimits(QuerySpec querySpec) {
             Optional<Symbol> optLimit = querySpec.limit();
-            if (!isRootRelation) {
-                /**
-                 * Don't apply softLimit or maxRows on child-relations,
-                 * The parent-relations might need more data to produce the correct result.
-                 * If the limit is present on the query it means the parent relation wanted it there, so keep it.
-                 */
-
-                if (optLimit.isPresent()) {
-                    //noinspection OptionalGetWithoutIsPresent it's present!
-                    Integer limit = toInteger(optLimit.get());
-                    Integer offset = toInteger(querySpec.offset().or(Literal.ZERO));
-                    return new Limits(limit, offset);
-                } else {
-                    return new Limits(TopN.NO_LIMIT, TopN.NO_OFFSET);
+            if (optLimit.isPresent()) {
+                Integer limit = toInteger(optLimit.get());
+                if (limit == null) {
+                    limit = TopN.NO_LIMIT;
                 }
+                Integer offset = toInteger(querySpec.offset().or(Literal.ZERO));
+                if (offset == null) {
+                    offset = 0;
+                }
+                return new Limits(limit, offset);
+            } else {
+                return new Limits(TopN.NO_LIMIT, TopN.NO_OFFSET);
             }
-            Integer limit = toInteger(optLimit.orNull());
-            int finalLimit = finalLimit(limit, softLimit);
-            Integer offset = toInteger(querySpec.offset().or(Literal.ZERO));
-            return new Limits(finalLimit, offset);
         }
 
         public int fetchSize() {
@@ -168,6 +154,14 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
             UUID subJobId = UUID.randomUUID();
             return planner.process(statement, new Planner.Context(
                 planner, clusterService, subJobId, consumingPlanner, normalizer, transactionContext, 2, 2));
+        }
+
+        QuerySpec applySoftLimit(QuerySpec querySpec) {
+            if (softLimit == 0 || querySpec.limit().isPresent()) {
+                return querySpec;
+            }
+            querySpec.limit(Optional.<Symbol>of(Literal.of((long) softLimit)));
+            return querySpec;
         }
 
         static class ReaderAllocations {
