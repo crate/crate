@@ -1,22 +1,23 @@
 /*
- * Licensed to CRATE Technology GmbH ("Crate") under one or more contributor
- * license agreements.  See the NOTICE file distributed with this work for
- * additional information regarding copyright ownership.  Crate licenses
- * this file to you under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.  You may
+ * Licensed to Crate under one or more contributor license agreements.
+ * See the NOTICE file distributed with this work for additional
+ * information regarding copyright ownership.  Crate licenses this file
+ * to you under the Apache License, Version 2.0 (the "License"); you may
+ * not use this file except in compliance with the License.  You may
  * obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
- * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  See the
- * License for the specific language governing permissions and limitations
- * under the License.
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+ * implied.  See the License for the specific language governing
+ * permissions and limitations under the License.
  *
  * However, if you have executed another commercial license agreement
  * with Crate these terms will supersede the license and you may use the
- * software solely pursuant to the terms of the relevant commercial agreement.
+ * software solely pursuant to the terms of the relevant commercial
+ * agreement.
  */
 
 package io.crate.planner;
@@ -59,6 +60,8 @@ import io.crate.types.DataTypes;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
+import org.elasticsearch.common.logging.ESLogger;
+import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.Settings;
 
 import javax.annotation.Nullable;
@@ -67,6 +70,8 @@ import java.util.*;
 
 @Singleton
 public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
+
+    private static final ESLogger LOGGER = Loggers.getLogger(Planner.class);
 
     private final ConsumingPlanner consumingPlanner;
     private final ClusterService clusterService;
@@ -498,10 +503,15 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
 
     @Override
     public Plan visitSetStatement(SetAnalyzedStatement setStatement, Context context) {
-        if (setStatement.settings() == null) {
+        if (SetStatement.Scope.LOCAL.equals(setStatement.scope())) {
+            LOGGER.warn("SET LOCAL STATEMENT  WILL BE IGNORED: {}", setStatement.settings());
             return new NoopPlan(context.jobId());
         } else if (SetStatement.Scope.SESSION.equals(setStatement.scope())) {
-            return new SetSessionPlan(context.jobId(), setStatement.settings());
+            return new SetSessionPlan(
+                context.jobId(),
+                setStatement.settings(),
+                context.transactionContext().sessionContext()
+            );
         } else if (setStatement.isPersistent()) {
             return new ESClusterUpdateSettingsPlan(context.jobId(), setStatement.settings());
         } else {

@@ -41,8 +41,6 @@ class SetStatementAnalyzer {
         Map<String, List<Expression>> settings = new HashMap<>();
 
         if (!SetStatement.Scope.GLOBAL.equals(node.scope())) {
-            logger.warn("SET STATEMENT WITH SESSION OR LOCAL WILL BE IGNORED: {}", node);
-
             Assignment assignment = node.assignments().get(0);
             // parser does not allow using the parameter expressions as setting names in the SET statements,
             // therefore it is fine to convert the expression to string here.

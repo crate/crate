@@ -537,6 +537,36 @@ public class PostgresITest extends SQLTransportIntegrationTest {
         }
     }
 
+    @Test
+    public void testSetSchemaOnSession() throws Exception {
+        try (Connection conn = DriverManager.getConnection(JDBC_POSTGRESQL_URL, properties)) {
+            conn.setAutoCommit(true);
+
+            conn.createStatement().execute("set session search_path to bar");
+            conn.createStatement().executeUpdate("create table foo (id int) with (number_of_replicas=0)");
+
+            conn.createStatement().execute("set session search_path to DEFAULT");
+            expectedException.expect(PSQLException.class);
+            expectedException.expectMessage("TableUnknownException: Table 'doc.foo' unknown");
+            conn.createStatement().execute("select * from foo");
+        }
+    }
+
+    @Test
+    public void testSetMultipleSchemasOnSession() throws Exception {
+        try (Connection conn = DriverManager.getConnection(JDBC_POSTGRESQL_URL, properties)) {
+            conn.setAutoCommit(true);
+
+            conn.createStatement().execute("set session search_path to bar ,custom");
+            conn.createStatement().executeUpdate("create table foo (id int) with (number_of_replicas=0)");
+            conn.createStatement().executeQuery("select * from bar.foo");
+
+            expectedException.expect(PSQLException.class);
+            expectedException.expectMessage("SchemaUnknownException: Schema 'custom' unknown");
+            conn.createStatement().execute("select * from custom.foo");
+        }
+    }
+
     private void assertSelectNameFromSysClusterWorks(Connection conn) throws SQLException {
         PreparedStatement stmt;// verify that queries can be made after an error occurred
         stmt = conn.prepareStatement("select name from sys.cluster");

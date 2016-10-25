@@ -20,44 +20,15 @@
  * agreement.
  */
 
-package io.crate.planner.statement;
+package io.crate.metadata.settings.session;
 
 import io.crate.action.sql.SessionContext;
-import io.crate.planner.PlanVisitor;
-import io.crate.planner.UnnestablePlan;
+import io.crate.core.collections.Row;
 import io.crate.sql.tree.Expression;
 
 import java.util.List;
-import java.util.Map;
-import java.util.UUID;
 
-public class SetSessionPlan extends UnnestablePlan {
+public interface SessionSettingApplier {
 
-    private final UUID id;
-    private final Map<String, List<Expression>> settings;
-    private final SessionContext sessionContext;
-
-    public SetSessionPlan(UUID id, Map<String, List<Expression>> settings, SessionContext sessionContext) {
-        this.id = id;
-        this.settings = settings;
-        this.sessionContext = sessionContext;
-    }
-
-    @Override
-    public <C, R> R accept(PlanVisitor<C, R> visitor, C context) {
-        return visitor.visitSetSessionPlan(this, context);
-    }
-
-    @Override
-    public UUID jobId() {
-        return id;
-    }
-
-    public Map<String, List<Expression>> settings() {
-        return settings;
-    }
-
-    public SessionContext sessionContext() {
-        return sessionContext;
-    }
+    void apply(Row parameters, List<Expression> expressions, SessionContext sessionContext);
 }

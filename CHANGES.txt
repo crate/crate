@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Added the ``search_path`` session setting parameter. The default table
+   schema can be set with ``SET SESSION search_path = schema_name``.
+
  - Fix: Certain subselects with nested ``order by`` and ``limit`` or ``offset``
    produced incorrect results.
    eg. select * from (select a, b from t1 order by a limit 3) as t order by b limit 2
