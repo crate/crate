@@ -53,7 +53,7 @@ public class NullIfFunction extends ConditionalFunction {
     static class Resolver implements DynamicFunctionResolver {
         @Override
         public FunctionImplementation<Function> getForTypes(List<DataType> dataTypes) throws IllegalArgumentException {
-            Preconditions.checkArgument(dataTypes.size() == 2, String.format("invalid size of arguments, 2 expected"));
+            Preconditions.checkArgument(dataTypes.size() == 2, "invalid size of arguments, 2 expected");
             return new NullIfFunction(createInfo(NAME, dataTypes));
         }
     }

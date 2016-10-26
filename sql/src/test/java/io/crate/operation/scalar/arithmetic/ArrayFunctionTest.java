@@ -55,7 +55,7 @@ public class ArrayFunctionTest extends AbstractScalarFunctionsTest {
     }
 
     public void testEvaluateArrayOnColumnIdents() {
-        assertEvaluate("ARRAY[ARRAY[age], [age]]", new Integer[]{2, 1},
+        assertEvaluate("ARRAY[ARRAY[age], [age]]", new Integer[][]{new Integer[]{2},new Integer[]{1}},
             Literal.of(DataTypes.INTEGER, 2),
             Literal.of(DataTypes.INTEGER, 1));
     }

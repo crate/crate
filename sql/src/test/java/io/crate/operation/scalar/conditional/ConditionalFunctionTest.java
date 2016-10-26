@@ -86,4 +86,34 @@ public class ConditionalFunctionTest extends AbstractScalarFunctionsTest {
         expectedException.expectMessage("invalid size of arguments, 2 expected");
         assertEvaluate("nullif(1, 2, 3)", null);
     }
+
+    @Test
+    public void testCase() throws Exception {
+        assertEvaluate("case name when 'foo' then 'hello foo' when 'bar' then 'hello bar' end",
+            "hello foo",
+            Literal.of("foo"), Literal.of("foo"));
+        assertEvaluate("case name when 'foo' then 'hello foo' when 'bar' then 'hello bar' else 'hello stranger' end",
+            "hello stranger",
+            Literal.of("hoschi"), Literal.of("hoschi"));
+        assertEvaluate("case when name = 'foo' then 'hello foo' when name = 'bar' then 'hello bar' end",
+            "hello foo",
+            Literal.of("foo"), Literal.of("foo"));
+        assertEvaluate("case when name = 'foo' then 'hello foo' when name = 'bar' then 'hello bar' else 'hello stranger' end",
+            "hello stranger",
+            Literal.of("hoschi"), Literal.of("hoschi"));
+
+        assertEvaluate("case when id != 0 then 10/id > 1.5 else false end",
+            false,
+            Literal.of(0), Literal.of(0));
+    }
+
+    @Test
+    public void testCaseIncompatibleTypes() throws Exception {
+        expectedException.expect(UnsupportedOperationException.class);
+        expectedException.expectMessage("Data types of all result expressions of a CASE statement must be equal, " +
+                                        "found: [string, long]");
+        assertEvaluate("case name when 'foo' then 'hello foo' when 'bar' then 1 end",
+            "hello foo",
+            Literal.of("foo"), Literal.of("foo"));
+    }
 }

@@ -27,10 +27,7 @@ import io.crate.metadata.FunctionImplementation;
 import io.crate.operation.scalar.arithmetic.*;
 import io.crate.operation.scalar.cast.CastFunction;
 import io.crate.operation.scalar.cast.TryCastScalarFunction;
-import io.crate.operation.scalar.conditional.CoalesceFunction;
-import io.crate.operation.scalar.conditional.GreatestFunction;
-import io.crate.operation.scalar.conditional.LeastFunction;
-import io.crate.operation.scalar.conditional.NullIfFunction;
+import io.crate.operation.scalar.conditional.*;
 import io.crate.operation.scalar.geo.DistanceFunction;
 import io.crate.operation.scalar.geo.IntersectsFunction;
 import io.crate.operation.scalar.geo.WithinFunction;
@@ -119,6 +116,7 @@ public class ScalarFunctionModule extends AbstractModule {
         GreatestFunction.register(this);
         LeastFunction.register(this);
         NullIfFunction.register(this);
+        IfFunction.register(this);
 
         CurrentSchemaFunction.register(this);
 

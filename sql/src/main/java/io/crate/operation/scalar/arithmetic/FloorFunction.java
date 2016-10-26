@@ -48,7 +48,7 @@ public abstract class FloorFunction extends Scalar<Number, Number> {
 
         private static final FunctionInfo INFO = new FunctionInfo(
             new FunctionIdent(NAME, ImmutableList.of(DataTypes.DOUBLE)), DataTypes.LONG, FunctionInfo.Type.SCALAR,
-            FunctionInfo.ALL);
+            FunctionInfo.DETERMINISTIC_AND_COMPARISON_REPLACEMENT);
 
         @Override
         public Long evaluate(Input[] args) {
@@ -69,7 +69,7 @@ public abstract class FloorFunction extends Scalar<Number, Number> {
 
         private static final FunctionInfo INFO = new FunctionInfo(
             new FunctionIdent(NAME, ImmutableList.of(DataTypes.FLOAT)), DataTypes.INTEGER, FunctionInfo.Type.SCALAR,
-            FunctionInfo.ALL);
+            FunctionInfo.DETERMINISTIC_AND_COMPARISON_REPLACEMENT);
 
         @Override
         public Integer evaluate(Input[] args) {
@@ -92,7 +92,7 @@ public abstract class FloorFunction extends Scalar<Number, Number> {
 
         NoopFloorFunction(DataType type) {
             info = new FunctionInfo(new FunctionIdent(NAME, ImmutableList.of(type)), type, FunctionInfo.Type.SCALAR,
-                FunctionInfo.ALL);
+                FunctionInfo.DETERMINISTIC_AND_COMPARISON_REPLACEMENT);
         }
 
         @Override

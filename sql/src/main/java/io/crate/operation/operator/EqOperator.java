@@ -23,6 +23,7 @@ package io.crate.operation.operator;
 
 import com.google.common.base.Preconditions;
 import io.crate.analyze.symbol.Function;
+import io.crate.analyze.symbol.Symbol;
 import io.crate.core.collections.MapComparator;
 import io.crate.metadata.DynamicFunctionResolver;
 import io.crate.metadata.FunctionIdent;
@@ -48,6 +49,11 @@ public class EqOperator extends CmpOperator {
 
     private static FunctionInfo createInfo(List<DataType> dataTypes) {
         return new FunctionInfo(new FunctionIdent(NAME, dataTypes), DataTypes.BOOLEAN);
+    }
+
+    public static Function createFunction(Symbol left, Symbol right) {
+        return new Function(createInfo(Arrays.asList(left.valueType(), right.valueType())),
+            Arrays.asList(left, right));
     }
 
     @Override

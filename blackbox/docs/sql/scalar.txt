@@ -1266,8 +1266,101 @@ It can be used to remove elements from array fields.
     +------------------------------+
     SELECT 1 row in set (... sec)
 
-Conditional Functions
-=====================
+Conditional Functions and Expressions
+=====================================
+
+case when ... then ... end
+--------------------------
+
+The ``case`` expression is a generic conditional expression similar to
+if/else statements in other programming languages and can be used
+wherever an expression is valid.
+
+::
+
+  CASE WHEN condition THEN result
+       [WHEN ...]
+       [ELSE result]
+  END
+
+Each *condition* expression must result in a boolean value. If the
+condition's result is true, the value of the *result* expression
+that follows the condition will be the final result of the ``case``
+expression and the subsequent when branches will not be processed. If
+the condition's result is not true, any subsequent ``when`` clauses
+are examined in the same manner. If no ``when`` condition yields true,
+the value of the ``case`` expression is the result of the ``else``
+clause. If the ``else`` clause is omitted and no condition is true,
+the result is null.
+
+
+.. Hidden: create table case_example
+
+    cr> create table case_example (id long);
+    CREATE OK, 1 row affected (... sec)
+    cr> insert into case_example (id) values (0),(1),(2),(3);
+    INSERT OK, 4 rows affected (... sec)
+    cr> refresh table case_example
+    REFRESH OK, 1 row affected (... sec)
+
+
+Example:
+::
+
+    cr> select id,
+    ...   case when id = 0 then 'zero'
+    ...        when id % 2 = 0 then 'even'
+    ...        else 'odd'
+    ...   end as parity
+    ... from case_example order by id;
+    +----+--------+
+    | id | parity |
+    +----+--------+
+    |  0 | zero   |
+    |  1 | odd    |
+    |  2 | even   |
+    |  3 | odd    |
+    +----+--------+
+    SELECT 4 rows in set (... sec)
+
+As a variant, a ``case`` expression can be written using the *simple*
+form:
+::
+
+  CASE expression
+       WHEN value THEN result
+       [WHEN ...]
+       [ELSE result]
+  END
+
+Example:
+::
+
+    cr> select id,
+    ...   case id when 0 then 'zero'
+    ...           when 1 then 'one'
+    ...           else 'other'
+    ...   end as description
+    ... from case_example order by id;
+    +----+-------------+
+    | id | description |
+    +----+-------------+
+    |  0 | zero        |
+    |  1 | one         |
+    |  2 | other       |
+    |  3 | other       |
+    +----+-------------+
+    SELECT 4 rows in set (... sec)
+
+
+.. note::
+
+   All *result* expressions must result in the same data type.
+
+.. Hidden: drop table case_example
+
+    cr> drop table case_example;
+    DROP OK, 1 row affected (... sec)
 
 coalesce('first_arg', second_arg [, ... ]) returns same type as arguments
 -------------------------------------------------------------------------

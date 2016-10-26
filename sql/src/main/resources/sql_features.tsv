@@ -209,12 +209,12 @@ F231	Privilege tables	1	TABLE_PRIVILEGES view	NO
 F231	Privilege tables	2	COLUMN_PRIVILEGES view	NO		
 F231	Privilege tables	3	USAGE_PRIVILEGES view	NO		
 F251	Domain support			NO		
-F261	CASE expression			NO		
-F261	CASE expression	1	Simple CASE	NO		
-F261	CASE expression	2	Searched CASE	NO		
-F261	CASE expression	3	NULLIF	NO		
-F261	CASE expression	4	COALESCE	NO		
-F262	Extended CASE expression			NO		
+F261	CASE expression			YES		
+F261	CASE expression	1	Simple CASE	YES		
+F261	CASE expression	2	Searched CASE	YES		
+F261	CASE expression	3	NULLIF	YES		
+F261	CASE expression	4	COALESCE	YES		
+F262	Extended CASE expression			YES		
 F263	Comma-separated predicates in simple CASE expression			NO		
 F271	Compound character literals			NO		
 F281	LIKE enhancements			NO		

@@ -89,9 +89,20 @@ public class EvaluatingNormalizer {
         }
     }
 
-    private abstract class BaseVisitor extends SymbolVisitor<TransactionContext, Symbol> {
+    private static class Context {
+
+        @Nullable
+        private final TransactionContext transactionContext;
+        private boolean normalizeToLiterals = true;
+
+        public Context(@Nullable TransactionContext transactionContext) {
+            this.transactionContext = transactionContext;
+        }
+    }
+
+    private abstract class BaseVisitor extends SymbolVisitor<Context, Symbol> {
         @Override
-        public Symbol visitField(Field field, TransactionContext context) {
+        public Symbol visitField(Field field, Context context) {
             if (fieldResolver != null) {
                 Symbol resolved = fieldResolver.resolveField(field);
                 if (resolved != null) {
@@ -102,7 +113,7 @@ public class EvaluatingNormalizer {
         }
 
         @Override
-        public Symbol visitMatchPredicate(MatchPredicate matchPredicate, TransactionContext context) {
+        public Symbol visitMatchPredicate(MatchPredicate matchPredicate, Context context) {
             if (fieldResolver != null) {
                 // Once the fields can be resolved, rewrite matchPredicate to function
                 Map<Field, Symbol> fieldBoostMap = matchPredicate.identBoostMap();
@@ -133,10 +144,10 @@ public class EvaluatingNormalizer {
 
 
         @SuppressWarnings("unchecked")
-        Symbol normalizeFunctionSymbol(Function function, TransactionContext context) {
+        Symbol normalizeFunctionSymbol(Function function, Context context) {
             FunctionImplementation impl = functions.get(function.info().ident());
             if (impl != null) {
-                return impl.normalizeSymbol(function, context);
+                return impl.normalizeSymbol(function, context.transactionContext);
             }
             if (logger.isTraceEnabled()) {
                 logger.trace(SymbolFormatter.format("No implementation found for function %s", function));
@@ -145,8 +156,9 @@ public class EvaluatingNormalizer {
         }
 
         @Override
-        public Symbol visitReference(Reference symbol, TransactionContext context) {
-            if (referenceResolver == null || symbol.granularity().ordinal() > granularity.ordinal()) {
+        public Symbol visitReference(Reference symbol, Context context) {
+            if (!context.normalizeToLiterals
+                || referenceResolver == null || symbol.granularity().ordinal() > granularity.ordinal()) {
                 return symbol;
             }
 
@@ -162,26 +174,32 @@ public class EvaluatingNormalizer {
         }
 
         @Override
-        protected Symbol visitSymbol(Symbol symbol, TransactionContext context) {
+        protected Symbol visitSymbol(Symbol symbol, Context context) {
             return symbol;
         }
     }
 
     private class CopyingVisitor extends BaseVisitor {
         @Override
-        public Symbol visitFunction(Function function, TransactionContext context) {
+        public Symbol visitFunction(Function function, Context context) {
+            boolean normalizeToLiterals = context.normalizeToLiterals;
+            context.normalizeToLiterals = !function.info().features().contains(FunctionInfo.Feature.LAZY_ATTRIBUTES);
             List<Symbol> newArgs = normalize(function.arguments(), context);
             if (newArgs != function.arguments()) {
                 function = new Function(function.info(), newArgs);
             }
+            context.normalizeToLiterals = normalizeToLiterals;
             return normalizeFunctionSymbol(function, context);
         }
     }
 
     private class InPlaceVisitor extends BaseVisitor {
         @Override
-        public Symbol visitFunction(Function function, TransactionContext context) {
+        public Symbol visitFunction(Function function, Context context) {
+            boolean normalizeToLiterals = context.normalizeToLiterals;
+            context.normalizeToLiterals = !function.info().features().contains(FunctionInfo.Feature.LAZY_ATTRIBUTES);
             normalizeInplace(function.arguments(), context);
+            context.normalizeToLiterals = normalizeToLiterals;
             return normalizeFunctionSymbol(function, context);
         }
     }
@@ -192,7 +210,12 @@ public class EvaluatingNormalizer {
      * @param symbols the list to be normalized
      * @return a list with normalized symbols
      */
-    public List<Symbol> normalize(List<Symbol> symbols, TransactionContext context) {
+    public List<Symbol> normalize(List<Symbol> symbols, TransactionContext transactionContext) {
+        Context context = new Context(transactionContext);
+        return normalize(symbols, context);
+    }
+
+    private List<Symbol> normalize(List<Symbol> symbols, Context context) {
         if (symbols.size() > 0) {
             boolean changed = false;
             Symbol[] newArgs = new Symbol[symbols.size()];
@@ -214,7 +237,12 @@ public class EvaluatingNormalizer {
      *
      * @param symbols the list to be normalized
      */
-    public void normalizeInplace(@Nullable List<Symbol> symbols, @Nullable TransactionContext context) {
+    public void normalizeInplace(@Nullable List<Symbol> symbols, @Nullable TransactionContext transactionContext) {
+        Context context = new Context(transactionContext);
+        normalizeInplace(symbols, context);
+    }
+
+    private void normalizeInplace(@Nullable List<Symbol> symbols, Context context) {
         if (symbols != null) {
             for (int i = 0; i < symbols.size(); i++) {
                 symbols.set(i, normalize(symbols.get(i), context));
@@ -222,7 +250,11 @@ public class EvaluatingNormalizer {
         }
     }
 
-    public Symbol normalize(@Nullable Symbol symbol, @Nullable TransactionContext context) {
+    public Symbol normalize(@Nullable Symbol symbol, @Nullable TransactionContext transactionContext) {
+        return normalize(symbol, new Context(transactionContext));
+    }
+
+    private Symbol normalize(@Nullable Symbol symbol, Context context) {
         if (symbol == null) {
             return null;
         }

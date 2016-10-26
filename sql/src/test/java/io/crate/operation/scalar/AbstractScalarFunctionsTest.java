@@ -25,14 +25,13 @@ import com.google.common.collect.ImmutableMap;
 import io.crate.action.sql.SessionContext;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.TableRelation;
-import io.crate.analyze.symbol.Function;
-import io.crate.analyze.symbol.Literal;
-import io.crate.analyze.symbol.Symbol;
+import io.crate.analyze.symbol.*;
 import io.crate.metadata.*;
 import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.metadata.table.TableInfo;
 import io.crate.metadata.table.TestingTableInfo;
 import io.crate.operation.Input;
+import io.crate.operation.aggregation.FunctionExpression;
 import io.crate.sql.tree.QualifiedName;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.testing.SqlExpressions;
@@ -44,14 +43,14 @@ import org.hamcrest.Matcher;
 import org.hamcrest.Matchers;
 import org.junit.Before;
 
-import java.util.Arrays;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
+import java.util.*;
 
 import static org.hamcrest.core.Is.is;
 
 public abstract class AbstractScalarFunctionsTest extends CrateUnitTest {
+
+    private static final InputApplier INPUT_APPLIER = new InputApplier();
+
     protected SqlExpressions sqlExpressions;
     protected Functions functions;
     protected Map<QualifiedName, AnalyzedRelation> tableSources;
@@ -146,15 +145,15 @@ public abstract class AbstractScalarFunctionsTest extends CrateUnitTest {
         Scalar scalar = (Scalar) functions.get(function.info().ident());
         assert scalar != null : "function must be registered";
 
+        boolean normalize = !function.info().features().contains(FunctionInfo.Feature.LAZY_ATTRIBUTES);
+        InputApplierContext inputApplierContext = new InputApplierContext(inputs, sqlExpressions, normalize);
         AssertingInput[] arguments = new AssertingInput[function.arguments().size()];
-        int idx = 0;
         for (int i = 0; i < function.arguments().size(); i++) {
             Symbol arg = function.arguments().get(i);
             if (arg instanceof Input) {
                 arguments[i] = new AssertingInput(((Input) arg));
             } else {
-                arguments[i] = new AssertingInput(inputs[idx]);
-                idx++;
+                arguments[i] = new AssertingInput(INPUT_APPLIER.process(arg, inputApplierContext));
             }
         }
         assertThat(scalar.compile(function.arguments()).evaluate((Input[] )arguments), is(expectedValue));
@@ -217,6 +216,73 @@ public abstract class AbstractScalarFunctionsTest extends CrateUnitTest {
                 return delegate.value();
             }
             throw new AssertionError("Input.value() should only be called once");
+        }
+    }
+
+    private static class InputApplierContext implements Iterator<Input> {
+
+        private final Iterator<Input> inputsIterator;
+        private final SqlExpressions sqlExpressions;
+        private final boolean normalize;
+
+        InputApplierContext(Input[] inputs, SqlExpressions sqlExpressions, boolean normalize) {
+            this.inputsIterator = Arrays.asList(inputs).iterator();
+            this.sqlExpressions = sqlExpressions;
+            this.normalize = normalize;
+        }
+
+        public Input next() {
+            return inputsIterator.next();
+        }
+
+        @Override
+        public boolean hasNext() {
+            return inputsIterator.hasNext();
+        }
+
+        @Override
+        public void remove() {
+        }
+    }
+
+    /**
+     * Replace {@link Field} symbols with {@link Input} symbols found in the context.
+     * This way one can use column identifiers for scalar testing while providing the (literal) inputs the
+     * column should result in.
+     */
+    private static class InputApplier extends SymbolVisitor<InputApplierContext, Input> {
+
+        @Override
+        public Input visitLiteral(Literal symbol, InputApplierContext context) {
+            return symbol;
+        }
+
+        @Override
+        public Input visitField(Field field, InputApplierContext context) {
+            if (!context.hasNext()) {
+                return null;
+            }
+            return context.next();
+        }
+
+        @Override
+        public Input visitFunction(Function function, InputApplierContext context) {
+            Input[] argInputs = new Input[function.arguments().size()];
+            for (int j = 0; j < function.arguments().size(); j++) {
+                Input input = function.arguments().get(j).accept(this, context);
+                argInputs[j] = input;
+                // replace arguments on function for normalization
+                if (context.normalize && input instanceof Literal) {
+                    function.arguments().set(j, (Literal) argInputs[j]);
+                }
+            }
+
+            if (context.normalize) {
+                return (Input) context.sqlExpressions.normalize(function);
+            }
+
+            Scalar scalar = (Scalar) context.sqlExpressions.functions().get(function.info().ident());
+            return new FunctionExpression<>(scalar, argInputs);
         }
     }
 }

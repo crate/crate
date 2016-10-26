@@ -57,6 +57,7 @@ import io.crate.operation.scalar.SubscriptFunction;
 import io.crate.operation.scalar.arithmetic.ArrayFunction;
 import io.crate.operation.scalar.arithmetic.MapFunction;
 import io.crate.operation.scalar.cast.CastFunctionResolver;
+import io.crate.operation.scalar.conditional.IfFunction;
 import io.crate.operation.scalar.timestamp.CurrentTimestampFunction;
 import io.crate.sql.ExpressionFormatter;
 import io.crate.sql.parser.SqlParser;
@@ -258,6 +259,61 @@ public class ExpressionAnalyzer {
         @Override
         protected Symbol visitFunctionCall(FunctionCall node, ExpressionAnalysisContext context) {
             return convertFunctionCall(node, context);
+        }
+
+        @Override
+        protected Symbol visitSimpleCaseExpression(SimpleCaseExpression node, ExpressionAnalysisContext context) {
+            return convertCaseExpressionToIfFunctions(node.getWhenClauses(), node.getOperand(),
+                node.getDefaultValue(), context);
+        }
+
+        @Override
+        protected Symbol visitSearchedCaseExpression(SearchedCaseExpression node, ExpressionAnalysisContext context) {
+            return convertCaseExpressionToIfFunctions(node.getWhenClauses(), null, node.getDefaultValue(), context);
+        }
+
+        private Symbol convertCaseExpressionToIfFunctions(List<WhenClause> whenClauseExpressions,
+                                                          @Nullable Expression operandExpression,
+                                                          @Nullable Expression defaultValue,
+                                                          ExpressionAnalysisContext context) {
+            List<Symbol> operands = new ArrayList<>(whenClauseExpressions.size());
+            List<Symbol> results = new ArrayList<>(whenClauseExpressions.size());
+            Set<DataType> resultsTypes = new HashSet<>(whenClauseExpressions.size());
+
+            // check for global operand
+            Symbol operandLeftSymbol = null;
+            if (operandExpression != null) {
+                operandLeftSymbol = operandExpression.accept(innerAnalyzer, context);
+            }
+
+            for (WhenClause whenClause : whenClauseExpressions) {
+                Symbol operandRightSymbol = whenClause.getOperand().accept(innerAnalyzer, context);
+                Symbol operandSymbol = operandRightSymbol;
+
+                if (operandLeftSymbol != null) {
+                    operandSymbol = EqOperator.createFunction(operandLeftSymbol, operandRightSymbol);
+                }
+
+                operands.add(operandSymbol);
+
+                Symbol resultSymbol = whenClause.getResult().accept(innerAnalyzer, context);
+                results.add(resultSymbol);
+                resultsTypes.add(resultSymbol.valueType());
+            }
+
+            if (resultsTypes.size() == 2 && !resultsTypes.contains(DataTypes.UNDEFINED)
+                || resultsTypes.size() > 2) {
+                throw new UnsupportedOperationException(String.format(Locale.ENGLISH,
+                    "Data types of all result expressions of a CASE statement must be equal, found: %s",
+                    resultsTypes));
+            }
+
+            Symbol defaultValueSymbol = null;
+            if (defaultValue != null) {
+                defaultValueSymbol = defaultValue.accept(innerAnalyzer, context);
+            }
+
+            return IfFunction.createChain(operands, results, defaultValueSymbol);
         }
 
         @Override

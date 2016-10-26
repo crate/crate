@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - F261/F262: Implemented ``CASE`` expression support.
+
  - BREAKING: Removed ``schema_name`` from ``information_schema.tables``,
    ``information_schema.columns`` and ``information_schema.table_constraints``
    in favour of ``table_schema``.

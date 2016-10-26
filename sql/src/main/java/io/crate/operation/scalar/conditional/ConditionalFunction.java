@@ -50,6 +50,7 @@ abstract class ConditionalFunction extends Scalar<Object, Object> {
     static FunctionInfo createInfo(String name, List<DataType> dataTypes) {
         Set<DataType> types = new HashSet<>(dataTypes);
         Preconditions.checkArgument(types.size() > 0, "%s function requires at least one argument", name);
+        //  NULL is allowed additionally to any other dataType (NULL == UNDEFINED)
         Preconditions.checkArgument(types.size() == 1 || (types.size() == 2 && types.contains(DataTypes.UNDEFINED)),
             "all arguments for %s function must have the same data type", name);
         return new FunctionInfo(new FunctionIdent(name, dataTypes), DataTypes.tryFindNotNullType(dataTypes));

@@ -847,6 +847,23 @@ public class TestStatementBuilder {
         printStatement("select * from foo full join bar on foo.id = bar.id");
     }
 
+    @Test
+    public void testConditionals() throws Exception {
+        printStatement("SELECT a," +
+                       "       CASE WHEN a=1 THEN 'one'" +
+                       "            WHEN a=2 THEN 'two'" +
+                       "            ELSE 'other'" +
+                       "       END" +
+                       "    FROM test");
+        printStatement("SELECT a," +
+                       "       CASE a WHEN 1 THEN 'one'" +
+                       "              WHEN 2 THEN 'two'" +
+                       "              ELSE 'other'" +
+                       "       END" +
+                       "    FROM test");
+        printStatement("SELECT a WHERE CASE WHEN x <> 0 THEN y/x > 1.5 ELSE false END");
+    }
+
     private static void printStatement(String sql) {
         println(sql.trim());
         println("");

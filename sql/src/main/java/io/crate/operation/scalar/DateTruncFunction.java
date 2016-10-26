@@ -74,7 +74,7 @@ public class DateTruncFunction extends Scalar<Long, Object> {
     private static FunctionInfo info(DataType... types) {
         return new FunctionInfo(
             new FunctionIdent(NAME, Arrays.asList(types)),
-            DataTypes.TIMESTAMP, FunctionInfo.Type.SCALAR, FunctionInfo.ALL);
+            DataTypes.TIMESTAMP, FunctionInfo.Type.SCALAR, FunctionInfo.DETERMINISTIC_AND_COMPARISON_REPLACEMENT);
     }
 
 

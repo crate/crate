@@ -43,8 +43,10 @@ public class FunctionInfo implements Comparable<FunctionInfo>, Streamable {
 
     public static final Set<Feature> NO_FEATURES = ImmutableSet.of();
     public static final Set<Feature> DETERMINISTIC_ONLY = Sets.immutableEnumSet(Feature.DETERMINISTIC);
-    public static final Set<Feature> ALL = Sets.immutableEnumSet(
+    public static final Set<Feature> DETERMINISTIC_AND_COMPARISON_REPLACEMENT = Sets.immutableEnumSet(
         Feature.DETERMINISTIC, Feature.COMPARISON_REPLACEMENT);
+    public static final Set<Feature> DETERMINISTIC_AND_LAZY_ATTRIBUTES = Sets.immutableEnumSet(
+        Feature.DETERMINISTIC, Feature.LAZY_ATTRIBUTES);
 
     private FunctionIdent ident;
     private DataType returnType;
@@ -218,6 +220,7 @@ public class FunctionInfo implements Comparable<FunctionInfo>, Streamable {
          * <p>
          * So for f comparisons cannot be replaced.
          */
-        COMPARISON_REPLACEMENT
+        COMPARISON_REPLACEMENT,
+        LAZY_ATTRIBUTES
     }
 }
