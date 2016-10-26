@@ -56,7 +56,7 @@ class CrateTestCmd(CrateCmd):
             self.execute(stmt)
 
 cmd = CrateTestCmd(is_tty=False)
-jars = [project_path('blackbox', 'tmp', 'crateClient', 'crate-client.jar')]
+jars = [project_path('blackbox', 'tmp')]
 jars += glob.glob(crate_path('lib', '*.jar'))
 java_repl = JavaRepl(
     jars=jars,
@@ -502,12 +502,5 @@ def test_suite():
         s.layer = crate_layer
         docs_suite.addTest(s)
 
-    s = doctest.DocFileSuite('../../clients/client.txt', parser=java_parser,
-                             setUp=setUp,
-                             optionflags=doctest.NORMALIZE_WHITESPACE |
-                             doctest.ELLIPSIS,
-                             encoding='utf-8')
-    s.layer = crate_and_javarepl_layer
-    docs_suite.addTest(s)
     suite.addTests(docs_suite)
     return suite

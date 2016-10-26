@@ -211,7 +211,6 @@ public class SQLPlugin extends Plugin {
         }
     }
 
-
     public void onModule(ActionModule actionModule) {
         actionModule.registerAction(SQLAction.INSTANCE, TransportSQLAction.class);
         actionModule.registerAction(SQLBulkAction.INSTANCE, TransportSQLBulkAction.class);

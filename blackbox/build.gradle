@@ -1,10 +1,8 @@
 def crateDist = file("$projectDir/tmp/crate/")
-def crateClient = file("$projectDir/tmp/crateClient/")
 
 apply plugin: 'base'
 
 evaluationDependsOn(':app')
-evaluationDependsOn(':client')
 evaluationDependsOn(':es-repository-hdfs')
 
 task bootstrap(type: Exec) {
@@ -14,7 +12,7 @@ task bootstrap(type: Exec) {
     commandLine 'sh', "$projectDir/bootstrap.sh"
 }
 
-task unpackDistTar(dependsOn: [project(':app').distTar, project(':client').jar]) << {
+task unpackDistTar(dependsOn: [project(':app').distTar]) << {
     copy {
         includeEmptyDirs = false
         from(tarTree(project(':app').distTar.archivePath)) {
@@ -24,10 +22,6 @@ task unpackDistTar(dependsOn: [project(':app').distTar, project(':client').jar])
             }
         }
         into crateDist
-    }
-    copy {
-        from(project(':client').jar)
-        into crateClient
     }
 }
 
