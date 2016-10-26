@@ -58,7 +58,7 @@ public class RelationNormalizerTest extends CrateUnitTest {
             "select x from (select * from (select concat(a, a) as aa, x from t1) as t order by aa) as tt order by x");
         assertThat(relation, instanceOf(QueriedDocTable.class));
         assertThat(relation.querySpec(),
-            isSQL("SELECT doc.t1.x ORDER BY doc.t1.x, concat(doc.t1.a, doc.t1.a)"));
+            isSQL("SELECT doc.t1.x ORDER BY doc.t1.x"));
     }
 
     @Test
@@ -68,6 +68,46 @@ public class RelationNormalizerTest extends CrateUnitTest {
         assertThat(relation, instanceOf(QueriedDocTable.class));
         assertThat(relation.querySpec(),
             isSQL("SELECT doc.t1.a, doc.t1.x, doc.t1.i LIMIT least(10, 5) OFFSET add(5, 2)"));
+    }
+
+    @Test
+    public void testOrderByLimitsOnInnerMerge() throws Exception {
+        QueriedRelation relation = normalize("select * from (" +
+                                                "select * from (" +
+                                                    "select * from t1 order by a limit 10" +
+                                                ") as tt" +
+                                             ") as ttt order by x");
+        assertThat(relation, instanceOf(QueriedDocTable.class));
+        assertThat(relation.querySpec(),
+            isSQL("SELECT doc.t1.a, doc.t1.x, doc.t1.i ORDER BY doc.t1.x LIMIT 10"));
+    }
+
+    @Test
+    public void testOrderByMultiLimitsSameOrderByMerge() throws Exception {
+        QueriedRelation relation = normalize("select * from (" +
+                                                "select * from (" +
+                                                    "select * from t1 order by a offset 5" +
+                                                ") as tt" +
+                                             ") as ttt order by a limit 5");
+        assertThat(relation, instanceOf(QueriedDocTable.class));
+        assertThat(relation.querySpec(),
+            isSQL("SELECT doc.t1.a, doc.t1.x, doc.t1.i ORDER BY doc.t1.a LIMIT 5 OFFSET 5"));
+    }
+
+    @Test
+    public void testOrderByLimitsNotMerged() throws Exception {
+        QueriedRelation relation = normalize("select * from (" +
+                                                "select * from (" +
+                                                    "select * from t1 order by a limit 10 offset 5" +
+                                                ") as tt" +
+                                             ") as ttt order by a desc limit 5");
+        assertThat(relation, instanceOf(QueriedSelectRelation.class));
+        QueriedSelectRelation outerRelation = (QueriedSelectRelation) relation;
+        assertThat(outerRelation.querySpec(),
+            isSQL("SELECT doc.t1.a, doc.t1.x, doc.t1.i ORDER BY doc.t1.a DESC LIMIT 5"));
+        assertThat(outerRelation.subRelation(), instanceOf(QueriedDocTable.class));
+        assertThat(outerRelation.subRelation().querySpec(),
+            isSQL("SELECT doc.t1.a, doc.t1.x, doc.t1.i ORDER BY doc.t1.a LIMIT 10 OFFSET 5"));
     }
 
     @Test
@@ -167,8 +207,8 @@ public class RelationNormalizerTest extends CrateUnitTest {
     @Test
     public void testOrderByNonGroupedField() throws Exception {
         QueriedRelation relation = normalize(
-            "select count(*), avg(x) as avgX from ( " +
-            "  select * from t1 order by i) as tt");
+            "select count(*), avg(x) as avgX from ( select * from (" +
+            "  select * from t1 order by i) as tt) as ttt");
         assertThat(relation, instanceOf(QueriedSelectRelation.class));
     }
 

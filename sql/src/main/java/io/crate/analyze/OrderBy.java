@@ -190,4 +190,19 @@ public class OrderBy implements Streamable {
         }
         return this;
     }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        OrderBy orderBy = (OrderBy) o;
+        return orderBySymbols.equals(orderBy.orderBySymbols) &&
+               Arrays.equals(reverseFlags, orderBy.reverseFlags) &&
+               Arrays.equals(nullsFirst, orderBy.nullsFirst);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(orderBySymbols, reverseFlags, nullsFirst);
+    }
 }

@@ -48,9 +48,7 @@ import java.util.Map;
  * The merge occurs from the top level to the deepest one. For each level, it verifies if the query is mergeable with
  * the next relation and proceed with the merge if positive. When it is not, the partially merged tree is returned.
  */
-final class RelationNormalizer extends AnalyzedRelationVisitor<RelationNormalizer.Context, AnalyzedRelation> {
-
-    private static final RelationNormalizer INSTANCE = new RelationNormalizer();
+final class RelationNormalizer {
 
     private RelationNormalizer() {
     }
@@ -58,77 +56,17 @@ final class RelationNormalizer extends AnalyzedRelationVisitor<RelationNormalize
     public static AnalyzedRelation normalize(AnalyzedRelation relation,
                                              Functions functions,
                                              TransactionContext transactionContext) {
-        return INSTANCE.process(relation, new Context(functions, relation.fields(), transactionContext));
+        Context context = new Context(functions, relation.fields(), transactionContext);
+        return NormalizerVisitor.normalize(SubselectRewriter.rewrite(relation, context), context);
     }
 
-    @Override
-    protected AnalyzedRelation visitAnalyzedRelation(AnalyzedRelation relation, Context context) {
-        return relation;
-    }
-
-    @Override
-    public AnalyzedRelation visitQueriedSelectRelation(QueriedSelectRelation relation, Context context) {
-        if (hasNestedAggregations(relation)) {
-            return relation;
-        }
-
-        context.querySpec = mergeQuerySpec(relation.querySpec(), context.querySpec);
-        return process(relation.relation(), context);
-    }
-
-    @Override
-    public AnalyzedRelation visitQueriedTable(QueriedTable table, Context context) {
-        if (context.querySpec == null) {
-            table.normalize(context.functions, context.transactionContext);
-            return table;
-        }
-
-        QuerySpec querySpec = mergeAndReplaceFields(table, context.querySpec);
-        QueriedTable relation = new QueriedTable(table.tableRelation(), context.paths(), querySpec);
-        relation.normalize(context.functions, context.transactionContext);
-        return relation;
-    }
-
-    @Override
-    public AnalyzedRelation visitQueriedDocTable(QueriedDocTable table, Context context) {
-        QueriedDocTable relation = table;
-        if (context.querySpec != null) {
-            QuerySpec querySpec = mergeAndReplaceFields(table, context.querySpec);
-            relation = new QueriedDocTable(table.tableRelation(), context.paths(), querySpec);
-        }
-        relation.normalize(context.functions, context.transactionContext);
-        relation.analyzeWhereClause(context.functions, context.transactionContext);
-        return relation;
-    }
-
-    @Override
-    public AnalyzedRelation visitMultiSourceSelect(MultiSourceSelect multiSourceSelect, Context context) {
-        MultiSourceSelect relation = multiSourceSelect;
-        multiSourceSelect.querySpec().normalize(context.normalizer, context.transactionContext);
-        if (context.querySpec != null) {
-            QuerySpec querySpec = mergeAndReplaceFields(multiSourceSelect, context.querySpec);
-            // must create a new MultiSourceSelect because paths and query spec changed
-            relation = new MultiSourceSelect(mapSourceRelations(multiSourceSelect),
-                relation.outputSymbols(), context.paths(), querySpec,
-                multiSourceSelect.joinPairs());
-        }
-        relation.pushDownQuerySpecs();
-        return relation;
-    }
-
-    private Map<QualifiedName, AnalyzedRelation> mapSourceRelations(MultiSourceSelect multiSourceSelect) {
+    private static Map<QualifiedName, AnalyzedRelation> mapSourceRelations(MultiSourceSelect multiSourceSelect) {
         return Maps.transformValues(multiSourceSelect.sources(), new com.google.common.base.Function<MultiSourceSelect.Source, AnalyzedRelation>() {
             @Override
             public AnalyzedRelation apply(MultiSourceSelect.Source input) {
                 return input.relation();
             }
         });
-    }
-
-    private QuerySpec mergeAndReplaceFields(QueriedRelation table, QuerySpec parentQSpec) {
-        QuerySpec mergedQuerySpec = mergeQuerySpec(table.querySpec(), parentQSpec);
-        replaceFieldReferences(mergedQuerySpec);
-        return mergedQuerySpec;
     }
 
     private static QuerySpec mergeQuerySpec(QuerySpec childQSpec, @Nullable QuerySpec parentQSpec) {
@@ -139,7 +77,7 @@ final class RelationNormalizer extends AnalyzedRelationVisitor<RelationNormalize
         return new QuerySpec()
             .outputs(parentQSpec.outputs())
             .where(mergeWhere(childQSpec.where(), parentQSpec.where()))
-            .orderBy(mergeOrderBy(childQSpec.orderBy(), parentQSpec.orderBy()))
+            .orderBy(tryReplace(childQSpec.orderBy(), parentQSpec.orderBy()))
             .offset(Limits.add(childQSpec.offset(), parentQSpec.offset()))
             .limit(mergeLimit(childQSpec.limit(), parentQSpec.limit()))
             .groupBy(pushGroupBy(childQSpec.groupBy(), parentQSpec.groupBy()))
@@ -158,27 +96,33 @@ final class RelationNormalizer extends AnalyzedRelationVisitor<RelationNormalize
     }
 
     /**
-     * Merge OrderBy symbols with the ones of the parent being prepended
-     * to the ones of the child as the have bigger priority.
+     * "Merge" OrderBy of child & parent relations.
      * <p/>
-     * eg.
+     * examples:
      * <pre>
      *      childOrderBy: col1, col2
      *      parentOrderBy: col2, col3, col4
      *
-     *      merged OrderBy returned: col2, col3, col4, col1
+     *      merged OrderBy returned: col2, col3, col4
+     * </pre>
+     * <p/>
+     * <pre>
+     *      childOrderBy: col1, col2
+     *      parentOrderBy:
+     *
+     *      merged OrderBy returned: col1, col2
      * </pre>
      *
-     * @param childOrderBy The OrderBy of the relation being processed
+     * @param childOrderBy  The OrderBy of the relation being processed
      * @param parentOrderBy The OrderBy of the parent relation (outer select,  union, etc.)
      * @return The merged orderBy
      */
     @Nullable
-    private static OrderBy mergeOrderBy(Optional<OrderBy> childOrderBy, Optional<OrderBy> parentOrderBy) {
-        if (!childOrderBy.isPresent() || !parentOrderBy.isPresent()) {
-            return childOrderBy.or(parentOrderBy).orNull();
+    private static OrderBy tryReplace(Optional<OrderBy> childOrderBy, Optional<OrderBy> parentOrderBy) {
+        if (parentOrderBy.isPresent()) {
+            return parentOrderBy.get();
         }
-        return childOrderBy.get().merge(parentOrderBy.get());
+        return childOrderBy.orNull();
     }
 
     private static Optional<Symbol> mergeLimit(Optional<Symbol> limit1, Optional<Symbol> limit2) {
@@ -207,6 +151,10 @@ final class RelationNormalizer extends AnalyzedRelationVisitor<RelationNormalize
     }
 
     private static void replaceFieldReferences(QuerySpec querySpec) {
+        if (querySpec == null) {
+            return;
+        }
+
         querySpec.outputs(FieldReferenceResolver.INSTANCE.process(querySpec.outputs(), null));
 
         if (querySpec.where().hasQuery() && !querySpec.where().noMatch()) {
@@ -231,26 +179,33 @@ final class RelationNormalizer extends AnalyzedRelationVisitor<RelationNormalize
         }
     }
 
-    private boolean hasNestedAggregations(QueriedSelectRelation relation) {
-        QuerySpec querySpec1 = relation.querySpec();
-        QuerySpec querySpec2 = relation.relation().querySpec();
+    private static boolean canBeMerged(QuerySpec childQuerySpec, QuerySpec parentQuerySpec) {
+        if (parentQuerySpec == null) {
+            return true;
+        }
 
-        boolean hasAggregations = (querySpec1.hasAggregates() || querySpec1.groupBy().isPresent()) &&
-                                  (querySpec2.hasAggregates() || querySpec2.groupBy().isPresent() ||
-                                   querySpec2.orderBy().isPresent());
+        boolean hasAggregations = (parentQuerySpec.hasAggregates() || parentQuerySpec.groupBy().isPresent()) &&
+                                  (childQuerySpec.hasAggregates() || childQuerySpec.groupBy().isPresent() ||
+                                   childQuerySpec.orderBy().isPresent());
 
-        return hasAggregations || querySpec1.where().hasQuery() && querySpec1.where() != WhereClause.MATCH_ALL &&
-                                  AggregateFunctionReferenceFinder.any(querySpec1.where().query());
+        boolean notMergeableOrderBy = childQuerySpec.orderBy().isPresent() && parentQuerySpec.orderBy().isPresent()
+                                      && !childQuerySpec.orderBy().equals(parentQuerySpec.orderBy())
+                                      && (parentQuerySpec.limit().isPresent() || parentQuerySpec.offset().isPresent())
+                                      && (parentQuerySpec.limit().isPresent() || parentQuerySpec.offset().isPresent());
 
+        return !hasAggregations && !notMergeableOrderBy &&
+               (!parentQuerySpec.where().hasQuery() || parentQuerySpec.where() == WhereClause.MATCH_ALL ||
+                !AggregateFunctionReferenceFinder.any(parentQuerySpec.where().query()));
     }
 
-    static class Context {
+    private static class Context {
+
         private final List<Field> fields;
         private final TransactionContext transactionContext;
         private final EvaluatingNormalizer normalizer;
         private final Functions functions;
 
-        private QuerySpec querySpec;
+        private QuerySpec currentParentQSpec;
 
         public Context(Functions functions,
                        List<Field> fields,
@@ -317,8 +272,7 @@ final class RelationNormalizer extends AnalyzedRelationVisitor<RelationNormalize
 
         @Override
         public Boolean visitField(Field field, Void context) {
-            Boolean result = FIELD_RELATION_VISITOR.process(field.relation(), field);
-            return (result != null) && result;
+            return false;
         }
     }
 
@@ -361,6 +315,134 @@ final class RelationNormalizer extends AnalyzedRelationVisitor<RelationNormalize
         private R visitQueriedRelation(QueriedRelation relation, Field field) {
             Symbol output = relation.querySpec().outputs().get(field.index());
             return symbolVisitor.process(output, null);
+        }
+    }
+
+    private static class SubselectRewriter extends AnalyzedRelationVisitor<RelationNormalizer.Context, AnalyzedRelation> {
+
+        private static final SubselectRewriter SUBSELECT_REWRITER = new SubselectRewriter();
+
+        private SubselectRewriter() {
+        }
+
+        public static AnalyzedRelation rewrite(AnalyzedRelation relation, Context context) {
+            return SUBSELECT_REWRITER.process(relation, context);
+        }
+
+        @Override
+        protected AnalyzedRelation visitAnalyzedRelation(AnalyzedRelation relation, Context context) {
+            return relation;
+        }
+
+        @Override
+        public AnalyzedRelation visitQueriedSelectRelation(QueriedSelectRelation relation, Context context) {
+            QuerySpec querySpec = relation.querySpec();
+            // Try to merge with parent query spec
+            if (canBeMerged(querySpec, context.currentParentQSpec)) {
+                querySpec = mergeQuerySpec(querySpec, context.currentParentQSpec);
+            }
+
+            // Try to push down to the child
+            context.currentParentQSpec = querySpec;
+            AnalyzedRelation processedChildRelation = process(relation.subRelation(), context);
+
+            // If cannot be pushed down replace qSpec with possibly merged qSpec from context
+            if (processedChildRelation == null) {
+                relation.querySpec(querySpec);
+                return relation;
+            } else { // If can be pushed down eliminate relation by return the processed child
+                return processedChildRelation;
+            }
+        }
+
+        @Override
+        public AnalyzedRelation visitQueriedTable(QueriedTable table, Context context) {
+            QuerySpec querySpec = table.querySpec();
+            replaceFieldReferences(context.currentParentQSpec);
+            if (!canBeMerged(querySpec, context.currentParentQSpec)) {
+                return null;
+            }
+
+            querySpec = mergeQuerySpec(querySpec, context.currentParentQSpec);
+            return new QueriedTable(table.tableRelation(), context.paths(), querySpec);
+        }
+
+        @Override
+        public AnalyzedRelation visitQueriedDocTable(QueriedDocTable table, Context context) {
+            QuerySpec querySpec = table.querySpec();
+            replaceFieldReferences(context.currentParentQSpec);
+            if (!canBeMerged(querySpec, context.currentParentQSpec)) {
+                return null;
+            }
+
+            querySpec = mergeQuerySpec(querySpec, context.currentParentQSpec);
+            return new QueriedDocTable(table.tableRelation(), context.paths(), querySpec);
+        }
+
+        @Override
+        public AnalyzedRelation visitMultiSourceSelect(MultiSourceSelect multiSourceSelect, Context context) {
+            QuerySpec querySpec = multiSourceSelect.querySpec();
+            replaceFieldReferences(context.currentParentQSpec);
+            if (!canBeMerged(querySpec, context.currentParentQSpec)) {
+                multiSourceSelect.pushDownQuerySpecs();
+                return null;
+            }
+
+            querySpec = mergeQuerySpec(querySpec, context.currentParentQSpec);
+            // must create a new MultiSourceSelect because paths and query spec changed
+            return new MultiSourceSelect(mapSourceRelations(multiSourceSelect),
+                multiSourceSelect.outputSymbols(),
+                context.paths(),
+                querySpec,
+                multiSourceSelect.joinPairs());
+        }
+    }
+
+    private static class NormalizerVisitor extends AnalyzedRelationVisitor<RelationNormalizer.Context, AnalyzedRelation> {
+
+        private static final NormalizerVisitor NORMALIZER = new NormalizerVisitor();
+
+        private NormalizerVisitor() {
+        }
+
+        public static AnalyzedRelation normalize(AnalyzedRelation relation, Context context) {
+            return NORMALIZER.process(relation, context);
+        }
+
+        @Override
+        protected AnalyzedRelation visitAnalyzedRelation(AnalyzedRelation relation, Context context) {
+            return relation;
+        }
+
+        @Override
+        public AnalyzedRelation visitQueriedSelectRelation(QueriedSelectRelation relation, Context context) {
+            relation.subRelation((QueriedRelation) process(relation.subRelation(), context));
+            return relation;
+        }
+
+        @Override
+        public AnalyzedRelation visitQueriedTable(QueriedTable table, Context context) {
+            table.normalize(context.functions, context.transactionContext);
+            return table;
+        }
+
+        @Override
+        public AnalyzedRelation visitQueriedDocTable(QueriedDocTable table, Context context) {
+            table.normalize(context.functions, context.transactionContext);
+            table.analyzeWhereClause(context.functions, context.transactionContext);
+            return table;
+        }
+
+        @Override
+        public AnalyzedRelation visitMultiSourceSelect(MultiSourceSelect multiSourceSelect, Context context) {
+            QuerySpec querySpec = multiSourceSelect.querySpec();
+            querySpec.normalize(context.normalizer, context.transactionContext);
+            // must create a new MultiSourceSelect because paths and query spec changed
+            multiSourceSelect = new MultiSourceSelect(mapSourceRelations(multiSourceSelect),
+                multiSourceSelect.outputSymbols(), context.paths(), querySpec,
+                multiSourceSelect.joinPairs());
+            multiSourceSelect.pushDownQuerySpecs();
+            return multiSourceSelect;
         }
     }
 }
