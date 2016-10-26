@@ -74,7 +74,6 @@ public class WriterProjectorTest extends CrateUnitTest {
         CollectingRowReceiver rowReceiver = new CollectingRowReceiver();
         projector.downstream(rowReceiver);
 
-        projector.prepare();
         for (int i = 0; i < 5; i++) {
             projector.setNextRow(new Row1(new BytesRef(String.format(Locale.ENGLISH, "input line %02d", i))));
         }
@@ -120,7 +119,6 @@ public class WriterProjectorTest extends CrateUnitTest {
         );
         CollectingRowReceiver rowReceiver = new CollectingRowReceiver();
         projector.downstream(rowReceiver);
-        projector.prepare();
         projector.finish(RepeatHandle.UNSUPPORTED);
         rowReceiver.result();
     }
@@ -143,7 +141,6 @@ public class WriterProjectorTest extends CrateUnitTest {
         );
         CollectingRowReceiver rowReceiver = new CollectingRowReceiver();
         projector.downstream(rowReceiver);
-        projector.prepare();
         projector.finish(RepeatHandle.UNSUPPORTED);
         rowReceiver.result();
     }

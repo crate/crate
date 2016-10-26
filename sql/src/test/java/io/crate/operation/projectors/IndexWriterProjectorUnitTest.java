@@ -133,7 +133,6 @@ public class IndexWriterProjectorUnitTest extends CrateUnitTest {
             UUID.randomUUID()
         );
         indexWriter.downstream(rowReceiver);
-        indexWriter.prepare();
         indexWriter.setNextRow(new RowN(new Object[]{new BytesRef("{\"y\": \"x\"}"), null}));
         indexWriter.finish(RepeatHandle.UNSUPPORTED);
     }

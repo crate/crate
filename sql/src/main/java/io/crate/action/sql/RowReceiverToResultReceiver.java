@@ -73,10 +73,6 @@ public class RowReceiverToResultReceiver implements RowReceiver {
     }
 
     @Override
-    public void prepare() {
-    }
-
-    @Override
     public Set<Requirement> requirements() {
         return Requirements.NO_REQUIREMENTS;
     }

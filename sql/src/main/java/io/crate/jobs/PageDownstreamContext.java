@@ -211,13 +211,6 @@ public class PageDownstreamContext extends AbstractExecutionSubContext implement
     }
 
     @Override
-    public void innerPrepare() {
-        if (projectorChain != null) {
-            projectorChain.prepare();
-        }
-    }
-
-    @Override
     protected void innerStart() {
         // E.g. If the upstreamPhase is a collectPhase for a partitioned table without any partitions
         // there won't be any executionNodes for that collectPhase

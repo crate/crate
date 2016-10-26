@@ -76,10 +76,6 @@ class InterceptingRowReceiver implements RowReceiver, FutureCallback<Void> {
     }
 
     @Override
-    public void prepare() {
-    }
-
-    @Override
     public Set<Requirement> requirements() {
         return Requirements.NO_REQUIREMENTS;
     }

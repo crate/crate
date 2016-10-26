@@ -83,11 +83,6 @@ public class NestedLoopContext extends AbstractExecutionSubContext implements Do
     }
 
     @Override
-    public void innerPrepare() {
-        flatProjectorChain.prepare();
-    }
-
-    @Override
     protected void innerClose(@Nullable Throwable t) {
         closeReceiver(t, leftBucketReceiver, leftRowReceiver);
         closeReceiver(t, rightBucketReceiver, rightRowReceiver);

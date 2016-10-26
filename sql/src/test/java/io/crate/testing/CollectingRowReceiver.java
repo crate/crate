@@ -60,10 +60,6 @@ public class CollectingRowReceiver implements RowReceiver {
     public CollectingRowReceiver() {
     }
 
-    @Override
-    public void prepare() {
-    }
-
     public SettableFuture<Bucket> resultFuture() {
         return resultFuture;
     }

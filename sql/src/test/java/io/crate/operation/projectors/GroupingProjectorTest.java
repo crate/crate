@@ -73,7 +73,6 @@ public class GroupingProjectorTest extends CrateUnitTest {
 
         Row emptyRow = new RowN(new Object[]{});
 
-        projector.prepare();
         projector.setNextRow(emptyRow);
         projector.setNextRow(emptyRow);
         projector.setNextRow(emptyRow);

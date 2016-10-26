@@ -286,7 +286,6 @@ public class FileReadingCollectorTest extends CrateUnitTest {
             1,
             0
         );
-        rowReceiver.prepare();
         collector.doCollect();
     }
 

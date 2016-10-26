@@ -52,7 +52,6 @@ public class ProjectorSetupCollectSource implements CollectSource {
             downstream,
             collectPhase.jobId()
         );
-        projectorChain.prepare();
         return sourceDelegate.getCollectors(collectPhase, projectorChain.firstProjector(), jobCollectContext);
     }
 }

@@ -37,7 +37,6 @@ import java.util.*;
  * Usage:
  * <ul>
  * <li> construct it,
- * <li> call {@linkplain #prepare()},
  * <li> get the first projector using {@linkplain #firstProjector()}
  * <li> feed data to it,
  * <li> wait for the result of  your custom downstream
@@ -50,12 +49,6 @@ public class FlatProjectorChain {
     private FlatProjectorChain(List<? extends RowReceiver> rowReceivers) {
         Preconditions.checkArgument(!rowReceivers.isEmpty(), "no projectors given");
         this.rowReceivers = rowReceivers;
-    }
-
-    public void prepare() {
-        for (RowReceiver rowReceiver : Lists.reverse(rowReceivers)) {
-            rowReceiver.prepare();
-        }
     }
 
     public RowReceiver firstProjector() {

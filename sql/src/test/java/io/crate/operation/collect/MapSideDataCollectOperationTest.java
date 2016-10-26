@@ -110,7 +110,6 @@ public class MapSideDataCollectOperationTest extends CrateUnitTest {
         String threadPoolName = JobCollectContext.threadPoolName(collectNode, "noop_id");
 
         CollectingRowReceiver cd = new CollectingRowReceiver();
-        cd.prepare();
         JobCollectContext jobCollectContext = mock(JobCollectContext.class);
         Collection<CrateCollector> collectors = collectOperation.createCollectors(collectNode, cd, jobCollectContext);
         collectOperation.launchCollectors(collectors, threadPoolName);

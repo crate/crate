@@ -180,8 +180,6 @@ public class DistributingDownstreamTest extends CrateUnitTest {
             streamers,
             2
         );
-        dd.prepare();
-
         RowSender rowSender = new RowSender(
             RowGenerator.range(1, 6),
             dd,

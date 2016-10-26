@@ -233,9 +233,6 @@ public class NestedLoopOperationTest extends CrateUnitTest {
         final NestedLoopOperation op = new NestedLoopOperation(
             0, rowReceiver, Predicates.<Row>alwaysTrue(), JoinType.INNER, 1, 1);
 
-        op.leftRowReceiver().prepare();
-        op.rightRowReceiver().prepare();
-
         // the left RR immediately pauses, since the op changes to right
         assertThat(op.leftRowReceiver().setNextRow(new Row1(1)), is(RowReceiver.Result.PAUSE));
         // the downstream stops immediately, therefore the STOP gets propagated

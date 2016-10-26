@@ -83,11 +83,6 @@ public interface RowReceiver {
     void kill(Throwable throwable);
 
     /**
-     * prepares / starts the RowReceiver, after this call it must be ready to receive rows
-     */
-    void prepare();
-
-    /**
      * specifies which requirements a downstream requires from an upstream in order to work correctly.
      * <p>
      * This can be used to switch to optimized implementations if something isn't/is requirement

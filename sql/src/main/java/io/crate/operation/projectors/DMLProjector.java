@@ -22,63 +22,35 @@
 
 package io.crate.operation.projectors;
 
+import com.google.common.base.Function;
 import com.google.common.util.concurrent.Futures;
 import io.crate.core.collections.Row;
 import io.crate.executor.transport.ShardRequest;
-import io.crate.executor.transport.TransportActionProvider;
 import io.crate.operation.collect.CollectExpression;
 import org.apache.lucene.util.BytesRef;
-import org.elasticsearch.action.bulk.BulkRetryCoordinatorPool;
 import org.elasticsearch.action.bulk.BulkShardProcessor;
-import org.elasticsearch.cluster.ClusterService;
-import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.mapper.Uid;
 import org.elasticsearch.index.shard.ShardId;
 
-import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-abstract class DMLProjector<Request extends ShardRequest> extends AbstractProjector {
-
-    static final int DEFAULT_BULK_SIZE = 1024;
+class DMLProjector<Request extends ShardRequest> extends AbstractProjector {
 
     private final ShardId shardId;
     private final CollectExpression<Row, ?> collectUidExpression;
     private final AtomicBoolean failed = new AtomicBoolean(false);
 
-    protected final ClusterService clusterService;
-    protected final Settings settings;
-    protected final TransportActionProvider transportActionProvider;
-    protected final BulkRetryCoordinatorPool bulkRetryCoordinatorPool;
-    protected final UUID jobId;
+    private final BulkShardProcessor<Request> bulkShardProcessor;
+    private final Function<String, ShardRequest.Item> itemFactory;
 
-    private BulkShardProcessor<Request> bulkShardProcessor;
-
-    DMLProjector(ClusterService clusterService,
-                 Settings settings,
-                 ShardId shardId,
-                 TransportActionProvider transportActionProvider,
-                 BulkRetryCoordinatorPool bulkRetryCoordinatorPool,
+    DMLProjector(ShardId shardId,
                  CollectExpression<Row, ?> collectUidExpression,
-                 UUID jobId) {
-        this.clusterService = clusterService;
-        this.settings = settings;
-        this.transportActionProvider = transportActionProvider;
-        this.bulkRetryCoordinatorPool = bulkRetryCoordinatorPool;
+                 BulkShardProcessor<Request> bulkShardProcessor,
+                 Function<String, ShardRequest.Item> itemFactory) {
         this.shardId = shardId;
         this.collectUidExpression = collectUidExpression;
-        this.jobId = jobId;
-    }
-
-    protected abstract BulkShardProcessor<Request> createBulkShardProcessor(int bulkSize);
-
-    protected abstract ShardRequest.Item createItem(String id);
-
-    @Override
-    public void prepare() {
-        super.prepare();
-        bulkShardProcessor = createBulkShardProcessor(DEFAULT_BULK_SIZE);
-        Futures.addCallback(bulkShardProcessor.result(), new BulkProcessorFutureCallback(failed, downstream));
+        this.bulkShardProcessor = bulkShardProcessor;
+        this.itemFactory = itemFactory;
     }
 
     @Override
@@ -87,13 +59,19 @@ abstract class DMLProjector<Request extends ShardRequest> extends AbstractProjec
         collectUidExpression.setNextRow(row);
         Uid uid = Uid.createUid(((BytesRef) collectUidExpression.value()).utf8ToString());
         // routing is already resolved
-        bulkShardProcessor.addForExistingShard(shardId, createItem(uid.id()), null);
+        bulkShardProcessor.addForExistingShard(shardId, itemFactory.apply(uid.id()), null);
         return Result.CONTINUE;
     }
 
     @Override
     public void finish(RepeatHandle repeatHandle) {
         bulkShardProcessor.close();
+    }
+
+    @Override
+    public void downstream(RowReceiver rowReceiver) {
+        super.downstream(rowReceiver);
+        Futures.addCallback(bulkShardProcessor.result(), new BulkProcessorFutureCallback(failed, rowReceiver));
     }
 
     @Override

@@ -166,13 +166,6 @@ public class CompositeCollector implements CrateCollector {
         }
 
         @Override
-        public void prepare() {
-            if (numFinishCalls.get() == 0) {
-                downstream.prepare();
-            }
-        }
-
-        @Override
         public Set<Requirement> requirements() {
             return downstream.requirements();
         }

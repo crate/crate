@@ -41,10 +41,6 @@ public abstract class AbstractProjector implements Projector {
     }
 
     @Override
-    public void prepare() {
-    }
-
-    @Override
     public void kill(Throwable throwable) {
         downstream.kill(throwable);
     }
@@ -85,11 +81,6 @@ public abstract class AbstractProjector implements Projector {
 
         @Override
         public void kill(Throwable throwable) {
-            throw new IllegalStateException(STATE_ERROR);
-        }
-
-        @Override
-        public void prepare() {
             throw new IllegalStateException(STATE_ERROR);
         }
 

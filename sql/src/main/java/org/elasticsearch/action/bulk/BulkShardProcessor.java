@@ -66,6 +66,7 @@ import java.util.concurrent.atomic.AtomicReference;
 public class BulkShardProcessor<Request extends ShardRequest> {
 
     public static final int MAX_CREATE_INDICES_BULK_SIZE = 100;
+    public static final int DEFAULT_BULK_SIZE = 10_000;
 
     private final boolean autoCreateIndices;
     private final Predicate<String> shouldAutocreateIndexPredicate;
