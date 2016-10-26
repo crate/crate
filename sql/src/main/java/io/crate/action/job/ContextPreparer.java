@@ -121,7 +121,7 @@ public class ContextPreparer extends AbstractComponent {
         logger.trace("prepareOnRemote: nodeOperations={}, targetSourceMap={}", nodeOperations, preparerContext.opCtx.targetToSourceMap);
 
         for (IntCursor cursor : preparerContext.opCtx.findLeafs()) {
-            contextBuilder.addAllSubContexts(prepareSourceOperations(cursor.value, preparerContext));
+            prepareSourceOperations(cursor.value, preparerContext);
         }
         assert preparerContext.opCtx.allNodeOperationContextsBuilt() : "some nodeOperations haven't been processed";
         return preparerContext.directResponseFutures;
@@ -130,7 +130,7 @@ public class ContextPreparer extends AbstractComponent {
     public List<ListenableFuture<Bucket>> prepareOnHandler(Iterable<? extends NodeOperation> nodeOperations,
                                                            JobExecutionContext.Builder contextBuilder,
                                                            List<Tuple<ExecutionPhase, RowReceiver>> handlerPhases,
-                                                           @Nullable SharedShardContexts sharedShardContexts) {
+                                                           SharedShardContexts sharedShardContexts) {
         PreparerContext preparerContext = initContext(nodeOperations, contextBuilder, sharedShardContexts);
         logger.trace("prepareOnHandler: nodeOperations={}, handlerPhases={}, targetSourceMap={}",
             nodeOperations, handlerPhases, preparerContext.opCtx.targetToSourceMap);
@@ -144,7 +144,7 @@ public class ContextPreparer extends AbstractComponent {
         }
         leafs.addAll(preparerContext.opCtx.findLeafs());
         for (IntCursor cursor : leafs) {
-            contextBuilder.addAllSubContexts(prepareSourceOperations(cursor.value, preparerContext));
+            prepareSourceOperations(cursor.value, preparerContext);
         }
         assert preparerContext.opCtx.allNodeOperationContextsBuilt() : "some nodeOperations haven't been processed";
         return preparerContext.directResponseFutures;
@@ -190,12 +190,11 @@ public class ContextPreparer extends AbstractComponent {
      * <p>
      * {@link PreparerContext#opCtx#targetToSourceMap} will be used to traverse the nodeOperations
      */
-    private Collection<ExecutionSubContext> prepareSourceOperations(int startPhaseId, PreparerContext preparerContext) {
+    private void prepareSourceOperations(int startPhaseId, PreparerContext preparerContext) {
         Collection<Integer> sourcePhaseIds = preparerContext.opCtx.targetToSourceMap.get(startPhaseId);
         if (sourcePhaseIds.isEmpty()) {
-            return Collections.emptyList();
+            return;
         }
-        List<ExecutionSubContext> subContexts = new ArrayList<>();
         for (Integer sourcePhaseId : sourcePhaseIds) {
             NodeOperation nodeOperation = preparerContext.opCtx.nodeOperationMap.get(sourcePhaseId);
             Boolean created = createContexts(nodeOperation.executionPhase(), preparerContext);
@@ -203,9 +202,8 @@ public class ContextPreparer extends AbstractComponent {
             preparerContext.opCtx.builtNodeOperations.set(nodeOperation.executionPhase().executionPhaseId());
         }
         for (Integer sourcePhaseId : sourcePhaseIds) {
-            subContexts.addAll(prepareSourceOperations(sourcePhaseId, preparerContext));
+            prepareSourceOperations(sourcePhaseId, preparerContext);
         }
-        return subContexts;
     }
 
     static class NodeOperationCtx {
