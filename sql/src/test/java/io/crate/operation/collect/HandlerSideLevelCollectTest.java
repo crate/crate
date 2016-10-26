@@ -99,7 +99,6 @@ public class HandlerSideLevelCollectTest extends SQLTransportIntegrationTest {
 
     private Bucket collect(RoutedCollectPhase collectPhase) throws Exception {
         CollectingRowReceiver collectingProjector = new CollectingRowReceiver();
-        collectingProjector.prepare();
         Collection<CrateCollector> collectors = operation.createCollectors(collectPhase, collectingProjector, mock(JobCollectContext.class));
         operation.launchCollectors(collectors, JobCollectContext.threadPoolName(collectPhase, clusterService().localNode().id()));
         return collectingProjector.result();

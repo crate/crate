@@ -40,11 +40,6 @@ public abstract class ForwardingRowReceiver implements RowReceiver {
     }
 
     @Override
-    public void prepare() {
-        rowReceiver.prepare();
-    }
-
-    @Override
     public Set<Requirement> requirements() {
         return rowReceiver.requirements();
     }

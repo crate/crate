@@ -63,13 +63,6 @@ public class ESJobContext extends AbstractExecutionSubContext {
     }
 
     @Override
-    public void innerPrepare() {
-        if (projectorChain != null) {
-            projectorChain.prepare();
-        }
-    }
-
-    @Override
     protected void innerStart() {
         for (int i = 0; i < requests.size(); i++) {
             transportAction.execute(requests.get(i), new InternalActionListener(listeners.get(i), this));

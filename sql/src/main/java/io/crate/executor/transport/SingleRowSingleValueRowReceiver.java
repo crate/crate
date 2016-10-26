@@ -83,10 +83,6 @@ class SingleRowSingleValueRowReceiver implements RowReceiver, CompletionListenab
     }
 
     @Override
-    public void prepare() {
-    }
-
-    @Override
     public Set<Requirement> requirements() {
         return Requirements.NO_REQUIREMENTS;
     }

@@ -105,7 +105,6 @@ public class MultiShardScoreDocCollector implements CrateCollector, ResumeHandle
 
     @Override
     public void doCollect() {
-        flatProjectorChain.prepare();
         if (singleShard) {
             runWithoutThreads(orderedDocCollectors.get(0));
         } else {

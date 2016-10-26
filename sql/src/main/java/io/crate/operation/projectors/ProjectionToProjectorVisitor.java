@@ -21,6 +21,7 @@
 
 package io.crate.operation.projectors;
 
+import com.google.common.base.Function;
 import com.google.common.base.Predicate;
 import com.google.common.base.Supplier;
 import io.crate.action.sql.SessionContext;
@@ -28,9 +29,13 @@ import io.crate.analyze.EvaluatingNormalizer;
 import io.crate.analyze.symbol.*;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.core.collections.Row;
+import io.crate.executor.transport.ShardDeleteRequest;
+import io.crate.executor.transport.ShardRequest;
+import io.crate.executor.transport.ShardUpsertRequest;
 import io.crate.executor.transport.TransportActionProvider;
 import io.crate.metadata.*;
 import io.crate.metadata.expressions.WritableExpression;
+import io.crate.metadata.settings.CrateSettings;
 import io.crate.operation.ImplementationSymbolVisitor;
 import io.crate.operation.Input;
 import io.crate.operation.RowFilter;
@@ -44,6 +49,7 @@ import io.crate.operation.reference.sys.RowContextReferenceResolver;
 import io.crate.planner.projection.*;
 import io.crate.types.StringType;
 import org.elasticsearch.action.bulk.BulkRetryCoordinatorPool;
+import org.elasticsearch.action.bulk.BulkShardProcessor;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.common.collect.Tuple;
@@ -326,36 +332,74 @@ public class ProjectionToProjectorVisitor
     }
 
     @Override
-    public Projector visitUpdateProjection(UpdateProjection projection, Context context) {
+    public Projector visitUpdateProjection(final UpdateProjection projection, Context context) {
         checkShardLevel("Update projection can only be executed on a shard");
 
-        return new UpdateProjector(
+        ShardUpsertRequest.Builder builder = new ShardUpsertRequest.Builder(
+            CrateSettings.BULK_REQUEST_TIMEOUT.extractTimeValue(settings),
+            false,
+            false,
+            projection.assignmentsColumns(),
+            null,
+            context.jobId
+        );
+        BulkShardProcessor<ShardUpsertRequest> bulkShardProcessor = new BulkShardProcessor<>(
             clusterService,
+            transportActionProvider.transportBulkCreateIndicesAction(),
             indexNameExpressionResolver,
             settings,
-            shardId,
-            transportActionProvider,
             bulkRetryCoordinatorPool,
-            resolveUidCollectExpression(projection),
-            projection.assignmentsColumns(),
-            projection.assignments(),
-            projection.requiredVersion(),
-            context.jobId);
+            false, // autoCreateIndices -> can only update existing things
+            BulkShardProcessor.DEFAULT_BULK_SIZE,
+            builder,
+            transportActionProvider.transportShardUpsertActionDelegate(),
+            context.jobId
+        );
+
+        return new DMLProjector<>(
+            shardId,
+            resolveUidCollectExpression(projection.uidSymbol()),
+            bulkShardProcessor,
+            new Function<String, ShardRequest.Item>() {
+                @Nullable
+                @Override
+                public ShardRequest.Item apply(@Nullable String id) {
+                    return new ShardUpsertRequest.Item(id, projection.assignments(), null, projection.requiredVersion());
+                }
+            }
+        );
     }
 
     @Override
     public Projector visitDeleteProjection(DeleteProjection projection, Context context) {
         checkShardLevel("Delete projection can only be executed on a shard");
-
-        return new DeleteProjector(
+        ShardDeleteRequest.Builder builder = new ShardDeleteRequest.Builder(
+            CrateSettings.BULK_REQUEST_TIMEOUT.extractTimeValue(settings),
+            context.jobId
+        );
+        BulkShardProcessor<ShardDeleteRequest> bulkShardProcessor = new BulkShardProcessor<>(
             clusterService,
+            transportActionProvider.transportBulkCreateIndicesAction(),
             indexNameExpressionResolver,
             settings,
-            shardId,
-            transportActionProvider,
             bulkRetryCoordinatorPool,
-            resolveUidCollectExpression(projection),
-            context.jobId);
+            false,
+            BulkShardProcessor.DEFAULT_BULK_SIZE,
+            builder,
+            transportActionProvider.transportShardDeleteActionDelegate(),
+            context.jobId
+        );
+        return new DMLProjector<>(
+            shardId,
+            resolveUidCollectExpression(projection.uidSymbol()),
+            bulkShardProcessor,
+            new Function<String, ShardRequest.Item>() {
+                @Nullable
+                @Override
+                public ShardRequest.Item apply(@Nullable String id) {
+                    return new ShardDeleteRequest.Item(id);
+                }
+            });
     }
 
     private void checkShardLevel(String errorMessage) {
@@ -364,11 +408,10 @@ public class ProjectionToProjectorVisitor
         }
     }
 
-    private CollectExpression<Row, ?> resolveUidCollectExpression(DMLProjection projection) {
+    private CollectExpression<Row, ?> resolveUidCollectExpression(Symbol uidSymbol) {
         ImplementationSymbolVisitor.Context ctx = new ImplementationSymbolVisitor.Context();
-        symbolVisitor.process(projection.uidSymbol(), ctx);
-        assert ctx.collectExpressions().size() == 1;
-
+        symbolVisitor.process(uidSymbol, ctx);
+        assert ctx.collectExpressions().size() == 1 : "uidSymbol must resolve to 1 collectExpression";
         return ctx.collectExpressions().iterator().next();
     }
 

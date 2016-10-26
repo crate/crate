@@ -197,11 +197,6 @@ public class MultiUpstreamRowReceiver implements RowReceiver, RowDownstream {
     }
 
     @Override
-    public void prepare() {
-        // this is just a multi-upstream wrapper, delegates should be prepared elsewhere already
-    }
-
-    @Override
     public void kill(Throwable throwable) {
         delegate.kill(throwable);
     }

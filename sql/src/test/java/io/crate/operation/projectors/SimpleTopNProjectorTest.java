@@ -57,7 +57,6 @@ public class SimpleTopNProjectorTest extends CrateUnitTest {
     private SimpleTopNProjector preparePipe(int limit, int offset, CollectingRowReceiver rowReceiver) {
         SimpleTopNProjector pipe = new SimpleTopNProjector(INPUTS, COLLECT_EXPRESSIONS, limit, offset);
         pipe.downstream(rowReceiver);
-        pipe.prepare();
         return pipe;
     }
 
@@ -162,7 +161,6 @@ public class SimpleTopNProjectorTest extends CrateUnitTest {
         CollectingRowReceiver rowReceiver = new CollectingRowReceiver();
         Projector pipe = new SimpleTopNProjector(ImmutableList.<Input<?>>of(funcExpr), COLLECT_EXPRESSIONS, 10, TopN.NO_OFFSET);
         pipe.downstream(rowReceiver);
-        pipe.prepare();
         int i;
         for (i = 0; i < 12; i++) {
             if (pipe.setNextRow(row) == RowReceiver.Result.STOP) {

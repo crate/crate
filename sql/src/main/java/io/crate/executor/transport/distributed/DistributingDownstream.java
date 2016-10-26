@@ -183,10 +183,6 @@ public class DistributingDownstream implements RowReceiver {
         // downstream will also receive a kill request
     }
 
-    @Override
-    public void prepare() {
-    }
-
     private void upstreamFinished() {
         if (killed) {
             return;

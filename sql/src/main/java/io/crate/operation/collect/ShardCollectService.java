@@ -216,7 +216,6 @@ public class ShardCollectService {
                 @Override
                 public CrateCollector build(RowReceiver rowReceiver) {
                     FlatProjectorChain chain = chainBuilder.build(rowReceiver);
-                    chain.prepare();
                     return builder.build(chain.firstProjector());
                 }
             };

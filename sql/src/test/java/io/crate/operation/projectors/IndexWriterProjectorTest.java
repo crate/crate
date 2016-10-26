@@ -92,7 +92,6 @@ public class IndexWriterProjectorTest extends SQLTransportIntegrationTest {
         final RowDownstream rowDownstream = new MultiUpstreamRowReceiver(writerProjector);
 
         final RowReceiver receiver1 = rowDownstream.newRowReceiver();
-        receiver1.prepare();
 
         Thread t1 = new Thread(new Runnable() {
             @Override
@@ -106,7 +105,6 @@ public class IndexWriterProjectorTest extends SQLTransportIntegrationTest {
 
 
         final RowReceiver receiver2 = rowDownstream.newRowReceiver();
-        receiver2.prepare();
         Thread t2 = new Thread(new Runnable() {
             @Override
             public void run() {

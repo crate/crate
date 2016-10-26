@@ -169,7 +169,6 @@ public class ProjectionToProjectorVisitorTest extends CrateUnitTest {
         assertThat(projector, instanceOf(AggregationPipe.class));
 
 
-        projector.prepare();
         projector.setNextRow(spare("foo", 10));
         projector.setNextRow(spare("bar", 20));
         projector.finish(RepeatHandle.UNSUPPORTED);
@@ -204,10 +203,6 @@ public class ProjectionToProjectorVisitorTest extends CrateUnitTest {
 
         CollectingRowReceiver collector = new CollectingRowReceiver();
         topNProjector.downstream(collector);
-
-        collector.prepare();
-        topNProjector.prepare();
-        projector.prepare();
 
         assertThat(projector, instanceOf(GroupingProjector.class));
 
@@ -244,7 +239,6 @@ public class ProjectionToProjectorVisitorTest extends CrateUnitTest {
         projector.downstream(collectingProjector);
         assertThat(projector, instanceOf(FilterProjector.class));
 
-        projector.prepare();
         projector.setNextRow(spare("human", 2));
         projector.setNextRow(spare("vogon", 1));
 

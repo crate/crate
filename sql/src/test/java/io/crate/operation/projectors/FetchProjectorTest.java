@@ -135,7 +135,6 @@ public class FetchProjectorTest extends CrateUnitTest {
                 fetchSize
             );
         pipe.downstream(rowReceiver);
-        pipe.prepare();
         return pipe;
     }
 

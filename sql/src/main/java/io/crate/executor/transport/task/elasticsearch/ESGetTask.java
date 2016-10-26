@@ -122,7 +122,6 @@ public class ESGetTask extends JobTask {
         protected void innerPrepare() throws Exception {
             FlatProjectorChain projectorChain = getFlatProjectorChain(downstream);
             downstream = projectorChain.firstProjector();
-            projectorChain.prepare();
         }
 
         private FlatProjectorChain getFlatProjectorChain(RowReceiver downstream) {

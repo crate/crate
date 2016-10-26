@@ -104,7 +104,6 @@ public class GroupingProjectorBenchmark {
         RowReceiver finalReceiver = new RowCountRowReceiver();
         groupingProjector.downstream(finalReceiver);
 
-        groupingProjector.prepare();
 
         List<BytesRef> keys = new ArrayList<>(Locale.getISOCountries().length);
         for (String s : Locale.getISOCountries()) {
@@ -142,7 +141,6 @@ public class GroupingProjectorBenchmark {
             Arrays.<DataType>asList(DataTypes.INTEGER), keyInputs, collectExpressions, aggregations, RAM_ACCOUNTING_CONTEXT);
         RowReceiver finalReceiver = new RowCountRowReceiver();
         groupingProjector.downstream(finalReceiver);
-        groupingProjector.prepare();
 
         SpareRow row = new SpareRow();
         for (int i = 0; i < 20_000_000; i++) {

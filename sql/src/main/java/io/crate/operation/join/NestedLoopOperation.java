@@ -295,10 +295,6 @@ public class NestedLoopOperation implements CompletionListenable {
         }
 
         @Override
-        public void prepare() {
-        }
-
-        @Override
         public void kill(Throwable throwable) {
             killBoth(throwable);
             downstream.kill(throwable);

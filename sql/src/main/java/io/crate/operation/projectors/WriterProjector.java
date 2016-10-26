@@ -62,7 +62,7 @@ public class WriterProjector extends AbstractProjector {
     private Output output;
 
     protected final AtomicLong counter = new AtomicLong();
-    private RowWriter rowWriter;
+    private final RowWriter rowWriter;
 
     /**
      * @param inputs a list of {@link io.crate.operation.Input}.
@@ -98,6 +98,7 @@ public class WriterProjector extends AbstractProjector {
         } else {
             throw new UnsupportedFeatureException(String.format(Locale.ENGLISH, "Unknown scheme '%s'", this.uri.getScheme()));
         }
+        rowWriter = initWriter();
     }
 
     protected static Map<String, Object> toNestedStringObjectMap(Map<ColumnIdent, Object> columnIdentObjectMap) {
@@ -137,19 +138,18 @@ public class WriterProjector extends AbstractProjector {
         return nestedMap;
     }
 
-    @Override
-    public void prepare() {
+    private RowWriter initWriter() {
         counter.set(0);
         try {
             if (!overwrites.isEmpty()) {
-                rowWriter = new DocWriter(
+                return new DocWriter(
                     output.acquireOutputStream(), collectExpressions, overwrites);
             } else if (outputFormat.equals(WriterProjection.OutputFormat.JSON_ARRAY)) {
-                rowWriter = new ColumnRowWriter(output.acquireOutputStream(), collectExpressions, inputs);
+                return new ColumnRowWriter(output.acquireOutputStream(), collectExpressions, inputs);
             } else if (outputNames != null && outputFormat.equals(WriterProjection.OutputFormat.JSON_OBJECT)) {
-                rowWriter = new ColumnRowObjectWriter(output.acquireOutputStream(), collectExpressions, inputs, outputNames);
+                return new ColumnRowObjectWriter(output.acquireOutputStream(), collectExpressions, inputs, outputNames);
             } else {
-                rowWriter = new RawRowWriter(output.acquireOutputStream());
+                return new RawRowWriter(output.acquireOutputStream());
             }
         } catch (IOException e) {
             throw new UnhandledServerException(String.format(Locale.ENGLISH, "Failed to open output: '%s'", e.getMessage()), e);

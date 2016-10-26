@@ -62,11 +62,6 @@ public class CountContext extends AbstractExecutionSubContext {
     }
 
     @Override
-    public void innerPrepare() {
-        rowReceiver.prepare();
-    }
-
-    @Override
     public void innerStart() {
         try {
             countFuture = countOperation.count(indexShardMap, whereClause);

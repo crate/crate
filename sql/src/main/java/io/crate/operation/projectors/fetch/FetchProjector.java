@@ -65,14 +65,13 @@ public class FetchProjector extends AbstractProjector {
     private ResumeHandle resumeHandle = ResumeHandle.INVALID;
 
     enum Stage {
-        INIT,
         COLLECT,
         FETCH,
         EMIT,
         FINALIZE
     }
 
-    private final AtomicReference<Stage> stage = new AtomicReference<>(Stage.INIT);
+    private final AtomicReference<Stage> stage = new AtomicReference<>(Stage.COLLECT);
     private final Object failureLock = new Object();
 
     private final AtomicReference<Throwable> failure = new AtomicReference<>();
@@ -141,12 +140,6 @@ public class FetchProjector extends AbstractProjector {
             assert was == from : "wrong state switch " + from + "/" + to + " was " + was;
         }
         return false;
-    }
-
-    @Override
-    public void prepare() {
-        assert stage.get() == Stage.INIT;
-        nextStage(Stage.INIT, Stage.COLLECT);
     }
 
     @Override
@@ -351,8 +344,6 @@ public class FetchProjector extends AbstractProjector {
         synchronized (failureLock) {
             boolean first = failure.compareAndSet(null, throwable);
             switch (stage.get()) {
-                case INIT:
-                    throw new IllegalStateException("Shouldn't call fail on projection if projection hasn't been prepared");
                 case COLLECT:
                     if (first) {
                         if (!finishCalled.getAndSet(true)) {
