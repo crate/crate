@@ -5,6 +5,10 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fix: Certain subselects with nested ``order by`` and ``limit`` or ``offset``
+   produced incorrect results.
+   eg. select * from (select a, b from t1 order by a limit 3) as t order by b limit 2
+
 2016/10/27 0.57.0
 =================
 

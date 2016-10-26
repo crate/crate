@@ -38,12 +38,12 @@ import java.util.List;
 
 public class QueriedSelectRelation implements QueriedRelation {
 
-    private final QueriedRelation relation;
-    private final QuerySpec querySpec;
     private final Fields fields;
+    private QueriedRelation subRelation;
+    private QuerySpec querySpec;
 
-    public QueriedSelectRelation(QueriedRelation relation, Collection<? extends Path> outputNames, QuerySpec querySpec) {
-        this.relation = relation;
+    public QueriedSelectRelation(QueriedRelation subRelation, Collection<? extends Path> outputNames, QuerySpec querySpec) {
+        this.subRelation = subRelation;
         this.querySpec = querySpec;
         this.fields = new Fields(outputNames.size());
         Iterator<Symbol> outputsIterator = querySpec.outputs().iterator();
@@ -52,13 +52,21 @@ public class QueriedSelectRelation implements QueriedRelation {
         }
     }
 
-    public QueriedRelation relation() {
-        return relation;
+    public QueriedRelation subRelation() {
+        return subRelation;
+    }
+
+    public void subRelation(QueriedRelation subRelation) {
+        this.subRelation = subRelation;
     }
 
     @Override
     public QuerySpec querySpec() {
         return querySpec;
+    }
+
+    public void querySpec(QuerySpec querySpec) {
+        this.querySpec = querySpec;
     }
 
     @Override
@@ -82,11 +90,11 @@ public class QueriedSelectRelation implements QueriedRelation {
 
     @Override
     public QualifiedName getQualifiedName() {
-        return relation.getQualifiedName();
+        return subRelation.getQualifiedName();
     }
 
     @Override
     public void setQualifiedName(QualifiedName qualifiedName) {
-        relation.setQualifiedName(qualifiedName);
+        subRelation.setQualifiedName(qualifiedName);
     }
 }
