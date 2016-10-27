@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Removed the ``client`` package which contained the deprecated ``crate-client``.
+   You should start using the PostgreSQL JDBC driver instead.
+
  - Removed the duplicate `rowcount` field from the HTTP response.
 
  - Added the ``search_path`` session setting parameter. The default table

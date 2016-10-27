@@ -1,6 +1,6 @@
 from crate.theme.rtd.conf.crate_server import *
 
-exclude_patterns = ['out/**', 'clients/**', 'tmp/**', 'eggs/**', 'requirements.txt']
+exclude_patterns = ['out/**', 'tmp/**', 'eggs/**', 'requirements.txt']
 
 extensions = ['crate.sphinx.csv']
 # crate.theme sets html_favicon to favicon.png which causes a warning because it should be a .ico
