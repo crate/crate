@@ -49,7 +49,7 @@ public class NestedLoopContext extends AbstractExecutionSubContext implements Do
                              NestedLoopOperation nestedLoopOperation,
                              @Nullable PageBucketReceiver leftBucketReceiver,
                              @Nullable PageBucketReceiver rightBucketReceiver) {
-        super(nestedLoopPhase.executionPhaseId(), logger);
+        super(nestedLoopPhase.phaseId(), logger);
 
         this.nestedLoopPhase = nestedLoopPhase;
         this.flatProjectorChain = flatProjectorChain;
@@ -79,7 +79,7 @@ public class NestedLoopContext extends AbstractExecutionSubContext implements Do
 
     @Override
     public int id() {
-        return nestedLoopPhase.executionPhaseId();
+        return nestedLoopPhase.phaseId();
     }
 
     @Override

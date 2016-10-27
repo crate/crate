@@ -43,7 +43,7 @@ public class RamAccountingContext {
 
     public static RamAccountingContext forExecutionPhase(CircuitBreaker breaker, ExecutionPhase executionPhase) {
         String ramAccountingContextId = String.format(Locale.ENGLISH, "%s: %d",
-            executionPhase.name(), executionPhase.executionPhaseId());
+            executionPhase.name(), executionPhase.phaseId());
         return new RamAccountingContext(ramAccountingContextId, breaker);
     }
 

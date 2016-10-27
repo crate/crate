@@ -26,7 +26,6 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.analyze.symbol.Symbols;
-import io.crate.operation.projectors.RowReceiver;
 import io.crate.planner.ResultDescription;
 import io.crate.planner.distribution.DistributionInfo;
 import io.crate.planner.distribution.UpstreamPhase;
@@ -97,7 +96,7 @@ public class NestedLoopPhase extends AbstractProjectionsPhase implements Upstrea
     }
 
     @Override
-    public Collection<String> executionNodes() {
+    public Collection<String> nodeIds() {
         if (executionNodes == null) {
             return ImmutableSet.of();
         } else {
@@ -210,7 +209,7 @@ public class NestedLoopPhase extends AbstractProjectionsPhase implements Upstrea
     @Override
     public String toString() {
         MoreObjects.ToStringHelper helper = MoreObjects.toStringHelper(this)
-            .add("executionPhaseId", executionPhaseId())
+            .add("executionPhaseId", phaseId())
             .add("name", name())
             .add("joinType", joinType)
             .add("joinCondition", joinCondition)

@@ -1185,10 +1185,10 @@ public class PlannerTest extends AbstractPlannerTest {
     @Test
     public void testLimitThatIsBiggerThanPageSizeCausesQTFPUshPlan() throws Exception {
         QueryThenFetch plan = plan("select * from users limit 2147483647 ");
-        assertThat(plan.localMerge().executionNodes().size(), is(1));
+        assertThat(plan.localMerge().nodeIds().size(), is(1));
 
         plan = plan("select * from users limit 2");
-        assertThat(plan.localMerge().executionNodes().size(), is(0));
+        assertThat(plan.localMerge().nodeIds().size(), is(0));
     }
 
     @Test
@@ -1210,21 +1210,21 @@ public class PlannerTest extends AbstractPlannerTest {
     public void testShardQueueSizeCalculation() throws Exception {
         CollectAndMerge plan = plan("select name from users order by name limit 100");
         int shardQueueSize = ((RoutedCollectPhase) plan.collectPhase()).shardQueueSize(
-            plan.collectPhase().executionNodes().iterator().next());
+            plan.collectPhase().nodeIds().iterator().next());
         assertThat(shardQueueSize, is(75));
     }
 
     @Test
     public void testQAFPagingIsEnabledOnHighLimit() throws Exception {
         CollectAndMerge plan = plan("select name from users order by name limit 1000000");
-        assertThat(plan.localMerge().executionNodes().size(), is(1)); // mergePhase with executionNode = paging enabled
+        assertThat(plan.localMerge().nodeIds().size(), is(1)); // mergePhase with executionNode = paging enabled
         assertThat(((RoutedCollectPhase) plan.collectPhase()).nodePageSizeHint(), is(750000));
     }
 
     @Test
     public void testQAFPagingIsEnabledOnHighOffset() throws Exception {
         CollectAndMerge plan = plan("select name from users order by name limit 10 offset 1000000");
-        assertThat(plan.localMerge().executionNodes().size(), is(1)); // mergePhase with executionNode = paging enabled
+        assertThat(plan.localMerge().nodeIds().size(), is(1)); // mergePhase with executionNode = paging enabled
         assertThat(((RoutedCollectPhase) plan.collectPhase()).nodePageSizeHint(), is(750007));
     }
 
@@ -1232,7 +1232,7 @@ public class PlannerTest extends AbstractPlannerTest {
     public void testQTFPagingIsEnabledOnHighLimit() throws Exception {
         QueryThenFetch plan = plan("select name, date from users order by name limit 1000000");
         RoutedCollectPhase collectPhase = ((RoutedCollectPhase) ((CollectAndMerge) plan.subPlan()).collectPhase());
-        assertThat(plan.localMerge().executionNodes().size(), is(1)); // mergePhase with executionNode = paging enabled
+        assertThat(plan.localMerge().nodeIds().size(), is(1)); // mergePhase with executionNode = paging enabled
         assertThat(collectPhase.nodePageSizeHint(), is(750000));
     }
 

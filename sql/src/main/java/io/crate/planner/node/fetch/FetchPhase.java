@@ -79,12 +79,12 @@ public class FetchPhase implements ExecutionPhase {
     }
 
     @Override
-    public int executionPhaseId() {
+    public int phaseId() {
         return executionPhaseId;
     }
 
     @Override
-    public Set<String> executionNodes() {
+    public Set<String> nodeIds() {
         return executionNodes;
     }
 

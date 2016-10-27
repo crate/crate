@@ -184,7 +184,7 @@ public class MergePhase extends AbstractProjectionsPhase implements UpstreamPhas
     }
 
     @Override
-    public Collection<String> executionNodes() {
+    public Collection<String> nodeIds() {
         if (executionNodes == null) {
             return ImmutableSet.of();
         } else {
@@ -310,7 +310,7 @@ public class MergePhase extends AbstractProjectionsPhase implements UpstreamPhas
     @Override
     public String toString() {
         MoreObjects.ToStringHelper helper = MoreObjects.toStringHelper(this)
-            .add("executionPhaseId", executionPhaseId())
+            .add("executionPhaseId", phaseId())
             .add("name", name())
             .add("projections", projections)
             .add("outputTypes", outputTypes)

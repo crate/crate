@@ -33,11 +33,9 @@ import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.TestingTableInfo;
 import io.crate.operation.projectors.TopN;
-import io.crate.planner.NoopPlan;
-import io.crate.planner.Plan;
-import io.crate.planner.Planner;
-import io.crate.planner.TableStatsService;
+import io.crate.planner.*;
 import io.crate.planner.distribution.DistributionType;
+import io.crate.planner.distribution.UpstreamPhase;
 import io.crate.planner.node.dql.*;
 import io.crate.planner.node.dql.join.NestedLoop;
 import io.crate.planner.node.dql.join.NestedLoopPhase;
@@ -192,7 +190,8 @@ public class NestedLoopConsumerTest extends CrateUnitTest {
         NestedLoop plan = plan("select users.name, u2.name from users, users_multi_pk u2 " +
                                "where users.name = u2.name " +
                                "order by users.name, u2.name ");
-        assertThat(plan.left().resultDescription().distributionInfo().distributionType(), is(DistributionType.BROADCAST));
+        ResultDescription resultDescription = plan.left().resultDescription();
+        assertThat(((UpstreamPhase) resultDescription).distributionInfo().distributionType(), is(DistributionType.BROADCAST));
     }
 
 

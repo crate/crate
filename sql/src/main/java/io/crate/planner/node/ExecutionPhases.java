@@ -70,12 +70,12 @@ public class ExecutionPhases {
 
     public static String debugPrint(ExecutionPhase phase) {
         StringBuilder sb = new StringBuilder("phase{id=");
-        sb.append(phase.executionPhaseId());
+        sb.append(phase.phaseId());
         sb.append("/");
         sb.append(phase.name());
         sb.append(", ");
         sb.append("nodes=");
-        sb.append(phase.executionNodes());
+        sb.append(phase.nodeIds());
         if (phase instanceof UpstreamPhase) {
             UpstreamPhase uPhase = (UpstreamPhase) phase;
             sb.append(", dist=");

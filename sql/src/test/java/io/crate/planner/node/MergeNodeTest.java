@@ -83,10 +83,10 @@ public class MergeNodeTest extends CrateUnitTest {
         node2.readFrom(input);
 
         assertThat(node.numUpstreams(), is(node2.numUpstreams()));
-        assertThat(node.executionNodes(), is(node2.executionNodes()));
+        assertThat(node.nodeIds(), is(node2.nodeIds()));
         assertThat(node.jobId(), is(node2.jobId()));
         assertEquals(node.inputTypes(), node2.inputTypes());
-        assertThat(node.executionPhaseId(), is(node2.executionPhaseId()));
+        assertThat(node.phaseId(), is(node2.phaseId()));
         assertThat(node.distributionInfo(), is(node2.distributionInfo()));
     }
 }

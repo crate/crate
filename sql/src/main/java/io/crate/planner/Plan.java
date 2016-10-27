@@ -21,6 +21,7 @@
 
 package io.crate.planner;
 
+import io.crate.planner.distribution.DistributionInfo;
 import io.crate.planner.projection.Projection;
 
 import java.util.UUID;
@@ -34,4 +35,9 @@ public interface Plan {
     void addProjection(Projection projection);
 
     ResultDescription resultDescription();
+
+    /**
+     * Changes how the result will be distributed.
+     */
+    void setDistributionInfo(DistributionInfo distributionInfo);
 }

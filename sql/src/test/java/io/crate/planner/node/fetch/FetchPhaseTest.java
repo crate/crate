@@ -74,8 +74,8 @@ public class FetchPhaseTest {
         StreamInput in = StreamInput.wrap(out.bytes());
         FetchPhase streamed = (FetchPhase) ExecutionPhases.fromStream(in);
 
-        assertThat(orig.executionPhaseId(), is(streamed.executionPhaseId()));
-        assertThat(orig.executionNodes(), is(streamed.executionNodes()));
+        assertThat(orig.phaseId(), is(streamed.phaseId()));
+        assertThat(orig.nodeIds(), is(streamed.nodeIds()));
         assertThat(orig.fetchRefs(), is(streamed.fetchRefs()));
         assertThat(orig.bases(), is(streamed.bases()));
         assertThat(orig.tableIndices(), is(streamed.tableIndices()));

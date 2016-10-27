@@ -67,7 +67,7 @@ public class DistributingDownstreamFactory extends AbstractComponent {
         assert nodeOperation.downstreamNodes().size() > 0 : "must have at least one downstream";
 
         // TODO: set bucketIdx properly
-        ArrayList<String> server = Lists.newArrayList(nodeOperation.executionPhase().executionNodes());
+        ArrayList<String> server = Lists.newArrayList(nodeOperation.executionPhase().nodeIds());
         Collections.sort(server);
         int bucketIdx = Math.max(server.indexOf(clusterService.localNode().id()), 0);
 

@@ -24,6 +24,7 @@ package io.crate.planner.node.dql;
 import io.crate.planner.Plan;
 import io.crate.planner.PlanVisitor;
 import io.crate.planner.ResultDescription;
+import io.crate.planner.distribution.DistributionInfo;
 import io.crate.planner.projection.Projection;
 
 import java.util.UUID;
@@ -66,5 +67,10 @@ public class CountPlan implements Plan {
     @Override
     public ResultDescription resultDescription() {
         return mergeNode;
+    }
+
+    @Override
+    public void setDistributionInfo(DistributionInfo distributionInfo) {
+        mergeNode.distributionInfo(distributionInfo);
     }
 }

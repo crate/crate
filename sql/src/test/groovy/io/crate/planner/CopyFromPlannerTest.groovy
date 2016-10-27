@@ -47,7 +47,7 @@ class CopyFromPlannerTest extends AbstractPlannerTest {
         CollectAndMerge plan = plan("copy users from '/path/to/file.extension' with (num_readers=1)");
         assert plan.collectPhase() instanceof FileUriCollectPhase
         FileUriCollectPhase collectPhase = (FileUriCollectPhase) plan.collectPhase();
-        assert collectPhase.executionNodes().size() == 1
+        assert collectPhase.nodeIds().size() == 1
     }
 
     @Test
@@ -84,6 +84,6 @@ class CopyFromPlannerTest extends AbstractPlannerTest {
     @Test
     public void testNodeFiltersNoMatch() throws Exception {
         CollectAndMerge cm = plan("copy users from '/path' with (node_filters={name='foobar'})");
-        assert cm.collectPhase().executionNodes() == []
+        assert cm.collectPhase().nodeIds() == []
     }
 }

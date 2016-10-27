@@ -23,6 +23,7 @@ package io.crate.planner.node.dql.join;
 import io.crate.planner.Plan;
 import io.crate.planner.PlanVisitor;
 import io.crate.planner.ResultDescription;
+import io.crate.planner.distribution.DistributionInfo;
 import io.crate.planner.node.dql.MergePhase;
 import io.crate.planner.projection.Projection;
 
@@ -100,7 +101,7 @@ public class NestedLoop implements Plan {
         this.right = right;
         this.nestedLoopPhase = nestedLoopPhase;
         this.localMerge = localMerge;
-        this.resultIsDistributed = localMerge == null && !nestedLoopPhase.executionNodes().equals(handlerNodes);
+        this.resultIsDistributed = localMerge == null && !nestedLoopPhase.nodeIds().equals(handlerNodes);
     }
 
     public Plan left() {
@@ -130,6 +131,15 @@ public class NestedLoop implements Plan {
             return nestedLoopPhase;
         }
         return localMerge;
+    }
+
+    @Override
+    public void setDistributionInfo(DistributionInfo distributionInfo) {
+        if (localMerge == null) {
+            nestedLoopPhase.distributionInfo(distributionInfo);
+        } else {
+            localMerge.distributionInfo(distributionInfo);
+        }
     }
 
     @Override

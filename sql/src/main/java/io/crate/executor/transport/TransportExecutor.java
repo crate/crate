@@ -454,9 +454,9 @@ public class TransportExecutor implements Executor {
                     previousPhase = currentBranch.phases.lastElement();
                 }
                 if (setDownstreamNodes) {
-                    assert saneConfiguration(executionPhase, previousPhase.executionNodes()) : String.format(Locale.ENGLISH,
+                    assert saneConfiguration(executionPhase, previousPhase.nodeIds()) : String.format(Locale.ENGLISH,
                         "NodeOperation with %s and %s as downstreams cannot work",
-                        ExecutionPhases.debugPrint(executionPhase), previousPhase.executionNodes());
+                        ExecutionPhases.debugPrint(executionPhase), previousPhase.nodeIds());
 
                     nodeOperations.add(NodeOperation.withDownstream(executionPhase, previousPhase, currentBranch.inputId, localNodeId));
                 } else {
@@ -469,7 +469,7 @@ public class TransportExecutor implements Executor {
                 if (executionPhase instanceof UpstreamPhase &&
                     ((UpstreamPhase) executionPhase).distributionInfo().distributionType() ==
                     DistributionType.SAME_NODE) {
-                    return downstreamNodes.isEmpty() || downstreamNodes.equals(executionPhase.executionNodes());
+                    return downstreamNodes.isEmpty() || downstreamNodes.equals(executionPhase.nodeIds());
                 }
                 return true;
             }

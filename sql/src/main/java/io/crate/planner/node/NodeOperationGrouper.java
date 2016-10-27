@@ -54,7 +54,7 @@ public class NodeOperationGrouper {
         Context ctx = new Context();
         for (NodeOperation nodeOperation : nodeOperations) {
             ctx.currentOperation = nodeOperation;
-            for (String server : nodeOperation.executionPhase().executionNodes()) {
+            for (String server : nodeOperation.executionPhase().nodeIds()) {
                 ctx.add(server);
             }
         }

@@ -25,6 +25,7 @@ package io.crate.planner.node.dql;
 import io.crate.planner.Plan;
 import io.crate.planner.PlanVisitor;
 import io.crate.planner.ResultDescription;
+import io.crate.planner.distribution.DistributionInfo;
 import io.crate.planner.node.fetch.FetchPhase;
 import io.crate.planner.projection.Projection;
 
@@ -76,5 +77,14 @@ public class QueryThenFetch implements Plan {
     @Override
     public ResultDescription resultDescription() {
         return localMerge;
+    }
+
+    @Override
+    public void setDistributionInfo(DistributionInfo distributionInfo) {
+        if (localMerge == null) {
+            subPlan.setDistributionInfo(distributionInfo);
+        } else {
+            localMerge.distributionInfo(distributionInfo);
+        }
     }
 }

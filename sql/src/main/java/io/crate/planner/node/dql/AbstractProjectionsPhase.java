@@ -78,7 +78,7 @@ public abstract class AbstractProjectionsPhase implements Streamable, ExecutionP
     }
 
     @Override
-    public int executionPhaseId() {
+    public int phaseId() {
         return executionPhaseId;
     }
 

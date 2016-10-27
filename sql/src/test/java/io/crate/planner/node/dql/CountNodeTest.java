@@ -58,8 +58,8 @@ public class CountNodeTest extends CrateUnitTest {
         CountPhase streamedNode = CountPhase.FACTORY.create();
         streamedNode.readFrom(in);
 
-        assertThat(streamedNode.executionPhaseId(), is(1));
-        assertThat(streamedNode.executionNodes(), containsInAnyOrder("n1", "n2"));
+        assertThat(streamedNode.phaseId(), is(1));
+        assertThat(streamedNode.nodeIds(), containsInAnyOrder("n1", "n2"));
         assertThat(streamedNode.routing(), equalTo(routing));
         assertThat(streamedNode.distributionInfo(), equalTo(DistributionInfo.DEFAULT_BROADCAST));
     }

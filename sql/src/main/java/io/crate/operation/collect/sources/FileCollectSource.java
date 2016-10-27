@@ -62,8 +62,8 @@ public class FileCollectSource implements CollectSource {
         FileUriCollectPhase fileUriCollectPhase = (FileUriCollectPhase) collectPhase;
         FileCollectInputSymbolVisitor.Context context = fileInputSymbolVisitor.extractImplementations(collectPhase.toCollect());
 
-        String[] readers = fileUriCollectPhase.executionNodes().toArray(
-            new String[fileUriCollectPhase.executionNodes().size()]);
+        String[] readers = fileUriCollectPhase.nodeIds().toArray(
+            new String[fileUriCollectPhase.nodeIds().size()]);
         Arrays.sort(readers);
 
         List<String> fileUris;

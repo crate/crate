@@ -100,14 +100,14 @@ public class InsertFromSubQueryConsumer implements Consumer {
 
             MergePhase mergeNode = null;
             ResultDescription resultDescription = plannedSubQuery.resultDescription();
-            if (!ExecutionPhases.executesOnHandler(plannerContext.handlerNode(), resultDescription.executionNodes())) {
+            if (!ExecutionPhases.executesOnHandler(plannerContext.handlerNode(), resultDescription.nodeIds())) {
                 // add local merge Node which aggregates the distributed results
                 MergeCountProjection mergeCountProjection = MergeCountProjection.INSTANCE;
                 mergeNode = MergePhase.localMerge(
                     plannerContext.jobId(),
                     plannerContext.nextExecutionPhaseId(),
                     ImmutableList.<Projection>of(mergeCountProjection),
-                    resultDescription.executionNodes().size(),
+                    resultDescription.nodeIds().size(),
                     Symbols.extractTypes(indexWriterProjection.outputs()));
                 mergeNode.executionNodes(Sets.newHashSet(plannerContext.clusterService().localNode().id()));
             }

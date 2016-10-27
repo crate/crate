@@ -194,7 +194,7 @@ class ReduceOnCollectorGroupByConsumer implements Consumer {
                     querySpec.outputs(),
                     null,
                     handlerProjections,
-                    collectPhase.executionNodes().size(),
+                    collectPhase.nodeIds().size(),
                     collectPhase.outputTypes()
                 );
             } else {
@@ -212,7 +212,7 @@ class ReduceOnCollectorGroupByConsumer implements Consumer {
                     context.plannerContext().jobId(),
                     context.plannerContext().nextExecutionPhaseId(),
                     handlerProjections,
-                    collectPhase.executionNodes().size(),
+                    collectPhase.nodeIds().size(),
                     collectPhase.outputTypes()
                 );
             }

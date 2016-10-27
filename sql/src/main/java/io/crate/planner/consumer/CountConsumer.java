@@ -87,7 +87,7 @@ public class CountConsumer implements Consumer {
                 plannerContext.jobId(),
                 plannerContext.nextExecutionPhaseId(),
                 "count-merge",
-                countNode.executionNodes().size(),
+                countNode.nodeIds().size(),
                 Collections.singletonList(DataTypes.LONG),
                 Collections.<Projection>singletonList(MergeCountProjection.INSTANCE),
                 DistributionInfo.DEFAULT_SAME_NODE

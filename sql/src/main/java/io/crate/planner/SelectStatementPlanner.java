@@ -165,7 +165,7 @@ class SelectStatementPlanner {
                     context.jobId(),
                     context.nextExecutionPhaseId(),
                     ImmutableList.of(topN, fp),
-                    collectPhase.executionNodes().size(),
+                    collectPhase.nodeIds().size(),
                     collectPhase.outputTypes()
                 );
             } else {
@@ -176,7 +176,7 @@ class SelectStatementPlanner {
                     collectPhase.toCollect(),
                     null,
                     ImmutableList.of(topN, fp),
-                    collectPhase.executionNodes().size(),
+                    collectPhase.nodeIds().size(),
                     collectPhase.outputTypes()
                 );
             }
@@ -213,7 +213,7 @@ class SelectStatementPlanner {
                 return plannedSubQuery;
             }
             assert plannedSubQuery != null : "consumingPlanner should have created a subPlan";
-            assert ExecutionPhases.executesOnHandler(context.handlerNode(), plannedSubQuery.resultDescription().executionNodes())
+            assert ExecutionPhases.executesOnHandler(context.handlerNode(), plannedSubQuery.resultDescription().nodeIds())
                 : "subPlan result should already be on handlerNode";
 
             Planner.Context.ReaderAllocations readerAllocations = context.buildReaderAllocations();
@@ -230,7 +230,7 @@ class SelectStatementPlanner {
                 docRefs
             );
             FetchProjection fp = new FetchProjection(
-                fetchPhase.executionPhaseId(),
+                fetchPhase.phaseId(),
                 context.fetchSize(),
                 pd.fetchSources(),
                 pd.remainingOutputs(),
@@ -261,7 +261,7 @@ class SelectStatementPlanner {
                 fetchPushDown.fetchRefs()));
 
         return new FetchProjection(
-            fetchPhase.executionPhaseId(),
+            fetchPhase.phaseId(),
             fetchSize,
             fetchSources,
             querySpec.outputs(),

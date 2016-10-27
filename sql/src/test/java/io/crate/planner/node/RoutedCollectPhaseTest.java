@@ -71,9 +71,9 @@ public class RoutedCollectPhaseTest extends CrateUnitTest {
         assertThat(cn, equalTo(cn2));
 
         assertThat(cn.toCollect(), is(cn2.toCollect()));
-        assertThat(cn.executionNodes(), is(cn2.executionNodes()));
+        assertThat(cn.nodeIds(), is(cn2.nodeIds()));
         assertThat(cn.jobId(), is(cn2.jobId()));
-        assertThat(cn.executionPhaseId(), is(cn2.executionPhaseId()));
+        assertThat(cn.phaseId(), is(cn2.phaseId()));
         assertThat(cn.maxRowGranularity(), is(cn2.maxRowGranularity()));
         assertThat(cn.distributionInfo(), is(cn2.distributionInfo()));
     }

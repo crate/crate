@@ -83,7 +83,7 @@ public class FileUriCollectPhase extends AbstractProjectionsPhase implements Col
     }
 
     @Override
-    public Collection<String> executionNodes() {
+    public Collection<String> nodeIds() {
         return executionNodes;
     }
 
@@ -114,7 +114,7 @@ public class FileUriCollectPhase extends AbstractProjectionsPhase implements Col
         }
         return new FileUriCollectPhase(
             jobId(),
-            executionPhaseId(),
+            phaseId(),
             name(),
             executionNodes,
             normalizedTargetUri,

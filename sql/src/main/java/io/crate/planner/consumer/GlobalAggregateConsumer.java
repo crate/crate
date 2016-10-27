@@ -162,7 +162,7 @@ class GlobalAggregateConsumer implements Consumer {
             plannerContext.jobId(),
             plannerContext.nextExecutionPhaseId(),
             projections,
-            collectPhase.executionNodes().size(),
+            collectPhase.nodeIds().size(),
             collectPhase.outputTypes());
         return new CollectAndMerge(collectPhase, localMergeNode);
     }

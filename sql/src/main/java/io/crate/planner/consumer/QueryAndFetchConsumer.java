@@ -164,7 +164,7 @@ public class QueryAndFetchConsumer implements Consumer {
                     mergeNode = MergePhase.mergePhase(
                         context.plannerContext(),
                         ImmutableSet.<String>of(),
-                        collectPhase.executionNodes().size(),
+                        collectPhase.nodeIds().size(),
                         orderBy.orNull(),
                         orderBy.isPresent() ? InputColumn.fromSymbols(orderBy.get().orderBySymbols(), toCollect) : null,
                         mergeProjections,
@@ -183,7 +183,7 @@ public class QueryAndFetchConsumer implements Consumer {
                         plannerContext.jobId(),
                         plannerContext.nextExecutionPhaseId(),
                         ImmutableList.<Projection>of(),
-                        collectPhase.executionNodes().size(),
+                        collectPhase.nodeIds().size(),
                         collectPhase.outputTypes()
                     );
                 }

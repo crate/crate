@@ -180,7 +180,7 @@ public class UpdateConsumer implements Consumer {
             plannerContext.jobId(),
             plannerContext.nextExecutionPhaseId(),
             Collections.<Projection>singletonList(MergeCountProjection.INSTANCE),
-            collectPhase.executionNodes().size(),
+            collectPhase.nodeIds().size(),
             collectPhase.outputTypes()
         );
         return new CollectAndMerge(collectPhase, mergePhase);
@@ -245,7 +245,7 @@ public class UpdateConsumer implements Consumer {
                 plannerContext.jobId(),
                 plannerContext.nextExecutionPhaseId(),
                 ImmutableList.<Projection>of(MergeCountProjection.INSTANCE),
-                collectPhase.executionNodes().size(),
+                collectPhase.nodeIds().size(),
                 collectPhase.outputTypes()
             );
             return new CollectAndMerge(collectPhase, mergeNode);

@@ -138,9 +138,9 @@ public class ContextPreparer extends AbstractComponent {
         IntHashSet leafs = new IntHashSet();
         for (Tuple<ExecutionPhase, RowReceiver> handlerPhase : handlerPhases) {
             ExecutionPhase phase = handlerPhase.v1();
-            preparerContext.handlerRowReceivers.put(phase.executionPhaseId(), handlerPhase.v2());
+            preparerContext.handlerRowReceivers.put(phase.phaseId(), handlerPhase.v2());
             createContexts(phase, preparerContext);
-            leafs.add(phase.executionPhaseId());
+            leafs.add(phase.phaseId());
         }
         leafs.addAll(preparerContext.opCtx.findLeafs());
         for (IntCursor cursor : leafs) {
@@ -177,7 +177,7 @@ public class ContextPreparer extends AbstractComponent {
             // context for nodeOperations without dependencies can be built immediately (e.g. FetchPhase)
             if (nodeOperation.downstreamExecutionPhaseId() == NodeOperation.NO_DOWNSTREAM) {
                 if (createContexts(nodeOperation.executionPhase(), preparerContext)) {
-                    preparerContext.opCtx.builtNodeOperations.set(nodeOperation.executionPhase().executionPhaseId());
+                    preparerContext.opCtx.builtNodeOperations.set(nodeOperation.executionPhase().phaseId());
                 }
             }
             if (ExecutionPhases.hasDirectResponseDownstream(nodeOperation.downstreamNodes())) {
@@ -204,7 +204,7 @@ public class ContextPreparer extends AbstractComponent {
             NodeOperation nodeOperation = preparerContext.opCtx.nodeOperationMap.get(sourcePhaseId);
             Boolean created = createContexts(nodeOperation.executionPhase(), preparerContext);
             assert created : "a subContext is required to be created";
-            preparerContext.opCtx.builtNodeOperations.set(nodeOperation.executionPhase().executionPhaseId());
+            preparerContext.opCtx.builtNodeOperations.set(nodeOperation.executionPhase().phaseId());
         }
         for (Integer sourcePhaseId : sourcePhaseIds) {
             prepareSourceOperations(sourcePhaseId, preparerContext);
@@ -244,7 +244,7 @@ public class ContextPreparer extends AbstractComponent {
                 @Nullable
                 @Override
                 public Integer apply(@Nullable NodeOperation input) {
-                    return input == null ? null : input.executionPhase().executionPhaseId();
+                    return input == null ? null : input.executionPhase().phaseId();
                 }
             });
             builtNodeOperations = new BitSet(nodeOperationMap.size());
@@ -256,7 +256,7 @@ public class ContextPreparer extends AbstractComponent {
                 if (nodeOperation.downstreamExecutionPhaseId() == NodeOperation.NO_DOWNSTREAM) {
                     continue;
                 }
-                targetToSource.put(nodeOperation.downstreamExecutionPhaseId(), nodeOperation.executionPhase().executionPhaseId());
+                targetToSource.put(nodeOperation.downstreamExecutionPhaseId(), nodeOperation.executionPhase().phaseId());
             }
             return targetToSource;
         }
@@ -294,7 +294,7 @@ public class ContextPreparer extends AbstractComponent {
                 }
 
                 // implicit same node optimization because the upstreamPhase is running ONLY on this node
-                Collection<String> executionNodes = executionPhase.executionNodes();
+                Collection<String> executionNodes = executionPhase.nodeIds();
                 if (executionNodes.size() == 1 && executionNodes.iterator().next().equals(localNodeId)) {
                     continue;
                 }
@@ -351,9 +351,9 @@ public class ContextPreparer extends AbstractComponent {
          * Retrieve the rowReceiver of the downstream of phase
          */
         RowReceiver getRowReceiver(UpstreamPhase phase, int pageSize) {
-            NodeOperation nodeOperation = opCtx.nodeOperationMap.get(phase.executionPhaseId());
+            NodeOperation nodeOperation = opCtx.nodeOperationMap.get(phase.phaseId());
             if (nodeOperation == null) {
-                return handlerPhaseRowReceiver(phase.executionPhaseId());
+                return handlerPhaseRowReceiver(phase.phaseId());
             }
 
             RowReceiver targetRowReceiver = phaseIdToRowReceivers.get(
@@ -383,7 +383,7 @@ public class ContextPreparer extends AbstractComponent {
                                          RowReceiver targetRowReceiver) {
             logger.trace("action=getRowReceiver, distributionType={}, phase={}, targetRowReceiver={}, target={}/{},",
                 distributionTypeName,
-                phase.executionPhaseId(),
+                phase.phaseId(),
                 targetRowReceiver,
                 nodeOperation.downstreamExecutionPhaseId(),
                 nodeOperation.downstreamExecutionPhaseInputId()
@@ -396,7 +396,7 @@ public class ContextPreparer extends AbstractComponent {
                     "targetRowReceiver %d/%d must be on the same node as phase %d, but it is null",
                     nodeOperation.downstreamExecutionPhaseId(),
                     nodeOperation.downstreamExecutionPhaseInputId(),
-                    nodeOperation.executionPhase().executionPhaseId());
+                    nodeOperation.executionPhase().phaseId());
                 throw new IllegalStateException(msg);
             }
             return targetRowReceiver;
@@ -438,7 +438,7 @@ public class ContextPreparer extends AbstractComponent {
 
             RowReceiver rowReceiver = context.getRowReceiver(phase, 0);
             context.registerSubContext(new CountContext(
-                phase.executionPhaseId(),
+                phase.phaseId(),
                 countOperation,
                 rowReceiver,
                 indexShardMap,
@@ -451,27 +451,27 @@ public class ContextPreparer extends AbstractComponent {
         public Boolean visitMergePhase(final MergePhase phase, final PreparerContext context) {
             RamAccountingContext ramAccountingContext = RamAccountingContext.forExecutionPhase(circuitBreaker, phase);
 
-            boolean upstreamOnSameNode = context.opCtx.upstreamsAreOnSameNode(phase.executionPhaseId());
+            boolean upstreamOnSameNode = context.opCtx.upstreamsAreOnSameNode(phase.phaseId());
 
-            int pageSize = Paging.getWeightedPageSize(Paging.PAGE_SIZE, 1.0d / phase.executionNodes().size());
+            int pageSize = Paging.getWeightedPageSize(Paging.PAGE_SIZE, 1.0d / phase.nodeIds().size());
             RowReceiver rowReceiver = context.getRowReceiver(phase, pageSize);
 
             if (upstreamOnSameNode) {
                 if (!phase.projections().isEmpty()) {
                     ProjectorChainContext projectorChainContext = new ProjectorChainContext(
-                        phase.executionPhaseId(),
+                        phase.phaseId(),
                         phase.name(),
                         context.jobId(),
                         pageDownstreamFactory.projectorFactory(),
                         phase.projections(),
                         rowReceiver,
                         ramAccountingContext);
-                    context.registerRowReceiver(phase.executionPhaseId(), projectorChainContext.rowReceiver());
+                    context.registerRowReceiver(phase.phaseId(), projectorChainContext.rowReceiver());
                     context.registerSubContext(projectorChainContext);
                     return true;
                 }
 
-                context.registerRowReceiver(phase.executionPhaseId(), rowReceiver);
+                context.registerRowReceiver(phase.phaseId(), rowReceiver);
                 return false;
             }
 
@@ -488,7 +488,7 @@ public class ContextPreparer extends AbstractComponent {
             context.registerSubContext(new PageDownstreamContext(
                 pageDownstreamContextLogger,
                 nodeName(),
-                phase.executionPhaseId(),
+                phase.phaseId(),
                 phase.name(),
                 pageDownstreamProjectorChain.v1(),
                 DataTypes.getStreamers(phase.inputTypes()),
@@ -582,14 +582,14 @@ public class ContextPreparer extends AbstractComponent {
             Predicate<Row> joinCondition = RowFilter.create(symbolVisitor, phase.joinCondition());
 
             NestedLoopOperation nestedLoopOperation = new NestedLoopOperation(
-                phase.executionPhaseId(),
+                phase.phaseId(),
                 flatProjectorChain.firstProjector(),
                 joinCondition,
                 phase.joinType(),
                 phase.numLeftOutputs(),
                 phase.numRightOutputs());
             PageDownstreamContext left = pageDownstreamContextForNestedLoop(
-                phase.executionPhaseId(),
+                phase.phaseId(),
                 context,
                 (byte) 0,
                 phase.leftMergePhase(),
@@ -599,7 +599,7 @@ public class ContextPreparer extends AbstractComponent {
                 context.registerSubContext(left);
             }
             PageDownstreamContext right = pageDownstreamContextForNestedLoop(
-                phase.executionPhaseId(),
+                phase.phaseId(),
                 context,
                 (byte) 1,
                 phase.rightMergePhase(),
@@ -641,7 +641,7 @@ public class ContextPreparer extends AbstractComponent {
             return new PageDownstreamContext(
                 pageDownstreamContextLogger,
                 nodeName(),
-                mergePhase.executionPhaseId(),
+                mergePhase.phaseId(),
                 mergePhase.name(),
                 pageDownstreamWithChain.v1(),
                 StreamerVisitor.streamersFromOutputs(mergePhase),

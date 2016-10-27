@@ -24,6 +24,7 @@ package io.crate.planner.node.dql;
 import io.crate.planner.Plan;
 import io.crate.planner.PlanVisitor;
 import io.crate.planner.ResultDescription;
+import io.crate.planner.distribution.DistributionInfo;
 import io.crate.planner.projection.Projection;
 
 import javax.annotation.Nullable;
@@ -73,5 +74,14 @@ public class CollectAndMerge implements Plan {
             return collectPhase;
         }
         return localMerge;
+    }
+
+    @Override
+    public void setDistributionInfo(DistributionInfo distributionInfo) {
+        if (localMerge == null) {
+            collectPhase.distributionInfo(distributionInfo);
+        } else {
+            localMerge.distributionInfo(distributionInfo);
+        }
     }
 }

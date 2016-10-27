@@ -22,8 +22,6 @@
 
 package io.crate.planner;
 
-import io.crate.planner.distribution.DistributionInfo;
-
 import java.util.Collection;
 
 /**
@@ -35,15 +33,5 @@ public interface ResultDescription {
      * @return the nodeIds of the nodes that this result is on.
      * If it's empty it is on the handler node.
      */
-    Collection<String> executionNodes();
-
-    /**
-     * Describes how the result will be distributed to a downstream
-     */
-    DistributionInfo distributionInfo();
-
-    /**
-     * Changes how the result will be distributed.
-     */
-    void distributionInfo(DistributionInfo distributionInfo);
+    Collection<String> nodeIds();
 }

@@ -68,7 +68,7 @@ public class GroupByPlannerTest extends CrateUnitTest {
         // distributed collect
         RoutedCollectPhase collectPhase = distributedGroupBy.collectNode();
         assertThat(collectPhase.maxRowGranularity(), is(RowGranularity.DOC));
-        assertThat(collectPhase.executionNodes().size(), is(2));
+        assertThat(collectPhase.nodeIds().size(), is(2));
         assertThat(collectPhase.toCollect().size(), is(1));
         assertThat(collectPhase.projections().size(), is(1));
         assertThat(collectPhase.projections().get(0), instanceOf(GroupProjection.class));
@@ -79,7 +79,7 @@ public class GroupByPlannerTest extends CrateUnitTest {
         MergePhase mergeNode = distributedGroupBy.reducerMergeNode();
 
         assertThat(mergeNode.numUpstreams(), is(2));
-        assertThat(mergeNode.executionNodes().size(), is(2));
+        assertThat(mergeNode.nodeIds().size(), is(2));
         assertEquals(mergeNode.inputTypes(), collectPhase.outputTypes());
         assertThat(mergeNode.projections().size(), is(2)); // for the default limit there is always a TopNProjection
         assertThat(mergeNode.projections().get(1), instanceOf(TopNProjection.class));
@@ -96,8 +96,8 @@ public class GroupByPlannerTest extends CrateUnitTest {
         MergePhase localMerge = distributedGroupBy.localMergeNode();
 
         assertThat(localMerge.numUpstreams(), is(2));
-        assertThat(localMerge.executionNodes().size(), is(1));
-        assertThat(Iterables.getOnlyElement(localMerge.executionNodes()), is("noop_id"));
+        assertThat(localMerge.nodeIds().size(), is(1));
+        assertThat(Iterables.getOnlyElement(localMerge.nodeIds()), is("noop_id"));
         assertEquals(mergeNode.outputTypes(), localMerge.inputTypes());
 
         assertThat(localMerge.projections().get(0), instanceOf(TopNProjection.class));

@@ -24,6 +24,7 @@ package io.crate.planner.node.dql;
 import io.crate.planner.Plan;
 import io.crate.planner.PlanVisitor;
 import io.crate.planner.ResultDescription;
+import io.crate.planner.distribution.DistributionInfo;
 import io.crate.planner.projection.Projection;
 
 import javax.annotation.Nullable;
@@ -80,5 +81,14 @@ public class DistributedGroupBy implements Plan {
             return reducerMergeNode;
         }
         return localMergeNode;
+    }
+
+    @Override
+    public void setDistributionInfo(DistributionInfo distributionInfo) {
+        if (localMergeNode == null) {
+            reducerMergeNode.distributionInfo(distributionInfo);
+        } else {
+            reducerMergeNode.distributionInfo(distributionInfo);
+        }
     }
 }

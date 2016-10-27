@@ -62,9 +62,9 @@ public interface ExecutionPhase extends Streamable {
 
     String name();
 
-    int executionPhaseId();
+    int phaseId();
 
-    Collection<String> executionNodes();
+    Collection<String> nodeIds();
 
     <C, R> R accept(ExecutionPhaseVisitor<C, R> visitor, C context);
 }

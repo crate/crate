@@ -57,7 +57,7 @@ public class FetchContext extends AbstractExecutionSubContext {
                         String localNodeId,
                         SharedShardContexts sharedShardContexts,
                         Iterable<? extends Routing> routingIterable) {
-        super(phase.executionPhaseId(), LOGGER);
+        super(phase.phaseId(), LOGGER);
         this.phase = phase;
         this.localNodeId = localNodeId;
         this.sharedShardContexts = sharedShardContexts;

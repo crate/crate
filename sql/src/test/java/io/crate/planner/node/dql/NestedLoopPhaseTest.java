@@ -80,7 +80,7 @@ public class NestedLoopPhaseTest extends CrateUnitTest {
         NestedLoopPhase node2 = new NestedLoopPhase();
         node2.readFrom(input);
 
-        assertThat(node.executionNodes(), Is.is(node2.executionNodes()));
+        assertThat(node.nodeIds(), Is.is(node2.nodeIds()));
         assertThat(node.jobId(), Is.is(node2.jobId()));
         assertThat(node.name(), is(node2.name()));
         assertThat(node.outputTypes(), is(node2.outputTypes()));

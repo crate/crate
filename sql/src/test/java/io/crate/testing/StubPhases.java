@@ -67,12 +67,12 @@ public class StubPhases {
         }
 
         @Override
-        public int executionPhaseId() {
+        public int phaseId() {
             return phaseId;
         }
 
         @Override
-        public Collection<String> executionNodes() {
+        public Collection<String> nodeIds() {
             return executionNodes;
         }
 

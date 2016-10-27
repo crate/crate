@@ -72,7 +72,7 @@ public class JobCollectContext extends AbstractExecutionSubContext {
                              RamAccountingContext queryPhaseRamAccountingContext,
                              final RowReceiver rowReceiver,
                              SharedShardContexts sharedShardContexts) {
-        super(collectPhase.executionPhaseId(), LOGGER);
+        super(collectPhase.phaseId(), LOGGER);
         this.collectPhase = collectPhase;
         this.collectOperation = collectOperation;
         this.queryPhaseRamAccountingContext = queryPhaseRamAccountingContext;
@@ -181,7 +181,7 @@ public class JobCollectContext extends AbstractExecutionSubContext {
     }
 
     private void measureCollectTime() {
-        final StopWatch stopWatch = new StopWatch(collectPhase.executionPhaseId() + ": " + collectPhase.name());
+        final StopWatch stopWatch = new StopWatch(collectPhase.phaseId() + ": " + collectPhase.name());
         stopWatch.start("starting collectors");
         listenableRowReceiver.finishFuture().addListener(new Runnable() {
             @Override

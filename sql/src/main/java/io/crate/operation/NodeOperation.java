@@ -73,12 +73,12 @@ public class NodeOperation implements Streamable {
                                                ExecutionPhase downstreamExecutionPhase,
                                                byte inputId,
                                                String localNodeId) {
-        if (downstreamExecutionPhase.executionNodes().isEmpty()) {
+        if (downstreamExecutionPhase.nodeIds().isEmpty()) {
             List<String> downstreamNodes;
-            if (executionPhase instanceof UpstreamPhase && executionPhase.executionNodes().size() == 1
-                && executionPhase.executionNodes().contains(localNodeId)) {
+            if (executionPhase instanceof UpstreamPhase && executionPhase.nodeIds().size() == 1
+                && executionPhase.nodeIds().contains(localNodeId)) {
                 LOGGER.trace("Phase uses SAME_NODE downstream, reason: ON HANDLER, executionNodes: {}, phase: {}",
-                    executionPhase.executionNodes(), executionPhase);
+                    executionPhase.nodeIds(), executionPhase);
 
                 downstreamNodes = Collections.emptyList();
             } else {
@@ -87,13 +87,13 @@ public class NodeOperation implements Streamable {
             return new NodeOperation(
                 executionPhase,
                 downstreamNodes,
-                downstreamExecutionPhase.executionPhaseId(),
+                downstreamExecutionPhase.phaseId(),
                 inputId);
         } else {
             return new NodeOperation(
                 executionPhase,
-                downstreamExecutionPhase.executionNodes(),
-                downstreamExecutionPhase.executionPhaseId(),
+                downstreamExecutionPhase.nodeIds(),
+                downstreamExecutionPhase.phaseId(),
                 inputId);
         }
     }

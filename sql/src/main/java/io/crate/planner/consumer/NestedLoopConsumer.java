@@ -166,7 +166,7 @@ class NestedLoopConsumer implements Consumer {
             ResultDescription leftResultDesc = leftPlan.resultDescription();
             ResultDescription rightResultDesc = rightPlan.resultDescription();
             isDistributed = isDistributed &&
-                            (!leftResultDesc.executionNodes().isEmpty() && !rightResultDesc.executionNodes().isEmpty());
+                            (!leftResultDesc.nodeIds().isEmpty() && !rightResultDesc.nodeIds().isEmpty());
             boolean broadcastLeftTable = false;
             if (isDistributed) {
                 broadcastLeftTable = isLeftSmallerThanRight(left, right);
@@ -188,16 +188,15 @@ class NestedLoopConsumer implements Consumer {
 
             MergePhase leftMerge = null;
             MergePhase rightMerge = null;
-            ResultDescription leftResultDescription = leftPlan.resultDescription();
             if (isDistributed) {
-                leftResultDesc.distributionInfo(DistributionInfo.DEFAULT_SAME_NODE);
-                nlExecutionNodes = leftResultDesc.executionNodes();
+                leftPlan.setDistributionInfo(DistributionInfo.DEFAULT_SAME_NODE);
+                nlExecutionNodes = leftResultDesc.nodeIds();
             } else {
-                if (isMergePhaseNeeded(nlExecutionNodes, leftResultDesc.executionNodes(), false)) {
+                if (isMergePhaseNeeded(nlExecutionNodes, leftResultDesc.nodeIds(), false)) {
                     leftMerge = MergePhase.mergePhase(
                         context.plannerContext(),
                         nlExecutionNodes,
-                        leftResultDesc.executionNodes().size(),
+                        leftResultDesc.nodeIds().size(),
                         left.querySpec().orderBy().orNull(),
                         null,
                         ImmutableList.<Projection>of(),
@@ -205,26 +204,25 @@ class NestedLoopConsumer implements Consumer {
                         null);
                 }
             }
-            ResultDescription rightResultDescription = rightPlan.resultDescription();
             if (nlExecutionNodes.size() == 1
-                && nlExecutionNodes.equals(rightResultDesc.executionNodes())) {
+                && nlExecutionNodes.equals(rightResultDesc.nodeIds())) {
                 // if the left and the right plan are executed on the same single node the mergePhase
                 // should be omitted. This is the case if the left and right table have only one shards which
                 // are on the same node
-                rightResultDesc.distributionInfo(DistributionInfo.DEFAULT_SAME_NODE);
+                rightPlan.setDistributionInfo(DistributionInfo.DEFAULT_SAME_NODE);
             } else {
-                if (isMergePhaseNeeded(nlExecutionNodes, rightResultDesc.executionNodes(), isDistributed)) {
+                if (isMergePhaseNeeded(nlExecutionNodes, rightResultDesc.nodeIds(), isDistributed)) {
                     rightMerge = MergePhase.mergePhase(
                         context.plannerContext(),
                         nlExecutionNodes,
-                        rightResultDesc.executionNodes().size(),
+                        rightResultDesc.nodeIds().size(),
                         right.querySpec().orderBy().orNull(),
                         null,
                         ImmutableList.<Projection>of(),
                         right.querySpec().outputs(),
                         null);
                 }
-                rightResultDesc.distributionInfo(DistributionInfo.DEFAULT_BROADCAST);
+                rightPlan.setDistributionInfo(DistributionInfo.DEFAULT_BROADCAST);
             }
 
 
@@ -289,11 +287,11 @@ class NestedLoopConsumer implements Consumer {
             MergePhase localMergePhase = null;
             // TODO: build local merge phases somewhere else for any subplan
             if (isDistributed && context.isRoot()) {
-                if (isMergePhaseNeeded(handlerNodes, nl.executionNodes(), true)) {
+                if (isMergePhaseNeeded(handlerNodes, nl.nodeIds(), true)) {
                     localMergePhase = MergePhase.mergePhase(
                         context.plannerContext(),
                         handlerNodes,
-                        nl.executionNodes().size(),
+                        nl.nodeIds().size(),
                         orderByBeforeSplit,
                         null,
                         ImmutableList.<Projection>of(),

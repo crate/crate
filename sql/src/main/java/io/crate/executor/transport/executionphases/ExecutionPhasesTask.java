@@ -202,7 +202,7 @@ public class ExecutionPhasesTask extends JobTask {
                                                                List<Tuple<ExecutionPhase, RowReceiver>> handlerPhases) {
         final List<PageBucketReceiver> pageBucketReceivers = new ArrayList<>(handlerPhases.size());
         for (Tuple<ExecutionPhase, RowReceiver> handlerPhase : handlerPhases) {
-            ExecutionSubContext ctx = jobExecutionContext.getSubContextOrNull(handlerPhase.v1().executionPhaseId());
+            ExecutionSubContext ctx = jobExecutionContext.getSubContextOrNull(handlerPhase.v1().phaseId());
             if (ctx instanceof DownstreamExecutionSubContext) {
                 PageBucketReceiver pageBucketReceiver = ((DownstreamExecutionSubContext) ctx).getBucketReceiver((byte) 0);
                 pageBucketReceivers.add(pageBucketReceiver);

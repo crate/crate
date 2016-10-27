@@ -164,12 +164,12 @@ class DistributedGroupByConsumer implements Consumer {
                 plannerContext.jobId(),
                 plannerContext.nextExecutionPhaseId(),
                 "distributed merge",
-                collectNode.executionNodes().size(),
+                collectNode.nodeIds().size(),
                 collectNode.outputTypes(),
                 reducerProjections,
                 DistributionInfo.DEFAULT_BROADCAST
             );
-            mergePhase.executionNodes(ImmutableSet.copyOf(collectNode.executionNodes()));
+            mergePhase.executionNodes(ImmutableSet.copyOf(collectNode.nodeIds()));
             // end: Reducer
 
             MergePhase localMergeNode = null;
@@ -185,7 +185,7 @@ class DistributedGroupByConsumer implements Consumer {
                     plannerContext.jobId(),
                     plannerContext.nextExecutionPhaseId(),
                     ImmutableList.<Projection>of(topN),
-                    mergePhase.executionNodes().size(),
+                    mergePhase.nodeIds().size(),
                     mergePhase.outputTypes());
                 localMergeNode.executionNodes(Sets.newHashSet(localNodeId));
             }

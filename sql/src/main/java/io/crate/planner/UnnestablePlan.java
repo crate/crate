@@ -22,6 +22,7 @@
 
 package io.crate.planner;
 
+import io.crate.planner.distribution.DistributionInfo;
 import io.crate.planner.projection.Projection;
 
 /**
@@ -37,5 +38,10 @@ public abstract class UnnestablePlan implements Plan {
     @Override
     public ResultDescription resultDescription() {
         throw new UnsupportedOperationException("resultDescription() is not supported on: " + getClass().getSimpleName());
+    }
+
+    @Override
+    public void setDistributionInfo(DistributionInfo distributionInfo) {
+        throw new UnsupportedOperationException("Cannot change distributionInfo on: " + getClass().getSimpleName());
     }
 }

@@ -95,9 +95,9 @@ public class PlanPrinter {
         protected ImmutableMap.Builder<String, Object> visitExecutionPhase(ExecutionPhase phase, Void context) {
             return newBuilder()
                 .put("phaseType", phase.type().toString())
-                .put("id", phase.executionPhaseId())
+                .put("id", phase.phaseId())
                 // Converting TreeMap.keySet() to be able to stream
-                .put("executionNodes", new ArrayList<>(phase.executionNodes())
+                .put("executionNodes", new ArrayList<>(phase.nodeIds())
                 );
         }
 

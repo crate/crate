@@ -37,18 +37,8 @@ public class UpsertById implements Plan {
 
     private final static ResultDescription HANDLER_ROW_COUNT = new ResultDescription() {
         @Override
-        public Collection<String> executionNodes() {
+        public Collection<String> nodeIds() {
             return Collections.emptyList();
-        }
-
-        @Override
-        public DistributionInfo distributionInfo() {
-            return DistributionInfo.DEFAULT_BROADCAST;
-        }
-
-        @Override
-        public void distributionInfo(DistributionInfo distributionInfo) {
-            throw new UnsupportedOperationException("Cannot overwrite distributionInfo of HANLDER_ROW_COUNT ResultDescription");
         }
     };
 
@@ -60,6 +50,11 @@ public class UpsertById implements Plan {
     @Override
     public ResultDescription resultDescription() {
         return HANDLER_ROW_COUNT;
+    }
+
+    @Override
+    public void setDistributionInfo(DistributionInfo distributionInfo) {
+        throw new UnsupportedOperationException("Cannot set distributionInfo on UpsertById plan");
     }
 
     /**

@@ -124,7 +124,7 @@ public class RoutedCollectPhase extends AbstractProjectionsPhase implements Coll
      * @return a set of node ids where this collect operation is executed,
      */
     @Override
-    public Set<String> executionNodes() {
+    public Set<String> nodeIds() {
         if (routing == null) {
             return ImmutableSet.of();
         }
@@ -173,7 +173,7 @@ public class RoutedCollectPhase extends AbstractProjectionsPhase implements Coll
      * pageSize is the total pageSize.
      */
     public void pageSizeHint(Integer pageSize) {
-        nodePageSizeHint(Paging.getWeightedPageSize(pageSize, 1.0d / Math.max(1, executionNodes().size())));
+        nodePageSizeHint(Paging.getWeightedPageSize(pageSize, 1.0d / Math.max(1, nodeIds().size())));
     }
 
     /**
@@ -304,7 +304,7 @@ public class RoutedCollectPhase extends AbstractProjectionsPhase implements Coll
         if (changed) {
             result = new RoutedCollectPhase(
                 jobId(),
-                executionPhaseId(),
+                phaseId(),
                 name(),
                 routing,
                 maxRowGranularity,
