@@ -166,7 +166,12 @@ public class ContextPreparer extends AbstractComponent {
                                         JobExecutionContext.Builder contextBuilder,
                                         @Nullable SharedShardContexts sharedShardContexts) {
         ContextPreparer.PreparerContext preparerContext = new PreparerContext(
-            contextBuilder, logger, distributingDownstreamFactory, nodeOperations, sharedShardContexts);
+            clusterService.localNode().id(),
+            contextBuilder,
+            logger,
+            distributingDownstreamFactory,
+            nodeOperations,
+            sharedShardContexts);
 
         for (NodeOperation nodeOperation : nodeOperations) {
             // context for nodeOperations without dependencies can be built immediately (e.g. FetchPhase)
@@ -208,6 +213,7 @@ public class ContextPreparer extends AbstractComponent {
 
     static class NodeOperationCtx {
 
+        private final String localNodeId;
         /**
          * a map from target phase to source phase
          * <p/>
@@ -231,7 +237,8 @@ public class ContextPreparer extends AbstractComponent {
         private final ImmutableMap<Integer, ? extends NodeOperation> nodeOperationMap;
         private final BitSet builtNodeOperations;
 
-        public NodeOperationCtx(Iterable<? extends NodeOperation> nodeOperations) {
+        public NodeOperationCtx(String localNodeId, Iterable<? extends NodeOperation> nodeOperations) {
+            this.localNodeId = localNodeId;
             targetToSourceMap = createTargetToSourceMap(nodeOperations);
             nodeOperationMap = Maps.uniqueIndex(nodeOperations, new Function<NodeOperation, Integer>() {
                 @Nullable
@@ -274,18 +281,26 @@ public class ContextPreparer extends AbstractComponent {
             if (sourcePhases.isEmpty()) {
                 return false;
             }
-            boolean sameNode = true;
             for (Integer sourcePhase : sourcePhases) {
                 NodeOperation nodeOperation = nodeOperationMap.get(sourcePhase);
                 if (nodeOperation == null) {
                     return false;
                 }
                 ExecutionPhase executionPhase = nodeOperation.executionPhase();
-                sameNode = sameNode & executionPhase instanceof UpstreamPhase &&
-                           (((UpstreamPhase) executionPhase).distributionInfo().distributionType() ==
-                            DistributionType.SAME_NODE);
+                // explicit SAME_NODE distribution enforced by the planner
+                if (executionPhase instanceof UpstreamPhase &&
+                    ((UpstreamPhase) executionPhase).distributionInfo().distributionType() == DistributionType.SAME_NODE) {
+                    continue;
+                }
+
+                // implicit same node optimization because the upstreamPhase is running ONLY on this node
+                Collection<String> executionNodes = executionPhase.executionNodes();
+                if (executionNodes.size() == 1 && executionNodes.iterator().next().equals(localNodeId)) {
+                    continue;
+                }
+                return false;
             }
-            return sameNode;
+            return true;
         }
 
         public Iterable<? extends IntCursor> findLeafs() {
@@ -315,14 +330,15 @@ public class ContextPreparer extends AbstractComponent {
         private final JobExecutionContext.Builder contextBuilder;
         private final ESLogger logger;
 
-        PreparerContext(JobExecutionContext.Builder contextBuilder,
+        PreparerContext(String localNodeId,
+                        JobExecutionContext.Builder contextBuilder,
                         ESLogger logger,
                         DistributingDownstreamFactory distributingDownstreamFactory,
                         Iterable<? extends NodeOperation> nodeOperations,
                         @Nullable SharedShardContexts sharedShardContexts) {
             this.contextBuilder = contextBuilder;
             this.logger = logger;
-            this.opCtx = new NodeOperationCtx(nodeOperations);
+            this.opCtx = new NodeOperationCtx(localNodeId, nodeOperations);
             this.distributingDownstreamFactory = distributingDownstreamFactory;
             this.sharedShardContexts = sharedShardContexts;
         }
@@ -342,24 +358,22 @@ public class ContextPreparer extends AbstractComponent {
 
             RowReceiver targetRowReceiver = phaseIdToRowReceivers.get(
                 toKey(nodeOperation.downstreamExecutionPhaseId(), nodeOperation.downstreamExecutionPhaseInputId()));
-            if (ExecutionPhases.hasDirectResponseDownstream(nodeOperation.downstreamNodes())) {
-                traceGetRowReceiver(phase, "DIRECT_RESPONSE", nodeOperation, targetRowReceiver);
-                return safeReceiver(targetRowReceiver, nodeOperation);
+
+            if (targetRowReceiver != null) {
+                // targetRowReceiver is available because of same node optimization or direct result;
+                return targetRowReceiver;
             }
-            switch (phase.distributionInfo().distributionType()) {
-                case SAME_NODE:
-                    traceGetRowReceiver(phase, "SAME_NODE", nodeOperation, targetRowReceiver);
-                    return safeReceiver(targetRowReceiver, nodeOperation);
+            DistributionType distributionType = phase.distributionInfo().distributionType();
+            switch (distributionType) {
                 case BROADCAST:
                 case MODULO:
                     RowReceiver downstream = distributingDownstreamFactory.create(
                         nodeOperation, phase.distributionInfo(), jobId(), pageSize);
-                    traceGetRowReceiver(
-                        phase, phase.distributionInfo().distributionType().toString(), nodeOperation, downstream);
+                    traceGetRowReceiver(phase, distributionType.toString(), nodeOperation, downstream);
                     return downstream;
                 default:
                     throw new AssertionError(
-                        "unhandled distributionType: " + phase.distributionInfo().distributionType());
+                        "unhandled distributionType: " + distributionType);
             }
         }
 
