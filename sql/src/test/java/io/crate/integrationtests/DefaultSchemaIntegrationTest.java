@@ -21,7 +21,6 @@
 
 package io.crate.integrationtests;
 
-import io.crate.action.sql.SQLAction;
 import io.crate.action.sql.SQLRequest;
 import io.crate.action.sql.SQLResponse;
 import org.junit.Rule;
@@ -39,7 +38,7 @@ public class DefaultSchemaIntegrationTest extends SQLTransportIntegrationTest {
     public TemporaryFolder tmpFolder = new TemporaryFolder();
 
     private SQLResponse execute(SQLRequest sqlRequest) {
-        response = client().execute(SQLAction.INSTANCE, sqlRequest).actionGet();
+        response = sqlExecutor.execute(sqlRequest).actionGet();
         return response;
     }
 

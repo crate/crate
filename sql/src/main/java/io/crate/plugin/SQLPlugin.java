@@ -23,10 +23,6 @@ package io.crate.plugin;
 
 import com.google.common.collect.ImmutableList;
 import io.crate.Constants;
-import io.crate.action.sql.SQLAction;
-import io.crate.action.sql.SQLBulkAction;
-import io.crate.action.sql.TransportSQLAction;
-import io.crate.action.sql.TransportSQLBulkAction;
 import io.crate.analyze.repositories.RepositorySettingsModule;
 import io.crate.breaker.CircuitBreakerModule;
 import io.crate.breaker.CrateCircuitBreakerService;
@@ -67,7 +63,6 @@ import io.crate.operation.scalar.ScalarFunctionModule;
 import io.crate.operation.tablefunctions.TableFunctionModule;
 import io.crate.protocols.postgres.PostgresNetty;
 import io.crate.rest.action.RestSQLAction;
-import org.elasticsearch.action.ActionModule;
 import org.elasticsearch.action.bulk.BulkModule;
 import org.elasticsearch.action.bulk.BulkRetryCoordinatorPool;
 import org.elasticsearch.cluster.ClusterModule;
@@ -209,11 +204,6 @@ public class SQLPlugin extends Plugin {
             clusterModule.registerClusterDynamicSetting(setting.settingName(), Validator.EMPTY);
             registerSettings(clusterModule, setting.children());
         }
-    }
-
-    public void onModule(ActionModule actionModule) {
-        actionModule.registerAction(SQLAction.INSTANCE, TransportSQLAction.class);
-        actionModule.registerAction(SQLBulkAction.INSTANCE, TransportSQLBulkAction.class);
     }
 
     public void onModule(IndicesModule indicesModule) {

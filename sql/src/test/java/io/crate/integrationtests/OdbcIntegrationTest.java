@@ -21,10 +21,7 @@
 
 package io.crate.integrationtests;
 
-import io.crate.action.sql.SQLAction;
-import io.crate.action.sql.SQLBaseRequest;
-import io.crate.action.sql.SQLRequestBuilder;
-import io.crate.action.sql.SQLResponse;
+import io.crate.action.sql.*;
 import org.elasticsearch.test.ESIntegTestCase;
 import org.junit.Before;
 import org.junit.Test;
@@ -34,17 +31,15 @@ public class OdbcIntegrationTest extends SQLTransportIntegrationTest {
 
     private Setup setup = new Setup(sqlExecutor);
 
-    private SQLResponse execute(SQLRequestBuilder requestBuilder) {
-        response = client().execute(SQLAction.INSTANCE, requestBuilder.request()).actionGet();
+    private SQLResponse execute(SQLRequest request) {
+        response = sqlExecutor.execute(request).actionGet();
         return response;
     }
 
-    private SQLRequestBuilder quotedRequest(String stmt) {
-        SQLRequestBuilder requestBuilder = new SQLRequestBuilder(client(), SQLAction.INSTANCE);
-        requestBuilder.stmt(stmt);
-        // Set Odbc flag
-        requestBuilder.addFlagsToRequestHeader(SQLBaseRequest.HEADER_FLAG_ALLOW_QUOTED_SUBSCRIPT);
-        return requestBuilder;
+    private SQLRequest quotedRequest(String stmt) {
+        SQLRequest request = new SQLRequest(stmt);
+        request.putHeader(SQLBaseRequest.FLAGS_HEADER_KEY, SQLBaseRequest.HEADER_FLAG_ALLOW_QUOTED_SUBSCRIPT);
+        return request;
     }
 
     @Before

@@ -23,6 +23,7 @@
 package io.crate.integrationtests;
 
 import io.crate.action.sql.SQLActionException;
+import io.crate.action.sql.SQLOperations;
 import io.crate.plugin.CrateCorePlugin;
 import io.crate.testing.SQLTransportExecutor;
 import io.crate.testing.UseJdbc;
@@ -58,6 +59,11 @@ public class JobIntegrationTest extends SQLTransportIntegrationTest {
                 @Override
                 public String pgUrl() {
                     return null;
+                }
+
+                @Override
+                public SQLOperations sqlOperations() {
+                    return internalCluster().getInstance(SQLOperations.class);
                 }
             }
         ));

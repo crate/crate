@@ -24,7 +24,13 @@ package io.crate.testing;
 import com.carrotsearch.randomizedtesting.RandomizedContext;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Throwables;
+import com.google.common.util.concurrent.FutureCallback;
+import com.google.common.util.concurrent.Futures;
 import io.crate.action.sql.*;
+import io.crate.analyze.symbol.Field;
+import io.crate.core.collections.Row;
+import io.crate.exceptions.Exceptions;
+import io.crate.executor.BytesRefUtils;
 import io.crate.protocols.postgres.types.PGType;
 import io.crate.protocols.postgres.types.PGTypes;
 import io.crate.types.DataType;
@@ -32,6 +38,7 @@ import io.crate.types.DataTypes;
 import org.elasticsearch.ElasticsearchTimeoutException;
 import org.elasticsearch.ExceptionsHelper;
 import org.elasticsearch.action.ActionFuture;
+import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthResponse;
 import org.elasticsearch.action.support.AdapterActionFuture;
 import org.elasticsearch.client.Client;
@@ -51,6 +58,7 @@ import org.postgresql.util.PGobject;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.ServerErrorMessage;
 
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.io.IOException;
 import java.lang.reflect.Method;
@@ -59,6 +67,7 @@ import java.sql.*;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 
+import static io.crate.action.sql.SQLOperations.Session.UNNAMED;
 import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.assertThat;
 
@@ -147,6 +156,97 @@ public class SQLTransportExecutor {
             }
         }
         return false;
+    }
+
+    static Set<Option> toOptions(int requestFlags) {
+        switch (requestFlags) {
+            case SQLBaseRequest.HEADER_FLAG_OFF:
+                return Option.NONE;
+            case SQLBaseRequest.HEADER_FLAG_ALLOW_QUOTED_SUBSCRIPT:
+                return EnumSet.of(Option.ALLOW_QUOTED_SUBSCRIPT);
+        }
+        throw new IllegalArgumentException("Unrecognized requestFlags: " + requestFlags);
+    }
+
+    final static int DEFAULT_SOFT_LIMIT = 10_000;
+
+    public ActionFuture<SQLResponse> execute(SQLRequest request) {
+        final AdapterActionFuture<SQLResponse, SQLResponse> actionFuture = new TestTransportActionFuture<>();
+        execute(request, actionFuture, clientProvider.sqlOperations());
+        return actionFuture;
+    }
+
+    public static ActionFuture<SQLResponse> execute(SQLRequest request, SQLOperations operations) {
+        final AdapterActionFuture<SQLResponse, SQLResponse> actionFuture = new TestTransportActionFuture<>();
+        execute(request, actionFuture, operations);
+        return actionFuture;
+    }
+
+    private static void execute(SQLRequest request, ActionListener<SQLResponse> listener, SQLOperations sqlOperations) {
+        SQLOperations.Session session = sqlOperations.createSession(
+            request.getDefaultSchema(), toOptions(request.getRequestFlags()), DEFAULT_SOFT_LIMIT);
+        try {
+            long startTime = System.nanoTime();
+            session.parse(UNNAMED, request.stmt(), Collections.<DataType>emptyList());
+            List<Object> args = request.args() == null ? Collections.emptyList() : Arrays.asList(request.args());
+            session.bind(UNNAMED, UNNAMED, args, null);
+            List<Field> outputFields = session.describe('P', UNNAMED);
+            if (outputFields == null) {
+                ResultReceiver resultReceiver = new RowCountReceiver(listener, startTime, request.includeTypesOnResponse());
+                session.execute(UNNAMED, 1, resultReceiver);
+            } else {
+                ResultReceiver resultReceiver = new ResultSetReceiver(listener, outputFields, startTime, request.includeTypesOnResponse());
+                session.execute(UNNAMED, 0, resultReceiver);
+            }
+            session.sync();
+        } catch (Throwable t) {
+            listener.onFailure(Exceptions.createSQLActionException(t));
+        }
+    }
+
+    private void execute(SQLBulkRequest request, final ActionListener<SQLBulkResponse> listener) {
+        SQLOperations.Session session = clientProvider.sqlOperations().createSession(
+            request.getDefaultSchema(),
+            toOptions(request.getRequestFlags()),
+            DEFAULT_SOFT_LIMIT
+        );
+        try {
+            final long startTime = System.nanoTime();
+            session.parse(UNNAMED, request.stmt(), Collections.<DataType>emptyList());
+
+            Object[][] bulkArgs = request.bulkArgs();
+            final SQLBulkResponse.Result[] results = new SQLBulkResponse.Result[bulkArgs.length];
+            if (results.length == 0) {
+                session.bind(UNNAMED, UNNAMED, Collections.emptyList(), null);
+                session.execute(UNNAMED, 1, new BaseResultReceiver());
+            } else {
+                for (int i = 0; i < bulkArgs.length; i++) {
+                    session.bind(UNNAMED, UNNAMED, Arrays.asList(bulkArgs[i]), null);
+                    ResultReceiver resultReceiver = new BulkRowCountReceiver(results, i);
+                    session.execute(UNNAMED, 1, resultReceiver);
+                }
+            }
+            List<Field> outputColumns = session.describe('P', UNNAMED);
+            if (outputColumns != null) {
+                throw new UnsupportedOperationException(
+                    "Bulk operations for statements that return result sets is not supported");
+            }
+            Futures.addCallback(session.sync(), new FutureCallback<Object>() {
+                @Override
+                public void onSuccess(@Nullable Object result) {
+                    float duration = (float) ((System.nanoTime() - startTime) / 1_000_000.0);
+                    listener.onResponse(new SQLBulkResponse(results, duration));
+                }
+
+                @Override
+                public void onFailure(@Nonnull Throwable t) {
+                    listener.onFailure(Exceptions.createSQLActionException(t));
+
+                }
+            });
+        } catch (Throwable t) {
+            listener.onFailure(Exceptions.createSQLActionException(t));
+        }
     }
 
     private SQLResponse executeWithPg(SQLRequest request, String pgUrl, Random random) {
@@ -411,15 +511,9 @@ public class SQLTransportExecutor {
         }
     }
 
-    public ActionFuture<SQLResponse> execute(SQLRequest request) {
-        AdapterActionFuture<SQLResponse, SQLResponse> actionFuture = new TestTransportActionFuture<>();
-        clientProvider.client().execute(SQLAction.INSTANCE, request, actionFuture);
-        return actionFuture;
-    }
-
     private ActionFuture<SQLBulkResponse> execute(SQLBulkRequest request) {
         AdapterActionFuture<SQLBulkResponse, SQLBulkResponse> actionFuture = new TestTransportActionFuture<>();
-        clientProvider.client().execute(SQLBulkAction.INSTANCE, request, actionFuture);
+        execute(request, actionFuture);
         return actionFuture;
     }
 
@@ -432,14 +526,15 @@ public class SQLTransportExecutor {
     }
 
     private ClusterHealthStatus ensureState(ClusterHealthStatus state) {
-        ClusterHealthResponse actionGet = client().admin().cluster().health(
+        Client client = clientProvider.client();
+        ClusterHealthResponse actionGet = client.admin().cluster().health(
             Requests.clusterHealthRequest()
                 .waitForStatus(state)
                 .waitForEvents(Priority.LANGUID).waitForRelocatingShards(0)
         ).actionGet();
 
         if (actionGet.isTimedOut()) {
-            LOGGER.info("ensure state timed out, cluster state:\n{}\n{}", client().admin().cluster().prepareState().get().getState().prettyPrint(), client().admin().cluster().preparePendingClusterTasks().get().prettyPrint());
+            LOGGER.info("ensure state timed out, cluster state:\n{}\n{}", client.admin().cluster().prepareState().get().getState().prettyPrint(), client.admin().cluster().preparePendingClusterTasks().get().prettyPrint());
             assertThat("timed out waiting for state", actionGet.isTimedOut(), equalTo(false));
         }
         if (state == ClusterHealthStatus.YELLOW) {
@@ -450,18 +545,16 @@ public class SQLTransportExecutor {
         return actionGet.getStatus();
     }
 
-    public Client client() {
-        return clientProvider.client();
-    }
-
     public interface ClientProvider {
         Client client();
 
         @Nullable
         String pgUrl();
+
+        SQLOperations sqlOperations();
     }
 
-    private class TestTransportActionFuture<Response extends SQLBaseResponse> extends AdapterActionFuture<Response, Response> {
+    private static class TestTransportActionFuture<Response extends SQLBaseResponse> extends AdapterActionFuture<Response, Response> {
 
         @Override
         protected Response convert(Response response) {
@@ -481,4 +574,157 @@ public class SQLTransportExecutor {
             super.onFailure(e);
         }
     }
+
+    private static final DataType[] EMPTY_TYPES = new DataType[0];
+    private static final String[] EMPTY_NAMES = new String[0];
+    private static final Object[][] EMPTY_ROWS = new Object[0][];
+
+    /**
+     * Wrapper for testing issues. Creates a {@link SQLResponse} from
+     * query results.
+     *
+     * Might be removed with the {@link SQLRequest}
+     */
+    private static class ResultSetReceiver extends BaseResultReceiver {
+
+        private final List<Object[]> rows = new ArrayList<>();
+        private final ActionListener<SQLResponse> listener;
+        private final List<Field> outputFields;
+        private final long startTime;
+        private final boolean includeTypesOnResponse;
+
+        ResultSetReceiver(ActionListener<SQLResponse> listener,
+                                 List<Field> outputFields,
+                                 long startTime,
+                                 boolean includeTypesOnResponse) {
+            this.listener = listener;
+            this.outputFields = outputFields;
+            this.startTime = startTime;
+            this.includeTypesOnResponse = includeTypesOnResponse;
+        }
+
+        @Override
+        public void setNextRow(Row row) {
+            rows.add(row.materialize());
+        }
+
+        @Override
+        public void allFinished() {
+            listener.onResponse(createSqlResponse());
+            super.allFinished();
+        }
+
+        @Override
+        public void fail(@Nonnull Throwable t) {
+            listener.onFailure(Exceptions.createSQLActionException(t));
+            super.fail(t);
+        }
+
+        private SQLResponse createSqlResponse() {
+            String[] outputNames = new String[outputFields.size()];
+            DataType[] outputTypes = new DataType[outputFields.size()];
+
+            for (int i = 0, outputFieldsSize = outputFields.size(); i < outputFieldsSize; i++) {
+                Field field = outputFields.get(i);
+                outputNames[i] = field.path().outputName();
+                outputTypes[i] = field.valueType();
+            }
+
+            Object[][] rowsArr = rows.toArray(new Object[0][]);
+            BytesRefUtils.ensureStringTypesAreStrings(outputTypes, rowsArr);
+            float duration = (float) ((System.nanoTime() - startTime) / 1_000_000.0);
+            return new SQLResponse(
+                outputNames,
+                rowsArr,
+                outputTypes,
+                rowsArr.length,
+                duration,
+                includeTypesOnResponse
+            );
+        }
+    }
+
+    /**
+     * Wrapper for testing issues. Creates a {@link SQLResponse} with
+     * rowCount and duration of query execution.
+     *
+     * Might be removed with the {@link SQLRequest}
+     */
+    private static class RowCountReceiver extends BaseResultReceiver {
+
+        private final ActionListener<SQLResponse> listener;
+        private final long startTime;
+        private final boolean includeTypes;
+
+        private long rowCount;
+
+        RowCountReceiver(ActionListener<SQLResponse> listener, long startTime, boolean includeTypes) {
+            this.listener = listener;
+            this.startTime = startTime;
+            this.includeTypes = includeTypes;
+        }
+
+        @Override
+        public void setNextRow(Row row) {
+            rowCount = (long) row.get(0);
+        }
+
+        @Override
+        public void allFinished() {
+            float duration = (float) ((System.nanoTime() - startTime) / 1_000_000.0);
+            SQLResponse sqlResponse = new SQLResponse(
+                EMPTY_NAMES,
+                EMPTY_ROWS,
+                EMPTY_TYPES,
+                rowCount,
+                duration,
+                includeTypes
+            );
+            listener.onResponse(sqlResponse);
+            super.allFinished();
+
+        }
+
+        @Override
+        public void fail(@Nonnull Throwable t) {
+            listener.onFailure(Exceptions.createSQLActionException(t));
+            super.fail(t);
+        }
+    }
+
+
+    /**
+     * Wraps results of bulk requests for testing.
+     *
+     * Might be removed with the {@link SQLBulkRequest}
+     */
+    private static class BulkRowCountReceiver extends BaseResultReceiver {
+
+        private final SQLBulkResponse.Result[] results;
+        private final int resultIdx;
+        private long rowCount;
+
+        BulkRowCountReceiver(SQLBulkResponse.Result[] results, int resultIdx) {
+            this.results = results;
+            this.resultIdx = resultIdx;
+        }
+
+        @Override
+        public void setNextRow(Row row) {
+            rowCount = ((long) row.get(0));
+        }
+
+        @Override
+        public void allFinished() {
+            results[resultIdx] = new SQLBulkResponse.Result(null, rowCount);
+            super.allFinished();
+        }
+
+        @Override
+        public void fail(@Nonnull Throwable t) {
+            results[resultIdx] = new SQLBulkResponse.Result(Exceptions.messageOf(t), rowCount);
+            super.fail(t);
+        }
+    }
+
 }

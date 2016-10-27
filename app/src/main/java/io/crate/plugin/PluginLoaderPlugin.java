@@ -24,7 +24,6 @@ package io.crate.plugin;
 
 import com.google.common.annotations.VisibleForTesting;
 import io.crate.module.PluginLoaderModule;
-import org.elasticsearch.action.ActionModule;
 import org.elasticsearch.cluster.ClusterModule;
 import org.elasticsearch.common.component.LifecycleComponent;
 import org.elasticsearch.common.inject.Module;
@@ -146,9 +145,6 @@ public class PluginLoaderPlugin extends Plugin {
         return shardModules;
     }
 
-    public void onModule(ActionModule module) {
-        sqlPlugin.onModule(module);
-    }
 
     public void onModule(IndicesModule module) {
         sqlPlugin.onModule(module);

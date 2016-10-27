@@ -22,21 +22,21 @@
 package io.crate.integrationtests;
 
 import com.google.common.base.Predicate;
-import io.crate.action.sql.SQLAction;
 import io.crate.action.sql.SQLActionException;
+import io.crate.action.sql.SQLOperations;
 import io.crate.action.sql.SQLRequest;
 import io.crate.action.sql.SQLResponse;
-import io.crate.rest.CrateRestFilter;
+import io.crate.testing.SQLTransportExecutor;
 import io.crate.testing.TestingHelpers;
 import io.crate.testing.UseJdbc;
-import org.elasticsearch.client.Client;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.node.Node;
 import org.elasticsearch.test.ESIntegTestCase;
 import org.junit.Test;
 
 import java.io.IOException;
-import java.util.*;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Locale;
+import java.util.Map;
 
 import static org.hamcrest.Matchers.*;
 import static org.hamcrest.core.IsInstanceOf.instanceOf;
@@ -72,18 +72,19 @@ public class SQLTypeMappingTest extends SQLTransportIntegrationTest {
     public void testInsertAtNodeWithoutShard() throws Exception {
         setUpSimple(1);
 
-        Iterator<Client> iterator = clients().iterator();
-        Client client1 = iterator.next();
-        Client client2 = iterator.next();
+        SQLOperations operations1 = internalCluster().getInstance(SQLOperations.class, internalCluster().getNodeNames()[0]);
+        SQLOperations operations2 = internalCluster().getInstance(SQLOperations.class, internalCluster().getNodeNames()[1]);
 
-        client1.execute(SQLAction.INSTANCE, new SQLRequest(
-            "insert into t1 (id, string_field, " +
-            "timestamp_field, byte_field) values (?, ?, ?, ?)", new Object[]{1, "With",
-            "1970-01-01T00:00:00", 127})).actionGet();
+        SQLTransportExecutor.execute(new SQLRequest(
+                "insert into t1 (id, string_field, timestamp_field, byte_field) values (?, ?, ?, ?)",
+                new Object[]{1, "With", "1970-01-01T00:00:00", 127}),
+                operations1).actionGet();
 
-        client2.execute(SQLAction.INSTANCE, new SQLRequest(
-            "insert into t1 (id, string_field, timestamp_field, byte_field) values (?, ?, ?, ?)",
-            new Object[]{2, "Without", "1970-01-01T01:00:00", Byte.MIN_VALUE})).actionGet();
+        SQLTransportExecutor.execute(new SQLRequest(
+                "insert into t1 (id, string_field, timestamp_field, byte_field) values (?, ?, ?, ?)",
+                new Object[]{2, "Without", "1970-01-01T01:00:00", Byte.MIN_VALUE}),
+                operations2).actionGet();
+
         refresh();
         SQLResponse response = execute("select id, string_field, timestamp_field, byte_field from t1 order by id");
 
