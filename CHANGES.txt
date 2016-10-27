@@ -5,6 +5,11 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Updated Crash to `0.19.0` which includes the following change:
+
+    - Allow "short hosts" as Crate hosts argument,
+      such as ``:4200`` for ``localhost:4200``
+
  - Updated crate-admin to `0.21.0` which includes following changes:
 
     - Added a button to clear the search field in the table list view.
