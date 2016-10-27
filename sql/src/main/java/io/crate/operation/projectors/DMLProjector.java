@@ -22,7 +22,6 @@
 
 package io.crate.operation.projectors;
 
-import com.google.common.base.Function;
 import com.google.common.util.concurrent.Futures;
 import io.crate.core.collections.Row;
 import io.crate.executor.transport.ShardRequest;
@@ -33,6 +32,7 @@ import org.elasticsearch.index.mapper.Uid;
 import org.elasticsearch.index.shard.ShardId;
 
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Function;
 
 class DMLProjector<Request extends ShardRequest> extends AbstractProjector {
 

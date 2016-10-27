@@ -21,7 +21,6 @@
 
 package io.crate.operation.projectors;
 
-import com.google.common.base.Function;
 import com.google.common.base.Predicate;
 import com.google.common.base.Supplier;
 import io.crate.action.sql.SessionContext;
@@ -30,7 +29,6 @@ import io.crate.analyze.symbol.*;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.core.collections.Row;
 import io.crate.executor.transport.ShardDeleteRequest;
-import io.crate.executor.transport.ShardRequest;
 import io.crate.executor.transport.ShardUpsertRequest;
 import io.crate.executor.transport.TransportActionProvider;
 import io.crate.metadata.*;
@@ -360,13 +358,7 @@ public class ProjectionToProjectorVisitor
             shardId,
             resolveUidCollectExpression(projection.uidSymbol()),
             bulkShardProcessor,
-            new Function<String, ShardRequest.Item>() {
-                @Nullable
-                @Override
-                public ShardRequest.Item apply(@Nullable String id) {
-                    return new ShardUpsertRequest.Item(id, projection.assignments(), null, projection.requiredVersion());
-                }
-            }
+            id -> new ShardUpsertRequest.Item(id, projection.assignments(), null, projection.requiredVersion())
         );
     }
 
@@ -393,13 +385,8 @@ public class ProjectionToProjectorVisitor
             shardId,
             resolveUidCollectExpression(projection.uidSymbol()),
             bulkShardProcessor,
-            new Function<String, ShardRequest.Item>() {
-                @Nullable
-                @Override
-                public ShardRequest.Item apply(@Nullable String id) {
-                    return new ShardDeleteRequest.Item(id);
-                }
-            });
+            ShardDeleteRequest.Item::new
+        );
     }
 
     private void checkShardLevel(String errorMessage) {
@@ -459,7 +446,7 @@ public class ProjectionToProjectorVisitor
 
             Input<?> sourceInput = inputSymbolVisitor.process(e.getValue(), readCtx);
             assignmentExpressions.add(
-                new Tuple<WritableExpression, Input<?>>(((WritableExpression) targetCol), sourceInput));
+                new Tuple<>(((WritableExpression) targetCol), sourceInput));
         }
         return new SysUpdateProjector(assignmentExpressions, readCtx.docLevelExpressions());
     }
