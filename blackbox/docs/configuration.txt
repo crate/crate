@@ -390,8 +390,7 @@ Ports
   It defaults to ``4300-4400``. Always the first free port in this range is used. If this is set
   to an integer value it is considered as an explicit single port.
 
-  The transport protocol is used for internal node-to-node communication and also
-  by the Java client.
+  The transport protocol is used for internal node-to-node communication. 
 
 .. _transport.publish_port:
 
