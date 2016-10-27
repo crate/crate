@@ -24,6 +24,7 @@ package io.crate.operation.scalar.arithmetic;
 
 import io.crate.analyze.symbol.Literal;
 import io.crate.metadata.FunctionIdent;
+import io.crate.metadata.Scalar;
 import io.crate.operation.Input;
 import io.crate.operation.scalar.AbstractScalarFunctionsTest;
 import io.crate.types.DataType;
@@ -37,40 +38,15 @@ import java.util.Arrays;
 import static io.crate.testing.SymbolMatchers.isFunction;
 import static io.crate.testing.SymbolMatchers.isLiteral;
 import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.nullValue;
 
-public class TrigonometricFunctionTest extends AbstractScalarFunctionsTest {
+public class TrigonometricFunctionsTest extends AbstractScalarFunctionsTest {
 
-    private TrigonometricFunction getFunction(String name, DataType type) {
-        return (TrigonometricFunction) functions.get(new FunctionIdent(name, Arrays.asList(type)));
+    private Scalar<Double, Number> getFunction(String name, DataType type) {
+        return (Scalar) functions.get(new FunctionIdent(name, Arrays.asList(type)));
     }
 
-    private Number evaluate(Number number, String name, DataType type) {
+    private Number evaluate(String name, Number number, DataType type) {
         return getFunction(name, type).evaluate((Input) Literal.of(type, number));
-    }
-
-    private Number evaluateSin(Number number, DataType type) {
-        return evaluate(number, TrigonometricFunction.SinFunction.NAME, type);
-    }
-
-    private Number evaluateAsin(Number number, DataType type) {
-        return evaluate(number, TrigonometricFunction.AsinFunction.NAME, type);
-    }
-
-    private Number evaluateCos(Number number, DataType type) {
-        return evaluate(number, TrigonometricFunction.CosFunction.NAME, type);
-    }
-
-    private Number evaluateAcos(Number number, DataType type) {
-        return evaluate(number, TrigonometricFunction.AcosFunction.NAME, type);
-    }
-
-    private Number evaluateTan(Number number, DataType type) {
-        return evaluate(number, TrigonometricFunction.TanFunction.NAME, type);
-    }
-
-    private Number evaluateAtan(Number number, DataType type) {
-        return evaluate(number, TrigonometricFunction.AtanFunction.NAME, type);
     }
 
     @Rule
@@ -78,91 +54,72 @@ public class TrigonometricFunctionTest extends AbstractScalarFunctionsTest {
 
     @Test
     public void testEvaluate() throws Exception {
-        // SinFunction
-        assertThat((Double) evaluateSin(1.0, DataTypes.DOUBLE), is(0.8414709848078965));
-        assertThat((Double) evaluateSin(2.0F, DataTypes.FLOAT), is(0.9092974268256817));
-        assertThat((Double) evaluateSin(3L, DataTypes.LONG), is(0.1411200080598672));
-        assertThat((Double) evaluateSin(4, DataTypes.INTEGER), is(-0.7568024953079282));
-        assertThat((Double) evaluateSin((short) 5, DataTypes.SHORT), is(-0.9589242746631385));
+        assertThat(evaluate("sin", 1.0, DataTypes.DOUBLE), is(0.8414709848078965));
+        assertThat(evaluate("sin", 2.0F, DataTypes.FLOAT), is(0.9092974268256817));
+        assertThat(evaluate("sin", 3L, DataTypes.LONG), is(0.1411200080598672));
+        assertThat(evaluate("sin", 4, DataTypes.INTEGER), is(-0.7568024953079282));
+        assertThat(evaluate("sin", (short) 5, DataTypes.SHORT), is(-0.9589242746631385));
 
-        // AsinFunction
-        assertThat((Double) evaluateAsin(0.1234, DataTypes.DOUBLE), is(0.12371534584255098));
-        assertThat((Double) evaluateAsin(0.4321F, DataTypes.FLOAT), is(0.44682008883801516));
-        assertThat((Double) evaluateAsin(0L, DataTypes.LONG), is(0.0));
-        assertThat((Double) evaluateAsin(1, DataTypes.INTEGER), is(1.5707963267948966));
-        assertThat((Double) evaluateAsin((short) -1, DataTypes.SHORT), is(-1.5707963267948966));
+        assertThat(evaluate("asin", 0.1234, DataTypes.DOUBLE), is(0.12371534584255098));
+        assertThat(evaluate("asin", 0.4321F, DataTypes.FLOAT), is(0.44682008883801516));
+        assertThat(evaluate("asin", 0L, DataTypes.LONG), is(0.0));
+        assertThat(evaluate("asin", 1, DataTypes.INTEGER), is(1.5707963267948966));
+        assertThat(evaluate("asin", (short) -1, DataTypes.SHORT), is(-1.5707963267948966));
 
-        // CosFunction
-        assertThat((Double) evaluateCos(1.0, DataTypes.DOUBLE), is(0.5403023058681398));
-        assertThat((Double) evaluateCos(2.0F, DataTypes.FLOAT), is(-0.4161468365471424));
-        assertThat((Double) evaluateCos(3L, DataTypes.LONG), is(-0.9899924966004454));
-        assertThat((Double) evaluateCos(4, DataTypes.INTEGER), is(-0.6536436208636119));
-        assertThat((Double) evaluateCos((short) 5, DataTypes.SHORT), is(0.28366218546322625));
+        assertThat(evaluate("cos", 1.0, DataTypes.DOUBLE), is(0.5403023058681398));
+        assertThat(evaluate("cos", 2.0F, DataTypes.FLOAT), is(-0.4161468365471424));
+        assertThat(evaluate("cos", 3L, DataTypes.LONG), is(-0.9899924966004454));
+        assertThat(evaluate("cos", 4, DataTypes.INTEGER), is(-0.6536436208636119));
+        assertThat(evaluate("cos", (short) 5, DataTypes.SHORT), is(0.28366218546322625));
 
-        // AcosFunction
-        assertThat((Double) evaluateAcos(0.1234, DataTypes.DOUBLE), is(1.4470809809523457));
-        assertThat((Double) evaluateAcos(0.4321F, DataTypes.FLOAT), is(1.1239762379568814));
-        assertThat((Double) evaluateAcos(0L, DataTypes.LONG), is(1.5707963267948966));
-        assertThat((Double) evaluateAcos(1, DataTypes.INTEGER), is(0.0));
-        assertThat((Double) evaluateAcos((short) -1, DataTypes.SHORT), is(3.141592653589793));
+        assertThat(evaluate("acos", 0.1234, DataTypes.DOUBLE), is(1.4470809809523457));
+        assertThat(evaluate("acos", 0.4321F, DataTypes.FLOAT), is(1.1239762379568814));
+        assertThat(evaluate("acos", 0L, DataTypes.LONG), is(1.5707963267948966));
+        assertThat(evaluate("acos", 1, DataTypes.INTEGER), is(0.0));
+        assertThat(evaluate("acos", (short) -1, DataTypes.SHORT), is(3.141592653589793));
 
-        // TanFunction
-        assertThat((Double) evaluateTan(1.0, DataTypes.DOUBLE), is(1.5574077246549023));
-        assertThat((Double) evaluateTan(2.0F, DataTypes.FLOAT), is(-2.185039863261519));
-        assertThat((Double) evaluateTan(3L, DataTypes.LONG), is(-0.1425465430742778));
-        assertThat((Double) evaluateTan(4, DataTypes.INTEGER), is(1.1578212823495777));
-        assertThat((Double) evaluateTan((short) 5, DataTypes.SHORT), is(-3.380515006246586));
+        assertThat(evaluate("tan", 1.0, DataTypes.DOUBLE), is(1.5574077246549023));
+        assertThat(evaluate("tan", 2.0F, DataTypes.FLOAT), is(-2.185039863261519));
+        assertThat(evaluate("tan", 3L, DataTypes.LONG), is(-0.1425465430742778));
+        assertThat(evaluate("tan", 4, DataTypes.INTEGER), is(1.1578212823495777));
+        assertThat(evaluate("tan", (short) 5, DataTypes.SHORT), is(-3.380515006246586));
 
-        // AtanFunction
-        assertThat((Double) evaluateAtan(0.1234, DataTypes.DOUBLE), is(0.12277930094473836));
-        assertThat((Double) evaluateAtan(0.4321F, DataTypes.FLOAT), is(0.4078690066146179));
-        assertThat((Double) evaluateAtan(0L, DataTypes.LONG), is(0.0));
-        assertThat((Double) evaluateAtan(1, DataTypes.INTEGER), is(0.7853981633974483));
-        assertThat((Double) evaluateAtan((short) -1, DataTypes.SHORT), is(-0.7853981633974483));
+        assertThat(evaluate("atan", 0.1234, DataTypes.DOUBLE), is(0.12277930094473836));
+        assertThat(evaluate("atan", 0.4321F, DataTypes.FLOAT), is(0.4078690066146179));
+        assertThat(evaluate("atan", 0L, DataTypes.LONG), is(0.0));
+        assertThat(evaluate("atan", 1, DataTypes.INTEGER), is(0.7853981633974483));
+        assertThat(evaluate("atan", (short) -1, DataTypes.SHORT), is(-0.7853981633974483));
     }
 
     @Test
     public void testEvaluateAsinOnIllegalArgument() {
         expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("asin(x): is defined only for values in the range of [-1.0, 1.0]");
-        evaluateAsin(2.0, DataTypes.DOUBLE);
+        expectedException.expectMessage("input value 2.0 is out of range. Values must be in range of [-1.0, 1.0]");
+        assertEvaluate("asin(2.0)", 0);
     }
 
     @Test
     public void testEvaluateAcosOnIllegalArgument() {
         expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("acos(x): is defined only for values in the range of [-1.0, 1.0]");
-        evaluateAcos(2.0, DataTypes.DOUBLE);
+        expectedException.expectMessage("input value 2.0 is out of range. Values must be in range of [-1.0, 1.0]");
+        assertEvaluate("acos(2.0)", 0);
     }
 
     @Test
     public void testEvaluateAtanOnIllegalArgument() {
         expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("atan(x): is defined only for values in the range of [-1.0, 1.0]");
-        evaluateAtan(2.0, DataTypes.DOUBLE);
+        expectedException.expectMessage("input value 2.0 is out of range. Values must be in range of [-1.0, 1.0]");
+        assertEvaluate("atan(2.0)", 0);
     }
 
     @Test
     public void testEvaluateOnNull() throws Exception {
-        for (DataType type : DataTypes.NUMERIC_PRIMITIVE_TYPES) {
-            // SinFunction
-            assertThat(evaluateSin(null, type), nullValue());
-
-            // AsinFunction
-            assertThat(evaluateAsin(null, type), nullValue());
-
-            // CosFunction
-            assertThat(evaluateCos(null, type), nullValue());
-
-            // AcosFunction
-            assertThat(evaluateAcos(null, type), nullValue());
-
-            // TanFunction
-            assertThat(evaluateTan(null, type), nullValue());
-
-            // AtanFunction
-            assertThat(evaluateAtan(null, type), nullValue());
-        }
+        assertEvaluate("sin(null)", null);
+        assertEvaluate("asin(null)", null);
+        assertEvaluate("cos(null)", null);
+        assertEvaluate("acos(null)", null);
+        assertEvaluate("tan(null)", null);
+        assertEvaluate("atan(null)", null);
     }
 
     @Test
@@ -257,22 +214,11 @@ public class TrigonometricFunctionTest extends AbstractScalarFunctionsTest {
 
     @Test
     public void testNormalizeReference() throws Exception {
-        // SinFunction
-        assertNormalize("sin(age)", isFunction(TrigonometricFunction.SinFunction.NAME));
-
-        // AsinFunction
-        assertNormalize("asin(age)", isFunction(TrigonometricFunction.AsinFunction.NAME));
-
-        // CosFunction
-        assertNormalize("cos(age)", isFunction(TrigonometricFunction.CosFunction.NAME));
-
-        // AcosFunction
-        assertNormalize("acos(age)", isFunction(TrigonometricFunction.AcosFunction.NAME));
-
-        // TanFunction
-        assertNormalize("tan(age)", isFunction(TrigonometricFunction.TanFunction.NAME));
-
-        // AtanFunction
-        assertNormalize("atan(age)", isFunction(TrigonometricFunction.AtanFunction.NAME));
+        assertNormalize("sin(age)", isFunction("sin"));
+        assertNormalize("asin(age)", isFunction("asin"));
+        assertNormalize("cos(age)", isFunction("cos"));
+        assertNormalize("acos(age)", isFunction("acos"));
+        assertNormalize("tan(age)", isFunction("tan"));
+        assertNormalize("atan(age)", isFunction("atan"));
     }
 }
