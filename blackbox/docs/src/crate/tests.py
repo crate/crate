@@ -21,6 +21,7 @@
 
 import unittest
 import doctest
+import subprocess
 import zc.customdoctests
 from crate.testing.layer import CrateLayer
 import os
@@ -121,12 +122,27 @@ class ConnectingCrateLayer(CrateLayer):
         super(ConnectingCrateLayer, self).__init__(*args, **kwargs)
 
     def start(self):
-        super(ConnectingCrateLayer, self).start()
+        # this is a copy from CrateLayer.start
+        # with an extension to set `env`:
+        # This is somehow necessary to get travis to launch Crate using
+        # Java 8 instead of 7
+        if os.path.exists(self._wd):
+            shutil.rmtree(self._wd)
+        env = {'JAVA_HOME': os.environ.get('JAVA_HOME', '')}
+        self.process = subprocess.Popen(self.start_cmd, env=env)
+        returncode = self.process.poll()
+        if returncode is not None:
+            raise SystemError('Failed to start server rc={0} cmd={1}'.format(
+                returncode, self.start_cmd))
+        self._wait_for_start()
+        self._wait_for_master()
+
         cmd._connect(self.crate_servers[0])
 
     def tearDown(self):
         shutil.rmtree(self.repo_path, ignore_errors=True)
         super(ConnectingCrateLayer, self).tearDown()
+
 
 class ConnectingAndJavaReplLayer(object):
 

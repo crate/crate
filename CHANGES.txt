@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Removed java7 support
+
 2016/10/27 0.57.0
 =================
 

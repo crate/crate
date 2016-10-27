@@ -173,23 +173,6 @@ public class SysNodeChecksTest extends CrateUnitTest {
         assertThat(recoveryAfterNodesCheck.validate(TimeValue.timeValueMinutes(4), 3, 3), is(false));
     }
 
-    @Test
-    public void testJvmVersion() {
-        JvmVersionSysCheck jvmVersionSysCheck = new JvmVersionSysCheck(clusterService);
-
-        assertThat(jvmVersionSysCheck.id(), is(4));
-        assertThat(jvmVersionSysCheck.nodeId().utf8ToString(), is("noop_id"));
-        assertThat(jvmVersionSysCheck.severity(), is(SysCheck.Severity.MEDIUM));
-        assertThat(jvmVersionSysCheck.validateJavaVersion("javaVersion"), is(false));
-        assertThat(jvmVersionSysCheck.validateJavaVersion("XXX.XXXX"), is(false));
-        assertThat(jvmVersionSysCheck.validateJavaVersion("XXXX_XXXX"), is(false));
-        assertThat(jvmVersionSysCheck.validateJavaVersion("1.6.0_13"), is(false));
-        assertThat(jvmVersionSysCheck.validateJavaVersion("1.7.0_10"), is(false));
-        assertThat(jvmVersionSysCheck.validateJavaVersion("1.8.0_11"), is(false));
-        assertThat(jvmVersionSysCheck.validateJavaVersion("1.8.0_54"), is(true));
-        assertThat(jvmVersionSysCheck.validateJavaVersion("1.8.0_72-internal"), is(true));
-    }
-
     private final FsInfo fsInfo = mock(FsInfo.class);
 
     @Test

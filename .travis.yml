@@ -1,6 +1,5 @@
 language: java
 jdk:
-  - openjdk7
   - oraclejdk8
 
 sudo: false
@@ -8,8 +7,7 @@ env:
   global:
     - secure: "LLqhKxqgRMp/C/TzZWv8YuhpmEm1twggm76NBUAQfZmOPLCkQSpAO8hoBM3qaIlDPSKPgoYj9f0TBuNi0iIFghQf0Xc4pXPCV0AnoGpXwRGiJATTAXfnG7RBa/hXRRBeAKlGmAI9GLtIoCQbUKYhq8gqwbzQVQXq+90rhsMH4zo="
     - CRATE_TESTS_SQL_REQUEST_TIMEOUT="20"
-    - JAVA7_HOME="/usr/lib/jvm/java-7-oracle"
-    - _JAVA_OPTIONS="-Xmx1g -XX:MaxPermSize=256m"
+    - _JAVA_OPTIONS="-Xmx1g"
 
 
 before_cache:
@@ -47,6 +45,7 @@ addons:
         - deadsnakes
     packages:
         - python3.4
+        - oracle-java8-installer # use newer java8 then default travis oraclejdk8
   coverity_scan:
     project:
       name: "crate/crate"

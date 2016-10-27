@@ -23,7 +23,6 @@
 package io.crate.integrationtests;
 
 import io.crate.action.sql.SQLResponse;
-import io.crate.operation.reference.sys.check.SysCheck;
 import io.crate.testing.TestingHelpers;
 import io.crate.testing.UseJdbc;
 import org.elasticsearch.test.ESIntegTestCase;
@@ -38,14 +37,19 @@ public class SysNodeCheckerIntegrationTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testChecksPresenceAndSeverityLevels() throws Exception {
-        SQLResponse response = execute("select severity, passed from sys.node_checks order by node_id, id asc");
-        assertThat(response.rowCount(), equalTo(12L));
-        assertThat((Integer) response.rows()[0][0], is(SysCheck.Severity.HIGH.value()));
-        assertThat((Integer) response.rows()[1][0], is(SysCheck.Severity.HIGH.value()));
-        assertThat((Integer) response.rows()[2][0], is(SysCheck.Severity.MEDIUM.value()));
-        assertThat((Integer) response.rows()[3][0], is(SysCheck.Severity.MEDIUM.value()));
-        assertThat((Integer) response.rows()[4][0], is(SysCheck.Severity.HIGH.value()));
-        assertThat((Integer) response.rows()[5][0], is(SysCheck.Severity.HIGH.value()));
+        SQLResponse response = execute("select id, severity, passed from sys.node_checks order by id, node_id asc");
+        assertThat(response.rowCount(), equalTo(10L));
+        assertThat(TestingHelpers.printedTable(response.rows()),
+            is("1| 3| false\n" +  // 1 = recoveryExpectedNodesCheck
+               "1| 3| false\n" +
+               "2| 3| false\n" +  // 2 = RecoveryAfterNodes
+               "2| 3| false\n" +
+               "3| 2| true\n" +   // 3 = RecoveryAfterTime
+               "3| 2| true\n" +
+               "5| 3| true\n" +   // 5 = HighDiskWatermark
+               "5| 3| true\n" +
+               "6| 3| true\n" +   // 6 = LowDiskWatermark
+               "6| 3| true\n"));
     }
 
     @Test

@@ -601,11 +601,10 @@ Example query::
   |  1 | ...         | The value of the cluster setting 'gateway.expected_nodes' mus... |
   |  2 | ...         | The value of the cluster setting 'gateway.recover_after_nodes... |
   |  3 | ...         | The value of the cluster setting 'gateway.recover_after_time'... |
-  |  4 | ...         | Crate is running with ... java version. Java 7 is deprecated ... |
   |  5 | ...         | The high disk watermark is exceeded on the node. The cluster ... |
   |  6 | ...         | The low disk watermark is exceeded on the node. The cluster w... |
   +----+---------...-+--------------------------------------------------------------...-+
-  SELECT 6 rows in set (... sec)
+  SELECT 5 rows in set (... sec)
 
 .. _sys-node-checks-ack:
 
