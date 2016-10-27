@@ -23,10 +23,10 @@
 package io.crate.integrationtests;
 
 import com.google.common.collect.Sets;
-import io.crate.action.sql.SQLAction;
+import io.crate.action.sql.SQLOperations;
 import io.crate.action.sql.SQLRequest;
+import io.crate.action.sql.SQLResponse;
 import io.crate.testing.SQLTransportExecutor;
-import org.elasticsearch.client.Client;
 import org.elasticsearch.common.Strings;
 import org.elasticsearch.plugins.Plugin;
 import org.elasticsearch.test.ESIntegTestCase;
@@ -67,9 +67,11 @@ public class SysNodeResiliencyIntegrationTest extends SQLTransportIntegrationTes
         partition.startDisrupting();
 
         SQLRequest request = new SQLRequest("select version, hostname, id, name from sys.nodes where name = ?", new Object[]{unluckyNode});
-        Client client = internalCluster().client(randomFrom(luckyNodes.toArray(Strings.EMPTY_ARRAY)));
-        assert client != null;
-        response = client.execute(SQLAction.INSTANCE, request).actionGet(SQLTransportExecutor.REQUEST_TIMEOUT);
+
+        SQLOperations sqlOperations = internalCluster().getInstance(SQLOperations.class,
+            randomFrom(luckyNodes.toArray(Strings.EMPTY_ARRAY)));
+        assert sqlOperations != null;
+        SQLResponse response = SQLTransportExecutor.execute(request, sqlOperations).actionGet(SQLTransportExecutor.REQUEST_TIMEOUT);
 
         assertThat(response.rowCount(), is(1L));
         assertThat(response.rows()[0][0], is(nullValue()));

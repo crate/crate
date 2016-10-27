@@ -24,9 +24,7 @@ package io.crate.integrationtests;
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import io.crate.action.sql.SQLAction;
 import io.crate.action.sql.SQLActionException;
-import io.crate.action.sql.SQLRequest;
 import io.crate.testing.TestingHelpers;
 import io.crate.testing.UseJdbc;
 import org.elasticsearch.common.collect.MapBuilder;
@@ -121,8 +119,7 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
         execute("select * from information_schema.tables");
         assertEquals(23L, response.rowCount());
 
-        client().execute(SQLAction.INSTANCE,
-            new SQLRequest("create table t4 (col1 integer, col2 string) with (number_of_replicas=0)")).actionGet();
+        execute("create table t4 (col1 integer, col2 string) with (number_of_replicas=0)");
         ensureGreen("t4");
 
         execute("select * from information_schema.tables");

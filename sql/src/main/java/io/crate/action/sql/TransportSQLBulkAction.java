@@ -41,17 +41,23 @@ import org.elasticsearch.transport.TransportService;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-
-import static io.crate.action.sql.TransportSQLAction.DEFAULT_SOFT_LIMIT;
-import static io.crate.action.sql.TransportSQLAction.toOptions;
+import java.util.*;
 
 public class TransportSQLBulkAction extends TransportAction<SQLBulkRequest, SQLBulkResponse> {
 
     private final SQLOperations sqlOperations;
     private final static String UNNAMED = "";
+    final static int DEFAULT_SOFT_LIMIT = 10_000;
+
+    static Set<Option> toOptions(int requestFlags) {
+        switch (requestFlags) {
+            case SQLBaseRequest.HEADER_FLAG_OFF:
+                return Option.NONE;
+            case SQLBaseRequest.HEADER_FLAG_ALLOW_QUOTED_SUBSCRIPT:
+                return EnumSet.of(Option.ALLOW_QUOTED_SUBSCRIPT);
+        }
+        throw new IllegalArgumentException("Unrecognized requestFlags: " + requestFlags);
+    }
 
     @Inject
     public TransportSQLBulkAction(SQLOperations sqlOperations,
@@ -112,13 +118,13 @@ public class TransportSQLBulkAction extends TransportAction<SQLBulkRequest, SQLB
     }
 
 
-    private static class RowCountReceiver extends BaseResultReceiver {
+    public static class RowCountReceiver extends BaseResultReceiver {
 
         private final SQLBulkResponse.Result[] results;
         private final int resultIdx;
         private long rowCount;
 
-        RowCountReceiver(SQLBulkResponse.Result[] results, int resultIdx) {
+        public RowCountReceiver(SQLBulkResponse.Result[] results, int resultIdx) {
             this.results = results;
             this.resultIdx = resultIdx;
         }

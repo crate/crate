@@ -23,9 +23,7 @@ package io.crate.plugin;
 
 import com.google.common.collect.ImmutableList;
 import io.crate.Constants;
-import io.crate.action.sql.SQLAction;
 import io.crate.action.sql.SQLBulkAction;
-import io.crate.action.sql.TransportSQLAction;
 import io.crate.action.sql.TransportSQLBulkAction;
 import io.crate.analyze.repositories.RepositorySettingsModule;
 import io.crate.breaker.CircuitBreakerModule;
@@ -212,7 +210,6 @@ public class SQLPlugin extends Plugin {
     }
 
     public void onModule(ActionModule actionModule) {
-        actionModule.registerAction(SQLAction.INSTANCE, TransportSQLAction.class);
         actionModule.registerAction(SQLBulkAction.INSTANCE, TransportSQLBulkAction.class);
     }
 

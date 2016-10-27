@@ -22,6 +22,7 @@
 
 package io.crate.integrationtests;
 
+import io.crate.action.sql.SQLOperations;
 import io.crate.testing.SQLTransportExecutor;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.test.ESIntegTestCase;
@@ -44,6 +45,11 @@ public class ClientNodeIntegrationTest extends SQLTransportIntegrationTest {
                 @Override
                 public String pgUrl() {
                     return null;
+                }
+
+                @Override
+                public SQLOperations sqlOperations() {
+                    return internalCluster().getInstance(SQLOperations.class);
                 }
             }
         ));

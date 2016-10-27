@@ -21,7 +21,6 @@
 
 package io.crate.integrationtests;
 
-import io.crate.action.sql.SQLAction;
 import io.crate.action.sql.SQLRequest;
 import io.crate.action.sql.SQLResponse;
 import io.crate.testing.SQLTransportExecutor;
@@ -58,8 +57,8 @@ public class ThreadPoolsExhaustedIntegrationTest extends SQLTransportIntegration
 
         List<ActionFuture<SQLResponse>> futures = new ArrayList<>();
         for (int i = 0; i < 1000; i++) {
-            ActionFuture<SQLResponse> future = client().execute(
-                SQLAction.INSTANCE, new SQLRequest("select * from t limit ?", new Object[]{10}));
+            ActionFuture<SQLResponse> future = sqlExecutor.execute(
+                new SQLRequest("select * from t limit ?", new Object[]{10}));
             futures.add(future);
         }
 

@@ -145,8 +145,12 @@ public abstract class SQLTransportIntegrationTest extends ESIntegTestCase {
                     }
                     return null;
                 }
-            }
-        ));
+
+                @Override
+                public SQLOperations sqlOperations() {
+                    return internalCluster().getInstance(SQLOperations.class);
+                }
+            }));
     }
 
     @After
@@ -472,7 +476,6 @@ public abstract class SQLTransportIntegrationTest extends ESIntegTestCase {
         }
 
         public void onModule(ActionModule actionModule) {
-            actionModule.registerAction(SQLAction.INSTANCE, TransportSQLAction.class);
             actionModule.registerAction(SQLBulkAction.INSTANCE, TransportSQLBulkAction.class);
         }
     }

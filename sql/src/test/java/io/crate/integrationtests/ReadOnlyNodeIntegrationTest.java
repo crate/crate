@@ -63,6 +63,11 @@ public class ReadOnlyNodeIntegrationTest extends SQLTransportIntegrationTest {
                 public String pgUrl() {
                     return null;
                 }
+
+                @Override
+                public SQLOperations sqlOperations() {
+                    return internalCluster().getInstance(SQLOperations.class, internalCluster().getNodeNames()[1]);
+                }
             }
         ));
     }
@@ -100,6 +105,12 @@ public class ReadOnlyNodeIntegrationTest extends SQLTransportIntegrationTest {
                     @Override
                     public String pgUrl() {
                         return null;
+                    }
+
+                    @Override
+                    public SQLOperations sqlOperations() {
+                        // make sure we use NOT the read-only operations
+                        return internalCluster().getInstance(SQLOperations.class, internalCluster().getNodeNames()[0]);
                     }
                 }
             );
