@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+2016/10/27 0.57.0
+=================
+
  - Updated Crash to `0.19.0` which includes the following change:
 
     - Allow "short hosts" as Crate hosts argument,
@@ -21,12 +24,12 @@ Unreleased
 
  - Upgraded Elasticsearch to 2.4.1
 
- - Improved parameter de-serialization of the "Bind" message. If a Client
+ - Improved parameter de-serialization of the "Bind" message. If a client
    doesn't provide parameter types in the parse message, bind will now default
    to text/varchar instead of text/json.
    This enables support for clients like pg-nodejs
 
- - Added support for the "Flush" message in the postgres wire protocol.
+ - Added support for the "Flush" message in the Postgres wire protocol.
 
  - Added support for scalar subquery expressions to SELECT statements.
 
@@ -49,7 +52,7 @@ Unreleased
  - Deprecated the ``CrateClient`` class
    You should start using the PostgreSQL JDBC driver instead.
 
- - Extended the postgres wire protocol to support describe for queries with
+ - Extended the Postgres wire protocol to support describe for queries with
    result sets. This removes the requirement to set "prepareThreshold=0" when
    using the JDBC client.
 
