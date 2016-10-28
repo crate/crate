@@ -55,7 +55,6 @@ import io.crate.planner.distribution.UpstreamPhase;
 import io.crate.planner.node.ExecutionPhase;
 import io.crate.planner.node.ExecutionPhases;
 import io.crate.planner.node.ddl.*;
-import io.crate.planner.node.dml.CopyTo;
 import io.crate.planner.node.dml.ESDelete;
 import io.crate.planner.node.dml.Upsert;
 import io.crate.planner.node.dml.UpsertById;
@@ -544,15 +543,6 @@ public class TransportExecutor implements Executor {
             process(plan.right(), context);
             context.leaveBranch();
 
-            return null;
-        }
-
-        @Override
-        public Void visitCopyTo(CopyTo plan, NodeOperationTreeContext context) {
-            if (plan.handlerMergeNode().isPresent()) {
-                context.addPhase(plan.handlerMergeNode().get());
-            }
-            process(plan.innerPlan(), context);
             return null;
         }
 

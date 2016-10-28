@@ -20,7 +20,10 @@ import io.crate.planner.node.ddl.DropTablePlan;
 import io.crate.planner.node.ddl.ESClusterUpdateSettingsPlan;
 import io.crate.planner.node.ddl.ESDeletePartition;
 import io.crate.planner.node.ddl.GenericDDLPlan;
-import io.crate.planner.node.dml.*;
+import io.crate.planner.node.dml.Delete;
+import io.crate.planner.node.dml.ESDelete;
+import io.crate.planner.node.dml.Upsert;
+import io.crate.planner.node.dml.UpsertById;
 import io.crate.planner.node.dql.*;
 import io.crate.planner.node.dql.join.JoinType;
 import io.crate.planner.node.dql.join.NestedLoop;
@@ -486,8 +489,8 @@ public class PlannerTest extends AbstractPlannerTest {
 
     @Test
     public void testCopyToWithColumnsReferenceRewrite() throws Exception {
-        CopyTo plan = plan("copy users (name) to directory '/tmp'");
-        Collect innerPlan = (Collect) plan.innerPlan();
+        Merge plan = plan("copy users (name) to directory '/tmp'");
+        Collect innerPlan = (Collect) plan.subPlan();
         RoutedCollectPhase node = ((RoutedCollectPhase) innerPlan.collectPhase());
         Reference nameRef = (Reference) node.toCollect().get(0);
 
@@ -498,8 +501,8 @@ public class PlannerTest extends AbstractPlannerTest {
     @Test
     public void testCopyToWithPartitionedGeneratedColumn() throws Exception {
         // test that generated partition column is NOT exported
-        CopyTo plan = plan("copy parted_generated to directory '/tmp'");
-        Collect innerPlan = (Collect) plan.innerPlan();
+        Merge plan = plan("copy parted_generated to directory '/tmp'");
+        Collect innerPlan = (Collect) plan.subPlan();
         RoutedCollectPhase node = ((RoutedCollectPhase) innerPlan.collectPhase());
         WriterProjection projection = (WriterProjection) node.projections().get(0);
         assertThat(projection.overwrites().size(), is(0));

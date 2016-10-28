@@ -40,7 +40,6 @@ import io.crate.planner.Merge;
 import io.crate.planner.Plan;
 import io.crate.planner.Planner;
 import io.crate.planner.consumer.ConsumerContext;
-import io.crate.planner.node.dml.CopyTo;
 import io.crate.planner.node.dql.Collect;
 import io.crate.planner.node.dql.FileUriCollectPhase;
 import io.crate.planner.node.dql.MergePhase;
@@ -206,11 +205,10 @@ public class CopyStatementPlanner {
         MergePhase mergePhase = MergePhase.localMerge(
             context.jobId(),
             context.nextExecutionPhaseId(),
-            ImmutableList.<Projection>of(MergeCountProjection.INSTANCE),
+            ImmutableList.of(MergeCountProjection.INSTANCE),
             plan.resultDescription().nodeIds().size(),
             Symbols.extractTypes(projection.outputs()));
-
-        return new CopyTo(context.jobId(), plan, mergePhase);
+        return new Merge(plan, mergePhase);
     }
 
     private static Collection<String> getExecutionNodes(DiscoveryNodes allNodes,
