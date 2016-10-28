@@ -36,6 +36,7 @@ import io.crate.analyze.symbol.ValueSymbolVisitor;
 import io.crate.analyze.where.DocKeys;
 import io.crate.metadata.*;
 import io.crate.metadata.doc.DocTableInfo;
+import io.crate.operation.projectors.TopN;
 import io.crate.planner.Merge;
 import io.crate.planner.NoopPlan;
 import io.crate.planner.Plan;
@@ -44,7 +45,6 @@ import io.crate.planner.distribution.DistributionInfo;
 import io.crate.planner.node.dml.Upsert;
 import io.crate.planner.node.dml.UpsertById;
 import io.crate.planner.node.dql.Collect;
-import io.crate.planner.node.dql.MergePhase;
 import io.crate.planner.node.dql.RoutedCollectPhase;
 import io.crate.planner.projection.MergeCountProjection;
 import io.crate.planner.projection.Projection;
@@ -177,14 +177,11 @@ public class UpdateConsumer implements Consumer {
             nestedStatement.whereClause(),
             DistributionInfo.DEFAULT_BROADCAST
         );
-        MergePhase mergePhase = MergePhase.localMerge(
-            plannerContext.jobId(),
-            plannerContext.nextExecutionPhaseId(),
-            Collections.<Projection>singletonList(MergeCountProjection.INSTANCE),
-            collectPhase.nodeIds().size(),
-            collectPhase.outputTypes()
+        return Merge.mergeToHandler(
+            new Collect(collectPhase, TopN.NO_LIMIT, 0, 1, 1, null),
+            plannerContext,
+            Collections.singletonList(MergeCountProjection.INSTANCE)
         );
-        return new Merge(new Collect(collectPhase), mergePhase);
     }
 
     static class Visitor extends RelationPlanningVisitor {
@@ -242,14 +239,8 @@ public class UpdateConsumer implements Consumer {
                 whereClause,
                 DistributionInfo.DEFAULT_BROADCAST
             );
-            MergePhase mergeNode = MergePhase.localMerge(
-                plannerContext.jobId(),
-                plannerContext.nextExecutionPhaseId(),
-                ImmutableList.<Projection>of(MergeCountProjection.INSTANCE),
-                collectPhase.nodeIds().size(),
-                collectPhase.outputTypes()
-            );
-            return new Merge(new Collect(collectPhase), mergeNode);
+            Collect collect = new Collect(collectPhase, TopN.NO_LIMIT, 0, 1, 1, null);
+            return Merge.mergeToHandler(collect, plannerContext, Collections.singletonList(MergeCountProjection.INSTANCE));
         } else {
             return null;
         }

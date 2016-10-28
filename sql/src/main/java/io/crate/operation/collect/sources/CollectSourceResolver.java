@@ -22,7 +22,6 @@
 
 package io.crate.operation.collect.sources;
 
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import io.crate.analyze.EvaluatingNormalizer;
 import io.crate.executor.transport.TransportActionProvider;
@@ -39,6 +38,7 @@ import io.crate.metadata.table.TableInfo;
 import io.crate.operation.ImplementationSymbolVisitor;
 import io.crate.operation.collect.CrateCollector;
 import io.crate.operation.collect.JobCollectContext;
+import io.crate.operation.collect.RowsCollector;
 import io.crate.operation.projectors.ProjectionToProjectorVisitor;
 import io.crate.operation.projectors.ProjectorFactory;
 import io.crate.operation.projectors.RowReceiver;
@@ -60,8 +60,7 @@ import java.util.*;
 @Singleton
 public class CollectSourceResolver {
 
-    private static final VoidCollectSource VOID_COLLECT_SERVICE = new VoidCollectSource();
-
+    private final CollectSource emptyCollectSource;
     private final Map<String, CollectSource> nodeDocCollectSources = new HashMap<>();
     private final ShardCollectSource shardCollectSource;
     private final CollectSource fileCollectSource;
@@ -104,6 +103,7 @@ public class CollectSourceResolver {
         this.shardCollectSource = shardCollectSource;
         this.fileCollectSource = new ProjectorSetupCollectSource(fileCollectSource, projectorFactory);
         this.tableFunctionSource = new ProjectorSetupCollectSource(tableFunctionCollectSource, projectorFactory);
+        this.emptyCollectSource = new ProjectorSetupCollectSource(new VoidCollectSource(), projectorFactory);
 
         nodeDocCollectSources.put(SysClusterTableInfo.IDENT.fqn(), new ProjectorSetupCollectSource(singleRowSource, projectorFactory));
 
@@ -138,7 +138,9 @@ public class CollectSourceResolver {
 
         @Override
         public CollectSource visitRoutedCollectPhase(RoutedCollectPhase phase, Void context) {
-            assert phase.isRouted() : "collectPhase must contain a routing";
+            if (!phase.isRouted()) {
+                return emptyCollectSource;
+            }
             String localNodeId = clusterService.state().nodes().localNodeId();
             Set<String> routingNodes = phase.routing().nodes();
             if (!routingNodes.contains(localNodeId)) {
@@ -161,7 +163,7 @@ public class CollectSourceResolver {
             }
             if (phase.maxRowGranularity() == RowGranularity.DOC && PartitionName.isPartition(indexName)) {
                 // partitioned table without any shards; nothing to collect
-                return VOID_COLLECT_SERVICE;
+                return emptyCollectSource;
             }
             assert indexShards.size() ==
                    1 : "routing without shards that operates on non user-tables may only contain 1 index/table";
@@ -181,7 +183,7 @@ public class CollectSourceResolver {
 
         @Override
         public Collection<CrateCollector> getCollectors(CollectPhase collectPhase, RowReceiver downstream, JobCollectContext jobCollectContext) {
-            return ImmutableList.of();
+            return Collections.singletonList(RowsCollector.empty(downstream));
         }
     }
 }

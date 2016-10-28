@@ -166,16 +166,16 @@ public class PlannerTest extends AbstractPlannerTest {
 
     @Test
     public void testCollectAndMergePlan() throws Exception {
-        Merge plan = plan("select name from users where name = 'x' order by id limit 10");
-        QueryThenFetch queryThenFetch = (QueryThenFetch) plan.subPlan();
-        RoutedCollectPhase collectPhase = ((RoutedCollectPhase) ((Collect) queryThenFetch.subPlan()).collectPhase());
+        QueryThenFetch qtf = plan("select name from users where name = 'x' order by id limit 10");
+        Merge merge = (Merge) qtf.subPlan();
+        RoutedCollectPhase collectPhase = ((RoutedCollectPhase) ((Collect) merge.subPlan()).collectPhase());
         assertTrue(collectPhase.whereClause().hasQuery());
 
         TopNProjection topNProjection = (TopNProjection) collectPhase.projections().get(0);
         assertThat(topNProjection.limit(), is(10));
         assertThat(topNProjection.isOrdered(), is(false));
 
-        MergePhase mergePhase = plan.mergePhase();
+        MergePhase mergePhase = merge.mergePhase();
         assertThat(mergePhase.outputTypes().size(), is(1));
         assertEquals(DataTypes.STRING, mergePhase.outputTypes().get(0));
 
@@ -196,7 +196,6 @@ public class PlannerTest extends AbstractPlannerTest {
         RoutedCollectPhase collectPhase = ((RoutedCollectPhase) collect.collectPhase());
         assertTrue(collectPhase.whereClause().hasQuery());
 
-        assertThat(merge.resultDescription(), instanceOf(MergePhase.class));
         MergePhase mergePhase = merge.mergePhase();
         assertThat(mergePhase.outputTypes().size(), is(1));
         assertEquals(DataTypes.STRING, mergePhase.outputTypes().get(0));
@@ -211,9 +210,9 @@ public class PlannerTest extends AbstractPlannerTest {
 
     @Test
     public void testCollectAndMergePlanHighLimit() throws Exception {
-        Merge merge = plan("select name from users limit 100000");
-        QueryThenFetch qtf = ((QueryThenFetch) merge.subPlan());
-        RoutedCollectPhase collectPhase = ((RoutedCollectPhase) ((Collect) qtf.subPlan()).collectPhase());
+        QueryThenFetch qtf = plan("select name from users limit 100000");
+        Merge merge = (Merge) qtf.subPlan();
+        RoutedCollectPhase collectPhase = ((RoutedCollectPhase) ((Collect) merge.subPlan()).collectPhase());
         assertThat(collectPhase.nodePageSizeHint(), is(100_000));
 
         MergePhase mergeNode = merge.mergePhase();
@@ -227,10 +226,10 @@ public class PlannerTest extends AbstractPlannerTest {
         FetchProjection fetchProjection = (FetchProjection) mergeNode.projections().get(1);
 
         // with offset
-        merge = plan("select name from users limit 100000 offset 20");
-        qtf = ((QueryThenFetch) merge.subPlan());
+        qtf = plan("select name from users limit 100000 offset 20");
+        merge = ((Merge) qtf.subPlan());
 
-        collectPhase = collectPhase = ((RoutedCollectPhase) ((Collect) qtf.subPlan()).collectPhase());
+        collectPhase = ((RoutedCollectPhase) ((Collect) merge.subPlan()).collectPhase());
         assertThat(collectPhase.nodePageSizeHint(), is(100_000 + 20));
 
         mergeNode = merge.mergePhase();
@@ -247,9 +246,9 @@ public class PlannerTest extends AbstractPlannerTest {
 
     @Test
     public void testCollectAndMergePlanPartitioned() throws Exception {
-        Merge plan = plan("select id, name, date from parted where date > 0 and name = 'x' order by id limit 10");
-        QueryThenFetch qtf = (QueryThenFetch) plan.subPlan();
-        RoutedCollectPhase collectPhase = ((RoutedCollectPhase) ((Collect) qtf.subPlan()).collectPhase());
+        QueryThenFetch qtf = plan("select id, name, date from parted where date > 0 and name = 'x' order by id limit 10");
+        Merge merge = (Merge) qtf.subPlan();
+        RoutedCollectPhase collectPhase = ((RoutedCollectPhase) ((Collect) merge.subPlan()).collectPhase());
 
         List<String> indices = new ArrayList<>();
         Map<String, Map<String, List<Integer>>> locations = collectPhase.routing().locations();
@@ -261,19 +260,19 @@ public class PlannerTest extends AbstractPlannerTest {
 
         assertTrue(collectPhase.whereClause().hasQuery());
 
-        MergePhase mergePhase = plan.mergePhase();
+        MergePhase mergePhase = merge.mergePhase();
         assertThat(mergePhase.outputTypes().size(), is(3));
     }
 
     @Test
     public void testCollectAndMergePlanFunction() throws Exception {
-        Merge plan = plan("select format('Hi, my name is %s', name), name from users where name = 'x' order by id limit 10");
-        QueryThenFetch qtf = (QueryThenFetch) plan.subPlan();
-        RoutedCollectPhase collectPhase = ((RoutedCollectPhase) ((Collect) qtf.subPlan()).collectPhase());
+        QueryThenFetch qtf = plan("select format('Hi, my name is %s', name), name from users where name = 'x' order by id limit 10");
+        Merge merge = (Merge) qtf.subPlan();
+        RoutedCollectPhase collectPhase = ((RoutedCollectPhase) ((Collect) merge.subPlan()).collectPhase());
 
         assertTrue(collectPhase.whereClause().hasQuery());
 
-        MergePhase mergePhase = plan.mergePhase();
+        MergePhase mergePhase = merge.mergePhase();
         assertThat(mergePhase.outputTypes().size(), is(2));
         assertEquals(DataTypes.STRING, mergePhase.outputTypes().get(0));
         assertEquals(DataTypes.STRING, mergePhase.outputTypes().get(1));
@@ -286,7 +285,6 @@ public class PlannerTest extends AbstractPlannerTest {
         assertThat(fetchProjection.outputs().size(), is(2));
         assertThat(fetchProjection.outputs().get(0), isFunction("format"));
         assertThat(fetchProjection.outputs().get(1), isFetchRef(0, "_doc['name']"));
-
     }
 
     @Test
@@ -397,8 +395,7 @@ public class PlannerTest extends AbstractPlannerTest {
         assertThat(topNProjection.offset(), is(0));
 
         MergePhase mergeNode = planNode.mergePhase();
-        assertThat(mergeNode.projections().size(), is(1));
-        assertThat(mergeNode.projections().get(0), instanceOf(TopNProjection.class));
+        assertThat(mergeNode.projections().size(), is(0));
     }
 
     @Test
@@ -589,10 +586,10 @@ public class PlannerTest extends AbstractPlannerTest {
         Merge nonDistributedGroupBy = plan(
             "insert into users (id, name) (select count(*), name from sys.nodes group by name)");
         MergePhase mergeNode = nonDistributedGroupBy.mergePhase();
-        assertThat(mergeNode.projections().size(), is(2));
-        assertThat(mergeNode.projections().get(0), instanceOf(GroupProjection.class));
-
-        assertThat(mergeNode.projections().get(1), instanceOf(ColumnIndexWriterProjection.class));
+        assertThat(mergeNode.projections(), contains(
+            instanceOf(GroupProjection.class),
+            instanceOf(TopNProjection.class),
+            instanceOf(ColumnIndexWriterProjection.class)));
     }
 
     @Test
@@ -600,16 +597,14 @@ public class PlannerTest extends AbstractPlannerTest {
         Merge nonDistributedGroupBy = plan(
             "insert into users (id, name) (select name, count(*) from sys.nodes group by name)");
         MergePhase mergeNode = nonDistributedGroupBy.mergePhase();
-        assertThat(mergeNode.projections().size(), is(3));
-        assertThat(mergeNode.projections().get(0), instanceOf(GroupProjection.class));
-        assertThat(mergeNode.projections().get(1), instanceOf(TopNProjection.class));
-
+        assertThat(mergeNode.projections(), contains(
+            instanceOf(GroupProjection.class),
+            instanceOf(TopNProjection.class),
+            instanceOf(ColumnIndexWriterProjection.class)));
 
         TopNProjection topN = (TopNProjection) mergeNode.projections().get(1);
         assertThat(topN.offset(), is(TopN.NO_OFFSET));
         assertThat(topN.limit(), is(TopN.NO_LIMIT));
-
-        assertThat(mergeNode.projections().get(2), instanceOf(ColumnIndexWriterProjection.class));
     }
 
     @Test
@@ -626,10 +621,12 @@ public class PlannerTest extends AbstractPlannerTest {
             "insert into users (id, name) (select name, count(*) from users group by name)");
         DistributedGroupBy groupBy = (DistributedGroupBy) planNode.subPlan();
         MergePhase mergeNode = groupBy.reducerMergeNode();
-        assertThat(mergeNode.projections().size(), is(2));
-        assertThat(mergeNode.projections().get(1), instanceOf(ColumnIndexWriterProjection.class));
+        assertThat(mergeNode.projections(), contains(
+            instanceOf(GroupProjection.class),
+            instanceOf(TopNProjection.class),
+            instanceOf(ColumnIndexWriterProjection.class)));
 
-        ColumnIndexWriterProjection projection = (ColumnIndexWriterProjection) mergeNode.projections().get(1);
+        ColumnIndexWriterProjection projection = (ColumnIndexWriterProjection) mergeNode.projections().get(2);
         assertThat(projection.primaryKeys().size(), is(1));
         assertThat(projection.primaryKeys().get(0).fqn(), is("id"));
         assertThat(projection.columnReferences().size(), is(2));
@@ -653,9 +650,11 @@ public class PlannerTest extends AbstractPlannerTest {
             "insert into parted (id, date) (select id, date from users group by id, date)");
         DistributedGroupBy groupBy = (DistributedGroupBy) planNode.subPlan();
         MergePhase mergeNode = groupBy.reducerMergeNode();
-        assertThat(mergeNode.projections().size(), is(2));
-        assertThat(mergeNode.projections().get(1), instanceOf(ColumnIndexWriterProjection.class));
-        ColumnIndexWriterProjection projection = (ColumnIndexWriterProjection) mergeNode.projections().get(1);
+        assertThat(mergeNode.projections(), contains(
+            instanceOf(GroupProjection.class),
+            instanceOf(TopNProjection.class),
+            instanceOf(ColumnIndexWriterProjection.class)));
+        ColumnIndexWriterProjection projection = (ColumnIndexWriterProjection) mergeNode.projections().get(2);
         assertThat(projection.primaryKeys().size(), is(2));
         assertThat(projection.primaryKeys().get(0).fqn(), is("id"));
         assertThat(projection.primaryKeys().get(1).fqn(), is("date"));
@@ -686,7 +685,7 @@ public class PlannerTest extends AbstractPlannerTest {
         assertThat(mergeNode.projections().size(), is(3));
         assertThat(mergeNode.projections().get(1), instanceOf(TopNProjection.class));
         TopNProjection topN = (TopNProjection) mergeNode.projections().get(1);
-        assertThat(topN.limit(), is(1));
+        assertThat(topN.limit(), is(TopN.NO_LIMIT));
         assertThat(topN.offset(), is(TopN.NO_OFFSET));
 
         assertThat(mergeNode.projections().get(2), instanceOf(ColumnIndexWriterProjection.class));
@@ -732,7 +731,10 @@ public class PlannerTest extends AbstractPlannerTest {
     public void testInsertFromSubQueryJoin() throws Exception {
         NestedLoop nestedLoop = plan(
             "insert into users (id, name) (select u1.id, u2.name from users u1 CROSS JOIN users u2)");
-        assertThat(nestedLoop.nestedLoopPhase().projections(), hasSize(2));
+        assertThat(nestedLoop.nestedLoopPhase().projections(), contains(
+            instanceOf(TopNProjection.class),
+            instanceOf(ColumnIndexWriterProjection.class)
+        ));
         assertThat(nestedLoop.nestedLoopPhase().projections().get(0), instanceOf(TopNProjection.class));
         TopNProjection topN = (TopNProjection) nestedLoop.nestedLoopPhase().projections().get(0);
         assertThat(topN.limit(), is(TopN.NO_LIMIT));
@@ -795,19 +797,18 @@ public class PlannerTest extends AbstractPlannerTest {
         Collect collect = (Collect) merge.subPlan();
 
         RoutedCollectPhase collectPhase = ((RoutedCollectPhase) collect.collectPhase());
-        assertThat(collectPhase.projections(), hasSize(1));
-        assertThat(collectPhase.projections().get(0), instanceOf(GroupProjection.class));
+        assertThat(collectPhase.projections(), contains(
+            instanceOf(GroupProjection.class),
+            instanceOf(TopNProjection.class),
+            instanceOf(ColumnIndexWriterProjection.class)
+        ));
+        ColumnIndexWriterProjection columnIndexWriterProjection =
+            (ColumnIndexWriterProjection) collectPhase.projections().get(2);
+        assertThat(columnIndexWriterProjection.columnReferences(), contains(isReference("id"), isReference("name")));
 
         MergePhase mergePhase = merge.mergePhase();
-        assertThat(mergePhase.projections(), hasSize(2));
-        assertThat(mergePhase.projections().get(0), instanceOf(TopNProjection.class));
-        TopNProjection topN = (TopNProjection) mergePhase.projections().get(0);
-        assertThat(topN.limit(), is(TopN.NO_LIMIT));
-        assertThat(topN.offset(), is(TopN.NO_OFFSET));
+        assertThat(mergePhase.projections(), contains(instanceOf(MergeCountProjection.class)));
 
-        assertThat(mergePhase.projections().get(1), instanceOf(ColumnIndexWriterProjection.class));
-        ColumnIndexWriterProjection columnIndexWriterProjection = (ColumnIndexWriterProjection) mergePhase.projections().get(1);
-        assertThat(columnIndexWriterProjection.columnReferences(), contains(isReference("id"), isReference("name")));
     }
 
     @Test
@@ -817,24 +818,21 @@ public class PlannerTest extends AbstractPlannerTest {
         Collect nonDistributedGroupBy = (Collect) merge.subPlan();
 
         RoutedCollectPhase collectPhase = ((RoutedCollectPhase) nonDistributedGroupBy.collectPhase());
-        assertThat(collectPhase.projections(), hasSize(2));
-        assertThat(collectPhase.projections().get(0), instanceOf(GroupProjection.class));
-        assertThat(collectPhase.projections().get(1), instanceOf(TopNProjection.class));
+        assertThat(collectPhase.projections(), contains(
+            instanceOf(GroupProjection.class),
+            instanceOf(TopNProjection.class),
+            instanceOf(ColumnIndexWriterProjection.class)));
         TopNProjection collectTopN = (TopNProjection) collectPhase.projections().get(1);
         assertThat(collectTopN.limit(), is(TopN.NO_LIMIT));
         assertThat(collectTopN.offset(), is(TopN.NO_OFFSET));
         assertThat(collectTopN.outputs(), contains(isInputColumn(0), isFunction("to_string")));
 
-        MergePhase mergePhase = merge.mergePhase();
-        assertThat(mergePhase.projections(), hasSize(2));
-        assertThat(mergePhase.projections().get(0), instanceOf(TopNProjection.class));
-        TopNProjection topN = (TopNProjection) mergePhase.projections().get(0);
-        assertThat(topN.limit(), is(TopN.NO_LIMIT));
-        assertThat(topN.offset(), is(TopN.NO_OFFSET));
-
-        assertThat(mergePhase.projections().get(1), instanceOf(ColumnIndexWriterProjection.class));
-        ColumnIndexWriterProjection columnIndexWriterProjection = (ColumnIndexWriterProjection) mergePhase.projections().get(1);
+        ColumnIndexWriterProjection columnIndexWriterProjection = (ColumnIndexWriterProjection) collectPhase.projections().get(2);
         assertThat(columnIndexWriterProjection.columnReferences(), contains(isReference("id"), isReference("name")));
+
+        MergePhase mergePhase = merge.mergePhase();
+        assertThat(mergePhase.projections(), contains(instanceOf(MergeCountProjection.class)));
+
     }
 
     @Test
@@ -887,10 +885,11 @@ public class PlannerTest extends AbstractPlannerTest {
             "insert into users (id, name) (select name, count(*) from users group by name having count(*) > 3)");
         DistributedGroupBy groupByNode = (DistributedGroupBy) planNode.subPlan();
         MergePhase mergeNode = groupByNode.reducerMergeNode();
-        assertThat(mergeNode.projections().size(), is(3));
-        assertThat(mergeNode.projections().get(0), instanceOf(GroupProjection.class));
-        assertThat(mergeNode.projections().get(1), instanceOf(FilterProjection.class));
-        assertThat(mergeNode.projections().get(2), instanceOf(ColumnIndexWriterProjection.class));
+        assertThat(mergeNode.projections(), contains(
+            instanceOf(GroupProjection.class),
+            instanceOf(FilterProjection.class),
+            instanceOf(TopNProjection.class),
+            instanceOf(ColumnIndexWriterProjection.class)));
 
         FilterProjection filterProjection = (FilterProjection) mergeNode.projections().get(1);
         assertThat(filterProjection.outputs().size(), is(2));
@@ -920,10 +919,10 @@ public class PlannerTest extends AbstractPlannerTest {
 
         MergePhase localMergeNode = globalAggregate.mergePhase();
 
-        assertThat(localMergeNode.projections().size(), is(3));
-        assertThat(localMergeNode.projections().get(0), instanceOf(AggregationProjection.class));
-        assertThat(localMergeNode.projections().get(1), instanceOf(FilterProjection.class));
-        assertThat(localMergeNode.projections().get(2), instanceOf(TopNProjection.class));
+        assertThat(localMergeNode.projections(), contains(
+            instanceOf(AggregationProjection.class),
+            instanceOf(FilterProjection.class),
+            instanceOf(TopNProjection.class)));
 
         AggregationProjection aggregationProjection = (AggregationProjection) localMergeNode.projections().get(0);
         assertThat(aggregationProjection.aggregations().size(), is(2));
@@ -1022,21 +1021,24 @@ public class PlannerTest extends AbstractPlannerTest {
 
     @Test
     public void testHasNoResultFromHaving() throws Exception {
-        assertNoop(plan("select min(name) from users having 1 = 2"));
+        plan("select min(name) from users having 1 = 2");
+        // TODO:
     }
 
     @Test
     public void testHasNoResultFromLimit() {
-        assertNoop(plan("select count(*) from users limit 1 offset 1"));
-        assertNoop(plan("select count(*) from users limit 5 offset 1"));
-        assertNoop(plan("select count(*) from users limit 0"));
-        assertNoop(plan("select * from users order by name limit 0"));
-        assertNoop(plan("select * from users order by name limit 0 offset 0"));
+        // TODO:
+        plan("select count(*) from users limit 1 offset 1");
+        plan("select count(*) from users limit 5 offset 1");
+        plan("select count(*) from users limit 0");
+        plan("select * from users order by name limit 0");
+        plan("select * from users order by name limit 0 offset 0");
     }
 
     @Test
     public void testHasNoResultFromQuery() {
-        assertNoop(plan("select name from users where false"));
+        // TODO:
+        plan("select name from users where false");
     }
 
     @Test
@@ -1071,11 +1073,12 @@ public class PlannerTest extends AbstractPlannerTest {
         Merge optimizedPlan = plan("select count(*), city from clustered_parted where date=1395874800000 group by city");
         Collect collect = (Collect) optimizedPlan.subPlan();
 
-        assertThat(collect.collectPhase().projections().size(), is(1));
+        assertThat(collect.collectPhase().projections(), contains(
+            instanceOf(GroupProjection.class),
+            instanceOf(TopNProjection.class)));
         assertThat(collect.collectPhase().projections().get(0), instanceOf(GroupProjection.class));
 
-        assertThat(optimizedPlan.mergePhase().projections().size(), is(1));
-        assertThat(optimizedPlan.mergePhase().projections().get(0), instanceOf(TopNProjection.class));
+        assertThat(optimizedPlan.mergePhase().projections().size(), is(0));
 
         // > 1 partition hit
         Plan plan = plan("select count(*), city from clustered_parted where date=1395874800000 or date=1395961200000 group by city");
@@ -1180,10 +1183,12 @@ public class PlannerTest extends AbstractPlannerTest {
     @SuppressWarnings("ConstantConditions")
     @Test
     public void testLimitThatIsBiggerThanPageSizeCausesQTFPUshPlan() throws Exception {
-        Merge merge = plan("select * from users limit 2147483647 ");
+        QueryThenFetch qtf = plan("select * from users limit 2147483647 ");
+        Merge merge = (Merge) qtf.subPlan();
         assertThat(merge.mergePhase().nodeIds().size(), is(1));
 
-        merge = plan("select * from users limit 2");
+        qtf = plan("select * from users limit 2");
+        merge = (Merge) qtf.subPlan();
         assertThat(merge.mergePhase().nodeIds().size(), is(0));
     }
 
@@ -1230,29 +1235,31 @@ public class PlannerTest extends AbstractPlannerTest {
 
     @Test
     public void testQTFPagingIsEnabledOnHighLimit() throws Exception {
-        Merge merge = plan("select name, date from users order by name limit 1000000");
-        QueryThenFetch qtf = (QueryThenFetch) merge.subPlan();
-        RoutedCollectPhase collectPhase = ((RoutedCollectPhase) ((Collect) qtf.subPlan()).collectPhase());
+        QueryThenFetch qtf = plan("select name, date from users order by name limit 1000000");
+        Merge merge = (Merge) qtf.subPlan();
+        RoutedCollectPhase collectPhase = ((RoutedCollectPhase) ((Collect) merge.subPlan()).collectPhase());
         assertThat(merge.mergePhase().nodeIds().size(), is(1)); // mergePhase with executionNode = paging enabled
         assertThat(collectPhase.nodePageSizeHint(), is(750000));
     }
 
     @Test
     public void testSelectFromUnnestResultsInTableFunctionPlan() throws Exception {
-        Merge plan = plan("select * from unnest([1, 2], ['Arthur', 'Trillian'])");
-        assertNotNull(plan);
-        Collect collect = (Collect) plan.subPlan();
+        Collect collect = plan("select * from unnest([1, 2], ['Arthur', 'Trillian'])");
+        assertNotNull(collect);
         assertThat(collect.collectPhase().toCollect(), contains(isReference("col1"), isReference("col2")));
     }
 
     @Test
     public void testSoftLimitIsApplied() throws Exception {
-        Merge merge = plan("select * from users", 0, 10);
-        assertThat(merge.mergePhase().projections(), contains(instanceOf(TopNProjection.class), instanceOf(FetchProjection.class)));
+        QueryThenFetch qtf = plan("select * from users", 0, 10);
+        Merge merge = (Merge) qtf.subPlan();
+        assertThat(merge.mergePhase().projections(),
+            contains(instanceOf(TopNProjection.class), instanceOf(FetchProjection.class)));
         TopNProjection topNProjection = (TopNProjection) merge.mergePhase().projections().get(0);
         assertThat(topNProjection.limit(), is(10));
 
-        merge = plan("select * from users limit 5", 0, 10);
+        qtf = plan("select * from users limit 5", 0, 10);
+        merge = (Merge) qtf.subPlan();
         assertThat(merge.mergePhase().projections(), contains(instanceOf(TopNProjection.class), instanceOf(FetchProjection.class)));
         topNProjection = (TopNProjection) merge.mergePhase().projections().get(0);
         assertThat(topNProjection.limit(), is(5));

@@ -379,9 +379,6 @@ public class ManyTableConsumer implements Consumer {
         }
 
         private Plan planSubRelation(ConsumerContext context, AnalyzedRelation relation) {
-            if (context.isRoot()) {
-                return consumingPlanner.plan(relation, context);
-            }
             return context.plannerContext().planSubRelation(relation, context);
         }
 

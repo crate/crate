@@ -47,7 +47,7 @@ import static org.hamcrest.Matchers.lessThanOrEqualTo;
 @UseJdbc
 public class InformationSchemaTest extends SQLTransportIntegrationTest {
 
-    private final static Joiner commaJoiner = Joiner.on(", ");
+    private final Joiner commaJoiner = Joiner.on(", ");
 
     private void serviceSetup() {
         execute("create table t1 (col1 integer primary key, " +

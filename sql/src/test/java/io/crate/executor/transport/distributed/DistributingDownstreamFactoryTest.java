@@ -79,10 +79,17 @@ public class DistributingDownstreamFactoryTest extends CrateUnitTest {
             WhereClause.MATCH_ALL,
             DistributionInfo.DEFAULT_MODULO
         );
-        MergePhase mergePhase = new MergePhase(jobId, 2, "merge", 1,
+        MergePhase mergePhase = new MergePhase(
+            jobId,
+            2,
+            "merge",
+            1,
+            Collections.emptyList(),
             ImmutableList.<DataType>of(LongType.INSTANCE),
             ImmutableList.<Projection>of(),
-            DistributionInfo.DEFAULT_BROADCAST);
+            DistributionInfo.DEFAULT_BROADCAST,
+            null
+        );
         mergePhase.executionNodes(downstreamExecutionNodes);
         NodeOperation nodeOperation = NodeOperation.withDownstream(collectPhase, mergePhase, (byte) 0, "nodeName");
         return rowDownstreamFactory.create(nodeOperation, collectPhase.distributionInfo(), jobId, Paging.PAGE_SIZE);

@@ -69,16 +69,16 @@ public class FetchPushDownTest {
     public void testLimitIsPushedDown() throws Exception {
         QuerySpec qs = new QuerySpec();
         qs.outputs(Lists.<Symbol>newArrayList(REF_I, REF_A));
-        qs.limit(Optional.of((Symbol) Literal.of(10)));
-        qs.offset(Optional.of((Symbol) Literal.of(100)));
+        qs.limit(Optional.of(Literal.of(10)));
+        qs.offset(Optional.of(Literal.of(100)));
 
         FetchPushDown pd = new FetchPushDown(qs, TABLE_REL);
         QueriedDocTable sub = pd.pushDown();
-        assertThat(sub.querySpec().limit().get(), is((Symbol) AddFunction.of(Literal.of(10), Literal.of(100))));
-        assertThat(sub.querySpec().offset().isPresent(), is(false));
+        assertThat(sub.querySpec().limit().get(), is(Literal.of(10)));
+        assertThat(sub.querySpec().offset().get(), is(Literal.of(100)));
 
-        assertThat(qs.limit().get(), is((Symbol) Literal.of(10)));
-        assertThat(qs.offset().get(), is((Symbol) Literal.of(100)));
+        assertThat(qs.limit().get(), is(Literal.of(10)));
+        assertThat(qs.offset().get(), is(Literal.of(100)));
     }
 
     @Test

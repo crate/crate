@@ -22,7 +22,6 @@
 package io.crate.planner.consumer;
 
 import com.google.common.base.Optional;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 import io.crate.analyze.*;
@@ -31,6 +30,7 @@ import io.crate.analyze.symbol.*;
 import io.crate.exceptions.ValidationException;
 import io.crate.metadata.Functions;
 import io.crate.metadata.TableIdent;
+import io.crate.operation.projectors.TopN;
 import io.crate.planner.*;
 import io.crate.planner.distribution.DistributionInfo;
 import io.crate.planner.node.dql.MergePhase;
@@ -193,13 +193,17 @@ class NestedLoopConsumer implements Consumer {
                 nlExecutionNodes = leftResultDesc.nodeIds();
             } else {
                 if (isMergePhaseNeeded(nlExecutionNodes, leftResultDesc.nodeIds(), false)) {
-                    leftMerge = MergePhase.mergePhase(
-                        context.plannerContext(),
-                        nlExecutionNodes,
+                    leftMerge = new MergePhase(
+                        context.plannerContext().jobId(),
+                        context.plannerContext().nextExecutionPhaseId(),
+                        "nl-merge",
                         leftResultDesc.nodeIds().size(),
-                        PositionalOrderBy.of(left.querySpec().orderBy().orNull(), left.querySpec().outputs()),
-                        ImmutableList.of(),
-                        Symbols.extractTypes(left.querySpec().outputs()));
+                        nlExecutionNodes,
+                        leftResultDesc.streamOutputs(),
+                        Collections.emptyList(),
+                        DistributionInfo.DEFAULT_SAME_NODE,
+                        PositionalOrderBy.of(left.querySpec().orderBy().orNull(), left.querySpec().outputs())
+                    );
                 }
             }
             if (nlExecutionNodes.size() == 1
@@ -210,13 +214,16 @@ class NestedLoopConsumer implements Consumer {
                 rightPlan.setDistributionInfo(DistributionInfo.DEFAULT_SAME_NODE);
             } else {
                 if (isMergePhaseNeeded(nlExecutionNodes, rightResultDesc.nodeIds(), isDistributed)) {
-                    rightMerge = MergePhase.mergePhase(
-                        context.plannerContext(),
-                        nlExecutionNodes,
+                    rightMerge = new MergePhase(
+                        context.plannerContext().jobId(),
+                        context.plannerContext().nextExecutionPhaseId(),
+                        "nl-merge",
                         rightResultDesc.nodeIds().size(),
-                        PositionalOrderBy.of(right.querySpec().orderBy().orNull(), right.querySpec().outputs()),
-                        ImmutableList.of(),
-                        Symbols.extractTypes(right.querySpec().outputs())
+                        nlExecutionNodes,
+                        rightResultDesc.streamOutputs(),
+                        Collections.emptyList(),
+                        DistributionInfo.DEFAULT_SAME_NODE,
+                        PositionalOrderBy.of(right.querySpec().orderBy().orNull(), right.querySpec().outputs())
                     );
                 }
                 rightPlan.setDistributionInfo(DistributionInfo.DEFAULT_BROADCAST);
@@ -259,11 +266,13 @@ class NestedLoopConsumer implements Consumer {
             if (orderBy == null && joinType.isOuter()) {
                 orderBy = orderByBeforeSplit;
             }
+
+            int limit = isDistributed ? limits.limitAndOffset() : limits.finalLimit();
             TopNProjection topN = ProjectionBuilder.topNProjection(
                 nlOutputs,
                 orderBy,
                 isDistributed ? 0 : limits.offset(),
-                isDistributed ? limits.limitAndOffset() : limits.finalLimit(),
+                limit,
                 postNLOutputs
             );
             projections.add(topN);
@@ -281,27 +290,19 @@ class NestedLoopConsumer implements Consumer {
                 left.querySpec().outputs().size(),
                 right.querySpec().outputs().size()
             );
-            NestedLoop nestedLoop = new NestedLoop(nl, leftPlan, rightPlan);
-            // TODO: build local merge phases somewhere else for any subplan
-            if (isDistributed && context.isRoot()) {
-                MergePhase localMergePhase = MergePhase.mergePhase(
-                    context.plannerContext(),
-                    handlerNodes,
-                    nl.nodeIds().size(),
-                    PositionalOrderBy.of(orderByBeforeSplit, postNLOutputs),
-                    ImmutableList.of(),
-                    Symbols.extractTypes(postNLOutputs));
-                TopNProjection finalTopN = ProjectionBuilder.topNProjection(
-                    postNLOutputs,
-                    null, // orderBy = null because mergePhase receives data sorted
-                    limits.offset(),
+            if (isDistributed) {
+                return new NestedLoop(
+                    nl,
+                    leftPlan,
+                    rightPlan,
                     limits.finalLimit(),
-                    querySpec.outputs()
+                    limits.offset(),
+                    limit,
+                    PositionalOrderBy.of(orderByBeforeSplit, postNLOutputs)
                 );
-                localMergePhase.addProjection(finalTopN);
-                return new Merge(nestedLoop, localMergePhase);
+            } else {
+                return new NestedLoop(nl, leftPlan, rightPlan, TopN.NO_LIMIT, 0, limit, null);
             }
-            return nestedLoop;
         }
 
         private void addOutputsAndSymbolMap(Iterable<? extends Symbol> outputs,

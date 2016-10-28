@@ -29,20 +29,19 @@ import com.google.common.collect.Lists;
 import io.crate.analyze.CopyFromAnalyzedStatement;
 import io.crate.analyze.CopyToAnalyzedStatement;
 import io.crate.analyze.symbol.Symbol;
-import io.crate.analyze.symbol.Symbols;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.GeneratedReference;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.Reference;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.doc.DocTableInfo;
+import io.crate.operation.projectors.TopN;
 import io.crate.planner.Merge;
 import io.crate.planner.Plan;
 import io.crate.planner.Planner;
 import io.crate.planner.consumer.ConsumerContext;
 import io.crate.planner.node.dql.Collect;
 import io.crate.planner.node.dql.FileUriCollectPhase;
-import io.crate.planner.node.dql.MergePhase;
 import io.crate.planner.projection.MergeCountProjection;
 import io.crate.planner.projection.Projection;
 import io.crate.planner.projection.SourceIndexWriterProjection;
@@ -172,12 +171,8 @@ public class CopyStatementPlanner {
             analysis.settings().getAsBoolean("shared", null)
         );
 
-        return new Merge(new Collect(collectPhase), MergePhase.localMerge(
-            context.jobId(),
-            context.nextExecutionPhaseId(),
-            ImmutableList.<Projection>of(MergeCountProjection.INSTANCE),
-            collectPhase.nodeIds().size(),
-            collectPhase.outputTypes()));
+        Collect collect = new Collect(collectPhase, TopN.NO_LIMIT, 0, 1, 1, null);
+        return Merge.mergeToHandler(collect, context, Collections.singletonList(MergeCountProjection.INSTANCE));
     }
 
     public Plan planCopyTo(CopyToAnalyzedStatement statement, Planner.Context context) {
@@ -199,16 +194,8 @@ public class CopyStatementPlanner {
         if (plan == null) {
             return null;
         }
-
-        plan.addProjection(projection);
-
-        MergePhase mergePhase = MergePhase.localMerge(
-            context.jobId(),
-            context.nextExecutionPhaseId(),
-            ImmutableList.of(MergeCountProjection.INSTANCE),
-            plan.resultDescription().nodeIds().size(),
-            Symbols.extractTypes(projection.outputs()));
-        return new Merge(plan, mergePhase);
+        plan.addProjection(projection, null, null, 1, null);
+        return Merge.mergeToHandler(plan, context, Collections.singletonList(MergeCountProjection.INSTANCE));
     }
 
     private static Collection<String> getExecutionNodes(DiscoveryNodes allNodes,

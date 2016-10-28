@@ -42,7 +42,6 @@ import io.crate.operation.collect.CrateCollector;
 import io.crate.operation.collect.JobCollectContext;
 import io.crate.operation.collect.MapSideDataCollectOperation;
 import io.crate.operation.projectors.RowReceiver;
-import io.crate.planner.Merge;
 import io.crate.planner.Plan;
 import io.crate.planner.Planner;
 import io.crate.planner.consumer.ConsumerContext;
@@ -112,7 +111,7 @@ public class LuceneDocCollectorProvider implements AutoCloseable {
             analysis.rootRelation(),
             new ConsumerContext(analysis.rootRelation(), new Planner.Context(planner,
                 cluster.clusterService(), UUID.randomUUID(), null, normalizer, new TransactionContext(SessionContext.SYSTEM_SESSION), 0, 0)));
-        Collect collect = (Collect) ((Merge) plan).subPlan();
+        Collect collect = (Collect) plan;
         final RoutedCollectPhase collectPhase = ((RoutedCollectPhase) collect.collectPhase());
         collectPhase.nodePageSizeHint(nodePageSizeHint);
         Routing routing = collectPhase.routing();

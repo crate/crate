@@ -21,19 +21,11 @@
 
 package io.crate.integrationtests;
 
-import io.crate.action.sql.SessionContext;
-import io.crate.analyze.Analysis;
-import io.crate.analyze.Analyzer;
-import io.crate.analyze.ParameterContext;
 import io.crate.core.collections.Bucket;
-import io.crate.core.collections.Row;
 import io.crate.executor.transport.TransportExecutor;
 import io.crate.planner.Merge;
-import io.crate.planner.Plan;
-import io.crate.planner.Planner;
 import io.crate.planner.node.dql.QueryThenFetch;
 import io.crate.planner.projection.FetchProjection;
-import io.crate.sql.parser.SqlParser;
 import io.crate.testing.CollectingRowReceiver;
 import io.crate.testing.UseJdbc;
 import org.apache.lucene.util.BytesRef;
@@ -41,8 +33,6 @@ import org.elasticsearch.test.ESIntegTestCase;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-
-import java.util.UUID;
 
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.notNullValue;
@@ -52,7 +42,7 @@ import static org.hamcrest.core.Is.is;
 @UseJdbc
 public class FetchOperationIntegrationTest extends SQLTransportIntegrationTest {
 
-    TransportExecutor executor;
+    private TransportExecutor executor;
 
     @Before
     public void transportSetUp() {
@@ -77,36 +67,19 @@ public class FetchOperationIntegrationTest extends SQLTransportIntegrationTest {
         sqlExecutor.exec("refresh table characters");
     }
 
-    private Plan analyzeAndPlan(String stmt) {
-        Analysis analysis = analyze(stmt);
-        Planner planner = internalCluster().getInstance(Planner.class);
-        return planner.plan(analysis, UUID.randomUUID(), 0, 0);
-    }
-
-    private Analysis analyze(String stmt) {
-        Analyzer analyzer = internalCluster().getInstance(Analyzer.class);
-        return analyzer.boundAnalyze(
-            SqlParser.createStatement(stmt),
-            SessionContext.SYSTEM_SESSION,
-            ParameterContext.EMPTY
-        );
-    }
-
     @SuppressWarnings("ConstantConditions")
     @Test
     public void testFetchProjection() throws Exception {
         setUpCharacters();
+        PlanForNode plan = plan("select id, name, substr(name, 2) from characters order by id");
+        QueryThenFetch qtf = ((QueryThenFetch) plan.plan);
+        assertThat(qtf.subPlan(), instanceOf(Merge.class));
+        Merge merge = (Merge) qtf.subPlan();
 
-        Plan plan = analyzeAndPlan("select id, name, substr(name, 2) from characters order by id");
-        Merge merge = (Merge) plan;
-        assertThat(merge.subPlan(), instanceOf(QueryThenFetch.class));
+        assertThat(((FetchProjection) merge.mergePhase().projections().get(0)).nodeReaders(), notNullValue());
+        assertThat(((FetchProjection) merge.mergePhase().projections().get(0)).readerIndices(), notNullValue());
 
-        assertThat(((FetchProjection) merge.mergePhase().projections().get(1)).nodeReaders(), notNullValue());
-        assertThat(((FetchProjection) merge.mergePhase().projections().get(1)).readerIndices(), notNullValue());
-
-
-        CollectingRowReceiver rowReceiver = new CollectingRowReceiver();
-        executor.execute(plan, rowReceiver, Row.EMPTY);
+        CollectingRowReceiver rowReceiver = execute(plan);
 
         Bucket result = rowReceiver.result();
         assertThat(result.size(), is(2));

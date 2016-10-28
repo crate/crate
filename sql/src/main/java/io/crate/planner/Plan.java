@@ -24,6 +24,7 @@ package io.crate.planner;
 import io.crate.planner.distribution.DistributionInfo;
 import io.crate.planner.projection.Projection;
 
+import javax.annotation.Nullable;
 import java.util.UUID;
 
 public interface Plan {
@@ -32,7 +33,20 @@ public interface Plan {
 
     UUID jobId();
 
-    void addProjection(Projection projection);
+    /**
+     * Adds a projection to the plan.
+     * The given values need to be used to update the ResultDescription.
+     *
+     * @param newLimit new limit if the projection is affecting the limit.
+     * @param newOffset new offset if the projection is affecting the offset.
+     * @param newOrderBy new orderBy if the projection is affecting the ordering.
+     * @param newNumOutputs new number of outputs if the projection is affecting it.
+     */
+    void addProjection(Projection projection,
+                       @Nullable Integer newLimit,
+                       @Nullable Integer newOffset,
+                       @Nullable Integer newNumOutputs,
+                       @Nullable PositionalOrderBy newOrderBy);
 
     ResultDescription resultDescription();
 

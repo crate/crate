@@ -26,7 +26,6 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.analyze.symbol.Symbols;
-import io.crate.planner.ResultDescription;
 import io.crate.planner.distribution.DistributionInfo;
 import io.crate.planner.distribution.UpstreamPhase;
 import io.crate.planner.node.ExecutionPhaseVisitor;
@@ -43,14 +42,9 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.UUID;
 
-public class NestedLoopPhase extends AbstractProjectionsPhase implements UpstreamPhase, ResultDescription {
+public class NestedLoopPhase extends AbstractProjectionsPhase implements UpstreamPhase {
 
-    public static final ExecutionPhaseFactory<NestedLoopPhase> FACTORY = new ExecutionPhaseFactory<NestedLoopPhase>() {
-        @Override
-        public NestedLoopPhase create() {
-            return new NestedLoopPhase();
-        }
-    };
+    public static final ExecutionPhaseFactory<NestedLoopPhase> FACTORY = NestedLoopPhase::new;
 
     private Collection<String> executionNodes;
     private MergePhase leftMergePhase;

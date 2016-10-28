@@ -21,24 +21,30 @@
 
 package io.crate.planner.node.dql;
 
+import io.crate.operation.projectors.TopN;
 import io.crate.planner.Plan;
 import io.crate.planner.PlanVisitor;
+import io.crate.planner.PositionalOrderBy;
 import io.crate.planner.ResultDescription;
 import io.crate.planner.distribution.DistributionInfo;
 import io.crate.planner.projection.Projection;
+import io.crate.types.DataType;
 
+import javax.annotation.Nullable;
+import java.util.Collection;
+import java.util.List;
 import java.util.UUID;
 
-public class CountPlan implements Plan {
+public class CountPlan implements Plan, ResultDescription {
 
     private final CountPhase countNode;
     private final MergePhase mergeNode;
     private final UUID id;
 
-    public CountPlan(CountPhase countNode, MergePhase mergeNode, UUID id) {
+    public CountPlan(CountPhase countNode, MergePhase mergeNode) {
         this.countNode = countNode;
         this.mergeNode = mergeNode;
-        this.id = id;
+        this.id = mergeNode.jobId();
     }
 
     public CountPhase countNode() {
@@ -60,17 +66,57 @@ public class CountPlan implements Plan {
     }
 
     @Override
-    public void addProjection(Projection projection) {
+    public void addProjection(Projection projection,
+                              @Nullable Integer newLimit,
+                              @Nullable Integer newOffset,
+                              @Nullable Integer newNumOutputs,
+                              @Nullable PositionalOrderBy newOrderBy) {
         mergeNode.addProjection(projection);
     }
 
     @Override
     public ResultDescription resultDescription() {
-        return mergeNode;
+        return this;
     }
 
     @Override
     public void setDistributionInfo(DistributionInfo distributionInfo) {
         mergeNode.distributionInfo(distributionInfo);
+    }
+
+    @Override
+    public Collection<String> nodeIds() {
+        return mergeNode.nodeIds();
+    }
+
+    @Nullable
+    @Override
+    public PositionalOrderBy orderBy() {
+        return null;
+    }
+
+    @Override
+    public int limit() {
+        return TopN.NO_LIMIT;
+    }
+
+    @Override
+    public int maxRowsPerNode() {
+        return 1;
+    }
+
+    @Override
+    public int offset() {
+        return 0;
+    }
+
+    @Override
+    public int numOutputs() {
+        return mergeNode.outputTypes.size();
+    }
+
+    @Override
+    public List<DataType> streamOutputs() {
+        return mergeNode.outputTypes();
     }
 }

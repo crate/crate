@@ -27,7 +27,6 @@ import io.crate.analyze.symbol.Symbol;
 import io.crate.planner.distribution.DistributionInfo;
 import io.crate.planner.node.dql.join.JoinType;
 import io.crate.planner.node.dql.join.NestedLoopPhase;
-import io.crate.planner.projection.Projection;
 import io.crate.planner.projection.TopNProjection;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.testing.SqlExpressions;
@@ -50,21 +49,33 @@ public class NestedLoopPhaseTest extends CrateUnitTest {
     public void testSerialization() throws Exception {
         TopNProjection topNProjection = new TopNProjection(10, 0, Collections.emptyList());
         UUID jobId = UUID.randomUUID();
-        MergePhase mp1 = new MergePhase(jobId, 2, "merge", 1,
+        MergePhase mp1 = new MergePhase(
+            jobId,
+            2,
+            "merge",
+            1,
+            Collections.emptyList(),
             ImmutableList.<DataType>of(DataTypes.STRING),
-            ImmutableList.<Projection>of(),
-            DistributionInfo.DEFAULT_BROADCAST);
-        MergePhase mp2 = new MergePhase(jobId, 3, "merge", 1,
+            ImmutableList.of(),
+            DistributionInfo.DEFAULT_BROADCAST,
+            null);
+        MergePhase mp2 = new MergePhase(
+            jobId,
+            3,
+            "merge",
+            1,
+            Collections.emptyList(),
             ImmutableList.<DataType>of(DataTypes.STRING),
-            ImmutableList.<Projection>of(),
-            DistributionInfo.DEFAULT_BROADCAST);
+            ImmutableList.of(),
+            DistributionInfo.DEFAULT_BROADCAST,
+            null);
         SqlExpressions sqlExpressions = new SqlExpressions(T3.SOURCES, T3.TR_1);
         Symbol joinCondition = sqlExpressions.normalize(sqlExpressions.asSymbol("t1.x = t1.i"));
         NestedLoopPhase node = new NestedLoopPhase(
             jobId,
             1,
             "nestedLoop",
-            ImmutableList.<Projection>of(topNProjection),
+            ImmutableList.of(topNProjection),
             mp1,
             mp2,
             Sets.newHashSet("node1", "node2"),

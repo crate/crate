@@ -22,8 +22,6 @@
 package io.crate.planner.consumer;
 
 
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Sets;
 import io.crate.analyze.InsertFromSubQueryAnalyzedStatement;
 import io.crate.analyze.QuerySpec;
 import io.crate.analyze.relations.AnalyzedRelation;
@@ -31,18 +29,13 @@ import io.crate.analyze.relations.AnalyzedRelationVisitor;
 import io.crate.analyze.relations.QueriedDocTable;
 import io.crate.analyze.relations.QueriedRelation;
 import io.crate.analyze.symbol.Symbol;
-import io.crate.analyze.symbol.Symbols;
 import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.metadata.DocReferenceConverter;
 import io.crate.planner.Merge;
 import io.crate.planner.Plan;
 import io.crate.planner.Planner;
-import io.crate.planner.ResultDescription;
-import io.crate.planner.node.ExecutionPhases;
-import io.crate.planner.node.dql.MergePhase;
 import io.crate.planner.projection.ColumnIndexWriterProjection;
 import io.crate.planner.projection.MergeCountProjection;
-import io.crate.planner.projection.Projection;
 import org.elasticsearch.common.settings.Settings;
 
 import java.util.List;
@@ -95,24 +88,13 @@ public class InsertFromSubQueryConsumer implements Consumer {
             if (plannedSubQuery == null) {
                 return null;
             }
-
-            plannedSubQuery.addProjection(indexWriterProjection);
-
-            ResultDescription resultDescription = plannedSubQuery.resultDescription();
-            if (!ExecutionPhases.executesOnHandler(plannerContext.handlerNode(), resultDescription.nodeIds())) {
-                // add local merge Node which aggregates the distributed results
-                MergeCountProjection mergeCountProjection = MergeCountProjection.INSTANCE;
-                MergePhase localMerge = MergePhase.localMerge(
-                    plannerContext.jobId(),
-                    plannerContext.nextExecutionPhaseId(),
-                    ImmutableList.<Projection>of(mergeCountProjection),
-                    resultDescription.nodeIds().size(),
-                    Symbols.extractTypes(indexWriterProjection.outputs()));
-                localMerge.executionNodes(Sets.newHashSet(plannerContext.clusterService().localNode().id()));
-
-                return new Merge(plannedSubQuery, localMerge);
+            plannedSubQuery.addProjection(indexWriterProjection, null, null, 1, null);
+            Plan plan = Merge.mergeToHandler(plannedSubQuery, plannerContext);
+            if (plan == plannedSubQuery) {
+                return plan;
             }
-            return plannedSubQuery;
+            plan.addProjection(MergeCountProjection.INSTANCE, null, null, 1, null);
+            return plan;
         }
     }
 

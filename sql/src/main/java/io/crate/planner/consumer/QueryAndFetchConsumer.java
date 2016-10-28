@@ -23,7 +23,6 @@ package io.crate.planner.consumer;
 
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.QueriedTable;
 import io.crate.analyze.QueriedTableRelation;
@@ -38,14 +37,16 @@ import io.crate.collections.Lists2;
 import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.exceptions.VersionInvalidException;
 import io.crate.operation.predicate.MatchPredicate;
-import io.crate.planner.*;
+import io.crate.planner.Limits;
+import io.crate.planner.Plan;
+import io.crate.planner.Planner;
+import io.crate.planner.PositionalOrderBy;
 import io.crate.planner.node.dql.Collect;
-import io.crate.planner.node.dql.MergePhase;
 import io.crate.planner.node.dql.RoutedCollectPhase;
 import io.crate.planner.projection.Projection;
 import io.crate.planner.projection.TopNProjection;
 
-import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 public class QueryAndFetchConsumer implements Consumer {
@@ -74,7 +75,7 @@ public class QueryAndFetchConsumer implements Consumer {
                 context.validationException(new VersionInvalidException());
                 return null;
             }
-            return normalSelect(table, context, table.querySpec().outputs());
+            return normalSelect(table, context);
         }
 
         @Override
@@ -86,7 +87,7 @@ public class QueryAndFetchConsumer implements Consumer {
             if (querySpec.where().hasQuery()) {
                 ensureNoLuceneOnlyPredicates(querySpec.where().query());
             }
-            return normalSelect(table, context, querySpec.outputs());
+            return normalSelect(table, context);
         }
 
         private void ensureNoLuceneOnlyPredicates(Symbol query) {
@@ -106,93 +107,58 @@ public class QueryAndFetchConsumer implements Consumer {
             }
         }
 
-        private Plan normalSelect(QueriedTableRelation table, ConsumerContext context, List<Symbol> outputSymbols) {
+        private Plan normalSelect(QueriedTableRelation table, ConsumerContext context) {
             QuerySpec querySpec = table.querySpec();
-
-            RoutedCollectPhase collectPhase;
-            MergePhase mergeNode = null;
-            Optional<OrderBy> orderBy = querySpec.orderBy();
             Planner.Context plannerContext = context.plannerContext();
+            /*
+             * ORDER BY columns are added to OUTPUTS - they're required to do an ordered merge.
+             * select id, name, order by id, date
+             *
+             * toCollect:           [id, name, date]       // includes order by symbols, that aren't already selected
+             * outputsInclOrder:    [in(0), in(1), in(2)]  // for topN projection on shards/collectPhase
+             * orderByInputs:       [in(0), in(2)]         // for topN projection on shards/collectPhase AND handler
+             * finalOutputs:        [in(0), in(1)]         // for topN output on handler -> changes output to what should be returned.
+             */
+            List<Symbol> qsOutputs = querySpec.outputs();
+            List<Symbol> toCollect;
+            Optional<OrderBy> optOrderBy = querySpec.orderBy();
+            if (optOrderBy.isPresent()) {
+                toCollect = Lists2.concatUnique(qsOutputs, optOrderBy.get().orderBySymbols());
+            } else {
+                toCollect = qsOutputs;
+            }
+            List<Symbol> outputsInclOrder = InputColumn.fromSymbols(toCollect);
 
             Limits limits = plannerContext.getLimits(querySpec);
-            if (limits.hasLimit() || orderBy.isPresent()) {
-                /**
-                 * select id, name, order by id, date
-                 *
-                 * toCollect:       [id, name, date]            // includes order by symbols, that aren't already selected
-                 * allOutputs:      [in(0), in(1), in(2)]       // for topN projection on shards/collectPhase
-                 * orderByInputs:   [in(0), in(2)]              // for topN projection on shards/collectPhase AND handler
-                 * finalOutputs:    [in(0), in(1)]              // for topN output on handler -> changes output to what should be returned.
-                 */
-                List<Symbol> toCollect;
-                if (orderBy.isPresent()) {
-                    toCollect = Lists2.concatUnique(outputSymbols, orderBy.get().orderBySymbols());
-                } else {
-                    toCollect = outputSymbols;
-                }
-                List<Symbol> allOutputs = InputColumn.fromSymbols(toCollect);
-                List<Symbol> finalOutputs = InputColumn.fromSymbols(outputSymbols);
-
-                List<Projection> projections = ImmutableList.of();
-                Integer nodePageSizeHint = null;
-
-
+            List<Projection> projections = ImmutableList.of();
+            if (limits.hasLimit()) {
+                TopNProjection collectTopN = new TopNProjection(limits.limitAndOffset(), 0, outputsInclOrder);
+                projections = Collections.singletonList(collectTopN);
+            }
+            RoutedCollectPhase collectPhase = RoutedCollectPhase.forQueriedTable(
+                plannerContext,
+                table,
+                toCollect,
+                projections
+            );
+            Integer requiredPageSize = context.requiredPageSize();
+            if (requiredPageSize == null ) {
                 if (limits.hasLimit()) {
-                    TopNProjection topNProjection = new TopNProjection(limits.limitAndOffset(), 0, allOutputs);
-                    projections = ImmutableList.of(topNProjection);
-                    nodePageSizeHint = limits.limitAndOffset();
-                }
-                collectPhase = RoutedCollectPhase.forQueriedTable(
-                    plannerContext,
-                    table,
-                    toCollect,
-                    projections
-                );
-                collectPhase.orderBy(orderBy.orNull());
-                collectPhase.nodePageSizeHint(nodePageSizeHint);
-
-                // MERGE
-                if (context.isRoot()) {
-                    final TopNProjection tnp = new TopNProjection(limits.finalLimit(), limits.offset(), finalOutputs);
-                    ArrayList<Projection> mergeProjections = new ArrayList<Projection>(1) {{
-                        add(tnp);
-                    }};
-                    mergeNode = MergePhase.mergePhase(
-                        context.plannerContext(),
-                        ImmutableSet.of(),
-                        collectPhase.nodeIds().size(),
-                        PositionalOrderBy.of(orderBy.orNull(), toCollect),
-                        mergeProjections,
-                        collectPhase.outputTypes());
+                    collectPhase.nodePageSizeHint(limits.limitAndOffset());
                 }
             } else {
-                collectPhase = RoutedCollectPhase.forQueriedTable(
-                    plannerContext,
-                    table,
-                    outputSymbols,
-                    ImmutableList.of()
-                );
-                if (context.isRoot()) {
-                    mergeNode = MergePhase.localMerge(
-                        plannerContext.jobId(),
-                        plannerContext.nextExecutionPhaseId(),
-                        ImmutableList.of(),
-                        collectPhase.nodeIds().size(),
-                        collectPhase.outputTypes()
-                    );
-                }
+                collectPhase.pageSizeHint(requiredPageSize);
             }
+            collectPhase.orderBy(optOrderBy.orNull());
 
-            if (context.requiredPageSize() != null) {
-                collectPhase.pageSizeHint(context.requiredPageSize());
-            }
-            SimpleSelect.enablePagingIfApplicable(
-                collectPhase, mergeNode, limits.finalLimit(), limits.offset(), plannerContext.clusterService().localNode().id());
-            Collect collect = new Collect(collectPhase);
-            if (mergeNode == null) {
-                return collect;
-            }
-            return new Merge(collect, mergeNode);
+            return new Collect(
+                collectPhase,
+                limits.finalLimit(),
+                limits.offset(),
+                qsOutputs.size(),
+                limits.limitAndOffset(),
+                PositionalOrderBy.of(optOrderBy.orNull(), toCollect)
+            );
         }
     }
 }

@@ -110,9 +110,16 @@ public class PageDownstreamFactoryTest extends CrateUnitTest {
         TopNProjection topNProjection = new TopNProjection(3, TopN.NO_OFFSET, InputColumn.numInputs(2),
             Arrays.<Symbol>asList(new InputColumn(0)), new boolean[]{false}, new Boolean[]{null});
 
-        MergePhase mergeNode = new MergePhase(UUID.randomUUID(), 0, "merge", 2,
+        MergePhase mergeNode = new MergePhase(
+            UUID.randomUUID(),
+            0,
+            "merge",
+            2,
+            Collections.emptyList(),
             ImmutableList.<DataType>of(DataTypes.INTEGER, DataTypes.DOUBLE),
-            Arrays.asList(groupProjection, topNProjection), DistributionInfo.DEFAULT_BROADCAST);
+            Arrays.asList(groupProjection, topNProjection),
+            DistributionInfo.DEFAULT_BROADCAST,
+            null);
 
         Object[][] objs = new Object[20][];
         for (int i = 0; i < objs.length; i++) {
@@ -162,9 +169,16 @@ public class PageDownstreamFactoryTest extends CrateUnitTest {
 
     @Test
     public void testMergeMultipleResults() throws Exception {
-        MergePhase mergeNode = new MergePhase(UUID.randomUUID(), 0, "merge", 2,
+        MergePhase mergeNode = new MergePhase(
+            UUID.randomUUID(),
+            0,
+            "merge",
+            2,
+            Collections.emptyList(),
             ImmutableList.<DataType>of(DataTypes.INTEGER, DataTypes.DOUBLE),
-            Arrays.<Projection>asList(groupProjection), DistributionInfo.DEFAULT_BROADCAST);
+            Arrays.<Projection>asList(groupProjection),
+            DistributionInfo.DEFAULT_BROADCAST,
+            null);
         final PageDownstreamFactory pageDownstreamFactory = new PageDownstreamFactory(
             mock(ClusterService.class),
             new IndexNameExpressionResolver(Settings.EMPTY),

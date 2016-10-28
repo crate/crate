@@ -21,17 +21,18 @@
 
 package io.crate.planner.consumer;
 
+import com.google.common.collect.ImmutableList;
 import io.crate.analyze.QuerySpec;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.QueriedDocTable;
 import io.crate.analyze.symbol.Function;
 import io.crate.analyze.symbol.Symbol;
+import io.crate.analyze.symbol.Symbols;
 import io.crate.exceptions.VersionInvalidException;
 import io.crate.metadata.Routing;
 import io.crate.metadata.table.TableInfo;
 import io.crate.operation.aggregation.impl.CountAggregation;
 import io.crate.planner.Limits;
-import io.crate.planner.NoopPlan;
 import io.crate.planner.Plan;
 import io.crate.planner.Planner;
 import io.crate.planner.distribution.DistributionInfo;
@@ -40,6 +41,7 @@ import io.crate.planner.node.dql.CountPlan;
 import io.crate.planner.node.dql.MergePhase;
 import io.crate.planner.projection.MergeCountProjection;
 import io.crate.planner.projection.Projection;
+import io.crate.planner.projection.TopNProjection;
 import io.crate.types.DataTypes;
 
 import java.util.Collections;
@@ -70,11 +72,6 @@ public class CountConsumer implements Consumer {
                 return null;
             }
 
-            Limits limits = context.plannerContext().getLimits(querySpec);
-            if ((limits.finalLimit() == 0 || limits.offset() > 0)) {
-                return new NoopPlan(context.plannerContext().jobId());
-            }
-
             TableInfo tableInfo = table.tableRelation().tableInfo();
             Routing routing = context.plannerContext().allocateRouting(tableInfo, querySpec.where(), null);
             Planner.Context plannerContext = context.plannerContext();
@@ -83,16 +80,28 @@ public class CountConsumer implements Consumer {
                 routing,
                 querySpec.where(),
                 DistributionInfo.DEFAULT_BROADCAST);
+
+            List<Projection> projections;
+            Limits limits = context.plannerContext().getLimits(querySpec);
+            TopNProjection topN = TopNProjection.createIfNeeded(
+                limits.finalLimit(), limits.offset(), 1, Symbols.extractTypes(MergeCountProjection.INSTANCE.outputs()));
+            if (topN == null) {
+                projections = Collections.singletonList(MergeCountProjection.INSTANCE);
+            } else {
+                projections = ImmutableList.of(MergeCountProjection.INSTANCE, topN);
+            }
             MergePhase mergeNode = new MergePhase(
                 plannerContext.jobId(),
                 plannerContext.nextExecutionPhaseId(),
                 "count-merge",
                 countNode.nodeIds().size(),
+                Collections.emptyList(),
                 Collections.singletonList(DataTypes.LONG),
-                Collections.<Projection>singletonList(MergeCountProjection.INSTANCE),
-                DistributionInfo.DEFAULT_SAME_NODE
+                projections,
+                DistributionInfo.DEFAULT_SAME_NODE,
+                null
             );
-            return new CountPlan(countNode, mergeNode, context.plannerContext().jobId());
+            return new CountPlan(countNode, mergeNode);
         }
 
         private boolean hasOnlyGlobalCount(List<Symbol> symbols) {

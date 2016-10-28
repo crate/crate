@@ -23,20 +23,23 @@ package io.crate.planner.consumer;
 
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Sets;
 import io.crate.analyze.HavingClause;
+import io.crate.analyze.OrderBy;
 import io.crate.analyze.QuerySpec;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.QueriedDocTable;
 import io.crate.analyze.symbol.Aggregation;
 import io.crate.analyze.symbol.Symbol;
+import io.crate.collections.Lists2;
 import io.crate.exceptions.VersionInvalidException;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Routing;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.doc.DocTableInfo;
-import io.crate.planner.*;
+import io.crate.planner.Limits;
+import io.crate.planner.Plan;
+import io.crate.planner.Planner;
+import io.crate.planner.PositionalOrderBy;
 import io.crate.planner.distribution.DistributionInfo;
 import io.crate.planner.node.dql.DistributedGroupBy;
 import io.crate.planner.node.dql.GroupByConsumer;
@@ -44,13 +47,11 @@ import io.crate.planner.node.dql.MergePhase;
 import io.crate.planner.node.dql.RoutedCollectPhase;
 import io.crate.planner.projection.GroupProjection;
 import io.crate.planner.projection.Projection;
-import io.crate.planner.projection.TopNProjection;
 import io.crate.planner.projection.builder.ProjectionBuilder;
 import io.crate.planner.projection.builder.SplitPoints;
 import org.elasticsearch.common.inject.Singleton;
 
 import java.util.ArrayList;
-import java.util.LinkedList;
 import java.util.List;
 
 @Singleton
@@ -123,7 +124,7 @@ class DistributedGroupByConsumer implements Consumer {
             collectOutputs.addAll(groupBy);
             collectOutputs.addAll(splitPoints.aggregates());
 
-            List<Projection> reducerProjections = new LinkedList<>();
+            List<Projection> reducerProjections = new ArrayList<>();
             reducerProjections.add(projectionBuilder.groupProjection(
                 collectOutputs,
                 groupBy,
@@ -137,59 +138,45 @@ class DistributedGroupByConsumer implements Consumer {
 
             Optional<HavingClause> havingClause = querySpec.having();
             if (havingClause.isPresent()) {
-                if (havingClause.get().noMatch()) {
-                    return new NoopPlan(plannerContext.jobId());
-                } else if (havingClause.get().hasQuery()) {
-                    reducerProjections.add(ProjectionBuilder.filterProjection(
-                        collectOutputs,
-                        havingClause.get().query()
-                    ));
-                }
+                HavingClause having = havingClause.get();
+                reducerProjections.add(ProjectionBuilder.filterProjection(collectOutputs, having));
             }
-
             Limits limits = plannerContext.getLimits(querySpec);
-            boolean isRootRelation = context.rootRelation() == table;
-            if (isRootRelation) {
-                reducerProjections.add(ProjectionBuilder.topNProjection(
-                    collectOutputs,
-                    querySpec.orderBy().orNull(),
-                    0,
-                    limits.limitAndOffset(),
-                    querySpec.outputs()));
+            Optional<OrderBy> optOrderBy = querySpec.orderBy();
+            List<Symbol> topNOutputs;
+            if (optOrderBy.isPresent()) {
+                topNOutputs = Lists2.concatUnique(querySpec.outputs(), optOrderBy.get().orderBySymbols());
+            } else {
+                topNOutputs = querySpec.outputs();
             }
-
+            reducerProjections.add(ProjectionBuilder.topNProjection(
+                collectOutputs,
+                optOrderBy.orNull(),
+                0,
+                limits.limitAndOffset(),
+                topNOutputs));
             MergePhase reducerMerge = new MergePhase(
                 plannerContext.jobId(),
                 plannerContext.nextExecutionPhaseId(),
                 "distributed merge",
                 collectPhase.nodeIds().size(),
+                collectPhase.nodeIds(),
                 collectPhase.outputTypes(),
                 reducerProjections,
-                DistributionInfo.DEFAULT_BROADCAST
+                DistributionInfo.DEFAULT_BROADCAST,
+                null
             );
-            reducerMerge.executionNodes(ImmutableSet.copyOf(collectPhase.nodeIds()));
             // end: Reducer
 
-            DistributedGroupBy distributedGroupBy = new DistributedGroupBy(collectPhase, reducerMerge);
-            String localNodeId = plannerContext.clusterService().state().nodes().localNodeId();
-            if (isRootRelation) {
-                TopNProjection topN = ProjectionBuilder.topNProjection(
-                    querySpec.outputs(),
-                    querySpec.orderBy().orNull(),
-                    limits.offset(),
-                    limits.finalLimit(),
-                    null);
-                MergePhase localMerge = MergePhase.localMerge(
-                    plannerContext.jobId(),
-                    plannerContext.nextExecutionPhaseId(),
-                    ImmutableList.<Projection>of(topN),
-                    reducerMerge.nodeIds().size(),
-                    reducerMerge.outputTypes());
-                localMerge.executionNodes(Sets.newHashSet(localNodeId));
-
-                return new Merge(distributedGroupBy, localMerge);
-            }
-            return distributedGroupBy;
+            return new DistributedGroupBy(
+                collectPhase,
+                reducerMerge,
+                limits.finalLimit(),
+                limits.offset(),
+                querySpec.outputs().size(),
+                limits.limitAndOffset(),
+                PositionalOrderBy.of(optOrderBy.orNull(), topNOutputs)
+            );
         }
     }
 }
