@@ -28,7 +28,6 @@ import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
 import java.io.IOException;
-import java.util.Comparator;
 import java.util.Locale;
 import java.util.Map;
 
@@ -36,12 +35,6 @@ public class BooleanType extends DataType<Boolean> implements DataTypeFactory, S
 
     public static final int ID = 3;
     public static final BooleanType INSTANCE = new BooleanType();
-    private static final Comparator<Boolean> CMP = new Comparator<Boolean>() {
-        @Override
-        public int compare(Boolean v1, Boolean v2) {
-            return Boolean.compare(v1, v2);
-        }
-    };
 
     private BooleanType() {
     }
@@ -105,7 +98,7 @@ public class BooleanType extends DataType<Boolean> implements DataTypeFactory, S
 
     @Override
     public int compareValueTo(Boolean val1, Boolean val2) {
-        return nullSafeCompareValueTo(val1, val2, CMP);
+        return nullSafeCompareValueTo(val1, val2, Boolean::compare);
     }
 
     @Override
