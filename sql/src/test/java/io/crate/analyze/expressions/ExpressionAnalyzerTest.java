@@ -41,12 +41,11 @@ import io.crate.test.integration.CrateUnitTest;
 import io.crate.testing.DummyRelation;
 import io.crate.testing.SqlExpressions;
 import io.crate.testing.T3;
-import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.util.Arrays;
+import java.util.Collections;
 import java.util.EnumSet;
 import java.util.Map;
 
@@ -72,7 +71,7 @@ public class ExpressionAnalyzerTest extends CrateUnitTest {
     public void prepare() throws Exception {
         paramTypeHints = ParamTypeHints.EMPTY;
         DummyRelation dummyRelation = new DummyRelation("obj.x", "myObj.x", "myObj.x.AbC");
-        dummySources = ImmutableMap.of(new QualifiedName("foo"), (AnalyzedRelation) dummyRelation);
+        dummySources = ImmutableMap.of(new QualifiedName("foo"), dummyRelation);
         context = new ExpressionAnalysisContext();
         functions = getFunctions();
     }
@@ -144,7 +143,7 @@ public class ExpressionAnalyzerTest extends CrateUnitTest {
         TableRelation tr1 = new TableRelation(tableInfo);
         TableRelation tr2 = new TableRelation(tableInfo);
 
-        Map<QualifiedName, AnalyzedRelation> sources = ImmutableMap.<QualifiedName, AnalyzedRelation>of(
+        Map<QualifiedName, AnalyzedRelation> sources = ImmutableMap.of(
             new QualifiedName("t1"), tr1,
             new QualifiedName("t2"), tr2
         );
@@ -178,15 +177,14 @@ public class ExpressionAnalyzerTest extends CrateUnitTest {
     public void testNonDeterministicFunctionsAlwaysNew() throws Exception {
         ExpressionAnalysisContext localContext = new ExpressionAnalysisContext();
         FunctionInfo info1 = new FunctionInfo(
-            new FunctionIdent("inc", Arrays.<DataType>asList(DataTypes.BOOLEAN)),
+            new FunctionIdent("inc", Collections.singletonList(DataTypes.BOOLEAN)),
             DataTypes.INTEGER,
             FunctionInfo.Type.SCALAR,
-            false,
-            false
+            FunctionInfo.NO_FEATURES
         );
-        Function fn1 = localContext.allocateFunction(info1, Arrays.<Symbol>asList(Literal.BOOLEAN_FALSE));
-        Function fn2 = localContext.allocateFunction(info1, Arrays.<Symbol>asList(Literal.BOOLEAN_FALSE));
-        Function fn3 = localContext.allocateFunction(info1, Arrays.<Symbol>asList(Literal.BOOLEAN_TRUE));
+        Function fn1 = localContext.allocateFunction(info1, Collections.singletonList(Literal.BOOLEAN_FALSE));
+        Function fn2 = localContext.allocateFunction(info1, Collections.singletonList(Literal.BOOLEAN_FALSE));
+        Function fn3 = localContext.allocateFunction(info1, Collections.singletonList(Literal.BOOLEAN_TRUE));
 
         // different instances
         assertThat(fn1, allOf(

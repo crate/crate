@@ -44,10 +44,11 @@ public abstract class CeilFunction extends Scalar<Number, Number> {
         module.register(new NoopCeilFunction(DataTypes.UNDEFINED));
     }
 
-    static class DoubleCeilFunction extends CeilFunction {
+    private static class DoubleCeilFunction extends CeilFunction {
 
         private static final FunctionInfo INFO = new FunctionInfo(
-            new FunctionIdent(NAME, ImmutableList.<DataType>of(DataTypes.DOUBLE)), DataTypes.LONG, FunctionInfo.Type.SCALAR, true, true);
+            new FunctionIdent(NAME, ImmutableList.of(DataTypes.DOUBLE)), DataTypes.LONG, FunctionInfo.Type.SCALAR,
+            FunctionInfo.ALL);
 
         @Override
         public Long evaluate(Input[] args) {
@@ -64,10 +65,11 @@ public abstract class CeilFunction extends Scalar<Number, Number> {
         }
     }
 
-    static class FloatCeilFunction extends CeilFunction {
+    private static class FloatCeilFunction extends CeilFunction {
 
         private static final FunctionInfo INFO = new FunctionInfo(
-            new FunctionIdent(NAME, ImmutableList.<DataType>of(DataTypes.FLOAT)), DataTypes.INTEGER, FunctionInfo.Type.SCALAR, true, true);
+            new FunctionIdent(NAME, ImmutableList.of(DataTypes.FLOAT)), DataTypes.INTEGER, FunctionInfo.Type.SCALAR,
+            FunctionInfo.ALL);
 
         @Override
         public Integer evaluate(Input[] args) {
@@ -84,12 +86,13 @@ public abstract class CeilFunction extends Scalar<Number, Number> {
         }
     }
 
-    static class NoopCeilFunction extends CeilFunction {
+    private static class NoopCeilFunction extends CeilFunction {
 
         private final FunctionInfo info;
 
         NoopCeilFunction(DataType type) {
-            info = new FunctionInfo(new FunctionIdent(NAME, ImmutableList.of(type)), type, FunctionInfo.Type.SCALAR, true, true);
+            info = new FunctionInfo(new FunctionIdent(NAME, ImmutableList.of(type)), type, FunctionInfo.Type.SCALAR,
+                FunctionInfo.ALL);
         }
 
         @Override

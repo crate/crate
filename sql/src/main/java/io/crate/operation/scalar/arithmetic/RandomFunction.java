@@ -30,7 +30,6 @@ import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
 import io.crate.operation.Input;
 import io.crate.operation.scalar.ScalarFunctionModule;
-import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 
 import java.util.Collections;
@@ -41,8 +40,8 @@ public class RandomFunction extends Scalar<Double, Void> {
     public static final String NAME = "random";
 
     protected final static FunctionInfo info = new FunctionInfo(
-        new FunctionIdent(NAME, Collections.<DataType>emptyList()), DataTypes.DOUBLE,
-        FunctionInfo.Type.SCALAR, false, false);
+        new FunctionIdent(NAME, Collections.emptyList()), DataTypes.DOUBLE,
+        FunctionInfo.Type.SCALAR, FunctionInfo.NO_FEATURES);
 
     private final Random random = new Random();
 

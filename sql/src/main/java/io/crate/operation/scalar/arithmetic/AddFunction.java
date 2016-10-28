@@ -55,9 +55,13 @@ public abstract class AddFunction extends ArithmeticFunction implements Operator
     public static Function of(Symbol first, Symbol second) {
         List<DataType> argumentTypes = Arrays.asList(first.valueType(), second.valueType());
         if (containsTypesWithDecimal(argumentTypes)) {
-            return new Function(genDoubleInfo(NAME, argumentTypes, true), Arrays.asList(first, second));
+            return new Function(
+                genDoubleInfo(NAME, argumentTypes, FunctionInfo.ALL),
+                Arrays.asList(first, second));
         }
-        return new Function(genLongInfo(NAME, argumentTypes, true), Arrays.asList(first, second));
+        return new Function(
+            genLongInfo(NAME, argumentTypes, FunctionInfo.ALL),
+            Arrays.asList(first, second));
     }
 
     private static class DoubleAddFunction extends AddFunction {
@@ -110,9 +114,9 @@ public abstract class AddFunction extends ArithmeticFunction implements Operator
         public FunctionImplementation<Function> getForTypes(List<DataType> dataTypes) throws IllegalArgumentException {
             validateTypes(dataTypes);
             if (containsTypesWithDecimal(dataTypes)) {
-                return new DoubleAddFunction(genDoubleInfo(NAME, dataTypes, true));
+                return new DoubleAddFunction(genDoubleInfo(NAME, dataTypes, FunctionInfo.ALL));
             }
-            return new LongAddFunction(genLongInfo(NAME, dataTypes, true));
+            return new LongAddFunction(genLongInfo(NAME, dataTypes, FunctionInfo.ALL));
         }
     }
 }

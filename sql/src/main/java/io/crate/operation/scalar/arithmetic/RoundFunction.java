@@ -47,7 +47,8 @@ public abstract class RoundFunction extends Scalar<Number, Number> {
     static class FloatRoundFunction extends RoundFunction {
 
         private final static FunctionInfo INFO = new FunctionInfo(
-            new FunctionIdent(NAME, ImmutableList.<DataType>of(DataTypes.FLOAT)), DataTypes.INTEGER, FunctionInfo.Type.SCALAR, true, true);
+            new FunctionIdent(NAME, ImmutableList.<DataType>of(DataTypes.FLOAT)), DataTypes.INTEGER, FunctionInfo.Type.SCALAR,
+            FunctionInfo.ALL);
 
         @Override
         public FunctionInfo info() {
@@ -67,7 +68,8 @@ public abstract class RoundFunction extends Scalar<Number, Number> {
     static class DoubleRoundFunction extends RoundFunction {
 
         private final static FunctionInfo INFO = new FunctionInfo(
-            new FunctionIdent(NAME, ImmutableList.<DataType>of(DataTypes.DOUBLE)), DataTypes.LONG, FunctionInfo.Type.SCALAR, true, true);
+            new FunctionIdent(NAME, ImmutableList.<DataType>of(DataTypes.DOUBLE)), DataTypes.LONG, FunctionInfo.Type.SCALAR,
+            FunctionInfo.ALL);
 
         @Override
         public FunctionInfo info() {
@@ -88,7 +90,8 @@ public abstract class RoundFunction extends Scalar<Number, Number> {
         private final FunctionInfo info;
 
         public NoopRoundFunction(DataType type) {
-            info = new FunctionInfo(new FunctionIdent(NAME, ImmutableList.of(type)), type, FunctionInfo.Type.SCALAR, true, true);
+            info = new FunctionInfo(new FunctionIdent(NAME, ImmutableList.of(type)), type, FunctionInfo.Type.SCALAR,
+                                    FunctionInfo.ALL);
         }
 
         @Override

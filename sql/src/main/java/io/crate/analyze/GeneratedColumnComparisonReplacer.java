@@ -134,7 +134,7 @@ public class GeneratedColumnComparisonReplacer {
                 Function generatedFunction = (Function) generatedReference.generatedExpression();
                 String operatorName = function.info().ident().name();
                 if (!operatorName.equals(EqOperator.NAME)) {
-                    if (!generatedFunction.info().comparisonReplacementPossible()) {
+                    if (!generatedFunction.info().features().contains(FunctionInfo.Feature.COMPARISON_REPLACEMENT)) {
                         return null;
                     }
                     // rewrite operator

@@ -48,7 +48,7 @@ public class DateTruncFunction extends Scalar<Long, Object> {
 
     public static final String NAME = "date_trunc";
 
-    protected static final ImmutableMap<BytesRef, DateTimeUnit> DATE_FIELD_PARSERS = MapBuilder.<BytesRef, DateTimeUnit>newMapBuilder()
+    private static final ImmutableMap<BytesRef, DateTimeUnit> DATE_FIELD_PARSERS = MapBuilder.<BytesRef, DateTimeUnit>newMapBuilder()
         // we only store timestamps in milliseconds since epoch.
         // therefore, we supporting 'milliseconds' and 'microseconds' wouldn't affect anything.
         .put(new BytesRef("year"), DateTimeUnit.YEAR_OF_CENTURY)
@@ -62,7 +62,7 @@ public class DateTruncFunction extends Scalar<Long, Object> {
         .immutableMap();
 
     public static void register(ScalarFunctionModule module) {
-        List<DataType> supportedTimestampTypes = ImmutableList.<DataType>of(
+        List<DataType> supportedTimestampTypes = ImmutableList.of(
             DataTypes.TIMESTAMP, DataTypes.LONG, DataTypes.STRING);
         for (DataType dataType : supportedTimestampTypes) {
             module.register(new DateTruncFunction(info(DataTypes.STRING, dataType)));
@@ -74,18 +74,18 @@ public class DateTruncFunction extends Scalar<Long, Object> {
     private static FunctionInfo info(DataType... types) {
         return new FunctionInfo(
             new FunctionIdent(NAME, Arrays.asList(types)),
-            DataTypes.TIMESTAMP, FunctionInfo.Type.SCALAR, true, true);
+            DataTypes.TIMESTAMP, FunctionInfo.Type.SCALAR, FunctionInfo.ALL);
     }
 
 
     private FunctionInfo info;
     private Rounding tzRounding;
 
-    public DateTruncFunction(FunctionInfo info) {
+    DateTruncFunction(FunctionInfo info) {
         this.info = info;
     }
 
-    public DateTruncFunction(FunctionInfo info, Rounding tzRounding) {
+    private DateTruncFunction(FunctionInfo info, Rounding tzRounding) {
         this(info);
         this.tzRounding = tzRounding;
     }
@@ -165,7 +165,7 @@ public class DateTruncFunction extends Scalar<Long, Object> {
         return truncate(tzRounding, TimestampType.INSTANCE.value(value));
     }
 
-    protected Rounding rounding(BytesRef interval, BytesRef timeZoneString) {
+    private Rounding rounding(BytesRef interval, BytesRef timeZoneString) {
         DateTimeUnit intervalAsUnit = intervalAsUnit(interval);
         DateTimeZone timeZone = TimeZoneParser.parseTimeZone(timeZoneString);
 
@@ -179,14 +179,14 @@ public class DateTruncFunction extends Scalar<Long, Object> {
      * Truncates given <code>timestamp</code> down to the given <code>interval</code>.
      * The <code>timestamp</code> is expected to be in milliseconds.
      */
-    protected Long truncate(Rounding rounding, Long ts) {
+    private Long truncate(Rounding rounding, Long ts) {
         if (ts == null) {
             return null;
         }
         return rounding.round(ts);
     }
 
-    protected DateTimeUnit intervalAsUnit(BytesRef interval) {
+    private DateTimeUnit intervalAsUnit(BytesRef interval) {
         if (interval == null) {
             throw new IllegalArgumentException(String.format(Locale.ENGLISH,
                 "invalid interval NULL for scalar '%s'", NAME));

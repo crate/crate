@@ -23,6 +23,7 @@ package io.crate.planner.projection.builder;
 
 import com.google.common.base.MoreObjects;
 import io.crate.analyze.symbol.*;
+import io.crate.metadata.FunctionInfo;
 import io.crate.types.DataType;
 import org.elasticsearch.common.inject.Singleton;
 
@@ -53,7 +54,8 @@ public class InputCreatingVisitor extends DefaultTraversalSymbolVisitor<InputCre
                 // results in poor performance of some scalar implementations
                 if (!input.symbolType().isValueSymbol()) {
                     DataType valueType = input.valueType();
-                    if (input.symbolType() == SymbolType.FUNCTION && !((Function) input).info().isDeterministic()) {
+                    if (input.symbolType() == SymbolType.FUNCTION
+                        && !((Function) input).info().features().contains(FunctionInfo.Feature.DETERMINISTIC)) {
                         nonDeterministicFunctions.put(input, new InputColumn(i, valueType));
                     } else {
                         this.inputs.put(input, new InputColumn(i, valueType));
@@ -77,7 +79,7 @@ public class InputCreatingVisitor extends DefaultTraversalSymbolVisitor<InputCre
     @Override
     public Symbol visitFunction(Function symbol, final Context context) {
         Symbol replacement;
-        if (symbol.info().isDeterministic()) {
+        if (symbol.info().features().contains(FunctionInfo.Feature.DETERMINISTIC)) {
             replacement = context.inputs.get(symbol);
         } else {
             replacement = context.nonDeterministicFunctions.get(symbol);
