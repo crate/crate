@@ -36,6 +36,7 @@ import io.crate.metadata.RowGranularity;
 import io.crate.operation.projectors.TopN;
 import io.crate.planner.Limits;
 import io.crate.planner.NoopPlan;
+import io.crate.planner.PositionalOrderBy;
 import io.crate.planner.Plan;
 import io.crate.planner.node.dql.CollectAndMerge;
 import io.crate.planner.node.dql.GroupByConsumer;
@@ -190,9 +191,7 @@ class ReduceOnCollectorGroupByConsumer implements Consumer {
                 localMerge = MergePhase.sortedMerge(
                     context.plannerContext().jobId(),
                     context.plannerContext().nextExecutionPhaseId(),
-                    querySpec.orderBy().get(),
-                    querySpec.outputs(),
-                    null,
+                    PositionalOrderBy.of(querySpec.orderBy().get(), querySpec.outputs()),
                     handlerProjections,
                     collectPhase.nodeIds().size(),
                     collectPhase.outputTypes()

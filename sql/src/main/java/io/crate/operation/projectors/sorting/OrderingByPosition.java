@@ -24,6 +24,7 @@ package io.crate.operation.projectors.sorting;
 import com.google.common.collect.Ordering;
 import io.crate.analyze.OrderBy;
 import io.crate.core.collections.Row;
+import io.crate.planner.PositionalOrderBy;
 import io.crate.planner.consumer.OrderByPositionVisitor;
 import io.crate.planner.node.dql.RoutedCollectPhase;
 
@@ -42,6 +43,10 @@ public abstract class OrderingByPosition<T> extends Ordering<T> {
             orderBy.reverseFlags(),
             orderBy.nullsFirst()
         );
+    }
+
+    public static Ordering<Row> rowOrdering(PositionalOrderBy orderBy) {
+        return rowOrdering(orderBy.indices(), orderBy.reverseFlags(), orderBy.nullsFirst());
     }
 
     public static Ordering<Row> rowOrdering(int[] positions, boolean[] reverseFlags, Boolean[] nullsFirst) {

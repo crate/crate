@@ -197,11 +197,9 @@ class NestedLoopConsumer implements Consumer {
                         context.plannerContext(),
                         nlExecutionNodes,
                         leftResultDesc.nodeIds().size(),
-                        left.querySpec().orderBy().orNull(),
-                        null,
-                        ImmutableList.<Projection>of(),
-                        left.querySpec().outputs(),
-                        null);
+                        PositionalOrderBy.of(left.querySpec().orderBy().orNull(), left.querySpec().outputs()),
+                        ImmutableList.of(),
+                        Symbols.extractTypes(left.querySpec().outputs()));
                 }
             }
             if (nlExecutionNodes.size() == 1
@@ -216,11 +214,10 @@ class NestedLoopConsumer implements Consumer {
                         context.plannerContext(),
                         nlExecutionNodes,
                         rightResultDesc.nodeIds().size(),
-                        right.querySpec().orderBy().orNull(),
-                        null,
-                        ImmutableList.<Projection>of(),
-                        right.querySpec().outputs(),
-                        null);
+                        PositionalOrderBy.of(right.querySpec().orderBy().orNull(), right.querySpec().outputs()),
+                        ImmutableList.of(),
+                        Symbols.extractTypes(right.querySpec().outputs())
+                    );
                 }
                 rightPlan.setDistributionInfo(DistributionInfo.DEFAULT_BROADCAST);
             }
@@ -292,11 +289,10 @@ class NestedLoopConsumer implements Consumer {
                         context.plannerContext(),
                         handlerNodes,
                         nl.nodeIds().size(),
-                        orderByBeforeSplit,
-                        null,
-                        ImmutableList.<Projection>of(),
-                        postNLOutputs,
-                        null);
+                        PositionalOrderBy.of(orderByBeforeSplit, postNLOutputs),
+                        ImmutableList.of(),
+                        Symbols.extractTypes(postNLOutputs)
+                    );
                 }
                 assert localMergePhase != null : "local merge phase must not be null";
                 TopNProjection finalTopN = ProjectionBuilder.topNProjection(

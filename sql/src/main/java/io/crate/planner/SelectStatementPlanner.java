@@ -172,9 +172,7 @@ class SelectStatementPlanner {
                 localMergePhase = MergePhase.sortedMerge(
                     context.jobId(),
                     context.nextExecutionPhaseId(),
-                    querySpec.orderBy().get(),
-                    collectPhase.toCollect(),
-                    null,
+                    PositionalOrderBy.of(querySpec.orderBy().get(), collectPhase.toCollect()),
                     ImmutableList.of(topN, fp),
                     collectPhase.nodeIds().size(),
                     collectPhase.outputTypes()

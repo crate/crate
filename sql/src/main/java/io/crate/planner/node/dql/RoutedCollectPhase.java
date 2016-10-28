@@ -55,12 +55,7 @@ import java.util.UUID;
  */
 public class RoutedCollectPhase extends AbstractProjectionsPhase implements CollectPhase {
 
-    public static final ExecutionPhaseFactory<RoutedCollectPhase> FACTORY = new ExecutionPhaseFactory<RoutedCollectPhase>() {
-        @Override
-        public RoutedCollectPhase create() {
-            return new RoutedCollectPhase();
-        }
-    };
+    public static final ExecutionPhaseFactory<RoutedCollectPhase> FACTORY = RoutedCollectPhase::new;
 
     private Routing routing;
     private List<Symbol> toCollect;
@@ -70,12 +65,11 @@ public class RoutedCollectPhase extends AbstractProjectionsPhase implements Coll
 
     private boolean isPartitioned = false;
 
-    private
     @Nullable
-    Integer nodePageSizeHint = null;
-    private
+    private Integer nodePageSizeHint = null;
+
     @Nullable
-    OrderBy orderBy = null;
+    private OrderBy orderBy = null;
 
     protected RoutedCollectPhase() {
         super();
@@ -195,9 +189,8 @@ public class RoutedCollectPhase extends AbstractProjectionsPhase implements Coll
         return Paging.getWeightedPageSize(nodePageSizeHint, 1.0d / Math.max(1, routing.numShards(nodeId)));
     }
 
-    public
     @Nullable
-    OrderBy orderBy() {
+    public OrderBy orderBy() {
         return orderBy;
     }
 

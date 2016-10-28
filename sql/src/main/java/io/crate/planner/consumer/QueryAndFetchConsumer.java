@@ -39,6 +39,7 @@ import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.exceptions.VersionInvalidException;
 import io.crate.operation.predicate.MatchPredicate;
 import io.crate.planner.Limits;
+import io.crate.planner.PositionalOrderBy;
 import io.crate.planner.Plan;
 import io.crate.planner.Planner;
 import io.crate.planner.node.dql.CollectAndMerge;
@@ -142,7 +143,7 @@ public class QueryAndFetchConsumer implements Consumer {
                 if (limits.hasLimit()) {
                     TopNProjection topNProjection = new TopNProjection(limits.limitAndOffset(), 0);
                     topNProjection.outputs(allOutputs);
-                    projections = ImmutableList.<Projection>of(topNProjection);
+                    projections = ImmutableList.of(topNProjection);
                     nodePageSizeHint = limits.limitAndOffset();
                 }
                 collectPhase = RoutedCollectPhase.forQueriedTable(
@@ -163,12 +164,10 @@ public class QueryAndFetchConsumer implements Consumer {
                     }};
                     mergeNode = MergePhase.mergePhase(
                         context.plannerContext(),
-                        ImmutableSet.<String>of(),
+                        ImmutableSet.of(),
                         collectPhase.nodeIds().size(),
-                        orderBy.orNull(),
-                        orderBy.isPresent() ? InputColumn.fromSymbols(orderBy.get().orderBySymbols(), toCollect) : null,
+                        PositionalOrderBy.of(orderBy.orNull(), toCollect),
                         mergeProjections,
-                        allOutputs,
                         collectPhase.outputTypes());
                 }
             } else {
@@ -176,13 +175,13 @@ public class QueryAndFetchConsumer implements Consumer {
                     plannerContext,
                     table,
                     outputSymbols,
-                    ImmutableList.<Projection>of()
+                    ImmutableList.of()
                 );
                 if (context.isRoot()) {
                     mergeNode = MergePhase.localMerge(
                         plannerContext.jobId(),
                         plannerContext.nextExecutionPhaseId(),
-                        ImmutableList.<Projection>of(),
+                        ImmutableList.of(),
                         collectPhase.nodeIds().size(),
                         collectPhase.outputTypes()
                     );

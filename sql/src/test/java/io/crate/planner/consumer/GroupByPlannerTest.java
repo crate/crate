@@ -27,6 +27,7 @@ import io.crate.analyze.symbol.*;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RowGranularity;
 import io.crate.operation.aggregation.impl.CountAggregation;
+import io.crate.planner.PositionalOrderBy;
 import io.crate.planner.node.dql.CollectAndMerge;
 import io.crate.planner.node.dql.DistributedGroupBy;
 import io.crate.planner.node.dql.MergePhase;
@@ -190,11 +191,13 @@ public class GroupByPlannerTest extends CrateUnitTest {
         assertThat(mergeNode.projections().size(), is(1));
         TopNProjection projection = (TopNProjection) mergeNode.projections().get(0);
         assertThat(projection.orderBy(), is(nullValue()));
-        assertThat(mergeNode.sortedInputOutput(), is(true));
-        assertThat(mergeNode.orderByIndices().length, is(1));
-        assertThat(mergeNode.orderByIndices()[0], is(0));
-        assertThat(mergeNode.reverseFlags()[0], is(true));
-        assertThat(mergeNode.nullsFirst()[0], is(false));
+
+        PositionalOrderBy positionalOrderBy = mergeNode.orderByPositions();
+        assertThat(positionalOrderBy, notNullValue());
+        assertThat(positionalOrderBy.indices().length, is(1));
+        assertThat(positionalOrderBy.indices()[0], is(0));
+        assertThat(positionalOrderBy.reverseFlags()[0], is(true));
+        assertThat(positionalOrderBy.nullsFirst()[0], is(false));
     }
 
     @Test
@@ -211,11 +214,13 @@ public class GroupByPlannerTest extends CrateUnitTest {
         assertThat(mergeNode.projections().size(), is(1));
         TopNProjection projection = (TopNProjection) mergeNode.projections().get(0);
         assertThat(projection.orderBy(), is(nullValue()));
-        assertThat(mergeNode.sortedInputOutput(), is(true));
-        assertThat(mergeNode.orderByIndices().length, is(1));
-        assertThat(mergeNode.orderByIndices()[0], is(0));
-        assertThat(mergeNode.reverseFlags()[0], is(false));
-        assertThat(mergeNode.nullsFirst()[0], is(nullValue()));
+
+        PositionalOrderBy positionalOrderBy = mergeNode.orderByPositions();
+        assertThat(positionalOrderBy, notNullValue());
+        assertThat(positionalOrderBy.indices().length, is(1));
+        assertThat(positionalOrderBy.indices()[0], is(0));
+        assertThat(positionalOrderBy.reverseFlags()[0], is(false));
+        assertThat(positionalOrderBy.nullsFirst()[0], nullValue());
     }
 
     @Test

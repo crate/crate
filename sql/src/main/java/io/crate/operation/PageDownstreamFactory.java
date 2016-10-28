@@ -37,6 +37,7 @@ import io.crate.operation.projectors.ProjectionToProjectorVisitor;
 import io.crate.operation.projectors.ProjectorFactory;
 import io.crate.operation.projectors.RowReceiver;
 import io.crate.operation.projectors.sorting.OrderingByPosition;
+import io.crate.planner.PositionalOrderBy;
 import io.crate.planner.node.dql.MergePhase;
 import org.elasticsearch.action.bulk.BulkRetryCoordinatorPool;
 import org.elasticsearch.cluster.ClusterService;
@@ -99,13 +100,10 @@ public class PageDownstreamFactory {
         }
 
         PagingIterator<Void, Row> pagingIterator;
-        if (mergeNode.sortedInputOutput() && mergeNode.numUpstreams() > 1) {
+        PositionalOrderBy positionalOrderBy = mergeNode.orderByPositions();
+        if (positionalOrderBy != null && mergeNode.numUpstreams() > 1) {
             pagingIterator = new SortedPagingIterator<>(
-                OrderingByPosition.rowOrdering(
-                    mergeNode.orderByIndices(),
-                    mergeNode.reverseFlags(),
-                    mergeNode.nullsFirst()
-                ),
+                OrderingByPosition.rowOrdering(positionalOrderBy),
                 requiresRepeatSupport
             );
         } else {

@@ -25,12 +25,10 @@ import com.google.common.base.MoreObjects;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
-import io.crate.analyze.OrderBy;
-import io.crate.analyze.symbol.Symbol;
 import io.crate.analyze.symbol.Symbols;
+import io.crate.planner.PositionalOrderBy;
 import io.crate.planner.Planner;
 import io.crate.planner.ResultDescription;
-import io.crate.planner.consumer.OrderByPositionVisitor;
 import io.crate.planner.distribution.DistributionInfo;
 import io.crate.planner.distribution.UpstreamPhase;
 import io.crate.planner.node.ExecutionPhaseVisitor;
@@ -49,12 +47,7 @@ import java.util.*;
  */
 public class MergePhase extends AbstractProjectionsPhase implements UpstreamPhase, ResultDescription {
 
-    public static final ExecutionPhaseFactory<MergePhase> FACTORY = new ExecutionPhaseFactory<MergePhase>() {
-        @Override
-        public MergePhase create() {
-            return new MergePhase();
-        }
-    };
+    public static final ExecutionPhaseFactory<MergePhase> FACTORY = MergePhase::new;
 
     private Collection<? extends DataType> inputTypes;
     private int numUpstreams;
@@ -64,10 +57,7 @@ public class MergePhase extends AbstractProjectionsPhase implements UpstreamPhas
     /**
      * expects sorted input and produces sorted output
      */
-    private boolean sortedInputOutput = false;
-    private int[] orderByIndices;
-    private boolean[] reverseFlags;
-    private Boolean[] nullsFirst;
+    @Nullable private PositionalOrderBy positionalOrderBy;
 
     private MergePhase() {
     }
@@ -109,20 +99,10 @@ public class MergePhase extends AbstractProjectionsPhase implements UpstreamPhas
 
     public static MergePhase sortedMerge(UUID jobId,
                                          int executionPhaseId,
-                                         OrderBy orderBy,
-                                         List<? extends Symbol> sourceSymbols,
-                                         @Nullable List<? extends Symbol> orderBySymbolOverwrite,
+                                         PositionalOrderBy orderBy,
                                          List<Projection> projections,
                                          int numUpstreams,
                                          Collection<? extends DataType> inputTypes) {
-
-        int[] orderByIndices = OrderByPositionVisitor.orderByPositions(
-            MoreObjects.firstNonNull(orderBySymbolOverwrite, orderBy.orderBySymbols()),
-            sourceSymbols
-        );
-        assert orderBy.reverseFlags().length == orderByIndices.length :
-            "length of reverseFlags and orderByIndices must match";
-
         MergePhase mergeNode = new MergePhase(
             jobId,
             executionPhaseId,
@@ -132,46 +112,33 @@ public class MergePhase extends AbstractProjectionsPhase implements UpstreamPhas
             projections,
             DistributionInfo.DEFAULT_SAME_NODE
         );
-        mergeNode.sortedInputOutput = true;
-        mergeNode.orderByIndices = orderByIndices;
-        mergeNode.reverseFlags = orderBy.reverseFlags();
-        mergeNode.nullsFirst = orderBy.nullsFirst();
+        mergeNode.positionalOrderBy = orderBy;
         return mergeNode;
     }
 
-    /**
-     * @param orderBySymbols Can be used to override orderBySymbols of {@param orderBy}
-     * @param inputTypes Can be used if available to avoid extracting them again from {@param inputs}
-     */
-    @Nullable
     public static MergePhase mergePhase(Planner.Context plannerContext,
                                         Collection<String> executionNodes,
                                         int upstreamPhaseExecutionNodesSize,
-                                        @Nullable OrderBy orderBy,
-                                        @Nullable List<? extends Symbol> orderBySymbols,
+                                        @Nullable PositionalOrderBy orderBy,
                                         List<Projection> projections,
-                                        List<Symbol> inputs,
-                                        @Nullable List<DataType> inputTypes) {
+                                        List<DataType> inputTypes) {
         MergePhase mergePhase;
         if (orderBy != null) {
             mergePhase = MergePhase.sortedMerge(
                 plannerContext.jobId(),
                 plannerContext.nextExecutionPhaseId(),
                 orderBy,
-                inputs,
-                orderBySymbols != null ? orderBySymbols : orderBy.orderBySymbols(),
                 projections,
                 upstreamPhaseExecutionNodesSize,
-                inputTypes != null ? inputTypes : Symbols.extractTypes(inputs)
+                inputTypes
             );
         } else {
-            // no sorting needed
             mergePhase = MergePhase.localMerge(
                 plannerContext.jobId(),
                 plannerContext.nextExecutionPhaseId(),
                 projections,
                 upstreamPhaseExecutionNodesSize,
-                inputTypes != null ? inputTypes : Symbols.extractTypes(inputs)
+                inputTypes
             );
         }
         mergePhase.executionNodes(executionNodes);
@@ -214,23 +181,9 @@ public class MergePhase extends AbstractProjectionsPhase implements UpstreamPhas
         return inputTypes;
     }
 
-    public boolean sortedInputOutput() {
-        return sortedInputOutput;
-    }
-
     @Nullable
-    public int[] orderByIndices() {
-        return orderByIndices;
-    }
-
-    @Nullable
-    public boolean[] reverseFlags() {
-        return reverseFlags;
-    }
-
-    @Nullable
-    public Boolean[] nullsFirst() {
-        return nullsFirst;
+    public PositionalOrderBy orderByPositions() {
+        return positionalOrderBy;
     }
 
     @Override
@@ -261,17 +214,8 @@ public class MergePhase extends AbstractProjectionsPhase implements UpstreamPhas
             }
         }
 
-        sortedInputOutput = in.readBoolean();
-        if (sortedInputOutput) {
-            int orderByIndicesLength = in.readVInt();
-            orderByIndices = new int[orderByIndicesLength];
-            reverseFlags = new boolean[orderByIndicesLength];
-            nullsFirst = new Boolean[orderByIndicesLength];
-            for (int i = 0; i < orderByIndicesLength; i++) {
-                orderByIndices[i] = in.readVInt();
-                reverseFlags[i] = in.readBoolean();
-                nullsFirst[i] = in.readOptionalBoolean();
-            }
+        if (in.readBoolean()) {
+            positionalOrderBy = PositionalOrderBy.fromStream(in);
         }
     }
 
@@ -296,14 +240,10 @@ public class MergePhase extends AbstractProjectionsPhase implements UpstreamPhas
             }
         }
 
-        out.writeBoolean(sortedInputOutput);
-        if (sortedInputOutput) {
-            out.writeVInt(orderByIndices.length);
-            for (int i = 0; i < orderByIndices.length; i++) {
-                out.writeVInt(orderByIndices[i]);
-                out.writeBoolean(reverseFlags[i]);
-                out.writeOptionalBoolean(nullsFirst[i]);
-            }
+        boolean hasOrderByPositions = positionalOrderBy != null;
+        out.writeBoolean(hasOrderByPositions);
+        if (hasOrderByPositions) {
+            positionalOrderBy.toStream(out);
         }
     }
 
@@ -318,12 +258,7 @@ public class MergePhase extends AbstractProjectionsPhase implements UpstreamPhas
             .add("numUpstreams", numUpstreams)
             .add("nodeOperations", executionNodes)
             .add("inputTypes", inputTypes)
-            .add("sortedInputOutput", sortedInputOutput);
-        if (sortedInputOutput) {
-            helper.add("orderByIndices", Arrays.toString(orderByIndices))
-                .add("reverseFlags", Arrays.toString(reverseFlags))
-                .add("nullsFirst", Arrays.toString(nullsFirst));
-        }
+            .add("orderBy", positionalOrderBy);
         return helper.toString();
     }
 }
