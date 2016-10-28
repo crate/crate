@@ -24,7 +24,6 @@ package io.crate.executor.transport;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Sets;
 import io.crate.analyze.WhereClause;
-import io.crate.analyze.symbol.Symbol;
 import io.crate.core.collections.TreeMapBuilder;
 import io.crate.metadata.Routing;
 import io.crate.metadata.RowGranularity;
@@ -34,8 +33,6 @@ import io.crate.planner.node.ExecutionPhase;
 import io.crate.planner.node.NodeOperationGrouper;
 import io.crate.planner.node.dql.MergePhase;
 import io.crate.planner.node.dql.RoutedCollectPhase;
-import io.crate.planner.projection.Projection;
-import io.crate.types.DataType;
 import org.hamcrest.Matchers;
 import org.junit.Test;
 
@@ -61,16 +58,36 @@ public class ExecutionPhasesTaskTest {
             "c1",
             twoNodeRouting,
             RowGranularity.DOC,
-            ImmutableList.<Symbol>of(),
-            ImmutableList.<Projection>of(),
+            ImmutableList.of(),
+            ImmutableList.of(),
             WhereClause.MATCH_ALL,
             DistributionInfo.DEFAULT_BROADCAST
         );
 
-        MergePhase m1 = new MergePhase(jobId, 2, "merge1", 2, ImmutableList.<DataType>of(), ImmutableList.<Projection>of(), DistributionInfo.DEFAULT_BROADCAST);
+        MergePhase m1 = new MergePhase(
+            jobId,
+            2,
+            "merge1",
+            2,
+            Collections.emptyList(),
+            ImmutableList.of(),
+            ImmutableList.of(),
+            DistributionInfo.DEFAULT_BROADCAST,
+            null
+        );
         m1.executionNodes(Sets.newHashSet("node3", "node4"));
 
-        MergePhase m2 = new MergePhase(jobId, 3, "merge2", 2, ImmutableList.<DataType>of(), ImmutableList.<Projection>of(), DistributionInfo.DEFAULT_BROADCAST);
+        MergePhase m2 = new MergePhase(
+            jobId,
+            3,
+            "merge2",
+            2,
+            Collections.emptyList(),
+            ImmutableList.of(),
+            ImmutableList.of(),
+            DistributionInfo.DEFAULT_BROADCAST,
+            null
+        );
         m2.executionNodes(Sets.newHashSet("node1", "node3"));
 
 

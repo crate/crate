@@ -285,8 +285,8 @@ public abstract class SQLTransportIntegrationTest extends ESIntegTestCase {
     }
 
     public static class PlanForNode {
-        private final Plan plan;
-        private final String nodeName;
+        final Plan plan;
+        final String nodeName;
 
         private PlanForNode(Plan plan, String nodeName) {
             this.plan = plan;

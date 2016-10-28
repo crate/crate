@@ -24,9 +24,12 @@ package io.crate.planner.projection;
 import com.google.common.base.Function;
 import com.google.common.base.MoreObjects;
 import com.google.common.collect.ImmutableList;
+import io.crate.analyze.symbol.InputColumn;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.analyze.symbol.Symbols;
 import io.crate.collections.Lists2;
+import io.crate.operation.projectors.TopN;
+import io.crate.types.DataType;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
@@ -218,5 +221,22 @@ public class TopNProjection extends Projection {
                ", reverseFlags=" + Arrays.toString(reverseFlags) +
                ", nullsFirst=" + Arrays.toString(nullsFirst) +
                '}';
+    }
+
+    @Nullable
+    public static TopNProjection createIfNeeded(Integer limit,
+                                                int offset,
+                                                int numOutputs,
+                                                List<DataType> inputTypes) {
+        if (limit == null) {
+            limit = TopN.NO_LIMIT;
+        }
+        if (limit == TopN.NO_LIMIT && offset == 0 && numOutputs >= inputTypes.size()) {
+            return null;
+        }
+        if (numOutputs < inputTypes.size()) {
+            inputTypes = inputTypes.subList(0, numOutputs);
+        }
+        return new TopNProjection(limit, offset, InputColumn.fromTypes(inputTypes));
     }
 }

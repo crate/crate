@@ -288,6 +288,8 @@ class Messages {
      */
     static void sendDataRow(Channel channel, Row row, List<? extends DataType> columnTypes, @Nullable FormatCodes.FormatCode[] formatCodes) {
         int length = 4 + 2;
+        assert columnTypes.size() == row.size()
+            : "Number of columns in the row must match number of columnTypes. Row: " + row + " types: " + columnTypes;
 
         ChannelBuffer buffer = ChannelBuffers.dynamicBuffer();
         buffer.writeByte('D');

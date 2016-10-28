@@ -24,7 +24,6 @@ package io.crate.planner.node.dml;
 import io.crate.planner.Plan;
 import io.crate.planner.PlanVisitor;
 import io.crate.planner.UnnestablePlan;
-import io.crate.planner.projection.Projection;
 
 import java.util.List;
 import java.util.UUID;
@@ -51,10 +50,5 @@ public class Upsert extends UnnestablePlan {
     @Override
     public UUID jobId() {
         return id;
-    }
-
-    @Override
-    public void addProjection(Projection projection) {
-        throw new UnsupportedOperationException("adding projection not supported");
     }
 }

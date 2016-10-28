@@ -23,39 +23,16 @@ package io.crate.planner.node.dml;
 
 import io.crate.analyze.symbol.Symbol;
 import io.crate.metadata.Reference;
-import io.crate.planner.Plan;
 import io.crate.planner.PlanVisitor;
-import io.crate.planner.ResultDescription;
-import io.crate.planner.distribution.DistributionInfo;
-import io.crate.planner.projection.Projection;
+import io.crate.planner.UnnestablePlan;
 import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.lucene.uid.Versions;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.UUID;
 
-public class UpsertById implements Plan {
-
-    private final static ResultDescription HANDLER_ROW_COUNT = new ResultDescription() {
-        @Override
-        public Collection<String> nodeIds() {
-            return Collections.emptyList();
-        }
-    };
-
-    @Override
-    public void addProjection(Projection projection) {
-        throw new UnsupportedOperationException("Adding a projection to upsertById is not supported");
-    }
-
-    @Override
-    public ResultDescription resultDescription() {
-        return HANDLER_ROW_COUNT;
-    }
-
-    @Override
-    public void setDistributionInfo(DistributionInfo distributionInfo) {
-        throw new UnsupportedOperationException("Cannot set distributionInfo on UpsertById plan");
-    }
+public class UpsertById extends UnnestablePlan {
 
     /**
      * A single update item.

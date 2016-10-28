@@ -29,8 +29,8 @@ import io.crate.operation.scalar.arithmetic.AddFunction;
 
 public class Limits {
 
-    final int finalLimit;
-    final int limitAndOffset;
+    private final int finalLimit;
+    private final int limitAndOffset;
     private final int offset;
 
     Limits(int finalLimit, int offset) {

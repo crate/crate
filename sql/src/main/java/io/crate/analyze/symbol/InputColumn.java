@@ -137,4 +137,12 @@ public class InputColumn extends Symbol implements Comparable<InputColumn> {
     public int hashCode() {
         return index;
     }
+
+    public static List<Symbol> fromTypes(List<DataType> dataTypes) {
+        List<Symbol> inputColumns = new ArrayList<>(dataTypes.size());
+        for (int i = 0; i < dataTypes.size(); i++) {
+            inputColumns.add(new InputColumn(i, dataTypes.get(i)));
+        }
+        return inputColumns;
+    }
 }

@@ -70,10 +70,16 @@ public class MergeNodeTest extends CrateUnitTest {
 
         List<Projection> projections = Arrays.asList(groupProjection, topNProjection);
         MergePhase node = new MergePhase(
-            UUID.randomUUID(), 0, "merge", 2,
+            UUID.randomUUID(),
+            0,
+            "merge",
+            2,
+            Collections.emptyList(),
             Arrays.<DataType>asList(DataTypes.UNDEFINED, DataTypes.STRING),
             projections,
-            DistributionInfo.DEFAULT_BROADCAST);
+            DistributionInfo.DEFAULT_BROADCAST,
+            null
+        );
         node.executionNodes(Sets.newHashSet("node1", "node2"));
 
         BytesStreamOutput output = new BytesStreamOutput();

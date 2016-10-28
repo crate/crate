@@ -35,7 +35,7 @@ class CopyFromPlannerTest extends AbstractPlannerTest {
 
     @Test
     public void testCopyFromPlan() throws Exception {
-        Collect plan = (Collect) ((Merge) plan("copy users from '/path/to/file.extension'")).subPlan();
+        Collect plan =  plan("copy users from '/path/to/file.extension'");
         assert plan.collectPhase() instanceof FileUriCollectPhase;
 
         FileUriCollectPhase collectPhase = (FileUriCollectPhase)plan.collectPhase();
@@ -44,7 +44,7 @@ class CopyFromPlannerTest extends AbstractPlannerTest {
 
     @Test
     public void testCopyFromNumReadersSetting() throws Exception {
-        Collect plan = (Collect) ((Merge) plan("copy users from '/path/to/file.extension' with (num_readers=1)")).subPlan();
+        Collect plan = plan("copy users from '/path/to/file.extension' with (num_readers=1)");
         assert plan.collectPhase() instanceof FileUriCollectPhase
         FileUriCollectPhase collectPhase = (FileUriCollectPhase) plan.collectPhase();
         assert collectPhase.nodeIds().size() == 1
@@ -52,8 +52,8 @@ class CopyFromPlannerTest extends AbstractPlannerTest {
 
     @Test
     public void testCopyFromPlanWithParameters() throws Exception {
-        Collect collect = (Collect) ((Merge) plan("copy users " +
-                "from '/path/to/file.ext' with (bulk_size=30, compression='gzip', shared=true)")).subPlan();
+        Collect collect = plan("copy users " +
+                "from '/path/to/file.ext' with (bulk_size=30, compression='gzip', shared=true)");
         assert collect.collectPhase() instanceof FileUriCollectPhase
         FileUriCollectPhase collectPhase = (FileUriCollectPhase)collect.collectPhase();
         SourceIndexWriterProjection indexWriterProjection = (SourceIndexWriterProjection) collectPhase.projections().get(0);
@@ -62,7 +62,7 @@ class CopyFromPlannerTest extends AbstractPlannerTest {
         assert collectPhase.sharedStorage()
 
         // verify defaults:
-        collect = (Collect) ((Merge) plan("copy users from '/path/to/file.ext'")).subPlan();
+        collect = plan("copy users from '/path/to/file.ext'");
         collectPhase = (FileUriCollectPhase)collect.collectPhase();
         assert collectPhase.compression() == null;
         assert collectPhase.sharedStorage() == null;
@@ -70,11 +70,11 @@ class CopyFromPlannerTest extends AbstractPlannerTest {
 
     @Test
     public void test_IdIsNotCollectedOrUsedAsClusteredBy() throws Exception {
-        Collect collectAndMerge = (Collect) ((Merge) plan("copy t1 from '/path/file.ext'")).subPlan();
+        Collect collect = (Collect) plan("copy t1 from '/path/file.ext'");
         SourceIndexWriterProjection projection =
-                (SourceIndexWriterProjection) collectAndMerge.collectPhase().projections().get(0);
+                (SourceIndexWriterProjection) collect.collectPhase().projections().get(0);
         assert projection.clusteredBy() == null;
-        assert collectAndMerge.collectPhase().toCollect() == [T3.T1_INFO.getReference(DocSysColumns.RAW)]
+        assert collect.collectPhase().toCollect() == [T3.T1_INFO.getReference(DocSysColumns.RAW)]
     }
 
     @Test (expected = IllegalArgumentException.class)
@@ -84,7 +84,7 @@ class CopyFromPlannerTest extends AbstractPlannerTest {
 
     @Test
     public void testNodeFiltersNoMatch() throws Exception {
-        Collect cm = (Collect) ((Merge) plan("copy users from '/path' with (node_filters={name='foobar'})")).subPlan();
+        Collect cm = (Collect) plan("copy users from '/path' with (node_filters={name='foobar'})");
         assert cm.collectPhase().nodeIds() == []
     }
 }

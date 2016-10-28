@@ -23,9 +23,11 @@ package io.crate.planner.projection.builder;
 
 import com.google.common.collect.ImmutableList;
 import io.crate.analyze.OrderBy;
+import io.crate.analyze.QueryClause;
 import io.crate.analyze.QuerySpec;
 import io.crate.analyze.symbol.Aggregation;
 import io.crate.analyze.symbol.Function;
+import io.crate.analyze.symbol.Literal;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.FunctionInfo;
@@ -115,9 +117,16 @@ public class ProjectionBuilder {
         return aggregations;
     }
 
-    public static FilterProjection filterProjection(Collection<? extends Symbol> inputs, Symbol query) {
+    public static FilterProjection filterProjection(Collection<? extends Symbol> inputs, QueryClause queryClause) {
         InputCreatingVisitor.Context context = new InputCreatingVisitor.Context(inputs);
-        query = inputVisitor.process(query, context);
+        Symbol query;
+        if (queryClause.hasQuery()) {
+            query = inputVisitor.process(queryClause.query(), context);
+        } else if (queryClause.noMatch()) {
+            query = Literal.BOOLEAN_FALSE;
+        } else {
+            query = Literal.BOOLEAN_TRUE;
+        }
         List<Symbol> outputs = inputVisitor.process(inputs, context);
         return new FilterProjection(query, outputs);
     }

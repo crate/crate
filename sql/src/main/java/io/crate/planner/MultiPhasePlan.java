@@ -26,6 +26,7 @@ import io.crate.analyze.symbol.SelectSymbol;
 import io.crate.planner.distribution.DistributionInfo;
 import io.crate.planner.projection.Projection;
 
+import javax.annotation.Nullable;
 import java.util.Map;
 import java.util.UUID;
 
@@ -78,8 +79,12 @@ public class MultiPhasePlan implements Plan {
     }
 
     @Override
-    public void addProjection(Projection projection) {
-        rootPlan.addProjection(projection);
+    public void addProjection(Projection projection,
+                              @Nullable Integer newLimit,
+                              @Nullable Integer newOffset,
+                              @Nullable Integer newNumOutputs,
+                              @Nullable PositionalOrderBy newOrderBy) {
+        rootPlan.addProjection(projection, newLimit, newOffset, newNumOutputs, newOrderBy);
     }
 
     @Override

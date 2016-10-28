@@ -21,20 +21,47 @@
 
 package io.crate.planner.node.dql;
 
+import io.crate.analyze.symbol.Symbols;
 import io.crate.planner.Plan;
 import io.crate.planner.PlanVisitor;
+import io.crate.planner.PositionalOrderBy;
 import io.crate.planner.ResultDescription;
 import io.crate.planner.distribution.DistributionInfo;
 import io.crate.planner.projection.Projection;
+import io.crate.types.DataType;
 
+import javax.annotation.Nullable;
+import java.util.Collection;
+import java.util.List;
 import java.util.UUID;
 
-public class Collect implements Plan {
+public class Collect implements Plan, ResultDescription {
 
     private final CollectPhase collectPhase;
 
-    public Collect(CollectPhase collectPhase) {
+    private int limit;
+
+    private int offset;
+
+    private int numOutputs;
+
+    private final int maxRowsPerNode;
+
+    @Nullable
+    private PositionalOrderBy orderBy;
+
+    public Collect(CollectPhase collectPhase,
+                   int limit,
+                   int offset,
+                   int numOutputs,
+                   int maxRowsPerNode,
+                   @Nullable PositionalOrderBy orderBy) {
         this.collectPhase = collectPhase;
+        this.limit = limit;
+        this.offset = offset;
+        this.numOutputs = numOutputs;
+        this.maxRowsPerNode = maxRowsPerNode;
+        this.orderBy = orderBy;
     }
 
     public CollectPhase collectPhase() {
@@ -52,17 +79,74 @@ public class Collect implements Plan {
     }
 
     @Override
-    public void addProjection(Projection projection) {
+    public void addProjection(Projection projection,
+                              @Nullable Integer newLimit,
+                              @Nullable Integer newOffset,
+                              @Nullable Integer newNumOutputs,
+                              @Nullable PositionalOrderBy newOrderBy) {
         collectPhase.addProjection(projection);
+        if (newLimit != null) {
+            limit = newLimit;
+        }
+        if (newOffset != null) {
+            offset = newOffset;
+        }
+        if (newOrderBy != null) {
+            orderBy = newOrderBy;
+        }
+        if (newNumOutputs != null) {
+            numOutputs = newNumOutputs;
+        }
     }
 
     @Override
     public ResultDescription resultDescription() {
-        return collectPhase;
+        return this;
     }
 
     @Override
     public void setDistributionInfo(DistributionInfo distributionInfo) {
         collectPhase.distributionInfo(distributionInfo);
+    }
+
+    @Override
+    public Collection<String> nodeIds() {
+        return collectPhase.nodeIds();
+    }
+
+    @Nullable
+    @Override
+    public PositionalOrderBy orderBy() {
+        return orderBy;
+    }
+
+    @Override
+    public int limit() {
+        return limit;
+    }
+
+    @Override
+    public int maxRowsPerNode() {
+        return maxRowsPerNode;
+    }
+
+    @Override
+    public int offset() {
+        return offset;
+    }
+
+    @Override
+    public int numOutputs() {
+        return numOutputs;
+    }
+
+    @Override
+    public List<DataType> streamOutputs() {
+        List<Projection> projections = collectPhase.projections();
+        if (projections.isEmpty()) {
+            return Symbols.extractTypes(collectPhase.toCollect());
+        }
+        Projection lastProjection = projections.get(projections.size() - 1);
+        return Symbols.extractTypes(lastProjection.outputs());
     }
 }

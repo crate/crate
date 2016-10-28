@@ -35,7 +35,6 @@ import io.crate.metadata.table.TestingTableInfo;
 import io.crate.operation.projectors.TopN;
 import io.crate.planner.*;
 import io.crate.planner.distribution.DistributionType;
-import io.crate.planner.distribution.UpstreamPhase;
 import io.crate.planner.node.dql.*;
 import io.crate.planner.node.dql.join.NestedLoop;
 import io.crate.planner.node.dql.join.NestedLoopPhase;
@@ -175,14 +174,9 @@ public class NestedLoopConsumerTest extends CrateUnitTest {
 
         MergePhase localMergePhase = merge.mergePhase();
         assertThat(localMergePhase.projections(),
-            Matchers.contains(instanceOf(TopNProjection.class), instanceOf(FetchProjection.class)));
+            Matchers.contains(instanceOf(FetchProjection.class)));
 
-        TopNProjection finalTopN = ((TopNProjection) localMergePhase.projections().get(0));
-        assertThat(finalTopN.limit(), is(TopN.NO_LIMIT));
-        assertThat(finalTopN.offset(), is(0));
-        assertThat(finalTopN.outputs().size(), is(3));
-
-        FetchProjection fetchProjection = (FetchProjection) localMergePhase.projections().get(1);
+        FetchProjection fetchProjection = (FetchProjection) localMergePhase.projections().get(0);
         assertThat(fetchProjection.outputs(), isSQL("FETCH(INPUT(0), doc.users._doc['floats']), INPUT(2)"));
     }
 
@@ -192,8 +186,8 @@ public class NestedLoopConsumerTest extends CrateUnitTest {
                            "where users.name = u2.name " +
                            "order by users.name, u2.name ");
         NestedLoop nl = (NestedLoop) merge.subPlan();
-        ResultDescription resultDescription = nl.left().resultDescription();
-        assertThat(((UpstreamPhase) resultDescription).distributionInfo().distributionType(), is(DistributionType.BROADCAST));
+        Collect collect = (Collect) nl.left();
+        assertThat(collect.collectPhase().distributionInfo().distributionType(), is(DistributionType.BROADCAST));
     }
 
 
@@ -242,7 +236,7 @@ public class NestedLoopConsumerTest extends CrateUnitTest {
 
         NestedLoop plan = plan("select u1.name, u2.name from users u1, users u2 order by u1.name, u2.name");
 
-        assertThat(plan.left().resultDescription(), instanceOf(RoutedCollectPhase.class));
+        assertThat(plan.left().resultDescription(), instanceOf(Collect.class));
         Collect leftPlan = (Collect) plan.left();
         CollectPhase collectPhase = leftPlan.collectPhase();
         assertThat(collectPhase.projections().size(), is(0));

@@ -35,6 +35,7 @@ import io.crate.metadata.Routing;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.TableInfo;
+import io.crate.operation.projectors.TopN;
 import io.crate.planner.Merge;
 import io.crate.planner.NoopPlan;
 import io.crate.planner.Plan;
@@ -44,7 +45,6 @@ import io.crate.planner.node.ddl.ESDeletePartition;
 import io.crate.planner.node.dml.Delete;
 import io.crate.planner.node.dml.ESDelete;
 import io.crate.planner.node.dql.Collect;
-import io.crate.planner.node.dql.MergePhase;
 import io.crate.planner.node.dql.RoutedCollectPhase;
 import io.crate.planner.projection.DeleteProjection;
 import io.crate.planner.projection.MergeCountProjection;
@@ -141,13 +141,7 @@ public final class DeleteStatementPlanner {
             whereClause,
             DistributionInfo.DEFAULT_BROADCAST
         );
-        MergePhase mergeNode = MergePhase.localMerge(
-            plannerContext.jobId(),
-            plannerContext.nextExecutionPhaseId(),
-            ImmutableList.<Projection>of(MergeCountProjection.INSTANCE),
-            collectPhase.nodeIds().size(),
-            collectPhase.outputTypes()
-        );
-        return new Merge(new Collect(collectPhase), mergeNode);
+        Collect collect = new Collect(collectPhase, TopN.NO_LIMIT, 0, 1, 1, null);
+        return Merge.mergeToHandler(collect, plannerContext, Collections.singletonList(MergeCountProjection.INSTANCE));
     }
 }

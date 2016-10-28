@@ -25,6 +25,7 @@ import com.google.common.collect.ImmutableList;
 import io.crate.analyze.HavingClause;
 import io.crate.analyze.QueriedTable;
 import io.crate.analyze.QueriedTableRelation;
+import io.crate.analyze.QuerySpec;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.QueriedDocTable;
 import io.crate.analyze.symbol.Aggregation;
@@ -37,11 +38,9 @@ import io.crate.metadata.doc.DocTableInfo;
 import io.crate.operation.projectors.TopN;
 import io.crate.planner.Limits;
 import io.crate.planner.Merge;
-import io.crate.planner.NoopPlan;
 import io.crate.planner.Plan;
 import io.crate.planner.node.dql.Collect;
 import io.crate.planner.node.dql.GroupByConsumer;
-import io.crate.planner.node.dql.MergePhase;
 import io.crate.planner.node.dql.RoutedCollectPhase;
 import io.crate.planner.projection.GroupProjection;
 import io.crate.planner.projection.Projection;
@@ -112,16 +111,17 @@ class NonDistributedGroupByConsumer implements Consumer {
          */
         private Plan nonDistributedGroupBy(QueriedTableRelation table,
                                            ConsumerContext context,
-                                                              RowGranularity groupProjectionGranularity) {
-            List<Symbol> groupBy = table.querySpec().groupBy().get();
+                                           RowGranularity groupProjectionGranularity) {
+            QuerySpec querySpec = table.querySpec();
+            List<Symbol> groupKeys = querySpec.groupBy().get();
 
-            ProjectionBuilder projectionBuilder = new ProjectionBuilder(functions, table.querySpec());
+            ProjectionBuilder projectionBuilder = new ProjectionBuilder(functions, querySpec);
             SplitPoints splitPoints = projectionBuilder.getSplitPoints();
 
             // mapper / collect
             GroupProjection groupProjection = projectionBuilder.groupProjection(
                 splitPoints.leaves(),
-                table.querySpec().groupBy().get(),
+                groupKeys,
                 splitPoints.aggregates(),
                 Aggregation.Step.ITER,
                 Aggregation.Step.PARTIAL,
@@ -133,69 +133,50 @@ class NonDistributedGroupByConsumer implements Consumer {
                 splitPoints.leaves(),
                 ImmutableList.<Projection>of(groupProjection)
             );
+            Collect collect = new Collect(collectPhase, TopN.NO_LIMIT, 0, groupProjection.outputs().size(), -1, null);
 
             // handler
             List<Symbol> collectOutputs = new ArrayList<>(
-                groupBy.size() +
+                groupKeys.size() +
                 splitPoints.aggregates().size());
-            collectOutputs.addAll(groupBy);
+            collectOutputs.addAll(groupKeys);
             collectOutputs.addAll(splitPoints.aggregates());
 
+            table.tableRelation().validateOrderBy(querySpec.orderBy());
 
-            table.tableRelation().validateOrderBy(table.querySpec().orderBy());
-
-            List<Projection> projections = new ArrayList<>();
-            projections.add(projectionBuilder.groupProjection(
+            List<Projection> mergeProjections = new ArrayList<>();
+            mergeProjections.add(projectionBuilder.groupProjection(
                 collectOutputs,
-                table.querySpec().groupBy().get(),
+                groupKeys,
                 splitPoints.aggregates(),
                 Aggregation.Step.PARTIAL,
                 Aggregation.Step.FINAL,
                 RowGranularity.CLUSTER
             ));
 
-            Optional<HavingClause> havingClause = table.querySpec().having();
+            Optional<HavingClause> havingClause = querySpec.having();
             if (havingClause.isPresent()) {
-                if (havingClause.get().noMatch()) {
-                    return new NoopPlan(context.plannerContext().jobId());
-                } else if (havingClause.get().hasQuery()) {
-                    projections.add(ProjectionBuilder.filterProjection(
-                        collectOutputs,
-                        havingClause.get().query()
-                    ));
-                }
+                HavingClause having = havingClause.get();
+                mergeProjections.add(ProjectionBuilder.filterProjection(collectOutputs, having));
             }
-
-            /**
-             * If this is not the rootRelation this is a subquery (e.g. Insert by Query),
-             * so ordering and limiting is done by the rootRelation if required.
-             *
-             * If the querySpec outputs don't match the collectOutputs the query contains
-             * aggregations or scalar functions which can only be resolved by a TopNProjection,
-             * so a TopNProjection must be added.
-             */
-            boolean isRootRelation = context.rootRelation() == table;
-            boolean outputsMatch = table.querySpec().outputs().size() == collectOutputs.size() &&
-                                   collectOutputs.containsAll(table.querySpec().outputs());
-            if (isRootRelation || !outputsMatch) {
-                Limits limits = context.plannerContext().getLimits(table.querySpec());
-                Integer offset = (isRootRelation ? limits.offset() : TopN.NO_OFFSET);
-                projections.add(ProjectionBuilder.topNProjection(
-                    collectOutputs,
-                    table.querySpec().orderBy().orNull(),
-                    offset,
-                    isRootRelation ? limits.finalLimit() : limits.limitAndOffset(),
-                    table.querySpec().outputs()
-                ));
-            }
-            MergePhase localMergeNode = MergePhase.localMerge(
-                context.plannerContext().jobId(),
-                context.plannerContext().nextExecutionPhaseId(),
-                projections,
-                collectPhase.nodeIds().size(),
-                collectPhase.outputTypes());
-            return new Merge(new Collect(collectPhase), localMergeNode);
+            Limits limits = context.plannerContext().getLimits(querySpec);
+            List<Symbol> qsOutputs = querySpec.outputs();
+            mergeProjections.add(ProjectionBuilder.topNProjection(
+                collectOutputs,
+                querySpec.orderBy().orNull(),
+                limits.offset(),
+                limits.finalLimit(),
+                qsOutputs
+            ));
+            return Merge.create(
+                collect,
+                context.plannerContext(),
+                mergeProjections,
+                TopN.NO_LIMIT,
+                0,
+                qsOutputs.size(),
+                limits.finalLimit()
+            );
         }
     }
-
 }

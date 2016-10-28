@@ -24,11 +24,13 @@ package io.crate.planner.node.dql;
 
 import io.crate.planner.Plan;
 import io.crate.planner.PlanVisitor;
+import io.crate.planner.PositionalOrderBy;
 import io.crate.planner.ResultDescription;
 import io.crate.planner.distribution.DistributionInfo;
 import io.crate.planner.node.fetch.FetchPhase;
 import io.crate.planner.projection.Projection;
 
+import javax.annotation.Nullable;
 import java.util.UUID;
 
 public class QueryThenFetch implements Plan {
@@ -60,8 +62,12 @@ public class QueryThenFetch implements Plan {
     }
 
     @Override
-    public void addProjection(Projection projection) {
-        throw new UnsupportedOperationException("Adding projections to QTF is not possible");
+    public void addProjection(Projection projection,
+                              @Nullable Integer newLimit,
+                              @Nullable Integer newOffset,
+                              @Nullable Integer newNumOutputs,
+                              @Nullable PositionalOrderBy newOrderBy) {
+        subPlan.addProjection(projection, newLimit, newOffset, newNumOutputs, newOrderBy);
     }
 
     @Override

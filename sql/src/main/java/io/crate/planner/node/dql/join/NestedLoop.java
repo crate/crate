@@ -22,10 +22,15 @@ package io.crate.planner.node.dql.join;
 
 import io.crate.planner.Plan;
 import io.crate.planner.PlanVisitor;
+import io.crate.planner.PositionalOrderBy;
 import io.crate.planner.ResultDescription;
 import io.crate.planner.distribution.DistributionInfo;
 import io.crate.planner.projection.Projection;
+import io.crate.types.DataType;
 
+import javax.annotation.Nullable;
+import java.util.Collection;
+import java.util.List;
 import java.util.UUID;
 
 /**
@@ -51,11 +56,19 @@ import java.util.UUID;
  * can assume the same order of symbols, first symbols from left, then from right.
  * If sth. else is selected a projection has to reorder those.
  */
-public class NestedLoop implements Plan {
+public class NestedLoop implements Plan, ResultDescription {
 
     private final Plan left;
     private final Plan right;
     private final NestedLoopPhase nestedLoopPhase;
+
+    private int limit;
+    private int offset;
+    private int numOutputs;
+
+    private final int maxRowsPerNode;
+    @Nullable
+    private PositionalOrderBy orderBy;
     private final UUID jobId;
 
     /**
@@ -84,11 +97,22 @@ public class NestedLoop implements Plan {
      * a | 3
      * b | 3
      */
-    public NestedLoop(NestedLoopPhase nestedLoopPhase, Plan left, Plan right) {
+    public NestedLoop(NestedLoopPhase nestedLoopPhase,
+                      Plan left,
+                      Plan right,
+                      int limit,
+                      int offset,
+                      int maxRowsPerNode,
+                      @Nullable PositionalOrderBy orderBy) {
         this.jobId = nestedLoopPhase.jobId();
         this.left = left;
         this.right = right;
         this.nestedLoopPhase = nestedLoopPhase;
+        this.limit = limit;
+        this.offset = offset;
+        this.maxRowsPerNode = maxRowsPerNode;
+        this.orderBy = orderBy;
+        this.numOutputs = nestedLoopPhase.outputTypes().size();
     }
 
     public Plan left() {
@@ -104,13 +128,8 @@ public class NestedLoop implements Plan {
     }
 
     @Override
-    public void addProjection(Projection projection) {
-        nestedLoopPhase.addProjection(projection);
-    }
-
-    @Override
     public ResultDescription resultDescription() {
-        return nestedLoopPhase;
+        return this;
     }
 
     @Override
@@ -126,5 +145,62 @@ public class NestedLoop implements Plan {
     @Override
     public UUID jobId() {
         return jobId;
+    }
+
+    @Override
+    public void addProjection(Projection projection,
+                              @Nullable Integer newLimit,
+                              @Nullable Integer newOffset,
+                              @Nullable Integer newNumOutputs,
+                              @Nullable PositionalOrderBy newOrderBy) {
+        nestedLoopPhase.addProjection(projection);
+        if (newLimit != null) {
+            limit = newLimit;
+        }
+        if (newOffset != null) {
+            offset = newOffset;
+        }
+        if (newOrderBy != null) {
+            orderBy = newOrderBy;
+        }
+        if (newNumOutputs != null) {
+            numOutputs = newNumOutputs;
+        }
+    }
+
+    @Override
+    public Collection<String> nodeIds() {
+        return nestedLoopPhase.nodeIds();
+    }
+
+    @Nullable
+    @Override
+    public PositionalOrderBy orderBy() {
+        return orderBy;
+    }
+
+    @Override
+    public int limit() {
+        return limit;
+    }
+
+    @Override
+    public int maxRowsPerNode() {
+        return maxRowsPerNode;
+    }
+
+    @Override
+    public int offset() {
+        return offset;
+    }
+
+    @Override
+    public int numOutputs() {
+        return numOutputs;
+    }
+
+    @Override
+    public List<DataType> streamOutputs() {
+        return nestedLoopPhase.outputTypes();
     }
 }

@@ -26,9 +26,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import io.crate.analyze.symbol.Symbols;
-import io.crate.planner.Planner;
 import io.crate.planner.PositionalOrderBy;
-import io.crate.planner.ResultDescription;
 import io.crate.planner.distribution.DistributionInfo;
 import io.crate.planner.distribution.UpstreamPhase;
 import io.crate.planner.node.ExecutionPhaseVisitor;
@@ -45,7 +43,7 @@ import java.util.*;
 /**
  * A plan node which merges results from upstreams
  */
-public class MergePhase extends AbstractProjectionsPhase implements UpstreamPhase, ResultDescription {
+public class MergePhase extends AbstractProjectionsPhase implements UpstreamPhase {
 
     public static final ExecutionPhaseFactory<MergePhase> FACTORY = MergePhase::new;
 
@@ -66,9 +64,11 @@ public class MergePhase extends AbstractProjectionsPhase implements UpstreamPhas
                       int executionNodeId,
                       String name,
                       int numUpstreams,
+                      Collection<String> executionNodes,
                       Collection<? extends DataType> inputTypes,
                       List<Projection> projections,
-                      DistributionInfo distributionInfo
+                      DistributionInfo distributionInfo,
+                      @Nullable PositionalOrderBy positionalOrderBy
     ) {
         super(jobId, executionNodeId, name, projections);
         this.inputTypes = inputTypes;
@@ -79,70 +79,8 @@ public class MergePhase extends AbstractProjectionsPhase implements UpstreamPhas
         } else {
             outputTypes = Symbols.extractTypes(Iterables.getLast(projections).outputs());
         }
-    }
-
-    public static MergePhase localMerge(UUID jobId,
-                                        int executionPhaseId,
-                                        List<Projection> projections,
-                                        int numUpstreams,
-                                        Collection<? extends DataType> inputTypes) {
-        return new MergePhase(
-            jobId,
-            executionPhaseId,
-            "localMerge",
-            numUpstreams,
-            inputTypes,
-            projections,
-            DistributionInfo.DEFAULT_SAME_NODE
-        );
-    }
-
-    public static MergePhase sortedMerge(UUID jobId,
-                                         int executionPhaseId,
-                                         PositionalOrderBy orderBy,
-                                         List<Projection> projections,
-                                         int numUpstreams,
-                                         Collection<? extends DataType> inputTypes) {
-        MergePhase mergeNode = new MergePhase(
-            jobId,
-            executionPhaseId,
-            "sortedLocalMerge",
-            numUpstreams,
-            inputTypes,
-            projections,
-            DistributionInfo.DEFAULT_SAME_NODE
-        );
-        mergeNode.positionalOrderBy = orderBy;
-        return mergeNode;
-    }
-
-    public static MergePhase mergePhase(Planner.Context plannerContext,
-                                        Collection<String> executionNodes,
-                                        int upstreamPhaseExecutionNodesSize,
-                                        @Nullable PositionalOrderBy orderBy,
-                                        List<Projection> projections,
-                                        List<DataType> inputTypes) {
-        MergePhase mergePhase;
-        if (orderBy != null) {
-            mergePhase = MergePhase.sortedMerge(
-                plannerContext.jobId(),
-                plannerContext.nextExecutionPhaseId(),
-                orderBy,
-                projections,
-                upstreamPhaseExecutionNodesSize,
-                inputTypes
-            );
-        } else {
-            mergePhase = MergePhase.localMerge(
-                plannerContext.jobId(),
-                plannerContext.nextExecutionPhaseId(),
-                projections,
-                upstreamPhaseExecutionNodesSize,
-                inputTypes
-            );
-        }
-        mergePhase.executionNodes(executionNodes);
-        return mergePhase;
+        this.positionalOrderBy = positionalOrderBy;
+        this.executionNodes = executionNodes;
     }
 
     @Override

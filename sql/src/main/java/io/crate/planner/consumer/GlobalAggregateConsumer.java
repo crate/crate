@@ -26,6 +26,7 @@ import com.google.common.collect.ImmutableList;
 import io.crate.analyze.HavingClause;
 import io.crate.analyze.QueriedTable;
 import io.crate.analyze.QueriedTableRelation;
+import io.crate.analyze.QuerySpec;
 import io.crate.analyze.relations.AbstractTableRelation;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.QueriedDocTable;
@@ -36,7 +37,12 @@ import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RowGranularity;
-import io.crate.planner.*;
+import io.crate.operation.projectors.TopN;
+import io.crate.planner.Limits;
+import io.crate.planner.Merge;
+import io.crate.planner.Plan;
+import io.crate.planner.Planner;
+import io.crate.planner.distribution.DistributionInfo;
 import io.crate.planner.node.dql.Collect;
 import io.crate.planner.node.dql.MergePhase;
 import io.crate.planner.node.dql.RoutedCollectPhase;
@@ -48,6 +54,7 @@ import io.crate.planner.projection.builder.SplitPoints;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 
 
@@ -94,20 +101,16 @@ class GlobalAggregateConsumer implements Consumer {
                                                             QueriedTableRelation table,
                                                             ConsumerContext context,
                                                             RowGranularity projectionGranularity) {
-        if (table.querySpec().groupBy().isPresent() || !table.querySpec().hasAggregates()) {
+        QuerySpec querySpec = table.querySpec();
+        if (querySpec.groupBy().isPresent() || !querySpec.hasAggregates()) {
             return null;
         }
 
         Planner.Context plannerContext = context.plannerContext();
-        Limits limits = plannerContext.getLimits(table.querySpec());
-        if (limits.finalLimit() == 0 || limits.offset() > 0) {
-            return new NoopPlan(plannerContext.jobId());
-        }
-
-        validateAggregationOutputs(table.tableRelation(), table.querySpec().outputs());
+        validateAggregationOutputs(table.tableRelation(), querySpec.outputs());
         // global aggregate: collect and partial aggregate on C and final agg on H
 
-        ProjectionBuilder projectionBuilder = new ProjectionBuilder(functions, table.querySpec());
+        ProjectionBuilder projectionBuilder = new ProjectionBuilder(functions, querySpec);
         SplitPoints splitPoints = projectionBuilder.getSplitPoints();
 
         AggregationProjection ap = projectionBuilder.aggregationProjection(
@@ -117,51 +120,49 @@ class GlobalAggregateConsumer implements Consumer {
             Aggregation.Step.PARTIAL,
             projectionGranularity
         );
-
-
         RoutedCollectPhase collectPhase = RoutedCollectPhase.forQueriedTable(
             plannerContext,
             table,
             splitPoints.leaves(),
-            ImmutableList.<Projection>of(ap)
+            ImmutableList.of(ap)
         );
+        Collect collect = new Collect(collectPhase, TopN.NO_LIMIT, 0, ap.outputs().size(), 1, null);
 
         //// the handler stuff
-        List<Projection> projections = new ArrayList<>();
-        projections.add(projectionBuilder.aggregationProjection(
+        List<Projection> mergeProjections = new ArrayList<>();
+        mergeProjections.add(projectionBuilder.aggregationProjection(
             splitPoints.aggregates(),
             splitPoints.aggregates(),
             Aggregation.Step.PARTIAL,
             Aggregation.Step.FINAL,
             RowGranularity.CLUSTER));
 
-        Optional<HavingClause> havingClause = table.querySpec().having();
+        Optional<HavingClause> havingClause = querySpec.having();
         if (havingClause.isPresent()) {
-            if (havingClause.get().noMatch()) {
-                return new NoopPlan(plannerContext.jobId());
-            } else if (havingClause.get().hasQuery()) {
-                projections.add(ProjectionBuilder.filterProjection(
-                    splitPoints.aggregates(),
-                    havingClause.get().query()
-                ));
-            }
+            HavingClause having = havingClause.get();
+            mergeProjections.add(ProjectionBuilder.filterProjection(splitPoints.aggregates(), having));
         }
-
+        Limits limits = plannerContext.getLimits(querySpec);
         TopNProjection topNProjection = ProjectionBuilder.topNProjection(
             splitPoints.aggregates(),
             null,
-            0,
-            1,
-            table.querySpec().outputs()
+            limits.offset(),
+            limits.finalLimit(),
+            querySpec.outputs()
         );
-        projections.add(topNProjection);
-        MergePhase localMergeNode = MergePhase.localMerge(
+        mergeProjections.add(topNProjection);
+        MergePhase mergePhase = new MergePhase(
             plannerContext.jobId(),
             plannerContext.nextExecutionPhaseId(),
-            projections,
+            "mergeOnHandler",
             collectPhase.nodeIds().size(),
-            collectPhase.outputTypes());
-        return new Merge(new Collect(collectPhase), localMergeNode);
+            Collections.emptyList(),
+            Symbols.extractTypes(ap.outputs()),
+            mergeProjections,
+            DistributionInfo.DEFAULT_SAME_NODE,
+            null
+        );
+        return new Merge(collect, mergePhase, TopN.NO_LIMIT, 0, topNProjection.outputs().size(), 1, null);
     }
 
     private static void validateAggregationOutputs(AbstractTableRelation tableRelation, Collection<? extends Symbol> outputSymbols) {

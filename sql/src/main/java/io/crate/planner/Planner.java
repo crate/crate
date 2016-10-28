@@ -263,12 +263,8 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
         }
 
         public Plan planSubRelation(AnalyzedRelation relation, ConsumerContext consumerContext) {
-            assert consumingPlanner != null;
-            boolean isRoot = consumerContext.isRoot();
-            consumerContext.isRoot(false);
-            Plan subPlan = consumingPlanner.plan(relation, consumerContext);
-            consumerContext.isRoot(isRoot);
-            return subPlan;
+            assert consumingPlanner != null : "consumingPlanner needs to be present to plan sub relations";
+            return consumingPlanner.plan(relation, consumerContext);
         }
 
         public UUID jobId() {

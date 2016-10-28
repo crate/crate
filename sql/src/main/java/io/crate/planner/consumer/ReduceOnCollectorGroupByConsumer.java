@@ -22,8 +22,8 @@
 package io.crate.planner.consumer;
 
 import com.google.common.base.Optional;
-import com.google.common.collect.ImmutableList;
 import io.crate.analyze.HavingClause;
+import io.crate.analyze.OrderBy;
 import io.crate.analyze.QuerySpec;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.DocTableRelation;
@@ -33,11 +33,11 @@ import io.crate.analyze.symbol.Symbol;
 import io.crate.exceptions.VersionInvalidException;
 import io.crate.metadata.Functions;
 import io.crate.metadata.RowGranularity;
-import io.crate.operation.projectors.TopN;
-import io.crate.planner.*;
+import io.crate.planner.Limits;
+import io.crate.planner.Plan;
+import io.crate.planner.PositionalOrderBy;
 import io.crate.planner.node.dql.Collect;
 import io.crate.planner.node.dql.GroupByConsumer;
-import io.crate.planner.node.dql.MergePhase;
 import io.crate.planner.node.dql.RoutedCollectPhase;
 import io.crate.planner.projection.FilterProjection;
 import io.crate.planner.projection.GroupProjection;
@@ -99,25 +99,21 @@ class ReduceOnCollectorGroupByConsumer implements Consumer {
          */
         private Plan optimizedReduceOnCollectorGroupBy(QueriedDocTable table, DocTableRelation tableRelation, ConsumerContext context) {
             QuerySpec querySpec = table.querySpec();
+            Optional<List<Symbol>> optGroupBy = querySpec.groupBy();
+            assert optGroupBy.isPresent() : "must have groupBy if optimizeReduceOnCollectorGroupBy is called";
+            List<Symbol> groupKeys = optGroupBy.get();
             assert GroupByConsumer.groupedByClusteredColumnOrPrimaryKeys(
-                tableRelation, querySpec.where(), querySpec.groupBy().get()) : "not grouped by clustered column or primary keys";
-            GroupByConsumer.validateGroupBySymbols(tableRelation, querySpec.groupBy().get());
-            List<Symbol> groupBy = querySpec.groupBy().get();
-
-            Limits limits = context.plannerContext().getLimits(querySpec);
-            boolean ignoreSorting = context.rootRelation() != table
-                                    && !limits.hasLimit()
-                                    && limits.offset() == TopN.NO_OFFSET;
-
+                tableRelation, querySpec.where(), groupKeys) : "not grouped by clustered column or primary keys";
+            GroupByConsumer.validateGroupBySymbols(tableRelation, groupKeys);
 
             ProjectionBuilder projectionBuilder = new ProjectionBuilder(functions, querySpec);
             SplitPoints splitPoints = projectionBuilder.getSplitPoints();
 
             // mapper / collect
             List<Symbol> collectOutputs = new ArrayList<>(
-                groupBy.size() +
+                groupKeys.size() +
                 splitPoints.aggregates().size());
-            collectOutputs.addAll(groupBy);
+            collectOutputs.addAll(groupKeys);
             collectOutputs.addAll(splitPoints.aggregates());
 
             table.tableRelation().validateOrderBy(querySpec.orderBy());
@@ -125,7 +121,7 @@ class ReduceOnCollectorGroupByConsumer implements Consumer {
             List<Projection> projections = new ArrayList<>();
             GroupProjection groupProjection = projectionBuilder.groupProjection(
                 splitPoints.leaves(),
-                querySpec.groupBy().get(),
+                groupKeys,
                 splitPoints.aggregates(),
                 Aggregation.Step.ITER,
                 Aggregation.Step.FINAL,
@@ -135,86 +131,36 @@ class ReduceOnCollectorGroupByConsumer implements Consumer {
 
             Optional<HavingClause> havingClause = querySpec.having();
             if (havingClause.isPresent()) {
-                if (havingClause.get().noMatch()) {
-                    return new NoopPlan(context.plannerContext().jobId());
-                } else if (havingClause.get().hasQuery()) {
-                    FilterProjection fp = ProjectionBuilder.filterProjection(
-                        collectOutputs,
-                        havingClause.get().query()
-                    );
-                    fp.requiredGranularity(RowGranularity.SHARD);
-                    projections.add(fp);
-                }
-            }
-            // mapper / collect
-            // use topN on collector if needed
-            boolean outputsMatch = querySpec.outputs().size() == collectOutputs.size() &&
-                                   collectOutputs.containsAll(querySpec.outputs());
-
-            boolean collectorTopN = limits.hasLimit() || limits.offset() > 0 || !outputsMatch;
-
-            if (collectorTopN) {
-                projections.add(ProjectionBuilder.topNProjection(
-                    collectOutputs,
-                    querySpec.orderBy().orNull(),
-                    0, // no offset
-                    limits.limitAndOffset(),
-                    querySpec.outputs()
-                ));
+                HavingClause having = havingClause.get();
+                FilterProjection fp = ProjectionBuilder.filterProjection(collectOutputs, having);
+                fp.requiredGranularity(RowGranularity.SHARD);
+                projections.add(fp);
             }
 
+            OrderBy orderBy = querySpec.orderBy().orNull();
+            Limits limits = context.plannerContext().getLimits(querySpec);
+            List<Symbol> qsOutputs = querySpec.outputs();
+            projections.add(ProjectionBuilder.topNProjection(
+                collectOutputs,
+                orderBy,
+                0, // no offset
+                limits.limitAndOffset(),
+                qsOutputs
+            ));
             RoutedCollectPhase collectPhase = RoutedCollectPhase.forQueriedTable(
                 context.plannerContext(),
                 table,
                 splitPoints.leaves(),
-                ImmutableList.copyOf(projections)
+                projections
             );
-
-            // handler
-            List<Projection> handlerProjections = new ArrayList<>();
-            MergePhase localMerge;
-            if (!ignoreSorting && collectorTopN && querySpec.orderBy().isPresent()) {
-                // handler receives sorted results from collect nodes
-                // we can do the sorting with a sorting bucket merger
-                handlerProjections.add(
-                    ProjectionBuilder.topNProjection(
-                        querySpec.outputs(),
-                        null, // omit order by
-                        limits.offset(),
-                        limits.finalLimit(),
-                        querySpec.outputs()
-                    )
-                );
-                localMerge = MergePhase.sortedMerge(
-                    context.plannerContext().jobId(),
-                    context.plannerContext().nextExecutionPhaseId(),
-                    PositionalOrderBy.of(querySpec.orderBy().get(), querySpec.outputs()),
-                    handlerProjections,
-                    collectPhase.nodeIds().size(),
-                    collectPhase.outputTypes()
-                );
-            } else {
-                handlerProjections.add(
-                    ProjectionBuilder.topNProjection(
-                        collectorTopN ? querySpec.outputs() : collectOutputs,
-                        querySpec.orderBy().orNull(),
-                        limits.offset(),
-                        limits.finalLimit(),
-                        querySpec.outputs()
-                    )
-                );
-                // fallback - unsorted local merge
-                localMerge = MergePhase.localMerge(
-                    context.plannerContext().jobId(),
-                    context.plannerContext().nextExecutionPhaseId(),
-                    handlerProjections,
-                    collectPhase.nodeIds().size(),
-                    collectPhase.outputTypes()
-                );
-            }
-            return new Merge(new Collect(collectPhase), localMerge);
+            return new Collect(
+                collectPhase,
+                limits.finalLimit(),
+                limits.offset(),
+                qsOutputs.size(),
+                limits.limitAndOffset(),
+                PositionalOrderBy.of(orderBy, qsOutputs)
+            );
         }
-
-
     }
 }
