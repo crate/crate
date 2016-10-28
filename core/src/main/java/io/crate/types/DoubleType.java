@@ -27,18 +27,11 @@ import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
 import java.io.IOException;
-import java.util.Comparator;
 
 public class DoubleType extends DataType<Double> implements FixedWidthType, Streamer<Double>, DataTypeFactory {
 
     public static final DoubleType INSTANCE = new DoubleType();
     public static final int ID = 6;
-    private static final Comparator<Double> CMP = new Comparator<Double>() {
-        @Override
-        public int compare(Double v1, Double v2) {
-            return Double.compare(v1, v2);
-        }
-    };
 
     private DoubleType() {
     }
@@ -77,7 +70,7 @@ public class DoubleType extends DataType<Double> implements FixedWidthType, Stre
 
     @Override
     public int compareValueTo(Double val1, Double val2) {
-        return nullSafeCompareValueTo(val1, val2, CMP);
+        return nullSafeCompareValueTo(val1, val2, Double::compare);
     }
 
     @Override
