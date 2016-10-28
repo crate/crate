@@ -32,14 +32,13 @@ import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.common.io.stream.Streamable;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.Comparator;
 import java.util.Locale;
 
-public class Reference extends Symbol implements Streamable {
+public class Reference extends Symbol {
 
     public static final Comparator<Reference> COMPARE_BY_COLUMN_IDENT = new Comparator<Reference>() {
         @Override
@@ -74,19 +73,23 @@ public class Reference extends Symbol implements Streamable {
         }
     }
 
-    public static final SymbolFactory<Reference> FACTORY = new SymbolFactory<Reference>() {
-        @Override
-        public Reference newInstance() {
-            return new Reference();
-        }
-    };
-
     protected DataType type;
     private ReferenceIdent ident;
     private ColumnPolicy columnPolicy = ColumnPolicy.DYNAMIC;
     private RowGranularity granularity;
     private IndexType indexType = IndexType.NOT_ANALYZED;
     private boolean nullable = true;
+
+    public Reference(StreamInput in) throws IOException {
+        ident = new ReferenceIdent();
+        ident.readFrom(in);
+        type = DataTypes.fromStream(in);
+        granularity = RowGranularity.fromStream(in);
+
+        columnPolicy = ColumnPolicy.values()[in.readVInt()];
+        indexType = IndexType.values()[in.readVInt()];
+        nullable = in.readBoolean();
+    }
 
     public Reference() {
 
@@ -196,18 +199,6 @@ public class Reference extends Symbol implements Streamable {
     }
 
     @Override
-    public void readFrom(StreamInput in) throws IOException {
-        ident = new ReferenceIdent();
-        ident.readFrom(in);
-        type = DataTypes.fromStream(in);
-        granularity = RowGranularity.fromStream(in);
-
-        columnPolicy = ColumnPolicy.values()[in.readVInt()];
-        indexType = IndexType.values()[in.readVInt()];
-        nullable = in.readBoolean();
-    }
-
-    @Override
     public void writeTo(StreamOutput out) throws IOException {
         ident.writeTo(out);
         DataTypes.toStream(type, out);
@@ -225,8 +216,6 @@ public class Reference extends Symbol implements Streamable {
     }
 
     public static <R extends Reference> R fromStream(StreamInput in) throws IOException {
-        Symbol symbol = SymbolType.values()[in.readVInt()].newInstance();
-        symbol.readFrom(in);
-        return (R) symbol;
+        return (R) SymbolType.values()[in.readVInt()].newInstance(in);
     }
 }

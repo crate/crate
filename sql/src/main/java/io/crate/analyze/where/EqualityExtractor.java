@@ -31,7 +31,6 @@ import io.crate.operation.operator.any.AnyEqOperator;
 import io.crate.types.CollectionType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
-import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
 import javax.annotation.Nullable;
@@ -242,11 +241,6 @@ public class EqualityExtractor {
         @Override
         public DataType valueType() {
             return current.valueType();
-        }
-
-        @Override
-        public void readFrom(StreamInput in) throws IOException {
-            throw new UnsupportedOperationException();
         }
 
         @Override

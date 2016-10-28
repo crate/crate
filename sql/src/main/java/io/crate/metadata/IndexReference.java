@@ -39,13 +39,6 @@ import java.util.List;
 
 public class IndexReference extends Reference {
 
-    public static final SymbolFactory<IndexReference> FACTORY = new SymbolFactory<IndexReference>() {
-        @Override
-        public IndexReference newInstance() {
-            return new IndexReference();
-        }
-    };
-
     public static class Builder {
         private final ReferenceIdent ident;
         private IndexType indexType = IndexType.ANALYZED;
@@ -78,10 +71,17 @@ public class IndexReference extends Reference {
     }
 
     @Nullable
-    private String analyzer;
-    private List<Reference> columns;
+    private final String analyzer;
+    private final List<Reference> columns;
 
-    private IndexReference() {
+    public IndexReference(StreamInput in) throws IOException {
+        super(in);
+        analyzer = in.readOptionalString();
+        int size = in.readVInt();
+        columns = new ArrayList<>(size);
+        for (int i = 0; i < size; i++) {
+            columns.add(Reference.fromStream(in));
+        }
     }
 
     public IndexReference(ReferenceIdent ident,
@@ -128,17 +128,6 @@ public class IndexReference extends Reference {
                "analyzer='" + analyzer + '\'' +
                ", columns=" + columns +
                '}';
-    }
-
-    @Override
-    public void readFrom(StreamInput in) throws IOException {
-        super.readFrom(in);
-        analyzer = in.readOptionalString();
-        int size = in.readVInt();
-        columns = new ArrayList<>(size);
-        for (int i = 0; i < size; i++) {
-            columns.add(Reference.fromStream(in));
-        }
     }
 
     @Override

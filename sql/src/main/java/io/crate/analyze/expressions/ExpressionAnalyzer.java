@@ -656,7 +656,7 @@ public class ExpressionAnalyzer {
                 mapArgs.add(process(e.getValue(), context));
             }
             Function options = context.allocateFunction(MapFunction.createInfo(Symbols.extractTypes(mapArgs)), mapArgs);
-            return new io.crate.analyze.symbol.MatchPredicate(identBoostMap, columnType, queryTerm, matchType, options);
+            return new io.crate.analyze.symbol.MatchPredicate(identBoostMap, queryTerm, matchType, options);
         }
 
         @Override

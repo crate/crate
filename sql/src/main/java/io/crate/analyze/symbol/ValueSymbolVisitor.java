@@ -63,7 +63,7 @@ public abstract class ValueSymbolVisitor<T> extends SymbolVisitor<Void, T> {
     public static final ValueSymbolVisitor<BytesRef> BYTES_REF = new ValueSymbolVisitor<BytesRef>() {
         @Override
         public BytesRef visitLiteral(Literal symbol, Void context) {
-            return DataTypes.STRING.value(symbol.value);
+            return DataTypes.STRING.value(symbol.value());
         }
     };
 

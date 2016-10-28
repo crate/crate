@@ -62,8 +62,7 @@ public class FetchReference extends Symbol {
         return ref;
     }
 
-    @Override
-    public void readFrom(StreamInput in) throws IOException {
+    public FetchReference(StreamInput in) throws IOException {
         throw new UnsupportedOperationException("FetchReference cannot be streamed");
     }
 

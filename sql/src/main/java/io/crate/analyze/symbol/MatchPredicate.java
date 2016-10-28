@@ -23,7 +23,6 @@ package io.crate.analyze.symbol;
 
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
-import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
 import java.io.IOException;
@@ -31,27 +30,21 @@ import java.util.Map;
 
 public class MatchPredicate extends Symbol {
 
-    public static final SymbolFactory FACTORY = new SymbolFactory() {
-        @Override
-        public Symbol newInstance() {
-            throw new UnsupportedOperationException("Streaming a MatchPredicate is not supported");
-        }
+    public static final SymbolFactory FACTORY = (SymbolFactory) (in) -> {
+        throw new UnsupportedOperationException("Streaming a MatchPredicate is not supported");
     };
 
     private final Map<Field, Symbol> identBoostMap;
-    private final DataType columnType;
     private final Symbol queryTerm;
     private final String matchType;
     private final Symbol options;
 
     public MatchPredicate(Map<Field, Symbol> identBoostMap,
-                          DataType columnType,
                           Symbol queryTerm,
                           String matchType,
                           Symbol options) {
         assert options.valueType().equals(DataTypes.OBJECT) : "options symbol must be of type object";
         this.identBoostMap = identBoostMap;
-        this.columnType = columnType;
         this.queryTerm = queryTerm;
         this.matchType = matchType;
         this.options = options;
@@ -73,10 +66,6 @@ public class MatchPredicate extends Symbol {
         return options;
     }
 
-    public DataType columnType() {
-        return columnType;
-    }
-
     @Override
     public SymbolType symbolType() {
         return SymbolType.MATCH_PREDICATE;
@@ -90,11 +79,6 @@ public class MatchPredicate extends Symbol {
     @Override
     public DataType valueType() {
         return DataTypes.BOOLEAN;
-    }
-
-    @Override
-    public void readFrom(StreamInput in) throws IOException {
-        throw new UnsupportedOperationException("Cannot stream MatchPredicate");
     }
 
     @Override

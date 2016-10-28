@@ -37,18 +37,20 @@ import java.util.List;
 
 public class GeneratedReference extends Reference {
 
-    public static final SymbolFactory<GeneratedReference> FACTORY = new SymbolFactory<GeneratedReference>() {
-        @Override
-        public GeneratedReference newInstance() {
-            return new GeneratedReference();
-        }
-    };
+    private final String formattedGeneratedExpression;
 
-    private String formattedGeneratedExpression;
     private Symbol generatedExpression;
     private List<Reference> referencedReferences;
 
-    private GeneratedReference() {
+    public GeneratedReference(StreamInput in) throws IOException {
+        super(in);
+        formattedGeneratedExpression = in.readString();
+        generatedExpression = Symbols.fromStream(in);
+        int size = in.readVInt();
+        referencedReferences = new ArrayList<>(size);
+        for (int i = 0; i < size; i++) {
+            referencedReferences.add(Reference.fromStream(in));
+        }
     }
 
     public GeneratedReference(ReferenceIdent ident,
@@ -120,18 +122,6 @@ public class GeneratedReference extends Reference {
                ", generatedExpression=" + generatedExpression +
                ", referencedReferences=" + referencedReferences +
                '}';
-    }
-
-    @Override
-    public void readFrom(StreamInput in) throws IOException {
-        super.readFrom(in);
-        formattedGeneratedExpression = in.readString();
-        generatedExpression = Symbols.fromStream(in);
-        int size = in.readVInt();
-        referencedReferences = new ArrayList<>(size);
-        for (int i = 0; i < size; i++) {
-            referencedReferences.add(Reference.fromStream(in));
-        }
     }
 
     @Override

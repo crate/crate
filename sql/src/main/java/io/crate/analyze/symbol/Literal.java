@@ -17,25 +17,16 @@ import java.io.IOException;
 import java.util.*;
 
 
-public class Literal<ReturnType>
-    extends Symbol
-    implements Input<ReturnType>, Comparable<Literal> {
+public class Literal<ReturnType> extends Symbol implements Input<ReturnType>, Comparable<Literal> {
 
-    protected Object value;
-    protected DataType type;
+    private final Object value;
+    private final DataType type;
 
     public final static Literal<Void> NULL = new Literal<>(DataTypes.UNDEFINED, null);
     public final static Literal<Boolean> BOOLEAN_TRUE = new Literal<>(DataTypes.BOOLEAN, true);
     public final static Literal<Boolean> BOOLEAN_FALSE = new Literal<>(DataTypes.BOOLEAN, false);
     public final static Literal<Integer> ZERO = Literal.of(0);
     public static final Literal<Map<String, Object>> EMPTY_OBJECT = Literal.of(Collections.<String, Object>emptyMap());
-
-    public static final SymbolFactory<Literal> FACTORY = new SymbolFactory<Literal>() {
-        @Override
-        public Literal newInstance() {
-            return new Literal();
-        }
-    };
 
     public static Collection<Literal> explodeCollection(Literal collectionLiteral) {
         Preconditions.checkArgument(DataTypes.isCollectionType(collectionLiteral.valueType()));
@@ -60,7 +51,9 @@ public class Literal<ReturnType>
         return literals;
     }
 
-    private Literal() {
+    public Literal(StreamInput in) throws IOException {
+        type = DataTypes.fromStream(in);
+        value = type.streamer().readValueFrom(in);
     }
 
     private Literal(DataType type, ReturnType value) {
@@ -152,13 +145,6 @@ public class Literal<ReturnType>
                "value=" + BytesRefs.toString(value) +
                ", type=" + type +
                '}';
-    }
-
-    @Override
-    @SuppressWarnings("unchecked")
-    public void readFrom(StreamInput in) throws IOException {
-        type = DataTypes.fromStream(in);
-        value = type.streamer().readValueFrom(in);
     }
 
     @Override

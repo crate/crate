@@ -33,28 +33,18 @@ import java.io.IOException;
 
 public class GeoReference extends Reference {
 
-    public static final SymbolFactory<GeoReference> FACTORY = new SymbolFactory<GeoReference>() {
-        @Override
-        public GeoReference newInstance() {
-            return new GeoReference();
-        }
-    };
-
     private static final String DEFAULT_TREE = "geohash";
 
-    private String geoTree;
-    private
-    @Nullable
-    String precision;
-    private
-    @Nullable
-    Integer treeLevels;
-    private
-    @Nullable
-    Double distanceErrorPct;
+    private final String geoTree;
 
-    private GeoReference() {
-    }
+    @Nullable
+    private final String precision;
+
+    @Nullable
+    private final Integer treeLevels;
+
+    @Nullable
+    private final Double distanceErrorPct;
 
     public GeoReference(ReferenceIdent ident,
                         @Nullable String tree,
@@ -119,9 +109,8 @@ public class GeoReference extends Reference {
                '}';
     }
 
-    @Override
-    public void readFrom(StreamInput in) throws IOException {
-        super.readFrom(in);
+    public GeoReference(StreamInput in) throws IOException {
+        super(in);
         geoTree = in.readString();
         precision = in.readOptionalString();
         treeLevels = in.readBoolean() ? null : in.readVInt();

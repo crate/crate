@@ -262,7 +262,7 @@ final class RelationNormalizer extends AnalyzedRelationVisitor<RelationNormalize
         }
 
         public Collection<? extends Path> paths() {
-            return Collections2.transform(fields, Field.TO_PATH);
+            return Collections2.transform(fields, Field::path);
         }
     }
 

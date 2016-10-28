@@ -27,17 +27,14 @@ import io.crate.metadata.RowGranularity;
 import io.crate.metadata.table.ColumnPolicy;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
+import org.elasticsearch.common.io.stream.StreamInput;
+
+import java.io.IOException;
 
 public class DynamicReference extends Reference {
 
-    public static final SymbolFactory FACTORY = new SymbolFactory() {
-        @Override
-        public Symbol newInstance() {
-            return new DynamicReference();
-        }
-    };
-
-    public DynamicReference() {
+    public DynamicReference(StreamInput in) throws IOException {
+        super(in);
     }
 
     public DynamicReference(ReferenceIdent ident, RowGranularity granularity) {

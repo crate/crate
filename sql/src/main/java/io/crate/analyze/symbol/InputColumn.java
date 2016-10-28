@@ -38,16 +38,8 @@ import java.util.List;
  */
 public class InputColumn extends Symbol implements Comparable<InputColumn> {
 
-    public static final SymbolFactory<InputColumn> FACTORY = new SymbolFactory<InputColumn>() {
-        @Override
-        public InputColumn newInstance() {
-            return new InputColumn();
-        }
-    };
-
-    private DataType dataType;
-
-    private int index;
+    private final DataType dataType;
+    private final int index;
 
     public static List<Symbol> numInputs(int size) {
         List<Symbol> inputColumns = new ArrayList<>(size);
@@ -82,11 +74,13 @@ public class InputColumn extends Symbol implements Comparable<InputColumn> {
         this.dataType = MoreObjects.firstNonNull(dataType, DataTypes.UNDEFINED);
     }
 
-    public InputColumn(int index) {
-        this(index, null);
+    public InputColumn(StreamInput in) throws IOException {
+        index = in.readVInt();
+        dataType = DataTypes.fromStream(in);
     }
 
-    protected InputColumn() {
+    public InputColumn(int index) {
+        this(index, null);
     }
 
     public int index() {
@@ -106,12 +100,6 @@ public class InputColumn extends Symbol implements Comparable<InputColumn> {
     @Override
     public <C, R> R accept(SymbolVisitor<C, R> visitor, C context) {
         return visitor.visitInputColumn(this, context);
-    }
-
-    @Override
-    public void readFrom(StreamInput in) throws IOException {
-        index = in.readVInt();
-        dataType = DataTypes.fromStream(in);
     }
 
     @Override

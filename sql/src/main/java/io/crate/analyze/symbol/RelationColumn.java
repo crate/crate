@@ -35,22 +35,11 @@ import java.util.Objects;
 
 public class RelationColumn extends InputColumn {
 
-    public static final SymbolFactory<RelationColumn> FACTORY = new SymbolFactory<RelationColumn>() {
-        @Override
-        public RelationColumn newInstance() {
-            return new RelationColumn();
-        }
-    };
-
-    private QualifiedName relationName;
+    private final QualifiedName relationName;
 
     public RelationColumn(QualifiedName relationName, int index, @Nullable DataType dataType) {
         super(index, dataType);
         this.relationName = relationName;
-    }
-
-    private RelationColumn() {
-
     }
 
     public QualifiedName relationName() {
@@ -81,9 +70,8 @@ public class RelationColumn extends InputColumn {
         return visitor.visitRelationColumn(this, context);
     }
 
-    @Override
-    public void readFrom(StreamInput in) throws IOException {
-        super.readFrom(in);
+    public RelationColumn(StreamInput in) throws IOException {
+        super(in);
         int numParts = in.readVInt();
         List<String> parts = new ArrayList<>();
         for (int i = 0; i < numParts; i++) {

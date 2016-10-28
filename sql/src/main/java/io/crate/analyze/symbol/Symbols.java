@@ -116,10 +116,7 @@ public class Symbols {
     }
 
     public static Symbol fromStream(StreamInput in) throws IOException {
-        Symbol symbol = SymbolType.values()[in.readVInt()].newInstance();
-        symbol.readFrom(in);
-
-        return symbol;
+        return SymbolType.values()[in.readVInt()].newInstance(in);
     }
 
     private static class HasColumnVisitor extends SymbolVisitor<ColumnIdent, Boolean> {

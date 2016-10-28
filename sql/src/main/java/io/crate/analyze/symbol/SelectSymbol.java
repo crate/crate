@@ -46,15 +46,7 @@ public class SelectSymbol extends Symbol {
         return relation;
     }
 
-    public static final SymbolFactory FACTORY = new SymbolFactory() {
-        @Override
-        public Symbol newInstance() {
-            throw new UnsupportedOperationException("Cannot stream SelectSymbol");
-        }
-    };
-
-    @Override
-    public void readFrom(StreamInput in) throws IOException {
+    public SelectSymbol(StreamInput in) throws IOException {
         throw new UnsupportedOperationException("Cannot stream SelectSymbol");
     }
 

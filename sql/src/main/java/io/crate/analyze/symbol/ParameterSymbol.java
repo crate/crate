@@ -31,25 +31,15 @@ import java.io.IOException;
 
 public class ParameterSymbol extends Symbol {
 
-    public static final SymbolFactory<ParameterSymbol> FACTORY = new SymbolFactory<ParameterSymbol>() {
-        @Override
-        public ParameterSymbol newInstance() {
-            return new ParameterSymbol();
-        }
-    };
-    private int index;
-    private DataType type;
+    private final int index;
+    private final DataType type;
 
     public ParameterSymbol(int index, DataType type) {
         this.index = index;
         this.type = type;
     }
 
-    private ParameterSymbol() {
-    }
-
-    @Override
-    public void readFrom(StreamInput in) throws IOException {
+    public ParameterSymbol(StreamInput in) throws IOException {
         index = in.readVInt();
         type = DataTypes.fromStream(in);
     }

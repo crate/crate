@@ -33,31 +33,18 @@ import java.io.IOException;
 
 public class Field extends Symbol {
 
-    public static final SymbolFactory<Field> FACTORY = new SymbolFactory<Field>() {
-        @Override
-        public Field newInstance() {
-            return new Field();
-        }
-    };
-
-    public static final com.google.common.base.Function<Field, Path> TO_PATH = new com.google.common.base.Function<Field, Path>() {
-        @Override
-        public Path apply(Field input) {
-            return input.path();
-        }
-    };
-
     private AnalyzedRelation relation;
     private Path path;
     private DataType valueType;
+
+    public Field(StreamInput in) {
+        throw new UnsupportedOperationException("Field is not streamable");
+    }
 
     public Field(AnalyzedRelation relation, Path path, DataType valueType) {
         this.relation = relation;
         this.path = path;
         this.valueType = valueType;
-    }
-
-    private Field() {
     }
 
     public Path path() {
@@ -81,11 +68,6 @@ public class Field extends Symbol {
     @Override
     public DataType valueType() {
         return valueType;
-    }
-
-    @Override
-    public void readFrom(StreamInput in) throws IOException {
-        throw new UnsupportedOperationException("Field is not streamable");
     }
 
     @Override
@@ -140,5 +122,4 @@ public class Field extends Symbol {
         assert idx >= 0;
         return idx;
     }
-
 }

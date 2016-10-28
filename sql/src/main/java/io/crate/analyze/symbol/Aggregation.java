@@ -34,18 +34,18 @@ import java.util.List;
 
 public class Aggregation extends Symbol {
 
-    public static final SymbolFactory<Aggregation> FACTORY = new SymbolFactory<Aggregation>() {
-        @Override
-        public Aggregation newInstance() {
-            return new Aggregation();
-        }
-    };
+    public Aggregation(StreamInput in) throws IOException {
+        functionInfo = new FunctionInfo();
+        functionInfo.readFrom(in);
 
-    public Aggregation() {
+        fromStep = Step.readFrom(in);
+        toStep = Step.readFrom(in);
 
+        valueType = DataTypes.fromStream(in);
+        inputs = Symbols.listFromStream(in);
     }
 
-    public static enum Step {
+    public enum Step {
         ITER, PARTIAL, FINAL;
 
         static void writeTo(Step step, StreamOutput out) throws IOException {
@@ -111,18 +111,6 @@ public class Aggregation extends Symbol {
 
     public Step toStep() {
         return toStep;
-    }
-
-    @Override
-    public void readFrom(StreamInput in) throws IOException {
-        functionInfo = new FunctionInfo();
-        functionInfo.readFrom(in);
-
-        fromStep = Step.readFrom(in);
-        toStep = Step.readFrom(in);
-
-        valueType = DataTypes.fromStream(in);
-        inputs = Symbols.listFromStream(in);
     }
 
     @Override

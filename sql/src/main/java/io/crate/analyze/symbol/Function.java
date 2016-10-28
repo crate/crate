@@ -15,14 +15,14 @@ import java.util.Locale;
 
 public class Function extends Symbol implements Cloneable {
 
-    public static final SymbolFactory<Function> FACTORY = new SymbolFactory<Function>() {
-        @Override
-        public Function newInstance() {
-            return new Function();
-        }
-    };
-    private List<Symbol> arguments;
-    private FunctionInfo info;
+    private final List<Symbol> arguments;
+    private final FunctionInfo info;
+
+    public Function(StreamInput in) throws IOException {
+        info = new FunctionInfo();
+        info.readFrom(in);
+        arguments = Symbols.listFromStream(in);
+    }
 
     public Function(FunctionInfo info, List<Symbol> arguments) {
         Preconditions.checkNotNull(info, "function info is null");
@@ -33,10 +33,6 @@ public class Function extends Symbol implements Cloneable {
         assert arguments.isEmpty() || !(arguments instanceof ImmutableList) :
             "must not be an immutable list - would break setArgument";
         this.arguments = arguments;
-    }
-
-    private Function() {
-
     }
 
     public List<Symbol> arguments() {
@@ -64,13 +60,6 @@ public class Function extends Symbol implements Cloneable {
     @Override
     public <C, R> R accept(SymbolVisitor<C, R> visitor, C context) {
         return visitor.visitFunction(this, context);
-    }
-
-    @Override
-    public void readFrom(StreamInput in) throws IOException {
-        info = new FunctionInfo();
-        info.readFrom(in);
-        arguments = Symbols.listFromStream(in);
     }
 
     @Override

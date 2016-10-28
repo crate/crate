@@ -30,21 +30,14 @@ import java.io.IOException;
 
 public class Value extends Symbol {
 
-    public static final SymbolFactory<Value> FACTORY = new SymbolFactory<Value>() {
-        @Override
-        public Value newInstance() {
-            return new Value();
-        }
-    };
-
-    private DataType type;
+    private final DataType type;
 
     public Value(DataType type) {
         this.type = type;
     }
 
-    public Value() {
-
+    public Value(StreamInput in) throws IOException {
+        type = DataTypes.fromStream(in);
     }
 
     public DataType valueType() {
@@ -59,11 +52,6 @@ public class Value extends Symbol {
     @Override
     public <C, R> R accept(SymbolVisitor<C, R> visitor, C context) {
         return visitor.visitValue(this, context);
-    }
-
-    @Override
-    public void readFrom(StreamInput in) throws IOException {
-        type = DataTypes.fromStream(in);
     }
 
     @Override
