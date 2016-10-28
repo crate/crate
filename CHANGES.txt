@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Removed the duplicate `rowcount` field from the HTTP response.
+
  - Added the ``search_path`` session setting parameter. The default table
    schema can be set with ``SET SESSION search_path = schema_name``.
 

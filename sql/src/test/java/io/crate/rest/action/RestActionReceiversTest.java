@@ -106,6 +106,7 @@ public class RestActionReceiversTest extends CrateUnitTest {
             builder.addRow(row, 3);
         }
         builder.finishRows();
+        builder.rowCount(rows.size());
 
         assertXContentBuilder(actualBuilder, builder.build());
     }

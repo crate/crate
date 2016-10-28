@@ -22,7 +22,6 @@
 
 package io.crate.rest.action;
 
-import com.google.common.annotations.VisibleForTesting;
 import io.crate.action.sql.BaseResultReceiver;
 import io.crate.analyze.symbol.Field;
 import io.crate.core.collections.Row;

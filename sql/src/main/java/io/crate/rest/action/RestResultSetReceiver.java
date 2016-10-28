@@ -44,6 +44,7 @@ class RestResultSetReceiver extends BaseResultReceiver {
     private final List<Field> outputFields;
     private final ResultToXContentBuilder builder;
     private long startTime;
+    private long rowCount;
 
     RestResultSetReceiver(RestChannel channel,
                           List<Field> outputFields,
@@ -72,6 +73,7 @@ class RestResultSetReceiver extends BaseResultReceiver {
     public void setNextRow(Row row) {
         try {
             builder.addRow(row, outputFields.size());
+            rowCount++;
         } catch (IOException e) {
             fail(e);
         }
@@ -99,7 +101,9 @@ class RestResultSetReceiver extends BaseResultReceiver {
     }
 
     XContentBuilder finishBuilder() throws IOException {
-        return builder.finishRows()
+        return builder
+            .finishRows()
+            .rowCount(rowCount)
             .duration(startTime)
             .build();
     }

@@ -35,7 +35,6 @@ import java.util.List;
 
 class ResultToXContentBuilder {
 
-    private long rowCount;
 
     static final class FIELDS {
         static final XContentBuilderString RESULTS = new XContentBuilderString("results");
@@ -96,7 +95,6 @@ class ResultToXContentBuilder {
      * startRows() must be called before first setNextRow()
      */
     ResultToXContentBuilder startRows() throws IOException {
-        rowCount = 0;
         builder.startArray(FIELDS.ROWS);
         return this;
     }
@@ -106,7 +104,6 @@ class ResultToXContentBuilder {
      */
     ResultToXContentBuilder finishRows() throws IOException {
         builder.endArray();
-        rowCount(rowCount);
         return this;
     }
 
@@ -122,7 +119,6 @@ class ResultToXContentBuilder {
             builder.value(row.get(j));
         }
         builder.endArray();
-        rowCount++;
         return this;
     }
 
