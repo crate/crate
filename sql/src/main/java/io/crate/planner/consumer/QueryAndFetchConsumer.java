@@ -138,8 +138,7 @@ public class QueryAndFetchConsumer implements Consumer {
 
 
                 if (limits.hasLimit()) {
-                    TopNProjection topNProjection = new TopNProjection(limits.limitAndOffset(), 0);
-                    topNProjection.outputs(allOutputs);
+                    TopNProjection topNProjection = new TopNProjection(limits.limitAndOffset(), 0, allOutputs);
                     projections = ImmutableList.of(topNProjection);
                     nodePageSizeHint = limits.limitAndOffset();
                 }
@@ -154,8 +153,7 @@ public class QueryAndFetchConsumer implements Consumer {
 
                 // MERGE
                 if (context.isRoot()) {
-                    final TopNProjection tnp = new TopNProjection(limits.finalLimit(), limits.offset());
-                    tnp.outputs(finalOutputs);
+                    final TopNProjection tnp = new TopNProjection(limits.finalLimit(), limits.offset(), finalOutputs);
                     ArrayList<Projection> mergeProjections = new ArrayList<Projection>(1) {{
                         add(tnp);
                     }};

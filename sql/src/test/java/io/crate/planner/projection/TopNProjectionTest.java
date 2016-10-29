@@ -37,12 +37,12 @@ public class TopNProjectionTest extends CrateUnitTest {
     @Test
     public void testStreaming() throws Exception {
 
-        TopNProjection p = new TopNProjection(5, 10,
+        ImmutableList<Symbol> outputs = ImmutableList.of(new Value(DataTypes.BOOLEAN), new Value(DataTypes.INTEGER));
+        TopNProjection p = new TopNProjection(5, 10, outputs,
             ImmutableList.<Symbol>of(createReference("foo", DataTypes.BOOLEAN)),
             new boolean[]{true},
             new Boolean[]{null});
 
-        p.outputs(ImmutableList.<Symbol>of(new Value(DataTypes.BOOLEAN), new Value(DataTypes.INTEGER)));
 
         BytesStreamOutput out = new BytesStreamOutput();
         Projection.toStream(p, out);

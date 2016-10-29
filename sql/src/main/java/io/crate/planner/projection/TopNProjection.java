@@ -51,23 +51,29 @@ public class TopNProjection extends Projection {
     List<Symbol> outputs = ImmutableList.of();
 
     @Nullable
-    List<Symbol> orderBy;
+    private List<Symbol> orderBy;
     @Nullable
-    boolean[] reverseFlags;
+    private boolean[] reverseFlags;
     @Nullable
     private Boolean[] nullsFirst;
 
-    public TopNProjection() {
+    private TopNProjection() {
         super();
     }
 
-    public TopNProjection(int limit, int offset) {
+    public TopNProjection(int limit, int offset, List<Symbol> outputs) {
         this.limit = limit;
         this.offset = offset;
+        this.outputs = outputs;
     }
 
-    public TopNProjection(int limit, int offset, @Nullable List<Symbol> orderBy, @Nullable boolean[] reverseFlags, @Nullable Boolean[] nullsFirst) {
-        this(limit, offset);
+    public TopNProjection(int limit,
+                          int offset,
+                          List<Symbol> outputs,
+                          @Nullable List<Symbol> orderBy,
+                          @Nullable boolean[] reverseFlags,
+                          @Nullable Boolean[] nullsFirst) {
+        this(limit, offset, outputs);
         this.orderBy = MoreObjects.firstNonNull(orderBy, ImmutableList.<Symbol>of());
         this.reverseFlags = MoreObjects.firstNonNull(reverseFlags, new boolean[0]);
         this.nullsFirst = MoreObjects.firstNonNull(nullsFirst, new Boolean[0]);
@@ -79,10 +85,6 @@ public class TopNProjection extends Projection {
     @Override
     public List<Symbol> outputs() {
         return outputs;
-    }
-
-    public void outputs(List<Symbol> outputs) {
-        this.outputs = outputs;
     }
 
     public int limit() {

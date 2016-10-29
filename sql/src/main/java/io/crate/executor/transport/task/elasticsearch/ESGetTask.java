@@ -138,11 +138,11 @@ public class ESGetTask extends JobTask {
                 TopNProjection topNProjection = new TopNProjection(
                     task.esGet.limit(),
                     task.esGet.offset(),
+                    InputColumn.numInputs(task.esGet.outputs().size()),
                     orderBySymbols,
                     task.esGet.reverseFlags(),
                     task.esGet.nullsFirst()
                 );
-                topNProjection.outputs(InputColumn.numInputs(task.esGet.outputs().size()));
                 return FlatProjectorChain.withAttachedDownstream(
                     task.projectorFactory,
                     null,

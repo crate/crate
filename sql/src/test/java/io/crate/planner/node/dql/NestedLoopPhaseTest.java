@@ -39,6 +39,7 @@ import org.elasticsearch.common.io.stream.StreamInput;
 import org.hamcrest.core.Is;
 import org.junit.Test;
 
+import java.util.Collections;
 import java.util.UUID;
 
 import static org.hamcrest.CoreMatchers.is;
@@ -47,7 +48,7 @@ public class NestedLoopPhaseTest extends CrateUnitTest {
 
     @Test
     public void testSerialization() throws Exception {
-        TopNProjection topNProjection = new TopNProjection(10, 0);
+        TopNProjection topNProjection = new TopNProjection(10, 0, Collections.emptyList());
         UUID jobId = UUID.randomUUID();
         MergePhase mp1 = new MergePhase(jobId, 2, "merge", 1,
             ImmutableList.<DataType>of(DataTypes.STRING),
