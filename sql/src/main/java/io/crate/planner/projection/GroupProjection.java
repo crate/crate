@@ -36,9 +36,9 @@ import java.util.List;
 
 public class GroupProjection extends Projection {
 
-    List<Symbol> keys;
-    List<Aggregation> values;
-    List<Symbol> outputs;
+    private List<Symbol> keys;
+    private List<Aggregation> values;
+    private List<Symbol> outputs;
 
     private RowGranularity requiredGranularity = RowGranularity.CLUSTER;
 
@@ -49,12 +49,13 @@ public class GroupProjection extends Projection {
         }
     };
 
-    public GroupProjection() {
+    private GroupProjection() {
     }
 
-    public GroupProjection(List<Symbol> keys, List<Aggregation> values) {
+    public GroupProjection(List<Symbol> keys, List<Aggregation> values, RowGranularity requiredGranularity) {
         this.keys = keys;
         this.values = values;
+        this.requiredGranularity = requiredGranularity;
     }
 
     @Override
@@ -67,16 +68,8 @@ public class GroupProjection extends Projection {
         return keys;
     }
 
-    public void keys(List<Symbol> keys) {
-        this.keys = keys;
-    }
-
     public List<Aggregation> values() {
         return values;
-    }
-
-    public void values(List<Aggregation> values) {
-        this.values = values;
     }
 
     @Override
@@ -137,9 +130,5 @@ public class GroupProjection extends Projection {
     @Override
     public RowGranularity requiredGranularity() {
         return requiredGranularity;
-    }
-
-    public void setRequiredGranularity(RowGranularity requiredGranularity) {
-        this.requiredGranularity = requiredGranularity;
     }
 }

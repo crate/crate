@@ -58,6 +58,8 @@ import org.mockito.Answers;
 import org.mockito.MockitoAnnotations;
 
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
@@ -181,12 +183,12 @@ public class ProjectionToProjectorVisitorTest extends CrateUnitTest {
     public void testGroupProjector() throws Exception {
         //         in(0)  in(1)      in(0),      in(2)
         // select  race, avg(age), count(race), gender  ... group by race, gender
-        GroupProjection projection = new GroupProjection();
-        projection.keys(Arrays.<Symbol>asList(new InputColumn(0, DataTypes.STRING), new InputColumn(2, DataTypes.STRING)));
-        projection.values(Arrays.asList(
-            Aggregation.finalAggregation(avgInfo, Arrays.<Symbol>asList(new InputColumn(1)), Aggregation.Step.ITER),
-            Aggregation.finalAggregation(countInfo, Arrays.<Symbol>asList(new InputColumn(0)), Aggregation.Step.ITER)
-        ));
+        List<Symbol> keys = Arrays.asList(new InputColumn(0, DataTypes.STRING), new InputColumn(2, DataTypes.STRING));
+        List<Aggregation> aggregations = Arrays.asList(
+            Aggregation.finalAggregation(avgInfo, Collections.singletonList(new InputColumn(1)), Aggregation.Step.ITER),
+            Aggregation.finalAggregation(countInfo, Collections.singletonList(new InputColumn(0)), Aggregation.Step.ITER)
+        );
+        GroupProjection projection = new GroupProjection(keys, aggregations, RowGranularity.CLUSTER);
 
         Projector projector = visitor.create(projection, RAM_ACCOUNTING_CONTEXT, UUID.randomUUID());
 

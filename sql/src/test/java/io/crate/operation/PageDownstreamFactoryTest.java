@@ -37,6 +37,7 @@ import io.crate.executor.transport.TransportActionProvider;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Functions;
+import io.crate.metadata.RowGranularity;
 import io.crate.operation.aggregation.impl.MinimumAggregation;
 import io.crate.operation.projectors.FlatProjectorChain;
 import io.crate.operation.projectors.TopN;
@@ -63,9 +64,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Answers;
 
-import java.util.Arrays;
-import java.util.Iterator;
-import java.util.UUID;
+import java.util.*;
 import java.util.concurrent.Executor;
 import java.util.concurrent.TimeUnit;
 
@@ -89,13 +88,13 @@ public class PageDownstreamFactoryTest extends CrateUnitTest {
         threadPool = new ThreadPool("testing");
         functions = getFunctions();
 
-        FunctionIdent minAggIdent = new FunctionIdent(MinimumAggregation.NAME, Arrays.<DataType>asList(DataTypes.DOUBLE));
+        FunctionIdent minAggIdent = new FunctionIdent(MinimumAggregation.NAME, Arrays.asList(DataTypes.DOUBLE));
         FunctionInfo minAggInfo = new FunctionInfo(minAggIdent, DataTypes.DOUBLE);
 
-        groupProjection = new GroupProjection();
-        groupProjection.keys(Arrays.<Symbol>asList(new InputColumn(0, DataTypes.INTEGER)));
-        groupProjection.values(Arrays.asList(
-            Aggregation.finalAggregation(minAggInfo, Arrays.<Symbol>asList(new InputColumn(1)), Aggregation.Step.PARTIAL)));
+        List<Symbol> keys = Collections.singletonList(new InputColumn(0, DataTypes.INTEGER));
+        List<Aggregation> aggregations = Collections.singletonList(
+            Aggregation.finalAggregation(minAggInfo, Collections.singletonList(new InputColumn(1)), Aggregation.Step.PARTIAL));
+        groupProjection = new GroupProjection(keys, aggregations, RowGranularity.CLUSTER);
     }
 
     @Override

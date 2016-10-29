@@ -124,8 +124,8 @@ class NonDistributedGroupByConsumer implements Consumer {
                 table.querySpec().groupBy().get(),
                 splitPoints.aggregates(),
                 Aggregation.Step.ITER,
-                Aggregation.Step.PARTIAL);
-            groupProjection.setRequiredGranularity(groupProjectionGranularity);
+                Aggregation.Step.PARTIAL,
+                groupProjectionGranularity);
 
             RoutedCollectPhase collectPhase = RoutedCollectPhase.forQueriedTable(
                 context.plannerContext(),
@@ -150,7 +150,8 @@ class NonDistributedGroupByConsumer implements Consumer {
                 table.querySpec().groupBy().get(),
                 splitPoints.aggregates(),
                 Aggregation.Step.PARTIAL,
-                Aggregation.Step.FINAL
+                Aggregation.Step.FINAL,
+                RowGranularity.CLUSTER
             ));
 
             Optional<HavingClause> havingClause = table.querySpec().having();
