@@ -36,6 +36,7 @@ import io.crate.operation.scalar.geo.IntersectsFunction;
 import io.crate.operation.scalar.geo.WithinFunction;
 import io.crate.operation.scalar.regex.MatchesFunction;
 import io.crate.operation.scalar.regex.ReplaceFunction;
+import io.crate.operation.scalar.string.LengthFunction;
 import io.crate.operation.scalar.string.LowerFunction;
 import io.crate.operation.scalar.string.UpperFunction;
 import io.crate.operation.scalar.systeminformation.CurrentSchemaFunction;
