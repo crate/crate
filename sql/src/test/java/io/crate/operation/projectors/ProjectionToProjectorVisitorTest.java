@@ -118,8 +118,8 @@ public class ProjectionToProjectorVisitorTest extends CrateUnitTest {
 
     @Test
     public void testSimpleTopNProjection() throws Exception {
-        TopNProjection projection = new TopNProjection(10, 2);
-        projection.outputs(Arrays.<Symbol>asList(Literal.of("foo"), new InputColumn(0)));
+        List<Symbol> outputs = Arrays.<Symbol>asList(Literal.of("foo"), new InputColumn(0));
+        TopNProjection projection = new TopNProjection(10, 2, outputs);
 
         CollectingRowReceiver collectingProjector = new CollectingRowReceiver();
         Projector projector = visitor.create(projection, RAM_ACCOUNTING_CONTEXT, UUID.randomUUID());
@@ -136,24 +136,24 @@ public class ProjectionToProjectorVisitorTest extends CrateUnitTest {
 
     @Test
     public void testSortingTopNProjection() throws Exception {
-        TopNProjection projection = new TopNProjection(10, 0,
+        List<Symbol> outputs = Arrays.<Symbol>asList(Literal.of("foo"), new InputColumn(0), new InputColumn(1));
+        TopNProjection projection = new TopNProjection(10, 0, outputs,
             Arrays.<Symbol>asList(new InputColumn(0), new InputColumn(1)),
             new boolean[]{false, false},
             new Boolean[]{null, null}
         );
-        projection.outputs(Arrays.<Symbol>asList(Literal.of("foo"), new InputColumn(0), new InputColumn(1)));
         Projector projector = visitor.create(projection, RAM_ACCOUNTING_CONTEXT, UUID.randomUUID());
         assertThat(projector, instanceOf(SortingTopNProjector.class));
     }
 
     @Test
     public void testTopNProjectionToSortingProjector() throws Exception {
-        TopNProjection projection = new TopNProjection(TopN.NO_LIMIT, TopN.NO_OFFSET,
+        List<Symbol> outputs = Arrays.asList(Literal.of("foo"), new InputColumn(0), new InputColumn(1));
+        TopNProjection projection = new TopNProjection(TopN.NO_LIMIT, TopN.NO_OFFSET, outputs,
             Arrays.<Symbol>asList(new InputColumn(0), new InputColumn(1)),
             new boolean[]{false, false},
             new Boolean[]{null, null}
         );
-        projection.outputs(Arrays.<Symbol>asList(Literal.of("foo"), new InputColumn(0), new InputColumn(1)));
         Projector projector = visitor.create(projection, RAM_ACCOUNTING_CONTEXT, UUID.randomUUID());
         assertThat(projector, instanceOf(SortingProjector.class));
     }
@@ -193,13 +193,13 @@ public class ProjectionToProjectorVisitorTest extends CrateUnitTest {
         Projector projector = visitor.create(projection, RAM_ACCOUNTING_CONTEXT, UUID.randomUUID());
 
         // use a topN projection in order to get sorted outputs
-        TopNProjection topNProjection = new TopNProjection(10, 0,
+        List<Symbol> outputs = Arrays.<Symbol>asList(
+            new InputColumn(0, DataTypes.STRING), new InputColumn(1, DataTypes.STRING),
+            new InputColumn(2, DataTypes.DOUBLE), new InputColumn(3, DataTypes.LONG));
+        TopNProjection topNProjection = new TopNProjection(10, 0, outputs,
             ImmutableList.<Symbol>of(new InputColumn(2, DataTypes.DOUBLE)),
             new boolean[]{false},
             new Boolean[]{null});
-        topNProjection.outputs(Arrays.<Symbol>asList(
-            new InputColumn(0, DataTypes.STRING), new InputColumn(1, DataTypes.STRING),
-            new InputColumn(2, DataTypes.DOUBLE), new InputColumn(3, DataTypes.LONG)));
         Projector topNProjector = visitor.create(topNProjection, RAM_ACCOUNTING_CONTEXT, UUID.randomUUID());
         projector.downstream(topNProjector);
 

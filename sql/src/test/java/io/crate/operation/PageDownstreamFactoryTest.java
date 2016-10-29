@@ -107,9 +107,8 @@ public class PageDownstreamFactoryTest extends CrateUnitTest {
 
     @Test
     public void testMergeSingleResult() throws Exception {
-        TopNProjection topNProjection = new TopNProjection(3, TopN.NO_OFFSET,
+        TopNProjection topNProjection = new TopNProjection(3, TopN.NO_OFFSET, InputColumn.numInputs(2),
             Arrays.<Symbol>asList(new InputColumn(0)), new boolean[]{false}, new Boolean[]{null});
-        topNProjection.outputs(Arrays.<Symbol>asList(new InputColumn(0), new InputColumn(1)));
 
         MergePhase mergeNode = new MergePhase(UUID.randomUUID(), 0, "merge", 2,
             ImmutableList.<DataType>of(DataTypes.INTEGER, DataTypes.DOUBLE),

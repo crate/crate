@@ -24,6 +24,7 @@ package io.crate.planner.node;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Sets;
 import io.crate.analyze.symbol.Aggregation;
+import io.crate.analyze.symbol.InputColumn;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
@@ -65,7 +66,7 @@ public class MergeNodeTest extends CrateUnitTest {
                 Aggregation.Step.PARTIAL)
         );
         GroupProjection groupProjection = new GroupProjection(keys, aggregations, RowGranularity.CLUSTER);
-        TopNProjection topNProjection = new TopNProjection(10, 0);
+        TopNProjection topNProjection = new TopNProjection(10, 0, InputColumn.numInputs(keys.size() + aggregations.size()));
 
         List<Projection> projections = Arrays.asList(groupProjection, topNProjection);
         MergePhase node = new MergePhase(

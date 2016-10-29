@@ -140,14 +140,13 @@ public class ProjectionBuilder {
 
         TopNProjection result;
         if (orderBy == null) {
-            result = new TopNProjection(limit, offset);
+            result = new TopNProjection(limit, offset, outputsProcessed);
         } else {
-            result = new TopNProjection(limit, offset,
+            result = new TopNProjection(limit, offset, outputsProcessed,
                 inputVisitor.process(orderBy.orderBySymbols(), context),
                 orderBy.reverseFlags(),
                 orderBy.nullsFirst());
         }
-        result.outputs(outputsProcessed);
         return result;
     }
 
