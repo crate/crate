@@ -98,8 +98,8 @@ class DistributedGroupByConsumer implements Consumer {
                 groupBy,
                 splitPoints.aggregates(),
                 Aggregation.Step.ITER,
-                Aggregation.Step.PARTIAL);
-            groupProjection.setRequiredGranularity(RowGranularity.SHARD);
+                Aggregation.Step.PARTIAL,
+                RowGranularity.SHARD);
 
             Planner.Context plannerContext = context.plannerContext();
             Routing routing = plannerContext.allocateRouting(tableInfo, querySpec.where(), null);
@@ -129,7 +129,8 @@ class DistributedGroupByConsumer implements Consumer {
                 groupBy,
                 splitPoints.aggregates(),
                 Aggregation.Step.PARTIAL,
-                Aggregation.Step.FINAL)
+                Aggregation.Step.FINAL,
+                RowGranularity.CLUSTER)
             );
 
             table.tableRelation().validateOrderBy(querySpec.orderBy());

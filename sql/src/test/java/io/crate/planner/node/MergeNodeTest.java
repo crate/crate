@@ -28,6 +28,7 @@ import io.crate.analyze.symbol.Symbol;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Reference;
+import io.crate.metadata.RowGranularity;
 import io.crate.operation.aggregation.impl.CountAggregation;
 import io.crate.planner.distribution.DistributionInfo;
 import io.crate.planner.node.dql.MergePhase;
@@ -56,14 +57,14 @@ public class MergeNodeTest extends CrateUnitTest {
     public void testSerialization() throws Exception {
 
         Reference nameRef = TestingHelpers.createReference("name", DataTypes.STRING);
-        GroupProjection groupProjection = new GroupProjection();
-        groupProjection.keys(Collections.<Symbol>singletonList(nameRef));
-        groupProjection.values(Collections.singletonList(
+        List<Symbol> keys = Collections.singletonList(nameRef);
+        List<Aggregation> aggregations = Collections.singletonList(
             Aggregation.finalAggregation(
-                new FunctionInfo(new FunctionIdent(CountAggregation.NAME, ImmutableList.<DataType>of()), DataTypes.LONG),
-                ImmutableList.<Symbol>of(),
+                new FunctionInfo(new FunctionIdent(CountAggregation.NAME, ImmutableList.of()), DataTypes.LONG),
+                ImmutableList.of(),
                 Aggregation.Step.PARTIAL)
-        ));
+        );
+        GroupProjection groupProjection = new GroupProjection(keys, aggregations, RowGranularity.CLUSTER);
         TopNProjection topNProjection = new TopNProjection(10, 0);
 
         List<Projection> projections = Arrays.asList(groupProjection, topNProjection);

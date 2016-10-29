@@ -76,11 +76,12 @@ public class ProjectionBuilder {
         Collection<Symbol> keys,
         Collection<Function> values,
         Aggregation.Step fromStep,
-        Aggregation.Step toStep) {
+        Aggregation.Step toStep,
+        RowGranularity requiredGranularity) {
 
         InputCreatingVisitor.Context context = new InputCreatingVisitor.Context(inputs);
         ArrayList<Aggregation> aggregations = getAggregations(values, fromStep, toStep, context);
-        return new GroupProjection(inputVisitor.process(keys, context), aggregations);
+        return new GroupProjection(inputVisitor.process(keys, context), aggregations, requiredGranularity);
     }
 
     private ArrayList<Aggregation> getAggregations(Collection<Function> functions,

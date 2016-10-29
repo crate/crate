@@ -34,11 +34,7 @@ import io.crate.exceptions.VersionInvalidException;
 import io.crate.metadata.Functions;
 import io.crate.metadata.RowGranularity;
 import io.crate.operation.projectors.TopN;
-import io.crate.planner.Limits;
-import io.crate.planner.Merge;
-import io.crate.planner.NoopPlan;
-import io.crate.planner.PositionalOrderBy;
-import io.crate.planner.Plan;
+import io.crate.planner.*;
 import io.crate.planner.node.dql.Collect;
 import io.crate.planner.node.dql.GroupByConsumer;
 import io.crate.planner.node.dql.MergePhase;
@@ -132,9 +128,9 @@ class ReduceOnCollectorGroupByConsumer implements Consumer {
                 querySpec.groupBy().get(),
                 splitPoints.aggregates(),
                 Aggregation.Step.ITER,
-                Aggregation.Step.FINAL
+                Aggregation.Step.FINAL,
+                RowGranularity.SHARD
             );
-            groupProjection.setRequiredGranularity(RowGranularity.SHARD);
             projections.add(groupProjection);
 
             Optional<HavingClause> havingClause = querySpec.having();

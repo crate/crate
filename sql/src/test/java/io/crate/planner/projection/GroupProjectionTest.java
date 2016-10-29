@@ -30,13 +30,13 @@ import io.crate.metadata.Reference;
 import io.crate.metadata.RowGranularity;
 import io.crate.operation.aggregation.impl.CountAggregation;
 import io.crate.test.integration.CrateUnitTest;
-import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.junit.Test;
 
-import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
 
 import static io.crate.testing.TestingHelpers.createReference;
 import static org.hamcrest.core.Is.is;
@@ -46,14 +46,12 @@ public class GroupProjectionTest extends CrateUnitTest {
 
     @Test
     public void testStreaming() throws Exception {
-        GroupProjection p = new GroupProjection();
-        p.keys(
-            ImmutableList.<Symbol>of(
-                createReference("foo", DataTypes.STRING),
-                createReference("bar", DataTypes.SHORT)
-            ));
-
-        p.values(ImmutableList.<Aggregation>of());
+        ImmutableList<Symbol> keys = ImmutableList.of(
+            createReference("foo", DataTypes.STRING),
+            createReference("bar", DataTypes.SHORT)
+        );
+        ImmutableList<Aggregation> aggregations = ImmutableList.of();
+        GroupProjection p = new GroupProjection(keys, aggregations, RowGranularity.CLUSTER);
 
         BytesStreamOutput out = new BytesStreamOutput();
         Projection.toStream(p, out);
@@ -67,15 +65,15 @@ public class GroupProjectionTest extends CrateUnitTest {
     @Test
     public void testStreaming2() throws Exception {
         Reference nameRef = createReference("name", DataTypes.STRING);
-        GroupProjection groupProjection = new GroupProjection();
-        groupProjection.keys(Arrays.<Symbol>asList(nameRef));
-        groupProjection.values(Arrays.asList(
+        List<Symbol> keys = Collections.singletonList(nameRef);
+        List<Aggregation> aggregations = Collections.singletonList(
             Aggregation.finalAggregation(
-                new FunctionInfo(new FunctionIdent(CountAggregation.NAME, ImmutableList.<DataType>of()), DataTypes.LONG),
-                ImmutableList.<Symbol>of(),
+                new FunctionInfo(new FunctionIdent(CountAggregation.NAME, ImmutableList.of()), DataTypes.LONG),
+                ImmutableList.of(),
                 Aggregation.Step.PARTIAL
             )
-        ));
+        );
+        GroupProjection groupProjection = new GroupProjection(keys, aggregations, RowGranularity.CLUSTER);
 
         BytesStreamOutput out = new BytesStreamOutput();
         Projection.toStream(groupProjection, out);
@@ -84,21 +82,18 @@ public class GroupProjectionTest extends CrateUnitTest {
         StreamInput in = StreamInput.wrap(out.bytes());
         GroupProjection p2 = (GroupProjection) Projection.fromStream(in);
 
-        assertThat(p2.keys.size(), is(1));
+        assertThat(p2.keys().size(), is(1));
         assertThat(p2.values().size(), is(1));
     }
 
     @Test
     public void testStreamingGranularity() throws Exception {
-        GroupProjection p = new GroupProjection();
-        p.keys(
-            ImmutableList.<Symbol>of(
-                createReference("foo", DataTypes.STRING),
-                createReference("bar", DataTypes.SHORT)
-            ));
-
-        p.values(ImmutableList.<Aggregation>of());
-        p.setRequiredGranularity(RowGranularity.SHARD);
+        ImmutableList<Symbol> keys = ImmutableList.of(
+            createReference("foo", DataTypes.STRING),
+            createReference("bar", DataTypes.SHORT)
+        );
+        ImmutableList<Aggregation> aggregations = ImmutableList.of();
+        GroupProjection p = new GroupProjection(keys, aggregations, RowGranularity.SHARD);
         BytesStreamOutput out = new BytesStreamOutput();
         Projection.toStream(p, out);
 
