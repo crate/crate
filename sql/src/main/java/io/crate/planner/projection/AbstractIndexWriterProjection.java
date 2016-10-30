@@ -153,47 +153,6 @@ public abstract class AbstractIndexWriterProjection extends Projection {
     }
 
     @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (!(o instanceof AbstractIndexWriterProjection)) return false;
-
-        AbstractIndexWriterProjection that = (AbstractIndexWriterProjection) o;
-
-        if (autoCreateIndices != that.autoCreateIndices) return false;
-        if (!bulkActions.equals(that.bulkActions)) return false;
-        if (clusteredByColumn != null ? !clusteredByColumn.equals(that.clusteredByColumn) :
-            that.clusteredByColumn != null)
-            return false;
-        if (clusteredBySymbol != null ? !clusteredBySymbol.equals(that.clusteredBySymbol) :
-            that.clusteredBySymbol != null)
-            return false;
-        if (!idSymbols.equals(that.idSymbols)) return false;
-        if (!partitionedBySymbols.equals(that.partitionedBySymbols))
-            return false;
-        if (!primaryKeys.equals(that.primaryKeys)) return false;
-        if (!tableIdent.equals(that.tableIdent)) return false;
-        if (partitionIdent != null ? !partitionIdent.equals(that.partitionIdent) : that.partitionIdent != null)
-            return false;
-
-        return true;
-    }
-
-    @Override
-    public int hashCode() {
-        int result = super.hashCode();
-        result = 31 * result + bulkActions.hashCode();
-        result = 31 * result + tableIdent.hashCode();
-        result = 31 * result + (partitionIdent != null ? partitionIdent.hashCode() : 0);
-        result = 31 * result + primaryKeys.hashCode();
-        result = 31 * result + (clusteredByColumn != null ? clusteredByColumn.hashCode() : 0);
-        result = 31 * result + idSymbols.hashCode();
-        result = 31 * result + partitionedBySymbols.hashCode();
-        result = 31 * result + (clusteredBySymbol != null ? clusteredBySymbol.hashCode() : 0);
-        result = 31 * result + (autoCreateIndices ? 1 : 0);
-        return result;
-    }
-
-    @Override
     public void writeTo(StreamOutput out) throws IOException {
         tableIdent.writeTo(out);
         out.writeOptionalString(partitionIdent);

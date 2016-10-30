@@ -58,11 +58,6 @@ public class MergeCountProjection extends Projection {
     }
 
     @Override
-    public boolean equals(Object o) {
-        return this == o;
-    }
-
-    @Override
     public void readFrom(StreamInput in) throws IOException {
     }
 

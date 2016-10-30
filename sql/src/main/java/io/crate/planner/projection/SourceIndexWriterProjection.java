@@ -39,7 +39,6 @@ import org.elasticsearch.common.settings.Settings;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
@@ -56,8 +55,8 @@ public class SourceIndexWriterProjection extends AbstractIndexWriterProjection {
     @Nullable
     String[] excludes;
 
-    protected Reference rawSourceReference;
-    protected InputColumn rawSourceSymbol;
+    private Reference rawSourceReference;
+    private InputColumn rawSourceSymbol;
 
     private final static String OVERWRITE_DUPLICATES = "overwrite_duplicates";
     private final static boolean OVERWRITE_DUPLICATES_DEFAULT = false;
@@ -70,7 +69,7 @@ public class SourceIndexWriterProjection extends AbstractIndexWriterProjection {
             }
         };
 
-    protected SourceIndexWriterProjection() {
+    private SourceIndexWriterProjection() {
     }
 
     public SourceIndexWriterProjection(TableIdent tableIdent,
@@ -165,28 +164,6 @@ public class SourceIndexWriterProjection extends AbstractIndexWriterProjection {
     @Override
     public ProjectionType projectionType() {
         return ProjectionType.INDEX_WRITER;
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        if (!super.equals(o)) return false;
-
-        SourceIndexWriterProjection that = (SourceIndexWriterProjection) o;
-
-        if (!Arrays.equals(excludes, that.excludes)) return false;
-        if (!Arrays.equals(includes, that.includes)) return false;
-        return rawSourceSymbol.equals(that.rawSourceSymbol);
-    }
-
-    @Override
-    public int hashCode() {
-        int result = super.hashCode();
-        result = 31 * result + (includes != null ? Arrays.hashCode(includes) : 0);
-        result = 31 * result + (excludes != null ? Arrays.hashCode(excludes) : 0);
-        result = 31 * result + rawSourceSymbol.hashCode();
-        return result;
     }
 
     @Override

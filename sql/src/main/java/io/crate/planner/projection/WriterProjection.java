@@ -82,7 +82,7 @@ public class WriterProjection extends Projection {
         GZIP
     }
 
-    public WriterProjection() {
+    private WriterProjection() {
     }
 
     public WriterProjection(List<Symbol> inputs,
@@ -199,35 +199,6 @@ public class WriterProjection extends Projection {
         }
         out.writeInt(compressionType != null ? compressionType.ordinal() : -1);
         out.writeInt(outputFormat.ordinal());
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-
-        WriterProjection that = (WriterProjection) o;
-
-        if (outputNames != null ? !outputNames.equals(that.outputNames) : that.outputNames != null)
-            return false;
-        if (!uri.equals(that.uri)) return false;
-        if (!overwrites.equals(that.overwrites)) return false;
-        if (compressionType != null ? !compressionType.equals(that.compressionType) : that.compressionType != null)
-            return false;
-        if (!outputFormat.equals(that.outputFormat)) return false;
-
-        return true;
-    }
-
-    @Override
-    public int hashCode() {
-        int result = super.hashCode();
-        result = 31 * result + uri.hashCode();
-        result = 31 * result + (outputNames != null ? outputNames.hashCode() : 0);
-        result = 31 * result + overwrites.hashCode();
-        result = 31 * result + (compressionType != null ? compressionType.hashCode() : 0);
-        result = 31 * result + outputFormat.hashCode();
-        return result;
     }
 
     @Override

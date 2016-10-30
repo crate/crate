@@ -22,7 +22,6 @@
 
 package io.crate.planner.projection;
 
-import com.google.common.base.Objects;
 import com.google.common.collect.ImmutableList;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.analyze.symbol.Symbols;
@@ -57,19 +56,6 @@ public abstract class DMLProjection extends Projection {
 
     public Symbol uidSymbol() {
         return uidSymbol;
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        DMLProjection that = (DMLProjection) o;
-        return Objects.equal(uidSymbol, that.uidSymbol);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hashCode(super.hashCode(), uidSymbol);
     }
 
     @Override

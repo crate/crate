@@ -110,19 +110,6 @@ public class FetchProjection extends Projection {
     }
 
     @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        FetchProjection that = (FetchProjection) o;
-        return collectPhaseId == that.collectPhaseId;
-    }
-
-    @Override
-    public int hashCode() {
-        return collectPhaseId;
-    }
-
-    @Override
     public void readFrom(StreamInput in) throws IOException {
         throw new UnsupportedOperationException();
     }
