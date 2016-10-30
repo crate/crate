@@ -26,8 +26,8 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import io.crate.analyze.symbol.Symbols;
-import io.crate.planner.PositionalOrderBy;
 import io.crate.planner.Planner;
+import io.crate.planner.PositionalOrderBy;
 import io.crate.planner.ResultDescription;
 import io.crate.planner.distribution.DistributionInfo;
 import io.crate.planner.distribution.UpstreamPhase;
@@ -214,9 +214,7 @@ public class MergePhase extends AbstractProjectionsPhase implements UpstreamPhas
             }
         }
 
-        if (in.readBoolean()) {
-            positionalOrderBy = PositionalOrderBy.fromStream(in);
-        }
+        positionalOrderBy = PositionalOrderBy.fromStream(in);
     }
 
     @Override
@@ -240,11 +238,7 @@ public class MergePhase extends AbstractProjectionsPhase implements UpstreamPhas
             }
         }
 
-        boolean hasOrderByPositions = positionalOrderBy != null;
-        out.writeBoolean(hasOrderByPositions);
-        if (hasOrderByPositions) {
-            positionalOrderBy.toStream(out);
-        }
+        PositionalOrderBy.toStream(positionalOrderBy, out);
     }
 
     @Override

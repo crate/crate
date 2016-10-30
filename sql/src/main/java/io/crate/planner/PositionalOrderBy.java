@@ -42,6 +42,9 @@ public class PositionalOrderBy {
     private PositionalOrderBy(int[] indices, boolean[] reverseFlags, Boolean[] nullsFirst) {
         assert indices.length == reverseFlags.length && reverseFlags.length == nullsFirst.length
             : "all parameters to OrderByPositions must have the same length";
+         // PositionalOrderBy should be null if there is no order by
+        assert indices.length > 0 : "parameters must have length > 0";
+
         this.indices = indices;
         this.reverseFlags = reverseFlags;
         this.nullsFirst = nullsFirst;
@@ -68,8 +71,12 @@ public class PositionalOrderBy {
                '}';
     }
 
+    @Nullable
     public static PositionalOrderBy fromStream(StreamInput in) throws IOException {
         int size = in.readVInt();
+        if (size == 0) {
+            return null;
+        }
         int[] indices = new int[size];
         boolean[] reverseFlags = new boolean[size];
         Boolean[] nullsFirst = new Boolean[size];
@@ -81,12 +88,16 @@ public class PositionalOrderBy {
         return new PositionalOrderBy(indices, reverseFlags, nullsFirst);
     }
 
-    public void toStream(StreamOutput out) throws IOException {
-        out.writeVInt(indices.length);
-        for (int i = 0; i < indices.length; i++) {
-            out.writeVInt(indices[i]);
-            out.writeBoolean(reverseFlags[i]);
-            out.writeOptionalBoolean(nullsFirst[i]);
+    public static void toStream(@Nullable PositionalOrderBy orderBy, StreamOutput out) throws IOException {
+        if (orderBy == null) {
+            out.writeVInt(0);
+            return;
+        }
+        out.writeVInt(orderBy.indices.length);
+        for (int i = 0; i < orderBy.indices.length; i++) {
+            out.writeVInt(orderBy.indices[i]);
+            out.writeBoolean(orderBy.reverseFlags[i]);
+            out.writeOptionalBoolean(orderBy.nullsFirst[i]);
         }
     }
 
