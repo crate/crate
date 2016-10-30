@@ -128,31 +128,6 @@ public class ColumnIndexWriterProjection extends AbstractIndexWriterProjection {
         return ProjectionType.COLUMN_INDEX_WRITER;
     }
 
-    @SuppressWarnings("SimplifiableIfStatement")
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        if (!super.equals(o)) return false;
-
-        ColumnIndexWriterProjection that = (ColumnIndexWriterProjection) o;
-
-        if (!columnReferences.equals(that.columnReferences)) return false;
-        if (!columnSymbols.equals(that.columnSymbols)) return false;
-        return !(onDuplicateKeyAssignments != null ?
-                     !onDuplicateKeyAssignments.equals(that.onDuplicateKeyAssignments)
-                     : that.onDuplicateKeyAssignments != null);
-    }
-
-    @Override
-    public int hashCode() {
-        int result = super.hashCode();
-        result = 31 * result + columnSymbols.hashCode();
-        result = 31 * result + columnReferences.hashCode();
-        result = 31 * result + (onDuplicateKeyAssignments != null ? onDuplicateKeyAssignments.hashCode() : 0);
-        return result;
-    }
-
     @Override
     public void readFrom(StreamInput in) throws IOException {
         super.readFrom(in);

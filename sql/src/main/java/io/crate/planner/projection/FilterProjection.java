@@ -32,7 +32,6 @@ import org.elasticsearch.common.io.stream.StreamOutput;
 
 import java.io.IOException;
 import java.util.List;
-import java.util.Objects;
 
 public class FilterProjection extends Projection {
 
@@ -103,16 +102,6 @@ public class FilterProjection extends Projection {
     }
 
     @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-
-        FilterProjection that = (FilterProjection) o;
-
-        return Objects.equals(query, that.query);
-    }
-
-    @Override
     public void readFrom(StreamInput in) throws IOException {
         query = Symbols.fromStream(in);
         outputs = Symbols.listFromStream(in);
@@ -124,11 +113,5 @@ public class FilterProjection extends Projection {
         Symbols.toStream(query, out);
         Symbols.toStream(outputs, out);
         RowGranularity.toStream(requiredGranularity, out);
-    }
-
-    @Override
-    public int hashCode() {
-        int result = super.hashCode();
-        return 31 * result + (query != null ? query.hashCode() : 0);
     }
 }

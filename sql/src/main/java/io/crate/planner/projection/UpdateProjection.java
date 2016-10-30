@@ -29,7 +29,6 @@ import org.elasticsearch.common.io.stream.StreamOutput;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
-import java.util.Arrays;
 
 public class UpdateProjection extends DMLProjection {
 
@@ -56,7 +55,7 @@ public class UpdateProjection extends DMLProjection {
         this.requiredVersion = requiredVersion;
     }
 
-    public UpdateProjection() {
+    private UpdateProjection() {
     }
 
     public String[] assignmentsColumns() {
@@ -88,32 +87,6 @@ public class UpdateProjection extends DMLProjection {
     @Override
     public <C, R> R accept(ProjectionVisitor<C, R> visitor, C context) {
         return visitor.visitUpdateProjection(this, context);
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-
-        UpdateProjection that = (UpdateProjection) o;
-
-        if (!Arrays.equals(assignments, that.assignments)) return false;
-        if (!Arrays.equals(assignmentsColumns, that.assignmentsColumns)) return false;
-        if (requiredVersion != null ? !requiredVersion.equals(that.requiredVersion) : that.requiredVersion != null)
-            return false;
-        if (!uidSymbol.equals(that.uidSymbol)) return false;
-
-        return true;
-    }
-
-    @Override
-    public int hashCode() {
-        int result = super.hashCode();
-        result = 31 * result + Arrays.hashCode(assignments);
-        result = 31 * result + Arrays.hashCode(assignmentsColumns);
-        result = 31 * result + (requiredVersion != null ? requiredVersion.hashCode() : 0);
-        result = 31 * result + uidSymbol.hashCode();
-        return result;
     }
 
     @Override

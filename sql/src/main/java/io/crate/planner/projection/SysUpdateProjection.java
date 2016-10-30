@@ -32,7 +32,10 @@ import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
 import java.io.IOException;
-import java.util.*;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 public class SysUpdateProjection extends Projection {
 
@@ -98,18 +101,5 @@ public class SysUpdateProjection extends Projection {
             Reference.toStream(e.getKey(), out);
             Symbols.toStream(e.getValue(), out);
         }
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        SysUpdateProjection that = (SysUpdateProjection) o;
-        return Objects.equals(assignments, that.assignments);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(super.hashCode(), assignments);
     }
 }

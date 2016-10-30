@@ -181,34 +181,6 @@ public class TopNProjection extends Projection {
     }
 
     @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-
-        TopNProjection that = (TopNProjection) o;
-
-        if (limit != that.limit) return false;
-        if (offset != that.offset) return false;
-        if (!orderBy.equals(that.orderBy)) return false;
-        if (!outputs.equals(that.outputs)) return false;
-        if (!Arrays.equals(reverseFlags, that.reverseFlags)) return false;
-        if (!Arrays.equals(nullsFirst, that.nullsFirst)) return false;
-
-        return true;
-    }
-
-    @Override
-    public int hashCode() {
-        int result = limit;
-        result = 31 * result + offset;
-        result = 31 * result + outputs.hashCode();
-        result = 31 * result + orderBy.hashCode();
-        result = 31 * result + Arrays.hashCode(reverseFlags);
-        result = 31 * result + Arrays.hashCode(nullsFirst);
-        return result;
-    }
-
-    @Override
     public String toString() {
         return "TopNProjection{" +
                "outputs=" + outputs +

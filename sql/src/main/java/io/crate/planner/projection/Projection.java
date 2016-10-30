@@ -81,13 +81,4 @@ public abstract class Projection implements Streamable {
 
         return projection;
     }
-
-    // force subclasses to implement equality
-    @Override
-    public abstract boolean equals(Object obj);
-
-    @Override
-    public int hashCode() {
-        return projectionType().hashCode();
-    }
 }
