@@ -8,7 +8,7 @@ configurations {
 
 dependencies {
     compile 'com.google.code.findbugs:jsr305:3.0.1'
-    compile 'joda-time:joda-time:2.8.2'
+    compile 'joda-time:joda-time:2.9.4'
     compile 'com.google.guava:guava:18.0'
     compile 'org.antlr:antlr-runtime:3.5.2'
 
