@@ -5,6 +5,10 @@ Changes for Crate
 Unreleased
 ==========
 
+ - BREAKING: Removed ``schema_name`` from ``information_schema.tables``,
+   ``information_schema.columns`` and ``information_schema.table_constraints``
+   in favour of ``table_schema``.
+
  - Removed the ``client`` package which contained the deprecated ``crate-client``.
    You should start using the PostgreSQL JDBC driver instead.
 

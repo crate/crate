@@ -23,12 +23,15 @@ package io.crate.metadata.information;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSortedMap;
-import io.crate.metadata.*;
+import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.Reference;
+import io.crate.metadata.ReferenceIdent;
+import io.crate.metadata.RowGranularity;
+import io.crate.metadata.TableIdent;
 import io.crate.metadata.table.ColumnPolicy;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.elasticsearch.cluster.ClusterService;
-import org.elasticsearch.search.aggregations.support.format.ValueParser;
 
 public class InformationColumnsTableInfo extends InformationTableInfo {
 
@@ -44,10 +47,6 @@ public class InformationColumnsTableInfo extends InformationTableInfo {
         public static final ColumnIdent IS_GENERATED = new ColumnIdent("is_generated");
         public static final ColumnIdent IS_NULLABLE = new ColumnIdent("is_nullable");
         public static final ColumnIdent GENERATION_EXPRESSION = new ColumnIdent("generation_expression");
-        /**
-         * @deprecated use {@link #TABLE_SCHEMA} instead.
-         */
-        public static final ColumnIdent SCHEMA_NAME = new ColumnIdent("schema_name");
     }
 
     public static class References {
@@ -59,10 +58,6 @@ public class InformationColumnsTableInfo extends InformationTableInfo {
         public static final Reference IS_GENERATED = info(Columns.IS_GENERATED, DataTypes.BOOLEAN, false);
         public static final Reference IS_NULLABLE = info(Columns.IS_NULLABLE, DataTypes.BOOLEAN, false);
         public static final Reference GENERATION_EXPRESSION = info(Columns.GENERATION_EXPRESSION, DataTypes.STRING, true);
-        /**
-         * @deprecated use {@link #TABLE_SCHEMA} instead.
-         */
-        public static final Reference SCHEMA_NAME = info(Columns.SCHEMA_NAME, DataTypes.STRING, false);
     }
 
     private static Reference info(ColumnIdent columnIdent, DataType dataType, Boolean nullable) {
@@ -82,7 +77,6 @@ public class InformationColumnsTableInfo extends InformationTableInfo {
                 .put(Columns.IS_GENERATED, References.IS_GENERATED)
                 .put(Columns.IS_NULLABLE, References.IS_NULLABLE)
                 .put(Columns.GENERATION_EXPRESSION, References.GENERATION_EXPRESSION)
-                .put(Columns.SCHEMA_NAME, References.SCHEMA_NAME) // @deprecated use TABLE_SCHEMA instead
                 .build()
         );
     }

@@ -104,14 +104,6 @@ public class InformationSchemaExpressionFactories {
                 public RowCollectExpression create() {
                     return new InformationTableConstraintsExpression.TableConstraintsConstraintTypeExpression();
                 }
-            })
-            // @deprecated
-            .put(InformationTableConstraintsTableInfo.Columns.SCHEMA_NAME, new RowCollectExpressionFactory() {
-
-                @Override
-                public RowCollectExpression create() {
-                    return new InformationTableConstraintsExpression.TableConstraintsSchemaNameExpression();
-                }
             }).build();
     }
 
@@ -125,7 +117,7 @@ public class InformationSchemaExpressionFactories {
                     return new InformationTablePartitionsExpression.PartitionsTableNameExpression();
                 }
             })
-            .put(InformationPartitionsTableInfo.Columns.SCHEMA_NAME, new RowCollectExpressionFactory() {
+            .put(InformationPartitionsTableInfo.PartitionsTableColumns.SCHEMA_NAME, new RowCollectExpressionFactory() {
 
                 @Override
                 public RowCollectExpression create() {
@@ -235,14 +227,6 @@ public class InformationSchemaExpressionFactories {
                             return null;
                         }
                     };
-                }
-            })
-            // @deprecated
-            .put(InformationColumnsTableInfo.Columns.SCHEMA_NAME, new RowCollectExpressionFactory() {
-
-                @Override
-                public RowCollectExpression create() {
-                    return new InformationColumnsExpression.ColumnsSchemaNameExpression();
                 }
             }).build();
     }
@@ -387,22 +371,7 @@ public class InformationSchemaExpressionFactories {
                         return new TablesSettingsExpression();
                     }
                 }
-            )
-            // @deprecated
-            .put(InformationTablesTableInfo.Columns.SCHEMA_NAME, new RowCollectExpressionFactory() {
-
-                @Override
-                public RowCollectExpression create() {
-                    return new RowContextCollectorExpression<TableInfo, BytesRef>() {
-
-                        @Override
-                        public BytesRef value() {
-                            return new BytesRef(row.ident().schema());
-                        }
-                    };
-                }
-            }).build();
-
+            ).build();
     }
 
     public static Map<ColumnIdent, RowCollectExpressionFactory> sqlFeaturesFactories() {

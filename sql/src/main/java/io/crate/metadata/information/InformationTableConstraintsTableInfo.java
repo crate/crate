@@ -39,10 +39,6 @@ public class InformationTableConstraintsTableInfo extends InformationTableInfo {
         public static final ColumnIdent TABLE_NAME = new ColumnIdent("table_name");
         public static final ColumnIdent CONSTRAINT_NAME = new ColumnIdent("constraint_name");
         public static final ColumnIdent CONSTRAINT_TYPE = new ColumnIdent("constraint_type");
-        /**
-         * @deprecated use {@link #TABLE_SCHEMA} instead.
-         */
-        public static final ColumnIdent SCHEMA_NAME = new ColumnIdent("schema_name");
     }
 
     public static class References {
@@ -50,10 +46,6 @@ public class InformationTableConstraintsTableInfo extends InformationTableInfo {
         public static final Reference TABLE_NAME = createRef(Columns.TABLE_NAME, DataTypes.STRING);
         public static final Reference CONSTRAINT_NAME = createRef(Columns.CONSTRAINT_NAME, new ArrayType(DataTypes.STRING));
         public static final Reference CONSTRAINT_TYPE = createRef(Columns.CONSTRAINT_TYPE, DataTypes.STRING);
-        /**
-         * @deprecated use {@link #TABLE_SCHEMA} instead.
-         */
-        public static final Reference SCHEMA_NAME = createRef(Columns.SCHEMA_NAME, DataTypes.STRING);
     }
 
     private static Reference createRef(ColumnIdent columnIdent, DataType dataType) {
@@ -69,7 +61,6 @@ public class InformationTableConstraintsTableInfo extends InformationTableInfo {
                 .put(Columns.TABLE_NAME, References.TABLE_NAME)
                 .put(Columns.CONSTRAINT_NAME, References.CONSTRAINT_NAME)
                 .put(Columns.CONSTRAINT_TYPE, References.CONSTRAINT_TYPE)
-                .put(Columns.SCHEMA_NAME, References.SCHEMA_NAME) // @deprecated
                 .build()
         );
     }

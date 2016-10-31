@@ -33,9 +33,13 @@ public class InformationPartitionsTableInfo extends InformationTableInfo {
     public static final String NAME = "table_partitions";
     public static final TableIdent IDENT = new TableIdent(InformationSchemaInfo.NAME, NAME);
 
+    public static class PartitionsTableColumns {
+        public static final ColumnIdent SCHEMA_NAME = new ColumnIdent("schema_name");
+    }
+
     public static class References {
         public static final Reference TABLE_NAME = createRef(Columns.TABLE_NAME, DataTypes.STRING);
-        public static final Reference SCHEMA_NAME = createRef(Columns.SCHEMA_NAME, DataTypes.STRING);
+        public static final Reference SCHEMA_NAME = createRef(PartitionsTableColumns.SCHEMA_NAME, DataTypes.STRING);
         public static final Reference PARTITION_IDENT = createRef(Columns.PARTITION_IDENT, DataTypes.STRING);
         public static final Reference VALUES = createRef(Columns.VALUES, DataTypes.OBJECT);
         public static final Reference NUMBER_OF_SHARDS = createRef(Columns.NUMBER_OF_SHARDS, DataTypes.INTEGER);
@@ -106,7 +110,7 @@ public class InformationPartitionsTableInfo extends InformationTableInfo {
             ImmutableList.<ColumnIdent>of(),
             ImmutableSortedMap.<ColumnIdent, Reference>naturalOrder()
                 .put(Columns.TABLE_NAME, References.TABLE_NAME)
-                .put(Columns.SCHEMA_NAME, References.SCHEMA_NAME)
+                .put(PartitionsTableColumns.SCHEMA_NAME, References.SCHEMA_NAME)
                 .put(Columns.PARTITION_IDENT, References.PARTITION_IDENT)
                 .put(Columns.VALUES, References.VALUES)
                 .put(Columns.NUMBER_OF_SHARDS, References.NUMBER_OF_SHARDS)

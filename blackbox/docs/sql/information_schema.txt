@@ -125,11 +125,10 @@ You can even query this tables' own columns (attention: this might lead to infin
     | is_generated          | boolean   |                4 |
     | is_nullable           | boolean   |                5 |
     | ordinal_position      | short     |                6 |
-    | schema_name           | string    |                7 |
-    | table_name            | string    |                8 |
-    | table_schema          | string    |                9 |
+    | table_name            | string    |                7 |
+    | table_schema          | string    |                8 |
     +-----------------------+-----------+------------------+
-    SELECT 9 rows in set (... sec)
+    SELECT 8 rows in set (... sec)
 
 .. note::
 

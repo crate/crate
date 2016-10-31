@@ -39,7 +39,6 @@ import io.crate.planner.node.dql.RoutedCollectPhase;
 import io.crate.planner.projection.Projection;
 import io.crate.testing.CollectingRowReceiver;
 import io.crate.testing.TestingHelpers;
-import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.test.ESIntegTestCase;
@@ -47,7 +46,11 @@ import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.List;
+import java.util.UUID;
 
 import static org.hamcrest.core.Is.is;
 import static org.mockito.Mockito.mock;
@@ -113,16 +116,16 @@ public class HandlerSideLevelCollectTest extends SQLTransportIntegrationTest {
         for (Reference reference : tablesTableInfo.columns()) {
             toCollect.add(reference);
         }
-        Symbol tableNameRef = toCollect.get(8);
+        Symbol tableNameRef = toCollect.get(7);
 
         FunctionImplementation eqImpl = functions.get(new FunctionIdent(EqOperator.NAME,
-            ImmutableList.<DataType>of(DataTypes.STRING, DataTypes.STRING)));
+            ImmutableList.of(DataTypes.STRING, DataTypes.STRING)));
         Function whereClause = new Function(eqImpl.info(),
             Arrays.asList(tableNameRef, Literal.of("shards")));
 
         RoutedCollectPhase collectNode = collectNode(routing, toCollect, RowGranularity.DOC, new WhereClause(whereClause));
         Bucket result = collect(collectNode);
-        assertThat(TestingHelpers.printedTable(result), is("NULL| NULL| strict| 0| 1| NULL| sys| NULL| shards| sys\n"));
+        assertThat(TestingHelpers.printedTable(result), is("NULL| NULL| strict| 0| 1| NULL| NULL| shards| sys\n"));
     }
 
     @Test
@@ -138,10 +141,10 @@ public class HandlerSideLevelCollectTest extends SQLTransportIntegrationTest {
         RoutedCollectPhase collectNode = collectNode(routing, toCollect, RowGranularity.DOC);
         Bucket result = collect(collectNode);
 
-        String expected = "id| string| NULL| false| true| 1| sys| cluster| sys\n" +
-                          "master_node| string| NULL| false| true| 2| sys| cluster| sys\n" +
-                          "name| string| NULL| false| true| 3| sys| cluster| sys\n" +
-                          "settings| object| NULL| false| true| 4| sys| cluster| sys\n";
+        String expected = "id| string| NULL| false| true| 1| cluster| sys\n" +
+                          "master_node| string| NULL| false| true| 2| cluster| sys\n" +
+                          "name| string| NULL| false| true| 3| cluster| sys\n" +
+                          "settings| object| NULL| false| true| 4| cluster| sys\n";
 
 
         assertThat(TestingHelpers.printedTable(result), Matchers.containsString(expected));

@@ -35,14 +35,19 @@ import org.junit.Test;
 import java.util.HashMap;
 import java.util.Map;
 
-import static org.hamcrest.Matchers.*;
+import static org.hamcrest.Matchers.arrayContaining;
+import static org.hamcrest.Matchers.both;
+import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.greaterThanOrEqualTo;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.lessThanOrEqualTo;
 
 
 @ESIntegTestCase.ClusterScope(numDataNodes = 2)
 @UseJdbc
 public class InformationSchemaTest extends SQLTransportIntegrationTest {
 
-    final static Joiner commaJoiner = Joiner.on(", ");
+    private final static Joiner commaJoiner = Joiner.on(", ");
 
     private void serviceSetup() {
         execute("create table t1 (col1 integer primary key, " +
@@ -62,26 +67,26 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
         assertEquals(20L, response.rowCount());
 
         assertThat(TestingHelpers.printedTable(response.rows()), is(
-            "NULL| NULL| strict| 0| 1| NULL| information_schema| NULL| columns| information_schema\n" +
-            "NULL| NULL| strict| 0| 1| NULL| information_schema| NULL| routines| information_schema\n" +
-            "NULL| NULL| strict| 0| 1| NULL| information_schema| NULL| schemata| information_schema\n" +
-            "NULL| NULL| strict| 0| 1| NULL| information_schema| NULL| sql_features| information_schema\n" +
-            "NULL| NULL| strict| 0| 1| NULL| information_schema| NULL| table_constraints| information_schema\n" +
-            "NULL| NULL| strict| 0| 1| NULL| information_schema| NULL| table_partitions| information_schema\n" +
-            "NULL| NULL| strict| 0| 1| NULL| information_schema| NULL| tables| information_schema\n" +
-            "NULL| NULL| strict| 0| 1| NULL| pg_catalog| NULL| pg_type| pg_catalog\n" +
-            "NULL| NULL| strict| 0| 1| NULL| sys| NULL| checks| sys\n" +
-            "NULL| NULL| strict| 0| 1| NULL| sys| NULL| cluster| sys\n" +
-            "NULL| NULL| strict| 0| 1| NULL| sys| NULL| jobs| sys\n" +
-            "NULL| NULL| strict| 0| 1| NULL| sys| NULL| jobs_log| sys\n" +
-            "NULL| NULL| strict| 0| 1| NULL| sys| NULL| node_checks| sys\n" +
-            "NULL| NULL| strict| 0| 1| NULL| sys| NULL| nodes| sys\n" +
-            "NULL| NULL| strict| 0| 1| NULL| sys| NULL| operations| sys\n" +
-            "NULL| NULL| strict| 0| 1| NULL| sys| NULL| operations_log| sys\n" +
-            "NULL| NULL| strict| 0| 1| NULL| sys| NULL| repositories| sys\n" +
-            "NULL| NULL| strict| 0| 1| NULL| sys| NULL| shards| sys\n" +
-            "NULL| NULL| strict| 0| 1| NULL| sys| NULL| snapshots| sys\n" +
-            "NULL| NULL| strict| 0| 1| NULL| sys| NULL| summits| sys\n"));
+            "NULL| NULL| strict| 0| 1| NULL| NULL| columns| information_schema\n" +
+            "NULL| NULL| strict| 0| 1| NULL| NULL| routines| information_schema\n" +
+            "NULL| NULL| strict| 0| 1| NULL| NULL| schemata| information_schema\n" +
+            "NULL| NULL| strict| 0| 1| NULL| NULL| sql_features| information_schema\n" +
+            "NULL| NULL| strict| 0| 1| NULL| NULL| table_constraints| information_schema\n" +
+            "NULL| NULL| strict| 0| 1| NULL| NULL| table_partitions| information_schema\n" +
+            "NULL| NULL| strict| 0| 1| NULL| NULL| tables| information_schema\n" +
+            "NULL| NULL| strict| 0| 1| NULL| NULL| pg_type| pg_catalog\n" +
+            "NULL| NULL| strict| 0| 1| NULL| NULL| checks| sys\n" +
+            "NULL| NULL| strict| 0| 1| NULL| NULL| cluster| sys\n" +
+            "NULL| NULL| strict| 0| 1| NULL| NULL| jobs| sys\n" +
+            "NULL| NULL| strict| 0| 1| NULL| NULL| jobs_log| sys\n" +
+            "NULL| NULL| strict| 0| 1| NULL| NULL| node_checks| sys\n" +
+            "NULL| NULL| strict| 0| 1| NULL| NULL| nodes| sys\n" +
+            "NULL| NULL| strict| 0| 1| NULL| NULL| operations| sys\n" +
+            "NULL| NULL| strict| 0| 1| NULL| NULL| operations_log| sys\n" +
+            "NULL| NULL| strict| 0| 1| NULL| NULL| repositories| sys\n" +
+            "NULL| NULL| strict| 0| 1| NULL| NULL| shards| sys\n" +
+            "NULL| NULL| strict| 0| 1| NULL| NULL| snapshots| sys\n" +
+            "NULL| NULL| strict| 0| 1| NULL| NULL| summits| sys\n"));
     }
 
     @Test
@@ -134,14 +139,14 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
         ensureGreen();
         execute("select * from INFORMATION_SCHEMA.Tables where table_schema='doc' order by table_name asc");
         assertEquals(2L, response.rowCount());
-        assertEquals("doc", response.rows()[0][9]);
-        assertEquals("foo", response.rows()[0][8]);
-        assertEquals(3, response.rows()[0][4]); //
+        assertEquals("doc", response.rows()[0][8]);
+        assertEquals("foo", response.rows()[0][7]);
+        assertEquals(3, response.rows()[0][4]);
         assertEquals("1", response.rows()[0][3]);
         assertEquals("col1", response.rows()[0][1]);
 
-        assertEquals("doc", response.rows()[1][9]);
-        assertEquals("test", response.rows()[1][8]);
+        assertEquals("doc", response.rows()[1][8]);
+        assertEquals("test", response.rows()[1][7]);
         assertEquals(5, response.rows()[1][4]);
         assertEquals("1", response.rows()[1][3]);
         assertEquals("col1", response.rows()[1][1]);
@@ -185,8 +190,8 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
         execute("select * from INFORMATION_SCHEMA.Tables where table_schema='doc' order by table_name asc limit 1 offset 1");
         assertEquals(1L, response.rowCount());
 
-        assertEquals("doc", response.rows()[0][9]); // table_schema
-        assertEquals("test", response.rows()[0][8]); // table_name
+        assertEquals("doc", response.rows()[0][8]); // table_schema
+        assertEquals("test", response.rows()[0][7]); // table_name
         assertEquals(5, response.rows()[0][4]); // number_of_shards
         assertEquals("1", response.rows()[0][3]); // number_of_replicas
         assertEquals("col1", response.rows()[0][1]); // primary key
@@ -253,8 +258,8 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
         ensureGreen();
         execute("select * from INFORMATION_SCHEMA.Tables where table_schema='doc'");
         assertEquals(1L, response.rowCount());
-        assertEquals("doc", response.rows()[0][9]);
-        assertEquals("test", response.rows()[0][8]);
+        assertEquals("doc", response.rows()[0][8]);
+        assertEquals("test", response.rows()[0][7]);
         assertEquals(5, response.rows()[0][4]);
         assertEquals("1", response.rows()[0][3]);
         assertEquals("_id", response.rows()[0][1]);
@@ -266,21 +271,21 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
         execute("select * from INFORMATION_SCHEMA.table_constraints order by table_schema asc, table_name asc");
         assertEquals(13L, response.rowCount());
         assertThat(response.cols(),
-            arrayContaining("constraint_name", "constraint_type", "schema_name", "table_name", "table_schema"));
+            arrayContaining("constraint_name", "constraint_type", "table_name", "table_schema"));
         assertThat(TestingHelpers.printedTable(response.rows()), is(
-            "[table_name, table_schema, column_name]| PRIMARY_KEY| information_schema| columns| information_schema\n" +
-            "[schema_name]| PRIMARY_KEY| information_schema| schemata| information_schema\n" +
-            "[feature_id, feature_name, sub_feature_id, sub_feature_name, is_supported, is_verified_by, comments]| PRIMARY_KEY| information_schema| sql_features| information_schema\n" +
-            "[table_schema, table_name]| PRIMARY_KEY| information_schema| tables| information_schema\n" +
-            "[id]| PRIMARY_KEY| sys| checks| sys\n" +
-            "[id]| PRIMARY_KEY| sys| jobs| sys\n" +
-            "[id]| PRIMARY_KEY| sys| jobs_log| sys\n" +
-            "[id]| PRIMARY_KEY| sys| node_checks| sys\n" +
-            "[id]| PRIMARY_KEY| sys| nodes| sys\n" +
-            "[name]| PRIMARY_KEY| sys| repositories| sys\n" +
-            "[schema_name, table_name, id, partition_ident]| PRIMARY_KEY| sys| shards| sys\n" +
-            "[name, repository]| PRIMARY_KEY| sys| snapshots| sys\n" +
-            "[mountain]| PRIMARY_KEY| sys| summits| sys\n"
+            "[table_name, table_schema, column_name]| PRIMARY_KEY| columns| information_schema\n" +
+            "[schema_name]| PRIMARY_KEY| schemata| information_schema\n" +
+            "[feature_id, feature_name, sub_feature_id, sub_feature_name, is_supported, is_verified_by, comments]| PRIMARY_KEY| sql_features| information_schema\n" +
+            "[table_schema, table_name]| PRIMARY_KEY| tables| information_schema\n" +
+            "[id]| PRIMARY_KEY| checks| sys\n" +
+            "[id]| PRIMARY_KEY| jobs| sys\n" +
+            "[id]| PRIMARY_KEY| jobs_log| sys\n" +
+            "[id]| PRIMARY_KEY| node_checks| sys\n" +
+            "[id]| PRIMARY_KEY| nodes| sys\n" +
+            "[name]| PRIMARY_KEY| repositories| sys\n" +
+            "[schema_name, table_name, id, partition_ident]| PRIMARY_KEY| shards| sys\n" +
+            "[name, repository]| PRIMARY_KEY| snapshots| sys\n" +
+            "[mountain]| PRIMARY_KEY| summits| sys\n"
         ));
 
         execute("create table test (col1 integer primary key, col2 string)");
@@ -436,24 +441,22 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
     @Test
     public void testDefaultColumns() throws Exception {
         execute("select * from information_schema.columns order by table_schema, table_name");
-        assertEquals(362, response.rowCount());
+        assertEquals(359, response.rowCount());
     }
 
     @Test
     public void testColumnsColumns() throws Exception {
         execute("select * from information_schema.columns where table_schema='information_schema' and table_name='columns' order by ordinal_position asc");
-        assertThat(response.rowCount(), is(9L));
+        assertThat(response.rowCount(), is(8L));
         assertThat(TestingHelpers.printedTable(response.rows()), is(
-            "column_name| string| NULL| false| false| 1| information_schema| columns| information_schema\n" +
-            "data_type| string| NULL| false| false| 2| information_schema| columns| information_schema\n" +
-            "generation_expression| string| NULL| false| true| 3| information_schema| columns| information_schema\n" +
-            "is_generated| boolean| NULL| false| false| 4| information_schema| columns| information_schema\n" +
-            "is_nullable| boolean| NULL| false| false| 5| information_schema| columns| information_schema\n" +
-            "ordinal_position| short| NULL| false| false| 6| information_schema| columns| information_schema\n" +
-            "schema_name| string| NULL| false| false| 7| information_schema| columns| information_schema\n" +
-            // @deprecated schema_name
-            "table_name| string| NULL| false| false| 8| information_schema| columns| information_schema\n" +
-            "table_schema| string| NULL| false| false| 9| information_schema| columns| information_schema\n"));
+            "column_name| string| NULL| false| false| 1| columns| information_schema\n" +
+            "data_type| string| NULL| false| false| 2| columns| information_schema\n" +
+            "generation_expression| string| NULL| false| true| 3| columns| information_schema\n" +
+            "is_generated| boolean| NULL| false| false| 4| columns| information_schema\n" +
+            "is_nullable| boolean| NULL| false| false| 5| columns| information_schema\n" +
+            "ordinal_position| short| NULL| false| false| 6| columns| information_schema\n" +
+            "table_name| string| NULL| false| false| 7| columns| information_schema\n" +
+            "table_schema| string| NULL| false| false| 8| columns| information_schema\n"));
     }
 
     @Test
@@ -467,11 +470,10 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
         assertEquals(null, response.rows()[0][2]);
         assertEquals(false, response.rows()[0][3]);
         assertEquals(false, response.rows()[0][4]);
-        short expected = 1;
-        assertEquals(expected, response.rows()[0][5]);
-        assertEquals("doc", response.rows()[0][6]); // @deprecated schema_name
-        assertEquals("test", response.rows()[0][7]);
-        assertEquals("doc", response.rows()[0][8]);
+
+        assertEquals((short) 1, response.rows()[0][5]);
+        assertEquals("test", response.rows()[0][6]);
+        assertEquals("doc", response.rows()[0][7]);
 
         assertEquals("col1", response.rows()[1][0]);
         assertEquals(false, response.rows()[1][4]);
@@ -1039,14 +1041,14 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
     public void testSelectSchemata() throws Exception {
         execute("select * from information_schema.schemata order by schema_name asc");
         assertThat(response.rowCount(), is(5L));
-        assertThat(TestingHelpers.getColumn(response.rows(), 0), is(Matchers.<Object>arrayContaining("blob", "doc", "information_schema", "pg_catalog", "sys")));
+        assertThat(TestingHelpers.getColumn(response.rows(), 0), is(Matchers.arrayContaining("blob", "doc", "information_schema", "pg_catalog", "sys")));
 
         execute("create table t1 (col string) with (number_of_replicas=0)");
         ensureGreen();
 
         execute("select * from information_schema.schemata order by schema_name asc");
         assertThat(response.rowCount(), is(5L));
-        assertThat(TestingHelpers.getColumn(response.rows(), 0), is(Matchers.<Object>arrayContaining("blob", "doc", "information_schema", "pg_catalog", "sys")));
+        assertThat(TestingHelpers.getColumn(response.rows(), 0), is(Matchers.arrayContaining("blob", "doc", "information_schema", "pg_catalog", "sys")));
     }
 
     @Test

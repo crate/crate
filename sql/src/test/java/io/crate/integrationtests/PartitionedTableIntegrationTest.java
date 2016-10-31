@@ -224,14 +224,13 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
 
         execute("select * from information_schema.tables where table_schema='doc' order by table_name");
         assertEquals(1L, response.rowCount());
-        assertEquals("quotes", response.rows()[0][8]);
+        assertEquals("quotes", response.rows()[0][7]);
 
         execute("select * from information_schema.columns where table_name='quotes' order by ordinal_position");
         assertEquals(3L, response.rowCount());
         assertEquals("id", response.rows()[0][0]);
         assertEquals("quote", response.rows()[1][0]);
         assertEquals("timestamp", response.rows()[2][0]);
-
     }
 
     @Test
