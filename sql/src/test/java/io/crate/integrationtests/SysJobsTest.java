@@ -21,7 +21,7 @@
 
 package io.crate.integrationtests;
 
-import io.crate.action.sql.SQLResponse;
+import io.crate.testing.SQLResponse;
 import org.junit.After;
 import org.junit.Test;
 

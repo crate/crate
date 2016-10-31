@@ -22,7 +22,7 @@
 
 package io.crate.integrationtests;
 
-import io.crate.action.sql.SQLBulkResponse;
+import io.crate.testing.SQLBulkResponse;
 import io.crate.testing.UseJdbc;
 import org.junit.Test;
 

@@ -21,7 +21,6 @@
 
 package io.crate.operation.collect;
 
-import io.crate.action.sql.SQLBulkRequest;
 import io.crate.core.collections.Bucket;
 import io.crate.integrationtests.SQLTransportIntegrationTest;
 import io.crate.operation.Paging;
@@ -331,7 +330,7 @@ public class LuceneDocCollectorTest extends SQLTransportIntegrationTest {
     public void testMultiOrdering() throws Exception {
         execute("create table test (x integer, y integer) clustered into 1 shards with (number_of_replicas=0)");
         ensureYellow();
-        SQLBulkRequest request = new SQLBulkRequest("insert into test values (?, ?)",
+        execute("insert into test values (?, ?)",
             new Object[][]{
                 new Object[]{2, 3},
                 new Object[]{2, 1},
@@ -341,9 +340,7 @@ public class LuceneDocCollectorTest extends SQLTransportIntegrationTest {
                 new Object[]{1, 1},
                 new Object[]{1, 0},
                 new Object[]{1, null}
-            }
-        );
-        sqlExecutor.exec(request);
+            });
         execute("refresh table test");
 
         CrateCollector collector = createDocCollector("select x, y from test order by x, y", rowReceiver);

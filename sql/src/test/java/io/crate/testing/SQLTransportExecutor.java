@@ -75,6 +75,8 @@ public class SQLTransportExecutor {
 
     private static final String SQL_REQUEST_TIMEOUT = "CRATE_TESTS_SQL_REQUEST_TIMEOUT";
 
+    public final static int DEFAULT_SOFT_LIMIT = 10_000;
+
     public static final TimeValue REQUEST_TIMEOUT = new TimeValue(Long.parseLong(
         MoreObjects.firstNonNull(System.getenv(SQL_REQUEST_TIMEOUT), "5")), TimeUnit.SECONDS);
 
@@ -86,40 +88,32 @@ public class SQLTransportExecutor {
     }
 
     public SQLResponse exec(String statement) {
-        return exec(new SQLRequest(statement));
+        return exec(statement, null, REQUEST_TIMEOUT);
     }
 
     public SQLResponse exec(String statement, Object... params) {
-        return exec(new SQLRequest(statement, params));
+        return exec(statement, params, REQUEST_TIMEOUT);
     }
 
-    public SQLResponse exec(String statement, Object[] params, TimeValue timeout) {
-        return exec(new SQLRequest(statement, params), timeout);
+    public SQLBulkResponse execBulk(String statement, @Nullable  Object[][] bulkArgs) {
+        return executeBulk(statement, bulkArgs, REQUEST_TIMEOUT);
     }
 
-    public SQLBulkResponse execBulk(String statement, Object[][] bulkArgs) {
-        return exec(new SQLBulkRequest(statement, bulkArgs), REQUEST_TIMEOUT);
+    public SQLBulkResponse execBulk(String statement, @Nullable  Object[][] bulkArgs, TimeValue timeout) {
+        return executeBulk(statement, bulkArgs, timeout);
     }
 
-    public SQLBulkResponse execBulk(String statement, Object[][] bulkArgs, TimeValue timeout) {
-        return exec(new SQLBulkRequest(statement, bulkArgs), timeout);
-    }
-
-    public SQLResponse exec(SQLRequest request) {
-        return exec(request, REQUEST_TIMEOUT);
-    }
-
-    public SQLResponse exec(SQLRequest request, TimeValue timeout) {
+    private SQLResponse exec(String stmt, @Nullable Object[] args, TimeValue timeout) {
         String pgUrl = clientProvider.pgUrl();
         Random random = RandomizedContext.current().getRandom();
         if (pgUrl != null && isJdbcEnabled()) {
-            LOGGER.trace("Executing with pgJDBC: {}", request.stmt());
-            return executeWithPg(request, pgUrl, random);
+            LOGGER.trace("Executing with pgJDBC: {}", stmt);
+            return executeWithPg(stmt, args, pgUrl, random);
         }
         try {
-            return execute(request).actionGet(timeout);
+            return execute(stmt, args).actionGet(timeout);
         } catch (ElasticsearchTimeoutException e) {
-            LOGGER.error("Timeout on SQL statement: {}", e, request.stmt());
+            LOGGER.error("Timeout on SQL statement: {}", e, stmt);
             throw e;
         }
     }
@@ -158,44 +152,33 @@ public class SQLTransportExecutor {
         return false;
     }
 
-    static Set<Option> toOptions(int requestFlags) {
-        switch (requestFlags) {
-            case SQLBaseRequest.HEADER_FLAG_OFF:
-                return Option.NONE;
-            case SQLBaseRequest.HEADER_FLAG_ALLOW_QUOTED_SUBSCRIPT:
-                return EnumSet.of(Option.ALLOW_QUOTED_SUBSCRIPT);
-        }
-        throw new IllegalArgumentException("Unrecognized requestFlags: " + requestFlags);
+
+    public ActionFuture<SQLResponse> execute(String stmt, @Nullable Object[] args) {
+        return execute(stmt, args, clientProvider.sqlOperations().createSession(
+            null,
+            Option.NONE,
+            DEFAULT_SOFT_LIMIT
+        ));
     }
 
-    final static int DEFAULT_SOFT_LIMIT = 10_000;
-
-    public ActionFuture<SQLResponse> execute(SQLRequest request) {
+    public static ActionFuture<SQLResponse>  execute(String stmt, @Nullable Object[] args, SQLOperations.Session session) {
         final AdapterActionFuture<SQLResponse, SQLResponse> actionFuture = new TestTransportActionFuture<>();
-        execute(request, actionFuture, clientProvider.sqlOperations());
+        execute(stmt, args, actionFuture, session);
         return actionFuture;
     }
 
-    public static ActionFuture<SQLResponse> execute(SQLRequest request, SQLOperations operations) {
-        final AdapterActionFuture<SQLResponse, SQLResponse> actionFuture = new TestTransportActionFuture<>();
-        execute(request, actionFuture, operations);
-        return actionFuture;
-    }
-
-    private static void execute(SQLRequest request, ActionListener<SQLResponse> listener, SQLOperations sqlOperations) {
-        SQLOperations.Session session = sqlOperations.createSession(
-            request.getDefaultSchema(), toOptions(request.getRequestFlags()), DEFAULT_SOFT_LIMIT);
+    private static void execute(String stmt, @Nullable Object[] args, ActionListener<SQLResponse> listener,
+                                SQLOperations.Session session) {
         try {
-            long startTime = System.nanoTime();
-            session.parse(UNNAMED, request.stmt(), Collections.<DataType>emptyList());
-            List<Object> args = request.args() == null ? Collections.emptyList() : Arrays.asList(request.args());
-            session.bind(UNNAMED, UNNAMED, args, null);
+            session.parse(UNNAMED, stmt, Collections.<DataType>emptyList());
+            List<Object> argsList = args == null ? Collections.emptyList() : Arrays.asList(args);
+            session.bind(UNNAMED, UNNAMED, argsList, null);
             List<Field> outputFields = session.describe('P', UNNAMED);
             if (outputFields == null) {
-                ResultReceiver resultReceiver = new RowCountReceiver(listener, startTime, request.includeTypesOnResponse());
+                ResultReceiver resultReceiver = new RowCountReceiver(listener);
                 session.execute(UNNAMED, 1, resultReceiver);
             } else {
-                ResultReceiver resultReceiver = new ResultSetReceiver(listener, outputFields, startTime, request.includeTypesOnResponse());
+                ResultReceiver resultReceiver = new ResultSetReceiver(listener, outputFields);
                 session.execute(UNNAMED, 0, resultReceiver);
             }
             session.sync();
@@ -204,17 +187,17 @@ public class SQLTransportExecutor {
         }
     }
 
-    private void execute(SQLBulkRequest request, final ActionListener<SQLBulkResponse> listener) {
+    private void execute(String stmt, @Nullable  Object[][] bulkArgs, final ActionListener<SQLBulkResponse> listener) {
         SQLOperations.Session session = clientProvider.sqlOperations().createSession(
-            request.getDefaultSchema(),
-            toOptions(request.getRequestFlags()),
+            null,
+            Option.NONE,
             DEFAULT_SOFT_LIMIT
         );
         try {
-            final long startTime = System.nanoTime();
-            session.parse(UNNAMED, request.stmt(), Collections.<DataType>emptyList());
-
-            Object[][] bulkArgs = request.bulkArgs();
+            session.parse(UNNAMED, stmt, Collections.<DataType>emptyList());
+            if (bulkArgs == null) {
+                bulkArgs = new Object[0][];
+            }
             final SQLBulkResponse.Result[] results = new SQLBulkResponse.Result[bulkArgs.length];
             if (results.length == 0) {
                 session.bind(UNNAMED, UNNAMED, Collections.emptyList(), null);
@@ -234,8 +217,7 @@ public class SQLTransportExecutor {
             Futures.addCallback(session.sync(), new FutureCallback<Object>() {
                 @Override
                 public void onSuccess(@Nullable Object result) {
-                    float duration = (float) ((System.nanoTime() - startTime) / 1_000_000.0);
-                    listener.onResponse(new SQLBulkResponse(results, duration));
+                    listener.onResponse(new SQLBulkResponse(results));
                 }
 
                 @Override
@@ -249,7 +231,7 @@ public class SQLTransportExecutor {
         }
     }
 
-    private SQLResponse executeWithPg(SQLRequest request, String pgUrl, Random random) {
+    private SQLResponse executeWithPg(String stmt, @Nullable Object[] args, String pgUrl, Random random) {
         try {
             Properties properties = new Properties();
             if (random.nextBoolean()) {
@@ -257,10 +239,11 @@ public class SQLTransportExecutor {
             }
             try (Connection conn = DriverManager.getConnection(pgUrl, properties)) {
                 conn.setAutoCommit(true);
-                PreparedStatement preparedStatement = conn.prepareStatement(request.stmt());
-                Object[] args = request.args();
-                for (int i = 0; i < args.length; i++) {
-                    preparedStatement.setObject(i + 1, toJdbcCompatObject(conn, args[i]));
+                PreparedStatement preparedStatement = conn.prepareStatement(stmt);
+                if (args != null) {
+                    for (int i = 0; i < args.length; i++) {
+                        preparedStatement.setObject(i + 1, toJdbcCompatObject(conn, args[i]));
+                    }
                 }
                 return executeAndConvertResult(preparedStatement);
             }
@@ -387,9 +370,7 @@ public class SQLTransportExecutor {
                 columnNames.toArray(new String[0]),
                 rows.toArray(new Object[0][]),
                 dataTypes,
-                rows.size(),
-                1,
-                true
+                rows.size()
             );
         } else {
             int updateCount = preparedStatement.getUpdateCount();
@@ -404,9 +385,7 @@ public class SQLTransportExecutor {
                 new String[0],
                 new Object[0][],
                 new DataType[0],
-                updateCount,
-                1,
-                true
+                updateCount
             );
         }
     }
@@ -498,23 +477,15 @@ public class SQLTransportExecutor {
         return value;
     }
 
-    public SQLBulkResponse exec(SQLBulkRequest request) {
-        return exec(request, REQUEST_TIMEOUT);
-    }
-
-    public SQLBulkResponse exec(SQLBulkRequest request, TimeValue timeout) {
+    private SQLBulkResponse executeBulk(String stmt, Object[][] bulkArgs, TimeValue timeout) {
         try {
-            return execute(request).actionGet(timeout);
+            AdapterActionFuture<SQLBulkResponse, SQLBulkResponse> actionFuture = new TestTransportActionFuture<>();
+            execute(stmt, bulkArgs, actionFuture);
+            return actionFuture.actionGet(timeout);
         } catch (ElasticsearchTimeoutException e) {
-            LOGGER.error("Timeout on SQL statement: {}", e, request.stmt());
+            LOGGER.error("Timeout on SQL statement: {}", e, stmt);
             throw e;
         }
-    }
-
-    private ActionFuture<SQLBulkResponse> execute(SQLBulkRequest request) {
-        AdapterActionFuture<SQLBulkResponse, SQLBulkResponse> actionFuture = new TestTransportActionFuture<>();
-        execute(request, actionFuture);
-        return actionFuture;
     }
 
     public ClusterHealthStatus ensureGreen() {
@@ -554,10 +525,10 @@ public class SQLTransportExecutor {
         SQLOperations sqlOperations();
     }
 
-    private static class TestTransportActionFuture<Response extends SQLBaseResponse> extends AdapterActionFuture<Response, Response> {
+    private static class TestTransportActionFuture<R> extends AdapterActionFuture<R, R> {
 
         @Override
-        protected Response convert(Response response) {
+        protected R convert(R response) {
             return response;
         }
 
@@ -583,24 +554,17 @@ public class SQLTransportExecutor {
      * Wrapper for testing issues. Creates a {@link SQLResponse} from
      * query results.
      *
-     * Might be removed with the {@link SQLRequest}
      */
     private static class ResultSetReceiver extends BaseResultReceiver {
 
         private final List<Object[]> rows = new ArrayList<>();
         private final ActionListener<SQLResponse> listener;
         private final List<Field> outputFields;
-        private final long startTime;
-        private final boolean includeTypesOnResponse;
 
         ResultSetReceiver(ActionListener<SQLResponse> listener,
-                                 List<Field> outputFields,
-                                 long startTime,
-                                 boolean includeTypesOnResponse) {
+                                 List<Field> outputFields) {
             this.listener = listener;
             this.outputFields = outputFields;
-            this.startTime = startTime;
-            this.includeTypesOnResponse = includeTypesOnResponse;
         }
 
         @Override
@@ -632,14 +596,11 @@ public class SQLTransportExecutor {
 
             Object[][] rowsArr = rows.toArray(new Object[0][]);
             BytesRefUtils.ensureStringTypesAreStrings(outputTypes, rowsArr);
-            float duration = (float) ((System.nanoTime() - startTime) / 1_000_000.0);
             return new SQLResponse(
                 outputNames,
                 rowsArr,
                 outputTypes,
-                rowsArr.length,
-                duration,
-                includeTypesOnResponse
+                rowsArr.length
             );
         }
     }
@@ -648,20 +609,15 @@ public class SQLTransportExecutor {
      * Wrapper for testing issues. Creates a {@link SQLResponse} with
      * rowCount and duration of query execution.
      *
-     * Might be removed with the {@link SQLRequest}
      */
     private static class RowCountReceiver extends BaseResultReceiver {
 
         private final ActionListener<SQLResponse> listener;
-        private final long startTime;
-        private final boolean includeTypes;
 
         private long rowCount;
 
-        RowCountReceiver(ActionListener<SQLResponse> listener, long startTime, boolean includeTypes) {
+        RowCountReceiver(ActionListener<SQLResponse> listener) {
             this.listener = listener;
-            this.startTime = startTime;
-            this.includeTypes = includeTypes;
         }
 
         @Override
@@ -671,14 +627,11 @@ public class SQLTransportExecutor {
 
         @Override
         public void allFinished() {
-            float duration = (float) ((System.nanoTime() - startTime) / 1_000_000.0);
             SQLResponse sqlResponse = new SQLResponse(
                 EMPTY_NAMES,
                 EMPTY_ROWS,
                 EMPTY_TYPES,
-                rowCount,
-                duration,
-                includeTypes
+                rowCount
             );
             listener.onResponse(sqlResponse);
             super.allFinished();
@@ -696,7 +649,6 @@ public class SQLTransportExecutor {
     /**
      * Wraps results of bulk requests for testing.
      *
-     * Might be removed with the {@link SQLBulkRequest}
      */
     private static class BulkRowCountReceiver extends BaseResultReceiver {
 

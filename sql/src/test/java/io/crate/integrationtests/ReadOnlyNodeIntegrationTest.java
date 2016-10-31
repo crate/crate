@@ -26,8 +26,7 @@ package io.crate.integrationtests;
 import com.google.common.base.Joiner;
 import io.crate.action.sql.SQLActionException;
 import io.crate.action.sql.SQLOperations;
-import io.crate.action.sql.SQLRequest;
-import io.crate.action.sql.SQLResponse;
+import io.crate.testing.SQLResponse;
 import io.crate.testing.SQLTransportExecutor;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.common.settings.Settings;
@@ -120,7 +119,7 @@ public class ReadOnlyNodeIntegrationTest extends SQLTransportIntegrationTest {
     }
 
     private SQLResponse executeWrite(String stmt) {
-        return executeWrite(stmt, SQLRequest.EMPTY_ARGS);
+        return executeWrite(stmt, null);
     }
 
     private void assertReadOnly(String stmt, Object[] args) throws Exception {
@@ -130,7 +129,7 @@ public class ReadOnlyNodeIntegrationTest extends SQLTransportIntegrationTest {
     }
 
     private void assertReadOnly(String stmt) throws Exception {
-        assertReadOnly(stmt, SQLRequest.EMPTY_ARGS);
+        assertReadOnly(stmt, null);
     }
 
     /**

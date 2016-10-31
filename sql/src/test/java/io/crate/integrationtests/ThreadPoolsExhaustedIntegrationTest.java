@@ -21,8 +21,7 @@
 
 package io.crate.integrationtests;
 
-import io.crate.action.sql.SQLRequest;
-import io.crate.action.sql.SQLResponse;
+import io.crate.testing.SQLResponse;
 import io.crate.testing.SQLTransportExecutor;
 import io.crate.testing.UseJdbc;
 import org.elasticsearch.action.ActionFuture;
@@ -58,7 +57,7 @@ public class ThreadPoolsExhaustedIntegrationTest extends SQLTransportIntegration
         List<ActionFuture<SQLResponse>> futures = new ArrayList<>();
         for (int i = 0; i < 1000; i++) {
             ActionFuture<SQLResponse> future = sqlExecutor.execute(
-                new SQLRequest("select * from t limit ?", new Object[]{10}));
+                "select * from t limit ?", new Object[]{10});
             futures.add(future);
         }
 

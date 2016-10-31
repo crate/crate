@@ -23,10 +23,7 @@ package io.crate.integrationtests;
 
 import com.google.common.base.Predicate;
 import io.crate.action.sql.SQLActionException;
-import io.crate.action.sql.SQLOperations;
-import io.crate.action.sql.SQLRequest;
-import io.crate.action.sql.SQLResponse;
-import io.crate.testing.SQLTransportExecutor;
+import io.crate.testing.SQLResponse;
 import io.crate.testing.TestingHelpers;
 import io.crate.testing.UseJdbc;
 import org.elasticsearch.test.ESIntegTestCase;
@@ -72,18 +69,13 @@ public class SQLTypeMappingTest extends SQLTransportIntegrationTest {
     public void testInsertAtNodeWithoutShard() throws Exception {
         setUpSimple(1);
 
-        SQLOperations operations1 = internalCluster().getInstance(SQLOperations.class, internalCluster().getNodeNames()[0]);
-        SQLOperations operations2 = internalCluster().getInstance(SQLOperations.class, internalCluster().getNodeNames()[1]);
+        execute("insert into t1 (id, string_field, timestamp_field, byte_field) values (?, ?, ?, ?)",
+                new Object[]{1, "With", "1970-01-01T00:00:00", 127},
+                createSessionOnNode(internalCluster().getNodeNames()[0]));
 
-        SQLTransportExecutor.execute(new SQLRequest(
-                "insert into t1 (id, string_field, timestamp_field, byte_field) values (?, ?, ?, ?)",
-                new Object[]{1, "With", "1970-01-01T00:00:00", 127}),
-                operations1).actionGet();
-
-        SQLTransportExecutor.execute(new SQLRequest(
-                "insert into t1 (id, string_field, timestamp_field, byte_field) values (?, ?, ?, ?)",
-                new Object[]{2, "Without", "1970-01-01T01:00:00", Byte.MIN_VALUE}),
-                operations2).actionGet();
+        execute("insert into t1 (id, string_field, timestamp_field, byte_field) values (?, ?, ?, ?)",
+                new Object[]{2, "Without", "1970-01-01T01:00:00", Byte.MIN_VALUE},
+                createSessionOnNode(internalCluster().getNodeNames()[1]));
 
         refresh();
         SQLResponse response = execute("select id, string_field, timestamp_field, byte_field from t1 order by id");

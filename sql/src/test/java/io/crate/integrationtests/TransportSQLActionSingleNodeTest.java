@@ -25,8 +25,7 @@ package io.crate.integrationtests;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.util.concurrent.SettableFuture;
 import io.crate.action.sql.*;
-import io.crate.testing.TestingHelpers;
-import io.crate.testing.UseJdbc;
+import io.crate.testing.*;
 import org.elasticsearch.test.ESIntegTestCase;
 import org.junit.After;
 import org.junit.Test;
@@ -136,7 +135,7 @@ public class TransportSQLActionSingleNodeTest extends SQLTransportIntegrationTes
                 "clustered into 2 shards with (number_of_replicas=0)");
         ensureYellow();
 
-        assertBulkResponseWithTypes("insert into bla1 (id, name) values (?, ?)",
+        execute("insert into bla1 (id, name) values (?, ?)",
             new Object[][]{
                 new Object[]{1, "Ford"},
                 new Object[]{2, "Trillian"}
@@ -147,14 +146,13 @@ public class TransportSQLActionSingleNodeTest extends SQLTransportIntegrationTes
     public void testInsertBulkDifferentTypes() throws Exception {
         execute("create table foo (value integer) with (number_of_replicas=0)");
         ensureYellow();
-        SQLBulkRequest request = new SQLBulkRequest("insert into foo (bar) values (?)",
+        SQLBulkResponse response = execute("insert into foo (bar) values (?)",
             new Object[][]{
                 new Object[]{new HashMap<String, Object>() {{
                     put("foo", 127);
                 }}},
                 new Object[]{1},
             });
-        SQLBulkResponse response = sqlExecutor.exec(request);
         // One is inserted, the other fails because of a cast error
         assertThat(response.results()[0].rowCount() + response.results()[1].rowCount(), is(-1L));
     }
@@ -163,26 +161,17 @@ public class TransportSQLActionSingleNodeTest extends SQLTransportIntegrationTes
     public void testInsertDynamicNullArrayInBulk() throws Exception {
         execute("create table foo (value integer) with (number_of_replicas=0)");
         ensureYellow();
-        SQLBulkRequest request = new SQLBulkRequest("insert into foo (bar) values (?)",
+        SQLBulkResponse res = execute("insert into foo (bar) values (?)",
             new Object[][]{
                 new Object[]{new Object[]{null}},
                 new Object[]{new Object[]{1, 2}},
             });
-        SQLBulkResponse res = sqlExecutor.exec(request);
         assertThat(res.results()[0].rowCount(), is(1L));
         assertThat(res.results()[1].rowCount(), is(1L));
 
         waitForMappingUpdateOnAll("foo", "bar");
         execute("select data_type from information_schema.columns where table_name = 'foo' and column_name = 'bar'");
         assertThat((String) response.rows()[0][0], is("long_array"));
-    }
-
-    private void assertBulkResponseWithTypes(String stmt, Object[][] bulkArgs) {
-        SQLBulkRequest request = new SQLBulkRequest(stmt, bulkArgs);
-        request.includeTypesOnResponse(true);
-        SQLBulkResponse sqlResponse = sqlExecutor.exec(request);
-        assertThat(sqlResponse.columnTypes(), is(notNullValue()));
-        assertThat(sqlResponse.columnTypes().length, is(sqlResponse.cols().length));
     }
 
     @Test
@@ -231,9 +220,7 @@ public class TransportSQLActionSingleNodeTest extends SQLTransportIntegrationTes
     }
 
     private void assertResponseWithTypes(String stmt) {
-        SQLRequest request = new SQLRequest(stmt);
-        request.includeTypesOnResponse(true);
-        SQLResponse sqlResponse = sqlExecutor.exec(request);
+        SQLResponse sqlResponse = execute(stmt);
         assertThat(sqlResponse.columnTypes(), is(notNullValue()));
         assertThat(sqlResponse.columnTypes().length, is(sqlResponse.cols().length));
     }

@@ -22,7 +22,7 @@
 package io.crate.integrationtests;
 
 import io.crate.Version;
-import io.crate.action.sql.SQLResponse;
+import io.crate.testing.SQLResponse;
 import io.crate.testing.UseJdbc;
 import org.apache.lucene.util.Constants;
 import org.elasticsearch.env.NodeEnvironment;

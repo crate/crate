@@ -22,7 +22,7 @@
 package io.crate.integrationtests;
 
 import io.crate.action.sql.SQLActionException;
-import io.crate.action.sql.SQLBulkResponse;
+import io.crate.testing.SQLBulkResponse;
 import io.crate.analyze.UpdateAnalyzer;
 import io.crate.testing.TestingHelpers;
 import io.crate.testing.UseJdbc;

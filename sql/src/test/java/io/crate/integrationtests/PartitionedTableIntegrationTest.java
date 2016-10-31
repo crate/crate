@@ -25,7 +25,7 @@ import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
 import io.crate.Constants;
 import io.crate.action.sql.SQLActionException;
-import io.crate.action.sql.SQLResponse;
+import io.crate.testing.SQLResponse;
 import io.crate.metadata.PartitionName;
 import io.crate.testing.TestingHelpers;
 import io.crate.testing.UseJdbc;

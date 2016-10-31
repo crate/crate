@@ -23,10 +23,9 @@ package io.crate.integrationtests;
 
 import io.crate.Constants;
 import io.crate.action.sql.SQLActionException;
-import io.crate.action.sql.SQLRequest;
-import io.crate.action.sql.SQLResponse;
 import io.crate.core.collections.ArrayBucket;
 import io.crate.operation.Paging;
+import io.crate.testing.SQLResponse;
 import io.crate.testing.TestingHelpers;
 import io.crate.testing.UseJdbc;
 import org.elasticsearch.test.ESIntegTestCase;
@@ -691,8 +690,7 @@ public class GroupByAggregateTest extends SQLTransportIntegrationTest {
                 " race string" +
                 ") clustered into 1 shards");
         ensureYellow();
-        SQLRequest request = new SQLRequest("select race from characters where details_ignored['lol']='funky' group by race");
-        SQLResponse response = sqlExecutor.exec(request);
+        execute("select race from characters where details_ignored['lol']='funky' group by race");
         assertEquals(0, response.rowCount());
     }
 

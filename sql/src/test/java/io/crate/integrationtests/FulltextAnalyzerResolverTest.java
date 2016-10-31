@@ -25,7 +25,7 @@ import com.google.common.base.Joiner;
 import com.google.common.base.Predicate;
 import com.google.common.collect.Sets;
 import io.crate.action.sql.SQLActionException;
-import io.crate.action.sql.SQLResponse;
+import io.crate.testing.SQLResponse;
 import io.crate.metadata.FulltextAnalyzerResolver;
 import io.crate.testing.UseJdbc;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateResponse;

@@ -23,7 +23,7 @@ package io.crate.integrationtests;
 
 import com.carrotsearch.randomizedtesting.LifecycleScope;
 import io.crate.action.sql.SQLActionException;
-import io.crate.action.sql.SQLResponse;
+import io.crate.testing.SQLResponse;
 import io.crate.testing.TestingHelpers;
 import org.elasticsearch.test.ESIntegTestCase;
 import org.junit.Rule;
@@ -33,7 +33,6 @@ import org.junit.rules.TemporaryFolder;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
-import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.DirectoryStream;

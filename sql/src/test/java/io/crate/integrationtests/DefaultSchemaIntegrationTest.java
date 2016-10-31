@@ -21,8 +21,8 @@
 
 package io.crate.integrationtests;
 
-import io.crate.action.sql.SQLRequest;
-import io.crate.action.sql.SQLResponse;
+import io.crate.action.sql.Option;
+import io.crate.testing.SQLResponse;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -34,55 +34,55 @@ import static org.hamcrest.core.Is.is;
 
 public class DefaultSchemaIntegrationTest extends SQLTransportIntegrationTest {
 
+
     @Rule
     public TemporaryFolder tmpFolder = new TemporaryFolder();
 
-    private SQLResponse execute(SQLRequest sqlRequest) {
-        response = sqlExecutor.execute(sqlRequest).actionGet();
-        return response;
+    public SQLResponse execute(String stmt, Object[] args, String schema) {
+        return execute(stmt, args, createSession(schema, Option.NONE));
     }
 
     @Test
     public void testSelectFromFooSchemaWithRequestHeaders() throws Exception {
         // this test uses all kind of different statements that involve a table to make sure the schema is applied in each case.
 
-        execute(requestWithSchema("foo", "create table foobar (x string) with (number_of_replicas = 0)"));
+        execute("create table foobar (x string) with (number_of_replicas = 0)", "foo" );
         ensureYellow();
         waitNoPendingTasksOnAll();
-        execute(requestWithSchema("foo", "alter table foobar set (number_of_replicas = '0-1')"));
+        execute("alter table foobar set (number_of_replicas = '0-1')", "foo" );
 
         assertThat(getTableCount("foo", "foobar"), is(1L));
         assertThat(getTableCount("doc", "foobar"), is(0L));
 
-        execute(requestWithSchema("foo", "insert into foobar (x) values ('a'), ('b')"));
-        execute(requestWithSchema("foo", "refresh table foobar"));
-        execute(requestWithSchema("foo", "update foobar set x = 'c'"));
+        execute("insert into foobar (x) values ('a'), ('b')", "foo");
+        execute("refresh table foobar", "foo");
+        execute("update foobar set x = 'c'", "foo");
         assertThat(response.rowCount(), is(2L));
 
-        execute(requestWithSchema("foo", "select * from foobar"));
+        execute("select * from foobar", "foo");
         assertThat(response.rowCount(), is(2L));
 
         File foobarExport = tmpFolder.newFolder("foobar_export");
         String uriTemplate = Paths.get(foobarExport.toURI()).toUri().toString();
-        execute(requestWithSchema("foo", "copy foobar to directory ?", uriTemplate));
+        execute("copy foobar to directory ?", new Object[]{uriTemplate}, "foo");
         refresh();
-        execute(requestWithSchema("foo", "delete from foobar"));
+        execute("delete from foobar", "foo");
         refresh();
 
-        execute(requestWithSchema("foo", "select * from foobar"));
+        execute("select * from foobar", "foo");
         assertThat(response.rowCount(), is(0L));
 
-        execute(requestWithSchema("foo", "copy foobar from ? with (shared=True)", uriTemplate + "*"));
-        execute(requestWithSchema("foo", "refresh table foobar"));
-        execute(requestWithSchema("foo", "select * from foobar"));
+        execute("copy foobar from ? with (shared=True)", new Object[]{uriTemplate + "*"}, "foo");
+        execute("refresh table foobar", "foo");
+        execute("select * from foobar", "foo");
         assertThat(response.rowCount(), is(2L));
 
-        execute(requestWithSchema("foo", "insert into foobar (x) (select x from foobar)"));
-        execute(requestWithSchema("foo", "refresh table foobar"));
-        execute(requestWithSchema("foo", "select * from foobar"));
+        execute("insert into foobar (x) (select x from foobar)", "foo");
+        execute("refresh table foobar", "foo");
+        execute("select * from foobar", "foo");
         assertThat(response.rowCount(), is(4L));
 
-        execute(requestWithSchema("foo", "drop table foobar"));
+        execute("drop table foobar", "foo");
         assertThat(getTableCount("foo", "foobar"), is(0L));
     }
 
@@ -92,13 +92,4 @@ public class DefaultSchemaIntegrationTest extends SQLTransportIntegrationTest {
         return ((long) response.rows()[0][0]);
     }
 
-    private SQLRequest requestWithSchema(String schema, String stmt, Object... args) {
-        SQLRequest sqlRequest = new SQLRequest(stmt, args);
-        sqlRequest.setDefaultSchema(schema);
-        return sqlRequest;
-    }
-
-    private SQLRequest requestWithSchema(String schema, String stmt) {
-        return requestWithSchema(schema, stmt, new Object[0]);
-    }
 }

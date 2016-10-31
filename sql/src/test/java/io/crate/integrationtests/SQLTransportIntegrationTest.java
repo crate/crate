@@ -24,7 +24,9 @@ package io.crate.integrationtests;
 import com.carrotsearch.hppc.cursors.ObjectCursor;
 import com.google.common.base.Throwables;
 import com.google.common.collect.Multimap;
-import io.crate.action.sql.*;
+import io.crate.action.sql.Option;
+import io.crate.action.sql.SQLOperations;
+import io.crate.action.sql.SessionContext;
 import io.crate.analyze.Analyzer;
 import io.crate.analyze.ParameterContext;
 import io.crate.core.collections.Row;
@@ -48,8 +50,7 @@ import io.crate.plugin.SQLPlugin;
 import io.crate.protocols.postgres.PostgresNetty;
 import io.crate.sql.parser.SqlParser;
 import io.crate.test.GroovyTestSanitizer;
-import io.crate.testing.CollectingRowReceiver;
-import io.crate.testing.SQLTransportExecutor;
+import io.crate.testing.*;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateRequest;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateResponse;
 import org.elasticsearch.client.Client;
@@ -82,6 +83,7 @@ import java.util.*;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
+import static io.crate.testing.SQLTransportExecutor.DEFAULT_SOFT_LIMIT;
 import static org.hamcrest.Matchers.is;
 
 public abstract class SQLTransportIntegrationTest extends ESIntegTestCase {
@@ -273,29 +275,13 @@ public abstract class SQLTransportIntegrationTest extends ESIntegTestCase {
     /**
      * Execute an SQL Statement on a random node of the cluster
      *
-     * @param stmt    the SQL Statement
-     * @param args    the arguments to replace placeholders ("?") in the statement
-     * @param timeout the timeout for this request
-     * @return the SQLResponse
-     */
-    public SQLResponse execute(String stmt, Object[] args, TimeValue timeout) {
-        response = sqlExecutor.exec(stmt, args, timeout);
-        return response;
-    }
-
-    /**
-     * Execute an SQL Statement on a random node of the cluster
-     *
      * @param stmt    the SQL statement
      * @param schema  the schema that should be used for this statement
      *                schema is nullable, which means default schema ("doc") is used
      * @return the SQLResponse
      */
     public SQLResponse execute(String stmt, @Nullable String schema) {
-        SQLRequest request = new SQLRequest(stmt, SQLRequest.EMPTY_ARGS);
-        request.setDefaultSchema(schema);
-        response = sqlExecutor.exec(request);
-        return response;
+        return execute(stmt, null, createSession(schema, Option.NONE));
     }
 
     public static class PlanForNode {
@@ -357,18 +343,23 @@ public abstract class SQLTransportIntegrationTest extends ESIntegTestCase {
      * @return the SQLResponse
      */
     public SQLResponse execute(String stmt) {
-        return execute(stmt, SQLRequest.EMPTY_ARGS);
+        return execute(stmt, (Object[])null);
     }
 
+
     /**
-     * Execute an SQL Statement on a random node of the cluster
+     * Execute an SQL Statement using a specific {@link SQLOperations.Session}
+     * This is useful to execute a query on a specific node or to test using
+     * session options like default schema.
      *
-     * @param stmt    the SQL Statement
-     * @param timeout the timeout for this query
+     * @param stmt the SQL Statement
+     * @param session the Session to use
      * @return the SQLResponse
      */
-    public SQLResponse execute(String stmt, TimeValue timeout) {
-        return execute(stmt, SQLRequest.EMPTY_ARGS, timeout);
+    public SQLResponse execute(String stmt, Object[] args, SQLOperations.Session session) {
+        response = SQLTransportExecutor.execute(stmt, args, session)
+            .actionGet(SQLTransportExecutor.REQUEST_TIMEOUT);
+        return response;
     }
 
     /**
@@ -455,6 +446,32 @@ public abstract class SQLTransportIntegrationTest extends ESIntegTestCase {
         builder.endObject();
 
         return builder.string();
+    }
+
+    /**
+     * Creates an {@link SQLOperations.Session} on a specific node.
+     * This can be used to ensure that a request is performed on a specific node.
+     *
+     * @param nodeName The name of the node to create the session
+     * @return The created session
+     */
+    SQLOperations.Session createSessionOnNode(String nodeName) {
+        SQLOperations sqlOperations = internalCluster().getInstance(SQLOperations.class, nodeName);
+        return sqlOperations.createSession(null, Option.NONE, DEFAULT_SOFT_LIMIT);
+    }
+
+    /**
+     * Creates a {@link SQLOperations.Session} with the given default schema
+     * and an options list. This is useful if you require a session which differs
+     * from the default one.
+     *
+     * @param defaultSchema The default schema to use. Can be null
+     * @param options Session options. If no specific options are required, use {@link Option#NONE}
+     * @return The created session
+     */
+    SQLOperations.Session createSession(@Nullable String defaultSchema, Set<Option> options) {
+        SQLOperations sqlOperations = internalCluster().getInstance(SQLOperations.class);
+        return sqlOperations.createSession(defaultSchema, options, DEFAULT_SOFT_LIMIT);
     }
 
 }

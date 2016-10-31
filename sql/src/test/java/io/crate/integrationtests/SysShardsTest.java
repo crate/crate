@@ -22,7 +22,7 @@
 package io.crate.integrationtests;
 
 import io.crate.action.sql.SQLActionException;
-import io.crate.action.sql.SQLResponse;
+import io.crate.testing.SQLResponse;
 import io.crate.blob.v2.BlobIndicesService;
 import io.crate.metadata.PartitionName;
 import io.crate.testing.TestingHelpers;

@@ -23,10 +23,9 @@ package io.crate.integrationtests;
 
 import com.google.common.util.concurrent.SettableFuture;
 import io.crate.action.sql.SQLActionException;
-import io.crate.action.sql.SQLRequest;
-import io.crate.action.sql.SQLResponse;
 import io.crate.exceptions.Exceptions;
 import io.crate.plugin.SQLPlugin;
+import io.crate.testing.SQLResponse;
 import io.crate.testing.UseJdbc;
 import io.crate.testing.plugin.CrateTestingPlugin;
 import org.elasticsearch.action.ActionFuture;
@@ -87,7 +86,7 @@ public class KillIntegrationTest extends SQLTransportIntegrationTest {
 
     private void assertGotCancelled(final String statement, @Nullable final Object[] params, boolean killAll) throws Exception {
         try {
-            ActionFuture<SQLResponse> future = sqlExecutor.execute(new SQLRequest(statement, params));
+            ActionFuture<SQLResponse> future = sqlExecutor.execute(statement, params);
             String jobId = waitForJobEntry(statement);
             if (jobId == null) {
                 // query finished too fast

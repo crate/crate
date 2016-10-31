@@ -24,7 +24,7 @@ package io.crate.integrationtests;
 import io.crate.Build;
 import io.crate.Version;
 import io.crate.action.sql.SQLActionException;
-import io.crate.action.sql.SQLResponse;
+import io.crate.testing.SQLResponse;
 import io.crate.metadata.settings.CrateSettings;
 import io.crate.testing.SQLTransportExecutor;
 import io.crate.testing.TestingHelpers;

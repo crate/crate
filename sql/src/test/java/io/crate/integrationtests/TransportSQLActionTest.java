@@ -27,9 +27,9 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.util.concurrent.ListenableFuture;
 import io.crate.TimestampFormat;
 import io.crate.action.sql.SQLActionException;
-import io.crate.action.sql.SQLBulkResponse;
 import io.crate.core.collections.Bucket;
 import io.crate.exceptions.Exceptions;
+import io.crate.testing.SQLBulkResponse;
 import io.crate.testing.TestingHelpers;
 import io.crate.testing.UseJdbc;
 import org.elasticsearch.action.admin.indices.exists.indices.IndicesExistsRequest;
@@ -1046,6 +1046,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
     }
 
     @Test
+    @UseJdbc(0)
     public void testRefresh() throws Exception {
         execute("create table test (id int primary key, name string) with (refresh_interval = 0)");
         ensureYellow();
@@ -1054,8 +1055,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         assertThat((long) response.rows()[0][0], lessThanOrEqualTo(3L));
 
         execute("refresh table test");
-        assertTrue(response.hasRowCount());
-        assertThat(response.rows().length, is(0));
+        assertThat(response.rowCount(), is(1L));
 
         execute("select count(*) from test");
         assertThat((Long) response.rows()[0][0], is(3L));

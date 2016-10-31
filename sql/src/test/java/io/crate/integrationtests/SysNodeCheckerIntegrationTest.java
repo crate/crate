@@ -22,7 +22,7 @@
 
 package io.crate.integrationtests;
 
-import io.crate.action.sql.SQLResponse;
+import io.crate.testing.SQLResponse;
 import io.crate.testing.TestingHelpers;
 import io.crate.testing.UseJdbc;
 import org.elasticsearch.test.ESIntegTestCase;

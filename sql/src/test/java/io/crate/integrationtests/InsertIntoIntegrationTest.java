@@ -23,9 +23,8 @@ package io.crate.integrationtests;
 
 import com.carrotsearch.randomizedtesting.annotations.Repeat;
 import io.crate.action.sql.SQLActionException;
-import io.crate.action.sql.SQLBulkResponse;
-import io.crate.action.sql.SQLRequest;
-import io.crate.action.sql.SQLResponse;
+import io.crate.testing.SQLBulkResponse;
+import io.crate.testing.SQLResponse;
 import io.crate.testing.TestingHelpers;
 import org.elasticsearch.action.get.GetResponse;
 import org.elasticsearch.common.collect.MapBuilder;
