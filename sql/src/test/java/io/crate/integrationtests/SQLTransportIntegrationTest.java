@@ -50,7 +50,6 @@ import io.crate.sql.parser.SqlParser;
 import io.crate.test.GroovyTestSanitizer;
 import io.crate.testing.CollectingRowReceiver;
 import io.crate.testing.SQLTransportExecutor;
-import org.elasticsearch.action.ActionModule;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateRequest;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateResponse;
 import org.elasticsearch.client.Client;
@@ -118,12 +117,6 @@ public abstract class SQLTransportIntegrationTest extends ESIntegTestCase {
         return pluginList(BlobPlugin.class, SQLPlugin.class, CrateCorePlugin.class);
     }
 
-    @Override
-    protected Collection<Class<? extends Plugin>> transportClientPlugins() {
-        return pluginList(TestSQLPlugin.class);
-    }
-
-    protected float responseDuration;
     protected SQLResponse response;
 
     public SQLTransportIntegrationTest() {
@@ -464,19 +457,4 @@ public abstract class SQLTransportIntegrationTest extends ESIntegTestCase {
         return builder.string();
     }
 
-    public static class TestSQLPlugin extends Plugin {
-        @Override
-        public String name() {
-            return "test-sql-plugin";
-        }
-
-        @Override
-        public String description() {
-            return "test-sql-plugin";
-        }
-
-        public void onModule(ActionModule actionModule) {
-            actionModule.registerAction(SQLBulkAction.INSTANCE, TransportSQLBulkAction.class);
-        }
-    }
 }

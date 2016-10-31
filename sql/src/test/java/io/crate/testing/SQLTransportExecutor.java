@@ -222,7 +222,7 @@ public class SQLTransportExecutor {
             } else {
                 for (int i = 0; i < bulkArgs.length; i++) {
                     session.bind(UNNAMED, UNNAMED, Arrays.asList(bulkArgs[i]), null);
-                    ResultReceiver resultReceiver = new TransportSQLBulkAction.RowCountReceiver(results, i);
+                    ResultReceiver resultReceiver = new BulkRowCountReceiver(results, i);
                     session.execute(UNNAMED, 1, resultReceiver);
                 }
             }
@@ -676,6 +676,36 @@ public class SQLTransportExecutor {
         @Override
         public void fail(@Nonnull Throwable t) {
             listener.onFailure(Exceptions.createSQLActionException(t));
+            super.fail(t);
+        }
+    }
+
+
+    public static class BulkRowCountReceiver extends BaseResultReceiver {
+
+        private final SQLBulkResponse.Result[] results;
+        private final int resultIdx;
+        private long rowCount;
+
+        public BulkRowCountReceiver(SQLBulkResponse.Result[] results, int resultIdx) {
+            this.results = results;
+            this.resultIdx = resultIdx;
+        }
+
+        @Override
+        public void setNextRow(Row row) {
+            rowCount = ((long) row.get(0));
+        }
+
+        @Override
+        public void allFinished() {
+            results[resultIdx] = new SQLBulkResponse.Result(null, rowCount);
+            super.allFinished();
+        }
+
+        @Override
+        public void fail(@Nonnull Throwable t) {
+            results[resultIdx] = new SQLBulkResponse.Result(Exceptions.messageOf(t), rowCount);
             super.fail(t);
         }
     }
