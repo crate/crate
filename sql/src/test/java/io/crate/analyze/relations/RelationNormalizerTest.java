@@ -87,15 +87,19 @@ public class RelationNormalizerTest extends BaseAnalyzerTest {
     }
 
     @Test
-    public void testOrderByLimitsOnInnerMerge() throws Exception {
+    public void testOrderByLimitsOnInnerNotMerged() throws Exception {
         QueriedRelation relation = normalize("select * from (" +
                                                 "select * from (" +
                                                     "select * from t1 order by a limit 10" +
                                                 ") as tt" +
                                              ") as ttt order by x");
-        assertThat(relation, instanceOf(QueriedDocTable.class));
-        assertThat(relation.querySpec(),
-            isSQL("SELECT doc.t1.a, doc.t1.x, doc.t1.i ORDER BY doc.t1.x LIMIT 10"));
+        assertThat(relation, instanceOf(QueriedSelectRelation.class));
+        QueriedSelectRelation outerRelation = (QueriedSelectRelation) relation;
+        assertThat(outerRelation.querySpec(),
+            isSQL("SELECT doc.t1.a, doc.t1.x, doc.t1.i ORDER BY doc.t1.x"));
+        assertThat(outerRelation.subRelation(), instanceOf(QueriedDocTable.class));
+        assertThat(outerRelation.subRelation().querySpec(),
+            isSQL("SELECT doc.t1.a, doc.t1.x, doc.t1.i ORDER BY doc.t1.a LIMIT 10"));
     }
 
     @Test
