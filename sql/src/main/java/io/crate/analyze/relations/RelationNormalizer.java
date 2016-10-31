@@ -190,8 +190,7 @@ final class RelationNormalizer {
 
         boolean notMergeableOrderBy = childQuerySpec.orderBy().isPresent() && parentQuerySpec.orderBy().isPresent()
                                       && !childQuerySpec.orderBy().equals(parentQuerySpec.orderBy())
-                                      && (childQuerySpec.limit().isPresent() || childQuerySpec.offset().isPresent())
-                                      && (parentQuerySpec.limit().isPresent() || parentQuerySpec.offset().isPresent());
+                                      && (childQuerySpec.limit().isPresent() || childQuerySpec.offset().isPresent());
 
         return !hasAggregations && !notMergeableOrderBy &&
                (!parentQuerySpec.where().hasQuery() || parentQuerySpec.where() == WhereClause.MATCH_ALL ||
