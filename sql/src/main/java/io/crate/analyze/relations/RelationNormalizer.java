@@ -30,13 +30,12 @@ import io.crate.analyze.*;
 import io.crate.analyze.symbol.*;
 import io.crate.metadata.*;
 import io.crate.operation.operator.AndOperator;
-import io.crate.operation.scalar.conditional.LeastFunction;
 import io.crate.planner.Limits;
 import io.crate.sql.tree.QualifiedName;
 
 import javax.annotation.Nullable;
-import java.util.Arrays;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -71,7 +70,7 @@ final class RelationNormalizer {
             .where(mergeWhere(childQSpec.where(), parentQSpec.where()))
             .orderBy(tryReplace(childQSpec.orderBy(), parentQSpec.orderBy()))
             .offset(Limits.mergeAdd(childQSpec.offset(), parentQSpec.offset()))
-            .limit(mergeLimit(childQSpec.limit(), parentQSpec.limit()))
+            .limit(Limits.mergeMin(childQSpec.limit(), parentQSpec.limit()))
             .groupBy(pushGroupBy(childQSpec.groupBy(), parentQSpec.groupBy()))
             .having(pushHaving(childQSpec.having(), parentQSpec.having()))
             .hasAggregates(childQSpec.hasAggregates() || parentQSpec.hasAggregates());
@@ -117,17 +116,6 @@ final class RelationNormalizer {
         return childOrderBy.orNull();
     }
 
-    private static Optional<Symbol> mergeLimit(Optional<Symbol> limit1, Optional<Symbol> limit2) {
-        if (limit1.isPresent()) {
-            if (limit2.isPresent()) {
-                return Optional.of(new Function(LeastFunction.TWO_LONG_INFO,
-                    Arrays.asList(limit1.get(), limit2.get())));
-            }
-            return limit1;
-        }
-        return limit2;
-    }
-
     @Nullable
     private static List<Symbol> pushGroupBy(Optional<List<Symbol>> childGroupBy, Optional<List<Symbol>> parentGroupBy) {
         assert !(childGroupBy.isPresent() && parentGroupBy.isPresent()) :
@@ -142,26 +130,26 @@ final class RelationNormalizer {
         return childHaving.or(parentHaving).orNull();
     }
 
-    private static void replaceFieldReferences(QuerySpec querySpec) {
+    private static void replaceFieldReferences(QuerySpec querySpec, Map<Symbol, Symbol> symbolTranslations) {
         if (querySpec == null) {
             return;
         }
 
-        querySpec.outputs(FieldReferenceResolver.INSTANCE.process(querySpec.outputs(), null));
+        querySpec.outputs(FieldReferenceResolver.INSTANCE.process(querySpec.outputs(), symbolTranslations));
 
         if (querySpec.where().hasQuery() && !querySpec.where().noMatch()) {
-            Symbol query = FieldReferenceResolver.INSTANCE.process(querySpec.where().query(), null);
+            Symbol query = FieldReferenceResolver.INSTANCE.process(querySpec.where().query(), symbolTranslations);
             querySpec.where(new WhereClause(query));
         }
 
         if (querySpec.orderBy().isPresent()) {
             OrderBy orderBy = querySpec.orderBy().get();
-            List<Symbol> orderBySymbols = FieldReferenceResolver.INSTANCE.process(orderBy.orderBySymbols(), null);
+            List<Symbol> orderBySymbols = FieldReferenceResolver.INSTANCE.process(orderBy.orderBySymbols(), symbolTranslations);
             querySpec.orderBy(new OrderBy(orderBySymbols, orderBy.reverseFlags(), orderBy.nullsFirst()));
         }
 
         if (querySpec.groupBy().isPresent()) {
-            List<Symbol> groupBy = FieldReferenceResolver.INSTANCE.process(querySpec.groupBy().get(), null);
+            List<Symbol> groupBy = FieldReferenceResolver.INSTANCE.process(querySpec.groupBy().get(), symbolTranslations);
             querySpec.groupBy(groupBy);
         }
 
@@ -197,12 +185,13 @@ final class RelationNormalizer {
         private final Functions functions;
 
         private QuerySpec currentParentQSpec;
+        private Map<Symbol, Symbol> symbolTranslations;
 
         public Context(Functions functions,
                        List<Field> fields,
                        TransactionContext transactionContext) {
             this.functions = functions;
-            this.normalizer = EvaluatingNormalizer.functionOnlyNormalizer(functions, ReplaceMode.COPY);
+            this.normalizer = EvaluatingNormalizer.functionOnlyNormalizer(functions, ReplaceMode.MUTATE);
             this.fields = fields;
             this.transactionContext = transactionContext;
         }
@@ -215,9 +204,9 @@ final class RelationNormalizer {
     /**
      * Used after merging to replace fields with the symbol referenced in their relation.
      */
-    private static class FieldReferenceResolver extends ReplacingSymbolVisitor<Void> {
+    private static class FieldReferenceResolver extends ReplacingSymbolVisitor<Map<Symbol, Symbol>> {
 
-        public static final FieldReferenceResolver INSTANCE = new FieldReferenceResolver(ReplaceMode.MUTATE);
+        public static final FieldReferenceResolver INSTANCE = new FieldReferenceResolver(ReplaceMode.COPY);
         private static final FieldRelationVisitor<Symbol> FIELD_RELATION_VISITOR = new FieldRelationVisitor<>(INSTANCE);
 
         private FieldReferenceResolver(ReplaceMode mode) {
@@ -225,9 +214,18 @@ final class RelationNormalizer {
         }
 
         @Override
-        public Symbol visitField(Field field, Void context) {
+        public Symbol visitField(Field field, Map<Symbol, Symbol> symbolTranslations) {
+            // Try to translate field before rewriting it
+            if (symbolTranslations != null && symbolTranslations.containsKey(field)) {
+                field = (Field) symbolTranslations.get(field);
+            }
             Symbol output = FIELD_RELATION_VISITOR.process(field.relation(), field);
-            return output != null ? output : field;
+            output = output != null ? output : field;
+            // Try to translate field after rewriting it
+            if (symbolTranslations != null && symbolTranslations.containsKey(output)) {
+                output = symbolTranslations.get(output);
+            }
+            return output;
         }
     }
 
@@ -237,7 +235,6 @@ final class RelationNormalizer {
     private static class AggregateFunctionReferenceFinder extends SymbolVisitor<Void, Boolean> {
 
         private static final AggregateFunctionReferenceFinder INSTANCE = new AggregateFunctionReferenceFinder();
-        private static final FieldRelationVisitor<Boolean> FIELD_RELATION_VISITOR = new FieldRelationVisitor<>(INSTANCE);
 
         public static Boolean any(Symbol symbol) {
             return INSTANCE.process(symbol, null);
@@ -349,7 +346,7 @@ final class RelationNormalizer {
         @Override
         public AnalyzedRelation visitQueriedTable(QueriedTable table, Context context) {
             QuerySpec querySpec = table.querySpec();
-            replaceFieldReferences(context.currentParentQSpec);
+            replaceFieldReferences(context.currentParentQSpec, context.symbolTranslations);
             if (!canBeMerged(querySpec, context.currentParentQSpec)) {
                 return null;
             }
@@ -361,7 +358,7 @@ final class RelationNormalizer {
         @Override
         public AnalyzedRelation visitQueriedDocTable(QueriedDocTable table, Context context) {
             QuerySpec querySpec = table.querySpec();
-            replaceFieldReferences(context.currentParentQSpec);
+            replaceFieldReferences(context.currentParentQSpec, context.symbolTranslations);
             if (!canBeMerged(querySpec, context.currentParentQSpec)) {
                 return null;
             }
@@ -373,7 +370,7 @@ final class RelationNormalizer {
         @Override
         public AnalyzedRelation visitMultiSourceSelect(MultiSourceSelect multiSourceSelect, Context context) {
             QuerySpec querySpec = multiSourceSelect.querySpec();
-            replaceFieldReferences(context.currentParentQSpec);
+            replaceFieldReferences(context.currentParentQSpec, context.symbolTranslations);
             if (!canBeMerged(querySpec, context.currentParentQSpec)) {
                 multiSourceSelect.pushDownQuerySpecs();
                 return null;
@@ -391,130 +388,64 @@ final class RelationNormalizer {
 
         @Override
         public AnalyzedRelation visitTwoRelationsUnion(TwoRelationsUnion twoTableUnion, Context context) {
-            if (context.currentParentQSpec != null) {
-                throw new UnsupportedOperationException("UNION as a sub query is not supported");
+            QuerySpec unionQuerySpec = twoTableUnion.querySpec();
+            boolean canMergeWithParent = canBeMerged(unionQuerySpec, context.currentParentQSpec);
+            QuerySpec originalMergedQuerySpec;
+            QuerySpec mergedQuerySpecToPushDown;
+
+            if (canMergeWithParent) {
+                originalMergedQuerySpec = mergeQuerySpec(twoTableUnion.querySpec(), context.currentParentQSpec);
+                mergedQuerySpecToPushDown = originalMergedQuerySpec.copy();
+            } else {
+                originalMergedQuerySpec = unionQuerySpec.copy();
+                mergedQuerySpecToPushDown = unionQuerySpec.copy();
             }
 
-            QuerySpec querySpec = twoTableUnion.querySpec();
-            replaceFieldReferences(querySpec);
+            // Change limit and offset to be pushed down to the relations of the union since as the
+            // union tree is built by the parser the limit exists only in the top level TwoRelationsUnion
+            mergedQuerySpecToPushDown.offset(Optional.absent());
+            mergedQuerySpecToPushDown.limit(Limits.mergeAdd(originalMergedQuerySpec.limit(), originalMergedQuerySpec.offset()));
+            context.currentParentQSpec = mergedQuerySpecToPushDown;
 
-            // Build PushDown limit to the relations of the union since as the union tree is built
-            // by the parser the limit exists only in the top level TwoRelationsUnion
-            Optional<Symbol> pushDownLimit = Limits.mergeAdd(querySpec.limit(), querySpec.offset());
+            // Process union relations
+            twoTableUnion.first((QueriedRelation) process(twoTableUnion.first(), context));
 
-            // Build PushDown orderBy to the relations of the union for performance optimization
-            Optional<OrderBy> pushDownOrderBy = querySpec.orderBy();
+            // Reset the querySpec of the context to avoid mixing it with the second relation
+            context.currentParentQSpec = mergedQuerySpecToPushDown;
+            // Build symbol translations to map symbols between 1st & 2nd relation
+            // and push down query spec to the second
+            List<Symbol> firstRelationOutputs = twoTableUnion.first().querySpec().outputs();
+            List<Symbol> secondRelationOutputs = twoTableUnion.second().querySpec().outputs();
+            context.symbolTranslations = new HashMap<>(firstRelationOutputs.size());
+            for (int i = 0; i < firstRelationOutputs.size(); i++) {
+                context.symbolTranslations.put(firstRelationOutputs.get(i), secondRelationOutputs.get(i));
+            }
+
+            twoTableUnion.second((QueriedRelation) process(twoTableUnion.second(), context));
+            replaceFieldReferences(twoTableUnion.second().querySpec(), null);
+
             // Convert orderBy symbols referring to the 1st relation of the union to InputColumns
             // as rootOrderBy must apply to corresponding columns of all relations
-            if (pushDownOrderBy.isPresent()) {
-                final List<Symbol> outputs = querySpec.outputs();
-                pushDownOrderBy.get().replace(new com.google.common.base.Function<Symbol, Symbol>() {
+            replaceFieldReferences(originalMergedQuerySpec, null);
+            Optional<OrderBy> mergedOrderBy = originalMergedQuerySpec.orderBy();
+            if (mergedOrderBy.isPresent()) {
+                final List<Symbol> outputs = originalMergedQuerySpec.outputs();
+                mergedOrderBy.get().replace(new com.google.common.base.Function<Symbol, Symbol>() {
                     @Nullable
                     @Override
                     public Symbol apply(@Nullable Symbol symbol) {
                         return InputColumn.fromSymbol(symbol, outputs);
                     }
                 });
+                unionQuerySpec.orderBy(mergedOrderBy.get());
             }
-
-            // Push Down orderBy and limit
-            UnionPushDownContext unionPushDownContext = new UnionPushDownContext(pushDownLimit, pushDownOrderBy);
-            UnionPushDownVisitor.INSTANCE.process(twoTableUnion.first(), unionPushDownContext);
-            UnionPushDownVisitor.INSTANCE.process(twoTableUnion.second(), unionPushDownContext);
-
-            twoTableUnion.first((QueriedRelation) process(twoTableUnion.first(), context));
-            context.currentParentQSpec = null; // Reset the querySpec of the context to avoid mixing it with the second relation
-            twoTableUnion.second((QueriedRelation) process(twoTableUnion.second(), context));
-            return twoTableUnion;
-        }
-
-        private static class UnionPushDownContext {
-
-            private Optional<Symbol> limit;
-            private Optional<OrderBy> orderBy;
-
-            private UnionPushDownContext(Optional<Symbol> limit, Optional<OrderBy> orderBy) {
-                this.limit = limit;
-                this.orderBy = orderBy;
+            if (canMergeWithParent) {
+                unionQuerySpec.outputs(originalMergedQuerySpec.outputs());
+                unionQuerySpec.limit(originalMergedQuerySpec.limit());
+                unionQuerySpec.offset(originalMergedQuerySpec.offset());
+                return twoTableUnion;
             }
-        }
-
-        private static class UnionPushDownVisitor extends AnalyzedRelationVisitor<UnionPushDownContext, Void> {
-
-            private static final UnionPushDownVisitor INSTANCE = new UnionPushDownVisitor();
-
-            private UnionPushDownVisitor() {
-            }
-
-            @Override
-            protected Void visitAnalyzedRelation(AnalyzedRelation relation, UnionPushDownContext context) {
-                return null;
-            }
-
-            @Override
-            public Void visitQueriedSelectRelation(QueriedSelectRelation relation, UnionPushDownContext context) {
-                return process(relation.subRelation(), context);
-            }
-
-            @Override
-            public Void visitQueriedTable(QueriedTable table, UnionPushDownContext context) {
-                QuerySpec querySpec = table.querySpec();
-                pushDownLimit(querySpec, context.limit);
-                pushDownOrderBy(querySpec, context.orderBy);
-                return null;
-            }
-
-            @Override
-            public Void visitQueriedDocTable(QueriedDocTable table, UnionPushDownContext context) {
-                QuerySpec querySpec = table.querySpec();
-                pushDownLimit(querySpec, context.limit);
-                pushDownOrderBy(querySpec, context.orderBy);
-                return null;
-            }
-
-            @Override
-            public Void visitMultiSourceSelect(MultiSourceSelect multiSourceSelect, UnionPushDownContext context) {
-                // Doesn't make sense to push down the orderBy to joins
-                pushDownLimit(multiSourceSelect.querySpec(), context.limit);
-                return null;
-            }
-
-            @Override
-            public Void visitTwoRelationsUnion(TwoRelationsUnion twoRelationsUnion, UnionPushDownContext context) {
-                process(twoRelationsUnion.first(), context);
-                process(twoRelationsUnion.second(), context);
-                return null;
-            }
-
-            private void pushDownOrderBy(QuerySpec querySpec, Optional<OrderBy> orderBy) {
-                querySpec.orderBy(tryReplace(querySpec.orderBy(),
-                    // The pushedDown OrderBy is passed as InputColumn and must
-                    // be rewritten to their output symbol counterparts
-                    rewritePushedDownOrderBy(orderBy, querySpec.outputs())));
-            }
-
-            private void pushDownLimit(QuerySpec querySpec, Optional<Symbol> limit) {
-                querySpec.limit(Limits.mergeMin(querySpec.limit(), limit));
-            }
-
-            private static Optional<OrderBy> rewritePushedDownOrderBy(Optional<OrderBy> orderBy,
-                                                                      final List<Symbol> outputs) {
-                if (!orderBy.isPresent()) {
-                    return orderBy;
-                }
-
-                return Optional.of(orderBy.get().copyAndReplace(new com.google.common.base.Function<Symbol, Symbol>() {
-                    @Nullable
-                    @Override
-                    public Symbol apply(@Nullable Symbol symbol) {
-                        if (symbol instanceof InputColumn) {
-                            InputColumn inputColumn = (InputColumn) symbol;
-                            return outputs.get(inputColumn.index());
-                        }
-                        return symbol;
-                    }
-                }));
-            }
+            return null;
         }
     }
 
