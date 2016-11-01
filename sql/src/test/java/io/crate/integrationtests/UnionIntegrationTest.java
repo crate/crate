@@ -86,7 +86,6 @@ public class UnionIntegrationTest extends SQLTransportIntegrationTest {
         execute("select * from (select name from sizes order by name limit 2) a " +
                 "union all " +
                 "select * from (select name from sizes order by name limit 1) b " +
-                "order by 1 " +
                 "limit 10 offset 2");
         assertThat(TestingHelpers.printedTable(response.rows()), is("small\n"));
     }
