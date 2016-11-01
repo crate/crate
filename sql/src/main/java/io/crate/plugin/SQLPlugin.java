@@ -111,7 +111,7 @@ public class SQLPlugin extends Plugin {
 
     @Override
     public Collection<Class<? extends LifecycleComponent>> nodeServices() {
-        return ImmutableList.<Class<? extends LifecycleComponent>>of(
+        return ImmutableList.of(
             DecommissioningService.class,
             BulkRetryCoordinatorPool.class,
             NodeDisconnectJobMonitorService.class,

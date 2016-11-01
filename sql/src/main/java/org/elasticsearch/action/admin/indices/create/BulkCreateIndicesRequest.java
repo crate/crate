@@ -49,11 +49,11 @@ public class BulkCreateIndicesRequest extends AcknowledgedRequest<BulkCreateIndi
     public BulkCreateIndicesRequest() {
     }
 
-    public Collection<String> indices() {
+    Collection<String> indices() {
         return indices;
     }
 
-    public UUID jobId() {
+    UUID jobId() {
         return jobId;
     }
 
@@ -84,5 +84,4 @@ public class BulkCreateIndicesRequest extends AcknowledgedRequest<BulkCreateIndi
             out.writeString(index);
         }
     }
-
 }

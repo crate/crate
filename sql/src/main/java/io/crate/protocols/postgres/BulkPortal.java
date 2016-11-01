@@ -43,6 +43,7 @@ import io.crate.planner.Planner;
 import io.crate.sql.tree.Statement;
 import io.crate.types.DataType;
 
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.List;
@@ -154,7 +155,7 @@ class BulkPortal extends AbstractPortal {
                 }
 
                 @Override
-                public void onFailure(Throwable t) {
+                public void onFailure(@Nonnull Throwable t) {
                     for (ResultReceiver resultReceiver : resultReceivers) {
                         resultReceiver.fail(t);
                     }

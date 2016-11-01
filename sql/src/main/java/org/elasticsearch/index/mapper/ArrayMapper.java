@@ -78,7 +78,7 @@ public class ArrayMapper extends FieldMapper implements ArrayValueMapperParser {
     public static final XContentBuilderString INNER = new XContentBuilderString(INNER_TYPE);
     private Mapper innerMapper;
 
-    protected ArrayMapper(String simpleName, MappedFieldType fieldType, MappedFieldType defaultFieldType,
+    private ArrayMapper(String simpleName, MappedFieldType fieldType, MappedFieldType defaultFieldType,
                           Settings indexSettings, MultiFields multiFields, CopyTo copyTo, Mapper innerMapper) {
         super(simpleName, fieldType, defaultFieldType, indexSettings, multiFields, copyTo);
         this.innerMapper = innerMapper;
@@ -122,12 +122,12 @@ public class ArrayMapper extends FieldMapper implements ArrayValueMapperParser {
         throw new IllegalArgumentException("expected a FieldMapper.Builder or ObjectMapper.Builder");
     }
 
-    static class ObjectArrayFieldType extends MappedFieldType {
+    private static class ObjectArrayFieldType extends MappedFieldType {
 
-        protected ObjectArrayFieldType() {
+        private ObjectArrayFieldType() {
         }
 
-        public ObjectArrayFieldType(MappedFieldType ref) {
+        private ObjectArrayFieldType(MappedFieldType ref) {
             super(ref);
         }
 
@@ -286,7 +286,6 @@ public class ArrayMapper extends FieldMapper implements ArrayValueMapperParser {
             context.path().add(simpleName());
             update = DocumentParser.parseObject(context, ((ObjectMapper) innerMapper), false);
             context.path().remove();
-            ;
         }
         return update;
     }

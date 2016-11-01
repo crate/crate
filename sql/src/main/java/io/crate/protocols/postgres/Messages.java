@@ -34,7 +34,6 @@ import org.jboss.netty.buffer.ChannelBuffer;
 import org.jboss.netty.buffer.ChannelBuffers;
 import org.jboss.netty.channel.Channel;
 import org.jboss.netty.channel.ChannelFuture;
-import org.jboss.netty.channel.ChannelFutureListener;
 
 import javax.annotation.Nullable;
 import java.nio.charset.StandardCharsets;
@@ -67,12 +66,7 @@ class Messages {
         buffer.writeInt(0);
         ChannelFuture channelFuture = channel.write(buffer);
         if (LOGGER.isTraceEnabled()) {
-            channelFuture.addListener(new ChannelFutureListener() {
-                @Override
-                public void operationComplete(ChannelFuture future) throws Exception {
-                    LOGGER.trace("sentAuthenticationOK");
-                }
-            });
+            channelFuture.addListener(future -> LOGGER.trace("sentAuthenticationOK"));
         }
     }
 
@@ -107,12 +101,7 @@ class Messages {
         writeCString(buffer, commandTagBytes);
         ChannelFuture channelFuture = channel.write(buffer);
         if (LOGGER.isTraceEnabled()) {
-            channelFuture.addListener(new ChannelFutureListener() {
-                @Override
-                public void operationComplete(ChannelFuture future) throws Exception {
-                    LOGGER.trace("sentCommandComplete");
-                }
-            });
+            channelFuture.addListener(future -> LOGGER.trace("sentCommandComplete"));
         }
     }
 
@@ -139,12 +128,7 @@ class Messages {
         buffer.writeByte('I');
         ChannelFuture channelFuture = channel.write(buffer);
         if (LOGGER.isTraceEnabled()) {
-            channelFuture.addListener(new ChannelFutureListener() {
-                @Override
-                public void operationComplete(ChannelFuture future) throws Exception {
-                    LOGGER.trace("sentReadyForQuery");
-                }
-            });
+            channelFuture.addListener(future -> LOGGER.trace("sentReadyForQuery"));
         }
     }
 
@@ -179,12 +163,7 @@ class Messages {
         writeCString(buffer, valueBytes);
         ChannelFuture channelFuture = channel.write(buffer);
         if (LOGGER.isTraceEnabled()) {
-            channelFuture.addListener(new ChannelFutureListener() {
-                @Override
-                public void operationComplete(ChannelFuture future) throws Exception {
-                    LOGGER.trace("sentParameterStatus {}={}", name, value);
-                }
-            });
+            channelFuture.addListener(future -> LOGGER.trace("sentParameterStatus {}={}", name, value));
         }
     }
 
@@ -258,12 +237,7 @@ class Messages {
         buffer.writeByte(0);
         ChannelFuture channelFuture = channel.write(buffer);
         if (LOGGER.isTraceEnabled()) {
-            channelFuture.addListener(new ChannelFutureListener() {
-                @Override
-                public void operationComplete(ChannelFuture future) throws Exception {
-                    LOGGER.trace("sentErrorResponse msg={}", message);
-                }
-            });
+            channelFuture.addListener(future -> LOGGER.trace("sentErrorResponse msg={}", message));
         }
     }
 
@@ -369,12 +343,7 @@ class Messages {
         buffer.setInt(1, length);
         ChannelFuture channelFuture = channel.write(buffer);
         if (LOGGER.isTraceEnabled()) {
-            channelFuture.addListener(new ChannelFutureListener() {
-                @Override
-                public void operationComplete(ChannelFuture future) throws Exception {
-                    LOGGER.trace("sentRowDescription");
-                }
-            });
+            channelFuture.addListener(future -> LOGGER.trace("sentRowDescription"));
         }
     }
 
@@ -420,12 +389,7 @@ class Messages {
 
         ChannelFuture channelFuture = channel.write(buffer);
         if (LOGGER.isTraceEnabled()) {
-            channelFuture.addListener(new ChannelFutureListener() {
-                @Override
-                public void operationComplete(ChannelFuture future) throws Exception {
-                    LOGGER.trace(traceLogMsg);
-                }
-            });
+            channelFuture.addListener(future -> LOGGER.trace(traceLogMsg));
         }
     }
 

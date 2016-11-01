@@ -29,12 +29,10 @@ import io.crate.action.sql.parser.SQLXContentSourceContext;
 import io.crate.action.sql.parser.SQLXContentSourceParser;
 import io.crate.analyze.symbol.Field;
 import io.crate.exceptions.SQLParseException;
-import io.crate.types.DataType;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.XContentBuilder;
-import org.elasticsearch.common.xcontent.json.JsonXContent;
 import org.elasticsearch.rest.*;
 
 import javax.annotation.Nonnull;
@@ -111,7 +109,7 @@ public class RestSQLAction extends BaseRestHandler {
             DEFAULT_SOFT_LIMIT);
         try {
             final long startTime = System.nanoTime();
-            session.parse(UNNAMED, context.stmt(), Collections.<DataType>emptyList());
+            session.parse(UNNAMED, context.stmt(), Collections.emptyList());
             List<Object> args = context.args() == null ? Collections.emptyList() : Arrays.asList(context.args());
             session.bind(UNNAMED, UNNAMED, args, null);
             List<Field> outputFields = session.describe('P', UNNAMED);
@@ -137,7 +135,7 @@ public class RestSQLAction extends BaseRestHandler {
             DEFAULT_SOFT_LIMIT);
         try {
             final long startTime = System.nanoTime();
-            session.parse(UNNAMED, context.stmt(), Collections.<DataType>emptyList());
+            session.parse(UNNAMED, context.stmt(), Collections.emptyList());
             Object[][] bulkArgs = context.bulkArgs();
             final RestBulkRowCountReceiver.Result[] results = new RestBulkRowCountReceiver.Result[bulkArgs.length];
             if (results.length == 0) {
@@ -160,7 +158,7 @@ public class RestSQLAction extends BaseRestHandler {
                 public void onSuccess(@Nullable Object result) {
                     try {
                         XContentBuilder builder = ResultToXContentBuilder.builder(channel)
-                            .cols(Collections.<Field>emptyList())
+                            .cols(Collections.emptyList())
                             .duration(startTime)
                             .bulkRows(results).build();
                         channel.sendResponse(new BytesRestResponse(RestStatus.OK, builder));

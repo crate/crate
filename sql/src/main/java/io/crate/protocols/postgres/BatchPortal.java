@@ -102,7 +102,7 @@ class BatchPortal extends AbstractPortal {
         batchParams.add(params);
         this.resultFormatCodes.add(resultFormatCodes);
         analysis.add(portalContext.getAnalyzer().boundAnalyze(
-            statement, sessionContext, new ParameterContext(getArgs(), Collections.<Row>emptyList())));
+            statement, sessionContext, new ParameterContext(getArgs(), Collections.emptyList())));
         return this;
     }
 
