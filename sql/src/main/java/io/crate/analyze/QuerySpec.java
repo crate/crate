@@ -21,6 +21,7 @@
 
 package io.crate.analyze;
 
+import com.google.common.base.Function;
 import com.google.common.base.Optional;
 import com.google.common.base.Predicate;
 import com.google.common.collect.Iterables;
@@ -240,8 +241,47 @@ public class QuerySpec {
         }
     }
 
+    /**
+     * Crates a copy of the querySpec by cloning only the components that can be mutated.
+     * outputs: new list but symbols are referenced
+     * where: new WhereClause created but internals (query, docKeys, etc) are referenced
+     * groupBy: new list of symbols but symbols are referenced
+     * having: new HavingClause but query is referenced
+     * orderBy: deep copied
+     * limit: referenced
+     * offset: referenced
+     * hasAggregates: copied
+     */
+    public QuerySpec copy() {
+        QuerySpec newQuerySpec = new QuerySpec();
 
-    public QuerySpec copyAndReplace(com.google.common.base.Function<? super Symbol, Symbol> replaceFunction) {
+        if (outputs != null) {
+            newQuerySpec.outputs(new ArrayList<>(outputs));
+        }
+        if (!where.hasQuery()) {
+            newQuerySpec.where(where);
+        } else {
+            newQuerySpec.where(new WhereClause(where.query(), where.docKeys().orNull(), where.partitions()));
+        }
+        if (groupBy.isPresent()) {
+            List<Symbol> copied =  new ArrayList<>(groupBy.get());
+            newQuerySpec.groupBy(copied);
+        }
+        if (having.isPresent()) {
+            newQuerySpec.having(new HavingClause(having.get().query()));
+        }
+        if (orderBy.isPresent()) {
+            newQuerySpec.orderBy(orderBy.get().copy());
+        }
+
+        newQuerySpec.limit(limit);
+        newQuerySpec.offset(offset);
+        newQuerySpec.hasAggregates = hasAggregates;
+
+        return newQuerySpec;
+    }
+
+    public QuerySpec copyAndReplace(Function<? super Symbol, Symbol> replaceFunction) {
         if (groupBy.isPresent() || having.isPresent()) {
             throw new UnsupportedOperationException("Replacing group by or having symbols is not implemented");
         }
@@ -261,7 +301,7 @@ public class QuerySpec {
         return newSpec;
     }
 
-    public void replace(com.google.common.base.Function<? super Symbol, Symbol> replaceFunction) {
+    public void replace(Function<? super Symbol, Symbol> replaceFunction) {
         ListIterator<Symbol> listIt = outputs.listIterator();
         while (listIt.hasNext()) {
             listIt.set(replaceFunction.apply(listIt.next()));
@@ -281,17 +321,13 @@ public class QuerySpec {
      * </p>
      */
     public void visitSymbols(Consumer<Symbol> consumer) {
-        for (Symbol output : outputs) {
-            consumer.accept(output);
-        }
+        outputs.forEach(consumer::accept);
         if (where.hasQuery()) {
             consumer.accept(where.query());
         }
         if (groupBy.isPresent()) {
             List<Symbol> groupBySymbols = groupBy.get();
-            for (Symbol groupBySymbol : groupBySymbols) {
-                consumer.accept(groupBySymbol);
-            }
+            groupBySymbols.forEach(consumer::accept);
         }
         if (having.isPresent()) {
             HavingClause havingClause = having.get();
@@ -301,9 +337,7 @@ public class QuerySpec {
         }
         if (orderBy.isPresent()) {
             OrderBy orderBy = this.orderBy.get();
-            for (Symbol orderBySymbol : orderBy.orderBySymbols()) {
-                consumer.accept(orderBySymbol);
-            }
+            orderBy.orderBySymbols().forEach(consumer::accept);
         }
         if (limit.isPresent()) {
             consumer.accept(limit.get());
