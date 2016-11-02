@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fixed an issue that caused left outer joins to return an empty result if the
+   joined table is empty.
+
  - Fix: Certain subselects with nested ``order by`` and ``limit`` or ``offset``
    produced incorrect results.
    eg. select * from (select a, b from t1 order by a limit 3) as t order by b limit 2
