@@ -27,15 +27,16 @@ import com.google.common.collect.Collections2;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Maps;
 import io.crate.analyze.*;
-import io.crate.analyze.symbol.*;
+import io.crate.analyze.symbol.Aggregations;
+import io.crate.analyze.symbol.Field;
+import io.crate.analyze.symbol.Symbol;
+import io.crate.analyze.symbol.SymbolVisitor;
 import io.crate.metadata.*;
 import io.crate.operation.operator.AndOperator;
-import io.crate.operation.scalar.conditional.LeastFunction;
 import io.crate.planner.Limits;
 import io.crate.sql.tree.QualifiedName;
 
 import javax.annotation.Nullable;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -75,8 +76,8 @@ final class RelationNormalizer {
             .outputs(parentQSpec.outputs())
             .where(mergeWhere(childQSpec.where(), parentQSpec.where()))
             .orderBy(tryReplace(childQSpec.orderBy(), parentQSpec.orderBy()))
-            .offset(Limits.add(childQSpec.offset(), parentQSpec.offset()))
-            .limit(mergeLimit(childQSpec.limit(), parentQSpec.limit()))
+            .offset(Limits.mergeAdd(childQSpec.offset(), parentQSpec.offset()))
+            .limit(Limits.mergeMin(childQSpec.limit(), parentQSpec.limit()))
             .groupBy(pushGroupBy(childQSpec.groupBy(), parentQSpec.groupBy()))
             .having(pushHaving(childQSpec.having(), parentQSpec.having()))
             .hasAggregates(childQSpec.hasAggregates() || parentQSpec.hasAggregates());
@@ -122,16 +123,7 @@ final class RelationNormalizer {
         return childOrderBy.orNull();
     }
 
-    private static Optional<Symbol> mergeLimit(Optional<Symbol> limit1, Optional<Symbol> limit2) {
-        if (limit1.isPresent()) {
-            if (limit2.isPresent()) {
-                return Optional.of((Symbol) new Function(LeastFunction.TWO_LONG_INFO,
-                    Arrays.asList(limit1.get(), limit2.get())));
-            }
-            return limit1;
-        }
-        return limit2;
-    }
+
 
     @Nullable
     private static List<Symbol> pushGroupBy(Optional<List<Symbol>> childGroupBy, Optional<List<Symbol>> parentGroupBy) {

@@ -30,6 +30,7 @@ import io.crate.metadata.Path;
 import io.crate.metadata.table.Operation;
 import io.crate.sql.tree.QualifiedName;
 
+import javax.annotation.Nonnull;
 import java.util.*;
 
 public class MultiSourceSelect implements QueriedRelation {
@@ -101,10 +102,11 @@ public class MultiSourceSelect implements QueriedRelation {
     }
 
     @Override
-    public void setQualifiedName(QualifiedName qualifiedName) {
+    public void setQualifiedName(@Nonnull QualifiedName qualifiedName) {
         this.qualifiedName = qualifiedName;
     }
 
+    @Override
     public QuerySpec querySpec() {
         return querySpec;
     }
@@ -132,39 +134,5 @@ public class MultiSourceSelect implements QueriedRelation {
 
     public List<Symbol> outputSymbols() {
         return outputSymbols;
-    }
-
-    public static class Source {
-        private final AnalyzedRelation relation;
-        private QuerySpec querySpec;
-
-        public Source(AnalyzedRelation relation) {
-            this(relation, null);
-        }
-
-        public Source(AnalyzedRelation relation, QuerySpec querySpec) {
-            this.relation = relation;
-            this.querySpec = querySpec;
-        }
-
-        public QuerySpec querySpec() {
-            return querySpec;
-        }
-
-        public void querySpec(QuerySpec querySpec) {
-            this.querySpec = querySpec;
-        }
-
-        public AnalyzedRelation relation() {
-            return relation;
-        }
-
-        @Override
-        public String toString() {
-            return "Source{" +
-                   "rel=" + relation +
-                   ", qs=" + querySpec +
-                   '}';
-        }
     }
 }
