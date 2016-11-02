@@ -721,11 +721,6 @@ Tokenizer and token-filters can be customized in the same way.
 
     Altering analyzers is not supported yet.
 
-.. note::
-
-    Use of camelCase names on custom analyzers, tokenizers, token filters and
-    char filters is deprecated.
-
 .. seealso::
 
   :ref:`ref-create-analyzer` for the syntax reference.

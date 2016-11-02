@@ -170,7 +170,7 @@ public class CreateAnalyzerAnalyzerTest extends CrateUnitTest {
         createAnalyzerAnalysis.buildSettings();
     }
 
-    @Test(expected = UnsupportedOperationException.class)
+    @Test
     public void createAnalyzerWithoutTokenizer() throws Exception {
         CreateAnalyzerAnalyzedStatement analysis = e.analyze(
             "CREATE ANALYZER a6 (" +
@@ -181,18 +181,24 @@ public class CreateAnalyzerAnalyzerTest extends CrateUnitTest {
             "    lowercase" +
             "  )" +
             ")");
+        expectedException.expect(UnsupportedOperationException.class);
+        expectedException.expectMessage("Tokenizer missing from non-extended analyzer");
         analysis.buildSettings();
     }
 
-    @Test(expected = IllegalArgumentException.class)
-    public void overrideDefaultAnalyzer() throws Exception {
+    @Test
+    public void overrideDefaultAnalyzer() {
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("Overriding the default analyzer is forbidden");
         e.analyze("CREATE ANALYZER \"default\" (" +
                 "  TOKENIZER whitespace" +
                 ")");
     }
 
-    @Test(expected = IllegalArgumentException.class)
-    public void overrideBuiltInAnalyzer() throws Exception {
+    @Test
+    public void overrideBuiltInAnalyzer() {
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("Cannot override builtin analyzer 'keyword'");
         e.analyze("CREATE ANALYZER \"keyword\" (" +
                 "  char_filters (" +
                 "    html_strip" +

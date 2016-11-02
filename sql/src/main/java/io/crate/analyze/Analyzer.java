@@ -33,7 +33,6 @@ import io.crate.sql.tree.*;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
-import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.indices.analysis.IndicesAnalysisService;
 
 import java.util.Locale;
@@ -70,8 +69,7 @@ public class Analyzer {
     private final UnboundAnalyzer unboundAnalyzer;
 
     @Inject
-    public Analyzer(Settings settings,
-                    Schemas schemas,
+    public Analyzer(Schemas schemas,
                     Functions functions,
                     ClusterService clusterService,
                     IndicesAnalysisService indicesAnalysisService,
@@ -94,7 +92,7 @@ public class Analyzer {
         this.showStatementAnalyzer = new ShowStatementAnalyzer(this);
         this.unboundAnalyzer = new UnboundAnalyzer(relationAnalyzer, showCreateTableAnalyzer, showStatementAnalyzer);
         this.createBlobTableAnalyzer = new CreateBlobTableAnalyzer(schemas, numberOfShards);
-        this.createAnalyzerStatementAnalyzer = new CreateAnalyzerStatementAnalyzer(fulltextAnalyzerResolver, settings);
+        this.createAnalyzerStatementAnalyzer = new CreateAnalyzerStatementAnalyzer(fulltextAnalyzerResolver);
         this.refreshTableAnalyzer = new RefreshTableAnalyzer(schemas);
         this.optimizeTableAnalyzer = new OptimizeTableAnalyzer(schemas);
         this.alterTableAnalyzer = new AlterTableAnalyzer(schemas);

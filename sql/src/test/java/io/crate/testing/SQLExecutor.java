@@ -129,12 +129,11 @@ public class SQLExecutor {
             return new SQLExecutor(
                 functions,
                 new Analyzer(
-                    Settings.EMPTY,
                     new Schemas(
                         Settings.EMPTY,
                         schemas,
                         clusterService,
-                        new DocSchemaInfoFactory(new TestingDocTableInfoFactory(Collections.<TableIdent, DocTableInfo>emptyMap()))
+                        new DocSchemaInfoFactory(new TestingDocTableInfoFactory(Collections.emptyMap()))
                     ),
                     functions,
                     clusterService,
@@ -211,7 +210,7 @@ public class SQLExecutor {
             statement,
             arguments.length == 0
                 ? ParameterContext.EMPTY
-                : new ParameterContext(new RowN(arguments), Collections.<Row>emptyList()));
+                : new ParameterContext(new RowN(arguments), Collections.emptyList()));
     }
 
     public <T extends AnalyzedStatement> T analyze(String statement, Object[][] bulkArgs) {

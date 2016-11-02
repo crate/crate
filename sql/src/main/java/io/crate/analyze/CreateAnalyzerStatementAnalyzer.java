@@ -26,24 +26,21 @@ import io.crate.analyze.expressions.ExpressionToStringVisitor;
 import io.crate.metadata.FulltextAnalyzerResolver;
 import io.crate.sql.tree.*;
 import org.elasticsearch.common.Nullable;
-import org.elasticsearch.common.Strings;
-import org.elasticsearch.common.logging.DeprecationLogger;
-import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.Settings;
 
 import java.util.Locale;
 import java.util.Map;
 
-class CreateAnalyzerStatementAnalyzer extends DefaultTraversalVisitor<
-    CreateAnalyzerAnalyzedStatement, CreateAnalyzerStatementAnalyzer.Context> {
+import static io.crate.analyze.CreateAnalyzerAnalyzedStatement.getSettingsKey;
+
+
+class CreateAnalyzerStatementAnalyzer
+    extends DefaultTraversalVisitor<CreateAnalyzerAnalyzedStatement, CreateAnalyzerStatementAnalyzer.Context> {
 
     private final FulltextAnalyzerResolver fulltextAnalyzerResolver;
 
-    private final DeprecationLogger deprecationLogger;
-
-    CreateAnalyzerStatementAnalyzer(FulltextAnalyzerResolver fulltextAnalyzerResolver, Settings settings) {
+    CreateAnalyzerStatementAnalyzer(FulltextAnalyzerResolver fulltextAnalyzerResolver) {
         this.fulltextAnalyzerResolver = fulltextAnalyzerResolver;
-        deprecationLogger = new DeprecationLogger(Loggers.getLogger(CreateAnalyzerStatementAnalyzer.class, settings));
     }
 
     public CreateAnalyzerAnalyzedStatement analyze(Node node, Analysis analysis) {
@@ -62,11 +59,6 @@ class CreateAnalyzerStatementAnalyzer extends DefaultTraversalVisitor<
 
     @Override
     public CreateAnalyzerAnalyzedStatement visitCreateAnalyzer(CreateAnalyzer node, Context context) {
-        String underscoreIdent = Strings.toUnderscoreCase(node.ident());
-        if (!underscoreIdent.equalsIgnoreCase(node.ident())) {
-            deprecationLogger.deprecated("Deprecated analyzer name [{}], use [{}] instead", node.ident(), underscoreIdent);
-        }
-
         context.statement = new CreateAnalyzerAnalyzedStatement(fulltextAnalyzerResolver);
         context.statement.ident(node.ident());
 
@@ -85,11 +77,6 @@ class CreateAnalyzerStatementAnalyzer extends DefaultTraversalVisitor<
     public CreateAnalyzerAnalyzedStatement visitTokenizer(Tokenizer tokenizer, Context context) {
         String name = tokenizer.ident();
         Optional<io.crate.sql.tree.GenericProperties> properties = tokenizer.properties();
-
-        String underscoreName = Strings.toUnderscoreCase(name);
-        if (!underscoreName.equalsIgnoreCase(name)) {
-            deprecationLogger.deprecated("Deprecated tokenizer name [{}], use [{}] instead", name, underscoreName);
-        }
 
         if (!properties.isPresent()) {
             // use a builtin tokenizer without parameters
@@ -120,7 +107,7 @@ class CreateAnalyzerStatementAnalyzer extends DefaultTraversalVisitor<
             Settings.Builder builder = Settings.builder();
             for (Map.Entry<String, Expression> tokenizerProperty : properties.get().properties().entrySet()) {
                 GenericPropertiesConverter.genericPropertyToSetting(builder,
-                    context.statement.getSettingsKey("index.analysis.tokenizer.%s.%s", name, tokenizerProperty.getKey()),
+                    getSettingsKey("index.analysis.tokenizer.%s.%s", name, tokenizerProperty.getKey()),
                     tokenizerProperty.getValue(),
                     context.analysis.parameterContext());
             }
@@ -133,7 +120,7 @@ class CreateAnalyzerStatementAnalyzer extends DefaultTraversalVisitor<
     @Override
     public CreateAnalyzerAnalyzedStatement visitGenericProperty(GenericProperty property, Context context) {
         GenericPropertiesConverter.genericPropertyToSetting(context.statement.genericAnalyzerSettingsBuilder(),
-            context.statement.getSettingsKey("index.analysis.analyzer.%s.%s", context.statement.ident(), property.key()),
+            getSettingsKey("index.analysis.analyzer.%s.%s", context.statement.ident(), property.key()),
             property.value(),
             context.analysis.parameterContext()
         );
@@ -146,11 +133,6 @@ class CreateAnalyzerStatementAnalyzer extends DefaultTraversalVisitor<
 
             String name = tokenFilterNode.ident();
             Optional<GenericProperties> properties = tokenFilterNode.properties();
-
-            String underscoreName = Strings.toUnderscoreCase(name);
-            if (!underscoreName.equalsIgnoreCase(name)) {
-                deprecationLogger.deprecated("Deprecated token_filter name [{}], use [{}] instead", name, underscoreName);
-            }
 
             // use a builtin token-filter without parameters
             if (!properties.isPresent()) {
@@ -185,7 +167,7 @@ class CreateAnalyzerStatementAnalyzer extends DefaultTraversalVisitor<
                 Settings.Builder builder = Settings.builder();
                 for (Map.Entry<String, Expression> tokenFilterProperty : filterProperties.properties().entrySet()) {
                     GenericPropertiesConverter.genericPropertyToSetting(builder,
-                        context.statement.getSettingsKey("index.analysis.filter.%s.%s", name, tokenFilterProperty.getKey()),
+                        getSettingsKey("index.analysis.filter.%s.%s", name, tokenFilterProperty.getKey()),
                         tokenFilterProperty.getValue(),
                         context.analysis.parameterContext());
                 }
@@ -201,11 +183,6 @@ class CreateAnalyzerStatementAnalyzer extends DefaultTraversalVisitor<
 
             String name = charFilterNode.ident();
             Optional<GenericProperties> properties = charFilterNode.properties();
-
-            String underscoreName = Strings.toUnderscoreCase(name);
-            if (!underscoreName.equalsIgnoreCase(name)) {
-                deprecationLogger.deprecated("Deprecated char_filter name [{}], use [{}] instead", name, underscoreName);
-            }
 
             // use a builtin char-filter without parameters
             if (!properties.isPresent()) {
@@ -233,7 +210,7 @@ class CreateAnalyzerStatementAnalyzer extends DefaultTraversalVisitor<
                 Settings.Builder builder = Settings.builder();
                 for (Map.Entry<String, Expression> charFilterProperty : properties.get().properties().entrySet()) {
                     GenericPropertiesConverter.genericPropertyToSetting(builder,
-                        context.statement.getSettingsKey("index.analysis.char_filter.%s.%s", name, charFilterProperty.getKey()),
+                        getSettingsKey("index.analysis.char_filter.%s.%s", name, charFilterProperty.getKey()),
                         charFilterProperty.getValue(),
                         context.analysis.parameterContext());
                 }
