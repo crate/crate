@@ -22,26 +22,24 @@
 package io.crate.operation.join;
 
 import com.carrotsearch.randomizedtesting.annotations.Repeat;
-import com.google.common.base.Optional;
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
-import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.MoreExecutors;
-import io.crate.core.collections.*;
+import io.crate.core.collections.Bucket;
+import io.crate.core.collections.Buckets;
+import io.crate.core.collections.Row;
+import io.crate.core.collections.Row1;
 import io.crate.operation.Input;
-import io.crate.operation.PageConsumeListener;
-import io.crate.operation.PageDownstream;
 import io.crate.operation.collect.InputCollectExpression;
-import io.crate.operation.merge.IteratorPageDownstream;
-import io.crate.operation.merge.PassThroughPagingIterator;
 import io.crate.operation.projectors.*;
 import io.crate.planner.node.dql.join.JoinType;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.testing.CollectingRowReceiver;
-import io.crate.testing.RowCollectionBucket;
 import io.crate.testing.RowSender;
 import io.crate.testing.TestingHelpers;
 import org.elasticsearch.common.util.CollectionUtils;
+import org.junit.After;
+import org.junit.Before;
 import org.junit.Test;
 
 import javax.annotation.Nullable;
@@ -50,7 +48,8 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.Executor;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
 import static io.crate.testing.RowGenerator.singleColRows;
@@ -59,12 +58,25 @@ import static org.hamcrest.core.Is.is;
 
 public class NestedLoopOperationTest extends CrateUnitTest {
 
-    private static final Predicate<Row> JOIN_CONDITION_PREDICATE = new Predicate<Row>() {
+    private ExecutorService executorService;
+
+    private static final Predicate<Row> COL0_EQ_COL1 = new Predicate<Row>() {
         @Override
         public boolean apply(@Nullable Row input) {
             return input != null && input.get(0) == input.get(1);
         }
     };
+
+    @Before
+    public void setupExecutor() throws Exception {
+        executorService = Executors.newFixedThreadPool(2);
+    }
+
+    @After
+    public void shutdownExecutor() throws Exception {
+        executorService.shutdown();
+        executorService.awaitTermination(30, TimeUnit.SECONDS);
+    }
 
     private Bucket executeNestedLoop(List<Row> leftRows, List<Row> rightRows) throws Exception {
         return executeNestedLoop(
@@ -81,13 +93,10 @@ public class NestedLoopOperationTest extends CrateUnitTest {
         final NestedLoopOperation nestedLoopOperation = new NestedLoopOperation(
             0, rowReceiver, joinPredicate, joinType, leftRowSize, rightRowSize);
 
-        PageDownstream leftPageDownstream = pageDownstream(nestedLoopOperation.leftRowReceiver());
-        PageDownstream rightPageDownstream = pageDownstream(nestedLoopOperation.rightRowReceiver());
-
-        Thread t1 = sendRowsThreaded("left", leftPageDownstream, leftRows);
-        Thread t2 = sendRowsThreaded("right", rightPageDownstream, rightRows);
-        t1.join();
-        t2.join();
+        RowSender rsLeft = new RowSender(leftRows, nestedLoopOperation.leftRowReceiver(), executorService);
+        RowSender rsRight = new RowSender(rightRows, nestedLoopOperation.rightRowReceiver(), executorService);
+        executorService.submit(rsLeft);
+        executorService.submit(rsRight);
         return rowReceiver.result();
     }
 
@@ -96,42 +105,17 @@ public class NestedLoopOperationTest extends CrateUnitTest {
             phaseId, rowReceiver, Predicates.<Row>alwaysTrue(), JoinType.CROSS, 0, 0);
     }
 
-    private PageDownstream pageDownstream(RowReceiver rowReceiver) {
-        return new IteratorPageDownstream(
-            rowReceiver,
-            PassThroughPagingIterator.<Void, Row>repeatable(),
-            Optional.<Executor>absent()
-        );
-    }
-
     @Test
     public void testRightSideFinishesBeforeLeftSideStarts() throws Exception {
         CollectingRowReceiver rowReceiver = new CollectingRowReceiver();
         final NestedLoopOperation nestedLoopOperation = unfilteredNestedLoopOperation(0, rowReceiver);
 
-        final PageDownstream leftBucketMerger = pageDownstream(nestedLoopOperation.leftRowReceiver());
-        final PageDownstream rightBucketMerger = pageDownstream(nestedLoopOperation.rightRowReceiver());
+        RowSender rsLeft = new RowSender(singleColRows(1), nestedLoopOperation.leftRowReceiver(), executorService);
+        RowSender rsRight = new RowSender(singleColRows(10, 20), nestedLoopOperation.rightRowReceiver(), executorService);
 
-        setLastPage(leftBucketMerger, Buckets.of(new Row1(1)));
-
-        Bucket bucket = new RowCollectionBucket(Arrays.<Row>asList(new Row1(10), new Row1(20)));
-        setLastPage(rightBucketMerger, bucket);
-
+        rsRight.run();
+        rsLeft.run();
         assertThat(Buckets.materialize(rowReceiver.result()).length, is(2));
-    }
-
-    private void setLastPage(final PageDownstream pageDownstream, Bucket bucket) {
-        pageDownstream.nextPage(new BucketPage(Futures.immediateFuture(bucket)), new PageConsumeListener() {
-            @Override
-            public void needMore() {
-                pageDownstream.finish();
-            }
-
-            @Override
-            public void finish() {
-                pageDownstream.finish();
-            }
-        });
     }
 
     @Test
@@ -266,21 +250,18 @@ public class NestedLoopOperationTest extends CrateUnitTest {
             1
         );
         topNProjector.downstream(rowReceiver);
-        NestedLoopOperation nestedLoopOperation = unfilteredNestedLoopOperation(0, topNProjector);
+        NestedLoopOperation nl = unfilteredNestedLoopOperation(0, topNProjector);
 
-        PageDownstream leftBucketMerger = pageDownstream(nestedLoopOperation.leftRowReceiver());
-        PageDownstream rightBucketMerger = pageDownstream(nestedLoopOperation.rightRowReceiver());
-        Thread leftT = sendRowsThreaded("left", leftBucketMerger, singleColRows("green", "blue", "red"));
-        Thread rightT = sendRowsThreaded("right", rightBucketMerger, singleColRows("small", "medium"));
+        executorService.submit(
+            new RowSender(singleColRows("green", "blue", "red"), nl.leftRowReceiver(), executorService));
+        executorService.submit(
+            new RowSender(singleColRows("small", "medium"), nl.rightRowReceiver(), executorService));
 
         Bucket rows = rowReceiver.result();
         assertThat(TestingHelpers.printedTable(rows), is("" +
                                                          "green| medium\n" +
                                                          "blue| small\n" +
                                                          "blue| medium\n"));
-
-        leftT.join();
-        rightT.join();
     }
 
     @Test
@@ -356,7 +337,7 @@ public class NestedLoopOperationTest extends CrateUnitTest {
         List<Row> leftRows = singleColRows(1, 2, 3, 4, 5);
         List<Row> rightRows = singleColRows(3, 5);
         Bucket rows = executeNestedLoop(
-            leftRows, rightRows, JOIN_CONDITION_PREDICATE, JoinType.LEFT, 1, 1);
+            leftRows, rightRows, COL0_EQ_COL1, JoinType.LEFT, 1, 1);
         assertThat(TestingHelpers.printedTable(rows), is("1| NULL\n" +
                                                          "2| NULL\n" +
                                                          "3| 3\n" +
@@ -369,7 +350,7 @@ public class NestedLoopOperationTest extends CrateUnitTest {
         List<Row> leftRows = singleColRows(3, 5);
         List<Row> rightRows = singleColRows(1, 2, 3, 4, 5);
         Bucket rows = executeNestedLoop(
-            leftRows, rightRows, JOIN_CONDITION_PREDICATE, JoinType.RIGHT, 1, 1);
+            leftRows, rightRows, COL0_EQ_COL1, JoinType.RIGHT, 1, 1);
         assertThat(TestingHelpers.printedTable(rows), is("3| 3\n" +
                                                          "5| 5\n" +
                                                          "NULL| 1\n" +
@@ -382,7 +363,7 @@ public class NestedLoopOperationTest extends CrateUnitTest {
         List<Row> leftRows = singleColRows(3, 5, 6, 7);
         List<Row> rightRows = singleColRows(1, 2, 3, 4, 5);
         Bucket rows = executeNestedLoop(
-            leftRows, rightRows, JOIN_CONDITION_PREDICATE, JoinType.FULL, 1, 1);
+            leftRows, rightRows, COL0_EQ_COL1, JoinType.FULL, 1, 1);
         assertThat(TestingHelpers.printedTable(rows), is("3| 3\n" +
                                                          "5| 5\n" +
                                                          "6| NULL\n" +
@@ -399,22 +380,5 @@ public class NestedLoopOperationTest extends CrateUnitTest {
             Arrays.asList(nestedLoopOperation.rightRowReceiver(), nestedLoopOperation.leftRowReceiver());
         Collections.shuffle(listenableRowReceivers, getRandom());
         return listenableRowReceivers;
-    }
-
-    private Thread sendRowsThreaded(String name, final PageDownstream pageDownstream, final List<Row> rows) {
-        Thread t = new Thread() {
-            @Override
-            public void run() {
-                try {
-                    setLastPage(pageDownstream, new RowCollectionBucket(rows));
-                } catch (Throwable t) {
-                    t.printStackTrace();
-                }
-            }
-        };
-        t.setName(name);
-        t.setDaemon(true);
-        t.start();
-        return t;
     }
 }
