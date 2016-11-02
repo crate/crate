@@ -150,35 +150,6 @@ final class RelationNormalizer {
         return childHaving.or(parentHaving).orNull();
     }
 
-    private static void replaceFieldReferences(QuerySpec querySpec) {
-        if (querySpec == null) {
-            return;
-        }
-
-        querySpec.outputs(FieldReferenceResolver.INSTANCE.process(querySpec.outputs(), null));
-
-        if (querySpec.where().hasQuery() && !querySpec.where().noMatch()) {
-            Symbol query = FieldReferenceResolver.INSTANCE.process(querySpec.where().query(), null);
-            querySpec.where(new WhereClause(query));
-        }
-
-        if (querySpec.orderBy().isPresent()) {
-            OrderBy orderBy = querySpec.orderBy().get();
-            List<Symbol> orderBySymbols = FieldReferenceResolver.INSTANCE.process(orderBy.orderBySymbols(), null);
-            querySpec.orderBy(new OrderBy(orderBySymbols, orderBy.reverseFlags(), orderBy.nullsFirst()));
-        }
-
-        if (querySpec.groupBy().isPresent()) {
-            List<Symbol> groupBy = FieldReferenceResolver.INSTANCE.process(querySpec.groupBy().get(), null);
-            querySpec.groupBy(groupBy);
-        }
-
-        if (querySpec.having().isPresent() && !querySpec.having().get().noMatch()) {
-            Symbol query = FieldReferenceResolver.INSTANCE.process(querySpec.having().get().query(), null);
-            querySpec.having(new HavingClause(query));
-        }
-    }
-
     private static boolean canBeMerged(QuerySpec childQuerySpec, QuerySpec parentQuerySpec) {
         if (parentQuerySpec == null) {
             return true;
@@ -221,9 +192,23 @@ final class RelationNormalizer {
     }
 
     /**
-     * Used after merging to replace fields with the symbol referenced in their relation.
+     * Function to replace Fields with the Reference from the output of the relation the Field is pointing to.
+     * E.g.
+     *
+     * <pre>
+     * select t.x from (select x from t1) t
+     *         |         |
+     *       Field       \                  ____ Reference that is used as replacement.
+     *          relation: t                /
+     *                    +-- QS.outputs: [x]
+     *                                     ^
+     *                                     |
+     *          index: 0 ------------------+
+     *
+     * </pre>
      */
-    private static class FieldReferenceResolver extends ReplacingSymbolVisitor<Void> {
+    private static class FieldReferenceResolver extends ReplacingSymbolVisitor<Void>
+        implements com.google.common.base.Function<Symbol, Symbol>{
 
         public static final FieldReferenceResolver INSTANCE = new FieldReferenceResolver(ReplaceMode.MUTATE);
         private static final FieldRelationVisitor<Symbol> FIELD_RELATION_VISITOR = new FieldRelationVisitor<>(INSTANCE);
@@ -237,6 +222,15 @@ final class RelationNormalizer {
             Symbol output = FIELD_RELATION_VISITOR.process(field.relation(), field);
             return output != null ? output : field;
         }
+
+        @Nullable
+        @Override
+        public Symbol apply(@Nullable Symbol input) {
+            if (input == null) {
+                return null;
+            }
+            return process(input, null);
+        }
     }
 
     /**
@@ -245,7 +239,6 @@ final class RelationNormalizer {
     private static class AggregateFunctionReferenceFinder extends SymbolVisitor<Void, Boolean> {
 
         private static final AggregateFunctionReferenceFinder INSTANCE = new AggregateFunctionReferenceFinder();
-        private static final FieldRelationVisitor<Boolean> FIELD_RELATION_VISITOR = new FieldRelationVisitor<>(INSTANCE);
 
         public static Boolean any(Symbol symbol) {
             return INSTANCE.process(symbol, null);
@@ -356,8 +349,11 @@ final class RelationNormalizer {
 
         @Override
         public AnalyzedRelation visitQueriedTable(QueriedTable table, Context context) {
+            if (context.currentParentQSpec == null) {
+                return table;
+            }
             QuerySpec querySpec = table.querySpec();
-            replaceFieldReferences(context.currentParentQSpec);
+            context.currentParentQSpec.replace(FieldReferenceResolver.INSTANCE);
             if (!canBeMerged(querySpec, context.currentParentQSpec)) {
                 return null;
             }
@@ -368,8 +364,11 @@ final class RelationNormalizer {
 
         @Override
         public AnalyzedRelation visitQueriedDocTable(QueriedDocTable table, Context context) {
+            if (context.currentParentQSpec == null) {
+                return table;
+            }
             QuerySpec querySpec = table.querySpec();
-            replaceFieldReferences(context.currentParentQSpec);
+            context.currentParentQSpec.replace(FieldReferenceResolver.INSTANCE);
             if (!canBeMerged(querySpec, context.currentParentQSpec)) {
                 return null;
             }
@@ -380,10 +379,12 @@ final class RelationNormalizer {
 
         @Override
         public AnalyzedRelation visitMultiSourceSelect(MultiSourceSelect multiSourceSelect, Context context) {
+            if (context.currentParentQSpec == null) {
+                return multiSourceSelect;
+            }
+            context.currentParentQSpec.replace(FieldReferenceResolver.INSTANCE);
             QuerySpec querySpec = multiSourceSelect.querySpec();
-            replaceFieldReferences(context.currentParentQSpec);
             if (!canBeMerged(querySpec, context.currentParentQSpec)) {
-                multiSourceSelect.pushDownQuerySpecs();
                 return null;
             }
 
