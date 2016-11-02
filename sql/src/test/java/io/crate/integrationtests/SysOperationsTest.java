@@ -60,11 +60,11 @@ public class SysOperationsTest extends SQLTransportIntegrationTest {
     public void testQueryNameFromSysOperations() throws Exception {
         SQLResponse resp = execute("select name, job_id from sys.operations order by name asc");
 
-        // usually this should return collect on 2 nodes, localMerge on 1 node
+        // usually this should return collect per node and an optional merge on handler
         // but it could be that the collect is finished before the localMerge task is started in which
         // case it is missing.
 
-        assertThat(resp.rowCount(), Matchers.greaterThanOrEqualTo(2L));
+        assertThat(resp.rowCount(), Matchers.greaterThanOrEqualTo((long) internalCluster().numDataNodes()));
         List<String> names = new ArrayList<>();
         for (Object[] objects : resp.rows()) {
             names.add((String) objects[0]);
