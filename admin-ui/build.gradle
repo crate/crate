@@ -9,7 +9,7 @@ dependencies {
 }
 
 ext {
-    plugin_crateadmin_version = '0.21.0'
+    plugin_crateadmin_version = '0.21.1'
     downloadDir = new File(buildDir, 'downloads')
 }
 
