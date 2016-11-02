@@ -77,17 +77,6 @@ public class ExpressionAnalyzerTest extends CrateUnitTest {
     }
 
     @Test
-    public void testUnsupportedExpressionIf() throws Exception {
-        expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage("Unsupported expression IF(1, 3)");
-        ExpressionAnalyzer expressionAnalyzer = new ExpressionAnalyzer(
-            functions, SessionContext.SYSTEM_SESSION, paramTypeHints, new FullQualifedNameFieldProvider(dummySources), null);
-        ExpressionAnalysisContext expressionAnalysisContext = new ExpressionAnalysisContext();
-
-        expressionAnalyzer.convert(SqlParser.createExpression("IF ( 1 , 3 )"), expressionAnalysisContext);
-    }
-
-    @Test
     public void testUnsupportedExpressionCurrentDate() throws Exception {
         expectedException.expect(UnsupportedOperationException.class);
         expectedException.expectMessage("Unsupported expression current_time");
