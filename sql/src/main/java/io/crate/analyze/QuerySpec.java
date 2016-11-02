@@ -155,7 +155,7 @@ public class QuerySpec {
      * @param types an iterable providing the types
      * @return -1 if all casts where successfully applied or the position of the failed cast
      */
-    public int castOutputs(Iterator<DataType> types) {
+    int castOutputs(Iterator<DataType> types) {
         int i = 0;
         ListIterator<Symbol> outputsIt = outputs.listIterator();
         while (types.hasNext() && outputsIt.hasNext()) {
@@ -281,17 +281,14 @@ public class QuerySpec {
      * </p>
      */
     public void visitSymbols(Consumer<Symbol> consumer) {
-        for (Symbol output : outputs) {
-            consumer.accept(output);
-        }
+        outputs.forEach(consumer::accept);
+
         if (where.hasQuery()) {
             consumer.accept(where.query());
         }
         if (groupBy.isPresent()) {
             List<Symbol> groupBySymbols = groupBy.get();
-            for (Symbol groupBySymbol : groupBySymbols) {
-                consumer.accept(groupBySymbol);
-            }
+            groupBySymbols.forEach(consumer::accept);
         }
         if (having.isPresent()) {
             HavingClause havingClause = having.get();
@@ -301,9 +298,7 @@ public class QuerySpec {
         }
         if (orderBy.isPresent()) {
             OrderBy orderBy = this.orderBy.get();
-            for (Symbol orderBySymbol : orderBy.orderBySymbols()) {
-                consumer.accept(orderBySymbol);
-            }
+            orderBy.orderBySymbols().forEach(consumer::accept);
         }
         if (limit.isPresent()) {
             consumer.accept(limit.get());

@@ -57,16 +57,11 @@ final class RelationNormalizer {
                                              Functions functions,
                                              TransactionContext transactionContext) {
         Context context = new Context(functions, relation.fields(), transactionContext);
-        return NormalizerVisitor.normalize(SubselectRewriter.rewrite(relation, context), context);
+        return NormalizerVisitor.normalize(SubselectRewritter.rewrite(relation, context), context);
     }
 
     private static Map<QualifiedName, AnalyzedRelation> mapSourceRelations(MultiSourceSelect multiSourceSelect) {
-        return Maps.transformValues(multiSourceSelect.sources(), new com.google.common.base.Function<MultiSourceSelect.Source, AnalyzedRelation>() {
-            @Override
-            public AnalyzedRelation apply(MultiSourceSelect.Source input) {
-                return input.relation();
-            }
-        });
+        return Maps.transformValues(multiSourceSelect.sources(), MultiSourceSelect.Source::relation);
     }
 
     private static QuerySpec mergeQuerySpec(QuerySpec childQSpec, @Nullable QuerySpec parentQSpec) {
@@ -245,7 +240,6 @@ final class RelationNormalizer {
     private static class AggregateFunctionReferenceFinder extends SymbolVisitor<Void, Boolean> {
 
         private static final AggregateFunctionReferenceFinder INSTANCE = new AggregateFunctionReferenceFinder();
-        private static final FieldRelationVisitor<Boolean> FIELD_RELATION_VISITOR = new FieldRelationVisitor<>(INSTANCE);
 
         public static Boolean any(Symbol symbol) {
             return INSTANCE.process(symbol, null);
@@ -317,11 +311,11 @@ final class RelationNormalizer {
         }
     }
 
-    private static class SubselectRewriter extends AnalyzedRelationVisitor<RelationNormalizer.Context, AnalyzedRelation> {
+    private static class SubselectRewritter extends AnalyzedRelationVisitor<RelationNormalizer.Context, AnalyzedRelation> {
 
-        private static final SubselectRewriter SUBSELECT_REWRITER = new SubselectRewriter();
+        private static final SubselectRewritter SUBSELECT_REWRITER = new SubselectRewritter();
 
-        private SubselectRewriter() {
+        private SubselectRewritter() {
         }
 
         public static AnalyzedRelation rewrite(AnalyzedRelation relation, Context context) {
