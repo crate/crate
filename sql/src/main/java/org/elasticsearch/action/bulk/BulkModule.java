@@ -25,6 +25,7 @@ import org.elasticsearch.action.admin.indices.create.TransportBulkCreateIndicesA
 import org.elasticsearch.common.inject.AbstractModule;
 
 public class BulkModule extends AbstractModule {
+
     @Override
     protected void configure() {
         bind(BulkRetryCoordinatorPool.class).asEagerSingleton();

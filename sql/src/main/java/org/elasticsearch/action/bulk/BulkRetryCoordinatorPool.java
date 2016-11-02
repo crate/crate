@@ -63,7 +63,7 @@ public class BulkRetryCoordinatorPool extends AbstractLifecycleComponent<BulkRet
         this.clusterService = clusterService;
     }
 
-    public BulkRetryCoordinator coordinator(ShardId shardId) throws IndexNotFoundException, ShardNotFoundException {
+    BulkRetryCoordinator coordinator(ShardId shardId) throws IndexNotFoundException, ShardNotFoundException {
         synchronized (coordinatorsByShardId) {
             BulkRetryCoordinator coordinator = coordinatorsByShardId.get(shardId);
             if (coordinator == null) {

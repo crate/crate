@@ -125,7 +125,7 @@ public class SimplePortal extends AbstractPortal {
             analysis = portalContext.getAnalyzer().boundAnalyze(
                 statement,
                 sessionContext,
-                new ParameterContext(this.rowParams, Collections.<Row>emptyList()));
+                new ParameterContext(this.rowParams, Collections.emptyList()));
             AnalyzedRelation rootRelation = analysis.rootRelation();
             if (rootRelation != null) {
                 this.outputTypes = Symbols.extractTypes(rootRelation.fields());
@@ -268,7 +268,7 @@ public class SimplePortal extends AbstractPortal {
             UUID newJobId = UUID.randomUUID();
             LOGGER.debug("Retrying statement due to a shard failure, attempt={}, jobId={}->{}", attempt, jobId, newJobId);
             Analysis analysis = analyzer.boundAnalyze(portal.statement, sessionContext,
-                new ParameterContext(portal.rowParams, Collections.<Row>emptyList()));
+                new ParameterContext(portal.rowParams, Collections.emptyList()));
 
             Plan plan = planner.plan(analysis, newJobId, 0, portal.maxRows);
             executor.execute(plan, portal.rowReceiver, portal.rowParams);

@@ -45,7 +45,6 @@ import org.elasticsearch.transport.BindTransportException;
 import org.jboss.netty.bootstrap.ServerBootstrap;
 import org.jboss.netty.channel.Channel;
 import org.jboss.netty.channel.ChannelPipeline;
-import org.jboss.netty.channel.ChannelPipelineFactory;
 import org.jboss.netty.channel.Channels;
 import org.jboss.netty.channel.socket.nio.NioServerSocketChannelFactory;
 
@@ -111,16 +110,13 @@ public class PostgresNetty extends AbstractLifecycleComponent {
         bootstrap.setOption("child.tcpNoDelay", settings.getAsBoolean("tcp_no_delay", true));
         bootstrap.setOption("child.keepAlive", settings.getAsBoolean("tcp_keep_alive", true));
 
-        bootstrap.setPipelineFactory(new ChannelPipelineFactory() {
-            @Override
-            public ChannelPipeline getPipeline() throws Exception {
-                ChannelPipeline pipeline = Channels.pipeline();
+        bootstrap.setPipelineFactory(() -> {
+            ChannelPipeline pipeline = Channels.pipeline();
 
-                ConnectionContext connectionContext = new ConnectionContext(sqlOperations);
-                pipeline.addLast("frame-decoder", connectionContext.decoder);
-                pipeline.addLast("handler", connectionContext.handler);
-                return pipeline;
-            }
+            ConnectionContext connectionContext = new ConnectionContext(sqlOperations);
+            pipeline.addLast("frame-decoder", connectionContext.decoder);
+            pipeline.addLast("handler", connectionContext.handler);
+            return pipeline;
         });
 
         boundAddress = resolveBindAddress();
@@ -176,21 +172,18 @@ public class PostgresNetty extends AbstractLifecycleComponent {
         PortsRange portsRange = new PortsRange(port);
         final AtomicReference<Exception> lastException = new AtomicReference<>();
         final AtomicReference<InetSocketAddress> boundSocket = new AtomicReference<>();
-        boolean success = portsRange.iterate(new PortsRange.PortCallback() {
-            @Override
-            public boolean onPortNumber(int portNumber) {
-                try {
-                    synchronized (serverChannels) {
-                        Channel channel = bootstrap.bind(new InetSocketAddress(hostAddress, portNumber));
-                        serverChannels.add(channel);
-                        boundSocket.set((InetSocketAddress) channel.getLocalAddress());
-                    }
-                } catch (Exception e) {
-                    lastException.set(e);
-                    return false;
+        boolean success = portsRange.iterate(portNumber -> {
+            try {
+                synchronized (serverChannels) {
+                    Channel channel = bootstrap.bind(new InetSocketAddress(hostAddress, portNumber));
+                    serverChannels.add(channel);
+                    boundSocket.set((InetSocketAddress) channel.getLocalAddress());
                 }
-                return true;
+            } catch (Exception e) {
+                lastException.set(e);
+                return false;
             }
+            return true;
         });
         if (!success) {
             throw new BindPostgresException("Failed to bind to [" + port + "]", lastException.get());

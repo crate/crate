@@ -25,6 +25,7 @@ package io.crate.protocols.postgres;
 import org.elasticsearch.ElasticsearchException;
 
 public class BindPostgresException extends ElasticsearchException {
+
     public BindPostgresException(String msg, Throwable cause) {
         super(msg, cause);
     }

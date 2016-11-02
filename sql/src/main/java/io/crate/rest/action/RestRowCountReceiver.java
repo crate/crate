@@ -44,7 +44,7 @@ class RestRowCountReceiver extends BaseResultReceiver {
     private final long startTime;
     private final boolean includeTypes;
     private long rowCount;
-    final ResultToXContentBuilder builder;
+    private final ResultToXContentBuilder builder;
 
     RestRowCountReceiver(RestChannel channel, long startTime, boolean includeTypes) {
         this.channel = channel;
@@ -54,7 +54,7 @@ class RestRowCountReceiver extends BaseResultReceiver {
         assert builder != null;
     }
 
-    ResultToXContentBuilder builder() {
+    private ResultToXContentBuilder builder() {
         ResultToXContentBuilder builder = null;
         try {
             builder = ResultToXContentBuilder.builder(channel);
@@ -70,7 +70,7 @@ class RestRowCountReceiver extends BaseResultReceiver {
     }
 
     XContentBuilder finishBuilder() throws IOException {
-        builder.cols(Collections.<Field>emptyList());
+        builder.cols(Collections.emptyList());
         if (includeTypes) {
             builder.colTypes(Collections.<Field>emptyList());
         }

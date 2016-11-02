@@ -69,7 +69,7 @@ public class BulkRetryCoordinator {
         }
     }
 
-    public void acquireReadLock() throws InterruptedException {
+    void acquireReadLock() throws InterruptedException {
         /**
          * In order to keep the {@link retryLock} field private we expose only this proxy method.
          * This method is only used by the BulkShardProcessor.
@@ -77,7 +77,7 @@ public class BulkRetryCoordinator {
         retryLock.acquireReadLock();
     }
 
-    public void releaseWriteLock() {
+    void releaseWriteLock() {
         /**
          * In order to keep the {@link retryLock} field private we expose only this proxy method.
          * This method is only used by the BulkShardProcessor.
@@ -85,7 +85,7 @@ public class BulkRetryCoordinator {
         retryLock.releaseWriteLock();
     }
 
-    public int numPendingOperations() {
+    int numPendingOperations() {
         return pendingOperations.size();
     }
 
@@ -131,7 +131,7 @@ public class BulkRetryCoordinator {
         retryOperation(pendingOperation);
     }
 
-    static class PendingOperation<Request, Response> {
+    private static class PendingOperation<Request, Response> {
 
         private final Request request;
         private final ActionListener<Response> responseListener;
@@ -139,7 +139,7 @@ public class BulkRetryCoordinator {
         private final Iterator<TimeValue> delay = backoff.iterator();
 
 
-        public PendingOperation(Request request, ActionListener<Response> responseListener, BulkRequestExecutor executor) {
+        private PendingOperation(Request request, ActionListener<Response> responseListener, BulkRequestExecutor executor) {
             this.request = request;
             this.responseListener = responseListener;
             this.executor = executor;
@@ -147,9 +147,10 @@ public class BulkRetryCoordinator {
     }
 
     private class PendingTriggeringActionListener implements ActionListener<ShardResponse> {
+
         private final PendingOperation<ShardRequest, ShardResponse> operation;
 
-        public PendingTriggeringActionListener(PendingOperation<ShardRequest, ShardResponse> operation) {
+        private PendingTriggeringActionListener(PendingOperation<ShardRequest, ShardResponse> operation) {
             this.operation = operation;
         }
 
@@ -163,12 +164,10 @@ public class BulkRetryCoordinator {
         public void onFailure(Throwable e) {
             e = Exceptions.unwrap(e);
             if (e instanceof EsRejectedExecutionException && operation.delay.hasNext()) {
-                threadPool.schedule(operation.delay.next(), ThreadPool.Names.SAME, new Runnable() {
-                    @Override
-                    public void run() {
-                        operation.executor.execute(operation.request, PendingTriggeringActionListener.this);
-                    }
-                });
+                threadPool.schedule(
+                    operation.delay.next(),
+                    ThreadPool.Names.SAME,
+                    () -> operation.executor.execute(operation.request, PendingTriggeringActionListener.this));
             } else {
                 triggerNext();
                 operation.responseListener.onFailure(e);
@@ -182,16 +181,16 @@ public class BulkRetryCoordinator {
      * precedence over readers, a writer will block all readers.
      * Compared to a {@link ReadWriteLock}, no lock is owned by a thread.
      */
-    static private class ReadWriteLock {
+    private static class ReadWriteLock {
         private final Semaphore readLock = new Semaphore(1, true);
         private final Semaphore writeLock = new Semaphore(1, true);
         private final AtomicInteger activeWriters = new AtomicInteger(0);
         private final AtomicInteger waitingReaders = new AtomicInteger(0);
 
-        public ReadWriteLock() {
+        private ReadWriteLock() {
         }
 
-        public void acquireWriteLock() throws InterruptedException {
+        private void acquireWriteLock() throws InterruptedException {
             // check readLock permits to prevent deadlocks
             if (activeWriters.getAndIncrement() == 0 && readLock.availablePermits() == 1) {
                 // draining read permits, so all reads will block
@@ -200,7 +199,7 @@ public class BulkRetryCoordinator {
             writeLock.acquire();
         }
 
-        public void releaseWriteLock() {
+        private void releaseWriteLock() {
             if (activeWriters.decrementAndGet() == 0) {
                 // unlock all readers
                 readLock.release(waitingReaders.getAndSet(0) + 1);
@@ -208,13 +207,12 @@ public class BulkRetryCoordinator {
             writeLock.release();
         }
 
-        public void acquireReadLock() throws InterruptedException {
+        private void acquireReadLock() throws InterruptedException {
             // only acquire permit if writers are active
             if (activeWriters.get() > 0) {
                 waitingReaders.getAndIncrement();
                 readLock.acquire();
             }
         }
-
     }
 }
