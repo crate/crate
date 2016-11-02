@@ -257,6 +257,20 @@ public class ExpressionAnalyzer {
         }
 
         @Override
+        protected Symbol visitIfExpression(IfExpression node, ExpressionAnalysisContext context) {
+            // check for global operand
+            Optional<Expression> defaultExpression = node.getFalseValue();
+            List<Symbol> arguments = new ArrayList<>(defaultExpression.isPresent() ? 3 : 2);
+
+            arguments.add(node.getCondition().accept(innerAnalyzer, context));
+            arguments.add(node.getTrueValue().accept(innerAnalyzer, context));
+            if (defaultExpression.isPresent()) {
+                arguments.add(defaultExpression.get().accept(innerAnalyzer, context));
+            }
+            return IfFunction.createFunction(arguments);
+        }
+
+        @Override
         protected Symbol visitFunctionCall(FunctionCall node, ExpressionAnalysisContext context) {
             return convertFunctionCall(node, context);
         }

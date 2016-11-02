@@ -1286,12 +1286,12 @@ wherever an expression is valid.
 Each *condition* expression must result in a boolean value. If the
 condition's result is true, the value of the *result* expression
 that follows the condition will be the final result of the ``case``
-expression and the subsequent when branches will not be processed. If
-the condition's result is not true, any subsequent ``when`` clauses
-are examined in the same manner. If no ``when`` condition yields true,
-the value of the ``case`` expression is the result of the ``else``
-clause. If the ``else`` clause is omitted and no condition is true,
-the result is null.
+expression and the subsequent ``when`` branches will not be
+processed. If the condition's result is not true, any subsequent
+``when`` clauses are examined in the same manner. If no ``when``
+condition yields true, the value of the ``case`` expression is the
+result of the ``else`` clause. If the ``else`` clause is omitted and
+no condition is true, the result is null.
 
 
 .. Hidden: create table case_example
@@ -1360,6 +1360,45 @@ Example:
 .. Hidden: drop table case_example
 
     cr> drop table case_example;
+    DROP OK, 1 row affected (... sec)
+
+if(condition, result [, default])
+---------------------------------
+
+The ``if`` function is a conditional function comparing to *if*
+statements of most other programming languages. If the given
+*condition* expresion evaluates to `true`, the *result* expression is
+evaluated and it's value is returned. If the *condition* evaluates to
+`false`, the *result* expression is not evaluated and the optional
+given *default* expression is evaluated instead and it's value will be
+returned. If the *default* argument is omitted, NULL will be returned instead.
+
+.. Hidden: create table if_example
+
+    cr> create table if_example (id long);
+    CREATE OK, 1 row affected (... sec)
+    cr> insert into if_example (id) values (0),(1),(2),(3);
+    INSERT OK, 4 rows affected (... sec)
+    cr> refresh table if_example
+    REFRESH OK, 1 row affected (... sec)
+
+::
+
+   cr> select id, if(id = 0, 'zero', 'other') as description from if_example order by id;
+    +----+-------------+
+    | id | description |
+    +----+-------------+
+    |  0 | zero        |
+    |  1 | other       |
+    |  2 | other       |
+    |  3 | other       |
+    +----+-------------+
+    SELECT 4 rows in set (... sec)
+
+
+.. Hidden: drop table if_example
+
+    cr> drop table if_example;
     DROP OK, 1 row affected (... sec)
 
 coalesce('first_arg', second_arg [, ... ]) returns same type as arguments

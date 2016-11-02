@@ -102,9 +102,15 @@ public class ConditionalFunctionTest extends AbstractScalarFunctionsTest {
             "hello stranger",
             Literal.of("hoschi"), Literal.of("hoschi"));
 
+        // test that result expression is only evaluated if the condition is true
         assertEvaluate("case when id != 0 then 10/id > 1.5 else false end",
             false,
             Literal.of(0), Literal.of(0));
+
+        // testing nested case statements
+        assertEvaluate("case when id != 0 then case when id = 1 then true end else false end",
+            true,
+            Literal.of(1), Literal.of(1));
     }
 
     @Test
@@ -115,5 +121,11 @@ public class ConditionalFunctionTest extends AbstractScalarFunctionsTest {
         assertEvaluate("case name when 'foo' then 'hello foo' when 'bar' then 1 end",
             "hello foo",
             Literal.of("foo"), Literal.of("foo"));
+    }
+
+    @Test
+    public void testIf() throws Exception {
+        assertEvaluate("if(id = 0, 'zero', 'other')", "zero", Literal.of(0), Literal.of(0));
+        assertEvaluate("if(id = 0, 'zero', if(id = 1, 'one', 'other'))", "one", Literal.of(1), Literal.of(1));
     }
 }

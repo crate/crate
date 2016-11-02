@@ -5,11 +5,13 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Implemented ``if`` conditional function.
+
  - Updated crate-admin to ``0.21.1`` which includes the following changes:
 
      - Fix: Corrected the sql queries to display the table list in the
      Tables view, and to create the tweets table only if it does not exist.
-     
+
  - F261/F262: Implemented ``CASE`` expression support.
 
  - BREAKING: Removed ``schema_name`` from ``information_schema.tables``,

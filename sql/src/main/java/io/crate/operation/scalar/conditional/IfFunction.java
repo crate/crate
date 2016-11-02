@@ -26,6 +26,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import io.crate.analyze.symbol.Function;
 import io.crate.analyze.symbol.Symbol;
+import io.crate.analyze.symbol.Symbols;
 import io.crate.metadata.*;
 import io.crate.operation.Input;
 import io.crate.operation.scalar.ScalarFunctionModule;
@@ -45,11 +46,11 @@ import java.util.Locale;
  *
  *      A CASE expression like this:
  *
- *      CASE WHEN id == 0 THEN 'zero' WHEN id % 2 == 0 THEN 'even' ELSE 'odd' END
+ *      CASE WHEN id = 0 THEN 'zero' WHEN id % 2 = 0 THEN 'even' ELSE 'odd' END
  *
  *      can result in:
  *
- *      if(id == 0, 'zero', if(id % 2 == 0, 'even', 'odd'))
+ *      if(id = 0, 'zero', if(id % 2 = 0, 'even', 'odd'))
  *
  * </pre>
  *
@@ -102,14 +103,16 @@ public class IfFunction extends Scalar<Object, Object> {
             Symbol operand = operands.get(i);
             Symbol result = results.get(i);
             List<Symbol> arguments = Lists.newArrayList(operand, result);
-            List<DataType> argumentTypes = Lists.newArrayList(operand.valueType(), result.valueType());
             if (lastSymbol != null) {
                 arguments.add(lastSymbol);
-                argumentTypes.add(lastSymbol.valueType());
             }
-            lastSymbol = new Function(createInfo(argumentTypes), arguments);
+            lastSymbol = createFunction(arguments);
         }
         return lastSymbol;
+    }
+
+    public static Function createFunction(List<Symbol> arguments) {
+        return new Function(createInfo(Symbols.extractTypes(arguments)), arguments);
     }
 
     private static FunctionInfo createInfo(List<DataType> dataTypes) {
