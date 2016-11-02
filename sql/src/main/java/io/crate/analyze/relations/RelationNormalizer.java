@@ -27,10 +27,7 @@ import com.google.common.collect.Collections2;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Maps;
 import io.crate.analyze.*;
-import io.crate.analyze.symbol.Field;
-import io.crate.analyze.symbol.Function;
-import io.crate.analyze.symbol.Symbol;
-import io.crate.analyze.symbol.SymbolVisitor;
+import io.crate.analyze.symbol.*;
 import io.crate.metadata.*;
 import io.crate.operation.operator.AndOperator;
 import io.crate.operation.scalar.conditional.LeastFunction;
@@ -165,7 +162,7 @@ final class RelationNormalizer {
 
         return !hasAggregations && !notMergeableOrderBy &&
                (!parentQuerySpec.where().hasQuery() || parentQuerySpec.where() == WhereClause.MATCH_ALL ||
-                !AggregateFunctionReferenceFinder.any(parentQuerySpec.where().query()));
+                !Aggregations.containsAggregation(parentQuerySpec.where().query()));
     }
 
     private static class Context {
@@ -230,41 +227,6 @@ final class RelationNormalizer {
                 return null;
             }
             return process(input, null);
-        }
-    }
-
-    /**
-     * Checks if a field references an aggregate function on its relation.
-     */
-    private static class AggregateFunctionReferenceFinder extends SymbolVisitor<Void, Boolean> {
-
-        private static final AggregateFunctionReferenceFinder INSTANCE = new AggregateFunctionReferenceFinder();
-
-        public static Boolean any(Symbol symbol) {
-            return INSTANCE.process(symbol, null);
-        }
-
-        @Override
-        protected Boolean visitSymbol(Symbol symbol, Void context) {
-            return false;
-        }
-
-        @Override
-        public Boolean visitFunction(Function symbol, Void context) {
-            if (FunctionInfo.Type.AGGREGATE.equals(symbol.info().type())) {
-                return true;
-            }
-            for (Symbol arg : symbol.arguments()) {
-                if (process(arg, context)) {
-                    return true;
-                }
-            }
-            return false;
-        }
-
-        @Override
-        public Boolean visitField(Field field, Void context) {
-            return false;
         }
     }
 
