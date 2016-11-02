@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fixed an issue that caused left outer joins to return an empty result if the
+   joined table is empty.
+
  - Implemented ``if`` conditional function.
 
  - Updated crate-admin to ``0.21.1`` which includes the following changes:

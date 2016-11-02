@@ -273,7 +273,6 @@ public class NestedLoopOperation implements CompletionListenable {
             upstreamFinished = true;
             if (firstCall) {
                 firstCall = false;
-                stop = true;
                 if (leadAcquired.compareAndSet(false, true)) {
                     if (traceEnabled) {
                         LOGGER.trace("phase={} side={} method=exitIfFirstCallAndLead leadAcquired",
