@@ -4,12 +4,12 @@
 Usage Data Collector
 ====================
 
-The Crate Usage Data Collector (UDC) is a sub-system that gathers
+The CrateDB Usage Data Collector (UDC) is a sub-system that gathers
 usage data, reporting it to the UDC server at https://udc.crate.io.
 It is easy to disable, and does not collect any data that is confidential.
 For more information about what is being sent, see below.
 
-Crate uses this information as a form of automatic, effortless feedback from the
+CrateDB uses this information as a form of automatic, effortless feedback from the
 community. We want to verify that we are doing the right thing by matching
 download statistics with usage statistics. After each release, we can see if
 there is a larger retention span of the server software.
@@ -22,7 +22,7 @@ identifiable information.
 
 Technical Information
 =====================
-To gather good statistics about Crate usage, UDC collects this information:
+To gather good statistics about CrateDB usage, UDC collects this information:
 
     ================  =============================================================================
     Name              Description
@@ -33,8 +33,8 @@ To gather good statistics about Crate usage, UDC collects this information:
     Master            Boolean whether the current node is master.
     Ping Count        UDC holds an internal counter per node which is incremented for every ping,
                       and reset on every restart of the a node.
-    Crate Version     The crate version.
-    Java Version      The Java version crate is currently running with.
+    Crate Version     The CrateDB version.
+    Java Version      The Java version CrateDB is currently running with.
     Hardware Address  MAC address to uniquely identify instances behind firewalls.
     ================  =============================================================================
 
@@ -47,7 +47,7 @@ done with a HTTP GET.
 Admin UI tracking
 =================
 Since Admin UI v0.16.0 we are tracking the user-id along with the cluster-id to 
-know how many active users are currently using Crate.
+know how many active users are currently using CrateDB.
 
 Configuration
 =============
@@ -60,11 +60,11 @@ How to disable UDC
 ==================
 Below are two ways you can disable UDC. However we hope you support us offering
 the open source edition, and leave UDC on, so we learn how many people use
-Crate.
+CrateDB.
 
 .. note::
 
-    If UDC is disabled on the Crate server the Intercom service is deactivated.
+    If UDC is disabled on the CrateDB server the Intercom service is deactivated.
 
 
 .. highlight:: yaml
