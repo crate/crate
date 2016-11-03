@@ -4,25 +4,25 @@
  Plugins
 =========
 
-Crate implements a plugin loading infrastructure making it possible to
-develop plugins for crate.
+CrateDB implements a plugin loading infrastructure making it possible to
+develop plugins for CrateDB.
 
 A plugin must at least:
 
  - implement the ``io.crate.Plugin`` interface
  - register its implementation at
-   ``META-INF/services/io.crate.Plugin`` so crate plugin load can find
+   ``META-INF/services/io.crate.Plugin`` so CrateDB plugin load can find
    it.
 
-See our `example crate plugin`_ for details about that.
+See our `example crate plugin`_ for further details about this issue.
 
 .. _plugins_crate_dep:
 
-Plugin Crate Dependency
+Plugin CrateDB Dependency
 =======================
 
-In order to develop a plugin against a crate release, a dependency to
-the crate's server libraries must be set up.
+In order to develop a plugin against a CrateDB release, a dependency to
+the CrateDB's server libraries must be set up.
 
 Gradle
 ------
@@ -35,7 +35,7 @@ Define bintray (jCenter) repository:
        jcenter()
    }
 
-Add crate to compile dependencies:
+Add CrateDB to compile dependencies:
 
 .. code-block:: groovy
 
