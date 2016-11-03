@@ -191,51 +191,6 @@ public class NestedLoopOperation implements CompletionListenable {
         return right;
     }
 
-    private static class CombinedRow implements Row {
-
-        volatile Row outerRow;
-        volatile Row innerRow;
-        final Row outerNullRow;
-        final Row innerNullRow;
-
-        CombinedRow(int outerOutputSize, int innerOutputSize) {
-            outerNullRow = new RowNull(outerOutputSize);
-            innerNullRow = new RowNull(innerOutputSize);
-        }
-
-        @Override
-        public int size() {
-            return outerRow.size() + innerRow.size();
-        }
-
-        @Override
-        public Object get(int index) {
-            if (index < outerRow.size()) {
-                return outerRow.get(index);
-            }
-            return innerRow.get(index - outerRow.size());
-        }
-
-        @Override
-        public Object[] materialize() {
-            Object[] left = outerRow.materialize();
-            Object[] right = innerRow.materialize();
-
-            Object[] newRow = new Object[left.length + right.length];
-            System.arraycopy(left, 0, newRow, 0, left.length);
-            System.arraycopy(right, 0, newRow, left.length, right.length);
-            return newRow;
-        }
-
-        @Override
-        public String toString() {
-            return "CombinedRow{" +
-                   " outer=" + outerRow +
-                   ", inner=" + innerRow +
-                   '}';
-        }
-    }
-
     private abstract class AbstractRowReceiver implements ListenableRowReceiver {
 
         final SettableFuture<Void> finished = SettableFuture.create();
@@ -420,6 +375,8 @@ public class NestedLoopOperation implements CompletionListenable {
 
         final CombinedRow combinedRow;
         private final Set<Requirement> requirements;
+        final Row leftNullRow;
+        private final Row rightNullRow;
 
         Row lastRow = null;
         private boolean suspendThread = false;
@@ -427,7 +384,9 @@ public class NestedLoopOperation implements CompletionListenable {
 
         RightRowReceiver(int leftNumOutputs, int rightNumOutputs) {
             requirements = Requirements.add(downstream.requirements(), Requirement.REPEAT);
-            combinedRow = new CombinedRow(leftNumOutputs, rightNumOutputs);
+            leftNullRow = new RowNull(leftNumOutputs);
+            rightNullRow = new RowNull(rightNumOutputs);
+            combinedRow = new CombinedRow();
         }
 
         @Override
@@ -506,7 +465,7 @@ public class NestedLoopOperation implements CompletionListenable {
                 !matchedJoinPredicate && left.lastRow != null && !emitRightJoin) {
                 // emit row with right one nulled
                 combinedRow.outerRow = left.lastRow;
-                combinedRow.innerRow = combinedRow.innerNullRow;
+                combinedRow.innerRow = rightNullRow;
                 Result result = emitRowAndTrace(combinedRow);
                 LOGGER.trace("phase={} side=right method=finish firstCall={} emitNullRow result={}", phaseId, firstCall, result);
                 switch (result) {
@@ -615,7 +574,7 @@ public class NestedLoopOperation implements CompletionListenable {
         protected Result emitRow(Row row) {
             if (emitRightJoin) {
                 if (!matchedJoinRows.get(rowPosition)) {
-                    combinedRow.outerRow = combinedRow.outerNullRow;
+                    combinedRow.outerRow = leftNullRow;
                     combinedRow.innerRow = row;
                     return emitRowAndTrace(combinedRow);
                 }
