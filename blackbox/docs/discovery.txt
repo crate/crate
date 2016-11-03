@@ -7,12 +7,12 @@ Cloud Discovery
 EC2 Discovery
 =============
 
-Crate has native discovery support when running a cluster on Amazon
+CrateDB has native discovery support when running a cluster on Amazon
 infrastructure. Since EC2 does not support multicast, the discovery mechanism
 uses the `EC2 API`_ to look up other EC2 hosts that are then used as unicast
 hosts for node discovery (see :ref:`conf_discovery`).
 
-There is a :ref:`best practice <ec2_setup>` how to configure and run a Crate
+There is a :ref:`best practice <ec2_setup>` how to configure and run a CrateDB
 cluster on Amazon EC2.
 
 .. _`Amazon EC2`: https://aws.amazon.com/ec2
@@ -23,15 +23,15 @@ cluster on Amazon EC2.
 Azure Discovery
 ===============
 
-Crate has native discovery support when running a cluster on `Microsoft Azure`_
+CrateDB has native discovery support when running a cluster on `Microsoft Azure`_
 infrastructure. Since Azure does not support multicast, the discovery mechanism
 uses the ARM (Azure Resource Management) mode APIs to generate the list of hosts
 for the unicast host discovery.
 
 The discovery mechanism is implemented as a plugin and resides within the plugin
-folder of the Crate installation. However, since the Azure Java SDKs does have
+folder of the CrateDB installation. However, since the Azure Java SDKs does have
 a lot of dependencies and we want to keep the plugin jar small in size the
-dependencies are not included in the Crate distribution.
+dependencies are not included in the CrateDB distribution.
 
 Requirements
 ------------
@@ -108,7 +108,7 @@ To enable Azure discovery simply change the ``discovery.type`` setting to
 
     discovery.type: azure
 
-The discovery mechanism can discover Crate instances within the same **vnet**
+The discovery mechanism can discover CrateDB instances within the same **vnet**
 or the same **subnet** of the same **resource group**. By default it will the
 **vnet**.
 
