@@ -1,0 +1,72 @@
+/*
+ * Licensed to Crate under one or more contributor license agreements.
+ * See the NOTICE file distributed with this work for additional
+ * information regarding copyright ownership.  Crate licenses this file
+ * to you under the Apache License, Version 2.0 (the "License"); you may
+ * not use this file except in compliance with the License.  You may
+ * obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+ * implied.  See the License for the specific language governing
+ * permissions and limitations under the License.
+ *
+ * However, if you have executed another commercial license agreement
+ * with Crate these terms will supersede the license and you may use the
+ * software solely pursuant to the terms of the relevant commercial
+ * agreement.
+ */
+
+Properties props = new Properties()
+props.load(new FileInputStream(file("gradle/version.properties")));
+ext.set("versions", props)
+
+allprojects {
+    configurations.all {
+        resolutionStrategy {
+            // fail eagerly on version conflict (includes transitive dependencies)
+            failOnVersionConflict()
+
+            // ES requires hamcrest-all which includes hamcrest-core
+            dependencySubstitution {
+                substitute module("org.hamcrest:hamcrest-core") with(
+                        module("org.hamcrest:hamcrest-all:${versions.hamcrest}"))
+            }
+
+            // forced versions of conflicting deps
+            force "com.spatial4j:spatial4j:${versions.spatial4j}"
+            force "com.google.guava:guava:${versions.guava}"
+            force "commons-codec:commons-codec:${versions.commonscodec}"
+            force "com.carrotsearch.randomizedtesting:junit4-ant:${versions.randomizedrunner}"
+            force "com.carrotsearch.randomizedtesting:randomizedtesting-runner:${versions.randomizedrunner}"
+            force "junit:junit:${versions.junit}"
+            force "org.slf4j:slf4j-api:${versions.slf4j}"
+            force "org.slf4j:slf4j-log4j12:${versions.slf4j}"
+            force "com.fasterxml.jackson.core:jackson-core:${versions.jackson}"
+            force "com.fasterxml.jackson.dataformat:jackson-dataformat-cbor:${versions.jackson}"
+            force "com.fasterxml.jackson.core:jackson-annotations:${versions.jackson}"
+            force "com.fasterxml.jackson.core:jackson-databind:${versions.jackson}"
+            force "joda-time:joda-time:${versions.jodatime}"
+            force "org.hamcrest:hamcrest-all:${versions.hamcrest}"
+            force "org.antlr:antlr-runtime:${versions.antlr}"
+            force "commons-cli:commons-cli:${versions.commonscli}"
+            force "org.apache.commons:commons-math3:${versions.commonsmath}"
+            force "org.apache.commons:commons-lang3:${versions.commonslang3}"
+            force "commons-logging:commons-logging:${versions.commonslogging}"
+            force "org.apache.httpcomponents:httpcore:${versions.httpcore}"
+            force "org.apache.httpcomponents:httpclient:${versions.httpclient}"
+            force "log4j:log4j:${versions.log4j}"
+            force "io.netty:netty:${versions.netty}"
+
+            // ensure to check following dependencies and their versions against those of HDFS plugin libs
+            // https://crate.io/docs/reference/en/latest/sql/snapshot_restore.html
+            force "org.codehaus.jackson:jackson-core-asl:${versions.jacksonasl}"
+            force "org.codehaus.jackson:jackson-mapper-asl:${versions.jacksonasl}"
+            force "com.google.code.findbugs:jsr305:${versions.jsr305}"
+            force "commons-lang:commons-lang:2.6"
+        }
+    }
+}

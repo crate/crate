@@ -58,13 +58,7 @@ dependencies {
 configurations.all {
     resolutionStrategy {
         force 'commons-httpclient:commons-httpclient:3.0.1'
-        force 'joda-time:joda-time:2.8'
-        force "commons-cli:commons-cli:1.2"
         eachDependency { details ->
-            // for slf4j use each dependency since there are so many variants
-            if (details.requested.name.contains("slf4j-")) {
-                details.useVersion "1.7.6"
-            }
             if (details.requested.name.equals("servlet-api")) {
                 details.useTarget group: "org.eclipse.jetty.orbit", name: "javax.servlet", version: "3.0.0.v201112011016"
             }
@@ -74,7 +68,7 @@ configurations.all {
 }
 
 task downloadUpstreamSources(type: Download) {
-    def upstreamCommit = 'v2.3.2'
+    def upstreamCommit = "v${versions.elasticsearchhadoop}"
     src "https://github.com/elastic/elasticsearch-hadoop/archive/${upstreamCommit}.zip"
     dest file("${buildDir}/downloads/elasticsearch-hadoop-${upstreamCommit}.zip")
     overwrite false
@@ -128,8 +122,8 @@ sourceSets {
 test.enabled = false
 
 compileJava {
-    sourceCompatibility = 1.7
-    targetCompatibility = 1.7
+    sourceCompatibility = 1.8
+    targetCompatibility = 1.8
 }
 
 jar {
