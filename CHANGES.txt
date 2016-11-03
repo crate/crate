@@ -5,6 +5,10 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Updated crate-admin to ``0.21.2`` which includes the following change:
+
+     - fixed incorrect sql query for creating the tweets table in the tutorial.
+
  - Fixed an issue that caused right outer joins to get stuck instead of returning
    a result if the left table is empty.
 
