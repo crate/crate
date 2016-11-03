@@ -387,6 +387,25 @@ public class NestedLoopOperationTest extends CrateUnitTest {
                "3| NULL\n"));
     }
 
+    @Test
+    public void testRightJoinWithEmptyJoinedTable() throws Exception {
+        List<Row> leftRows = Collections.emptyList();
+        List<Row> rightRows = singleColRows(1, 2, 3);
+        CollectingRowReceiver rowReceiver = new CollectingRowReceiver();
+        NestedLoopOperation nl = new NestedLoopOperation(
+            0, rowReceiver, COL0_EQ_COL1, JoinType.RIGHT, 1, 1);
+
+        RowSender rsLeft = new RowSender(leftRows, nl.leftRowReceiver(), executorService);
+        RowSender rsRight = new RowSender(rightRows, nl.rightRowReceiver(), executorService);
+        executorService.submit(rsLeft);
+        executorService.submit(rsRight );
+
+        assertThat(TestingHelpers.printedTable(rowReceiver.result()),
+            is("NULL| 1\n" +
+               "NULL| 2\n" +
+               "NULL| 3\n"));
+    }
+
     private static List<ListenableRowReceiver> getRandomLeftAndRightRowReceivers(CollectingRowReceiver receiver) {
         NestedLoopOperation nestedLoopOperation = unfilteredNestedLoopOperation(0, receiver);
 
