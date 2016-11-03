@@ -1,8 +1,8 @@
 ===================
-Crate Documentation
+CrateDB Documentation
 ===================
 
-Welcome to Crate - a new breed of database to serve today’s mammoth data needs.
+Welcome to CrateDB - a new breed of database to serve today’s machine data needs.
 
 .. only:: html
 
