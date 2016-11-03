@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fixed an issue that caused right outer joins to get stuck instead of returning
+   a result if the left table is empty.
+
  - Fixed an issue that caused left outer joins to return an empty result if the
    joined table is empty.
 

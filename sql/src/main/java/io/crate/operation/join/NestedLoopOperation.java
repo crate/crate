@@ -460,9 +460,13 @@ public class NestedLoopOperation implements CompletionListenable {
                     repeatHandle.repeat();
                 }
             });
+            if (emitRightJoin) {
+                tryFinish();
+                return;
+            }
 
             if ((JoinType.LEFT == joinType || JoinType.FULL == joinType) &&
-                !matchedJoinPredicate && left.lastRow != null && !emitRightJoin) {
+                !matchedJoinPredicate && left.lastRow != null) {
                 // emit row with right one nulled
                 combinedRow.outerRow = left.lastRow;
                 combinedRow.innerRow = rightNullRow;
@@ -493,7 +497,14 @@ public class NestedLoopOperation implements CompletionListenable {
                 return;
             }
             if (left.isPaused) {
-                switchTo(left.resumeable);
+                if (left.upstreamFinished) {
+                    // empty left table + right or full join -> "post-loop" iterate over right again and emit null-rows
+                    assert emitRightJoin :
+                        "emitRightJoin must be true if tryFinish didn't return true and left upstream is finished as well";
+                    switchTo(right.resumeable);
+                } else {
+                    switchTo(left.resumeable);
+                }
             }
             // else: right-side iteration is within the left#setNextRow stack, returning here will
             // continue on the left side
@@ -531,9 +542,13 @@ public class NestedLoopOperation implements CompletionListenable {
             @Override
             public void resume(boolean async) {
                 if (left.upstreamFinished) {
-                    stop = true;
-                    delegate.resume(async);
-                    return;
+                    if (joinType == JoinType.RIGHT || joinType == JoinType.FULL) {
+                        emitRightJoin = true;
+                    } else {
+                        stop = true;
+                        delegate.resume(async);
+                        return;
+                    }
                 }
 
                 assert lastRow != null : "lastRow should be present";
