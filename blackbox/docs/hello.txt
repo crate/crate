@@ -1,12 +1,12 @@
 .. highlight:: sh
 
 ===========
-Hello Crate
+Hello CrateDB
 ===========
 
-To get started let's have a quick look on how Crate can be used.
+To get started let's have a quick look on how CrateDB can be used.
 This tutorial uses the ``crash`` command-line SQL_ shell shipped with
-the Crate distribution.
+the CrateDB distribution.
 ::
 
     sh$ ./bin/crash
@@ -75,10 +75,10 @@ Here it is used with a filter to only lookup Ford's tweets::
  :doc:`Data Manipulation <sql/dml>` - In order to learn how to import, export,
  insert, update or delete records.
 
- :doc:`Querying Crate <sql/dql>` - Filtering, ordering, grouping and powerful
+ :doc:`Querying CrateDB <sql/dql>` - Filtering, ordering, grouping and powerful
  fulltext search. Learn how to find your data.
 
- :doc:`Configuration <configuration>` - After you're done trying out Crate and
+ :doc:`Configuration <configuration>` - After you're done trying out CrateDB and
  before you go into production you should take a look at this section.
  Especially the `CRATE_HEAP_SIZE` environment variable is very important!
 
