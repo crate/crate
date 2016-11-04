@@ -47,19 +47,15 @@ import io.crate.operation.collect.MapSideDataCollectOperation;
 import io.crate.operation.count.CountOperation;
 import io.crate.operation.fetch.FetchContext;
 import io.crate.operation.join.NestedLoopOperation;
-import io.crate.operation.projectors.DistributingDownstreamFactory;
-import io.crate.operation.projectors.FlatProjectorChain;
-import io.crate.operation.projectors.RowReceiver;
+import io.crate.operation.projectors.*;
+import io.crate.operation.union.PrependInputIdRowReceiver;
 import io.crate.planner.distribution.DistributionType;
 import io.crate.planner.distribution.UpstreamPhase;
 import io.crate.planner.node.ExecutionPhase;
 import io.crate.planner.node.ExecutionPhaseVisitor;
 import io.crate.planner.node.ExecutionPhases;
 import io.crate.planner.node.StreamerVisitor;
-import io.crate.planner.node.dql.CollectPhase;
-import io.crate.planner.node.dql.CountPhase;
-import io.crate.planner.node.dql.MergePhase;
-import io.crate.planner.node.dql.RoutedCollectPhase;
+import io.crate.planner.node.dql.*;
 import io.crate.planner.node.dql.join.NestedLoopPhase;
 import io.crate.planner.node.fetch.FetchPhase;
 import io.crate.types.DataTypes;
@@ -624,6 +620,38 @@ public class ContextPreparer extends AbstractComponent {
                 left,
                 right
             ));
+            return true;
+        }
+
+        @Override
+        public Boolean visitUnionPhase(UnionPhase unionPhase, PreparerContext context) {
+            RamAccountingContext ramAccountingContext = RamAccountingContext.forExecutionPhase(circuitBreaker, unionPhase);
+            RowReceiver downstreamRowReceiver = context.getRowReceiver(unionPhase, Paging.PAGE_SIZE);
+
+            if (!unionPhase.projections().isEmpty()) {
+                FlatProjectorChain flatProjectorChain = FlatProjectorChain.withAttachedDownstream(
+                    pageDownstreamFactory.projectorFactory(),
+                    ramAccountingContext,
+                    unionPhase.projections(),
+                    downstreamRowReceiver,
+                    unionPhase.jobId()
+                );
+                downstreamRowReceiver = flatProjectorChain.firstProjector();
+            }
+            ListenableRowReceiver targetRowReceiver = RowReceivers.listenableRowReceiver(downstreamRowReceiver);
+
+            byte inputId = 0;
+            MultiUpstreamRowReceiver multiUpstreamRowReceiver = new MultiUpstreamRowReceiver(targetRowReceiver);
+            for (int i = 0; i < unionPhase.numUpstreams(); i++) {
+                RowReceiver rowReceiver = multiUpstreamRowReceiver.newRowReceiver();
+                if (unionPhase.isFetchRequired()) {
+                    rowReceiver = new PrependInputIdRowReceiver(rowReceiver, inputId);
+                }
+                context.phaseIdToRowReceivers.put(toKey(unionPhase.phaseId(), inputId), rowReceiver);
+                inputId++;
+            }
+
+            context.registerSubContext(new UnionContext(nlContextLogger, unionPhase, targetRowReceiver));
             return true;
         }
 

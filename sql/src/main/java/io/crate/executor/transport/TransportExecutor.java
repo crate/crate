@@ -458,18 +458,22 @@ public class TransportExecutor implements Executor {
                     return;
                 }
 
+                byte inputId;
                 ExecutionPhase previousPhase;
                 if (currentBranch.phases.isEmpty()) {
                     previousPhase = branches.peek().phases.lastElement();
+                    inputId = currentBranch.inputId;
                 } else {
                     previousPhase = currentBranch.phases.lastElement();
+                    // same branch, so use the default input id
+                    inputId = 0;
                 }
                 if (setDownstreamNodes) {
                     assert saneConfiguration(executionPhase, previousPhase.nodeIds()) : String.format(Locale.ENGLISH,
                         "NodeOperation with %s and %s as downstreams cannot work",
                         ExecutionPhases.debugPrint(executionPhase), previousPhase.nodeIds());
 
-                    nodeOperations.add(NodeOperation.withDownstream(executionPhase, previousPhase, currentBranch.inputId, localNodeId));
+                    nodeOperations.add(NodeOperation.withDownstream(executionPhase, previousPhase, inputId, localNodeId));
                 } else {
                     nodeOperations.add(NodeOperation.withoutDownstream(executionPhase));
                 }
@@ -560,6 +564,21 @@ public class TransportExecutor implements Executor {
             context.branch((byte) 1);
             process(plan.right(), context);
             context.leaveBranch();
+
+            return null;
+        }
+
+        @Override
+        public Void visitUnion(UnionPlan plan, NodeOperationTreeContext context) {
+            context.addPhase(plan.unionPhase());
+
+            byte inputId = 0;
+            for (Plan subPlan : plan.relations()) {
+                context.branch(inputId);
+                process(subPlan, context);
+                context.leaveBranch();
+                inputId++;
+            }
 
             return null;
         }

@@ -53,6 +53,7 @@ public class ConsumingPlanner {
         consumers.add(new MultiSourceAggregationConsumer(functions));
         consumers.add(new ManyTableConsumer(this, new Rewriter(functions)));
         consumers.add(new NestedLoopConsumer(clusterService, functions, tableStatsService));
+        consumers.add(new UnionConsumer());
     }
 
     @Nullable

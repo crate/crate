@@ -91,6 +91,10 @@ public class PlanVisitor<C, R> {
         return visitPlan(plan, context);
     }
 
+    public R visitUnion(UnionPlan plan, C context) {
+        return visitPlan(plan, context);
+    }
+
     public R visitGetPlan(ESGet plan, C context) {
         return visitPlan(plan, context);
     }

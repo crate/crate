@@ -43,6 +43,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 public class PlanPrinter {
 
@@ -154,6 +155,11 @@ public class PlanPrinter {
             ImmutableMap.Builder<String, Object> b = upstreamPhase(phase, visitExecutionPhase(phase, context));
             return dqlPlanNode(phase, b);
         }
+
+        @Override
+        public ImmutableMap.Builder<String, Object> visitUnionPhase(UnionPhase phase, Void context) {
+            return dqlPlanNode(phase, visitExecutionPhase(phase, context));
+        }
     }
 
 
@@ -211,9 +217,7 @@ public class PlanPrinter {
 
         @Override
         public ImmutableMap.Builder<String, Object> visitCollect(Collect plan, Void context) {
-            ImmutableMap.Builder<String, Object> b = visitPlan(plan, context)
-                .put("collectPhase", phaseMap(plan.collectPhase()));
-            return b;
+            return visitPlan(plan, context).put("collectPhase", phaseMap(plan.collectPhase()));
         }
 
         @Override
@@ -248,6 +252,18 @@ public class PlanPrinter {
             return visitPlan(merge, context)
                 .put("subPlan", toMap(merge.subPlan()))
                 .put("mergePhase", phaseMap(merge.mergePhase()));
+        }
+
+        @Override
+        public ImmutableMap.Builder<String, Object> visitUnion(UnionPlan plan, Void context) {
+            ImmutableMap.Builder<String, Object> builder = newBuilder()
+                .put("planType", plan.getClass().getSimpleName())
+                .put("unionPhase", phaseMap(plan.unionPhase()));
+
+            List<Map<String, Object>> subPlans = new ArrayList<>(plan.relations().size());
+            subPlans.addAll(plan.relations().stream().map(Plan2MapVisitor::toMap).collect(Collectors.toList()));
+            builder.put("relations", subPlans);
+            return builder;
         }
     }
 }
