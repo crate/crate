@@ -74,7 +74,7 @@ class UnionConsumer implements Consumer {
                     limits.offset(),
                     limits.finalLimit(),
                     outputs
-                );
+                                                                      );
                 projections.add(topN);
             }
 
