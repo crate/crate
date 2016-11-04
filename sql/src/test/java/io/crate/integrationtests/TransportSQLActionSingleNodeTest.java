@@ -22,10 +22,13 @@
 package io.crate.integrationtests;
 
 
-import com.google.common.collect.ImmutableSet;
 import com.google.common.util.concurrent.SettableFuture;
-import io.crate.action.sql.*;
-import io.crate.testing.*;
+import io.crate.action.sql.SQLActionException;
+import io.crate.testing.SQLBulkResponse;
+import io.crate.testing.SQLResponse;
+import io.crate.testing.TestingHelpers;
+import io.crate.testing.UseJdbc;
+import org.elasticsearch.common.collect.MapBuilder;
 import org.elasticsearch.test.ESIntegTestCase;
 import org.junit.After;
 import org.junit.Test;
@@ -37,7 +40,7 @@ import java.util.concurrent.ExecutionException;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
 
-@ESIntegTestCase.ClusterScope(numDataNodes = 1, numClientNodes = 0)
+@ESIntegTestCase.ClusterScope(numDataNodes = 1, numClientNodes = 0, supportsDedicatedMasters = false)
 @UseJdbc
 public class TransportSQLActionSingleNodeTest extends SQLTransportIntegrationTest {
 
@@ -213,8 +216,8 @@ public class TransportSQLActionSingleNodeTest extends SQLTransportIntegrationTes
             assertResponseWithTypes("create ANALYZER \"german_snowball\" extends snowball WITH (language='german')");
         } finally {
             client().admin().cluster().prepareUpdateSettings()
-                .setPersistentSettingsToRemove(ImmutableSet.of("crate.analysis.custom.analyzer.german_snowball"))
-                .setTransientSettingsToRemove(ImmutableSet.of("crate.analysis.custom.analyzer.german_snowball"))
+                .setPersistentSettings(MapBuilder.newMapBuilder().put("crate.analysis.custom.analyzer.german_snowball", null).map())
+                .setTransientSettings(MapBuilder.newMapBuilder().put("crate.analysis.custom.analyzer.german_snowball", null).map())
                 .execute().actionGet();
         }
     }

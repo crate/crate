@@ -29,27 +29,27 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 import com.google.common.util.concurrent.FutureCallback;
-import io.crate.Constants;
-import io.crate.exceptions.SQLExceptions;
 import io.crate.exceptions.JobKilledException;
+import io.crate.exceptions.SQLExceptions;
 import io.crate.executor.transport.ShardRequest;
 import io.crate.executor.transport.ShardResponse;
 import io.crate.metadata.PartitionName;
+import org.apache.logging.log4j.Logger;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.admin.indices.create.BulkCreateIndicesRequest;
 import org.elasticsearch.action.admin.indices.create.BulkCreateIndicesResponse;
 import org.elasticsearch.action.admin.indices.create.TransportBulkCreateIndicesAction;
 import org.elasticsearch.action.support.AutoCreateIndex;
-import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
+import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.io.stream.NotSerializableExceptionWrapper;
-import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.util.concurrent.EsRejectedExecutionException;
 import org.elasticsearch.index.IndexNotFoundException;
 import org.elasticsearch.index.shard.ShardId;
 
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
@@ -102,7 +102,7 @@ public class BulkShardProcessor<Request extends ShardRequest> {
     private final BulkRequestBuilder<Request> requestBuilder;
     private final BulkRequestExecutor<Request> requestExecutor;
 
-    private static final ESLogger LOGGER = Loggers.getLogger(BulkShardProcessor.class);
+    private static final Logger LOGGER = Loggers.getLogger(BulkShardProcessor.class);
 
     public BulkShardProcessor(ClusterService clusterService,
                               TransportBulkCreateIndicesAction transportBulkCreateIndicesAction,
@@ -123,7 +123,9 @@ public class BulkShardProcessor<Request extends ShardRequest> {
 
 
         if (autoCreateIndices) {
-            final AutoCreateIndex autoCreateIndex = new AutoCreateIndex(settings, indexNameExpressionResolver);
+            final AutoCreateIndex autoCreateIndex = new AutoCreateIndex(
+                settings,clusterService.getClusterSettings(), indexNameExpressionResolver);
+
             shouldAutocreateIndexPredicate = new Predicate<String>() {
                 @Override
                 public boolean apply(@Nullable String input) {
@@ -206,7 +208,6 @@ public class BulkShardProcessor<Request extends ShardRequest> {
             shardId = clusterService.operationRouting().indexShards(
                 clusterService.state(),
                 indexName,
-                Constants.DEFAULT_MAPPING_TYPE,
                 id,
                 routing
             ).shardId();
@@ -264,8 +265,8 @@ public class BulkShardProcessor<Request extends ShardRequest> {
                     }
 
                     @Override
-                    public void onFailure(Throwable t) {
-                        t = SQLExceptions.unwrap(t, throwable -> throwable instanceof RuntimeException);
+                    public void onFailure(Exception e) {
+                        Throwable t = SQLExceptions.unwrap(e, throwable -> throwable instanceof RuntimeException);
                         if (t instanceof ClassCastException || t instanceof NotSerializableExceptionWrapper) {
                             // this is caused by passing mixed argument types into a bulk upsert.
                             // it can happen after an valid request already succeeded and data was written.
@@ -340,7 +341,7 @@ public class BulkShardProcessor<Request extends ShardRequest> {
                 }
 
                 @Override
-                public void onFailure(Throwable t) {
+                public void onFailure(@Nonnull Throwable t) {
                     setFailure(t);
                 }
             };
@@ -356,7 +357,7 @@ public class BulkShardProcessor<Request extends ShardRequest> {
                     }
 
                     @Override
-                    public void onFailure(Throwable t) {
+                    public void onFailure(Exception t) {
                         indicesCreatedCallback.onFailure(t);
                     }
                 });
@@ -474,7 +475,7 @@ public class BulkShardProcessor<Request extends ShardRequest> {
                 }
 
                 @Override
-                public void onFailure(Throwable e) {
+                public void onFailure(Exception e) {
                     processFailure(e, shardId, request, Optional.of(coordinator));
                 }
             });

@@ -76,7 +76,7 @@ public class ReadOnlyNodeIntegrationTest extends SQLTransportIntegrationTest {
         Settings.Builder builder = Settings.builder();
         builder.put(super.nodeSettings(nodeOrdinal));
         if ((nodeOrdinal + 1) % 2 == 0) {
-            builder.put(SQLOperations.NODE_READ_ONLY_SETTING, true);
+            builder.put(SQLOperations.NODE_READ_ONLY_SETTING.getKey(), true);
         }
         return builder.build();
     }

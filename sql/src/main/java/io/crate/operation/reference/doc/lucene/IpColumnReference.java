@@ -21,19 +21,20 @@
 
 package io.crate.operation.reference.doc.lucene;
 
-import io.crate.exceptions.GroupByOnArrayUnsupportedException;
+
 import org.apache.lucene.index.DocValues;
 import org.apache.lucene.index.LeafReaderContext;
-import org.apache.lucene.index.SortedNumericDocValues;
+import org.apache.lucene.index.SortedDocValues;
 import org.apache.lucene.util.BytesRef;
-import org.elasticsearch.index.mapper.ip.IpFieldMapper;
+import org.elasticsearch.common.lucene.BytesRefs;
+import org.elasticsearch.search.DocValueFormat;
 
 import java.io.IOException;
 
 public class IpColumnReference extends LuceneCollectorExpression<BytesRef> {
 
-    private SortedNumericDocValues values;
     private BytesRef value;
+    private SortedDocValues values;
 
     public IpColumnReference(String columnName) {
         super(columnName);
@@ -46,23 +47,18 @@ public class IpColumnReference extends LuceneCollectorExpression<BytesRef> {
 
     @Override
     public void setNextDocId(int docId) {
-        super.setNextDocId(docId);
-        values.setDocument(docId);
-        switch (values.count()) {
-            case 0:
-                value = null;
-                break;
-            case 1:
-                value = new BytesRef(IpFieldMapper.longToIp(values.valueAt(0)));
-                break;
-            default:
-                throw new GroupByOnArrayUnsupportedException(columnName);
+        if (values == null) {
+            value = null;
+        } else {
+            BytesRef bytesRef = values.get(docId);
+            String format = DocValueFormat.IP.format(bytesRef);
+            value = BytesRefs.toBytesRef(format);
         }
     }
 
     @Override
     public void setNextReader(LeafReaderContext context) throws IOException {
-        super.setNextReader(context);
-        values = DocValues.getSortedNumeric(context.reader(), columnName);
+        // TODO: is it safe to unwrap in case it's an array of ips?
+        values = DocValues.unwrapSingleton(context.reader().getSortedSetDocValues(columnName));
     }
 }

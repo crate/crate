@@ -24,7 +24,6 @@ package io.crate.executor.transport.distributed;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import io.crate.analyze.WhereClause;
-import io.crate.analyze.symbol.Symbol;
 import io.crate.core.collections.TreeMapBuilder;
 import io.crate.data.BatchConsumer;
 import io.crate.metadata.Routing;
@@ -35,12 +34,10 @@ import io.crate.operation.projectors.DistributingDownstreamFactory;
 import io.crate.planner.distribution.DistributionInfo;
 import io.crate.planner.node.dql.MergePhase;
 import io.crate.planner.node.dql.RoutedCollectPhase;
-import io.crate.planner.projection.Projection;
-import io.crate.test.integration.CrateUnitTest;
+import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.types.DataType;
 import io.crate.types.LongType;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.test.cluster.NoopClusterService;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -49,15 +46,15 @@ import java.util.*;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.mockito.Mockito.mock;
 
-public class DistributingDownstreamFactoryTest extends CrateUnitTest {
+public class DistributingDownstreamFactoryTest extends CrateDummyClusterServiceUnitTest {
 
     private DistributingDownstreamFactory rowDownstreamFactory;
 
     @Before
-    public void before() {
+    public void prepare() {
         rowDownstreamFactory = new DistributingDownstreamFactory(
             Settings.EMPTY,
-            new NoopClusterService(),
+            clusterService,
             mock(TransportDistributedResultAction.class)
         );
     }
@@ -74,8 +71,8 @@ public class DistributingDownstreamFactoryTest extends CrateUnitTest {
             "collect",
             routing,
             RowGranularity.DOC,
-            ImmutableList.<Symbol>of(),
-            ImmutableList.<Projection>of(),
+            ImmutableList.of(),
+            ImmutableList.of(),
             WhereClause.MATCH_ALL,
             DistributionInfo.DEFAULT_MODULO
         );
@@ -86,7 +83,7 @@ public class DistributingDownstreamFactoryTest extends CrateUnitTest {
             1,
             Collections.emptyList(),
             ImmutableList.<DataType>of(LongType.INSTANCE),
-            ImmutableList.<Projection>of(),
+            ImmutableList.of(),
             DistributionInfo.DEFAULT_BROADCAST,
             null
         );

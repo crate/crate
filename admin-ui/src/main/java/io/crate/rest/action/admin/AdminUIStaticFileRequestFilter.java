@@ -24,6 +24,7 @@ package io.crate.rest.action.admin;
 
 import com.google.common.collect.ImmutableMap;
 import groovyjarjarantlr.StringUtils;
+import org.elasticsearch.client.node.NodeClient;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.io.FileSystemUtils;
 import org.elasticsearch.env.Environment;
@@ -60,12 +61,13 @@ public class AdminUIStaticFileRequestFilter extends RestFilter {
         this.environment = environment;
     }
 
+
     @Override
-    public void process(RestRequest request, RestChannel channel, RestFilterChain filterChain) throws IOException {
+    public void process(RestRequest request, RestChannel channel, NodeClient client, RestFilterChain filterChain) throws IOException {
         if (request.rawPath().equals("/index.html") || request.rawPath().startsWith("/static/") || shouldServeFromRoot(request)) {
             serveSite(request, channel);
         } else {
-            filterChain.continueProcessing(request, channel);
+            filterChain.continueProcessing(request, channel, client);
         }
     }
 
@@ -90,7 +92,7 @@ public class AdminUIStaticFileRequestFilter extends RestFilter {
 
     private void serveSite(RestRequest request, RestChannel channel) throws IOException {
         if (request.method() != RestRequest.Method.GET) {
-            channel.sendResponse(new BytesRestResponse(FORBIDDEN));
+            channel.sendResponse(new BytesRestResponse(FORBIDDEN, "GET is the only allowed method"));
             return;
         }
         String sitePath = StringUtils.stripFront(request.rawPath(), '/');
@@ -110,14 +112,16 @@ public class AdminUIStaticFileRequestFilter extends RestFilter {
         // return not found instead of forbidden to prevent malicious requests to find out if files exist or don't exist
         if (!Files.exists(file) || FileSystemUtils.isHidden(file) ||
             !file.toAbsolutePath().normalize().startsWith(siteFile.toAbsolutePath().normalize())) {
-            channel.sendResponse(new BytesRestResponse(NOT_FOUND));
+            final String msg = "Requested file [" + file + "] was not found";
+            channel.sendResponse(new BytesRestResponse(NOT_FOUND, msg));
             return;
         }
 
         BasicFileAttributes attributes = readAttributes(file, BasicFileAttributes.class);
         if (!attributes.isRegularFile()) {
             // If it's not a regular file, we send a 403
-            channel.sendResponse(new BytesRestResponse(FORBIDDEN));
+            final String msg = "Requested file [" + file + "] is not a valid file.";
+            channel.sendResponse(new BytesRestResponse(FORBIDDEN, msg));
             return;
         }
 
@@ -125,7 +129,7 @@ public class AdminUIStaticFileRequestFilter extends RestFilter {
             byte[] data = Files.readAllBytes(file);
             channel.sendResponse(new BytesRestResponse(OK, guessMimeType(file.toAbsolutePath().toString()), data));
         } catch (IOException e) {
-            channel.sendResponse(new BytesRestResponse(INTERNAL_SERVER_ERROR));
+            channel.sendResponse(new BytesRestResponse(INTERNAL_SERVER_ERROR, e.getMessage()));
         }
     }
 

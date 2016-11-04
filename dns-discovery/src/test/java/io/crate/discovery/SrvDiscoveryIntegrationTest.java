@@ -34,8 +34,9 @@ import org.xbill.DNS.*;
 import java.io.IOException;
 import java.net.URL;
 import java.util.Collection;
+import java.util.Collections;
 
-import static org.elasticsearch.common.settings.Settings.settingsBuilder;
+import static org.elasticsearch.common.settings.Settings.builder;
 
 @ESIntegTestCase.ClusterScope(numClientNodes = 0, numDataNodes = 0, transportClientRatio = 0)
 public class SrvDiscoveryIntegrationTest extends ESIntegTestCase {
@@ -48,7 +49,7 @@ public class SrvDiscoveryIntegrationTest extends ESIntegTestCase {
     @SuppressWarnings("unchecked")
     @Override
     protected Collection<Class<? extends Plugin>> nodePlugins() {
-        return pluginList(SrvPlugin.class);
+        return Collections.singletonList(SrvPlugin.class);
     }
 
     @After
@@ -58,10 +59,9 @@ public class SrvDiscoveryIntegrationTest extends ESIntegTestCase {
 
     @Test
     public void testClusterSrvDiscovery() throws Exception {
-        Settings localSettings = settingsBuilder()
-            .put("node.mode", "network")
+        Settings localSettings = builder()
             .put("discovery.type", "srv")
-            .put(SrvUnicastHostsProvider.DISCOVERY_SRV_QUERY, "_test._srv.crate.internal.")
+            .put(SrvUnicastHostsProvider.DISCOVERY_SRV_QUERY.getKey(), "_test._srv.crate.internal.")
             .build();
         internalCluster().startNode(localSettings);
         internalCluster().startNode(localSettings);

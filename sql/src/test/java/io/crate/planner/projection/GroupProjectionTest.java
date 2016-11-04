@@ -56,7 +56,7 @@ public class GroupProjectionTest extends CrateUnitTest {
         BytesStreamOutput out = new BytesStreamOutput();
         Projection.toStream(p, out);
 
-        StreamInput in = StreamInput.wrap(out.bytes());
+        StreamInput in = out.bytes().streamInput();
         GroupProjection p2 = (GroupProjection) Projection.fromStream(in);
 
         assertEquals(p, p2);
@@ -79,7 +79,7 @@ public class GroupProjectionTest extends CrateUnitTest {
         Projection.toStream(groupProjection, out);
 
 
-        StreamInput in = StreamInput.wrap(out.bytes());
+        StreamInput in = out.bytes().streamInput();
         GroupProjection p2 = (GroupProjection) Projection.fromStream(in);
 
         assertThat(p2.keys().size(), is(1));
@@ -97,7 +97,7 @@ public class GroupProjectionTest extends CrateUnitTest {
         BytesStreamOutput out = new BytesStreamOutput();
         Projection.toStream(p, out);
 
-        StreamInput in = StreamInput.wrap(out.bytes());
+        StreamInput in = out.bytes().streamInput();
         GroupProjection p2 = (GroupProjection) Projection.fromStream(in);
         assertEquals(p, p2);
     }

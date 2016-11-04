@@ -32,13 +32,13 @@ evaluationDependsOn(':dns-discovery')
 
 dependencies {
     compile project(':sql')
-    compile project(':admin-ui')
     compile project(':blob')
     compile project(':udc')
     compile project(':azure-discovery')
     compile project(':dns-discovery')
-    compile project(':es:es-discovery-multicast')
-    compile project(':es:es-cloud-aws')
+    compile project(':es:es-discovery-ec2')
+    compile project(':es:es-repository-s3')
+    compile project(':es:es-transport')
     compile('org.apache.xbean:xbean-finder:4.5') {
         exclude group: 'org.apache.xbean', module: 'xbean-asm-util'
     }
@@ -51,12 +51,12 @@ dependencies {
     compileNotTransitive project(':sql-parser')
     compileNotTransitive project(':dex')
     compileNotTransitive project(':shared')
-    compileNotTransitive project(':admin-ui')
     compileNotTransitive project(':blob')
     compileNotTransitive project(':udc')
     compileNotTransitive project(':dns-discovery')
-    compileNotTransitive project(':es:es-discovery-multicast')
-    compileNotTransitive project(':es:es-cloud-aws')
+    compileNotTransitive project(':es:es-discovery-ec2')
+    compileNotTransitive project(':es:es-repository-s3')
+    compileNotTransitive project(':es:es-transport')
 }
 
 task release(dependsOn: 'distTar') {
@@ -355,11 +355,16 @@ jar {
 }
 
 task downloadPlugins(
-        dependsOn: [':admin-ui:downloadPlugin', ':sigar:jar', ':es-repository-hdfs:distZip', ':azure-discovery:jar', ':jmx-monitoring:jar']) {
+        dependsOn: [':admin-ui:downloadPlugin', ':sigar:jar', ':es:es-repository-hdfs:jar', ':azure-discovery:jar', ':jmx-monitoring:jar']) {
     doLast {
+        // copy es-repository-hdfs plugin
         copy {
-            from(zipTree(project(':es-repository-hdfs').tasks.distZip.archivePath))
-            into 'plugins/elasticsearch-repository-hdfs'
+            from(project(':es:es-repository-hdfs').buildDir.path + '/libs')
+            into 'plugins/es-repository-hdfs'
+        }
+        copy {
+            from(project(':es:es-repository-hdfs').buildDir.path + '/plugin-descriptor.properties')
+            into 'plugins/es-repository-hdfs'
         }
 
         copy {
@@ -370,8 +375,10 @@ task downloadPlugins(
             into 'plugins/crate-azure-discovery'
         }
 
+        // copy crate-admin plugin
         copy {
             from(project(':admin-ui').buildDir.path + '/crate-admin')
+            from(project(':admin-ui').buildDir.path + '/libs')
             into 'plugins/crate-admin'
         }
 
@@ -380,14 +387,11 @@ task downloadPlugins(
             into 'plugins/jmx-monitoring'
         }
 
-        // copy sigar jar
+        // copy crate-sigar plugin
         copy {
             from(project(':sigar').tasks.jar.archivePath)
-            into 'plugins/sigar'
-        }
-        copy {
             from(project(':sigar').projectDir.path + "/lib")
-            into 'plugins/sigar/lib'
+            into 'plugins/crate-sigar'
         }
     }
 }

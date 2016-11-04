@@ -48,7 +48,7 @@ public class TransportNodeStatsAction implements NodeAction<NodeStatsRequest, No
         this.nodeContextFieldsResolver = nodeContextFieldsResolver;
         this.transports = transports;
         transportService.registerRequestHandler(ACTION_NAME,
-            NodeStatsRequest.class,
+            NodeStatsRequest::new,
             EXECUTOR,
             new NodeActionRequestHandler<NodeStatsRequest, NodeStatsResponse>(this) {
             }
@@ -77,8 +77,8 @@ public class TransportNodeStatsAction implements NodeAction<NodeStatsRequest, No
         try {
             NodeStatsContext context = nodeContextFieldsResolver.forTopColumnIdents(request.columnIdents());
             listener.onResponse(new NodeStatsResponse(context));
-        } catch (Throwable t) {
-            listener.onFailure(t);
+        } catch (Exception e) {
+            listener.onFailure(e);
         }
     }
 }

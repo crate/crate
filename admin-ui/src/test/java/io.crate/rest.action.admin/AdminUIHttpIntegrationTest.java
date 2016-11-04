@@ -1,6 +1,5 @@
 package io.crate.rest.action.admin;
 
-
 import io.crate.plugin.AdminUIPlugin;
 import org.apache.http.Header;
 import org.apache.http.client.methods.CloseableHttpResponse;
@@ -15,9 +14,9 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.transport.InetSocketTransportAddress;
 import org.elasticsearch.env.Environment;
 import org.elasticsearch.http.HttpServerTransport;
-import org.elasticsearch.node.Node;
 import org.elasticsearch.plugins.Plugin;
 import org.elasticsearch.test.ESIntegTestCase;
+import org.elasticsearch.transport.Netty3Plugin;
 import org.junit.Before;
 
 import java.io.IOException;
@@ -29,8 +28,9 @@ import java.nio.file.Path;
 import java.util.*;
 import java.util.concurrent.ExecutionException;
 
+import static org.elasticsearch.common.network.NetworkModule.HTTP_DEFAULT_TYPE_SETTING;
+import static org.elasticsearch.common.network.NetworkModule.HTTP_ENABLED;
 import static org.hamcrest.core.Is.is;
-
 
 public abstract class AdminUIHttpIntegrationTest extends ESIntegTestCase {
 
@@ -39,18 +39,18 @@ public abstract class AdminUIHttpIntegrationTest extends ESIntegTestCase {
 
     @Override
     protected Settings nodeSettings(int nodeOrdinal) {
-        return Settings.settingsBuilder()
+        return Settings.builder()
             .put(super.nodeSettings(nodeOrdinal))
-            .put(Node.HTTP_ENABLED, true)
+            .put(HTTP_ENABLED.getKey(), true)
+            .put(HTTP_DEFAULT_TYPE_SETTING.getKey(), "netty3")
             .build();
     }
 
     @SuppressWarnings("unchecked")
     @Override
     protected Collection<Class<? extends Plugin>> nodePlugins() {
-        return pluginList(AdminUIPlugin.class);
+        return Arrays.asList(AdminUIPlugin.class, Netty3Plugin.class);
     }
-
 
     @Before
     public void setup() throws ExecutionException, InterruptedException, IOException {
@@ -61,10 +61,10 @@ public abstract class AdminUIHttpIntegrationTest extends ESIntegTestCase {
         final Path indexDirectory = internalCluster().getInstance(Environment.class).pluginsFile().resolve("crate-admin").resolve("_site");
         Files.createDirectories(indexDirectory);
         final Path indexFile = indexDirectory.resolve("index.html");
-        Files.write(indexFile, Arrays.asList("<h1>Crate Admin</h1>"), Charset.forName("UTF-8"));
+        Files.write(indexFile, Collections.singletonList("<h1>Crate Admin</h1>"), Charset.forName("UTF-8"));
     }
 
-    CloseableHttpResponse executeAndDefaultAssertions(HttpUriRequest request) throws IOException {
+    private CloseableHttpResponse executeAndDefaultAssertions(HttpUriRequest request) throws IOException {
         CloseableHttpResponse resp = httpClient.execute(request);
         assertThat(resp.containsHeader("Connection"), is(false));
         return resp;
@@ -95,7 +95,6 @@ public abstract class AdminUIHttpIntegrationTest extends ESIntegTestCase {
     }
 
     List<URI> getAllRedirectLocations(String uri, Header[] headers) throws IOException {
-        List<URI> redirectLocations = null;
         CloseableHttpResponse response = null;
         try {
             HttpClientContext context = HttpClientContext.create();
@@ -106,14 +105,12 @@ public abstract class AdminUIHttpIntegrationTest extends ESIntegTestCase {
             response = httpClient.execute(httpGet, context);
 
             // get all redirection locations
-            redirectLocations = context.getRedirectLocations();
+            return context.getRedirectLocations();
         } finally {
             if(response != null) {
                 response.close();
             }
         }
-
-        return redirectLocations;
     }
 
     static BasicHeader browserHeader() {

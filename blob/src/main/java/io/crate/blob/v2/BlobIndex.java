@@ -26,6 +26,7 @@ import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.index.shard.ShardId;
 
 import java.nio.file.Path;
+import java.util.Iterator;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -85,5 +86,14 @@ public class BlobIndex {
 
     BlobShard getShard(int shardId) {
         return shards.get(shardId);
+    }
+
+    void delete() {
+        Iterator<Map.Entry<Integer, BlobShard>> it = shards.entrySet().iterator();
+        while (it.hasNext()) {
+            Map.Entry<Integer, BlobShard> e = it.next();
+            it.remove();
+            e.getValue().deleteShard();
+        }
     }
 }

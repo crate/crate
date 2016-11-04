@@ -63,7 +63,7 @@ public class SysSnapshotsTest extends SQLTransportIntegrationTest {
 
     @Override
     protected Settings nodeSettings(int nodeOrdinal) {
-        return Settings.settingsBuilder()
+        return Settings.builder()
             .put(super.nodeSettings(nodeOrdinal))
             .put("path.repo", TEMP_FOLDER.getRoot().getAbsolutePath())
             .build();
@@ -91,7 +91,7 @@ public class SysSnapshotsTest extends SQLTransportIntegrationTest {
     private void createRepository(String name) {
         PutRepositoryResponse putRepositoryResponse = client().admin().cluster().preparePutRepository(name)
             .setType("fs")
-            .setSettings(Settings.settingsBuilder()
+            .setSettings(Settings.builder()
                 .put("location", new File(TEMP_FOLDER.getRoot(), "backup").getAbsolutePath())
                 .put("chunk_size", "5k")
                 .put("compress", false)

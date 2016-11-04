@@ -26,6 +26,7 @@ import com.google.common.util.concurrent.SettableFuture;
 import org.elasticsearch.cluster.*;
 import org.elasticsearch.cluster.block.ClusterBlocks;
 import org.elasticsearch.cluster.metadata.MetaData;
+import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.component.AbstractLifecycleComponent;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
@@ -34,7 +35,7 @@ import org.elasticsearch.common.settings.Settings;
 import static org.elasticsearch.cluster.ClusterState.builder;
 
 @Singleton
-public class ClusterIdService extends AbstractLifecycleComponent<ClusterIdService> implements ClusterStateListener {
+public class ClusterIdService extends AbstractLifecycleComponent implements ClusterStateListener {
 
     private static final String CLUSTER_ID_SETTINGS_KEY = "cluster_id";
 
@@ -119,7 +120,7 @@ public class ClusterIdService extends AbstractLifecycleComponent<ClusterIdServic
         clusterService.submitStateUpdateTask("new_cluster_id", new ClusterStateUpdateTask() {
             @Override
             public ClusterState execute(ClusterState currentState) throws Exception {
-                Settings.Builder transientSettings = Settings.settingsBuilder();
+                Settings.Builder transientSettings = Settings.builder();
                 transientSettings.put(currentState.metaData().transientSettings());
                 transientSettings.put(CLUSTER_ID_SETTINGS_KEY, clusterId.value().toString());
 
@@ -129,8 +130,10 @@ public class ClusterIdService extends AbstractLifecycleComponent<ClusterIdServic
 
                 ClusterBlocks.Builder blocks = ClusterBlocks.builder().blocks(currentState.blocks());
                 boolean updatedReadOnly =
-                    metaData.persistentSettings().getAsBoolean(MetaData.SETTING_READ_ONLY, false)
-                    || metaData.transientSettings().getAsBoolean(MetaData.SETTING_READ_ONLY, false);
+                    metaData.persistentSettings().getAsBoolean(
+                        MetaData.SETTING_READ_ONLY_SETTING.getKey(), false)
+                    || metaData.transientSettings().getAsBoolean(
+                        MetaData.SETTING_READ_ONLY_SETTING.getKey(), false);
                 if (updatedReadOnly) {
                     blocks.addGlobalBlock(MetaData.CLUSTER_READ_ONLY_BLOCK);
                 } else {
@@ -141,8 +144,8 @@ public class ClusterIdService extends AbstractLifecycleComponent<ClusterIdServic
             }
 
             @Override
-            public void onFailure(String source, Throwable t) {
-                logger.error("failed to perform [{}]", t, source);
+            public void onFailure(String source, Exception e) {
+                logger.error("failed to perform [{}]", e, source);
             }
         });
     }

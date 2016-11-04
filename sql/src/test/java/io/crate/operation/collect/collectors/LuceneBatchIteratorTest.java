@@ -65,7 +65,7 @@ public class LuceneBatchIteratorTest extends CrateUnitTest {
             expectedResult.add(new Object[] { i });
         }
         iw.commit();
-        indexSearcher = new IndexSearcher(DirectoryReader.open(iw, true));
+        indexSearcher = new IndexSearcher(DirectoryReader.open(iw));
         LongColumnReference columnReference = new LongColumnReference(columnName);
         columnRefs = Collections.singletonList(columnReference);
     }

@@ -33,7 +33,7 @@ import io.crate.operation.reference.sys.cluster.ClusterLoggingOverridesExpressio
 import io.crate.operation.reference.sys.cluster.ClusterSettingsExpression;
 import io.crate.types.ArrayType;
 import io.crate.types.DataTypes;
-import org.elasticsearch.cluster.ClusterService;
+import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 
@@ -236,11 +236,6 @@ public class SysClusterTableInfo extends StaticTableInfo {
                     CrateSettings.ROUTING.name(),
                     CrateSettings.ROUTING_ALLOCATION.name(),
                     CrateSettings.ROUTING_ALLOCATION_BALANCE.name(),
-                    CrateSettings.ROUTING_ALLOCATION_BALANCE_PRIMARY.name()))
-                .register(ClusterSettingsExpression.NAME, DataTypes.FLOAT, ImmutableList.of(CrateSettings.CLUSTER.name(),
-                    CrateSettings.ROUTING.name(),
-                    CrateSettings.ROUTING_ALLOCATION.name(),
-                    CrateSettings.ROUTING_ALLOCATION_BALANCE.name(),
                     CrateSettings.ROUTING_ALLOCATION_BALANCE_THRESHOLD.name()))
 
                 .register(ClusterSettingsExpression.NAME, DataTypes.OBJECT, ImmutableList.of(CrateSettings.CLUSTER.name(),
@@ -273,21 +268,6 @@ public class SysClusterTableInfo extends StaticTableInfo {
                 .register(ClusterSettingsExpression.NAME, DataTypes.OBJECT, ImmutableList.of(CrateSettings.INDICES.name()))
                 .register(ClusterSettingsExpression.NAME, DataTypes.OBJECT, ImmutableList.of(CrateSettings.INDICES.name(),
                     CrateSettings.INDICES_RECOVERY.name()))
-                .register(ClusterSettingsExpression.NAME, DataTypes.INTEGER, ImmutableList.of(CrateSettings.INDICES.name(),
-                    CrateSettings.INDICES_RECOVERY.name(),
-                    CrateSettings.INDICES_RECOVERY_CONCURRENT_STREAMS.name()))
-                .register(ClusterSettingsExpression.NAME, DataTypes.STRING, ImmutableList.of(CrateSettings.INDICES.name(),
-                    CrateSettings.INDICES_RECOVERY.name(),
-                    CrateSettings.INDICES_RECOVERY_FILE_CHUNK_SIZE.name()))
-                .register(ClusterSettingsExpression.NAME, DataTypes.INTEGER, ImmutableList.of(CrateSettings.INDICES.name(),
-                    CrateSettings.INDICES_RECOVERY.name(),
-                    CrateSettings.INDICES_RECOVERY_TRANSLOG_OPS.name()))
-                .register(ClusterSettingsExpression.NAME, DataTypes.STRING, ImmutableList.of(CrateSettings.INDICES.name(),
-                    CrateSettings.INDICES_RECOVERY.name(),
-                    CrateSettings.INDICES_RECOVERY_TRANSLOG_SIZE.name()))
-                .register(ClusterSettingsExpression.NAME, DataTypes.BOOLEAN, ImmutableList.of(CrateSettings.INDICES.name(),
-                    CrateSettings.INDICES_RECOVERY.name(),
-                    CrateSettings.INDICES_RECOVERY_COMPRESS.name()))
                 .register(ClusterSettingsExpression.NAME, DataTypes.STRING, ImmutableList.of(CrateSettings.INDICES.name(),
                     CrateSettings.INDICES_RECOVERY.name(),
                     CrateSettings.INDICES_RECOVERY_MAX_BYTES_PER_SEC.name()))
@@ -323,6 +303,7 @@ public class SysClusterTableInfo extends StaticTableInfo {
 
                 .register(ClusterSettingsExpression.NAME, DataTypes.OBJECT, ImmutableList.of(CrateSettings.INDICES.name(),
                     CrateSettings.INDICES_BREAKER.name()))
+
                 .register(ClusterSettingsExpression.NAME, DataTypes.OBJECT, ImmutableList.of(CrateSettings.INDICES.name(),
                     CrateSettings.INDICES_BREAKER.name(),
                     CrateSettings.INDICES_BREAKER_QUERY.name()))

@@ -27,6 +27,7 @@ import io.crate.executor.transport.distributed.DistributedResultRequest;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
+import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.junit.Test;
@@ -52,7 +53,7 @@ public class DistributedResultRequestTest extends CrateUnitTest {
 
         BytesStreamOutput out = new BytesStreamOutput();
         r1.writeTo(out);
-        StreamInput in = StreamInput.wrap(out.bytes());
+        StreamInput in = out.bytes().streamInput();
         DistributedResultRequest r2 = new DistributedResultRequest();
         r2.readFrom(in);
         r2.streamers(streamers);
@@ -74,7 +75,7 @@ public class DistributedResultRequestTest extends CrateUnitTest {
 
         BytesStreamOutput out = new BytesStreamOutput();
         r1.writeTo(out);
-        StreamInput in = StreamInput.wrap(out.bytes());
+        StreamInput in = StreamInput.wrap(BytesReference.toBytes(out.bytes()));
         DistributedResultRequest r2 = new DistributedResultRequest();
         r2.readFrom(in);
 

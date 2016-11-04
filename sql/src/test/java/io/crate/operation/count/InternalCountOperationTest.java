@@ -31,6 +31,9 @@ import io.crate.metadata.TableIdent;
 import io.crate.metadata.table.TableInfo;
 import io.crate.sql.tree.QualifiedName;
 import io.crate.testing.SqlExpressions;
+import org.elasticsearch.cluster.metadata.MetaData;
+import org.elasticsearch.cluster.service.ClusterService;
+import org.elasticsearch.index.Index;
 import org.elasticsearch.test.ESIntegTestCase;
 import org.junit.Test;
 
@@ -49,7 +52,10 @@ public class InternalCountOperationTest extends SQLTransportIntegrationTest {
         execute("refresh table t");
 
         CountOperation countOperation = internalCluster().getDataNodeInstance(CountOperation.class);
-        assertThat(countOperation.count("t", 0, WhereClause.MATCH_ALL), is(3L));
+        ClusterService clusterService = internalCluster().getDataNodeInstance(ClusterService.class);
+        MetaData metaData = clusterService.state().getMetaData();
+        Index index = metaData.index("t").getIndex();
+        assertThat(countOperation.count(index, 0, WhereClause.MATCH_ALL), is(3L));
 
         Schemas schemas = internalCluster().getInstance(Schemas.class);
         TableInfo tableInfo = schemas.getTableInfo(new TableIdent(null, "t"));
@@ -58,6 +64,6 @@ public class InternalCountOperationTest extends SQLTransportIntegrationTest {
         SqlExpressions sqlExpressions = new SqlExpressions(tableSources, tableRelation);
 
         WhereClause whereClause = new WhereClause(sqlExpressions.normalize(sqlExpressions.asSymbol("name = 'Marvin'")));
-        assertThat(countOperation.count("t", 0, whereClause), is(1L));
+        assertThat(countOperation.count(index, 0, whereClause), is(1L));
     }
 }
