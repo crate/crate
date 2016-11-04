@@ -29,7 +29,6 @@ import org.elasticsearch.action.ActionModule;
 import org.elasticsearch.common.component.LifecycleComponent;
 import org.elasticsearch.common.inject.Module;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.http.HttpServerModule;
 import org.elasticsearch.plugins.Plugin;
 
 import java.util.ArrayList;
@@ -52,8 +51,9 @@ public class BlobPlugin extends Plugin {
         return "plugin that adds BlOB support to crate";
     }
 
+
     @Override
-    public Collection<Module> nodeModules() {
+    public Collection<Module> createGuiceModules() {
         if (settings.getAsBoolean("node.client", false)) {
             return Collections.emptyList();
         }
@@ -64,7 +64,7 @@ public class BlobPlugin extends Plugin {
     }
 
     @Override
-    public Collection<Class<? extends LifecycleComponent>> nodeServices() {
+    public Collection<Class<? extends LifecycleComponent>> getGuiceServiceClasses() {
         // only start the service if we have a data node
         if (settings.getAsBoolean("node.client", false)) {
             return Collections.emptyList();

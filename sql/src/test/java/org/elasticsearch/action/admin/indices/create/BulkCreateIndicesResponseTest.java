@@ -46,7 +46,7 @@ public class BulkCreateIndicesResponseTest {
         BulkCreateIndicesResponse response = new BulkCreateIndicesResponse(acknowledged);
         BytesStreamOutput out = new BytesStreamOutput();
         response.writeTo(out);
-        StreamInput in = StreamInput.wrap(out.bytes());
+        StreamInput in = out.bytes().streamInput();
 
         BulkCreateIndicesResponse responseDeserialized = new BulkCreateIndicesResponse();
         responseDeserialized.readFrom(in);

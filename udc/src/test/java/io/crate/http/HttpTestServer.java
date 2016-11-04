@@ -25,8 +25,8 @@ import com.fasterxml.jackson.core.JsonEncoding;
 import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.core.JsonParser;
+import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
-import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 import org.jboss.netty.bootstrap.ServerBootstrap;
 import org.jboss.netty.buffer.ChannelBuffers;
@@ -123,7 +123,7 @@ public class HttpTestServer {
 
     public class HttpTestServerHandler extends SimpleChannelUpstreamHandler {
 
-        private final ESLogger logger = Loggers.getLogger(
+        private final Logger logger = Loggers.getLogger(
             HttpTestServerHandler.class.getName());
 
         @Override
@@ -164,11 +164,11 @@ public class HttpTestServer {
                 } catch (Exception ex) {
                     response = new DefaultHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.INTERNAL_SERVER_ERROR);
                 }
-                response.setContent(ChannelBuffers.copiedBuffer(out.bytes().toUtf8(), CharsetUtil.UTF_8));
+                response.setContent(ChannelBuffers.copiedBuffer(out.bytes().utf8ToString(), CharsetUtil.UTF_8));
 
-                responses.add(out.bytes().toUtf8());
+                responses.add(out.bytes().utf8ToString());
                 if (logger.isDebugEnabled()) {
-                    logger.debug("Sending response: " + out.bytes().toUtf8());
+                    logger.debug("Sending response: " + out.bytes().utf8ToString());
                 }
 
                 ChannelFuture future = e.getChannel().write(response);

@@ -28,22 +28,20 @@ import com.google.common.util.concurrent.SettableFuture;
 import io.crate.ClusterIdService;
 import io.crate.Version;
 import io.crate.rest.CrateRestMainAction;
+import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.inject.AbstractModule;
 import org.elasticsearch.common.inject.TypeLiteral;
 import org.elasticsearch.common.inject.matcher.AbstractMatcher;
 import org.elasticsearch.common.inject.spi.InjectionListener;
 import org.elasticsearch.common.inject.spi.TypeEncounter;
 import org.elasticsearch.common.inject.spi.TypeListener;
-import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.rest.action.main.RestMainAction;
-
-import java.util.concurrent.TimeUnit;
+import org.elasticsearch.rest.action.RestMainAction;
 
 public class CrateCoreModule extends AbstractModule {
 
-    private final ESLogger logger;
+    private final Logger logger;
 
     public CrateCoreModule(Settings settings) {
         logger = Loggers.getLogger(getClass().getPackage().getName(), settings);

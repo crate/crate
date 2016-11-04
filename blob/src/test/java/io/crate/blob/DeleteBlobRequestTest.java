@@ -39,7 +39,7 @@ public class DeleteBlobRequestTest extends CrateUnitTest {
         request.writeTo(out);
 
         DeleteBlobRequest fromStream = new DeleteBlobRequest();
-        StreamInput in = StreamInput.wrap(out.bytes());
+        StreamInput in = out.bytes().streamInput();
         fromStream.readFrom(in);
 
         assertThat(fromStream.index(), is("foo"));
