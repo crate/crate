@@ -71,6 +71,9 @@ import java.util.concurrent.atomic.AtomicInteger;
  * (...)
  * CC-RR.finish()
  * all finished -> RR.finish
+ *
+ * Note: As this collector combines multiple collectors in 1 thread, due to current resume/repeat architecture,
+ * number of collectors (shards) is limited by the configured thread stack size (default: 1024k on 64bit).
  */
 public class CompositeCollector implements CrateCollector {
 

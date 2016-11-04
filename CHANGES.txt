@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Removed reduced thread stack size java option, stack size defaults
+   to JVM defaults now.
+
  - Fix: selecting os_info['jvm']['vm_vendor'] and os_info['jvm']['name'] caused
    ColumnUnknownExceptions
 
