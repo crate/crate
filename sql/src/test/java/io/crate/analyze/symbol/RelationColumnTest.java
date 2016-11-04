@@ -39,7 +39,7 @@ public class RelationColumnTest {
         RelationColumn rc = new RelationColumn(QualifiedName.of("a", "b"), 5, DataTypes.STRING);
         BytesStreamOutput out = new BytesStreamOutput(256);
         Symbols.toStream(rc, out);
-        StreamInput in = StreamInput.wrap(out.bytes());
+        StreamInput in = out.bytes().streamInput();
         RelationColumn rc2 = (RelationColumn) Symbols.fromStream(in);
         assertThat(rc2, is(rc));
     }

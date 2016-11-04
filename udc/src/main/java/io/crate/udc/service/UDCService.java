@@ -26,7 +26,7 @@ import io.crate.monitor.ExtendedNodeInfo;
 import io.crate.udc.ping.PingTask;
 import io.crate.udc.plugin.UDCPlugin;
 import org.elasticsearch.ElasticsearchException;
-import org.elasticsearch.cluster.ClusterService;
+import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.component.AbstractLifecycleComponent;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Provider;
@@ -35,7 +35,7 @@ import org.elasticsearch.common.unit.TimeValue;
 
 import java.util.Timer;
 
-public class UDCService extends AbstractLifecycleComponent<UDCService> {
+public class UDCService extends AbstractLifecycleComponent {
 
     private final Timer timer;
 
