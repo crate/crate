@@ -80,7 +80,10 @@ public class Merge implements Plan, ResultDescription {
      *                    If the subPlan contains a limit/offset or orderBy in its resultDescription this method will
      *                    add a TopNProjection AFTER the projections.
      */
-    public static Plan mergeToHandler(Plan subPlan, Planner.Context plannerContext, List<Projection> projections) {
+    private static Plan mergeToHandler(Plan subPlan,
+                                       Planner.Context plannerContext,
+                                       List<Projection> projections,
+                                       boolean tryUseDirectResult) {
         ResultDescription resultDescription = subPlan.resultDescription();
         assert resultDescription != null : "all plans must have a result description. Plan without: " + subPlan;
 
@@ -121,7 +124,9 @@ public class Merge implements Plan, ResultDescription {
          *
          * This is a limitation of the ExecutionPhasesTask/ContextPreparer
          */
-        if (subPlan instanceof Collect && !Paging.shouldPage(resultDescription.maxRowsPerNode())) {
+        if (tryUseDirectResult
+            && subPlan instanceof Collect
+            && !Paging.shouldPage(resultDescription.maxRowsPerNode())) {
             // use direct result
             handlerNodeIds = Collections.emptyList();
         } else {
@@ -164,7 +169,17 @@ public class Merge implements Plan, ResultDescription {
     }
 
     public static Plan mergeToHandler(Plan subPlan, Planner.Context plannerContext) {
-        return mergeToHandler(subPlan, plannerContext, Collections.emptyList());
+        return mergeToHandler(subPlan, plannerContext, Collections.emptyList(), true);
+    }
+
+    public static Plan mergeToHandler(Plan subPlan,
+                                      Planner.Context plannerContext,
+                                      List<Projection> projections) {
+        return mergeToHandler(subPlan, plannerContext, projections, true);
+    }
+
+    public static Plan mergeToHandlerNoDirectResult(Plan subPlan, Planner.Context plannerContext) {
+        return mergeToHandler(subPlan, plannerContext, Collections.emptyList(), false);
     }
 
     public Merge(Plan subPlan,
