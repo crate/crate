@@ -43,7 +43,7 @@ public class PageDownstreamContext extends AbstractExecutionSubContext implement
     private final Object lock = new Object();
     private final String nodeName;
     private final boolean traceEnabled;
-    private String name;
+    private final String name;
     private final PageDownstream pageDownstream;
     private final Streamer<?>[] streamers;
     private final RamAccountingContext ramAccountingContext;
