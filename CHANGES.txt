@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fixed an issue that causes outer joins to fail with an exception
+   if columns are referenced in a where clause but not as select items.
+
  - Updated crate-admin to ``0.21.2`` which includes the following change:
 
      - fixed incorrect sql query for creating the tweets table in the tutorial.
