@@ -138,8 +138,8 @@ public class SysNodesTableInfo extends StaticTableInfo {
         public static final ColumnIdent OS_INFO_VERSION = new ColumnIdent(SYS_COL_OS_INFO, ImmutableList.of("version"));
         public static final ColumnIdent OS_INFO_JVM = new ColumnIdent(SYS_COL_OS_INFO, ImmutableList.of("jvm"));
         public static final ColumnIdent OS_INFO_JVM_VERSION = new ColumnIdent(SYS_COL_OS_INFO, ImmutableList.of("jvm", "version"));
-        public static final ColumnIdent OS_INFO_JVM_NAME = new ColumnIdent(SYS_COL_OS_INFO, ImmutableList.of("jvm", "name"));
-        public static final ColumnIdent OS_INFO_JVM_VENDOR = new ColumnIdent(SYS_COL_OS_INFO, ImmutableList.of("jvm", "vendor"));
+        public static final ColumnIdent OS_INFO_JVM_NAME = new ColumnIdent(SYS_COL_OS_INFO, ImmutableList.of("jvm", "vm_name"));
+        public static final ColumnIdent OS_INFO_JVM_VENDOR = new ColumnIdent(SYS_COL_OS_INFO, ImmutableList.of("jvm", "vm_vendor"));
         public static final ColumnIdent OS_INFO_JVM_VM_VERSION = new ColumnIdent(SYS_COL_OS_INFO, ImmutableList.of("jvm", "vm_version"));
 
         public static final ColumnIdent PROCESS = new ColumnIdent(SYS_COL_PROCESS);

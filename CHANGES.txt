@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fix: selecting os_info['jvm']['vm_vendor'] and os_info['jvm']['name'] caused
+   ColumnUnknownExceptions
+
  - Fixed an issue that causes outer joins to fail with an exception
    if columns are referenced in a where clause but not as select items.
 
