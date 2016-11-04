@@ -28,10 +28,10 @@ import io.crate.metadata.TableIdent;
 import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.TestingTableInfo;
-import io.crate.test.integration.CrateUnitTest;
+import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.crate.types.DataTypes;
-import org.elasticsearch.test.cluster.NoopClusterService;
+import org.junit.Before;
 import org.junit.Test;
 
 import static io.crate.analyze.TableDefinitions.SHARD_ROUTING;
@@ -40,7 +40,7 @@ import static java.util.Locale.ENGLISH;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 
-public class DropTableAnalyzerTest extends CrateUnitTest {
+public class DropTableAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     private final TableIdent aliasIdent = new TableIdent(DocSchemaInfo.NAME, "alias_table");
     private final DocTableInfo aliasInfo = TestingTableInfo.builder(aliasIdent, SHARD_ROUTING)
@@ -48,10 +48,12 @@ public class DropTableAnalyzerTest extends CrateUnitTest {
         .isAlias(true)
         .build();
 
-    private SQLExecutor e = SQLExecutor.builder(new NoopClusterService())
-        .enableDefaultTables()
-        .addDocTable(aliasInfo)
-        .build();
+    private SQLExecutor e;
+
+    @Before
+    public void prepare() {
+        e = SQLExecutor.builder(clusterService).enableDefaultTables().addDocTable(aliasInfo).build();
+    }
 
     @Test
     public void testDropNonExistingTable() throws Exception {

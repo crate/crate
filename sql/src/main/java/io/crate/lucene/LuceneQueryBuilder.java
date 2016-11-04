@@ -25,10 +25,8 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
-import com.spatial4j.core.context.jts.JtsSpatialContext;
-import com.spatial4j.core.shape.Rectangle;
-import com.spatial4j.core.shape.Shape;
 import com.vividsolutions.jts.geom.Coordinate;
+import com.vividsolutions.jts.geom.CoordinateArrays;
 import com.vividsolutions.jts.geom.Geometry;
 import io.crate.Constants;
 import io.crate.analyze.MatchOptionsAnalysis;
@@ -41,8 +39,7 @@ import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.geo.GeoJSONUtils;
 import io.crate.lucene.match.CrateRegexCapabilities;
 import io.crate.lucene.match.CrateRegexQuery;
-import io.crate.lucene.match.MatchQueryBuilder;
-import io.crate.lucene.match.MultiMatchQueryBuilder;
+import io.crate.lucene.match.MatchQueries;
 import io.crate.metadata.*;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.operation.InputFactory;
@@ -62,41 +59,39 @@ import io.crate.operation.scalar.geo.WithinFunction;
 import io.crate.types.CollectionType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
+import org.apache.logging.log4j.Logger;
+import org.apache.lucene.geo.Polygon;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.search.*;
 import org.apache.lucene.spatial.geopoint.document.GeoPointField;
-import org.apache.lucene.spatial.geopoint.search.GeoPointDistanceRangeQuery;
+import org.apache.lucene.spatial.geopoint.search.GeoPointInPolygonQuery;
+import org.apache.lucene.spatial.geopoint.search.XGeoPointDistanceRangeQuery;
 import org.apache.lucene.spatial.prefix.PrefixTreeStrategy;
 import org.apache.lucene.spatial.query.SpatialArgs;
 import org.apache.lucene.spatial.query.SpatialOperation;
-import org.apache.lucene.spatial.util.GeoDistanceUtils;
 import org.apache.lucene.util.BytesRef;
 import org.apache.lucene.util.automaton.RegExp;
 import org.elasticsearch.ExceptionsHelper;
 import org.elasticsearch.Version;
 import org.elasticsearch.common.collect.Tuple;
-import org.elasticsearch.common.geo.GeoDistance;
 import org.elasticsearch.common.geo.GeoPoint;
 import org.elasticsearch.common.geo.GeoUtils;
 import org.elasticsearch.common.geo.ShapeRelation;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
-import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.lucene.BytesRefs;
 import org.elasticsearch.common.lucene.search.Queries;
 import org.elasticsearch.index.cache.IndexCache;
 import org.elasticsearch.index.fielddata.IndexFieldDataService;
 import org.elasticsearch.index.fielddata.IndexGeoPointFieldData;
-import org.elasticsearch.index.mapper.MappedFieldType;
-import org.elasticsearch.index.mapper.MapperService;
-import org.elasticsearch.index.mapper.Uid;
-import org.elasticsearch.index.mapper.geo.GeoPointFieldMapper;
-import org.elasticsearch.index.mapper.geo.GeoShapeFieldMapper;
+import org.elasticsearch.index.mapper.*;
+import org.elasticsearch.index.query.QueryShardContext;
 import org.elasticsearch.index.query.RegexpFlag;
-import org.elasticsearch.index.search.geo.GeoDistanceRangeQuery;
-import org.elasticsearch.index.search.geo.GeoPolygonQuery;
-import org.elasticsearch.index.search.geo.InMemoryGeoBoundingBoxQuery;
+import org.elasticsearch.index.search.geo.LegacyInMemoryGeoBoundingBoxQuery;
+import org.locationtech.spatial4j.context.jts.JtsSpatialContext;
+import org.locationtech.spatial4j.shape.Rectangle;
+import org.locationtech.spatial4j.shape.Shape;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
@@ -104,28 +99,30 @@ import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import static io.crate.lucene.DistanceQueries.esV5DistanceQuery;
 import static io.crate.operation.scalar.regex.RegexMatcher.isPcrePattern;
-import static org.apache.lucene.spatial.util.GeoEncodingUtils.TOLERANCE;
+import static org.elasticsearch.common.geo.GeoUtils.TOLERANCE;
 
 @Singleton
 public class LuceneQueryBuilder {
 
-    private static final ESLogger LOGGER = Loggers.getLogger(LuceneQueryBuilder.class);
+    private static final Logger LOGGER = Loggers.getLogger(LuceneQueryBuilder.class);
     private final static Visitor VISITOR = new Visitor();
-    private final DocInputFactory docInputFactory;
+    private final Functions functions;
 
     @Inject
     public LuceneQueryBuilder(Functions functions) {
-        docInputFactory = new DocInputFactory(functions, new LuceneReferenceResolver(null));
+        this.functions = functions;
     }
 
     public Context convert(WhereClause whereClause,
                            MapperService mapperService,
+                           QueryShardContext queryShardContext,
                            IndexFieldDataService indexFieldDataService,
                            IndexCache indexCache) throws UnsupportedFeatureException {
-        Context ctx = new Context(docInputFactory, mapperService, indexFieldDataService, indexCache);
+        Context ctx = new Context(functions, mapperService, indexFieldDataService, indexCache, queryShardContext);
         if (whereClause.noMatch()) {
-            ctx.query = Queries.newMatchNoDocsQuery();
+            ctx.query = Queries.newMatchNoDocsQuery("whereClause no-match");
         } else if (!whereClause.hasQuery()) {
             ctx.query = Queries.newMatchAllQuery();
         } else {
@@ -142,7 +139,7 @@ public class LuceneQueryBuilder {
 
     private static Query termsQuery(@Nullable MappedFieldType fieldType, List values) {
         if (fieldType == null) {
-            return Queries.newMatchNoDocsQuery();
+            return Queries.newMatchNoDocsQuery("column does not exist in this index");
         }
         return fieldType.termsQuery(values, null);
     }
@@ -165,12 +162,19 @@ public class LuceneQueryBuilder {
         final MapperService mapperService;
         final IndexFieldDataService fieldDataService;
         final IndexCache indexCache;
+        final QueryShardContext queryShardContext;
 
-        Context(DocInputFactory docInputFactory,
+        Context(Functions functions,
                 MapperService mapperService,
                 IndexFieldDataService fieldDataService,
-                IndexCache indexCache) {
-            this.docInputFactory = docInputFactory;
+                IndexCache indexCache,
+                QueryShardContext queryShardContext) {
+            this.queryShardContext = queryShardContext;
+            FieldTypeLookup typeLookup = mapperService::fullName;
+            this.docInputFactory = new DocInputFactory(
+                functions,
+                typeLookup,
+                new LuceneReferenceResolver(typeLookup, mapperService.getIndexSettings()));
             this.mapperService = mapperService;
             this.fieldDataService = fieldDataService;
             this.indexCache = indexCache;
@@ -216,7 +220,7 @@ public class LuceneQueryBuilder {
 
         @Nullable
         MappedFieldType getFieldTypeOrNull(String fqColumnName) {
-            return mapperService.smartNameFieldType(fqColumnName);
+            return mapperService.fullName(fqColumnName);
         }
     }
 
@@ -340,7 +344,7 @@ public class LuceneQueryBuilder {
                     if (CollectionType.unnest(arrayReference.valueType()).equals(DataTypes.OBJECT)) {
                         return null; // fallback to generic query to enable {x=10} = any(objects)
                     }
-                    return Queries.newMatchNoDocsQuery();
+                    return Queries.newMatchNoDocsQuery("column doesn't exist in this index");
                 }
                 return fieldType.termQuery(literal.value(), null);
             }
@@ -362,7 +366,7 @@ public class LuceneQueryBuilder {
 
                 MappedFieldType fieldType = context.getFieldTypeOrNull(columnName);
                 if (fieldType == null) {
-                    return Queries.newMatchNoDocsQuery();
+                    return Queries.newMatchNoDocsQuery("column does not exist in this index");
                 }
                 BooleanQuery.Builder query = new BooleanQuery.Builder();
                 query.setMinimumNumberShouldMatch(1);
@@ -383,7 +387,7 @@ public class LuceneQueryBuilder {
                 String columnName = reference.ident().columnIdent().fqn();
                 MappedFieldType fieldType = context.getFieldTypeOrNull(columnName);
                 if (fieldType == null) {
-                    return Queries.newMatchNoDocsQuery();
+                    return Queries.newMatchNoDocsQuery("column does not exist in this index");
                 }
 
                 BooleanQuery.Builder andBuilder = new BooleanQuery.Builder();
@@ -610,7 +614,7 @@ public class LuceneQueryBuilder {
                         return null; // fallback to generic filter for  "o = {x=10, y=20}"
                     }
                     // field doesn't exist, can't match
-                    return Queries.newMatchNoDocsQuery();
+                    return Queries.newMatchNoDocsQuery("column does not exist in this index");
                 }
                 if (DataTypes.isCollectionType(reference.valueType()) &&
                     DataTypes.isCollectionType(literal.valueType())) {
@@ -754,7 +758,7 @@ public class LuceneQueryBuilder {
                 MappedFieldType fieldType = fieldTypeLookup.get(columnName);
                 if (fieldType == null) {
                     // can't match column that doesn't exist or is an object ( "o >= {x=10}" is not supported)
-                    return Queries.newMatchNoDocsQuery();
+                    return Queries.newMatchNoDocsQuery("column does not exist in this index");
                 }
                 Tuple<?, ?> bounds = boundsFunction.apply(value);
                 assert bounds != null : "bounds must not be null";
@@ -789,7 +793,7 @@ public class LuceneQueryBuilder {
 
                 Map fields = (Map) ((Literal) arguments.get(0)).value();
                 String fieldName = ((String) Iterables.getOnlyElement(fields.keySet()));
-                MappedFieldType fieldType = context.mapperService.smartNameFieldType(fieldName);
+                MappedFieldType fieldType = context.mapperService.fullName(fieldName);
                 GeoShapeFieldMapper.GeoShapeFieldType geoShapeFieldType = (GeoShapeFieldMapper.GeoShapeFieldType) fieldType;
                 String matchType = ((BytesRef) ((Input) arguments.get(2)).value()).utf8ToString();
                 @SuppressWarnings("unchecked")
@@ -837,8 +841,7 @@ public class LuceneQueryBuilder {
                     "Invalid match type: %s. Analyzer should have made sure that it is valid", matchType));
             }
 
-            private Query stringMatch(Context context, List<Symbol> arguments, Object queryTerm) throws IOException {
-
+            private static Query stringMatch(Context context, List<Symbol> arguments, Object queryTerm) throws IOException {
                 @SuppressWarnings("unchecked")
                 Map<String, Object> fields = (Map) ((Literal) arguments.get(0)).value();
                 BytesRef queryString = (BytesRef) queryTerm;
@@ -848,13 +851,49 @@ public class LuceneQueryBuilder {
 
                 MatchOptionsAnalysis.validate(options);
 
-                MatchQueryBuilder queryBuilder;
                 if (fields.size() == 1) {
-                    queryBuilder = new MatchQueryBuilder(context.mapperService, matchType, options);
+                    return singleMatchQuery(
+                        context.queryShardContext,
+                        fields.entrySet().iterator().next(),
+                        queryString,
+                        matchType,
+                        options
+                    );
                 } else {
-                    queryBuilder = new MultiMatchQueryBuilder(context.mapperService, matchType, options);
+                    fields.replaceAll((s, o) -> {
+                        if (o instanceof Number) {
+                            return ((Number) o).floatValue();
+                        }
+                        return null;
+                    });
+                    //noinspection unchecked
+                    return MatchQueries.multiMatch(
+                        context.queryShardContext,
+                        matchType,
+                        (Map<String, Float>) (Map) fields,
+                        queryString.utf8ToString(),
+                        options
+                    );
                 }
-                return queryBuilder.query(fields, queryString);
+            }
+
+            private static Query singleMatchQuery(QueryShardContext queryShardContext,
+                                                  Map.Entry<String, Object> entry,
+                                                  BytesRef queryString,
+                                                  BytesRef matchType,
+                                                  Map<String, Object> options) throws IOException {
+                Query query = MatchQueries.singleMatch(
+                    queryShardContext,
+                    entry.getKey(),
+                    queryString,
+                    matchType,
+                    options
+                );
+                Object boost = entry.getValue();
+                if (boost instanceof Number) {
+                    return new BoostQuery(query, ((Number) boost).floatValue());
+                }
+                return query;
             }
         }
 
@@ -966,7 +1005,8 @@ public class LuceneQueryBuilder {
 
                 Map<String, Object> geoJSON = (Map<String, Object>) innerPair.input().value();
                 Shape shape = GeoJSONUtils.map2Shape(geoJSON);
-                Geometry geometry = JtsSpatialContext.GEO.getGeometryFrom(shape);
+                Geometry geometry = JtsSpatialContext.GEO.getShapeFactory().getGeometryFrom(shape);
+
                 IndexGeoPointFieldData fieldData = context.fieldDataService.getForField(geoPointFieldType);
                 if (geometry.isRectangle()) {
                     return getBoundingBoxQuery(shape, fieldData);
@@ -975,58 +1015,29 @@ public class LuceneQueryBuilder {
                 }
             }
 
-            private Query getPolygonQuery(Geometry geometry, IndexGeoPointFieldData fieldData) {
+            private static Query getPolygonQuery(Geometry geometry, IndexGeoPointFieldData fieldData) {
                 Coordinate[] coordinates = geometry.getCoordinates();
-                GeoPoint[] points = new GeoPoint[coordinates.length];
-                for (int i = 0; i < coordinates.length; i++) {
-                    Coordinate coordinate = coordinates[i];
-                    points[i] = new GeoPoint(coordinate.y, coordinate.x);
+                // close the polygon shape if startpoint != endpoint
+                if (!CoordinateArrays.isRing(coordinates)) {
+                    coordinates = Arrays.copyOf(coordinates, coordinates.length + 1);
+                    coordinates[coordinates.length - 1] = coordinates[0];
                 }
-                return new GeoPolygonQuery(fieldData, points);
+                final double[] lats = new double[coordinates.length];
+                final double[] lons = new double[coordinates.length];
+                for (int i = 0; i < coordinates.length; i++) {
+                    lats[i] = coordinates[i].y;
+                    lons[i] = coordinates[i].x;
+                }
+                return new GeoPointInPolygonQuery(
+                    fieldData.getFieldName(),
+                    GeoPointField.TermEncoding.PREFIX,
+                    new Polygon(lats, lons)
+                );
             }
 
-            // FIXME: Once https://github.com/elastic/elasticsearch/issues/20333 is resolved
-            // The issue is resolved in elasticsearch master (5.x).
-            // Enable this method so that the new optimized query is used.
-            // Check test GeoShapeIntegrationTest.testGeoPointInPolygonQueryLuceneBug
-            // Enable test: LuceneQueryBuilderTest.testWithinFunctionTooFewPoints
-            // and change test: LuceneQueryBuilderTest.testWithinFunction
-/*
-            private Query getPolygonQuery(Context context, Geometry geometry, IndexGeoPointFieldData fieldData) {
-                final Version indexCreated = Version.indexCreated(context.indexCache.indexSettings());
-                Coordinate[] coordinates = geometry.getCoordinates();
-                final Query query;
-                // We can check for version 2.3 here because there is no Crate release with version 2.2
-                // although the optimized distance query is available since 2.2
-                if (indexCreated.before(Version.V_2_3_0)) {
-                    GeoPoint[] points = new GeoPoint[coordinates.length];
-                    for (int i = 0; i < coordinates.length; i++) {
-                        Coordinate coordinate = coordinates[i];
-                        points[i] = new GeoPoint(coordinate.y, coordinate.x);
-                    }
-                    query = new GeoPolygonQuery(fieldData, points);
-                } else {
-                    // close the polygon shape if startpoint != endpoint
-                    if (!CoordinateArrays.isRing(coordinates)) {
-                        coordinates = Arrays.copyOf(coordinates, coordinates.length + 1);
-                        coordinates[coordinates.length - 1] = coordinates[0];
-                    }
-                    final double[] lats = new double[coordinates.length];
-                    final double[] lons = new double[coordinates.length];
-                    for (int i = 0; i < coordinates.length; i++) {
-                        lats[i] = coordinates[i].y;
-                        lons[i] = coordinates[i].x;
-                    }
-                    query = new GeoPointInPolygonQuery(fieldData.getFieldNames().indexName(),
-                        GeoPointField.TermEncoding.PREFIX,
-                        lons, lats);
-                }
-                return query;
-            }
-*/
             private Query getBoundingBoxQuery(Shape shape, IndexGeoPointFieldData fieldData) {
                 Rectangle boundingBox = shape.getBoundingBox();
-                return new InMemoryGeoBoundingBoxQuery(
+                return new LegacyInMemoryGeoBoundingBoxQuery(
                     new GeoPoint(boundingBox.getMaxY(), boundingBox.getMinX()),
                     new GeoPoint(boundingBox.getMinY(), boundingBox.getMaxX()),
                     fieldData
@@ -1040,10 +1051,6 @@ public class LuceneQueryBuilder {
         }
 
         static class DistanceQuery implements InnerFunctionToQuery {
-
-            final static GeoDistance GEO_DISTANCE = GeoDistance.DEFAULT;
-            final static String OPTIMIZE_BOX = "memory";
-
 
             /**
              * @param parent the outer function. E.g. in the case of
@@ -1070,15 +1077,21 @@ public class LuceneQueryBuilder {
                 Double distance = DataTypes.DOUBLE.value(functionLiteralPair.input().value());
 
                 String fieldName = distanceRefLiteral.reference().ident().columnIdent().fqn();
-                GeoPointFieldMapper.GeoPointFieldType geoPointFieldType = getGeoPointFieldType(fieldName, context.mapperService);
+                BaseGeoPointFieldMapper.GeoPointFieldType geoPointFieldType = getGeoPointFieldType(
+                    fieldName, context.mapperService);
                 IndexGeoPointFieldData fieldData = context.fieldDataService.getForField(geoPointFieldType);
 
-                Input geoPointInput = distanceRefLiteral.input();
-                Double[] pointValue = (Double[]) geoPointInput.value();
-                double lat = pointValue[1];
-                double lon = pointValue[0];
+                Version indexVersionCreated = context.indexCache.getIndexSettings().getIndexVersionCreated();
 
                 String parentName = functionLiteralPair.functionName();
+                Input geoPointInput = distanceRefLiteral.input();
+                Double[] pointValue = (Double[]) geoPointInput.value();
+                if (indexVersionCreated.onOrAfter(LatLonPointFieldMapper.LAT_LON_FIELD_VERSION)) {
+                    return esV5DistanceQuery(parent, context, parentName, fieldName, distance, pointValue);
+                }
+
+                double lat = pointValue[1];
+                double lon = pointValue[0];
 
                 GeoPoint geoPoint = new GeoPoint(lat, lon);
                 Double from = null;
@@ -1115,41 +1128,25 @@ public class LuceneQueryBuilder {
                         // invalid operator? give up
                         return null;
                 }
-
-                final Version indexCreated = Version.indexCreated(context.indexCache.indexSettings());
-                final Query query;
-                if (indexCreated.before(Version.V_2_3_0)) {
-                    query = new GeoDistanceRangeQuery(
-                        geoPoint,
-                        from,
-                        to,
-                        includeLower,
-                        includeUpper,
-                        GEO_DISTANCE,
-                        geoPointFieldType,
-                        fieldData,
-                        OPTIMIZE_BOX);
-                } else {
-                    GeoUtils.normalizePoint(geoPoint);
-                    if (from == null) {
-                        from = 0d;
-                    }
-                    if (to == null) {
-                        to = GeoDistanceUtils.maxRadialDistanceMeters(geoPoint.lon(), geoPoint.lat());
-                    }
-                    query = new GeoPointDistanceRangeQuery(
-                        fieldData.getFieldNames().indexName(),
-                        GeoPointField.TermEncoding.PREFIX,
-                        geoPoint.lon(), geoPoint.lat(),
-                        (includeLower) ? from : from + TOLERANCE,
-                        (includeUpper) ? to : to - TOLERANCE);
+                GeoUtils.normalizePoint(geoPoint);
+                if (from == null) {
+                    from = 0d;
                 }
-                return query;
+                if (to == null) {
+                    to = GeoUtils.maxRadialDistanceMeters(geoPoint.lat(), geoPoint.lon());
+                }
+                return new XGeoPointDistanceRangeQuery(
+                    fieldData.index().getName(),
+                    GeoPointField.TermEncoding.PREFIX,
+                    geoPoint.lat(),
+                    geoPoint.lon(),
+                    (includeLower) ? from : from + TOLERANCE,
+                    (includeUpper) ? to : to - TOLERANCE);
             }
         }
 
-        private static GeoPointFieldMapper.GeoPointFieldType getGeoPointFieldType(String fieldName, MapperService mapperService) {
-            MappedFieldType fieldType = mapperService.smartNameFieldType(fieldName);
+        private static BaseGeoPointFieldMapper.GeoPointFieldType getGeoPointFieldType(String fieldName, MapperService mapperService) {
+            MappedFieldType fieldType = mapperService.fullName(fieldName);
             if (fieldType == null) {
                 throw new IllegalArgumentException(String.format(Locale.ENGLISH, "column \"%s\" doesn't exist", fieldName));
             }
@@ -1290,7 +1287,7 @@ public class LuceneQueryBuilder {
             return function;
         }
 
-        private static Query genericFunctionFilter(Function function, Context context) {
+        static Query genericFunctionFilter(Function function, Context context) {
             if (function.valueType() != DataTypes.BOOLEAN) {
                 raiseUnsupported(function);
             }
@@ -1327,7 +1324,7 @@ public class LuceneQueryBuilder {
             if (symbol.valueType() == DataTypes.BOOLEAN) {
                 MappedFieldType fieldType = context.getFieldTypeOrNull(symbol.ident().columnIdent().fqn());
                 if (fieldType == null) {
-                    return Queries.newMatchNoDocsQuery();
+                    return Queries.newMatchNoDocsQuery("column does not exist in this index");
                 }
                 return fieldType.termQuery(true, null);
             }

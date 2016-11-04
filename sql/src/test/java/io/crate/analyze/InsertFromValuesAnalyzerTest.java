@@ -28,19 +28,20 @@ import io.crate.exceptions.ColumnUnknownException;
 import io.crate.exceptions.ColumnValidationException;
 import io.crate.exceptions.InvalidColumnNameException;
 import io.crate.exceptions.ValidationException;
+import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.PartitionName;
 import io.crate.metadata.Reference.IndexType;
-import io.crate.metadata.*;
+import io.crate.metadata.Routing;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.ColumnPolicy;
 import io.crate.metadata.table.TestingTableInfo;
 import io.crate.operation.scalar.arithmetic.AddFunction;
-import io.crate.test.integration.CrateUnitTest;
+import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.collect.MapBuilder;
-import org.elasticsearch.test.cluster.NoopClusterService;
 import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.Test;
@@ -53,7 +54,7 @@ import static io.crate.testing.SymbolMatchers.*;
 import static org.hamcrest.Matchers.*;
 import static org.hamcrest.core.Is.is;
 
-public class InsertFromValuesAnalyzerTest extends CrateUnitTest {
+public class InsertFromValuesAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     private final TableIdent testAliasTableIdent = new TableIdent(null, "alias");
     private final DocTableInfo testAliasTableInfo = new TestingTableInfo.Builder(
@@ -72,8 +73,8 @@ public class InsertFromValuesAnalyzerTest extends CrateUnitTest {
     private SQLExecutor e;
 
     @Before
-    public void init() {
-        SQLExecutor.Builder executorBuilder = SQLExecutor.builder(new NoopClusterService())
+    public void prepare() {
+        SQLExecutor.Builder executorBuilder = SQLExecutor.builder(clusterService)
             .enableDefaultTables()
             .addDocTable(testAliasTableInfo)
             .addDocTable(nestedClusteredTableInfo);

@@ -58,16 +58,12 @@ and will never produce a hit when queried.
     cr> refresh table my_table1b;
     REFRESH OK, ...
 
-When a not indexed column is queried the query won't return any results.
+When a not indexed column is queried the query will return an error.
 
 ::
 
     cr> select * from my_table1b where first_column = 'hello';
-    +--------------+
-    | first_column |
-    +--------------+
-    +--------------+
-    SELECT 0 rows in set (... sec)
+    SQLActionException[UnhandledServerException: java.lang.IllegalArgumentException: Cannot search on field [first_column] since it is not indexed.]
 
 .. note::
 

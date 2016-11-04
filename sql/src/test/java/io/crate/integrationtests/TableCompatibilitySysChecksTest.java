@@ -23,7 +23,6 @@
 package io.crate.integrationtests;
 
 import io.crate.operation.reference.sys.check.SysCheck;
-import io.crate.operation.reference.sys.check.cluster.TablesNeedRecreationSysCheck;
 import io.crate.operation.reference.sys.check.cluster.TablesNeedUpgradeSysCheck;
 import io.crate.testing.UseJdbc;
 import org.elasticsearch.common.settings.Settings;
@@ -54,21 +53,8 @@ public class TableCompatibilitySysChecksTest extends SQLTransportIntegrationTest
     }
 
     @Test
-    public void testRecreationRequired() throws Exception {
-        startUpNodeWithDataDir("/indices/data_home/cratedata_recreation_required.zip");
-        execute("select * from sys.checks where passed = false");
-        assertThat(response.rowCount(), is(1L));
-        assertThat(response.rows()[0][1], is(TablesNeedRecreationSysCheck.ID));
-        assertThat(response.rows()[0][3], is(SysCheck.Severity.MEDIUM.value()));
-        assertThat(response.rows()[0][0],
-            is(TablesNeedRecreationSysCheck.DESCRIPTION +
-               "[doc.test_reindex_required, doc.test_reindex_required_parted] " +
-               LINK_PATTERN + TablesNeedRecreationSysCheck.ID));
-    }
-
-    @Test
     public void testUpgradeRequired() throws Exception {
-        startUpNodeWithDataDir("/indices/data_home/cratedata_upgrade_required-node1.zip");
+        startUpNodeWithDataDir("/indices/data_home/cratedata_upgrade_required.zip");
         execute("select * from sys.checks where passed = false");
         assertThat(response.rowCount(), is(1L));
         assertThat(response.rows()[0][1], is(TablesNeedUpgradeSysCheck.ID));
@@ -77,25 +63,11 @@ public class TableCompatibilitySysChecksTest extends SQLTransportIntegrationTest
             is(TablesNeedUpgradeSysCheck.DESCRIPTION +
                "[doc.test_upgrade_required, doc.test_upgrade_required_parted] " +
                LINK_PATTERN + TablesNeedUpgradeSysCheck.ID));
-    }
 
-    @Test
-    public void testUpgradeAndRecreationRequired() throws Exception {
-        startUpNodeWithDataDir("/indices/data_home/cratedata_upgrade_and_recreate_required.zip");
-        execute("select * from sys.checks where passed = false order by id");
-        assertThat(response.rowCount(), is(2L));
-        assertThat(response.rows()[0][1], is(TablesNeedUpgradeSysCheck.ID));
-        assertThat(response.rows()[0][3], is(SysCheck.Severity.MEDIUM.value()));
-        assertThat(response.rows()[0][0],
-            is(TablesNeedUpgradeSysCheck.DESCRIPTION +
-               "[doc.test_upgrade_required, doc.test_upgrade_required_parted] " +
-               LINK_PATTERN + TablesNeedUpgradeSysCheck.ID));
-        assertThat(response.rows()[1][1], is(TablesNeedRecreationSysCheck.ID));
-        assertThat(response.rows()[1][3], is(SysCheck.Severity.MEDIUM.value()));
-        assertThat(response.rows()[1][0],
-            is(TablesNeedRecreationSysCheck.DESCRIPTION +
-               "[doc.test_recreation_required, doc.test_recreation_required_parted] " +
-               LINK_PATTERN + TablesNeedRecreationSysCheck.ID));
+        execute("optimize table blob.test_blob_upgrade_required, doc.test_upgrade_required, " +
+                "doc.test_upgrade_required_parted with (upgrade_segments=true);");
+        execute("select * from sys.checks where passed = false");
+        assertThat(response.rowCount(), is(0L));
     }
 
     @Test

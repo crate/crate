@@ -47,7 +47,7 @@ public class OneRowActionListener<Response> implements ActionListener<Response>,
     }
 
     @Override
-    public void onFailure(@Nonnull Throwable e) {
+    public void onFailure(@Nonnull Exception e) {
         consumer.accept(null, e);
     }
 
@@ -56,7 +56,7 @@ public class OneRowActionListener<Response> implements ActionListener<Response>,
         if (t == null) {
             onResponse(response);
         } else {
-            onFailure(t);
+            consumer.accept(null, t);
         }
     }
 }

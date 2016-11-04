@@ -29,6 +29,7 @@ import io.crate.types.StringType;
 import org.apache.commons.codec.binary.Base32;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.Nullable;
+import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.StreamInput;
 
@@ -109,7 +110,8 @@ public class PartitionName {
         } catch (IOException e) {
             throw Throwables.propagate(e);
         }
-        String identBase32 = BASE32.encodeAsString(streamOutput.bytes().toBytes()).toLowerCase(Locale.ROOT);
+        byte[] bytes = BytesReference.toBytes(streamOutput.bytes());
+        String identBase32 = BASE32.encodeAsString(bytes).toLowerCase(Locale.ROOT);
         // decode doesn't need padding, remove it
         int idx = identBase32.indexOf('=');
         if (idx > -1) {

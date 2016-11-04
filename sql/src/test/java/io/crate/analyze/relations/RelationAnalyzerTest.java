@@ -24,16 +24,21 @@ package io.crate.analyze.relations;
 
 import io.crate.analyze.SelectAnalyzedStatement;
 import io.crate.exceptions.ValidationException;
-import io.crate.test.integration.CrateUnitTest;
+import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
-import org.elasticsearch.test.cluster.NoopClusterService;
+import org.junit.Before;
 import org.junit.Test;
 
 import static org.hamcrest.core.Is.is;
 
-public class RelationAnalyzerTest extends CrateUnitTest {
+public class RelationAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
-    private SQLExecutor executor = SQLExecutor.builder(new NoopClusterService()).enableDefaultTables().build();
+    private SQLExecutor executor;
+
+    @Before
+    public void prepare() {
+        executor = SQLExecutor.builder(clusterService).enableDefaultTables().build();
+    }
 
     @Test
     public void testValidateUsedRelationsInJoinConditions() throws Exception {

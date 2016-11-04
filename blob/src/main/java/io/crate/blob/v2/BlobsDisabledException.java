@@ -27,9 +27,8 @@ import org.elasticsearch.rest.RestStatus;
 
 public class BlobsDisabledException extends ElasticsearchException {
 
-    public BlobsDisabledException(String indexString) {
-        super("[" + (new Index(indexString) == null ? "_na" : (new Index(indexString)).name()) + "] " +
-              "blobs not enabled on this index");
+    public BlobsDisabledException(Index index) {
+        super("[" + index.getName() + "] blobs not enabled on this index");
     }
 
     @Override

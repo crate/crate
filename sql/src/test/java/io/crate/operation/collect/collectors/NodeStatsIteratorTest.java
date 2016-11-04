@@ -48,8 +48,8 @@ import java.util.*;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeoutException;
 
+import static io.crate.testing.DiscoveryNodes.newNode;
 import static io.crate.testing.TestingHelpers.getFunctions;
-import static org.elasticsearch.test.ESAllocationTestCase.newNode;
 import static org.mockito.Mockito.*;
 
 public class NodeStatsIteratorTest extends CrateUnitTest {

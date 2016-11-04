@@ -23,8 +23,8 @@
 package io.crate.analyze;
 
 import com.google.common.collect.ImmutableList;
-import org.elasticsearch.cluster.metadata.SnapshotId;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.snapshots.Snapshot;
 
 import java.util.List;
 
@@ -32,32 +32,32 @@ public class CreateSnapshotAnalyzedStatement implements DDLStatement {
 
     public static final List<String> ALL_INDICES = ImmutableList.of("_all");
 
-    private final SnapshotId snapshotId;
+    private final Snapshot snapshot;
     private final Settings snapshotSettings;
 
     private final boolean includeMetadata;
     private final List<String> indices;
 
-    private CreateSnapshotAnalyzedStatement(SnapshotId snapshotId,
+    private CreateSnapshotAnalyzedStatement(Snapshot snapshot,
                                             Settings snapshotSettings,
                                             List<String> indices,
                                             boolean includeMetadata) {
-        this.snapshotId = snapshotId;
+        this.snapshot = snapshot;
         this.snapshotSettings = snapshotSettings;
         this.indices = indices;
         this.includeMetadata = includeMetadata;
     }
 
-    public static CreateSnapshotAnalyzedStatement forTables(SnapshotId snapshotId, Settings snapshotSettings, List<String> indices, boolean includeMetadata) {
-        return new CreateSnapshotAnalyzedStatement(snapshotId, snapshotSettings, indices, includeMetadata);
+    public static CreateSnapshotAnalyzedStatement forTables(Snapshot snapshot, Settings snapshotSettings, List<String> indices, boolean includeMetadata) {
+        return new CreateSnapshotAnalyzedStatement(snapshot, snapshotSettings, indices, includeMetadata);
     }
 
-    public static CreateSnapshotAnalyzedStatement all(SnapshotId snapshotId, Settings snapshotSettings) {
-        return new CreateSnapshotAnalyzedStatement(snapshotId, snapshotSettings, ALL_INDICES, true);
+    public static CreateSnapshotAnalyzedStatement all(Snapshot snapshot, Settings snapshotSettings) {
+        return new CreateSnapshotAnalyzedStatement(snapshot, snapshotSettings, ALL_INDICES, true);
     }
 
-    public SnapshotId snapshotId() {
-        return snapshotId;
+    public Snapshot snapshot() {
+        return snapshot;
     }
 
     public Settings snapshotSettings() {

@@ -25,7 +25,6 @@ import com.carrotsearch.randomizedtesting.annotations.Listeners;
 import com.carrotsearch.randomizedtesting.annotations.ThreadLeakLingering;
 import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
 import io.crate.test.GroovyTestSanitizer;
-import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.test.ESTestCase;
 import org.junit.Before;
 import org.junit.Rule;
@@ -39,8 +38,6 @@ public abstract class CrateUnitTest extends ESTestCase {
 
     static {
         GroovyTestSanitizer.isGroovySanitized();
-        // mute ES loggings
-        Loggers.getLogger(ESTestCase.class).setLevel("WARN");
     }
 
     @Rule

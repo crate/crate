@@ -26,7 +26,7 @@ import io.crate.Version;
 import io.crate.analyze.WhereClause;
 import io.crate.metadata.*;
 import io.crate.metadata.table.StaticTableInfo;
-import org.elasticsearch.cluster.ClusterService;
+import org.elasticsearch.cluster.service.ClusterService;
 
 import javax.annotation.Nullable;
 import java.util.Map;
@@ -87,20 +87,14 @@ public class InformationTableInfo extends StaticTableInfo {
             ImmutableList.of("warmer"));
         public static final ColumnIdent TABLE_SETTINGS_WARMER_ENABLED = new ColumnIdent("settings",
             ImmutableList.of("warmer", "enabled"));
+
         public static final ColumnIdent TABLE_SETTINGS_TRANSLOG = new ColumnIdent("settings",
             ImmutableList.of("translog"));
-        public static final ColumnIdent TABLE_SETTINGS_TRANSLOG_FLUSH_THRESHOLD_OPS = new ColumnIdent("settings",
-            ImmutableList.of("translog", "flush_threshold_ops"));
         public static final ColumnIdent TABLE_SETTINGS_TRANSLOG_FLUSH_THRESHOLD_SIZE = new ColumnIdent("settings",
             ImmutableList.of("translog", "flush_threshold_size"));
-        public static final ColumnIdent TABLE_SETTINGS_TRANSLOG_FLUSH_THRESHOLD_PERIOD = new ColumnIdent("settings",
-            ImmutableList.of("translog", "flush_threshold_period"));
-        public static final ColumnIdent TABLE_SETTINGS_TRANSLOG_DISABLE_FLUSH = new ColumnIdent("settings",
-            ImmutableList.of("translog", "disable_flush"));
-        public static final ColumnIdent TABLE_SETTINGS_TRANSLOG_INTERVAL = new ColumnIdent("settings",
-            ImmutableList.of("translog", "interval"));
         public static final ColumnIdent TABLE_SETTINGS_TRANSLOG_SYNC_INTERVAL = new ColumnIdent("settings",
             ImmutableList.of("translog", "sync_interval"));
+
         public static final ColumnIdent TABLE_SETTINGS_REFRESH_INTERVAL = new ColumnIdent("settings",
             ImmutableList.of("refresh_interval"));
         public static final ColumnIdent TABLE_SETTINGS_UNASSIGNED = new ColumnIdent("settings",

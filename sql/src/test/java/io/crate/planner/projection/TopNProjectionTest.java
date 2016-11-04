@@ -40,7 +40,7 @@ public class TopNProjectionTest extends CrateUnitTest {
         BytesStreamOutput out = new BytesStreamOutput();
         Projection.toStream(p, out);
 
-        StreamInput in = StreamInput.wrap(out.bytes());
+        StreamInput in = out.bytes().streamInput();
         TopNProjection p2 = (TopNProjection) Projection.fromStream(in);
         assertEquals(p, p2);
     }

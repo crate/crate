@@ -73,7 +73,7 @@ public class RoutedCollectPhaseTest extends CrateUnitTest {
         BytesStreamOutput out = new BytesStreamOutput();
         cn.writeTo(out);
 
-        StreamInput in = StreamInput.wrap(out.bytes());
+        StreamInput in = out.bytes().streamInput();
         RoutedCollectPhase cn2 = RoutedCollectPhase.FACTORY.create();
         cn2.readFrom(in);
         assertThat(cn, equalTo(cn2));

@@ -25,10 +25,10 @@ import com.google.common.collect.ImmutableList;
 import io.crate.planner.distribution.UpstreamPhase;
 import io.crate.planner.node.ExecutionPhase;
 import io.crate.planner.node.ExecutionPhases;
+import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Streamable;
-import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 
 import java.io.IOException;
@@ -39,7 +39,7 @@ import java.util.List;
 
 public class NodeOperation implements Streamable {
 
-    private static final ESLogger LOGGER = Loggers.getLogger(NodeOperation.class);
+    private static final Logger LOGGER = Loggers.getLogger(NodeOperation.class);
 
     public static final int NO_DOWNSTREAM = Integer.MAX_VALUE;
 

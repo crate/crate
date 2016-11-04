@@ -24,10 +24,10 @@ package io.crate.analyze;
 import io.crate.core.collections.StringObjectMaps;
 import io.crate.metadata.ColumnIdent;
 import io.crate.sql.parser.ParsingException;
-import io.crate.test.integration.CrateUnitTest;
+import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
-import org.elasticsearch.test.cluster.NoopClusterService;
 import org.hamcrest.Matchers;
+import org.junit.Before;
 import org.junit.Test;
 
 import java.util.Arrays;
@@ -40,9 +40,14 @@ import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.core.IsEqual.equalTo;
 
-public class AlterTableAddColumnAnalyzerTest extends CrateUnitTest {
+public class AlterTableAddColumnAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
-    private SQLExecutor e = SQLExecutor.builder(new NoopClusterService()).enableDefaultTables().build();
+    private SQLExecutor e;
+
+    @Before
+    public void prepare() {
+        e = SQLExecutor.builder(clusterService).enableDefaultTables().build();
+    }
 
     @Test
     public void testAddColumnOnSystemTableIsNotAllowed() throws Exception {
@@ -147,7 +152,7 @@ public class AlterTableAddColumnAnalyzerTest extends CrateUnitTest {
 
         assertThat((String) newtags.get("type"), is("array"));
         Map<String, Object> inner = (Map<String, Object>) newtags.get("inner");
-        assertThat((String) inner.get("type"), is("string"));
+        assertThat((String) inner.get("type"), is("keyword"));
     }
 
     @Test
@@ -174,7 +179,7 @@ public class AlterTableAddColumnAnalyzerTest extends CrateUnitTest {
         assertThat((String) x.get("type"), is("object"));
 
         Map y = (Map) StringObjectMaps.getByPath(mapping, "properties.foo.properties.x.properties.y");
-        assertThat((String) y.get("type"), is("string"));
+        assertThat((String) y.get("type"), is("keyword"));
     }
 
     @Test
@@ -187,7 +192,7 @@ public class AlterTableAddColumnAnalyzerTest extends CrateUnitTest {
         assertThat(mapToSortedString(friends.toMapping()), is("inner={" +
                                                                 "dynamic=true, " +
                                                                 "properties={" +
-                                                                    "is_nice={doc_values=true, index=not_analyzed, store=false, type=boolean}" +
+                                                                    "is_nice={type=boolean}" +
                                                                 "}, " +
                                                                 "type=object" +
                                                               "}, type=array"));
@@ -222,13 +227,10 @@ public class AlterTableAddColumnAnalyzerTest extends CrateUnitTest {
         assertThat(name.dataType(), is("string"));
 
         Map<String, Object> mapping = analysis.analyzedTableElements().toMapping();
-        assertThat(mapToSortedString(mapping), is("_all={enabled=false}, " +
-                                                  "_meta={primary_keys=[id]}, " +
-                                                  "properties={details={dynamic=true, properties={" +
-                                                  "foo={dynamic=true, properties={" +
-                                                  "name={doc_values=true, index=not_analyzed, store=false, type=string}, " +
-                                                  "score={doc_values=true, index=not_analyzed, store=false, type=float}}, type=object}}, type=object}, " +
-                                                  "id={doc_values=true, index=not_analyzed, store=false, type=long}}"));
+        assertThat(mapToSortedString(mapping),
+            is("_all={enabled=false}, _meta={primary_keys=[id]}, properties={details={dynamic=true, " +
+               "properties={foo={dynamic=true, properties={name={type=keyword}, score={type=float}}, type=object}}, " +
+               "type=object}, id={type=long}}"));
     }
 
     @Test
@@ -285,12 +287,10 @@ public class AlterTableAddColumnAnalyzerTest extends CrateUnitTest {
         assertThat(price.dataType(), is("string"));
 
         Map<String, Object> mapping = analysis.analyzedTableElements().toMapping();
-        assertThat(mapToSortedString(mapping), is("_all={enabled=false}, _meta={}, properties={details={" +
-                                                  "dynamic=true, properties={stuff={dynamic=true, " +
-                                                  "properties={foo={dynamic=true, " +
-                                                  "properties={price={doc_values=true, index=not_analyzed, store=false, type=string}, " +
-                                                  "score={doc_values=true, index=not_analyzed, store=false, type=float}}, type=object}}, " +
-                                                  "type=object}}, type=object}}"));
+        assertThat(mapToSortedString(mapping),
+            is("_all={enabled=false}, _meta={}, properties={details={dynamic=true, " +
+               "properties={stuff={dynamic=true, properties={foo={dynamic=true, properties={price={type=keyword}, " +
+               "score={type=float}}, type=object}}, type=object}}, type=object}}"));
     }
 
     @Test

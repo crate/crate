@@ -21,15 +21,16 @@
 
 package io.crate.blob.v2;
 
+import org.apache.logging.log4j.Logger;
 import org.apache.lucene.util.IOUtils;
 import org.elasticsearch.common.Nullable;
-import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.index.shard.ShardId;
 
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Iterator;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -69,9 +70,9 @@ public class BlobIndex {
 
     private final Map<Integer, BlobShard> shards = new ConcurrentHashMap<>();
     private final Path globalBlobPath;
-    private final ESLogger logger;
+    private final Logger logger;
 
-    BlobIndex(ESLogger logger, @Nullable Path globalBlobPath) {
+    BlobIndex(Logger logger, @Nullable Path globalBlobPath) {
         this.globalBlobPath = globalBlobPath;
         this.logger = logger;
     }
@@ -89,7 +90,7 @@ public class BlobIndex {
             }
             shard.deleteShard();
             if (blobRoot != null) {
-                this.deleteIndex(blobRoot, shardId.getIndex());
+                this.deleteIndex(blobRoot, shardId.getIndex().getName());
             }
         }
 
@@ -102,7 +103,7 @@ public class BlobIndex {
      */
     private Path retrieveBlobRootDir(BlobShard blobShard) {
         Path blobDir = blobShard.getBlobDir();
-        String indexName = blobShard.indexShard().shardId().getIndex();
+        String indexName = blobShard.indexShard().shardId().getIndex().getName();
         do {
             if (blobDir.getFileName().endsWith(indexName)) {
                 break;
@@ -135,5 +136,14 @@ public class BlobIndex {
 
     BlobShard getShard(int shardId) {
         return shards.get(shardId);
+    }
+
+    void delete() {
+        Iterator<Map.Entry<Integer, BlobShard>> it = shards.entrySet().iterator();
+        while (it.hasNext()) {
+            Map.Entry<Integer, BlobShard> e = it.next();
+            it.remove();
+            e.getValue().deleteShard();
+        }
     }
 }

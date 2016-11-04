@@ -44,9 +44,9 @@ import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.index.IndexWriterConfig;
 import org.apache.lucene.search.*;
 import org.apache.lucene.store.RAMDirectory;
+import org.elasticsearch.common.UUIDs;
 import org.elasticsearch.index.fielddata.IndexFieldDataService;
-import org.elasticsearch.index.mapper.MappedFieldType;
-import org.elasticsearch.index.mapper.core.IntegerFieldMapper;
+import org.elasticsearch.index.mapper.NumberFieldMapper;
 import org.elasticsearch.index.shard.ShardId;
 import org.openjdk.jmh.annotations.*;
 import org.openjdk.jmh.infra.Blackhole;
@@ -77,7 +77,7 @@ public class OrderedLuceneBatchIteratorBenchmark {
         IndexWriter iw = new IndexWriter(
             new RAMDirectory(), new IndexWriterConfig(new StandardAnalyzer())
         );
-        dummyShardId = new ShardId("dummy", 1);
+        dummyShardId = new ShardId("dummy", UUIDs.randomBase64UUID(), 1);
         columnName = "x";
         for (int i = 0; i < 10_000_000; i++) {
             Document doc = new Document();
@@ -86,15 +86,16 @@ public class OrderedLuceneBatchIteratorBenchmark {
         }
         iw.commit();
         iw.forceMerge(1, true);
-        indexSearcher = new IndexSearcher(DirectoryReader.open(iw, true));
+        indexSearcher = new IndexSearcher(DirectoryReader.open(iw, true, true));
         collectorContext = new CollectorContext(
             mock(IndexFieldDataService.class),
             new CollectorFieldsVisitor(0)
         );
         fieldTypeLookup = column -> {
-            IntegerFieldMapper.IntegerFieldType integerFieldType = new IntegerFieldMapper.IntegerFieldType();
-            integerFieldType.setNames(new MappedFieldType.Names(column));
-            return integerFieldType;
+            NumberFieldMapper.NumberFieldType fieldType =
+                new NumberFieldMapper.NumberFieldType(NumberFieldMapper.NumberType.INTEGER);
+            fieldType.setName(column);
+            return fieldType;
         };
         reference = new Reference(
             new ReferenceIdent(new TableIdent(null, "dummyTable"), columnName), RowGranularity.DOC, DataTypes.INTEGER);
@@ -126,7 +127,7 @@ public class OrderedLuceneBatchIteratorBenchmark {
     private LuceneOrderedDocCollector createOrderedCollector(IndexSearcher searcher,
                                                              String sortByColumnName) {
         List<LuceneCollectorExpression<?>> expressions = Collections.singletonList(
-            new OrderByCollectorExpression(reference, orderBy));
+            new OrderByCollectorExpression(reference, orderBy, o -> o));
         return new LuceneOrderedDocCollector(
             dummyShardId,
             searcher,

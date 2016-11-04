@@ -38,14 +38,13 @@ import io.crate.planner.node.dql.*;
 import io.crate.planner.node.dql.join.JoinType;
 import io.crate.planner.node.dql.join.NestedLoop;
 import io.crate.planner.projection.*;
-import io.crate.test.integration.CrateUnitTest;
+import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.crate.testing.T3;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
-import org.elasticsearch.cluster.ClusterService;
-import org.elasticsearch.test.cluster.NoopClusterService;
 import org.hamcrest.Matchers;
+import org.junit.Before;
 import org.junit.Test;
 
 import java.util.*;
@@ -55,23 +54,27 @@ import static io.crate.testing.TestingHelpers.isDocKey;
 import static io.crate.testing.TestingHelpers.isSQL;
 import static org.hamcrest.Matchers.*;
 
-public class SelectPlannerTest extends CrateUnitTest {
+public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
 
-    private ClusterService clusterService = new NoopClusterService();
-    private SQLExecutor e = SQLExecutor.builder(clusterService)
-        .addDocTable(TableDefinitions.USER_TABLE_INFO)
-        .addDocTable(TableDefinitions.TEST_CLUSTER_BY_STRING_TABLE_INFO)
-        .addDocTable(TableDefinitions.PARTED_PKS_TI)
-        .addDocTable(TableDefinitions.TEST_PARTITIONED_TABLE_INFO)
-        .addDocTable(TableDefinitions.IGNORED_NESTED_TABLE_INFO)
-        .addDocTable(TableDefinitions.TEST_MULTIPLE_PARTITIONED_TABLE_INFO)
-        .addDocTable(T3.T1_INFO)
-        .build();
+    private SQLExecutor e;
+
+    @Before
+    public void prepare() {
+        e = SQLExecutor.builder(clusterService)
+            .addDocTable(TableDefinitions.USER_TABLE_INFO)
+            .addDocTable(TableDefinitions.TEST_CLUSTER_BY_STRING_TABLE_INFO)
+            .addDocTable(TableDefinitions.PARTED_PKS_TI)
+            .addDocTable(TableDefinitions.TEST_PARTITIONED_TABLE_INFO)
+            .addDocTable(TableDefinitions.IGNORED_NESTED_TABLE_INFO)
+            .addDocTable(TableDefinitions.TEST_MULTIPLE_PARTITIONED_TABLE_INFO)
+            .addDocTable(T3.T1_INFO)
+            .build();
+    }
 
     @Test
     public void testHandlerSideRouting() throws Exception {
         // just testing the dispatching here.. making sure it is not a ESSearchNode
-        Collect collect = e.plan("select * from sys.cluster");
+        e.plan("select * from sys.cluster");
     }
 
     @Test
@@ -544,8 +547,15 @@ public class SelectPlannerTest extends CrateUnitTest {
     public void testNoSoftLimitOnUnlimitedChildRelation() throws Exception {
         int softLimit = 10_000;
         EvaluatingNormalizer normalizer = EvaluatingNormalizer.functionOnlyNormalizer(e.functions(), ReplaceMode.COPY);
-        Planner.Context plannerContext = new Planner.Context(e.planner,
-            clusterService, UUID.randomUUID(), null, normalizer, new TransactionContext(SessionContext.SYSTEM_SESSION), softLimit, 0);
+        Planner.Context plannerContext = new Planner.Context(
+            e.planner,
+            clusterService,
+            UUID.randomUUID(),
+            null,
+            normalizer,
+            new TransactionContext(SessionContext.SYSTEM_SESSION),
+            softLimit,
+            0);
         Limits limits = plannerContext.getLimits(new QuerySpec());
         assertThat(limits.finalLimit(), is(TopN.NO_LIMIT));
     }

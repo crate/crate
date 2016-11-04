@@ -21,8 +21,8 @@
 
 package io.crate.integrationtests;
 
-import io.crate.testing.SQLResponse;
 import io.crate.operation.reference.sys.check.SysCheck.Severity;
+import io.crate.testing.SQLResponse;
 import io.crate.testing.TestingHelpers;
 import io.crate.testing.UseJdbc;
 import org.elasticsearch.cluster.ClusterState;
@@ -33,19 +33,17 @@ import org.junit.Test;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 
-@ESIntegTestCase.ClusterScope(minNumDataNodes = 2)
+@ESIntegTestCase.ClusterScope(minNumDataNodes = 2, supportsDedicatedMasters = false)
 @UseJdbc
 public class SysCheckerIntegrationTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testChecksPresenceAndSeverityLevels() throws Exception {
         SQLResponse response = execute("select severity, passed from sys.checks order by id asc");
-        assertThat(response.rowCount(), equalTo(4L));
+        assertThat(response.rowCount(), equalTo(3L));
         assertThat(response.rows()[0][0], is(Severity.HIGH.value()));
         assertThat(response.rows()[1][0], is(Severity.MEDIUM.value()));
         assertThat(response.rows()[2][0], is(Severity.MEDIUM.value()));
-        assertThat(response.rows()[3][0], is(Severity.MEDIUM.value()));
-
     }
 
     @Test
@@ -66,7 +64,7 @@ public class SysCheckerIntegrationTest extends SQLTransportIntegrationTest {
 
     private int numberOfMasterNodes() {
         ClusterState clusterState = client().admin().cluster().prepareState().execute().actionGet().getState();
-        return clusterState.nodes().masterNodes().size();
+        return clusterState.nodes().getMasterNodes().size();
     }
 
     @Test

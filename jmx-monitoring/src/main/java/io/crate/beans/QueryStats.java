@@ -24,7 +24,7 @@ import io.crate.action.sql.ResultReceiver;
 import io.crate.action.sql.SQLOperations;
 import io.crate.data.Row;
 import io.crate.exceptions.SQLExceptions;
-import org.elasticsearch.common.logging.ESLogger;
+import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.lucene.BytesRefs;
 import org.elasticsearch.common.settings.Settings;
@@ -41,7 +41,7 @@ import static io.crate.beans.QueryStats.MetricType.FREQUENCY;
 
 public class QueryStats implements QueryStatsMBean {
 
-    private final ESLogger logger;
+    private final Logger logger;
 
     enum MetricType {
         FREQUENCY, AVERAGE_DURATION;

@@ -23,7 +23,7 @@ package io.crate.jobs;
 
 import io.crate.executor.transport.ShardRequest;
 import org.elasticsearch.action.bulk.BulkShardProcessor;
-import org.elasticsearch.common.logging.ESLogger;
+import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.logging.Loggers;
 
 import javax.annotation.Nonnull;
@@ -31,7 +31,7 @@ import javax.annotation.Nullable;
 
 public class BulkShardProcessorContext extends AbstractExecutionSubContext {
 
-    private static final ESLogger LOGGER = Loggers.getLogger(BulkShardProcessorContext.class);
+    private static final Logger LOGGER = Loggers.getLogger(BulkShardProcessorContext.class);
 
     private final BulkShardProcessor<? extends ShardRequest> bulkShardProcessor;
 

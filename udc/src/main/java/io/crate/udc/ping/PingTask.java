@@ -25,9 +25,9 @@ import com.google.common.base.Joiner;
 import io.crate.ClusterIdService;
 import io.crate.Version;
 import io.crate.monitor.ExtendedNodeInfo;
-import org.elasticsearch.cluster.ClusterService;
+import org.apache.logging.log4j.Logger;
+import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.Nullable;
-import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.TimeValue;
@@ -51,7 +51,7 @@ public class PingTask extends TimerTask {
 
     public static final TimeValue HTTP_TIMEOUT = new TimeValue(5, TimeUnit.SECONDS);
 
-    private static final ESLogger logger = Loggers.getLogger(PingTask.class);
+    private static final Logger logger = Loggers.getLogger(PingTask.class);
 
     private final ClusterService clusterService;
     private final ClusterIdService clusterIdService;

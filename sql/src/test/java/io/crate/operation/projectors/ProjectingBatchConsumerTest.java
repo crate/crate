@@ -46,12 +46,13 @@ import io.crate.test.integration.CrateUnitTest;
 import io.crate.testing.TestingBatchConsumer;
 import io.crate.types.DataTypes;
 import org.elasticsearch.action.bulk.BulkRetryCoordinatorPool;
-import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
+import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.breaker.CircuitBreaker;
 import org.elasticsearch.common.breaker.NoopCircuitBreaker;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.shard.ShardId;
+import org.elasticsearch.threadpool.TestThreadPool;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.junit.After;
 import org.junit.Before;
@@ -81,7 +82,7 @@ public class ProjectingBatchConsumerTest extends CrateUnitTest {
     @Before
     public void prepare() {
         functions = getFunctions();
-        threadPool = new ThreadPool("testing");
+        threadPool = new TestThreadPool(Thread.currentThread().getName());
         projectorFactory = new ProjectionToProjectorVisitor(
             mock(ClusterService.class),
             functions,
@@ -98,7 +99,7 @@ public class ProjectingBatchConsumerTest extends CrateUnitTest {
                 r -> Literal.of(r.valueType(), r.valueType().value("1")),
                 null),
             null,
-            new ShardId("dummy", 0)
+            new ShardId("dummy", UUID.randomUUID().toString(), 0)
         );
     }
 

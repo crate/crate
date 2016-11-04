@@ -37,7 +37,7 @@ import io.crate.data.Row;
 import io.crate.metadata.Functions;
 import io.crate.operation.InputRow;
 import io.crate.operation.fetch.FetchRowInputSymbolVisitor;
-import org.elasticsearch.common.logging.ESLogger;
+import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.logging.Loggers;
 
 import java.util.*;
@@ -45,7 +45,7 @@ import java.util.concurrent.CompletableFuture;
 
 public class FetchBatchAccumulator implements BatchAccumulator<Row, Iterator<? extends Row>> {
 
-    private final static ESLogger LOGGER = Loggers.getLogger(FetchBatchAccumulator.class);
+    private final static Logger LOGGER = Loggers.getLogger(FetchBatchAccumulator.class);
 
     private final FetchOperation fetchOperation;
     private final FetchProjectorContext context;

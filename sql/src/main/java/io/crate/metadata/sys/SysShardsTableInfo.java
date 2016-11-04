@@ -28,11 +28,11 @@ import io.crate.metadata.shard.unassigned.UnassignedShard;
 import io.crate.metadata.table.ColumnRegistrar;
 import io.crate.metadata.table.StaticTableInfo;
 import io.crate.types.*;
-import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.routing.GroupShardsIterator;
 import org.elasticsearch.cluster.routing.ShardIterator;
 import org.elasticsearch.cluster.routing.ShardRouting;
+import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.index.shard.ShardId;
@@ -183,7 +183,7 @@ public class SysShardsTableInfo extends StaticTableInfo {
     private void processShardRouting(Map<String, Map<String, List<Integer>>> routing, ShardRouting shardRouting, ShardId shardId) {
         String node;
         int id;
-        String index = shardId.getIndex();
+        String index = shardId.getIndex().getName();
 
         if (shardRouting == null) {
             node = service.localNode().getId();
@@ -222,7 +222,7 @@ public class SysShardsTableInfo extends StaticTableInfo {
         // TODO: filter on whereClause
         Map<String, Map<String, List<Integer>>> locations = new TreeMap<>();
         ClusterState state = service.state();
-        String[] concreteIndices = state.metaData().concreteAllIndices();
+        String[] concreteIndices = state.metaData().getConcreteAllIndices();
         GroupShardsIterator groupShardsIterator = state.getRoutingTable().allAssignedShardsGrouped(concreteIndices, true, true);
         for (final ShardIterator shardIt : groupShardsIterator) {
             final ShardRouting shardRouting = shardIt.nextOrNull();

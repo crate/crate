@@ -34,9 +34,8 @@
 #gateway.recover_after_nodes: 2
 #discovery.zen.minimum_master_nodes: 2
 
-# most cloud environments don't support multicast discovery
+# Cluster discovery: Specify the hosts which will form the CrateDB cluster
 #discovery.zen.ping:
-#  multicast.enabled: false
 #  unicast.hosts:
 #    - host1:4300
 #    - host2:4300
@@ -248,7 +247,7 @@
 
 #################################### Paths ####################################
 
-# Path to directory containing configuration (this file and logging.yml):
+# Path to directory containing configuration (this file and log4j2.properties):
 #
 #path.conf: /path/to/conf
 
@@ -473,10 +472,20 @@
 ################################## Discovery ##################################
 
 # Discovery infrastructure ensures nodes can be found within a cluster
-# and master node is elected. Multicast discovery is the default.
+# and a master node is elected. Unicast discovery is the default.
+#
+# Unicast discovery allows to explicitly control which nodes will be used
+# to discover the cluster by pinging them.
+#
+#discovery.zen.ping.unicast.hosts:
+#  - host1:port
+#  - host2:port
+#
+# If you want to debug the discovery process, you can set a logger in
+# 'config/log4j2.properties' to help you doing so.
 
 # Set to ensure a node sees M other master eligible nodes to be considered
-# operational within the cluster. Its recommended to set it to a higher value
+# operational within the cluster. It's recommended to set it to a higher value
 # than 1 when running more than 2 nodes in the cluster.
 #
 # We highly recommend to set the minimum master nodes as follows:
@@ -496,27 +505,6 @@
 # cluster state.
 #
 #discovery.zen.publish_timeout: 30s
-
-# Unicast discovery allows to explicitly control which nodes will be used
-# to discover the cluster. It can be used when multicast is not present,
-# or to restrict the cluster communication-wise.
-# For example, Amazon Web Services doesn't support multicast discovery.
-# Therefore, you need to specify the instances you want to connect to a
-# cluster as described in the following steps:
-#
-# 1. Ensure that multicast discovery is disabled (disabled by default):
-#
-#discovery.zen.ping.multicast.enabled: false
-#
-# 2. Configure an initial list of master nodes in the cluster
-#    to perform discovery when new nodes (master or data) are started:
-#
-#discovery.zen.ping.unicast.hosts:
-#  - host1:port
-#  - host2:port
-#
-# If you want to debug the discovery process, you can set a logger in
-# 'config/logging.yml' to help you doing so.
 
 
 # Ping configuration

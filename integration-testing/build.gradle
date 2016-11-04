@@ -10,6 +10,6 @@ dependencies {
 }
 
 test {
-    testLogging.exceptionFormat = 'full'
-    jacoco.enabled = false
+   testLogging.exceptionFormat = 'full'
+   jacoco.enabled = false
 }

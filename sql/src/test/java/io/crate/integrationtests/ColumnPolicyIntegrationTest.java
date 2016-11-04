@@ -157,8 +157,8 @@ public class ColumnPolicyIntegrationTest extends SQLTransportIntegrationTest {
         waitForMappingUpdateOnAll("dynamic_table", "new", "meta");
         Map<String, Object> sourceMap = getSourceMap("dynamic_table");
         assertThat(String.valueOf(nestedValue(sourceMap, "properties.new.type")), is("array"));
-        assertThat(String.valueOf(nestedValue(sourceMap, "properties.new.inner.type")), is("string"));
-        assertThat(String.valueOf(nestedValue(sourceMap, "properties.meta.type")), is("string"));
+        assertThat(String.valueOf(nestedValue(sourceMap, "properties.new.inner.type")), is("keyword"));
+        assertThat(String.valueOf(nestedValue(sourceMap, "properties.meta.type")), is("keyword"));
     }
 
     @Test
@@ -172,9 +172,9 @@ public class ColumnPolicyIntegrationTest extends SQLTransportIntegrationTest {
 
         Map<String, Object> sourceMap = getSourceMap("dynamic_table");
         assertThat(String.valueOf(nestedValue(sourceMap, "properties.person.properties.addresses.type")), is("array"));
-        assertThat(String.valueOf(nestedValue(sourceMap, "properties.person.properties.name.type")), is("string"));
-        assertThat(String.valueOf(nestedValue(sourceMap, "properties.person.properties.addresses.inner.properties.city.type")), is("string"));
-        assertThat(String.valueOf(nestedValue(sourceMap, "properties.person.properties.addresses.inner.properties.country.type")), is("string"));
+        assertThat(String.valueOf(nestedValue(sourceMap, "properties.person.properties.name.type")), is("keyword"));
+        assertThat(String.valueOf(nestedValue(sourceMap, "properties.person.properties.addresses.inner.properties.city.type")), is("keyword"));
+        assertThat(String.valueOf(nestedValue(sourceMap, "properties.person.properties.addresses.inner.properties.country.type")), is("keyword"));
 
         execute("select person['name'], person['addresses']['city'] from dynamic_table ");
         assertEquals(1L, response.rowCount());
@@ -200,10 +200,10 @@ public class ColumnPolicyIntegrationTest extends SQLTransportIntegrationTest {
         waitForMappingUpdateOnAll("dynamic_table", "new");
         Map<String, Object> sourceMap = getSourceMap("dynamic_table");
         assertThat(String.valueOf(nestedValue(sourceMap, "properties.new.properties.a.type")), is("array"));
-        assertThat(String.valueOf(nestedValue(sourceMap, "properties.new.properties.a.inner.type")), is("string"));
+        assertThat(String.valueOf(nestedValue(sourceMap, "properties.new.properties.a.inner.type")), is("keyword"));
         assertThat(String.valueOf(nestedValue(sourceMap, "properties.new.properties.nest.properties.a.type")), is("array"));
-        assertThat(String.valueOf(nestedValue(sourceMap, "properties.new.properties.nest.properties.a.inner.type")), is("string"));
-        assertThat(String.valueOf(nestedValue(sourceMap, "properties.meta.type")), is("string"));
+        assertThat(String.valueOf(nestedValue(sourceMap, "properties.new.properties.nest.properties.a.inner.type")), is("keyword"));
+        assertThat(String.valueOf(nestedValue(sourceMap, "properties.meta.type")), is("keyword"));
     }
 
     @Test
@@ -220,7 +220,7 @@ public class ColumnPolicyIntegrationTest extends SQLTransportIntegrationTest {
         waitForMappingUpdateOnAll(new TableIdent("c", "dynamic_table"), "meta.meta.a");
         Map<String, Object> sourceMap = getSourceMap("c.dynamic_table");
         assertThat(String.valueOf(nestedValue(sourceMap, "properties.meta.properties.meta.properties.a.type")), is("array"));
-        assertThat(String.valueOf(nestedValue(sourceMap, "properties.meta.properties.meta.properties.a.inner.type")), is("string"));
+        assertThat(String.valueOf(nestedValue(sourceMap, "properties.meta.properties.meta.properties.a.inner.type")), is("keyword"));
     }
 
     @Test
@@ -236,9 +236,9 @@ public class ColumnPolicyIntegrationTest extends SQLTransportIntegrationTest {
         waitForMappingUpdateOnAll("dynamic_table", "my_object.a", "my_object.b");
         Map<String, Object> sourceMap = getSourceMap("dynamic_table");
         assertThat(String.valueOf(nestedValue(sourceMap, "properties.my_object.properties.a.type")), is("array"));
-        assertThat(String.valueOf(nestedValue(sourceMap, "properties.my_object.properties.a.inner.type")), is("string"));
+        assertThat(String.valueOf(nestedValue(sourceMap, "properties.my_object.properties.a.inner.type")), is("keyword"));
         assertThat(String.valueOf(nestedValue(sourceMap, "properties.my_object.properties.b.type")), is("array"));
-        assertThat(String.valueOf(nestedValue(sourceMap, "properties.my_object.properties.b.inner.type")), is("string"));
+        assertThat(String.valueOf(nestedValue(sourceMap, "properties.my_object.properties.b.inner.type")), is("keyword"));
     }
 
     @Test

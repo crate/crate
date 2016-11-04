@@ -38,7 +38,7 @@ import org.elasticsearch.action.admin.indices.template.delete.DeleteIndexTemplat
 import org.elasticsearch.action.admin.indices.template.delete.DeleteIndexTemplateResponse;
 import org.elasticsearch.action.admin.indices.template.delete.TransportDeleteIndexTemplateAction;
 import org.elasticsearch.action.support.IndicesOptions;
-import org.elasticsearch.common.logging.ESLogger;
+import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.index.IndexNotFoundException;
 import org.elasticsearch.indices.IndexTemplateMissingException;
@@ -48,7 +48,7 @@ public class DropTableTask extends JobTask {
     private static final Row ROW_ZERO = new Row1(0L);
     private static final Row ROW_ONE = new Row1(1L);
 
-    private static final ESLogger logger = Loggers.getLogger(DropTableTask.class);
+    private static final Logger logger = Loggers.getLogger(DropTableTask.class);
 
     private final DocTableInfo tableInfo;
     private final TransportDeleteIndexTemplateAction deleteTemplateAction;
@@ -83,13 +83,13 @@ public class DropTableTask extends JobTask {
                 }
 
                 @Override
-                public void onFailure(Throwable e) {
-                    e = ExceptionsHelper.unwrapCause(e);
-                    if (e instanceof IndexTemplateMissingException && !tableInfo.partitions().isEmpty()) {
-                        logger.warn(e.getMessage());
+                public void onFailure(Exception e) {
+                    Throwable t = ExceptionsHelper.unwrapCause(e);
+                    if (t instanceof IndexTemplateMissingException && !tableInfo.partitions().isEmpty()) {
+                        logger.warn(t.getMessage());
                         deleteESIndex(tableInfo.ident().indexName(), consumer);
                     } else {
-                        consumer.accept(null, e);
+                        consumer.accept(null, t);
                     }
                 }
             });
@@ -113,7 +113,7 @@ public class DropTableTask extends JobTask {
             }
 
             @Override
-            public void onFailure(Throwable e) {
+            public void onFailure(Exception e) {
                 if (tableInfo.isPartitioned()) {
                     logger.warn("Could not (fully) delete all partitions of {}. " +
                                 "Some orphaned partitions might still exist, " +

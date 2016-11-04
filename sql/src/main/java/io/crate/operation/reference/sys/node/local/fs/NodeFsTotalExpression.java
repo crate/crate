@@ -29,7 +29,7 @@ import com.google.common.collect.ImmutableList;
 import io.crate.metadata.ReferenceImplementation;
 import io.crate.monitor.ExtendedFsStats;
 import io.crate.operation.reference.NestedObjectExpression;
-import org.elasticsearch.common.logging.ESLogger;
+import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.logging.Loggers;
 
 import javax.annotation.Nonnull;
@@ -51,7 +51,7 @@ class NodeFsTotalExpression extends NestedObjectExpression {
 
     private static final List<String> ALL_TOTALS = ImmutableList.of(
         SIZE, USED, AVAILABLE, READS, BYTES_READ, WRITES, BYTES_WRITTEN);
-    private static final ESLogger logger = Loggers.getLogger(NodeFsTotalExpression.class);
+    private static final Logger logger = Loggers.getLogger(NodeFsTotalExpression.class);
 
     private final ExtendedFsStats extendedFsStats;
 
