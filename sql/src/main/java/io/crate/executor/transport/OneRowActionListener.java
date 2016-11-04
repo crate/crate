@@ -47,7 +47,6 @@ public class OneRowActionListener<Response> implements ActionListener<Response>,
         rowReceiver.finish(RepeatHandle.UNSUPPORTED);
     }
 
-    @Override
     public void onFailure(@Nonnull Throwable e) {
         rowReceiver.fail(e);
     }
@@ -59,5 +58,10 @@ public class OneRowActionListener<Response> implements ActionListener<Response>,
         } else {
             onFailure(t);
         }
+    }
+
+    @Override
+    public void onFailure(Exception e) {
+        rowReceiver.fail(e);
     }
 }

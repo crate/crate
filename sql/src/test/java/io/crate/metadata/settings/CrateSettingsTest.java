@@ -72,7 +72,7 @@ public class CrateSettingsTest extends CrateUnitTest {
 
     @Test
     public void testIntSettingsValidation() throws Exception {
-        IntSetting intSetting = new IntSetting("integerSetting", 10, false, 0, 100);
+        IntSetting intSetting = new IntSetting("integerSetting", 10, false, 0, 100, null, null);
         SettingsAppliers.IntSettingsApplier intSettingsApplier = new SettingsAppliers.IntSettingsApplier(intSetting);
         Integer toValidate = 10;
         Object validatedObject = intSettingsApplier.validate(toValidate);
@@ -81,7 +81,7 @@ public class CrateSettingsTest extends CrateUnitTest {
 
     @Test
     public void testIntSettingsValidationFailure() throws Exception {
-        IntSetting intSetting = new IntSetting("integerSetting", 10, false, 5, 10);
+        IntSetting intSetting = new IntSetting("integerSetting", 10, false, 5, 10, null, null);
         SettingsAppliers.IntSettingsApplier intSettingsApplier = new SettingsAppliers.IntSettingsApplier(intSetting);
 
         expectedException.expect(IllegalArgumentException.class);
@@ -112,8 +112,8 @@ public class CrateSettingsTest extends CrateUnitTest {
     @Test
     public void testApplyInvalidValueOnByteCrateSetting() throws Exception {
         expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Invalid value for argument 'indices.recovery.file_chunk_size'");
-        applySetting("indices.recovery.file_chunk_size", Literal.fromObject("something"));
+        expectedException.expectMessage("Invalid value for argument 'indices.recovery.max_bytes_per_sec'");
+        applySetting(CrateSettings.INDICES_RECOVERY_MAX_BYTES_PER_SEC.settingName(), Literal.fromObject("something"));
     }
 
     @Test
@@ -207,17 +207,17 @@ public class CrateSettingsTest extends CrateUnitTest {
 
     @Test
     public void testApplyByteCrateSetting() throws Exception {
-        ByteSizeSetting byteSizeSetting = CrateSettings.INDICES_RECOVERY_FILE_CHUNK_SIZE;
+        ByteSizeSetting byteSizeSetting = CrateSettings.INDICES_RECOVERY_MAX_BYTES_PER_SEC;
         SettingsAppliers.ByteSizeSettingsApplier intSettingsApplier =
             new SettingsAppliers.ByteSizeSettingsApplier(byteSizeSetting);
 
         Settings.Builder settings = Settings.builder();
         intSettingsApplier.apply(settings, Row.EMPTY, Literal.fromObject("1024kb"));
-        assertThat(settings.get("indices.recovery.file_chunk_size"), is("1048576b"));
+        assertThat(settings.get(byteSizeSetting.settingName()), is("1048576b"));
 
         settings = Settings.builder();
         intSettingsApplier.apply(settings, Row.EMPTY, Literal.fromObject("1mb"));
-        assertThat(settings.get("indices.recovery.file_chunk_size"), is("1048576b"));
+        assertThat(settings.get(byteSizeSetting.settingName()), is("1048576b"));
     }
 
     @Test
@@ -227,8 +227,8 @@ public class CrateSettingsTest extends CrateUnitTest {
             new SettingsAppliers.TimeSettingsApplier(timeSetting);
 
         Settings.Builder settings = Settings.builder();
-        timeSettingsApplier.apply(settings, Row.EMPTY, Literal.fromObject("2.5m"));
-        assertThat(settings.get("cluster.graceful_stop.timeout"), is("150000ms"));
+        timeSettingsApplier.apply(settings, Row.EMPTY, Literal.fromObject("2m"));
+        assertThat(settings.get("cluster.graceful_stop.timeout"), is("120000ms"));
 
         settings = Settings.builder();
         timeSettingsApplier.apply(settings, Row.EMPTY, Literal.fromObject(1000));

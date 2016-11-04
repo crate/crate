@@ -30,6 +30,7 @@ import io.crate.metadata.TableIdent;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
+import org.elasticsearch.common.UUIDs;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.index.shard.ShardId;
@@ -50,7 +51,7 @@ public class ShardUpsertRequestTest extends CrateUnitTest {
 
     @Test
     public void testStreaming() throws Exception {
-        ShardId shardId = new ShardId("test", 1);
+        ShardId shardId = new ShardId("test", UUIDs.randomBase64UUID(), 1);
         String[] assignmentColumns = new String[]{"id", "name"};
         UUID jobId = UUID.randomUUID();
         Reference[] missingAssignmentColumns = new Reference[]{ID_REF, NAME_REF};
@@ -78,7 +79,7 @@ public class ShardUpsertRequestTest extends CrateUnitTest {
         BytesStreamOutput out = new BytesStreamOutput();
         request.writeTo(out);
 
-        StreamInput in = StreamInput.wrap(out.bytes());
+        StreamInput in = out.bytes().streamInput();
         ShardUpsertRequest request2 = new ShardUpsertRequest();
         request2.readFrom(in);
 

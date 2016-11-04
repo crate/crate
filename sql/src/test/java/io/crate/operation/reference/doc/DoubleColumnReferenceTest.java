@@ -23,16 +23,15 @@ package io.crate.operation.reference.doc;
 
 import io.crate.operation.reference.doc.lucene.DoubleColumnReference;
 import org.apache.lucene.document.Document;
-import org.apache.lucene.document.DoubleField;
-import org.apache.lucene.document.Field;
-import org.apache.lucene.document.StringField;
+import org.apache.lucene.document.SortedNumericDocValuesField;
 import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.MatchAllDocsQuery;
 import org.apache.lucene.search.ScoreDoc;
 import org.apache.lucene.search.TopDocs;
+import org.apache.lucene.util.NumericUtils;
 import org.elasticsearch.index.mapper.MappedFieldType;
-import org.elasticsearch.index.mapper.core.DoubleFieldMapper;
+import org.elasticsearch.index.mapper.NumberFieldMapper;
 import org.junit.Test;
 
 import static org.hamcrest.core.Is.is;
@@ -45,16 +44,15 @@ public class DoubleColumnReferenceTest extends DocLevelExpressionsTest {
     protected void insertValues(IndexWriter writer) throws Exception {
         for (double d = 0.5; d < 10.0d; d++) {
             Document doc = new Document();
-            doc.add(new StringField("_id", Double.toString(d), Field.Store.NO));
-            doc.add(new DoubleField(column, d, Field.Store.NO));
+            doc.add(new SortedNumericDocValuesField(column, NumericUtils.doubleToSortableLong(d)));
             writer.addDocument(doc);
         }
     }
 
     @Test
     public void testFieldCacheExpression() throws Exception {
-        MappedFieldType fieldType = DoubleFieldMapper.Defaults.FIELD_TYPE.clone();
-        fieldType.setNames(new MappedFieldType.Names("d"));
+        MappedFieldType fieldType = new NumberFieldMapper.NumberFieldType(NumberFieldMapper.NumberType.DOUBLE);
+        fieldType.setName(column);
         DoubleColumnReference doubleColumn = new DoubleColumnReference(column, fieldType);
         doubleColumn.startCollect(ctx);
         doubleColumn.setNextReader(readerContext);

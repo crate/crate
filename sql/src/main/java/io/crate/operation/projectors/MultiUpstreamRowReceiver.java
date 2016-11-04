@@ -27,7 +27,7 @@ import com.google.common.collect.ImmutableList;
 import io.crate.data.ArrayRow;
 import io.crate.data.Row;
 import io.crate.operation.RowDownstream;
-import org.elasticsearch.common.logging.ESLogger;
+import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.logging.Loggers;
 
 import java.util.*;
@@ -59,7 +59,7 @@ import java.util.concurrent.atomic.AtomicReference;
 @ThreadSafe
 public class MultiUpstreamRowReceiver implements RowReceiver, RowDownstream {
 
-    private static final ESLogger LOGGER = Loggers.getLogger(MultiUpstreamRowReceiver.class);
+    private static final Logger LOGGER = Loggers.getLogger(MultiUpstreamRowReceiver.class);
 
     private final RowReceiver delegate;
     private final List<ResumeHandle> resumeHandles = Collections.synchronizedList(new ArrayList<ResumeHandle>());

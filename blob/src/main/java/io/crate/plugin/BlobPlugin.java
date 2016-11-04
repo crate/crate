@@ -22,21 +22,29 @@
 package io.crate.plugin;
 
 
+import com.google.common.collect.ImmutableList;
 import io.crate.blob.*;
 import io.crate.blob.v2.BlobIndicesModule;
+import io.crate.blob.v2.BlobIndicesService;
 import io.crate.http.netty.CrateNettyHttpServerTransport;
-import org.elasticsearch.action.ActionModule;
+import org.elasticsearch.action.ActionRequest;
+import org.elasticsearch.action.ActionResponse;
 import org.elasticsearch.common.component.LifecycleComponent;
 import org.elasticsearch.common.inject.Module;
+import org.elasticsearch.common.network.NetworkModule;
+import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.http.HttpServerModule;
+import org.elasticsearch.plugins.ActionPlugin;
 import org.elasticsearch.plugins.Plugin;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
+import java.util.*;
 
-public class BlobPlugin extends Plugin {
+import static org.elasticsearch.common.network.NetworkModule.HTTP_TYPE_KEY;
+import static org.elasticsearch.http.HttpTransportSettings.SETTING_HTTP_COMPRESSION;
+
+public class BlobPlugin extends Plugin implements ActionPlugin {
+
+    private static final String CRATE_HTTP_TRANSPORT_NAME = "crate";
 
     private final Settings settings;
 
@@ -52,8 +60,9 @@ public class BlobPlugin extends Plugin {
         return "plugin that adds BlOB support to crate";
     }
 
+
     @Override
-    public Collection<Module> nodeModules() {
+    public Collection<Module> createGuiceModules() {
         if (settings.getAsBoolean("node.client", false)) {
             return Collections.emptyList();
         }
@@ -64,21 +73,42 @@ public class BlobPlugin extends Plugin {
     }
 
     @Override
-    public Collection<Class<? extends LifecycleComponent>> nodeServices() {
+    public Settings additionalSettings() {
+        return Settings.builder()
+            .put(HTTP_TYPE_KEY, CRATE_HTTP_TRANSPORT_NAME)
+            .put(SETTING_HTTP_COMPRESSION.getKey(), false)
+            .build();
+    }
+
+    @Override
+    public List<Setting<?>> getSettings() {
+        return Arrays.asList(
+            BlobIndicesService.SETTING_BLOBS_PATH,
+            BlobIndicesService.SETTING_INDEX_BLOBS_ENABLED,
+            BlobIndicesService.SETTING_INDEX_BLOBS_PATH
+        );
+    }
+
+    @Override
+    public Collection<Class<? extends LifecycleComponent>> getGuiceServiceClasses() {
         // only start the service if we have a data node
         if (settings.getAsBoolean("node.client", false)) {
             return Collections.emptyList();
         }
-        return Collections.singletonList(BlobService.class);
+        return ImmutableList.of(BlobService.class);
     }
 
-    public void onModule(HttpServerModule module) {
-        module.setHttpServerTransport(CrateNettyHttpServerTransport.class, "crate");
+    public void onModule(NetworkModule networkModule) {
+        if (networkModule.canRegisterHttpExtensions()) {
+            networkModule.registerHttpTransport(CRATE_HTTP_TRANSPORT_NAME, CrateNettyHttpServerTransport.class);
+        }
     }
 
-    public void onModule(ActionModule module) {
-        module.registerAction(PutChunkAction.INSTANCE, TransportPutChunkAction.class);
-        module.registerAction(StartBlobAction.INSTANCE, TransportStartBlobAction.class);
-        module.registerAction(DeleteBlobAction.INSTANCE, TransportDeleteBlobAction.class);
+    @Override
+    public List<ActionHandler<? extends ActionRequest<?>, ? extends ActionResponse>> getActions() {
+        return Arrays.asList(
+            new ActionHandler<>(PutChunkAction.INSTANCE, TransportPutChunkAction.class),
+            new ActionHandler<>(StartBlobAction.INSTANCE, TransportStartBlobAction.class),
+            new ActionHandler<>(DeleteBlobAction.INSTANCE, TransportDeleteBlobAction.class));
     }
 }

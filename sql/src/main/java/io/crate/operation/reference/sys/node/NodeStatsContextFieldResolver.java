@@ -22,6 +22,7 @@
 
 package io.crate.operation.reference.sys.node;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableMap;
 import io.crate.Build;
 import io.crate.Version;
@@ -30,23 +31,22 @@ import io.crate.metadata.sys.SysNodesTableInfo;
 import io.crate.monitor.ExtendedNodeInfo;
 import io.crate.monitor.ThreadPools;
 import io.crate.protocols.postgres.PostgresNetty;
-import org.elasticsearch.ElasticsearchException;
-import org.elasticsearch.action.admin.cluster.node.info.NodeInfo;
-import org.elasticsearch.cluster.ClusterService;
+import org.apache.logging.log4j.Logger;
 import org.elasticsearch.cluster.node.DiscoveryNode;
+import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
-import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.lucene.BytesRefs;
-import org.elasticsearch.common.transport.InetSocketTransportAddress;
 import org.elasticsearch.common.transport.TransportAddress;
+import org.elasticsearch.http.HttpServer;
+import org.elasticsearch.monitor.MonitorService;
 import org.elasticsearch.monitor.jvm.JvmService;
 import org.elasticsearch.monitor.os.OsService;
-import org.elasticsearch.node.service.NodeService;
+import org.elasticsearch.monitor.process.ProcessService;
 import org.elasticsearch.threadpool.ThreadPool;
 
-import java.io.IOException;
+import javax.annotation.Nullable;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.Collection;
@@ -54,39 +54,59 @@ import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
 import java.util.function.Consumer;
+import java.util.function.Supplier;
+
+import static io.crate.operation.reference.sys.node.Ports.portFromAddress;
 
 @Singleton
 public class NodeStatsContextFieldResolver {
 
-    private final static ESLogger LOGGER = Loggers.getLogger(NodeStatsContextFieldResolver.class);
-
-    private final OsService osService;
-    private final JvmService jvmService;
-    private final ClusterService clusterService;
-    private final NodeService nodeService;
+    private final static Logger LOGGER = Loggers.getLogger(NodeStatsContextFieldResolver.class);
+    private final Supplier<DiscoveryNode> localNode;
+    private final Supplier<TransportAddress> boundHttpAddress;
     private final ThreadPool threadPool;
     private final ExtendedNodeInfo extendedNodeInfo;
-    private final PostgresNetty postgresNetty;
+    private final Supplier<TransportAddress> boundPostgresAddress;
+    private final ProcessService processService;
+    private final OsService osService;
+    private final JvmService jvmService;
 
     @Inject
     public NodeStatsContextFieldResolver(ClusterService clusterService,
-                                         OsService osService,
-                                         NodeService nodeService,
-                                         JvmService jvmService,
+                                         MonitorService monitorService,
+                                         @Nullable HttpServer httpServer,
                                          ThreadPool threadPool,
                                          ExtendedNodeInfo extendedNodeInfo,
                                          PostgresNetty postgresNetty) {
-        this.osService = osService;
-        this.jvmService = jvmService;
-        this.clusterService = clusterService;
-        this.nodeService = nodeService;
+        this(
+            clusterService::localNode,
+            monitorService,
+            () -> httpServer == null ? null : httpServer.info().getAddress().publishAddress(),
+            threadPool,
+            extendedNodeInfo,
+            () -> postgresNetty.boundAddress().publishAddress()
+        );
+    }
+
+    @VisibleForTesting
+    NodeStatsContextFieldResolver(Supplier<DiscoveryNode> localNode,
+                                  MonitorService monitorService,
+                                  Supplier<TransportAddress> boundHttpAddress,
+                                  ThreadPool threadPool,
+                                  ExtendedNodeInfo extendedNodeInfo,
+                                  Supplier<TransportAddress> boundPostgresAddress) {
+        this.localNode = localNode;
+        processService = monitorService.processService();
+        osService = monitorService.osService();
+        jvmService = monitorService.jvmService();
+        this.boundHttpAddress = boundHttpAddress;
         this.threadPool = threadPool;
         this.extendedNodeInfo = extendedNodeInfo;
-        this.postgresNetty = postgresNetty;
+        this.boundPostgresAddress = boundPostgresAddress;
     }
 
     public NodeStatsContext forTopColumnIdents(Collection<ColumnIdent> topColumnIdents) {
-        NodeStatsContext context = NodeStatsContext.newInstance();
+        NodeStatsContext context = new NodeStatsContext(true);
         if (topColumnIdents.isEmpty()) {
             return context;
         }
@@ -112,13 +132,13 @@ public class NodeStatsContextFieldResolver {
             .put(SysNodesTableInfo.Columns.ID, new Consumer<NodeStatsContext>() {
                 @Override
                 public void accept(NodeStatsContext context) {
-                    context.id(BytesRefs.toBytesRef(clusterService.localNode().getId()));
+                    context.id(BytesRefs.toBytesRef(localNode.get().getId()));
                 }
             })
             .put(SysNodesTableInfo.Columns.NAME, new Consumer<NodeStatsContext>() {
                 @Override
                 public void accept(NodeStatsContext context) {
-                    context.name(BytesRefs.toBytesRef(clusterService.localNode().name()));
+                    context.name(BytesRefs.toBytesRef(localNode.get().getName()));
                 }
             })
             .put(SysNodesTableInfo.Columns.HOSTNAME, context -> {
@@ -131,9 +151,9 @@ public class NodeStatsContextFieldResolver {
             .put(SysNodesTableInfo.Columns.REST_URL, new Consumer<NodeStatsContext>() {
                 @Override
                 public void accept(NodeStatsContext context) {
-                    DiscoveryNode node = clusterService.localNode();
+                    DiscoveryNode node = localNode.get();
                     if (node != null) {
-                        String url = node.attributes().get("http_address");
+                        String url = node.getAttributes().get("http_address");
                         context.restUrl(BytesRefs.toBytesRef(url));
                     }
                 }
@@ -141,22 +161,10 @@ public class NodeStatsContextFieldResolver {
             .put(SysNodesTableInfo.Columns.PORT, new Consumer<NodeStatsContext>() {
                 @Override
                 public void accept(NodeStatsContext context) {
-                    Integer http = null;
-                    Integer pgsql = null;
-                    Integer transport;
-                    NodeInfo info = nodeService.info();
-                    if (info.getHttp() != null) {
-                        http = portFromAddress(info.getHttp().address().publishAddress());
-                    }
-                    try {
-                        transport = portFromAddress(nodeService.stats().getNode().address());
-                    } catch (IOException e) {
-                        throw new ElasticsearchException("unable to get node transport statistics", e);
-                    }
-                    if (postgresNetty.boundAddress() != null) {
-                        pgsql = portFromAddress(postgresNetty.boundAddress().publishAddress());
-                    }
-                    Map<String, Integer> port = new HashMap<>(2);
+                    Integer http = portFromAddress(boundHttpAddress.get());
+                    Integer transport = portFromAddress(localNode.get().getAddress());
+                    Integer pgsql = portFromAddress(boundPostgresAddress.get());
+                    Map<String, Integer> port = new HashMap<>(3);
                     port.put("http", http);
                     port.put("transport", transport);
                     port.put("psql", pgsql);
@@ -207,18 +215,14 @@ public class NodeStatsContextFieldResolver {
             .put(SysNodesTableInfo.Columns.OS_INFO, new Consumer<NodeStatsContext>() {
                 @Override
                 public void accept(NodeStatsContext context) {
-                    context.osInfo(nodeService.info().getOs());
+                    context.osInfo(osService.info());
                 }
             })
             .put(SysNodesTableInfo.Columns.PROCESS, new Consumer<NodeStatsContext>() {
                 @Override
                 public void accept(NodeStatsContext context) {
                     context.extendedProcessCpuStats(extendedNodeInfo.processCpuStats());
-                    try {
-                        context.processStats(nodeService.stats().getProcess());
-                    } catch (IOException e) {
-                        throw new ElasticsearchException("unable to get node statistics", e);
-                    }
+                    context.processStats(processService.stats());
                 }
             })
             .put(SysNodesTableInfo.Columns.FS, new Consumer<NodeStatsContext>() {
@@ -227,13 +231,4 @@ public class NodeStatsContextFieldResolver {
                     context.extendedFsStats(extendedNodeInfo.fsStats());
                 }
             }).build();
-
-
-    private static Integer portFromAddress(TransportAddress address) {
-        Integer port = null;
-        if (address instanceof InetSocketTransportAddress) {
-            port = ((InetSocketTransportAddress) address).address().getPort();
-        }
-        return port;
-    }
 }

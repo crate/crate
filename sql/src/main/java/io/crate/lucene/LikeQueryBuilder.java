@@ -19,11 +19,11 @@ public final class LikeQueryBuilder {
     public static Query like(DataType dataType, @Nullable MappedFieldType fieldType, Object value) {
         if (fieldType == null) {
             // column doesn't exist on this index -> no match
-            return Queries.newMatchNoDocsQuery();
+            return Queries.newMatchNoDocsQuery("column does not exist in this index");
         }
         if (dataType.equals(DataTypes.STRING)) {
             return new WildcardQuery(new Term(
-                fieldType.names().fullName(),
+                fieldType.name(),
                 LuceneQueryBuilder.convertSqlLikeToLuceneWildcard(BytesRefs.toString(value))));
         }
         return fieldType.termQuery(value, null);

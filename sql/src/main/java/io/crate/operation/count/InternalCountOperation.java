@@ -28,8 +28,12 @@ import io.crate.analyze.WhereClause;
 import io.crate.lucene.LuceneQueryBuilder;
 import io.crate.metadata.PartitionName;
 import io.crate.operation.ThreadPools;
+import org.elasticsearch.cluster.metadata.IndexMetaData;
+import org.elasticsearch.cluster.metadata.MetaData;
+import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
+import org.elasticsearch.index.Index;
 import org.elasticsearch.index.IndexNotFoundException;
 import org.elasticsearch.index.IndexService;
 import org.elasticsearch.index.engine.Engine;
@@ -52,15 +56,18 @@ public class InternalCountOperation implements CountOperation {
 
     private final LuceneQueryBuilder queryBuilder;
     private final IndicesService indicesService;
+    private final ClusterService clusterService;
     private final ThreadPoolExecutor executor;
     private final int corePoolSize;
 
     @Inject
     public InternalCountOperation(ScriptService scriptService, // DO NOT REMOVE, RESULTS IN WEIRD GUICE DI ERRORS
                                   LuceneQueryBuilder queryBuilder,
+                                  ClusterService clusterService,
                                   ThreadPool threadPool,
                                   IndicesService indicesService) {
         this.queryBuilder = queryBuilder;
+        this.clusterService = clusterService;
         executor = (ThreadPoolExecutor) threadPool.executor(ThreadPool.Names.SEARCH);
         corePoolSize = executor.getMaximumPoolSize();
         this.indicesService = indicesService;
@@ -71,15 +78,19 @@ public class InternalCountOperation implements CountOperation {
                                         final WhereClause whereClause) throws IOException, InterruptedException {
 
         List<Callable<Long>> callableList = new ArrayList<>();
+        MetaData metaData = clusterService.state().getMetaData();
         for (Map.Entry<String, ? extends Collection<Integer>> entry : indexShardMap.entrySet()) {
-            final String index = entry.getKey();
+            String indexName = entry.getKey();
+            IndexMetaData indexMetaData = metaData.index(indexName);
+            if (indexMetaData == null) {
+                if (PartitionName.isPartition(indexName)) {
+                    continue;
+                }
+                throw new IndexNotFoundException(indexName);
+            }
+            final Index index = indexMetaData.getIndex();
             for (final Integer shardId : entry.getValue()) {
-                callableList.add(new Callable<Long>() {
-                    @Override
-                    public Long call() throws Exception {
-                        return count(index, shardId, whereClause);
-                    }
-                });
+                callableList.add(() -> count(index, shardId, whereClause));
             }
         }
         MergePartialCountFunction mergeFunction = new MergePartialCountFunction();
@@ -89,21 +100,25 @@ public class InternalCountOperation implements CountOperation {
     }
 
     @Override
-    public long count(String index, int shardId, WhereClause whereClause) throws IOException, InterruptedException {
+    public long count(Index index, int shardId, WhereClause whereClause) throws IOException, InterruptedException {
         IndexService indexService;
         try {
             indexService = indicesService.indexServiceSafe(index);
         } catch (IndexNotFoundException e) {
-            if (PartitionName.isPartition(index)) {
+            if (PartitionName.isPartition(index.getName())) {
                 return 0L;
             }
             throw e;
         }
 
-        IndexShard indexShard = indexService.shardSafe(shardId);
+        IndexShard indexShard = indexService.getShard(shardId);
         try (Engine.Searcher searcher = indexShard.acquireSearcher("count-operation")) {
             LuceneQueryBuilder.Context queryCtx = queryBuilder.convert(
-                whereClause, indexService.mapperService(), indexService.fieldData(), indexService.cache());
+                whereClause,
+                indexService.mapperService(),
+                indexService.newQueryShardContext(searcher.reader(), System::currentTimeMillis),
+                indexService.fieldData(),
+                indexService.cache());
             if (Thread.interrupted()) {
                 throw new InterruptedException("thread interrupted during count-operation");
             }

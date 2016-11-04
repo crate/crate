@@ -1,28 +1,11 @@
+import java.time.ZoneOffset;
+import java.time.ZonedDateTime;
+
 dependencies {
-    // start ES compile dependencies
-    // generated in upstream directory with:
-    // mvn dependency:tree | grep -o ' .- .*:compile' | cut -d ' ' -f 3 | sort | sed "s/\(.*\):jar:\(.*\):compile/compile '\1:\2'/g"
-    compile "com.carrotsearch:hppc:0.7.1"
-    compile "com.fasterxml.jackson.core:jackson-core:${versions.jackson}"
-    compile "com.fasterxml.jackson.dataformat:jackson-dataformat-cbor:${versions.jackson}"
-    compile "com.fasterxml.jackson.dataformat:jackson-dataformat-smile:${versions.jackson}"
-    compile "com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:${versions.jackson}"
-    compile "com.github.spullara.mustache.java:compiler:0.8.13"
-    compile "com.google.guava:guava:${versions.guava}"
-    compile "com.ning:compress-lzf:1.0.2"
-    compile "com.spatial4j:spatial4j:${versions.spatial4j}"
-    compile "com.tdunning:t-digest:3.0"
-    compile "com.twitter:jsr166e:1.1.0"
-    compile "com.vividsolutions:jts:${versions.jts}"
-    compile "commons-cli:commons-cli:${versions.commonscli}"
-    compile "io.netty:netty:${versions.netty}"
-    compile "joda-time:joda-time:${versions.jodatime}"
-    compile "log4j:apache-log4j-extras:${versions.log4j}"
-    compile "log4j:log4j:${versions.log4j}"
-    compile "net.java.dev.jna:jna:${versions.jna}"
+
+    compile "org.apache.lucene:lucene-core:${versions.lucene}"
     compile "org.apache.lucene:lucene-analyzers-common:${versions.lucene}"
     compile "org.apache.lucene:lucene-backward-codecs:${versions.lucene}"
-    compile "org.apache.lucene:lucene-core:${versions.lucene}"
     compile "org.apache.lucene:lucene-grouping:${versions.lucene}"
     compile "org.apache.lucene:lucene-highlighter:${versions.lucene}"
     compile "org.apache.lucene:lucene-join:${versions.lucene}"
@@ -31,20 +14,61 @@ dependencies {
     compile "org.apache.lucene:lucene-queries:${versions.lucene}"
     compile "org.apache.lucene:lucene-queryparser:${versions.lucene}"
     compile "org.apache.lucene:lucene-sandbox:${versions.lucene}"
-    compile "org.apache.lucene:lucene-spatial3d:${versions.lucene}"
     compile "org.apache.lucene:lucene-spatial:${versions.lucene}"
+    compile "org.apache.lucene:lucene-spatial-extras:${versions.lucene}"
+    compile "org.apache.lucene:lucene-spatial3d:${versions.lucene}"
     compile "org.apache.lucene:lucene-suggest:${versions.lucene}"
-    compile "org.elasticsearch:securesm:1.0"
+
+    // start ES compile dependencies
+    // generated in upstream directory with:
+    // mvn dependency:tree | grep -o ' .- .*:compile' | cut -d ' ' -f 3 | sort | sed "s/\(.*\):jar:\(.*\):compile/compile '\1:\2'/g"
+    compile "com.carrotsearch:hppc:0.7.1"
+    compile 'net.sf.jopt-simple:jopt-simple:5.0.2'
+
+    compile "com.fasterxml.jackson.core:jackson-core:${versions.jackson}"
+    compile "com.fasterxml.jackson.dataformat:jackson-dataformat-cbor:${versions.jackson}"
+    compile "com.fasterxml.jackson.dataformat:jackson-dataformat-smile:${versions.jackson}"
+    compile "com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:${versions.jackson}"
+    compile "com.github.spullara.mustache.java:compiler:0.8.13"
+    compile "com.google.guava:guava:${versions.guava}"
+    compile "com.ning:compress-lzf:1.0.2"
+    compile "org.locationtech.spatial4j:spatial4j:${versions.spatial4j}"
+    compile "com.tdunning:t-digest:3.0"
+    compile "com.twitter:jsr166e:1.1.0"
+    compile "com.vividsolutions:jts:${versions.jts}"
+    compile "commons-cli:commons-cli:${versions.commonscli}"
+    compile "io.netty:netty:${versions.netty}"
+    compile "joda-time:joda-time:${versions.jodatime}"
+
+
+    compile "org.apache.logging.log4j:log4j-api:${versions.log4j2}"
+    compile "org.apache.logging.log4j:log4j-core:${versions.log4j2}"
+    // to bridge dependencies that are still on Log4j 1 to Log4j 2
+    compile "org.apache.logging.log4j:log4j-1.2-api:${versions.log4j2}"
+
+
+    compile "net.java.dev.jna:jna:${versions.jna}"
+    compile "org.elasticsearch:securesm:1.1"
     compile "org.hdrhistogram:HdrHistogram:2.1.6"
     compile "org.joda:joda-convert:1.2"
     compile "org.slf4j:slf4j-api:${versions.slf4j}"
-    compile "org.slf4j:slf4j-log4j12:${versions.slf4j}"
 
     // snakeyaml is a duplicate dependency and left out by intent
     // compile "org.yaml:snakeyaml:1.15"
     // end ES compile dependencies
 
     compile "org.codehaus.groovy:groovy-all:2.4.4:indy"
+}
+
+// Build.java in ES sources will read those properties
+jar {
+    manifest {
+        attributes(
+            "Change": "git rev-parse HEAD".execute([], new File("es/upstream")).in.text.trim(),
+            "Build-Date": ZonedDateTime.now(ZoneOffset.UTC),
+            "X-Compile-Elasticsearch-Snapshot": false
+        )
+    }
 }
 
 

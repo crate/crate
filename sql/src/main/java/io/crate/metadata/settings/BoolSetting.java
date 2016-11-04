@@ -26,17 +26,29 @@ import io.crate.types.DataTypes;
 import org.elasticsearch.common.settings.Settings;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 
 public class BoolSetting extends Setting<Boolean, Boolean> {
 
     private final String name;
     private final boolean value;
     private final boolean isRuntimeSetting;
+    private final Setting parent;
 
     public BoolSetting(String name, boolean defaultValue, boolean isRuntimeSetting) {
+        this(name, defaultValue, isRuntimeSetting, null, null);
+    }
+
+    public BoolSetting(String name,
+                       boolean defaultValue,
+                       boolean isRuntimeSetting,
+                       @Nullable Setting parent,
+                       @Nullable org.elasticsearch.common.settings.Setting<Boolean> esSetting) {
         this.name = name;
         this.value = defaultValue;
         this.isRuntimeSetting = isRuntimeSetting;
+        this.parent = parent;
+        this.esSetting = esSetting;
     }
 
     @Override
@@ -47,6 +59,11 @@ public class BoolSetting extends Setting<Boolean, Boolean> {
     @Override
     public Boolean defaultValue() {
         return value;
+    }
+
+    @Override
+    public Setting parent() {
+        return parent;
     }
 
     @Override
@@ -66,5 +83,14 @@ public class BoolSetting extends Setting<Boolean, Boolean> {
     @Override
     public DataType dataType() {
         return DataTypes.BOOLEAN;
+    }
+
+    @Override
+    org.elasticsearch.common.settings.Setting<Boolean> createESSetting() {
+        return org.elasticsearch.common.settings.Setting.boolSetting(
+            settingName(),
+            defaultValue(),
+            propertiesForUpdateConsumer()
+        );
     }
 }

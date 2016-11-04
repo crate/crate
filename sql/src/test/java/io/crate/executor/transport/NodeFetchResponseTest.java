@@ -61,7 +61,7 @@ public class NodeFetchResponseTest {
         orig.writeTo(out);
 
 
-        StreamInput in = StreamInput.wrap(out.bytes());
+        StreamInput in = out.bytes().streamInput();
 
         // receiving side is required to set the streamers
         NodeFetchResponse streamed = NodeFetchResponse.forReceiveing(streamers);

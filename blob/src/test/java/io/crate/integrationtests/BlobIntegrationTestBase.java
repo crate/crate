@@ -27,11 +27,12 @@ import io.crate.blob.v2.BlobIndex;
 import io.crate.blob.v2.BlobIndicesService;
 import io.crate.blob.v2.BlobShard;
 import io.crate.plugin.BlobPlugin;
+import io.crate.plugin.CrateCorePlugin;
 import io.crate.rest.CrateRestFilter;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.node.Node;
 import org.elasticsearch.plugins.Plugin;
 import org.elasticsearch.test.ESIntegTestCase;
+import org.elasticsearch.transport.Netty3Plugin;
 import org.junit.After;
 import org.junit.Before;
 
@@ -39,11 +40,14 @@ import java.io.IOException;
 import java.lang.reflect.Field;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Map;
 import java.util.function.Consumer;
 import java.util.stream.Stream;
 
+import static org.elasticsearch.common.network.NetworkModule.HTTP_ENABLED;
+import static org.elasticsearch.http.HttpTransportSettings.SETTING_HTTP_COMPRESSION;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.core.Is.is;
 
@@ -62,17 +66,18 @@ public abstract class BlobIntegrationTestBase extends ESIntegTestCase {
 
     @Override
     protected Settings nodeSettings(int nodeOrdinal) {
-        return Settings.settingsBuilder()
+        return Settings.builder()
             .put(super.nodeSettings(nodeOrdinal))
-            .put(Node.HTTP_ENABLED, true)
-            .put(CrateRestFilter.ES_API_ENABLED_SETTING, true)
+            .put(HTTP_ENABLED.getKey(), true)
+            .put(CrateRestFilter.ES_API_ENABLED_SETTING.getKey(), true)
+            .put(SETTING_HTTP_COMPRESSION.getKey(), false)
             .build();
     }
 
     @SuppressWarnings("unchecked")
     @Override
     protected Collection<Class<? extends Plugin>> nodePlugins() {
-        return pluginList(BlobPlugin.class);
+        return Arrays.asList(Netty3Plugin.class, BlobPlugin.class, CrateCorePlugin.class);
     }
 
     @After

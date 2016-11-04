@@ -23,7 +23,6 @@
 package io.crate.cluster.gracefulstop;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.collect.Sets;
 import io.crate.action.sql.SQLOperations;
 import io.crate.metadata.settings.CrateSettings;
 import io.crate.operation.collect.stats.JobsLogs;
@@ -35,25 +34,26 @@ import org.elasticsearch.action.admin.cluster.settings.ClusterUpdateSettingsRequ
 import org.elasticsearch.action.admin.cluster.settings.ClusterUpdateSettingsResponse;
 import org.elasticsearch.action.admin.cluster.settings.TransportClusterUpdateSettingsAction;
 import org.elasticsearch.cluster.ClusterChangedEvent;
-import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.ClusterStateListener;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.node.DiscoveryNodes;
+import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.Priority;
+import org.elasticsearch.common.collect.MapBuilder;
 import org.elasticsearch.common.component.AbstractLifecycleComponent;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
+import org.elasticsearch.common.settings.ClusterSettings;
+import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.TimeValue;
-import org.elasticsearch.node.settings.NodeSettingsService;
 import org.elasticsearch.threadpool.ThreadPool;
 import sun.misc.Signal;
 import sun.misc.SignalHandler;
 
 import javax.annotation.Nullable;
-import java.util.HashSet;
+import java.util.HashMap;
 import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
@@ -61,6 +61,8 @@ import java.util.concurrent.TimeoutException;
 public class DecommissioningService extends AbstractLifecycleComponent implements SignalHandler, ClusterStateListener {
 
     static final String DECOMMISSION_PREFIX = "crate.internal.decommission.";
+    public static final Setting<Settings> DECOMMISSION_INTERNAL_SETTING_GROUP = Setting.groupSetting(
+        DECOMMISSION_PREFIX, Setting.Property.NodeScope, Setting.Property.Dynamic);
 
     private final ClusterService clusterService;
     private final JobsLogs jobsLogs;
@@ -73,13 +75,11 @@ public class DecommissioningService extends AbstractLifecycleComponent implement
     private Boolean forceStop;
     private DataAvailability dataAvailability;
 
-
     @Inject
     public DecommissioningService(Settings settings,
                                   final ClusterService clusterService,
                                   JobsLogs jobsLogs,
                                   ThreadPool threadPool,
-                                  NodeSettingsService nodeSettingsService,
                                   SQLOperations sqlOperations,
                                   final TransportClusterHealthAction healthAction,
                                   final TransportClusterUpdateSettingsAction updateSettingsAction) {
@@ -91,9 +91,15 @@ public class DecommissioningService extends AbstractLifecycleComponent implement
         this.healthAction = healthAction;
         this.updateSettingsAction = updateSettingsAction;
 
-        ApplySettings applySettings = new ApplySettings();
-        applySettings.onRefreshSettings(settings);
-        nodeSettingsService.addListener(applySettings);
+        gracefulStopTimeout = CrateSettings.GRACEFUL_STOP_TIMEOUT.extractTimeValue(settings);
+        forceStop = CrateSettings.GRACEFUL_STOP_FORCE.extract(settings);
+        dataAvailability = DataAvailability.of(CrateSettings.GRACEFUL_STOP_MIN_AVAILABILITY.extract(settings));
+
+        ClusterSettings clusterSettings = clusterService.getClusterSettings();
+
+        CrateSettings.GRACEFUL_STOP_TIMEOUT.registerUpdateConsumer(clusterSettings, this::setGracefulStopTimeout);
+        CrateSettings.GRACEFUL_STOP_FORCE.registerUpdateConsumer(clusterSettings, this::setGracefulStopForce);
+        CrateSettings.GRACEFUL_STOP_MIN_AVAILABILITY.registerUpdateConsumer(clusterSettings, this::setDataAvailability);
 
         try {
             Signal signal = new Signal("USR2");
@@ -107,24 +113,24 @@ public class DecommissioningService extends AbstractLifecycleComponent implement
         if (!event.localNodeMaster() || !event.nodesRemoved()) {
             return;
         }
-        Set<String> removedDecommissionedNodes = getRemovedDecommissionedNodes(
+        Map<String, Object> removedDecommissionedNodes = getRemovedDecommissionedNodes(
             event.nodesDelta(), event.state().metaData().transientSettings());
         if (removedDecommissionedNodes != null) {
-            updateSettingsAction.execute(new ClusterUpdateSettingsRequest().transientSettingsToRemove(removedDecommissionedNodes));
+            updateSettingsAction.execute(new ClusterUpdateSettingsRequest().transientSettings(removedDecommissionedNodes));
         }
     }
 
     @Nullable
-    private static Set<String> getRemovedDecommissionedNodes(DiscoveryNodes.Delta nodesDelta, Settings transientSettings) {
-        Set<String> toRemove = null;
+    private static Map<String, Object> getRemovedDecommissionedNodes(DiscoveryNodes.Delta nodesDelta, Settings transientSettings) {
+        Map<String, Object> toRemove = null;
         for (DiscoveryNode discoveryNode : nodesDelta.removedNodes()) {
             Map<String, String> asMap = transientSettings.getByPrefix(DECOMMISSION_PREFIX).getAsMap();
             String nodeId = discoveryNode.getId();
             if (asMap.containsKey(nodeId)) {
                 if (toRemove == null) {
-                    toRemove = new HashSet<>();
+                    toRemove = new HashMap<>();
                 }
-                toRemove.add(DECOMMISSION_PREFIX + nodeId);
+                toRemove.put(DECOMMISSION_PREFIX + nodeId, null);
             }
         }
         return toRemove;
@@ -159,7 +165,7 @@ public class DecommissioningService extends AbstractLifecycleComponent implement
 
                 // NOTE: it waits for ALL relocating shards, not just those that involve THIS node.
                 ClusterHealthRequest request = new ClusterHealthRequest()
-                    .waitForRelocatingShards(0)
+                    .waitForNoRelocatingShards(true)
                     .waitForEvents(Priority.LANGUID)
                     .timeout(gracefulStopTimeout);
 
@@ -178,14 +184,14 @@ public class DecommissioningService extends AbstractLifecycleComponent implement
                     }
 
                     @Override
-                    public void onFailure(Throwable e) {
+                    public void onFailure(Exception e) {
                         forceStopOrAbort(e);
                     }
                 });
             }
 
             @Override
-            public void onFailure(Throwable e) {
+            public void onFailure(Exception e) {
                 logger.error("Couldn't set settings. Graceful shutdown failed", e);
             }
         });
@@ -228,8 +234,10 @@ public class DecommissioningService extends AbstractLifecycleComponent implement
 
     @VisibleForTesting
     protected void removeDecommissioningSetting() {
-        HashSet<String> settingsToRemove = Sets.newHashSet(DECOMMISSION_PREFIX + clusterService.localNode().getId());
-        updateSettingsAction.execute(new ClusterUpdateSettingsRequest().transientSettingsToRemove(settingsToRemove));
+        Map<String, Object> settingsToRemove = MapBuilder.<String, Object>newMapBuilder()
+            .put(DECOMMISSION_PREFIX + clusterService.localNode().getId(), null)
+            .map();
+        updateSettingsAction.execute(new ClusterUpdateSettingsRequest().transientSettings(settingsToRemove));
     }
 
     @Override
@@ -250,12 +258,15 @@ public class DecommissioningService extends AbstractLifecycleComponent implement
         }
     }
 
-    private class ApplySettings implements NodeSettingsService.Listener {
-        @Override
-        public void onRefreshSettings(Settings settings) {
-            gracefulStopTimeout = CrateSettings.GRACEFUL_STOP_TIMEOUT.extractTimeValue(settings);
-            forceStop = CrateSettings.GRACEFUL_STOP_FORCE.extract(settings);
-            dataAvailability = DataAvailability.of(CrateSettings.GRACEFUL_STOP_MIN_AVAILABILITY.extract(settings));
-        }
+    private void setGracefulStopTimeout(TimeValue gracefulStopTimeout) {
+        this.gracefulStopTimeout = gracefulStopTimeout;
+    }
+
+    private void setGracefulStopForce(boolean forceStop) {
+        this.forceStop = forceStop;
+    }
+
+    private void setDataAvailability(String dataAvailability) {
+        this.dataAvailability = DataAvailability.of(dataAvailability);
     }
 }

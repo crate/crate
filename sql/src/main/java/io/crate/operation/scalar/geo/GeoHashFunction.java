@@ -21,21 +21,21 @@
 
 package io.crate.operation.scalar.geo;
 
-    import com.google.common.collect.ImmutableList;
-    import io.crate.metadata.FunctionIdent;
-    import io.crate.metadata.FunctionInfo;
-    import io.crate.operation.scalar.ScalarFunctionModule;
-    import io.crate.operation.scalar.UnaryScalar;
-    import io.crate.types.DataType;
-    import io.crate.types.DataTypes;
-    import io.crate.types.GeoPointType;
-    import org.apache.lucene.spatial.util.GeoHashUtils;
-    import org.apache.lucene.util.BytesRef;
-    import org.elasticsearch.common.lucene.BytesRefs;
+import com.google.common.collect.ImmutableList;
+import io.crate.metadata.FunctionIdent;
+import io.crate.metadata.FunctionInfo;
+import io.crate.operation.scalar.ScalarFunctionModule;
+import io.crate.operation.scalar.UnaryScalar;
+import io.crate.types.DataType;
+import io.crate.types.DataTypes;
+import io.crate.types.GeoPointType;
+import org.apache.lucene.util.BytesRef;
+import org.elasticsearch.common.geo.GeoHashUtils;
+import org.elasticsearch.common.lucene.BytesRefs;
 
-    import java.util.Collections;
-    import java.util.List;
-    import java.util.function.Function;
+import java.util.Collections;
+import java.util.List;
+import java.util.function.Function;
 
 public final class GeoHashFunction {
 

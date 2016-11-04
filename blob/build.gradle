@@ -4,6 +4,7 @@ archivesBaseName = 'crate-blob'
 
 dependencies {
     compile project(':core')
+    compile project(':es:es-transport')
     testCompile project(':integration-testing')
 }
 

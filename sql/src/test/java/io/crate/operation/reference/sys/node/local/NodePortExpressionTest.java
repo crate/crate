@@ -22,24 +22,14 @@
 package io.crate.operation.reference.sys.node.local;
 
 import io.crate.test.integration.CrateUnitTest;
-import org.elasticsearch.action.admin.cluster.node.info.NodeInfo;
-import org.elasticsearch.node.service.NodeService;
 import org.hamcrest.Matchers;
 import org.junit.Test;
-
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 public class NodePortExpressionTest extends CrateUnitTest {
 
     @Test
     public void testNoHttpServerAvailable() throws Exception {
-        NodeService nodeService = mock(NodeService.class);
-        NodeInfo nodeInfo = mock(NodeInfo.class);
-        when(nodeService.info()).thenReturn(nodeInfo);
-        when(nodeInfo.getHttp()).thenReturn(null);
-
-        NodePortExpression nodePortExpression = new NodePortExpression(nodeService);
+        NodePortExpression nodePortExpression = new NodePortExpression(() -> null, () -> null);
         Object value = nodePortExpression.getChildImplementation("http").value();
         assertThat(value, Matchers.nullValue());
     }

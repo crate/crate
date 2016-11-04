@@ -39,7 +39,7 @@ import java.util.*;
 import static org.hamcrest.Matchers.*;
 import static org.hamcrest.core.Is.is;
 
-@ESIntegTestCase.ClusterScope(numDataNodes = 2, numClientNodes = 0)
+@ESIntegTestCase.ClusterScope(numDataNodes = 2, numClientNodes = 0, supportsDedicatedMasters = false)
 public class PostgresITest extends SQLTransportIntegrationTest {
 
     private static final String JDBC_CRATE_URL = "jdbc:crate://127.0.0.1:4242/";
@@ -56,7 +56,7 @@ public class PostgresITest extends SQLTransportIntegrationTest {
         if ((nodeOrdinal + 1) % 2 == 0) {
             builder.put("psql.port", "4242");
         } else {
-            builder.put(SQLOperations.NODE_READ_ONLY_SETTING, true);
+            builder.put(SQLOperations.NODE_READ_ONLY_SETTING.getKey(), true);
             builder.put("psql.port", "4243");
         }
         return builder.build();

@@ -50,6 +50,7 @@ public class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, ShardUp
     private boolean overwriteDuplicates = false;
     private Boolean isRawSourceInsert = null;
     private boolean validateConstraints = true;
+    private boolean isRetry = false;
 
     /**
      * List of column names used on update
@@ -137,6 +138,18 @@ public class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, ShardUp
                 insertColumns.length == 1 && insertColumns[0].ident().columnIdent().equals(DocSysColumns.RAW);
         }
         return isRawSourceInsert;
+    }
+
+    /**
+     * Returns <code>true</code> if this request has been sent to a shard copy more than once.
+     */
+    public boolean isRetry() {
+        return isRetry;
+    }
+
+    @Override
+    public void onRetry() {
+        isRetry = true;
     }
 
     @Override

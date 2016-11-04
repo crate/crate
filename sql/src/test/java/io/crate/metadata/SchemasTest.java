@@ -25,10 +25,10 @@ import io.crate.metadata.doc.DocSchemaInfoFactory;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.table.TableInfo;
-import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.IndexTemplateMetaData;
 import org.elasticsearch.cluster.metadata.MetaData;
+import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.collect.ImmutableOpenMap;
 import org.elasticsearch.common.settings.Settings;
 import org.junit.Before;
@@ -64,7 +64,7 @@ public class SchemasTest {
         MockitoAnnotations.initMocks(this);
         when(clusterService.state()).thenReturn(clusterState);
         when(clusterState.metaData()).thenReturn(metaData);
-        when(metaData.concreteAllOpenIndices()).thenReturn(new String[0]);
+        when(metaData.getConcreteAllOpenIndices()).thenReturn(new String[0]);
         when(metaData.templates()).thenReturn(ImmutableOpenMap.<String, IndexTemplateMetaData>of());
     }
 

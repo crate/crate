@@ -41,19 +41,21 @@ import io.crate.metadata.table.TableInfo;
 import io.crate.sql.tree.CreateSnapshot;
 import io.crate.sql.tree.QualifiedName;
 import io.crate.sql.tree.Table;
-import org.elasticsearch.cluster.metadata.SnapshotId;
-import org.elasticsearch.common.logging.ESLogger;
+import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.snapshots.Snapshot;
+import org.elasticsearch.snapshots.SnapshotId;
 
 import java.util.*;
+import java.util.stream.Stream;
 
 import static io.crate.analyze.SnapshotSettings.IGNORE_UNAVAILABLE;
 import static io.crate.analyze.SnapshotSettings.WAIT_FOR_COMPLETION;
 
 class CreateSnapshotAnalyzer {
 
-    private static final ESLogger LOGGER = Loggers.getLogger(CreateSnapshotAnalyzer.class);
+    private static final Logger LOGGER = Loggers.getLogger(CreateSnapshotAnalyzer.class);
     private final RepositoryService repositoryService;
     private final Schemas schemas;
 
@@ -78,7 +80,7 @@ class CreateSnapshotAnalyzer {
 
         // snapshot existence in repo is validated upon execution
         String snapshotName = node.name().getSuffix();
-        SnapshotId snapshotId = new SnapshotId(repositoryName.get().toString(), snapshotName);
+        Snapshot snapshot = new Snapshot(repositoryName.get().toString(), new SnapshotId(snapshotName, UUID.randomUUID().toString()));
 
         // validate and extract settings
         Settings settings = GenericPropertiesConverter.settingsFromProperties(
@@ -109,7 +111,7 @@ class CreateSnapshotAnalyzer {
                 Operation.blockedRaiseException(tableInfo, Operation.READ);
                 DocTableInfo docTableInfo = (DocTableInfo) tableInfo;
                 if (table.partitionProperties().isEmpty()) {
-                    snapshotIndices.addAll(Arrays.asList(docTableInfo.concreteIndices()));
+                    Stream.of(docTableInfo.concreteIndices()).forEach(snapshotIndices::add);
                 } else {
                     PartitionName partitionName = PartitionPropertiesAnalyzer.toPartitionName(
                         docTableInfo,
@@ -127,14 +129,15 @@ class CreateSnapshotAnalyzer {
                     }
                 }
             }
-            /**
+            /*
              * For now, we always (in case there are indices to restore) include the globalMetaData,
              * not only if one of the tables in the table list is partitioned.
              * Previously we only included it in snapshots of full partitioned tables.
              * However, to make restoring of shapshots of single partitions work
              * we also need to include the global metadata (index templates).
              */
-            return CreateSnapshotAnalyzedStatement.forTables(snapshotId,
+            return CreateSnapshotAnalyzedStatement.forTables(
+                snapshot,
                 settings,
                 ImmutableList.copyOf(snapshotIndices),
                 !snapshotIndices.isEmpty());
@@ -147,7 +150,7 @@ class CreateSnapshotAnalyzer {
                     }
                 }
             }
-            return CreateSnapshotAnalyzedStatement.all(snapshotId, settings);
+            return CreateSnapshotAnalyzedStatement.all(snapshot, settings);
         }
     }
 }

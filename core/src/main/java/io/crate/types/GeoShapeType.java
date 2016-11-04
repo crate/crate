@@ -21,8 +21,8 @@
 
 package io.crate.types;
 
-import com.spatial4j.core.context.jts.JtsSpatialContext;
-import com.spatial4j.core.shape.Shape;
+import org.locationtech.spatial4j.context.jts.JtsSpatialContext;
+import org.locationtech.spatial4j.shape.Shape;
 import io.crate.Streamer;
 import io.crate.geo.GeoJSONUtils;
 import org.apache.lucene.util.BytesRef;

@@ -24,7 +24,7 @@ package io.crate.jobs;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.ActionRequest;
 import org.elasticsearch.action.support.TransportAction;
-import org.elasticsearch.common.logging.ESLogger;
+import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.logging.Loggers;
 
 import javax.annotation.Nonnull;
@@ -34,7 +34,7 @@ import java.util.concurrent.CompletableFuture;
 
 public class ESJobContext extends AbstractExecutionSubContext {
 
-    private static final ESLogger LOGGER = Loggers.getLogger(ESJobContext.class);
+    private static final Logger LOGGER = Loggers.getLogger(ESJobContext.class);
 
     private final List<? extends ActionListener> listeners;
     private String operationName;
@@ -103,7 +103,7 @@ public class ESJobContext extends AbstractExecutionSubContext {
         }
 
         @Override
-        public void onFailure(Throwable e) {
+        public void onFailure(Exception e) {
             listener.onFailure(e);
             context.close(e);
         }

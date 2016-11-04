@@ -24,45 +24,53 @@ package io.crate.plugin;
 
 import io.crate.ClusterIdService;
 import io.crate.module.CrateCoreModule;
+import io.crate.rest.CrateRestFilter;
 import io.crate.rest.CrateRestMainAction;
 import org.elasticsearch.common.component.LifecycleComponent;
 import org.elasticsearch.common.inject.Module;
+import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.index.IndexModule;
+import org.elasticsearch.plugins.ActionPlugin;
 import org.elasticsearch.plugins.Plugin;
-import org.elasticsearch.rest.RestModule;
+import org.elasticsearch.rest.RestHandler;
 
 import java.util.Collection;
 import java.util.Collections;
+import java.util.List;
 
-public class CrateCorePlugin extends Plugin {
+public class CrateCorePlugin extends Plugin implements ActionPlugin {
 
     private final Settings settings;
+    private final IndexEventListenerProxy indexEventListenerProxy;
 
     public CrateCorePlugin(Settings settings) {
         this.settings = settings;
+        this.indexEventListenerProxy = new IndexEventListenerProxy();
     }
 
     @Override
-    public String name() {
-        return "crate-core";
+    public Collection<Class<? extends LifecycleComponent>> getGuiceServiceClasses() {
+        return Collections.singletonList(ClusterIdService.class);
     }
 
     @Override
-    public String description() {
-        return "Crate Core";
+    public List<Setting<?>> getSettings() {
+        return Collections.singletonList(CrateRestFilter.ES_API_ENABLED_SETTING);
     }
 
     @Override
-    public Collection<Class<? extends LifecycleComponent>> nodeServices() {
-        return Collections.<Class<? extends LifecycleComponent>>singletonList(ClusterIdService.class);
+    public Collection<Module> createGuiceModules() {
+        return Collections.singletonList(new CrateCoreModule(settings, indexEventListenerProxy));
     }
 
     @Override
-    public Collection<Module> nodeModules() {
-        return Collections.<Module>singletonList(new CrateCoreModule(settings));
+    public List<Class<? extends RestHandler>> getRestHandlers() {
+        return Collections.singletonList(CrateRestMainAction.class);
     }
 
-    public void onModule(RestModule restModule) {
-        restModule.addRestAction(CrateRestMainAction.class);
+    @Override
+    public void onIndexModule(IndexModule indexModule) {
+        indexModule.addIndexEventListener(indexEventListenerProxy);
     }
 }

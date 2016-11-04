@@ -27,7 +27,6 @@ import io.crate.data.Row;
 import io.crate.types.CollectionType;
 import io.crate.types.DataType;
 import org.elasticsearch.common.xcontent.XContentBuilder;
-import org.elasticsearch.common.xcontent.XContentBuilderString;
 import org.elasticsearch.rest.RestChannel;
 
 import java.io.IOException;
@@ -37,13 +36,13 @@ class ResultToXContentBuilder {
 
 
     static final class FIELDS {
-        static final XContentBuilderString RESULTS = new XContentBuilderString("results");
-        static final XContentBuilderString COLS = new XContentBuilderString("cols");
-        static final XContentBuilderString COLUMN_TYPES = new XContentBuilderString("colTypes");
-        static final XContentBuilderString ROWS = new XContentBuilderString("rows");
-        static final XContentBuilderString ROW_COUNT = new XContentBuilderString("rowcount");
-        static final XContentBuilderString DURATION = new XContentBuilderString("duration");
-        static final XContentBuilderString ERROR_MESSAGE = new XContentBuilderString("error_message");
+        static final String RESULTS = "results";
+        static final String COLS = "cols";
+        static final String COLUMN_TYPES = "col_types";
+        static final String ROWS = "rows";
+        static final String ROW_COUNT = "rowcount";
+        static final String DURATION = "duration";
+        static final String ERROR_MESSAGE = "error_message";
     }
 
     private final XContentBuilder builder;

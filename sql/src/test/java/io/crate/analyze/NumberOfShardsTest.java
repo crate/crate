@@ -27,10 +27,10 @@ import io.crate.sql.tree.LongLiteral;
 import io.crate.sql.tree.QualifiedName;
 import io.crate.sql.tree.QualifiedNameReference;
 import io.crate.test.integration.CrateUnitTest;
-import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.node.DiscoveryNodes;
+import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.collect.ImmutableOpenMap;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -59,7 +59,7 @@ public class NumberOfShardsTest extends CrateUnitTest {
 
     @Before
     public void before() {
-        when(discoveryNodes.dataNodes()).thenReturn(createDataNodes(3));
+        when(discoveryNodes.getDataNodes()).thenReturn(createDataNodes(3));
         numberOfShards = new NumberOfShards(clusterService);
     }
 
@@ -78,7 +78,7 @@ public class NumberOfShardsTest extends CrateUnitTest {
 
     @Test
     public void testDefaultNumberOfShardsLessThanMinimumShardsNumber() {
-        when(discoveryNodes.dataNodes()).thenReturn(createDataNodes(1));
+        when(discoveryNodes.getDataNodes()).thenReturn(createDataNodes(1));
         numberOfShards = new NumberOfShards(clusterService);
         assertThat(numberOfShards.defaultNumberOfShards(), is(4));
     }

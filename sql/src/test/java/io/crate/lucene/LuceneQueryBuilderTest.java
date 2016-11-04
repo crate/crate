@@ -41,41 +41,37 @@ import org.apache.lucene.queries.TermsQuery;
 import org.apache.lucene.search.*;
 import org.apache.lucene.spatial.prefix.IntersectsPrefixTreeQuery;
 import org.apache.lucene.spatial.prefix.WithinPrefixTreeQuery;
-import org.elasticsearch.Version;
-import org.elasticsearch.cluster.metadata.IndexMetaData;
+import org.elasticsearch.common.UUIDs;
 import org.elasticsearch.common.compress.CompressedXContent;
-import org.elasticsearch.common.inject.Injector;
-import org.elasticsearch.common.inject.ModulesBuilder;
+import org.elasticsearch.common.lucene.search.MatchNoDocsQuery;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.settings.SettingsModule;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentFactory;
 import org.elasticsearch.env.Environment;
-import org.elasticsearch.env.EnvironmentModule;
 import org.elasticsearch.index.Index;
-import org.elasticsearch.index.IndexNameModule;
-import org.elasticsearch.index.analysis.AnalysisModule;
+import org.elasticsearch.index.IndexSettings;
 import org.elasticsearch.index.analysis.AnalysisService;
 import org.elasticsearch.index.cache.IndexCache;
 import org.elasticsearch.index.fielddata.IndexFieldData;
 import org.elasticsearch.index.fielddata.IndexFieldDataService;
 import org.elasticsearch.index.fielddata.IndexGeoPointFieldData;
-import org.elasticsearch.index.mapper.ArrayMapper;
-import org.elasticsearch.index.mapper.MappedFieldType;
-import org.elasticsearch.index.mapper.MapperService;
+import org.elasticsearch.index.mapper.*;
 import org.elasticsearch.index.mapper.array.DynamicArrayFieldMapperBuilderFactoryProvider;
-import org.elasticsearch.index.settings.IndexSettingsModule;
-import org.elasticsearch.index.similarity.SimilarityLookupService;
+import org.elasticsearch.index.similarity.SimilarityService;
 import org.elasticsearch.indices.IndicesModule;
-import org.elasticsearch.indices.analysis.IndicesAnalysisService;
+import org.elasticsearch.indices.analysis.AnalysisModule;
+import org.elasticsearch.plugins.MapperPlugin;
+import org.elasticsearch.test.IndexSettingsModule;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 import org.mockito.Answers;
 
+import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Map;
 
 import static org.hamcrest.Matchers.*;
@@ -113,21 +109,19 @@ public class LuceneQueryBuilderTest extends CrateUnitTest {
         indexCache = mock(IndexCache.class, Answers.RETURNS_MOCKS.get());
 
         Path tempDir = createTempDir();
-        Settings indexSettings = Settings.builder()
-            .put(IndexMetaData.SETTING_VERSION_CREATED, Version.CURRENT)
-            .put("path.home", tempDir)
-            .build();
-        Index index = new Index(users.ident().indexName());
-        when(indexCache.indexSettings()).thenReturn(indexSettings);
-        AnalysisService analysisService = createAnalysisService(indexSettings, index);
-        mapperService = createMapperService(index, indexSettings, analysisService);
+        Index index = new Index(users.ident().indexName(), UUIDs.randomBase64UUID());
+        Settings nodeSettings = Settings.builder().put("path.home", tempDir).build();
+        IndexSettings idxSettings = IndexSettingsModule.newIndexSettings(index, nodeSettings);
+        when(indexCache.getIndexSettings()).thenReturn(idxSettings);
+        AnalysisService analysisService = createAnalysisService(idxSettings, nodeSettings);
+        mapperService = createMapperService(idxSettings, analysisService);
 
         // @formatter:off
         XContentBuilder xContentBuilder = XContentFactory.jsonBuilder()
             .startObject()
             .startObject("default")
                 .startObject("properties")
-                    .startObject("name").field("type", "string").endObject()
+                    .startObject("name").field("type", "keyword").endObject()
                     .startObject("x").field("type", "integer").endObject()
                     .startObject("d").field("type", "double").endObject()
                     .startObject("point").field("type", "geo_point").endObject()
@@ -151,41 +145,38 @@ public class LuceneQueryBuilderTest extends CrateUnitTest {
         mapperService.merge("default",
             new CompressedXContent(xContentBuilder.bytes()), MapperService.MergeReason.MAPPING_UPDATE, true);
 
-
         indexFieldDataService = mock(IndexFieldDataService.class);
         IndexFieldData geoFieldData = mock(IndexGeoPointFieldData.class);
-        when(geoFieldData.getFieldNames()).thenReturn(new MappedFieldType.Names("point"));
-        when(indexFieldDataService.getForField(mapperService.smartNameFieldType("point"))).thenReturn(geoFieldData);
+
+        when(geoFieldData.getFieldName()).thenReturn("point");
+        when(indexFieldDataService.getForField(mapperService.fullName("point"))).thenReturn(geoFieldData);
     }
 
-    private MapperService createMapperService(Index index, Settings indexSettings, AnalysisService analysisService) {
+    private MapperService createMapperService(IndexSettings indexSettings, AnalysisService analysisService) {
         DynamicArrayFieldMapperBuilderFactoryProvider arrayMapperProvider =
             new DynamicArrayFieldMapperBuilderFactoryProvider();
-        arrayMapperProvider.dynamicArrayFieldMapperBuilderFactory = new ArrayMapper.BuilderFactory();
-        IndicesModule indicesModule = new IndicesModule();
-        indicesModule.registerMapper(ArrayMapper.CONTENT_TYPE, new ArrayMapper.TypeParser());
+        arrayMapperProvider.dynamicArrayFieldMapperBuilderFactory = new BuilderFactory();
+        IndicesModule indicesModule = new IndicesModule(Collections.singletonList(
+            new MapperPlugin() {
+                @Override
+                public Map<String, Mapper.TypeParser> getMappers() {
+                    return Collections.singletonMap(ArrayMapper.CONTENT_TYPE, new ArrayTypeParser());
+                }
+            }));
         return new MapperService(
-            index,
             indexSettings,
             analysisService,
-            new SimilarityLookupService(index, indexSettings),
-            null,
+            new SimilarityService(indexSettings, Collections.emptyMap()),
             indicesModule.getMapperRegistry(),
+            () -> null,
             arrayMapperProvider
         );
     }
 
-    private AnalysisService createAnalysisService(Settings indexSettings, Index index) {
-        Injector parentInjector = new ModulesBuilder()
-            .add(new SettingsModule(indexSettings), new EnvironmentModule(new Environment(indexSettings)))
-            .createInjector();
-        Injector injector = new ModulesBuilder().add(
-            new IndexSettingsModule(index, indexSettings),
-            new IndexNameModule(index),
-            new AnalysisModule(
-                indexSettings,
-                parentInjector.getInstance(IndicesAnalysisService.class))).createChildInjector(parentInjector);
-        return injector.getInstance(AnalysisService.class);
+    private AnalysisService createAnalysisService(IndexSettings indexSettings, Settings nodeSettings) throws IOException {
+        Environment env = new Environment(nodeSettings);
+        AnalysisModule analysisModule = new AnalysisModule(env, Collections.emptyList());
+        return analysisModule.getAnalysisRegistry().build(indexSettings);
     }
 
     private WhereClause asWhereClause(String expression) {
@@ -193,7 +184,7 @@ public class LuceneQueryBuilderTest extends CrateUnitTest {
     }
 
     private Query convert(WhereClause clause) {
-        return builder.convert(clause, mapperService, indexFieldDataService, indexCache).query;
+        return builder.convert(clause, mapperService, null, indexFieldDataService, indexCache).query;
     }
 
     private Query convert(String expression) {
@@ -203,8 +194,7 @@ public class LuceneQueryBuilderTest extends CrateUnitTest {
     @Test
     public void testNoMatchWhereClause() throws Exception {
         Query query = convert(WhereClause.NO_MATCH);
-        assertThat(query, instanceOf(BooleanQuery.class));
-        assertThat(((BooleanQuery) query).clauses().size(), is(0));
+        assertThat(query, instanceOf(MatchNoDocsQuery.class));
     }
 
     @Test
@@ -220,12 +210,11 @@ public class LuceneQueryBuilderTest extends CrateUnitTest {
 
             Query query = convert(new WhereClause(sqlExpressions.normalize(sqlExpressions.asSymbol("x = ?"))));
 
-            // must always become a MatchNoDocsQuery (empty BooleanQuery)
+            // must always become a MatchNoDocsQuery
             // string: term query with null would cause NPE
             // int/numeric: rangeQuery from null to null would match all
             // bool:  term would match false too because of the condition in the eq query builder
-            assertThat(query, instanceOf(BooleanQuery.class));
-            assertThat(((BooleanQuery) query).clauses().size(), is(0));
+            assertThat(query, instanceOf(MatchNoDocsQuery.class));
         }
     }
 
@@ -238,8 +227,7 @@ public class LuceneQueryBuilderTest extends CrateUnitTest {
     @Test
     public void testLteQuery() throws Exception {
         Query query = convert("x <= 10");
-        assertThat(query, instanceOf(NumericRangeQuery.class));
-        assertThat(query.toString(), is("x:{* TO 10]"));
+        assertThat(query.toString(), is("x:[-2147483648 TO 10]"));
     }
 
     @Test
@@ -247,7 +235,7 @@ public class LuceneQueryBuilderTest extends CrateUnitTest {
         Query query = convert("y_array = [10, 20, 30]");
         assertThat(query, instanceOf(BooleanQuery.class));
         BooleanQuery booleanQuery = (BooleanQuery) query;
-        assertThat(booleanQuery.clauses().get(0).getQuery(), instanceOf(TermsQuery.class));
+        assertThat(booleanQuery.clauses().get(0).getQuery(), instanceOf(PointInSetQuery.class));
         assertThat(booleanQuery.clauses().get(1).getQuery(), instanceOf(GenericFunctionQuery.class));
     }
 
@@ -266,21 +254,20 @@ public class LuceneQueryBuilderTest extends CrateUnitTest {
         Query query = convert(new WhereClause(expressions.normalize(sqlExpressions.asSymbol("y_array = ?"))));
         assertThat(query, instanceOf(BooleanQuery.class));
         BooleanQuery booleanQuery = (BooleanQuery) query;
-        assertThat(booleanQuery.clauses().get(0).getQuery(), instanceOf(TermsQuery.class));
+        assertThat(booleanQuery.clauses().get(0).getQuery(), instanceOf(PointInSetQuery.class));
         assertThat(booleanQuery.clauses().get(1).getQuery(), instanceOf(GenericFunctionQuery.class));
     }
 
     @Test
     public void testGteQuery() throws Exception {
         Query query = convert("x >= 10");
-        assertThat(query, instanceOf(NumericRangeQuery.class));
-        assertThat(query.toString(), is("x:[10 TO *}"));
+        assertThat(query.toString(), is("x:[10 TO 2147483647]"));
     }
 
     @Test
     public void testWhereRefInSetLiteralIsConvertedToTermsQuery() throws Exception {
         Query query = convert("x in (1, 3)");
-        assertThat(query, instanceOf(TermsQuery.class));
+        assertThat(query, instanceOf(PointInSetQuery.class));
     }
 
     @Test
@@ -321,48 +308,48 @@ public class LuceneQueryBuilderTest extends CrateUnitTest {
     @Test
     public void testAnyEqArrayLiteral() throws Exception {
         Query query = convert("d = any([-1.5, 0.0, 1.5])");
-        assertThat(query, instanceOf(TermsQuery.class));
+        assertThat(query, instanceOf(PointInSetQuery.class));
     }
 
     @Test
     public void testAnyEqArrayReference() throws Exception {
         Query query = convert("1.5 = any(d_array)");
-        assertThat(query, instanceOf(TermQuery.class));
+        assertThat(query, instanceOf(PointRangeQuery.class));
         assertThat(query.toString(), startsWith("d_array"));
     }
 
     @Test
     public void testAnyGreaterAndSmaller() throws Exception {
         Query ltQuery = convert("1.5 < any(d_array)");
-        assertThat(ltQuery.toString(), is("d_array:{1.5 TO *}"));
+        assertThat(ltQuery.toString(), is("d_array:[1.5000000000000002 TO Infinity]"));
 
         // d < ANY ([1.2, 3.5])
         Query ltQuery2 = convert("d < any ([1.2, 3.5])");
-        assertThat(ltQuery2.toString(), is("(d:{* TO 1.2} d:{* TO 3.5})~1"));
+        assertThat(ltQuery2.toString(), is("(d:[-Infinity TO 1.1999999999999997] d:[-Infinity TO 3.4999999999999996])~1"));
 
         // 1.5d <= ANY (d_array)
         Query lteQuery = convert("1.5 <= any(d_array)");
-        assertThat(lteQuery.toString(), is("d_array:[1.5 TO *}"));
+        assertThat(lteQuery.toString(), is("d_array:[1.5 TO Infinity]"));
 
         // d <= ANY ([1.2, 3.5])
         Query lteQuery2 = convert("d <= any([1.2, 3.5])");
-        assertThat(lteQuery2.toString(), is("(d:{* TO 1.2] d:{* TO 3.5])~1"));
+        assertThat(lteQuery2.toString(), is("(d:[-Infinity TO 1.2] d:[-Infinity TO 3.5])~1"));
 
         // 1.5d > ANY (d_array)
         Query gtQuery = convert("1.5 > any(d_array)");
-        assertThat(gtQuery.toString(), is("d_array:{* TO 1.5}"));
+        assertThat(gtQuery.toString(), is("d_array:[-Infinity TO 1.4999999999999998]"));
 
         // d > ANY ([1.2, 3.5])
         Query gtQuery2 = convert("d > any ([1.2, 3.5])");
-        assertThat(gtQuery2.toString(), is("(d:{1.2 TO *} d:{3.5 TO *})~1"));
+        assertThat(gtQuery2.toString(), is("(d:[1.2000000000000002 TO Infinity] d:[3.5000000000000004 TO Infinity])~1"));
 
         // 1.5d >= ANY (d_array)
         Query gteQuery = convert("1.5 >= any(d_array)");
-        assertThat(gteQuery.toString(), is("d_array:{* TO 1.5]"));
+        assertThat(gteQuery.toString(), is("d_array:[-Infinity TO 1.5]"));
 
         // d >= ANY ([1.2, 3.5])
         Query gteQuery2 = convert("d >= any ([1.2, 3.5])");
-        assertThat(gteQuery2.toString(), is("(d:[1.2 TO *} d:[3.5 TO *})~1"));
+        assertThat(gteQuery2.toString(), is("(d:[1.2 TO Infinity] d:[3.5 TO Infinity])~1"));
     }
 
     @Test
@@ -458,22 +445,17 @@ public class LuceneQueryBuilderTest extends CrateUnitTest {
         assertThat(query, instanceOf(WithinPrefixTreeQuery.class));
     }
 
-    // FIXME: Enable once https://github.com/elastic/elasticsearch/issues/20333 is resolved
-    /*
     @Test
     public void testWithinFunctionTooFewPoints() throws Exception {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("at least 4 polygon points required");
         convert("within(point, {type='LineString', coordinates=[[0.0, 0.0], [1.0, 1.0]]})");
     }
-    */
 
     @Test
     public void testWithinFunction() throws Exception {
         Query eqWithinQuery = convert("within(point, {type='LineString', coordinates=[[0.0, 0.0], [1.0, 1.0], [2.0, 1.0]]})");
-        assertThat(eqWithinQuery.toString(), is("GeoPolygonQuery(point, [0.0,0.0, 1.0,1.0, 1.0,2.0])"));
-        // FIXME: Change to the following test once https://github.com/elastic/elasticsearch/issues/20333 is resolved
-        //assertThat(eqWithinQuery.toString(), is("GeoPointInPolygonQuery: field=point: Points: [0.0, 0.0] [1.0, 1.0] [2.0, 1.0] [0.0, 0.0] "));
+        assertThat(eqWithinQuery.toString(), is("GeoPointInPolygonQuery: field=point: Polygon: [[0.0, 0.0] [1.0, 1.0] [1.0, 2.0] [0.0, 0.0] ]"));
     }
 
     @Test

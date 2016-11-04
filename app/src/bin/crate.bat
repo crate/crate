@@ -63,7 +63,7 @@ if "%CRATE_CLASSPATH%" == "" (
     ECHO Add plugins and their dependencies into the plugins/ folder instead. 1>&2
     EXIT /B 1
 )
-set CRATE_PARAMS=-Dcrate -Des.path.home="%CRATE_HOME%"
+set CRATE_PARAMS=-Epath.home="%CRATE_HOME%"
 
 setlocal enabledelayedexpansion
 set params='%*'
@@ -72,10 +72,11 @@ for /F "usebackq tokens=* delims= " %%A in (!params!) do (
     set param=%%A
 
     if "!param:~0,5!" equ "-Des." (
-        echo "Setting Crate specific settings with the -D option and the es prefix has been deprecated."
+        echo "Support for defining Crate specific settings with the -D option and the es prefix has been dropped."
         echo "Please use the -C option to configure Crate."
+        EXIT /B 1
     ) else if "!param:~0,2!" equ "-C" (
-        set param=!param:-C=-Des.!
+        set param=!param:-C=-E!
     )
 
     if "x!newparams!" neq "x" (
@@ -85,7 +86,7 @@ for /F "usebackq tokens=* delims= " %%A in (!params!) do (
     )
 )
 
-"%JAVA_HOME%\bin\java" %JAVA_OPTS% %CRATE_JAVA_OPTS% %CRATE_PARAMS% !newparams! -cp "%CRATE_CLASSPATH%" "io.crate.bootstrap.CrateDB"
+"%JAVA_HOME%\bin\java" %JAVA_OPTS% %CRATE_JAVA_OPTS% -cp "%CRATE_CLASSPATH%" "io.crate.bootstrap.CrateDB" %CRATE_PARAMS% !newparams!
 goto finally
 
 :err

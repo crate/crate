@@ -27,34 +27,35 @@ import io.crate.metadata.sys.SysNodesTableInfo;
 import io.crate.monitor.ExtendedNodeInfo;
 import io.crate.operation.reference.NestedObjectExpression;
 import io.crate.operation.reference.sys.node.local.fs.NodeFsExpression;
-import org.elasticsearch.cluster.ClusterService;
+import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.discovery.Discovery;
+import org.elasticsearch.http.HttpServer;
+import org.elasticsearch.monitor.MonitorService;
 import org.elasticsearch.monitor.jvm.JvmService;
 import org.elasticsearch.monitor.os.OsService;
-import org.elasticsearch.node.service.NodeService;
+import org.elasticsearch.monitor.process.ProcessService;
 import org.elasticsearch.threadpool.ThreadPool;
 
-import java.io.IOException;
+import javax.annotation.Nullable;
 
 public class NodeSysExpression extends NestedObjectExpression {
 
-    private final NodeService nodeService;
     private final OsService osService;
     private final JvmService jvmService;
     private final ExtendedNodeInfo extendedNodeInfo;
+    private final ProcessService processService;
 
     @Inject
     public NodeSysExpression(ClusterService clusterService,
-                             OsService osService,
-                             NodeService nodeService,
-                             JvmService jvmService,
+                             MonitorService monitorService,
+                             @Nullable HttpServer httpServer,
                              Discovery discovery,
                              ThreadPool threadPool,
                              ExtendedNodeInfo extendedNodeInfo) {
-        this.nodeService = nodeService;
-        this.osService = osService;
-        this.jvmService = jvmService;
+        this.osService = monitorService.osService();
+        this.jvmService = monitorService.jvmService();
+        processService = monitorService.processService();
         this.extendedNodeInfo = extendedNodeInfo;
         childImplementations.put(SysNodesTableInfo.SYS_COL_HOSTNAME,
             new NodeHostnameExpression());
@@ -64,8 +65,10 @@ public class NodeSysExpression extends NestedObjectExpression {
             new NodeIdExpression(clusterService));
         childImplementations.put(SysNodesTableInfo.SYS_COL_NODE_NAME,
             new NodeNameExpression(discovery));
-        childImplementations.put(SysNodesTableInfo.SYS_COL_PORT,
-            new NodePortExpression(nodeService));
+        childImplementations.put(SysNodesTableInfo.SYS_COL_PORT, new NodePortExpression(
+            () -> httpServer == null ? null : httpServer.info().getAddress().publishAddress(),
+            () -> clusterService.localNode().getAddress()
+        ));
         childImplementations.put(SysNodesTableInfo.SYS_COL_VERSION,
             new NodeVersionExpression());
         childImplementations.put(SysNodesTableInfo.SYS_COL_THREAD_POOLS,
@@ -87,12 +90,7 @@ public class NodeSysExpression extends NestedObjectExpression {
                 return new NodeOsExpression(extendedNodeInfo.osStats());
 
             case SysNodesTableInfo.SYS_COL_PROCESS:
-                try {
-                    return new NodeProcessExpression(nodeService.stats().getProcess(), extendedNodeInfo.processCpuStats());
-                } catch (IOException e) {
-                    // This is a bug in ES method signature, IOException is never thrown
-                }
-                break;
+                return new NodeProcessExpression(processService.stats(), extendedNodeInfo.processCpuStats());
 
             case SysNodesTableInfo.SYS_COL_HEAP:
                 return new NodeHeapExpression(jvmService.stats());

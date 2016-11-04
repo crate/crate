@@ -23,11 +23,10 @@
 package io.crate.plugin;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 import io.crate.Plugin;
+import org.apache.logging.log4j.Logger;
 import org.apache.xbean.finder.ResourceFinder;
 import org.elasticsearch.bootstrap.JarHell;
 import org.elasticsearch.common.Nullable;
@@ -36,12 +35,11 @@ import org.elasticsearch.common.collect.MapBuilder;
 import org.elasticsearch.common.component.LifecycleComponent;
 import org.elasticsearch.common.inject.Module;
 import org.elasticsearch.common.io.PathUtils;
-import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
+import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.plugins.PluginInfo;
 
-import java.io.Closeable;
 import java.io.File;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
@@ -58,8 +56,8 @@ public class PluginLoader {
     private static final String RESOURCE_PATH = "META-INF/services/";
 
     private final Settings settings;
-    private final ImmutableMap<Plugin, List<OnModuleReference>> onModuleReferences;
-    private final ESLogger logger;
+    private final Map<Plugin, List<OnModuleReference>> onModuleReferences;
+    private final Logger logger;
 
     @VisibleForTesting
     final List<Plugin> plugins;
@@ -105,12 +103,7 @@ public class PluginLoader {
         this.onModuleReferences = onModuleReferences.immutableMap();
 
         if (logger.isInfoEnabled()) {
-            logger.info("plugins loaded: {} ", Lists.transform(plugins, new Function<Plugin, String>() {
-                @Override
-                public String apply(Plugin input) {
-                    return input.name();
-                }
-            }));
+            logger.info("plugins loaded: {} ", Lists.transform(plugins, Plugin::name));
         }
     }
 
@@ -275,61 +268,38 @@ public class PluginLoader {
         return list;
     }
 
-    Collection<Module> nodeModules() {
+    Collection<Module> createGuiceModules() {
         List<Module> modules = Lists.newArrayList();
         for (Plugin plugin : plugins) {
-            modules.addAll(plugin.nodeModules());
+            modules.addAll(plugin.createGuiceModules());
         }
         return modules;
     }
 
-    Collection<Class<? extends LifecycleComponent>> nodeServices() {
+    Collection<Class<? extends LifecycleComponent>> getGuiceServiceClasses() {
         List<Class<? extends LifecycleComponent>> services = Lists.newArrayList();
         for (Plugin plugin : plugins) {
-            services.addAll(plugin.nodeServices());
-        }
-        return services;
-    }
-
-    Collection<Module> indexModules(Settings indexSettings) {
-        List<Module> modules = Lists.newArrayList();
-        for (Plugin plugin : plugins) {
-            modules.addAll(plugin.indexModules(indexSettings));
-        }
-        return modules;
-    }
-
-    Collection<Class<? extends Closeable>> indexServices() {
-        List<Class<? extends Closeable>> services = Lists.newArrayList();
-        for (Plugin plugin : plugins) {
-            services.addAll(plugin.indexServices());
-        }
-        return services;
-    }
-
-    Collection<Module> shardModules(Settings indexSettings) {
-        List<Module> modules = Lists.newArrayList();
-        for (Plugin plugin : plugins) {
-            modules.addAll(plugin.shardModules(indexSettings));
-        }
-        return modules;
-    }
-
-    Collection<Class<? extends Closeable>> shardServices() {
-        List<Class<? extends Closeable>> services = Lists.newArrayList();
-        for (Plugin plugin : plugins) {
-            services.addAll(plugin.shardServices());
+            services.addAll(plugin.getGuiceServiceClasses());
         }
         return services;
     }
 
     Settings additionalSettings() {
-        Settings.Builder builder = Settings.settingsBuilder();
+        Settings.Builder builder = Settings.builder();
         for (Plugin plugin : plugins) {
             builder.put(plugin.additionalSettings());
         }
         return builder.build();
     }
+
+    List<Setting<?>> getSettings() {
+        List<Setting<?>> settings = new ArrayList<>();
+        for (Plugin plugin : plugins) {
+            settings.addAll(plugin.getSettings());
+        }
+        return settings;
+    }
+
 
     public void processModule(Module module) {
         for (Plugin plugin : plugins) {

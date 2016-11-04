@@ -24,44 +24,52 @@ package org.elasticsearch.node.internal;
 import io.crate.Constants;
 import io.crate.metadata.settings.CrateSettings;
 import io.crate.metadata.settings.SettingsApplier;
+import org.elasticsearch.cli.Terminal;
 import org.elasticsearch.cluster.ClusterName;
-import org.elasticsearch.common.cli.Terminal;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.common.settings.SettingsException;
 import org.elasticsearch.env.Environment;
+import org.elasticsearch.transport.Netty3Plugin;
 
+import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Locale;
 import java.util.Map;
 
 import static org.elasticsearch.common.Strings.cleanPath;
-import static org.elasticsearch.common.settings.Settings.settingsBuilder;
+import static org.elasticsearch.common.network.NetworkModule.TRANSPORT_TYPE_DEFAULT_KEY;
+import static org.elasticsearch.http.HttpTransportSettings.SETTING_HTTP_PORT;
+import static org.elasticsearch.transport.TransportSettings.PORT;
 
 public class CrateSettingsPreparer {
 
-    public static final String IGNORE_SYSTEM_PROPERTIES_SETTING = "config.ignore_system_properties";
-
     /**
      * ES_COPY_OF: core/src/main/java/org/elasticsearch/node/internal/InternalSettingsPreparer.java
-     * This is a copy of {@link InternalSettingsPreparer#prepareEnvironment(Settings, Terminal)}
+     * This is a copy of {@link InternalSettingsPreparer#prepareEnvironment(Settings, Terminal, Map)}
      * <p>
-     * with the addition of the "applyCrateDefaults" call.
+     * with the addition of the "applyCrateDefaults" call and resolving `crate.yml` instead of `elasticsearch.yml`.
      */
-    public static Environment prepareEnvironment(Settings input, Terminal terminal) {
+    public static Environment prepareEnvironment(Settings input, Terminal terminal, Map<String, String> properties) {
         // just create enough settings to build the environment, to get the config dir
-        Settings.Builder output = settingsBuilder();
-        InternalSettingsPreparer.initializeSettings(output, input, true);
+        Settings.Builder output = Settings.builder();
+        InternalSettingsPreparer.initializeSettings(output, input, true, properties);
         Environment environment = new Environment(output.build());
+
 
         Path path = environment.configFile().resolve("crate.yml");
         if (Files.exists(path)) {
-            output.loadFromPath(path);
+            try {
+                output.loadFromPath(path);
+            } catch (IOException e) {
+                throw new SettingsException("Failed to load settings from " + path.toString(), e);
+            }
         }
 
         // re-initialize settings now that the config file has been loaded
         // TODO: only re-initialize if a config file was actually loaded
-        InternalSettingsPreparer.initializeSettings(output, input, false);
-        InternalSettingsPreparer.finalizeSettings(output, terminal, environment.configFile());
+        InternalSettingsPreparer.initializeSettings(output, input, false, properties);
+        InternalSettingsPreparer.finalizeSettings(output, terminal);
 
         validateKnownSettings(output);
         applyCrateDefaults(output);
@@ -69,7 +77,7 @@ public class CrateSettingsPreparer {
         environment = new Environment(output.build());
 
         // we put back the path.logs so we can use it in the logging configuration file
-        output.put("path.logs", cleanPath(environment.logsFile().toAbsolutePath().toString()));
+        output.put(Environment.PATH_LOGS_SETTING.getKey(), cleanPath(environment.logsFile().toAbsolutePath().toString()));
 
         return new Environment(output.build());
     }
@@ -92,15 +100,14 @@ public class CrateSettingsPreparer {
         // read also from crate.yml by default if no other config path has been set
         // if there is also a elasticsearch.yml file this file will be read first and the settings in crate.yml
         // will overwrite them.
-        putIfAbsent(settingsBuilder, "http.port", Constants.HTTP_PORT_RANGE);
-        putIfAbsent(settingsBuilder, "transport.tcp.port", Constants.TRANSPORT_PORT_RANGE);
-        putIfAbsent(settingsBuilder, "thrift.port", Constants.THRIFT_PORT_RANGE);
-        putIfAbsent(settingsBuilder, "discovery.zen.ping.multicast.enabled", false);
+        putIfAbsent(settingsBuilder, TRANSPORT_TYPE_DEFAULT_KEY, Netty3Plugin.NETTY_TRANSPORT_NAME);
+        putIfAbsent(settingsBuilder, SETTING_HTTP_PORT.getKey(), Constants.HTTP_PORT_RANGE);
+        putIfAbsent(settingsBuilder, PORT.getKey(), Constants.TRANSPORT_PORT_RANGE);
         putIfAbsent(settingsBuilder, "network.host", "0.0.0.0");
 
         // Set the default cluster name if not explicitly defined
-        if (settingsBuilder.get(ClusterName.SETTING).equals(ClusterName.DEFAULT.value())) {
-            settingsBuilder.put("cluster.name", "crate");
+        if (settingsBuilder.get(ClusterName.CLUSTER_NAME_SETTING.getKey()).equals(ClusterName.DEFAULT.value())) {
+            settingsBuilder.put(ClusterName.CLUSTER_NAME_SETTING.getKey(), "crate");
         }
     }
 

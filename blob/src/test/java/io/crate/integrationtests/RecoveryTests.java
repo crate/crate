@@ -33,9 +33,6 @@ import io.crate.blob.v2.BlobIndicesService;
 import io.crate.blob.v2.BlobShard;
 import io.crate.common.Hex;
 import io.crate.test.utils.Blobs;
-import org.apache.log4j.ConsoleAppender;
-import org.apache.log4j.Logger;
-import org.apache.log4j.PatternLayout;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthResponse;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
@@ -44,7 +41,6 @@ import org.elasticsearch.common.Priority;
 import org.elasticsearch.common.bytes.BytesArray;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.TimeValue;
-import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.test.ESIntegTestCase;
 import org.junit.Test;
 
@@ -80,26 +76,6 @@ public class RecoveryTests extends BlobIntegrationTestBase {
 
     static {
         System.setProperty("tests.short_timeouts", "true");
-
-        Logger logger;
-        ConsoleAppender consoleAppender;
-
-        logger = Logger.getLogger(
-            "org.elasticsearch.io.crate.blob.recovery.BlobRecoveryHandler");
-        //logger.setLevel(Level.TRACE);
-        consoleAppender = new ConsoleAppender(new PatternLayout("%r [%t] %-5p %c %x - %m\n"));
-        logger.addAppender(consoleAppender);
-
-        logger = Logger.getLogger("org.elasticsearch.io.crate.blob.DigestBlob");
-        //logger.setLevel(Level.TRACE);
-        consoleAppender = new ConsoleAppender(new PatternLayout("%r [%t] %-5p %c %x - %m\n"));
-        logger.addAppender(consoleAppender);
-
-        logger = Logger.getLogger(
-            "org.elasticsearch.io.crate.integrationtests.RecoveryTests");
-        //logger.setLevel(Level.TRACE);
-        consoleAppender = new ConsoleAppender(new PatternLayout("%r [%t] %-5p %c %x - %m\n"));
-        logger.addAppender(consoleAppender);
     }
 
     private String uploadFile(Client client, String content) {
@@ -225,19 +201,19 @@ public class RecoveryTests extends BlobIntegrationTestBase {
             String toNode = node1.equals(fromNode) ? node2 : node1;
             logger.trace("--> START relocate the shard from {} to {}", fromNode, toNode);
             internalCluster().client(node1).admin().cluster().prepareReroute()
-                .add(new MoveAllocationCommand(new ShardId(BlobIndex.fullIndexName("test"), 0), fromNode, toNode))
+                .add(new MoveAllocationCommand(BlobIndex.fullIndexName("test"), 0, fromNode, toNode))
                 .execute().actionGet();
             ClusterHealthResponse clusterHealthResponse = internalCluster().client(node1).admin().cluster()
                 .prepareHealth()
                 .setWaitForEvents(Priority.LANGUID)
-                .setWaitForRelocatingShards(0)
+                .setWaitForNoRelocatingShards(true)
                 .setTimeout(ACCEPTABLE_RELOCATION_TIME).execute().actionGet();
 
             assertThat(clusterHealthResponse.isTimedOut(), equalTo(false));
             clusterHealthResponse = internalCluster().client(node2).admin().cluster()
                 .prepareHealth()
                 .setWaitForEvents(Priority.LANGUID)
-                .setWaitForRelocatingShards(0)
+                .setWaitForNoRelocatingShards(true)
                 .setTimeout(ACCEPTABLE_RELOCATION_TIME).execute().actionGet();
             assertThat(clusterHealthResponse.isTimedOut(), equalTo(false));
             logger.trace("--> DONE relocate the shard from {} to {}", fromNode, toNode);

@@ -28,16 +28,14 @@ import io.crate.metadata.RowGranularity;
 import io.crate.metadata.settings.CrateSettings;
 import io.crate.operation.reference.NestedObjectExpression;
 import io.crate.operation.reference.sys.cluster.SysClusterExpressionModule;
-import io.crate.test.integration.CrateUnitTest;
+import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.types.DataTypes;
 import org.elasticsearch.cluster.ClusterName;
-import org.elasticsearch.cluster.ClusterService;
+import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Injector;
 import org.elasticsearch.common.inject.Module;
 import org.elasticsearch.common.inject.ModulesBuilder;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.unit.MemorySizeValue;
-import org.elasticsearch.test.cluster.NoopClusterService;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -46,7 +44,7 @@ import java.util.Map;
 import static io.crate.testing.TestingHelpers.refInfo;
 import static org.hamcrest.Matchers.is;
 
-public class TestGlobalSysExpressions extends CrateUnitTest {
+public class TestGlobalSysExpressions extends CrateDummyClusterServiceUnitTest {
 
     private ClusterReferenceResolver resolver;
 
@@ -55,9 +53,8 @@ public class TestGlobalSysExpressions extends CrateUnitTest {
         Injector injector = new ModulesBuilder()
             .add(new SysClusterExpressionModule())
             .add((Module) binder -> {
-                binder.bind(ClusterService.class).toInstance(new NoopClusterService());
+                binder.bind(ClusterService.class).toInstance(clusterService);
                 binder.bind(Settings.class).toInstance(Settings.EMPTY);
-                binder.bind(ClusterName.class).toInstance(new ClusterName("cluster"));
                 binder.bind(ClusterReferenceResolver.class).asEagerSingleton();
             }).createInjector();
         resolver = injector.getInstance(ClusterReferenceResolver.class);
@@ -81,9 +78,7 @@ public class TestGlobalSysExpressions extends CrateUnitTest {
             .get(CrateSettings.STATS_BREAKER_LOG.name());
         Map statsBreakerLogJobs = (Map) statsBreakerLog.get(CrateSettings.STATS_BREAKER_LOG_JOBS.name());
         assertThat(statsBreakerLogJobs.get(CrateSettings.STATS_BREAKER_LOG_JOBS_LIMIT.name()),
-            is(MemorySizeValue.parseBytesSizeValueOrHeapRatio(  // convert default string value (percentage) to byte size string
-                CrateSettings.STATS_BREAKER_LOG_JOBS_LIMIT.defaultValue(),
-                CrateSettings.STATS_BREAKER_LOG_JOBS_LIMIT.settingName()).toString()));
+            is(CrateSettings.STATS_BREAKER_LOG_JOBS_LIMIT.defaultValue().toString()));
 
         Map cluster = (Map) settings.get(CrateSettings.CLUSTER.name());
         Map gracefulStop = (Map) cluster.get(CrateSettings.GRACEFUL_STOP.name());

@@ -49,7 +49,7 @@ public class WriterProjectionTest extends CrateUnitTest {
         BytesStreamOutput out = new BytesStreamOutput();
         Projection.toStream(p, out);
 
-        StreamInput in = StreamInput.wrap(out.bytes());
+        StreamInput in = out.bytes().streamInput();
         WriterProjection p2 = (WriterProjection) Projection.fromStream(in);
 
         assertEquals(p, p2);

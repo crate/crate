@@ -109,7 +109,7 @@ public class TransportBulkCreateIndicesActionTest extends SQLTransportIntegratio
     @Test
     public void testCreateInvalidName() throws Exception {
         expectedException.expect(InvalidIndexNameException.class);
-        expectedException.expectMessage("Invalid index name [invalid/#haha], must not contain the following characters [\\, /, *, ?, \", <, >, |,  , ,]");
+        expectedException.expectMessage("Invalid index name [invalid/#haha], must not contain the following characters [ , \", *, \\, <, |, ,, >, /, ?]");
 
         BulkCreateIndicesRequest bulkCreateIndicesRequest = new BulkCreateIndicesRequest(Arrays.asList("valid", "invalid/#haha"), UUID.randomUUID());
         try {

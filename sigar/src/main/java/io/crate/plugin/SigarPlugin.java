@@ -23,21 +23,22 @@
 package io.crate.plugin;
 
 import com.google.common.collect.Lists;
+import io.crate.Plugin;
 import io.crate.module.SigarModule;
 import io.crate.monitor.MonitorModule;
 import io.crate.monitor.SigarExtendedNodeInfo;
 import io.crate.monitor.SigarService;
+import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.inject.Module;
-import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.Settings;
 
 import java.util.Collection;
 
-public class SigarPlugin extends AbstractPlugin {
+public class SigarPlugin implements Plugin {
 
-    public static final String NODE_INFO_EXTENDED_TYPE = "sigar";
-    private static final ESLogger LOGGER = Loggers.getLogger(SigarPlugin.class);
+    private static final String NODE_INFO_EXTENDED_TYPE = "sigar";
+    private static final Logger LOGGER = Loggers.getLogger(SigarPlugin.class);
 
     private final SigarService sigarService;
 
@@ -62,20 +63,20 @@ public class SigarPlugin extends AbstractPlugin {
             return Settings.EMPTY;
         }
 
-        Settings.Builder settingsBuilder = Settings.settingsBuilder();
-        settingsBuilder.put(MonitorModule.NODE_INFO_EXTENDED_TYPE, NODE_INFO_EXTENDED_TYPE);
+        Settings.Builder settingsBuilder = Settings.builder();
+        settingsBuilder.put(MonitorModule.NODE_INFO_EXTENDED_TYPE_SETTING.getKey(), NODE_INFO_EXTENDED_TYPE);
         return settingsBuilder.build();
     }
 
+
     @Override
-    public Collection<Module> nodeModules() {
-        return Lists.<Module>newArrayList(new SigarModule(sigarService));
+    public Collection<Module> createGuiceModules() {
+        return Lists.newArrayList(new SigarModule(sigarService));
     }
 
     public void onModule(MonitorModule monitorModule) {
         if (sigarService.sigarAvailable()) {
             monitorModule.addExtendedNodeInfoType(NODE_INFO_EXTENDED_TYPE, SigarExtendedNodeInfo.class);
         }
-
     }
 }

@@ -23,16 +23,13 @@ package io.crate.operation.reference.sys.check.cluster;
 
 import com.google.common.base.Splitter;
 import com.google.common.collect.Lists;
-import io.crate.metadata.ClusterReferenceResolver;
-import io.crate.metadata.Reference;
-import io.crate.metadata.ReferenceIdent;
-import io.crate.metadata.RowGranularity;
+import io.crate.metadata.*;
 import io.crate.metadata.settings.CrateSettings;
 import io.crate.metadata.sys.SysClusterTableInfo;
 import io.crate.operation.reference.sys.check.AbstractSysCheck;
 import io.crate.operation.reference.sys.cluster.ClusterSettingsExpression;
 import io.crate.types.DataTypes;
-import org.elasticsearch.cluster.ClusterService;
+import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 
@@ -40,7 +37,7 @@ import org.elasticsearch.common.inject.Singleton;
 public class MinMasterNodesSysCheck extends AbstractSysCheck {
 
     private final ClusterService clusterService;
-    private final ClusterReferenceResolver clusterReferenceResolver;
+    private final ReferenceImplementation numMasterNodes;
 
     private static final int ID = 1;
     private static final String DESCRIPTION = "The setting 'discovery.zen.minimum_master_nodes' " +
@@ -61,18 +58,16 @@ public class MinMasterNodesSysCheck extends AbstractSysCheck {
     public MinMasterNodesSysCheck(ClusterService clusterService, ClusterReferenceResolver clusterReferenceResolver) {
         super(ID, DESCRIPTION, Severity.HIGH);
         this.clusterService = clusterService;
-        this.clusterReferenceResolver = clusterReferenceResolver;
+        this.numMasterNodes = clusterReferenceResolver.getImplementation(MIN_MASTER_NODES_REFERENCE_INFO);
     }
 
     @Override
     public boolean validate() {
-        return validate(clusterService.state().nodes().masterNodes().size(),
-            (Integer) clusterReferenceResolver.getImplementation(MIN_MASTER_NODES_REFERENCE_INFO).value());
+        return validate(clusterService.state().nodes().getMasterNodes().size(), (Integer) numMasterNodes.value());
     }
 
     protected boolean validate(int masterNodes, int minMasterNodes) {
         return masterNodes == 1
                || ((masterNodes / 2) + 1) <= minMasterNodes && minMasterNodes <= masterNodes;
     }
-
 }

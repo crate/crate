@@ -26,12 +26,12 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import io.crate.Streamer;
+import org.apache.logging.log4j.Logger;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.collect.MapBuilder;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 
 import java.io.IOException;
@@ -39,7 +39,7 @@ import java.util.*;
 
 public final class DataTypes {
 
-    private final static ESLogger logger = Loggers.getLogger(DataTypes.class);
+    private final static Logger logger = Loggers.getLogger(DataTypes.class);
 
     /**
      * If you add types here make sure to update the SizeEstimatorFactory in the SQL module.
@@ -241,6 +241,8 @@ public final class DataTypes {
     private static final ImmutableMap<String, DataType> MAPPING_NAMES_TO_TYPES = ImmutableMap.<String, DataType>builder()
         .put("date", DataTypes.TIMESTAMP)
         .put("string", DataTypes.STRING)
+        .put("keyword", DataTypes.STRING)
+        .put("text", DataTypes.STRING)
         .put("boolean", DataTypes.BOOLEAN)
         .put("byte", DataTypes.BYTE)
         .put("short", DataTypes.SHORT)

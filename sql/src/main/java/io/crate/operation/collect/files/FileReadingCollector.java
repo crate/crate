@@ -33,7 +33,7 @@ import io.crate.operation.projectors.RepeatHandle;
 import io.crate.operation.projectors.RowReceiver;
 import io.crate.operation.reference.file.LineContext;
 import org.elasticsearch.ElasticsearchParseException;
-import org.elasticsearch.common.logging.ESLogger;
+import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.logging.Loggers;
 
 import javax.annotation.Nullable;
@@ -54,7 +54,7 @@ import java.util.zip.GZIPInputStream;
 
 public class FileReadingCollector implements CrateCollector {
 
-    private static final ESLogger LOGGER = Loggers.getLogger(FileReadingCollector.class);
+    private static final Logger LOGGER = Loggers.getLogger(FileReadingCollector.class);
     public static final int MAX_SOCKET_TIMEOUT_RETRIES = 5;
     private final Map<String, FileInputFactory> fileInputFactories;
     private final Boolean shared;

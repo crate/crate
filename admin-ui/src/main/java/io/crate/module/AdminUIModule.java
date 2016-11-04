@@ -26,20 +26,20 @@ import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.SettableFuture;
 import io.crate.rest.action.admin.AdminUIFrontpageAction;
+import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.inject.AbstractModule;
 import org.elasticsearch.common.inject.TypeLiteral;
 import org.elasticsearch.common.inject.matcher.AbstractMatcher;
 import org.elasticsearch.common.inject.spi.InjectionListener;
 import org.elasticsearch.common.inject.spi.TypeEncounter;
 import org.elasticsearch.common.inject.spi.TypeListener;
-import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
-import org.elasticsearch.rest.action.main.RestMainAction;
+import org.elasticsearch.rest.action.RestMainAction;
 
 
 public class AdminUIModule extends AbstractModule {
 
-    private final ESLogger logger =  Loggers.getLogger(getClass());
+    private final Logger logger = Loggers.getLogger(getClass());
 
     public AdminUIModule() {
     }
@@ -61,28 +61,26 @@ public class AdminUIModule extends AbstractModule {
     private class RestMainActionListener implements TypeListener {
 
         private final SettableFuture<AdminUIFrontpageAction> instanceFuture;
+
         RestMainActionListener(SettableFuture<AdminUIFrontpageAction> instanceFuture) {
             this.instanceFuture = instanceFuture;
         }
 
         @Override
         public <I> void hear(TypeLiteral<I> type, TypeEncounter<I> encounter) {
-            encounter.register(new InjectionListener<I>() {
-                @Override
-                public void afterInjection(I injectee) {
-                    Futures.addCallback(instanceFuture, new FutureCallback<AdminUIFrontpageAction>() {
-                        @Override
-                        public void onSuccess(AdminUIFrontpageAction result) {
-                            result.registerHandler();
-                        }
+            encounter.register((InjectionListener<I>) injectee -> Futures.addCallback(
+                instanceFuture,
+                new FutureCallback<AdminUIFrontpageAction>() {
+                    @Override
+                    public void onSuccess(AdminUIFrontpageAction result) {
+                        result.registerHandler();
+                    }
 
-                        @Override
-                        public void onFailure(Throwable t) {
-                            logger.error("Could not register AdminUIFrontpageAction handler", t);
-                        }
-                    });
-                }
-            });
+                    @Override
+                    public void onFailure(Throwable t) {
+                        logger.error("Could not register AdminUIFrontpageAction handler", t);
+                    }
+                }));
         }
     }
 
@@ -103,6 +101,7 @@ public class AdminUIModule extends AbstractModule {
     private static class AdminUIFrontpageActionListener implements TypeListener {
 
         private final SettableFuture<AdminUIFrontpageAction> instanceFuture;
+
         AdminUIFrontpageActionListener() {
             this.instanceFuture = SettableFuture.create();
 
@@ -110,12 +109,8 @@ public class AdminUIModule extends AbstractModule {
 
         @Override
         public <I> void hear(TypeLiteral<I> type, TypeEncounter<I> encounter) {
-            encounter.register(new InjectionListener<I>() {
-                @Override
-                public void afterInjection(I injectee) {
-                    instanceFuture.set((AdminUIFrontpageAction) injectee);
-                }
-            });
+            encounter.register(
+                (InjectionListener<I>) injectee -> instanceFuture.set((AdminUIFrontpageAction) injectee));
         }
     }
 }

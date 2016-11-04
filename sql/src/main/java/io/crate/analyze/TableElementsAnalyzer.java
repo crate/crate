@@ -243,7 +243,7 @@ public class TableElementsAnalyzer {
         @Override
         public Void visitIndexDefinition(IndexDefinition node, ColumnDefinitionContext context) {
             context.analyzedColumnDefinition.setAsIndexColumn();
-            context.analyzedColumnDefinition.dataType("string");
+            context.analyzedColumnDefinition.dataType("text");
             context.analyzedColumnDefinition.name(node.ident());
 
             setAnalyzer(node.properties(), context, node.method());

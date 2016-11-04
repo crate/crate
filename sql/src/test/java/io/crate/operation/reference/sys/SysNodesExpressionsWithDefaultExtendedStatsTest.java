@@ -24,17 +24,18 @@ package io.crate.operation.reference.sys;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RowGranularity;
-import io.crate.monitor.MonitorModule;
+import io.crate.monitor.ZeroExtendedNodeInfo;
 import io.crate.operation.reference.NestedObjectExpression;
 import io.crate.operation.reference.sys.node.local.NodeSysExpression;
-import io.crate.operation.reference.sys.node.local.SysNodeExpressionModule;
-import io.crate.test.integration.CrateUnitTest;
+import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.types.DataTypes;
-import org.elasticsearch.common.inject.Injector;
-import org.elasticsearch.common.inject.ModulesBuilder;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.threadpool.ThreadPool;
+import org.elasticsearch.discovery.local.LocalDiscovery;
+import org.elasticsearch.env.Environment;
+import org.elasticsearch.env.NodeEnvironment;
+import org.elasticsearch.monitor.MonitorService;
 import org.junit.After;
+import org.junit.Before;
 import org.junit.Test;
 
 import java.util.HashMap;
@@ -44,33 +45,39 @@ import static io.crate.testing.TestingHelpers.mapToSortedString;
 import static io.crate.testing.TestingHelpers.refInfo;
 import static org.hamcrest.Matchers.is;
 
-public class SysNodesExpressionsWithDefaultExtendedStatsTest extends CrateUnitTest {
+public class SysNodesExpressionsWithDefaultExtendedStatsTest extends CrateDummyClusterServiceUnitTest {
 
-    private Injector injector;
-    private NodeSysExpression resolver;
+    private NodeSysExpression nodeExpression;
+    private NodeEnvironment nodeEnvironment;
 
-    private void prepare(boolean isDataNode) throws Exception {
-        injector = new ModulesBuilder().add(
-            new SysNodesExpressionsTest.TestModule(isDataNode),
-            new MonitorModule(Settings.EMPTY),
-            new SysNodeExpressionModule()
-        ).createInjector();
-        resolver = injector.getInstance(NodeSysExpression.class);
+    @Before
+    public void prepare() throws Exception {
+        Settings settings = Settings.builder()
+            .put("path.home", createTempDir()).build();
+        LocalDiscovery localDiscovery = new LocalDiscovery(settings, clusterService, clusterService.getClusterSettings());
+        Environment environment = new Environment(settings);
+        nodeEnvironment = new NodeEnvironment(settings, environment);
+        MonitorService monitorService = new MonitorService(settings, nodeEnvironment, THREAD_POOL);
+        nodeExpression = new NodeSysExpression(
+            clusterService,
+            monitorService,
+            null,
+            localDiscovery,
+            THREAD_POOL,
+            new ZeroExtendedNodeInfo()
+        );
     }
 
     @After
     public void cleanUp() throws Exception {
-        if (injector != null) {
-            injector.getInstance(ThreadPool.class).shutdownNow();
-        }
+        nodeEnvironment.close();
     }
 
     @Test
     public void testLoad() throws Exception {
-        prepare(true);
         Reference refInfo = refInfo("sys.nodes.load", DataTypes.OBJECT, RowGranularity.NODE);
         io.crate.operation.reference.NestedObjectExpression load =
-            (io.crate.operation.reference.NestedObjectExpression) resolver.getChildImplementation(refInfo.ident().columnIdent().name());
+            (io.crate.operation.reference.NestedObjectExpression) nodeExpression.getChildImplementation(refInfo.ident().columnIdent().name());
         Map<String, Object> loadValue = load.value();
         assertThat((Double) loadValue.get("1"), is(-1.0d));
         assertThat((Double) loadValue.get("5"), is(-1.0d));
@@ -79,10 +86,9 @@ public class SysNodesExpressionsWithDefaultExtendedStatsTest extends CrateUnitTe
 
     @Test
     public void testFs() throws Exception {
-        prepare(true);
         Reference refInfo = refInfo("sys.nodes.fs", DataTypes.STRING, RowGranularity.NODE);
         io.crate.operation.reference.NestedObjectExpression fs = (io.crate.operation.reference.NestedObjectExpression)
-            resolver.getChildImplementation(refInfo.ident().columnIdent().name());
+            nodeExpression.getChildImplementation(refInfo.ident().columnIdent().name());
 
         Map<String, Object> v = fs.value();
         //noinspection unchecked
@@ -97,10 +103,9 @@ public class SysNodesExpressionsWithDefaultExtendedStatsTest extends CrateUnitTe
 
     @Test
     public void testCpu() throws Exception {
-        prepare(true);
         Reference refInfo = refInfo("sys.nodes.os", DataTypes.OBJECT, RowGranularity.NODE);
         io.crate.operation.reference.NestedObjectExpression os = (io.crate.operation.reference.NestedObjectExpression)
-            resolver.getChildImplementation(refInfo.ident().columnIdent().name());
+            nodeExpression.getChildImplementation(refInfo.ident().columnIdent().name());
 
         Map<String, Object> v = os.value();
 
@@ -115,11 +120,10 @@ public class SysNodesExpressionsWithDefaultExtendedStatsTest extends CrateUnitTe
 
     @Test
     public void testFsDataOnNonDataNode() throws Exception {
-        prepare(false);
         Reference refInfo = refInfo("sys.nodes.fs", DataTypes.STRING, RowGranularity.NODE, "data");
         ColumnIdent columnIdent = refInfo.ident().columnIdent();
         NestedObjectExpression fs = (NestedObjectExpression)
-            resolver.getChildImplementation(columnIdent.name());
+            nodeExpression.getChildImplementation(columnIdent.name());
         assertThat(((Object[]) fs.getChildImplementation(columnIdent.path().get(0)).value()).length, is(0));
     }
 }

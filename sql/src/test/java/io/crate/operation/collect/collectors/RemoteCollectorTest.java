@@ -27,7 +27,6 @@ import io.crate.action.job.JobRequest;
 import io.crate.action.job.JobResponse;
 import io.crate.action.job.TransportJobAction;
 import io.crate.analyze.WhereClause;
-import io.crate.analyze.symbol.Symbol;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.executor.transport.kill.KillJobsRequest;
 import io.crate.executor.transport.kill.TransportKillJobsNodeAction;
@@ -37,23 +36,18 @@ import io.crate.metadata.RowGranularity;
 import io.crate.operation.collect.stats.JobsLogs;
 import io.crate.planner.distribution.DistributionInfo;
 import io.crate.planner.node.dql.RoutedCollectPhase;
-import io.crate.planner.projection.Projection;
+import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.CollectingRowReceiver;
 import io.crate.types.DataTypes;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.test.cluster.NoopClusterService;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.MockitoAnnotations;
 
 import java.util.Collections;
-import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 
 import static io.crate.testing.TestingHelpers.createReference;
@@ -62,10 +56,7 @@ import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.*;
 
-public class RemoteCollectorTest {
-
-    @Rule
-    public ExpectedException expectedException = ExpectedException.none();
+public class RemoteCollectorTest extends CrateDummyClusterServiceUnitTest {
 
     private TransportJobAction transportJobAction;
     private TransportKillJobsNodeAction transportKillJobsNodeAction;
@@ -76,17 +67,17 @@ public class RemoteCollectorTest {
     public ArgumentCaptor<ActionListener<JobResponse>> listenerCaptor;
 
     @Before
-    public void setUp() throws Exception {
+    public void prepare() {
         MockitoAnnotations.initMocks(this);
         UUID jobId = UUID.randomUUID();
         RoutedCollectPhase collectPhase = new RoutedCollectPhase(
             jobId,
             0,
             "remoteCollect",
-            new Routing(ImmutableMap.<String, Map<String, List<Integer>>>of("remoteNode", ImmutableMap.of("dummyTable", Collections.singletonList(1)))),
+            new Routing(ImmutableMap.of("remoteNode", ImmutableMap.of("dummyTable", Collections.singletonList(1)))),
             RowGranularity.DOC,
-            Collections.<Symbol>singletonList(createReference("name", DataTypes.STRING)),
-            Collections.<Projection>emptyList(),
+            Collections.singletonList(createReference("name", DataTypes.STRING)),
+            Collections.emptyList(),
             WhereClause.MATCH_ALL,
             DistributionInfo.DEFAULT_BROADCAST
         );
@@ -94,8 +85,10 @@ public class RemoteCollectorTest {
         transportKillJobsNodeAction = mock(TransportKillJobsNodeAction.class);
         rowReceiver = new CollectingRowReceiver();
 
-        JobsLogs jobsLogs = new JobsLogs(() -> true);
-        JobContextService jobContextService = new JobContextService(Settings.EMPTY, new NoopClusterService(), jobsLogs);
+        JobContextService jobContextService = new JobContextService(
+            Settings.EMPTY,
+            clusterService,
+            new JobsLogs(() -> true));
         remoteCollector = new RemoteCollector(
             jobId,
             "localNode",

@@ -27,7 +27,7 @@ import io.crate.metadata.*;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
-import org.elasticsearch.cluster.ClusterService;
+import org.elasticsearch.cluster.service.ClusterService;
 
 public class InformationTableConstraintsTableInfo extends InformationTableInfo {
 

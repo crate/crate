@@ -21,6 +21,7 @@
 
 package io.crate.metadata.doc;
 
+import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
 import com.google.common.base.MoreObjects;
 import com.google.common.collect.*;
 import io.crate.Constants;
@@ -44,6 +45,7 @@ import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.action.admin.indices.alias.Alias;
 import org.elasticsearch.action.admin.indices.template.put.PutIndexTemplateRequest;
 import org.elasticsearch.action.admin.indices.template.put.TransportPutIndexTemplateAction;
+import org.elasticsearch.cluster.metadata.AliasMetaData;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.cluster.metadata.MappingMetaData;
 import org.elasticsearch.common.collect.Tuple;
@@ -64,12 +66,8 @@ public class DocIndexMetaData {
 
     private final Map<ColumnIdent, IndexReference.Builder> indicesBuilder = new HashMap<>();
 
-    private final ImmutableSortedSet.Builder<Reference> columnsBuilder = ImmutableSortedSet.orderedBy(new Comparator<Reference>() {
-        @Override
-        public int compare(Reference o1, Reference o2) {
-            return o1.ident().columnIdent().fqn().compareTo(o2.ident().columnIdent().fqn());
-        }
-    });
+    private final ImmutableSortedSet.Builder<Reference> columnsBuilder = ImmutableSortedSet.orderedBy(
+        Comparator.comparing(o -> o.ident().columnIdent().fqn()));
 
     // columns should be ordered
     private final ImmutableMap.Builder<ColumnIdent, Reference> referencesBuilder = ImmutableSortedMap.naturalOrder();
@@ -100,11 +98,11 @@ public class DocIndexMetaData {
     private ColumnPolicy columnPolicy = ColumnPolicy.DYNAMIC;
     private Map<String, String> generatedColumns;
 
-    public DocIndexMetaData(Functions functions, IndexMetaData metaData, TableIdent ident) throws IOException {
+    DocIndexMetaData(Functions functions, IndexMetaData metaData, TableIdent ident) throws IOException {
         this.functions = functions;
         this.ident = ident;
         this.metaData = metaData;
-        this.isAlias = !metaData.getIndex().equals(ident.indexName());
+        this.isAlias = !metaData.getIndex().getName().equals(ident.indexName());
         this.numberOfShards = metaData.getNumberOfShards();
         Settings settings = metaData.getSettings();
         this.numberOfReplicas = NumberOfReplicas.fromSettings(settings);
@@ -232,7 +230,7 @@ public class DocIndexMetaData {
      * @param columnProperties map of String to Object containing column properties
      * @return dataType of the column with columnProperties
      */
-    public static DataType getColumnDataType(Map<String, Object> columnProperties) {
+    static DataType getColumnDataType(Map<String, Object> columnProperties) {
         DataType type;
         String typeName = (String) columnProperties.get("type");
 
@@ -254,23 +252,58 @@ public class DocIndexMetaData {
         return type;
     }
 
-    private Reference.IndexType getColumnIndexType(Map<String, Object> columnProperties) {
-        String indexType = (String) columnProperties.get("index");
-        String analyzerName = (String) columnProperties.get("analyzer");
-        if (indexType != null) {
-            if (indexType.equals(Reference.IndexType.NOT_ANALYZED.toString())) {
-                return Reference.IndexType.NOT_ANALYZED;
-            } else if (indexType.equals(Reference.IndexType.NO.toString())) {
-                return Reference.IndexType.NO;
-            } else if (indexType.equals(Reference.IndexType.ANALYZED.toString())
-                       && analyzerName != null && !analyzerName.equals("keyword")) {
+    /**
+     * Get the IndexType from columnProperties.
+     * <br />
+     * Properties might look like:
+     * <pre>
+     *     {
+     *         "type": "integer"
+     *     }
+     *
+     *
+     *     {
+     *         "type": "text",
+     *         "analyzer": "english"
+     *     }
+     *
+     *
+     *     {
+     *          "type": "text",
+     *          "fields": {
+     *              "keyword": {
+     *                  "type": "keyword",
+     *                  "ignore_above": "256"
+     *              }
+     *          }
+     *     }
+     *
+     *     {
+     *         "type": "date",
+     *         "index": "no"
+     *     }
+     *
+     *     {
+     *          "type": "keyword",
+     *          "index": false
+     *     }
+     * </pre>
+     */
+    private static Reference.IndexType getColumnIndexType(Map<String, Object> columnProperties) {
+        Object index = columnProperties.get("index");
+        if (index == null) {
+            if ("text".equals(columnProperties.get("type"))) {
                 return Reference.IndexType.ANALYZED;
             }
-        } // default indexType is analyzed so need to check analyzerName if indexType is null
-        else if (analyzerName != null && !analyzerName.equals("keyword")) {
-            return Reference.IndexType.ANALYZED;
+            return Reference.IndexType.NOT_ANALYZED;
         }
-        return Reference.IndexType.NOT_ANALYZED;
+        if (Boolean.FALSE.equals(index) || "no".equals(index)) {
+            return Reference.IndexType.NO;
+        }
+        if ("not_analyzed".equals(index)) {
+            return Reference.IndexType.NOT_ANALYZED;
+        }
+        return Reference.IndexType.ANALYZED;
     }
 
     private static ColumnIdent childIdent(@Nullable ColumnIdent ident, String name) {
@@ -350,12 +383,7 @@ public class DocIndexMetaData {
     }
 
     private IndexReference.Builder getOrCreateIndexBuilder(ColumnIdent ident) {
-        IndexReference.Builder builder = indicesBuilder.get(ident);
-        if (builder == null) {
-            builder = new IndexReference.Builder(refIdent(ident));
-            indicesBuilder.put(ident, builder);
-        }
-        return builder;
+        return indicesBuilder.computeIfAbsent(ident, k -> new IndexReference.Builder(refIdent(ident)));
     }
 
     private ImmutableList<ColumnIdent> getPrimaryKey() {
@@ -515,7 +543,7 @@ public class DocIndexMetaData {
         return partitionedByColumns;
     }
 
-    public ImmutableList<GeneratedReference> generatedColumnReferences() {
+    ImmutableList<GeneratedReference> generatedColumnReferences() {
         return generatedColumnReferences;
     }
 
@@ -523,7 +551,7 @@ public class DocIndexMetaData {
         return primaryKey;
     }
 
-    public ColumnIdent routingCol() {
+    ColumnIdent routingCol() {
         return routingCol;
     }
 
@@ -532,7 +560,7 @@ public class DocIndexMetaData {
      * this includes the table name, as this is reflected in the ReferenceIdents of
      * the columns.
      */
-    public boolean schemaEquals(DocIndexMetaData other) {
+    boolean schemaEquals(DocIndexMetaData other) {
         if (this == other) return true;
         if (other == null) return false;
 
@@ -561,7 +589,7 @@ public class DocIndexMetaData {
                 // merge the new mapping with the template settings
                 return new DocIndexMetaData(
                     functions,
-                    IndexMetaData.builder(other.metaData).settings(this.metaData.getSettings()).build(),
+                    mergeIndexMetaData(other.metaData),
                     other.ident).build();
             } else if (references().size() == other.references().size() &&
                        !references().keySet().equals(other.references().keySet())) {
@@ -584,7 +612,8 @@ public class DocIndexMetaData {
         PutIndexTemplateRequest request = new PutIndexTemplateRequest(templateName)
             .mapping(Constants.DEFAULT_MAPPING_TYPE, md.defaultMappingMap)
             .create(false)
-            .settings(updateSettings)
+            .settings(updateSettings.filter(s ->
+                s.equals(IndexMetaData.SETTING_VERSION_CREATED) == false))
             .template(templateName + "*");
         for (String alias : md.aliases()) {
             request = request.alias(new Alias(alias));
@@ -595,8 +624,8 @@ public class DocIndexMetaData {
     /**
      * @return the name of the underlying index even if this table is referenced by alias
      */
-    public String concreteIndexName() {
-        return metaData.getIndex();
+    String concreteIndexName() {
+        return metaData.getIndex().getName();
     }
 
     public boolean isAlias() {
@@ -607,7 +636,7 @@ public class DocIndexMetaData {
         return aliases;
     }
 
-    public boolean hasAutoGeneratedPrimaryKey() {
+    boolean hasAutoGeneratedPrimaryKey() {
         return hasAutoGeneratedPrimaryKey;
     }
 
@@ -653,7 +682,7 @@ public class DocIndexMetaData {
         return builder.build();
     }
 
-    public ImmutableMap<ColumnIdent, String> analyzers() {
+    ImmutableMap<ColumnIdent, String> analyzers() {
         Map<String, Object> propertiesMap = getNested(defaultMappingMap, "properties");
         if (propertiesMap == null) {
             return ImmutableMap.of();
@@ -662,7 +691,30 @@ public class DocIndexMetaData {
         }
     }
 
-    public Set<Operation> supportedOperations() {
+    Set<Operation> supportedOperations() {
         return supportedOperations;
+    }
+
+    /**
+     * Merges this {@link IndexMetaData} with the given one,
+     * but comparing to {@link IndexMetaData#builder(IndexMetaData)}, it won't set {@link IndexMetaData#primaryTerms}
+     * as the number of shards can differ (its applied via the settings).
+     */
+    private IndexMetaData mergeIndexMetaData(IndexMetaData other) {
+        IndexMetaData.Builder builder = IndexMetaData.builder(other.getIndex().getName())
+            .settings(this.metaData.getSettings())
+            .state(other.getState())
+            .version(other.getVersion());
+
+        for (ObjectObjectCursor<String, MappingMetaData> cursor : other.getMappings()) {
+            builder.putMapping(cursor.value);
+        }
+        for (ObjectObjectCursor<String, AliasMetaData> cursor : other.getAliases()) {
+            builder.putAlias(cursor.value);
+        }
+        for (ObjectObjectCursor<String, IndexMetaData.Custom> cursor : other.getCustoms()) {
+            builder.putCustom(cursor.key, cursor.value);
+        }
+        return builder.build();
     }
 }

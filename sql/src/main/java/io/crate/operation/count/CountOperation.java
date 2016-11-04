@@ -24,6 +24,7 @@ package io.crate.operation.count;
 import com.google.common.util.concurrent.ListenableFuture;
 import io.crate.analyze.WhereClause;
 import org.elasticsearch.common.inject.ImplementedBy;
+import org.elasticsearch.index.Index;
 
 import java.io.IOException;
 import java.util.Collection;
@@ -35,5 +36,5 @@ public interface CountOperation {
     ListenableFuture<Long> count(Map<String, ? extends Collection<Integer>> indexShardMap,
                                  WhereClause whereClause) throws IOException, InterruptedException;
 
-    long count(String index, int shardId, WhereClause whereClause) throws IOException, InterruptedException;
+    long count(Index index, int shardId, WhereClause whereClause) throws IOException, InterruptedException;
 }

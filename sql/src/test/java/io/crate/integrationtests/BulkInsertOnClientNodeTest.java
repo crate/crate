@@ -40,10 +40,15 @@ public class BulkInsertOnClientNodeTest extends SQLTransportIntegrationTest {
     public BulkInsertOnClientNodeTest() {
         super(new SQLTransportExecutor(
             new SQLTransportExecutor.ClientProvider() {
+
+                private String nodeName;
+
                 @Override
                 public Client client() {
                     // make sure we use a client node (started with client=true)
-                    return internalCluster().clientNodeClient();
+                    Client client = internalCluster().client();
+                    nodeName = client.settings().get("node.name");
+                    return client;
                 }
 
                 @Override
@@ -53,9 +58,7 @@ public class BulkInsertOnClientNodeTest extends SQLTransportIntegrationTest {
 
                 @Override
                 public SQLOperations sqlOperations() {
-                    return internalCluster().getInstance(
-                        SQLOperations.class,
-                        internalCluster().clientNodeClient().settings().get("node.name"));
+                    return internalCluster().getInstance(SQLOperations.class, nodeName);
                 }
             }
         ));

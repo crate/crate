@@ -24,45 +24,50 @@ package io.crate.cluster.gracefulstop;
 
 import io.crate.action.sql.SQLOperations;
 import io.crate.operation.collect.stats.JobsLogs;
+import io.crate.plugin.SQLPlugin;
+import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import org.elasticsearch.action.admin.cluster.health.TransportClusterHealthAction;
 import org.elasticsearch.action.admin.cluster.settings.TransportClusterUpdateSettingsAction;
-import org.elasticsearch.cluster.ClusterService;
+import org.elasticsearch.cluster.service.ClusterService;
+import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.TimeValue;
-import org.elasticsearch.node.settings.NodeSettingsService;
-import org.elasticsearch.test.cluster.NoopClusterService;
+import org.elasticsearch.common.util.set.Sets;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Answers;
 
 import javax.annotation.Nullable;
+import java.util.Set;
 import java.util.UUID;
 
 import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertThat;
 import static org.mockito.Mockito.*;
 
-public class DecommissioningServiceTest {
+public class DecommissioningServiceTest extends CrateDummyClusterServiceUnitTest {
 
     private JobsLogs jobsLogs;
     private TestableDecommissioningService decommissioningService;
     private ThreadPool threadPool;
     private SQLOperations sqlOperations;
 
-    @Before
-    public void setUp() throws Exception {
-        NodeSettingsService settingsService = new NodeSettingsService(Settings.EMPTY);
+    @Override
+    protected Set<Setting<?>> additionalClusterSettings() {
+        SQLPlugin sqlPlugin = new SQLPlugin(Settings.EMPTY);
+        return Sets.newHashSet(sqlPlugin.getSettings());
+    }
 
+    @Before
+    public void init() throws Exception {
         threadPool = mock(ThreadPool.class, Answers.RETURNS_MOCKS.get());
         jobsLogs = new JobsLogs(() -> true);
         sqlOperations = mock(SQLOperations.class, Answers.RETURNS_MOCKS.get());
         decommissioningService = new TestableDecommissioningService(
             Settings.EMPTY,
-            new NoopClusterService(),
+            clusterService,
             jobsLogs,
             threadPool,
-            settingsService,
             sqlOperations,
             mock(TransportClusterHealthAction.class),
             mock(TransportClusterUpdateSettingsAction.class)
@@ -102,11 +107,10 @@ public class DecommissioningServiceTest {
                                        ClusterService clusterService,
                                        JobsLogs jobsLogs,
                                        ThreadPool threadPool,
-                                       NodeSettingsService nodeSettingsService,
                                        SQLOperations sqlOperations,
                                        TransportClusterHealthAction healthAction,
                                        TransportClusterUpdateSettingsAction updateSettingsAction) {
-            super(settings, clusterService, jobsLogs, threadPool, nodeSettingsService,
+            super(settings, clusterService, jobsLogs, threadPool,
                 sqlOperations, healthAction, updateSettingsAction);
 
         }

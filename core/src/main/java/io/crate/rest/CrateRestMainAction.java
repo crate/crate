@@ -23,9 +23,9 @@ package io.crate.rest;
 
 import io.crate.Build;
 import io.crate.Version;
-import org.elasticsearch.client.Client;
+import org.elasticsearch.client.node.NodeClient;
 import org.elasticsearch.cluster.ClusterName;
-import org.elasticsearch.cluster.ClusterService;
+import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.XContentBuilder;
@@ -48,14 +48,12 @@ public class CrateRestMainAction extends BaseRestHandler {
     @Inject
     public CrateRestMainAction(Settings settings,
                                RestController controller,
-                               ClusterName clusterName,
-                               Client client,
                                ClusterService clusterService,
                                CrateRestFilter crateRestFilter) {
-        super(settings, controller, client);
+        super(settings);
         this.version = Version.CURRENT;
         this.controller = controller;
-        this.clusterName = clusterName;
+        this.clusterName = ClusterName.CLUSTER_NAME_SETTING.get(settings);
         this.clusterService = clusterService;
         controller.registerFilter(crateRestFilter);
     }
@@ -66,38 +64,46 @@ public class CrateRestMainAction extends BaseRestHandler {
     }
 
     @Override
-    public void handleRequest(final RestRequest request, final RestChannel channel, Client client) throws IOException {
-        RestStatus status = RestStatus.OK;
+    public RestChannelConsumer prepareRequest(RestRequest request, NodeClient client) throws
+        IOException {
+        final RestStatus status;
         if (clusterService.state().blocks().hasGlobalBlock(RestStatus.SERVICE_UNAVAILABLE)) {
             status = RestStatus.SERVICE_UNAVAILABLE;
+        } else {
+            status = RestStatus.OK;
         }
+
         if (request.method() == RestRequest.Method.HEAD) {
-            channel.sendResponse(new BytesRestResponse(status));
-            return;
+            return channel -> channel.sendResponse(
+                new BytesRestResponse(status, channel.newBuilder()));
         }
-        XContentBuilder builder = channel.newBuilder();
-        builder.prettyPrint().lfAtEnd();
-        builder.startObject();
-        builder.field("ok", status.equals(RestStatus.OK));
-        builder.field("status", status.getStatus());
-        if (settings.get("name") != null) {
-            builder.field("name", settings.get("name"));
-        }
-        builder.field("cluster_name", clusterName.value());
-        builder.startObject("version")
-            .field("number", version.number())
-            .field("build_hash", Build.CURRENT.hash())
-            .field("build_timestamp", Build.CURRENT.timestamp())
-            .field("build_snapshot", version.snapshot)
-            .field("es_version", version.esVersion)
-            // We use the lucene version from lucene constants since
-            // this includes bugfix release version as well and is already in
-            // the right format. We can also be sure that the format is maitained
-            // since this is also recorded in lucene segments and has BW compat
-            .field("lucene_version", org.apache.lucene.util.Version.LATEST.toString())
-            .endObject();
-        builder.endObject();
-        channel.sendResponse(new BytesRestResponse(status, builder));
+
+        return channel -> {
+            XContentBuilder builder = channel.newBuilder();
+            builder.prettyPrint().lfAtEnd();
+            builder.startObject();
+            builder.field("ok", status.equals(RestStatus.OK));
+            builder.field("status", status.getStatus());
+            if (settings.get("name") != null) {
+                builder.field("name", settings.get("name"));
+            }
+            builder.field("cluster_name", clusterName.value());
+            builder.startObject("version")
+                .field("number", version.number())
+                .field("build_hash", Build.CURRENT.hash())
+                .field("build_timestamp", Build.CURRENT.timestamp())
+                .field("build_snapshot", version.snapshot)
+                .field("es_version", version.esVersion)
+                // We use the lucene version from lucene constants since
+                // this includes bugfix release version as well and is already in
+                // the right format. We can also be sure that the format is maitained
+                // since this is also recorded in lucene segments and has BW compat
+                .field("lucene_version", org.apache.lucene.util.Version.LATEST.toString())
+                .endObject();
+            builder.endObject();
+            channel.sendResponse(new BytesRestResponse(status, builder));
+        };
     }
+
 }
 

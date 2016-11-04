@@ -29,6 +29,7 @@ import io.crate.operation.collect.stats.JobsLogs;
 import org.elasticsearch.common.inject.AbstractModule;
 
 public class CollectOperationModule extends AbstractModule {
+
     @Override
     protected void configure() {
         bind(InformationSchemaIterables.class).asEagerSingleton();

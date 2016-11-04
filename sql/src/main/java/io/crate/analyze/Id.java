@@ -26,13 +26,14 @@ import com.google.common.base.Throwables;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.doc.DocSysColumns;
 import org.apache.lucene.util.BytesRef;
-import org.elasticsearch.common.Base64;
-import org.elasticsearch.common.Strings;
+import org.elasticsearch.common.UUIDs;
+import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.io.IOException;
+import java.util.Base64;
 import java.util.List;
 
 import static com.google.common.collect.Iterables.getOnlyElement;
@@ -43,7 +44,7 @@ public class Id {
         @Nullable
         @Override
         public String apply(@Nullable List<BytesRef> input) {
-            return Strings.base64UUID();
+            return UUIDs.base64UUID();
         }
     };
 
@@ -140,7 +141,7 @@ public class Id {
                     out.writeBytesRef(ensureNonNull(values.get(i)));
                 }
             }
-            return Base64.encodeBytes(out.bytes().toBytes());
+            return Base64.getEncoder().encodeToString(BytesReference.toBytes(out.bytes()));
         } catch (IOException e) {
             throw Throwables.propagate(e);
         }

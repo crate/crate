@@ -27,15 +27,17 @@ import io.crate.action.sql.SQLActionException;
 import io.crate.testing.TestingHelpers;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateResponse;
 import org.elasticsearch.cluster.SnapshotsInProgress;
-import org.elasticsearch.cluster.metadata.SnapshotId;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.TimeValue;
+import org.elasticsearch.snapshots.Snapshot;
+import org.elasticsearch.snapshots.SnapshotId;
 import org.elasticsearch.snapshots.SnapshotInfo;
 import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
+import java.io.File;
 import java.util.List;
 import java.util.Locale;
 
@@ -50,6 +52,8 @@ public class SnapshotRestoreIntegrationTest extends SQLTransportIntegrationTest 
     @ClassRule
     public static final TemporaryFolder TEMPORARY_FOLDER = new TemporaryFolder();
 
+    private File defaultRepositoryLocation;
+
     @Override
     protected Settings nodeSettings(int nodeOrdinal) {
         return Settings.builder().put(super.nodeSettings(nodeOrdinal))
@@ -59,8 +63,9 @@ public class SnapshotRestoreIntegrationTest extends SQLTransportIntegrationTest 
 
     @Before
     public void createRepository() throws Exception {
+        defaultRepositoryLocation = TEMPORARY_FOLDER.newFolder();
         execute("CREATE REPOSITORY " + REPOSITORY_NAME + " TYPE \"fs\" with (location=?, compress=True)",
-            new Object[]{TEMPORARY_FOLDER.newFolder().getAbsolutePath()});
+            new Object[]{defaultRepositoryLocation.getAbsolutePath()});
         assertThat(response.rowCount(), is(1L));
     }
 
@@ -148,17 +153,17 @@ public class SnapshotRestoreIntegrationTest extends SQLTransportIntegrationTest 
         waitForCompletion(REPOSITORY_NAME, "snapshot_no_wait", TimeValue.timeValueSeconds(20));
     }
 
-    private SnapshotInfo waitForCompletion(String repository, String snapshot, TimeValue timeout) throws InterruptedException {
+    private SnapshotInfo waitForCompletion(String repository, String snapshotName, TimeValue timeout) throws InterruptedException {
         long start = System.currentTimeMillis();
-        SnapshotId snapshotId = new SnapshotId(repository, snapshot);
+        Snapshot snapshot = new Snapshot(repository, new SnapshotId(repository, snapshotName));
         while (System.currentTimeMillis() - start < timeout.millis()) {
-            List<SnapshotInfo> snapshotInfos = client().admin().cluster().prepareGetSnapshots(repository).setSnapshots(snapshot).get().getSnapshots();
+            List<SnapshotInfo> snapshotInfos = client().admin().cluster().prepareGetSnapshots(repository).setSnapshots(snapshotName).get().getSnapshots();
             assertThat(snapshotInfos.size(), equalTo(1));
             if (snapshotInfos.get(0).state().completed()) {
                 // Make sure that snapshot clean up operations are finished
                 ClusterStateResponse stateResponse = client().admin().cluster().prepareState().get();
-                SnapshotsInProgress snapshotsInProgress = stateResponse.getState().getMetaData().custom(SnapshotsInProgress.TYPE);
-                if (snapshotsInProgress == null || snapshotsInProgress.snapshot(snapshotId) == null) {
+                SnapshotsInProgress snapshotsInProgress = stateResponse.getState().custom(SnapshotsInProgress.TYPE);
+                if (snapshotsInProgress == null || snapshotsInProgress.snapshot(snapshot) == null) {
                     return snapshotInfos.get(0);
                 }
             }
@@ -209,27 +214,13 @@ public class SnapshotRestoreIntegrationTest extends SQLTransportIntegrationTest 
     }
 
     @Test
-    public void testCreateNotPartialSnapshotFails() throws Exception {
-        try {
-            execute("set global cluster.routing.allocation.enable=none");
-            execute("CREATE TABLE backmeup (" +
-                    "  id long primary key, " +
-                    "  name string" +
-                    ") with (number_of_replicas=0)");
-
-            expectedException.expect(SQLActionException.class);
-            expectedException.expectMessage("Error creating snapshot 'my_repo.my_snapshot': Tables don't have primary shards [backmeup]");
-            execute("CREATE SNAPSHOT " + snapshotName() + " TABLE backmeup WITH (wait_for_completion=true)");
-        } finally {
-            execute("reset GLOBAL cluster.routing.allocation.enable");
-        }
-    }
-
-    @Test
     public void testCreateSnapshotInURLRepoFails() throws Exception {
-        // URL Repositories are always marked as read_only
+        // lets be sure the repository location contains some data, empty directories will result in "no data found" error instead
+        execute("CREATE SNAPSHOT my_repo.my_snapshot ALL WITH (wait_for_completion=true)");
+
+        // URL Repositories are always marked as read_only, use the same location that the existing repository to have valid data
         execute("CREATE REPOSITORY uri_repo TYPE url WITH (url=?)",
-            new Object[]{TEMPORARY_FOLDER.newFolder().toURI().toString()});
+            new Object[]{defaultRepositoryLocation.toURI().toString()});
         waitNoPendingTasksOnAll();
 
         expectedException.expect(SQLActionException.class);

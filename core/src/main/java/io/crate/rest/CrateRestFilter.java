@@ -22,9 +22,11 @@
 package io.crate.rest;
 
 import com.google.common.collect.ImmutableSet;
+import org.apache.logging.log4j.Logger;
+import org.elasticsearch.client.node.NodeClient;
 import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
+import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.rest.*;
 
@@ -39,8 +41,10 @@ import static org.elasticsearch.rest.RestStatus.BAD_REQUEST;
  */
 public class CrateRestFilter extends RestFilter {
 
-    public static final String ES_API_ENABLED_SETTING = "es.api.enabled";
-    public static final Set<String> SUPPORTED_ENDPOINTS = ImmutableSet.of(
+    public static final Setting<Boolean> ES_API_ENABLED_SETTING = Setting.boolSetting(
+        "es.api.enabled", false, Setting.Property.NodeScope);
+
+    private static final Set<String> SUPPORTED_ENDPOINTS = ImmutableSet.of(
         "/index.html",
         "/static",
         "/admin",
@@ -52,21 +56,21 @@ public class CrateRestFilter extends RestFilter {
     // handle possible (wrong) URL '//' too
     // as some http clients create wrong requests to the ``root`` path '/' with '//'
     // we do handle arbitrary numbers of '/' in the path
-    public static final Pattern MAIN_PATTERN = Pattern.compile(String.format(Locale.ENGLISH, "^%s+$", CrateRestMainAction.PATH));
+    private static final Pattern MAIN_PATTERN = Pattern.compile(String.format(Locale.ENGLISH, "^%s+$", CrateRestMainAction.PATH));
 
     private final boolean esApiEnabled;
 
     @Inject
     public CrateRestFilter(Settings settings) {
-        this.esApiEnabled = settings.getAsBoolean(ES_API_ENABLED_SETTING, false);
-        ESLogger logger = Loggers.getLogger(getClass().getPackage().getName(), settings);
+        this.esApiEnabled = ES_API_ENABLED_SETTING.get(settings);
+        Logger logger = Loggers.getLogger(getClass().getPackage().getName(), settings);
         logger.info("Elasticsearch HTTP REST API {}enabled", esApiEnabled ? "" : "not ");
     }
 
     @Override
-    public void process(RestRequest request, RestChannel channel, RestFilterChain filterChain) {
-        if (endpointAllowed(request.rawPath()) || esApiEnabled) {
-            filterChain.continueProcessing(request, channel);
+    public void process(RestRequest request, RestChannel channel, NodeClient client, RestFilterChain filterChain) throws Exception {
+        if (esApiEnabled || endpointAllowed(request.rawPath())) {
+            filterChain.continueProcessing(request, channel, client);
         } else {
             channel.sendResponse(
                 new BytesRestResponse(
@@ -80,7 +84,7 @@ public class CrateRestFilter extends RestFilter {
 
     }
 
-    private boolean endpointAllowed(String rawPath) {
+    private static boolean endpointAllowed(String rawPath) {
         if (MAIN_PATTERN.matcher(rawPath).matches()) {
             return true;
         }

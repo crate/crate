@@ -23,10 +23,12 @@ package io.crate;
 
 import org.elasticsearch.common.component.LifecycleComponent;
 import org.elasticsearch.common.inject.Module;
+import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
 
-import java.io.Closeable;
 import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
 
 /**
  * An extension point allowing to plug in custom functionality.
@@ -48,43 +50,31 @@ public interface Plugin {
     String description();
 
     /**
-     * Node level modules.
+     * Node level guice modules.
      */
-    Collection<Module> nodeModules();
+    default Collection<Module> createGuiceModules() {
+        return Collections.emptyList();
+    }
 
     /**
-     * Node level services that will be automatically started/stopped/closed.
+     * Node level services that will be automatically started/stopped/closed. This classes must be constructed
+     * by injection with guice.
      */
-    Collection<Class<? extends LifecycleComponent>> nodeServices();
-
-    /**
-     * Per index modules.
-     */
-    Collection<? extends Module> indexModules(Settings settings);
-
-    /**
-     * Per index services that will be automatically closed.
-     */
-    Collection<Class<? extends Closeable>> indexServices();
-
-    /**
-     * Per index shard module.
-     */
-    Collection<? extends Module> shardModules(Settings settings);
-
-    /**
-     * Per index shard service that will be automatically closed.
-     */
-    Collection<Class<? extends Closeable>> shardServices();
-
-    /**
-     * Process a specific module. Note, its simpler to implement a custom <tt>onModule(AnyModule module)</tt>
-     * method, which will be automatically be called by the relevant type.
-     */
-    void processModule(Module module);
+    default Collection<Class<? extends LifecycleComponent>> getGuiceServiceClasses() {
+        return Collections.emptyList();
+    }
 
     /**
      * Additional node settings loaded by the plugin
      */
-    Settings additionalSettings();
+    default Settings additionalSettings() {
+        return Settings.Builder.EMPTY_SETTINGS;
+    }
+
+    /**
+     * Returns a list of additional {@link Setting} definitions for this plugin.
+     */
+    default List<Setting<?>> getSettings() {
+        return Collections.emptyList();
+    }
 }

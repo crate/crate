@@ -32,8 +32,8 @@ import io.crate.operation.projectors.RepeatHandle;
 import io.crate.operation.projectors.RowReceiver;
 import io.crate.planner.node.dql.CollectPhase;
 import io.crate.planner.node.dql.RoutedCollectPhase;
+import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.StopWatch;
-import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.index.engine.Engine;
 import org.elasticsearch.threadpool.ThreadPool;
@@ -46,7 +46,7 @@ import java.util.Locale;
 
 public class JobCollectContext extends AbstractExecutionSubContext {
 
-    private static final ESLogger LOGGER = Loggers.getLogger(JobCollectContext.class);
+    private static final Logger LOGGER = Loggers.getLogger(JobCollectContext.class);
 
     private final CollectPhase collectPhase;
     private final MapSideDataCollectOperation collectOperation;
@@ -62,7 +62,6 @@ public class JobCollectContext extends AbstractExecutionSubContext {
 
     public JobCollectContext(final CollectPhase collectPhase,
                              MapSideDataCollectOperation collectOperation,
-                             String localNodeId,
                              RamAccountingContext queryPhaseRamAccountingContext,
                              final RowReceiver rowReceiver,
                              SharedShardContexts sharedShardContexts) {
@@ -73,7 +72,7 @@ public class JobCollectContext extends AbstractExecutionSubContext {
         this.sharedShardContexts = sharedShardContexts;
         this.rowReceiver = rowReceiver;
         rowReceiver.completionFuture().whenComplete((result, ex) -> close(ex));
-        this.threadPoolName = threadPoolName(collectPhase, localNodeId);
+        this.threadPoolName = threadPoolName(collectPhase);
     }
 
     public void addSearcher(int searcherId, Engine.Searcher searcher) {
@@ -176,22 +175,18 @@ public class JobCollectContext extends AbstractExecutionSubContext {
     }
 
     @VisibleForTesting
-    static String threadPoolName(CollectPhase phase, String localNodeId) {
+    static String threadPoolName(CollectPhase phase) {
         if (phase instanceof RoutedCollectPhase) {
             RoutedCollectPhase collectPhase = (RoutedCollectPhase) phase;
-            if (collectPhase.maxRowGranularity() == RowGranularity.DOC
-                && collectPhase.routing().containsShards(localNodeId)) {
-                // DOC table collectors
-                return ThreadPool.Names.SEARCH;
-            } else if (collectPhase.maxRowGranularity() == RowGranularity.NODE
+            if (collectPhase.maxRowGranularity() == RowGranularity.NODE
                        || collectPhase.maxRowGranularity() == RowGranularity.SHARD) {
                 // Node or Shard system table collector
                 return ThreadPool.Names.MANAGEMENT;
             }
         }
 
-        // Anything else like INFORMATION_SCHEMA tables or sys.cluster table collector
-        return ThreadPool.Names.PERCOLATE;
+        // Anything else like doc tables, INFORMATION_SCHEMA tables or sys.cluster table collector, partition collector
+        return ThreadPool.Names.SEARCH;
     }
 
     @VisibleForTesting

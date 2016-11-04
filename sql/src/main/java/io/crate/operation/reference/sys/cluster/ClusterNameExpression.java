@@ -26,6 +26,7 @@ import io.crate.metadata.ReferenceImplementation;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.cluster.ClusterName;
 import org.elasticsearch.common.inject.Inject;
+import org.elasticsearch.common.settings.Settings;
 
 public class ClusterNameExpression implements ReferenceImplementation<BytesRef> {
 
@@ -33,8 +34,8 @@ public class ClusterNameExpression implements ReferenceImplementation<BytesRef> 
     private final BytesRef value;
 
     @Inject
-    public ClusterNameExpression(ClusterName clusterName) {
-        this.value = new BytesRef(clusterName.value());
+    public ClusterNameExpression(Settings settings) {
+        this.value = new BytesRef(ClusterName.CLUSTER_NAME_SETTING.get(settings).value());
     }
 
     @Override

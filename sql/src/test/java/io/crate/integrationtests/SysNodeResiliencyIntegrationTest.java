@@ -22,16 +22,14 @@
 
 package io.crate.integrationtests;
 
-import com.google.common.collect.Sets;
-import org.elasticsearch.common.Strings;
 import org.elasticsearch.plugins.Plugin;
 import org.elasticsearch.test.ESIntegTestCase;
-import org.elasticsearch.test.disruption.NetworkPartition;
-import org.elasticsearch.test.disruption.NetworkUnresponsivePartition;
+import org.elasticsearch.test.disruption.NetworkDisruption;
 import org.elasticsearch.test.transport.MockTransportService;
 import org.junit.Test;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
 
 import static org.hamcrest.Matchers.*;
 
@@ -52,24 +50,23 @@ public class SysNodeResiliencyIntegrationTest extends SQLTransportIntegrationTes
      */
     @Test
     public void testTimingOutNode() throws Exception {
-        final List<String> nodes = Arrays.asList(internalCluster().getNodeNames());
-        final String unluckyNode = randomFrom(nodes);
-        final Set<String> luckyNodes = new HashSet<>(nodes);
-        luckyNodes.remove(unluckyNode);
+        String[] nodeNames = internalCluster().getNodeNames();
+        String n1 = nodeNames[0];
+        String n2 = nodeNames[1];
 
-        NetworkPartition partition
-            = new NetworkUnresponsivePartition(luckyNodes, Sets.newHashSet(unluckyNode), getRandom());
+        NetworkDisruption partition = new NetworkDisruption(
+            new NetworkDisruption.TwoPartitions(n1, n2), new NetworkDisruption.NetworkUnresponsive());
         setDisruptionScheme(partition);
         partition.startDisrupting();
 
         execute("select version, hostname, id, name from sys.nodes where name = ?",
-                 new Object[]{unluckyNode},
-                 createSessionOnNode(randomFrom(luckyNodes.toArray(Strings.EMPTY_ARRAY))));
+                 new Object[]{n2},
+                 createSessionOnNode(n1));
 
         assertThat(response.rowCount(), is(1L));
         assertThat(response.rows()[0][0], is(nullValue()));
         assertThat(response.rows()[0][1], is(nullValue()));
         assertThat(response.rows()[0][2], is(notNullValue()));
-        assertThat(response.rows()[0][3], is(unluckyNode));
+        assertThat(response.rows()[0][3], is(n2));
     }
 }

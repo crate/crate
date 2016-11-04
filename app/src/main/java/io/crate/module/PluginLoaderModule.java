@@ -22,30 +22,22 @@
 
 package io.crate.module;
 
-import io.crate.Version;
 import io.crate.plugin.PluginLoader;
 import org.elasticsearch.common.inject.AbstractModule;
 import org.elasticsearch.common.inject.Module;
 import org.elasticsearch.common.inject.PreProcessModule;
-import org.elasticsearch.common.logging.ESLogger;
-import org.elasticsearch.common.logging.Loggers;
-import org.elasticsearch.common.settings.Settings;
 
 public class PluginLoaderModule extends AbstractModule implements PreProcessModule {
 
-    private final ESLogger logger;
     private final PluginLoader pluginLoader;
 
 
-    public PluginLoaderModule(Settings settings, PluginLoader pluginLoader) {
-        logger = Loggers.getLogger(getClass().getPackage().getName(), settings);
+    public PluginLoaderModule(PluginLoader pluginLoader) {
         this.pluginLoader = pluginLoader;
     }
 
     @Override
     protected void configure() {
-        Version version = Version.CURRENT;
-        logger.info("configuring crate. version: {}", version);
     }
 
     @Override

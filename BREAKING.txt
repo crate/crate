@@ -1,0 +1,66 @@
+========================================
+ BREAKING CHANGES due to ES 5.x upgrade
+========================================
+
+- Tables created with Crate versions older than 0.46.0 will have to be 
+  recreated. This is due to the way numeric docvalues are stored starting with  
+  Crate 0.46.0 (sorted numeric instead of binary) which uses ES 1.4 
+  The backwards compatibility layer for binary docvalues was removed in ES 5.x
+
+- -Des cannot be used anymore, ES 5.0 needs -Eparam=value which is passed as command line argument
+  after the main class.
+  https://www.elastic.co/guide/en/elasticsearch/reference/5.0/breaking_50_settings_changes.html#_using_system_properties_to_configure_elasticsearch
+
+- Queries on columns with ``INDEX OFF`` will now fail instead of always
+  resulting in an empty result.
+
+- Discovery using `Multicast` is removed. `Unicast` is the default discovery mechanism.
+
+- `COPY FROM` now requires column names to be quoted in the JSON file being imported.
+
+- some translog settings are gone, see:
+  https://www.elastic.co/guide/en/elasticsearch/reference/5.0/breaking_50_settings_changes.html#_translog_settings
+  additionally `disable_flush` is also gone
+
+- `es.insecure.allow.root` setting is gone, it's no longer possible to run crate as root
+  (but we could re-allow this easily if we really want to)
+
+- Plugin interface changed (mostly related to gone index/shard injection),
+  AbstractPlugin is removed (not needed anymore due to java8), documentation needs to be updated
+
+- Logging is now configured by `log4j2.properties` instead of `logging.yml`
+
+- `thrift` transport is no longer supported and so the `thrift.*` settings
+
+- recovery settings changed, see:
+  https://www.elastic.co/guide/en/elasticsearch/reference/5.0/breaking_50_settings_changes.html#_recovery_settings
+
+- some shard balance settings are gone: `cluster.routing.allocation.balance.primary` and `cluster.routing.allocation.balance.replica`
+  these removals are undocumented at ES, and they are still used inside some unit tests of ES without effect
+
+- following `indices.recovery` settings are gone (also the ES 5.0 breaking changes tell different):
+    - `indices.recovery.file_chunk_size`
+    - `indices.recovery.translog_ops`
+    - `indices.recovery.translog_size`
+    - `indices.recovery.compress`
+
+- setting `indices.recovery.activity_timeout` renamed to `indices.recovery.recovery_activity_timeout`
+
+- `path.work` setting is gone, was not used at 2.x anyway, relict of < ES 1.0, remove it from documentation
+
+- in general, settings cannot be set via system properties anymore.
+  only possible for:
+    - `es.path.conf`
+    - `es.path.data`
+    - `es.path.home`
+    - `es.path.logs`
+
+- built-in analyzer has changed (documentation requires update):
+    - removed `classic`
+    - added `fingerprint`
+
+- built-in token-filters has changed (documentations requires update):
+    - added `fingerprint`, `keep_types`, `min_hash`, `serbian_normalization`
+    - removed `keyword_repeat`, `type_as_payload`
+
+

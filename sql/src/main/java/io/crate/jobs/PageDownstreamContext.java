@@ -35,7 +35,7 @@ import io.crate.operation.merge.PagingIterator;
 import io.crate.operation.merge.PagingIteratorEmitter;
 import io.crate.operation.projectors.RepeatHandle;
 import io.crate.operation.projectors.RowReceiver;
-import org.elasticsearch.common.logging.ESLogger;
+import org.apache.logging.log4j.Logger;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -60,7 +60,7 @@ public class PageDownstreamContext extends AbstractExecutionSubContext implement
 
     private Throwable lastThrowable = null;
 
-    public PageDownstreamContext(ESLogger logger,
+    public PageDownstreamContext(Logger logger,
                                  String nodeName,
                                  int id,
                                  String name,

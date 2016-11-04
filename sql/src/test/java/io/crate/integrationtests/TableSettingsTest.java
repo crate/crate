@@ -41,11 +41,8 @@ public class TableSettingsTest extends SQLTransportIntegrationTest {
                 "\"blocks.metadata\" = false, " +
                 "\"routing.allocation.enable\" = 'primaries', " +
                 "\"routing.allocation.total_shards_per_node\" = 10, " +
-                "\"translog.flush_threshold_ops\" = 1000, " +
-                "\"translog.flush_threshold_period\" = 3600, " +
+                "\"translog.sync_interval\" = 3600, " +
                 "\"translog.flush_threshold_size\" = 1000000, " +
-                "\"translog.interval\" = '10s', " +
-                "\"translog.disable_flush\" = false, " +
                 "\"recovery.initial_shards\" = 'quorum', " +
                 "\"warmer.enabled\" = false, " +
                 "\"translog.sync_interval\" = '20s'," +
@@ -77,7 +74,7 @@ public class TableSettingsTest extends SQLTransportIntegrationTest {
     @Test
     public void testSetNonDynamicTableSetting() {
         expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("Can't update non dynamic settings[[index.translog.sync_interval]] for open indices");
+        expectedException.expectMessage("Can't update non dynamic settings [[index.translog.sync_interval]] for open indices");
         execute("alter table settings_table set (\"translog.sync_interval\"='10s')");
     }
 
@@ -94,21 +91,21 @@ public class TableSettingsTest extends SQLTransportIntegrationTest {
     @Test
     public void testFilterOnTimeValue() throws Exception {
         execute("select * from information_schema.tables " +
-                "where settings['translog']['interval'] > 10000");
+                "where settings['translog']['sync_interval'] <= 1000");
         assertEquals(0, response.rowCount());
     }
 
     @Test
     public void testFilterOnBoolean() throws Exception {
         execute("select * from information_schema.tables " +
-                "where settings['translog']['disable_flush'] = true");
-        assertEquals(0, response.rowCount());
+                "where settings['blocks']['metadata'] = false");
+        assertEquals(1, response.rowCount());
     }
 
     @Test
     public void testFilterOnInteger() throws Exception {
         execute("select * from information_schema.tables " +
-                "where settings['translog']['flush_threshold_ops'] >= 1000");
+                "where settings['routing']['allocation']['total_shards_per_node'] >= 10");
         assertEquals(1, response.rowCount());
     }
 

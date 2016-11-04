@@ -24,7 +24,8 @@ package io.crate.executor.transport;
 
 import com.google.common.collect.ImmutableList;
 import io.crate.analyze.CreateRepositoryAnalyzedStatement;
-import io.crate.test.integration.CrateUnitTest;
+import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
+import org.elasticsearch.Version;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.admin.cluster.repositories.delete.DeleteRepositoryRequest;
 import org.elasticsearch.action.admin.cluster.repositories.delete.DeleteRepositoryResponse;
@@ -34,7 +35,6 @@ import org.elasticsearch.action.admin.cluster.repositories.put.PutRepositoryResp
 import org.elasticsearch.action.admin.cluster.repositories.put.TransportPutRepositoryAction;
 import org.elasticsearch.action.support.ActionFilters;
 import org.elasticsearch.cluster.ClusterName;
-import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.metadata.MetaData;
@@ -46,11 +46,8 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.repositories.RepositoriesService;
 import org.elasticsearch.repositories.RepositoryException;
 import org.elasticsearch.tasks.Task;
-import org.elasticsearch.test.cluster.NoopClusterService;
-import org.elasticsearch.threadpool.ThreadPool;
-import org.elasticsearch.transport.TransportService;
-import org.junit.After;
-import org.junit.Before;
+import org.elasticsearch.test.ClusterServiceUtils;
+import org.elasticsearch.test.transport.MockTransportService;
 import org.junit.Test;
 import org.mockito.Answers;
 
@@ -62,24 +59,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import static org.hamcrest.core.Is.is;
 import static org.mockito.Mockito.mock;
 
-public class RepositoryServiceTest extends CrateUnitTest {
-
-    private ThreadPool threadPool;
-
-    @Override
-    @Before
-    public void setUp() throws Exception {
-        super.setUp();
-        threadPool = new ThreadPool("dummy");
-    }
-
-    @Override
-    @After
-    public void tearDown() throws Exception {
-        super.tearDown();
-        threadPool.shutdown();
-        threadPool.awaitTermination(30, TimeUnit.SECONDS);
-    }
+public class RepositoryServiceTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testConvertException() throws Throwable {
@@ -87,7 +67,7 @@ public class RepositoryServiceTest extends CrateUnitTest {
         expectedException.expectMessage("[foo] failed: [foo] missing location");
 
         throw RepositoryService.convertRepositoryException(new RepositoryException("foo", "failed", new CreationException(ImmutableList.of(
-            new Message(Collections.<Object>singletonList(10),
+            new Message(Collections.singletonList(10),
                 "creation error", new RepositoryException("foo", "missing location"))
         ))));
     }
@@ -100,8 +80,7 @@ public class RepositoryServiceTest extends CrateUnitTest {
         RepositoriesMetaData repos = new RepositoriesMetaData(new RepositoryMetaData("repo1", "fs", Settings.EMPTY));
         ClusterState state = ClusterState.builder(new ClusterName("dummy")).metaData(
             MetaData.builder().putCustom(RepositoriesMetaData.TYPE, repos)).build();
-        ClusterService clusterService = new NoopClusterService(state);
-
+        ClusterServiceUtils.setState(clusterService, state);
         final ActionFilters actionFilters = mock(ActionFilters.class, Answers.RETURNS_MOCKS.get());
         IndexNameExpressionResolver indexNameExpressionResolver = new IndexNameExpressionResolver(Settings.EMPTY);
 
@@ -109,10 +88,10 @@ public class RepositoryServiceTest extends CrateUnitTest {
         final AtomicBoolean deleteRepoCalled = new AtomicBoolean(false);
         TransportDeleteRepositoryAction deleteRepositoryAction = new TransportDeleteRepositoryAction(
             Settings.EMPTY,
-            mock(TransportService.class, Answers.RETURNS_MOCKS.get()),
+            MockTransportService.local(Settings.EMPTY, Version.V_5_0_1, THREAD_POOL),
             clusterService,
             mock(RepositoriesService.class),
-            threadPool,
+            THREAD_POOL,
             actionFilters,
             indexNameExpressionResolver) {
             @Override
@@ -124,10 +103,10 @@ public class RepositoryServiceTest extends CrateUnitTest {
 
         TransportPutRepositoryAction putRepo = new TransportPutRepositoryAction(
             Settings.EMPTY,
-            mock(TransportService.class, Answers.RETURNS_MOCKS.get()),
+            MockTransportService.local(Settings.EMPTY, Version.V_5_0_1, THREAD_POOL),
             clusterService,
             mock(RepositoriesService.class),
-            threadPool,
+            THREAD_POOL,
             actionFilters,
             indexNameExpressionResolver) {
             @Override
@@ -136,7 +115,10 @@ public class RepositoryServiceTest extends CrateUnitTest {
             }
         };
 
-        RepositoryService repositoryService = new RepositoryService(clusterService, deleteRepositoryAction, putRepo);
+        RepositoryService repositoryService = new RepositoryService(
+            clusterService,
+            deleteRepositoryAction,
+            putRepo);
         try {
             repositoryService.execute(
                 new CreateRepositoryAnalyzedStatement("repo1", "fs", Settings.EMPTY)).get(10, TimeUnit.SECONDS);

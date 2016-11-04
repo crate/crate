@@ -112,21 +112,21 @@ launch_service()
 {
     pidpath=$1
     daemonized=$2
-    props=$3
-    es_parms="-Dcrate"
+    javaProperties=$3
+    props="-Epath.home=$CRATE_HOME $4"
 
     if [ "x$pidpath" != "x" ]; then
-        es_parms="$es_parms -Des.pidfile=$pidpath"
+        props="-Epidfile=$pidpath $props"
     fi
 
     if [ "x$daemonized" = "x" ]; then
-        exec "$JAVA" $JAVA_OPTS $CRATE_JAVA_OPTS $es_parms -Des.path.home="$CRATE_HOME" -cp "$CRATE_CLASSPATH" $props \
-                io.crate.bootstrap.CrateDB
+        exec "$JAVA" $JAVA_OPTS $CRATE_JAVA_OPTS $javaProperties -cp "$CRATE_CLASSPATH" \
+             io.crate.bootstrap.CrateDB $props
         execval=$?
     else
         # Startup Crate, background it, and write the pid.
-        exec "$JAVA" $JAVA_OPTS $CRATE_JAVA_OPTS $es_parms -Des.path.home="$CRATE_HOME" -cp "$CRATE_CLASSPATH" $props \
-                    io.crate.bootstrap.CrateDB -d <&- &
+        exec "$JAVA" $JAVA_OPTS $CRATE_JAVA_OPTS $javaProperties -cp "$CRATE_CLASSPATH" \
+             io.crate.bootstrap.CrateDB $props -d <&- &
         execval=$?
         [ ! -z "$pidpath" ] && printf '%d' $! > "$pidpath"
     fi
@@ -136,8 +136,9 @@ launch_service()
 
 args=$@
 if test "${args#*"-Des."}" != "$args"; then
-    echo "\nSetting Crate specific settings with the -D option and the es prefix has been deprecated."
+    echo "Support for defining Crate specific settings with the -D option and the es prefix has been dropped."
     echo "Please use the -C option to configure Crate.\n"
+    exit 1
 fi
 
 # Parse any command line options.
@@ -174,11 +175,11 @@ while true; do
             exit 0
         ;;
         -D)
-            properties="$properties -D$2"
+            javaProperties="$javaProperties -D$2"
             shift 2
         ;;
         -C)
-            properties="$properties -Des.$2"
+            properties="$properties -E$2"
             shift 2
         ;;
         -X)
@@ -197,6 +198,6 @@ while true; do
 done
 
 # Start up the service
-launch_service "$pidfile" "$daemonized" "$properties"
+launch_service "$pidfile" "$daemonized" "$javaProperties" "$properties"
 
 exit $?

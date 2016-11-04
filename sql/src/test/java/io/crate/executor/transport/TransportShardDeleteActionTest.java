@@ -23,50 +23,53 @@
 package io.crate.executor.transport;
 
 import io.crate.metadata.TableIdent;
+import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
+import org.elasticsearch.Version;
 import org.elasticsearch.action.support.ActionFilters;
-import org.elasticsearch.cluster.ClusterService;
-import org.elasticsearch.cluster.action.index.MappingUpdatedAction;
 import org.elasticsearch.cluster.action.shard.ShardStateAction;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
+import org.elasticsearch.cluster.service.ClusterService;
+import org.elasticsearch.common.UUIDs;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.index.Index;
 import org.elasticsearch.index.IndexService;
 import org.elasticsearch.index.engine.Engine;
 import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.indices.IndicesService;
+import org.elasticsearch.test.transport.MockTransportService;
 import org.elasticsearch.threadpool.ThreadPool;
-import org.elasticsearch.transport.TransportService;
 import org.junit.Before;
 import org.junit.Test;
 
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.Mockito.*;
 
-public class TransportShardDeleteActionTest {
+public class TransportShardDeleteActionTest extends CrateDummyClusterServiceUnitTest {
 
     private final static TableIdent TABLE_IDENT = new TableIdent(null, "characters");
 
     private TransportShardDeleteAction transportShardDeleteAction;
     private IndexShard indexShard;
+    private String indexUUID;
 
     @Before
     public void prepare() throws Exception {
+        indexUUID = UUIDs.randomBase64UUID();
         IndicesService indicesService = mock(IndicesService.class);
         IndexService indexService = mock(IndexService.class);
-        when(indicesService.indexServiceSafe(TABLE_IDENT.indexName())).thenReturn(indexService);
+        when(indicesService.indexServiceSafe(new Index(TABLE_IDENT.indexName(), indexUUID))).thenReturn(indexService);
         indexShard = mock(IndexShard.class);
-        when(indexService.shardSafe(0)).thenReturn(indexShard);
+        when(indexService.getShard(0)).thenReturn(indexShard);
 
 
         transportShardDeleteAction = new TransportShardDeleteAction(
             Settings.EMPTY,
-            mock(TransportService.class),
-            mock(MappingUpdatedAction.class),
+            MockTransportService.local(Settings.EMPTY, Version.V_5_0_1, THREAD_POOL),
             mock(IndexNameExpressionResolver.class),
             mock(ClusterService.class),
             indicesService,
@@ -78,7 +81,7 @@ public class TransportShardDeleteActionTest {
 
     @Test
     public void testKilledSetWhileProcessingItemsDoesNotThrowExceptionAndMustMarkItemPosition() throws Exception {
-        ShardId shardId = new ShardId(TABLE_IDENT.indexName(), 0);
+        ShardId shardId = new ShardId(TABLE_IDENT.indexName(), indexUUID, 0);
         final ShardDeleteRequest request = new ShardDeleteRequest(shardId, null, UUID.randomUUID());
         request.add(1, new ShardDeleteRequest.Item("1"));
 
@@ -91,7 +94,7 @@ public class TransportShardDeleteActionTest {
 
     @Test
     public void testReplicaOperationWillSkipItemsFromMarkedPositionOn() throws Exception {
-        ShardId shardId = new ShardId(TABLE_IDENT.indexName(), 0);
+        ShardId shardId = new ShardId(TABLE_IDENT.indexName(), indexUUID, 0);
         final ShardDeleteRequest request = new ShardDeleteRequest(shardId, null, UUID.randomUUID());
         request.add(1, new ShardDeleteRequest.Item("1"));
         request.skipFromLocation(1);
