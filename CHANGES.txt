@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Removed reduced thread stack size java option, stack size defaults
+   to JVM defaults now.
+
  - Fixed an issue that causes outer joins to fail with an exception
    if columns are referenced in a where clause but not as select items.
 
@@ -19,7 +22,7 @@ Unreleased
 
      - Fix: Corrected the sql queries to display the table list in the
      Tables view, and to create the tweets table only if it does not exist.
-     
+
  - Fixed an issue that caused left outer joins to return an empty result if the
    joined table is empty.
 
