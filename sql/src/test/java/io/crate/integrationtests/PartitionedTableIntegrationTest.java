@@ -1188,23 +1188,22 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
         assertEquals(1L, response.rowCount());
     }
 
-
     @Test
     public void testPartitionedTableSchemaUpdateSameColumnNumber() throws Exception {
-        execute("create table foo (" +
+        execute("create table t1 (" +
                 "   id int primary key," +
                 "   date timestamp primary key" +
                 ") partitioned by (date) with (number_of_replicas=0)");
         ensureYellow();
-        execute("insert into foo (id, date, foo) values (1, '2014-01-01', 'foo')");
-        execute("insert into foo (id, date, bar) values (2, '2014-02-01', 'bar')");
+        execute("insert into t1 (id, date, dynamic_added_col1) values (1, '2014-01-01', 'foo')");
+        execute("insert into t1 (id, date, dynamic_added_col2) values (2, '2014-02-01', 'bar')");
         refresh();
         ensureYellow();
 
         // schema updates are async and cannot reliably be forced
         int retry = 0;
         while (retry < 100) {
-            execute("select * from foo");
+            execute("select * from t1");
             if (response.cols().length == 4) { // at some point both foo and bar columns must be present
                 break;
             }

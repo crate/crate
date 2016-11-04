@@ -29,7 +29,7 @@ import io.crate.executor.transport.kill.KillResponse;
 import io.crate.executor.transport.kill.TransportKillJobsNodeAction;
 import io.crate.operation.projectors.*;
 import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.common.logging.ESLogger;
+import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.logging.Loggers;
 
 import javax.annotation.Nullable;
@@ -43,7 +43,7 @@ import java.util.function.BiConsumer;
 
 class InterceptingRowReceiver implements RowReceiver, BiConsumer<Object, Throwable> {
 
-    private final static ESLogger LOGGER = Loggers.getLogger(InterceptingRowReceiver.class);
+    private final static Logger LOGGER = Loggers.getLogger(InterceptingRowReceiver.class);
 
     private final AtomicInteger upstreams = new AtomicInteger(2);
     private final UUID jobId;
@@ -129,7 +129,7 @@ class InterceptingRowReceiver implements RowReceiver, BiConsumer<Object, Throwab
                     }
 
                     @Override
-                    public void onFailure(Throwable e) {
+                    public void onFailure(Exception e) {
                         LOGGER.trace("Failed to kill job, forwarding failure anyway...", e);
                         rowReceiver.fail(failure);
                     }

@@ -22,57 +22,39 @@
 
 package io.crate.http.netty;
 
-import com.google.common.collect.ImmutableMap;
 import io.crate.blob.BlobService;
 import io.crate.blob.v2.BlobIndicesService;
-import org.elasticsearch.cluster.node.DiscoveryNodeService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.network.NetworkService;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.util.BigArrays;
-import org.elasticsearch.http.netty.NettyHttpServerTransport;
+import org.elasticsearch.http.netty3.Netty3HttpServerTransport;
+import org.elasticsearch.threadpool.ThreadPool;
 import org.jboss.netty.channel.ChannelPipeline;
 import org.jboss.netty.channel.ChannelPipelineFactory;
 import org.jboss.netty.handler.stream.ChunkedWriteHandler;
 
-import java.util.Map;
 
-public class CrateNettyHttpServerTransport extends NettyHttpServerTransport {
+public class CrateNettyHttpServerTransport extends Netty3HttpServerTransport {
 
     private final BlobService blobService;
     private final BlobIndicesService blobIndicesService;
-    private final DiscoveryNodeService discoveryNodeService;
 
     @Inject
     public CrateNettyHttpServerTransport(Settings settings,
                                          NetworkService networkService,
                                          BigArrays bigArrays,
+                                         ThreadPool threadPool,
                                          BlobService blobService,
-                                         BlobIndicesService blobIndicesService,
-                                         DiscoveryNodeService discoveryNodeService) {
-        super(settings, networkService, bigArrays);
+                                         BlobIndicesService blobIndicesService) {
+        super(settings, networkService, bigArrays, threadPool);
         this.blobService = blobService;
         this.blobIndicesService = blobIndicesService;
-        this.discoveryNodeService = discoveryNodeService;
-    }
-
-    @Override
-    protected void doStart() {
-        super.doStart();
-
-        final String httpAddress =
-            boundAddress.publishAddress().getHost() + ":" + boundAddress.publishAddress().getPort();
-        discoveryNodeService.addCustomAttributeProvider(new DiscoveryNodeService.CustomAttributesProvider() {
-            @Override
-            public Map<String, String> buildAttributes() {
-                return ImmutableMap.<String, String>builder().put("http_address", httpAddress).build();
-            }
-        });
     }
 
     @Override
     public ChannelPipelineFactory configureServerChannelPipelineFactory() {
-        return new CrateHttpChannelPipelineFactory(this, false, detailedErrorsEnabled);
+        return new CrateHttpChannelPipelineFactory(this, false, detailedErrorsEnabled, threadPool);
     }
 
     protected static class CrateHttpChannelPipelineFactory extends HttpChannelPipelineFactory {
@@ -82,8 +64,9 @@ public class CrateNettyHttpServerTransport extends NettyHttpServerTransport {
 
         public CrateHttpChannelPipelineFactory(CrateNettyHttpServerTransport transport,
                                                boolean sslEnabled,
-                                               boolean detailedErrorsEnabled) {
-            super(transport, detailedErrorsEnabled);
+                                               boolean detailedErrorsEnabled,
+                                               ThreadPool threadPool) {
+            super(transport, detailedErrorsEnabled, threadPool.getThreadContext());
             this.transport = transport;
             this.sslEnabled = sslEnabled;
         }

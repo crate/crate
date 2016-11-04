@@ -23,8 +23,8 @@ package io.crate.blob.pending_transfer;
 
 import io.crate.blob.BlobTransferStatus;
 import io.crate.blob.BlobTransferTarget;
-import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.node.DiscoveryNode;
+import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportChannel;
@@ -61,12 +61,12 @@ public class BlobHeadRequestHandler {
     }
 
     public void registerHandler() {
-        transportService.registerRequestHandler(Actions.GET_BLOB_HEAD, GetBlobHeadRequest.class, ThreadPool.Names.GENERIC, new GetBlobHeadHandler());
-        transportService.registerRequestHandler(Actions.GET_TRANSFER_INFO, BlobInfoRequest.class, ThreadPool.Names.GENERIC, new GetTransferInfoHandler());
-        transportService.registerRequestHandler(Actions.PUT_BLOB_HEAD_CHUNK, PutBlobHeadChunkRequest.class, ThreadPool.Names.GENERIC, new PutBlobHeadChunkHandler());
+        transportService.registerRequestHandler(Actions.GET_BLOB_HEAD, GetBlobHeadRequest::new, ThreadPool.Names.GENERIC, new GetBlobHeadHandler());
+        transportService.registerRequestHandler(Actions.GET_TRANSFER_INFO, BlobInfoRequest::new, ThreadPool.Names.GENERIC, new GetTransferInfoHandler());
+        transportService.registerRequestHandler(Actions.PUT_BLOB_HEAD_CHUNK, PutBlobHeadChunkRequest::new, ThreadPool.Names.GENERIC, new PutBlobHeadChunkHandler());
     }
 
-    private class GetBlobHeadHandler extends TransportRequestHandler<GetBlobHeadRequest> {
+    private class GetBlobHeadHandler implements TransportRequestHandler<GetBlobHeadRequest> {
         /**
          * this is method is called on the recovery source node
          * the target is requesting the head of a file it got a PutReplicaChunkRequest for.
@@ -95,7 +95,7 @@ public class BlobHeadRequestHandler {
     }
 
 
-    class PutBlobHeadChunkHandler extends TransportRequestHandler<PutBlobHeadChunkRequest> {
+    private class PutBlobHeadChunkHandler implements TransportRequestHandler<PutBlobHeadChunkRequest> {
         /**
          * called when the target node in a recovery receives a PutBlobHeadChunkRequest
          */
@@ -108,7 +108,7 @@ public class BlobHeadRequestHandler {
         }
     }
 
-    class GetTransferInfoHandler extends TransportRequestHandler<BlobInfoRequest> {
+    private class GetTransferInfoHandler implements TransportRequestHandler<BlobInfoRequest> {
         @Override
         public void messageReceived(BlobInfoRequest request, TransportChannel channel) throws Exception {
             final BlobTransferStatus transferStatus = blobTransferTarget.getActiveTransfer(request.transferId);

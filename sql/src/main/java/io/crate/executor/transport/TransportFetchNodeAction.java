@@ -58,7 +58,7 @@ public class TransportFetchNodeAction implements NodeAction<NodeFetchRequest, No
         this.nodeFetchOperation = new NodeFetchOperation(threadPool, jobsLogs, jobContextService);
 
         transportService.registerRequestHandler(TRANSPORT_ACTION,
-            NodeFetchRequest.class,
+            NodeFetchRequest::new,
             EXECUTOR_NAME,
             new NodeActionRequestHandler<NodeFetchRequest, NodeFetchResponse>(this) {});
     }
@@ -93,7 +93,7 @@ public class TransportFetchNodeAction implements NodeAction<NodeFetchRequest, No
 
             @Override
             public void onFailure(@Nonnull Throwable t) {
-                responseListener.onFailure(t);
+                responseListener.onFailure((Exception) t);
             }
         });
     }

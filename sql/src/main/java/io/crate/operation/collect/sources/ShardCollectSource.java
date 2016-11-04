@@ -55,22 +55,22 @@ import io.crate.planner.consumer.OrderByPositionVisitor;
 import io.crate.planner.node.dql.CollectPhase;
 import io.crate.planner.node.dql.RoutedCollectPhase;
 import io.crate.planner.projection.Projections;
+import io.crate.plugin.IndexEventListenerProxy;
 import org.elasticsearch.action.bulk.BulkRetryCoordinatorPool;
-import org.elasticsearch.cluster.ClusterService;
+import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
+import org.elasticsearch.cluster.metadata.MetaData;
 import org.elasticsearch.cluster.routing.ShardRoutingState;
+import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.component.AbstractComponent;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.index.Index;
 import org.elasticsearch.index.IndexNotFoundException;
 import org.elasticsearch.index.IndexService;
-import org.elasticsearch.index.shard.IllegalIndexShardStateException;
-import org.elasticsearch.index.shard.IndexShard;
-import org.elasticsearch.index.shard.ShardId;
-import org.elasticsearch.index.shard.ShardNotFoundException;
-import org.elasticsearch.indices.IndicesLifecycle;
+import org.elasticsearch.index.shard.*;
 import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.threadpool.ThreadPool;
 
@@ -145,7 +145,7 @@ public class ShardCollectSource extends AbstractComponent implements CollectSour
                               RemoteCollectorFactory remoteCollectorFactory,
                               SystemCollectSource systemCollectSource,
                               NodeSysExpression nodeSysExpression,
-                              IndicesLifecycle indicesLifecycle,
+                              IndexEventListenerProxy indexEventListenerProxy,
                               BlobIndicesService blobIndicesService) {
         super(settings);
         this.luceneQueryBuilder = luceneQueryBuilder;
@@ -182,17 +182,17 @@ public class ShardCollectSource extends AbstractComponent implements CollectSour
             systemCollectSource::getRowUpdater
         );
 
-        indicesLifecycle.addListener(new LifecycleListener());
+        indexEventListenerProxy.addLast(new LifecycleListener());
     }
 
-    private class LifecycleListener extends IndicesLifecycle.Listener {
+    private class LifecycleListener implements IndexEventListener {
 
         @Override
         public void afterIndexShardCreated(IndexShard indexShard) {
             logger.debug("creating shard in {} {} {}", ShardCollectSource.this, indexShard.shardId(), shards.size());
             assert !shards.containsKey(indexShard.shardId()) : "shard entry already exists upon add";
             ShardCollectorProvider provider;
-            if (isBlobIndex(indexShard.shardId().getIndex())) {
+            if (isBlobIndex(indexShard.shardId().getIndexName())) {
                 BlobShard blobShard = blobIndicesService.blobShardSafe(indexShard.shardId());
                 provider = new BlobShardCollectorProvider(blobShard, clusterService, functions,
                     indexNameExpressionResolver, threadPool, settings, transportActionProvider, bulkRetryCoordinatorPool);
@@ -302,11 +302,13 @@ public class ShardCollectSource extends AbstractComponent implements CollectSour
         SharedShardContexts sharedShardContexts = jobCollectContext.sharedShardContexts();
         Map<String, List<Integer>> indexShards = locations.get(localNodeId);
         List<OrderedDocCollector> orderedDocCollectors = new ArrayList<>();
+        MetaData metaData = clusterService.state().metaData();
         for (Map.Entry<String, List<Integer>> entry : indexShards.entrySet()) {
             String indexName = entry.getKey();
+            Index index = metaData.index(indexName).getIndex();
 
             for (Integer shardNum : entry.getValue()) {
-                ShardId shardId = new ShardId(indexName, shardNum);
+                ShardId shardId = new ShardId(index, shardNum);
                 SharedShardContext context = sharedShardContexts.getOrCreateContext(shardId);
 
                 try {
@@ -355,11 +357,20 @@ public class ShardCollectSource extends AbstractComponent implements CollectSour
                                                                 Set<Requirement> downstreamRequirements,
                                                                 Map<String, List<Integer>> indexShards) {
 
+        MetaData metaData = clusterService.state().metaData();
         List<CrateCollector.Builder> crateCollectors = new ArrayList<>();
         for (Map.Entry<String, List<Integer>> entry : indexShards.entrySet()) {
             String indexName = entry.getKey();
+            IndexMetaData indexMD = metaData.index(indexName);
+            if (indexMD == null) {
+                if (PartitionName.isPartition(indexName)) {
+                    continue;
+                }
+                throw new IndexNotFoundException(indexName);
+            }
+            Index index = indexMD.getIndex();
             try {
-                indicesService.indexServiceSafe(indexName);
+                indicesService.indexServiceSafe(index);
             } catch (IndexNotFoundException e) {
                 if (PartitionName.isPartition(indexName)) {
                     continue;
@@ -367,7 +378,7 @@ public class ShardCollectSource extends AbstractComponent implements CollectSour
                 throw e;
             }
             for (Integer shardNum : entry.getValue()) {
-                ShardId shardId = new ShardId(indexName, shardNum);
+                ShardId shardId = new ShardId(index, shardNum);
                 try {
                     ShardCollectorProvider shardCollectorProvider = getCollectorProviderSafe(shardId);
                     CrateCollector.Builder collector = shardCollectorProvider.getCollectorBuilder(
@@ -384,7 +395,7 @@ public class ShardCollectSource extends AbstractComponent implements CollectSour
                         throw e;
                     }
                     crateCollectors.add(remoteCollectorFactory.createCollector(
-                        shardId.getIndex(), shardId.id(), collectPhase, jobCollectContext.queryPhaseRamAccountingContext()));
+                        indexName, shardId.id(), collectPhase, jobCollectContext.queryPhaseRamAccountingContext()));
                 } catch (InterruptedException e) {
                     throw Throwables.propagate(e);
                 } catch (Throwable t) {
@@ -403,23 +414,25 @@ public class ShardCollectSource extends AbstractComponent implements CollectSour
         List<UnassignedShard> unassignedShards = new ArrayList<>();
         List<Object[]> rows = new ArrayList<>();
         Map<String, List<Integer>> indexShardsMap = locations.get(localNodeId);
+        MetaData metaData = clusterService.state().metaData();
 
         for (Map.Entry<String, List<Integer>> indexShards : indexShardsMap.entrySet()) {
             String indexName = indexShards.getKey();
+            Index index = metaData.index(indexName).getIndex();
             List<Integer> shards = indexShards.getValue();
-            IndexService indexService = indicesService.indexService(indexName);
+            IndexService indexService = indicesService.indexService(index);
             if (indexService == null) {
                 for (Integer shard : shards) {
-                    unassignedShards.add(toUnassignedShard(new ShardId(indexName, UnassignedShard.markAssigned(shard))));
+                    unassignedShards.add(toUnassignedShard(new ShardId(index, UnassignedShard.markAssigned(shard))));
                 }
                 continue;
             }
             for (Integer shard : shards) {
                 if (UnassignedShard.isUnassigned(shard)) {
-                    unassignedShards.add(toUnassignedShard(new ShardId(indexName, UnassignedShard.markAssigned(shard))));
+                    unassignedShards.add(toUnassignedShard(new ShardId(index, UnassignedShard.markAssigned(shard))));
                     continue;
                 }
-                ShardId shardId = new ShardId(indexName, shard);
+                ShardId shardId = new ShardId(index, shard);
                 try {
                     ShardCollectorProvider shardCollectorProvider = getCollectorProviderSafe(shardId);
                     Object[] row = shardCollectorProvider.getRowForShard(normalizedPhase);

@@ -30,16 +30,17 @@ import io.crate.data.Row1;
 import io.crate.executor.transport.Transports;
 import io.crate.jobs.JobContextService;
 import io.crate.jobs.PageDownstreamContext;
-import io.crate.test.integration.CrateUnitTest;
+import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.RowGenerator;
 import io.crate.testing.RowSender;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
+import org.elasticsearch.Version;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.test.transport.MockTransportService;
 import org.elasticsearch.threadpool.ThreadPool;
-import org.elasticsearch.transport.TransportService;
 import org.hamcrest.Matchers;
 import org.junit.After;
 import org.junit.Before;
@@ -58,7 +59,7 @@ import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.core.Is.is;
 import static org.mockito.Mockito.mock;
 
-public class DistributingDownstreamTest extends CrateUnitTest {
+public class DistributingDownstreamTest extends CrateDummyClusterServiceUnitTest {
 
     private ListeningExecutorService executorService;
 
@@ -85,7 +86,7 @@ public class DistributingDownstreamTest extends CrateUnitTest {
             mock(Transports.class),
             mock(JobContextService.class),
             mock(ThreadPool.class),
-            mock(TransportService.class),
+            MockTransportService.local(Settings.EMPTY, Version.V_5_0_1, THREAD_POOL),
             Settings.EMPTY) {
 
 
@@ -155,7 +156,7 @@ public class DistributingDownstreamTest extends CrateUnitTest {
             mock(Transports.class),
             mock(JobContextService.class),
             mock(ThreadPool.class),
-            mock(TransportService.class),
+            MockTransportService.local(Settings.EMPTY, Version.V_5_0_1, THREAD_POOL),
             Settings.EMPTY) {
 
 
@@ -199,7 +200,7 @@ public class DistributingDownstreamTest extends CrateUnitTest {
             mock(Transports.class),
             mock(JobContextService.class),
             mock(ThreadPool.class),
-            mock(TransportService.class),
+            MockTransportService.local(Settings.EMPTY, Version.V_5_0_1, THREAD_POOL),
             Settings.EMPTY) {
 
             @Override

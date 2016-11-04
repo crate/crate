@@ -50,8 +50,8 @@ import io.crate.planner.projection.*;
 import io.crate.types.StringType;
 import org.elasticsearch.action.bulk.BulkRetryCoordinatorPool;
 import org.elasticsearch.action.bulk.BulkShardProcessor;
-import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
+import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.threadpool.ThreadPool;
@@ -436,7 +436,7 @@ public class ProjectionToProjectorVisitor
                 context.jobId,
                 projection.collectPhaseId()
             ),
-            threadPool.executor(ThreadPool.Names.SUGGEST),
+            threadPool.executor(ThreadPool.Names.SEARCH), // FIXME: SUGGEST is gone
             functions,
             projection.outputSymbols(),
             projectorContext,

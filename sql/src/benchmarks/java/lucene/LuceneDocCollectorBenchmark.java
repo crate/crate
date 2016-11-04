@@ -37,13 +37,14 @@ import io.crate.operation.collect.CrateCollector;
 import io.crate.operation.projectors.RowReceiver;
 import io.crate.testing.CollectingRowReceiver;
 import io.crate.testing.LuceneDocCollectorProvider;
+import org.apache.logging.log4j.Logger;
 import org.apache.lucene.util.TimeUnits;
 import org.elasticsearch.action.bulk.BulkRequest;
 import org.elasticsearch.action.bulk.BulkResponse;
 import org.elasticsearch.action.index.IndexRequest;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.common.bytes.BytesArray;
-import org.elasticsearch.common.logging.ESLogger;
+import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.xcontent.XContentFactory;
 import org.elasticsearch.test.ESIntegTestCase;
@@ -79,7 +80,7 @@ public class LuceneDocCollectorBenchmark extends SQLTransportIntegrationTest {
     public static final int BENCHMARK_ROUNDS = 100;
     public static final int WARMUP_ROUNDS = 10;
 
-    public final static ESLogger logger = Loggers.getLogger(LuceneDocCollectorBenchmark.class);
+    public final static Logger logger = Loggers.getLogger(LuceneDocCollectorBenchmark.class);
     private CollectingRowReceiver collectingRowReceiver = new CollectingRowReceiver();
     private LuceneDocCollectorProvider collectorProvider;
 
@@ -95,15 +96,15 @@ public class LuceneDocCollectorBenchmark extends SQLTransportIntegrationTest {
         Random random = RandomizedTest.getRandom();
         byte[] buffer = new byte[32];
         random.nextBytes(buffer);
-        return XContentFactory.jsonBuilder()
+        return BytesReference.toBytes(XContentFactory.jsonBuilder()
             .startObject()
             .field("areaInSqKm", random.nextFloat())
-            .field("continent", new BytesArray(buffer, 0, 4).toUtf8())
-            .field("countryCode", new BytesArray(buffer, 4, 8).toUtf8())
-            .field("countryName", new BytesArray(buffer, 8, 24).toUtf8())
+            .field("continent", new BytesArray(buffer, 0, 4).utf8ToString())
+            .field("countryCode", new BytesArray(buffer, 4, 8).utf8ToString())
+            .field("countryName", new BytesArray(buffer, 8, 24).utf8ToString())
             .field("population", random.nextInt(Integer.MAX_VALUE))
             .endObject()
-            .bytes().toBytes();
+            .bytes());
     }
 
     @Override

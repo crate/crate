@@ -39,13 +39,12 @@ import io.crate.metadata.table.ColumnPolicy;
 import io.crate.metadata.table.TestingTableInfo;
 import io.crate.operation.operator.any.AnyEqOperator;
 import io.crate.operation.operator.any.AnyLikeOperator;
-import io.crate.test.integration.CrateUnitTest;
+import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
-import org.elasticsearch.test.cluster.NoopClusterService;
 import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.Test;
@@ -61,7 +60,7 @@ import static io.crate.testing.TestingHelpers.*;
 import static org.hamcrest.Matchers.*;
 
 @SuppressWarnings("unchecked")
-public class WhereClauseAnalyzerTest extends CrateUnitTest {
+public class WhereClauseAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     private static final String GENERATED_COL_TABLE_NAME = "generated_col";
     private static final String DOUBLE_GEN_PARTITIONED_TABLE_NAME = "double_gen_parted";
@@ -74,8 +73,8 @@ public class WhereClauseAnalyzerTest extends CrateUnitTest {
     private SQLExecutor e;
 
     @Before
-    public void init() throws Exception {
-        SQLExecutor.Builder builder = SQLExecutor.builder(new NoopClusterService());
+    public void prepare() {
+        SQLExecutor.Builder builder = SQLExecutor.builder(clusterService);
         registerTables(builder);
 
         TestingTableInfo.Builder genInfo =

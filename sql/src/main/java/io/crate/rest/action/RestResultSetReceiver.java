@@ -25,7 +25,7 @@ package io.crate.rest.action;
 import io.crate.action.sql.BaseResultReceiver;
 import io.crate.analyze.symbol.Field;
 import io.crate.data.Row;
-import org.elasticsearch.common.logging.ESLogger;
+import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.rest.BytesRestResponse;
@@ -40,7 +40,7 @@ import static io.crate.exceptions.Exceptions.createSQLActionException;
 
 class RestResultSetReceiver extends BaseResultReceiver {
 
-    private static final ESLogger LOGGER = Loggers.getLogger(RestResultSetReceiver.class);
+    private static final Logger LOGGER = Loggers.getLogger(RestResultSetReceiver.class);
 
     private final RestChannel channel;
     private final List<Field> outputFields;

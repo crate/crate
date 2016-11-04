@@ -29,7 +29,7 @@ import io.crate.metadata.Scalar;
 import io.crate.data.Input;
 import io.crate.operation.scalar.ScalarFunctionModule;
 import io.crate.types.DataTypes;
-import org.apache.lucene.analysis.util.CharacterUtils;
+import org.apache.lucene.analysis.CharacterUtils;
 import org.apache.lucene.util.BytesRef;
 import org.apache.lucene.util.UnicodeUtil;
 import org.elasticsearch.common.lucene.BytesRefs;
@@ -37,15 +37,14 @@ import org.elasticsearch.common.lucene.BytesRefs;
 import java.util.function.BiFunction;
 
 public final class StringCaseFunction {
-    private final static CharacterUtils charUtils = CharacterUtils.getInstance();
 
     public static void register(ScalarFunctionModule module) {
         module.register(new StringCase("upper", (ref, len) -> {
-            charUtils.toUpperCase(ref, 0, len);
+            CharacterUtils.toUpperCase(ref, 0, len);
             return ref;
         }));
         module.register(new StringCase("lower", (ref, len) -> {
-            charUtils.toLowerCase(ref, 0, len);
+            CharacterUtils.toLowerCase(ref, 0, len);
             return ref;
         }));
     }

@@ -39,7 +39,7 @@ public class SymbolSerializerTest extends CrateUnitTest {
         BytesStreamOutput out = new BytesStreamOutput();
         Symbols.toStream(v, out);
 
-        StreamInput in = StreamInput.wrap(out.bytes());
+        StreamInput in = out.bytes().streamInput();
         Value v2 = (Value) Symbols.fromStream(in);
         assertEquals(v2.valueType(), DataTypes.STRING);
     }

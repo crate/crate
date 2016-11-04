@@ -26,24 +26,30 @@ import io.crate.planner.node.dql.Collect;
 import io.crate.planner.node.dql.ESGet;
 import io.crate.planner.node.dql.QueryThenFetch;
 import io.crate.planner.node.dql.join.NestedLoop;
-import io.crate.test.integration.CrateUnitTest;
+import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
-import org.elasticsearch.test.cluster.NoopClusterService;
+import org.junit.Before;
 import org.junit.Test;
 
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.instanceOf;
 
-public class SingleRowSubselectPlannerTest extends CrateUnitTest {
+public class SingleRowSubselectPlannerTest extends CrateDummyClusterServiceUnitTest {
 
-    private SQLExecutor e = SQLExecutor.builder(new NoopClusterService()).enableDefaultTables().build();
+    private SQLExecutor e;
+
+    @Before
+    public void prepare() {
+        e = SQLExecutor.builder(clusterService).enableDefaultTables().build();
+    }
 
     @Test
     public void testPlanSimpleSelectWithSingleRowSubSelectInWhereClause() throws Exception {
         QueryThenFetch qtf = e.plan("select x from t1 where a = (select b from t2)");
-        assertThat(qtf.subPlan(), instanceOf(MultiPhasePlan.class));
+        assertThat(qtf.subPlan(), instanceOf(Merge.class));
 
-        MultiPhasePlan multiPhasePlan = (MultiPhasePlan) qtf.subPlan();
+        Merge merge = (Merge) qtf.subPlan();
+        MultiPhasePlan multiPhasePlan = (MultiPhasePlan) merge.subPlan();
         assertThat(multiPhasePlan.dependencies().keySet(), contains(instanceOf(QueryThenFetch.class)));
     }
 
@@ -56,10 +62,12 @@ public class SingleRowSubselectPlannerTest extends CrateUnitTest {
 
     @Test
     public void testSingleRowSubSelectInSelectList() throws Exception {
-        MultiPhasePlan plan = e.plan("select (select b from t2 limit 1) from t1");
+        Merge merge = e.plan("select (select b from t2 limit 1) from t1");
+        MultiPhasePlan plan = (MultiPhasePlan) merge.subPlan();
+
         assertThat(plan.rootPlan(), instanceOf(Collect.class));
         assertThat(plan.dependencies().keySet(), contains(instanceOf(QueryThenFetch.class)));
-        assertThat(((QueryThenFetch) plan.dependencies().keySet().iterator().next()).subPlan(), instanceOf(Collect.class));
+        assertThat(((QueryThenFetch) plan.dependencies().keySet().iterator().next()).subPlan(), instanceOf(Merge.class));
     }
 
     @Test

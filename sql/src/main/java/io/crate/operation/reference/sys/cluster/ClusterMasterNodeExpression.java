@@ -23,7 +23,7 @@ package io.crate.operation.reference.sys.cluster;
 
 import io.crate.metadata.ReferenceImplementation;
 import org.apache.lucene.util.BytesRef;
-import org.elasticsearch.cluster.ClusterService;
+import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 
 public class ClusterMasterNodeExpression implements ReferenceImplementation<BytesRef> {
@@ -38,7 +38,7 @@ public class ClusterMasterNodeExpression implements ReferenceImplementation<Byte
 
     @Override
     public BytesRef value() {
-        String masterNodeId = clusterService.state().nodes().masterNodeId();
+        String masterNodeId = clusterService.state().nodes().getMasterNodeId();
         if (masterNodeId == null) {
             return null;
         }

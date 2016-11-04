@@ -98,7 +98,7 @@ public class NodeStatsCollector implements CrateCollector {
     private void emitAllFromLocalState() {
         List<NodeStatsContext> rows = new ArrayList<>(nodes.size());
         for (DiscoveryNode node : nodes) {
-            rows.add(new NodeStatsContext(node.getId(), node.name()));
+            rows.add(new NodeStatsContext(node.getId(), node.getName()));
         }
         emmitRows(rows);
     }
@@ -119,9 +119,9 @@ public class NodeStatsCollector implements CrateCollector {
                 }
 
                 @Override
-                public void onFailure(Throwable t) {
+                public void onFailure(Exception t) {
                     if (t instanceof ReceiveTimeoutTransportException) {
-                        rows.add(new NodeStatsContext(nodeId, node.name()));
+                        rows.add(new NodeStatsContext(nodeId, node.getName()));
                         if (remainingRequests.decrementAndGet() == 0) {
                             emmitRows(rows);
                         }

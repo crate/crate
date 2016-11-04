@@ -24,7 +24,7 @@ package io.crate.jobs;
 import io.crate.operation.join.NestedLoopOperation;
 import io.crate.operation.projectors.RowReceiver;
 import io.crate.planner.node.dql.join.NestedLoopPhase;
-import org.elasticsearch.common.logging.ESLogger;
+import org.apache.logging.log4j.Logger;
 
 import javax.annotation.Nullable;
 
@@ -39,7 +39,7 @@ public class NestedLoopContext extends AbstractExecutionSubContext implements Do
     private final RowReceiver leftRowReceiver;
     private final RowReceiver rightRowReceiver;
 
-    public NestedLoopContext(ESLogger logger,
+    public NestedLoopContext(Logger logger,
                              NestedLoopPhase nestedLoopPhase,
                              NestedLoopOperation nestedLoopOperation,
                              @Nullable PageBucketReceiver leftBucketReceiver,

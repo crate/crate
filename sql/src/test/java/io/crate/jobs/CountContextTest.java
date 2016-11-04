@@ -29,6 +29,7 @@ import io.crate.operation.count.CountOperation;
 import io.crate.test.CauseMatcher;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.testing.CollectingRowReceiver;
+import org.elasticsearch.index.Index;
 import org.junit.Test;
 
 import java.io.IOException;
@@ -100,7 +101,7 @@ public class CountContextTest extends CrateUnitTest {
         }
 
         @Override
-        public long count(String index, int shardId, WhereClause whereClause) throws IOException, InterruptedException {
+        public long count(Index index, int shardId, WhereClause whereClause) throws IOException, InterruptedException {
             return 0;
         }
     }

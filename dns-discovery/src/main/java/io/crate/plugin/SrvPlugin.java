@@ -24,9 +24,13 @@ package io.crate.plugin;
 
 import io.crate.discovery.SrvDiscovery;
 import io.crate.discovery.SrvUnicastHostsProvider;
+import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.discovery.DiscoveryModule;
 import org.elasticsearch.plugins.Plugin;
+
+import java.util.Arrays;
+import java.util.List;
 
 public class SrvPlugin extends Plugin {
 
@@ -37,24 +41,21 @@ public class SrvPlugin extends Plugin {
     }
 
     @Override
-    public String name() {
-        return "discovery-srv";
+    public List<Setting<?>> getSettings() {
+        return Arrays.asList(
+            SrvUnicastHostsProvider.DISCOVERY_SRV_QUERY,
+            SrvUnicastHostsProvider.DISCOVERY_SRV_RESOLVER
+        );
     }
-
-    @Override
-    public String description() {
-        return "DNS srv discovery";
-    }
-
 
     public void onModule(DiscoveryModule discoveryModule) {
         /**
          * Different types of discovery modules can be defined on startup using the `discovery.type` setting.
          * This SrvDiscoveryModule can be loaded using `-Cdiscovery.type=srv`
          */
-        if ("srv".equals(settings.get("discovery.type"))) {
+        if (SrvDiscovery.SRV.equals(settings.get("discovery.type"))) {
             discoveryModule.addDiscoveryType(SrvDiscovery.SRV, SrvDiscovery.class);
-            discoveryModule.addUnicastHostProvider(SrvUnicastHostsProvider.class);
+            discoveryModule.addUnicastHostProvider(SrvDiscovery.SRV, SrvUnicastHostsProvider.class);
         }
     }
 }

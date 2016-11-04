@@ -39,6 +39,7 @@ import org.junit.rules.TemporaryFolder;
 
 import javax.annotation.Nullable;
 import java.nio.file.Paths;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
@@ -53,7 +54,7 @@ public class KillIntegrationTest extends SQLTransportIntegrationTest {
 
     @Override
     protected Collection<Class<? extends Plugin>> nodePlugins() {
-        return pluginList(
+        return Arrays.asList(
             SQLPlugin.class,
             CrateTestingPlugin.class
         );

@@ -35,8 +35,10 @@ import io.crate.planner.node.dql.join.JoinType;
 import io.crate.testing.RowCountRowReceiver;
 import io.crate.testing.RowGenerator;
 import io.crate.testing.RowSender;
+import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.common.util.concurrent.EsExecutors;
+import org.elasticsearch.common.util.concurrent.ThreadContext;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
@@ -61,7 +63,13 @@ public class NestedLoopOperationBenchmark {
 
     @Before
     public void prepare() {
-        executor = EsExecutors.newFixed("nl-benchmark", 5, 10, EsExecutors.daemonThreadFactory(getClass().getSimpleName()));
+        executor = EsExecutors.newFixed(
+            "nl-benchmark",
+            5,
+            10,
+            EsExecutors.daemonThreadFactory(getClass().getSimpleName()),
+            new ThreadContext(Settings.EMPTY)
+        );
     }
 
     @After

@@ -108,7 +108,7 @@ public class CountAggregationTest extends AggregationTest {
         BytesStreamOutput out = new BytesStreamOutput();
         Streamer streamer = CountAggregation.LongStateType.INSTANCE.streamer();
         streamer.writeValueTo(out, l1);
-        StreamInput in = StreamInput.wrap(out.bytes());
+        StreamInput in = out.bytes().streamInput();
         CountAggregation.LongState l2 = (CountAggregation.LongState) streamer.readValueFrom(in);
         assertEquals(l1.value, l2.value);
     }

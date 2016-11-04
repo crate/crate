@@ -46,8 +46,8 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 
+import static io.crate.testing.DiscoveryNodes.newNode;
 import static io.crate.testing.TestingHelpers.getFunctions;
-import static org.elasticsearch.test.ESAllocationTestCase.newNode;
 import static org.mockito.Mockito.*;
 
 public class NodeStatsCollectorTest extends CrateUnitTest {

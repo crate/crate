@@ -28,6 +28,7 @@ import io.crate.analyze.CreateTableAnalyzedStatement;
 import io.crate.exceptions.Exceptions;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.TableIdent;
+import org.apache.logging.log4j.Logger;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.admin.indices.alias.Alias;
 import org.elasticsearch.action.admin.indices.create.CreateIndexRequest;
@@ -37,11 +38,12 @@ import org.elasticsearch.action.admin.indices.delete.DeleteIndexResponse;
 import org.elasticsearch.action.admin.indices.template.put.PutIndexTemplateRequest;
 import org.elasticsearch.action.admin.indices.template.put.PutIndexTemplateResponse;
 import org.elasticsearch.action.support.IndicesOptions;
-import org.elasticsearch.cluster.ClusterService;
+import org.elasticsearch.cluster.metadata.AliasOrIndex;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
+import org.elasticsearch.cluster.metadata.MetaData;
+import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
-import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.indices.IndexAlreadyExistsException;
@@ -49,13 +51,14 @@ import org.elasticsearch.indices.IndexTemplateAlreadyExistsException;
 
 import java.util.Locale;
 import java.util.concurrent.CompletableFuture;
+import java.util.SortedMap;
 
 @Singleton
 public class TableCreator {
 
     private static final Long SUCCESS_RESULT = 1L;
 
-    protected static final ESLogger logger = Loggers.getLogger(TableCreator.class);
+    protected static final Logger logger = Loggers.getLogger(TableCreator.class);
 
     private final ClusterService clusterService;
     private final IndexNameExpressionResolver indexNameExpressionResolver;
@@ -75,7 +78,7 @@ public class TableCreator {
         final CompletableFuture<Long> result = new CompletableFuture<>();
 
         // real work done in createTable()
-        deleteOrphans(new CreateTableResponseListener(result, statement), statement);
+        deleteOrphans(new CreateTableResponseListener(result, statement), statement.tableIdent());
         return result;
     }
 
@@ -110,7 +113,7 @@ public class TableCreator {
                 }
 
                 @Override
-                public void onFailure(Throwable e) {
+                public void onFailure(Exception e) {
                     setException(result, e, statement);
                 }
             });
@@ -125,7 +128,7 @@ public class TableCreator {
                 }
 
                 @Override
-                public void onFailure(Throwable e) {
+                public void onFailure(Exception e) {
                     setException(result, e, statement);
                 }
             });
@@ -149,28 +152,36 @@ public class TableCreator {
         }
     }
 
-    private void deleteOrphans(final CreateTableResponseListener listener, final CreateTableAnalyzedStatement statement) {
-        if (clusterService.state().metaData().hasAlias(statement.tableIdent().fqn())
-            && PartitionName.isPartition(
-            clusterService.state().metaData().getAliasAndIndexLookup().get(statement.tableIdent().fqn()).getIndices().iterator().next().getIndex())) {
-            logger.debug("Deleting orphaned partitions with alias: {}", statement.tableIdent().fqn());
-            transportActionProvider.transportDeleteIndexAction().execute(new DeleteIndexRequest(statement.tableIdent().fqn()), new ActionListener<DeleteIndexResponse>() {
+    private void deleteOrphans(final CreateTableResponseListener listener, TableIdent tableIdent) {
+        MetaData metaData = clusterService.state().getMetaData();
+        String fqn = tableIdent.fqn();
+
+        if (metaData.hasAlias(fqn) && isPartition(metaData, fqn)) {
+            logger.debug("Deleting orphaned partitions with alias: {}", fqn);
+            transportActionProvider.transportDeleteIndexAction().execute(new DeleteIndexRequest(fqn), new ActionListener<DeleteIndexResponse>() {
                 @Override
                 public void onResponse(DeleteIndexResponse response) {
                     if (!response.isAcknowledged()) {
                         warnNotAcknowledged("deleting orphaned alias");
                     }
-                    deleteOrphanedPartitions(listener, statement.tableIdent());
+                    deleteOrphanedPartitions(listener, tableIdent);
                 }
 
                 @Override
-                public void onFailure(Throwable e) {
+                public void onFailure(Exception e) {
                     listener.onFailure(e);
                 }
             });
         } else {
-            deleteOrphanedPartitions(listener, statement.tableIdent());
+            deleteOrphanedPartitions(listener, tableIdent);
         }
+    }
+
+    private static boolean isPartition(MetaData metaData, String fqn) {
+        SortedMap<String, AliasOrIndex> aliasAndIndexLookup = metaData.getAliasAndIndexLookup();
+        AliasOrIndex aliasOrIndex = aliasAndIndexLookup.get(fqn);
+        return PartitionName.isPartition(
+            aliasOrIndex.getIndices().iterator().next().getIndex().getName());
     }
 
     /**
@@ -182,7 +193,8 @@ public class TableCreator {
      */
     private void deleteOrphanedPartitions(final CreateTableResponseListener listener, TableIdent tableIdent) {
         String partitionWildCard = PartitionName.templateName(tableIdent.schema(), tableIdent.name()) + "*";
-        String[] orphans = indexNameExpressionResolver.concreteIndices(clusterService.state(), IndicesOptions.strictExpand(), partitionWildCard);
+        String[] orphans = indexNameExpressionResolver.concreteIndexNames(
+            clusterService.state(), IndicesOptions.strictExpand(), partitionWildCard);
         if (orphans.length > 0) {
             if (logger.isDebugEnabled()) {
                 logger.debug("Deleting orphaned partitions: {}", Joiner.on(", ").join(orphans));
@@ -197,7 +209,7 @@ public class TableCreator {
                 }
 
                 @Override
-                public void onFailure(Throwable e) {
+                public void onFailure(Exception e) {
                     listener.onFailure(e);
                 }
             });
@@ -228,7 +240,7 @@ public class TableCreator {
         }
 
         @Override
-        public void onFailure(Throwable e) {
+        public void onFailure(Exception e) {
             result.completeExceptionally(e);
         }
     }

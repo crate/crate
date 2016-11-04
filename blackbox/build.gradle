@@ -3,7 +3,7 @@ def crateDist = file("$projectDir/tmp/crate/")
 apply plugin: 'base'
 
 evaluationDependsOn(':app')
-evaluationDependsOn(':es-repository-hdfs')
+evaluationDependsOn(':es:es-repository-hdfs')
 
 task bootstrap(type: Exec) {
     inputs.file "$projectDir/bootstrap.sh"
@@ -29,8 +29,8 @@ task unpackDistTar(dependsOn: [project(':app').distTar]) {
 
 task lessLogging(dependsOn: unpackDistTar) {
     doLast {
-        def file = new File("$projectDir/tmp/crate/config/logging.yml")
-        file.write(file.text.replaceAll('rootLogger: INFO', 'rootLogger: WARN'))
+        def file = new File("$projectDir/tmp/crate/config/log4j2.properties")
+        file.write(file.text.replaceAll('rootLogger.level = info', 'rootLogger.level: warn'))
     }
 }
 
@@ -73,7 +73,8 @@ task buildDocs(type: Exec, dependsOn: bootstrap) {
 }
 
 
-hdfsTest.dependsOn(unpackDistTar, bootstrap, lessLogging, ignoreDiskThreshold, project(':es-repository-hdfs').distZipHadoop2)
+hdfsTest.dependsOn(unpackDistTar, bootstrap, lessLogging, ignoreDiskThreshold,
+        project(':es:es-repository-hdfs').blackBoxTestJar)
 sigarTest.dependsOn(unpackDistTar, bootstrap, lessLogging, ignoreDiskThreshold)
 monitoringTest.dependsOn(unpackDistTar, bootstrap, lessLogging, ignoreDiskThreshold)
 itest.dependsOn(unpackDistTar, bootstrap, lessLogging, ignoreDiskThreshold)

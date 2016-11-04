@@ -21,7 +21,7 @@
 
 package io.crate.test.integration;
 
-import com.google.common.collect.Sets;
+import org.elasticsearch.common.collect.MapBuilder;
 import org.elasticsearch.test.ESSingleNodeTestCase;
 import org.junit.After;
 
@@ -32,7 +32,7 @@ public class CrateSingleNodeTest extends ESSingleNodeTestCase {
     public void tearDown() throws Exception {
         client().admin().cluster()
             .prepareUpdateSettings()
-            .setTransientSettingsToRemove(Sets.newHashSet("cluster_id"))
+            .setTransientSettings(MapBuilder.newMapBuilder().put("cluster_id", null).map())
             .execute().actionGet();
         super.tearDown();
     }

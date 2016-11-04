@@ -27,7 +27,7 @@ import io.crate.concurrent.CompletionListenable;
 import io.crate.exceptions.ContextMissingException;
 import io.crate.exceptions.Exceptions;
 import io.crate.operation.collect.stats.JobsLogs;
-import org.elasticsearch.common.logging.ESLogger;
+import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.logging.Loggers;
 
 import javax.annotation.Nonnull;
@@ -42,10 +42,18 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiConsumer;
+import java.util.function.Function;
 
 public class JobExecutionContext implements CompletionListenable {
 
-    private static final ESLogger LOGGER = Loggers.getLogger(JobExecutionContext.class);
+    private static final Logger LOGGER = Loggers.getLogger(JobExecutionContext.class);
+    public static final Function<? super JobExecutionContext, UUID> TO_ID = new Function<JobExecutionContext, UUID>() {
+        @Nullable
+        @Override
+        public UUID apply(@Nullable JobExecutionContext input) {
+            return input == null ? null : input.jobId();
+        }
+    };
 
     private final UUID jobId;
     private final ConcurrentMap<Integer, ExecutionSubContext> subContexts;

@@ -33,7 +33,7 @@ import io.crate.operation.merge.PagingIterator;
 import io.crate.operation.merge.PassThroughPagingIterator;
 import io.crate.operation.merge.SortedPagingIterator;
 import io.crate.operation.projectors.*;
-import org.elasticsearch.common.logging.ESLogger;
+import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.util.concurrent.EsRejectedExecutionException;
 import org.elasticsearch.index.shard.ShardId;
@@ -46,7 +46,7 @@ import java.util.concurrent.RejectedExecutionException;
 
 public class MultiShardScoreDocCollector implements CrateCollector, ResumeHandle, RepeatHandle {
 
-    private static final ESLogger LOGGER = Loggers.getLogger(MultiShardScoreDocCollector.class);
+    private static final Logger LOGGER = Loggers.getLogger(MultiShardScoreDocCollector.class);
 
     private final List<OrderedDocCollector> orderedDocCollectors;
     private final ObjectObjectHashMap<ShardId, OrderedDocCollector> orderedCollectorsMap;

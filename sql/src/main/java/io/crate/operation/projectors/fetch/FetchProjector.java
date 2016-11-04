@@ -36,7 +36,7 @@ import io.crate.metadata.Functions;
 import io.crate.operation.InputRow;
 import io.crate.operation.fetch.FetchRowInputSymbolVisitor;
 import io.crate.operation.projectors.*;
-import org.elasticsearch.common.logging.ESLogger;
+import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.util.concurrent.AbstractRunnable;
 
@@ -80,7 +80,7 @@ public class FetchProjector extends AbstractProjector {
     private final Row outputRow;
     private final AtomicInteger remainingRequests = new AtomicInteger(0);
 
-    private static final ESLogger LOGGER = Loggers.getLogger(FetchProjector.class);
+    private static final Logger LOGGER = Loggers.getLogger(FetchProjector.class);
 
     /**
      * An array backed row, which returns the inner array upon materialize
@@ -369,7 +369,7 @@ public class FetchProjector extends AbstractProjector {
         }
 
         @Override
-        public void onFailure(Throwable t) {
+        public void onFailure(Exception t) {
             fail(t);
         }
 

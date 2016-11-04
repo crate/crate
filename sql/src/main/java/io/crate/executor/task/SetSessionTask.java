@@ -30,7 +30,7 @@ import io.crate.metadata.settings.session.SessionSettingRegistry;
 import io.crate.operation.projectors.RepeatHandle;
 import io.crate.operation.projectors.RowReceiver;
 import io.crate.sql.tree.Expression;
-import org.elasticsearch.common.logging.ESLogger;
+import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.logging.Loggers;
 
 import java.util.List;
@@ -39,7 +39,7 @@ import java.util.UUID;
 
 public class SetSessionTask extends JobTask {
 
-    private static final ESLogger LOGGER = Loggers.getLogger(SetSessionTask.class);
+    private static final Logger LOGGER = Loggers.getLogger(SetSessionTask.class);
 
     private final SessionContext sessionContext;
     private final Map<String, List<Expression>> settings;

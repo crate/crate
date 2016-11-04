@@ -41,7 +41,7 @@ public class Version {
 
 
     public static final boolean SNAPSHOT = true;
-    public static final Version CURRENT = new Version(1010099, SNAPSHOT, org.elasticsearch.Version.V_2_4_2);
+    public static final Version CURRENT = new Version(1010099, SNAPSHOT, org.elasticsearch.Version.V_5_0_1);
 
     static {
         // safe-guard that we don't release a version with DEBUG_MODE set to true
@@ -158,7 +158,7 @@ public class Version {
     public static Map<String, String> toStringMap(Version version) {
         return MapBuilder.<String, String>newMapBuilder()
             .put(CRATEDB_VERSION_KEY, version.number())
-            .put(ES_VERSION_KEY, version.esVersion.number())
+            .put(ES_VERSION_KEY, version.esVersion.toString())
             .map();
     }
 

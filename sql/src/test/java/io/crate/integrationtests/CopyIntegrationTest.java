@@ -174,9 +174,9 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
         File newFile = folder.newFile();
 
         try (OutputStreamWriter writer = new OutputStreamWriter(new FileOutputStream(newFile), StandardCharsets.UTF_8)) {
-            writer.write("{id:1}\n");
+            writer.write("{\"id\":1}\n");
             writer.write("\n");
-            writer.write("{id:2}\n");
+            writer.write("{\"id\":2}\n");
         }
         execute("copy foo from ?", new Object[]{Paths.get(newFile.toURI()).toUri().toString()});
         assertEquals(2L, response.rowCount());

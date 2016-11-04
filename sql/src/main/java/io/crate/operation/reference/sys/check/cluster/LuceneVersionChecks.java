@@ -50,7 +50,7 @@ final class LuceneVersionChecks {
     // be automatically upgraded to the latest version (happened when data was in the translog) so
     // minimumCompatVersion cannot be used to indicate that a table recreation is needed.
     static boolean isRecreationRequired(IndexMetaData indexMetaData) {
-        return indexMetaData != null && indexMetaData.getCreationVersion().before(org.elasticsearch.Version.V_1_4_0);
+        return indexMetaData != null && indexMetaData.getCreationVersion().before(org.elasticsearch.Version.fromId(1040099));
     }
 
     /**

@@ -31,8 +31,11 @@ import io.crate.metadata.Reference;
 import io.crate.metadata.Routing;
 import io.crate.metadata.TableIdent;
 import io.crate.planner.node.fetch.FetchPhase;
-import org.elasticsearch.common.logging.ESLogger;
+import org.apache.logging.log4j.Logger;
+import org.elasticsearch.cluster.metadata.IndexMetaData;
+import org.elasticsearch.cluster.metadata.MetaData;
 import org.elasticsearch.common.logging.Loggers;
+import org.elasticsearch.index.Index;
 import org.elasticsearch.index.IndexNotFoundException;
 import org.elasticsearch.index.IndexService;
 import org.elasticsearch.index.engine.Engine;
@@ -44,13 +47,14 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 public class FetchContext extends AbstractExecutionSubContext {
 
-    private static final ESLogger LOGGER = Loggers.getLogger(FetchContext.class);
+    private static final Logger LOGGER = Loggers.getLogger(FetchContext.class);
     private final IntObjectHashMap<Engine.Searcher> searchers = new IntObjectHashMap<>();
     private final IntObjectHashMap<SharedShardContext> shardContexts = new IntObjectHashMap<>();
     private final FetchPhase phase;
     private final String localNodeId;
     private final SharedShardContexts sharedShardContexts;
     private final TreeMap<Integer, TableIdent> tableIdents = new TreeMap<>();
+    private final MetaData metaData;
     private final Iterable<? extends Routing> routingIterable;
     private final Map<TableIdent, Collection<Reference>> toFetch;
     private final AtomicBoolean isKilled = new AtomicBoolean(false);
@@ -58,11 +62,13 @@ public class FetchContext extends AbstractExecutionSubContext {
     public FetchContext(FetchPhase phase,
                         String localNodeId,
                         SharedShardContexts sharedShardContexts,
+                        MetaData metaData,
                         Iterable<? extends Routing> routingIterable) {
         super(phase.phaseId(), LOGGER);
         this.phase = phase;
         this.localNodeId = localNodeId;
         this.sharedShardContexts = sharedShardContexts;
+        this.metaData = metaData;
         this.routingIterable = routingIterable;
         this.toFetch = new HashMap<>(phase.tableIndices().size());
     }
@@ -93,15 +99,23 @@ public class FetchContext extends AbstractExecutionSubContext {
             Map<String, Map<String, List<Integer>>> locations = routing.locations();
             Map<String, List<Integer>> indexShards = locations.get(localNodeId);
             for (Map.Entry<String, List<Integer>> indexShardsEntry : indexShards.entrySet()) {
-                String index = indexShardsEntry.getKey();
-                Integer base = phase.bases().get(index);
+                String indexName = indexShardsEntry.getKey();
+                Integer base = phase.bases().get(indexName);
                 if (base == null) {
                     continue;
                 }
-                TableIdent ident = index2TableIdent.get(index);
-                assert ident != null : "no tableIdent found for index " + index;
+                IndexMetaData indexMetaData = metaData.index(indexName);
+                if (indexMetaData == null) {
+                    if (PartitionName.isPartition(indexName)) {
+                        continue;
+                    }
+                    throw new IndexNotFoundException(indexName);
+                }
+                Index index = indexMetaData.getIndex();
+                TableIdent ident = index2TableIdent.get(indexName);
+                assert ident != null : "no tableIdent found for index " + indexName;
                 tableIdents.put(base, ident);
-                toFetch.put(ident, new ArrayList<Reference>());
+                toFetch.put(ident, new ArrayList<>());
                 for (Integer shard : indexShardsEntry.getValue()) {
                     ShardId shardId = new ShardId(index, shard);
                     int readerId = base + shardId.id();
@@ -113,7 +127,7 @@ public class FetchContext extends AbstractExecutionSubContext {
                             try {
                                 searchers.put(readerId, shardContext.acquireSearcher());
                             } catch (IndexNotFoundException e) {
-                                if (!PartitionName.isPartition(index)) {
+                                if (!PartitionName.isPartition(indexName)) {
                                     throw e;
                                 }
                             }

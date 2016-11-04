@@ -28,11 +28,11 @@ import io.crate.operation.NodeOperation;
 import io.crate.planner.distribution.DistributionInfo;
 import io.crate.planner.node.ExecutionPhases;
 import io.crate.planner.node.StreamerVisitor;
-import org.elasticsearch.cluster.ClusterService;
+import org.apache.logging.log4j.Logger;
+import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.component.AbstractComponent;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
-import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.Settings;
 
@@ -45,7 +45,7 @@ public class DistributingDownstreamFactory extends AbstractComponent {
 
     private final ClusterService clusterService;
     private final TransportDistributedResultAction transportDistributedResultAction;
-    private final ESLogger distributingDownstreamLogger;
+    private final Logger distributingDownstreamLogger;
 
     @Inject
     public DistributingDownstreamFactory(Settings settings,

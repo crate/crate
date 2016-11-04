@@ -43,7 +43,7 @@ import io.crate.planner.Plan;
 import io.crate.planner.Planner;
 import io.crate.sql.tree.Statement;
 import io.crate.types.DataType;
-import org.elasticsearch.common.logging.ESLogger;
+import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.logging.Loggers;
 
 import javax.annotation.Nonnull;
@@ -56,7 +56,7 @@ import java.util.concurrent.CompletableFuture;
 
 public class SimplePortal extends AbstractPortal {
 
-    private final static ESLogger LOGGER = Loggers.getLogger(SimplePortal.class);
+    private final static Logger LOGGER = Loggers.getLogger(SimplePortal.class);
 
     private List<Object> params;
     private String query;

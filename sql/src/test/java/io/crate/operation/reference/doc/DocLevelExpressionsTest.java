@@ -49,7 +49,7 @@ public abstract class DocLevelExpressionsTest extends CrateSingleNodeTest {
 
         insertValues(writer);
 
-        DirectoryReader directoryReader = DirectoryReader.open(writer, true);
+        DirectoryReader directoryReader = DirectoryReader.open(writer, true, true);
         readerContext = directoryReader.leaves().get(0);
 
         ctx = new CollectorContext(ifd, null);

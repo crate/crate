@@ -27,7 +27,7 @@ import io.crate.metadata.*;
 import io.crate.data.Input;
 import io.crate.operation.reference.ReferenceResolver;
 import io.crate.operation.scalar.arithmetic.MapFunction;
-import org.elasticsearch.common.logging.ESLogger;
+import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.logging.Loggers;
 
 import javax.annotation.Nullable;
@@ -55,7 +55,7 @@ import java.util.Map;
  */
 public class EvaluatingNormalizer {
 
-    private static final ESLogger logger = Loggers.getLogger(EvaluatingNormalizer.class);
+    private static final Logger logger = Loggers.getLogger(EvaluatingNormalizer.class);
     private final Functions functions;
     private final RowGranularity granularity;
     private final ReferenceResolver<? extends Input<?>> referenceResolver;

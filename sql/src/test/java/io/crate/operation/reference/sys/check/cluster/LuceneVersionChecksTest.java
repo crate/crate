@@ -34,16 +34,18 @@ public class LuceneVersionChecksTest extends CrateUnitTest {
 
     @Test
     public void testRecreationRequired() {
+        Version V_1_2_3 = Version.fromId(1020399);
+
         assertThat(LuceneVersionChecks.isRecreationRequired(null), is(false));
         IndexMetaData recreationRequired = new IndexMetaData.Builder("testRecreationRequired")
-            .settings(Settings.builder().put(IndexMetaData.SETTING_VERSION_CREATED, Version.V_1_2_3).build())
+            .settings(Settings.builder().put(IndexMetaData.SETTING_VERSION_CREATED, V_1_2_3).build())
             .numberOfShards(5)
             .numberOfReplicas(2)
             .build();
         assertThat(LuceneVersionChecks.isRecreationRequired(recreationRequired), is(true));
 
         IndexMetaData noRecreationRequired = new IndexMetaData.Builder("testNoRecreationRequired")
-            .settings(Settings.builder().put(IndexMetaData.SETTING_VERSION_CREATED, Version.V_1_6_2).build())
+            .settings(Settings.builder().put(IndexMetaData.SETTING_VERSION_CREATED, Version.V_2_0_0).build())
             .numberOfShards(5)
             .numberOfReplicas(2)
             .build();

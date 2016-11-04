@@ -27,9 +27,11 @@ import io.crate.types.BooleanType;
 import org.apache.lucene.search.BooleanClause;
 import org.apache.lucene.search.FuzzyQuery;
 import org.apache.lucene.util.BytesRef;
+import org.elasticsearch.common.ParseFieldMatcher;
 import org.elasticsearch.common.lucene.BytesRefs;
 import org.elasticsearch.common.unit.Fuzziness;
 import org.elasticsearch.index.query.MultiMatchQueryBuilder;
+import org.elasticsearch.index.query.support.QueryParsers;
 import org.elasticsearch.index.search.MatchQuery;
 
 import javax.annotation.Nullable;
@@ -149,11 +151,9 @@ public class OptionParser {
         throw new IllegalArgumentException(String.format(Locale.ENGLISH, "value for %s must be a number", optionName));
     }
 
-    private static org.apache.lucene.search.MultiTermQuery.RewriteMethod rewrite(
-        @Nullable Object fuzzyRewrite) {
+    private static org.apache.lucene.search.MultiTermQuery.RewriteMethod rewrite(@Nullable Object fuzzyRewrite) {
         String rewrite = BytesRefs.toString(fuzzyRewrite);
-        // TODO: parseRewriteMethod now requires ParseFieldMatcher
-        return null; //QueryParsers.parseRewriteMethod(rewrite, null);
+        return QueryParsers.parseRewriteMethod(ParseFieldMatcher.STRICT, rewrite);
     }
 
     @Nullable
