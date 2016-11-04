@@ -10,6 +10,16 @@ dependencies {
 }
 
 test {
-    testLogging.exceptionFormat = 'full'
-    jacoco.enabled = false
+   testLogging.exceptionFormat = 'full'
+   jacoco.enabled = false
+}
+
+
+sourceSets {
+    main {
+        test {
+            output.resourcesDir = null
+            output.classesDir = null
+        }
+    }
 }

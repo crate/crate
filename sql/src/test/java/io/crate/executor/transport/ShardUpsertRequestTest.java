@@ -78,7 +78,7 @@ public class ShardUpsertRequestTest extends CrateUnitTest {
         BytesStreamOutput out = new BytesStreamOutput();
         request.writeTo(out);
 
-        StreamInput in = StreamInput.wrap(out.bytes());
+        StreamInput in = out.bytes().streamInput();
         ShardUpsertRequest request2 = new ShardUpsertRequest();
         request2.readFrom(in);
 

@@ -46,7 +46,7 @@ public class FilterProjectionTest extends CrateUnitTest {
         BytesStreamOutput out = new BytesStreamOutput();
         Projection.toStream(p, out);
 
-        StreamInput in = StreamInput.wrap(out.bytes());
+        StreamInput in = out.bytes().streamInput();
         FilterProjection p2 = (FilterProjection) Projection.fromStream(in);
 
         assertEquals(p, p2);
