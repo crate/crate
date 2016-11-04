@@ -52,7 +52,7 @@ public class DistributedResultRequestTest extends CrateUnitTest {
 
         BytesStreamOutput out = new BytesStreamOutput();
         r1.writeTo(out);
-        StreamInput in = StreamInput.wrap(out.bytes());
+        StreamInput in = out.bytes().streamInput();
         DistributedResultRequest r2 = new DistributedResultRequest();
         r2.readFrom(in);
         r2.streamers(streamers);

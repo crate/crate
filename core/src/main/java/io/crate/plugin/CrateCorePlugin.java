@@ -28,13 +28,15 @@ import io.crate.rest.CrateRestMainAction;
 import org.elasticsearch.common.component.LifecycleComponent;
 import org.elasticsearch.common.inject.Module;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.plugins.ActionPlugin;
 import org.elasticsearch.plugins.Plugin;
-import org.elasticsearch.rest.RestModule;
+import org.elasticsearch.rest.RestHandler;
 
 import java.util.Collection;
 import java.util.Collections;
+import java.util.List;
 
-public class CrateCorePlugin extends Plugin {
+public class CrateCorePlugin extends Plugin implements ActionPlugin {
 
     private final Settings settings;
 
@@ -43,26 +45,17 @@ public class CrateCorePlugin extends Plugin {
     }
 
     @Override
-    public String name() {
-        return "crate-core";
-    }
-
-    @Override
-    public String description() {
-        return "Crate Core";
-    }
-
-    @Override
-    public Collection<Class<? extends LifecycleComponent>> nodeServices() {
+    public Collection<Class<? extends LifecycleComponent>> getGuiceServiceClasses() {
         return Collections.<Class<? extends LifecycleComponent>>singletonList(ClusterIdService.class);
     }
 
     @Override
-    public Collection<Module> nodeModules() {
+    public Collection<Module> createGuiceModules() {
         return Collections.<Module>singletonList(new CrateCoreModule(settings));
     }
 
-    public void onModule(RestModule restModule) {
-        restModule.addRestAction(CrateRestMainAction.class);
+    @Override
+    public List<Class<? extends RestHandler>> getRestHandlers() {
+        return Collections.singletonList(CrateRestMainAction.class);
     }
 }
