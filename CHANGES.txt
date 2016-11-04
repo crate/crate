@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Removed reduced thread stack size java option, stack size defaults
+   to JVM defaults now.
+
  - Fixed an issue that causes outer joins to fail with an exception
    if columns are referenced in a where clause but not as select items.
 
