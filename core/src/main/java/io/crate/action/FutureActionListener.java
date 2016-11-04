@@ -40,7 +40,7 @@ public class FutureActionListener<Response, Result> extends AbstractFuture<Resul
     }
 
     @Override
-    public void onFailure(Throwable e) {
+    public void onFailure(Exception e) {
         setException(e);
     }
 }

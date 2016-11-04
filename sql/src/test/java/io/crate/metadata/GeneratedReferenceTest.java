@@ -60,7 +60,7 @@ public class GeneratedReferenceTest extends CrateUnitTest {
         BytesStreamOutput out = new BytesStreamOutput();
         Reference.toStream(generatedReferenceInfo, out);
 
-        StreamInput in = StreamInput.wrap(out.bytes());
+        StreamInput in = out.bytes().streamInput();
         GeneratedReference generatedReferenceInfo2 = Reference.fromStream(in);
 
         assertThat(generatedReferenceInfo2, is(generatedReferenceInfo));
