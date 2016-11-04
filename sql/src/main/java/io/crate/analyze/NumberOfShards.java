@@ -25,7 +25,7 @@ import io.crate.analyze.expressions.ExpressionToNumberVisitor;
 import io.crate.data.Row;
 import io.crate.sql.tree.ClusteredBy;
 import io.crate.sql.tree.Expression;
-import org.elasticsearch.cluster.ClusterService;
+import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 
@@ -56,7 +56,7 @@ public class NumberOfShards {
     }
 
     int defaultNumberOfShards() {
-        int numDataNodes = clusterService.state().nodes().dataNodes().size();
+        int numDataNodes = clusterService.state().nodes().getDataNodes().size();
         assert numDataNodes > 0 : "number of data nodes cannot be less than 0";
         return Math.max(MIN_NUM_SHARDS, numDataNodes * 2);
     }

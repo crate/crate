@@ -53,7 +53,7 @@ public class CountPhaseTest extends CrateUnitTest {
         BytesStreamOutput out = new BytesStreamOutput(10);
         countPhase.writeTo(out);
 
-        StreamInput in = StreamInput.wrap(out.bytes());
+        StreamInput in = out.bytes().streamInput();
 
         CountPhase streamedNode = CountPhase.FACTORY.create();
         streamedNode.readFrom(in);

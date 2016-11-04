@@ -21,10 +21,8 @@
 
 package io.crate.metadata;
 
-import io.crate.metadata.doc.CrateMetaDataUpgradeService;
 import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.tablefunctions.TableFunctionImplementation;
-import org.elasticsearch.cluster.metadata.CustomUpgradeService;
 import org.elasticsearch.common.inject.AbstractModule;
 import org.elasticsearch.common.inject.multibindings.MapBinder;
 
@@ -36,8 +34,6 @@ public class MetaDataModule extends AbstractModule {
 
     @Override
     protected void configure() {
-        bind(CustomUpgradeService.class).to(CrateMetaDataUpgradeService.class).asEagerSingleton();
-
         bindReferences();
         bindFunctions();
         bindSchemas();

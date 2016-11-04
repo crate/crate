@@ -29,7 +29,7 @@ import org.elasticsearch.action.admin.indices.forcemerge.ForceMergeRequest;
 public class OptimizeSettings {
 
     public static final IntSetting MAX_NUM_SEGMENTS =
-        new IntSetting("max_num_segments", ForceMergeRequest.Defaults.MAX_NUM_SEGMENTS, false, 1, Integer.MAX_VALUE);
+        new IntSetting("max_num_segments", ForceMergeRequest.Defaults.MAX_NUM_SEGMENTS, false, 1, Integer.MAX_VALUE, null, null);
 
     public static final BoolSetting ONLY_EXPUNGE_DELETES =
         new BoolSetting("only_expunge_deletes", ForceMergeRequest.Defaults.ONLY_EXPUNGE_DELETES, false);

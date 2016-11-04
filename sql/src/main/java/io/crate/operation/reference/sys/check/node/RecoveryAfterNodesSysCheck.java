@@ -23,7 +23,7 @@
 package io.crate.operation.reference.sys.check.node;
 
 import io.crate.metadata.settings.CrateSettings;
-import org.elasticsearch.cluster.ClusterService;
+import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.settings.Settings;

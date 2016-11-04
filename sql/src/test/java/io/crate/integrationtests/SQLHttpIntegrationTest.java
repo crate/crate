@@ -52,7 +52,7 @@ public abstract class SQLHttpIntegrationTest extends SQLTransportIntegrationTest
 
     @Override
     protected Settings nodeSettings(int nodeOrdinal) {
-        return Settings.settingsBuilder()
+        return Settings.builder()
             .put(super.nodeSettings(nodeOrdinal))
             .put("http.enabled", true)
             .put("http.host", "127.0.0.1")

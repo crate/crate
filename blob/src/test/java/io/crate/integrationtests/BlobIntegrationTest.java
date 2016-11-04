@@ -298,10 +298,10 @@ public class BlobIntegrationTest extends BlobHttpIntegrationTest {
         String blobData = String.format(Locale.ENGLISH, "{\"content\": \"%s\"}", StringUtils.repeat("a", 1024 * 64));
         httpPut.setEntity(new StringEntity(blobData, ContentType.APPLICATION_OCTET_STREAM));
         CloseableHttpResponse res = httpClient.execute(httpPut);
-        assertThat(res.getStatusLine().getStatusCode(), is(201));
-        assertThat(res.getStatusLine().getReasonPhrase(), is("Created"));
         assertThat(EntityUtils.toString(res.getEntity()),
             is("{\"_index\":\"test_no_blobs\",\"_type\":\"default\"," +
-               "\"_id\":\"1\",\"_version\":1,\"_shards\":{\"total\":1,\"successful\":1,\"failed\":0},\"created\":true}"));
+               "\"_id\":\"1\",\"_version\":1,\"result\":\"created\",\"_shards\":{\"total\":1,\"successful\":1,\"failed\":0},\"created\":true}"));
+        assertThat(res.getStatusLine().getReasonPhrase(), is("Created"));
+        assertThat(res.getStatusLine().getStatusCode(), is(201));
     }
 }

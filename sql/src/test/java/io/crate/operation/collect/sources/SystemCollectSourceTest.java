@@ -34,8 +34,9 @@ import io.crate.metadata.shard.unassigned.UnassignedShard;
 import io.crate.planner.distribution.DistributionInfo;
 import io.crate.planner.node.dql.RoutedCollectPhase;
 import io.crate.types.DataTypes;
-import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.routing.ShardRoutingState;
+import org.elasticsearch.cluster.service.ClusterService;
+import org.elasticsearch.common.UUIDs;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.test.ESIntegTestCase;
 import org.junit.Test;
@@ -72,7 +73,7 @@ public class SystemCollectSourceTest extends SQLTransportIntegrationTest {
         collectPhase.orderBy(new OrderBy(Collections.singletonList(shardId), new boolean[]{false}, new Boolean[]{null}));
         Iterable<? extends Row> rows = systemCollectSource.toRowsIterableTransformation(collectPhase, false)
             .apply(Collections.singletonList(new UnassignedShard(
-                new ShardId("foo", 1),
+                new ShardId("foo", UUIDs.randomBase64UUID(),1),
                 mock(ClusterService.class),
                 true,
                 ShardRoutingState.UNASSIGNED)));

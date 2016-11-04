@@ -29,8 +29,8 @@ import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.sys.SysShardsTableInfo;
 import io.crate.operation.reference.partitioned.PartitionedColumnExpression;
 import io.crate.operation.reference.sys.shard.*;
-import org.elasticsearch.cluster.ClusterService;
-import org.elasticsearch.common.logging.ESLogger;
+import org.apache.logging.log4j.Logger;
+import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.index.Index;
 import org.elasticsearch.index.shard.IndexShard;
@@ -40,16 +40,16 @@ import java.util.Locale;
 
 public class ShardReferenceResolver extends AbstractReferenceResolver {
 
-    private static final ESLogger LOGGER = Loggers.getLogger(ShardReferenceResolver.class);
+    private static final Logger LOGGER = Loggers.getLogger(ShardReferenceResolver.class);
 
     public ShardReferenceResolver(ClusterService clusterService,
                                   Schemas schemas,
                                   IndexShard indexShard) {
         ShardId shardId = indexShard.shardId();
-        Index index = indexShard.indexService().index();
+        Index index = shardId.getIndex();
 
         ImmutableMap.Builder<ReferenceIdent, ReferenceImplementation> builder = ImmutableMap.builder();
-        if (PartitionName.isPartition(index.name())) {
+        if (PartitionName.isPartition(index.getName())) {
             addPartitions(index, schemas, builder);
         }
         implementations.put(SysShardsTableInfo.ReferenceIdents.ID, new LiteralReferenceImplementation<>(shardId.getId()));
@@ -79,10 +79,10 @@ public class ShardReferenceResolver extends AbstractReferenceResolver {
                                ImmutableMap.Builder<ReferenceIdent, ReferenceImplementation> builder) {
         PartitionName partitionName;
         try {
-            partitionName = PartitionName.fromIndexOrTemplate(index.name());
+            partitionName = PartitionName.fromIndexOrTemplate(index.getName());
         } catch (IllegalArgumentException e) {
             throw new UnhandledServerException(String.format(Locale.ENGLISH,
-                "Unable to load PARTITIONED BY columns from partition %s", index.name()), e);
+                "Unable to load PARTITIONED BY columns from partition %s", index.getName()), e);
         }
         TableIdent tableIdent = partitionName.tableIdent();
         try {

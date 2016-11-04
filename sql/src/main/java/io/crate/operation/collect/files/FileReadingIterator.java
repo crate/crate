@@ -31,9 +31,9 @@ import io.crate.data.CloseAssertingBatchIterator;
 import io.crate.data.Columns;
 import io.crate.data.Input;
 import io.crate.operation.reference.file.LineContext;
+import org.apache.logging.log4j.Logger;
 import org.elasticsearch.ElasticsearchParseException;
 import org.elasticsearch.common.collect.Tuple;
-import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 
 import javax.annotation.Nonnull;
@@ -59,8 +59,8 @@ import static io.crate.exceptions.Exceptions.rethrowUnchecked;
 
 public class FileReadingIterator implements BatchIterator {
 
-    private static final ESLogger LOGGER = Loggers.getLogger(FileReadingIterator.class);
-    private static final int MAX_SOCKET_TIMEOUT_RETRIES = 5;
+    private static final Logger LOGGER = Loggers.getLogger(FileReadingIterator.class);
+    public static final int MAX_SOCKET_TIMEOUT_RETRIES = 5;
     private final Map<String, FileInputFactory> fileInputFactories;
     private final Boolean shared;
     private final int numReaders;

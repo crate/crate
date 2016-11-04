@@ -22,11 +22,9 @@
 package io.crate.integrationtests;
 
 import com.google.common.base.Joiner;
-import com.google.common.base.Predicate;
-import com.google.common.collect.Sets;
 import io.crate.action.sql.SQLActionException;
-import io.crate.testing.SQLResponse;
 import io.crate.metadata.FulltextAnalyzerResolver;
+import io.crate.testing.SQLResponse;
 import io.crate.testing.UseJdbc;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateResponse;
 import org.elasticsearch.common.settings.Settings;
@@ -36,10 +34,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 import static org.hamcrest.Matchers.*;
 import static org.hamcrest.collection.IsMapContaining.hasEntry;
@@ -65,16 +60,14 @@ public class FulltextAnalyzerResolverTest extends SQLTransportIntegrationTest {
     @Override
     @After
     public void tearDown() throws Exception {
-        Set<String> settingsToRemove = Sets.filter(getPersistentClusterSettings().getAsMap().keySet(), new Predicate<String>() {
-            @Override
-            public boolean apply(String input) {
-                return input.startsWith("crate");
-            }
-        });
+        Map<String, Object> settingsToRemove = new HashMap<>();
+        getPersistentClusterSettings().getAsMap().keySet().stream()
+            .filter(s -> s.startsWith("crate"))
+            .forEach(s -> settingsToRemove.put(s, null));
         if (!settingsToRemove.isEmpty()) {
             client().admin().cluster().prepareUpdateSettings()
-                .setTransientSettingsToRemove(settingsToRemove)
-                .setPersistentSettingsToRemove(settingsToRemove).execute().actionGet();
+                .setPersistentSettings(settingsToRemove)
+                .setTransientSettings(settingsToRemove).execute().actionGet();
         }
         super.tearDown();
     }
@@ -296,7 +289,7 @@ public class FulltextAnalyzerResolverTest extends SQLTransportIntegrationTest {
         Collections.sort(analyzers);
         assertThat(Joiner.on(", ").join(analyzers),
             is("arabic, armenian, basque, brazilian, bulgarian, catalan, chinese, cjk, " +
-               "classic, czech, danish, default, dutch, english, finnish, french, " +
+               "czech, danish, default, dutch, english, fingerprint, finnish, french, " +
                "galician, german, greek, hindi, hungarian, indonesian, irish, " +
                "italian, keyword, latvian, lithuanian, norwegian, pattern, persian, portuguese, " +
                "romanian, russian, simple, snowball, sorani, spanish, standard, " +
@@ -321,15 +314,15 @@ public class FulltextAnalyzerResolverTest extends SQLTransportIntegrationTest {
             is("apostrophe, arabic_normalization, arabic_stem, asciifolding, brazilian_stem, " +
                "cjk_bigram, cjk_width, classic, common_grams, czech_stem, decimal_digit, " +
                "delimited_payload_filter, dictionary_decompounder, dutch_stem, " +
-               "edgeNGram, edge_ngram, elision, french_stem, german_normalization, " +
+               "edgeNGram, edge_ngram, elision, fingerprint, french_stem, german_normalization, " +
                "german_stem, hindi_normalization, hunspell, " +
-               "hyphenation_decompounder, indic_normalization, keep, " +
-               "keyword_marker, keyword_repeat, " +
-               "kstem, length, limit, lowercase, nGram, ngram, pattern_capture, " +
+               "hyphenation_decompounder, indic_normalization, keep, keep_types, " +
+               "keyword_marker, " +
+               "kstem, length, limit, lowercase, min_hash, nGram, ngram, pattern_capture, " +
                "pattern_replace, persian_normalization, porter_stem, reverse, " +
-               "russian_stem, scandinavian_folding, scandinavian_normalization, " +
+               "russian_stem, scandinavian_folding, scandinavian_normalization, serbian_normalization, " +
                "shingle, snowball, sorani_normalization, standard, stemmer, stemmer_override, " +
-               "stop, synonym, trim, truncate, type_as_payload, unique, uppercase, word_delimiter"));
+               "stop, synonym, trim, truncate, unique, uppercase, word_delimiter"));
     }
 
     @Test
@@ -337,7 +330,7 @@ public class FulltextAnalyzerResolverTest extends SQLTransportIntegrationTest {
         List<String> charFilters = new ArrayList<>(fulltextAnalyzerResolver.getBuiltInCharFilters());
         Collections.sort(charFilters);
         assertThat(Joiner.on(", ").join(charFilters),
-            is("htmlStrip, html_strip, mapping, pattern_replace"));
+            is("html_strip, mapping, pattern_replace"));
     }
 
     @Test

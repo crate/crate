@@ -25,11 +25,11 @@ package io.crate.metadata;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Throwables;
 import io.crate.Constants;
-import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.ClusterStateUpdateTask;
 import org.elasticsearch.cluster.metadata.IndexTemplateMetaData;
 import org.elasticsearch.cluster.metadata.MetaData;
+import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.collect.ImmutableOpenMap;
 import org.elasticsearch.common.component.AbstractComponent;
 import org.elasticsearch.common.settings.Settings;
@@ -75,8 +75,8 @@ public class DefaultTemplateService extends AbstractComponent {
             }
 
             @Override
-            public void onFailure(String source, Throwable cause) {
-                logger.error("Error during ensure-default-template source={}", cause, source);
+            public void onFailure(String source, Exception e) {
+                logger.error("Error during ensure-default-template source={}", e, source);
             }
         });
     }
@@ -114,9 +114,8 @@ public class DefaultTemplateService extends AbstractComponent {
                             .startObject("strings")
                                 .field("match_mapping_type", "string")
                                 .startObject("mapping")
-                                    .field("type", "string")
+                                    .field("type", "keyword")
                                     .field("doc_values", true)
-                                    .field("index", "not_analyzed")
                                     .field("store", false)
                                 .endObject()
                             .endObject()
@@ -126,7 +125,7 @@ public class DefaultTemplateService extends AbstractComponent {
                 .endObject();
             // @formatter:on
 
-            return builder.bytes().toUtf8();
+            return builder.bytes().utf8ToString();
         } catch (IOException e) {
             throw Throwables.propagate(e);
         }

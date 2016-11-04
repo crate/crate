@@ -46,7 +46,9 @@ public class BulkInsertOnClientNodeTest extends SQLTransportIntegrationTest {
                 @Override
                 public Client client() {
                     // make sure we use a client node (started with client=true)
-                    return internalCluster().clientNodeClient();
+                    Client client = internalCluster().client();
+                    nodeName = client.settings().get("node.name");
+                    return client;
                 }
 
                 @Override

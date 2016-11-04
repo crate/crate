@@ -22,7 +22,6 @@
 package io.crate.integrationtests;
 
 import com.google.common.base.Joiner;
-import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableMap;
 import io.crate.TimestampFormat;
 import io.crate.action.sql.SQLActionException;
@@ -30,6 +29,7 @@ import io.crate.exceptions.SQLExceptions;
 import io.crate.testing.SQLBulkResponse;
 import io.crate.testing.TestingHelpers;
 import io.crate.testing.UseJdbc;
+import org.elasticsearch.action.support.WriteRequest;
 import org.elasticsearch.common.collect.MapBuilder;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentFactory;
@@ -39,7 +39,6 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
-import javax.annotation.Nullable;
 import java.io.File;
 import java.nio.file.Paths;
 import java.util.*;
@@ -196,7 +195,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
                 "lastName", "type=string")
             .execute().actionGet();
         ensureYellow();
-        client().prepareIndex("test", "default", "id1").setRefresh(true)
+        client().prepareIndex("test", "default", "id1").setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE)
             .setSource("{\"firstName\":\"Youri\",\"lastName\":\"Zoon\"}")
             .execute().actionGet();
         execute("select \"_version\", *, \"_id\" from test");
@@ -211,7 +210,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
     public void testSelectWithParams() throws Exception {
         execute("create table test (first_name string, last_name string, age double) with (number_of_replicas = 0)");
         ensureYellow();
-        client().prepareIndex("test", "default", "id1").setRefresh(true)
+        client().prepareIndex("test", "default", "id1").setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE)
             .setSource("{\"first_name\":\"Youri\",\"last_name\":\"Zoon\", \"age\": 38}")
             .execute().actionGet();
 
@@ -240,7 +239,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
                 "lastName", "type=string")
             .execute().actionGet();
         ensureYellow();
-        client().prepareIndex("test", "default", "id1").setRefresh(true)
+        client().prepareIndex("test", "default", "id1").setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE)
             .setSource("{\"firstName\":\"Youri\",\"lastName\":\"Zoon\"}")
             .execute().actionGet();
         execute("select *, \"_version\", \"_version\" as v from test");
@@ -257,10 +256,10 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
                 "name", "type=string,index=not_analyzed")
             .execute().actionGet();
         ensureYellow();
-        client().prepareIndex("test", "default", "id1").setRefresh(true)
+        client().prepareIndex("test", "default", "id1").setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE)
             .setSource("{\"name\":\"\"}")
             .execute().actionGet();
-        client().prepareIndex("test", "default", "id2").setRefresh(true)
+        client().prepareIndex("test", "default", "id2").setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE)
             .setSource("{\"name\":\"Ruben Lenten\"}")
             .execute().actionGet();
 
@@ -717,15 +716,11 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         execute("SELECT * FROM test WHERE pk_col=? OR pk_col=?", new Object[]{"1", "2"});
         assertEquals(2, response.rowCount());
 
-        awaitBusy(new Predicate<Object>() {
-            @Override
-            public boolean apply(@Nullable Object input) {
-                execute("SELECT * FROM test WHERE (pk_col=? OR pk_col=?) OR pk_col=?", new Object[]{"1", "2", "3"});
-                return response.rowCount() == 3
-                       && Joiner.on(',').join(Arrays.asList(response.cols())).equals("message,pk_col");
-            }
+        awaitBusy(() -> {
+            execute("SELECT * FROM test WHERE (pk_col=? OR pk_col=?) OR pk_col=?", new Object[]{"1", "2", "3"});
+            return response.rowCount() == 3
+                   && Joiner.on(',').join(Arrays.asList(response.cols())).equals("message,pk_col");
         }, 10, TimeUnit.SECONDS);
-
     }
 
     @Test
@@ -1333,7 +1328,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         Double result2 = (Double) response.rows()[1][0];
 
         assertThat(result1, is(0.0d));
-        assertThat(result2, is(152462.70754934277));
+        assertThat(result2, is(152354.3209044634));
 
         String stmtOrderBy = "SELECT id " +
                              "FROM t " +
@@ -1351,7 +1346,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
                                "GROUP BY i";
         execute(stmtAggregate);
         assertThat(response.rowCount(), is(1L));
-        String expectedAggregate = "1| 2297790.348010545\n";
+        String expectedAggregate = "1| 2296582.8899438097\n";
         assertEquals(expectedAggregate, TestingHelpers.printedTable(response.rows()));
 
         Double[] row;
@@ -1376,6 +1371,16 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         row = Arrays.copyOf((Object[]) response.rows()[0][0], 2, Double[].class);
         assertThat(row[0], is(10.0d));
         assertThat(row[1], is(20.0d));
+
+        execute("select p from t where distance(p, 'POINT (10 20)') = 0.0");
+        assertThat(response.rowCount(), is(1L));
+        row = Arrays.copyOf((Object[]) response.rows()[0][0], 2, Double[].class);
+        assertThat(row[0], is(10.0d));
+        assertThat(row[1], is(20.0d));
+
+        execute("select p from t where distance(p, 'POINT (10 20)') = 152354.3209044634");
+        assertThat(TestingHelpers.printedTable(response.rows()),
+            is("[11.0, 21.0]\n"));
     }
 
     @Test
@@ -1406,7 +1411,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         )));
         assertThat(response.rowCount(), is(1L));
 
-        execute("select * from t where within(p, 'POLYGON (( 5 5, 30 5, 30 30, 5 35, 5 5 ))') = false");
+        execute("select * from t where within(p, 'POLYGON (( 5 5, 30 5, 30 30, 5 30, 5 5 ))') = false");
         assertThat(response.rowCount(), is(0L));
     }
 

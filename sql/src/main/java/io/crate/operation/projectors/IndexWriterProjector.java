@@ -34,17 +34,17 @@ import io.crate.metadata.Reference;
 import io.crate.metadata.settings.CrateSettings;
 import io.crate.operation.collect.CollectExpression;
 import io.crate.operation.collect.RowShardResolver;
+import org.apache.logging.log4j.Logger;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.action.admin.indices.create.TransportBulkCreateIndicesAction;
 import org.elasticsearch.action.bulk.BulkRequestExecutor;
 import org.elasticsearch.action.bulk.BulkRetryCoordinatorPool;
 import org.elasticsearch.action.bulk.BulkShardProcessor;
 import org.elasticsearch.client.Requests;
-import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
+import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
-import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.util.BigArrays;
@@ -136,7 +136,7 @@ public class IndexWriterProjector implements Projector {
         private final Input<Map<String, Object>> sourceInput;
         private final String[] includes;
         private final String[] excludes;
-        private static final ESLogger logger = Loggers.getLogger(MapInput.class);
+        private static final Logger logger = Loggers.getLogger(MapInput.class);
         private int lastSourceSize;
 
         private MapInput(Input<Map<String, Object>> sourceInput, String[] includes, String[] excludes) {

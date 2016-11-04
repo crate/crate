@@ -61,7 +61,6 @@ public class JobCollectContextTest extends RandomizedTest {
         jobCollectContext = new JobCollectContext(
             collectPhase,
             mock(MapSideDataCollectOperation.class),
-            localNodeId,
             ramAccountingContext,
             new TestingBatchConsumer(),
             mock(SharedShardContexts.class));
@@ -105,7 +104,6 @@ public class JobCollectContextTest extends RandomizedTest {
         JobCollectContext jobCtx = new JobCollectContext(
             collectPhase,
             collectOperationMock,
-            "localNodeId",
             ramAccountingContext,
             new TestingBatchConsumer(),
             mock(SharedShardContexts.class));
@@ -128,7 +126,7 @@ public class JobCollectContextTest extends RandomizedTest {
 
     @Test
     public void testThreadPoolNameForDocTables() throws Exception {
-        String threadPoolExecutorName = JobCollectContext.threadPoolName(collectPhase, localNodeId);
+        String threadPoolExecutorName = JobCollectContext.threadPoolName(collectPhase);
         assertThat(threadPoolExecutorName, is(ThreadPool.Names.SEARCH));
     }
 
@@ -141,29 +139,29 @@ public class JobCollectContextTest extends RandomizedTest {
 
         // sys.cluster (single row collector)
         when(collectPhase.maxRowGranularity()).thenReturn(RowGranularity.CLUSTER);
-        String threadPoolExecutorName = JobCollectContext.threadPoolName(collectPhase, localNodeId);
-        assertThat(threadPoolExecutorName, is(ThreadPool.Names.PERCOLATE));
+        String threadPoolExecutorName = JobCollectContext.threadPoolName(collectPhase);
+        assertThat(threadPoolExecutorName, is(ThreadPool.Names.SEARCH));
 
         // partition values only of a partitioned doc table (single row collector)
         when(collectPhase.maxRowGranularity()).thenReturn(RowGranularity.PARTITION);
-        threadPoolExecutorName = JobCollectContext.threadPoolName(collectPhase, localNodeId);
-        assertThat(threadPoolExecutorName, is(ThreadPool.Names.PERCOLATE));
+        threadPoolExecutorName = JobCollectContext.threadPoolName(collectPhase);
+        assertThat(threadPoolExecutorName, is(ThreadPool.Names.SEARCH));
 
         // sys.nodes (single row collector)
         when(collectPhase.maxRowGranularity()).thenReturn(RowGranularity.NODE);
-        threadPoolExecutorName = JobCollectContext.threadPoolName(collectPhase, localNodeId);
+        threadPoolExecutorName = JobCollectContext.threadPoolName(collectPhase);
         assertThat(threadPoolExecutorName, is(ThreadPool.Names.MANAGEMENT));
 
         // sys.shards
         when(routing.containsShards(localNodeId)).thenReturn(true);
         when(collectPhase.maxRowGranularity()).thenReturn(RowGranularity.SHARD);
-        threadPoolExecutorName = JobCollectContext.threadPoolName(collectPhase, localNodeId);
+        threadPoolExecutorName = JobCollectContext.threadPoolName(collectPhase);
         assertThat(threadPoolExecutorName, is(ThreadPool.Names.MANAGEMENT));
         when(routing.containsShards(localNodeId)).thenReturn(false);
 
         // information_schema.*
         when(collectPhase.maxRowGranularity()).thenReturn(RowGranularity.DOC);
-        threadPoolExecutorName = JobCollectContext.threadPoolName(collectPhase, localNodeId);
-        assertThat(threadPoolExecutorName, is(ThreadPool.Names.PERCOLATE));
+        threadPoolExecutorName = JobCollectContext.threadPoolName(collectPhase);
+        assertThat(threadPoolExecutorName, is(ThreadPool.Names.SEARCH));
     }
 }

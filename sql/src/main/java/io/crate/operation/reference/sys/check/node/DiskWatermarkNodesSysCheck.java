@@ -23,43 +23,42 @@
 package io.crate.operation.reference.sys.check.node;
 
 import com.google.common.annotations.VisibleForTesting;
-import org.elasticsearch.cluster.ClusterService;
-import org.elasticsearch.cluster.routing.allocation.decider.DiskThresholdDecider;
-import org.elasticsearch.common.inject.Provider;
-import org.elasticsearch.common.logging.ESLogger;
+import org.apache.logging.log4j.Logger;
+import org.elasticsearch.cluster.routing.allocation.DiskThresholdSettings;
+import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.logging.Loggers;
+import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.monitor.fs.FsInfo;
-import org.elasticsearch.monitor.fs.FsProbe;
+import org.elasticsearch.monitor.fs.FsService;
 
 import java.io.IOException;
 
 
 abstract class DiskWatermarkNodesSysCheck extends AbstractSysNodeCheck {
 
-    private static final ESLogger LOGGER = Loggers.getLogger(DiskWatermarkNodesSysCheck.class);
+    private static final Logger LOGGER = Loggers.getLogger(DiskWatermarkNodesSysCheck.class);
 
-    private final FsProbe fsProbe;
-    private final Provider<DiskThresholdDecider> deciderProvider;
+    private final FsService fsService;
+    final DiskThresholdSettings diskThresholdSettings;
 
     DiskWatermarkNodesSysCheck(int id,
                                String description,
                                Severity severity,
                                ClusterService clusterService,
-                               Provider<DiskThresholdDecider> deciderProvider,
-                               FsProbe fsProbe) {
+                               FsService fsService,
+                               Settings settings) {
         super(id, description, severity, clusterService);
-        this.deciderProvider = deciderProvider;
-        this.fsProbe = fsProbe;
+        this.fsService = fsService;
+        this.diskThresholdSettings = new DiskThresholdSettings(settings, clusterService.getClusterSettings());
     }
 
     @Override
     public boolean validate() {
         try {
-            DiskThresholdDecider decider = deciderProvider.get();
-            if (!decider.isEnabled()) return false;
+            if (!diskThresholdSettings.isEnabled()) return false;
 
             FsInfo.Path leastAvailablePath = getLeastAvailablePath();
-            return validate(decider,
+            return validate(
                 leastAvailablePath.getAvailable().getBytes(),
                 leastAvailablePath.getTotal().getBytes()
             );
@@ -69,14 +68,14 @@ abstract class DiskWatermarkNodesSysCheck extends AbstractSysNodeCheck {
         }
     }
 
-    protected abstract boolean validate(DiskThresholdDecider decider, long free, long total);
+    protected abstract boolean validate(long free, long total);
 
     // if the path with least available disk space violates the check,
     // then there is no reason to run a check against other paths
     @VisibleForTesting
     FsInfo.Path getLeastAvailablePath() throws IOException {
         FsInfo.Path leastAvailablePath = null;
-        for (FsInfo.Path info : fsProbe.stats()) {
+        for (FsInfo.Path info : fsService.stats()) {
             if (leastAvailablePath == null) {
                 leastAvailablePath = info;
             } else if (leastAvailablePath.getAvailable().getBytes() > info.getAvailable().getBytes()) {

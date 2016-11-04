@@ -1,0 +1,149 @@
+/*
+ * Licensed to Crate under one or more contributor license agreements.
+ * See the NOTICE file distributed with this work for additional
+ * information regarding copyright ownership.  Crate licenses this file
+ * to you under the Apache License, Version 2.0 (the "License"); you may
+ * not use this file except in compliance with the License.  You may
+ * obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+ * implied.  See the License for the specific language governing
+ * permissions and limitations under the License.
+ *
+ * However, if you have executed another commercial license agreement
+ * with Crate these terms will supersede the license and you may use the
+ * software solely pursuant to the terms of the relevant commercial
+ * agreement.
+ */
+description = 'The HDFS repository plugin adds support for Hadoop Distributed File-System (HDFS) repositories.'
+def classname = 'org.elasticsearch.repositories.hdfs.HdfsPlugin'
+def plugin_repositoryhdfs_version = '1.0.0'
+
+configurations {
+    extraLibs.transitive = false
+    requiredLibs.transitive = false
+}
+
+dependencies {
+    compile project(':es:es-core')
+
+    compile("org.apache.hadoop:hadoop-client:${versions.hadoop2}") {
+        exclude module: "commons-cli"
+        exclude group: "com.sun.jersey"
+        exclude group: "com.sun.jersey.contribs"
+        exclude group: "com.sun.jersey.jersey-test-framework"
+        exclude module: "guice"
+        exclude group: "org.mortbay.jetty"
+        exclude group: "tomcat"
+        exclude module: "commons-el"
+        exclude module: "hsqldb"
+        exclude group: "org.eclipse.jdt"
+        exclude module: "commons-beanutils"
+        exclude module: "commons-beanutils-core"
+        exclude module: "javax.servlet"
+        exclude module: "guava"
+        exclude module: "junit"
+    }
+    compile("org.apache.hadoop:hadoop-hdfs:${versions.hadoop2}") {
+        exclude module: "guava"
+        exclude module: "log4j"
+        exclude module: "junit"
+    }
+    requiredLibs "commons-collections:commons-collections:3.2.1"
+    requiredLibs "commons-configuration:commons-configuration:1.6"
+    requiredLibs "commons-lang:commons-lang:2.6"
+    requiredLibs "org.apache.hadoop:hadoop-auth:${versions.hadoop2}"
+    requiredLibs "org.apache.hadoop:hadoop-common:${versions.hadoop2}"
+    requiredLibs "org.apache.hadoop:hadoop-hdfs:${versions.hadoop2}"
+    requiredLibs "com.google.protobuf:protobuf-java:2.5.0"
+
+    extraLibs "org.apache.directory.server:apacheds-i18n:2.0.0-M15"
+    extraLibs "org.apache.directory.server:apacheds-kerberos-codec:2.0.0-M15"
+    extraLibs "org.apache.directory.api:api-asn1-api:1.0.0-M20"
+    extraLibs "org.apache.directory.api:api-util:1.0.0-M20"
+    extraLibs "org.apache.avro:avro:1.7.4"
+    extraLibs "org.apache.commons:commons-compress:1.4.1"
+    extraLibs "commons-digester:commons-digester:1.8"
+    extraLibs "commons-httpclient:commons-httpclient:3.1"
+    extraLibs "commons-io:commons-io:2.4"
+    extraLibs "commons-net:commons-net:3.1"
+    extraLibs "org.apache.curator:curator-client:2.7.1"
+    extraLibs "org.apache.curator:curator-framework:2.7.1"
+    extraLibs "org.apache.curator:curator-recipes:2.7.1"
+    extraLibs "com.google.code.gson:gson:2.2.4"
+    extraLibs "org.apache.hadoop:hadoop-annotations:${versions.hadoop2}"
+    extraLibs "org.apache.hadoop:hadoop-client:${versions.hadoop2}"
+    extraLibs "org.apache.htrace:htrace-core:3.1.0-incubating"
+    extraLibs "org.codehaus.jackson:jackson-mapper-asl:1.9.13"
+    extraLibs "jline:jline:0.9.94"
+    extraLibs "javax.servlet.jsp:jsp-api:2.1"
+    extraLibs "org.fusesource.leveldbjni:leveldbjni-all:1.8"
+    extraLibs "com.thoughtworks.paranamer:paranamer:2.3"
+    extraLibs "org.xerial.snappy:snappy-java:1.0.4.1"
+    extraLibs "javax.servlet:servlet-api:2.5"
+    extraLibs "xerces:xercesImpl:2.9.1"
+    extraLibs "xmlenc:xmlenc:0.52"
+    extraLibs "xml-apis:xml-apis:2.0.2"
+    extraLibs "org.tukaani:xz:1.0"
+    extraLibs "org.apache.zookeeper:zookeeper:3.4.6"
+}
+
+def pluginDir = file('../upstream/plugins/repository-hdfs')
+
+sourceSets {
+    main {
+        java {
+            srcDir "$pluginDir/src/main/java"
+        }
+        output.resourcesDir = null
+    }
+    test {
+        output.resourcesDir = null
+        output.classesDir = null
+    }
+}
+
+idea {
+    module {
+        contentRoot = pluginDir
+        excludeDirs += files('build', 'src/test')
+    }
+}
+
+jar {dependsOn(['writePropertiesFileRepositoryHSFS', 'copyRequiredLibs'])}
+task blackBoxTestJar {dependsOn([jar, 'copyExtraLibs'])}
+
+task writePropertiesFileRepositoryHSFS {
+    doLast {
+        def file = new File(buildDir.path + '/plugin-descriptor.properties')
+        def parentDir = new File(file.parent)
+        parentDir.mkdirs()
+        file.createNewFile()
+
+        ant.propertyfile(file: file.path, comment: 'Plugin Descriptor') {
+            ant.entry(key: 'name', value: project.name)
+            ant.entry(key: 'description', value: project.description)
+            ant.entry(key: 'version', value: plugin_repositoryhdfs_version)
+            ant.entry(key: 'site', value: true)
+            ant.entry(key: 'elasticsearch.version', value: "${versions.elasticsearch}")
+            ant.entry(key: 'java.version', value: project.targetCompatibility)
+            ant.entry(key: 'classname', value: classname)
+        }
+    }
+}
+
+// Copy requiredLibs
+task copyRequiredLibs(type: Copy) {
+    into buildDir.path + '/libs'
+    from configurations.requiredLibs
+}
+
+// Required for blackbox hdfsTest
+task copyExtraLibs(type: Copy) {
+    into buildDir.path + '/extraLibs'
+    from configurations.extraLibs
+}

@@ -38,7 +38,7 @@ public class TDigestStateTest {
         TDigestStateType digestStateType = TDigestStateType.INSTANCE;
         Streamer streamer = digestStateType.create().streamer();
         streamer.writeValueTo(out, digestState1);
-        StreamInput in = StreamInput.wrap(out.bytes());
+        StreamInput in = out.bytes().streamInput();
         TDigestState digestState2 = (TDigestState) streamer.readValueFrom(in);
 
         assertEquals(digestState1.compression(), digestState2.compression(), 0.001d);

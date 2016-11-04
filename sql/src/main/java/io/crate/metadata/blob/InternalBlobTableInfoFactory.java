@@ -29,17 +29,19 @@ import io.crate.blob.v2.BlobIndicesService;
 import io.crate.exceptions.TableUnknownException;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.doc.DocIndexMetaData;
+import org.apache.logging.log4j.Logger;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.action.support.IndicesOptions;
-import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
+import org.elasticsearch.cluster.service.ClusterService;
+import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.env.Environment;
+import org.elasticsearch.index.Index;
 import org.elasticsearch.index.IndexNotFoundException;
 
 import java.io.IOException;
@@ -48,7 +50,7 @@ import java.util.Map;
 
 public class InternalBlobTableInfoFactory implements BlobTableInfoFactory {
 
-    private static final ESLogger LOGGER = Loggers.getLogger(InternalBlobTableInfoFactory.class);
+    private static final Logger LOGGER = Loggers.getLogger(InternalBlobTableInfoFactory.class);
     private final IndexNameExpressionResolver indexNameExpressionResolver;
     private final Environment environment;
     private final Path globalBlobPath;
@@ -63,15 +65,14 @@ public class InternalBlobTableInfoFactory implements BlobTableInfoFactory {
     }
 
     private IndexMetaData resolveIndexMetaData(String tableName, ClusterState state) {
-        String index = BlobIndex.fullIndexName(tableName);
-        String[] concreteIndices;
+        String indexName = BlobIndex.fullIndexName(tableName);
+        Index index;
         try {
-            concreteIndices = indexNameExpressionResolver.concreteIndices(
-                state, IndicesOptions.strictExpandOpen(), index);
+            index = indexNameExpressionResolver.concreteIndices(state, IndicesOptions.strictExpandOpen(), indexName)[0];
         } catch (IndexNotFoundException ex) {
-            throw new TableUnknownException(index, ex);
+            throw new TableUnknownException(indexName, ex);
         }
-        return state.metaData().index(concreteIndices[0]);
+        return state.metaData().index(index);
     }
 
     @Override
@@ -86,7 +87,7 @@ public class InternalBlobTableInfoFactory implements BlobTableInfoFactory {
         }
         return new BlobTableInfo(
             ident,
-            indexMetaData.getIndex(),
+            indexMetaData.getIndex().getName(),
             clusterService,
             indexMetaData.getNumberOfShards(),
             NumberOfReplicas.fromSettings(indexMetaData.getSettings()),
@@ -99,8 +100,8 @@ public class InternalBlobTableInfoFactory implements BlobTableInfoFactory {
 
     private BytesRef blobsPath(Settings indexMetaDataSettings) {
         BytesRef blobsPath;
-        String blobsPathStr = indexMetaDataSettings.get(BlobIndicesService.SETTING_INDEX_BLOBS_PATH);
-        if (blobsPathStr != null) {
+        String blobsPathStr = BlobIndicesService.SETTING_INDEX_BLOBS_PATH.get(indexMetaDataSettings);
+        if (!Strings.isNullOrEmpty(blobsPathStr)) {
             blobsPath = new BytesRef(blobsPathStr);
         } else {
             Path path = globalBlobPath;

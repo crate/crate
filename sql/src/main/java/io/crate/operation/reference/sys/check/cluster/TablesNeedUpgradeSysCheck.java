@@ -26,11 +26,11 @@ import io.crate.action.sql.ResultReceiver;
 import io.crate.action.sql.SQLOperations;
 import io.crate.data.Row;
 import io.crate.operation.reference.sys.check.AbstractSysCheck;
+import org.apache.logging.log4j.Logger;
 import org.apache.lucene.util.BytesRef;
-import org.elasticsearch.cluster.ClusterService;
+import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
-import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.Settings;
 
@@ -55,7 +55,7 @@ public class TablesNeedUpgradeSysCheck extends AbstractSysCheck {
     private static final int LIMIT = 50_000;
     private static final String PREP_STMT_NAME = "tables_need_upgrade_syscheck";
 
-    private final ESLogger logger;
+    private final Logger logger;
     private final ClusterService clusterService;
     private final SQLOperations.SQLDirectExecutor sqlDirectExecutor;
     private volatile Collection<String> tablesNeedUpgrade;

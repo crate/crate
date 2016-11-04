@@ -45,8 +45,7 @@ import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.FSDirectory;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.lucene.search.Queries;
-import org.elasticsearch.index.mapper.MappedFieldType;
-import org.elasticsearch.index.mapper.core.LongFieldMapper;
+import org.elasticsearch.index.mapper.LegacyLongFieldMapper;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -61,7 +60,7 @@ import static org.hamcrest.core.Is.is;
 public class LuceneOrderedDocCollectorTest extends RandomizedTest {
 
     private static final Reference REFERENCE = new Reference(new ReferenceIdent(new TableIdent(null, "table"), "value"), RowGranularity.DOC, DataTypes.LONG);
-    private LongFieldMapper.LongFieldType valueFieldType;
+    private LegacyLongFieldMapper.LongFieldType valueFieldType;
 
     private Directory createLuceneIndex() throws IOException {
         Path tmpDir = newTempDir();
@@ -84,7 +83,7 @@ public class LuceneOrderedDocCollectorTest extends RandomizedTest {
     private void addDocToLucene(IndexWriter w, Long value) throws IOException {
         Document doc = new Document();
         if (value != null) {
-            doc.add(new LongFieldMapper.CustomLongNumericField(value, valueFieldType));
+            doc.add(new LegacyLongFieldMapper.CustomLongNumericField(value, valueFieldType));
             doc.add(new SortedNumericDocValuesField("value", value));
         } else {
             // Create a placeholder field
@@ -130,8 +129,8 @@ public class LuceneOrderedDocCollectorTest extends RandomizedTest {
 
     @Before
     public void setUp() throws Exception {
-        valueFieldType = new LongFieldMapper.LongFieldType();
-        valueFieldType.setNames(new MappedFieldType.Names("value"));
+        valueFieldType = new LegacyLongFieldMapper.LongFieldType();
+        valueFieldType.setName("value");
     }
 
     @Test

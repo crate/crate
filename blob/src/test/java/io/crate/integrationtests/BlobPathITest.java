@@ -99,7 +99,7 @@ public class BlobPathITest extends BlobIntegrationTestBase {
         Path tableBlobPath = createTempDir("tableBlobPath");
         Settings indexSettings = Settings.builder()
             .put(oneShardAndZeroReplicas())
-            .put(BlobIndicesService.SETTING_INDEX_BLOBS_PATH, tableBlobPath.toString())
+            .put(BlobIndicesService.SETTING_INDEX_BLOBS_PATH.getKey(), tableBlobPath.toString())
             .build();
         blobAdminClient.createBlobTable("test", indexSettings).get();
 

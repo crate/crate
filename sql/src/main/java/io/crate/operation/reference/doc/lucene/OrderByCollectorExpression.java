@@ -3,8 +3,9 @@ package io.crate.operation.reference.doc.lucene;
 import io.crate.action.sql.query.SortSymbolVisitor;
 import io.crate.analyze.OrderBy;
 import io.crate.metadata.Reference;
-import io.crate.types.DataType;
 import org.apache.lucene.search.FieldDoc;
+
+import java.util.function.Function;
 
 /**
  * A {@link LuceneCollectorExpression} is used to collect
@@ -13,19 +14,20 @@ import org.apache.lucene.search.FieldDoc;
 public class OrderByCollectorExpression extends LuceneCollectorExpression<Object> {
 
     private final int orderIndex;
-    private final DataType valueType;
-    private Object value;
-    private Object missingValue;
+    private final Function<Object, Object> valueConversion;
+    private final Object missingValue;
 
-    public OrderByCollectorExpression(Reference ref, OrderBy orderBy) {
+    private Object value;
+
+    public OrderByCollectorExpression(Reference ref, OrderBy orderBy, Function<Object, Object> valueConversion) {
         super(ref.ident().columnIdent().fqn());
+        this.valueConversion = valueConversion;
         assert orderBy.orderBySymbols().contains(ref) : "symbol must be part of orderBy symbols";
         orderIndex = orderBy.orderBySymbols().indexOf(ref);
-        valueType = ref.valueType();
         this.missingValue = LuceneMissingValue.missingValue(
             orderBy.reverseFlags()[orderIndex],
             orderBy.nullsFirst()[orderIndex],
-            SortSymbolVisitor.LUCENE_TYPE_MAP.get(valueType)
+            SortSymbolVisitor.LUCENE_TYPE_MAP.get(ref.valueType())
         );
     }
 
@@ -33,7 +35,7 @@ public class OrderByCollectorExpression extends LuceneCollectorExpression<Object
         if (missingValue != null && missingValue.equals(value)) {
             this.value = null;
         } else {
-            this.value = valueType.value(value);
+            this.value = valueConversion.apply(value);
         }
     }
 

@@ -24,15 +24,15 @@ package io.crate.geo;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.spatial4j.core.context.jts.JtsSpatialContext;
-import com.spatial4j.core.io.WKTWriter;
-import com.spatial4j.core.shape.Shape;
-import com.spatial4j.core.shape.jts.JtsGeometry;
-import com.spatial4j.core.shape.jts.JtsPoint;
 import com.vividsolutions.jts.geom.*;
 import com.vividsolutions.jts.geom.impl.CoordinateArraySequenceFactory;
 import io.crate.test.integration.CrateUnitTest;
 import org.junit.Test;
+import org.locationtech.spatial4j.context.jts.JtsSpatialContext;
+import org.locationtech.spatial4j.io.WKTWriter;
+import org.locationtech.spatial4j.shape.Shape;
+import org.locationtech.spatial4j.shape.jts.JtsGeometry;
+import org.locationtech.spatial4j.shape.jts.JtsPoint;
 
 import java.util.List;
 import java.util.Map;
@@ -124,7 +124,7 @@ public class GeoJSONUtilsTest extends CrateUnitTest {
 
         Shape mappedShape = GeoJSONUtils.map2Shape(map);
         String wktFromMap = new WKTWriter().toString(mappedShape);
-        assertThat(wktFromMap, is("GEOMETRYCOLLECTION (LINESTRING (10.05 10.28, 20.95 20.89),LINESTRING (20.95 20.89, 31.92 21.45))"));
+        assertThat(wktFromMap, is("MULTILINESTRING ((10.05 10.28, 20.95 20.89), (20.95 20.89, 31.92 21.45))"));
     }
 
     @Test

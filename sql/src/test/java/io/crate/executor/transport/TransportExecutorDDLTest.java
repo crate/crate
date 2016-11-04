@@ -23,7 +23,6 @@ package io.crate.executor.transport;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
 import io.crate.Constants;
 import io.crate.data.Bucket;
 import io.crate.data.Row;
@@ -39,6 +38,7 @@ import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.action.admin.indices.alias.Alias;
 import org.elasticsearch.action.admin.indices.exists.indices.IndicesExistsRequest;
 import org.elasticsearch.cluster.metadata.MetaData;
+import org.elasticsearch.common.collect.MapBuilder;
 import org.elasticsearch.common.settings.Settings;
 import org.junit.After;
 import org.junit.Before;
@@ -70,7 +70,7 @@ public class TransportExecutorDDLTest extends SQLTransportIntegrationTest {
                 .put("index", "not_analyzed")
                 .put("doc_values", false).build()
         ));
-    private final static Settings TEST_SETTINGS = Settings.settingsBuilder()
+    private final static Settings TEST_SETTINGS = Settings.builder()
         .put("number_of_replicas", 0)
         .put("number_of_shards", 2).build();
 
@@ -82,8 +82,8 @@ public class TransportExecutorDDLTest extends SQLTransportIntegrationTest {
     @After
     public void resetSettings() throws Exception {
         client().admin().cluster().prepareUpdateSettings()
-            .setPersistentSettingsToRemove(ImmutableSet.of("stats.enabled"))
-            .setTransientSettingsToRemove(ImmutableSet.of("stats.enabled", "bulk.request_timeout"))
+            .setPersistentSettings(MapBuilder.newMapBuilder().put("stats.enabled", null).map())
+            .setTransientSettings(MapBuilder.newMapBuilder().put("stats.enabled", null).put("bulk.request_timeout", null).map())
             .execute().actionGet();
     }
 

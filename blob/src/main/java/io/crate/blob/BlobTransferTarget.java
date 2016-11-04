@@ -30,9 +30,9 @@ import io.crate.blob.pending_transfer.GetBlobHeadRequest;
 import io.crate.blob.v2.BlobIndicesService;
 import io.crate.blob.v2.BlobShard;
 import org.apache.lucene.util.IOUtils;
-import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.node.DiscoveryNodes;
+import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.component.AbstractComponent;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.settings.Settings;
@@ -66,7 +66,8 @@ public class BlobTransferTarget extends AbstractComponent {
     private final TimeValue STATE_REMOVAL_DELAY;
 
     @Inject
-    public BlobTransferTarget(Settings settings, BlobIndicesService blobIndicesService,
+    public BlobTransferTarget(Settings settings,
+                              BlobIndicesService blobIndicesService,
                               ThreadPool threadPool,
                               TransportService transportService,
                               ClusterService clusterService) {

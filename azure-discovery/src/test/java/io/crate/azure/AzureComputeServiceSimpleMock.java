@@ -28,7 +28,10 @@ import com.microsoft.windowsazure.Configuration;
 import io.crate.azure.management.AzureComputeServiceAbstractMock;
 import io.crate.azure.plugin.AzureDiscoveryPlugin;
 import org.elasticsearch.common.inject.Inject;
+import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
+
+import java.util.List;
 
 /**
  * Mock Azure API with a single started node
@@ -73,6 +76,11 @@ public class AzureComputeServiceSimpleMock extends AzureComputeServiceAbstractMo
 
         public void onModule(AzureModule azureModule) {
             azureModule.computeServiceImpl = AzureComputeServiceSimpleMock.class;
+        }
+
+        @Override
+        public List<Setting<?>> getSettings() {
+            return super.getSettings();
         }
     }
 

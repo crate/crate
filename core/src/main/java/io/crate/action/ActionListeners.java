@@ -22,8 +22,8 @@
 
 package io.crate.action;
 
+import org.apache.logging.log4j.Logger;
 import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.transport.TransportChannel;
 import org.elasticsearch.transport.TransportResponse;
@@ -32,7 +32,7 @@ import java.util.Locale;
 
 public class ActionListeners {
 
-    private static final ESLogger logger = Loggers.getLogger(ActionListeners.class);
+    private static final Logger logger = Loggers.getLogger(ActionListeners.class);
 
     public static <Response extends TransportResponse> ActionListener<Response> forwardTo(final TransportChannel channel) {
         return new ActionListener<Response>() {
@@ -46,7 +46,7 @@ public class ActionListeners {
             }
 
             @Override
-            public void onFailure(Throwable e) {
+            public void onFailure(Exception e) {
                 try {
                     channel.sendResponse(e);
                 } catch (Exception e1) {

@@ -31,13 +31,13 @@ import io.crate.testing.UseJdbc;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.action.admin.cluster.reroute.ClusterRerouteRequestBuilder;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateResponse;
-import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.metadata.MetaData;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.node.DiscoveryNodes;
 import org.elasticsearch.cluster.routing.ShardRouting;
 import org.elasticsearch.cluster.routing.ShardRoutingState;
 import org.elasticsearch.cluster.routing.allocation.command.MoveAllocationCommand;
+import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.Priority;
 import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.test.ESIntegTestCase;
@@ -114,7 +114,7 @@ public class PartitionedTableConcurrentIntegrationTest extends SQLTransportInteg
         DiscoveryNodes nodes = clusterService.state().nodes();
         List<String> nodeIds = new ArrayList<>(2);
         for (DiscoveryNode node : nodes) {
-            if (node.dataNode()) {
+            if (node.isDataNode()) {
                 nodeIds.add(node.getId());
             }
         }
@@ -141,7 +141,8 @@ public class PartitionedTableConcurrentIntegrationTest extends SQLTransportInteg
                         }
                         String toNode = nodeSwap.get(shardRouting.currentNodeId());
                         clusterRerouteRequestBuilder.add(new MoveAllocationCommand(
-                            shardRouting.shardId(),
+                            shardRouting.getIndexName(),
+                            shardRouting.shardId().id(),
                             shardRouting.currentNodeId(),
                             toNode));
                         numMoves++;
@@ -151,7 +152,7 @@ public class PartitionedTableConcurrentIntegrationTest extends SQLTransportInteg
                         clusterRerouteRequestBuilder.execute().actionGet();
                         client().admin().cluster().prepareHealth()
                             .setWaitForEvents(Priority.LANGUID)
-                            .setWaitForRelocatingShards(0)
+                            .setWaitForNoRelocatingShards(false)
                             .setTimeout(ACCEPTABLE_RELOCATION_TIME).execute().actionGet();
                         relocations.countDown();
                     }

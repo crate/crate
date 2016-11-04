@@ -24,7 +24,10 @@ package io.crate.metadata.settings;
 import com.google.common.collect.ImmutableMap;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
+import org.elasticsearch.common.settings.ClusterSettings;
 import org.elasticsearch.common.settings.Settings;
+
+import java.util.function.Consumer;
 
 public abstract class NestedSetting extends Setting<Object, Object> {
 
@@ -43,4 +46,13 @@ public abstract class NestedSetting extends Setting<Object, Object> {
         return ImmutableMap.of();
     }
 
+    @Override
+    org.elasticsearch.common.settings.Setting<Object> createESSetting() {
+        return null;
+    }
+
+    @Override
+    public void registerUpdateConsumer(ClusterSettings clusterSettings, Consumer<Object> consumer) {
+        // only fqn settings are registered
+    }
 }

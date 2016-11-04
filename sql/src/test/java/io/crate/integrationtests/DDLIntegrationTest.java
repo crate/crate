@@ -63,9 +63,12 @@ public class DDLIntegrationTest extends SQLTransportIntegrationTest {
                                  "\"dynamic\":\"true\",\"_meta\":{\"routing_hash_function\":\"org.elasticsearch.cluster.routing.Murmur3HashFunction\",\"primary_keys\":[\"col1\"]," +
                                  "\"version\":{\"created\":{\"elasticsearch\":" + Version.CURRENT.esVersion.id + ",\"cratedb\":" + Version.CURRENT.id + "}}}," +
                                  "\"_all\":{\"enabled\":false}," +
-                                 "\"dynamic_templates\":[{\"strings\":{\"mapping\":{\"index\":\"not_analyzed\",\"store\":false,\"type\":\"string\",\"doc_values\":true},\"match_mapping_type\":\"string\"}}]," +
+                                 "\"dynamic_templates\":[{\"strings\":{\"match_mapping_type\":\"string\",\"mapping\":{\"doc_values\":true,\"store\":false,\"type\":\"keyword\"}}}]," +
                                  "\"properties\":{" +
-                                 "\"col1\":{\"type\":\"integer\"},\"col2\":{\"type\":\"string\",\"index\":\"not_analyzed\"}}}}";
+                                 // doc_values: true is default and not included
+                                 "\"col1\":{\"type\":\"integer\"}," +
+                                 "\"col2\":{\"type\":\"keyword\"}" +
+                                 "}}}";
 
         String expectedSettings = "{\"test\":{" +
                                   "\"settings\":{" +
@@ -150,7 +153,7 @@ public class DDLIntegrationTest extends SQLTransportIntegrationTest {
                                  "\"_all\":{\"enabled\":false}," +
                                  "\"properties\":{" +
                                  "\"col1\":{\"type\":\"integer\"}," +
-                                 "\"col2\":{\"type\":\"string\",\"index\":\"not_analyzed\"}" +
+                                 "\"col2\":{\"type\":\"keyword\"}" +
                                  "}}}";
 
         String expectedSettings = "{\"test\":{" +
@@ -176,10 +179,11 @@ public class DDLIntegrationTest extends SQLTransportIntegrationTest {
                                  "\"dynamic\":\"strict\",\"_meta\":{\"routing_hash_function\":\"org.elasticsearch.cluster.routing.Murmur3HashFunction\",\"primary_keys\":[\"col1\"]," +
                                  "\"version\":{\"created\":{\"elasticsearch\":" + Version.CURRENT.esVersion.id + ",\"cratedb\":" + Version.CURRENT.id + "}}}," +
                                  "\"_all\":{\"enabled\":false}," +
-                                 "\"dynamic_templates\":[{\"strings\":{\"mapping\":{\"index\":\"not_analyzed\",\"store\":false,\"type\":\"string\",\"doc_values\":true},\"match_mapping_type\":\"string\"}}]," +
+                                 "\"dynamic_templates\":[{\"strings\":{\"match_mapping_type\":\"string\",\"mapping\":{\"doc_values\":true,\"store\":false,\"type\":\"keyword\"}}}]," +
                                  "\"properties\":{" +
                                  "\"col1\":{\"type\":\"integer\"}," +
-                                 "\"col2\":{\"type\":\"string\",\"index\":\"not_analyzed\"}}}}";
+                                 "\"col2\":{\"type\":\"keyword\"}" +
+                                 "}}}";
 
         String expectedSettings = "{\"test\":{" +
                                   "\"settings\":{" +
@@ -198,10 +202,11 @@ public class DDLIntegrationTest extends SQLTransportIntegrationTest {
         execute("create table test (col1 geo_shape INDEX using QUADTREE with (precision='1m', distance_error_pct='0.25'))");
         ensureYellow();
         String expectedMapping = "{\"default\":{" +
-                                 "\"dynamic\":\"true\",\"_meta\":{\"routing_hash_function\":\"org.elasticsearch.cluster.routing.Murmur3HashFunction\"," +
-                                 "\"version\":{\"created\":{\"elasticsearch\":" + Version.CURRENT.esVersion.id + ",\"cratedb\":" + Version.CURRENT.id + "}}}," +
+                                 "\"dynamic\":\"true\",\"_meta\":{" +
+                                 "\"version\":{\"created\":{\"elasticsearch\":" + Version.CURRENT.esVersion.id + ",\"cratedb\":" + Version.CURRENT.id + "}}," +
+                                 "\"routing_hash_function\":\"org.elasticsearch.cluster.routing.Murmur3HashFunction\"}," +
                                  "\"_all\":{\"enabled\":false}," +
-                                 "\"dynamic_templates\":[{\"strings\":{\"mapping\":{\"index\":\"not_analyzed\",\"store\":false,\"type\":\"string\",\"doc_values\":true},\"match_mapping_type\":\"string\"}}]," +
+                                 "\"dynamic_templates\":[{\"strings\":{\"match_mapping_type\":\"string\",\"mapping\":{\"doc_values\":true,\"store\":false,\"type\":\"keyword\"}}}]," +
                                  "\"properties\":{" +
                                  "\"col1\":{\"type\":\"geo_shape\",\"tree\":\"quadtree\",\"precision\":\"1.0m\",\"distance_error_pct\":0.25}}}}";
         assertEquals(expectedMapping, getIndexMapping("test"));
@@ -212,10 +217,11 @@ public class DDLIntegrationTest extends SQLTransportIntegrationTest {
         execute("create table test (col1 geo_shape)");
         ensureYellow();
         String expectedMapping = "{\"default\":{" +
-                                 "\"dynamic\":\"true\",\"_meta\":{\"routing_hash_function\":\"org.elasticsearch.cluster.routing.Murmur3HashFunction\"," +
-                                 "\"version\":{\"created\":{\"elasticsearch\":" + Version.CURRENT.esVersion.id + ",\"cratedb\":" + Version.CURRENT.id + "}}}," +
+                                 "\"dynamic\":\"true\",\"_meta\":{" +
+                                 "\"version\":{\"created\":{\"elasticsearch\":" + Version.CURRENT.esVersion.id + ",\"cratedb\":" + Version.CURRENT.id + "}}," +
+                                 "\"routing_hash_function\":\"org.elasticsearch.cluster.routing.Murmur3HashFunction\"}," +
                                  "\"_all\":{\"enabled\":false}," +
-                                 "\"dynamic_templates\":[{\"strings\":{\"mapping\":{\"index\":\"not_analyzed\",\"store\":false,\"type\":\"string\",\"doc_values\":true},\"match_mapping_type\":\"string\"}}]," +
+                                 "\"dynamic_templates\":[{\"strings\":{\"match_mapping_type\":\"string\",\"mapping\":{\"doc_values\":true,\"store\":false,\"type\":\"keyword\"}}}]," +
                                  "\"properties\":{\"col1\":{\"type\":\"geo_shape\"}}}}";
         assertEquals(expectedMapping, getIndexMapping("test"));
 
@@ -295,12 +301,8 @@ public class DDLIntegrationTest extends SQLTransportIntegrationTest {
         execute("insert into quotes (id, quote) values (?, ?)", new Object[]{1, quote});
         refresh();
 
+        expectedException.expectMessage("Cannot search on field [quote] since it is not indexed.");
         execute("select quote from quotes where quote = ?", new Object[]{quote});
-        assertEquals(0, response.rowCount());
-
-        execute("select quote from quotes where id = 1");
-        assertEquals(1L, response.rowCount());
-        assertEquals(quote, response.rows()[0][0]);
     }
 
     @Test
@@ -694,7 +696,7 @@ public class DDLIntegrationTest extends SQLTransportIntegrationTest {
                                  "\"generated_columns\":{\"day\":\"date_trunc('day', ts)\"}," +
                                  "\"version\":{\"created\":{\"elasticsearch\":" + Version.CURRENT.esVersion.id + ",\"cratedb\":" + Version.CURRENT.id + "}}}," +
                                  "\"_all\":{\"enabled\":false}," +
-                                 "\"dynamic_templates\":[{\"strings\":{\"mapping\":{\"index\":\"not_analyzed\",\"store\":false,\"type\":\"string\",\"doc_values\":true},\"match_mapping_type\":\"string\"}}]," +
+                                 "\"dynamic_templates\":[{\"strings\":{\"match_mapping_type\":\"string\",\"mapping\":{\"doc_values\":true,\"store\":false,\"type\":\"keyword\"}}}]," +
                                  "\"properties\":{\"day\":{\"type\":\"date\",\"format\":\"epoch_millis||strict_date_optional_time\"},\"ts\":{\"type\":\"date\",\"format\":\"epoch_millis||strict_date_optional_time\"}}}}";
 
         assertEquals(expectedMapping, getIndexMapping("test"));
