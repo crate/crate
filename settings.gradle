@@ -1,6 +1,8 @@
 include 'es',
         'es:es-core',
+        'es:es-client',
         'es:es-testing',
+        'es:es-transport',
         'es:es-cloud-aws',
         'es:es-discovery-multicast',
         'testing',

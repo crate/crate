@@ -108,9 +108,9 @@ public class ExtendedProcessCpuStats implements Streamable {
     @Override
     public void readFrom(StreamInput in) throws IOException {
         percent = in.readShort();
-        sys = TimeValue.readTimeValue(in);
-        user = TimeValue.readTimeValue(in);
-        total = TimeValue.readTimeValue(in);
+        sys = new TimeValue(in);
+        user = new TimeValue(in);
+        total = new TimeValue(in);
     }
 
     @Override

@@ -1,0 +1,48 @@
+apply from: "$rootDir/gradle/javaModule.gradle"
+
+compileJava {
+    // upstream code - not interested in any warnings
+    options.warnings = false
+    options.deprecation = false
+    options.compilerArgs << '-XDignore.symbol.file'
+}
+
+
+dependencies {
+    compile "org.apache.httpcomponents:httpclient:${versions.httpclient}"
+    compile "org.apache.httpcomponents:httpcore:${versions.httpcore}"
+    compile "org.apache.httpcomponents:httpasyncclient:4.1.2"
+    compile "org.apache.httpcomponents:httpcore-nio:${versions.httpcore}"
+    compile "commons-codec:commons-codec:${versions.commonscodec}"
+    compile "commons-logging:commons-logging:${versions.commonslogging}"
+}
+
+test {
+    enabled = false
+    jacoco {
+        enabled = false
+    }
+}
+
+sourceSets {
+    main {
+        java.srcDirs = ['../upstream/client/rest/src/main/java']
+        resources {
+            srcDir '../upstream/client/rest/src/main/resources'
+            include '**/*.*'
+        }
+    }
+    test {
+        output.resourcesDir = null
+        output.classesDir = null
+    }
+
+}
+
+idea {
+    module {
+        contentRoot = file('../upstream/client')
+        excludeDirs += file('build')
+    }
+}
+

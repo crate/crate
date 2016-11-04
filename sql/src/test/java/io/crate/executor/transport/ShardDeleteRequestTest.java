@@ -46,7 +46,7 @@ public class ShardDeleteRequestTest extends CrateUnitTest {
         BytesStreamOutput out = new BytesStreamOutput();
         request.writeTo(out);
 
-        StreamInput in = StreamInput.wrap(out.bytes());
+        StreamInput in = out.bytes().streamInput();
         ShardDeleteRequest request2 = new ShardDeleteRequest();
         request2.readFrom(in);
 
