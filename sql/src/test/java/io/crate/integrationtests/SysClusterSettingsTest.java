@@ -194,9 +194,7 @@ public class SysClusterSettingsTest extends SQLTransportIntegrationTest {
         Map<String, Map> log = breaker.get(CrateSettings.STATS_BREAKER_LOG.name());
         Map<String, Map> jobs = log.get(CrateSettings.STATS_BREAKER_LOG_JOBS.name());
         assertThat(jobs.get(CrateSettings.STATS_BREAKER_LOG_JOBS_LIMIT.name()),
-            is(MemorySizeValue.parseBytesSizeValueOrHeapRatio(  // convert default string value (percentage) to byte size string
-                CrateSettings.STATS_BREAKER_LOG_JOBS_LIMIT.defaultValue(),
-                CrateSettings.STATS_BREAKER_LOG_JOBS_LIMIT.settingName()).toString()));
+            is(CrateSettings.STATS_BREAKER_LOG_JOBS_LIMIT.defaultValue().toString()));
     }
 
     @Test

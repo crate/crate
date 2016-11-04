@@ -27,19 +27,18 @@ import io.crate.action.sql.SQLOperations;
 import io.crate.data.RowN;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.settings.CrateSettings;
-import io.crate.test.integration.CrateUnitTest;
-import org.elasticsearch.cluster.ClusterService;
-import org.elasticsearch.cluster.node.DiscoveryNode;
+import io.crate.plugin.SQLPlugin;
+import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
+import org.elasticsearch.cluster.service.ClusterService;
+import org.elasticsearch.common.settings.ClusterSettings;
+import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.TimeValue;
-import org.elasticsearch.node.settings.NodeSettingsService;
-import org.elasticsearch.threadpool.ThreadPool;
-import org.junit.After;
-import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Answers;
 import org.mockito.Mockito;
 
+import java.util.Collection;
 import java.util.Collections;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
@@ -52,71 +51,61 @@ import static org.hamcrest.core.IsNull.notNullValue;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.*;
 
-public class TableStatsServiceTest extends CrateUnitTest {
+public class TableStatsServiceTest extends CrateDummyClusterServiceUnitTest {
 
-    private ThreadPool threadPool;
-
-    @Before
-    public void init() throws Exception {
-        threadPool = new ThreadPool("dummy");
-    }
-
-    @After
-    public void clearThreadPool() throws Exception {
-        threadPool.shutdown();
-        threadPool.awaitTermination(30, TimeUnit.SECONDS);
+    @Override
+    protected Collection<Setting<?>> additionalClusterSettings() {
+        return new SQLPlugin(Settings.EMPTY).getSettings();
     }
 
     @Test
     public void testSettingsChanges() {
-        ClusterService clusterService = mock(ClusterService.class);
-
         // Initially disabled
         TableStatsService statsService = new TableStatsService(
             Settings.builder().put(CrateSettings.STATS_SERVICE_INTERVAL.settingName(), 0).build(),
-            threadPool,
+            THREAD_POOL,
             clusterService,
             new TableStats(),
-            new NodeSettingsService(Settings.EMPTY),
             mock(SQLOperations.class, Answers.RETURNS_MOCKS.get()));
 
-        assertThat(statsService.lastRefreshInterval,
+        assertThat(statsService.refreshInterval,
             is(TimeValue.timeValueMinutes(0)));
         assertThat(statsService.refreshScheduledTask, is(nullValue()));
 
         // Default setting
         statsService = new TableStatsService(
             Settings.EMPTY,
-            threadPool,
+            THREAD_POOL,
             clusterService,
             new TableStats(),
-            new NodeSettingsService(Settings.EMPTY),
             mock(SQLOperations.class, Answers.RETURNS_MOCKS.get()));
 
-        assertThat(statsService.lastRefreshInterval,
+        assertThat(statsService.refreshInterval,
             is(CrateSettings.STATS_SERVICE_INTERVAL.defaultValue()));
         assertThat(statsService.refreshScheduledTask, is(notNullValue()));
 
+        ClusterSettings clusterSettings = clusterService.getClusterSettings();
+
         // Update setting
-        statsService.onRefreshSettings(Settings.builder()
+        clusterSettings.applySettings(Settings.builder()
             .put(CrateSettings.STATS_SERVICE_INTERVAL.settingName(), "10m").build());
 
-        assertThat(statsService.lastRefreshInterval, is(TimeValue.timeValueMinutes(10)));
+        assertThat(statsService.refreshInterval, is(TimeValue.timeValueMinutes(10)));
         assertThat(statsService.refreshScheduledTask,
             is(notNullValue()));
 
         // Disable
-        statsService.onRefreshSettings(Settings.builder()
+        clusterSettings.applySettings(Settings.builder()
             .put(CrateSettings.STATS_SERVICE_INTERVAL.settingName(), 0).build());
 
-        assertThat(statsService.lastRefreshInterval, is(TimeValue.timeValueMillis(0)));
+        assertThat(statsService.refreshInterval, is(TimeValue.timeValueMillis(0)));
         assertThat(statsService.refreshScheduledTask,
             is(nullValue()));
 
         // Reset setting
-        statsService.onRefreshSettings(Settings.builder().build());
+        clusterSettings.applySettings(Settings.builder().build());
 
-        assertThat(statsService.lastRefreshInterval,
+        assertThat(statsService.refreshInterval,
             is(CrateSettings.STATS_SERVICE_INTERVAL.defaultValue()));
         assertThat(statsService.refreshScheduledTask, is(notNullValue()));
     }
@@ -139,8 +128,6 @@ public class TableStatsServiceTest extends CrateUnitTest {
 
     @Test
     public void testStatsQueriesCorrectly() throws Throwable {
-        ClusterService clusterService = mock(ClusterService.class);
-        when(clusterService.localNode()).thenReturn(mock(DiscoveryNode.class));
         final SQLOperations sqlOperations = mock(SQLOperations.class);
         SQLOperations.SQLDirectExecutor sqlDirectExecutor = mock(SQLOperations.SQLDirectExecutor.class);
         when(sqlOperations.createSQLDirectExecutor(
@@ -152,10 +139,9 @@ public class TableStatsServiceTest extends CrateUnitTest {
 
         TableStatsService statsService = new TableStatsService(
             Settings.EMPTY,
-            threadPool,
+            THREAD_POOL,
             clusterService,
             new TableStats(),
-            new NodeSettingsService(Settings.EMPTY),
             sqlOperations
         );
         statsService.run();
@@ -169,17 +155,16 @@ public class TableStatsServiceTest extends CrateUnitTest {
     public void testNoUpdateIfLocalNodeNotAvailable() throws Exception {
         final ClusterService clusterService = mock(ClusterService.class);
         when(clusterService.localNode()).thenReturn(null);
+        when(clusterService.getClusterSettings()).thenReturn(this.clusterService.getClusterSettings());
         SQLOperations sqlOperations = mock(SQLOperations.class);
         SQLOperations.Session session = mock(SQLOperations.Session.class);
         when(sqlOperations.createSession(anyString(), any(), anyInt())).thenReturn(session);
 
-
         TableStatsService statsService = new TableStatsService(
             Settings.EMPTY,
-            threadPool,
+            THREAD_POOL,
             clusterService,
             new TableStats(),
-            new NodeSettingsService(Settings.EMPTY),
             sqlOperations
         );
 

@@ -27,7 +27,6 @@ import com.google.common.base.Supplier;
 import com.google.common.base.Suppliers;
 import com.google.common.primitives.Ints;
 import io.crate.types.DataTypes;
-import org.elasticsearch.node.internal.InternalSettingsPreparer;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -53,7 +52,7 @@ public class SummitsIterable implements Iterable<SummitsContext> {
 
     private List<SummitsContext> fetchSummits() {
         List<SummitsContext> summits = new ArrayList<>();
-        try (InputStream input = InternalSettingsPreparer.class.getResourceAsStream("/config/names.txt")) {
+        try (InputStream input = SummitsIterable.class.getResourceAsStream("/config/names.txt")) {
             try (BufferedReader reader = new BufferedReader(new InputStreamReader(input, StandardCharsets.UTF_8))) {
                 String line;
                 while ((line = reader.readLine()) != null) {

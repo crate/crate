@@ -23,18 +23,23 @@
 package io.crate.analyze;
 
 import io.crate.exceptions.UnsupportedFeatureException;
-import io.crate.test.integration.CrateUnitTest;
+import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
-import org.elasticsearch.test.cluster.NoopClusterService;
 import org.hamcrest.Matchers;
+import org.junit.Before;
 import org.junit.Test;
 
 import static io.crate.testing.SymbolMatchers.isField;
 import static org.hamcrest.Matchers.instanceOf;
 
-public class ExplainAnalyzerTest extends CrateUnitTest {
+public class ExplainAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
-    private SQLExecutor e = SQLExecutor.builder(new NoopClusterService()).enableDefaultTables().build();
+    private SQLExecutor e;
+
+    @Before
+    public void prepare() {
+        e = SQLExecutor.builder(clusterService).enableDefaultTables().build();
+    }
 
     @Test
     public void testExplain() throws Exception {

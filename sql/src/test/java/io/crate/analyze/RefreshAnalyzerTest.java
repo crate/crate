@@ -25,10 +25,9 @@ import io.crate.exceptions.TableUnknownException;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.blob.BlobSchemaInfo;
-import io.crate.test.integration.CrateUnitTest;
+import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import org.apache.lucene.util.BytesRef;
-import org.elasticsearch.test.cluster.NoopClusterService;
 import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.Test;
@@ -38,19 +37,15 @@ import java.util.Arrays;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.is;
 
-public class RefreshAnalyzerTest extends CrateUnitTest {
+public class RefreshAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     private TableIdent myBlobsIdent = new TableIdent(BlobSchemaInfo.NAME, "blobs");
     private SQLExecutor e;
 
     @Before
-    public void init() throws Exception {
-        NoopClusterService clusterService = new NoopClusterService();
+    public void prepare() {
         TestingBlobTableInfo myBlobsTableInfo = TableDefinitions.createBlobTable(myBlobsIdent, clusterService);
-        e = SQLExecutor.builder(clusterService)
-            .enableDefaultTables()
-            .addBlobTable(myBlobsTableInfo)
-            .build();
+        e = SQLExecutor.builder(clusterService).enableDefaultTables().addBlobTable(myBlobsTableInfo).build();
     }
 
     @Test

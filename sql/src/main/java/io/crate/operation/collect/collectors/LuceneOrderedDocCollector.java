@@ -35,7 +35,7 @@ import io.crate.operation.reference.doc.lucene.CollectorContext;
 import io.crate.operation.reference.doc.lucene.LuceneCollectorExpression;
 import io.crate.operation.reference.doc.lucene.LuceneMissingValue;
 import org.apache.lucene.search.*;
-import org.elasticsearch.common.logging.ESLogger;
+import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.lucene.MinimumScoreCollector;
 import org.elasticsearch.index.mapper.MappedFieldType;
@@ -51,7 +51,7 @@ import static java.util.Objects.requireNonNull;
 
 public class LuceneOrderedDocCollector extends OrderedDocCollector {
 
-    private static final ESLogger LOGGER = Loggers.getLogger(LuceneOrderedDocCollector.class);
+    private static final Logger LOGGER = Loggers.getLogger(LuceneOrderedDocCollector.class);
 
     private final Query query;
     private final Float minScore;

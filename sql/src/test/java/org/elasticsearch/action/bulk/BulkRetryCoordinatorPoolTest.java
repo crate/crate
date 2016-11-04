@@ -24,18 +24,19 @@ package org.elasticsearch.action.bulk;
 import io.crate.test.integration.CrateUnitTest;
 import org.elasticsearch.Version;
 import org.elasticsearch.cluster.ClusterChangedEvent;
-import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.cluster.metadata.MetaData;
 import org.elasticsearch.cluster.node.DiscoveryNodes;
 import org.elasticsearch.cluster.routing.RoutingTable;
 import org.elasticsearch.cluster.routing.allocation.AllocationService;
+import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.IndexNotFoundException;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.index.shard.ShardNotFoundException;
-import org.elasticsearch.test.cluster.NoopClusterService;
+import org.elasticsearch.test.ClusterServiceUtils;
+import org.elasticsearch.threadpool.TestThreadPool;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.junit.After;
 import org.junit.Before;
@@ -43,10 +44,11 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
-import static org.elasticsearch.test.ESAllocationTestCase.createAllocationService;
-import static org.elasticsearch.test.ESAllocationTestCase.newNode;
+import java.util.concurrent.TimeUnit;
+
+import static io.crate.testing.DiscoveryNodes.newNode;
+import static org.elasticsearch.cluster.ESAllocationTestCase.createAllocationService;
 import static org.hamcrest.Matchers.*;
-import static org.mockito.Mockito.mock;
 
 public class BulkRetryCoordinatorPoolTest extends CrateUnitTest {
 
@@ -59,9 +61,13 @@ public class BulkRetryCoordinatorPoolTest extends CrateUnitTest {
 
     BulkRetryCoordinatorPool pool;
     ClusterState state;
+    private TestThreadPool threadPool;
+    private String indexUUID;
+    private ClusterService clusterService;
 
     @Before
     public void prepare() {
+        threadPool = new TestThreadPool("testing");
         MetaData metaData = MetaData.builder()
             .put(IndexMetaData.builder(TEST_INDEX).settings(settings(Version.CURRENT)).numberOfShards(3).numberOfReplicas(0))
             .build();
@@ -73,18 +79,20 @@ public class BulkRetryCoordinatorPoolTest extends CrateUnitTest {
             .routingTable(routingTable)
             .build();
 
+        indexUUID = metaData.index(TEST_INDEX).getIndexUUID();
+
         state = ClusterState.builder(state).nodes(
-            DiscoveryNodes.builder().put(newNode(NODE_IDS[0])).localNodeId(NODE_IDS[0])).build();
+            DiscoveryNodes.builder().add(newNode(NODE_IDS[0])).localNodeId(NODE_IDS[0])).build();
 
         AllocationService allocationService = createAllocationService();
         routingTable = allocationService.reroute(state, "test").routingTable();
         state = ClusterState.builder(state).routingTable(routingTable).build();
 
-        ClusterService clusterService = new NoopClusterService(state);
+        clusterService = ClusterServiceUtils.createClusterService(state, threadPool);
 
         this.state = state;
 
-        pool = new BulkRetryCoordinatorPool(Settings.EMPTY, clusterService, mock(ThreadPool.class));
+        pool = new BulkRetryCoordinatorPool(Settings.EMPTY, clusterService, threadPool);
         pool.start();
     }
 
@@ -93,11 +101,13 @@ public class BulkRetryCoordinatorPoolTest extends CrateUnitTest {
         pool.stop();
         pool.close();
         pool = null;
+        clusterService.close();
+        ThreadPool.terminate(threadPool, 30, TimeUnit.SECONDS);
     }
 
     @Test
     public void testGetSameCoordinatorForSameShard() throws Exception {
-        ShardId shardId = new ShardId(TEST_INDEX, 0);
+        ShardId shardId = new ShardId(TEST_INDEX, indexUUID, 0);
         BulkRetryCoordinator coordinator = pool.coordinator(shardId);
 
         assertThat(coordinator, is(notNullValue()));
@@ -111,7 +121,7 @@ public class BulkRetryCoordinatorPoolTest extends CrateUnitTest {
         expectedException.expect(IndexNotFoundException.class);
         expectedException.expectMessage("no such index");
 
-        ShardId shardId = new ShardId("unknown", 42);
+        ShardId shardId = new ShardId("unknown", indexUUID, 42);
         pool.coordinator(shardId);
     }
 
@@ -120,19 +130,20 @@ public class BulkRetryCoordinatorPoolTest extends CrateUnitTest {
         expectedException.expect(ShardNotFoundException.class);
         expectedException.expectMessage("no such shard");
 
-        ShardId shardId = new ShardId(TEST_INDEX, 42);
+        ShardId shardId = new ShardId(TEST_INDEX, indexUUID, 42);
         pool.coordinator(shardId);
     }
 
     @Test
     public void testReturnDifferentCoordinatorForRelocatedShardFromRemovedNode() throws Exception {
-        ShardId shardId = new ShardId(TEST_INDEX, 1);
+        ShardId shardId = new ShardId(TEST_INDEX, indexUUID, 1);
         BulkRetryCoordinator coordinator = pool.coordinator(shardId);
 
         ClusterState newState = ClusterState.builder(state).nodes(
-            DiscoveryNodes.builder().put(newNode(NODE_IDS[1]))).build();
+            DiscoveryNodes.builder().add(newNode(NODE_IDS[1]))).build();
 
         AllocationService allocationService = createAllocationService();
+        newState = allocationService.deassociateDeadNodes(newState, true, "dummy");
         RoutingTable routingTable = allocationService.reroute(newState, "test").routingTable();
         newState = ClusterState.builder(newState).routingTable(routingTable).build();
 

@@ -27,21 +27,23 @@ import io.crate.analyze.QueriedSelectRelation;
 import io.crate.analyze.RelationSource;
 import io.crate.analyze.SelectAnalyzedStatement;
 import io.crate.planner.node.dql.join.JoinType;
-import io.crate.test.integration.CrateUnitTest;
+import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.crate.testing.T3;
-import org.elasticsearch.test.cluster.NoopClusterService;
+import org.junit.Before;
 import org.junit.Test;
 
 import static io.crate.testing.TestingHelpers.isSQL;
-import static org.hamcrest.Matchers.instanceOf;
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.nullValue;
+import static org.hamcrest.Matchers.*;
 
-public class RelationNormalizerTest extends CrateUnitTest {
+public class RelationNormalizerTest extends CrateDummyClusterServiceUnitTest {
 
-    private SQLExecutor executor = SQLExecutor.builder(new NoopClusterService()).enableDefaultTables().build();
+    private SQLExecutor executor;
 
+    @Before
+    public void prepare() {
+        executor = SQLExecutor.builder(clusterService).enableDefaultTables().build();
+    }
     private QueriedRelation normalize(String stmt) {
         SelectAnalyzedStatement statement = executor.analyze(stmt);
         return statement.relation();

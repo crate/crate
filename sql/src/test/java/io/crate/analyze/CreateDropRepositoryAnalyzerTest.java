@@ -25,7 +25,7 @@ import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableSortedMap;
 import io.crate.exceptions.RepositoryAlreadyExistsException;
 import io.crate.exceptions.RepositoryUnknownException;
-import io.crate.test.integration.CrateUnitTest;
+import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import org.elasticsearch.cluster.ClusterName;
 import org.elasticsearch.cluster.ClusterState;
@@ -33,7 +33,7 @@ import org.elasticsearch.cluster.metadata.MetaData;
 import org.elasticsearch.cluster.metadata.RepositoriesMetaData;
 import org.elasticsearch.cluster.metadata.RepositoryMetaData;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.test.cluster.NoopClusterService;
+import org.elasticsearch.test.ClusterServiceUtils;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -42,12 +42,12 @@ import java.util.Map;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.is;
 
-public class CreateDropRepositoryAnalyzerTest extends CrateUnitTest {
+public class CreateDropRepositoryAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     private SQLExecutor e;
 
     @Before
-    public void init() throws Exception {
+    public void prepare() {
         RepositoriesMetaData repositoriesMetaData = new RepositoriesMetaData(
             new RepositoryMetaData(
                 "my_repo",
@@ -58,7 +58,7 @@ public class CreateDropRepositoryAnalyzerTest extends CrateUnitTest {
             .metaData(MetaData.builder()
                 .putCustom(RepositoriesMetaData.TYPE, repositoriesMetaData))
             .build();
-        NoopClusterService clusterService = new NoopClusterService(clusterState);
+        ClusterServiceUtils.setState(clusterService, clusterState);
         e = SQLExecutor.builder(clusterService).build();
     }
 

@@ -32,6 +32,7 @@ import io.crate.exceptions.CreateSnapshotException;
 import io.crate.exceptions.TableUnknownException;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.TableIdent;
+import org.apache.logging.log4j.Logger;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.admin.cluster.snapshots.create.CreateSnapshotRequest;
 import org.elasticsearch.action.admin.cluster.snapshots.create.CreateSnapshotResponse;
@@ -45,7 +46,6 @@ import org.elasticsearch.action.admin.cluster.snapshots.restore.RestoreSnapshotR
 import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
-import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.snapshots.SnapshotInfo;
 import org.elasticsearch.snapshots.SnapshotState;
@@ -63,7 +63,7 @@ import static io.crate.analyze.SnapshotSettings.WAIT_FOR_COMPLETION;
 @Singleton
 public class SnapshotRestoreDDLDispatcher {
 
-    private static final ESLogger LOGGER = Loggers.getLogger(SnapshotRestoreDDLDispatcher.class);
+    private static final Logger LOGGER = Loggers.getLogger(SnapshotRestoreDDLDispatcher.class);
     private final TransportActionProvider transportActionProvider;
 
     @Inject
@@ -88,7 +88,7 @@ public class SnapshotRestoreDDLDispatcher {
                 }
 
                 @Override
-                public void onFailure(Throwable e) {
+                public void onFailure(Exception e) {
                     future.completeExceptionally(e);
                 }
             }
@@ -106,8 +106,8 @@ public class SnapshotRestoreDDLDispatcher {
         // ignore_unavailable as set by statement
         IndicesOptions indicesOptions = IndicesOptions.fromOptions(ignoreUnavailable, true, true, false, IndicesOptions.lenientExpandOpen());
 
-        CreateSnapshotRequest request = new CreateSnapshotRequest(statement.snapshotId().getRepository(), statement.snapshotId().getSnapshot())
-            .includeGlobalState(true)  // Always include metadata, because they contain the index templates
+        CreateSnapshotRequest request = new CreateSnapshotRequest(statement.snapshot().getRepository(), statement.snapshot().getSnapshotId().getName())
+            .includeGlobalState(true)
             .waitForCompletion(waitForCompletion)
             .indices(statement.indices())
             .indicesOptions(indicesOptions)
@@ -128,7 +128,7 @@ public class SnapshotRestoreDDLDispatcher {
                         .replaceAll("Index", "Table")
                         .replaceAll("Indices", "Tables");
                     resultFuture.completeExceptionally(
-                        new CreateSnapshotException(statement.snapshotId(), reason)
+                        new CreateSnapshotException(statement.snapshot(), reason)
                     );
                 } else {
                     resultFuture.complete(1L);
@@ -136,7 +136,7 @@ public class SnapshotRestoreDDLDispatcher {
             }
 
             @Override
-            public void onFailure(Throwable e) {
+            public void onFailure(Exception e) {
                 resultFuture.completeExceptionally(e);
             }
         });
@@ -162,7 +162,7 @@ public class SnapshotRestoreDDLDispatcher {
                         .includeAliases(true);
                     transportActionProvider.transportRestoreSnapshotAction().execute(request, listener);
                 } else {
-                    listener.onFailure(t);
+                    listener.onFailure((Exception) t);
                 }
             });
         return listener;
@@ -248,7 +248,7 @@ public class SnapshotRestoreDDLDispatcher {
         }
 
         @Override
-        public void onFailure(Throwable e) {
+        public void onFailure(Exception e) {
             returnFuture.completeExceptionally(e);
         }
     }

@@ -24,7 +24,7 @@ package io.crate.operation.collect.collectors;
 
 import org.apache.lucene.index.FieldInfo;
 import org.elasticsearch.index.fieldvisitor.FieldsVisitor;
-import org.elasticsearch.index.mapper.internal.SourceFieldMapper;
+import org.elasticsearch.index.mapper.SourceFieldMapper;
 
 import java.io.IOException;
 import java.util.HashSet;

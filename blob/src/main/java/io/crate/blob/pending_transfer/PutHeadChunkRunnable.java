@@ -23,9 +23,9 @@ package io.crate.blob.pending_transfer;
 
 import io.crate.blob.BlobTransferTarget;
 import io.crate.blob.DigestBlob;
+import org.apache.logging.log4j.Logger;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.common.bytes.BytesArray;
-import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.transport.EmptyTransportResponseHandler;
 import org.elasticsearch.transport.TransportRequestOptions;
@@ -49,7 +49,7 @@ public class PutHeadChunkRunnable implements Runnable {
     private final UUID transferId;
     private WatchKey watchKey;
     private WatchService watcher;
-    private static final ESLogger logger = Loggers.getLogger(PutHeadChunkRunnable.class);
+    private static final Logger logger = Loggers.getLogger(PutHeadChunkRunnable.class);
 
     public PutHeadChunkRunnable(DigestBlob digestBlob, long bytesToSend,
                                 TransportService transportService,

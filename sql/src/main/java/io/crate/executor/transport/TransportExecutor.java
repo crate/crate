@@ -58,12 +58,12 @@ import io.crate.planner.node.management.ExplainPlan;
 import io.crate.planner.node.management.GenericShowPlan;
 import io.crate.planner.node.management.KillPlan;
 import io.crate.planner.statement.SetSessionPlan;
+import org.apache.logging.log4j.Logger;
 import org.elasticsearch.action.bulk.BulkRetryCoordinatorPool;
-import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
+import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
-import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.indices.IndicesService;
@@ -77,7 +77,7 @@ import java.util.concurrent.CompletableFuture;
 @Singleton
 public class TransportExecutor implements Executor {
 
-    private static final ESLogger LOGGER = Loggers.getLogger(TransportExecutor.class);
+    private static final Logger LOGGER = Loggers.getLogger(TransportExecutor.class);
 
     private final IndexNameExpressionResolver indexNameExpressionResolver;
     private final Functions functions;

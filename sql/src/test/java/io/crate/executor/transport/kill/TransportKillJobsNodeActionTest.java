@@ -23,9 +23,10 @@ package io.crate.executor.transport.kill;
 
 import com.google.common.collect.ImmutableList;
 import io.crate.jobs.JobContextService;
+import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
+import org.elasticsearch.Version;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.test.cluster.NoopClusterService;
-import org.elasticsearch.transport.TransportService;
+import org.elasticsearch.test.transport.MockTransportService;
 import org.junit.Test;
 import org.mockito.Answers;
 
@@ -35,17 +36,16 @@ import java.util.concurrent.TimeUnit;
 
 import static org.mockito.Mockito.*;
 
-public class TransportKillJobsNodeActionTest {
+public class TransportKillJobsNodeActionTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testKillIsCalledOnJobContextService() throws Exception {
-        TransportService transportService = mock(TransportService.class);
         JobContextService jobContextService = mock(JobContextService.class, Answers.RETURNS_MOCKS.get());
         TransportKillJobsNodeAction transportKillJobsNodeAction = new TransportKillJobsNodeAction(
             Settings.EMPTY,
             jobContextService,
-            new NoopClusterService(),
-            transportService
+            clusterService,
+            MockTransportService.local(Settings.EMPTY, Version.CURRENT, THREAD_POOL)
         );
 
         List<UUID> toKill = ImmutableList.of(UUID.randomUUID(), UUID.randomUUID());

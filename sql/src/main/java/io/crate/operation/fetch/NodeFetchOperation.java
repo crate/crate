@@ -69,7 +69,8 @@ public class NodeFetchOperation {
 
         FetchCollector createCollector(int readerId) {
             IndexService indexService = fetchContext.indexService(readerId);
-            LuceneReferenceResolver resolver = new LuceneReferenceResolver(indexService.mapperService()::smartNameFieldType);
+            LuceneReferenceResolver resolver = new LuceneReferenceResolver(
+                indexService.mapperService()::fullName, indexService.getIndexSettings());
             ArrayList<LuceneCollectorExpression<?>> exprs = new ArrayList<>(refs.size());
             for (Reference reference : refs) {
                 exprs.add(resolver.getImplementation(reference));

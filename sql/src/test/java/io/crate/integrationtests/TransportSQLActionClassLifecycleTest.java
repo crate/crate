@@ -52,7 +52,7 @@ import static com.carrotsearch.randomizedtesting.RandomizedTest.$;
 import static org.hamcrest.Matchers.*;
 import static org.hamcrest.core.Is.is;
 
-@ESIntegTestCase.ClusterScope(numClientNodes = 0, numDataNodes = 2)
+@ESIntegTestCase.ClusterScope(numClientNodes = 0, numDataNodes = 2, supportsDedicatedMasters = false)
 @UseJdbc
 public class TransportSQLActionClassLifecycleTest extends SQLTransportIntegrationTest {
 
@@ -633,7 +633,7 @@ public class TransportSQLActionClassLifecycleTest extends SQLTransportIntegratio
     public void testDistanceQueryOnSysTable() throws Exception {
         SQLResponse response = execute(
             "select Distance('POINT (10 20)', 'POINT (11 21)') from sys.cluster");
-        assertThat((Double) response.rows()[0][0], is(152462.70754934277));
+        assertThat(response.rows()[0][0], is(152354.3209044634));
     }
 
     @Test

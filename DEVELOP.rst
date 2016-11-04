@@ -93,7 +93,7 @@ To compile Crate sources execute::
 To run Crate as a Gradle task, a configuration file for logging (`log4j`_)
 needs to be present::
 
-    mkdir -pv config && touch config/logging.yml
+    mkdir -pv config && touch config/log4j2.properties
 
 You can use a :ref:`minimal logging configuration <minimim_logging_config>`.
 For more information about logging, please refer to our

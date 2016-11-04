@@ -25,7 +25,7 @@ package io.crate.azure.discovery;
 import com.microsoft.azure.management.network.*;
 import com.microsoft.azure.management.network.models.*;
 import com.microsoft.windowsazure.exception.ServiceException;
-import org.elasticsearch.common.logging.ESLogger;
+import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.util.CollectionUtils;
@@ -44,7 +44,7 @@ public class AzureUnicastHostsProviderTest {
     private static final String rgName = "my_resourcegroup";
     private static final String vnetName = "myVnet";
     private static final String subnetname = "mySubnet2";
-    private ESLogger logger;
+    private Logger logger;
 
     private NetworkResourceProviderClient providerClient = mock(NetworkResourceProviderClientImpl.class);
 

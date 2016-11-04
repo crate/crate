@@ -45,8 +45,8 @@ import org.elasticsearch.action.bulk.BulkRequestExecutor;
 import org.elasticsearch.action.bulk.BulkRetryCoordinatorPool;
 import org.elasticsearch.action.bulk.BulkShardProcessor;
 import org.elasticsearch.action.support.AutoCreateIndex;
-import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
+import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.IndexNotFoundException;
 import org.elasticsearch.index.shard.ShardId;
@@ -92,7 +92,7 @@ public class UpsertByIdTask extends JobTask {
         this.clusterService = clusterService;
         this.bulkRetryCoordinatorPool = bulkRetryCoordinatorPool;
         this.jobContextService = jobContextService;
-        autoCreateIndex = new AutoCreateIndex(settings, indexNameExpressionResolver);
+        autoCreateIndex = new AutoCreateIndex(settings, clusterService.getClusterSettings(), indexNameExpressionResolver);
     }
 
     @Override
@@ -155,7 +155,6 @@ public class UpsertByIdTask extends JobTask {
             shardId = clusterService.operationRouting().indexShards(
                 clusterService.state(),
                 item.index(),
-                Constants.DEFAULT_MAPPING_TYPE,
                 item.id(),
                 item.routing()
             ).shardId();

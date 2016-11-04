@@ -27,9 +27,9 @@ import io.crate.operation.reference.sys.repositories.SysRepositoriesService;
 import io.crate.operation.reference.sys.repositories.SysRepository;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
-import org.elasticsearch.common.logging.ESLogger;
-import org.elasticsearch.common.logging.Loggers;
-import org.elasticsearch.snapshots.Snapshot;
+import org.elasticsearch.repositories.RepositoriesService;
+import org.elasticsearch.snapshots.SnapshotId;
+import org.elasticsearch.snapshots.SnapshotInfo;
 import org.elasticsearch.snapshots.SnapshotsService;
 
 import javax.annotation.Nullable;
@@ -41,12 +41,15 @@ public class SysSnapshots {
 
     private final SysRepositoriesService sysRepositoriesService;
     private final SnapshotsService snapshotsService;
-    private static final ESLogger LOGGER = Loggers.getLogger(SysSnapshots.class);
+    private final RepositoriesService repositoriesService;
 
     @Inject
-    public SysSnapshots(SysRepositoriesService sysRepositoriesService, SnapshotsService snapshotsService) {
+    public SysSnapshots(SysRepositoriesService sysRepositoriesService,
+                        SnapshotsService snapshotsService,
+                        RepositoriesService repositoriesService) {
         this.sysRepositoriesService = sysRepositoriesService;
         this.snapshotsService = snapshotsService;
+        this.repositoriesService = repositoriesService;
     }
 
     public Iterable<SysSnapshot> snapshotsGetter() {
@@ -54,23 +57,18 @@ public class SysSnapshots {
         for (Object entry : sysRepositoriesService.repositoriesGetter()) {
             final String repositoryName = ((SysRepository) entry).name();
 
-            List<Snapshot> snapshots;
-            try {
-                snapshots = snapshotsService.snapshots(repositoryName, true);
-            } catch (Throwable t) {
-                // TODO: catch can probably be removed due to ignore unavailable flag?
-                LOGGER.warn("Error occurred listing snapshots of repository {}", t, repositoryName);
-                continue;
-            }
-            sysSnapshots.addAll(Lists.transform(snapshots, new Function<Snapshot, SysSnapshot>() {
+
+            List<SnapshotId> snapshotIds = repositoriesService.repository(repositoryName).getRepositoryData().getSnapshotIds();
+            List<SnapshotInfo> snapshots = snapshotsService.snapshots(repositoryName, snapshotIds, true);
+            sysSnapshots.addAll(Lists.transform(snapshots, new Function<SnapshotInfo, SysSnapshot>() {
                 @Nullable
                 @Override
-                public SysSnapshot apply(@Nullable Snapshot snapshot) {
+                public SysSnapshot apply(@Nullable SnapshotInfo snapshot) {
                     if (snapshot == null) {
                         return null;
                     }
                     return new SysSnapshot(
-                        snapshot.name(),
+                        snapshot.snapshotId().getName(),
                         repositoryName,
                         snapshot.indices(),
                         snapshot.startTime(),

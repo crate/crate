@@ -33,9 +33,9 @@ import io.crate.testing.TestingBatchConsumer;
 import io.crate.testing.TestingBatchIterators;
 import io.crate.testing.TestingHelpers;
 import io.crate.types.DataTypes;
+import org.apache.logging.log4j.Logger;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.common.breaker.NoopCircuitBreaker;
-import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 import org.junit.Test;
 import org.mockito.invocation.InvocationOnMock;
@@ -55,7 +55,7 @@ import static org.mockito.Mockito.*;
 
 public class DistributingConsumerTest extends CrateUnitTest {
 
-    private ESLogger logger = Loggers.getLogger(DistributingConsumer.class);
+    private Logger logger = Loggers.getLogger(DistributingConsumer.class);
 
     @Test
     public void testSendUsingDistributingConsumerAndReceiveWithPageDownstreamContext() throws Exception {

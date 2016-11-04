@@ -23,22 +23,22 @@
 package io.crate.module;
 
 import io.crate.rest.action.admin.AdminUIFrontpageAction;
+import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.inject.AbstractModule;
 import org.elasticsearch.common.inject.TypeLiteral;
 import org.elasticsearch.common.inject.matcher.AbstractMatcher;
 import org.elasticsearch.common.inject.spi.InjectionListener;
 import org.elasticsearch.common.inject.spi.TypeEncounter;
 import org.elasticsearch.common.inject.spi.TypeListener;
-import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
-import org.elasticsearch.rest.action.main.RestMainAction;
+import org.elasticsearch.rest.action.RestMainAction;
 
 import java.util.concurrent.CompletableFuture;
 
 
 public class AdminUIModule extends AbstractModule {
 
-    private final ESLogger logger = Loggers.getLogger(getClass());
+    private final Logger logger = Loggers.getLogger(getClass());
 
     public AdminUIModule() {
     }

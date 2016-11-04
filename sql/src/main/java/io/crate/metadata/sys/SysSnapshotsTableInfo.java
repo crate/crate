@@ -31,8 +31,8 @@ import io.crate.metadata.table.ColumnRegistrar;
 import io.crate.metadata.table.StaticTableInfo;
 import io.crate.types.ArrayType;
 import io.crate.types.DataTypes;
-import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.node.DiscoveryNode;
+import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.collect.ImmutableOpenMap;
 
 import javax.annotation.Nullable;
@@ -91,7 +91,7 @@ public class SysSnapshotsTableInfo extends StaticTableInfo {
     }
 
     private DiscoveryNode randomMasterOrDataNode() {
-        ImmutableOpenMap<String, DiscoveryNode> masterAndDataNodes = clusterService.state().nodes().masterAndDataNodes();
+        ImmutableOpenMap<String, DiscoveryNode> masterAndDataNodes = clusterService.state().nodes().getMasterAndDataNodes();
         int randomIdx = random.nextInt(masterAndDataNodes.size());
         Iterator<DiscoveryNode> it = masterAndDataNodes.valuesIt();
         int currIdx = 0;

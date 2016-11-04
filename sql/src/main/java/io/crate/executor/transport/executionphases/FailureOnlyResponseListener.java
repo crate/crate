@@ -51,7 +51,7 @@ class FailureOnlyResponseListener implements ActionListener<JobResponse> {
     }
 
     @Override
-    public void onFailure(Throwable e) {
+    public void onFailure(Exception e) {
         initializationTracker.jobInitialized();
         // could be a preparation failure - in that case the regular error propagation doesn't work as it hasn't been set up yet
         // so fail rowReceivers directly

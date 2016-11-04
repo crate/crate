@@ -29,10 +29,11 @@ import org.elasticsearch.cluster.routing.ShardRouting;
 import org.elasticsearch.cluster.routing.allocation.RoutingAllocation;
 import org.elasticsearch.cluster.routing.allocation.decider.AllocationDecider;
 import org.elasticsearch.cluster.routing.allocation.decider.Decision;
+import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
+import org.elasticsearch.common.settings.ClusterSettings;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.node.settings.NodeSettingsService;
 
 import java.util.Map;
 import java.util.Set;
@@ -48,11 +49,24 @@ public class DecommissionAllocationDecider extends AllocationDecider {
     private DataAvailability dataAvailability; // set in onRefreshSettings in the CTOR
 
     @Inject
-    public DecommissionAllocationDecider(Settings settings, NodeSettingsService nodeSettingsService) {
+    public DecommissionAllocationDecider(Settings settings, ClusterService clusterService) {
         super(settings);
-        ApplySettings applySettings = new ApplySettings();
-        applySettings.onRefreshSettings(settings);
-        nodeSettingsService.addListener(applySettings);
+        ClusterSettings clusterSettings = clusterService.getClusterSettings();
+        updateDecommissioningNodes(settings);
+        updateMinAvailability(CrateSettings.GRACEFUL_STOP_MIN_AVAILABILITY.extract(settings));
+        clusterSettings.addSettingsUpdateConsumer(
+            DecommissioningService.DECOMMISSION_INTERNAL_SETTING_GROUP, this::updateDecommissioningNodes);
+        clusterSettings.addSettingsUpdateConsumer(
+            CrateSettings.GRACEFUL_STOP_MIN_AVAILABILITY.esSetting(), this::updateMinAvailability);
+    }
+
+    private void updateDecommissioningNodes(Settings settings) {
+        Map<String, String> decommissionMap = settings.getByPrefix(DecommissioningService.DECOMMISSION_PREFIX).getAsMap();
+        decommissioningNodes = decommissionMap.keySet();
+    }
+
+    private void updateMinAvailability(String availability) {
+        dataAvailability = DataAvailability.of(availability);
     }
 
     @Override
@@ -85,14 +99,5 @@ public class DecommissionAllocationDecider extends AllocationDecider {
             return allocation.decision(Decision.NO, NAME, "node is being decommissioned");
         }
         return allocation.decision(Decision.YES, NAME, "node isn't decommissioned");
-    }
-
-    private class ApplySettings implements NodeSettingsService.Listener {
-        @Override
-        public void onRefreshSettings(Settings settings) {
-            Map<String, String> decommissionMap = settings.getByPrefix(DecommissioningService.DECOMMISSION_PREFIX).getAsMap();
-            decommissioningNodes = decommissionMap.keySet();
-            dataAvailability = DataAvailability.of(CrateSettings.GRACEFUL_STOP_MIN_AVAILABILITY.extract(settings));
-        }
     }
 }

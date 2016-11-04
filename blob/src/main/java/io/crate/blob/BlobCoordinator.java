@@ -22,8 +22,7 @@
 
 package io.crate.blob;
 
-import org.elasticsearch.cluster.routing.DjbHashFunction;
-import org.elasticsearch.common.math.MathUtils;
+import org.elasticsearch.cluster.routing.Murmur3HashFunction;
 
 import java.util.concurrent.Semaphore;
 
@@ -48,18 +47,18 @@ import java.util.concurrent.Semaphore;
  *    }
  * </pre>
  */
-public class BlobCoordinator {
+class BlobCoordinator {
 
     private final Semaphore[] digestBinarySemaphores;
 
-    public BlobCoordinator() {
+    BlobCoordinator() {
         digestBinarySemaphores = new Semaphore[500];
         for (int i = 0; i < digestBinarySemaphores.length; i++) {
             digestBinarySemaphores[i] = new Semaphore(1);
         }
     }
 
-    public Semaphore digestCoordinator(String digest) {
-        return digestBinarySemaphores[MathUtils.mod(DjbHashFunction.DJB_HASH(digest), digestBinarySemaphores.length)];
+    Semaphore digestCoordinator(String digest) {
+        return digestBinarySemaphores[Math.abs(Murmur3HashFunction.hash(digest) % digestBinarySemaphores.length)];
     }
 }

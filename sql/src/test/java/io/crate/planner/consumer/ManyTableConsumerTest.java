@@ -30,11 +30,11 @@ import io.crate.analyze.relations.JoinPair;
 import io.crate.planner.node.dql.join.JoinType;
 import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.QualifiedName;
-import io.crate.test.integration.CrateUnitTest;
+import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.crate.testing.T3;
-import org.elasticsearch.test.cluster.NoopClusterService;
 import org.hamcrest.Matchers;
+import org.junit.Before;
 import org.junit.Test;
 
 import java.util.Arrays;
@@ -44,9 +44,14 @@ import java.util.Set;
 import static io.crate.testing.TestingHelpers.isSQL;
 import static org.hamcrest.core.Is.is;
 
-public class ManyTableConsumerTest extends CrateUnitTest {
+public class ManyTableConsumerTest extends CrateDummyClusterServiceUnitTest {
 
-    private SQLExecutor e = SQLExecutor.builder(new NoopClusterService()).enableDefaultTables().build();
+    private SQLExecutor e;
+
+    @Before
+    public void prepare() {
+        e = SQLExecutor.builder(clusterService).enableDefaultTables().build();
+    }
 
     private MultiSourceSelect analyze(String statement) {
         Analysis analysis = e.analyzer.boundAnalyze(

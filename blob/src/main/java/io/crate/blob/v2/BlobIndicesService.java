@@ -22,20 +22,20 @@
 package io.crate.blob.v2;
 
 import com.google.common.annotations.VisibleForTesting;
-import org.elasticsearch.cluster.ClusterService;
+import io.crate.plugin.IndexEventListenerProxy;
 import org.elasticsearch.cluster.routing.ShardIterator;
+import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.Nullable;
+import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.component.AbstractComponent;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.io.PathUtils;
+import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.settings.SettingsException;
 import org.elasticsearch.index.Index;
 import org.elasticsearch.index.IndexService;
-import org.elasticsearch.index.shard.IndexShard;
-import org.elasticsearch.index.shard.ShardId;
-import org.elasticsearch.index.shard.ShardNotFoundException;
-import org.elasticsearch.indices.IndicesLifecycle;
+import org.elasticsearch.index.shard.*;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -49,14 +49,16 @@ import static io.crate.blob.v2.BlobIndex.isBlobIndex;
 /**
  * Manages the creation and deletion of BlobIndex and BlobShard instances.
  */
-public class BlobIndicesService extends AbstractComponent {
+public class BlobIndicesService extends AbstractComponent implements IndexEventListener {
 
-    public static final String SETTING_INDEX_BLOBS_ENABLED = "index.blobs.enabled";
-    public static final String SETTING_INDEX_BLOBS_PATH = "index.blobs.path";
-    public static final String SETTING_BLOBS_PATH = "blobs.path";
+    public static final Setting<Boolean> SETTING_INDEX_BLOBS_ENABLED = Setting.boolSetting(
+        "index.blobs.enabled", false, Setting.Property.IndexScope);
+    public static final Setting<String> SETTING_INDEX_BLOBS_PATH = Setting.simpleString(
+        "index.blobs.path", Setting.Property.IndexScope);
+    public static final Setting<String> SETTING_BLOBS_PATH = Setting.simpleString(
+        "blobs.path", Setting.Property.NodeScope);
 
     private final ClusterService clusterService;
-    private final IndicesLifecycle indicesLifecycle;
 
     @VisibleForTesting
     final Map<String, BlobIndex> indices = new ConcurrentHashMap<>();
@@ -65,21 +67,17 @@ public class BlobIndicesService extends AbstractComponent {
     private final Path globalBlobPath;
 
     @Inject
-    public BlobIndicesService(Settings settings,
-                              ClusterService clusterService,
-                              IndicesLifecycle indicesLifecycle) {
+    public BlobIndicesService(Settings settings, ClusterService clusterService, IndexEventListenerProxy indexEventListenerProxy) {
         super(settings);
         this.clusterService = clusterService;
-        this.indicesLifecycle = indicesLifecycle;
-        indicesLifecycle.addListener(new LifecycleListener());
         globalBlobPath = getGlobalBlobPath(settings);
-        logger.setLevel("debug");
+        indexEventListenerProxy.addFirst(this);
     }
 
     @Nullable
     public static Path getGlobalBlobPath(Settings settings) {
-        String customGlobalBlobPathSetting = settings.get(SETTING_BLOBS_PATH);
-        if (customGlobalBlobPathSetting == null) {
+        String customGlobalBlobPathSetting = SETTING_BLOBS_PATH.get(settings);
+        if (Strings.isNullOrEmpty(customGlobalBlobPathSetting)) {
             return null;
         }
         Path globalBlobPath = PathUtils.get(customGlobalBlobPathSetting);
@@ -87,51 +85,63 @@ public class BlobIndicesService extends AbstractComponent {
         return globalBlobPath;
     }
 
-    private class LifecycleListener extends IndicesLifecycle.Listener {
 
-        @Override
-        public void afterIndexCreated(IndexService indexService) {
-            String indexName = indexService.index().getName();
-            if (isBlobIndex(indexName)) {
-                BlobIndex oldBlobIndex = indices.put(indexName, new BlobIndex(logger, globalBlobPath));
-                assert oldBlobIndex == null : "There must not be an index present if a new index is created";
-            }
+    @Override
+    public void afterIndexCreated(IndexService indexService) {
+        String indexName = indexService.index().getName();
+        if (isBlobIndex(indexName)) {
+            BlobIndex oldBlobIndex = indices.put(indexName, new BlobIndex(logger, globalBlobPath));
+            assert oldBlobIndex == null : "There must not be an index present if a new index is created";
         }
+    }
 
-        @Override
-        public void afterIndexClosed(Index index, Settings indexSettings) {
-            String indexName = index.getName();
-            if (isBlobIndex(indexName)) {
-                BlobIndex blobIndex = indices.remove(indexName);
-                assert blobIndex != null : "BlobIndex not found on afterIndexDeleted";
-            }
+    @Override
+    public void afterIndexClosed(Index index, Settings indexSettings) {
+        String indexName = index.getName();
+        if (isBlobIndex(indexName)) {
+            BlobIndex blobIndex = indices.remove(indexName);
+            assert blobIndex != null : "BlobIndex not found on afterIndexDeleted";
+
+            /*
+             * Calling delete within IndexClosed is okay because Crate doesn't support closing indices.
+             *
+             * Can't do this in the `afterIndexDeleted` event because the master-node creates test indices for which
+             * no `afterIndexDeleted´ event is created: These would then leak.
+             */
+            blobIndex.delete();
         }
+    }
 
-        @Override
-        public void afterIndexShardCreated(IndexShard indexShard) {
-            String index = indexShard.indexService().index().getName();
-            if (isBlobIndex(index)) {
-                BlobIndex blobIndex = indices.get(index);
-                assert blobIndex != null : "blobIndex must exists if a shard is created in it";
-                blobIndex.createShard(indexShard);
-            }
+    @Override
+    public void afterIndexShardCreated(IndexShard indexShard) {
+        String index = indexShard.shardId().getIndexName();
+        if (isBlobIndex(index)) {
+            BlobIndex blobIndex = indices.get(index);
+            assert blobIndex != null : "blobIndex must exists if a shard is created in it";
+            blobIndex.createShard(indexShard);
         }
+    }
 
-        @Override
-        public void beforeIndexShardPostRecovery(IndexShard indexShard) {
-            String index = indexShard.indexService().index().getName();
+    @Override
+    public void indexShardStateChanged(IndexShard indexShard,
+                                       @Nullable IndexShardState previousState,
+                                       IndexShardState currentState,
+                                       @Nullable String reason) {
+        if (currentState == IndexShardState.POST_RECOVERY) {
+            String index = indexShard.shardId().getIndexName();
             if (isBlobIndex(index)) {
                 BlobIndex blobIndex = indices.get(index);
                 blobIndex.initializeShard(indexShard);
             }
         }
+    }
 
-        @Override
-        public void afterIndexShardDeleted(ShardId shardId, Settings indexSettings) {
-            String index = shardId.getIndex();
-            if (isBlobIndex(index)) {
-                BlobIndex blobIndex = indices.get(index);
-                assert blobIndex != null : "blobIndex must exists if a shard is deleted from it";
+    @Override
+    public void afterIndexShardDeleted(ShardId shardId, Settings indexSettings) {
+        String index = shardId.getIndexName();
+        if (isBlobIndex(index)) {
+            BlobIndex blobIndex = indices.get(index);
+            if (blobIndex != null) {
                 blobIndex.removeShard(shardId);
             }
         }
@@ -139,7 +149,7 @@ public class BlobIndicesService extends AbstractComponent {
 
     @Nullable
     public BlobShard blobShard(ShardId shardId) {
-        BlobIndex blobIndex = indices.get(shardId.getIndex());
+        BlobIndex blobIndex = indices.get(shardId.getIndexName());
         if (blobIndex == null) {
             return null;
         }
@@ -147,7 +157,7 @@ public class BlobIndicesService extends AbstractComponent {
     }
 
     public BlobShard blobShardSafe(ShardId shardId) {
-        String index = shardId.getIndex();
+        String index = shardId.getIndexName();
         if (isBlobIndex(index)) {
             BlobShard blobShard = blobShard(shardId);
             if (blobShard == null) {
@@ -155,7 +165,7 @@ public class BlobIndicesService extends AbstractComponent {
             }
             return blobShard;
         }
-        throw new BlobsDisabledException(index);
+        throw new BlobsDisabledException(shardId.getIndex());
     }
 
     public BlobShard localBlobShard(String index, String digest) {
@@ -164,7 +174,7 @@ public class BlobIndicesService extends AbstractComponent {
 
     private ShardId localShardId(String index, String digest) {
         ShardIterator si = clusterService.operationRouting().getShards(
-            clusterService.state(), index, null, null, digest, "_only_local");
+            clusterService.state(), index, null, digest, "_only_local");
         return si.shardId();
     }
 

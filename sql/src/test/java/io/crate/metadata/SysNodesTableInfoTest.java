@@ -25,7 +25,7 @@ package io.crate.metadata;
 import io.crate.metadata.sys.SysNodesTableInfo;
 import io.crate.operation.reference.sys.RowContextReferenceResolver;
 import io.crate.test.integration.CrateUnitTest;
-import org.elasticsearch.cluster.ClusterService;
+import org.elasticsearch.cluster.service.ClusterService;
 import org.junit.Test;
 
 import java.util.Iterator;

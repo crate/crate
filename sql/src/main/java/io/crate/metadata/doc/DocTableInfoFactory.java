@@ -23,7 +23,7 @@
 package io.crate.metadata.doc;
 
 import io.crate.metadata.TableIdent;
-import org.elasticsearch.cluster.ClusterService;
+import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.ImplementedBy;
 
 @ImplementedBy(InternalDocTableInfoFactory.class)
