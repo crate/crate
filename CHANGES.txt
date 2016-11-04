@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fixed an issue that causes outer joins to fail with an exception
+   if columns are referenced in a where clause but not as select items.
+
  - Fixed an issue that caused right outer joins to get stuck instead of returning
    a result if the left table is empty.
 

@@ -57,6 +57,13 @@ import static org.junit.Assert.assertThat;
 
 public class ManyTableConsumerTest {
 
+    private static final NestedReferenceResolver DUMMY_REFERENCE_RESOLVER = new NestedReferenceResolver() {
+        @Override
+        public ReferenceImplementation<?> getImplementation(Reference refInfo) {
+            return null;
+        }
+    };
+
     private Analyzer analyzer;
 
     @Before
@@ -183,12 +190,7 @@ public class ManyTableConsumerTest {
         MultiSourceSelect mss = analyze("select * from t1 " +
                                         "left join t2 on t1.a = t2.b " +
                                         "order by t2.b");
-        TwoTableJoin root = ManyTableConsumer.twoTableJoin(new Rewriter(getFunctions(), new NestedReferenceResolver() {
-            @Override
-            public ReferenceImplementation<?> getImplementation(Reference refInfo) {
-                return null;
-            }
-        }), mss);
+        TwoTableJoin root = ManyTableConsumer.twoTableJoin(new Rewriter(getFunctions(), DUMMY_REFERENCE_RESOLVER), mss);
 
         assertThat(root.right().querySpec().orderBy().isPresent(), is(false));
         assertThat(root.querySpec().orderBy().get(), isSQL("RELCOL(doc.t2, 0)"));
@@ -208,5 +210,17 @@ public class ManyTableConsumerTest {
 
         assertThat(root.right().querySpec().orderBy().isPresent(), is(false));
         assertThat(root.querySpec().orderBy().get(), isSQL("RELCOL(join.doc.t1.doc.t2, 3), RELCOL(doc.t3, 0)"));
+    }
+
+    @Test
+    public void testJoinConditionsAreRewrittenIfOutputsChanges() throws Exception {
+        MultiSourceSelect mss = analyze("select t1.a from t1 " +
+                                        "left join t2 on t1.a = t2.b " +
+                                        "where t1.x = 1 and t2.y in (1)");
+        TwoTableJoin root = ManyTableConsumer.twoTableJoin(new Rewriter(getFunctions(), DUMMY_REFERENCE_RESOLVER), mss);
+        // if Rewriter does not operate correctly on the joinPairs, t2 RelationColumn index would be 1 instead of 0
+        // 2 outputs, t2.y + t2.b on t2 are rewritten to t2.b only because whereClause outputs must not be collected
+        // so index for t2.b must be shifted
+        assertThat(root.joinPair().condition(), isSQL("(RELCOL(doc.t1, 0) = RELCOL(doc.t2, 0))"));
     }
 }

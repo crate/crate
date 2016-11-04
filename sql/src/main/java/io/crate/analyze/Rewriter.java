@@ -28,9 +28,7 @@ import com.google.common.collect.Sets;
 import io.crate.analyze.relations.JoinPair;
 import io.crate.analyze.relations.QuerySplitter;
 import io.crate.analyze.symbol.*;
-import io.crate.metadata.Functions;
-import io.crate.metadata.NestedReferenceResolver;
-import io.crate.metadata.RowGranularity;
+import io.crate.metadata.*;
 import io.crate.operation.operator.AndOperator;
 import io.crate.planner.node.dql.join.JoinType;
 import io.crate.sql.tree.QualifiedName;
@@ -174,29 +172,9 @@ public class Rewriter {
             outerSpec.outputs().remove(symbolToRemove.v2());
             multiSourceQuerySpec.outputs().remove(removedRC);
 
-            // shift other relationColumns
-            // e.g. if the outerSpec had outputs: [o1, o2, o3]
-            // and o2 got removed
-            // a RelationColumn(o, 2) would now point to nothing instead of o3
-            // so all indices needs to be decreased
-            multiSourceQuerySpec.replace(new Function<Symbol, Symbol>() {
-                @Nullable
-                @Override
-                public Symbol apply(@Nullable Symbol input) {
-                    if (input instanceof RelationColumn) {
-                        RelationColumn relationColumn = (RelationColumn) input;
-                        if (relationColumn.relationName().equals(removedRC.relationName())
-                            && relationColumn.index() > removedRC.index()) {
-
-                            return new RelationColumn(
-                                relationColumn.relationName(),
-                                relationColumn.index() - 1,
-                                relationColumn.valueType());
-                        }
-                    }
-                    return input;
-                }
-            });
+            Function<Symbol, Symbol> replaceFunction = new RelationColumnIndexShifter(removedRC);
+            joinPair.replaceCondition(replaceFunction);
+            multiSourceQuerySpec.replace(replaceFunction);
         }
     }
 
@@ -245,6 +223,43 @@ public class Rewriter {
 
         Collection<Tuple<RelationColumn, Symbol>> symbolsToNotCollect() {
             return symbolsToNotCollect;
+        }
+    }
+
+    /**
+     * shift other relationColumns when one was removed
+     * e.g. if the outerSpec had outputs: [o1, o2, o3]
+     * and o2 got removed
+     * a RelationColumn(o, 2) would now point to nothing instead of o3
+     * so all indices needs to be decreased
+     */
+    private static class RelationColumnIndexShifter extends ReplacingSymbolVisitor<Void>
+        implements Function<Symbol, Symbol> {
+
+        private final RelationColumn removedRelationColumn;
+
+        RelationColumnIndexShifter(RelationColumn removedRelationColumn) {
+            super(ReplaceMode.COPY);
+            this.removedRelationColumn = removedRelationColumn;
+        }
+
+        @Nullable
+        @Override
+        public Symbol apply(@Nullable Symbol input) {
+            return process(input, null);
+        }
+
+        @Override
+        public Symbol visitRelationColumn(RelationColumn relationColumn, Void context) {
+            if (relationColumn.relationName().equals(removedRelationColumn.relationName())
+                && relationColumn.index() > removedRelationColumn.index()) {
+
+                return new RelationColumn(
+                    relationColumn.relationName(),
+                    relationColumn.index() - 1,
+                    relationColumn.valueType());
+            }
+            return relationColumn;
         }
     }
 }
