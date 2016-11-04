@@ -65,7 +65,7 @@ public class ExtendedNetworkStats implements Streamable {
     @Override
     public void readFrom(StreamInput in) throws IOException {
         timestamp = in.readLong();
-        tcp = in.readOptionalStreamable(new Tcp());
+        tcp = in.readOptionalStreamable(Tcp::new);
     }
 
     @Override

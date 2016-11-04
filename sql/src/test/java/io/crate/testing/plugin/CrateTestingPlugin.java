@@ -27,16 +27,6 @@ import org.elasticsearch.plugins.Plugin;
 
 public class CrateTestingPlugin extends Plugin {
 
-    @Override
-    public String name() {
-        return "crate-testing-plugin";
-    }
-
-    @Override
-    public String description() {
-        return "A plugin that implements functions used for testing.";
-    }
-
     public void onModule(ScalarFunctionModule module) {
         module.register(new SleepScalarFunction());
     }

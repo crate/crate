@@ -33,13 +33,12 @@ import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.metadata.*;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.TestingTableInfo;
-import io.crate.test.integration.CrateUnitTest;
+import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.DoubleType;
-import org.elasticsearch.test.cluster.NoopClusterService;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -51,7 +50,7 @@ import static io.crate.analyze.TableDefinitions.USER_TABLE_INFO;
 import static io.crate.testing.SymbolMatchers.*;
 import static org.hamcrest.Matchers.*;
 
-public class UpdateAnalyzerTest extends CrateUnitTest {
+public class UpdateAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     private static final String VERSION_EX_FROM_VALIDATOR = "Filtering \"_version\" in WHERE clause only works using the \"=\" operator, checking for a numeric value";
 
@@ -81,8 +80,8 @@ public class UpdateAnalyzerTest extends CrateUnitTest {
     private SQLExecutor e;
 
     @Before
-    public void init() {
-        SQLExecutor.Builder builder = SQLExecutor.builder(new NoopClusterService())
+    public void prepare() {
+        SQLExecutor.Builder builder = SQLExecutor.builder(clusterService)
             .enableDefaultTables()
             .addDocTable(nestedClusteredByTableInfo)
             .addDocTable(testAliasTableInfo)

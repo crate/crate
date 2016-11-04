@@ -22,16 +22,11 @@
 
 package io.crate.monitor;
 
-import io.crate.module.SigarModule;
-import io.crate.plugin.SigarPlugin;
 import io.crate.test.integration.CrateUnitTest;
-import org.elasticsearch.common.inject.Injector;
-import org.elasticsearch.common.inject.ModulesBuilder;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.settings.SettingsModule;
 import org.elasticsearch.env.Environment;
 import org.elasticsearch.env.NodeEnvironment;
-import org.elasticsearch.env.NodeEnvironmentModule;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -39,35 +34,28 @@ import java.nio.file.Path;
 
 import static org.hamcrest.Matchers.*;
 import static org.hamcrest.core.Is.is;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 public class SigarExtendedNodeInfoTest extends CrateUnitTest {
 
-    private static final Settings NODE_SETTINGS = Settings.builder()
-        .put(MonitorModule.NODE_INFO_EXTENDED_TYPE, SigarPlugin.NODE_INFO_EXTENDED_TYPE)
-        .build();
-
     private ExtendedNodeInfo extendedNodeInfo;
+    private NodeEnvironment nodeEnvironment;
 
     @Before
     public void prepare() throws Exception {
-        NodeEnvironment nodeEnvironment = mock(NodeEnvironment.class);
-        when(nodeEnvironment.hasNodeFile()).thenReturn(true);
-        Path tempDir = createTempDir();
-        NodeEnvironment.NodePath[] dataLocations = new NodeEnvironment.NodePath[]{new NodeEnvironment.NodePath(tempDir, mock(Environment.class))};
-        when(nodeEnvironment.nodePaths()).thenReturn(dataLocations);
+        Path tmpHome = createTempDir();
+        Settings settings = Settings.builder()
+            .put("path.home", tmpHome.toString())
+            .build();
+        nodeEnvironment = new NodeEnvironment(settings, new Environment(settings));
+        extendedNodeInfo = new SigarExtendedNodeInfo(
+            new SigarService(settings),
+            nodeEnvironment
+        );
+    }
 
-        NodeEnvironmentModule nodeEnvironmentModule = new NodeEnvironmentModule(nodeEnvironment);
-        MonitorModule monitorModule = new MonitorModule(NODE_SETTINGS);
-        monitorModule.addExtendedNodeInfoType(SigarPlugin.NODE_INFO_EXTENDED_TYPE, SigarExtendedNodeInfo.class);
-        Injector injector = new ModulesBuilder().add(
-            new SettingsModule(NODE_SETTINGS),
-            monitorModule,
-            nodeEnvironmentModule,
-            new SigarModule(new SigarService(NODE_SETTINGS))
-        ).createInjector();
-        extendedNodeInfo = injector.getInstance(ExtendedNodeInfo.class);
+    @After
+    public void cleanup() throws Exception {
+        nodeEnvironment.close();
     }
 
     @Test

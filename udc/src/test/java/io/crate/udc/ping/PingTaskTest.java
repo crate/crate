@@ -30,9 +30,9 @@ import io.crate.monitor.ExtendedOsInfo;
 import io.crate.test.integration.CrateUnitTest;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.codehaus.jackson.type.TypeReference;
-import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.cluster.service.ClusterService;
 import org.hamcrest.Matchers;
 import org.junit.After;
 import org.junit.Before;
@@ -108,7 +108,7 @@ public class PingTaskTest extends CrateUnitTest {
             clusterIdService,
             extendedNodeInfo,
             "http://dummy",
-            Settings.settingsBuilder().put("license.enterprise", true).build()
+            Settings.builder().put("license.enterprise", true).build()
         );
         assertThat(pingTask.isEnterprise(), is("true"));
     }

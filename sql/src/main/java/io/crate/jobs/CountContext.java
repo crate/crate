@@ -29,7 +29,7 @@ import io.crate.data.BatchConsumer;
 import io.crate.data.Row1;
 import io.crate.data.RowsBatchIterator;
 import io.crate.operation.count.CountOperation;
-import org.elasticsearch.common.logging.ESLogger;
+import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.logging.Loggers;
 
 import javax.annotation.Nonnull;
@@ -41,7 +41,7 @@ import java.util.Map;
 
 public class CountContext extends AbstractExecutionSubContext {
 
-    private static final ESLogger LOGGER = Loggers.getLogger(CountContext.class);
+    private static final Logger LOGGER = Loggers.getLogger(CountContext.class);
 
     private final CountOperation countOperation;
     private final BatchConsumer consumer;

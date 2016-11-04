@@ -47,7 +47,7 @@ public class NodeStatsResponse extends TransportResponse {
     @Override
     public void readFrom(StreamInput in) throws IOException {
         super.readFrom(in);
-        context = in.readOptionalStreamable(NodeStatsContext.newInstance());
+        context = in.readOptionalStreamable(() -> new NodeStatsContext(true));
     }
 
     @Override

@@ -40,7 +40,7 @@ public class GeoPointTypeTest extends CrateUnitTest {
         BytesStreamOutput out = new BytesStreamOutput();
         DataTypes.GEO_POINT.writeValueTo(out, p1);
 
-        StreamInput in = StreamInput.wrap(out.bytes());
+        StreamInput in = out.bytes().streamInput();
         Double[] p2 = DataTypes.GEO_POINT.readValueFrom(in);
 
         assertThat(p1, equalTo(p2));

@@ -28,8 +28,14 @@ import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.DocReferenceConverter;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RowGranularity;
+import io.crate.metadata.doc.DocSysColumns;
 import io.crate.operation.reference.ReferenceResolver;
 import io.crate.types.*;
+import org.elasticsearch.index.mapper.MappedFieldType;
+import org.elasticsearch.common.Nullable;
+import org.elasticsearch.index.mapper.MapperService;
+import org.elasticsearch.Version;
+import org.elasticsearch.index.IndexSettings;
 import org.elasticsearch.index.mapper.MappedFieldType;
 
 import java.util.Locale;
@@ -37,9 +43,11 @@ import java.util.Locale;
 public class LuceneReferenceResolver implements ReferenceResolver<LuceneCollectorExpression<?>> {
 
     private final FieldTypeLookup fieldTypeLookup;
+    private final IndexSettings indexSettings;
 
-    public LuceneReferenceResolver(FieldTypeLookup fieldTypeLookup) {
+    public LuceneReferenceResolver(FieldTypeLookup fieldTypeLookup, IndexSettings indexSettings) {
         this.fieldTypeLookup = fieldTypeLookup;
+        this.indexSettings = indexSettings;
     }
 
     @Override
@@ -67,6 +75,8 @@ public class LuceneReferenceResolver implements ReferenceResolver<LuceneCollecto
             return new FetchIdCollectorExpression();
         } else if (ScoreCollectorExpression.COLUMN_NAME.equals(name)) {
             return new ScoreCollectorExpression();
+        } else if (DocSysColumns.VERSION.name().equals(name)) {
+            return new VersionCollectorExpression();
         }
 
         String colName = columnIdent.fqn();
@@ -74,13 +84,16 @@ public class LuceneReferenceResolver implements ReferenceResolver<LuceneCollecto
         if (fieldType == null) {
             return new NullValueCollectorExpression(colName);
         }
-
         switch (refInfo.valueType().id()) {
             case ByteType.ID:
                 return new ByteColumnReference(colName);
             case ShortType.ID:
                 return new ShortColumnReference(colName);
             case IpType.ID:
+                Version indexVersionCreated = indexSettings.getIndexVersionCreated();
+                if (indexVersionCreated.before(Version.V_5_0_0)) {
+                    return new LegacyIPColumnReference(colName);
+                }
                 return new IpColumnReference(colName);
             case StringType.ID:
                 return new BytesRefColumnReference(colName, fieldType);

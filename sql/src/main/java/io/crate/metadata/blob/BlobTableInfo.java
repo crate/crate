@@ -35,10 +35,10 @@ import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.action.NoShardAvailableActionException;
-import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.routing.GroupShardsIterator;
 import org.elasticsearch.cluster.routing.ShardIterator;
 import org.elasticsearch.cluster.routing.ShardRouting;
+import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.collect.Tuple;
 import org.elasticsearch.index.shard.ShardId;
 
@@ -126,10 +126,11 @@ public class BlobTableInfo implements TableInfo, ShardedTable, StoredTable {
             locations.put(shardRouting.currentNodeId(), nodeMap);
         }
 
-        List<Integer> shards = nodeMap.get(shardRouting.getIndex());
+        String indexName = shardRouting.getIndexName();
+        List<Integer> shards = nodeMap.get(indexName);
         if (shards == null) {
             shards = new ArrayList<>();
-            nodeMap.put(shardRouting.getIndex(), shards);
+            nodeMap.put(indexName, shards);
         }
         shards.add(shardRouting.id());
     }

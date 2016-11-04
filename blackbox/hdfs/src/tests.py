@@ -24,7 +24,8 @@ import unittest
 import os
 import zipfile
 import subprocess
-import socket
+import glob
+import shutil
 import time
 import tarfile
 from testutils.ports import GLOBAL_PORT_POOL
@@ -45,21 +46,19 @@ CRATE_TRANSPORT_PORT = GLOBAL_PORT_POOL.get()
 NN_PORT = '49000'
 
 
-hdfs_repo_zip = os.path.join(
+hdfs_repo_libs_path = os.path.join(
     project_root,
+    'es',
     'es-repository-hdfs',
     'build',
-    'distributions',
-    'es-repository-hdfs-hadoop2.zip')
+    'extraLibs')
 
-
-def add_hadoop_libs(hdfs_zip_path, path_to_dist):
-    hdfs_plugin_location = os.path.join(
-        path_to_dist, 'plugins', 'elasticsearch-repository-hdfs')
-    with zipfile.ZipFile(hdfs_zip_path) as hdfs_zip:
-        hadoop_libs = [i for i in hdfs_zip.namelist()
-                       if i.startswith('hadoop-libs')]
-        hdfs_zip.extractall(path=hdfs_plugin_location, members=hadoop_libs)
+def add_hadoop_libs(hdfs_repo_libs_path, path_to_dist):
+    hdfs_plugin_location = os.path.join(path_to_dist, 'plugins', 'es-repository-hdfs')
+    for filename in glob.glob(os.path.join(hdfs_repo_libs_path, '*.jar')):
+        # full_file_name = os.path.join(hdfs_repo_libs_path, filename)
+        if (os.path.isfile(filename)):
+            shutil.copy(filename, hdfs_plugin_location)
 
 
 def wait_for_minicluster(log, timeout=60):
@@ -106,7 +105,7 @@ class HadoopLayer(object):
             self.hadoop_bin, 'jar',
             self.hadoop_mapreduce_client, 'minicluster',
             '-nnport', NN_PORT, '-nomr', '-format',
-            '-D', 'dfs.replication=0',
+            '-D', 'dfs.replication=1',
             '-D', 'dfs.client.use.datanode.hostname=true',
             '-D', 'dfs.datanode.use.datanode.hostname=true',
         ]
@@ -141,7 +140,7 @@ class HadoopLayer(object):
 
 class HdfsCrateLayer(CrateLayer):
     def setUp(self):
-        add_hadoop_libs(hdfs_repo_zip, crate_path())
+        add_hadoop_libs(hdfs_repo_libs_path, crate_path())
         super(HdfsCrateLayer, self).setUp()
 
 
@@ -170,6 +169,7 @@ class HdfsIntegrationTest(unittest.TestCase):
 def test_suite():
     crate_layer = HdfsCrateLayer(
         'crate',
+        host='localhost',
         crate_home=crate_path(),
         port=CRATE_HTTP_PORT,
         transport_port=CRATE_TRANSPORT_PORT

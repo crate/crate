@@ -22,7 +22,7 @@
 package io.crate.executor.transport;
 
 import io.crate.exceptions.SQLExceptions;
-import org.elasticsearch.common.logging.ESLogger;
+import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.transport.TransportChannel;
 import org.elasticsearch.transport.TransportRequest;
@@ -32,10 +32,10 @@ import org.elasticsearch.transport.TransportResponse;
 import java.io.IOException;
 
 public abstract class NodeActionRequestHandler<TRequest extends TransportRequest, TResponse extends TransportResponse>
-    extends TransportRequestHandler<TRequest> {
+    implements TransportRequestHandler<TRequest> {
 
     private final NodeAction<TRequest, TResponse> nodeAction;
-    private final static ESLogger LOGGER = Loggers.getLogger(NodeActionRequestHandler.class);
+    private final static Logger LOGGER = Loggers.getLogger(NodeActionRequestHandler.class);
 
     public NodeActionRequestHandler(NodeAction<TRequest, TResponse> nodeAction) {
         this.nodeAction = nodeAction;
@@ -52,7 +52,7 @@ public abstract class NodeActionRequestHandler<TRequest extends TransportRequest
                 }
             } else {
                 try {
-                    channel.sendResponse(SQLExceptions.unwrap(throwable));
+                    channel.sendResponse((Exception) SQLExceptions.unwrap(throwable));
                 } catch (IOException e) {
                     LOGGER.error("Error sending failure: " + e.getMessage(), e);
                 }

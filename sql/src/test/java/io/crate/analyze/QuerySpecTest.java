@@ -23,17 +23,22 @@
 package io.crate.analyze;
 
 import io.crate.testing.SQLExecutor;
-import org.elasticsearch.test.cluster.NoopClusterService;
+import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
+import org.junit.Before;
 import org.junit.Test;
 
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertThat;
 
-public class QuerySpecTest {
+public class QuerySpecTest extends CrateDummyClusterServiceUnitTest {
 
-    SQLExecutor e = SQLExecutor.builder(new NoopClusterService()).enableDefaultTables().build();
+    private SQLExecutor e;
+
+    @Before
+    public void prepare() {
+        e = SQLExecutor.builder(clusterService).enableDefaultTables().build();
+    }
 
     @Test
     public void testVisitSymbolVisitsAllSymbols() throws Exception {

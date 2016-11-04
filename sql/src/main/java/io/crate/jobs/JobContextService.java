@@ -26,7 +26,7 @@ import io.crate.concurrent.CountdownFutureCallback;
 import io.crate.exceptions.ContextMissingException;
 import io.crate.operation.collect.stats.JobsLogs;
 import org.elasticsearch.ElasticsearchException;
-import org.elasticsearch.cluster.ClusterService;
+import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.component.AbstractLifecycleComponent;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
@@ -41,7 +41,7 @@ import java.util.function.BiConsumer;
 import java.util.stream.Stream;
 
 @Singleton
-public class JobContextService extends AbstractLifecycleComponent<JobContextService> {
+public class JobContextService extends AbstractLifecycleComponent {
 
     private final ClusterService clusterService;
     private final JobsLogs jobsLogs;

@@ -32,6 +32,7 @@ import io.crate.jobs.JobContextService;
 import io.crate.jobs.JobExecutionContext;
 import io.crate.jobs.PageBucketReceiver;
 import io.crate.operation.PageResultListener;
+import org.elasticsearch.ExceptionsHelper;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.common.component.AbstractComponent;
 import org.elasticsearch.common.inject.Inject;
@@ -49,12 +50,7 @@ public class TransportDistributedResultAction extends AbstractComponent implemen
 
     public static final String DISTRIBUTED_RESULT_ACTION = "crate/sql/node/merge/add_rows";
 
-    /**
-     * The request producer class can block the collectors which are running in the
-     * <code>SEARCH</code> thread pool. To avoid dead locks, we must use a different thread pool
-     * here. Lets use the <code>SUGGEST</code> thread pool which is currently not used anywhere else.
-     */
-    private static final String EXECUTOR_NAME = ThreadPool.Names.SUGGEST;
+    private static final String EXECUTOR_NAME = ThreadPool.Names.SEARCH;
 
     private final Transports transports;
     private final JobContextService jobContextService;
@@ -72,7 +68,7 @@ public class TransportDistributedResultAction extends AbstractComponent implemen
         scheduler = threadPool.scheduler();
 
         transportService.registerRequestHandler(DISTRIBUTED_RESULT_ACTION,
-            DistributedResultRequest.class,
+            DistributedResultRequest::new,
             ThreadPool.Names.GENERIC,
             new NodeActionRequestHandler<DistributedResultRequest, DistributedResultResponse>(this) {});
     }

@@ -36,6 +36,7 @@ import org.elasticsearch.monitor.jvm.JvmStats;
 import org.elasticsearch.monitor.os.DummyOsInfo;
 import org.elasticsearch.monitor.os.OsProbe;
 import org.elasticsearch.monitor.process.ProcessProbe;
+import org.elasticsearch.threadpool.TestThreadPool;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.junit.After;
 import org.junit.Before;
@@ -62,7 +63,7 @@ public class NodeStatsContextTest extends CrateUnitTest {
     @Before
     public void prepare() throws Exception {
         extendedNodeInfo = new ZeroExtendedNodeInfo();
-        threadPool = new ThreadPool("foo");
+        threadPool = new TestThreadPool("dummy");
     }
 
     @Test

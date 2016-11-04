@@ -34,7 +34,7 @@ public class ShardSchemaNameExpression implements ReferenceImplementation<BytesR
     private final BytesRef schemaName;
 
     public ShardSchemaNameExpression(ShardId shardId) {
-        String indexName = shardId.getIndex();
+        String indexName = shardId.getIndexName();
         Matcher matcher = Schemas.SCHEMA_PATTERN.matcher(indexName);
         if (matcher.matches()) {
             schemaName = new BytesRef(matcher.group(1));

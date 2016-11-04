@@ -75,7 +75,7 @@ public class BlobAdminClient {
     public CompletableFuture<Long> createBlobTable(String tableName, Settings indexSettings) {
         Settings.Builder builder = Settings.builder();
         builder.put(indexSettings);
-        builder.put(SETTING_INDEX_BLOBS_ENABLED, true);
+        builder.put(SETTING_INDEX_BLOBS_ENABLED.getKey(), true);
 
         FutureActionListener<CreateIndexResponse, Long> listener = new FutureActionListener<>(r -> 1L);
         createIndexAction.execute(

@@ -71,7 +71,7 @@ public class FetchPhaseTest {
         BytesStreamOutput out = new BytesStreamOutput();
         ExecutionPhases.toStream(out, orig);
 
-        StreamInput in = StreamInput.wrap(out.bytes());
+        StreamInput in = out.bytes().streamInput();
         FetchPhase streamed = (FetchPhase) ExecutionPhases.fromStream(in);
 
         assertThat(orig.phaseId(), is(streamed.phaseId()));

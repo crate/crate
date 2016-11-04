@@ -43,7 +43,7 @@ public class JobRequestTest {
         r1.writeTo(out);
 
         JobRequest r2 = new JobRequest();
-        r2.readFrom(StreamInput.wrap(out.bytes()));
+        r2.readFrom(out.bytes().streamInput());
 
         assertThat(r1.coordinatorNodeId(), is(r2.coordinatorNodeId()));
         assertThat(r1.jobId(), is(r2.jobId()));

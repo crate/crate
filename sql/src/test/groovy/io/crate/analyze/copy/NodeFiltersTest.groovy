@@ -23,16 +23,11 @@
 package io.crate.analyze.copy
 
 import io.crate.test.integration.CrateUnitTest
-import org.elasticsearch.Version
-import org.elasticsearch.cluster.node.DiscoveryNode
-import org.elasticsearch.common.transport.DummyTransportAddress
 import org.junit.Test
 
-class NodeFiltersTest extends CrateUnitTest {
+import static io.crate.testing.DiscoveryNodes.newNode
 
-    private static DiscoveryNode newNode(String name, String id) {
-        new DiscoveryNode(name, id, DummyTransportAddress.INSTANCE, Collections.emptyMap(), Version.CURRENT)
-    }
+class NodeFiltersTest extends CrateUnitTest {
 
     @Test
     public void testIdFilter() throws Exception {

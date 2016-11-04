@@ -1,0 +1,26 @@
+dependencies {
+    compile project(':es:es-core')
+    compile "com.amazonaws:aws-java-sdk-s3:${versions.aws}"
+}
+
+def pluginDir = file('../upstream/plugins/repository-s3')
+
+sourceSets {
+    main {
+        java {
+            srcDir "$pluginDir/src/main/java"
+        }
+        output.resourcesDir = null
+    }
+    test {
+        output.resourcesDir = null
+        output.classesDir = null
+    }
+}
+
+idea {
+    module {
+        contentRoot = pluginDir
+        excludeDirs += files('build', 'src/test')
+    }
+}

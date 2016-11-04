@@ -222,9 +222,9 @@ public class TableElementsAnalyzer {
             if (node.indexMethod().equals("fulltext")) {
                 setAnalyzer(node.properties(), context, node.indexMethod());
             } else if (node.indexMethod().equalsIgnoreCase("plain")) {
-                context.analyzedColumnDefinition.indexConstraint(Reference.IndexType.NOT_ANALYZED.toString());
+                context.analyzedColumnDefinition.indexConstraint(Reference.IndexType.NOT_ANALYZED);
             } else if (node.indexMethod().equalsIgnoreCase("OFF")) {
-                context.analyzedColumnDefinition.indexConstraint(Reference.IndexType.NO.toString());
+                context.analyzedColumnDefinition.indexConstraint(Reference.IndexType.NO);
             } else if (node.indexMethod().equals("quadtree") || node.indexMethod().equals("geohash")) {
                 setGeoType(node.properties(), context, node.indexMethod());
             } else {
@@ -243,7 +243,7 @@ public class TableElementsAnalyzer {
         @Override
         public Void visitIndexDefinition(IndexDefinition node, ColumnDefinitionContext context) {
             context.analyzedColumnDefinition.setAsIndexColumn();
-            context.analyzedColumnDefinition.dataType("string");
+            context.analyzedColumnDefinition.dataType("text");
             context.analyzedColumnDefinition.name(node.ident());
 
             setAnalyzer(node.properties(), context, node.method());
@@ -263,7 +263,7 @@ public class TableElementsAnalyzer {
 
         private void setAnalyzer(GenericProperties properties, ColumnDefinitionContext context,
                                  String indexMethod) {
-            context.analyzedColumnDefinition.indexConstraint(Reference.IndexType.ANALYZED.toString());
+            context.analyzedColumnDefinition.indexConstraint(Reference.IndexType.ANALYZED);
 
             Expression analyzerExpression = properties.get("analyzer");
             if (analyzerExpression == null) {

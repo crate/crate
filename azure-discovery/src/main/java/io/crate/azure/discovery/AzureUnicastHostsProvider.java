@@ -26,11 +26,11 @@ import com.microsoft.azure.management.network.NetworkResourceProviderClient;
 import com.microsoft.azure.management.network.models.*;
 import io.crate.azure.management.AzureComputeService;
 import io.crate.azure.management.AzureComputeService.Discovery;
+import org.apache.logging.log4j.Logger;
 import org.elasticsearch.Version;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.common.component.AbstractComponent;
 import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.network.NetworkAddress;
 import org.elasticsearch.common.network.NetworkService;
 import org.elasticsearch.common.settings.Settings;
@@ -70,14 +70,9 @@ public class AzureUnicastHostsProvider extends AbstractComponent implements Unic
         }
     }
 
-    private static final TimeValue DEFAULT_REFRESH_TIME = TimeValue.timeValueSeconds(5L);
-    private static final HostType DEFAULT_HOST_TYPE = HostType.PRIVATE_IP;
-    private static final String DEFAULT_DISCOVERY_METHOD = AzureDiscovery.VNET;
-
     private final AzureComputeService azureComputeService;
     private final TransportService transportService;
     private final NetworkService networkService;
-    private final Version version;
     private final TimeValue refreshInterval;
 
     private DiscoNodeCache cache;
@@ -90,18 +85,16 @@ public class AzureUnicastHostsProvider extends AbstractComponent implements Unic
     public AzureUnicastHostsProvider(Settings settings,
                                      AzureComputeService azureComputeService,
                                      TransportService transportService,
-                                     NetworkService networkService,
-                                     Version version) {
+                                     NetworkService networkService) {
         super(settings);
         this.azureComputeService = azureComputeService;
         this.transportService = transportService;
         this.networkService = networkService;
-        this.version = version;
 
-        refreshInterval = settings.getAsTime(Discovery.REFRESH, DEFAULT_REFRESH_TIME);
-        resourceGroup = settings.get(AzureComputeService.Management.RESOURCE_GROUP_NAME);
-        hostType = HostType.fromString(settings.get(Discovery.HOST_TYPE, DEFAULT_HOST_TYPE.name()));
-        discoveryMethod = settings.get(Discovery.DISCOVERY_METHOD, DEFAULT_DISCOVERY_METHOD);
+        refreshInterval = Discovery.REFRESH.get(settings);
+        resourceGroup = AzureComputeService.Management.RESOURCE_GROUP_NAME.get(settings);
+        hostType = HostType.fromString(Discovery.HOST_TYPE.get(settings));
+        discoveryMethod = Discovery.DISCOVERY_METHOD.get(settings);
     }
 
     /**
@@ -158,7 +151,7 @@ public class AzureUnicastHostsProvider extends AbstractComponent implements Unic
                     for (TransportAddress address : addresses) {
                         logger.trace("adding {}, transport_address {}", networkAddress, address);
                         nodes.add(new DiscoveryNode(
-                            "#cloud-" + networkAddress, address, version.minimumCompatibilityVersion()));
+                            "#cloud-" + networkAddress, address, Version.CURRENT.minimumCompatibilityVersion()));
                     }
                 }
             } catch (UnknownHostException e) {
@@ -212,7 +205,7 @@ public class AzureUnicastHostsProvider extends AbstractComponent implements Unic
                                                String subnetName,
                                                String discoveryMethod,
                                                HostType hostType,
-                                               ESLogger logger) {
+                                               Logger logger) {
 
         List<String> ipList = new ArrayList<>();
         List<ResourceId> ipConfigurations = new ArrayList<>();

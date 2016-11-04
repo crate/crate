@@ -24,7 +24,7 @@ package io.crate.blob;
 import com.google.common.base.Throwables;
 import io.crate.blob.exceptions.DigestNotFoundException;
 import io.crate.common.Hex;
-import org.elasticsearch.common.logging.ESLogger;
+import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.logging.Loggers;
 
 import java.io.File;
@@ -39,7 +39,7 @@ import java.util.concurrent.Semaphore;
 
 public class BlobContainer {
 
-    private static final ESLogger logger = Loggers.getLogger(BlobContainer.class);
+    private static final Logger logger = Loggers.getLogger(BlobContainer.class);
     private static final String[] SUB_DIRS = new String[256];
 
     public static final byte[] PREFIXES = new byte[256];

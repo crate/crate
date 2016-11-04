@@ -22,7 +22,6 @@
 
 package io.crate.metadata.doc;
 
-import com.google.common.util.concurrent.MoreExecutors;
 import io.crate.Constants;
 import io.crate.exceptions.TableUnknownException;
 import io.crate.metadata.Functions;
@@ -37,28 +36,39 @@ import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.metadata.MetaData;
+import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.test.cluster.NoopClusterService;
+import org.elasticsearch.test.ClusterServiceUtils;
+import org.elasticsearch.threadpool.TestThreadPool;
+import org.elasticsearch.threadpool.ThreadPool;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mock;
 
 import java.util.Collections;
 import java.util.Locale;
-import java.util.concurrent.ExecutorService;
+import java.util.concurrent.TimeUnit;
 
 import static org.mockito.Mockito.mock;
 
 public class DocTableInfoBuilderTest extends CrateUnitTest {
 
-    private ExecutorService executorService;
+    private ThreadPool threadPool;
+    private ClusterService clusterService;
 
     @Mock
     Functions functions;
 
     @Before
     public void prepare() throws Exception {
-        executorService = MoreExecutors.newDirectExecutorService();
+        threadPool = new TestThreadPool("dummy");
+    }
+
+    @After
+    public void cleanUp() throws Exception {
+        ThreadPool.terminate(threadPool, 30, TimeUnit.SECONDS);
+        clusterService.close();
     }
 
     private String randomSchema() {
@@ -92,16 +102,16 @@ public class DocTableInfoBuilderTest extends CrateUnitTest {
             .put(indexMetaDataBuilder)
             .build();
 
-        NoopClusterService clusterService =
-            new NoopClusterService(ClusterState.builder(ClusterName.DEFAULT).metaData(metaData).build());
-
+        clusterService = ClusterServiceUtils.createClusterService(
+            ClusterState.builder(ClusterName.DEFAULT).metaData(metaData).build(),
+            threadPool
+        );
         DocTableInfoBuilder builder = new DocTableInfoBuilder(
             functions,
             new TableIdent(schemaName, "test"),
             clusterService,
             new IndexNameExpressionResolver(Settings.EMPTY),
             mock(TransportPutIndexTemplateAction.class),
-            executorService,
             false
         );
 

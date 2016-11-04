@@ -25,6 +25,9 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Sets;
 import io.crate.breaker.CrateCircuitBreakerService;
+import io.crate.operation.collect.stats.JobsLogService;
+import io.crate.planner.TableStatsService;
+import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.ByteSizeUnit;
 import org.elasticsearch.common.unit.ByteSizeValue;
 import org.elasticsearch.common.unit.TimeValue;
@@ -33,6 +36,8 @@ import org.elasticsearch.indices.breaker.HierarchyCircuitBreakerService;
 import javax.annotation.Nonnull;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
+
+import static org.elasticsearch.discovery.zen.ElectMasterService.DISCOVERY_ZEN_MINIMUM_MASTER_NODES_SETTING;
 
 public class CrateSettings {
 
@@ -60,28 +65,16 @@ public class CrateSettings {
         }
     };
 
-    public static final BoolSetting STATS_ENABLED = new BoolSetting("enabled", false, true) {
+    public static final BoolSetting STATS_ENABLED = new BoolSetting(
+        "enabled", JobsLogService.STATS_ENABLED_SETTING.getDefault(Settings.EMPTY),
+        true, STATS, JobsLogService.STATS_ENABLED_SETTING);
 
-        @Override
-        public Setting parent() {
-            return STATS;
-        }
-    };
-
-    public static final IntSetting STATS_JOBS_LOG_SIZE = new IntSetting("jobs_log_size", 10_000, true) {
-
-        @Override
-        public Integer minValue() {
-            return 0;
-        }
-
-        @Override
-        public Setting parent() {
-            return STATS;
-        }
-    };
+    public static final IntSetting STATS_JOBS_LOG_SIZE = new IntSetting(
+        "jobs_log_size", JobsLogService.STATS_JOBS_LOG_SIZE_SETTING.getDefault(Settings.EMPTY),
+        true, 0, null, STATS, JobsLogService.STATS_JOBS_LOG_SIZE_SETTING);
 
     public static final TimeSetting STATS_JOBS_LOG_EXPIRATION = new TimeSetting() {
+
         @Override
         public String name() {
             return "jobs_log_expiration";
@@ -89,7 +82,7 @@ public class CrateSettings {
 
         @Override
         public TimeValue defaultValue() {
-            return TimeValue.timeValueSeconds(0L);
+            return JobsLogService.STATS_JOBS_LOG_EXPIRATION_SETTING.getDefault(Settings.EMPTY);
         }
 
         @Override
@@ -101,19 +94,16 @@ public class CrateSettings {
         public Setting parent() {
             return STATS;
         }
-    };
-
-    public static final IntSetting STATS_OPERATIONS_LOG_SIZE = new IntSetting("operations_log_size", 10_000, true) {
-        @Override
-        public Integer minValue() {
-            return 0;
-        }
 
         @Override
-        public Setting parent() {
-            return STATS;
+        org.elasticsearch.common.settings.Setting<TimeValue> createESSetting() {
+            return JobsLogService.STATS_JOBS_LOG_EXPIRATION_SETTING;
         }
     };
+
+    public static final IntSetting STATS_OPERATIONS_LOG_SIZE = new IntSetting(
+        "operations_log_size", JobsLogService.STATS_OPERATIONS_LOG_SIZE_SETTING.getDefault(Settings.EMPTY),
+        true, 0, null, STATS, JobsLogService.STATS_OPERATIONS_LOG_SIZE_SETTING);
 
     public static final TimeSetting STATS_OPERATIONS_LOG_EXPIRATION = new TimeSetting() {
         @Override
@@ -123,7 +113,7 @@ public class CrateSettings {
 
         @Override
         public TimeValue defaultValue() {
-            return TimeValue.timeValueSeconds(0L);
+            return JobsLogService.STATS_OPERATIONS_LOG_EXPIRATION_SETTING.getDefault(Settings.EMPTY);
         }
 
         @Override
@@ -134,6 +124,11 @@ public class CrateSettings {
         @Override
         public Setting parent() {
             return STATS;
+        }
+
+        @Override
+        org.elasticsearch.common.settings.Setting<TimeValue> createESSetting() {
+            return JobsLogService.STATS_OPERATIONS_LOG_EXPIRATION_SETTING;
         }
     };
 
@@ -170,7 +165,7 @@ public class CrateSettings {
 
         @Override
         public TimeValue defaultValue() {
-            return TimeValue.timeValueHours(1);
+            return TableStatsService.STATS_SERVICE_REFRESH_INTERVAL_SETTING.getDefault(Settings.EMPTY);
         }
 
         @Override
@@ -181,6 +176,11 @@ public class CrateSettings {
         @Override
         public Setting parent() {
             return STATS_SERVICE;
+        }
+
+        @Override
+        org.elasticsearch.common.settings.Setting<TimeValue> createESSetting() {
+            return TableStatsService.STATS_SERVICE_REFRESH_INTERVAL_SETTING;
         }
     };
 
@@ -253,8 +253,9 @@ public class CrateSettings {
         }
     };
 
-    public static final MemorySetting STATS_BREAKER_LOG_JOBS_LIMIT =
-        new MemorySetting("limit", CrateCircuitBreakerService.DEFAULT_JOBS_LOG_CIRCUIT_BREAKER_LIMIT, true, STATS_BREAKER_LOG_JOBS);
+    public static final MemorySetting STATS_BREAKER_LOG_JOBS_LIMIT = new MemorySetting(
+        "limit", CrateCircuitBreakerService.JOBS_LOG_CIRCUIT_BREAKER_LIMIT_SETTING.getDefaultRaw(Settings.EMPTY),
+        true, STATS_BREAKER_LOG_JOBS, CrateCircuitBreakerService.JOBS_LOG_CIRCUIT_BREAKER_LIMIT_SETTING);
 
     public static final NestedSetting STATS_BREAKER_LOG_OPERATIONS = new NestedSetting() {
 
@@ -279,8 +280,9 @@ public class CrateSettings {
         }
     };
 
-    public static final MemorySetting STATS_BREAKER_LOG_OPERATIONS_LIMIT =
-        new MemorySetting("limit", CrateCircuitBreakerService.DEFAULT_OPERATIONS_LOG_CIRCUIT_BREAKER_LIMIT, true, STATS_BREAKER_LOG_OPERATIONS);
+    public static final MemorySetting STATS_BREAKER_LOG_OPERATIONS_LIMIT = new MemorySetting(
+        "limit", CrateCircuitBreakerService.OPERATIONS_LOG_CIRCUIT_BREAKER_LIMIT_SETTING.getDefaultRaw(Settings.EMPTY),
+        true, STATS_BREAKER_LOG_OPERATIONS, CrateCircuitBreakerService.OPERATIONS_LOG_CIRCUIT_BREAKER_LIMIT_SETTING);
 
     public static final NestedSetting CLUSTER = new NestedSetting() {
         @Override
@@ -290,7 +292,7 @@ public class CrateSettings {
 
         @Override
         public List<Setting> children() {
-            return ImmutableList.<Setting>of(GRACEFUL_STOP, ROUTING, CLUSTER_INFO);
+            return ImmutableList.of(GRACEFUL_STOP, ROUTING, CLUSTER_INFO);
         }
 
         @Override
@@ -313,7 +315,7 @@ public class CrateSettings {
 
         @Override
         public List<Setting> children() {
-            return ImmutableList.<Setting>of(
+            return ImmutableList.of(
                 GRACEFUL_STOP_MIN_AVAILABILITY,
                 GRACEFUL_STOP_REALLOCATE,
                 GRACEFUL_STOP_TIMEOUT,
@@ -384,7 +386,7 @@ public class CrateSettings {
 
         @Override
         public List<Setting> children() {
-            return ImmutableList.<Setting>of(DISCOVERY_ZEN);
+            return ImmutableList.of(DISCOVERY_ZEN);
         }
 
         @Override
@@ -401,7 +403,7 @@ public class CrateSettings {
 
         @Override
         public List<Setting> children() {
-            return ImmutableList.<Setting>of(
+            return ImmutableList.of(
                 DISCOVERY_ZEN_MIN_MASTER_NODES,
                 DISCOVERY_ZEN_PING_TIMEOUT,
                 DISCOVERY_ZEN_PUBLISH_TIMEOUT
@@ -419,12 +421,15 @@ public class CrateSettings {
         }
     };
 
-    public static final IntSetting DISCOVERY_ZEN_MIN_MASTER_NODES = new IntSetting("minimum_master_nodes", 1, true) {
-        @Override
-        public Setting parent() {
-            return DISCOVERY_ZEN;
-        }
-    };
+    public static final IntSetting DISCOVERY_ZEN_MIN_MASTER_NODES = new IntSetting(
+        "minimum_master_nodes",
+        1,
+        true,
+        null,
+        null,
+        DISCOVERY_ZEN,
+        DISCOVERY_ZEN_MINIMUM_MASTER_NODES_SETTING
+    );
 
     public static final TimeSetting DISCOVERY_ZEN_PING_TIMEOUT = new TimeSetting() {
         @Override
@@ -478,7 +483,7 @@ public class CrateSettings {
 
         @Override
         public List<Setting> children() {
-            return ImmutableList.<Setting>of(ROUTING_ALLOCATION);
+            return ImmutableList.of(ROUTING_ALLOCATION);
         }
 
         @Override
@@ -505,7 +510,7 @@ public class CrateSettings {
 
         @Override
         public List<Setting> children() {
-            return ImmutableList.<Setting>of(
+            return ImmutableList.of(
                 ROUTING_ALLOCATION_ENABLE,
                 ROUTING_ALLOCATION_ALLOW_REBALANCE,
                 ROUTING_ALLOCATION_CLUSTER_CONCURRENT_REBALANCE,
@@ -574,7 +579,7 @@ public class CrateSettings {
 
         @Override
         public List<Setting> children() {
-            return ImmutableList.<Setting>of(
+            return ImmutableList.of(
                 ROUTING_ALLOCATION_INCLUDE_IP,
                 ROUTING_ALLOCATION_INCLUDE_HOST,
                 ROUTING_ALLOCATION_INCLUDE_ID,
@@ -614,7 +619,7 @@ public class CrateSettings {
 
         @Override
         public List<Setting> children() {
-            return ImmutableList.<Setting>of(
+            return ImmutableList.of(
                 ROUTING_ALLOCATION_EXCLUDE_IP,
                 ROUTING_ALLOCATION_EXCLUDE_HOST,
                 ROUTING_ALLOCATION_EXCLUDE_ID,
@@ -654,7 +659,7 @@ public class CrateSettings {
 
         @Override
         public List<Setting> children() {
-            return ImmutableList.<Setting>of(
+            return ImmutableList.of(
                 ROUTING_ALLOCATION_REQUIRE_IP,
                 ROUTING_ALLOCATION_REQUIRE_HOST,
                 ROUTING_ALLOCATION_REQUIRE_ID,
@@ -698,10 +703,9 @@ public class CrateSettings {
 
         @Override
         public List<Setting> children() {
-            return ImmutableList.<Setting>of(
+            return ImmutableList.of(
                 ROUTING_ALLOCATION_BALANCE_SHARD,
                 ROUTING_ALLOCATION_BALANCE_INDEX,
-                ROUTING_ALLOCATION_BALANCE_PRIMARY,
                 ROUTING_ALLOCATION_BALANCE_THRESHOLD
             );
         }
@@ -756,28 +760,6 @@ public class CrateSettings {
         }
     };
 
-    public static final FloatSetting ROUTING_ALLOCATION_BALANCE_PRIMARY = new FloatSetting() {
-        @Override
-        public String name() {
-            return "primary";
-        }
-
-        @Override
-        public Float defaultValue() {
-            return 0.05f;
-        }
-
-        @Override
-        public Setting parent() {
-            return ROUTING_ALLOCATION_BALANCE;
-        }
-
-        @Override
-        public boolean isRuntime() {
-            return true;
-        }
-    };
-
     public static final FloatSetting ROUTING_ALLOCATION_BALANCE_THRESHOLD = new FloatSetting() {
         @Override
         public String name() {
@@ -813,7 +795,7 @@ public class CrateSettings {
 
         @Override
         public List<Setting> children() {
-            return ImmutableList.<Setting>of(
+            return ImmutableList.of(
                 ROUTING_ALLOCATION_DISK_THRESHOLD_ENABLED,
                 ROUTING_ALLOCATION_DISK_WATERMARK
             );
@@ -847,7 +829,7 @@ public class CrateSettings {
 
         @Override
         public List<Setting> children() {
-            return ImmutableList.<Setting>of(
+            return ImmutableList.of(
                 ROUTING_ALLOCATION_DISK_WATERMARK_LOW,
                 ROUTING_ALLOCATION_DISK_WATERMARK_HIGH
             );
@@ -864,6 +846,7 @@ public class CrateSettings {
 
     public static final StringSetting ROUTING_ALLOCATION_DISK_WATERMARK_HIGH =
         new StringSetting("high", null, true, "90%", ROUTING_ALLOCATION_DISK_WATERMARK);
+
 
     public static final NestedSetting INDICES = new NestedSetting() {
         @Override
@@ -890,12 +873,7 @@ public class CrateSettings {
 
         @Override
         public List<Setting> children() {
-            return ImmutableList.<Setting>of(
-                INDICES_RECOVERY_CONCURRENT_STREAMS,
-                INDICES_RECOVERY_FILE_CHUNK_SIZE,
-                INDICES_RECOVERY_TRANSLOG_OPS,
-                INDICES_RECOVERY_TRANSLOG_SIZE,
-                INDICES_RECOVERY_COMPRESS,
+            return ImmutableList.of(
                 INDICES_RECOVERY_MAX_BYTES_PER_SEC,
                 INDICES_RECOVERY_RETRY_DELAY_STATE_SYNC,
                 INDICES_RECOVERY_RETRY_DELAY_NETWORK,
@@ -913,36 +891,6 @@ public class CrateSettings {
         @Override
         public boolean isRuntime() {
             return true;
-        }
-    };
-
-    public static final IntSetting INDICES_RECOVERY_CONCURRENT_STREAMS = new IntSetting("concurrent_streams", 3, true) {
-        @Override
-        public Setting parent() {
-            return INDICES_RECOVERY;
-        }
-    };
-
-    public static final ByteSizeSetting INDICES_RECOVERY_FILE_CHUNK_SIZE = new ByteSizeSetting(
-        "file_chunk_size", new ByteSizeValue(512, ByteSizeUnit.KB), true, INDICES_RECOVERY);
-
-
-    public static final IntSetting INDICES_RECOVERY_TRANSLOG_OPS = new IntSetting("translog_ops", 1000, true) {
-        @Override
-        public Setting parent() {
-            return INDICES_RECOVERY;
-        }
-    };
-
-    public static final ByteSizeSetting INDICES_RECOVERY_TRANSLOG_SIZE = new ByteSizeSetting(
-        "translog_size", new ByteSizeValue(512, ByteSizeUnit.KB), true, INDICES_RECOVERY);
-
-
-    public static final BoolSetting INDICES_RECOVERY_COMPRESS = new BoolSetting("compress", true, true) {
-
-        @Override
-        public Setting parent() {
-            return INDICES_RECOVERY;
         }
     };
 
@@ -1018,7 +966,7 @@ public class CrateSettings {
     public static final TimeSetting INDICES_RECOVERY_ACTIVITY_TIMEOUT = new TimeSetting() {
         @Override
         public String name() {
-            return "activity_timeout";
+            return "recovery_activity_timeout";
         }
 
         @Override
@@ -1067,7 +1015,7 @@ public class CrateSettings {
 
         @Override
         public List<Setting> children() {
-            return ImmutableList.<Setting>of(INDICES_STORE_THROTTLE);
+            return ImmutableList.of(INDICES_STORE_THROTTLE);
         }
 
         @Override
@@ -1089,7 +1037,7 @@ public class CrateSettings {
 
         @Override
         public List<Setting> children() {
-            return ImmutableList.<Setting>of(
+            return ImmutableList.of(
                 INDICES_STORE_THROTTLE_TYPE,
                 INDICES_STORE_THROTTLE_MAX_BYTES_PER_SEC
             );
@@ -1146,9 +1094,62 @@ public class CrateSettings {
 
         @Override
         public List<Setting> children() {
-            return ImmutableList.<Setting>of(
+            return ImmutableList.of(
                 INDICES_BREAKER_QUERY_LIMIT,
                 INDICES_BREAKER_QUERY_OVERHEAD
+            );
+        }
+        @Override
+        public Setting parent() {
+            return INDICES_BREAKER;
+        }
+
+        @Override
+        public boolean isRuntime() {
+            return true;
+        }
+    };
+
+    public static final MemorySetting INDICES_BREAKER_QUERY_LIMIT = new MemorySetting(
+        "limit", CrateCircuitBreakerService.QUERY_CIRCUIT_BREAKER_LIMIT_SETTING.getDefaultRaw(Settings.EMPTY),
+        true, INDICES_BREAKER_QUERY, CrateCircuitBreakerService.QUERY_CIRCUIT_BREAKER_LIMIT_SETTING);
+
+    public static final DoubleSetting INDICES_BREAKER_QUERY_OVERHEAD = new DoubleSetting() {
+        private final Double defaultValue =
+            CrateCircuitBreakerService.QUERY_CIRCUIT_BREAKER_OVERHEAD_SETTING.getDefault(Settings.EMPTY);
+
+        @Override
+        public String name() {
+            return "overhead";
+        }
+
+        @Override
+        public Double defaultValue() {
+            return defaultValue;
+        }
+
+        @Override
+        public Setting parent() {
+            return INDICES_BREAKER_QUERY;
+        }
+
+        @Override
+        public boolean isRuntime() {
+            return false;
+        }
+    };
+
+    public static final NestedSetting INDICES_BREAKER_FIELDDATA = new NestedSetting() {
+        @Override
+        public String name() {
+            return "fielddata";
+        }
+
+        @Override
+        public List<Setting> children() {
+            return ImmutableList.of(
+                INDICES_BREAKER_FIELDDATA_LIMIT,
+                INDICES_BREAKER_FIELDDATA_OVERHEAD
             );
         }
 
@@ -1163,10 +1164,11 @@ public class CrateSettings {
         }
     };
 
-    public static final MemorySetting INDICES_BREAKER_QUERY_LIMIT = new MemorySetting(
-        "limit", CrateCircuitBreakerService.DEFAULT_QUERY_CIRCUIT_BREAKER_LIMIT, true, INDICES_BREAKER_QUERY);
+    public static final MemorySetting INDICES_BREAKER_FIELDDATA_LIMIT = new MemorySetting(
+        "limit", HierarchyCircuitBreakerService.FIELDDATA_CIRCUIT_BREAKER_LIMIT_SETTING.getDefaultRaw(Settings.EMPTY),
+        true, INDICES_BREAKER_FIELDDATA, HierarchyCircuitBreakerService.FIELDDATA_CIRCUIT_BREAKER_LIMIT_SETTING);
 
-    public static final DoubleSetting INDICES_BREAKER_QUERY_OVERHEAD = new DoubleSetting() {
+    public static final DoubleSetting INDICES_BREAKER_FIELDDATA_OVERHEAD = new DoubleSetting() {
         @Override
         public String name() {
             return "overhead";
@@ -1174,12 +1176,12 @@ public class CrateSettings {
 
         @Override
         public Double defaultValue() {
-            return CrateCircuitBreakerService.DEFAULT_QUERY_CIRCUIT_BREAKER_OVERHEAD_CONSTANT;
+            return HierarchyCircuitBreakerService.FIELDDATA_CIRCUIT_BREAKER_OVERHEAD_SETTING.getDefault(Settings.EMPTY);
         }
 
         @Override
         public Setting parent() {
-            return INDICES_BREAKER_QUERY;
+            return INDICES_BREAKER_FIELDDATA;
         }
 
         @Override
@@ -1196,7 +1198,7 @@ public class CrateSettings {
 
         @Override
         public List<Setting> children() {
-            return ImmutableList.<Setting>of(
+            return ImmutableList.of(
                 INDICES_BREAKER_REQUEST_LIMIT,
                 INDICES_BREAKER_REQUEST_OVERHEAD
             );
@@ -1214,7 +1216,9 @@ public class CrateSettings {
     };
 
     public static final MemorySetting INDICES_BREAKER_REQUEST_LIMIT = new MemorySetting(
-        "limit", HierarchyCircuitBreakerService.DEFAULT_REQUEST_BREAKER_LIMIT, true, INDICES_BREAKER_REQUEST);
+        "limit", HierarchyCircuitBreakerService.REQUEST_CIRCUIT_BREAKER_LIMIT_SETTING.getDefaultRaw(Settings.EMPTY),
+        true, INDICES_BREAKER_REQUEST, HierarchyCircuitBreakerService.REQUEST_CIRCUIT_BREAKER_LIMIT_SETTING);
+
 
     public static final DoubleSetting INDICES_BREAKER_REQUEST_OVERHEAD = new DoubleSetting() {
         @Override
@@ -1224,62 +1228,12 @@ public class CrateSettings {
 
         @Override
         public Double defaultValue() {
-            return 1.0;
+            return HierarchyCircuitBreakerService.REQUEST_CIRCUIT_BREAKER_OVERHEAD_SETTING.getDefault(Settings.EMPTY);
         }
 
         @Override
         public Setting parent() {
             return INDICES_BREAKER_REQUEST;
-        }
-
-        @Override
-        public boolean isRuntime() {
-            return true;
-        }
-    };
-
-    public static final NestedSetting INDICES_BREAKER_FIELDDATA = new NestedSetting() {
-        @Override
-        public String name() {
-            return "fielddata";
-        }
-
-        @Override
-        public List<Setting> children() {
-            return ImmutableList.<Setting>of(
-                INDICES_BREAKER_FIELDDATA_LIMIT,
-                INDICES_BREAKER_FIELDDATA_OVERHEAD
-            );
-        }
-
-        @Override
-        public Setting parent() {
-            return INDICES_BREAKER;
-        }
-
-        @Override
-        public boolean isRuntime() {
-            return true;
-        }
-    };
-
-    public static final StringSetting INDICES_BREAKER_FIELDDATA_LIMIT = new StringSetting(
-        "limit", null, true, HierarchyCircuitBreakerService.DEFAULT_FIELDDATA_BREAKER_LIMIT, INDICES_BREAKER_FIELDDATA);
-
-    public static final DoubleSetting INDICES_BREAKER_FIELDDATA_OVERHEAD = new DoubleSetting() {
-        @Override
-        public String name() {
-            return "overhead";
-        }
-
-        @Override
-        public Double defaultValue() {
-            return 1.03;
-        }
-
-        @Override
-        public Setting parent() {
-            return INDICES_BREAKER_FIELDDATA;
         }
 
         @Override
@@ -1296,7 +1250,7 @@ public class CrateSettings {
 
         @Override
         public List<Setting> children() {
-            return ImmutableList.<Setting>of(CLUSTER_INFO_UPDATE);
+            return ImmutableList.of(CLUSTER_INFO_UPDATE);
         }
 
         @Override
@@ -1318,7 +1272,7 @@ public class CrateSettings {
 
         @Override
         public List<Setting> children() {
-            return ImmutableList.<Setting>of(
+            return ImmutableList.of(
                 CLUSTER_INFO_UPDATE_INTERVAL
             );
         }
@@ -1365,7 +1319,7 @@ public class CrateSettings {
 
         @Override
         public List<Setting> children() {
-            return ImmutableList.<Setting>of(BULK_REQUEST_TIMEOUT);
+            return ImmutableList.of(BULK_REQUEST_TIMEOUT);
         }
 
         @Override
@@ -1404,7 +1358,7 @@ public class CrateSettings {
 
         @Override
         public List<Setting> children() {
-            return ImmutableList.<Setting>of(GATEWAY_RECOVERY_AFTER_NODES, GATEWAY_EXPECTED_NODES, GATEWAY_RECOVER_AFTER_TIME);
+            return ImmutableList.of(GATEWAY_RECOVERY_AFTER_NODES, GATEWAY_EXPECTED_NODES, GATEWAY_RECOVER_AFTER_TIME);
         }
 
         @Override
@@ -1459,7 +1413,7 @@ public class CrateSettings {
 
         @Override
         public List<Setting> children() {
-            return ImmutableList.<Setting>of(UDC_ENABLED, UDC_INITIAL_DELAY, UDC_INTERVAL, UDC_URL);
+            return ImmutableList.of(UDC_ENABLED, UDC_INITIAL_DELAY, UDC_INTERVAL, UDC_URL);
         }
 
         @Override
@@ -1529,7 +1483,7 @@ public class CrateSettings {
 
         @Override
         public List<Setting> children() {
-            return ImmutableList.<Setting>of(PSQL_PORT, PSQL_ENABLED);
+            return ImmutableList.of(PSQL_PORT, PSQL_ENABLED);
         }
 
         @Override
@@ -1548,12 +1502,6 @@ public class CrateSettings {
             return PSQL;
         }
     };
-
-    public static final List<Setting<?, ?>> CRATE_SETTINGS = ImmutableList.of(
-        STATS,
-        BULK,
-        GRACEFUL_STOP
-    );
 
     public static final NestedSetting LICENSE = new NestedSetting() {
         @Override
@@ -1579,8 +1527,19 @@ public class CrateSettings {
         }
     };
 
-    public static final List<Setting> SETTINGS = ImmutableList.of(
-        STATS, CLUSTER, DISCOVERY, INDICES, BULK, GATEWAY, UDC, PSQL, LICENSE);
+    public static final List<Setting> CRATE_SETTINGS = ImmutableList.of(
+        STATS,
+        BULK,
+        GRACEFUL_STOP,
+        UDC,
+        PSQL,
+        LICENSE
+    );
+
+    public static final List<Setting> SETTINGS = ImmutableList.<Setting>builder()
+        .addAll(CRATE_SETTINGS)
+        .add(CLUSTER, DISCOVERY, INDICES, GATEWAY)
+        .build();
 
     public static final Map<String, SettingsApplier> SUPPORTED_SETTINGS = ImmutableMap.<String, SettingsApplier>builder()
         .put(CrateSettings.STATS.settingName(),
@@ -1683,8 +1642,6 @@ public class CrateSettings {
             new SettingsAppliers.FloatSettingsApplier(CrateSettings.ROUTING_ALLOCATION_BALANCE_SHARD))
         .put(CrateSettings.ROUTING_ALLOCATION_BALANCE_INDEX.settingName(),
             new SettingsAppliers.FloatSettingsApplier(CrateSettings.ROUTING_ALLOCATION_BALANCE_INDEX))
-        .put(CrateSettings.ROUTING_ALLOCATION_BALANCE_PRIMARY.settingName(),
-            new SettingsAppliers.FloatSettingsApplier(CrateSettings.ROUTING_ALLOCATION_BALANCE_PRIMARY))
         .put(CrateSettings.ROUTING_ALLOCATION_BALANCE_THRESHOLD.settingName(),
             new SettingsAppliers.FloatSettingsApplier(CrateSettings.ROUTING_ALLOCATION_BALANCE_THRESHOLD))
         .put(CrateSettings.ROUTING_ALLOCATION_DISK.settingName(),
@@ -1701,16 +1658,6 @@ public class CrateSettings {
             new SettingsAppliers.ObjectSettingsApplier(CrateSettings.INDICES))
         .put(CrateSettings.INDICES_RECOVERY.settingName(),
             new SettingsAppliers.ObjectSettingsApplier(CrateSettings.INDICES_RECOVERY))
-        .put(CrateSettings.INDICES_RECOVERY_CONCURRENT_STREAMS.settingName(),
-            new SettingsAppliers.IntSettingsApplier(CrateSettings.INDICES_RECOVERY_CONCURRENT_STREAMS))
-        .put(CrateSettings.INDICES_RECOVERY_FILE_CHUNK_SIZE.settingName(),
-            new SettingsAppliers.ByteSizeSettingsApplier(CrateSettings.INDICES_RECOVERY_FILE_CHUNK_SIZE))
-        .put(CrateSettings.INDICES_RECOVERY_TRANSLOG_OPS.settingName(),
-            new SettingsAppliers.IntSettingsApplier(CrateSettings.INDICES_RECOVERY_TRANSLOG_OPS))
-        .put(CrateSettings.INDICES_RECOVERY_TRANSLOG_SIZE.settingName(),
-            new SettingsAppliers.ByteSizeSettingsApplier(CrateSettings.INDICES_RECOVERY_TRANSLOG_SIZE))
-        .put(CrateSettings.INDICES_RECOVERY_COMPRESS.settingName(),
-            new SettingsAppliers.BooleanSettingsApplier(CrateSettings.INDICES_RECOVERY_COMPRESS))
         .put(CrateSettings.INDICES_RECOVERY_MAX_BYTES_PER_SEC.settingName(),
             new SettingsAppliers.ByteSizeSettingsApplier(CrateSettings.INDICES_RECOVERY_MAX_BYTES_PER_SEC))
         .put(CrateSettings.INDICES_STORE.settingName(),
@@ -1723,6 +1670,12 @@ public class CrateSettings {
             new SettingsAppliers.ByteSizeSettingsApplier(CrateSettings.INDICES_STORE_THROTTLE_MAX_BYTES_PER_SEC))
         .put(CrateSettings.INDICES_BREAKER.settingName(),
             new SettingsAppliers.ObjectSettingsApplier(CrateSettings.INDICES_BREAKER))
+        .put(CrateSettings.INDICES_BREAKER_FIELDDATA.settingName(),
+            new SettingsAppliers.ObjectSettingsApplier(CrateSettings.INDICES_BREAKER_FIELDDATA))
+        .put(CrateSettings.INDICES_BREAKER_FIELDDATA_LIMIT.settingName(),
+            new SettingsAppliers.MemoryValueSettingsApplier(CrateSettings.INDICES_BREAKER_FIELDDATA_LIMIT))
+        .put(CrateSettings.INDICES_BREAKER_FIELDDATA_OVERHEAD.settingName(),
+            new SettingsAppliers.DoubleSettingsApplier(CrateSettings.INDICES_BREAKER_FIELDDATA_OVERHEAD))
         .put(CrateSettings.INDICES_BREAKER_REQUEST.settingName(),
             new SettingsAppliers.ObjectSettingsApplier(CrateSettings.INDICES_BREAKER_REQUEST))
         .put(CrateSettings.INDICES_BREAKER_REQUEST_LIMIT.settingName(),
@@ -1735,12 +1688,6 @@ public class CrateSettings {
             new SettingsAppliers.MemoryValueSettingsApplier(CrateSettings.INDICES_BREAKER_QUERY_LIMIT))
         .put(CrateSettings.INDICES_BREAKER_QUERY_OVERHEAD.settingName(),
             new SettingsAppliers.DoubleSettingsApplier(CrateSettings.INDICES_BREAKER_QUERY_OVERHEAD))
-        .put(CrateSettings.INDICES_BREAKER_FIELDDATA.settingName(),
-            new SettingsAppliers.ObjectSettingsApplier(CrateSettings.INDICES_BREAKER_FIELDDATA))
-        .put(CrateSettings.INDICES_BREAKER_FIELDDATA_LIMIT.settingName(),
-            new SettingsAppliers.MemoryValueSettingsApplier(CrateSettings.INDICES_BREAKER_FIELDDATA_LIMIT))
-        .put(CrateSettings.INDICES_BREAKER_FIELDDATA_OVERHEAD.settingName(),
-            new SettingsAppliers.DoubleSettingsApplier(CrateSettings.INDICES_BREAKER_FIELDDATA_OVERHEAD))
         .put(CrateSettings.CLUSTER_INFO.settingName(),
             new SettingsAppliers.ObjectSettingsApplier(CrateSettings.CLUSTER_INFO))
         .put(CrateSettings.CLUSTER_INFO_UPDATE.settingName(),

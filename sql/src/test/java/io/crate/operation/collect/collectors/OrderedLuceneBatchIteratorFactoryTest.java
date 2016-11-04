@@ -41,9 +41,10 @@ import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.index.IndexWriterConfig;
 import org.apache.lucene.search.*;
 import org.apache.lucene.store.RAMDirectory;
+import org.elasticsearch.common.UUIDs;
 import org.elasticsearch.index.fielddata.IndexFieldDataService;
-import org.elasticsearch.index.mapper.MappedFieldType;
-import org.elasticsearch.index.mapper.core.LongFieldMapper;
+import org.elasticsearch.index.mapper.LegacyLongFieldMapper;
+import org.elasticsearch.index.mapper.NumberFieldMapper;
 import org.elasticsearch.index.shard.ShardId;
 import org.junit.Before;
 import org.junit.Test;
@@ -93,12 +94,12 @@ public class OrderedLuceneBatchIteratorFactoryTest {
         iw1.commit();
         iw2.commit();
 
-        searcher1 = new IndexSearcher(DirectoryReader.open(iw1, true));
-        searcher2 = new IndexSearcher(DirectoryReader.open(iw2, true));
+        searcher1 = new IndexSearcher(DirectoryReader.open(iw1));
+        searcher2 = new IndexSearcher(DirectoryReader.open(iw2));
         fieldTypeLookup = columnName -> {
-            LongFieldMapper.LongFieldType longFieldType = new LongFieldMapper.LongFieldType();
-            longFieldType.setNames(new MappedFieldType.Names(columnName));
-            return longFieldType;
+            NumberFieldMapper.NumberFieldType fieldType = new NumberFieldMapper.NumberFieldType(NumberFieldMapper.NumberType.LONG);
+            fieldType.setName(columnName);
+            return fieldType;
         };
         orderBy = new OrderBy(
             Collections.singletonList(reference),
@@ -131,9 +132,9 @@ public class OrderedLuceneBatchIteratorFactoryTest {
             new CollectorFieldsVisitor(0)
         );
         List<LuceneCollectorExpression<?>> expressions = Collections.singletonList(
-            new OrderByCollectorExpression(reference, orderBy));
+            new OrderByCollectorExpression(reference, orderBy, o -> o));
         return new LuceneOrderedDocCollector(
-            new ShardId("dummy", shardId),
+            new ShardId("dummy", UUIDs.randomBase64UUID(), shardId),
             searcher,
             new MatchAllDocsQuery(),
             null,

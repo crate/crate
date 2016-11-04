@@ -218,7 +218,11 @@ public class InputFactory {
 
         @Override
         public Input<?> visitReference(Reference ref, Void context) {
-            return referenceResolver.getImplementation(ref);
+            T implementation = referenceResolver.getImplementation(ref);
+            if (implementation == null) {
+                throw new IllegalArgumentException("Column implementation not found for: " + ref);
+            }
+            return implementation;
         }
     }
 }

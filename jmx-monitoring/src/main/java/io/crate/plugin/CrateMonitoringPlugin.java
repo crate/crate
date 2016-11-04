@@ -19,6 +19,7 @@
 package io.crate.plugin;
 
 import com.google.common.collect.ImmutableList;
+import io.crate.Plugin;
 import io.crate.module.CrateMonitoringModule;
 import org.elasticsearch.common.inject.Module;
 import org.elasticsearch.common.settings.Settings;
@@ -26,7 +27,7 @@ import org.elasticsearch.common.settings.Settings;
 import java.util.Collection;
 import java.util.Collections;
 
-public class CrateMonitoringPlugin extends AbstractPlugin {
+public class CrateMonitoringPlugin implements Plugin {
 
 
     private final boolean isEnterprise;
@@ -46,7 +47,7 @@ public class CrateMonitoringPlugin extends AbstractPlugin {
     }
 
     @Override
-    public Collection<Module> nodeModules() {
+    public Collection<Module> createGuiceModules() {
         return isEnterprise ? ImmutableList.of(new CrateMonitoringModule()) : Collections.emptyList();
     }
 }

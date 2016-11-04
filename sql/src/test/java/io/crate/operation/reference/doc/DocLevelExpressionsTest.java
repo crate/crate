@@ -22,17 +22,17 @@
 package io.crate.operation.reference.doc;
 
 import io.crate.operation.reference.doc.lucene.CollectorContext;
-import io.crate.test.integration.CrateSingleNodeTest;
 import org.apache.lucene.analysis.standard.StandardAnalyzer;
 import org.apache.lucene.index.*;
 import org.apache.lucene.store.RAMDirectory;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.IndexService;
 import org.elasticsearch.index.fielddata.IndexFieldDataService;
+import org.elasticsearch.test.ESSingleNodeTestCase;
 import org.junit.After;
 import org.junit.Before;
 
-public abstract class DocLevelExpressionsTest extends CrateSingleNodeTest {
+public abstract class DocLevelExpressionsTest extends ESSingleNodeTestCase {
 
     protected CollectorContext ctx;
     protected IndexFieldDataService ifd;
@@ -49,7 +49,7 @@ public abstract class DocLevelExpressionsTest extends CrateSingleNodeTest {
 
         insertValues(writer);
 
-        DirectoryReader directoryReader = DirectoryReader.open(writer, true);
+        DirectoryReader directoryReader = DirectoryReader.open(writer, true, true);
         readerContext = directoryReader.leaves().get(0);
 
         ctx = new CollectorContext(ifd, null);

@@ -22,12 +22,19 @@
 package io.crate.operation.collect;
 
 import io.crate.analyze.OrderBy;
+import io.crate.lucene.FieldTypeLookup;
 import io.crate.metadata.Functions;
+import io.crate.metadata.Reference;
 import io.crate.operation.InputFactory;
 import io.crate.operation.reference.ReferenceResolver;
 import io.crate.operation.reference.doc.lucene.LuceneCollectorExpression;
 import io.crate.operation.reference.doc.lucene.OrderByCollectorExpression;
 import io.crate.planner.node.dql.RoutedCollectPhase;
+import io.crate.types.DataType;
+import io.crate.types.IpType;
+import org.elasticsearch.index.mapper.MappedFieldType;
+
+import java.util.function.Function;
 
 /**
  * Specialized InputFactory for Lucene symbols/expressions.
@@ -36,12 +43,15 @@ import io.crate.planner.node.dql.RoutedCollectPhase;
  */
 public class DocInputFactory {
 
+    private final FieldTypeLookup fieldTypeLookup;
     private final ReferenceResolver<? extends LuceneCollectorExpression<?>> referenceResolver;
     private final InputFactory inputFactory;
 
     public DocInputFactory(Functions functions,
+                           FieldTypeLookup fieldTypeLookup,
                            ReferenceResolver<? extends LuceneCollectorExpression<?>> referenceResolver) {
         this.inputFactory = new InputFactory(functions);
+        this.fieldTypeLookup = fieldTypeLookup;
         this.referenceResolver = referenceResolver;
     }
 
@@ -53,7 +63,7 @@ public class DocInputFactory {
         } else {
             refResolver = ref -> {
                 if (orderBy.orderBySymbols().contains(ref)) {
-                    return new OrderByCollectorExpression(ref, orderBy);
+                    return getOrderByExpression(orderBy, ref);
                 }
                 return referenceResolver.getImplementation(ref);
             };
@@ -61,6 +71,26 @@ public class DocInputFactory {
         InputFactory.Context<? extends LuceneCollectorExpression<?>> ctx = inputFactory.ctxForRefs(refResolver);
         ctx.add(phase.toCollect());
         return ctx;
+    }
+
+    private LuceneCollectorExpression<?> getOrderByExpression(OrderBy orderBy, Reference ref) {
+        DataType dataType = ref.valueType();
+        Function<Object, Object> valueConversion;
+        switch (dataType.id()) {
+            case IpType.ID:
+                MappedFieldType mappedFieldType = fieldTypeLookup.get(ref.ident().columnIdent().fqn());
+                if (mappedFieldType == null) {
+                    valueConversion = dataType::value;
+                } else {
+                    // need to convert binary bytesRef to BytesRef string
+                    valueConversion = i -> dataType.value(mappedFieldType.valueForSearch(i));
+                }
+                break;
+
+            default:
+                valueConversion = dataType::value;
+        }
+        return new OrderByCollectorExpression(ref, orderBy, valueConversion);
     }
 
     public InputFactory.Context<? extends LuceneCollectorExpression<?>> getCtx() {

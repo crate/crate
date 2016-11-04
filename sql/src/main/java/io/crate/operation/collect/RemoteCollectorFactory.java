@@ -31,7 +31,7 @@ import io.crate.operation.collect.collectors.RemoteCollector;
 import io.crate.planner.distribution.DistributionInfo;
 import io.crate.planner.node.dql.RoutedCollectPhase;
 import io.crate.planner.projection.Projections;
-import org.elasticsearch.cluster.ClusterService;
+import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.cluster.routing.IndexShardRoutingTable;
 import org.elasticsearch.cluster.routing.ShardRouting;
 import org.elasticsearch.common.inject.Inject;

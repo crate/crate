@@ -28,33 +28,26 @@ package io.crate.plugin;
 import io.crate.module.AdminUIModule;
 import io.crate.rest.action.admin.AdminUIFrontpageAction;
 import org.elasticsearch.common.inject.Module;
+import org.elasticsearch.plugins.ActionPlugin;
 import org.elasticsearch.plugins.Plugin;
-import org.elasticsearch.rest.RestModule;
+import org.elasticsearch.rest.RestHandler;
 
 import java.util.Collection;
 import java.util.Collections;
+import java.util.List;
 
 /**
  * Crate Admin-UI Plugin
  */
-public class AdminUIPlugin extends Plugin {
+public class AdminUIPlugin extends Plugin implements ActionPlugin {
 
     @Override
-    public String name() {
-        return "admin-ui";
+    public List<Class<? extends RestHandler>> getRestHandlers() {
+        return Collections.singletonList(AdminUIFrontpageAction.class);
     }
 
     @Override
-    public String description() {
-        return "Crate Admin-UI Plugin";
-    }
-
-    public void onModule(RestModule restModule) {
-        restModule.addRestAction(AdminUIFrontpageAction.class);
-    }
-
-    @Override
-    public Collection<Module> nodeModules() {
+    public Collection<Module> createGuiceModules() {
         return Collections.<Module>singletonList(new AdminUIModule());
     }
 }

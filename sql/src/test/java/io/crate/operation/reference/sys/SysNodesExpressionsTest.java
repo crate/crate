@@ -28,49 +28,29 @@ import io.crate.metadata.Reference;
 import io.crate.metadata.ReferenceImplementation;
 import io.crate.metadata.RowGranularity;
 import io.crate.monitor.DummyExtendedNodeInfo;
-import io.crate.monitor.MonitorModule;
 import io.crate.data.Input;
 import io.crate.operation.reference.NestedObjectExpression;
 import io.crate.operation.reference.sys.node.local.NodeSysExpression;
-import io.crate.operation.reference.sys.node.local.SysNodeExpressionModule;
-import io.crate.test.integration.CrateUnitTest;
+import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
-import org.elasticsearch.action.admin.cluster.node.info.NodeInfo;
-import org.elasticsearch.action.admin.cluster.node.stats.NodeStats;
-import org.elasticsearch.cluster.ClusterService;
-import org.elasticsearch.cluster.node.DiscoveryNode;
-import org.elasticsearch.common.inject.AbstractModule;
-import org.elasticsearch.common.inject.Injector;
-import org.elasticsearch.common.inject.ModulesBuilder;
 import org.elasticsearch.common.lucene.BytesRefs;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.transport.BoundTransportAddress;
 import org.elasticsearch.common.transport.InetSocketTransportAddress;
 import org.elasticsearch.common.transport.TransportAddress;
-import org.elasticsearch.common.unit.ByteSizeValue;
-import org.elasticsearch.discovery.Discovery;
+import org.elasticsearch.common.util.concurrent.EsExecutors;
+import org.elasticsearch.discovery.local.LocalDiscovery;
+import org.elasticsearch.env.Environment;
 import org.elasticsearch.env.NodeEnvironment;
 import org.elasticsearch.http.HttpInfo;
-import org.elasticsearch.monitor.jvm.JvmService;
-import org.elasticsearch.monitor.jvm.JvmStats;
-import org.elasticsearch.monitor.os.OsInfo;
-import org.elasticsearch.monitor.os.OsService;
-import org.elasticsearch.monitor.os.OsStats;
-import org.elasticsearch.monitor.process.ProcessStats;
-import org.elasticsearch.node.service.NodeService;
-import org.elasticsearch.threadpool.ThreadPool;
+import org.elasticsearch.http.HttpServer;
+import org.elasticsearch.monitor.MonitorService;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-import org.mockito.invocation.InvocationOnMock;
-import org.mockito.stubbing.Answer;
 
-import java.io.File;
-import java.io.IOException;
-import java.net.InetAddress;
-import java.net.UnknownHostException;
-import java.nio.file.Path;
+import java.net.Inet4Address;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -80,146 +60,45 @@ import static org.hamcrest.Matchers.*;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-public class SysNodesExpressionsTest extends CrateUnitTest {
+public class SysNodesExpressionsTest extends CrateDummyClusterServiceUnitTest {
 
-    private static final Settings NODE_SETTINGS = Settings.builder()
-        .put(MonitorModule.NODE_INFO_EXTENDED_TYPE, "dummy")
-        .build();
-
-    private Injector injector;
-    private NodeSysExpression resolver;
-
-    static class TestModule extends AbstractModule {
-
-        private final boolean isDataNode;
-
-        TestModule(boolean isDataNode) {
-            this.isDataNode = isDataNode;
-        }
-
-        @Override
-        protected void configure() {
-            bind(Settings.class).toInstance(Settings.EMPTY);
-
-            ClusterService clusterService = mock(ClusterService.class);
-            bind(ClusterService.class).toInstance(clusterService);
-
-            OsService osService = mock(OsService.class);
-            OsStats osStats = mock(OsStats.class);
-            when(osService.stats()).thenReturn(osStats);
-
-            ByteSizeValue byteSizeValue = new ByteSizeValue(12345342234L);
-
-            OsStats.Mem mem = mock(OsStats.Mem.class);
-            when(osStats.getMem()).thenReturn(mem);
-            when(mem.getFree()).thenReturn(byteSizeValue);
-            when(mem.getUsed()).thenReturn(byteSizeValue);
-            when(mem.getUsedPercent()).thenReturn((short) 22);
-            when(mem.getFreePercent()).thenReturn((short) 78);
-
-            OsInfo osInfo = mock(OsInfo.class);
-            when(osService.info()).thenReturn(osInfo);
-            when(osInfo.getAvailableProcessors()).thenReturn(4);
-
-            bind(OsService.class).toInstance(osService);
-
-            NodeService nodeService = mock(NodeService.class);
-            NodeStats nodeStats = mock(NodeStats.class);
-            try {
-                when(nodeService.stats()).thenReturn(nodeStats);
-            } catch (IOException e) {
-                // wrong signature, IOException will never be thrown
-            }
-
-            DiscoveryNode node = mock(DiscoveryNode.class);
-            when(node.getHostAddress()).thenReturn("127.0.0.1");
-            when(nodeStats.getNode()).thenReturn(node);
-            when(clusterService.localNode()).thenReturn(node);
-
-            when(nodeStats.getOs()).thenReturn(osStats);
-
-            ProcessStats processStats = mock(ProcessStats.class);
-            when(nodeStats.getProcess()).thenReturn(processStats);
-            when(processStats.getOpenFileDescriptors()).thenReturn(42L);
-            when(processStats.getMaxFileDescriptors()).thenReturn(1000L);
-
-            NodeInfo nodeInfo = mock(NodeInfo.class);
-            when(nodeService.info()).thenReturn(nodeInfo);
-
-            Discovery discovery = mock(Discovery.class);
-            bind(Discovery.class).toInstance(discovery);
-            when(discovery.localNode()).thenReturn(node);
-            when(node.getId()).thenReturn("node-id-1");
-            when(node.getName()).thenReturn("node 1");
-
-            InetAddress localhost = null;
-            try {
-                localhost = InetAddress.getByName("localhost");
-            } catch (UnknownHostException e) {
-                fail(e.getMessage());
-            }
-
-            TransportAddress transportAddress = new InetSocketTransportAddress(localhost, 44300);
-            when(node.address()).thenReturn(transportAddress);
-
-            bind(NodeService.class).toInstance(nodeService);
-
-            NodeEnvironment nodeEnv = mock(NodeEnvironment.class);
-            Path[] dataLocations = new Path[]{new File("/foo").toPath(), new File("/bar").toPath()};
-            when(nodeEnv.hasNodeFile()).then(new Answer<Boolean>() {
-                @Override
-                public Boolean answer(InvocationOnMock invocation) throws Throwable {
-                    return isDataNode;
-                }
-            });
-            when(nodeEnv.nodeDataPaths()).thenReturn(dataLocations);
-            bind(NodeEnvironment.class).toInstance(nodeEnv);
-
-            HttpInfo httpInfo = mock(HttpInfo.class);
-            when(nodeInfo.getHttp()).thenReturn(httpInfo);
-            TransportAddress[] boundAddresses = new TransportAddress[]{new InetSocketTransportAddress(localhost, 44200)};
-            BoundTransportAddress boundTransportAddress = new BoundTransportAddress(boundAddresses, boundAddresses[0]);
-            when(httpInfo.address()).thenReturn(boundTransportAddress);
-
-            JvmService jvmService = mock(JvmService.class);
-            JvmStats jvmStats = mock(JvmStats.class);
-            JvmStats.Mem jvmStatsMem = mock(JvmStats.Mem.class);
-            ByteSizeValue heapByteSizeValueMax = new ByteSizeValue(123456L);
-            when(jvmStatsMem.getHeapMax()).thenReturn(heapByteSizeValueMax);
-            when(jvmStatsMem.getHeapUsed()).thenReturn(heapByteSizeValueMax);
-
-            when(jvmStats.getMem()).thenReturn(jvmStatsMem);
-            when(jvmService.stats()).thenReturn(jvmStats);
-            bind(JvmService.class).toInstance(jvmService);
-
-            ThreadPool threadPool = new ThreadPool(getClass().getName());
-            bind(ThreadPool.class).toInstance(threadPool);
-        }
-    }
+    private NodeSysExpression nodeSysExpression;
+    private NodeEnvironment nodeEnvironment;
 
     @Before
     public void prepare() throws Exception {
-        MonitorModule monitorModule = new MonitorModule(NODE_SETTINGS);
-        monitorModule.addExtendedNodeInfoType("dummy", DummyExtendedNodeInfo.class);
+        Settings settings = Settings.builder()
+            .put("path.home", createTempDir()).build();
+        LocalDiscovery localDiscovery = new LocalDiscovery(settings, clusterService, clusterService.getClusterSettings());
+        Environment environment = new Environment(settings);
+        nodeEnvironment = new NodeEnvironment(settings, environment);
+        MonitorService monitorService = new MonitorService(settings, nodeEnvironment, THREAD_POOL);
 
-        injector = new ModulesBuilder().add(
-            new TestModule(true),
-            monitorModule,
-            new SysNodeExpressionModule()
-        ).createInjector();
-        resolver = injector.getInstance(NodeSysExpression.class);
+        HttpServer httpServer = mock(HttpServer.class);
+        TransportAddress httpAddress = new InetSocketTransportAddress(Inet4Address.getLocalHost(), 44200);
+        BoundTransportAddress boundAddress = new BoundTransportAddress(new TransportAddress[]{httpAddress}, httpAddress);
+        when(httpServer.info()).thenReturn(new HttpInfo(boundAddress, 10));
+
+        nodeSysExpression = new NodeSysExpression(
+            clusterService,
+            monitorService,
+            httpServer,
+            localDiscovery,
+            THREAD_POOL,
+            new DummyExtendedNodeInfo(nodeEnvironment)
+        );
     }
 
     @After
-    public void cleanUp() throws Exception {
-        injector.getInstance(ThreadPool.class).shutdownNow();
+    public void releaseResources() throws Exception {
+        nodeEnvironment.close();
     }
 
     @Test
     public void testLoad() throws Exception {
         Reference refInfo = refInfo("sys.nodes.load", DataTypes.OBJECT, RowGranularity.NODE);
         io.crate.operation.reference.NestedObjectExpression load =
-            (io.crate.operation.reference.NestedObjectExpression) resolver.getChildImplementation(refInfo.ident().columnIdent().name());
+            (io.crate.operation.reference.NestedObjectExpression) nodeSysExpression.getChildImplementation(refInfo.ident().columnIdent().name());
 
         Map<String, Object> v = load.value();
         assertNull(v.get("something"));
@@ -239,23 +118,23 @@ public class SysNodesExpressionsTest extends CrateUnitTest {
     public void testName() throws Exception {
         Reference refInfo = refInfo("sys.nodes.name", DataTypes.STRING, RowGranularity.NODE);
         @SuppressWarnings("unchecked") ReferenceImplementation<BytesRef> name =
-            (ReferenceImplementation<BytesRef>) resolver.getChildImplementation(refInfo.ident().columnIdent().name());
-        assertEquals(new BytesRef("node 1"), name.value());
+            (ReferenceImplementation<BytesRef>) nodeSysExpression.getChildImplementation(refInfo.ident().columnIdent().name());
+        assertEquals(new BytesRef("node-name"), name.value());
     }
 
     @Test
     public void testId() throws Exception {
         Reference refInfo = refInfo("sys.nodes.id", DataTypes.STRING, RowGranularity.NODE);
         @SuppressWarnings("unchecked") ReferenceImplementation<BytesRef> id =
-            (ReferenceImplementation<BytesRef>) resolver.getChildImplementation(refInfo.ident().columnIdent().name());
-        assertEquals(new BytesRef("node-id-1"), id.value());
+            (ReferenceImplementation<BytesRef>) nodeSysExpression.getChildImplementation(refInfo.ident().columnIdent().name());
+        assertEquals(new BytesRef("node"), id.value());
     }
 
     @Test
     public void testHostname() throws Exception {
         Reference refInfo = refInfo("sys.nodes.hostname", DataTypes.STRING, RowGranularity.NODE);
         @SuppressWarnings("unchecked") ReferenceImplementation<BytesRef> expression =
-            (ReferenceImplementation) resolver.getChildImplementation(refInfo.ident().columnIdent().name());
+            (ReferenceImplementation) nodeSysExpression.getChildImplementation(refInfo.ident().columnIdent().name());
         BytesRef hostname = expression.value();
         assertThat(hostname, notNullValue());
         assertThat(InetAddresses.isInetAddress(BytesRefs.toString(hostname)), is(false));
@@ -265,39 +144,39 @@ public class SysNodesExpressionsTest extends CrateUnitTest {
     public void testPorts() throws Exception {
         Reference refInfo = refInfo("sys.nodes.port", DataTypes.OBJECT, RowGranularity.NODE);
         io.crate.operation.reference.NestedObjectExpression port =
-            (io.crate.operation.reference.NestedObjectExpression) resolver.getChildImplementation(refInfo.ident().columnIdent().name());
+            (io.crate.operation.reference.NestedObjectExpression) nodeSysExpression.getChildImplementation(refInfo.ident().columnIdent().name());
 
         Map<String, Object> v = port.value();
         assertEquals(44200, v.get("http"));
-        assertEquals(44300, v.get("transport"));
+        assertEquals(-1, v.get("transport"));
     }
 
     @Test
     public void testMemory() throws Exception {
         Reference refInfo = refInfo("sys.nodes.mem", DataTypes.OBJECT, RowGranularity.NODE);
         io.crate.operation.reference.NestedObjectExpression mem =
-            (io.crate.operation.reference.NestedObjectExpression) resolver.getChildImplementation(refInfo.ident().columnIdent().name());
+            (io.crate.operation.reference.NestedObjectExpression) nodeSysExpression.getChildImplementation(refInfo.ident().columnIdent().name());
 
         Map<String, Object> v = mem.value();
 
-        assertEquals(12345342234L, v.get("free"));
-        assertEquals(Short.valueOf("78"), v.get("free_percent"));
+        assertThat((long) v.get("free"), greaterThan(10L));
+        assertThat((short) v.get("free_percent"), greaterThan((short) -1)); // assert that it's not the default value -1
 
-        assertEquals(12345342234L, v.get("used"));
-        assertEquals(Short.valueOf("22"), v.get("used_percent"));
+        assertThat((long) v.get("used"), greaterThan(10L));
+        assertThat((short) v.get("used_percent"), greaterThan((short) -1)); // assert that it's not the default value -1
     }
 
     @Test
     public void testHeap() throws Exception {
         Reference refInfo = refInfo("sys.nodes.heap", DataTypes.STRING, RowGranularity.NODE);
         io.crate.operation.reference.NestedObjectExpression heap =
-            (io.crate.operation.reference.NestedObjectExpression) resolver.getChildImplementation(refInfo.ident().columnIdent().name());
+            (io.crate.operation.reference.NestedObjectExpression) nodeSysExpression.getChildImplementation(refInfo.ident().columnIdent().name());
 
         Map<String, Object> v = heap.value();
 
-        assertEquals(123456L, v.get("max"));
-        assertEquals(123456L, v.get("used"));
-        assertEquals(0L, v.get("free"));
+        assertThat((long) v.get("max"), greaterThan(1L));
+        assertThat((long) v.get("used"), greaterThan(1L));
+        assertThat((long) v.get("free"), greaterThan(1L));
     }
 
     @SuppressWarnings("unchecked")
@@ -305,7 +184,7 @@ public class SysNodesExpressionsTest extends CrateUnitTest {
     public void testFs() throws Exception {
         Reference refInfo = refInfo("sys.nodes.fs", DataTypes.STRING, RowGranularity.NODE);
         io.crate.operation.reference.NestedObjectExpression fs =
-            (io.crate.operation.reference.NestedObjectExpression) resolver.getChildImplementation(refInfo.ident().columnIdent().name());
+            (io.crate.operation.reference.NestedObjectExpression) nodeSysExpression.getChildImplementation(refInfo.ident().columnIdent().name());
 
         Map<String, Object> v = fs.value();
         String total = mapToSortedString((Map<String, Object>) v.get("total"));
@@ -330,7 +209,7 @@ public class SysNodesExpressionsTest extends CrateUnitTest {
 
         refInfo = refInfo("sys.nodes.fs", DataTypes.STRING, RowGranularity.NODE, "data", "dev");
         NestedObjectExpression fsRef =
-            (NestedObjectExpression) resolver.getChildImplementation(refInfo.ident().columnIdent().name());
+            (NestedObjectExpression) nodeSysExpression.getChildImplementation(refInfo.ident().columnIdent().name());
 
         SysStaticObjectArrayReference dataRef =
             (SysStaticObjectArrayReference) fsRef.getChildImplementation(refInfo.ident().columnIdent().path().get(0));
@@ -347,7 +226,7 @@ public class SysNodesExpressionsTest extends CrateUnitTest {
     public void testVersion() throws Exception {
         Reference refInfo = refInfo("sys.nodes.version", DataTypes.OBJECT, RowGranularity.NODE);
         io.crate.operation.reference.NestedObjectExpression version =
-            (io.crate.operation.reference.NestedObjectExpression) resolver.getChildImplementation(refInfo.ident().columnIdent().name());
+            (io.crate.operation.reference.NestedObjectExpression) nodeSysExpression.getChildImplementation(refInfo.ident().columnIdent().name());
 
         Map<String, Object> v = version.value();
         assertEquals(Version.CURRENT.number(), v.get("number"));
@@ -360,7 +239,7 @@ public class SysNodesExpressionsTest extends CrateUnitTest {
     public void testNetwork() throws Exception {
         Reference refInfo = refInfo("sys.nodes.network", DataTypes.OBJECT, RowGranularity.NODE);
         io.crate.operation.reference.NestedObjectExpression networkRef =
-            (io.crate.operation.reference.NestedObjectExpression) resolver.getChildImplementation(refInfo.ident().columnIdent().name());
+            (io.crate.operation.reference.NestedObjectExpression) nodeSysExpression.getChildImplementation(refInfo.ident().columnIdent().name());
 
         Map<String, Object> networkStats = networkRef.value();
         assertThat(mapToSortedString(networkStats),
@@ -374,7 +253,7 @@ public class SysNodesExpressionsTest extends CrateUnitTest {
     public void testNetworkTCP() throws Exception {
         Reference refInfo = refInfo("sys.nodes.network", DataTypes.OBJECT, RowGranularity.NODE, "tcp");
         ColumnIdent columnIdent = refInfo.ident().columnIdent();
-        io.crate.operation.reference.NestedObjectExpression network = (io.crate.operation.reference.NestedObjectExpression) resolver.getChildImplementation(columnIdent.name());
+        io.crate.operation.reference.NestedObjectExpression network = (io.crate.operation.reference.NestedObjectExpression) nodeSysExpression.getChildImplementation(columnIdent.name());
         NestedObjectExpression tcpRef = (NestedObjectExpression) network.getChildImplementation(columnIdent.path().get(0));
         Map<String, Object> tcpStats = tcpRef.value();
 
@@ -388,7 +267,7 @@ public class SysNodesExpressionsTest extends CrateUnitTest {
     public void testCpu() throws Exception {
         Reference refInfo = refInfo("sys.nodes.os", DataTypes.OBJECT, RowGranularity.NODE);
         io.crate.operation.reference.NestedObjectExpression os =
-            (io.crate.operation.reference.NestedObjectExpression) resolver.getChildImplementation(refInfo.ident().columnIdent().name());
+            (io.crate.operation.reference.NestedObjectExpression) nodeSysExpression.getChildImplementation(refInfo.ident().columnIdent().name());
 
         Map<String, Object> v = os.value();
         assertEquals(3600000L, v.get("uptime"));
@@ -406,28 +285,28 @@ public class SysNodesExpressionsTest extends CrateUnitTest {
     public void testProcess() throws Exception {
         Reference refInfo = refInfo("sys.nodes.process", DataTypes.OBJECT, RowGranularity.NODE);
         io.crate.operation.reference.NestedObjectExpression processRef = (io.crate.operation.reference.NestedObjectExpression)
-            resolver.getChildImplementation(refInfo.ident().columnIdent().name());
+            nodeSysExpression.getChildImplementation(refInfo.ident().columnIdent().name());
 
         Map<String, Object> v = processRef.value();
-        assertEquals(42L, (long) v.get("open_file_descriptors"));
-        assertEquals(1000L, (long) v.get("max_open_file_descriptors"));
+        assertThat((long) v.get("open_file_descriptors"), greaterThan(10L));
+        assertThat((long) v.get("max_open_file_descriptors"), greaterThan(10L));
 
         Map<String, Object> cpuObj = new HashMap<>(4);
         cpuObj.put("percent", (short) 50);
         cpuObj.put("system", 1000L);
         cpuObj.put("user", 500L);
-        assertEquals(cpuObj, v.get("cpu"));
+        assertThat(v.get("cpu"), is(cpuObj));
     }
 
     @Test
     public void testOsInfo() throws Exception {
         Reference refInfo = refInfo("sys.nodes.os_info", DataTypes.OBJECT, RowGranularity.NODE);
         io.crate.operation.reference.NestedObjectExpression ref =
-            (io.crate.operation.reference.NestedObjectExpression) resolver.getChildImplementation(refInfo.ident().columnIdent().name());
+            (io.crate.operation.reference.NestedObjectExpression) nodeSysExpression.getChildImplementation(refInfo.ident().columnIdent().name());
 
         Map<String, Object> v = ref.value();
         int cores = (int) v.get("available_processors");
-        assertEquals(4, cores);
+        assertThat(cores, is(EsExecutors.boundedNumberOfProcessors(Settings.EMPTY)));
     }
 
     @Test
@@ -435,7 +314,7 @@ public class SysNodesExpressionsTest extends CrateUnitTest {
         Reference refInfo = refInfo("sys.nodes.version", DataTypes.OBJECT, RowGranularity.NODE);
         ColumnIdent versionColIdent = refInfo.ident().columnIdent();
         io.crate.operation.reference.NestedObjectExpression version =
-            (io.crate.operation.reference.NestedObjectExpression) resolver.getChildImplementation(versionColIdent.name());
+            (io.crate.operation.reference.NestedObjectExpression) nodeSysExpression.getChildImplementation(versionColIdent.name());
 
         assertThat(version.value().get("number"), instanceOf(String.class));
     }
