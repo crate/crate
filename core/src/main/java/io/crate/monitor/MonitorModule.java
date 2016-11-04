@@ -22,8 +22,8 @@
 
 package io.crate.monitor;
 
+import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.inject.AbstractModule;
-import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.Settings;
 
@@ -34,7 +34,7 @@ public class MonitorModule extends AbstractModule {
 
     public final static String NODE_INFO_EXTENDED_TYPE = "node.info.extended.type";
     public final static String NODE_INFO_EXTENDED_DEFAULT_TYPE = "none";
-    private final static ESLogger LOGGER = Loggers.getLogger(MonitorModule.class);
+    private final static Logger LOGGER = Loggers.getLogger(MonitorModule.class);
 
     private final Settings settings;
     private final Map<String, Class<? extends ExtendedNodeInfo>> extendedNodeInfoTypes = new HashMap<>();
