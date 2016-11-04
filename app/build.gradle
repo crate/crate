@@ -21,7 +21,7 @@ configurations {
 }
 
 evaluationDependsOn(':core')
-evaluationDependsOn(':es')
+evaluationDependsOn(':es:es-core')
 evaluationDependsOn(':sql')
 evaluationDependsOn(':sql-parser')
 evaluationDependsOn(':blob')
@@ -29,8 +29,6 @@ evaluationDependsOn(':udc')
 evaluationDependsOn(':dns-discovery')
 
 dependencies {
-    compile project(':core')
-    compile project(':es')
     compile project(':sql')
     compile project(':admin-ui')
     compile project(':blob')
@@ -46,7 +44,7 @@ dependencies {
     testCompile project(':testing')
 
     compileNotTransitive project(':core')
-    compileNotTransitive project(':es')
+    compileNotTransitive project(':es:es-core')
     compileNotTransitive project(':sql')
     compileNotTransitive project(':sql-parser')
     compileNotTransitive project(':admin-ui')

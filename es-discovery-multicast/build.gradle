@@ -2,7 +2,7 @@ apply from: "$rootDir/gradle/javaModule.gradle"
 apply plugin: 'idea'
 
 dependencies {
-    compile project(':es')
+    compile project(':es:es-core')
     testCompile project(':testing')
 }
 

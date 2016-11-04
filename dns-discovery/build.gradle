@@ -4,7 +4,6 @@ archivesBaseName = 'crate-dns-discovery'
 group = 'io.crate'
 
 dependencies {
-    compile project(':es')
     compile project(':core')
     compile 'dnsjava:dnsjava:2.1.7'
     testCompile project(':testing')

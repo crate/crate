@@ -6,15 +6,9 @@ compileJava {
     options.warnings = false
     options.deprecation = false
     options.compilerArgs << '-XDignore.symbol.file'
-    options.fork = true // probably not required when using java 1.8
-    options.forkOptions.executable = 'javac'
 }
-compileTestJava.options.warnings = false
 
 dependencies {
-    // if you update the versions here
-    // also update the dependencies in client/build.gradle
-
     // start ES compile dependencies
     // generated in upstream directory with:
     // mvn dependency:tree | grep -o ' .- .*:compile' | cut -d ' ' -f 3 | sort | sed "s/\(.*\):jar:\(.*\):compile/compile '\1:\2'/g"
@@ -61,26 +55,6 @@ dependencies {
     // end ES compile dependencies
 
     compile "org.codehaus.groovy:groovy-all:2.4.4:indy"
-
-
-    // mvn dependency:tree | grep -o ' .- .*:test' | cut -d ' ' -f 3 | sort | sed "s/\(.*\):jar:\(.*\):test/testCompile '\1:\2'/g"
-    testCompile "com.carrotsearch.randomizedtesting:randomizedtesting-runner:${versions.randomizedrunner}"
-    testCompile "com.google.jimfs:jimfs:1.0"
-    testCompile "commons-codec:commons-codec:${versions.commonscodec}"
-    testCompile "commons-logging:commons-logging:${versions.commonslogging}"
-    testCompile "junit:junit:${versions.junit}"
-    testCompile("org.apache.httpcomponents:httpclient:${versions.httpclient}") {
-        exclude group: "commons-codec", module: "commons-codec"
-    }
-    testCompile "org.apache.httpcomponents:httpcore:${versions.httpcore}"
-    testCompile "org.apache.lucene:lucene-codecs:${versions.lucene}"
-    // If the version here is increased the `AssertingLeafReader` class needs to
-    // be updated as it is a copy from lucene-test-framework
-    testCompile "org.apache.lucene:lucene-test-framework:${versions.lucene}"
-    testCompile "org.elasticsearch:securemock:${versions.securemock}"
-    testCompile "org.hamcrest:hamcrest-all:${versions.hamcrest}"
-
-    testCompile "com.google.code.findbugs:jsr305:${versions.jsr305}"
 }
 
 
@@ -93,32 +67,27 @@ test {
 
 sourceSets {
     main {
-        java {
-            srcDir 'upstream/core/src/main/java'
-        }
+        java.srcDirs = ['../upstream/core/src/main/java']
         resources {
-            srcDir 'upstream/core/src/main/resources'
+            srcDir '../upstream/core/src/main/resources'
             include '**/*.*'
         }
         resources {
-            srcDir 'upstream/core/src/main/java'
+            srcDir '../upstream/core/src/main/java'
             include '**/*.json'
             include '**/*.yml'
         }
     }
     test {
-        java {
-            srcDir 'upstream/core/src/test/java'
-        }
-        resources {
-            srcDir 'upstream/core/src/test/resources'
-            include '**/*.*'
-        }
-        resources {
-            srcDir 'upstream/core/src/test/java'
-            include '**/*.json'
-            include '**/*.yml'
-            include '**/*.txt'
-        }
+        output.resourcesDir = null
+        output.classesDir = null
     }
 }
+
+idea {
+    module {
+        contentRoot = file('../upstream/core/src/main')
+        excludeDirs += file('build')
+    }
+}
+

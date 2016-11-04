@@ -5,7 +5,6 @@ group = 'io.crate'
 description = 'Crate.IO Sigar Plugin'
 
 dependencies {
-    compile project(':es')
     compile project(':core')
 
     // we add the sigar libs as system dep since it is checked in

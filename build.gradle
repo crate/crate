@@ -161,7 +161,7 @@ project.gradle.addListener(new TestListener() {
 
 def jacocoProjects() {
     subprojects.findAll {
-        it.name != 'es' && it.name != 'testing'
+        it.name != 'es-core' && it.name != 'testing' && it.name != 'es-testing'
     }
 }
 

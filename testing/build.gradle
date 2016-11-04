@@ -6,9 +6,7 @@ dependencies {
     compile "org.codehaus.jackson:jackson-mapper-asl:${versions.jacksonasl}"
     compile "org.apache.commons:commons-lang3:${versions.commonslang3}"
 
-    compile project(':es')
-    compile project(path: ':es', configuration: 'testCompile')
-    compile project(':es').sourceSets.test.output
+    compile project(':es:es-testing')
 }
 
 test {

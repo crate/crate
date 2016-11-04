@@ -1,0 +1,74 @@
+apply from: "$rootDir/gradle/javaModule.gradle"
+
+
+compileJava {
+    // upstream code - not interested in any warnings
+    options.warnings = false
+    options.deprecation = false
+    options.compilerArgs << '-XDignore.symbol.file'
+}
+
+dependencies {
+    compile project(':es:es-core')
+
+    // mvn dependency:tree | grep -o ' .- .*:test' | cut -d ' ' -f 3 | sort | uniq| sed "s/\(.*\):jar:\(.*\):test/testCompile '\1:\2'/g"
+    compile "com.carrotsearch.randomizedtesting:randomizedtesting-runner:${versions.randomizedrunner}"
+    compile "com.google.jimfs:jimfs:1.0"
+    compile "commons-codec:commons-codec:${versions.commonscodec}"
+    compile "commons-logging:commons-logging:${versions.commonslogging}"
+    compile "junit:junit:${versions.junit}"
+    compile("org.apache.httpcomponents:httpclient:${versions.httpclient}") {
+        exclude group: "commons-codec", module: "commons-codec"
+    }
+    compile "org.apache.httpcomponents:httpcore:${versions.httpcore}"
+    compile "org.apache.lucene:lucene-codecs:${versions.lucene}"
+    // If the version here is increased the `AssertingLeafReader` class needs to
+    // be updated as it is a copy from lucene-test-framework
+    compile "org.apache.lucene:lucene-test-framework:${versions.lucene}"
+    compile "org.elasticsearch:securemock:${versions.securemock}"
+    compile "org.hamcrest:hamcrest-all:${versions.hamcrest}"
+
+    compile "com.google.code.findbugs:jsr305:${versions.jsr305}"
+}
+
+
+test {
+    enabled = false
+    jacoco {
+        enabled = false
+    }
+}
+
+sourceSets {
+    main {
+        java.srcDirs = ['../upstream/core/src/test/java']
+
+        java {
+            srcDir '../upstream/core/src/test/java'
+        }
+        resources {
+            srcDir '../upstream/core/src/test/resources'
+            include '**/*.*'
+        }
+        resources {
+            srcDir '../upstream/core/src/test/java'
+            include '**/*.json'
+            include '**/*.yml'
+            include '**/*.txt'
+        }
+    }
+    test {
+        output.resourcesDir = null
+        output.classesDir = null
+    }
+
+}
+
+
+idea {
+    module {
+        contentRoot = file('../upstream/core/src/test')
+        excludeDirs += file('build')
+    }
+}
+

@@ -3,7 +3,6 @@ apply from: "$rootDir/gradle/javaModule.gradle"
 archivesBaseName = 'crate-admin-ui'
 
 dependencies {
-    compile project(':es')
     compile project(':core')
     testCompile project(':testing')
 }

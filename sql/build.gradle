@@ -11,7 +11,6 @@ configurations {
 }
 
 dependencies {
-    compile project(':es')
     compile project(':core')
     compile project(':blob')
     compile project(':sql-parser')
