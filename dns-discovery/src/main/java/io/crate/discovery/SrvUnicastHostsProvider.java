@@ -25,9 +25,11 @@ package io.crate.discovery;
 import org.elasticsearch.Version;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.common.Nullable;
+import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.component.AbstractComponent;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
+import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.transport.TransportAddress;
 import org.elasticsearch.discovery.zen.ping.unicast.UnicastHostsProvider;
@@ -43,8 +45,10 @@ import java.util.List;
 @Singleton
 public class SrvUnicastHostsProvider extends AbstractComponent implements UnicastHostsProvider {
 
-    public static final String DISCOVERY_SRV_QUERY = "discovery.srv.query";
-    public static final String DISCOVERY_SRV_RESOLVER = "discovery.srv.resolver";
+    public static final Setting<String> DISCOVERY_SRV_QUERY = Setting.simpleString(
+        "discovery.srv.query", Setting.Property.NodeScope);
+    public static final Setting<String> DISCOVERY_SRV_RESOLVER = Setting.simpleString(
+        "discovery.srv.resolver", Setting.Property.NodeScope);
 
     private final TransportService transportService;
     private final Version version;
@@ -52,11 +56,11 @@ public class SrvUnicastHostsProvider extends AbstractComponent implements Unicas
     protected final Resolver resolver;
 
     @Inject
-    public SrvUnicastHostsProvider(Settings settings, TransportService transportService, Version version) {
+    public SrvUnicastHostsProvider(Settings settings, TransportService transportService) {
         super(settings);
         this.transportService = transportService;
-        this.version = version;
-        this.query = settings.get(DISCOVERY_SRV_QUERY);
+        this.version = Version.CURRENT;
+        this.query = DISCOVERY_SRV_QUERY.get(settings);
         this.resolver = resolver(settings);
     }
 
@@ -64,8 +68,8 @@ public class SrvUnicastHostsProvider extends AbstractComponent implements Unicas
     private Resolver resolver(Settings settings) {
         String hostname = null;
         int port = -1;
-        String resolverAddress = settings.get(DISCOVERY_SRV_RESOLVER);
-        if (resolverAddress != null) {
+        String resolverAddress = DISCOVERY_SRV_RESOLVER.get(settings);
+        if (!Strings.isNullOrEmpty(resolverAddress)) {
             String[] parts = resolverAddress.split(":");
             if (parts.length > 0) {
                 hostname = parts[0];

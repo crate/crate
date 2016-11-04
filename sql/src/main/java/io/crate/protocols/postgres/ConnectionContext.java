@@ -31,7 +31,7 @@ import io.crate.analyze.symbol.Symbols;
 import io.crate.protocols.postgres.types.PGType;
 import io.crate.protocols.postgres.types.PGTypes;
 import io.crate.types.DataType;
-import org.elasticsearch.common.logging.ESLogger;
+import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.logging.Loggers;
 import org.jboss.netty.buffer.ChannelBuffer;
 import org.jboss.netty.buffer.ChannelBuffers;
@@ -144,7 +144,7 @@ import static io.crate.protocols.postgres.FormatCodes.getFormatCode;
 
 class ConnectionContext {
 
-    private final static ESLogger LOGGER = Loggers.getLogger(ConnectionContext.class);
+    private final static Logger LOGGER = Loggers.getLogger(ConnectionContext.class);
 
     final MessageDecoder decoder;
     final MessageHandler handler;

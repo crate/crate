@@ -27,10 +27,12 @@ import io.crate.planner.Plan;
 import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.Statement;
 import io.crate.testing.SQLExecutor;
-import org.elasticsearch.test.cluster.NoopClusterService;
-import org.openjdk.jmh.annotations.Benchmark;
-import org.openjdk.jmh.annotations.Scope;
-import org.openjdk.jmh.annotations.State;
+import org.elasticsearch.cluster.service.ClusterService;
+import org.elasticsearch.common.settings.ClusterSettings;
+import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.common.util.set.Sets;
+import org.elasticsearch.threadpool.TestThreadPool;
+import org.openjdk.jmh.annotations.*;
 import org.openjdk.jmh.profile.GCProfiler;
 import org.openjdk.jmh.runner.Runner;
 import org.openjdk.jmh.runner.RunnerException;
@@ -38,14 +40,37 @@ import org.openjdk.jmh.runner.options.Options;
 import org.openjdk.jmh.runner.options.OptionsBuilder;
 
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 
 @State(value = Scope.Benchmark)
 public class PreExecutionBenchmark {
 
-    private SQLExecutor e = SQLExecutor.builder(new NoopClusterService()).enableDefaultTables().build();
-    private Statement selectStatement = SqlParser.createStatement("select name from users");
-    private Analysis selectAnalysis = e.analyzer.boundAnalyze(selectStatement, SessionContext.SYSTEM_SESSION, ParameterContext.EMPTY);
-    private UUID jobId = UUID.randomUUID();
+    private TestThreadPool threadPool;
+    private SQLExecutor e;
+    private Statement selectStatement;
+    private Analysis selectAnalysis;
+    private UUID jobId;
+
+    @Setup
+    public void setup() {
+        threadPool = new TestThreadPool("testing");
+        e = SQLExecutor.builder(
+            new ClusterService(Settings.builder().put("cluster.name", "ClusterServiceTests").build(),
+                new ClusterSettings(Settings.EMPTY, Sets.newHashSet(ClusterSettings.BUILT_IN_CLUSTER_SETTINGS)),
+                threadPool)).
+            enableDefaultTables().
+            build();
+        selectStatement = SqlParser.createStatement("select name from users");
+        selectAnalysis =
+            e.analyzer.boundAnalyze(selectStatement, SessionContext.SYSTEM_SESSION, ParameterContext.EMPTY);
+        jobId = UUID.randomUUID();
+    }
+
+    @TearDown
+    public void cleanup() throws InterruptedException {
+        threadPool.shutdown();
+        threadPool.awaitTermination(20, TimeUnit.SECONDS);
+    }
 
     @Benchmark
     public Statement benchParse() throws Exception {
@@ -73,10 +98,10 @@ public class PreExecutionBenchmark {
     }
 
     public static void main(String[] args) throws RunnerException {
-         Options opt = new OptionsBuilder()
-             .include(PreExecutionBenchmark.class.getSimpleName())
-             .addProfiler(GCProfiler.class)
-             .build();
-            new Runner(opt).run();
-     }
+        Options opt = new OptionsBuilder()
+            .include(PreExecutionBenchmark.class.getSimpleName())
+            .addProfiler(GCProfiler.class)
+            .build();
+        new Runner(opt).run();
+    }
 }

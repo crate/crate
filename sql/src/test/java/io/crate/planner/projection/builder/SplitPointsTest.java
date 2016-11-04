@@ -25,20 +25,19 @@ package io.crate.planner.projection.builder;
 import io.crate.analyze.AnalyzedStatement;
 import io.crate.analyze.SelectAnalyzedStatement;
 import io.crate.analyze.relations.QueriedRelation;
+import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.crate.testing.T3;
-import org.elasticsearch.test.cluster.NoopClusterService;
 import org.hamcrest.Matchers;
 import org.junit.Test;
 
 import static io.crate.testing.SymbolMatchers.isFunction;
-import static org.junit.Assert.assertThat;
 
-public class SplitPointsTest {
+public class SplitPointsTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testSplitPointsCreationWithFunctionInAggregation() throws Exception {
-        SQLExecutor e = SQLExecutor.builder(new NoopClusterService()).addDocTable(T3.T1_INFO).build();
+        SQLExecutor e = SQLExecutor.builder(clusterService).addDocTable(T3.T1_INFO).build();
 
         AnalyzedStatement analyze = e.analyze("select sum(coalesce(x, 0::integer)) + 10 from t1");
         QueriedRelation relation = ((SelectAnalyzedStatement) analyze).relation();

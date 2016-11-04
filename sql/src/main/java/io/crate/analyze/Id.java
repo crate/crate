@@ -25,13 +25,14 @@ import com.google.common.base.Throwables;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.doc.DocSysColumns;
 import org.apache.lucene.util.BytesRef;
-import org.elasticsearch.common.Base64;
-import org.elasticsearch.common.Strings;
+import org.elasticsearch.common.UUIDs;
+import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.io.IOException;
+import java.util.Base64;
 import java.util.List;
 import java.util.function.Function;
 
@@ -40,7 +41,7 @@ import static io.crate.collections.Lists2.getOnlyElement;
 
 public class Id {
 
-    private final static Function<List<BytesRef>, String> RANDOM_ID = ignored -> Strings.base64UUID();
+    private final static Function<List<BytesRef>, String> RANDOM_ID = ignored -> UUIDs.base64UUID();
 
     private final static Function<List<BytesRef>, String> ONLY_ITEM_NULL_VALIDATION = keyValues -> {
         return ensureNonNull(getOnlyElement(keyValues)).utf8ToString();
@@ -121,7 +122,7 @@ public class Id {
                     out.writeBytesRef(ensureNonNull(values.get(i)));
                 }
             }
-            return Base64.encodeBytes(out.bytes().toBytes());
+            return Base64.getEncoder().encodeToString(BytesReference.toBytes(out.bytes()));
         } catch (IOException e) {
             throw Throwables.propagate(e);
         }

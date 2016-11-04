@@ -28,14 +28,11 @@ import io.crate.metadata.PartitionName;
 import io.crate.metadata.TableIdent;
 import io.crate.test.integration.CrateUnitTest;
 import org.elasticsearch.action.admin.cluster.snapshots.get.GetSnapshotsResponse;
-import org.elasticsearch.snapshots.Snapshot;
+import org.elasticsearch.snapshots.SnapshotId;
 import org.elasticsearch.snapshots.SnapshotInfo;
 import org.junit.Test;
 
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
 
 import static org.hamcrest.Matchers.containsInAnyOrder;
@@ -59,7 +56,7 @@ public class SnapshotRestoreDDLDispatcherTest extends CrateUnitTest {
         String resolvedIndex = SnapshotRestoreDDLDispatcher.ResolveFromSnapshotActionListener.resolveIndexNameFromSnapshot(
             new TableIdent("custom", "restoreme"),
             Collections.singletonList(
-                new SnapshotInfo(new Snapshot("snapshot01", Collections.singletonList("custom.restoreme"), 0L))
+                new SnapshotInfo(new SnapshotId("snapshot01", UUID.randomUUID().toString()), Collections.singletonList("custom.restoreme"), 0L)
             )
         );
         assertThat(resolvedIndex, is("custom.restoreme"));
@@ -70,8 +67,8 @@ public class SnapshotRestoreDDLDispatcherTest extends CrateUnitTest {
         String resolvedIndex = SnapshotRestoreDDLDispatcher.ResolveFromSnapshotActionListener.resolveIndexNameFromSnapshot(
             new TableIdent(null, "restoreme"),
             Collections.singletonList(
-                new SnapshotInfo(new Snapshot("snapshot01",
-                    Collections.singletonList(".partitioned.restoreme.046jcchm6krj4e1g60o30c0"), 0L))
+                new SnapshotInfo(new SnapshotId("snapshot01", UUID.randomUUID().toString()),
+                    Collections.singletonList(".partitioned.restoreme.046jcchm6krj4e1g60o30c0"), 0L)
             )
         );
         String template = PartitionName.templateName(null, "restoreme") + "*";
@@ -86,9 +83,8 @@ public class SnapshotRestoreDDLDispatcherTest extends CrateUnitTest {
         );
         List<SnapshotInfo> snapshots = Arrays.asList(
                 new SnapshotInfo(
-                    new Snapshot("snapshot01", Collections.singletonList(".partitioned.my_partitioned_table.046jcchm6krj4e1g60o30c0"), 0)
-                ),
-                new SnapshotInfo(new Snapshot("snapshot03", Collections.singletonList("my_table"), 0))
+                    new SnapshotId("snapshot01", UUID.randomUUID().toString()), Collections.singletonList(".partitioned.my_partitioned_table.046jcchm6krj4e1g60o30c0"), 0),
+                new SnapshotInfo(new SnapshotId("snapshot03", UUID.randomUUID().toString()), Collections.singletonList("my_table"), 0)
             );
 
         CompletableFuture<List<String>> future = new CompletableFuture<>();

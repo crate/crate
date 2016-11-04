@@ -436,7 +436,7 @@ Paths
   | *Runtime:* ``no``
 
   Filesystem path to the directory containing the configuration files ``crate.yml``
-  and ``logging.yml``.
+  and ``log4j2.properties``.
 
 **path.data**
   | *Runtime:* ``no``
@@ -461,7 +461,7 @@ Paths
   | *Runtime:* ``no``
 
   Filesystem path to a directory where log files should be stored.
-  Can be used as a variable inside ``logging.yml``.
+  Can be used as a variable inside ``log4j2.properties``.
 
   For example:
 
@@ -1331,17 +1331,6 @@ allowed, for instance, due to forced awareness or allocation filtering.
   specific node (float). Increasing this value raises the tendency to
   equalize the number of shards per index across all nodes in the cluster.
 
-.. _cluster.routing.allocation.balance.primary:
-
-**cluster.routing.allocation.balance.primary**
-  | *Default:*   ``0.05f``
-  | *Runtime:*  ``yes``
-
-  Defines a weight factor for the number of primaries of a specific
-  index allocated on a node (float). Increasing this value raises the
-  tendency to equalize the number of primary shards across all nodes
-  in the cluster.
-
 .. _cluster.routing.allocation.balance.threshold:
 
 **cluster.routing.allocation.balance.threshold**
@@ -1426,55 +1415,6 @@ of the nodes every 30 seconds. This can also be changed by setting the
 
 Recovery
 --------
-.. _indices.recovery.concurrent_streams:
-
-**indices.recovery.concurrent_streams**
-  | *Default:*   ``3``
-  | *Runtime:*  ``yes``
-
-  Limits the number of open concurrent streams when recovering a shard
-  from a peer.
-
-.. _indices.recovery.file_chunk_size:
-
-**indices.recovery.file_chunk_size**
-  | *Default:*   ``512kb``
-  | *Runtime:*  ``yes``
-
-  Specifies the chunk size used to copy the shard data from the source
-  shard. It is compressed if `indices.recovery.compress`_ is set to ``true``.
-
-.. _indices.recovery.translog_ops:
-
-**indices.recovery.translog_ops**
-  | *Default:*   ``1000``
-  | *Runtime:*  ``yes``
-
-  Specifies how many transaction log lines should be transfered
-  between shards in a single request during the recovery process. If
-  `indices.recovery.translog_size`_ is reached first, value is ignored
-  for this request.
-
-.. _indices.recovery.translog_size:
-
-**indices.recovery.translog_size**
-  | *Default:*   ``512kb``
-  | *Runtime:*  ``yes``
-
-  Specifies how much data of the transaction log should be transfered
-  betweem shards in a single request during the recovery process. If
-  ``indices.recovery.translog_op`` is reached first, value is ignored
-  for this request.
-
-.. _indices.recovery.compress:
-
-**indices.recovery.compress**
-  | *Default:*   ``true``
-  | *Runtime:*  ``yes``
-
-  Define if transferred data should be compressed during the recovery
-  process. Setting it to ``false`` may lower the pressure on the CPU
-  while resulting in more data being transfererd over the network.
 
 .. _indices.recovery.max_bytes_per_sec:
 
@@ -1484,8 +1424,7 @@ Recovery
 
   Specifies the maximum number of bytes that can be transferred during
   shard recovery per seconds. Limiting can be disabled by setting it
-  to ``0``. Similiar to `indices.recovery.concurrent_streams`_ this
-  setting allows to control the network usage of the recovery
+  to ``0``. This setting allows to control the network usage of the recovery
   process. Higher values may result in higher network utilization, but
   also faster recovery process.
 
@@ -1533,6 +1472,16 @@ Recovery
   Defines the timeout for internal requests made as part of the
   recovery that are expected to take a long time. Defaults to twice
   :ref:`retry_internal_action_timeout <indices.recovery.retry_internal_action_timeout>`.
+
+.. _indices.recovery.recovery_activity_timeout:
+
+**indices.recovery.recovery_activity_timeout**
+  | *Default:*  ``30m``
+  | *Runtime:*  ``yes``
+
+  Recoveries that don't show any activity for more then this
+  interval will fail. Defaults to twice :ref:`retry_internal_long_action_timeout
+  <indices.recovery.retry_internal_long_action_timeout>`.
 
 .. _indices.store.throttle:
 
@@ -1750,7 +1699,7 @@ Logging
 
 CrateDB comes, out of the box, with Log4j_ 1.2.x. It tries to simplify log4j
 configuration by using YAML to configure it. The logging configuration
-file is at ``config/logging.yml``.
+file is at ``config/log4j2.properties``.
 
 The yaml file is used to prepare a set of properties used for logging configuration
 using the `PropertyConfigurator`_ but without the tediously repeating ``log4j`` prefix.
@@ -1758,19 +1707,18 @@ Here is a small example of a working logging configuration.
 
 .. code-block:: yaml
 
-    rootLogger: INFO, console
+    rootLogger.level = info
+    rootLogger.appenderRef.console.ref = console
 
-    logger:
-      # log action execution errors for easier debugging
-      action: DEBUG
+    # log action execution errors for easier debugging
+    logger.action.name = org.crate.action.sql
+    logger.action.level = debug
 
 
-    appender:
-      console:
-        type: console
-        layout:
-          type: consolePattern
-          conversionPattern: "[%d{ISO8601}][%-5p][%-25c] %m%n"
+    appender.console.type = Console
+    appender.console.name = console
+    appender.console.layout.type = PatternLayout
+    appender.console.layout.pattern = [%d{ISO8601}][%-5p][%-25c{1.}] %marker%m%n
 
 And here is a snippet of the generated properties ready for use with log4j.
 You get the point.
@@ -1793,7 +1741,7 @@ Logger Settings
 It's possible to set the log level of loggers at runtime. This is particularly
 useful when debugging problems and there is a need to increase the log level
 without wanting to restart nodes. Logging settings are cluster wide and
-override the logging configuration of nodes defined in their ``logging.yaml``.
+override the logging configuration of nodes defined in their ``log4j2.properties``.
 
 The :ref:`RESET<ref-set>` statement is also supported, however only with the
 limitation that the reset of the logging override only takes affect after

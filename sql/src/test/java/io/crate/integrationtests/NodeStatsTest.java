@@ -37,7 +37,7 @@ import java.util.Map;
 import static org.hamcrest.Matchers.*;
 import static org.hamcrest.core.Is.is;
 
-@ESIntegTestCase.ClusterScope(numClientNodes = 0, numDataNodes = 2)
+@ESIntegTestCase.ClusterScope(numClientNodes = 0, numDataNodes = 2, supportsDedicatedMasters = false)
 @UseJdbc
 public class NodeStatsTest extends SQLTransportIntegrationTest {
 

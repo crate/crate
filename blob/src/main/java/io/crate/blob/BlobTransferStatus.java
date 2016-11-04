@@ -37,7 +37,7 @@ public class BlobTransferStatus implements Closeable {
 
     public BlobTransferStatus(ShardId shardId, UUID transferId, DigestBlob digestBlob) {
         this.shardId = shardId;
-        this.index = shardId.getIndex();
+        this.index = shardId.getIndexName();
         this.transferId = transferId;
         this.digestBlob = digestBlob;
     }

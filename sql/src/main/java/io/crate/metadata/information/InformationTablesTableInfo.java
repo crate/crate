@@ -27,7 +27,7 @@ import io.crate.metadata.*;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
-import org.elasticsearch.cluster.ClusterService;
+import org.elasticsearch.cluster.service.ClusterService;
 
 public class InformationTablesTableInfo extends InformationTableInfo {
 
@@ -76,16 +76,8 @@ public class InformationTablesTableInfo extends InformationTableInfo {
 
         public static final Reference TABLE_SETTINGS_TRANSLOG = createRef(
             Columns.TABLE_SETTINGS_TRANSLOG, DataTypes.OBJECT);
-        public static final Reference TABLE_SETTINGS_TRANSLOG_FLUSH_THRESHOLD_OPS = createRef(
-            Columns.TABLE_SETTINGS_TRANSLOG_FLUSH_THRESHOLD_OPS, DataTypes.INTEGER);
         public static final Reference TABLE_SETTINGS_TRANSLOG_FLUSH_THRESHOLD_SIZE = createRef(
             Columns.TABLE_SETTINGS_TRANSLOG_FLUSH_THRESHOLD_SIZE, DataTypes.LONG);
-        public static final Reference TABLE_SETTINGS_TRANSLOG_FLUSH_THRESHOLD_PERIOD = createRef(
-            Columns.TABLE_SETTINGS_TRANSLOG_FLUSH_THRESHOLD_PERIOD, DataTypes.LONG);
-        public static final Reference TABLE_SETTINGS_TRANSLOG_DISABLE_FLUSH = createRef(
-            Columns.TABLE_SETTINGS_TRANSLOG_DISABLE_FLUSH, DataTypes.BOOLEAN);
-        public static final Reference TABLE_SETTINGS_TRANSLOG_INTERVAL = createRef(
-            Columns.TABLE_SETTINGS_TRANSLOG_INTERVAL, DataTypes.LONG);
 
         public static final Reference TABLE_SETTINGS_ROUTING = createRef(
             Columns.TABLE_SETTINGS_ROUTING, DataTypes.OBJECT);
@@ -148,11 +140,7 @@ public class InformationTablesTableInfo extends InformationTableInfo {
                 .put(Columns.TABLE_SETTINGS_BLOCKS_WRITE, References.TABLE_SETTINGS_BLOCKS_WRITE)
                 .put(Columns.TABLE_SETTINGS_BLOCKS_METADATA, References.TABLE_SETTINGS_BLOCKS_METADATA)
                 .put(Columns.TABLE_SETTINGS_TRANSLOG, References.TABLE_SETTINGS_TRANSLOG)
-                .put(Columns.TABLE_SETTINGS_TRANSLOG_FLUSH_THRESHOLD_OPS, References.TABLE_SETTINGS_TRANSLOG_FLUSH_THRESHOLD_OPS)
                 .put(Columns.TABLE_SETTINGS_TRANSLOG_FLUSH_THRESHOLD_SIZE, References.TABLE_SETTINGS_TRANSLOG_FLUSH_THRESHOLD_SIZE)
-                .put(Columns.TABLE_SETTINGS_TRANSLOG_FLUSH_THRESHOLD_PERIOD, References.TABLE_SETTINGS_TRANSLOG_FLUSH_THRESHOLD_PERIOD)
-                .put(Columns.TABLE_SETTINGS_TRANSLOG_DISABLE_FLUSH, References.TABLE_SETTINGS_TRANSLOG_DISABLE_FLUSH)
-                .put(Columns.TABLE_SETTINGS_TRANSLOG_INTERVAL, References.TABLE_SETTINGS_TRANSLOG_INTERVAL)
                 .put(Columns.TABLE_SETTINGS_TRANSLOG_SYNC_INTERVAL, References.TABLE_SETTINGS_TRANSLOG_SYNC_INTERVAL)
                 .put(Columns.TABLE_SETTINGS_REFRESH_INTERVAL, References.TABLE_SETTINGS_REFRESH_INTERVAL)
                 .put(Columns.TABLE_SETTINGS_ROUTING, References.TABLE_SETTINGS_ROUTING)

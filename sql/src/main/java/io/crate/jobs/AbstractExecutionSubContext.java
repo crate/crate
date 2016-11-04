@@ -23,7 +23,7 @@
 package io.crate.jobs;
 
 import io.crate.exceptions.JobKilledException;
-import org.elasticsearch.common.logging.ESLogger;
+import org.apache.logging.log4j.Logger;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -32,14 +32,14 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 public abstract class AbstractExecutionSubContext implements ExecutionSubContext {
 
-    protected final ESLogger logger;
+    protected final Logger logger;
     protected final int id;
 
     private final AtomicBoolean firstClose = new AtomicBoolean(false);
     private final CompletionState completionState = new CompletionState();
     private final CompletableFuture<CompletionState> future = new CompletableFuture<>();
 
-    protected AbstractExecutionSubContext(int id, ESLogger logger) {
+    protected AbstractExecutionSubContext(int id, Logger logger) {
         this.id = id;
         this.logger = logger;
     }

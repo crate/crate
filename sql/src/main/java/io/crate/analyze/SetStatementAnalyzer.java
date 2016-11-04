@@ -27,14 +27,14 @@ import io.crate.analyze.expressions.ExpressionToStringVisitor;
 import io.crate.data.Row;
 import io.crate.metadata.settings.CrateSettings;
 import io.crate.sql.tree.*;
-import org.elasticsearch.common.logging.ESLogger;
+import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.logging.Loggers;
 
 import java.util.*;
 
 class SetStatementAnalyzer {
 
-    private static final ESLogger logger = Loggers.getLogger(SetStatementAnalyzer.class);
+    private static final Logger logger = Loggers.getLogger(SetStatementAnalyzer.class);
 
     public static SetAnalyzedStatement analyze(SetStatement node) {
         boolean isPersistent = node.settingType().equals(SetStatement.SettingType.PERSISTENT);

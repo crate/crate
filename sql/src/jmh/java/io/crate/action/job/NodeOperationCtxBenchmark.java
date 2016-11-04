@@ -28,7 +28,11 @@ import io.crate.operation.NodeOperation;
 import io.crate.operation.NodeOperationTree;
 import io.crate.planner.Plan;
 import io.crate.testing.SQLExecutor;
-import org.elasticsearch.test.cluster.NoopClusterService;
+import org.elasticsearch.cluster.service.ClusterService;
+import org.elasticsearch.common.settings.ClusterSettings;
+import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.common.util.set.Sets;
+import org.elasticsearch.threadpool.TestThreadPool;
 import org.openjdk.jmh.annotations.*;
 
 import java.util.Collection;
@@ -41,15 +45,26 @@ import java.util.concurrent.TimeUnit;
 @State(Scope.Benchmark)
 public class NodeOperationCtxBenchmark {
 
+    private TestThreadPool threadPool;
     private Collection<NodeOperation> nodeOperations;
 
     @Setup
     public void setupNodeOperations() {
-        SQLExecutor e = SQLExecutor.builder(new NoopClusterService()).build();
+        threadPool = new TestThreadPool("testing");
+        SQLExecutor e = SQLExecutor.builder(
+            new ClusterService(Settings.builder().put("cluster.name", "ClusterServiceTests").build(),
+            new ClusterSettings(Settings.EMPTY, Sets.newHashSet(ClusterSettings.BUILT_IN_CLUSTER_SETTINGS)),
+            threadPool)).build();
         Plan plan = e.plan("select name from sys.cluster group by name");
 
         NodeOperationTree nodeOperationTree = NodeOperationTreeGenerator.fromPlan(plan, "noop_id");
         nodeOperations = nodeOperationTree.nodeOperations();
+    }
+
+    @TearDown
+    public void cleanup() throws InterruptedException {
+        threadPool.shutdown();
+        threadPool.awaitTermination(20, TimeUnit.SECONDS);
     }
 
     @Benchmark

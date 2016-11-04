@@ -24,11 +24,13 @@ package io.crate.analyze;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import io.crate.analyze.ddl.GeoSettingsApplier;
 import io.crate.exceptions.InvalidColumnNameException;
 import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.Reference;
 import io.crate.sql.tree.Expression;
 import io.crate.types.DataTypes;
 import org.elasticsearch.common.settings.Settings;
@@ -51,12 +53,14 @@ public class AnalyzedColumnDefinition {
         DataTypes.GEO_SHAPE.getName()
     );
 
+    private final static Set<String> STRING_TYPES = ImmutableSet.of("string", "keyword", "text");
+
     private final AnalyzedColumnDefinition parent;
     private ColumnIdent ident;
     private String name;
     private String dataType;
     private String collectionType;
-    private String index;
+    private Reference.IndexType indexType;
     private String geoTree;
     private String analyzer;
     private String objectType = "true"; // dynamic = true
@@ -101,12 +105,13 @@ public class AnalyzedColumnDefinition {
         this.analyzer = analyzer;
     }
 
-    void indexConstraint(String index) {
-        this.index = index;
+    void indexConstraint(Reference.IndexType indexType) {
+        this.indexType = indexType;
     }
 
-    String indexConstraint() {
-        return MoreObjects.firstNonNull(index, "not_analyzed");
+    @Nullable
+    Reference.IndexType indexConstraint() {
+        return indexType;
     }
 
     void geoTree(String geoTree) {
@@ -146,12 +151,6 @@ public class AnalyzedColumnDefinition {
         this.collectionType = type;
     }
 
-    private boolean docValues() {
-        return !isIndexColumn()
-               && collectionType == null
-               && indexConstraint().equals("not_analyzed");
-    }
-
     boolean isIndexColumn() {
         return isIndex;
     }
@@ -181,13 +180,13 @@ public class AnalyzedColumnDefinition {
     }
 
     public void validate() {
-        if (analyzer != null && !analyzer.equals("not_analyzed") && !dataType.equals("string")) {
+        if (analyzer != null && !"not_analyzed".equals(analyzer) && !STRING_TYPES.contains(dataType)) {
             throw new IllegalArgumentException(
                 String.format(Locale.ENGLISH, "Can't use an Analyzer on column %s because analyzers are only allowed on columns of type \"string\".",
                     ident.sqlFqn()
                 ));
         }
-        if (index != null && UNSUPPORTED_INDEX_TYPES.contains(dataType)) {
+        if (indexType != null && UNSUPPORTED_INDEX_TYPES.contains(dataType)) {
             throw new IllegalArgumentException(String.format(Locale.ENGLISH,
                 "INDEX constraint cannot be used on columns of type \"%s\"", dataType));
         }
@@ -221,22 +220,19 @@ public class AnalyzedColumnDefinition {
     Map<String, Object> toMapping() {
         Map<String, Object> mapping = new HashMap<>();
 
+        String dataType = addTypeOptions(mapping);
         mapping.put("type", dataType);
-        addTypeOptions(mapping);
 
-        if (!NO_DOC_VALUES_SUPPORT.contains(dataType)) {
-            mapping.put("doc_values", docValues());
-            mapping.put("index", indexConstraint());
-            mapping.put("store", false);
+        if (indexType == Reference.IndexType.NO) {
+            mapping.put("index", "false");
         }
-
         if (copyToTargets != null) {
             mapping.put("copy_to", copyToTargets);
         }
+
         if ("array".equals(collectionType)) {
-            Map<String, Object> outerMapping = new HashMap<String, Object>() {{
-                put("type", "array");
-            }};
+            Map<String, Object> outerMapping = new HashMap<>();
+            outerMapping.put("type", "array");
             if (dataType().equals("object")) {
                 objectMapping(mapping);
             }
@@ -248,7 +244,11 @@ public class AnalyzedColumnDefinition {
         return mapping;
     }
 
-    private void addTypeOptions(Map<String, Object> mapping) {
+    /**
+     * @return ES internal type name .
+     *          Usually this equals the crate type name, but for example string may become keyword or text
+     */
+    private String addTypeOptions(Map<String, Object> mapping) {
         switch (dataType) {
             case "date":
                 /*
@@ -261,11 +261,19 @@ public class AnalyzedColumnDefinition {
                 GeoSettingsApplier.applySettings(mapping, geoSettings, geoTree);
                 break;
             case "string":
+                if (analyzer == null) {
+                    return "keyword";
+                }
+                mapping.put("analyzer", analyzer);
+                return "text";
+            case "text":
+                // explicit index definition
                 if (analyzer != null) {
                     mapping.put("analyzer", analyzer);
                 }
                 break;
         }
+        return dataType;
     }
 
     private void objectMapping(Map<String, Object> mapping) {

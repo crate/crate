@@ -23,7 +23,6 @@ package io.crate.integrationtests;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
 import io.crate.Version;
 import io.crate.action.sql.SQLActionException;
 import io.crate.metadata.doc.DocIndexMetaData;
@@ -111,7 +110,7 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
         assertEquals(1L, response.rowCount());
 
         execute("select * from information_schema.routines");
-        assertEquals(118L, response.rowCount());
+        assertEquals(119L, response.rowCount());
     }
 
     @Test
@@ -354,14 +353,18 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
         assertEquals("myotheranalyzer", response.rows()[1][0]);
         assertEquals("ANALYZER", response.rows()[1][1]);
         client().admin().cluster().prepareUpdateSettings()
-            .setPersistentSettingsToRemove(
-                ImmutableSet.of("crate.analysis.custom.analyzer.myanalyzer",
-                    "crate.analysis.custom.analyzer.myotheranalyzer",
-                    "crate.analysis.custom.filter.myanalyzer_mytokenfilter"))
-            .setTransientSettingsToRemove(
-                ImmutableSet.of("crate.analysis.custom.analyzer.myanalyzer",
-                    "crate.analysis.custom.analyzer.myotheranalyzer",
-                    "crate.analysis.custom.filter.myanalyzer_mytokenfilter"))
+            .setPersistentSettings(
+                MapBuilder.<String, Object>newMapBuilder()
+                    .put("crate.analysis.custom.analyzer.myanalyzer", null)
+                    .put("crate.analysis.custom.analyzer.myotheranalyzer", null)
+                    .put("crate.analysis.custom.filter.myanalyzer_mytokenfilter", null)
+                    .map())
+            .setTransientSettings(
+                MapBuilder.<String, Object>newMapBuilder()
+                    .put("crate.analysis.custom.analyzer.myanalyzer", null)
+                    .put("crate.analysis.custom.analyzer.myotheranalyzer", null)
+                    .put("crate.analysis.custom.filter.myanalyzer_mytokenfilter", null)
+                    .map())
             .execute().actionGet();
     }
 
@@ -418,13 +421,13 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
         execute("SELECT routine_name from INFORMATION_SCHEMA.routines WHERE " +
                 "routine_type='CHAR_FILTER' order by " +
                 "routine_name asc");
-        assertEquals(4L, response.rowCount());
+        assertEquals(3L, response.rowCount());
         String[] charFilterNames = new String[response.rows().length];
         for (int i = 0; i < response.rowCount(); i++) {
             charFilterNames[i] = (String) response.rows()[i][0];
         }
         assertEquals(
-            "htmlStrip, html_strip, mapping, pattern_replace",
+            "html_strip, mapping, pattern_replace",
             Joiner.on(", ").join(charFilterNames)
         );
     }
@@ -449,7 +452,7 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
     @Test
     public void testDefaultColumns() throws Exception {
         execute("select * from information_schema.columns order by table_schema, table_name");
-        assertEquals(389, response.rowCount());
+        assertEquals(375, response.rowCount());
     }
 
     @Test

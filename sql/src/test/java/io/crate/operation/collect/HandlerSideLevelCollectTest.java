@@ -55,7 +55,7 @@ import java.util.UUID;
 import static org.hamcrest.core.Is.is;
 import static org.mockito.Mockito.mock;
 
-@ESIntegTestCase.ClusterScope(numDataNodes = 1, numClientNodes = 0)
+@ESIntegTestCase.ClusterScope(numDataNodes = 1, numClientNodes = 0, supportsDedicatedMasters = false)
 public class HandlerSideLevelCollectTest extends SQLTransportIntegrationTest {
 
     private MapSideDataCollectOperation operation;
@@ -103,7 +103,7 @@ public class HandlerSideLevelCollectTest extends SQLTransportIntegrationTest {
     private Bucket collect(RoutedCollectPhase collectPhase) throws Exception {
         TestingBatchConsumer consumer = new TestingBatchConsumer();
         CrateCollector collector = operation.createCollector(collectPhase, consumer, mock(JobCollectContext.class));
-        operation.launchCollector(collector, JobCollectContext.threadPoolName(collectPhase, clusterService().localNode().getId()));
+        operation.launchCollector(collector, JobCollectContext.threadPoolName(collectPhase));
         return new CollectionBucket(consumer.getResult());
     }
 

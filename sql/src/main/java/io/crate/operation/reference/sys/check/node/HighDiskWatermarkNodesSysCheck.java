@@ -22,12 +22,11 @@
 
 package io.crate.operation.reference.sys.check.node;
 
-import org.elasticsearch.cluster.ClusterService;
-import org.elasticsearch.cluster.routing.allocation.decider.DiskThresholdDecider;
+import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.inject.Provider;
 import org.elasticsearch.common.inject.Singleton;
-import org.elasticsearch.monitor.fs.FsProbe;
+import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.monitor.MonitorService;
 
 @Singleton
 public class HighDiskWatermarkNodesSysCheck extends DiskWatermarkNodesSysCheck {
@@ -38,14 +37,14 @@ public class HighDiskWatermarkNodesSysCheck extends DiskWatermarkNodesSysCheck {
 
     @Inject
     public HighDiskWatermarkNodesSysCheck(ClusterService clusterService,
-                                          Provider<DiskThresholdDecider> deciderProvider,
-                                          FsProbe fsProbe) {
-        super(ID, DESCRIPTION, Severity.HIGH, clusterService, deciderProvider, fsProbe);
+                                          Settings settings,
+                                          MonitorService monitorService) {
+        super(ID, DESCRIPTION, Severity.HIGH, clusterService, monitorService.fsService(), settings);
     }
 
     @Override
-    protected boolean validate(DiskThresholdDecider decider, long free, long total) {
-        return !(free < decider.getFreeBytesThresholdHigh().getBytes() ||
-            getFreeDiskAsPercentage(free, total) < decider.getFreeDiskThresholdHigh());
+    protected boolean validate(long free, long total) {
+        return !(free < diskThresholdSettings.getFreeBytesThresholdHigh().getBytes() ||
+            getFreeDiskAsPercentage(free, total) < diskThresholdSettings.getFreeDiskThresholdHigh());
     }
 }

@@ -1,5 +1,6 @@
 
 cluster.name: dev
-discovery.zen.ping.multicast.enabled: false
 stats.service.interval: 0
 stats.enabled: true
+# bind to localhost, mainly to prevent the node from dying due to bootstrap checks (HEAP checks)
+network.host: _local_

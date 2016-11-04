@@ -23,7 +23,7 @@ package io.crate.jobs;
 
 import io.crate.concurrent.CompletionListenable;
 import io.crate.planner.node.dql.join.NestedLoopPhase;
-import org.elasticsearch.common.logging.ESLogger;
+import org.apache.logging.log4j.Logger;
 
 import javax.annotation.Nullable;
 
@@ -37,7 +37,7 @@ public class NestedLoopContext extends AbstractExecutionSubContext implements Do
     @Nullable
     private final PageBucketReceiver rightBucketReceiver;
 
-    public NestedLoopContext(ESLogger logger,
+    public NestedLoopContext(Logger logger,
                              NestedLoopPhase nestedLoopPhase,
                              CompletionListenable completionListenable,
                              @Nullable PageBucketReceiver leftBucketReceiver,

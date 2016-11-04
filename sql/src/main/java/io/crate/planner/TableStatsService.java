@@ -31,16 +31,17 @@ import io.crate.action.sql.SQLOperations;
 import io.crate.data.Row;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.settings.CrateSettings;
-import org.elasticsearch.cluster.ClusterService;
+import io.crate.types.DataType;
+import org.apache.logging.log4j.Logger;
+import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.component.AbstractComponent;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
-import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.lucene.BytesRefs;
+import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.TimeValue;
-import org.elasticsearch.node.settings.NodeSettingsService;
 import org.elasticsearch.threadpool.ThreadPool;
 
 import javax.annotation.Nonnull;
@@ -48,7 +49,10 @@ import java.util.Collections;
 import java.util.function.Consumer;
 
 @Singleton
-public class TableStatsService extends AbstractComponent implements NodeSettingsService.Listener, Runnable {
+public class TableStatsService extends AbstractComponent implements Runnable {
+
+    public static final Setting<TimeValue> STATS_SERVICE_REFRESH_INTERVAL_SETTING = Setting.timeSetting(
+        "stats.service.interval", TimeValue.timeValueHours(1), Setting.Property.NodeScope, Setting.Property.Dynamic);
 
     static final String TABLE_STATS = "table_stats";
     static final int DEFAULT_SOFT_LIMIT = 10_000;
@@ -60,29 +64,26 @@ public class TableStatsService extends AbstractComponent implements NodeSettings
     private final TableStatsResultReceiver resultReceiver;
     private final SQLOperations.SQLDirectExecutor sqlDirectExecutor;
 
-    private TimeValue initialRefreshInterval;
-
     @VisibleForTesting
     ThreadPool.Cancellable refreshScheduledTask = null;
     @VisibleForTesting
-    TimeValue lastRefreshInterval;
+    TimeValue refreshInterval;
 
     @Inject
     public TableStatsService(Settings settings,
                              ThreadPool threadPool,
                              ClusterService clusterService,
                              TableStats tableStats,
-                             NodeSettingsService nodeSettingsService,
                              SQLOperations sqlOperations) {
         super(settings);
         this.threadPool = threadPool;
         this.clusterService = clusterService;
-        initialRefreshInterval = extractRefreshInterval(settings);
-        lastRefreshInterval = initialRefreshInterval;
-        refreshScheduledTask = scheduleRefresh(initialRefreshInterval);
         resultReceiver = new TableStatsResultReceiver(tableStats::updateTableStats);
-        nodeSettingsService.addListener(this);
+        refreshInterval = STATS_SERVICE_REFRESH_INTERVAL_SETTING.get(settings);
+        refreshScheduledTask = scheduleRefresh(refreshInterval);
         sqlDirectExecutor = sqlOperations.createSQLDirectExecutor("sys", TABLE_STATS, STMT, DEFAULT_SOFT_LIMIT);
+
+        clusterService.getClusterSettings().addSettingsUpdateConsumer(STATS_SERVICE_REFRESH_INTERVAL_SETTING, this::setRefreshInterval);
     }
 
     @Override
@@ -109,7 +110,7 @@ public class TableStatsService extends AbstractComponent implements NodeSettings
 
     static class TableStatsResultReceiver extends BaseResultReceiver {
 
-        private final static ESLogger LOGGER = Loggers.getLogger(TableStatsResultReceiver.class);
+        private final static Logger LOGGER = Loggers.getLogger(TableStatsResultReceiver.class);
 
         private final Consumer<ObjectLongMap<TableIdent>> tableStatsConsumer;
         private ObjectLongMap<TableIdent> newStats = new ObjectLongHashMap<>();
@@ -138,18 +139,6 @@ public class TableStatsService extends AbstractComponent implements NodeSettings
         }
     }
 
-    @Override
-    public void onRefreshSettings(Settings settings) {
-        TimeValue newRefreshInterval = extractRefreshInterval(settings);
-        if (!newRefreshInterval.equals(lastRefreshInterval)) {
-            if (refreshScheduledTask != null) {
-                refreshScheduledTask.cancel();
-            }
-            refreshScheduledTask = scheduleRefresh(newRefreshInterval);
-            lastRefreshInterval = newRefreshInterval;
-        }
-    }
-
     private ThreadPool.Cancellable scheduleRefresh(TimeValue newRefreshInterval) {
         if (newRefreshInterval.millis() > 0) {
             return threadPool.scheduleWithFixedDelay(
@@ -160,8 +149,12 @@ public class TableStatsService extends AbstractComponent implements NodeSettings
         return null;
     }
 
-    private TimeValue extractRefreshInterval(Settings settings) {
-        return CrateSettings.STATS_SERVICE_INTERVAL.extractTimeValue(settings, initialRefreshInterval);
+    private void setRefreshInterval(TimeValue newRefreshInterval) {
+        if (refreshScheduledTask != null) {
+            refreshScheduledTask.cancel();
+        }
+        refreshScheduledTask = scheduleRefresh(newRefreshInterval);
+        refreshInterval = newRefreshInterval;
     }
 }
 

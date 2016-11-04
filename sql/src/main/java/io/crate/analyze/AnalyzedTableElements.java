@@ -403,13 +403,13 @@ public class AnalyzedTableElements {
 
 
         }
-        if (columnDefinition.indexConstraint().equals("analyzed")) {
+        if (columnDefinition.indexConstraint() == Reference.IndexType.ANALYZED) {
             throw new IllegalArgumentException(String.format(Locale.ENGLISH,
                 "Cannot use column %s with fulltext index in PARTITIONED BY clause",
                 columnDefinition.ident().sqlFqn()));
         }
         columnIdents.remove(columnDefinition.ident());
-        columnDefinition.indexConstraint(Reference.IndexType.NO.toString());
+        columnDefinition.indexConstraint(Reference.IndexType.NO);
         partitionedByColumns.add(columnDefinition);
     }
 

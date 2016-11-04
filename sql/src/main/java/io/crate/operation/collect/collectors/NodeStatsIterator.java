@@ -116,7 +116,7 @@ public class NodeStatsIterator implements BatchIterator {
     private CompletableFuture<List<NodeStatsContext>> getNodeStatsContextFromLocalState() {
         List<NodeStatsContext> rows = new ArrayList<>(nodes.size());
         for (DiscoveryNode node : nodes) {
-            rows.add(new NodeStatsContext(node.getId(), node.name()));
+            rows.add(new NodeStatsContext(node.getId(), node.getName()));
         }
         return CompletableFuture.completedFuture(rows);
     }
@@ -138,9 +138,9 @@ public class NodeStatsIterator implements BatchIterator {
                 }
 
                 @Override
-                public void onFailure(Throwable t) {
+                public void onFailure(Exception t) {
                     if (t instanceof ReceiveTimeoutTransportException) {
-                        rows.add(new NodeStatsContext(nodeId, node.name()));
+                        rows.add(new NodeStatsContext(nodeId, node.getName()));
                         if (remainingNodesToCollect.decrementAndGet() == 0) {
                             nodeStatsContextsFuture.complete(rows);
                         }

@@ -25,7 +25,6 @@ import io.crate.concurrent.CompletionListenable;
 import io.crate.data.*;
 import io.crate.data.join.NestedLoopBatchIterator;
 import io.crate.planner.node.dql.join.JoinType;
-
 import javax.annotation.Nullable;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.BooleanSupplier;

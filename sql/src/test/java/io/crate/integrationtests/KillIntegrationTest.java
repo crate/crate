@@ -24,7 +24,6 @@ package io.crate.integrationtests;
 import com.google.common.util.concurrent.SettableFuture;
 import io.crate.action.sql.SQLActionException;
 import io.crate.exceptions.SQLExceptions;
-import io.crate.plugin.SQLPlugin;
 import io.crate.testing.SQLResponse;
 import io.crate.testing.UseJdbc;
 import io.crate.testing.plugin.CrateTestingPlugin;
@@ -39,6 +38,7 @@ import org.junit.rules.TemporaryFolder;
 
 import javax.annotation.Nullable;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
@@ -53,10 +53,9 @@ public class KillIntegrationTest extends SQLTransportIntegrationTest {
 
     @Override
     protected Collection<Class<? extends Plugin>> nodePlugins() {
-        return pluginList(
-            SQLPlugin.class,
-            CrateTestingPlugin.class
-        );
+        ArrayList<Class<? extends Plugin>> plugins = new ArrayList<>(super.nodePlugins());
+        plugins.add(CrateTestingPlugin.class);
+        return plugins;
     }
 
     @Rule

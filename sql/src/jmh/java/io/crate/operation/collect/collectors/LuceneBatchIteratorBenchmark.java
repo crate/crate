@@ -67,7 +67,7 @@ public class LuceneBatchIteratorBenchmark {
         }
         iw.commit();
         iw.forceMerge(1, true);
-        indexSearcher = new IndexSearcher(DirectoryReader.open(iw, true));
+        indexSearcher = new IndexSearcher(DirectoryReader.open(iw));
         IntegerColumnReference columnReference = new IntegerColumnReference(columnName);
         columnRefs = Collections.singletonList(columnReference);
 

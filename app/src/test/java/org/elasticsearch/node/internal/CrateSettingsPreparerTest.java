@@ -22,12 +22,24 @@
 
 package org.elasticsearch.node.internal;
 
+import io.crate.Constants;
+import org.elasticsearch.cli.Terminal;
+import org.elasticsearch.cluster.ClusterName;
+import org.elasticsearch.common.network.NetworkModule;
+import org.elasticsearch.common.network.NetworkService;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.http.HttpTransportSettings;
+import org.elasticsearch.node.Node;
+import org.elasticsearch.transport.Netty3Plugin;
+import org.elasticsearch.transport.TransportSettings;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
-import static org.hamcrest.Matchers.containsString;
+import java.util.Collections;
+
+import static org.hamcrest.Matchers.*;
+import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 
 public class CrateSettingsPreparerTest {
@@ -40,11 +52,7 @@ public class CrateSettingsPreparerTest {
         Settings.Builder builder = Settings.builder()
             .put("stats.enabled", true)
             .put("psql.port", 5432);
-        try {
-            CrateSettingsPreparer.validateKnownSettings(builder);
-        } catch (Throwable e) {
-            fail();
-        }
+        CrateSettingsPreparer.validateKnownSettings(builder);
     }
 
     @Test
@@ -66,5 +74,21 @@ public class CrateSettingsPreparerTest {
         } catch (Throwable e) {
             fail();
         }
+    }
+
+    @Test
+    public void testDefaultCrateSettings() throws Exception {
+        Settings.Builder builder = Settings.builder();
+        InternalSettingsPreparer.initializeSettings(builder, Settings.EMPTY, true, Collections.emptyMap());
+        InternalSettingsPreparer.finalizeSettings(builder, Terminal.DEFAULT);
+        CrateSettingsPreparer.applyCrateDefaults(builder);
+
+        assertThat(builder.get(NetworkModule.TRANSPORT_TYPE_DEFAULT_KEY), is(Netty3Plugin.NETTY_TRANSPORT_NAME));
+        assertThat(builder.get(HttpTransportSettings.SETTING_HTTP_PORT.getKey()), is(Constants.HTTP_PORT_RANGE));
+        assertThat(builder.get(TransportSettings.PORT.getKey()), is(Constants.TRANSPORT_PORT_RANGE));
+        assertThat(builder.get(NetworkService.GLOBAL_NETWORK_HOST_SETTING.getKey()), is(NetworkService.DEFAULT_NETWORK_HOST));
+
+        assertThat(builder.get(ClusterName.CLUSTER_NAME_SETTING.getKey()), is("crate"));
+        assertThat(builder.get(Node.NODE_NAME_SETTING.getKey()), isIn(CrateSettingsPreparer.nodeNames()));
     }
 }

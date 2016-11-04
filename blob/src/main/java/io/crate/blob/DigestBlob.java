@@ -24,12 +24,12 @@ package io.crate.blob;
 import com.google.common.io.ByteStreams;
 import io.crate.blob.exceptions.BlobAlreadyExistsException;
 import io.crate.blob.exceptions.DigestMismatchException;
-import io.crate.bp.Netty3Utils;
 import io.crate.common.Hex;
+import org.apache.logging.log4j.Logger;
 import org.apache.lucene.util.IOUtils;
 import org.elasticsearch.common.bytes.BytesReference;
-import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
+import org.elasticsearch.transport.netty3.Netty3Utils;
 import org.jboss.netty.buffer.ChannelBuffer;
 
 import java.io.*;
@@ -58,7 +58,7 @@ public class DigestBlob implements Closeable {
     private MessageDigest md;
     private long chunks;
     private CountDownLatch headCatchedUpLatch;
-    private static final ESLogger logger = Loggers.getLogger(DigestBlob.class);
+    private static final Logger logger = Loggers.getLogger(DigestBlob.class);
 
     public DigestBlob(BlobContainer container, String digest, UUID transferId) {
         this.digest = digest;

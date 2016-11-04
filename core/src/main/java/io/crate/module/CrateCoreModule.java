@@ -23,35 +23,33 @@
 package io.crate.module;
 
 import io.crate.ClusterIdService;
-import io.crate.Version;
+import io.crate.plugin.IndexEventListenerProxy;
 import io.crate.rest.CrateRestMainAction;
+import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.inject.AbstractModule;
 import org.elasticsearch.common.inject.TypeLiteral;
 import org.elasticsearch.common.inject.matcher.AbstractMatcher;
 import org.elasticsearch.common.inject.spi.InjectionListener;
 import org.elasticsearch.common.inject.spi.TypeEncounter;
 import org.elasticsearch.common.inject.spi.TypeListener;
-import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.rest.action.main.RestMainAction;
+import org.elasticsearch.rest.action.RestMainAction;
 
 import java.util.concurrent.CompletableFuture;
 
 public class CrateCoreModule extends AbstractModule {
 
-    private final ESLogger logger;
+    private final Logger logger;
+    private final IndexEventListenerProxy indexEventListenerProxy;
 
-    public CrateCoreModule(Settings settings) {
+    public CrateCoreModule(Settings settings, IndexEventListenerProxy indexEventListenerProxy) {
         logger = Loggers.getLogger(getClass().getPackage().getName(), settings);
+        this.indexEventListenerProxy = indexEventListenerProxy;
     }
 
     @Override
     protected void configure() {
-        Version version = Version.CURRENT;
-        logger.info("configuring crate. version: {}", version);
-
-
         /*
          * This is a rather hacky method to overwrite the handler for "/"
          * The ES plugins are loaded before the core ES components. That means that the registration for
@@ -75,6 +73,7 @@ public class CrateCoreModule extends AbstractModule {
             new RestMainActionListener(crateListener.instanceFuture));
 
         bind(ClusterIdService.class).asEagerSingleton();
+        bind(IndexEventListenerProxy.class).toInstance(indexEventListenerProxy);
     }
 
     private class RestMainActionListener implements TypeListener {

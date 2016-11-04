@@ -22,10 +22,10 @@
 package io.crate.types;
 
 import com.google.common.base.Preconditions;
-import com.spatial4j.core.context.jts.JtsSpatialContext;
-import com.spatial4j.core.exception.InvalidShapeException;
-import com.spatial4j.core.io.WKTReader;
-import com.spatial4j.core.shape.Point;
+import org.locationtech.spatial4j.context.jts.JtsSpatialContext;
+import org.locationtech.spatial4j.exception.InvalidShapeException;
+import org.locationtech.spatial4j.io.WKTReader;
+import org.locationtech.spatial4j.shape.Point;
 import io.crate.Streamer;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.io.stream.StreamInput;

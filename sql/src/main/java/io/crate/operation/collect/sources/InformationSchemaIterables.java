@@ -29,7 +29,7 @@ import io.crate.operation.collect.files.SqlFeatureContext;
 import io.crate.operation.collect.files.SqlFeaturesIterable;
 import io.crate.operation.reference.information.ColumnContext;
 import io.crate.types.DataTypes;
-import org.elasticsearch.cluster.ClusterService;
+import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 
 import java.io.IOException;

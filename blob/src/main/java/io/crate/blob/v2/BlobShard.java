@@ -23,13 +23,14 @@ package io.crate.blob.v2;
 
 import com.google.common.base.Throwables;
 import io.crate.blob.BlobContainer;
+import org.apache.logging.log4j.Logger;
 import org.apache.lucene.util.IOUtils;
 import org.elasticsearch.cluster.routing.ShardRouting;
+import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.inject.internal.Nullable;
 import org.elasticsearch.common.io.PathUtils;
-import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
-import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.index.IndexSettings;
 import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.index.shard.ShardPath;
 
@@ -42,12 +43,11 @@ import java.nio.file.attribute.BasicFileAttributes;
 
 public class BlobShard {
 
-    private static final ESLogger LOGGER = Loggers.getLogger(BlobShard.class);
     private static final String BLOBS_SUB_PATH = "blobs";
 
     private final BlobContainer blobContainer;
     private final IndexShard indexShard;
-    private final ESLogger logger;
+    private final Logger logger;
     private final Path blobDir;
 
     private long totalSize = 0;
@@ -55,13 +55,13 @@ public class BlobShard {
 
     public BlobShard(IndexShard indexShard, @Nullable Path globalBlobPath) {
         this.indexShard = indexShard;
-        logger = Loggers.getLogger(BlobShard.class, indexShard.indexSettings(), indexShard.shardId());
+        logger = Loggers.getLogger(BlobShard.class, indexShard.indexSettings().getSettings(), indexShard.shardId());
         blobDir = resolveBlobDir(indexShard.indexSettings(), indexShard.shardPath(), globalBlobPath);
         logger.info("creating BlobContainer at {}", blobDir);
         this.blobContainer = new BlobContainer(blobDir);
     }
 
-    public void initialize() {
+    void initialize() {
         try {
             blobContainer.visitBlobs(new SimpleFileVisitor<Path>() {
                 @Override
@@ -73,12 +73,12 @@ public class BlobShard {
                 }
             });
         } catch (IOException e) {
-            LOGGER.error("Unable to compute initial blob shard size and count", e);
+            logger.error("Unable to compute initial blob shard size and count", e);
             throw Throwables.propagate(e);
         }
     }
 
-    public Path getBlobDir() {
+    Path getBlobDir() {
         return blobDir;
     }
 
@@ -142,11 +142,11 @@ public class BlobShard {
         }
     }
 
-    private Path resolveBlobDir(Settings indexSettings, ShardPath shardPath, @Nullable Path globalBlobPath) {
-        String tableBlobPath = indexSettings.get(BlobIndicesService.SETTING_INDEX_BLOBS_PATH);
+    private Path resolveBlobDir(IndexSettings indexSettings, ShardPath shardPath, @Nullable Path globalBlobPath) {
+        String tableBlobPath = BlobIndicesService.SETTING_INDEX_BLOBS_PATH.get(indexSettings.getSettings());
 
         Path blobPath;
-        if (tableBlobPath == null) {
+        if (Strings.isNullOrEmpty(tableBlobPath)) {
             if (globalBlobPath == null) {
                 return shardPath.getDataPath().resolve(BLOBS_SUB_PATH);
             }
