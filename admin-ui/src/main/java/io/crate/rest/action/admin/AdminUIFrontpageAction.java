@@ -25,14 +25,19 @@
 package io.crate.rest.action.admin;
 
 import org.elasticsearch.client.Client;
+import io.crate.rest.CrateRestMainAction;
+import org.elasticsearch.client.Client;
+import io.crate.rest.CrateRestMainAction;
+import org.elasticsearch.client.node.NodeClient;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.rest.*;
 
 import static org.elasticsearch.rest.RestRequest.Method.GET;
 
 /**
- * RestHandlerAction to return a html page containing informations about crate
+ * RestHandlerAction to return a html page containing information about crate
  */
 public class AdminUIFrontpageAction extends BaseRestHandler {
 

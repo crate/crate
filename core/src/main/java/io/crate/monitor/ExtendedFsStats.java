@@ -273,7 +273,7 @@ public class ExtendedFsStats implements Iterable<ExtendedFsStats.Info>, Streamab
 
     @Override
     public void readFrom(StreamInput in) throws IOException {
-        total = in.readOptionalStreamable(new Info());
+        total = in.readOptionalStreamable(Info::new);
         infos = new Info[in.readVInt()];
         for (int i = 0; i < infos.length; i++) {
             infos[i] = Info.readInfo(in);

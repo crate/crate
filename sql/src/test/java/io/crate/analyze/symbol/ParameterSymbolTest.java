@@ -39,7 +39,7 @@ public class ParameterSymbolTest extends CrateUnitTest {
         BytesStreamOutput out = new BytesStreamOutput();
         ps1.writeTo(out);
 
-        StreamInput in = StreamInput.wrap(out.bytes());
+        StreamInput in = out.bytes().streamInput();
         ParameterSymbol ps2 = new ParameterSymbol(in);
 
         assertThat(ps2.index(), is(ps1.index()));

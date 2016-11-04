@@ -88,7 +88,7 @@ public class ExtendedOsStats implements Streamable {
         timestamp = in.readLong();
         uptime = in.readLong();
         loadAverage = in.readDoubleArray();
-        cpu = in.readOptionalStreamable(new Cpu());
+        cpu = in.readOptionalStreamable(Cpu::new);
     }
 
     @Override
