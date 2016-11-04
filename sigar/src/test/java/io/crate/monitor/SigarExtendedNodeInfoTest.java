@@ -29,9 +29,7 @@ import org.elasticsearch.common.inject.Injector;
 import org.elasticsearch.common.inject.ModulesBuilder;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.settings.SettingsModule;
-import org.elasticsearch.env.Environment;
 import org.elasticsearch.env.NodeEnvironment;
-import org.elasticsearch.env.NodeEnvironmentModule;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -55,16 +53,16 @@ public class SigarExtendedNodeInfoTest extends CrateUnitTest {
         NodeEnvironment nodeEnvironment = mock(NodeEnvironment.class);
         when(nodeEnvironment.hasNodeFile()).thenReturn(true);
         Path tempDir = createTempDir();
-        NodeEnvironment.NodePath[] dataLocations = new NodeEnvironment.NodePath[]{new NodeEnvironment.NodePath(tempDir, mock(Environment.class))};
-        when(nodeEnvironment.nodePaths()).thenReturn(dataLocations);
+        // XDOBE: NodeEnvironment.NodePath[] dataLocations = new NodeEnvironment.NodePath[]{new NodeEnvironment.NodePath(tempDir, mock(Environment.class))};
+        // when(nodeEnvironment.nodePaths()).thenReturn(dataLocations);
 
-        NodeEnvironmentModule nodeEnvironmentModule = new NodeEnvironmentModule(nodeEnvironment);
+        // NodeEnvironmentModule nodeEnvironmentModule = new NodeEnvironmentModule(nodeEnvironment);
         MonitorModule monitorModule = new MonitorModule(NODE_SETTINGS);
         monitorModule.addExtendedNodeInfoType(SigarPlugin.NODE_INFO_EXTENDED_TYPE, SigarExtendedNodeInfo.class);
         Injector injector = new ModulesBuilder().add(
             new SettingsModule(NODE_SETTINGS),
             monitorModule,
-            nodeEnvironmentModule,
+            // nodeEnvironmentModule,
             new SigarModule(new SigarService(NODE_SETTINGS))
         ).createInjector();
         extendedNodeInfo = injector.getInstance(ExtendedNodeInfo.class);

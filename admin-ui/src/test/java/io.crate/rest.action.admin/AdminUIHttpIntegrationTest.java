@@ -15,7 +15,6 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.transport.InetSocketTransportAddress;
 import org.elasticsearch.env.Environment;
 import org.elasticsearch.http.HttpServerTransport;
-import org.elasticsearch.node.Node;
 import org.elasticsearch.plugins.Plugin;
 import org.elasticsearch.test.ESIntegTestCase;
 import org.junit.Before;
@@ -29,6 +28,7 @@ import java.nio.file.Path;
 import java.util.*;
 import java.util.concurrent.ExecutionException;
 
+import static org.elasticsearch.common.network.NetworkModule.HTTP_ENABLED;
 import static org.hamcrest.core.Is.is;
 
 
@@ -39,16 +39,16 @@ public abstract class AdminUIHttpIntegrationTest extends ESIntegTestCase {
 
     @Override
     protected Settings nodeSettings(int nodeOrdinal) {
-        return Settings.settingsBuilder()
+        return Settings.builder()
             .put(super.nodeSettings(nodeOrdinal))
-            .put(Node.HTTP_ENABLED, true)
+            .put(HTTP_ENABLED, true)
             .build();
     }
 
     @SuppressWarnings("unchecked")
     @Override
     protected Collection<Class<? extends Plugin>> nodePlugins() {
-        return pluginList(AdminUIPlugin.class);
+        return Collections.singletonList(AdminUIPlugin.class);
     }
 
 

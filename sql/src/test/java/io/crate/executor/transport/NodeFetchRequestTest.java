@@ -48,7 +48,7 @@ public class NodeFetchRequestTest {
         BytesStreamOutput out = new BytesStreamOutput();
         orig.writeTo(out);
 
-        StreamInput in = StreamInput.wrap(out.bytes());
+        StreamInput in = out.bytes().streamInput();
 
         NodeFetchRequest streamed = new NodeFetchRequest();
         streamed.readFrom(in);
