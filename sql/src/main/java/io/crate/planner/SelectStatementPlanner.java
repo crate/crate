@@ -28,6 +28,7 @@ import io.crate.analyze.*;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.AnalyzedRelationVisitor;
 import io.crate.analyze.relations.QueriedDocTable;
+import io.crate.analyze.relations.QueriedRelation;
 import io.crate.analyze.symbol.SelectSymbol;
 import io.crate.exceptions.ValidationException;
 import io.crate.exceptions.VersionInvalidException;
@@ -45,6 +46,7 @@ import io.crate.planner.projection.FetchProjection;
 import io.crate.sql.tree.QualifiedName;
 
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 
 class SelectStatementPlanner {
@@ -192,6 +194,15 @@ class SelectStatementPlanner {
         }
 
         @Override
+        public Plan visitTwoRelationsUnion(TwoRelationsUnion twoRelationsUnion, Planner.Context context) {
+            // Currently we only support UNION ALL so it's ok to flatten the union pairs
+            UnionFlatteningVisitorContext visitorContext = new UnionFlatteningVisitorContext();
+            UnionFlatteningVisitor.INSTANCE.process(twoRelationsUnion, visitorContext);
+            UnionSelect unionSelect = new UnionSelect(visitorContext.relations, twoRelationsUnion.querySpec());
+            return consumingPlanner.plan(unionSelect, context);
+        }
+
+        @Override
         public Plan visitQueriedSelectRelation(QueriedSelectRelation relation, Planner.Context context) {
             throw new UnsupportedOperationException("complex sub selects are not supported");
         }
@@ -216,5 +227,45 @@ class SelectStatementPlanner {
             readerAllocations.nodeReaders(),
             readerAllocations.indices(),
             readerAllocations.indicesToIdents());
+    }
+
+    private static class UnionFlatteningVisitor extends AnalyzedRelationVisitor<UnionFlatteningVisitorContext, Void> {
+
+        private static final UnionFlatteningVisitor INSTANCE = new UnionFlatteningVisitor();
+
+        @Override
+        public Void visitQueriedTable(QueriedTable relation, UnionFlatteningVisitorContext context) {
+            context.relations.add(0, relation);
+            return null;
+        }
+
+        @Override
+        public Void visitQueriedDocTable(QueriedDocTable relation, UnionFlatteningVisitorContext context) {
+            context.relations.add(0, relation);
+            return null;
+        }
+
+        @Override
+        public Void visitMultiSourceSelect(MultiSourceSelect relation, UnionFlatteningVisitorContext context) {
+            context.relations.add(0, relation);
+            return null;
+        }
+
+        @Override
+        public Void visitQueriedSelectRelation(QueriedSelectRelation relation, UnionFlatteningVisitorContext context) {
+            context.relations.add(0, relation);
+            return null;
+        }
+
+        @Override
+        public Void visitTwoRelationsUnion(TwoRelationsUnion twoRelationsUnion, UnionFlatteningVisitorContext context) {
+            process(twoRelationsUnion.first(), context);
+            process(twoRelationsUnion.second(), context);
+            return null;
+        }
+    }
+
+    private static class UnionFlatteningVisitorContext {
+        private final List<QueriedRelation> relations = new ArrayList<>();
     }
 }
