@@ -45,7 +45,7 @@ public class SubscriptObjectFunctionTest extends AbstractScalarFunctionsTest {
 
     @Test
     public void testSubscriptOnCastToObjectLiteral() throws Exception {
-        assertNormalize("subscript_obj('{x: 1.0}'::object, 'x')", isLiteral(1.0));
+        assertNormalize("subscript_obj('{\"x\": 1.0}'::object, 'x')", isLiteral(1.0));
     }
 
     @Test

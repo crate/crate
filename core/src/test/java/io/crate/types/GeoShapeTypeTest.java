@@ -23,7 +23,7 @@ package io.crate.types;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.spatial4j.core.shape.Shape;
+import org.locationtech.spatial4j.shape.Shape;
 import io.crate.geo.GeoJSONUtils;
 import io.crate.geo.GeoJSONUtilsTest;
 import io.crate.test.integration.CrateUnitTest;
@@ -114,7 +114,7 @@ public class GeoShapeTypeTest extends CrateUnitTest {
 
             BytesStreamOutput out = new BytesStreamOutput();
             type.streamer().writeValueTo(out, value);
-            StreamInput in = StreamInput.wrap(out.bytes());
+            StreamInput in = out.bytes().streamInput();
             Map<String, Object> streamedValue = type.readValueFrom(in);
 
             assertThat(streamedValue.size(), is(value.size()));

@@ -32,10 +32,10 @@ import io.crate.metadata.TransactionContext;
 import io.crate.operation.scalar.cast.CastFunctionResolver;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
-import org.elasticsearch.common.util.Consumer;
 
 import javax.annotation.Nullable;
 import java.util.*;
+import java.util.function.Consumer;
 
 public class QuerySpec {
 

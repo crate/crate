@@ -41,7 +41,7 @@ public class BulkCreateIndicesRequestTest {
         BulkCreateIndicesRequest request = new BulkCreateIndicesRequest(Arrays.asList("a", "b", "c"), jobId);
         BytesStreamOutput out = new BytesStreamOutput();
         request.writeTo(out);
-        StreamInput in = StreamInput.wrap(out.bytes());
+        StreamInput in = out.bytes().streamInput();
         BulkCreateIndicesRequest requestDeserialized = new BulkCreateIndicesRequest();
         requestDeserialized.readFrom(in);
 
@@ -52,7 +52,7 @@ public class BulkCreateIndicesRequestTest {
         request = new BulkCreateIndicesRequest(Arrays.asList("a", "b", "c"), jobId);
         out = new BytesStreamOutput();
         request.writeTo(out);
-        in = StreamInput.wrap(out.bytes());
+        in = out.bytes().streamInput();
         requestDeserialized = new BulkCreateIndicesRequest();
         requestDeserialized.readFrom(in);
 

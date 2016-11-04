@@ -26,22 +26,27 @@ import io.crate.analyze.TableDefinitions;
 import io.crate.metadata.TableIdent;
 import io.crate.planner.node.ddl.DropTablePlan;
 import io.crate.planner.node.ddl.GenericDDLPlan;
-import io.crate.test.integration.CrateUnitTest;
+import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
-import org.elasticsearch.cluster.ClusterService;
-import org.elasticsearch.test.cluster.NoopClusterService;
+import org.junit.Before;
 import org.junit.Test;
 
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 
-public class DropTablePlannerTest extends CrateUnitTest {
+public class DropTablePlannerTest extends CrateDummyClusterServiceUnitTest {
 
-    private ClusterService clusterService = new NoopClusterService();
-    private SQLExecutor e = SQLExecutor.builder(clusterService)
-        .enableDefaultTables()
-        .addBlobTable(TableDefinitions.createBlobTable(new TableIdent("blob", "screenshots"), clusterService))
-        .build();
+    private SQLExecutor e;
+
+    @Before
+    public void prepare() {
+        e = SQLExecutor.builder(clusterService)
+            .enableDefaultTables()
+            .addBlobTable(TableDefinitions.createBlobTable(
+                new TableIdent("blob", "screenshots"),
+                clusterService))
+            .build();
+    }
 
     @Test
     public void testDropTable() throws Exception {

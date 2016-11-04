@@ -25,12 +25,12 @@ import com.google.common.base.MoreObjects;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.common.Nullable;
 import org.elasticsearch.threadpool.ThreadPool;
-import org.elasticsearch.transport.BaseTransportResponseHandler;
 import org.elasticsearch.transport.TransportException;
 import org.elasticsearch.transport.TransportResponse;
+import org.elasticsearch.transport.TransportResponseHandler;
 
 public abstract class DefaultTransportResponseHandler<TResponse extends TransportResponse>
-    extends BaseTransportResponseHandler<TResponse> {
+    implements TransportResponseHandler<TResponse> {
 
     private final ActionListener<TResponse> listener;
     private final String executor;

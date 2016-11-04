@@ -28,7 +28,7 @@ import io.crate.analyze.Id;
 import io.crate.operation.reference.sys.check.AbstractSysCheck;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
-import org.elasticsearch.cluster.ClusterService;
+import org.elasticsearch.cluster.service.ClusterService;
 
 import java.util.List;
 

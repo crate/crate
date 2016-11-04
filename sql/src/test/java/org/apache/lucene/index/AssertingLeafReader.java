@@ -163,10 +163,7 @@ public class AssertingLeafReader extends FilterLeafReader {
                 actualReuse = null;
             }
             PostingsEnum docs = super.postings(actualReuse, flags);
-            if (docs == null) {
-                assert PostingsEnum.featureRequested(flags, DocsAndPositionsEnum.OLD_NULL_SEMANTICS);
-                return null;
-            }
+            assert docs != null;
             if (docs == actualReuse) {
                 // codec reused, reset asserting state
                 ((AssertingPostingsEnum)reuse).reset();

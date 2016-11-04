@@ -32,7 +32,7 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.is;
 
-@ESIntegTestCase.ClusterScope(numDataNodes = 2, numClientNodes = 0)
+@ESIntegTestCase.ClusterScope(numDataNodes = 2, numClientNodes = 0, supportsDedicatedMasters = false)
 @UseJdbc
 public class SysNodeCheckerIntegrationTest extends SQLTransportIntegrationTest {
 

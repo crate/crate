@@ -29,7 +29,6 @@ import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
 import com.google.common.collect.Iterators;
-import com.google.common.collect.UnmodifiableIterator;
 import com.google.common.util.concurrent.UncheckedExecutionException;
 import io.crate.blob.v2.BlobIndex;
 import io.crate.exceptions.ResourceUnknownException;
@@ -40,12 +39,13 @@ import io.crate.metadata.TableIdent;
 import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.table.TableInfo;
 import org.elasticsearch.cluster.ClusterChangedEvent;
-import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.metadata.AliasMetaData;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.cluster.metadata.IndexTemplateMetaData;
 import org.elasticsearch.cluster.metadata.MetaData;
+import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.collect.ImmutableOpenMap;
+import org.elasticsearch.index.Index;
 
 import javax.annotation.Nonnull;
 import java.util.Collection;
@@ -187,7 +187,7 @@ public class DocSchemaInfo implements SchemaInfo {
     private Collection<String> tableNames() {
         Set<String> tables = new HashSet<>();
 
-        Stream.of(clusterService.state().metaData().concreteAllOpenIndices())
+        Stream.of(clusterService.state().metaData().getConcreteAllOpenIndices())
             .filter(NO_BLOB)
             .filter(NO_PARTITION)
             .filter(this::indexMatchesSchema)
@@ -195,7 +195,7 @@ public class DocSchemaInfo implements SchemaInfo {
             .forEach(tables::add);
 
         // Search for partitioned table templates
-        UnmodifiableIterator<String> templates = clusterService.state().metaData().getTemplates().keysIt();
+        Iterator<String> templates = clusterService.state().metaData().getTemplates().keysIt();
         while (templates.hasNext()) {
             String templateName = templates.next();
             if (!PartitionName.isPartition(templateName)) {
@@ -231,7 +231,7 @@ public class DocSchemaInfo implements SchemaInfo {
 
         // search for aliases of deleted and created indices, they must be invalidated also
         MetaData prevMetaData = event.previousState().metaData();
-        for (String index : event.indicesDeleted()) {
+        for (Index index : event.indicesDeleted()) {
             invalidateAliases(prevMetaData.index(index).getAliases());
         }
         MetaData newMetaData = event.state().metaData();
@@ -262,23 +262,22 @@ public class DocSchemaInfo implements SchemaInfo {
             IndexMetaData newIndexMetaData = newMetaData.index(indexName);
             if (newIndexMetaData == null) {
                 cache.invalidate(tableName);
-            } else if (event.indexMetaDataChanged(newIndexMetaData)) {
-                cache.invalidate(tableName);
-                // invalidate aliases of changed indices
-                invalidateAliases(newIndexMetaData.getAliases());
-
-                IndexMetaData oldIndexMetaData = prevMetaData.index(indexName);
-                if (oldIndexMetaData != null) {
-                    invalidateAliases(oldIndexMetaData.getAliases());
-                }
             } else {
-                // this is the case if a single partition has been modified using alter table <t> partition (...)
-                String possibleTemplateName = PartitionName.templateName(name(), tableName);
-                if (templates.contains(possibleTemplateName)) {
-                    for (ObjectObjectCursor<String, IndexMetaData> indexEntry : indices) {
-                        if (PartitionName.isPartition(indexEntry.key)) {
-                            cache.invalidate(tableName);
-                            break;
+                IndexMetaData oldIndexMetaData = prevMetaData.index(indexName);
+                if (oldIndexMetaData != null && ClusterChangedEvent.indexMetaDataChanged(oldIndexMetaData, newIndexMetaData)) {
+                    cache.invalidate(tableName);
+                    // invalidate aliases of changed indices
+                    invalidateAliases(newIndexMetaData.getAliases());
+                    invalidateAliases(oldIndexMetaData.getAliases());
+                } else {
+                    // this is the case if a single partition has been modified using alter table <t> partition (...)
+                    String possibleTemplateName = PartitionName.templateName(name(), tableName);
+                    if (templates.contains(possibleTemplateName)) {
+                        for (ObjectObjectCursor<String, IndexMetaData> indexEntry : indices) {
+                            if (PartitionName.isPartition(indexEntry.key)) {
+                                cache.invalidate(tableName);
+                                break;
+                            }
                         }
                     }
                 }

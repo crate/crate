@@ -56,10 +56,10 @@ import io.crate.planner.statement.SetSessionPlan;
 import io.crate.sql.tree.Expression;
 import io.crate.sql.tree.SetStatement;
 import io.crate.types.DataTypes;
-import org.elasticsearch.cluster.ClusterService;
+import org.apache.logging.log4j.Logger;
+import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
-import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.Settings;
 
@@ -70,7 +70,7 @@ import java.util.*;
 @Singleton
 public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
 
-    private static final ESLogger LOGGER = Loggers.getLogger(Planner.class);
+    private static final Logger LOGGER = Loggers.getLogger(Planner.class);
 
     private final ConsumingPlanner consumingPlanner;
     private final ClusterService clusterService;
@@ -485,11 +485,16 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
 
     @Override
     public Plan visitResetAnalyzedStatement(ResetAnalyzedStatement resetStatement, Context context) {
-        if (resetStatement.settingsToRemove().isEmpty()) {
+        Set<String> settingsToRemove = resetStatement.settingsToRemove();
+        if (settingsToRemove.isEmpty()) {
             return new NoopPlan(context.jobId());
         }
-        return new ESClusterUpdateSettingsPlan(context.jobId(),
-            resetStatement.settingsToRemove(), resetStatement.settingsToRemove());
+
+        Map<String, List<Expression>> nullSettings = new HashMap<>(settingsToRemove.size(), 1);
+        for (String setting : settingsToRemove) {
+            nullSettings.put(setting, null);
+        }
+        return new ESClusterUpdateSettingsPlan(context.jobId(), nullSettings, nullSettings);
     }
 
     @Override

@@ -24,15 +24,17 @@
 
 package io.crate.rest.action.admin;
 
-import org.elasticsearch.client.Client;
+import org.elasticsearch.client.node.NodeClient;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.rest.*;
 
+import java.io.IOException;
+
 import static org.elasticsearch.rest.RestRequest.Method.GET;
 
 /**
- * RestHandlerAction to return a html page containing informations about crate
+ * RestHandlerAction to return a html page containing information about crate
  */
 public class AdminUIFrontpageAction extends BaseRestHandler {
 
@@ -40,8 +42,10 @@ public class AdminUIFrontpageAction extends BaseRestHandler {
     private final AdminUIStaticFileRequestFilter requestFilter;
 
     @Inject
-    public AdminUIFrontpageAction(Settings settings, Client client, RestController controller, AdminUIStaticFileRequestFilter staticFileRequestFilter) {
-        super(settings, controller, client);
+    public AdminUIFrontpageAction(Settings settings,
+                                  RestController controller,
+                                  AdminUIStaticFileRequestFilter staticFileRequestFilter) {
+        super(settings);
         this.controller = controller;
         this.requestFilter = staticFileRequestFilter;
     }
@@ -52,10 +56,9 @@ public class AdminUIFrontpageAction extends BaseRestHandler {
     }
 
     @Override
-    protected void handleRequest(RestRequest request, RestChannel channel, Client client) throws Exception {
-        BytesRestResponse resp = new BytesRestResponse(RestStatus.TEMPORARY_REDIRECT);
+    protected RestChannelConsumer prepareRequest(RestRequest request, NodeClient client) throws IOException {
+        BytesRestResponse resp = new BytesRestResponse(RestStatus.TEMPORARY_REDIRECT, "");
         resp.addHeader("Location", "/");
-        channel.sendResponse(resp);
+        return channel -> channel.sendResponse(resp);
     }
-
 }

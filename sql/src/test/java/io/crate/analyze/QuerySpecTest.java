@@ -22,20 +22,23 @@
 
 package io.crate.analyze;
 
-import io.crate.analyze.symbol.Symbol;
+import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
-import org.elasticsearch.common.util.Consumer;
-import org.elasticsearch.test.cluster.NoopClusterService;
+import org.junit.Before;
 import org.junit.Test;
 
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertThat;
 
-public class QuerySpecTest {
+public class QuerySpecTest extends CrateDummyClusterServiceUnitTest {
 
-    SQLExecutor e = SQLExecutor.builder(new NoopClusterService()).enableDefaultTables().build();
+    private SQLExecutor e;
+
+    @Before
+    public void prepare() {
+        e = SQLExecutor.builder(clusterService).enableDefaultTables().build();
+    }
 
     @Test
     public void testVisitSymbolVisitsAllSymbols() throws Exception {
@@ -51,12 +54,7 @@ public class QuerySpecTest {
             "limit 1 " +            // 7
             "offset 1");            // 8
         final AtomicInteger numSymbols = new AtomicInteger(0);
-        stmt.relation().querySpec().visitSymbols(new Consumer<Symbol>() {
-            @Override
-            public void accept(Symbol symbol) {
-                numSymbols.incrementAndGet();
-            }
-        });
+        stmt.relation().querySpec().visitSymbols(symbol -> numSymbols.incrementAndGet());
         assertThat(numSymbols.get(), is(8));
     }
 }

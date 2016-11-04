@@ -25,40 +25,60 @@ package io.crate.azure.plugin;
 import io.crate.azure.AzureModule;
 import io.crate.azure.discovery.AzureDiscovery;
 import io.crate.azure.discovery.AzureUnicastHostsProvider;
+import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.component.LifecycleComponent;
 import org.elasticsearch.common.inject.Module;
-import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
+import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.discovery.DiscoveryModule;
 import org.elasticsearch.plugins.Plugin;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
+
+import static io.crate.azure.management.AzureComputeService.Discovery.DISCOVERY_METHOD;
+import static io.crate.azure.management.AzureComputeService.Discovery.HOST_TYPE;
+import static io.crate.azure.management.AzureComputeService.Discovery.REFRESH;
+import static io.crate.azure.management.AzureComputeService.Management.*;
 
 
 public class AzureDiscoveryPlugin extends Plugin {
 
     private final Settings settings;
-    protected final ESLogger logger = Loggers.getLogger(AzureDiscoveryPlugin.class);
+    protected final Logger logger = Loggers.getLogger(AzureDiscoveryPlugin.class);
 
     public AzureDiscoveryPlugin(Settings settings) {
         this.settings = settings;
     }
 
-    @Override
     public String name() {
         return "crate-azure-discovery";
     }
 
-    @Override
     public String description() {
         return "Azure Discovery Plugin";
     }
 
     @Override
-    public Collection<Module> nodeModules() {
+    public List<Setting<?>> getSettings() {
+        List<Setting<?>> settings = Arrays.asList(
+            SUBSCRIPTION_ID,
+            RESOURCE_GROUP_NAME,
+            TENANT_ID,
+            APP_ID,
+            APP_SECRET,
+            REFRESH,
+            HOST_TYPE,
+            DISCOVERY_METHOD
+        );
+        return settings;
+    }
+
+    @Override
+    public Collection<Module> createGuiceModules() {
         List<Module> modules = new ArrayList<>();
         if (AzureModule.isDiscoveryReady(settings, logger)) {
             modules.add(new AzureModule());
@@ -67,7 +87,7 @@ public class AzureDiscoveryPlugin extends Plugin {
     }
 
     @Override
-    public Collection<Class<? extends LifecycleComponent>> nodeServices() {
+    public Collection<Class<? extends LifecycleComponent>> getGuiceServiceClasses() {
         Collection<Class<? extends LifecycleComponent>> services = new ArrayList<>();
         if (AzureModule.isDiscoveryReady(settings, logger)) {
             services.add(AzureModule.getComputeServiceImpl());
@@ -75,10 +95,11 @@ public class AzureDiscoveryPlugin extends Plugin {
         return services;
     }
 
+    // FIXME: on DiscoveryModule is not supported anymore, find way to register type
     public void onModule(DiscoveryModule discoveryModule) {
         if (AzureModule.isDiscoveryReady(settings, logger)) {
             discoveryModule.addDiscoveryType("azure", AzureDiscovery.class);
-            discoveryModule.addUnicastHostProvider(AzureUnicastHostsProvider.class);
+            discoveryModule.addUnicastHostProvider("azure", AzureUnicastHostsProvider.class);
         }
     }
 

@@ -25,7 +25,7 @@ package io.crate.jobs;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
 import io.crate.test.integration.CrateUnitTest;
-import org.elasticsearch.common.logging.ESLogger;
+import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.logging.Loggers;
 import org.junit.Before;
 import org.junit.Test;
@@ -82,7 +82,7 @@ public class AbstractExecutionSubContextTest extends CrateUnitTest {
 
     public static class TestingExecutionSubContext extends AbstractExecutionSubContext {
 
-        private static final ESLogger LOGGER = Loggers.getLogger(TestingExecutionSubContext.class);
+        private static final Logger LOGGER = Loggers.getLogger(TestingExecutionSubContext.class);
 
         final AtomicInteger numPrepare = new AtomicInteger();
         final AtomicInteger numStart = new AtomicInteger();

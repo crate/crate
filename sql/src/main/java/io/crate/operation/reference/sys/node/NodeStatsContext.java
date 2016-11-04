@@ -72,10 +72,6 @@ public class NodeStatsContext implements Streamable {
     private BytesRef jvmVendor;
     private BytesRef jvmVersion;
 
-    public static NodeStatsContext newInstance() {
-        return new NodeStatsContext(true);
-    }
-
     public NodeStatsContext(String id, String name) {
         this(false);
         this.id = BytesRefs.toBytesRef(id);
@@ -281,10 +277,10 @@ public class NodeStatsContext implements Streamable {
         } else {
             port = null;
         }
-        jvmStats = in.readBoolean() ? JvmStats.readJvmStats(in) : null;
-        osInfo = in.readBoolean() ? OsInfo.readOsInfo(in) : null;
-        processStats = in.readBoolean() ? ProcessStats.readProcessStats(in) : null;
-        osStats = in.readBoolean() ? OsStats.readOsStats(in) : null;
+        jvmStats = in.readOptionalWriteable(JvmStats::new);
+        osInfo = in.readOptionalWriteable(OsInfo::new);
+        processStats = in.readOptionalWriteable(ProcessStats::new);
+        osStats = in.readOptionalWriteable(OsStats::new);
         extendedOsStats = in.readBoolean() ? ExtendedOsStats.readExtendedOsStat(in) : null;
         networkStats = in.readBoolean() ? ExtendedNetworkStats.readExtendedNetworkStats(in) : null;
         extendedProcessCpuStats = in.readBoolean() ? ExtendedProcessCpuStats.readExtendedProcessCpuStats(in) : null;
@@ -323,10 +319,10 @@ public class NodeStatsContext implements Streamable {
                 out.writeOptionalVInt(p.getValue());
             }
         }
-        out.writeOptionalStreamable(jvmStats);
-        out.writeOptionalStreamable(osInfo);
-        out.writeOptionalStreamable(processStats);
-        out.writeOptionalStreamable(osStats);
+        out.writeOptionalWriteable(jvmStats);
+        out.writeOptionalWriteable(osInfo);
+        out.writeOptionalWriteable(processStats);
+        out.writeOptionalWriteable(osStats);
         out.writeOptionalStreamable(extendedOsStats);
         out.writeOptionalStreamable(networkStats);
         out.writeOptionalStreamable(extendedProcessCpuStats);

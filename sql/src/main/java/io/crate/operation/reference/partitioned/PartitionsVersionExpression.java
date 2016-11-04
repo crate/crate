@@ -94,7 +94,7 @@ public class PartitionsVersionExpression extends RowCollectNestedObjectExpressio
         @Override
         public Object value() {
             Version version = TableExpressions.getVersion(row, property);
-            return version == null ? null : version.esVersion.number();
+            return version == null ? null : version.esVersion.toString();
         }
     }
 }

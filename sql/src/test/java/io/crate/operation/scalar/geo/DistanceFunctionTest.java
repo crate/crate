@@ -46,7 +46,7 @@ public class DistanceFunctionTest extends AbstractScalarFunctionsTest {
 
     @Test
     public void testEvaluateWithTwoGeoPointLiterals() throws Exception {
-        assertEvaluate("distance(geopoint, geopoint)", 144623.6842773458,
+        assertEvaluate("distance(geopoint, geopoint)", 144572.67952051832,
             Literal.of(DataTypes.GEO_POINT, new Double[]{10.04, 28.02}),
             Literal.of(DataTypes.GEO_POINT, DataTypes.GEO_POINT.value("POINT(10.30 29.3)")));
     }
@@ -54,12 +54,12 @@ public class DistanceFunctionTest extends AbstractScalarFunctionsTest {
     @Test
     public void testNormalizeWithStringTypes() throws Exception {
         // do not evaluate additional to the normalization as strings are only supported on normalization here
-        assertNormalize("distance('POINT (10 20)', 'POINT (11 21)')", isLiteral(152462.70754934277), false);
+        assertNormalize("distance('POINT (10 20)', 'POINT (11 21)')", isLiteral(152354.3209044634), false);
     }
 
     @Test
     public void testNormalizeWithDoubleArray() throws Exception {
-        assertNormalize("distance([10.0, 20.0], [11.0, 21.0])", isLiteral(152462.70754934277), false);
+        assertNormalize("distance([10.0, 20.0], [11.0, 21.0])", isLiteral(152354.3209044634), false);
     }
 
     @Test

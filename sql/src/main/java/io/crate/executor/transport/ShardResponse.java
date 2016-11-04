@@ -23,7 +23,8 @@ package io.crate.executor.transport;
 
 import com.carrotsearch.hppc.IntArrayList;
 import com.google.common.base.MoreObjects;
-import org.elasticsearch.action.ActionWriteResponse;
+import org.elasticsearch.action.support.WriteResponse;
+import org.elasticsearch.action.support.replication.ReplicationResponse;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Streamable;
@@ -33,7 +34,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
-public class ShardResponse extends ActionWriteResponse {
+public class ShardResponse extends ReplicationResponse implements WriteResponse {
 
     /**
      * Represents a failure.
@@ -47,7 +48,7 @@ public class ShardResponse extends ActionWriteResponse {
         Failure() {
         }
 
-        public Failure(String id, String message, boolean versionConflict) {
+        Failure(String id, String message, boolean versionConflict) {
             this.id = id;
             this.message = message;
             this.versionConflict = versionConflict;
@@ -65,7 +66,7 @@ public class ShardResponse extends ActionWriteResponse {
             return versionConflict;
         }
 
-        public static Failure readFailure(StreamInput in) throws IOException {
+        static Failure readFailure(StreamInput in) throws IOException {
             Failure failure = new Failure();
             failure.readFrom(in);
             return failure;
@@ -98,7 +99,8 @@ public class ShardResponse extends ActionWriteResponse {
     private IntArrayList locations = new IntArrayList();
     private List<Failure> failures = new ArrayList<>();
     @Nullable
-    private Throwable failure;
+    private Exception failure;
+    private boolean forcedRefresh;
 
     public ShardResponse() {
     }
@@ -121,12 +123,17 @@ public class ShardResponse extends ActionWriteResponse {
         return failures;
     }
 
-    public void failure(@Nullable Throwable throwable) {
-        this.failure = throwable;
+    public void failure(@Nullable Exception failure) {
+        this.failure = failure;
     }
 
-    public Throwable failure() {
+    public Exception failure() {
         return failure;
+    }
+
+    @Override
+    public void setForcedRefresh(boolean forcedRefresh) {
+        this.forcedRefresh = forcedRefresh;
     }
 
     @Override
@@ -144,8 +151,9 @@ public class ShardResponse extends ActionWriteResponse {
             }
         }
         if (in.readBoolean()) {
-            failure = in.readThrowable();
+            failure = in.readException();
         }
+        forcedRefresh = in.readBoolean();
     }
 
     @Override
@@ -163,10 +171,11 @@ public class ShardResponse extends ActionWriteResponse {
         }
         if (failure != null) {
             out.writeBoolean(true);
-            out.writeThrowable(failure);
+            out.writeException(failure);
         } else {
             out.writeBoolean(false);
         }
+        out.writeBoolean(forcedRefresh);
     }
 
 }

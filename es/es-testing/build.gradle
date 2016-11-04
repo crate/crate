@@ -1,5 +1,6 @@
 dependencies {
     compile project(':es:es-core')
+    compile project(':es:es-client')
 
     // mvn dependency:tree | grep -o ' .- .*:test' | cut -d ' ' -f 3 | sort | uniq| sed "s/\(.*\):jar:\(.*\):test/testCompile '\1:\2'/g"
     compile "com.carrotsearch.randomizedtesting:randomizedtesting-runner:${versions.randomizedrunner}"
@@ -23,20 +24,10 @@ dependencies {
 
 sourceSets {
     main {
-        java.srcDirs = ['../upstream/core/src/test/java']
-
-        java {
-            srcDir '../upstream/core/src/test/java'
-        }
+        java.srcDirs = ['../upstream/test/framework/src/main/java']
         resources {
-            srcDir '../upstream/core/src/test/resources'
+            srcDir '../upstream/test/framework/src/main/resources'
             include '**/*.*'
-        }
-        resources {
-            srcDir '../upstream/core/src/test/java'
-            include '**/*.json'
-            include '**/*.yml'
-            include '**/*.txt'
         }
     }
     test {
@@ -48,7 +39,7 @@ sourceSets {
 
 idea {
     module {
-        contentRoot = file('../upstream/core/src/test')
+        contentRoot = file('../upstream/test/framework')
         excludeDirs += file('build')
     }
 }

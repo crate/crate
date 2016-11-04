@@ -26,8 +26,8 @@ import com.google.common.annotations.VisibleForTesting;
 import io.crate.Streamer;
 import io.crate.data.*;
 import io.crate.exceptions.SQLExceptions;
+import org.apache.logging.log4j.Logger;
 import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.common.logging.ESLogger;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
@@ -47,7 +47,7 @@ import java.util.concurrent.atomic.AtomicInteger;
  */
 public class DistributingConsumer implements BatchConsumer {
 
-    private final ESLogger logger;
+    private final Logger logger;
     private final UUID jobId;
     private final int targetPhaseId;
     private final byte inputId;
@@ -64,7 +64,7 @@ public class DistributingConsumer implements BatchConsumer {
 
     private volatile Throwable failure;
 
-    public DistributingConsumer(ESLogger logger,
+    public DistributingConsumer(Logger logger,
                                 UUID jobId,
                                 MultiBucketBuilder multiBucketBuilder,
                                 int targetPhaseId,
@@ -149,7 +149,7 @@ public class DistributingConsumer implements BatchConsumer {
                     }
 
                     @Override
-                    public void onFailure(Throwable e) {
+                    public void onFailure(Exception e) {
                         if (traceEnabled) {
                             logger.trace("Error sending failure to downstream={} targetPhase={}/{} bucket={}", e,
                                 downstream.nodeId, targetPhaseId, inputId, bucketIdx);
@@ -194,7 +194,7 @@ public class DistributingConsumer implements BatchConsumer {
                     }
 
                     @Override
-                    public void onFailure(Throwable e) {
+                    public void onFailure(Exception e) {
                         failure = e;
                         downstream.needsMoreData = false;
                         // continue because it's necessary to send something to downstreams still waiting for data

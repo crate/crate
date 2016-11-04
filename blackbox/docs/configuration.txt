@@ -436,7 +436,7 @@ Paths
   | *Runtime:* ``no``
 
   Filesystem path to the directory containing the configuration files ``crate.yml``
-  and ``logging.yml``.
+  and ``log4j2.properties``.
 
 **path.data**
   | *Runtime:* ``no``
@@ -461,7 +461,7 @@ Paths
   | *Runtime:* ``no``
 
   Filesystem path to a directory where log files should be stored.
-  Can be used as a variable inside ``logging.yml``.
+  Can be used as a variable inside ``log4j2.properties``.
 
   For example:
 
@@ -1750,7 +1750,7 @@ Logging
 
 CrateDB comes, out of the box, with Log4j_ 1.2.x. It tries to simplify log4j
 configuration by using YAML to configure it. The logging configuration
-file is at ``config/logging.yml``.
+file is at ``config/log4j2.properties``.
 
 The yaml file is used to prepare a set of properties used for logging configuration
 using the `PropertyConfigurator`_ but without the tediously repeating ``log4j`` prefix.
@@ -1758,19 +1758,18 @@ Here is a small example of a working logging configuration.
 
 .. code-block:: yaml
 
-    rootLogger: INFO, console
+    rootLogger.level = info
+    rootLogger.appenderRef.console.ref = console
 
-    logger:
-      # log action execution errors for easier debugging
-      action: DEBUG
+    # log action execution errors for easier debugging
+    logger.action.name = org.crate.action.sql
+    logger.action.level = debug
 
 
-    appender:
-      console:
-        type: console
-        layout:
-          type: consolePattern
-          conversionPattern: "[%d{ISO8601}][%-5p][%-25c] %m%n"
+    appender.console.type = Console
+    appender.console.name = console
+    appender.console.layout.type = PatternLayout
+    appender.console.layout.pattern = [%d{ISO8601}][%-5p][%-25c{1.}] %marker%m%n
 
 And here is a snippet of the generated properties ready for use with log4j.
 You get the point.
@@ -1793,7 +1792,7 @@ Logger Settings
 It's possible to set the log level of loggers at runtime. This is particularly
 useful when debugging problems and there is a need to increase the log level
 without wanting to restart nodes. Logging settings are cluster wide and
-override the logging configuration of nodes defined in their ``logging.yaml``.
+override the logging configuration of nodes defined in their ``log4j2.properties``.
 
 The :ref:`RESET<ref-set>` statement is also supported, however only with the
 limitation that the reset of the logging override only takes affect after

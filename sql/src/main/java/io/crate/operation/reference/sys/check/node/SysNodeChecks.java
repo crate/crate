@@ -22,12 +22,13 @@
 
 package io.crate.operation.reference.sys.check.node;
 
+import io.crate.data.Input;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.sys.SysNodeChecksTableInfo;
-import io.crate.data.Input;
 import io.crate.operation.reference.sys.SysRowUpdater;
 import org.apache.lucene.util.BytesRef;
-import org.elasticsearch.cluster.ClusterService;
+import org.elasticsearch.cluster.service.ClusterService;
+import org.elasticsearch.common.component.LifecycleListener;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.discovery.Discovery;
@@ -48,11 +49,14 @@ public class SysNodeChecks implements SysRowUpdater<SysNodeCheck>, Iterable<SysN
     public SysNodeChecks(Map<Integer, SysNodeCheck> checks, Discovery discovery, ClusterService clusterService) {
         this.checks = new HashMap<>(checks.size());
         // we need to wait for the discovery to finish to have a local node id
-        discovery.addListener(() -> {
-            BytesRef nodeId = new BytesRef(clusterService.localNode().getId());
-            for (SysNodeCheck sysNodeCheck : checks.values()) {
-                sysNodeCheck.setNodeId(nodeId);
-                this.checks.put(sysNodeCheck.rowId(), sysNodeCheck);
+        discovery.addLifecycleListener(new LifecycleListener() {
+            @Override
+            public void afterStart() {
+                BytesRef nodeId = new BytesRef(clusterService.localNode().getId());
+                for (SysNodeCheck sysNodeCheck : checks.values()) {
+                    sysNodeCheck.setNodeId(nodeId);
+                    SysNodeChecks.this.checks.put(sysNodeCheck.rowId(), sysNodeCheck);
+                }
             }
         });
     }

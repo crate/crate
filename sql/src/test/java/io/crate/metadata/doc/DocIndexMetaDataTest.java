@@ -10,18 +10,15 @@ import io.crate.action.sql.SessionContext;
 import io.crate.analyze.*;
 import io.crate.metadata.*;
 import io.crate.metadata.table.ColumnPolicy;
-import io.crate.metadata.table.SchemaInfo;
 import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.CreateTable;
 import io.crate.sql.tree.Statement;
-import io.crate.test.integration.CrateUnitTest;
+import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
-import io.crate.types.GeoPointType;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.action.admin.indices.template.put.TransportPutIndexTemplateAction;
-import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.metadata.AliasMetaData;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
@@ -32,19 +29,15 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentFactory;
 import org.elasticsearch.common.xcontent.XContentHelper;
-import org.elasticsearch.indices.analysis.IndicesAnalysisService;
-import org.elasticsearch.test.cluster.NoopClusterService;
+import org.elasticsearch.env.Environment;
+import org.elasticsearch.index.analysis.AnalysisRegistry;
 import org.hamcrest.Matchers;
-import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.*;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
 
 import static io.crate.testing.SymbolMatchers.*;
 import static io.crate.testing.TestingHelpers.getFunctions;
@@ -52,10 +45,10 @@ import static org.hamcrest.Matchers.*;
 import static org.hamcrest.collection.IsCollectionWithSize.hasSize;
 import static org.mockito.Mockito.mock;
 
-public class DocIndexMetaDataTest extends CrateUnitTest {
+// @formatter:off
+public class DocIndexMetaDataTest extends CrateDummyClusterServiceUnitTest {
 
     private Functions functions;
-    private ExecutorService executorService;
 
     private IndexMetaData getIndexMetaData(String indexName, XContentBuilder builder) throws IOException {
         return getIndexMetaData(indexName, builder, Settings.Builder.EMPTY_SETTINGS, null);
@@ -89,38 +82,31 @@ public class DocIndexMetaDataTest extends CrateUnitTest {
 
     @Before
     public void before() throws Exception {
-        executorService = Executors.newFixedThreadPool(1);
         functions = getFunctions();
-    }
-
-    @After
-    public void after() throws Exception {
-        executorService.shutdown();
-        executorService.awaitTermination(1, TimeUnit.SECONDS);
     }
 
     @Test
     public void testNestedColumnIdent() throws Exception {
         XContentBuilder builder = XContentFactory.jsonBuilder()
             .startObject()
-            .startObject("properties")
-            .startObject("person")
-            .startObject("properties")
-            .startObject("addresses")
-            .startObject("properties")
-            .startObject("city")
-            .field("type", "string")
-            .field("index", "not_analyzed")
-            .endObject()
-            .startObject("country")
-            .field("type", "string")
-            .field("index", "not_analyzed")
-            .endObject()
-            .endObject()
-            .endObject()
-            .endObject()
-            .endObject()
-            .endObject()
+                .startObject("properties")
+                    .startObject("person")
+                        .startObject("properties")
+                            .startObject("addresses")
+                                .startObject("properties")
+                                    .startObject("city")
+                                        .field("type", "string")
+                                        .field("index", "not_analyzed")
+                                    .endObject()
+                                    .startObject("country")
+                                        .field("type", "string")
+                                        .field("index", "not_analyzed")
+                                    .endObject()
+                                .endObject()
+                            .endObject()
+                        .endObject()
+                    .endObject()
+                .endObject()
             .endObject();
 
         IndexMetaData metaData = getIndexMetaData("test1", builder);
@@ -252,7 +238,7 @@ public class DocIndexMetaDataTest extends CrateUnitTest {
         assertEquals(Reference.IndexType.ANALYZED, columns.get(0).indexType());
         assertThat(columns.get(0).ident().tableIdent().name(), is("test1"));
 
-        ImmutableList<Reference> references = ImmutableList.<Reference>copyOf(md.references().values());
+        ImmutableList<Reference> references = ImmutableList.copyOf(md.references().values());
 
 
         Reference birthday = md.references().get(new ColumnIdent("person", "birthday"));
@@ -270,7 +256,7 @@ public class DocIndexMetaDataTest extends CrateUnitTest {
             }
         });
 
-        assertThat(fqns, Matchers.<List<String>>is(
+        assertThat(fqns, Matchers.is(
             ImmutableList.of("_doc", "_fetchid", "_id", "_raw", "_score", "_uid", "_version", "content", "datum", "id", "nested", "nested.inner_nested",
                 "person", "person.birthday", "person.first_name", "title")));
 
@@ -646,17 +632,18 @@ public class DocIndexMetaDataTest extends CrateUnitTest {
     public void testSchemaWithNotNullGeneratedColumn() throws Exception {
         XContentBuilder builder = XContentFactory.jsonBuilder()
             .startObject()
-            .startObject("_meta")
-            .startObject("generated_columns")
-            .field("week", "date_trunc('week', ts)")
-            .endObject()
-            .startObject("constraints")
-            .array("not_null", "week")
-            .endObject()
-            .endObject()
-            .startObject("properties")
-            .startObject("ts").field("type", "date").endObject()
-            .startObject("week").field("type", "long").endObject()
+                .startObject("_meta")
+                    .startObject("generated_columns")
+                        .field("week", "date_trunc('week', ts)")
+                    .endObject()
+                    .startObject("constraints")
+                        .array("not_null", "week")
+                    .endObject()
+                .endObject()
+                .startObject("properties")
+                    .startObject("ts").field("type", "date").endObject()
+                    .startObject("week").field("type", "long").endObject()
+                .endObject()
             .endObject();
 
         IndexMetaData metaData = getIndexMetaData("test1", builder, Settings.EMPTY, null);
@@ -796,16 +783,17 @@ public class DocIndexMetaDataTest extends CrateUnitTest {
     public void testNoAutogeneratedPrimaryKey() throws Exception {
         XContentBuilder builder = XContentFactory.jsonBuilder()
             .startObject()
-            .startObject(Constants.DEFAULT_MAPPING_TYPE)
-            .startObject("_meta")
-            .field("primary_keys", "id")
-            .endObject()
-            .startObject("properties")
-            .startObject("id")
-            .field("type", "integer")
-            .field("index", "not_analyzed")
-            .endObject()
-            .endObject()
+                .startObject(Constants.DEFAULT_MAPPING_TYPE)
+                    .startObject("_meta")
+                        .field("primary_keys", "id")
+                    .endObject()
+                    .startObject("properties")
+                        .startObject("id")
+                            .field("type", "integer")
+                            .field("index", "not_analyzed")
+                        .endObject()
+                    .endObject()
+                .endObject()
             .endObject();
         DocIndexMetaData md = newMeta(getIndexMetaData("test11", builder), "test11");
         assertThat(md.primaryKey().size(), is(1));
@@ -817,18 +805,19 @@ public class DocIndexMetaDataTest extends CrateUnitTest {
     public void testAnalyzedColumnWithAnalyzer() throws Exception {
         XContentBuilder builder = XContentFactory.jsonBuilder()
             .startObject()
-            .startObject(Constants.DEFAULT_MAPPING_TYPE)
-            .startObject("properties")
-            .startObject("content_de")
-            .field("type", "string")
-            .field("index", "analyzed")
-            .field("analyzer", "german")
-            .endObject()
-            .startObject("content_en")
-            .field("type", "string")
-            .field("analyzer", "english")
-            .endObject()
-            .endObject()
+                .startObject(Constants.DEFAULT_MAPPING_TYPE)
+                    .startObject("properties")
+                        .startObject("content_de")
+                            .field("type", "text")
+                            .field("index", "analyzed")
+                            .field("analyzer", "german")
+                        .endObject()
+                        .startObject("content_en")
+                            .field("type", "text")
+                            .field("analyzer", "english")
+                        .endObject()
+                    .endObject()
+                .endObject()
             .endObject();
         DocIndexMetaData md = newMeta(getIndexMetaData("test_analyzer", builder), "test_analyzer");
         assertThat(md.columns().size(), is(2));
@@ -843,7 +832,7 @@ public class DocIndexMetaDataTest extends CrateUnitTest {
         DocIndexMetaData md = getDocIndexMetaDataFromStatement("create table foo (p geo_point)");
         assertThat(md.columns().size(), is(1));
         Reference reference = md.columns().get(0);
-        assertThat((GeoPointType) reference.valueType(), equalTo(DataTypes.GEO_POINT));
+        assertThat(reference.valueType(), equalTo(DataTypes.GEO_POINT));
     }
 
     @Test
@@ -860,7 +849,7 @@ public class DocIndexMetaDataTest extends CrateUnitTest {
 
         assertThat(md.columns().size(), is(4));
         assertThat(md.primaryKey(), Matchers.contains(new ColumnIdent("id"), new ColumnIdent("date")));
-        assertThat(md.references().get(new ColumnIdent("tags")).valueType(), is((DataType) new ArrayType(DataTypes.STRING)));
+        assertThat(md.references().get(new ColumnIdent("tags")).valueType(), is(new ArrayType(DataTypes.STRING)));
     }
 
     @Test
@@ -871,7 +860,7 @@ public class DocIndexMetaDataTest extends CrateUnitTest {
             "details object as (names array(string))" +
             ") with (number_of_replicas=0)");
         DataType type = md.references().get(new ColumnIdent("details", "names")).valueType();
-        assertThat(type, Matchers.<DataType>equalTo(new ArrayType(DataTypes.STRING)));
+        assertThat(type, Matchers.equalTo(new ArrayType(DataTypes.STRING)));
     }
 
     @Test
@@ -884,28 +873,31 @@ public class DocIndexMetaDataTest extends CrateUnitTest {
     private DocIndexMetaData getDocIndexMetaDataFromStatement(String stmt) throws IOException {
         Statement statement = SqlParser.createStatement(stmt);
 
-        ClusterService clusterService = new NoopClusterService();
         final TransportPutIndexTemplateAction transportPutIndexTemplateAction = mock(TransportPutIndexTemplateAction.class);
-        Provider<TransportPutIndexTemplateAction> indexTemplateActionProvider = new Provider<TransportPutIndexTemplateAction>() {
-            @Override
-            public TransportPutIndexTemplateAction get() {
-                return transportPutIndexTemplateAction;
-            }
-        };
+        Provider<TransportPutIndexTemplateAction> indexTemplateActionProvider = () -> transportPutIndexTemplateAction;
         DocTableInfoFactory docTableInfoFactory = new InternalDocTableInfoFactory(
             functions,
             new IndexNameExpressionResolver(Settings.EMPTY),
-            indexTemplateActionProvider,
-            executorService
+            indexTemplateActionProvider
         );
         DocSchemaInfo docSchemaInfo = new DocSchemaInfo(Schemas.DEFAULT_SCHEMA_NAME, clusterService, docTableInfoFactory);
         CreateTableStatementAnalyzer analyzer = new CreateTableStatementAnalyzer(
             new Schemas(
                 Settings.EMPTY,
-                ImmutableMap.<String, SchemaInfo>of("doc", docSchemaInfo),
+                ImmutableMap.of("doc", docSchemaInfo),
                 clusterService,
                 new DocSchemaInfoFactory(docTableInfoFactory)),
-            new FulltextAnalyzerResolver(clusterService, new IndicesAnalysisService(Settings.EMPTY)),
+            new FulltextAnalyzerResolver(clusterService,
+                new AnalysisRegistry(
+                    new Environment(Settings.builder()
+                        .put(Environment.PATH_HOME_SETTING.getKey(), createTempDir().toString())
+                        .build()),
+                    Collections.emptyMap(),
+                    Collections.emptyMap(),
+                    Collections.emptyMap(),
+                    Collections.emptyMap()
+                )
+            ),
             functions,
             new NumberOfShards(clusterService)
         );
@@ -1067,9 +1059,9 @@ public class DocIndexMetaDataTest extends CrateUnitTest {
                                                                "  scores array(short)" +
                                                                ")");
         assertThat(md.references().get(ColumnIdent.fromPath("tags")).valueType(),
-            is((DataType) new ArrayType(DataTypes.STRING)));
+            is(new ArrayType(DataTypes.STRING)));
         assertThat(md.references().get(ColumnIdent.fromPath("scores")).valueType(),
-            is((DataType) new ArrayType(DataTypes.SHORT)));
+            is(new ArrayType(DataTypes.SHORT)));
     }
 
     @Test
@@ -1083,17 +1075,17 @@ public class DocIndexMetaDataTest extends CrateUnitTest {
                                                                "  ))" +
                                                                ")");
         assertThat(md.references().get(ColumnIdent.fromPath("tags")).valueType(),
-            is((DataType) new ArrayType(DataTypes.OBJECT)));
+            is(new ArrayType(DataTypes.OBJECT)));
         assertThat(md.references().get(ColumnIdent.fromPath("tags")).columnPolicy(),
             is(ColumnPolicy.STRICT));
         assertThat(md.references().get(ColumnIdent.fromPath("tags.size")).valueType(),
-            is((DataType) DataTypes.DOUBLE));
+            is(DataTypes.DOUBLE));
         assertThat(md.references().get(ColumnIdent.fromPath("tags.size")).indexType(),
             is(Reference.IndexType.NO));
         assertThat(md.references().get(ColumnIdent.fromPath("tags.numbers")).valueType(),
-            is((DataType) new ArrayType(DataTypes.INTEGER)));
+            is(new ArrayType(DataTypes.INTEGER)));
         assertThat(md.references().get(ColumnIdent.fromPath("tags.quote")).valueType(),
-            is((DataType) DataTypes.STRING));
+            is(DataTypes.STRING));
         assertThat(md.references().get(ColumnIdent.fromPath("tags.quote")).indexType(),
             is(Reference.IndexType.ANALYZED));
     }
@@ -1146,9 +1138,9 @@ public class DocIndexMetaDataTest extends CrateUnitTest {
 
         // ARRAY TYPES NOT DETECTED
         assertThat(docIndexMetaData.references().get(ColumnIdent.fromPath("array_col")).valueType(),
-            is((DataType) DataTypes.IP));
+            is(DataTypes.IP));
         assertThat(docIndexMetaData.references().get(ColumnIdent.fromPath("nested.inner_nested")).valueType(),
-            is((DataType) DataTypes.TIMESTAMP));
+            is(DataTypes.TIMESTAMP));
     }
 
     @Test
@@ -1191,28 +1183,27 @@ public class DocIndexMetaDataTest extends CrateUnitTest {
         IndexMetaData indexMetaData = getIndexMetaData("test1", builder);
         DocIndexMetaData docIndexMetaData = newMeta(indexMetaData, "test1");
         assertThat(docIndexMetaData.references().get(ColumnIdent.fromPath("array_col")).valueType(),
-            is((DataType) new ArrayType(DataTypes.IP)));
+            is(new ArrayType(DataTypes.IP)));
         assertThat(docIndexMetaData.references().get(ColumnIdent.fromPath("nested.inner_nested")).valueType(),
-            is((DataType) new ArrayType(DataTypes.TIMESTAMP)));
+            is(new ArrayType(DataTypes.TIMESTAMP)));
     }
 
     @Test
     public void testMergePartitionWithDifferentShardsAndReplicas() throws Exception {
         XContentBuilder builder = XContentFactory.jsonBuilder()
             .startObject()
-            .startObject("_meta")
-            .field("primary_keys", "id")
-            .startArray("partitioned_by")
-            .startArray()
-            .value("datum").value("date")
-            .endArray()
-            .endArray()
-            .endObject()
-            .startObject("properties")
-            .startObject("id")
-            .field("type", "integer")
-            .field("index", "not_analyzed")
-            .endObject()
+                .startObject("_meta")
+                    .field("primary_keys", "id")
+                    .startArray("partitioned_by")
+                        .startArray().value("datum").value("date").endArray()
+                    .endArray()
+                .endObject()
+                .startObject("properties")
+                    .startObject("id")
+                        .field("type", "integer")
+                        .field("index", "not_analyzed")
+                    .endObject()
+                .endObject()
             .endObject();
         Settings templateSettings = Settings.builder()
             .put(IndexMetaData.SETTING_NUMBER_OF_REPLICAS, 2)
@@ -1247,7 +1238,7 @@ public class DocIndexMetaDataTest extends CrateUnitTest {
             "create table t (tags array(string) index using fulltext)");
 
         Reference reference = metaData.columns().get(0);
-        assertThat(reference.valueType(), equalTo((DataType) new ArrayType(DataTypes.STRING)));
+        assertThat(reference.valueType(), equalTo(new ArrayType(DataTypes.STRING)));
     }
 
     @Test
@@ -1283,14 +1274,15 @@ public class DocIndexMetaDataTest extends CrateUnitTest {
     public void testSchemaWithGeneratedColumn() throws Exception {
         XContentBuilder builder = XContentFactory.jsonBuilder()
             .startObject()
-            .startObject("_meta")
-            .startObject("generated_columns")
-            .field("week", "date_trunc('week', ts)")
-            .endObject()
-            .endObject()
-            .startObject("properties")
-            .startObject("ts").field("type", "date").endObject()
-            .startObject("week").field("type", "long").endObject()
+                .startObject("_meta")
+                    .startObject("generated_columns")
+                        .field("week", "date_trunc('week', ts)")
+                    .endObject()
+                .endObject()
+                .startObject("properties")
+                    .startObject("ts").field("type", "date").endObject()
+                    .startObject("week").field("type", "long").endObject()
+                .endObject()
             .endObject();
 
         IndexMetaData metaData = getIndexMetaData("test1", builder, Settings.EMPTY, null);
@@ -1347,10 +1339,11 @@ public class DocIndexMetaDataTest extends CrateUnitTest {
                         .endObject()
                     .endObject()
                 .endObject()
-            .startObject("properties")
-                .startObject("id")
-                    .field("type", "integer")
-                    .field("index", "not_analyzed")
+                .startObject("properties")
+                    .startObject("id")
+                        .field("type", "integer")
+                        .field("index", "not_analyzed")
+                    .endObject()
                 .endObject()
             .endObject();
         // @formatter: on

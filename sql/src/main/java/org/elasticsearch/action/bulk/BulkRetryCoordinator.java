@@ -25,8 +25,8 @@ import io.crate.action.LimitedExponentialBackoff;
 import io.crate.exceptions.SQLExceptions;
 import io.crate.executor.transport.ShardRequest;
 import io.crate.executor.transport.ShardResponse;
+import org.apache.logging.log4j.Logger;
 import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.common.util.concurrent.EsRejectedExecutionException;
@@ -45,7 +45,7 @@ import java.util.concurrent.atomic.AtomicInteger;
  */
 public class BulkRetryCoordinator {
 
-    private static final ESLogger LOGGER = Loggers.getLogger(BulkRetryCoordinator.class);
+    private static final Logger LOGGER = Loggers.getLogger(BulkRetryCoordinator.class);
 
     private final ReadWriteLock retryLock;
     private static final BackoffPolicy backoff = LimitedExponentialBackoff.limitedExponential(1000);
@@ -160,8 +160,8 @@ public class BulkRetryCoordinator {
         }
 
         @Override
-        public void onFailure(Throwable e) {
-            e = SQLExceptions.unwrap(e);
+        public void onFailure(Exception e) {
+            e = (Exception) SQLExceptions.unwrap(e);
             if (e instanceof EsRejectedExecutionException && operation.delay.hasNext()) {
                 threadPool.schedule(operation.delay.next(), ThreadPool.Names.SAME, new Runnable() {
                     @Override

@@ -28,20 +28,21 @@ import org.elasticsearch.test.ESIntegTestCase;
 import org.junit.Test;
 
 import java.util.Collection;
+import java.util.Collections;
 
-import static org.elasticsearch.common.settings.Settings.settingsBuilder;
+import static org.elasticsearch.common.settings.Settings.builder;
 
 @ESIntegTestCase.ClusterScope(scope = ESIntegTestCase.Scope.TEST, numDataNodes = 0)
 public class ClusterIdServiceTest extends ESIntegTestCase {
 
     @Override
     protected Collection<Class<? extends Plugin>> nodePlugins() {
-        return pluginList(CrateCorePlugin.class);
+        return Collections.singletonList(CrateCorePlugin.class);
     }
 
     @Test
     public void testClusterIdGeneration() throws Exception {
-        Settings localSettings = settingsBuilder()
+        Settings localSettings = builder()
             .put("discovery.type", "local").build();
         String node_0 = internalCluster().startNode(localSettings);
 
@@ -51,7 +52,7 @@ public class ClusterIdServiceTest extends ESIntegTestCase {
 
     @Test
     public void testClusterIdTransient() throws Exception {
-        Settings localSettings = settingsBuilder()
+        Settings localSettings = builder()
             .put("discovery.type", "local").build();
         String node_0 = internalCluster().startNode(localSettings);
 

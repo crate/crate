@@ -58,7 +58,7 @@ public class ReferenceTest extends CrateUnitTest {
         BytesStreamOutput out = new BytesStreamOutput();
         Reference.toStream(reference, out);
 
-        StreamInput in = StreamInput.wrap(out.bytes());
+        StreamInput in = out.bytes().streamInput();
         Reference reference2 = Reference.fromStream(in);
 
         assertThat(reference2, is(reference));

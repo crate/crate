@@ -44,10 +44,10 @@ public class ThreadPoolsExhaustedIntegrationTest extends SQLTransportIntegration
 
     @Override
     protected Settings nodeSettings(int nodeOrdinal) {
-        return Settings.settingsBuilder()
+        return Settings.builder()
             .put(super.nodeSettings(nodeOrdinal))
-            .put("threadpool.search.size", 2)
-            .put("threadpool.search.queue_size", 2)
+            .put("thread_pool.search.size", 2)
+            .put("thread_pool.search.queue_size", 2)
             .build();
     }
 

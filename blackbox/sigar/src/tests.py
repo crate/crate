@@ -61,6 +61,7 @@ def test_suite():
     suite = unittest.TestSuite(unittest.makeSuite(SigarIntegrationTest))
     suite.layer = CrateLayer(
         'crate',
+        host='localhost',
         crate_home=crate_path(),
         port=CRATE_HTTP_PORT,
         transport_port=CRATE_TRANSPORT_PORT

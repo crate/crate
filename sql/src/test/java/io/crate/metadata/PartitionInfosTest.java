@@ -23,98 +23,106 @@ package io.crate.metadata;
 
 import com.google.common.collect.ImmutableList;
 import io.crate.Constants;
-import io.crate.test.integration.CrateUnitTest;
+import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.Version;
-import org.elasticsearch.cluster.ClusterName;
-import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.ClusterState;
+import org.elasticsearch.cluster.ClusterStateUpdateTask;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.cluster.metadata.MetaData;
-import org.elasticsearch.common.collect.ImmutableOpenMap;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.test.cluster.NoopClusterService;
 import org.junit.Test;
 
-import java.util.HashMap;
 import java.util.Iterator;
-import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
 
 import static org.hamcrest.Matchers.hasEntry;
 import static org.hamcrest.Matchers.is;
 
-public class PartitionInfosTest extends CrateUnitTest {
-
-    private ClusterService mockService(Map<String, IndexMetaData> indices) {
-        ImmutableOpenMap<String, IndexMetaData> indicesMap =
-            ImmutableOpenMap.<String, IndexMetaData>builder().putAll(indices).build();
-        return new NoopClusterService(
-            ClusterState.builder(ClusterName.DEFAULT).metaData(
-                MetaData.builder().indices(indicesMap).build()).build());
-    }
+public class PartitionInfosTest extends CrateDummyClusterServiceUnitTest {
 
     private static Settings defaultSettings() {
         return Settings.builder().put("index.version.created", Version.CURRENT).build();
     }
 
+    private void addIndexMetaDataToClusterState(IndexMetaData.Builder imdBuilder) throws Exception {
+        CompletableFuture<Boolean> processed = new CompletableFuture<>();
+        clusterService.submitStateUpdateTask("test", new ClusterStateUpdateTask() {
+            @Override
+            public ClusterState execute(ClusterState currentState) throws Exception {
+                return ClusterState.builder(currentState)
+                    .metaData(MetaData.builder(currentState.metaData()).put(imdBuilder)).build();
+            }
+
+            @Override
+            public void onFailure(String source, Exception e) {
+                processed.completeExceptionally(e);
+            }
+
+            @Override
+            public void clusterStateProcessed(String source, ClusterState oldState, ClusterState newState) {
+                processed.complete(true);
+            }
+        });
+        processed.get(10, TimeUnit.SECONDS);
+    }
+
     @Test
     public void testIgnoreNoPartitions() throws Exception {
-        Map<String, IndexMetaData> indices = new HashMap<>();
-        indices.put("test1", IndexMetaData.builder("test1").settings(defaultSettings()).numberOfShards(10).numberOfReplicas(4).build());
-        Iterable<PartitionInfo> partitioninfos = new PartitionInfos(mockService(indices));
+        addIndexMetaDataToClusterState(
+            IndexMetaData.builder("test1").settings(defaultSettings()).numberOfShards(10).numberOfReplicas(4));
+        Iterable<PartitionInfo> partitioninfos = new PartitionInfos(clusterService);
         assertThat(partitioninfos.iterator().hasNext(), is(false));
     }
 
     @Test
     public void testPartitionWithoutMapping() throws Exception {
-        Map<String, IndexMetaData> indices = new HashMap<>();
         PartitionName partitionName = new PartitionName("test1", ImmutableList.of(new BytesRef("foo")));
-        indices.put(partitionName.asIndexName(), IndexMetaData.builder(partitionName.asIndexName())
-            .settings(defaultSettings()).numberOfShards(10).numberOfReplicas(4).build());
-        Iterable<PartitionInfo> partitioninfos = new PartitionInfos(mockService(indices));
+        addIndexMetaDataToClusterState(IndexMetaData.builder(partitionName.asIndexName())
+            .settings(defaultSettings()).numberOfShards(10).numberOfReplicas(4));
+        Iterable<PartitionInfo> partitioninfos = new PartitionInfos(clusterService);
         assertThat(partitioninfos.iterator().hasNext(), is(false));
     }
 
     @Test
     public void testPartitionWithMeta() throws Exception {
-        Map<String, IndexMetaData> indices = new HashMap<>();
         PartitionName partitionName = new PartitionName("test1", ImmutableList.of(new BytesRef("foo")));
-        IndexMetaData indexMetaData = IndexMetaData
+        IndexMetaData.Builder indexMetaData = IndexMetaData
             .builder(partitionName.asIndexName())
             .settings(defaultSettings())
             .putMapping(Constants.DEFAULT_MAPPING_TYPE, "{\"_meta\":{\"partitioned_by\":[[\"col\", \"string\"]]}}")
             .numberOfShards(10)
-            .numberOfReplicas(4).build();
-        indices.put(partitionName.asIndexName(), indexMetaData);
-        Iterable<PartitionInfo> partitioninfos = new PartitionInfos(mockService(indices));
+            .numberOfReplicas(4);
+        addIndexMetaDataToClusterState(indexMetaData);
+        Iterable<PartitionInfo> partitioninfos = new PartitionInfos(clusterService);
         Iterator<PartitionInfo> iter = partitioninfos.iterator();
         PartitionInfo partitioninfo = iter.next();
         assertThat(partitioninfo.name().asIndexName(), is(partitionName.asIndexName()));
         assertThat(partitioninfo.numberOfShards(), is(10));
         assertThat(partitioninfo.numberOfReplicas().utf8ToString(), is("4"));
-        assertThat(partitioninfo.values(), hasEntry("col", (Object) "foo"));
+        assertThat(partitioninfo.values(), hasEntry("col", "foo"));
         assertThat(iter.hasNext(), is(false));
     }
 
     @Test
     public void testPartitionWithMetaMultiCol() throws Exception {
-        Map<String, IndexMetaData> indices = new HashMap<>();
         PartitionName partitionName = new PartitionName("test1", ImmutableList.of(new BytesRef("foo"), new BytesRef("1")));
-        IndexMetaData indexMetaData = IndexMetaData
+        IndexMetaData.Builder indexMetaData = IndexMetaData
             .builder(partitionName.asIndexName())
             .settings(defaultSettings())
             .putMapping(Constants.DEFAULT_MAPPING_TYPE, "{\"_meta\":{\"partitioned_by\":[[\"col\", \"string\"], [\"col2\", \"integer\"]]}}")
             .numberOfShards(10)
-            .numberOfReplicas(4).build();
-        indices.put(partitionName.asIndexName(), indexMetaData);
-        Iterable<PartitionInfo> partitioninfos = new PartitionInfos(mockService(indices));
+            .numberOfReplicas(4);
+        addIndexMetaDataToClusterState(indexMetaData);
+        Iterable<PartitionInfo> partitioninfos = new PartitionInfos(clusterService);
         Iterator<PartitionInfo> iter = partitioninfos.iterator();
         PartitionInfo partitioninfo = iter.next();
         assertThat(partitioninfo.name().asIndexName(), is(partitionName.asIndexName()));
         assertThat(partitioninfo.numberOfShards(), is(10));
         assertThat(partitioninfo.numberOfReplicas().utf8ToString(), is("4"));
-        assertThat(partitioninfo.values(), hasEntry("col", (Object) "foo"));
-        assertThat(partitioninfo.values(), hasEntry("col2", (Object) 1));
+        assertThat(partitioninfo.values(), hasEntry("col", "foo"));
+        assertThat(partitioninfo.values(), hasEntry("col2", 1));
         assertThat(iter.hasNext(), is(false));
     }
 }

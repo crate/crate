@@ -22,9 +22,9 @@
 package io.crate.blob;
 
 import io.crate.common.Hex;
+import org.apache.logging.log4j.Logger;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.common.bytes.BytesArray;
-import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 import org.jboss.netty.buffer.ChannelBuffer;
 
@@ -74,7 +74,7 @@ public class RemoteDigestBlob {
     }
 
 
-    private final static ESLogger logger = Loggers.getLogger(RemoteDigestBlob.class);
+    private final static Logger logger = Loggers.getLogger(RemoteDigestBlob.class);
 
     private final String digest;
     private final Client client;

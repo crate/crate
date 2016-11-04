@@ -79,7 +79,7 @@ public class IntersectsFunctionTest extends AbstractScalarFunctionsTest {
     public void testEvaluateLowercaseGeoJSON() throws Exception {
         assertEvaluate("intersects(geostring, geoshape)", false,
             Literal.of(DataTypes.STRING, "POINT (100 0)"),
-            Literal.of(DataTypes.GEO_SHAPE, jsonMap("{type:\"linestring\", coordinates:[[0, 0], [10, 10]]}")));
+            Literal.of(DataTypes.GEO_SHAPE, jsonMap("{\"type\":\"linestring\", \"coordinates\":[[0, 0], [10, 10]]}")));
     }
 
     @Test
@@ -87,10 +87,10 @@ public class IntersectsFunctionTest extends AbstractScalarFunctionsTest {
         // validate how exact the intersection detection is
         assertEvaluate("intersects(geostring, geoshape)", true,
             Literal.of(DataTypes.STRING, "POINT (100.00000000000001 0.0)"),
-            Literal.of(DataTypes.GEO_SHAPE, jsonMap("{type:\"linestring\", coordinates:[[100.00000000000001, 0.0], [10, 10]]}")));
+            Literal.of(DataTypes.GEO_SHAPE, jsonMap("{\"type\":\"linestring\", \"coordinates\":[[100.00000000000001, 0.0], [10, 10]]}")));
 
         assertEvaluate("intersects(geostring, geoshape)", false,
             Literal.of(DataTypes.STRING, "POINT (100.00000000000001 0.0)"),
-            Literal.of(DataTypes.GEO_SHAPE, jsonMap("{type:\"linestring\", coordinates:[[100.00000000000003, 0.0], [10, 10]]}")));
+            Literal.of(DataTypes.GEO_SHAPE, jsonMap("{\"type\":\"linestring\", \"coordinates\":[[100.00000000000003, 0.0], [10, 10]]}")));
     }
 }

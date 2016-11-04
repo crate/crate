@@ -59,7 +59,7 @@ public class TransportFetchNodeAction implements NodeAction<NodeFetchRequest, No
 
         transportService.registerRequestHandler(
             TRANSPORT_ACTION,
-            NodeFetchRequest.class,
+            NodeFetchRequest::new,
             EXECUTOR_NAME,
             // force execution because this handler might receive empty close requests which
             // need to be processed to not leak the FetchContext.
@@ -101,7 +101,7 @@ public class TransportFetchNodeAction implements NodeAction<NodeFetchRequest, No
 
             @Override
             public void onFailure(@Nonnull Throwable t) {
-                responseListener.onFailure(t);
+                responseListener.onFailure((Exception) t);
             }
         });
     }
