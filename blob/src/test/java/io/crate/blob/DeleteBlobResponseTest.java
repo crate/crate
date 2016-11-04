@@ -40,7 +40,7 @@ public class DeleteBlobResponseTest extends CrateUnitTest {
         response.writeTo(out);
 
         DeleteBlobResponse fromStream = new DeleteBlobResponse();
-        StreamInput in = StreamInput.wrap(out.bytes());
+        StreamInput in = out.bytes().streamInput();
         fromStream.readFrom(in);
 
         assertThat(fromStream.deleted, is(true));

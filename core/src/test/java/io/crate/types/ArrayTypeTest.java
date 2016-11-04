@@ -38,7 +38,7 @@ public class ArrayTypeTest extends CrateUnitTest {
 
         DataTypes.toStream(arrayType, out);
 
-        StreamInput in = StreamInput.wrap(out.bytes());
+        StreamInput in = out.bytes().streamInput();
 
         DataType readType = DataTypes.fromStream(in);
         assertThat(readType, instanceOf(ArrayType.class));

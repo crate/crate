@@ -52,7 +52,7 @@ public class ExtendedStatsTest {
         statOut.cpu(new ExtendedOsStats.Cpu((short) 1, (short) 2, (short) 3, (short) 4));
         statOut.writeTo(out);
 
-        StreamInput in = StreamInput.wrap(out.bytes());
+        StreamInput in = out.bytes().streamInput();
         ExtendedOsStats statIn = ExtendedOsStats.readExtendedOsStat(in);
 
         assertThat(statOut.uptime(), is(statIn.uptime()));
@@ -68,7 +68,7 @@ public class ExtendedStatsTest {
     public void testExtendedOsStatsSerializationDefault() throws IOException {
         ExtendedOsStats statOut = new ExtendedOsStats();
         statOut.writeTo(out);
-        StreamInput in = StreamInput.wrap(out.bytes());
+        StreamInput in = out.bytes().streamInput();
         ExtendedOsStats statIn = ExtendedOsStats.readExtendedOsStat(in);
         assertThat(statOut.uptime(), is(statIn.uptime()));
     }
@@ -80,7 +80,7 @@ public class ExtendedStatsTest {
         statOut.tcp(new ExtendedNetworkStats.Tcp(1L, 2L, 3L, 4L, 5L, 6L, 7L, 8L, 9L, 10L));
         statOut.writeTo(out);
 
-        StreamInput in = StreamInput.wrap(out.bytes());
+        StreamInput in = out.bytes().streamInput();
         ExtendedNetworkStats statIn = ExtendedNetworkStats.readExtendedNetworkStats(in);
         assertThat(statOut.timestamp(), is(statIn.timestamp()));
         assertThat(statOut.tcp().inErrs(), is(statIn.tcp().inErrs()));
@@ -92,7 +92,7 @@ public class ExtendedStatsTest {
     public void testExtendedNetworkStatsSerializationDefault() throws IOException {
         ExtendedNetworkStats statOut = new ExtendedNetworkStats();
         statOut.writeTo(out);
-        StreamInput in = StreamInput.wrap(out.bytes());
+        StreamInput in = out.bytes().streamInput();
         ExtendedNetworkStats statIn = ExtendedNetworkStats.readExtendedNetworkStats(in);
         assertThat(statOut.timestamp(), is(statIn.timestamp()));
     }
@@ -106,7 +106,7 @@ public class ExtendedStatsTest {
         statOut.percent((short) 4);
         statOut.writeTo(out);
 
-        StreamInput in = StreamInput.wrap(out.bytes());
+        StreamInput in = out.bytes().streamInput();
         ExtendedProcessCpuStats statIn = ExtendedProcessCpuStats.readExtendedProcessCpuStats(in);
         assertThat(statOut.sys(), is(statIn.sys()));
         assertThat(statOut.percent(), is(statIn.percent()));
@@ -119,7 +119,7 @@ public class ExtendedStatsTest {
         ExtendedProcessCpuStats statOut = new ExtendedProcessCpuStats();
         statOut.writeTo(out);
 
-        StreamInput in = StreamInput.wrap(out.bytes());
+        StreamInput in = out.bytes().streamInput();
         ExtendedProcessCpuStats statIn = ExtendedProcessCpuStats.readExtendedProcessCpuStats(in);
         assertThat(statOut.sys(), is(statIn.sys()));
     }
@@ -131,7 +131,7 @@ public class ExtendedStatsTest {
         statOut.total(new ExtendedFsStats.Info("test_total", null, 10L, 20L, 30L, 40L, 50L, 60L, 70L, 80L));
         statOut.writeTo(out);
 
-        StreamInput in = StreamInput.wrap(out.bytes());
+        StreamInput in = out.bytes().streamInput();
         ExtendedFsStats statIn = ExtendedFsStats.readExtendedFsStats(in);
         assertThat(statOut.total().dev(), is(statIn.total().dev()));
         assertThat(statOut.infos().length, is(1));
@@ -143,7 +143,7 @@ public class ExtendedStatsTest {
         ExtendedFsStats statOut = new ExtendedFsStats();
         statOut.writeTo(out);
 
-        StreamInput in = StreamInput.wrap(out.bytes());
+        StreamInput in = out.bytes().streamInput();
         ExtendedFsStats statIn = ExtendedFsStats.readExtendedFsStats(in);
         assertThat(statOut.total().dev(), is(statIn.total().dev()));
     }
