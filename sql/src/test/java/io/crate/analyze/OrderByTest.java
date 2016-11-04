@@ -53,7 +53,7 @@ public class OrderByTest extends CrateUnitTest {
         BytesStreamOutput out = new BytesStreamOutput();
         orderBy.writeTo(out);
 
-        StreamInput in = StreamInput.wrap(out.bytes());
+        StreamInput in = out.bytes().streamInput();
         OrderBy orderBy2 = OrderBy.fromStream(in);
 
         assertEquals(orderBy.orderBySymbols(), orderBy2.orderBySymbols());
