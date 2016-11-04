@@ -22,16 +22,10 @@
 
 package io.crate.operation.reference.sys.check.cluster;
 
-import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
-import io.crate.metadata.TableIdent;
 import org.apache.lucene.util.Version;
-import org.elasticsearch.cluster.metadata.IndexMetaData;
-import org.elasticsearch.cluster.metadata.MetaData;
 import org.elasticsearch.common.inject.internal.Nullable;
 
 import java.text.ParseException;
-import java.util.Collection;
-import java.util.TreeSet;
 
 final class LuceneVersionChecks {
 
@@ -43,34 +37,6 @@ final class LuceneVersionChecks {
             return !Version.parse(versionStr).onOrAfter(Version.LATEST);
         } catch (ParseException e) {
             throw new IllegalArgumentException("'" + versionStr + "' is not a valid Lucene version");
-        }
-    }
-
-    // We need to check for the version that the index was created since the lucene segments might
-    // be automatically upgraded to the latest version (happened when data was in the translog) so
-    // minimumCompatVersion cannot be used to indicate that a table recreation is needed.
-    static boolean isRecreationRequired(IndexMetaData indexMetaData) {
-        return indexMetaData != null && indexMetaData.getCreationVersion().before(org.elasticsearch.Version.V_1_4_0);
-    }
-
-    /**
-     * Retrieves an order collection of table FQNs that need
-     * to be recreated to be compatible with future CrateDB versions.
-     * @param clusterIndexMetaData
-     * @return the ordered collection of table FQNs that need to be recreated
-     */
-    static Collection<String> tablesNeedRecreation(MetaData clusterIndexMetaData) {
-        Collection<String> tablesNeedRecreation = new TreeSet<>();
-        for (ObjectObjectCursor<String, IndexMetaData> entry : clusterIndexMetaData.indices()) {
-            checkIndexMetaData(entry.key, entry.value, tablesNeedRecreation);
-        }
-        return tablesNeedRecreation;
-    }
-
-    private static void checkIndexMetaData(String index, IndexMetaData metaData,
-                                           Collection<String> tablesNeedRecreation) {
-        if (LuceneVersionChecks.isRecreationRequired(metaData)) {
-            tablesNeedRecreation.add(TableIdent.fromIndexName(index).fqn());
         }
     }
 }

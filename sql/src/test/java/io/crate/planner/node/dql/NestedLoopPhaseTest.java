@@ -88,7 +88,7 @@ public class NestedLoopPhaseTest extends CrateUnitTest {
         BytesStreamOutput output = new BytesStreamOutput();
         node.writeTo(output);
 
-        StreamInput input = StreamInput.wrap(output.bytes());
+        StreamInput input = output.bytes().streamInput();
         NestedLoopPhase node2 = new NestedLoopPhase();
         node2.readFrom(input);
 

@@ -41,7 +41,7 @@ import io.crate.operation.merge.PassThroughPagingIterator;
 import io.crate.planner.node.dql.RoutedCollectPhase;
 import io.crate.types.DataTypes;
 import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.common.logging.ESLogger;
+import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.logging.Loggers;
 
 import javax.annotation.Nullable;
@@ -50,7 +50,7 @@ import java.util.UUID;
 
 public class RemoteCollector implements CrateCollector {
 
-    private final static ESLogger LOGGER = Loggers.getLogger(RemoteCollector.class);
+    private final static Logger LOGGER = Loggers.getLogger(RemoteCollector.class);
     private final static int RECEIVER_PHASE_ID = 1;
 
     private final UUID jobId;
@@ -142,7 +142,7 @@ public class RemoteCollector implements CrateCollector {
                     }
 
                     @Override
-                    public void onFailure(Throwable e) {
+                    public void onFailure(Exception e) {
                         LOGGER.error("RemoteCollector jobAction=onFailure", e);
                         context.kill();
                     }
@@ -184,7 +184,7 @@ public class RemoteCollector implements CrateCollector {
                 }
 
                 @Override
-                public void onFailure(Throwable e) {
+                public void onFailure(Exception e) {
                     context.kill();
                 }
             });

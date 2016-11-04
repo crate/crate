@@ -29,7 +29,7 @@ import io.crate.executor.transport.kill.KillJobsRequest;
 import io.crate.executor.transport.kill.KillResponse;
 import io.crate.executor.transport.kill.TransportKillJobsNodeAction;
 import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.common.logging.ESLogger;
+import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.logging.Loggers;
 
 import javax.annotation.Nullable;
@@ -40,7 +40,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 class InterceptingBatchConsumer implements BatchConsumer {
 
-    private final static ESLogger LOGGER = Loggers.getLogger(InterceptingBatchConsumer.class);
+    private final static Logger LOGGER = Loggers.getLogger(InterceptingBatchConsumer.class);
 
     private final AtomicInteger consumerInvokedAndJobInitialized = new AtomicInteger(2);
     private final UUID jobId;
@@ -89,7 +89,7 @@ class InterceptingBatchConsumer implements BatchConsumer {
                     }
 
                     @Override
-                    public void onFailure(Throwable e) {
+                    public void onFailure(Exception e) {
                         LOGGER.trace("Failed to kill job, forwarding failure anyway...", e);
                         consumer.accept(null, failure);
                     }

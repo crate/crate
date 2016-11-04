@@ -36,7 +36,6 @@ import org.elasticsearch.common.io.stream.StreamOutput;
 import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.Comparator;
-import java.util.Locale;
 
 public class Reference extends Symbol {
 
@@ -67,10 +66,6 @@ public class Reference extends Symbol {
         ANALYZED,
         NOT_ANALYZED,
         NO;
-
-        public String toString() {
-            return name().toLowerCase(Locale.ENGLISH);
-        }
     }
 
     protected DataType type;
@@ -192,7 +187,7 @@ public class Reference extends Symbol {
         if (type.equals(DataTypes.OBJECT)) {
             helper.add("column policy", columnPolicy.name());
         }
-        helper.add("index type", indexType.toString());
+        helper.add("index type", indexType.name());
         helper.add("nullable", nullable);
         return helper.toString();
     }

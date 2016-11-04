@@ -39,7 +39,7 @@ public class GeoReferenceTest extends CrateUnitTest {
 
         BytesStreamOutput out = new BytesStreamOutput();
         Reference.toStream(geoReferenceInfo, out);
-        StreamInput in = StreamInput.wrap(out.bytes());
+        StreamInput in = out.bytes().streamInput();
         GeoReference geoReferenceInfo2 = Reference.fromStream(in);
 
         assertThat(geoReferenceInfo2, is(geoReferenceInfo));
@@ -47,7 +47,7 @@ public class GeoReferenceTest extends CrateUnitTest {
         GeoReference geoReferenceInfo3 = new GeoReference(referenceIdent, "some_tree", null, null, null);
         out = new BytesStreamOutput();
         Reference.toStream(geoReferenceInfo3, out);
-        in = StreamInput.wrap(out.bytes());
+        in = out.bytes().streamInput();
         GeoReference geoReferenceInfo4 = Reference.fromStream(in);
 
         assertThat(geoReferenceInfo4, is(geoReferenceInfo3));

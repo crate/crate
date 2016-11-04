@@ -24,7 +24,6 @@ package io.crate.operation.scalar.geo;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-import com.spatial4j.core.shape.Shape;
 import io.crate.analyze.symbol.Function;
 import io.crate.analyze.symbol.Literal;
 import io.crate.analyze.symbol.Symbol;
@@ -37,6 +36,7 @@ import io.crate.data.Input;
 import io.crate.operation.scalar.ScalarFunctionModule;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
+import org.locationtech.spatial4j.shape.Shape;
 
 import java.util.Arrays;
 import java.util.Set;

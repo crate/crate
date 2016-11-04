@@ -104,6 +104,7 @@ crash_parser = zc.customdoctests.DocTestParser(
 class ConnectingCrateLayer(CrateLayer):
 
     def __init__(self, *args, **kwargs):
+        kwargs.setdefault('settings', {})
         self.repo_path = kwargs['settings']['path.repo'] = tempfile.mkdtemp()
         super(ConnectingCrateLayer, self).__init__(*args, **kwargs)
 
@@ -132,12 +133,10 @@ class ConnectingCrateLayer(CrateLayer):
 
 crate_layer = ConnectingCrateLayer(
     'crate',
+    host='localhost',
     crate_home=crate_path(),
     port=CRATE_HTTP_PORT,
-    transport_port=CRATE_TRANSPORT_PORT,
-    settings={
-        'cluster.routing.schedule': '30ms',
-    }
+    transport_port=CRATE_TRANSPORT_PORT
 )
 
 

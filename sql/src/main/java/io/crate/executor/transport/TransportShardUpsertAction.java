@@ -41,10 +41,11 @@ import org.elasticsearch.ElasticsearchGenerationException;
 import org.elasticsearch.ExceptionsHelper;
 import org.elasticsearch.action.index.IndexRequest;
 import org.elasticsearch.action.support.ActionFilters;
-import org.elasticsearch.cluster.ClusterService;
+import org.elasticsearch.action.support.replication.ReplicationOperation;
 import org.elasticsearch.cluster.action.index.MappingUpdatedAction;
 import org.elasticsearch.cluster.action.shard.ShardStateAction;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
+import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.bytes.BytesArray;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.collect.Tuple;
@@ -59,19 +60,17 @@ import org.elasticsearch.common.xcontent.XContentType;
 import org.elasticsearch.common.xcontent.support.XContentMapValues;
 import org.elasticsearch.index.IndexService;
 import org.elasticsearch.index.VersionType;
-import org.elasticsearch.index.engine.*;
+import org.elasticsearch.index.engine.DocumentMissingException;
+import org.elasticsearch.index.engine.DocumentSourceMissingException;
+import org.elasticsearch.index.engine.Engine;
+import org.elasticsearch.index.engine.VersionConflictEngineException;
 import org.elasticsearch.index.get.GetResult;
-import org.elasticsearch.index.mapper.Mapper;
-import org.elasticsearch.index.mapper.Mapping;
-import org.elasticsearch.index.mapper.SourceToParse;
-import org.elasticsearch.index.mapper.internal.ParentFieldMapper;
-import org.elasticsearch.index.mapper.internal.RoutingFieldMapper;
-import org.elasticsearch.index.mapper.internal.TTLFieldMapper;
+import org.elasticsearch.index.mapper.*;
 import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.index.translog.Translog;
 import org.elasticsearch.indices.IndicesService;
-import org.elasticsearch.search.fetch.source.FetchSourceContext;
+import org.elasticsearch.search.fetch.subphase.FetchSourceContext;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
@@ -82,12 +81,13 @@ import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 @Singleton
-public class TransportShardUpsertAction extends TransportShardAction<ShardUpsertRequest> {
+public class TransportShardUpsertAction extends TransportShardAction<ShardUpsertRequest, ShardUpsertRequest.Item> {
 
     private final static String ACTION_NAME = "indices:crate/data/write/upsert";
     private final static SymbolToFieldExtractor<GetResult> SYMBOL_TO_FIELD_EXTRACTOR =
         new SymbolToFieldExtractor<>(new GetResultFieldExtractorFactory());
 
+    private final MappingUpdatedAction mappingUpdatedAction;
     private final IndicesService indicesService;
     private final Functions functions;
     private final Schemas schemas;
@@ -97,16 +97,17 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                                       ThreadPool threadPool,
                                       ClusterService clusterService,
                                       TransportService transportService,
+                                      MappingUpdatedAction mappingUpdatedAction,
                                       ActionFilters actionFilters,
                                       JobContextService jobContextService,
                                       IndicesService indicesService,
                                       ShardStateAction shardStateAction,
                                       Functions functions,
                                       Schemas schemas,
-                                      MappingUpdatedAction mappingUpdatedAction,
                                       IndexNameExpressionResolver indexNameExpressionResolver) {
-        super(settings, ACTION_NAME, transportService, mappingUpdatedAction, indexNameExpressionResolver, clusterService,
-            indicesService, threadPool, shardStateAction, actionFilters, ShardUpsertRequest.class);
+        super(settings, ACTION_NAME, transportService, indexNameExpressionResolver, clusterService,
+            indicesService, threadPool, shardStateAction, actionFilters, ShardUpsertRequest::new);
+        this.mappingUpdatedAction = mappingUpdatedAction;
         this.indicesService = indicesService;
         this.functions = functions;
         this.schemas = schemas;
@@ -114,18 +115,13 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
     }
 
     @Override
-    protected boolean checkWriteConsistency() {
-        return false;
-    }
-
-    @Override
-    protected ShardResponse processRequestItems(ShardId shardId,
-                                                ShardUpsertRequest request,
-                                                AtomicBoolean killed) throws InterruptedException {
+    protected WriteResult<ShardResponse> processRequestItems(ShardId shardId,
+                                                             ShardUpsertRequest request,
+                                                             AtomicBoolean killed) throws InterruptedException {
         ShardResponse shardResponse = new ShardResponse();
         DocTableInfo tableInfo = schemas.getWritableTable(TableIdent.fromIndexName(request.index()));
         IndexService indexService = indicesService.indexServiceSafe(shardId.getIndex());
-        IndexShard indexShard = indexService.shardSafe(shardId.id());
+        IndexShard indexShard = indexService.getShard(shardId.id());
 
         Collection<ColumnIdent> notUsedNonGeneratedColumns = ImmutableList.of();
         if (request.validateConstraints()) {
@@ -153,38 +149,36 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                     notUsedNonGeneratedColumns,
                     0);
                 shardResponse.add(location);
-            } catch (Throwable t) {
-                if (retryPrimaryException(t)) {
-                    Throwables.propagate(t);
+            } catch (Exception e) {
+                if (retryPrimaryException(e)) {
+                    Throwables.propagate(e);
                 }
                 logger.debug("{} failed to execute upsert for [{}]/[{}]",
-                    t, request.shardId(), request.type(), item.id());
+                    e, request.shardId(), request.type(), item.id());
 
                 // *mark* the item as failed by setting the source to null
                 // to prevent the replica operation from processing this concrete item
                 item.source(null);
 
                 if (!request.continueOnError()) {
-                    shardResponse.failure(t);
+                    shardResponse.failure(e);
                     break;
                 }
                 shardResponse.add(location,
                     new ShardResponse.Failure(
                         item.id(),
-                        ExceptionsHelper.detailedMessage(t),
-                        (t instanceof VersionConflictEngineException)));
+                        ExceptionsHelper.detailedMessage(e),
+                        (e instanceof VersionConflictEngineException)));
             }
         }
-        if (indexShard.getTranslogDurability() == Translog.Durabilty.REQUEST && translogLocation != null) {
-            indexShard.sync(translogLocation);
-        }
-        return shardResponse;
+        return new WriteResult<>(shardResponse, translogLocation);
     }
 
     @Override
-    protected void processRequestItemsOnReplica(ShardId shardId, ShardUpsertRequest request) {
+    protected Translog.Location processRequestItemsOnReplica(ShardId shardId, ShardUpsertRequest request) {
         IndexService indexService = indicesService.indexServiceSafe(shardId.getIndex());
-        IndexShard indexShard = indexService.shardSafe(shardId.id());
+        IndexShard indexShard = indexService.getShard(shardId.id());
+        Translog.Location location = null;
         for (ShardUpsertRequest.Item item : request.items()) {
             if (item.source() == null) {
                 if (logger.isTraceEnabled()) {
@@ -193,8 +187,9 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                 }
                 continue;
             }
-            shardIndexOperationOnReplica(request, item, indexShard);
+            location = shardIndexOperationOnReplica(request, item, indexShard);
         }
+        return location;
     }
 
     protected Translog.Location indexItem(DocTableInfo tableInfo,
@@ -203,11 +198,13 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                                           IndexShard indexShard,
                                           boolean tryInsertFirst,
                                           Collection<ColumnIdent> notUsedNonGeneratedColumns,
-                                          int retryCount) throws Throwable {
+                                          int retryCount) throws Exception {
         try {
-            long version = item.version();
+            long version;
+            // try insert first without fetching the document
             if (tryInsertFirst) {
-                // try insert first without fetching the document
+                // set version so it will fail if already exists (will be overwritten for updates, see below)
+                version = Versions.MATCH_DELETED;
                 try {
                     item.source(prepareInsert(tableInfo, notUsedNonGeneratedColumns, request, item));
                 } catch (IOException e) {
@@ -216,6 +213,7 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                 if (!request.overwriteDuplicates()) {
                     item.opType(IndexRequest.OpType.CREATE);
                 } else {
+                    version = Versions.MATCH_ANY;
                     item.opType(IndexRequest.OpType.INDEX);
                 }
             } else {
@@ -226,19 +224,18 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
             }
             return shardIndexOperation(request, item, version, indexShard);
         } catch (VersionConflictEngineException e) {
-            if (item.retryOnConflict()) {
-                if (logger.isTraceEnabled()) {
-                    logger.trace("[{}] VersionConflict, retrying operation for document id {}, retry count: {}",
-                        indexShard.shardId(), item.id(), retryCount);
+            if (item.updateAssignments() != null) {
+                if (tryInsertFirst) {
+                    // insert failed, document already exists, try update
+                    return indexItem(tableInfo, request, item, indexShard, false, notUsedNonGeneratedColumns, 0);
+                } else if (item.retryOnConflict()) {
+                    if (logger.isTraceEnabled()) {
+                        logger.trace("[{}] VersionConflict, retrying operation for document id {}, retry count: {}",
+                            indexShard.shardId(), item.id(), retryCount);
+                    }
+                    return indexItem(tableInfo, request, item, indexShard, false, notUsedNonGeneratedColumns,
+                        retryCount + 1);
                 }
-                return indexItem(tableInfo, request, item, indexShard, false, notUsedNonGeneratedColumns,
-                    retryCount + 1);
-            }
-            throw e;
-        } catch (DocumentAlreadyExistsException e) {
-            if (tryInsertFirst && item.updateAssignments() != null) {
-                // insert failed, document already exists, try update
-                return indexItem(tableInfo, request, item, indexShard, false, notUsedNonGeneratedColumns, 0);
             }
             throw e;
         }
@@ -261,8 +258,7 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
             true,
             Versions.MATCH_ANY,
             VersionType.INTERNAL,
-            FetchSourceContext.FETCH_SOURCE,
-            false
+            FetchSourceContext.FETCH_SOURCE
         );
 
         if (!getResult.isExists()) {
@@ -276,7 +272,7 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
 
         if (item.version() != Versions.MATCH_ANY && item.version() != getResult.getVersion()) {
             throw new VersionConflictEngineException(
-                indexShard.shardId(), Constants.DEFAULT_MAPPING_TYPE, item.id(), getResult.getVersion(), item.version());
+                indexShard.shardId(), Constants.DEFAULT_MAPPING_TYPE, item.id(), "TODO: add explanation");
         }
 
         Tuple<XContentType, Map<String, Object>> sourceAndContent = XContentHelper.convertToMap(getResult.internalSourceRef(), true);
@@ -361,6 +357,7 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                     }
                 }
             }
+            builder.endObject();
             source = builder.bytes();
         }
 
@@ -383,33 +380,33 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
         return source;
     }
 
-    private Engine.IndexingOperation prepareIndexOnPrimary(IndexShard indexShard,
-                                                           long version,
-                                                           ShardUpsertRequest request,
-                                                           ShardUpsertRequest.Item item) {
-        SourceToParse sourceToParse = SourceToParse.source(SourceToParse.Origin.PRIMARY, item.source())
-            .type(request.type())
-            .id(item.id())
-            .routing(request.routing());
+    private Engine.Index prepareIndexOnPrimary(IndexShard indexShard,
+                                               long version,
+                                               ShardUpsertRequest request,
+                                               ShardUpsertRequest.Item item) {
+        SourceToParse sourceToParse = SourceToParse.source(
+            SourceToParse.Origin.PRIMARY,
+            indexShard.shardId().getIndexName(),
+            request.type(),
+            item.id(),
+            item.source()
+        );
 
         if (logger.isTraceEnabled()) {
             logger.trace("[{}] shard operation with opType={} id={} version={}  source={}",
-                indexShard.shardId(), item.opType(), item.id(), version, item.source().toUtf8());
+                indexShard.shardId(), item.opType(), item.id(), version, item.source().utf8ToString());
         }
-        if (item.opType() == IndexRequest.OpType.INDEX) {
-            return indexShard.prepareIndexOnPrimary(sourceToParse, version, item.versionType(), request.canHaveDuplicates());
-        }
-        return indexShard.prepareCreateOnPrimary(
-            sourceToParse, version, item.versionType(), request.canHaveDuplicates(), false);
+        return indexShard.prepareIndexOnPrimary(
+            sourceToParse, version, item.versionType(), -1, request.isRetry());
     }
 
     private Translog.Location shardIndexOperation(ShardUpsertRequest request,
                                                   ShardUpsertRequest.Item item,
                                                   long version,
-                                                  IndexShard indexShard) throws Throwable {
-        Engine.IndexingOperation operation = prepareIndexOnPrimary(indexShard, version, request, item);
+                                                  IndexShard indexShard) throws Exception {
+        Engine.Index operation = prepareIndexOnPrimary(indexShard, version, request, item);
         operation = updateMappingIfRequired(request, item, version, indexShard, operation);
-        operation.execute(indexShard);
+        indexShard.index(operation);
 
         // update the version on request so it will happen on the replicas
         item.versionType(item.versionType().versionTypeForReplicationAndRecovery());
@@ -420,20 +417,20 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
         return operation.getTranslogLocation();
     }
 
-    private Engine.IndexingOperation updateMappingIfRequired(ShardUpsertRequest request,
-                                                             ShardUpsertRequest.Item item,
-                                                             long version,
-                                                             IndexShard indexShard,
-                                                             Engine.IndexingOperation operation) throws Throwable {
+    private Engine.Index updateMappingIfRequired(ShardUpsertRequest request,
+                                                 ShardUpsertRequest.Item item,
+                                                 long version,
+                                                 IndexShard indexShard,
+                                                 Engine.Index operation) throws Exception {
         Mapping update = operation.parsedDoc().dynamicMappingsUpdate();
         if (update != null) {
             validateMapping(update.root().iterator());
-            mappingUpdatedAction.updateMappingOnMasterSynchronously(
+            mappingUpdatedAction.updateMappingOnMaster(
                 request.shardId().getIndex(), request.type(), update);
 
             operation = prepareIndexOnPrimary(indexShard, version, request, item);
             if (operation.parsedDoc().dynamicMappingsUpdate() != null) {
-                throw new RetryOnPrimaryException(request.shardId(),
+                throw new ReplicationOperation.RetryOnPrimaryException(request.shardId(),
                     "Dynamics mappings are not available on the node that holds the primary yet");
             }
         }
@@ -442,7 +439,7 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
 
     @VisibleForTesting
     static void validateMapping(Iterator<Mapper> mappers) {
-        while(mappers.hasNext()) {
+        while (mappers.hasNext()) {
             Mapper mapper = mappers.next();
             AnalyzedColumnDefinition.validateName(mapper.simpleName());
             validateMapping(mapper.iterator());
@@ -450,37 +447,24 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
 
     }
 
-    private void shardIndexOperationOnReplica(ShardUpsertRequest request,
-                                              ShardUpsertRequest.Item item,
-                                              IndexShard indexShard) {
-        SourceToParse sourceToParse = SourceToParse.source(SourceToParse.Origin.REPLICA, item.source())
-            .type(request.type())
-            .id(item.id())
+    private Translog.Location shardIndexOperationOnReplica(ShardUpsertRequest request,
+                                                           ShardUpsertRequest.Item item,
+                                                           IndexShard indexShard) {
+        SourceToParse sourceToParse = SourceToParse.source(SourceToParse.Origin.REPLICA, request.index(), request.type(), item.id(), item.source())
             .routing(request.routing());
 
-        try {
+        if (logger.isTraceEnabled()) {
             if (item.opType() == IndexRequest.OpType.INDEX) {
-                if (logger.isTraceEnabled()) {
-                    logger.trace("[{} (R)] Updating document with id {}, source: {}", indexShard.shardId(), item.id(), item.source().toUtf8());
-                }
-                Engine.Index index = indexShard.prepareIndexOnReplica(
-                    sourceToParse, item.version(), item.versionType(), request.canHaveDuplicates());
-                indexShard.index(index);
+                logger.trace("[{} (R)] Updating document with id {}, source: {}", indexShard.shardId(), item.id(), item.source().utf8ToString());
             } else {
-                if (logger.isTraceEnabled()) {
-                    logger.trace("[{} (R)] Creating document with id {}, source: {}", indexShard.shardId(), item.id(), item.source().toUtf8());
-                }
-                Engine.Create create = indexShard.prepareCreateOnReplica(
-                    sourceToParse, item.version(), item.versionType(), request.canHaveDuplicates(), false);
-                indexShard.create(create);
-            }
-        } catch (Throwable t) {
-            // if its not an ignore replica failure, we need to make sure to bubble up the failure
-            // so we will fail the shard
-            if (!ignoreReplicaException(t)) {
-                throw t;
+                logger.trace("[{} (R)] Creating document with id {}, source: {}", indexShard.shardId(), item.id(), item.source().utf8ToString());
             }
         }
+        Engine.Index index = indexShard.prepareIndexOnReplica(
+            sourceToParse, item.version(), item.versionType(), -1, request.isRetry());
+        indexShard.index(index);
+
+        return index.getTranslogLocation();
     }
 
     private Map<String, Object> processGeneratedColumnsOnInsert(DocTableInfo tableInfo,
@@ -677,15 +661,12 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
     private static class GetResultFieldExtractorFactory implements FieldExtractorFactory<GetResult, SymbolToFieldExtractor.Context> {
         @Override
         public Function<GetResult, Object> build(final Reference reference, SymbolToFieldExtractor.Context context) {
-            return new Function<GetResult, Object>() {
-                @Override
-                public Object apply(GetResult getResult) {
-                    if (getResult == null) {
-                        return null;
-                    }
-                    return reference.valueType().value(XContentMapValues.extractValue(
-                        reference.ident().columnIdent().fqn(), getResult.sourceAsMap()));
+            return getResult -> {
+                if (getResult == null) {
+                    return null;
                 }
+                return reference.valueType().value(XContentMapValues.extractValue(
+                    reference.ident().columnIdent().fqn(), getResult.sourceAsMap()));
             };
         }
     }

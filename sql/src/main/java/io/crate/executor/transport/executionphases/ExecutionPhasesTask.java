@@ -41,9 +41,9 @@ import io.crate.operation.NodeOperationTree;
 import io.crate.planner.node.ExecutionPhase;
 import io.crate.planner.node.ExecutionPhases;
 import io.crate.planner.node.NodeOperationGrouper;
-import org.elasticsearch.cluster.ClusterService;
+import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.collect.Tuple;
-import org.elasticsearch.common.logging.ESLogger;
+import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.indices.IndicesService;
 
@@ -90,7 +90,7 @@ import java.util.stream.Collectors;
  **/
 public class ExecutionPhasesTask extends JobTask {
 
-    static final ESLogger LOGGER = Loggers.getLogger(ExecutionPhasesTask.class);
+    static final Logger LOGGER = Loggers.getLogger(ExecutionPhasesTask.class);
 
     private final TransportJobAction transportJobAction;
     private final TransportKillJobsNodeAction transportKillJobsNodeAction;

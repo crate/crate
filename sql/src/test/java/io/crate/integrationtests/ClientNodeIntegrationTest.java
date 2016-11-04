@@ -30,7 +30,7 @@ import org.junit.Test;
 
 import static org.hamcrest.Matchers.is;
 
-@ESIntegTestCase.ClusterScope(numDataNodes = 1, numClientNodes = 2)
+@ESIntegTestCase.ClusterScope(numDataNodes = 1, numClientNodes = 2, supportsDedicatedMasters = false)
 public class ClientNodeIntegrationTest extends SQLTransportIntegrationTest {
 
     public ClientNodeIntegrationTest() {
@@ -39,7 +39,7 @@ public class ClientNodeIntegrationTest extends SQLTransportIntegrationTest {
                 @Override
                 public Client client() {
                     // make sure we use a client node (started with client=true)
-                    return internalCluster().clientNodeClient();
+                    return internalCluster().coordOnlyNodeClient();
                 }
 
                 @Override

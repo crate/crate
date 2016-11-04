@@ -34,9 +34,9 @@ import io.crate.metadata.sys.SysSchemaInfo;
 import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.table.TableInfo;
 import org.elasticsearch.cluster.ClusterChangedEvent;
-import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.ClusterStateListener;
 import org.elasticsearch.cluster.metadata.MetaData;
+import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.component.AbstractLifecycleComponent;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
@@ -52,7 +52,7 @@ import java.util.regex.Pattern;
 import static com.google.common.base.MoreObjects.firstNonNull;
 
 @Singleton
-public class Schemas extends AbstractLifecycleComponent<Schemas> implements Iterable<SchemaInfo>, ClusterStateListener {
+public class Schemas extends AbstractLifecycleComponent implements Iterable<SchemaInfo>, ClusterStateListener {
 
     public static final Pattern SCHEMA_PATTERN = Pattern.compile("^([^.]+)\\.(.+)");
     public static final String DEFAULT_SCHEMA_NAME = "doc";
@@ -171,7 +171,7 @@ public class Schemas extends AbstractLifecycleComponent<Schemas> implements Iter
 
     private static Set<String> getNewCurrentSchemas(MetaData metaData) {
         Set<String> schemas = new HashSet<>();
-        for (String openIndex : metaData.concreteAllOpenIndices()) {
+        for (String openIndex : metaData.getConcreteAllOpenIndices()) {
             addIfSchema(schemas, openIndex);
         }
         for (ObjectCursor<String> cursor : metaData.templates().keys()) {

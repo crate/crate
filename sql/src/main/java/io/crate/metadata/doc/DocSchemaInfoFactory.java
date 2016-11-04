@@ -23,7 +23,7 @@
 package io.crate.metadata.doc;
 
 import io.crate.metadata.table.SchemaInfo;
-import org.elasticsearch.cluster.ClusterService;
+import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 

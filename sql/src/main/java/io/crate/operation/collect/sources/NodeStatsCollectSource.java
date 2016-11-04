@@ -41,7 +41,7 @@ import io.crate.operation.collect.collectors.NodeStatsIterator;
 import io.crate.operation.reference.sys.node.NodeStatsContext;
 import io.crate.planner.node.dql.CollectPhase;
 import io.crate.planner.node.dql.RoutedCollectPhase;
-import org.elasticsearch.cluster.ClusterService;
+import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.inject.Inject;
@@ -111,7 +111,7 @@ public class NodeStatsCollectSource implements CollectSource {
         for (DiscoveryNode node : nodes) {
             String nodeId = node.getId();
             for (RowCollectExpression<NodeStatsContext, ?> expression : localSysColReferenceResolver.expressions()) {
-                expression.setNextRow(new NodeStatsContext(nodeId, node.name()));
+                expression.setNextRow(new NodeStatsContext(nodeId, node.getName()));
             }
             Symbol normalized = normalizer.normalize(whereClause.query(), null);
             if (normalized.equals(whereClause.query())) {

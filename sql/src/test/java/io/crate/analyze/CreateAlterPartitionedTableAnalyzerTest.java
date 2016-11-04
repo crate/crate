@@ -25,14 +25,18 @@ import io.crate.exceptions.ColumnUnknownException;
 import io.crate.metadata.FulltextAnalyzerResolver;
 import io.crate.metadata.PartitionName;
 import io.crate.sql.parser.ParsingException;
-import io.crate.test.integration.CrateUnitTest;
+import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import org.apache.lucene.util.BytesRef;
+import org.elasticsearch.Version;
 import org.elasticsearch.cluster.ClusterName;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.MetaData;
+import org.elasticsearch.cluster.node.DiscoveryNode;
+import org.elasticsearch.cluster.node.DiscoveryNodes;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.test.cluster.NoopClusterService;
+import org.elasticsearch.common.transport.LocalTransportAddress;
+import org.elasticsearch.test.ClusterServiceUtils;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -43,22 +47,35 @@ import java.util.Map;
 import static io.crate.testing.TestingHelpers.mapToSortedString;
 import static org.hamcrest.Matchers.*;
 
-public class CreateAlterPartitionedTableAnalyzerTest extends CrateUnitTest {
+public class CreateAlterPartitionedTableAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     private SQLExecutor e;
 
     @Before
-    public void init() throws Exception {
+    public void prepare() {
         String analyzerSettings = FulltextAnalyzerResolver.encodeSettings(
-            Settings.builder().put("search", "foobar").build()).toUtf8();
+            Settings.builder().put("search", "foobar").build()).utf8ToString();
         MetaData metaData = MetaData.builder()
-            .persistentSettings(
-                Settings.builder().put("crate.analysis.custom.analyzer.ft_search", analyzerSettings).build())
-            .build();
-        ClusterState state = ClusterState.builder(ClusterName.DEFAULT).metaData(metaData).build();
-        e = SQLExecutor.builder(new NoopClusterService(state))
-            .enableDefaultTables()
-            .build();
+                                    .persistentSettings(
+                                        Settings.builder()
+                                                .put("crate.analysis.custom.analyzer.ft_search", analyzerSettings)
+                                                .build())
+                                    .build();
+        ClusterState state =
+            ClusterState.builder(ClusterName.DEFAULT)
+                        .nodes(DiscoveryNodes.builder()
+                                             .add(new DiscoveryNode("n1", LocalTransportAddress.buildUnique(),
+                                                                    Version.CURRENT))
+                                             .add(new DiscoveryNode("n2", LocalTransportAddress.buildUnique(),
+                                                                    Version.CURRENT))
+                                             .add(new DiscoveryNode("n3", LocalTransportAddress.buildUnique(),
+                                                                    Version.CURRENT))
+                                             .localNodeId("n1")
+                              )
+                        .metaData(metaData)
+                        .build();
+        ClusterServiceUtils.setState(clusterService, state);
+        e = SQLExecutor.builder(clusterService).enableDefaultTables().build();
     }
 
     @Test
@@ -74,8 +91,7 @@ public class CreateAlterPartitionedTableAnalyzerTest extends CrateUnitTest {
 
         // partitioned columns must be not indexed in mapping
         Map<String, Object> nameMapping = (Map<String, Object>) analysis.mappingProperties().get("name");
-        assertThat(mapToSortedString(nameMapping), is(
-            "doc_values=false, index=no, store=false, type=string"));
+        assertThat(mapToSortedString(nameMapping), is("index=false, type=keyword"));
 
         Map<String, Object> metaMapping = (Map) analysis.mapping().get("_meta");
         assertThat((Map<String, Object>) metaMapping.get("columns"), not(hasKey("name")));
@@ -95,8 +111,8 @@ public class CreateAlterPartitionedTableAnalyzerTest extends CrateUnitTest {
         assertThat(analysis.partitionedBy().size(), is(2));
         Map<String, Object> properties = analysis.mappingProperties();
         assertThat(mapToSortedString(properties),
-            is("date={doc_values=false, format=epoch_millis||strict_date_optional_time, index=no, store=false, type=date}, " +
-               "name={doc_values=false, index=no, store=false, type=string}"));
+            is("date={format=epoch_millis||strict_date_optional_time, index=false, type=date}, " +
+               "name={index=false, type=keyword}"));
         assertThat((Map<String, Object>) ((Map) analysis.mapping().get("_meta")).get("columns"),
             allOf(
                 not(hasKey("name")),
@@ -119,7 +135,7 @@ public class CreateAlterPartitionedTableAnalyzerTest extends CrateUnitTest {
         assertThat(analysis.partitionedBy().size(), is(2));
         Map<String, Object> oMapping = (Map<String, Object>) analysis.mappingProperties().get("o");
         assertThat(mapToSortedString(oMapping), is(
-            "dynamic=true, properties={name={doc_values=false, index=no, store=false, type=string}}, type=object"));
+            "dynamic=true, properties={name={index=false, type=keyword}}, type=object"));
         assertThat((Map<String, Object>) ((Map) analysis.mapping().get("_meta")).get("columns"), not(hasKey("date")));
 
         Map metaColumns = (Map) ((Map) analysis.mapping().get("_meta")).get("columns");
@@ -198,14 +214,15 @@ public class CreateAlterPartitionedTableAnalyzerTest extends CrateUnitTest {
         assertThat(analysis.partitionedBy().get(0), contains("id1", "integer"));
 
         Map<String, Object> oMapping = (Map<String, Object>) analysis.mappingProperties().get("id1");
-        assertThat(mapToSortedString(oMapping), is(
-            "doc_values=false, index=no, store=false, type=integer"));
+        assertThat(mapToSortedString(oMapping), is("index=false, type=integer"));
         assertThat((Map<String, Object>) ((Map) analysis.mapping().get("_meta")).get("columns"),
             not(hasKey("id1")));
     }
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test
     public void testPartitionedByIndexed() throws Exception {
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("Cannot use column name with fulltext index in PARTITIONED BY clause");
         e.analyze("create table my_table(" +
                   "  name string index using fulltext," +
                   "  no_index string index off," +
@@ -216,8 +233,10 @@ public class CreateAlterPartitionedTableAnalyzerTest extends CrateUnitTest {
 
     }
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test
     public void testPartitionedByCompoundIndex() throws Exception {
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("Cannot use column ft with fulltext index in PARTITIONED BY clause");
         e.analyze("create table my_table(" +
                   "  name string index using fulltext," +
                   "  no_index string index off," +

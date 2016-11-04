@@ -46,7 +46,7 @@ public class IndexReferenceTest extends CrateUnitTest {
         BytesStreamOutput out = new BytesStreamOutput();
         Reference.toStream(indexReferenceInfo, out);
 
-        StreamInput in = StreamInput.wrap(out.bytes());
+        StreamInput in = out.bytes().streamInput();
         IndexReference indexReferenceInfo2 = Reference.fromStream(in);
 
         assertThat(indexReferenceInfo2, is(indexReferenceInfo));

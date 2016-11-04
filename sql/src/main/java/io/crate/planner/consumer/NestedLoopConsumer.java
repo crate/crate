@@ -41,15 +41,15 @@ import io.crate.planner.projection.Projection;
 import io.crate.planner.projection.builder.InputCreatingVisitor;
 import io.crate.planner.projection.builder.ProjectionBuilder;
 import io.crate.sql.tree.QualifiedName;
-import org.elasticsearch.cluster.ClusterService;
-import org.elasticsearch.common.logging.ESLogger;
+import org.apache.logging.log4j.Logger;
+import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.logging.Loggers;
 
 import java.util.*;
 
 class NestedLoopConsumer implements Consumer {
 
-    private final static ESLogger LOGGER = Loggers.getLogger(NestedLoopConsumer.class);
+    private final static Logger LOGGER = Loggers.getLogger(NestedLoopConsumer.class);
     private final Visitor visitor;
 
     NestedLoopConsumer(ClusterService clusterService, Functions functions, TableStats tableStats) {
