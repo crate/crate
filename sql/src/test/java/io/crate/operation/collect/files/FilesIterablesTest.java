@@ -33,9 +33,9 @@ import static org.junit.Assert.*;
 public class FilesIterablesTest {
 
     @Test
-    public void testSqlFeatureIterable() throws Exception {
+    public void testSqlFeatureIterable() {
         SqlFeaturesIterable featuresIterable = new SqlFeaturesIterable();
-        Iterator iterator = featuresIterable.iterator();
+        Iterator iterator = featuresIterable.get().iterator();
         assertTrue(iterator.hasNext());
         SqlFeatureContext context = (SqlFeatureContext) iterator.next();
         assertEquals("B011", context.featureId);
@@ -50,7 +50,7 @@ public class FilesIterablesTest {
     }
 
     @Test
-    public void testSummitsIterable() throws Exception {
+    public void testSummitsIterable() {
         SummitsIterable summitsIterable = new SummitsIterable();
         Iterator iterator = summitsIterable.get().iterator();
         assertTrue(iterator.hasNext());

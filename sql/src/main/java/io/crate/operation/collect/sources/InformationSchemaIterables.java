@@ -97,7 +97,7 @@ public class InformationSchemaIterables {
                     return input != null;
                 }
             }));
-        featuresGetter = Suppliers.<Iterable<?>>ofInstance(new SqlFeaturesIterable());
+        featuresGetter = new SqlFeaturesIterable();
     }
 
     public Supplier<Iterable<?>> schemas() {
