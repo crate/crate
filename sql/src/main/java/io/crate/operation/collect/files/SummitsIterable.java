@@ -22,66 +22,53 @@
 
 package io.crate.operation.collect.files;
 
-import com.google.common.base.Splitter;
 import com.google.common.base.Supplier;
 import com.google.common.base.Suppliers;
 import com.google.common.primitives.Ints;
 import io.crate.types.DataTypes;
 import org.elasticsearch.node.internal.InternalSettingsPreparer;
 
-import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
+import java.net.URISyntaxException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 public class SummitsIterable implements Supplier<Iterable<?>> {
 
-    private static final Splitter TAB_SPLITTER = Splitter.on("\t");
-
-    @Override
-    public Iterable<?> get() {
-        return summitsSupplierCache.get();
-    }
-
-    private final Supplier<List<SummitsContext>> summitsSupplierCache = Suppliers.memoizeWithExpiration(
-        new Supplier<List<SummitsContext>>() {
-            public List<SummitsContext> get() {
-                return fetchSummits();
-            }
-        }, 4, TimeUnit.MINUTES
-    );
+    private final Supplier<List<SummitsContext>> summitsSupplierCache
+        = Suppliers.memoizeWithExpiration(this::fetchSummits, 4, TimeUnit.MINUTES);
 
     private List<SummitsContext> fetchSummits() {
-        List<SummitsContext> summits = new ArrayList<>();
-        try (InputStream input = InternalSettingsPreparer.class.getResourceAsStream("/config/names.txt")) {
-            try (BufferedReader reader = new BufferedReader(new InputStreamReader(input, StandardCharsets.UTF_8))) {
-                String line;
-                while ((line = reader.readLine()) != null) {
-                    List<String> parts = TAB_SPLITTER.splitToList(line);
-                    summits.add(new SummitsContext(
-                        parts.get(0),
-                        Ints.tryParse(parts.get(1)),
-                        Ints.tryParse(parts.get(2)),
-                        safeParseCoordinates(parts.get(3)),
-                        parts.get(4),
-                        parts.get(5),
-                        parts.get(6),
-                        parts.get(7),
-                        Ints.tryParse(parts.get(8)))
+        try {
+            Path path = Paths.get(
+                InternalSettingsPreparer.class.getResource("/config/names.txt").toURI().getPath()
+            );
+            return Files.lines(path)
+                .map(line -> {
+                    String[] parts = line.split("\t", -1);
+                    return new SummitsContext(parts[0],
+                        Ints.tryParse(parts[1]), Ints.tryParse(parts[2]),
+                        safeParseCoordinates(parts[3]),
+                        parts[4], parts[5], parts[6], parts[7],
+                        Ints.tryParse(parts[8])
                     );
-                }
-            }
-        } catch (IOException e) {
+                })
+                .collect(Collectors.toList());
+        } catch (IOException | URISyntaxException e) {
             throw new RuntimeException("Cannot populate the sys.summits table", e);
         }
-        return summits;
     }
 
     private Double[] safeParseCoordinates(String value) {
         return value.isEmpty() ? null : DataTypes.GEO_POINT.value(value);
+    }
+
+    @Override
+    public Iterable<?> get() {
+        return summitsSupplierCache.get();
     }
 }

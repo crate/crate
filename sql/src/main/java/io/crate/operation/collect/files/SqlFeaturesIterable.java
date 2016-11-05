@@ -22,49 +22,48 @@
 
 package io.crate.operation.collect.files;
 
-import com.google.common.base.Splitter;
-import org.elasticsearch.ResourceNotFoundException;
+import com.google.common.base.Supplier;
+import com.google.common.base.Suppliers;
+import org.elasticsearch.node.internal.InternalSettingsPreparer;
 
-import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.Iterator;
+import java.net.URISyntaxException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
-public class SqlFeaturesIterable implements Iterable<SqlFeatureContext> {
+public class SqlFeaturesIterable implements Supplier<Iterable<?>> {
 
-    private static List<SqlFeatureContext> featuresList;
-    private static final Splitter TAB_SPLITTER = Splitter.on("\t");
+    private final Supplier<List<SqlFeatureContext>> summitsSupplierCache
+        = Suppliers.memoizeWithExpiration(this::fetchSqlFeatures, 4, TimeUnit.MINUTES);
 
-    public SqlFeaturesIterable() throws IOException {
-        try (InputStream sqlFeatures = SqlFeaturesIterable.class.getResourceAsStream("/sql_features.tsv")) {
-            if (sqlFeatures == null) {
-                throw new ResourceNotFoundException("sql_features.tsv file not found");
-            }
-            try (BufferedReader reader = new BufferedReader(new InputStreamReader(sqlFeatures, StandardCharsets.UTF_8))) {
-                featuresList = new ArrayList<>();
-                SqlFeatureContext ctx;
-                String next;
-                while ((next = reader.readLine()) != null) {
-                    List<String> parts = TAB_SPLITTER.splitToList(next);
-                    ctx = new SqlFeatureContext(parts.get(0),
-                        parts.get(1),
-                        parts.get(2),
-                        parts.get(3),
+    private List<SqlFeatureContext> fetchSqlFeatures() {
+        try {
+            Path path = Paths.get(
+                InternalSettingsPreparer.class.getResource("/sql_features.tsv").toURI().getPath()
+            );
+            return Files.lines(path)
+                .map(line -> {
+                    List<String> parts = Arrays.asList(line.split("\t", -1));
+                    return new SqlFeatureContext(
+                        parts.get(0), parts.get(1), parts.get(2), parts.get(3),
                         parts.get(4).equals("YES"),
                         parts.get(5).isEmpty() ? null : parts.get(5),
-                        parts.get(6).isEmpty() ? null : parts.get(6));
-                    featuresList.add(ctx);
-                }
-            }
+                        parts.get(6).isEmpty() ? null : parts.get(6)
+                    );
+                })
+                .collect(Collectors.toList());
+        } catch (IOException | URISyntaxException e) {
+            throw new RuntimeException("Cannot populate the information_schema.sql_features table", e);
         }
     }
 
     @Override
-    public Iterator<SqlFeatureContext> iterator() {
-        return featuresList.iterator();
+    public Iterable<?> get() {
+        return summitsSupplierCache.get();
     }
 }
