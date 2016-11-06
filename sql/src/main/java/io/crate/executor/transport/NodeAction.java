@@ -28,5 +28,4 @@ import org.elasticsearch.transport.TransportResponse;
 public interface NodeAction<TRequest extends TransportRequest, TResponse extends TransportResponse> {
 
     void nodeOperation(TRequest request, ActionListener<TResponse> listener);
-
 }

@@ -30,11 +30,11 @@ public abstract class WhereClauseValidator {
 
     private static class Visitor extends SymbolVisitor<Visitor.Context, Symbol> {
 
-        public static class Context {
+        static class Context {
 
-            public final Stack<Function> functions = new Stack<>();
+            private final Stack<Function> functions = new Stack<>();
 
-            public Context() {
+            private Context() {
             }
         }
 

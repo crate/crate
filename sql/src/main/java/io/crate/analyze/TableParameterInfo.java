@@ -64,7 +64,7 @@ public class TableParameterInfo {
     // all available table mapping keys
     public static final String COLUMN_POLICY = ColumnPolicy.ES_MAPPING_NAME;
 
-    protected static final ImmutableList<String> SUPPORTED_SETTINGS =
+    private static final ImmutableList<String> SUPPORTED_SETTINGS =
         ImmutableList.<String>builder()
             .add(NUMBER_OF_REPLICAS)
             .add(REFRESH_INTERVAL)
@@ -85,13 +85,13 @@ public class TableParameterInfo {
             .add(UNASSIGNED_NODE_LEFT_DELAYED_TIMEOUT)
             .build();
 
-    protected static final ImmutableList<String> SUPPORTED_INTERNAL_SETTINGS =
+    private static final ImmutableList<String> SUPPORTED_INTERNAL_SETTINGS =
         ImmutableList.<String>builder()
             .addAll(SUPPORTED_SETTINGS)
             .add(AUTO_EXPAND_REPLICAS)
             .build();
 
-    protected static final ImmutableList<String> SUPPORTED_MAPPINGS =
+    private static final ImmutableList<String> SUPPORTED_MAPPINGS =
         ImmutableList.<String>builder()
             .add(COLUMN_POLICY)
             .build();

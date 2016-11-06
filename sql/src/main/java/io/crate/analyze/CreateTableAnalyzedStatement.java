@@ -31,7 +31,7 @@ import java.util.Map;
 
 public class CreateTableAnalyzedStatement extends AbstractDDLAnalyzedStatement {
 
-    protected final FulltextAnalyzerResolver fulltextAnalyzerResolver;
+    private final FulltextAnalyzerResolver fulltextAnalyzerResolver;
     private AnalyzedTableElements analyzedTableElements;
     private Map<String, Object> mapping;
     private ColumnIdent routingColumn;

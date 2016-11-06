@@ -29,7 +29,7 @@ import org.elasticsearch.index.mapper.core.BooleanFieldMapper.Values;
 
 import java.util.Locale;
 
-public abstract class TermBuilder<T> {
+abstract class TermBuilder<T> {
 
     private static final IntegerTermBuilder INTEGER_TERM_BUILDER = new IntegerTermBuilder();
     private static final ByteTermBuilder BYTE_TERM_BUILDER = new ByteTermBuilder();
@@ -40,7 +40,7 @@ public abstract class TermBuilder<T> {
     private static final FloatTermBuilder FLOAT_TERM_BUILDER = new FloatTermBuilder();
     private static final StringTermBuilder STRING_TERM_BUILDER = new StringTermBuilder();
 
-    public static TermBuilder forType(DataType dataType) {
+    static TermBuilder forType(DataType dataType) {
         while (dataType instanceof CollectionType) {
             dataType = ((CollectionType) dataType).innerType();
         }
@@ -71,7 +71,7 @@ public abstract class TermBuilder<T> {
 
     public abstract BytesRef term(T value);
 
-    static class IntegerTermBuilder extends TermBuilder<Integer> {
+    private static class IntegerTermBuilder extends TermBuilder<Integer> {
         @Override
         public BytesRef term(Integer value) {
             BytesRefBuilder builder = new BytesRefBuilder();
@@ -80,21 +80,21 @@ public abstract class TermBuilder<T> {
         }
     }
 
-    static class ByteTermBuilder extends TermBuilder<Byte> {
+    private static class ByteTermBuilder extends TermBuilder<Byte> {
         @Override
         public BytesRef term(Byte value) {
             return INTEGER_TERM_BUILDER.term(value.intValue());
         }
     }
 
-    static class ShortTermBuilder extends TermBuilder<Short> {
+    private static class ShortTermBuilder extends TermBuilder<Short> {
         @Override
         public BytesRef term(Short value) {
             return INTEGER_TERM_BUILDER.term(value.intValue());
         }
     }
 
-    static class LongTermBuilder extends TermBuilder<Long> {
+    private static class LongTermBuilder extends TermBuilder<Long> {
         @Override
         public BytesRef term(Long value) {
             BytesRefBuilder builder = new BytesRefBuilder();
@@ -103,7 +103,7 @@ public abstract class TermBuilder<T> {
         }
     }
 
-    static class DoubleTermBuilder extends TermBuilder<Double> {
+    private static class DoubleTermBuilder extends TermBuilder<Double> {
         @Override
         public BytesRef term(Double value) {
             long longValue = NumericUtils.doubleToSortableLong(value);
@@ -113,7 +113,7 @@ public abstract class TermBuilder<T> {
         }
     }
 
-    static class FloatTermBuilder extends TermBuilder<Float> {
+    private static class FloatTermBuilder extends TermBuilder<Float> {
         @Override
         public BytesRef term(Float value) {
             int intValue = NumericUtils.floatToSortableInt(value);
@@ -123,7 +123,7 @@ public abstract class TermBuilder<T> {
         }
     }
 
-    static class BooleanTermBuilder extends TermBuilder<Boolean> {
+    private static class BooleanTermBuilder extends TermBuilder<Boolean> {
         @Override
         public BytesRef term(Boolean value) {
             if (value == null) {
@@ -133,7 +133,7 @@ public abstract class TermBuilder<T> {
         }
     }
 
-    static class StringTermBuilder extends TermBuilder<BytesRef> {
+    private static class StringTermBuilder extends TermBuilder<BytesRef> {
         @Override
         public BytesRef term(BytesRef value) {
             return value;

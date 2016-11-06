@@ -39,7 +39,6 @@ import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Functions;
 import io.crate.metadata.RowGranularity;
 import io.crate.operation.aggregation.impl.MinimumAggregation;
-import io.crate.operation.projectors.FlatProjectorChain;
 import io.crate.operation.projectors.TopN;
 import io.crate.planner.distribution.DistributionInfo;
 import io.crate.planner.node.dql.MergePhase;
@@ -55,7 +54,6 @@ import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.common.breaker.CircuitBreaker;
 import org.elasticsearch.common.breaker.NoopCircuitBreaker;
-import org.elasticsearch.common.collect.Tuple;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.hamcrest.collection.IsIterableContainingInOrder;
@@ -65,7 +63,6 @@ import org.junit.Test;
 import org.mockito.Answers;
 
 import java.util.*;
-import java.util.concurrent.Executor;
 import java.util.concurrent.TimeUnit;
 
 import static io.crate.testing.TestingHelpers.getFunctions;
@@ -75,7 +72,7 @@ import static org.mockito.Mockito.mock;
 
 public class PageDownstreamFactoryTest extends CrateUnitTest {
 
-    private static final RamAccountingContext ramAccountingContext =
+    private static final RamAccountingContext RAM_ACCOUNTING_CONTEXT =
         new RamAccountingContext("dummy", new NoopCircuitBreaker(CircuitBreaker.FIELDDATA));
 
     private GroupProjection groupProjection;
@@ -160,11 +157,15 @@ public class PageDownstreamFactoryTest extends CrateUnitTest {
         ));
     }
 
-    private PageDownstream getPageDownstream(MergePhase mergeNode, PageDownstreamFactory pageDownstreamFactory, CollectingRowReceiver rowReceiver) {
-        Tuple<PageDownstream, FlatProjectorChain> downstreamFlatProjectorChainTuple =
-            pageDownstreamFactory.createMergeNodePageDownstream(
-                mergeNode, rowReceiver, randomBoolean(), ramAccountingContext, Optional.<Executor>absent());
-        return downstreamFlatProjectorChainTuple.v1();
+    private PageDownstream getPageDownstream(MergePhase mergeNode,
+                                             PageDownstreamFactory pageDownstreamFactory,
+                                             CollectingRowReceiver rowReceiver) {
+        return pageDownstreamFactory.createMergeNodePageDownstream(
+            mergeNode,
+            rowReceiver,
+            randomBoolean(),
+            RAM_ACCOUNTING_CONTEXT,
+            Optional.absent());
     }
 
     @Test

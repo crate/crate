@@ -24,9 +24,9 @@ package io.crate.analyze.symbol.format;
 
 import java.util.Locale;
 
-public class MaxDepthReachedException extends RuntimeException {
+class MaxDepthReachedException extends RuntimeException {
 
-    public MaxDepthReachedException(int maxDepth) {
+    MaxDepthReachedException(int maxDepth) {
         super(String.format(Locale.ENGLISH, "max depth of %s reached while traversing symbol", maxDepth));
     }
 }

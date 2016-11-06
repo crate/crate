@@ -29,6 +29,7 @@ import io.crate.metadata.*;
 import io.crate.metadata.table.Operation;
 import io.crate.sql.tree.QualifiedName;
 
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.Collection;
 import java.util.Iterator;
@@ -94,7 +95,7 @@ public abstract class QueriedTableRelation<TR extends AbstractTableRelation> imp
     }
 
     @Override
-    public void setQualifiedName(QualifiedName qualifiedName) {
+    public void setQualifiedName(@Nonnull QualifiedName qualifiedName) {
         tableRelation.setQualifiedName(qualifiedName);
     }
 }

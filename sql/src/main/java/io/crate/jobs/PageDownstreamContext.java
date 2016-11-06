@@ -30,7 +30,6 @@ import io.crate.core.collections.BucketPage;
 import io.crate.operation.PageConsumeListener;
 import io.crate.operation.PageDownstream;
 import io.crate.operation.PageResultListener;
-import io.crate.operation.projectors.FlatProjectorChain;
 import org.elasticsearch.common.logging.ESLogger;
 
 import javax.annotation.Nonnull;
@@ -54,9 +53,6 @@ public class PageDownstreamContext extends AbstractExecutionSubContext implement
     private final BitSet exhausted;
     private final ArrayList<PageResultListener> listeners = new ArrayList<>();
 
-    @Nullable
-    private final FlatProjectorChain projectorChain;
-
     public PageDownstreamContext(ESLogger logger,
                                  String nodeName,
                                  int id,
@@ -64,8 +60,7 @@ public class PageDownstreamContext extends AbstractExecutionSubContext implement
                                  PageDownstream pageDownstream,
                                  Streamer<?>[] streamers,
                                  RamAccountingContext ramAccountingContext,
-                                 int numBuckets,
-                                 @Nullable FlatProjectorChain projectorChain) {
+                                 int numBuckets) {
         super(id, logger);
         this.nodeName = nodeName;
         this.name = name;
@@ -73,7 +68,6 @@ public class PageDownstreamContext extends AbstractExecutionSubContext implement
         this.streamers = streamers;
         this.ramAccountingContext = ramAccountingContext;
         this.numBuckets = numBuckets;
-        this.projectorChain = projectorChain;
         bucketFutures = new ArrayList<>(numBuckets);
         allFuturesSet = new BitSet(numBuckets);
         exhausted = new BitSet(numBuckets);

@@ -23,9 +23,9 @@ package io.crate.analyze;
 
 import com.google.common.collect.ImmutableList;
 
-public class TablePartitionParameterInfo extends TableParameterInfo {
+class TablePartitionParameterInfo extends TableParameterInfo {
 
-    protected static final ImmutableList<String> SUPPORTED_MAPPINGS = ImmutableList.of();
+    private static final ImmutableList<String> SUPPORTED_MAPPINGS = ImmutableList.of();
 
     @Override
     public ImmutableList<String> supportedMappings() {

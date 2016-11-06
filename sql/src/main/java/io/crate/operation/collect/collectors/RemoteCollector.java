@@ -170,8 +170,7 @@ public class RemoteCollector implements CrateCollector {
             new IteratorPageDownstream(rowReceiver, pagingIterator, Optional.<Executor>absent()),
             DataTypes.getStreamers(collectPhase.outputTypes()),
             ramAccountingContext,
-            1,
-            null
+            1
         ));
         return builder;
     }

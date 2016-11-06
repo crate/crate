@@ -1285,13 +1285,13 @@ public class LuceneQueryBuilder {
         }
     }
 
-    static class FunctionLiteralPair {
+    private static class FunctionLiteralPair {
 
         private final String functionName;
         private final Function function;
         private final Input input;
 
-        FunctionLiteralPair(Function outerFunction) {
+        private FunctionLiteralPair(Function outerFunction) {
             assert outerFunction.arguments().size() == 2 : "function requires 2 arguments";
             Symbol left = outerFunction.arguments().get(0);
             Symbol right = outerFunction.arguments().get(1);
@@ -1315,25 +1315,25 @@ public class LuceneQueryBuilder {
             }
         }
 
-        public boolean isValid() {
+        private boolean isValid() {
             return input != null && function != null;
         }
 
-        public Input input() {
+        private Input input() {
             return input;
         }
 
-        public String functionName() {
+        private String functionName() {
             return functionName;
         }
     }
 
-    static class RefLiteralPair {
+    private static class RefLiteralPair {
 
         private final Reference reference;
         private final Input input;
 
-        RefLiteralPair(Function function) {
+        private RefLiteralPair(Function function) {
             assert function.arguments().size() == 2 : "function requires 2 arguments";
             Symbol left = function.arguments().get(0);
             Symbol right = function.arguments().get(1);
@@ -1355,15 +1355,15 @@ public class LuceneQueryBuilder {
             }
         }
 
-        public boolean isValid() {
+        private boolean isValid() {
             return input != null && reference != null;
         }
 
-        public Reference reference() {
+        private Reference reference() {
             return reference;
         }
 
-        public Input input() {
+        private Input input() {
             return input;
         }
     }

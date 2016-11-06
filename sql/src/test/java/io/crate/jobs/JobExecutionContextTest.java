@@ -131,8 +131,7 @@ public class JobExecutionContextTest extends CrateUnitTest {
             mock(PageDownstream.class),
             new Streamer[]{IntegerType.INSTANCE.streamer()},
             mock(RamAccountingContext.class),
-            1,
-            null));
+            1));
 
         builder.addSubContext(jobCollectContext);
         builder.addSubContext(pageDownstreamContext);

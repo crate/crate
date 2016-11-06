@@ -169,7 +169,6 @@ public class Routing implements Streamable {
             }
         }
         locations = newLocations;
-        return;
     }
 
     private static void addShardRouting(Map<String, Map<String, List<Integer>>> newLocations,

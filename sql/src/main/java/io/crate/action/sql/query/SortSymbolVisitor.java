@@ -50,7 +50,7 @@ import java.util.Map;
 
 public class SortSymbolVisitor extends SymbolVisitor<SortSymbolVisitor.SortSymbolContext, SortField> {
 
-    public static final SortField SORT_SCORE_REVERSE = new SortField(null, SortField.Type.SCORE, true);
+    private static final SortField SORT_SCORE_REVERSE = new SortField(null, SortField.Type.SCORE, true);
 
     public static final Map<DataType, SortField.Type> LUCENE_TYPE_MAP = ImmutableMap.<DataType, SortField.Type>builder()
         .put(DataTypes.BOOLEAN, SortField.Type.LONG)
@@ -65,13 +65,13 @@ public class SortSymbolVisitor extends SymbolVisitor<SortSymbolVisitor.SortSymbo
         .put(DataTypes.STRING, SortField.Type.STRING)
         .build();
 
-    public static class SortSymbolContext {
+    static class SortSymbolContext {
 
         private final boolean reverseFlag;
         private final CollectorContext context;
         private final Boolean nullFirst;
 
-        public SortSymbolContext(CollectorContext collectorContext, boolean reverseFlag, Boolean nullFirst) {
+        SortSymbolContext(CollectorContext collectorContext, boolean reverseFlag, Boolean nullFirst) {
             this.nullFirst = nullFirst;
             this.context = collectorContext;
             this.reverseFlag = reverseFlag;

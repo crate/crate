@@ -37,25 +37,25 @@ import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.*;
 
-public class EqualityExtractor {
+class EqualityExtractor {
 
-    public static final Function NULL_MARKER = new Function(
+    private static final Function NULL_MARKER = new Function(
         new FunctionInfo(
             new FunctionIdent("null_marker", ImmutableList.<DataType>of()),
             DataTypes.UNDEFINED), ImmutableList.<Symbol>of());
-    public static final EqProxy NULL_MARKER_PROXY = new EqProxy(NULL_MARKER);
+    private static final EqProxy NULL_MARKER_PROXY = new EqProxy(NULL_MARKER);
 
     private EvaluatingNormalizer normalizer;
 
-    public EqualityExtractor(EvaluatingNormalizer normalizer) {
+    EqualityExtractor(EvaluatingNormalizer normalizer) {
         this.normalizer = normalizer;
     }
 
-    public List<List<Symbol>> extractParentMatches(List<ColumnIdent> columns, Symbol symbol, @Nullable TransactionContext transactionContext) {
+    List<List<Symbol>> extractParentMatches(List<ColumnIdent> columns, Symbol symbol, @Nullable TransactionContext transactionContext) {
         return extractMatches(columns, symbol, false, transactionContext);
     }
 
-    public List<List<Symbol>> extractExactMatches(List<ColumnIdent> columns, Symbol symbol, @Nullable TransactionContext transactionContext) {
+    List<List<Symbol>> extractExactMatches(List<ColumnIdent> columns, Symbol symbol, @Nullable TransactionContext transactionContext) {
         return extractMatches(columns, symbol, true, transactionContext);
     }
 
@@ -116,13 +116,13 @@ public class EqualityExtractor {
      * and shares pre existing proxies - so true value can be set on
      * this "parent" if a shared comparison is "true"
      */
-    static class AnyEqProxy extends EqProxy implements Iterable<EqProxy> {
+    private static class AnyEqProxy extends EqProxy implements Iterable<EqProxy> {
 
         private Map<Function, EqProxy> proxies;
         @Nullable
         private ChildEqProxy delegate = null;
 
-        public AnyEqProxy(Function compared, Map<Function, EqProxy> existingProxies) {
+        private AnyEqProxy(Function compared, Map<Function, EqProxy> existingProxies) {
             super(compared);
             initProxies(existingProxies);
         }
@@ -165,24 +165,24 @@ public class EqualityExtractor {
             return super.accept(visitor, context);
         }
 
-        public void setDelegate(@Nullable ChildEqProxy childEqProxy) {
+        private void setDelegate(@Nullable ChildEqProxy childEqProxy) {
             delegate = childEqProxy;
         }
 
-        public void cleanDelegate() {
+        private void cleanDelegate() {
             delegate = null;
         }
 
-        static class ChildEqProxy extends EqProxy {
+        private static class ChildEqProxy extends EqProxy {
 
             private List<AnyEqProxy> parentProxies = new ArrayList<>();
 
-            ChildEqProxy(Function origin, AnyEqProxy parent) {
+            private ChildEqProxy(Function origin, AnyEqProxy parent) {
                 super(origin);
                 this.addParent(parent);
             }
 
-            public void addParent(AnyEqProxy parentProxy) {
+            private void addParent(AnyEqProxy parentProxy) {
                 parentProxies.add(parentProxy);
             }
 
@@ -211,7 +211,7 @@ public class EqualityExtractor {
         protected Symbol current;
         protected final Function origin;
 
-        public Function origin() {
+        private Function origin() {
             return origin;
         }
 
@@ -301,12 +301,13 @@ public class EqualityExtractor {
         }
 
         static class Context {
-            LinkedHashMap<ColumnIdent, Comparison> comparisons;
-            public boolean proxyBelow;
-            public boolean seenUnknown = false;
+
+            private LinkedHashMap<ColumnIdent, Comparison> comparisons;
+            private boolean proxyBelow;
+            private boolean seenUnknown = false;
             private final boolean exact;
 
-            public Context(Collection<ColumnIdent> references, boolean exact) {
+            private Context(Collection<ColumnIdent> references, boolean exact) {
                 this.exact = exact;
                 comparisons = new LinkedHashMap<>(references.size());
                 for (ColumnIdent reference : references) {
@@ -314,7 +315,7 @@ public class EqualityExtractor {
                 }
             }
 
-            public List<Set<EqProxy>> comparisonSet() {
+            private List<Set<EqProxy>> comparisonSet() {
                 List<Set<EqProxy>> comps = new ArrayList<>(comparisons.size());
                 for (Comparison comparison : comparisons.values()) {
                     // TODO: probably create a view instead of a seperate set
@@ -352,8 +353,7 @@ public class EqualityExtractor {
                         ((Reference) function.arguments().get(0)).ident().columnIdent());
                     if (comparison != null) {
                         context.proxyBelow = true;
-                        EqProxy x = comparison.add(function);
-                        return x;
+                        return comparison.add(function);
                     }
                 }
             } else if (functionName.equals(AnyEqOperator.NAME) &&
@@ -365,8 +365,7 @@ public class EqualityExtractor {
                         reference.ident().columnIdent());
                     if (comparison != null) {
                         context.proxyBelow = true;
-                        EqProxy x = comparison.add(function);
-                        return x;
+                        return comparison.add(function);
                     }
                 }
             }
@@ -385,5 +384,4 @@ public class EqualityExtractor {
             return new Function(function.info(), args);
         }
     }
-
 }

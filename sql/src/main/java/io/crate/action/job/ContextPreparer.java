@@ -489,14 +489,13 @@ public class ContextPreparer extends AbstractComponent {
                 return false;
             }
 
-            Tuple<PageDownstream, FlatProjectorChain> pageDownstreamProjectorChain =
-                pageDownstreamFactory.createMergeNodePageDownstream(
-                    phase,
-                    rowReceiver,
-                    false,
-                    ramAccountingContext,
-                    // no separate executor because TransportDistributedResultAction already runs in a threadPool
-                    Optional.<Executor>absent());
+            PageDownstream pageDownstream = pageDownstreamFactory.createMergeNodePageDownstream(
+                phase,
+                rowReceiver,
+                false,
+                ramAccountingContext,
+                // no separate executor because TransportDistributedResultAction already runs in a threadPool
+                Optional.<Executor>absent());
 
 
             context.registerSubContext(new PageDownstreamContext(
@@ -504,11 +503,10 @@ public class ContextPreparer extends AbstractComponent {
                 nodeName(),
                 phase.phaseId(),
                 phase.name(),
-                pageDownstreamProjectorChain.v1(),
+                pageDownstream,
                 DataTypes.getStreamers(phase.inputTypes()),
                 ramAccountingContext,
-                phase.numUpstreams(),
-                pageDownstreamProjectorChain.v2()));
+                phase.numUpstreams()));
             return true;
         }
 
@@ -618,7 +616,6 @@ public class ContextPreparer extends AbstractComponent {
             context.registerSubContext(new NestedLoopContext(
                 nlContextLogger,
                 phase,
-                flatProjectorChain,
                 nestedLoopOperation,
                 left,
                 right
@@ -637,7 +634,7 @@ public class ContextPreparer extends AbstractComponent {
                 ctx.phaseIdToRowReceivers.put(toKey(nlPhaseId, inputId), downstream);
                 return null;
             }
-            Tuple<PageDownstream, FlatProjectorChain> pageDownstreamWithChain = pageDownstreamFactory.createMergeNodePageDownstream(
+            PageDownstream pageDownstream = pageDownstreamFactory.createMergeNodePageDownstream(
                 mergePhase,
                 downstream,
                 true,
@@ -649,12 +646,10 @@ public class ContextPreparer extends AbstractComponent {
                 nodeName(),
                 mergePhase.phaseId(),
                 mergePhase.name(),
-                pageDownstreamWithChain.v1(),
+                pageDownstream,
                 StreamerVisitor.streamersFromOutputs(mergePhase),
                 ramAccountingContext,
-                mergePhase.numUpstreams(),
-                pageDownstreamWithChain.v2()
-            );
+                mergePhase.numUpstreams());
         }
     }
 

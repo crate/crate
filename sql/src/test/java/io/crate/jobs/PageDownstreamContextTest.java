@@ -29,7 +29,6 @@ import io.crate.core.collections.Row1;
 import io.crate.core.collections.SingleRowBucket;
 import io.crate.operation.PageDownstream;
 import io.crate.operation.PageResultListener;
-import io.crate.operation.projectors.FlatProjectorChain;
 import io.crate.test.integration.CrateUnitTest;
 import org.elasticsearch.common.breaker.CircuitBreaker;
 import org.elasticsearch.common.breaker.NoopCircuitBreaker;
@@ -39,6 +38,7 @@ import org.junit.Test;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -66,7 +66,7 @@ public class PageDownstreamContextTest extends CrateUnitTest {
         }).when(pageDownstream).fail((Throwable) notNull());
 
         PageBucketReceiver ctx = new PageDownstreamContext(Loggers.getLogger(PageDownstreamContext.class), "n1",
-            1, "dummy", pageDownstream, new Streamer[0], RAM_ACCOUNTING_CONTEXT, 3, mock(FlatProjectorChain.class));
+            1, "dummy", pageDownstream, new Streamer[0], RAM_ACCOUNTING_CONTEXT, 3);
 
         PageResultListener pageResultListener = mock(PageResultListener.class);
         ctx.setBucket(1, new SingleRowBucket(new Row1("foo")), false, pageResultListener);
@@ -82,7 +82,7 @@ public class PageDownstreamContextTest extends CrateUnitTest {
         PageDownstream downstream = mock(PageDownstream.class);
 
         PageDownstreamContext ctx = new PageDownstreamContext(Loggers.getLogger(PageDownstreamContext.class), "n1",
-            1, "dummy", downstream, new Streamer[0], RAM_ACCOUNTING_CONTEXT, 3, mock(FlatProjectorChain.class));
+            1, "dummy", downstream, new Streamer[0], RAM_ACCOUNTING_CONTEXT, 3);
 
         final AtomicReference<Throwable> throwable = new AtomicReference<>();
 
@@ -93,7 +93,7 @@ public class PageDownstreamContextTest extends CrateUnitTest {
             }
 
             @Override
-            public void onFailure(Throwable t) {
+            public void onFailure(@Nonnull Throwable t) {
                 assertTrue(throwable.compareAndSet(null, t));
 
             }

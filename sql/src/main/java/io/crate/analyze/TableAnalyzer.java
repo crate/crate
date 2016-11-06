@@ -37,9 +37,9 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-public final class TableAnalyzer {
+final class TableAnalyzer {
 
-    public static Set<String> getIndexNames(List<Table> tables,
+    static Set<String> getIndexNames(List<Table> tables,
                                             Schemas schemas,
                                             ParameterContext parameterContext,
                                             @Nullable String defaultSchema) {

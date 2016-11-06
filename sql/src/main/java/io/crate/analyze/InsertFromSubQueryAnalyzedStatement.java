@@ -39,6 +39,7 @@ import io.crate.sql.tree.QualifiedName;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.*;
 
@@ -195,7 +196,7 @@ public class InsertFromSubQueryAnalyzedStatement implements AnalyzedRelation, An
     }
 
     @Override
-    public void setQualifiedName(QualifiedName qualifiedName) {
+    public void setQualifiedName(@Nonnull QualifiedName qualifiedName) {
         throw new UnsupportedOperationException("method not supported");
     }
 

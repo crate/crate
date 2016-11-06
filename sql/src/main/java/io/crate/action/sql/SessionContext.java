@@ -50,7 +50,7 @@ public class SessionContext {
         return defaultSchema;
     }
 
-    public void setDefaultSchema(String schema) {
+    public void setDefaultSchema(@Nullable String schema) {
         defaultSchema = schema;
     }
 

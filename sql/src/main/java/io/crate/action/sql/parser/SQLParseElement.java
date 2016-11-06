@@ -36,7 +36,7 @@ import org.elasticsearch.common.xcontent.XContentParser;
  * <p>
  * E.g. for "stmt" property the {@link io.crate.action.sql.parser.SQLStmtParseElement} is used.
  */
-public interface SQLParseElement {
+interface SQLParseElement {
 
     void parse(XContentParser parser, SQLXContentSourceContext context) throws Exception;
 }

@@ -28,7 +28,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
-public class SQLBulkArgsParseElement extends SQLArgsParseElement implements SQLParseElement {
+class SQLBulkArgsParseElement extends SQLArgsParseElement implements SQLParseElement {
 
     @Override
     public void parse(XContentParser parser, SQLXContentSourceContext context) throws Exception {

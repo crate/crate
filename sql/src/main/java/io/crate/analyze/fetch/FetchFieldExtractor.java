@@ -67,10 +67,7 @@ public class FetchFieldExtractor {
 
         @Override
         protected Boolean visitSymbol(Symbol symbol, Context context) {
-            if (context.skipSymbols.contains(symbol)) {
-                return false;
-            }
-            return true;
+            return !context.skipSymbols.contains(symbol);
         }
 
         @Override

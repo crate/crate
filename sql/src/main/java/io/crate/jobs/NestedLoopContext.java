@@ -24,17 +24,16 @@ package io.crate.jobs;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import io.crate.operation.join.NestedLoopOperation;
-import io.crate.operation.projectors.FlatProjectorChain;
 import io.crate.operation.projectors.ListenableRowReceiver;
 import io.crate.planner.node.dql.join.NestedLoopPhase;
 import org.elasticsearch.common.logging.ESLogger;
 
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 public class NestedLoopContext extends AbstractExecutionSubContext implements DownstreamExecutionSubContext {
 
     private final NestedLoopPhase nestedLoopPhase;
-    private final FlatProjectorChain flatProjectorChain;
 
     @Nullable
     private final PageBucketReceiver leftBucketReceiver;
@@ -45,14 +44,12 @@ public class NestedLoopContext extends AbstractExecutionSubContext implements Do
 
     public NestedLoopContext(ESLogger logger,
                              NestedLoopPhase nestedLoopPhase,
-                             FlatProjectorChain flatProjectorChain,
                              NestedLoopOperation nestedLoopOperation,
                              @Nullable PageBucketReceiver leftBucketReceiver,
                              @Nullable PageBucketReceiver rightBucketReceiver) {
         super(nestedLoopPhase.phaseId(), logger);
 
         this.nestedLoopPhase = nestedLoopPhase;
-        this.flatProjectorChain = flatProjectorChain;
         this.leftBucketReceiver = leftBucketReceiver;
         this.rightBucketReceiver = rightBucketReceiver;
 
@@ -66,7 +63,7 @@ public class NestedLoopContext extends AbstractExecutionSubContext implements Do
             }
 
             @Override
-            public void onFailure(Throwable t) {
+            public void onFailure(@Nonnull Throwable t) {
                 future.close(t);
             }
         });

@@ -30,7 +30,7 @@ import org.elasticsearch.common.xcontent.XContentParser;
  * Fills the stmt in the io.crate.action.sql.parser.SQLXContentSourceContext.
  * </p>
  */
-public class SQLStmtParseElement implements SQLParseElement {
+class SQLStmtParseElement implements SQLParseElement {
 
     @Override
     public void parse(XContentParser parser, SQLXContentSourceContext context) throws Exception {

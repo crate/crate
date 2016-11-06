@@ -23,11 +23,11 @@ package io.crate.breaker;
 
 import javax.annotation.Nullable;
 
-public class ConstSizeEstimator extends SizeEstimator<Object> {
+class ConstSizeEstimator extends SizeEstimator<Object> {
 
     private final long size;
 
-    public ConstSizeEstimator(long size) {
+    ConstSizeEstimator(long size) {
         this.size = size;
     }
 

@@ -110,7 +110,7 @@ public class Field extends Symbol {
      * @return the position of the field in its relation
      */
     public int index() {
-        int idx = -1;
+        int idx;
         assert path != null;
         assert relation != null;
         // TODO: consider adding an indexOf method to relations or another way to efficiently get the index

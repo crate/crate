@@ -55,8 +55,7 @@ public class UpsertByIdContext extends AbstractExecutionSubContext {
         this.request = request;
         this.item = item;
         this.transportShardUpsertActionDelegate = transportShardUpsertActionDelegate;
-        assert
-            request.continueOnError() == false : "continueOnError flag is expected to be set to false for upsertById";
+        assert !request.continueOnError() : "continueOnError flag is expected to be set to false for upsertById";
     }
 
     public SettableFuture<Long> resultFuture() {

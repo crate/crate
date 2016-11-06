@@ -29,7 +29,7 @@ import java.util.List;
 
 public class RestoreSnapshotAnalyzedStatement extends AbstractDDLAnalyzedStatement {
 
-    public static final List<String> ALL_INDICES = ImmutableList.of();
+    private static final List<String> ALL_INDICES = ImmutableList.of();
 
     private final String snapshotName;
     private final String repositoryName;

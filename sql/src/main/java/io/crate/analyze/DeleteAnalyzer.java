@@ -24,7 +24,6 @@ package io.crate.analyze;
 import com.google.common.base.Function;
 import io.crate.analyze.expressions.ExpressionAnalysisContext;
 import io.crate.analyze.expressions.ExpressionAnalyzer;
-import io.crate.analyze.expressions.SubqueryAnalyzer;
 import io.crate.analyze.relations.*;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.analyze.symbol.Symbols;

@@ -38,6 +38,7 @@ import io.crate.planner.projection.WriterProjection;
 import io.crate.sql.tree.QualifiedName;
 import org.elasticsearch.common.settings.Settings;
 
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.List;
 import java.util.Map;
@@ -135,7 +136,7 @@ public class CopyToAnalyzedStatement extends AbstractCopyAnalyzedStatement imple
     }
 
     @Override
-    public void setQualifiedName(QualifiedName qualifiedName) {
+    public void setQualifiedName(@Nonnull QualifiedName qualifiedName) {
         throw new UnsupportedOperationException("method not supported");
     }
 }

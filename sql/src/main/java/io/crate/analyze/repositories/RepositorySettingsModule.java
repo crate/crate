@@ -41,19 +41,18 @@ public class RepositorySettingsModule extends AbstractModule {
     private static final String HDFS = "hdfs";
     private static final String S3 = "s3";
 
-    static final TypeSettings FS_SETTINGS = new TypeSettings(
+    private static final TypeSettings FS_SETTINGS = new TypeSettings(
         ImmutableMap.<String, SettingsApplier>of("location", new SettingsAppliers.StringSettingsApplier(new StringSetting("location", true))),
         ImmutableMap.<String, SettingsApplier>of(
             "compress", new SettingsAppliers.BooleanSettingsApplier(new BoolSetting("compress", true, true)),
             "chunk_size", new SettingsAppliers.ByteSizeSettingsApplier(new ByteSizeSetting("chunk_size", null, true))
         ));
 
-    static final TypeSettings URL_SETTINGS = new TypeSettings(
+    private static final TypeSettings URL_SETTINGS = new TypeSettings(
         ImmutableMap.<String, SettingsApplier>of("url", new SettingsAppliers.StringSettingsApplier(new StringSetting("url", true))),
         Collections.<String, SettingsApplier>emptyMap());
 
-
-    static final TypeSettings HDFS_SETTINGS = new TypeSettings(
+    private static final TypeSettings HDFS_SETTINGS = new TypeSettings(
         Collections.<String, SettingsApplier>emptyMap(),
         ImmutableMap.<String, SettingsApplier>builder()
             .put("uri", new SettingsAppliers.StringSettingsApplier(new StringSetting("uri", true)))
@@ -86,7 +85,7 @@ public class RepositorySettingsModule extends AbstractModule {
         }
     };
 
-    static final TypeSettings S3_SETTINGS = new TypeSettings(Collections.<String, SettingsApplier>emptyMap(),
+    private static final TypeSettings S3_SETTINGS = new TypeSettings(Collections.<String, SettingsApplier>emptyMap(),
         ImmutableMap.<String, SettingsApplier>builder()
             .put("access_key", new SettingsAppliers.StringSettingsApplier(new StringSetting("access_key", null, true)))
             .put("base_path", new SettingsAppliers.StringSettingsApplier(new StringSetting("base_path", null, true)))
@@ -103,11 +102,12 @@ public class RepositorySettingsModule extends AbstractModule {
             .put("secret_key", new SettingsAppliers.StringSettingsApplier(new StringSetting("secret_key", null, true)))
             .put("server_side_encryption", new SettingsAppliers.BooleanSettingsApplier(new BoolSetting("server_side_encryption", false, true))).build());
 
-    private MapBinder<String, TypeSettings> typeSettingsBinder;
-
     @Override
     protected void configure() {
-        typeSettingsBinder = MapBinder.newMapBinder(binder(), String.class, TypeSettings.class);
+        MapBinder<String, TypeSettings> typeSettingsBinder = MapBinder.newMapBinder(
+            binder(),
+            String.class,
+            TypeSettings.class);
         typeSettingsBinder.addBinding(FS).toInstance(FS_SETTINGS);
         typeSettingsBinder.addBinding(URL).toInstance(URL_SETTINGS);
         typeSettingsBinder.addBinding(HDFS).toInstance(HDFS_SETTINGS);

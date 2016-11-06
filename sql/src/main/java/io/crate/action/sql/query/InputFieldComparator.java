@@ -46,11 +46,11 @@ class InputFieldComparator extends FieldComparator implements LeafFieldComparato
     private Object bottom;
     private Object top;
 
-    public InputFieldComparator(int numHits,
-                                List<LuceneCollectorExpression> collectorExpressions,
-                                Input input,
-                                DataType valueType,
-                                Object missingValue) {
+    InputFieldComparator(int numHits,
+                         List<LuceneCollectorExpression> collectorExpressions,
+                         Input input,
+                         DataType valueType,
+                         Object missingValue) {
         this.collectorExpressions = collectorExpressions;
         this.missingValue = missingValue;
         this.valueType = valueType;

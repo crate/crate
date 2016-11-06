@@ -23,7 +23,6 @@ package io.crate.exceptions;
 
 public class GroupByOnArrayUnsupportedException extends ValidationException {
 
-
     public GroupByOnArrayUnsupportedException(String columnName) {
         super("Column \"" + columnName + "\" has a value that is an array. Group by doesn't work on Arrays");
     }

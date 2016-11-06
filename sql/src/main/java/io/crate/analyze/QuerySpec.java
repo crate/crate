@@ -216,12 +216,12 @@ public class QuerySpec {
 
     private static class SubsetVisitor extends DefaultTraversalSymbolVisitor<SubsetVisitor.SubsetContext, Void> {
 
-        public static class SubsetContext {
+        static class SubsetContext {
             Predicate<? super Symbol> predicate;
             List<Symbol> outputs = new ArrayList<>();
         }
 
-        public static List<Symbol> filter(List<Symbol> outputs, Predicate<? super Symbol> predicate) {
+        private static List<Symbol> filter(List<Symbol> outputs, Predicate<? super Symbol> predicate) {
             SubsetVisitor.SubsetContext ctx = new SubsetVisitor.SubsetContext();
             ctx.predicate = predicate;
             SubsetVisitor visitor = new SubsetVisitor();

@@ -27,7 +27,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
-public class SQLArgsParseElement implements SQLParseElement {
+class SQLArgsParseElement implements SQLParseElement {
 
     @Override
     public void parse(XContentParser parser, SQLXContentSourceContext context) throws Exception {
@@ -41,7 +41,7 @@ public class SQLArgsParseElement implements SQLParseElement {
         context.args(params);
     }
 
-    protected Object[] parseSubArray(SQLXContentSourceContext context, XContentParser parser)
+    Object[] parseSubArray(SQLXContentSourceContext context, XContentParser parser)
         throws IOException {
         XContentParser.Token token;
         List<Object> subList = new ArrayList<Object>();

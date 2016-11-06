@@ -31,7 +31,7 @@ import javax.annotation.OverridingMethodsMustInvokeSuper;
 
 public class BaseResultReceiver implements ResultReceiver {
 
-    SettableFuture<Void> completionFuture = SettableFuture.create();
+    private SettableFuture<Void> completionFuture = SettableFuture.create();
 
     @Override
     public void setNextRow(Row row) {

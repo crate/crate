@@ -76,7 +76,7 @@ public class NodeFilters implements Predicate<DiscoveryNode> {
     private static class NamesPredicate implements Predicate<DiscoveryNode> {
         private final Pattern name;
 
-        public NamesPredicate(String name) {
+        private NamesPredicate(String name) {
             this.name = Pattern.compile(name);
         }
 
@@ -90,7 +90,7 @@ public class NodeFilters implements Predicate<DiscoveryNode> {
 
         private final Pattern id;
 
-        public IdsPredicate(String id) {
+        private IdsPredicate(String id) {
             this.id = Pattern.compile(id);
         }
 

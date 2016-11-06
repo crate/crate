@@ -30,14 +30,14 @@ import io.crate.types.DataType;
 import javax.annotation.Nullable;
 import java.util.List;
 
-public class PreparedStmt {
+class PreparedStmt {
 
     private final Statement statement;
     private final String query;
     private final ParamTypeHints paramTypes;
     private AnalyzedRelation relation;
 
-    public PreparedStmt(Statement statement, String query, List<DataType> paramTypes) {
+    PreparedStmt(Statement statement, String query, List<DataType> paramTypes) {
         this.statement = statement;
         this.query = query;
         this.paramTypes = new ParamTypeHints(paramTypes);
@@ -47,7 +47,7 @@ public class PreparedStmt {
         return statement;
     }
 
-    public ParamTypeHints paramTypes() {
+    ParamTypeHints paramTypes() {
         return paramTypes;
     }
 

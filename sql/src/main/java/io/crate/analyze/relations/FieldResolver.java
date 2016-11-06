@@ -29,6 +29,5 @@ import javax.annotation.Nullable;
 public interface FieldResolver {
 
     @Nullable
-    public Symbol resolveField(Field field);
-
+    Symbol resolveField(Field field);
 }

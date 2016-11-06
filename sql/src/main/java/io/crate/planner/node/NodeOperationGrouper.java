@@ -32,24 +32,6 @@ public class NodeOperationGrouper {
     private NodeOperationGrouper() {
     }
 
-    public static class Context {
-
-        private final ArrayListMultimap<String, NodeOperation> byServer;
-        public NodeOperation currentOperation;
-
-        public Context() {
-            this.byServer = ArrayListMultimap.create();
-        }
-
-        protected void add(String server) {
-            byServer.put(server, currentOperation);
-        }
-
-        public Map<String, Collection<NodeOperation>> grouped() {
-            return byServer.asMap();
-        }
-    }
-
     public static Map<String, Collection<NodeOperation>> groupByServer(Iterable<NodeOperation> nodeOperations) {
         Context ctx = new Context();
         for (NodeOperation nodeOperation : nodeOperations) {
@@ -59,5 +41,22 @@ public class NodeOperationGrouper {
             }
         }
         return ctx.grouped();
+    }
+
+    private static class Context {
+        private final ArrayListMultimap<String, NodeOperation> byServer;
+        private NodeOperation currentOperation;
+
+        private Context() {
+            this.byServer = ArrayListMultimap.create();
+        }
+
+        private void add(String server) {
+            byServer.put(server, currentOperation);
+        }
+
+        private Map<String, Collection<NodeOperation>> grouped() {
+            return byServer.asMap();
+        }
     }
 }

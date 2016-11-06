@@ -46,7 +46,7 @@ public class RoutineInfos implements Iterable<RoutineInfo> {
         TOKENIZER(CustomType.TOKENIZER.getName().toUpperCase(Locale.ENGLISH)),;
         private String name;
 
-        private RoutineType(String name) {
+        RoutineType(String name) {
             this.name = name;
         }
 

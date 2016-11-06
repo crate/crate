@@ -25,7 +25,7 @@ import com.google.common.collect.ImmutableList;
 
 public class AlterPartitionedTableParameterInfo extends TableParameterInfo {
 
-    protected static final ImmutableList<String> SUPPORTED_SETTINGS =
+    private static final ImmutableList<String> SUPPORTED_SETTINGS =
         ImmutableList.<String>builder()
             .add(NUMBER_OF_REPLICAS)
             .add(NUMBER_OF_SHARDS)
@@ -45,7 +45,7 @@ public class AlterPartitionedTableParameterInfo extends TableParameterInfo {
             .add(WARMER_ENABLED)
             .build();
 
-    protected static final TableParameterInfo PARTITION_TABLE_PARAMETER_INFO = new TablePartitionParameterInfo();
+    private static final TableParameterInfo PARTITION_TABLE_PARAMETER_INFO = new TablePartitionParameterInfo();
 
     public TableParameterInfo partitionTableSettingsInfo() {
         return PARTITION_TABLE_PARAMETER_INFO;

@@ -65,10 +65,10 @@ public class TableElementsAnalyzer {
         AnalyzedColumnDefinition analyzedColumnDefinition;
         final AnalyzedTableElements analyzedTableElements;
 
-        public ColumnDefinitionContext(@Nullable AnalyzedColumnDefinition parent,
-                                       ParameterContext parameterContext,
-                                       FulltextAnalyzerResolver fulltextAnalyzerResolver,
-                                       AnalyzedTableElements analyzedTableElements) {
+        ColumnDefinitionContext(@Nullable AnalyzedColumnDefinition parent,
+                                ParameterContext parameterContext,
+                                FulltextAnalyzerResolver fulltextAnalyzerResolver,
+                                AnalyzedTableElements analyzedTableElements) {
             this.analyzedColumnDefinition = new AnalyzedColumnDefinition(parent);
             this.parameterContext = parameterContext;
             this.fulltextAnalyzerResolver = fulltextAnalyzerResolver;

@@ -44,7 +44,7 @@ public class SemanticSortValidator {
     static class SortContext {
         private boolean inFunction;
 
-        public SortContext() {
+        SortContext() {
             this.inFunction = false;
         }
     }

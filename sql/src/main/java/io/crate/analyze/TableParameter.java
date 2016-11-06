@@ -29,7 +29,6 @@ import java.util.Map;
 
 public class TableParameter {
 
-
     private Settings.Builder settingsBuilder;
     private Settings settings;
     private final Map<String, Object> mappings = new HashMap<>();

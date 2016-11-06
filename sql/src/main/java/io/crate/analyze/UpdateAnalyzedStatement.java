@@ -32,6 +32,7 @@ import io.crate.metadata.Reference;
 import io.crate.metadata.table.Operation;
 import io.crate.sql.tree.QualifiedName;
 
+import javax.annotation.Nonnull;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
@@ -112,7 +113,7 @@ public class UpdateAnalyzedStatement implements AnalyzedRelation, AnalyzedStatem
     }
 
     @Override
-    public void setQualifiedName(QualifiedName qualifiedName) {
+    public void setQualifiedName(@Nonnull QualifiedName qualifiedName) {
         throw new UnsupportedOperationException("method not supported");
     }
 }

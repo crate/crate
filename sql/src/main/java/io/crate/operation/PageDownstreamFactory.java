@@ -42,7 +42,6 @@ import io.crate.planner.node.dql.MergePhase;
 import org.elasticsearch.action.bulk.BulkRetryCoordinatorPool;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
-import org.elasticsearch.common.collect.Tuple;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.settings.Settings;
@@ -82,14 +81,13 @@ public class PageDownstreamFactory {
         return projectionToProjectorVisitor;
     }
 
-    public Tuple<PageDownstream, FlatProjectorChain> createMergeNodePageDownstream(MergePhase mergeNode,
-                                                                                   RowReceiver downstream,
-                                                                                   boolean requiresRepeatSupport,
-                                                                                   RamAccountingContext ramAccountingContext,
-                                                                                   Optional<Executor> executorOptional) {
-        FlatProjectorChain projectorChain = null;
+    public PageDownstream createMergeNodePageDownstream(MergePhase mergeNode,
+                                                        RowReceiver downstream,
+                                                        boolean requiresRepeatSupport,
+                                                        RamAccountingContext ramAccountingContext,
+                                                        Optional<Executor> executorOptional) {
         if (!mergeNode.projections().isEmpty()) {
-            projectorChain = FlatProjectorChain.withAttachedDownstream(
+            FlatProjectorChain projectorChain = FlatProjectorChain.withAttachedDownstream(
                 projectionToProjectorVisitor,
                 ramAccountingContext,
                 mergeNode.projections(),
@@ -110,7 +108,6 @@ public class PageDownstreamFactory {
             pagingIterator = requiresRepeatSupport ?
                 PassThroughPagingIterator.<Void, Row>repeatable() : PassThroughPagingIterator.<Void, Row>oneShot();
         }
-        PageDownstream pageDownstream = new IteratorPageDownstream(downstream, pagingIterator, executorOptional);
-        return new Tuple<>(pageDownstream, projectorChain);
+        return new IteratorPageDownstream(downstream, pagingIterator, executorOptional);
     }
 }
