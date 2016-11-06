@@ -27,7 +27,7 @@ import org.elasticsearch.bootstrap.StartupErrorProxy;
 /**
  * A main entry point when starting from the command line.
  */
-public class CrateF {
+public class CrateDB {
 
     /**
      * Required method that's called by Apache Commons procrun when

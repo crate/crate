@@ -1,6 +1,6 @@
 <configuration default="false" name="Crate" type="Application" factoryName="Application">
   <extension name="coverage" enabled="false" merge="false" />
-  <option name="MAIN_CLASS_NAME" value="io.crate.bootstrap.CrateF" />
+  <option name="MAIN_CLASS_NAME" value="io.crate.bootstrap.CrateDB" />
   <option name="VM_PARAMETERS" value="-Des.path.home=$PROJECT_DIR$/sandbox/crate" />
   <option name="PROGRAM_PARAMETERS" value="" />
   <option name="WORKING_DIRECTORY" value="file://$PROJECT_DIR$" />

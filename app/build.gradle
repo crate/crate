@@ -382,7 +382,7 @@ task downloadCrash << {
 processResources.dependsOn(downloadPlugins, downloadCrash)
 
 task(runDebug, dependsOn: 'classes', type: JavaExec) {
-    main = 'io.crate.bootstrap.CrateF'
+    main = 'io.crate.bootstrap.CrateDB'
     debug = true
     enableAssertions = true
     classpath = sourceSets.main.runtimeClasspath
@@ -390,7 +390,7 @@ task(runDebug, dependsOn: 'classes', type: JavaExec) {
 }
 
 task(run, dependsOn: 'classes', type: JavaExec) {
-    main = 'io.crate.bootstrap.CrateF'
+    main = 'io.crate.bootstrap.CrateDB'
     debug = false
     enableAssertions = true
     classpath = sourceSets.main.runtimeClasspath

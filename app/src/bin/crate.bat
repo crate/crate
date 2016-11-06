@@ -65,7 +65,7 @@ if "%CRATE_CLASSPATH%" == "" (
 )
 set CRATE_PARAMS=-Dcrate -Des.path.home="%CRATE_HOME%"
 
-"%JAVA_HOME%\bin\java" %JAVA_OPTS% %CRATE_JAVA_OPTS% %CRATE_PARAMS% %* -cp "%CRATE_CLASSPATH%" "io.crate.bootstrap.CrateF"
+"%JAVA_HOME%\bin\java" %JAVA_OPTS% %CRATE_JAVA_OPTS% %CRATE_PARAMS% %* -cp "%CRATE_CLASSPATH%" "io.crate.bootstrap.CrateDB"
 goto finally
 
 
