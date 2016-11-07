@@ -224,7 +224,7 @@ public class NestedLoopOperation implements CompletionListenable {
             return true;
         }
 
-        private boolean exitIfFirstCallAndLead() {
+        protected boolean exitIfFirstCallAndLead() {
             upstreamFinished = true;
             if (firstCall) {
                 firstCall = false;
@@ -461,32 +461,37 @@ public class NestedLoopOperation implements CompletionListenable {
                 return;
             }
 
-            if ((JoinType.LEFT == joinType || JoinType.FULL == joinType) &&
-                !matchedJoinPredicate && left.lastRow != null) {
-                // emit row with right one nulled
-                combinedRow.outerRow = left.lastRow;
-                combinedRow.innerRow = rightNullRow;
-                Result result = emitRowAndTrace(combinedRow);
-                LOGGER.trace("phase={} side=right method=finish firstCall={} emitNullRow result={}", phaseId, firstCall, result);
-                switch (result) {
-                    case CONTINUE:
-                        break;
-                    case PAUSE:
-                        downstream.pauseProcessed(new ResumeHandle() {
-                            @Override
-                            public void resume(boolean async) {
-                                if (tryFinish()) {
-                                    return;
+            if (JoinType.LEFT == joinType || JoinType.FULL == joinType) {
+                if (exitIfFirstCallAndLead()) {
+                    // left did not send any row so just return
+                    return;
+                }
+                if (!matchedJoinPredicate && left.lastRow != null) {
+                    // emit row with right one nulled
+                    combinedRow.outerRow = left.lastRow;
+                    combinedRow.innerRow = rightNullRow;
+                    Result result = emitRowAndTrace(combinedRow);
+                    LOGGER.trace("phase={} side=right method=finish firstCall={} emitNullRow result={}", phaseId, firstCall, result);
+                    switch (result) {
+                        case CONTINUE:
+                            break;
+                        case PAUSE:
+                            downstream.pauseProcessed(new ResumeHandle() {
+                                @Override
+                                public void resume(boolean async) {
+                                    if (tryFinish()) {
+                                        return;
+                                    }
+                                    switchTo(left.resumeable);
                                 }
-                                switchTo(left.resumeable);
-                            }
-                        });
-                        // return without setting upstreamFinished=true to ensure left-side get's paused (if it isn't already)
-                        // this way the resumeHandle call can un-pause it
-                        return;
-                    case STOP:
-                        stop = true;
-                        break;
+                            });
+                            // return without setting upstreamFinished=true to ensure left-side get's paused (if it isn't already)
+                            // this way the resumeHandle call can un-pause it
+                            return;
+                        case STOP:
+                            stop = true;
+                            break;
+                    }
                 }
             }
             if (tryFinish()) {
