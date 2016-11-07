@@ -205,21 +205,6 @@ public class SysNodesExpressionsTest extends CrateUnitTest {
         }
     }
 
-    /**
-     * Resolve canonical path (platform independent)
-     *
-     * @param path the path to be resolved (e.g. /dev/sda1)
-     * @return full canonical path (e.g. linux will resolve to /dev/sda1, windows to C:\dev\sda1)
-     */
-    private String resolveCanonicalPath(String path) {
-        try {
-            return new File(path).getCanonicalPath();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-        return null;
-    }
-
     @Before
     public void prepare() throws Exception {
         MonitorModule monitorModule = new MonitorModule(NODE_SETTINGS);
@@ -344,20 +329,20 @@ public class SysNodesExpressionsTest extends CrateUnitTest {
         Object[] disks = (Object[]) v.get("disks");
         assertThat(disks.length, is(2));
         Map<String, Object> disk0 = (Map<String, Object>) disks[0];
-        assertThat((String) disk0.get("dev"), is(resolveCanonicalPath("/dev/sda1")));
+        assertThat((String) disk0.get("dev"), is("/dev/sda1"));
         assertThat((Long) disk0.get("size"), is(42L));
 
         Map<String, Object> disk1 = (Map<String, Object>) disks[1];
-        assertThat((String) disk1.get("dev"), is(resolveCanonicalPath("/dev/sda2")));
+        assertThat((String) disk1.get("dev"), is("/dev/sda2"));
         assertThat((Long) disk0.get("used"), is(42L));
 
         Object[] data = (Object[]) v.get("data");
         assertThat(data.length, is(2));
-        assertThat((String) ((Map<String, Object>) data[0]).get("dev"), is(resolveCanonicalPath("/dev/sda1")));
-        assertThat((String) ((Map<String, Object>) data[0]).get("path"), is(resolveCanonicalPath("/foo")));
+        assertThat((String) ((Map<String, Object>) data[0]).get("dev"), is("/dev/sda1"));
+        assertThat((String) ((Map<String, Object>) data[0]).get("path"), is("/foo"));
 
-        assertThat((String) ((Map<String, Object>) data[1]).get("dev"), is(resolveCanonicalPath("/dev/sda2")));
-        assertThat((String) ((Map<String, Object>) data[1]).get("path"), is(resolveCanonicalPath("/bar")));
+        assertThat((String) ((Map<String, Object>) data[1]).get("dev"), is("/dev/sda2"));
+        assertThat((String) ((Map<String, Object>) data[1]).get("path"), is("/bar"));
 
         refInfo = refInfo("sys.nodes.fs", DataTypes.STRING, RowGranularity.NODE, "data", "dev");
         NestedObjectExpression fsRef =

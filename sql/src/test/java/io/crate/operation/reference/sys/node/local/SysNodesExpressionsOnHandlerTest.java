@@ -232,31 +232,31 @@ public class SysNodesExpressionsOnHandlerTest extends CrateUnitTest {
         Object[] disks = (Object[]) v.get("disks");
         assertThat(disks.length, is(2));
         Map<String, Object> disk0 = (Map<String, Object>) disks[0];
-        assertThat((BytesRef) disk0.get("dev"), is(BytesRefs.toBytesRef(resolveCanonicalPath("/dev/sda1"))));
+        assertThat((BytesRef) disk0.get("dev"), is(BytesRefs.toBytesRef("/dev/sda1")));
         assertThat((Long) disk0.get("size"), is(42L));
 
         Map<String, Object> disk1 = (Map<String, Object>) disks[1];
-        assertThat((BytesRef) disk1.get("dev"), is(BytesRefs.toBytesRef(resolveCanonicalPath("/dev/sda2"))));
+        assertThat((BytesRef) disk1.get("dev"), is(BytesRefs.toBytesRef("/dev/sda2")));
         assertThat((Long) disk0.get("used"), is(42L));
 
         Object[] data = (Object[]) v.get("data");
         assertThat(data.length, is(2));
         assertThat(
             (BytesRef) ((Map<String, Object>) data[0]).get("dev"),
-            is(BytesRefs.toBytesRef(resolveCanonicalPath("/dev/sda1")))
+            is(BytesRefs.toBytesRef("/dev/sda1"))
         );
         assertThat(
             (BytesRef) ((Map<String, Object>) data[0]).get("path"),
-            is(BytesRefs.toBytesRef(resolveCanonicalPath("/foo")))
+            is(BytesRefs.toBytesRef("/foo"))
         );
 
         assertThat(
             (BytesRef) ((Map<String, Object>) data[1]).get("dev"),
-            is(BytesRefs.toBytesRef(resolveCanonicalPath("/dev/sda2")))
+            is(BytesRefs.toBytesRef("/dev/sda2"))
         );
         assertThat(
             (BytesRef) ((Map<String, Object>) data[1]).get("path"),
-            is(BytesRefs.toBytesRef(resolveCanonicalPath("/bar")))
+            is(BytesRefs.toBytesRef("/bar"))
         );
 
         refInfo = refInfo("sys.nodes.fs", DataTypes.STRING, RowGranularity.NODE, "data", "dev");
@@ -265,10 +265,6 @@ public class SysNodesExpressionsOnHandlerTest extends CrateUnitTest {
         for (Object arrayElement : (Object[]) collectExpression.value()) {
             assertThat(arrayElement, instanceOf(BytesRef.class));
         }
-    }
-
-    private String resolveCanonicalPath(String path) {
-        return new File(path).getPath().replace("\\", "/");
     }
 
     @Test
