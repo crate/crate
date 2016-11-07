@@ -1,13 +1,5 @@
 apply from: "$rootDir/gradle/javaModule.gradle"
 
-
-compileJava {
-    // upstream code - not interested in any warnings
-    options.warnings = false
-    options.deprecation = false
-    options.compilerArgs << '-XDignore.symbol.file'
-}
-
 dependencies {
     compile project(':es:es-core')
 
@@ -29,14 +21,6 @@ dependencies {
     compile "org.hamcrest:hamcrest-all:${versions.hamcrest}"
 
     compile "com.google.code.findbugs:jsr305:${versions.jsr305}"
-}
-
-
-test {
-    enabled = false
-    jacoco {
-        enabled = false
-    }
 }
 
 sourceSets {
@@ -63,7 +47,6 @@ sourceSets {
     }
 
 }
-
 
 idea {
     module {

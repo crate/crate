@@ -1,0 +1,22 @@
+subprojects {
+    compileJava {
+        // upstream code - not interested in any warnings
+        options.warnings = false
+        options.deprecation = false
+        options.compilerArgs << '-XDignore.symbol.file'
+        options.fork = true
+        options.forkOptions.executable = 'javac'
+    }
+    compileTestJava {
+        // upstream code - not interested in any warnings
+        options.warnings = false
+        options.deprecation = false
+        options.compilerArgs << '-XDignore.symbol.file'
+    }
+    test {
+        enabled = false
+        jacoco {
+            enabled = false
+        }
+    }
+}

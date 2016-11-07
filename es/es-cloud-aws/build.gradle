@@ -3,10 +3,11 @@ apply plugin: 'idea'
 
 dependencies {
     compile project(':es:es-core')
-    testCompile project(':testing')
+    compile "com.amazonaws:aws-java-sdk-ec2:${versions.aws}"
+    compile "com.amazonaws:aws-java-sdk-s3:${versions.aws}"
 }
 
-def pluginDir = project(":es").file('upstream/plugins/discovery-multicast')
+def pluginDir = file('../upstream/plugins/cloud-aws')
 
 sourceSets {
     main {
@@ -21,11 +22,9 @@ sourceSets {
     }
 }
 
-test.enabled = false
-
 idea {
     module {
         contentRoot = pluginDir
-        excludeDirs += file('build')
+        excludeDirs += files('build', 'src/test')
     }
 }
