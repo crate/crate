@@ -221,7 +221,7 @@ public class HttpBlobHandler extends SimpleChannelUpstreamHandler implements
 
     private void sendResponse(HttpResponse response) {
         ChannelFuture cf = ctx.getChannel().write(response);
-        if (!HttpHeaders.isKeepAlive(currentMessage)) {
+        if (currentMessage != null && !HttpHeaders.isKeepAlive(currentMessage)) {
             cf.addListener(ChannelFutureListener.CLOSE);
         }
     }
@@ -244,21 +244,22 @@ public class HttpBlobHandler extends SimpleChannelUpstreamHandler implements
         }
 
         HttpResponseStatus status;
-        String body = ex.toString();
-        if (ex instanceof DigestMismatchException) {
+        String body = null;
+        if (ex instanceof DigestMismatchException || ex instanceof BlobsDisabledException
+            || ex instanceof IllegalArgumentException) {
             status = HttpResponseStatus.BAD_REQUEST;
-        } else if (ex instanceof DigestNotFoundException) {
+            body = String.format(Locale.ENGLISH, "Invalid request sent: %s", ex.getMessage());
+        } else if (ex instanceof DigestNotFoundException || ex instanceof IndexNotFoundException) {
             status = HttpResponseStatus.NOT_FOUND;
-            body = null;
-        } else if (ex instanceof BlobsDisabledException || ex instanceof IndexNotFoundException) {
-            status = HttpResponseStatus.BAD_REQUEST;
-            body = ex.getMessage();
         } else if (ex instanceof EsRejectedExecutionException) {
             status = TOO_MANY_REQUESTS;
-            body = ex.getMessage();
+            body = String.format(Locale.ENGLISH, "Rejected execution: %s", ex.getMessage());
         } else {
             status = HttpResponseStatus.INTERNAL_SERVER_ERROR;
-            LOGGER.error("unhandled exception:", ex);
+            body = String.format(Locale.ENGLISH, "Unhandled exception: %s", ex);
+        }
+        if (body != null) {
+            LOGGER.debug(body);
         }
         simpleResponse(status, body);
     }

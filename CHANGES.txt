@@ -5,6 +5,10 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Log unhandled HTTP related exceptions as `debug` instead of `error`.
+
+ - Fixed NPE that can occur on invalid HTTP requests.
+
  - Removed reduced thread stack size java option, stack size defaults
    to JVM defaults now.
 

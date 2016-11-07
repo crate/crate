@@ -80,7 +80,7 @@ public class BlobIntegrationTest extends BlobHttpIntegrationTest {
     public void testUploadToUnknownBlobTable() throws IOException {
         String digest = "c520e6109835c876fd98636efec43dd61634b7d3";
         CloseableHttpResponse response = put(blobUri("test_no_blobs", digest), StringUtils.repeat("a", 1500));
-        assertThat(response.getStatusLine().getStatusCode(), is(400));
+        assertThat(response.getStatusLine().getStatusCode(), is(404));
     }
 
     @Test
@@ -225,7 +225,7 @@ public class BlobIntegrationTest extends BlobHttpIntegrationTest {
 
         BufferedReader reader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
         int linesRead = 0;
-        while (linesRead < 4) {
+        while (linesRead < 3) {
             String line = reader.readLine();
             System.out.println(line);
             linesRead++;
