@@ -1,5 +1,3 @@
-apply from: "$rootDir/gradle/javaModule.gradle"
-
 dependencies {
     compile project(':es:es-core')
 

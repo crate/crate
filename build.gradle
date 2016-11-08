@@ -162,7 +162,6 @@ project.gradle.addListener(new TestListener() {
 def jacocoProjects() {
     subprojects.findAll {
         !['es-core',
-          'es-client',
           'es-testing',
           'es-discovery-multicast',
           'es-cloud-aws',

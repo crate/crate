@@ -1,5 +1,4 @@
 apply from: "$rootDir/gradle/javaModule.gradle"
-apply plugin: 'idea'
 
 archivesBaseName = 'crate-azure-discovery'
 group = 'io.crate'

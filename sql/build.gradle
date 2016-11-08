@@ -1,5 +1,4 @@
 apply from: "$rootDir/gradle/javaModule.gradle"
-apply plugin: 'idea'
 apply plugin: 'groovy'
 apply plugin: 'de.thetaphi.forbiddenapis'
 

@@ -20,8 +20,8 @@ configurations {
     }
 }
 
+evaluationDependsOn(':es')
 evaluationDependsOn(':core')
-evaluationDependsOn(':es:es-core')
 evaluationDependsOn(':sql')
 evaluationDependsOn(':sql-parser')
 evaluationDependsOn(':blob')

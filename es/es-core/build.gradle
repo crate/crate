@@ -1,5 +1,3 @@
-apply from: "$rootDir/gradle/javaModule.gradle"
-
 dependencies {
     // start ES compile dependencies
     // generated in upstream directory with:
