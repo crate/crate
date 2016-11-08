@@ -22,9 +22,7 @@
 
 package io.crate.executor.transport;
 
-import com.google.common.base.Supplier;
 import com.google.common.collect.ImmutableList;
-import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import io.crate.action.job.ContextPreparer;
 import io.crate.action.sql.DDLStatementDispatcher;
@@ -77,6 +75,7 @@ import org.elasticsearch.threadpool.ThreadPool;
 
 import javax.annotation.Nullable;
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
 
 @Singleton
 public class TransportExecutor implements Executor {
@@ -97,6 +96,7 @@ public class TransportExecutor implements Executor {
     private final BulkRetryCoordinatorPool bulkRetryCoordinatorPool;
 
     private final ProjectionToProjectorVisitor globalProjectionToProjectionVisitor;
+    private final MultiPhaseExecutor multiPhaseExecutor = new MultiPhaseExecutor();
 
     private final static BulkNodeOperationTreeGenerator BULK_NODE_OPERATION_VISITOR = new BulkNodeOperationTreeGenerator();
 
@@ -141,7 +141,10 @@ public class TransportExecutor implements Executor {
 
     @Override
     public void execute(Plan plan, RowReceiver rowReceiver, Row parameters) {
-        plan2TaskVisitor.process(plan, null).execute(rowReceiver, parameters);
+        CompletableFuture<Plan> planFuture = multiPhaseExecutor.process(plan, null);
+        planFuture
+            .thenAccept(p -> plan2TaskVisitor.process(p, null).execute(rowReceiver, parameters))
+            .exceptionally(t -> { rowReceiver.fail(t); return null; });
     }
 
     @Override
@@ -260,53 +263,72 @@ public class TransportExecutor implements Executor {
 
         @Override
         public Task visitMultiPhasePlan(MultiPhasePlan multiPhasePlan, final Void context) {
-            /*
-             * This triggers a sequential execution of a multiPhasePlan:
-             * First the dependencies (concurrently)
-             * Then via a DelayedTask the root plan.
-             *
-             * The rootTask and each dependency will be executed as separate job.
-             *
-             * This can be recursive.
-             * E.g.
-             *
-             * MultiPhaseTask
-             *      rootPlan: QueryThenFetch
-             *      deps: [
-             *          MultiPhasePlan
-             *              rootPlan: QueryThenFetch
-             *              deps: [CollectAndMerge, CollectAndMerge]
-             *      ]
-             *
-             * Note that a MultiPhaseTask always has to be the parent. Something like:
-             *
-             *      QueryThenFetch
-             *          subPlan: MultiPhaseTask
-             *
-             * Wouldn't work because QueryThenFetch would be handled by the NodeOperationTreeGenerator
-             */
+            throw new UnsupportedOperationException("MultiPhasePlan should have been processed by MultiPhaseExecutor");
+        }
+    }
+
+    /**
+     * Executor that triggers the execution of MultiPhasePlans.
+     * E.g.:
+     *
+     * processing a Plan that looks as follows:
+     * <pre>
+     *     QTF
+     *      |
+     *      +-- MultiPhasePlan
+     *              root: Collect3
+     *              deps: [Collect1, Collect2]
+     * </pre>
+     *
+     * Executions will be triggered for collect1 and collect2, and if those are completed, Collect3 will be returned
+     * as future which encapsulated the execution
+     */
+    private class MultiPhaseExecutor extends PlanVisitor<Void, CompletableFuture<Plan>> {
+
+        @Override
+        protected CompletableFuture<Plan> visitPlan(Plan plan, Void context) {
+            return CompletableFuture.completedFuture(plan);
+        }
+
+        @Override
+        public CompletableFuture<Plan> visitMerge(Merge merge, Void context) {
+            return process(merge.subPlan(), context).thenApply(p -> merge);
+        }
+
+        @Override
+        public CompletableFuture<Plan> visitNestedLoop(NestedLoop plan, Void context) {
+            CompletableFuture<Plan> fLeft = process(plan.left(), context);
+            CompletableFuture<Plan> fRight = process(plan.right(), context);
+            return CompletableFuture.allOf(fLeft, fRight).thenApply(x -> plan);
+        }
+
+        @Override
+        public CompletableFuture<Plan> visitQueryThenFetch(QueryThenFetch qtf, Void context) {
+            return process(qtf.subPlan(), context).thenApply(x -> qtf);
+        }
+
+        @Override
+        public CompletableFuture<Plan> visitMultiPhasePlan(MultiPhasePlan multiPhasePlan, Void context) {
             Map<Plan, SelectSymbol> dependencies = multiPhasePlan.dependencies();
-            List<ListenableFuture<?>> futures = new ArrayList<>();
-            final Plan rootPlan = multiPhasePlan.rootPlan();
-            for (final Map.Entry<Plan, SelectSymbol> entry : dependencies.entrySet()) {
-                Plan dependency = entry.getKey();
-                Task task = process(dependency, context);
-                SingleRowSingleValueRowReceiver singleRowSingleValueRowReceiver = new SingleRowSingleValueRowReceiver(
-                    rootPlan, entry.getValue());
-                futures.add(singleRowSingleValueRowReceiver.completionFuture());
-                task.execute(singleRowSingleValueRowReceiver, Row.EMPTY);
+            List<CompletableFuture<?>> dependencyFutures = new ArrayList<>();
+            Plan rootPlan = multiPhasePlan.rootPlan();
+            for (Map.Entry<Plan, SelectSymbol> entry : dependencies.entrySet()) {
+                Plan plan = entry.getKey();
+                SingleRowSingleValueRowReceiver singleRowSingleValueRowReceiver =
+                    new SingleRowSingleValueRowReceiver(rootPlan, entry.getValue());
+
+                CompletableFuture<Plan> planFuture = process(plan, context);
+                planFuture.whenComplete((p, e) -> {
+                    if (e == null) {
+                        execute(p, singleRowSingleValueRowReceiver, Row.EMPTY);
+                    } else {
+                        singleRowSingleValueRowReceiver.fail(e);
+                    }
+                });
+                dependencyFutures.add(singleRowSingleValueRowReceiver.completionFuture());
             }
-            // Creation of the rootTask is delayed until the DelayedTask actually wants to use it.
-            // This is done because some Tasks might access the Symbols in the constructor and they might not be able
-            // to handle SelectSymbols.
-            // This ensures the Symbols are replaced once accessed
-            Supplier<Task> rootTaskSupplier = new Supplier<Task>() {
-                @Override
-                public Task get() {
-                    return process(rootPlan, context);
-                }
-            };
-            return new DelayedTask(Futures.allAsList(futures), rootTaskSupplier);
+            CompletableFuture[] cfs = dependencyFutures.toArray(new CompletableFuture[0]);
+            return CompletableFuture.allOf(cfs).thenCompose(x -> process(rootPlan, context));
         }
     }
 
@@ -528,6 +550,15 @@ public class TransportExecutor implements Executor {
         public Void visitQueryThenFetch(QueryThenFetch node, NodeOperationTreeContext context) {
             process(node.subPlan(), context);
             context.addContextPhase(node.fetchPhase());
+            return null;
+        }
+
+        @Override
+        public Void visitMultiPhasePlan(MultiPhasePlan multiPhasePlan, NodeOperationTreeContext context) {
+            // MultiPhasePlan's should be executed by the MultiPhaseExecutor, but it doesn't remove
+            // them from the tree in order to avoid re-creating plans with the MultiPhasePlan removed,
+            // so here it's fine to just skip over the multiPhasePlan because it has already been executed
+            process(multiPhasePlan.rootPlan(), context);
             return null;
         }
 

@@ -118,7 +118,7 @@ public class SubSelectIntegrationTest extends SQLTransportIntegrationTest {
         setup.groupBySetup();
 
         expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("complex sub selects are not supported");
+        expectedException.expectMessage("Cannot create plan for: ");
         execute("select gender, minAge from ( " +
                 "  select gender, min(age) as minAge from characters group by gender" +
                 ") as ch " +
@@ -130,7 +130,7 @@ public class SubSelectIntegrationTest extends SQLTransportIntegrationTest {
         setup.groupBySetup();
 
         expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("complex sub selects are not supported");
+        expectedException.expectMessage("Cannot create plan for: ");
         execute("select count(*) from (" +
                 "  select min(age) as minAge from characters group by gender) as ch " +
                 "group by minAge");
@@ -141,7 +141,7 @@ public class SubSelectIntegrationTest extends SQLTransportIntegrationTest {
         setup.groupBySetup();
 
         expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("complex sub selects are not supported");
+        expectedException.expectMessage("Cannot create plan for: ");
         execute("select race, avg(age) as avgAge from ( " +
                 "  select * from characters where gender = 'male' order by age) as ch " +
                 "group by race");
@@ -343,5 +343,40 @@ public class SubSelectIntegrationTest extends SQLTransportIntegrationTest {
 
         expectedException.expectMessage("Using a non-integer constant in ORDER BY is not supported");
         execute("select x from t order by (select 1)");
+    }
+
+    @Test
+    public void testGlobalAggregatesOnSimpleSubQuery() throws Exception {
+        execute("create table t (x int)");
+        ensureYellow();
+
+        execute("insert into t (x) values (1), (2)");
+        execute("refresh table t");
+
+        // orderBy and limit in subQuery to prevent rewrite to non-subquery
+        execute("select sum(x) from (select x from t order by x limit 1) as t");
+        assertThat(TestingHelpers.printedTable(response.rows()), is("1.0\n"));
+    }
+
+    @Test
+    public void testGlobalAggregationOnNestedSubQueryWithGlobalAggregation() throws Exception {
+        execute("create table t (x int)");
+        ensureYellow();
+        execute("insert into t (x) values (1), (2)");
+        execute("refresh table t");
+
+        execute("select sum(x) from (select min(x) as x from (select max(x) as x from t) as t) as t");
+        assertThat(TestingHelpers.printedTable(response.rows()), is("2\n"));
+    }
+
+    @Test
+    public void testGlobalAggregationOnSubqueryWithScalarSubquery() throws Exception {
+        execute("create table t (x int)");
+        ensureYellow();
+        execute("insert into t (x) values (1), (2)");
+        execute("refresh table t");
+
+        execute("select sum(x) from (select min(x) as x from t where x = (select 2)) as t");
+        assertThat(TestingHelpers.printedTable(response.rows()), is("2.0\n"));
     }
 }

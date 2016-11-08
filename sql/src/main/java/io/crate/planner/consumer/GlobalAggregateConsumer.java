@@ -23,10 +23,7 @@ package io.crate.planner.consumer;
 
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
-import io.crate.analyze.HavingClause;
-import io.crate.analyze.QueriedTable;
-import io.crate.analyze.QueriedTableRelation;
-import io.crate.analyze.QuerySpec;
+import io.crate.analyze.*;
 import io.crate.analyze.relations.AbstractTableRelation;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.QueriedDocTable;
@@ -38,11 +35,9 @@ import io.crate.metadata.Functions;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RowGranularity;
 import io.crate.operation.projectors.TopN;
-import io.crate.planner.Limits;
-import io.crate.planner.Merge;
-import io.crate.planner.Plan;
-import io.crate.planner.Planner;
+import io.crate.planner.*;
 import io.crate.planner.distribution.DistributionInfo;
+import io.crate.planner.node.ExecutionPhases;
 import io.crate.planner.node.dql.Collect;
 import io.crate.planner.node.dql.MergePhase;
 import io.crate.planner.node.dql.RoutedCollectPhase;
@@ -95,21 +90,52 @@ class GlobalAggregateConsumer implements Consumer {
             return globalAggregates(functions, table, context, RowGranularity.CLUSTER);
         }
 
+        @Override
+        public Plan visitQueriedSelectRelation(QueriedSelectRelation relation, ConsumerContext context) {
+            QuerySpec qs = relation.querySpec();
+            if (qs.groupBy().isPresent() || !qs.hasAggregates()) {
+                return null;
+            }
+            Planner.Context plannerContext = context.plannerContext();
+            Plan subPlan = plannerContext.planSubRelation(relation.subRelation(), context);
+            if (subPlan == null) {
+                return null;
+            }
+            subPlan = Merge.mergeToHandler(subPlan, plannerContext);
+            ResultDescription resultDescription = subPlan.resultDescription();
+            boolean executesOnHandler = ExecutionPhases.executesOnHandler(
+                plannerContext.handlerNode(), resultDescription.nodeIds());
+            ProjectionBuilder projectionBuilder = new ProjectionBuilder(functions, qs);
+            SplitPoints splitPoints = projectionBuilder.getSplitPoints();
+            AggregationProjection collectPartialAggProjection = projectionBuilder.aggregationProjection(
+                splitPoints.toCollect(),
+                splitPoints.aggregates(),
+                Aggregation.Step.ITER,
+                executesOnHandler ? Aggregation.Step.FINAL : Aggregation.Step.PARTIAL,
+                RowGranularity.CLUSTER
+            );
+            subPlan.addProjection(
+                collectPartialAggProjection, null, null, collectPartialAggProjection.outputs().size(), null);
+            if (executesOnHandler) {
+                return subPlan;
+            }
+            subPlan.setDistributionInfo(DistributionInfo.DEFAULT_BROADCAST);
+            return addHandlerMerge(
+                qs, plannerContext, projectionBuilder, splitPoints, subPlan);
+        }
     }
 
     private static Plan globalAggregates(Functions functions,
-                                                            QueriedTableRelation table,
-                                                            ConsumerContext context,
-                                                            RowGranularity projectionGranularity) {
+                                         QueriedTableRelation table,
+                                         ConsumerContext context,
+                                         RowGranularity projectionGranularity) {
         QuerySpec querySpec = table.querySpec();
         if (querySpec.groupBy().isPresent() || !querySpec.hasAggregates()) {
             return null;
         }
-
+        // global aggregate: collect and partial aggregate on C and final agg on H
         Planner.Context plannerContext = context.plannerContext();
         validateAggregationOutputs(table.tableRelation(), querySpec.outputs());
-        // global aggregate: collect and partial aggregate on C and final agg on H
-
         ProjectionBuilder projectionBuilder = new ProjectionBuilder(functions, querySpec);
         SplitPoints splitPoints = projectionBuilder.getSplitPoints();
 
@@ -127,15 +153,22 @@ class GlobalAggregateConsumer implements Consumer {
             ImmutableList.of(ap)
         );
         Collect collect = new Collect(collectPhase, TopN.NO_LIMIT, 0, ap.outputs().size(), 1, null);
+        return addHandlerMerge(querySpec, plannerContext, projectionBuilder, splitPoints, collect);
+    }
 
-        //// the handler stuff
+    private static Plan addHandlerMerge(QuerySpec querySpec,
+                                        Planner.Context plannerContext,
+                                        ProjectionBuilder projectionBuilder,
+                                        SplitPoints splitPoints,
+                                        Plan subPlan) {
         List<Projection> mergeProjections = new ArrayList<>();
-        mergeProjections.add(projectionBuilder.aggregationProjection(
+        AggregationProjection aggregationProjection = projectionBuilder.aggregationProjection(
             splitPoints.aggregates(),
             splitPoints.aggregates(),
             Aggregation.Step.PARTIAL,
             Aggregation.Step.FINAL,
-            RowGranularity.CLUSTER));
+            RowGranularity.CLUSTER);
+        mergeProjections.add(aggregationProjection);
 
         Optional<HavingClause> havingClause = querySpec.having();
         if (havingClause.isPresent()) {
@@ -155,14 +188,14 @@ class GlobalAggregateConsumer implements Consumer {
             plannerContext.jobId(),
             plannerContext.nextExecutionPhaseId(),
             "mergeOnHandler",
-            collectPhase.nodeIds().size(),
+            subPlan.resultDescription().nodeIds().size(),
             Collections.emptyList(),
-            Symbols.extractTypes(ap.outputs()),
+            subPlan.resultDescription().streamOutputs(),
             mergeProjections,
             DistributionInfo.DEFAULT_SAME_NODE,
             null
         );
-        return new Merge(collect, mergePhase, TopN.NO_LIMIT, 0, topNProjection.outputs().size(), 1, null);
+        return new Merge(subPlan, mergePhase, TopN.NO_LIMIT, 0, topNProjection.outputs().size(), 1, null);
     }
 
     private static void validateAggregationOutputs(AbstractTableRelation tableRelation, Collection<? extends Symbol> outputSymbols) {

@@ -48,14 +48,14 @@ public class MultiPhasePlan implements Plan {
     private final Plan rootPlan;
     private final Map<Plan, SelectSymbol> dependencies;
 
-    static Plan createIfNeeded(Plan subPlan, Map<Plan, SelectSymbol> dependencies) {
+    public static Plan createIfNeeded(Plan subPlan, Map<Plan, SelectSymbol> dependencies) {
         if (dependencies.isEmpty()) {
             return subPlan;
         }
         return new MultiPhasePlan(subPlan, dependencies);
     }
 
-    private MultiPhasePlan(Plan rootPlan, Map<Plan, SelectSymbol> dependencies) {
+    public MultiPhasePlan(Plan rootPlan, Map<Plan, SelectSymbol> dependencies) {
         this.rootPlan = rootPlan;
         this.dependencies = dependencies;
     }
