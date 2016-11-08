@@ -24,6 +24,7 @@ package io.crate.operation.aggregation.impl;
 
 import com.tdunning.math.stats.AVLTreeDigest;
 import com.tdunning.math.stats.Centroid;
+import com.tdunning.math.stats.TDigest;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
@@ -32,9 +33,9 @@ import java.io.IOException;
 class TDigestState extends AVLTreeDigest {
 
     private final double compression;
-    private final double[] fractions;
+    private Double[] fractions;
 
-    TDigestState(double compression, double[] fractions) {
+    TDigestState(double compression, Double[] fractions) {
         super(compression);
         this.compression = compression;
         this.fractions = fractions;
@@ -45,13 +46,27 @@ class TDigestState extends AVLTreeDigest {
         return compression;
     }
 
-    double[] fractions() {
+    Double[] fractions() {
         return fractions;
+    }
+
+    void fractions(Double[] fractions) {
+        this.fractions = fractions;
     }
 
     public static void write(TDigestState state, StreamOutput out) throws IOException {
         out.writeDouble(state.compression);
-        out.writeDoubleArray(state.fractions);
+
+        int n = state.fractions().length;
+        out.writeVInt(n);
+        for (int i = 0; i < n; i++) {
+            Double fraction = state.fractions()[i];
+            out.writeBoolean(fraction != null);
+            if (fraction != null) {
+                out.writeDouble(fraction);
+            }
+        }
+
         out.writeVInt(state.centroidCount());
         for (Centroid centroid : state.centroids()) {
             out.writeDouble(centroid.mean());
@@ -61,13 +76,24 @@ class TDigestState extends AVLTreeDigest {
 
     public static TDigestState read(StreamInput in) throws IOException {
         double compression = in.readDouble();
-        double[] fractions = in.readDoubleArray();
-        TDigestState state = new TDigestState(compression, fractions);
+
         int n = in.readVInt();
+        Double[] fractions = new Double[n];
+        for (int i = 0; i < n; i++) {
+            fractions[i] = in.readBoolean() ? in.readDouble(): null;
+        }
+        TDigestState state = new TDigestState(compression, fractions);
+        n = in.readVInt();
         for (int i = 0; i < n; i++) {
             state.add(in.readDouble(), in.readVInt());
         }
         return state;
     }
 
+    @Override
+    public void add(TDigest other) {
+        super.add(other);
+        TDigestState tDigestState = (TDigestState) other;
+        fractions = tDigestState.fractions();
+    }
 }

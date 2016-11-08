@@ -336,16 +336,19 @@ percentile
 The ``percentile`` aggregation function computes a `Percentile`_ over numeric
 non-null values in a column.
 
-Percentiles show the point at which a certain percentage of observed values occur.
-For example, the 98th percentile is the value which is greater than 98% of the observed values.
-The result is defined and computed as an interpolated weighted average. According to that it
-allows the median of the input data to be defined conveniently as the 50th percentile.
+Percentiles show the point at which a certain percentage of observed values
+occur. For example, the 98th percentile is the value which is greater than 98%
+of the observed values. The result is defined and computed as an interpolated
+weighted average. According to that it allows the median of the input data to
+be defined conveniently as the 50th percentile.
 
-The function expects a single fraction or an array of fractions and a column name. Independent
-of the input column data type the result of ``percentile`` always returns a double. If the
-value at the specified column is ``null`` the row is ignored. Fractions must be double
-precision values between 0 and 1. When supplied a single fraction, the function will return
-a single value corresponding to the percentile of the specified fraction::
+The function expects a single fraction or an array of fractions and a column
+name. Independent of the input column data type the result of ``percentile``
+always returns a double. If the value at the specified column is ``null`` the
+row is ignored. Fractions must be double precision values between 0 and 1.
+However, a null fraction value produces a null result. When supplied a single
+fraction, the function will return a single value corresponding to the
+percentile of the specified fraction::
 
     cr> select percentile(position, 0.95), kind from locations
     ... group by kind order by kind;
@@ -371,11 +374,12 @@ corresponding to the percentile of each fraction specified::
     SELECT 1 row in set (... sec)
 
 
-To be able to calculate percentiles over a huge amount of data and to scale out crate calculates
-approximate instead of accurate percentiles. The algorithm used by the percentile metric is called
-`TDigest`_. The accuracy/size trade-off of the algorithm is defined by a single compression
-parameter which has a constant value of ``100``. However, there are a few guidelines to keep in mind
-in this implementation:
+To be able to calculate percentiles over a huge amount of data and to scale
+out crate calculates approximate instead of accurate percentiles. The
+algorithm used by the percentile metric is called `TDigest`_. The accuracy/size
+trade-off of the algorithm is defined by a single compression parameter which
+has a constant value of ``100``. However, there are a few guidelines to keep in
+mind in this implementation:
 
     - Extreme percentiles (e.g. 99%) are more accurate
     - For small sets percentiles are highly accurate

@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fixed NPE in the ``percentile`` aggregation fucntion. The NPE occured
+   when queried shards have no records.
+
  - Log unhandled HTTP related exceptions as `debug` instead of `error`.
 
  - Fixed NPE that can occur on invalid HTTP requests.

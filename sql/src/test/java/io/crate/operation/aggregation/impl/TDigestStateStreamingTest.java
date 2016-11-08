@@ -27,13 +27,14 @@ import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.junit.Test;
 
-import static org.junit.Assert.assertEquals;
+import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThat;
 
-public class TDigestStateTest {
+public class TDigestStateStreamingTest {
 
     @Test
-    public void testStreaming() throws Exception {
-        TDigestState digestState1 = new TDigestState(250, new double[]{0.5, 0.8});
+    public void testTDigestStreaming() throws Exception {
+        TDigestState digestState1 = new TDigestState(250, new Double[]{0.5, 0.8});
         BytesStreamOutput out = new BytesStreamOutput();
         TDigestStateType digestStateType = TDigestStateType.INSTANCE;
         Streamer streamer = digestStateType.create().streamer();
@@ -41,8 +42,23 @@ public class TDigestStateTest {
         StreamInput in = StreamInput.wrap(out.bytes());
         TDigestState digestState2 = (TDigestState) streamer.readValueFrom(in);
 
-        assertEquals(digestState1.compression(), digestState2.compression(), 0.001d);
-        assertEquals(digestState1.fractions()[0], digestState2.fractions()[0], 0.001d);
-        assertEquals(digestState1.fractions()[1], digestState2.fractions()[1], 0.001d);
+        assertThat(digestState1.fractions()[0], is(digestState2.fractions()[0]));
+        assertThat(digestState1.fractions()[1], is(digestState2.fractions()[1]));
+        assertThat(digestState1.compression(), is(digestState2.compression()));
+    }
+
+    @Test
+    public void testTDigestStreamingWithNulls() throws Exception {
+        TDigestState digestState1 = new TDigestState(250, new Double[]{null, 0.8});
+        BytesStreamOutput out = new BytesStreamOutput();
+        TDigestStateType digestStateType = TDigestStateType.INSTANCE;
+        Streamer streamer = digestStateType.create().streamer();
+        streamer.writeValueTo(out, digestState1);
+        StreamInput in = StreamInput.wrap(out.bytes());
+        TDigestState digestState2 = (TDigestState) streamer.readValueFrom(in);
+
+        assertThat(digestState1.fractions()[0], is(digestState2.fractions()[0]));
+        assertThat(digestState1.fractions()[1], is(digestState2.fractions()[1]));
+        assertThat(digestState1.compression(), is(digestState2.compression()));
     }
 }
