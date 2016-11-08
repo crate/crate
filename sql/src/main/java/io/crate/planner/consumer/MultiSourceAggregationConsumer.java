@@ -27,19 +27,18 @@ import io.crate.analyze.MultiSourceSelect;
 import io.crate.analyze.QuerySpec;
 import io.crate.analyze.RelationSource;
 import io.crate.analyze.relations.AnalyzedRelation;
-import io.crate.analyze.symbol.*;
+import io.crate.analyze.symbol.Field;
+import io.crate.analyze.symbol.Function;
+import io.crate.analyze.symbol.Symbol;
 import io.crate.metadata.Functions;
-import io.crate.metadata.RowGranularity;
-import io.crate.operation.projectors.TopN;
-import io.crate.planner.*;
-import io.crate.planner.distribution.DistributionInfo;
-import io.crate.planner.node.dql.MergePhase;
-import io.crate.planner.projection.AggregationProjection;
-import io.crate.planner.projection.Projection;
+import io.crate.planner.Plan;
+import io.crate.planner.Planner;
 import io.crate.planner.projection.builder.ProjectionBuilder;
 import io.crate.planner.projection.builder.SplitPoints;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.ListIterator;
 
 class MultiSourceAggregationConsumer implements Consumer {
 
@@ -75,53 +74,8 @@ class MultiSourceAggregationConsumer implements Consumer {
             Planner.Context plannerContext = context.plannerContext();
             Plan plan = plannerContext.planSubRelation(multiSourceSelect, context);
 
-            return addAggregations(qs, projectionBuilder, splitPoints, plannerContext, plan);
+            return GlobalAggregateConsumer.addAggregations(qs, projectionBuilder, splitPoints, plannerContext, plan);
         }
-    }
-
-    private static Merge addAggregations(QuerySpec qs,
-                                         ProjectionBuilder projectionBuilder,
-                                         SplitPoints splitPoints,
-                                         Planner.Context plannerContext,
-                                         Plan plan) {
-        ResultDescription resultDescription = plan.resultDescription();
-        AggregationProjection partialAggregation = projectionBuilder.aggregationProjection(
-            splitPoints.toCollect(),
-            splitPoints.aggregates(),
-            Aggregation.Step.ITER,
-            Aggregation.Step.PARTIAL,
-            RowGranularity.CLUSTER
-        );
-        plan.addProjection(partialAggregation, null, null, splitPoints.aggregates().size(), null);
-
-        List<Projection> handlerProjections = new ArrayList<>();
-        AggregationProjection finalAggregation = projectionBuilder.aggregationProjection(
-            splitPoints.aggregates(),
-            splitPoints.aggregates(),
-            Aggregation.Step.PARTIAL,
-            Aggregation.Step.FINAL,
-            RowGranularity.CLUSTER
-        );
-        handlerProjections.add(finalAggregation);
-        if (qs.having().isPresent()) {
-            handlerProjections.add(ProjectionBuilder.filterProjection(splitPoints.aggregates(), qs.having().get()));
-        }
-        Limits limits = plannerContext.getLimits(qs);
-        handlerProjections.add(ProjectionBuilder.topNProjection(
-            splitPoints.aggregates(), null, limits.offset(), limits.finalLimit(), qs.outputs()));
-        MergePhase mergePhase = new MergePhase(
-            plannerContext.jobId(),
-            plannerContext.nextExecutionPhaseId(),
-            "mergeOnHandler",
-            resultDescription.nodeIds().size(),
-            Collections.singletonList(plannerContext.handlerNode()),
-            resultDescription.streamOutputs(),
-            handlerProjections,
-            DistributionInfo.DEFAULT_SAME_NODE,
-            null
-        );
-        return new Merge(
-            plan, mergePhase, TopN.NO_LIMIT, 0, splitPoints.aggregates().size(), 1, null);
     }
 
     private static void removeAggregationsAndLimitsFromMSS(MultiSourceSelect mss, SplitPoints splitPoints) {

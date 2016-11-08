@@ -177,7 +177,7 @@ public class UpdateConsumer implements Consumer {
             nestedStatement.whereClause(),
             DistributionInfo.DEFAULT_BROADCAST
         );
-        return Merge.mergeToHandler(
+        return Merge.ensureOnHandler(
             new Collect(collectPhase, TopN.NO_LIMIT, 0, 1, 1, null),
             plannerContext,
             Collections.singletonList(MergeCountProjection.INSTANCE)
@@ -240,7 +240,7 @@ public class UpdateConsumer implements Consumer {
                 DistributionInfo.DEFAULT_BROADCAST
             );
             Collect collect = new Collect(collectPhase, TopN.NO_LIMIT, 0, 1, 1, null);
-            return Merge.mergeToHandler(collect, plannerContext, Collections.singletonList(MergeCountProjection.INSTANCE));
+            return Merge.ensureOnHandler(collect, plannerContext, Collections.singletonList(MergeCountProjection.INSTANCE));
         } else {
             return null;
         }

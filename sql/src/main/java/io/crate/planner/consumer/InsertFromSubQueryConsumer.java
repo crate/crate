@@ -89,7 +89,7 @@ public class InsertFromSubQueryConsumer implements Consumer {
                 return null;
             }
             plannedSubQuery.addProjection(indexWriterProjection, null, null, 1, null);
-            Plan plan = Merge.mergeToHandler(plannedSubQuery, plannerContext);
+            Plan plan = Merge.ensureOnHandler(plannedSubQuery, plannerContext);
             if (plan == plannedSubQuery) {
                 return plan;
             }

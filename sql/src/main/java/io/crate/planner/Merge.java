@@ -80,7 +80,7 @@ public class Merge implements Plan, ResultDescription {
      *                    If the subPlan contains a limit/offset or orderBy in its resultDescription this method will
      *                    add a TopNProjection AFTER the projections.
      */
-    public static Plan mergeToHandler(Plan subPlan, Planner.Context plannerContext, List<Projection> projections) {
+    public static Plan ensureOnHandler(Plan subPlan, Planner.Context plannerContext, List<Projection> projections) {
         ResultDescription resultDescription = subPlan.resultDescription();
         assert resultDescription != null : "all plans must have a result description. Plan without: " + subPlan;
 
@@ -163,8 +163,8 @@ public class Merge implements Plan, ResultDescription {
         }
     }
 
-    public static Plan mergeToHandler(Plan subPlan, Planner.Context plannerContext) {
-        return mergeToHandler(subPlan, plannerContext, Collections.emptyList());
+    public static Plan ensureOnHandler(Plan subPlan, Planner.Context plannerContext) {
+        return ensureOnHandler(subPlan, plannerContext, Collections.emptyList());
     }
 
     public Merge(Plan subPlan,

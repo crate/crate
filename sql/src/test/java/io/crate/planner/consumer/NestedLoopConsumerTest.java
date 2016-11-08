@@ -26,6 +26,7 @@ import io.crate.action.sql.SessionContext;
 import io.crate.analyze.EvaluatingNormalizer;
 import io.crate.analyze.QueriedTable;
 import io.crate.analyze.TableDefinitions;
+import io.crate.analyze.symbol.Aggregation;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.exceptions.ValidationException;
 import io.crate.metadata.*;
@@ -263,28 +264,25 @@ public class NestedLoopConsumerTest extends CrateUnitTest {
 
     @Test
     public void testAggregationOnCrossJoin() throws Exception {
-        Merge merge = plan("select min(u1.name) from users u1, users u2");
-        NestedLoop nl = (NestedLoop) merge.subPlan();
-        assertThat(nl.nestedLoopPhase().projections(), contains(
+        NestedLoop nl = plan("select min(u1.name) from users u1, users u2");
+        NestedLoopPhase nlPhase = nl.nestedLoopPhase();
+        assertThat(nlPhase.projections(), contains(
             instanceOf(TopNProjection.class),
-            instanceOf(AggregationProjection.class)
-        ));
-        assertThat(merge.mergePhase().projections(), contains(
             instanceOf(AggregationProjection.class),
             instanceOf(TopNProjection.class)
         ));
+        AggregationProjection aggregationProjection = (AggregationProjection) nlPhase.projections().get(1);
+        Aggregation minAgg = aggregationProjection.aggregations().get(0);
+        assertThat(minAgg.fromStep(), is(Aggregation.Step.ITER));
+        assertThat(minAgg.toStep(), is(Aggregation.Step.FINAL));
     }
 
     @Test
     public void testAggregationOnNoMatch() throws Exception {
         // shouldn't result in a NoopPlan because aggregations still need to be executed
-        Merge merge = plan("select count(*) from users u1, users u2 where false");
-        NestedLoop nl = (NestedLoop) merge.subPlan();
+        NestedLoop nl = plan("select count(*) from users u1, users u2 where false");
         assertThat(nl.nestedLoopPhase().projections(), contains(
             instanceOf(TopNProjection.class),
-            instanceOf(AggregationProjection.class)
-        ));
-        assertThat(merge.mergePhase().projections(), contains(
             instanceOf(AggregationProjection.class),
             instanceOf(TopNProjection.class)
         ));

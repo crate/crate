@@ -21,5 +21,5 @@ virtual relation on which the outer select can operate::
 Limitations
 ...........
 
- - Queries with sub selects that cannot be rewritten to a single select are
-   not supported and an error will be returned.
+ - Only queries that contain global aggregates in the outer relation or which
+   can be rewritten to a non-subselect are supported..

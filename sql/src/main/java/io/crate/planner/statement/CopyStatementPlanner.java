@@ -172,7 +172,7 @@ public class CopyStatementPlanner {
         );
 
         Collect collect = new Collect(collectPhase, TopN.NO_LIMIT, 0, 1, 1, null);
-        return Merge.mergeToHandler(collect, context, Collections.singletonList(MergeCountProjection.INSTANCE));
+        return Merge.ensureOnHandler(collect, context, Collections.singletonList(MergeCountProjection.INSTANCE));
     }
 
     public Plan planCopyTo(CopyToAnalyzedStatement statement, Planner.Context context) {
@@ -195,7 +195,7 @@ public class CopyStatementPlanner {
             return null;
         }
         plan.addProjection(projection, null, null, 1, null);
-        return Merge.mergeToHandler(plan, context, Collections.singletonList(MergeCountProjection.INSTANCE));
+        return Merge.ensureOnHandler(plan, context, Collections.singletonList(MergeCountProjection.INSTANCE));
     }
 
     private static Collection<String> getExecutionNodes(DiscoveryNodes allNodes,
