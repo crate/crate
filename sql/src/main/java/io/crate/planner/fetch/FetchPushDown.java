@@ -24,6 +24,7 @@ package io.crate.planner.fetch;
 
 import com.google.common.collect.ImmutableList;
 import io.crate.analyze.MultiSourceSelect;
+import io.crate.analyze.QueriedTable;
 import io.crate.analyze.UnionSelect;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.AnalyzedRelationVisitor;
@@ -133,6 +134,11 @@ public class FetchPushDown {
                     unionSelect.relations().set(i, context.replacedRelation);
                 }
             }
+            return null;
+        }
+
+        @Override
+        public Void visitQueriedTable(QueriedTable table, VisitorContext context) {
             return null;
         }
 

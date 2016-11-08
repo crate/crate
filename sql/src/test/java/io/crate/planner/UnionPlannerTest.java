@@ -36,4 +36,14 @@ public class UnionPlannerTest extends AbstractPlannerTest {
              "union all " +
              "select name from sys.nodes) b");
     }
+
+    @Test
+    public void testUnionAllWithPartitionedTableWrongOrderBy() {
+        expectedException.expect(UnsupportedOperationException.class);
+        expectedException.expectMessage("cannot use partitioned column date in ORDER BY clause");
+        plan("select date from parted " +
+             "union all " +
+             "select date from users " +
+             "order by 1");
+    }
 }

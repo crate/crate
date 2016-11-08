@@ -30,9 +30,7 @@ import org.elasticsearch.common.io.stream.StreamOutput;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
+import java.util.*;
 
 /**
  * A symbol which represents a column of a result array
@@ -141,7 +139,6 @@ public class InputColumn extends Symbol implements Comparable<InputColumn> {
         InputColumn that = (InputColumn) o;
 
         if (index != that.index) return false;
-        if (!dataType.equals(that.dataType)) return false;
 
         return true;
     }
@@ -160,7 +157,7 @@ public class InputColumn extends Symbol implements Comparable<InputColumn> {
     }
 
     private static class IndexShifterContext {
-        private List<InputColumn> alreadyShifted = new ArrayList<>();
+        private Map<InputColumn, Void> alreadyShifted = new IdentityHashMap<>();
     }
 
     /**
@@ -171,9 +168,9 @@ public class InputColumn extends Symbol implements Comparable<InputColumn> {
 
         @Override
         public Void visitInputColumn(InputColumn inputColumn, IndexShifterContext context) {
-            if (!context.alreadyShifted.contains(inputColumn)) {
+            if (!context.alreadyShifted.containsKey(inputColumn)) {
                 inputColumn.index += 1;
-                context.alreadyShifted.add(inputColumn);
+                context.alreadyShifted.put(inputColumn, null);
             }
             return null;
         }
@@ -189,7 +186,6 @@ public class InputColumn extends Symbol implements Comparable<InputColumn> {
             for (Symbol symbol : function.arguments()) {
                 process(symbol, context);
             }
-
             return null;
         }
     }

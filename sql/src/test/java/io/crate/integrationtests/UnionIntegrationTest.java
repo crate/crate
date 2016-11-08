@@ -27,7 +27,10 @@ import io.crate.testing.UseJdbc;
 import org.elasticsearch.test.ESIntegTestCase;
 import org.junit.Test;
 
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
 
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.is;
@@ -180,6 +183,30 @@ public class UnionIntegrationTest extends SQLTransportIntegrationTest {
                                                                     "small\n"));
     }
 
+    @Test
+    public void testUnionWithSystemTables() {
+        List<String> results = new ArrayList<>();
+        execute("select name from sys.nodes");
+        for (Object[] row : response.rows()) {
+            results.add((String) row[0]);
+        }
+        execute("select name from sys.cluster");
+        for (Object[] row : response.rows()) {
+            results.add((String) row[0]);
+        }
+        Collections.sort(results);
+        StringBuilder sb = new StringBuilder();
+        for (String str : results) {
+            sb.append(str).append('\n');
+        }
+
+        execute("select name from sys.nodes " +
+                "union all " +
+                "select name from sys.cluster " +
+                "order by 1");
+        assertThat(TestingHelpers.printedTable(response.rows()), is(sb.toString()));
+    }
+
     private void createColorsAndSizes() {
         execute("create table colors (id integer primary key, color string)");
         execute("create table sizes (id integer primary key, size string)");
@@ -199,7 +226,7 @@ public class UnionIntegrationTest extends SQLTransportIntegrationTest {
 
     private void createColorsAndSizesPartitioned() {
         execute("create table colors (id integer primary key, color string) partitioned by (id)");
-        execute("create table sizes (id integer primary key, size string primary key) partitioned by (size)");
+        execute("create table sizes (id integer primary key, size string primary key) partitioned by (id)");
         ensureYellow();
 
         execute("insert into colors (id, color) values (?, ?)", new Object[][]{

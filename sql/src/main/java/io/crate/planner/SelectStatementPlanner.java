@@ -106,7 +106,6 @@ class SelectStatementPlanner {
             if (querySpec.where().noMatch() || (querySpec.limit().isPresent() && limits.finalLimit() == 0)) {
                 return new NoopPlan(context.jobId());
             }
-            table.tableRelation().validateOrderBy(querySpec.orderBy());
 
             FetchPushDown.Builder fetchPhaseBuilder = FetchPushDown.pushDown(table);
             if (fetchPhaseBuilder == null) {

@@ -22,7 +22,6 @@
 
 package io.crate.executor.transport;
 
-import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
 import com.google.common.util.concurrent.ListenableFuture;
 import io.crate.action.job.ContextPreparer;
@@ -211,12 +210,10 @@ public class TransportExecutor implements Executor {
 
         @Override
         public Task visitKillPlan(KillPlan killPlan, Void context) {
-            Optional<UUID> jobToKill = killPlan.jobToKill();
-            return jobToKill.isPresent() ?
-                   new KillJobTask(
-                       transportActionProvider.transportKillJobsNodeAction(),
-                       killPlan.jobId(),
-                       jobToKill.get()) :
+            return killPlan.jobToKill().isPresent() ?
+                   new KillJobTask(transportActionProvider.transportKillJobsNodeAction(),
+                                   killPlan.jobId(),
+                                   killPlan.jobToKill().get()) :
                    new KillTask(transportActionProvider.transportKillAllNodeAction(), killPlan.jobId());
         }
 
@@ -495,10 +492,12 @@ public class TransportExecutor implements Executor {
             }
 
             private boolean saneConfiguration(ExecutionPhase executionPhase, Collection<String> downstreamNodes) {
-                return !(executionPhase instanceof UpstreamPhase &&
-                         ((UpstreamPhase) executionPhase).distributionInfo().distributionType() ==
-                         DistributionType.SAME_NODE) || downstreamNodes.isEmpty() ||
-                       downstreamNodes.equals(executionPhase.nodeIds());
+                if (executionPhase instanceof UpstreamPhase &&
+                    ((UpstreamPhase) executionPhase).distributionInfo().distributionType() ==
+                    DistributionType.SAME_NODE) {
+                    return downstreamNodes.isEmpty() || downstreamNodes.equals(executionPhase.nodeIds());
+                }
+                return true;
             }
 
             void branch(byte inputId) {

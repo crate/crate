@@ -179,7 +179,10 @@ class NonDistributedGroupByConsumer implements Consumer {
                 plannerContext.nextExecutionPhaseId(),
                 "mergeOnHandler",
                 collect.resultDescription().nodeIds().size(),
-                Collections.singletonList(plannerContext.handlerNode()),
+                // if not root relation then no direct result can be used
+                table == context.rootRelation() ?
+                    Collections.emptyList() :
+                    Collections.singletonList(context.plannerContext().handlerNode()),
                 collect.resultDescription().streamOutputs(),
                 mergeProjections,
                 DistributionInfo.DEFAULT_SAME_NODE,

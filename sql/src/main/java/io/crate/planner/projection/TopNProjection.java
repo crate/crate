@@ -24,7 +24,6 @@ package io.crate.planner.projection;
 import com.google.common.base.Function;
 import com.google.common.base.MoreObjects;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Sets;
 import io.crate.analyze.symbol.InputColumn;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.analyze.symbol.Symbols;
@@ -39,7 +38,6 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Set;
 
 public class TopNProjection extends Projection {
 
@@ -121,12 +119,11 @@ public class TopNProjection extends Projection {
 
     @Override
     public void prependOutput(Symbol symbol) {
-        Set<Symbol> symbolsToShift = Sets.newHashSet(outputs);
         if (orderBy != null) {
             InputColumn.shiftRight(orderBy);
         }
 
-        InputColumn.shiftRight(symbolsToShift);
+        InputColumn.shiftRight(outputs);
         outputs.add(0, symbol);
     }
 

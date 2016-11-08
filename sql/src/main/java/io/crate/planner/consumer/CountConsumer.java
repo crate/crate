@@ -91,12 +91,16 @@ public class CountConsumer implements Consumer {
             } else {
                 projections = ImmutableList.of(MergeCountProjection.INSTANCE, topN);
             }
+
             MergePhase mergePhase = new MergePhase(
                 plannerContext.jobId(),
                 plannerContext.nextExecutionPhaseId(),
                 "count-merge",
                 countPhase.nodeIds().size(),
-                Collections.singletonList(context.plannerContext().handlerNode()),
+                // if not root relation then no direct result can be used
+                table == context.rootRelation() ?
+                    Collections.emptyList() :
+                    Collections.singletonList(context.plannerContext().handlerNode()),
                 Collections.singletonList(DataTypes.LONG),
                 projections,
                 DistributionInfo.DEFAULT_SAME_NODE,
