@@ -22,22 +22,20 @@
 
 package io.crate.executor.transport;
 
-import com.google.common.util.concurrent.ListenableFuture;
-import com.google.common.util.concurrent.SettableFuture;
 import io.crate.analyze.symbol.SelectSymbol;
-import io.crate.concurrent.CompletionListenable;
 import io.crate.core.collections.Row;
 import io.crate.operation.projectors.*;
 import io.crate.planner.Plan;
 
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 
 /**
  * RowReceiver expects to receive only one row and triggers a future with the value once completed
  */
-class SingleRowSingleValueRowReceiver implements RowReceiver, CompletionListenable {
+class SingleRowSingleValueRowReceiver implements RowReceiver {
 
-    private final SettableFuture<Object> completionFuture = SettableFuture.create();
+    private final CompletableFuture<Object> completionFuture = new CompletableFuture<>();
     private final static Object SENTINEL = new Object();
     private final SubSelectSymbolReplacer replacer;
     private Object value = SENTINEL;
@@ -66,20 +64,20 @@ class SingleRowSingleValueRowReceiver implements RowReceiver, CompletionListenab
             Object value = this.value == SENTINEL ? null : this.value;
             replacer.onSuccess(value);
         } catch (Throwable e) {
-            completionFuture.setException(e);
+            completionFuture.completeExceptionally(e);
             return;
         }
-        completionFuture.set(value);
+        completionFuture.complete(value);
     }
 
     @Override
     public void fail(Throwable throwable) {
-        completionFuture.setException(throwable);
+        completionFuture.completeExceptionally(throwable);
     }
 
     @Override
     public void kill(Throwable throwable) {
-        completionFuture.setException(throwable);
+        completionFuture.completeExceptionally(throwable);
     }
 
     @Override
@@ -87,8 +85,7 @@ class SingleRowSingleValueRowReceiver implements RowReceiver, CompletionListenab
         return Requirements.NO_REQUIREMENTS;
     }
 
-    @Override
-    public ListenableFuture<?> completionFuture() {
+    public CompletableFuture<?> completionFuture() {
         return completionFuture;
     }
 }

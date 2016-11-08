@@ -21,18 +21,20 @@
 
 package io.crate.planner.consumer;
 
+import io.crate.analyze.QuerySpec;
 import io.crate.analyze.Rewriter;
 import io.crate.analyze.relations.AnalyzedRelation;
+import io.crate.analyze.relations.QueriedRelation;
+import io.crate.analyze.symbol.SelectSymbol;
 import io.crate.exceptions.ValidationException;
 import io.crate.metadata.Functions;
-import io.crate.planner.Plan;
-import io.crate.planner.Planner;
-import io.crate.planner.TableStatsService;
+import io.crate.planner.*;
 import org.elasticsearch.cluster.ClusterService;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 public class ConsumingPlanner {
 
@@ -63,6 +65,12 @@ public class ConsumingPlanner {
         for (Consumer consumer : consumers) {
             Plan plan = consumer.consume(relation, consumerContext);
             if (plan != null) {
+                if (relation instanceof QueriedRelation) {
+                    QuerySpec qs = ((QueriedRelation) relation).querySpec();
+                    SubqueryPlanner subqueryPlanner = new SubqueryPlanner(consumerContext.plannerContext());
+                    Map<Plan, SelectSymbol> subQueries = subqueryPlanner.planSubQueries(qs);
+                    return MultiPhasePlan.createIfNeeded(plan, subQueries);
+                }
                 return plan;
             }
         }

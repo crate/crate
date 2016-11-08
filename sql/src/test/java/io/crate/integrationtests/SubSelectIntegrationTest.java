@@ -368,4 +368,15 @@ public class SubSelectIntegrationTest extends SQLTransportIntegrationTest {
         execute("select sum(x) from (select min(x) as x from (select max(x) as x from t) as t) as t");
         assertThat(TestingHelpers.printedTable(response.rows()), is("2\n"));
     }
+
+    @Test
+    public void testGlobalAggregationOnSubqueryWithScalarSubquery() throws Exception {
+        execute("create table t (x int)");
+        ensureYellow();
+        execute("insert into t (x) values (1), (2)");
+        execute("refresh table t");
+
+        execute("select sum(x) from (select min(x) as x from t where x = (select 2)) as t");
+        assertThat(TestingHelpers.printedTable(response.rows()), is("2.0\n"));
+    }
 }

@@ -32,6 +32,7 @@ import io.crate.collections.Lists2;
 import io.crate.metadata.ReplaceMode;
 import io.crate.metadata.ReplacingSymbolVisitor;
 import io.crate.planner.Merge;
+import io.crate.planner.MultiPhasePlan;
 import io.crate.planner.Plan;
 import io.crate.planner.PlanVisitor;
 import io.crate.planner.node.dql.*;
@@ -78,6 +79,12 @@ class SubSelectSymbolReplacer implements FutureCallback<Object> {
         @Override
         protected Void visitPlan(Plan plan, SymbolReplacer context) {
             throw new UnsupportedOperationException("Subselect not supported in " + plan);
+        }
+
+        @Override
+        public Void visitMultiPhasePlan(MultiPhasePlan multiPhasePlan, SymbolReplacer replacer) {
+            process(multiPhasePlan.rootPlan(), replacer);
+            return null;
         }
 
         @Override
