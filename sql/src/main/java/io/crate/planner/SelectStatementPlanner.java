@@ -79,7 +79,11 @@ class SelectStatementPlanner {
         }
 
         private Plan invokeConsumingPlanner(AnalyzedRelation relation, Planner.Context context) {
-            return Merge.mergeToHandler(consumingPlanner.plan(relation, context), context);
+            Plan plan = consumingPlanner.plan(relation, context);
+            if (plan == null) {
+                throw new UnsupportedOperationException("Cannot create plan for: " + relation);
+            }
+            return Merge.mergeToHandler(plan, context);
         }
 
         @Override
@@ -189,11 +193,6 @@ class SelectStatementPlanner {
             plannedSubQuery.addProjection(fp, null, null, fp.outputs().size(), null);
             QueryThenFetch queryThenFetch = new QueryThenFetch(plannedSubQuery, fetchPhase);
             return MultiPhasePlan.createIfNeeded(Merge.mergeToHandler(queryThenFetch, context), subQueries);
-        }
-
-        @Override
-        public Plan visitQueriedSelectRelation(QueriedSelectRelation relation, Planner.Context context) {
-            throw new UnsupportedOperationException("complex sub selects are not supported");
         }
     }
 
