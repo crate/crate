@@ -27,18 +27,19 @@ import io.crate.types.DataTypes;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
+import java.util.*;
 
 /**
  * A symbol which represents a column of a result array
  */
 public class InputColumn extends Symbol implements Comparable<InputColumn> {
 
-    private final DataType dataType;
+    private static final IndexShifter INDEX_SHIFTER = new IndexShifter();
+
+    private DataType dataType;
     private int index;
 
     public static List<Symbol> numInputs(int size) {
@@ -58,30 +59,15 @@ public class InputColumn extends Symbol implements Comparable<InputColumn> {
     }
 
     /**
-     * generate a list of inputColumn where each inputColumn points to some symbol that is part of sourceList
-     */
-    public static List<InputColumn> fromSymbols(Collection<? extends Symbol> symbols,
-                                                List<? extends Symbol> sourceList) {
-        List<InputColumn> inputColumns = new ArrayList<>(symbols.size());
-        for (Symbol symbol : symbols) {
-            inputColumns.add(fromSymbol(symbol, sourceList));
-        }
-        return inputColumns;
-    }
-
-    /**
      * Shifts the index at all given input columns right by 1
      */
-    public static void shiftRight(@Nullable Collection<? extends Symbol> symbols) {
+    public static void shiftRight(@Nullable Collection<Symbol> symbols) {
         if (symbols == null) {
             return;
         }
+        IndexShifterContext context = new IndexShifterContext();
         for (Symbol symbol : symbols) {
-            if (symbol instanceof FetchReference) {
-                symbol = ((FetchReference) symbol).docId();
-            }
-            assert symbol instanceof InputColumn : "expecting symbol to be an InputColumn";
-            ((InputColumn) symbol).index += 1;
+            INDEX_SHIFTER.process(symbol, context);
         }
     }
 
@@ -133,16 +119,16 @@ public class InputColumn extends Symbol implements Comparable<InputColumn> {
     }
 
     @Override
-    public int compareTo(InputColumn o) {
+    public int compareTo(@Nonnull InputColumn o) {
         return Integer.compare(index, o.index);
     }
 
     @Override
     public String toString() {
         return MoreObjects.toStringHelper(this)
-            .add("index", index)
-            .add("type", dataType)
-            .toString();
+                          .add("index", index)
+                          .add("type", dataType)
+                          .toString();
     }
 
     @Override
@@ -168,5 +154,39 @@ public class InputColumn extends Symbol implements Comparable<InputColumn> {
             inputColumns.add(new InputColumn(i, dataTypes.get(i)));
         }
         return inputColumns;
+    }
+
+    private static class IndexShifterContext {
+        private Map<InputColumn, Void> alreadyShifted = new IdentityHashMap<>();
+    }
+
+    /**
+     * Shift all (nested) InputColumn indices right by one.
+     * It will recognize already shifted ones.
+     */
+    private static class IndexShifter extends SymbolVisitor<IndexShifterContext, Void> {
+
+        @Override
+        public Void visitInputColumn(InputColumn inputColumn, IndexShifterContext context) {
+            if (!context.alreadyShifted.containsKey(inputColumn)) {
+                inputColumn.index += 1;
+                context.alreadyShifted.put(inputColumn, null);
+            }
+            return null;
+        }
+
+        @Override
+        public Void visitFetchReference(FetchReference fetchReference, IndexShifterContext context) {
+            process(fetchReference.docId(), context);
+            return null;
+        }
+
+        @Override
+        public Void visitFunction(Function function, IndexShifterContext context) {
+            for (Symbol symbol : function.arguments()) {
+                process(symbol, context);
+            }
+            return null;
+        }
     }
 }

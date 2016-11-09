@@ -122,6 +122,7 @@ public class QueryAndFetchConsumer implements Consumer {
             List<Symbol> qsOutputs = querySpec.outputs();
             List<Symbol> toCollect;
             Optional<OrderBy> optOrderBy = querySpec.orderBy();
+            table.tableRelation().validateOrderBy(optOrderBy);
             if (optOrderBy.isPresent()) {
                 toCollect = Lists2.concatUnique(qsOutputs, optOrderBy.get().orderBySymbols());
             } else {

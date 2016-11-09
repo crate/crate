@@ -58,7 +58,6 @@ import org.mockito.Answers;
 import org.mockito.MockitoAnnotations;
 
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
@@ -70,10 +69,9 @@ import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.core.Is.is;
 import static org.mockito.Mockito.mock;
 
-
 public class ProjectionToProjectorVisitorTest extends CrateUnitTest {
 
-    protected static final RamAccountingContext RAM_ACCOUNTING_CONTEXT =
+    private static final RamAccountingContext RAM_ACCOUNTING_CONTEXT =
         new RamAccountingContext("dummy", new NoopCircuitBreaker(CircuitBreaker.FIELDDATA));
     private ProjectionToProjectorVisitor visitor;
     private FunctionInfo countInfo;
@@ -185,8 +183,8 @@ public class ProjectionToProjectorVisitorTest extends CrateUnitTest {
         // select  race, avg(age), count(race), gender  ... group by race, gender
         List<Symbol> keys = Arrays.asList(new InputColumn(0, DataTypes.STRING), new InputColumn(2, DataTypes.STRING));
         List<Aggregation> aggregations = Arrays.asList(
-            Aggregation.finalAggregation(avgInfo, Collections.singletonList(new InputColumn(1)), Aggregation.Step.ITER),
-            Aggregation.finalAggregation(countInfo, Collections.singletonList(new InputColumn(0)), Aggregation.Step.ITER)
+            Aggregation.finalAggregation(avgInfo, Arrays.asList(new InputColumn(1, DataTypes.DOUBLE)), Aggregation.Step.ITER),
+            Aggregation.finalAggregation(countInfo, Arrays.asList(new InputColumn(0, DataTypes.STRING)), Aggregation.Step.ITER)
         );
         GroupProjection projection = new GroupProjection(keys, aggregations, RowGranularity.CLUSTER);
 

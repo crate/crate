@@ -21,6 +21,7 @@
 
 package io.crate.integrationtests;
 
+import com.carrotsearch.randomizedtesting.annotations.Repeat;
 import io.crate.core.collections.CollectionBucket;
 import io.crate.exceptions.Exceptions;
 import io.crate.operation.projectors.sorting.OrderingByPosition;
@@ -400,6 +401,7 @@ public class JoinIntegrationTest extends SQLTransportIntegrationTest {
     }
 
     @Test
+    @Repeat(iterations = 1000)
     public void testJoinWithFunctionInOutputAndOrderBy() throws Exception {
         createColorsAndSizes();
         execute("select substr(colors.name, 0, 1), sizes.name from colors, sizes order by colors.name, sizes.name limit 3");

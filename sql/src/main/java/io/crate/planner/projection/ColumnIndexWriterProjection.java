@@ -73,7 +73,7 @@ public class ColumnIndexWriterProjection extends AbstractIndexWriterProjection {
                                        List<ColumnIdent> partitionedByColumns,
                                        List<Symbol> partitionedBySymbols,
                                        @Nullable ColumnIdent clusteredByColumn,
-                                       int clusteredByIndex,
+                                       @Nullable Symbol clusteredBySymbol,
                                        Settings settings,
                                        boolean autoCreateIndices) {
         super(tableIdent, partitionIdent, primaryKeys, clusteredByColumn, settings, autoCreateIndices);
@@ -82,9 +82,7 @@ public class ColumnIndexWriterProjection extends AbstractIndexWriterProjection {
         this.onDuplicateKeyAssignments = onDuplicateKeyAssignments;
         this.columnReferences = new ArrayList<>(columns);
         this.columnSymbols = new ArrayList<>(columns.size() - partitionedBySymbols.size());
-        if (clusteredByIndex >= 0) {
-            clusteredBySymbol = new InputColumn(clusteredByIndex, null);
-        }
+        this.clusteredBySymbol = clusteredBySymbol;
 
         for (int i = 0; i < columns.size(); i++) {
             Reference ref = columns.get(i);

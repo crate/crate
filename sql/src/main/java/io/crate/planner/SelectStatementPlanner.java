@@ -73,11 +73,7 @@ class SelectStatementPlanner {
         }
 
         private Plan invokeConsumingPlanner(AnalyzedRelation relation, Planner.Context context) {
-            Plan plan = consumingPlanner.plan(relation, context);
-            if (plan == null) {
-                throw new UnsupportedOperationException("Cannot create plan for: " + relation);
-            }
-            return Merge.mergeToHandler(plan, context);
+            return Merge.mergeToHandler(consumingPlanner.plan(relation, context), context);
         }
 
         @Override
@@ -110,7 +106,6 @@ class SelectStatementPlanner {
             if (querySpec.where().noMatch() || (querySpec.limit().isPresent() && limits.finalLimit() == 0)) {
                 return new NoopPlan(context.jobId());
             }
-            table.tableRelation().validateOrderBy(querySpec.orderBy());
 
             FetchPushDown.Builder fetchPhaseBuilder = FetchPushDown.pushDown(table);
             if (fetchPhaseBuilder == null) {
@@ -221,11 +216,13 @@ class SelectStatementPlanner {
             return null;
         }
 
+        @Override
         public Void visitQueriedSelectRelation(QueriedSelectRelation relation, UnionFlatteningVisitorContext context) {
             context.relations.add(0, relation);
             return null;
         }
 
+        @Override
         public Void visitTwoRelationsUnion(TwoRelationsUnion twoRelationsUnion, UnionFlatteningVisitorContext context) {
             process(twoRelationsUnion.first(), context);
             process(twoRelationsUnion.second(), context);

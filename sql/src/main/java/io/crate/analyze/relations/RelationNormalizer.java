@@ -211,18 +211,19 @@ final class RelationNormalizer {
         }
 
         @Override
-        public Symbol visitField(Field field, Void context) {
+        public Symbol process(Symbol symbol, @Nullable Void context) {
             // Try to translate field before rewriting it
-            if (symbolTranslations != null && symbolTranslations.containsKey(field)) {
-                field = (Field) symbolTranslations.get(field);
+            Symbol translatedSymbol = symbol;
+            if (symbolTranslations != null && symbolTranslations.containsKey(translatedSymbol)) {
+                translatedSymbol = symbolTranslations.get(translatedSymbol);
             }
+            return super.process(translatedSymbol, context);
+        }
+
+        @Override
+        public Symbol visitField(Field field, Void context) {
             Symbol output = FIELD_RELATION_VISITOR.process(field.relation(), field);
-            output = output != null ? output : field;
-            // Try to translate field after rewriting it
-            if (symbolTranslations != null && symbolTranslations.containsKey(output)) {
-                output = symbolTranslations.get(output);
-            }
-            return output;
+            return output != null ? output : field;
         }
 
         @Nullable
