@@ -371,6 +371,9 @@ corresponding to the percentile of each fraction specified::
     SELECT 1 row in set (... sec)
 
 
+When a query with ``percentile`` function won't match any rows then a null
+result is returned.
+
 To be able to calculate percentiles over a huge amount of data and to scale out crate calculates
 approximate instead of accurate percentiles. The algorithm used by the percentile metric is called
 `TDigest`_. The accuracy/size trade-off of the algorithm is defined by a single compression

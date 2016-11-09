@@ -31,7 +31,10 @@ import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.junit.Test;
 
+import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.nullValue;
+import static org.mockito.Mockito.mock;
 
 public class PercentileAggregationTest extends AggregationTest {
 
@@ -136,17 +139,39 @@ public class PercentileAggregationTest extends AggregationTest {
     }
 
     @Test
-    public void testNullStateResult() throws Exception {
-        PercentileAggregation percAggr = new PercentileAggregation(new FunctionInfo(
-            new FunctionIdent(NAME, ImmutableList.<DataType>of(DataTypes.INTEGER, DataTypes.DOUBLE)), DataTypes.DOUBLE,
-            FunctionInfo.Type.AGGREGATE));
-        TDigestState state = percAggr.iterate(null, null, Literal.of(1), Literal.of(0.5));
-        assertNotNull(state);
-        assertThat(0.5, is(state.fractions()[0]));
+    public void testEmptyPercentileFuncWithEmptyRows() throws Exception {
+        Object[][] result = executeAggregation(DataTypes.INTEGER, new Object[][]{});
+        assertThat(result[0][0], is(nullValue()));
+    }
 
-        TDigestState reducedState = percAggr.reduce(null, null, state);
-        assertEquals(state, reducedState);
+    public void testIterate() throws Exception {
+        PercentileAggregation pa = new PercentileAggregation(mock(FunctionInfo.class));
+
+        TDigestState state = pa.iterate(null, TDigestState.createEmptyState(), Literal.of(1), Literal.of(0.5));
+        assertThat(state, is(notNullValue()));
+        assertThat(state.fractions()[0], is(0.5));
+    }
+
+    @Test
+    public void testReduceStage() throws Exception {
+        PercentileAggregation pa = new PercentileAggregation(mock(FunctionInfo.class));
+
+        // state 1 -> state 2
+        TDigestState state1 = TDigestState.createEmptyState();
+        TDigestState state2 = new TDigestState(100, new double[]{0.5});
+        state2.add(20.0);
+        TDigestState reducedState = pa.reduce(null, state1, state2);
+        assertThat(reducedState.fractions()[0], is(0.5));
+        assertThat(reducedState.centroidCount(), is(1));
+
+        // state 2 -> state 1
+        state1 = new TDigestState(100, new double[]{0.5});
+        state1.add(22.0);
+        state1.add(20.0);
+        state2 = new TDigestState(100, new double[]{0.5});
+        state2.add(21.0);
+        reducedState = pa.reduce(null, state1, state2);
+        assertThat(reducedState.fractions()[0], is(0.5));
+        assertThat(reducedState.centroidCount(), is(3));
     }
 }
-
-
