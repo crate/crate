@@ -40,10 +40,11 @@ public class SingleRowSubselectPlannerTest extends CrateUnitTest {
 
     @Test
     public void testPlanSimpleSelectWithSingleRowSubSelectInWhereClause() throws Exception {
-        MultiPhasePlan plan = e.plan("select x from t1 where a = (select b from t2)");
-        assertThat(plan.rootPlan(), instanceOf(QueryThenFetch.class));
-        assertThat(((QueryThenFetch) plan.rootPlan()).subPlan(), instanceOf(Collect.class));
-        assertThat(plan.dependencies().keySet(), contains(instanceOf(QueryThenFetch.class)));
+        QueryThenFetch qtf = e.plan("select x from t1 where a = (select b from t2)");
+        assertThat(qtf.subPlan(), instanceOf(MultiPhasePlan.class));
+
+        MultiPhasePlan multiPhasePlan = (MultiPhasePlan) qtf.subPlan();
+        assertThat(multiPhasePlan.dependencies().keySet(), contains(instanceOf(QueryThenFetch.class)));
     }
 
     @Test
@@ -70,9 +71,8 @@ public class SingleRowSubselectPlannerTest extends CrateUnitTest {
 
     @Test
     public void testSingleRowSubSelectOfWhereInJoin() throws Exception {
-        MultiPhasePlan plan = e.plan("select * from users u1, users u2 where u1.name = (select 'Arthur')");
-        assertThat(plan.rootPlan(), instanceOf(QueryThenFetch.class));
-        assertThat(((QueryThenFetch) plan.rootPlan()).subPlan(), instanceOf(NestedLoop.class));
-        assertThat(plan.dependencies().keySet(), contains(instanceOf(Collect.class)));
+        QueryThenFetch plan = e.plan("select * from users u1, users u2 where u1.name = (select 'Arthur')");
+        assertThat(plan.subPlan(), instanceOf(NestedLoop.class));
+        assertThat(((NestedLoop) plan.subPlan()).left(), instanceOf(MultiPhasePlan.class));
     }
 }

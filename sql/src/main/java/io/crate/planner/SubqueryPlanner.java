@@ -34,13 +34,13 @@ import org.elasticsearch.common.util.Consumer;
 import java.util.HashMap;
 import java.util.Map;
 
-class SubqueryPlanner {
+public class SubqueryPlanner {
 
     private final Planner.Context plannerContext;
     private final Visitor visitor;
     private final Map<Plan, SelectSymbol> subQueries = new HashMap<>();
 
-    SubqueryPlanner(Planner.Context plannerContext) {
+    public SubqueryPlanner(Planner.Context plannerContext) {
         this.plannerContext = plannerContext;
         this.visitor = new Visitor();
     }
@@ -52,7 +52,7 @@ class SubqueryPlanner {
         subQueries.put(subPlan, selectSymbol);
     }
 
-    Map<Plan, SelectSymbol> planSubQueries(QuerySpec querySpec) {
+    public Map<Plan, SelectSymbol> planSubQueries(QuerySpec querySpec) {
         querySpec.visitSymbols(visitor);
         return subQueries;
     }
