@@ -6,6 +6,7 @@
 #   -v: print crate version to stdout
 #   -h: print usage information
 #   -D: set a java system property value
+#   -C: set a Crate property value
 #   -X: set a nonstandard java option
 
 # CONTROLLING STARTUP:
@@ -134,8 +135,11 @@ launch_service()
 }
 
 # Parse any command line options.
-args=`getopt vdhp:D:X: "$@"`
+args=`getopt vdhp:D:X:C: "$@"`
 eval set -- "$args"
+
+echo "\nSetting Crate specific settings with the -D option and the .es prefix has been deprecated."
+echo "Please use the -C option to configure Crate.\n"
 
 while true; do
     case $1 in
@@ -169,6 +173,10 @@ while true; do
         ;;
         -D)
             properties="$properties -D$2"
+            shift 2
+        ;;
+        -C)
+            properties="$properties -Des.$2"
             shift 2
         ;;
         -X)

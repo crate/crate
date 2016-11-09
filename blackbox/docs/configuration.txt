@@ -17,16 +17,15 @@ in it along with the according default value.
 The location of the config file can be specified upon startup like
 this::
 
-    sh$ ./bin/crate -Des.path.conf=/path/to/config/directory
+    sh$ ./bin/crate -Cpath.conf=/path/to/config/directory
 
-Any option can be configured either by the config file or as system
-property. If using system properties the required prefix 'es.' will be
-ignored.
+Any setting can be configured either by the config file or via the ``-C``
+option upon startup.
 
 For example, configuring the cluster name by using system properties
 will work this way::
 
-    sh$ ./bin/crate -Des.cluster.name=cluster
+    sh$ ./bin/crate -Ccluster.name=cluster
 
 .. highlight:: yaml
 
@@ -390,7 +389,7 @@ Ports
   It defaults to ``4300-4400``. Always the first free port in this range is used. If this is set
   to an integer value it is considered as an explicit single port.
 
-  The transport protocol is used for internal node-to-node communication. 
+  The transport protocol is used for internal node-to-node communication.
 
 .. _transport.publish_port:
 

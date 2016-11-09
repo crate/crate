@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Added the ``-C`` option for providing Crate settings and deprecated
+   usage of the ``.es`` prefix with ``-D`` option.
+
  - Added support for global aggregations on joins
 
  - Log unhandled HTTP related exceptions as `debug` instead of `error`.

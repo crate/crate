@@ -46,7 +46,7 @@ done with a HTTP GET.
 
 Admin UI tracking
 =================
-Since Admin UI v0.16.0 we are tracking the user-id along with the cluster-id to 
+Since Admin UI v0.16.0 we are tracking the user-id along with the cluster-id to
 know how many active users are currently using Crate.
 
 Configuration
@@ -81,4 +81,4 @@ If you do not want to make any change to the jars or to the configuration,
 a system property setting like this will also make sure that UDC is never
 activated::
 
-    -Des.udc.enabled=false
+    -Cudc.enabled=false
