@@ -31,13 +31,22 @@ import java.io.IOException;
 
 class TDigestState extends AVLTreeDigest {
 
+    private static final int DEFAULT_COMPRESSION = 100;
     private final double compression;
-    private final double[] fractions;
+    private double[] fractions;
 
     TDigestState(double compression, double[] fractions) {
         super(compression);
         this.compression = compression;
         this.fractions = fractions;
+    }
+
+    static TDigestState createEmptyState() {
+        return new TDigestState(DEFAULT_COMPRESSION, new double[]{});
+    }
+
+    boolean isEmpty() {
+        return fractions.length == 0;
     }
 
     @Override
@@ -47,6 +56,10 @@ class TDigestState extends AVLTreeDigest {
 
     double[] fractions() {
         return fractions;
+    }
+
+    void fractions(double[] fractions) {
+        this.fractions = fractions;
     }
 
     public static void write(TDigestState state, StreamOutput out) throws IOException {
@@ -69,5 +82,4 @@ class TDigestState extends AVLTreeDigest {
         }
         return state;
     }
-
 }

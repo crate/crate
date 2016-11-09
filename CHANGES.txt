@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fixed NPE in the ``percentile`` aggregation fucntion. The NPE was occurring
+   in case when queried shards have no records.
+
  - Fixed an issue with select queries returning duplicate outputs
    when `where` uses `=` with `primary key` and an order by which is
    also part of the selected fields is used.

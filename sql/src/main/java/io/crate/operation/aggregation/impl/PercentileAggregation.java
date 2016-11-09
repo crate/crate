@@ -31,13 +31,11 @@ import io.crate.operation.aggregation.AggregationFunction;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 
-import javax.annotation.Nullable;
 import java.util.Arrays;
 
-public class PercentileAggregation extends AggregationFunction<TDigestState, Object> {
+class PercentileAggregation extends AggregationFunction<TDigestState, Object> {
 
-    public static final String NAME = "percentile";
-    private static final int COMPRESSION = 100;
+    private static final String NAME = "percentile";
     private final FunctionInfo info;
 
     public static void register(AggregationImplModule mod) {
@@ -51,7 +49,7 @@ public class PercentileAggregation extends AggregationFunction<TDigestState, Obj
         }
     }
 
-    public PercentileAggregation(FunctionInfo info) {
+    PercentileAggregation(FunctionInfo info) {
         this.info = info;
     }
 
@@ -60,17 +58,16 @@ public class PercentileAggregation extends AggregationFunction<TDigestState, Obj
         return info;
     }
 
-    @Nullable
     @Override
     public TDigestState newState(RamAccountingContext ramAccountingContext) {
-        return null;
+        return TDigestState.createEmptyState();
     }
 
     @Override
     public TDigestState iterate(RamAccountingContext ramAccountingContext, TDigestState state, Input... args) throws CircuitBreakingException {
-        if (state == null) {
-            Object argValue = args[1].value();
-            state = initState(argValue);
+        if (state.isEmpty()) {
+            Object fractionValue = args[1].value();
+            initState(state, fractionValue);
         }
         Double value = DataTypes.DOUBLE.value(args[0].value());
         if (value != null) {
@@ -79,22 +76,19 @@ public class PercentileAggregation extends AggregationFunction<TDigestState, Obj
         return state;
     }
 
-    private TDigestState initState(Object argValue) {
+    private void initState(TDigestState state, Object argValue) {
         if (argValue != null) {
-            double[] fractions;
             if (argValue.getClass().isArray()) {
                 Object[] values = (Object[]) argValue;
                 if (values.length == 0 || Arrays.asList(values).contains(null)) {
                     throw new IllegalArgumentException("no fraction value specified");
                 }
-                fractions = toDoubleArray(values);
+                state.fractions(toDoubleArray(values));
             } else {
-                fractions = new double[1];
-                fractions[0] = DataTypes.DOUBLE.value(argValue);
+                state.fractions(
+                    new double[]{DataTypes.DOUBLE.value(argValue)}
+                );
             }
-            return new TDigestState(COMPRESSION, fractions);
-        } else {
-            return new TDigestState(COMPRESSION, null);
         }
     }
 
@@ -110,20 +104,19 @@ public class PercentileAggregation extends AggregationFunction<TDigestState, Obj
 
     @Override
     public TDigestState reduce(RamAccountingContext ramAccountingContext, TDigestState state1, TDigestState state2) {
-        if (state1 == null) {
+        if (state1.isEmpty()) {
             return state2;
         }
-        if (state2 != null) {
-            state1.add(state2);
-            validateFraction(state1.fractions());
-        }
 
+        if (!state2.isEmpty()) {
+            state1.add(state2);
+        }
         return state1;
     }
 
     @Override
     public Object terminatePartial(RamAccountingContext ramAccountingContext, TDigestState state) {
-        if (state.fractions() != null) {
+        if (!state.isEmpty()) {
             Double[] percentiles = new Double[state.fractions().length];
             if (state.fractions().length > 1) {
                 for (int i = 0; i < state.fractions().length; i++) {
@@ -151,17 +144,5 @@ public class PercentileAggregation extends AggregationFunction<TDigestState, Obj
     @Override
     public DataType partialType() {
         return TDigestStateType.INSTANCE;
-    }
-
-    private static void validateFraction(double[] fractions) {
-        if (fractions != null) {
-            double fraction;
-            for (int i = 0; i < fractions.length; i++) {
-                fraction = fractions[i];
-                if (fraction < 0 || fraction > 1) {
-                    throw new IllegalArgumentException("fraction should be in range [0,1], got " + fraction);
-                }
-            }
-        }
     }
 }
