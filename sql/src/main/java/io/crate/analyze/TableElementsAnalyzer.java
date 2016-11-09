@@ -25,6 +25,7 @@ import io.crate.analyze.expressions.ExpressionToStringVisitor;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.FulltextAnalyzerResolver;
 import io.crate.metadata.Reference;
+import io.crate.metadata.table.TableInfo;
 import io.crate.sql.tree.*;
 import io.crate.types.DataTypes;
 import org.elasticsearch.common.settings.Settings;
@@ -40,11 +41,12 @@ public class TableElementsAnalyzer {
 
     public static AnalyzedTableElements analyze(List<TableElement> tableElements,
                                                 ParameterContext parameterContext,
-                                                FulltextAnalyzerResolver fulltextAnalyzerResolver) {
+                                                FulltextAnalyzerResolver fulltextAnalyzerResolver,
+                                                @Nullable TableInfo tableInfo) {
         AnalyzedTableElements analyzedTableElements = new AnalyzedTableElements();
         for (TableElement tableElement : tableElements) {
             ColumnDefinitionContext ctx = new ColumnDefinitionContext(
-                null, parameterContext, fulltextAnalyzerResolver, analyzedTableElements);
+                null, parameterContext, fulltextAnalyzerResolver, analyzedTableElements, tableInfo);
             ANALYZER.process(tableElement, ctx);
             if (ctx.analyzedColumnDefinition.ident() != null) {
                 analyzedTableElements.add(ctx.analyzedColumnDefinition);
@@ -55,8 +57,9 @@ public class TableElementsAnalyzer {
 
     public static AnalyzedTableElements analyze(TableElement tableElement,
                                                 ParameterContext parameterContext,
-                                                FulltextAnalyzerResolver fulltextAnalyzerResolver) {
-        return analyze(Arrays.asList(tableElement), parameterContext, fulltextAnalyzerResolver);
+                                                FulltextAnalyzerResolver fulltextAnalyzerResolver,
+                                                TableInfo tableInfo) {
+        return analyze(Arrays.asList(tableElement), parameterContext, fulltextAnalyzerResolver, tableInfo);
     }
 
     private static class ColumnDefinitionContext {
@@ -64,15 +67,18 @@ public class TableElementsAnalyzer {
         final FulltextAnalyzerResolver fulltextAnalyzerResolver;
         AnalyzedColumnDefinition analyzedColumnDefinition;
         final AnalyzedTableElements analyzedTableElements;
+        final TableInfo tableInfo;
 
-        public ColumnDefinitionContext(@Nullable AnalyzedColumnDefinition parent,
-                                       ParameterContext parameterContext,
-                                       FulltextAnalyzerResolver fulltextAnalyzerResolver,
-                                       AnalyzedTableElements analyzedTableElements) {
+        ColumnDefinitionContext(@Nullable AnalyzedColumnDefinition parent,
+                                ParameterContext parameterContext,
+                                FulltextAnalyzerResolver fulltextAnalyzerResolver,
+                                AnalyzedTableElements analyzedTableElements,
+                                @Nullable  TableInfo tableInfo) {
             this.analyzedColumnDefinition = new AnalyzedColumnDefinition(parent);
             this.parameterContext = parameterContext;
             this.fulltextAnalyzerResolver = fulltextAnalyzerResolver;
             this.analyzedTableElements = analyzedTableElements;
+            this.tableInfo = tableInfo;
         }
     }
 
@@ -109,6 +115,13 @@ public class TableElementsAnalyzer {
                 AnalyzedColumnDefinition leaf = parent;
                 for (String name : ident.path()) {
                     parent.dataType(DataTypes.OBJECT.getName());
+                    // Check if parent is already defined and if it's an array
+                    if (context.tableInfo != null) {
+                        Reference parentRef = context.tableInfo.getReference(parent.ident());
+                        if (parentRef != null && parentRef.valueType().equals(DataTypes.OBJECT_ARRAY)) {
+                            parent.collectionType("array");
+                        }
+                    }
                     parent.isParentColumn(true);
                     leaf = new AnalyzedColumnDefinition(parent);
                     leaf.name(name);
@@ -159,7 +172,8 @@ public class TableElementsAnalyzer {
                     context.analyzedColumnDefinition,
                     context.parameterContext,
                     context.fulltextAnalyzerResolver,
-                    context.analyzedTableElements
+                    context.analyzedTableElements,
+                    context.tableInfo
                 );
                 process(columnDefinition, childContext);
                 context.analyzedColumnDefinition.addChild(childContext.analyzedColumnDefinition);

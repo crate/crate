@@ -71,7 +71,8 @@ public class AlterTableAddColumnAnalyzer extends DefaultTraversalVisitor<AddColu
         statement.analyzedTableElements(TableElementsAnalyzer.analyze(
             node.tableElement(),
             analysis.parameterContext(),
-            fulltextAnalyzerResolver
+            fulltextAnalyzerResolver,
+            statement.table()
         ));
 
         for (AnalyzedColumnDefinition column : statement.analyzedTableElements().columns()) {

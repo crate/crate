@@ -210,6 +210,22 @@ public class AlterTableAddColumnAnalyzerTest extends BaseAnalyzerTest {
     }
 
     @Test
+    public void testAddNewNestedColumnToObjectArray() throws Exception {
+        AddColumnAnalyzedStatement analysis = analyze("alter table users add friends['is_nice'] BOOLEAN");
+
+        List<AnalyzedColumnDefinition> columns = analysis.analyzedTableElements().columns();
+        assertThat(columns.size(), is(2)); // second one is primary key
+        AnalyzedColumnDefinition friends = columns.get(0);
+        assertThat(mapToSortedString(friends.toMapping()), is("inner={" +
+                                                                "dynamic=true, " +
+                                                                "properties={" +
+                                                                    "is_nice={doc_values=true, index=not_analyzed, store=false, type=boolean}" +
+                                                                "}, " +
+                                                                "type=object" +
+                                                              "}, type=array"));
+    }
+
+    @Test
     public void testAddNewNestedColumnToObjectColumn() throws Exception {
         AddColumnAnalyzedStatement analysis = (AddColumnAnalyzedStatement) analyze("alter table users add column details['foo'] object as (score float, name string)");
         List<AnalyzedColumnDefinition> columns = analysis.analyzedTableElements().columns();
