@@ -482,11 +482,19 @@ public class NestedLoopOperation implements CompletionListenable {
                                     if (tryFinish()) {
                                         return;
                                     }
-                                    switchTo(left.resumeable);
+                                    if (left.upstreamFinished) {
+                                        // empty left table + right or full join -> "post-loop" iterate over right again and emit null-rows
+                                        assert emitRightJoin :
+                                            "emitRightJoin must be true if tryFinish didn't return true and left upstream is finished as well";
+                                        switchTo(right.resumeable);
+                                    } else {
+                                        switchTo(left.resumeable);
+                                    }
                                 }
                             });
                             // return without setting upstreamFinished=true to ensure left-side get's paused (if it isn't already)
                             // this way the resumeHandle call can un-pause it
+                            right.upstreamFinished  = false;
                             return;
                         case STOP:
                             stop = true;
