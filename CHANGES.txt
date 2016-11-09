@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fixed adding a column to an existing object array using `ALTER TABLE`
+
  - Fix: selecting os_info['jvm']['vm_vendor'] and os_info['jvm']['name'] caused
    ColumnUnknownExceptions
 
