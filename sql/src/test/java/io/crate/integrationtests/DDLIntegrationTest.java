@@ -21,6 +21,7 @@
 
 package io.crate.integrationtests;
 
+import com.google.common.collect.ImmutableMap;
 import io.crate.Version;
 import io.crate.action.sql.SQLActionException;
 import io.crate.metadata.PartitionName;
@@ -528,6 +529,23 @@ public class DDLIntegrationTest extends SQLTransportIntegrationTest {
             is(Matchers.<Object>arrayContaining("col1", "col1['col2']", "col1['col2']['col3']", "col1['col2']['col3']['col4']")));
         assertThat(TestingHelpers.getColumn(response.rows(), 1),
             is(Matchers.<Object>arrayContaining("object", "object", "object", "long_array")));
+    }
+
+    @Test
+    public void testAlterTableAddObjectToObjectArray() throws Exception {
+        execute("CREATE TABLE t (" +
+                "   attributes ARRAY(" +
+                "       OBJECT (STRICT) as (" +
+                "           name STRING" +
+                "       )" +
+                "   )" +
+                ")");
+        ensureYellow();
+        execute("ALTER TABLE t ADD column attributes['is_nice'] BOOLEAN");
+        execute("INSERT INTO t (attributes) values ([{name='Trillian', is_nice=True}])");
+        refresh();
+        execute("select attributes from t");
+        assertThat(((Object[])response.rows()[0][0])[0], is(ImmutableMap.of("name", "Trillian", "is_nice", true)));
     }
 
     @Test

@@ -92,7 +92,8 @@ public class CreateTableStatementAnalyzer extends DefaultTraversalVisitor<Create
         context.statement.analyzedTableElements(TableElementsAnalyzer.analyze(
             node.tableElements(),
             context.analysis.parameterContext(),
-            context.statement.fulltextAnalyzerResolver()));
+            context.statement.fulltextAnalyzerResolver(),
+            null));
 
         // validate table elements
         context.statement.analyzedTableElements().finalizeAndValidate(

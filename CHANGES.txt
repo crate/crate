@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ -  Fixed adding a column to an existing object array using `ALTER TABLE`
+
  - Log unhandled HTTP related exceptions as `debug` instead of `error`.
 
  - Fixed NPE that can occur on invalid HTTP requests.
