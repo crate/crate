@@ -98,6 +98,22 @@ public class WherePKIntegrationTest extends SQLTransportIntegrationTest {
     }
 
     @Test
+    public void testWherePKWithOrderBySymbolThatIsAlsoInSelectList() throws Exception {
+        execute("create table users (" +
+                "   id int primary key," +
+                "   name string" +
+                ") clustered into 2 shards with (number_of_replicas = 0)");
+        ensureYellow();
+        execute("insert into users (id, name) values (?, ?)", new Object[][]{
+            new Object[]{1, "Arthur"},
+            new Object[]{2, "Trillian"},
+            });
+        execute("refresh table users");
+        execute("select name from users where id = 1 order by name desc");
+        assertThat(TestingHelpers.printedTable(response.rows()), is("Arthur\n"));
+    }
+
+    @Test
     public void testWherePkColLimit0() throws Exception {
         execute("create table users (id int primary key, name string) " +
                 "clustered into 1 shards with (number_of_replicas = 0)");
