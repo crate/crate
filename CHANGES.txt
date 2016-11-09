@@ -5,6 +5,10 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fixed an issue with select queries returning duplicate outputs
+   when `where` uses `=` with `primary key` and an order by which is
+   also part of the selected fields is used.
+
  - Fixed adding a column to an existing object array using `ALTER TABLE`
 
  - Fix: selecting os_info['jvm']['vm_vendor'] and os_info['jvm']['name'] caused

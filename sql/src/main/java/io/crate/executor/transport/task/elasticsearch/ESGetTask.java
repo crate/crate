@@ -29,6 +29,8 @@ import io.crate.analyze.symbol.InputColumn;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.analyze.symbol.ValueSymbolVisitor;
 import io.crate.analyze.where.DocKeys;
+import io.crate.collections.Lists2;
+import io.crate.core.collections.Row;
 import io.crate.executor.JobTask;
 import io.crate.executor.transport.TransportActionProvider;
 import io.crate.jobs.AbstractExecutionSubContext;
@@ -314,10 +316,8 @@ public class ESGetTask extends JobTask {
     private static List<Function<GetResponse, Object>> getFieldExtractors(ESGet node, GetResponseContext ctx) {
         List<Function<GetResponse, Object>> extractors = new ArrayList<>(
             node.outputs().size() + node.sortSymbols().size());
-        for (Symbol symbol : node.outputs()) {
-            extractors.add(SYMBOL_TO_FIELD_EXTRACTOR.convert(symbol, ctx));
-        }
-        for (Symbol symbol : node.sortSymbols()) {
+        List<Symbol> concatenated = Lists2.concatUnique(node.outputs(), node.sortSymbols());
+        for (Symbol symbol : concatenated) {
             extractors.add(SYMBOL_TO_FIELD_EXTRACTOR.convert(symbol, ctx));
         }
         return extractors;
