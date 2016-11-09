@@ -32,8 +32,7 @@ public class BytesRefSizeEstimator extends SizeEstimator<BytesRef> {
             return 8;
         }
         long bytes = value.length;
-        // 64 bytes for miscellaneous overhead
-        bytes += 64;
+        bytes += 32; // overhead
         return bytes;
     }
 }

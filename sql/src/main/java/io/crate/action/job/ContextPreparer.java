@@ -65,6 +65,7 @@ import io.crate.planner.node.fetch.FetchPhase;
 import io.crate.types.DataTypes;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.breaker.CircuitBreaker;
+import org.elasticsearch.common.breaker.NoopCircuitBreaker;
 import org.elasticsearch.common.collect.Tuple;
 import org.elasticsearch.common.component.AbstractComponent;
 import org.elasticsearch.common.inject.Inject;
@@ -91,6 +92,7 @@ public class ContextPreparer extends AbstractComponent {
     private final CountOperation countOperation;
     private final ThreadPool threadPool;
     private final CircuitBreaker circuitBreaker;
+    private final CircuitBreaker noopCircuitBreaker;
     private final PageDownstreamFactory pageDownstreamFactory;
     private final DistributingDownstreamFactory distributingDownstreamFactory;
     private final InnerPreparer innerPreparer;
@@ -115,6 +117,7 @@ public class ContextPreparer extends AbstractComponent {
         this.countOperation = countOperation;
         this.threadPool = threadPool;
         circuitBreaker = breakerService.getBreaker(CrateCircuitBreakerService.QUERY);
+        noopCircuitBreaker = new NoopCircuitBreaker(CrateCircuitBreakerService.QUERY);
         this.pageDownstreamFactory = pageDownstreamFactory;
         this.distributingDownstreamFactory = distributingDownstreamFactory;
         innerPreparer = new InnerPreparer();
@@ -463,7 +466,6 @@ public class ContextPreparer extends AbstractComponent {
 
         @Override
         public Boolean visitMergePhase(final MergePhase phase, final PreparerContext context) {
-            RamAccountingContext ramAccountingContext = RamAccountingContext.forExecutionPhase(circuitBreaker, phase);
 
             boolean upstreamOnSameNode = context.opCtx.upstreamsAreOnSameNode(phase.phaseId());
 
@@ -472,6 +474,7 @@ public class ContextPreparer extends AbstractComponent {
 
             if (upstreamOnSameNode) {
                 if (!phase.projections().isEmpty()) {
+                    RamAccountingContext noopRamAccountingContext = RamAccountingContext.forExecutionPhase(noopCircuitBreaker, phase);
                     ProjectorChainContext projectorChainContext = new ProjectorChainContext(
                         phase.phaseId(),
                         phase.name(),
@@ -479,7 +482,7 @@ public class ContextPreparer extends AbstractComponent {
                         pageDownstreamFactory.projectorFactory(),
                         phase.projections(),
                         rowReceiver,
-                        ramAccountingContext);
+                        noopRamAccountingContext);
                     context.registerRowReceiver(phase.phaseId(), projectorChainContext.rowReceiver());
                     context.registerSubContext(projectorChainContext);
                     return true;
@@ -489,6 +492,7 @@ public class ContextPreparer extends AbstractComponent {
                 return false;
             }
 
+            RamAccountingContext ramAccountingContext = RamAccountingContext.forExecutionPhase(circuitBreaker, phase);
             PageDownstream pageDownstream = pageDownstreamFactory.createMergeNodePageDownstream(
                 phase,
                 rowReceiver,

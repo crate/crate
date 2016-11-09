@@ -34,7 +34,7 @@ public class SizeEstimatorTest extends CrateUnitTest {
     public void testBytesRef() throws Exception {
         SizeEstimator sizeEstimator = SizeEstimatorFactory.create(DataTypes.STRING);
         assertThat(sizeEstimator.estimateSize(null), is(8L));
-        assertThat(sizeEstimator.estimateSize(new BytesRef("hello")), is(69L));
+        assertThat(sizeEstimator.estimateSize(new BytesRef("hello")), is(37L));
         assertThat(sizeEstimator.estimateSizeDelta(new BytesRef("hello"), new BytesRef("hello world")), is(6L));
     }
 

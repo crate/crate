@@ -24,6 +24,8 @@ package io.crate.breaker;
 import io.crate.planner.node.ExecutionPhase;
 import org.elasticsearch.common.breaker.CircuitBreaker;
 import org.elasticsearch.common.breaker.CircuitBreakingException;
+import org.elasticsearch.common.logging.ESLogger;
+import org.elasticsearch.common.logging.Loggers;
 
 import java.util.Locale;
 import java.util.concurrent.atomic.AtomicLong;
@@ -40,6 +42,8 @@ public class RamAccountingContext {
     private final AtomicLong flushBuffer = new AtomicLong(0);
     private volatile boolean closed = false;
     private volatile boolean tripped = false;
+
+    private static final ESLogger logger = Loggers.getLogger(RamAccountingContext.class);
 
     public static RamAccountingContext forExecutionPhase(CircuitBreaker breaker, ExecutionPhase executionPhase) {
         String ramAccountingContextId = String.format(Locale.ENGLISH, "%s: %d",
@@ -115,6 +119,9 @@ public class RamAccountingContext {
         }
         closed = true;
         if (totalBytes.get() != 0) {
+            if (logger.isTraceEnabled() && totalBytes() > FLUSH_BUFFER_SIZE) {
+                logger.trace("context: {} bytes; breaker: {} of {} bytes", totalBytes(), breaker.getUsed(), breaker.getLimit());
+            }
             breaker.addWithoutBreaking(-totalBytes.get());
         }
         totalBytes.addAndGet(flushBuffer.getAndSet(0));
