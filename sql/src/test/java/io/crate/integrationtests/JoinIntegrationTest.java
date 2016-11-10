@@ -604,4 +604,51 @@ public class JoinIntegrationTest extends SQLTransportIntegrationTest {
             throw Exceptions.unwrap(t);
         }
     }
+
+    @Test
+    public void testAggOnJoin() throws Exception {
+        execute("create table t1 (x int)");
+        ensureYellow();
+        execute("insert into t1 (x) values (1), (2)");
+        execute("refresh table t1");
+
+        execute("select sum(t1.x) from t1, t1 as t2");
+        assertThat(TestingHelpers.printedTable(response.rows()), is("6.0\n"));
+    }
+
+    @Test
+    public void testAggOnJoinWithScalarAfterAggregation() throws Exception {
+        execute("select sum(t1.col1) * 2 from unnest([1, 2]) t1, unnest([3, 4]) t2");
+        assertThat(TestingHelpers.printedTable(response.rows()), is("12.0\n"));
+    }
+
+    @Test
+    public void testAggOnJoinWithHaving() throws Exception {
+        execute("select sum(t1.col1) from unnest([1, 2]) t1, unnest([3, 4]) t2 having sum(t1.col1) > 8");
+        assertThat(response.rowCount(), is(0L));
+    }
+
+    @Test
+    public void testAggOnJoinWithLimit() throws Exception {
+        execute("select " +
+                "   sum(t1.col1) " +
+                "from unnest([1, 2]) t1, unnest([3, 4]) t2 " +
+                "limit 0");
+        assertThat(response.rowCount(), is(0L));
+    }
+
+    @Test
+    public void testLimitIsAppliedPostJoin() throws Exception {
+        execute("select " +
+                "   sum(t1.col1) " +
+                "from unnest([1, 1]) t1, unnest([1, 1]) t2 " +
+                "limit 1");
+        assertThat(TestingHelpers.printedTable(response.rows()), is("4.0\n"));
+    }
+
+    @Test
+    public void testJoinOnAggWithOrderBy() throws Exception {
+        execute("select sum(t1.col1) from unnest([1, 1]) t1, unnest([1, 1]) t2 order by 1");
+        assertThat(TestingHelpers.printedTable(response.rows()), is("4.0\n"));
+    }
 }

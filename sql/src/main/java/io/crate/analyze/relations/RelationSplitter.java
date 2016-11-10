@@ -196,6 +196,11 @@ public final class RelationSplitter {
 
         Integer idx = 0;
         for (Symbol symbol : orderBy.orderBySymbols()) {
+            // If order by is pointing to an aggregation we cannot push it down because ordering needs to happen AFTER
+            // the join
+            if (Aggregations.containsAggregation(symbol)) {
+                continue;
+            }
             relations.clear();
             RelationCounter.INSTANCE.process(symbol, relations);
 

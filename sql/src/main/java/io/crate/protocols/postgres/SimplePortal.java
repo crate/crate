@@ -50,6 +50,7 @@ import org.elasticsearch.common.logging.Loggers;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
@@ -128,7 +129,7 @@ public class SimplePortal extends AbstractPortal {
                 new ParameterContext(this.rowParams, Collections.<Row>emptyList()));
             AnalyzedRelation rootRelation = analysis.rootRelation();
             if (rootRelation != null) {
-                this.outputTypes = Symbols.extractTypes(rootRelation.fields());
+                this.outputTypes = new ArrayList<>(Symbols.extractTypes(rootRelation.fields()));
             }
         }
         return this;

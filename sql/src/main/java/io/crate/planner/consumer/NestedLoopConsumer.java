@@ -95,9 +95,6 @@ class NestedLoopConsumer implements Consumer {
         @Override
         public Plan visitTwoTableJoin(TwoTableJoin statement, ConsumerContext context) {
             QuerySpec querySpec = statement.querySpec();
-            if (querySpec.where().noMatch()) {
-                return new NoopPlan(context.plannerContext().jobId());
-            }
 
             List<RelationColumn> nlOutputs = new ArrayList<>();
             final Map<Symbol, Symbol> symbolMap = new HashMap<>();

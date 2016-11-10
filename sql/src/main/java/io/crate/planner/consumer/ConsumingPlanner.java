@@ -50,6 +50,7 @@ public class ConsumingPlanner {
         consumers.add(new GlobalAggregateConsumer(functions));
         consumers.add(new InsertFromSubQueryConsumer());
         consumers.add(new QueryAndFetchConsumer());
+        consumers.add(new MultiSourceAggregationConsumer(functions));
         consumers.add(new ManyTableConsumer(this, new Rewriter(functions)));
         consumers.add(new NestedLoopConsumer(clusterService, functions, tableStatsService));
     }

@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Added support for global aggregations on joins
+
  - Log unhandled HTTP related exceptions as `debug` instead of `error`.
 
  - Fixed NPE that can occur on invalid HTTP requests.

@@ -218,8 +218,6 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
                 relation = new QueriedSelectRelation((QueriedRelation) source, selectAnalysis.outputNames(), querySpec);
             }
         } else {
-            // TODO: implement multi table selects
-            // once this is used .normalize should for this class needs to be handled here too
             relation = new MultiSourceSelect(
                 context.sources(),
                 selectAnalysis.outputSymbols(),

@@ -38,6 +38,7 @@ import io.crate.planner.distribution.DistributionType;
 import io.crate.planner.node.dql.*;
 import io.crate.planner.node.dql.join.NestedLoop;
 import io.crate.planner.node.dql.join.NestedLoopPhase;
+import io.crate.planner.projection.AggregationProjection;
 import io.crate.planner.projection.FetchProjection;
 import io.crate.planner.projection.FilterProjection;
 import io.crate.planner.projection.TopNProjection;
@@ -262,16 +263,31 @@ public class NestedLoopConsumerTest extends CrateUnitTest {
 
     @Test
     public void testAggregationOnCrossJoin() throws Exception {
-        expectedException.expect(ValidationException.class);
-        expectedException.expectMessage("AGGREGATIONS on JOINS are not supported");
-        plan("select min(u1.name) from users u1, users u2");
+        Merge merge = plan("select min(u1.name) from users u1, users u2");
+        NestedLoop nl = (NestedLoop) merge.subPlan();
+        assertThat(nl.nestedLoopPhase().projections(), contains(
+            instanceOf(TopNProjection.class),
+            instanceOf(AggregationProjection.class)
+        ));
+        assertThat(merge.mergePhase().projections(), contains(
+            instanceOf(AggregationProjection.class),
+            instanceOf(TopNProjection.class)
+        ));
     }
 
     @Test
     public void testAggregationOnNoMatch() throws Exception {
-        expectedException.expect(ValidationException.class);
-        expectedException.expectMessage("AGGREGATIONS on JOINS are not supported");
-        plan("select count(*) from users u1, users u2 where false");
+        // shouldn't result in a NoopPlan because aggregations still need to be executed
+        Merge merge = plan("select count(*) from users u1, users u2 where false");
+        NestedLoop nl = (NestedLoop) merge.subPlan();
+        assertThat(nl.nestedLoopPhase().projections(), contains(
+            instanceOf(TopNProjection.class),
+            instanceOf(AggregationProjection.class)
+        ));
+        assertThat(merge.mergePhase().projections(), contains(
+            instanceOf(AggregationProjection.class),
+            instanceOf(TopNProjection.class)
+        ));
     }
 
     @Test

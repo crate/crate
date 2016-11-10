@@ -242,14 +242,17 @@ public class QuerySpec {
 
 
     public QuerySpec copyAndReplace(com.google.common.base.Function<? super Symbol, Symbol> replaceFunction) {
-        if (groupBy.isPresent() || having.isPresent()) {
-            throw new UnsupportedOperationException("Replacing group by or having symbols is not implemented");
+        if (groupBy.isPresent()) {
+            throw new UnsupportedOperationException("Replacing group by symbols is not implemented");
         }
-
+        List<Symbol> newOutputs = new ArrayList<>(outputs.size());
+        for (Symbol output : outputs) {
+            newOutputs.add(replaceFunction.apply(output));
+        }
         QuerySpec newSpec = new QuerySpec()
             .limit(limit)
             .offset(offset)
-            .outputs(Lists.transform(outputs, replaceFunction));
+            .outputs(newOutputs);
         if (!where.hasQuery()) {
             newSpec.where(where);
         } else {
@@ -257,6 +260,12 @@ public class QuerySpec {
         }
         if (orderBy.isPresent()) {
             newSpec.orderBy(orderBy.get().copyAndReplace(replaceFunction));
+        }
+        if (having.isPresent()) {
+            HavingClause havingClause = having.get();
+            if (havingClause.hasQuery()) {
+                newSpec.having(new HavingClause(replaceFunction.apply(havingClause.query)));
+            }
         }
         return newSpec;
     }

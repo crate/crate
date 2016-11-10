@@ -145,6 +145,9 @@ class SelectStatementPlanner {
         public Plan visitMultiSourceSelect(MultiSourceSelect mss, Planner.Context context) {
             QuerySpec querySpec = mss.querySpec();
             context.applySoftLimit(querySpec);
+            if (querySpec.hasAggregates() || querySpec.groupBy().isPresent()) {
+                return invokeConsumingPlanner(mss, context);
+            }
             if (querySpec.where().noMatch() && !querySpec.hasAggregates()) {
                 return new NoopPlan(context.jobId());
             }
