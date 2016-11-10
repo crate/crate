@@ -35,7 +35,7 @@ In addition to the ``stmt`` key the request body may also contain an ``args`` ke
 which can be used for SQL parameter substitution.
 
 The SQL statement has to be changed to use placeholders where the values should
-be inserted. Placeholders can either bei numbered (in the form of ``$1``, ``$2``,
+be inserted. Placeholders can either be numbered (in the form of ``$1``, ``$2``,
 etc.) or unnumbered using a question mark ``?``.
 
 The placeholders will then be substituted with values from an array that is
