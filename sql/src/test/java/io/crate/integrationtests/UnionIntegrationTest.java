@@ -47,10 +47,10 @@ public class UnionIntegrationTest extends SQLTransportIntegrationTest {
                 "select * from sizes");
         assertThat(Arrays.asList(response.rows()),
                    containsInAnyOrder(
-                       new Object[]{1, "small"},
-                       new Object[]{2, "large"},
-                       new Object[]{1, "small"},
-                       new Object[]{2, "large"}));
+                       new Object[]{1, "small", "size2"},
+                       new Object[]{2, "large", "size1"},
+                       new Object[]{1, "small", "size2"},
+                       new Object[]{2, "large", "size1"}));
     }
 
     @Test
@@ -97,6 +97,20 @@ public class UnionIntegrationTest extends SQLTransportIntegrationTest {
                                                                     "large\n" +
                                                                     "red\n" +
                                                                     "small\n"));
+    }
+
+    @Test
+    public void testUnionAllWithOrderByWithFunctions() {
+        createColorsAndSizes();
+        execute("select color, lower(txt) from colors " +
+                "union all " +
+                "select upper(size), txt from sizes " +
+                "order by upper(lower(lower(txt))) || '_' || upper(color)");
+        assertThat(TestingHelpers.printedTable(response.rows()), is("blue| color1\n" +
+                                                                    "green| color2\n" +
+                                                                    "red| color3\n" +
+                                                                    "LARGE| size1\n" +
+                                                                    "SMALL| size2\n"));
     }
 
     @Test
@@ -168,7 +182,7 @@ public class UnionIntegrationTest extends SQLTransportIntegrationTest {
     }
 
     @Test
-    public void testUnionAllWithCrossJoin() throws Exception {
+    public void testUnionAllWithCrossJoin() {
         createColorsAndSizes();
         execute("select colors.color from sizes, colors " +
                 "union all " +
@@ -180,6 +194,47 @@ public class UnionIntegrationTest extends SQLTransportIntegrationTest {
                                                                     "green\n" +
                                                                     "large\n" +
                                                                     "red\n" +
+                                                                    "red\n" +
+                                                                    "small\n"));
+    }
+
+    @Test
+    public void testUnionAllWithInnerJoin() {
+        createColorsAndSizes();
+        execute("select colors.color from colors inner join sizes on colors.id = sizes.id " +
+                "union all " +
+                "select size from sizes " +
+                "order by 1");
+        assertThat(TestingHelpers.printedTable(response.rows()), is("blue\n" +
+                                                                    "large\n" +
+                                                                    "red\n" +
+                                                                    "small\n"));
+    }
+
+    @Test
+    public void testUnionAllWithLeftOuterJoin() {
+        createColorsAndSizes();
+        execute("select colors.color from colors left join sizes on colors.color = sizes.size " +
+                "union all " +
+                "select size from sizes " +
+                "order by 1");
+        assertThat(TestingHelpers.printedTable(response.rows()), is("blue\n" +
+                                                                    "green\n" +
+                                                                    "large\n" +
+                                                                    "red\n" +
+                                                                    "small\n"));
+    }
+
+    @Test
+    public void testUnionAllWithRightOuterJoin() {
+        createColorsAndSizes();
+        execute("select colors.color from sizes right join colors on colors.color = sizes.size " +
+                "union all " +
+                "select size from sizes " +
+                "order by 1");
+        assertThat(TestingHelpers.printedTable(response.rows()), is("blue\n" +
+                                                                    "green\n" +
+                                                                    "large\n" +
                                                                     "red\n" +
                                                                     "small\n"));
     }
@@ -209,18 +264,18 @@ public class UnionIntegrationTest extends SQLTransportIntegrationTest {
     }
 
     private void createColorsAndSizes() {
-        execute("create table colors (id integer primary key, color string)");
-        execute("create table sizes (id integer primary key, size string)");
+        execute("create table colors (id integer primary key, color string, txt string)");
+        execute("create table sizes (id integer primary key, size string, txt string)");
         ensureYellow();
 
-        execute("insert into colors (id, color) values (?, ?)", new Object[][]{
-            new Object[]{1, "red"},
-            new Object[]{2, "blue"},
-            new Object[]{3, "green"}
+        execute("insert into colors (id, color, txt) values (?, ?, ?)", new Object[][]{
+            new Object[]{1, "red", "color3"},
+            new Object[]{2, "blue", "color1"},
+            new Object[]{3, "green", "color2"}
         });
-        execute("insert into sizes (id, size) values (?, ?)", new Object[][]{
-            new Object[]{1, "small"},
-            new Object[]{2, "large"},
+        execute("insert into sizes (id, size, txt) values (?, ?, ?)", new Object[][]{
+            new Object[]{1, "small", "size2"},
+            new Object[]{2, "large", "size1"},
             });
         execute("refresh table colors, sizes");
     }

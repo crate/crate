@@ -22,6 +22,7 @@
 
 package io.crate.analyze.relations;
 
+import com.google.common.base.Function;
 import com.google.common.base.Optional;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.ImmutableList;
@@ -381,6 +382,28 @@ final class RelationNormalizer {
                 mergedQuerySpecToPushDown = unionQuerySpec.copy();
             }
 
+            // Convert orderBy symbols referring to the 1st relation of the union to InputColumns
+            // as rootOrderBy must apply to corresponding columns of all relations
+            originalMergedQuerySpec.replace(FieldReferenceResolver.INSTANCE);
+            Optional<OrderBy> mergedOrderBy = originalMergedQuerySpec.orderBy();
+            if (mergedOrderBy.isPresent()) {
+                final List<Symbol> outputs = originalMergedQuerySpec.outputs();
+                mergedOrderBy.get().replace(new Function<Symbol, Symbol>() {
+                    @Nullable
+                    @Override
+                    public Symbol apply(@Nullable Symbol input) {
+                        return UnionOrderByFieldToInputColumnsResolver.INSTANCE.process(input, outputs);
+                    }
+                });
+                unionQuerySpec.orderBy(mergedOrderBy.get());
+            }
+            if (canMergeWithParent) {
+                unionQuerySpec.outputs(originalMergedQuerySpec.outputs());
+                unionQuerySpec.limit(originalMergedQuerySpec.limit());
+                unionQuerySpec.offset(originalMergedQuerySpec.offset());
+            }
+
+
             QuerySpec querySpec = twoTableUnion.querySpec();
             querySpec.replace(FieldReferenceResolver.INSTANCE);
             // Change limit and offset to be pushed down to the relations of the union since as the
@@ -407,25 +430,7 @@ final class RelationNormalizer {
             twoTableUnion.second((QueriedRelation) process(twoTableUnion.second(), context));
             twoTableUnion.second().querySpec().replace(new FieldReferenceResolver(symbolTranslations));
 
-            // Convert orderBy symbols referring to the 1st relation of the union to InputColumns
-            // as rootOrderBy must apply to corresponding columns of all relations
-            originalMergedQuerySpec.replace(FieldReferenceResolver.INSTANCE);
-            Optional<OrderBy> mergedOrderBy = originalMergedQuerySpec.orderBy();
-            if (mergedOrderBy.isPresent()) {
-                final List<Symbol> outputs = originalMergedQuerySpec.outputs();
-                mergedOrderBy.get().replace(new com.google.common.base.Function<Symbol, Symbol>() {
-                    @Nullable
-                    @Override
-                    public Symbol apply(@Nullable Symbol symbol) {
-                        return InputColumn.fromSymbol(symbol, outputs);
-                    }
-                });
-                unionQuerySpec.orderBy(mergedOrderBy.get());
-            }
             if (canMergeWithParent) {
-                unionQuerySpec.outputs(originalMergedQuerySpec.outputs());
-                unionQuerySpec.limit(originalMergedQuerySpec.limit());
-                unionQuerySpec.offset(originalMergedQuerySpec.offset());
                 return twoTableUnion;
             }
             return null;
@@ -484,6 +489,41 @@ final class RelationNormalizer {
             twoTableUnion.first((QueriedRelation) process(twoTableUnion.first(), context));
             twoTableUnion.second((QueriedRelation) process(twoTableUnion.second(), context));
             return twoTableUnion;
+        }
+    }
+
+    private static class UnionOrderByFieldToInputColumnsResolver extends ReplacingSymbolVisitor<List<Symbol>> {
+
+        private static final UnionOrderByFieldToInputColumnsResolver
+            INSTANCE = new UnionOrderByFieldToInputColumnsResolver(ReplaceMode.COPY);
+
+        private UnionOrderByFieldToInputColumnsResolver(ReplaceMode mode) {
+            super(mode);
+        }
+
+        @Override
+        public Symbol visitFunction(io.crate.analyze.symbol.Function symbol, List<Symbol> context) {
+            Symbol newFunction = InputColumn.fromSymbol(symbol, context);
+            if (newFunction == null) {
+                // Process as a scalar function wrapping an output column
+                // eg: select f1(col1) from t1 union all ... order by f2(f1(col1))
+                return super.visitFunction(symbol, context);
+            }
+            return newFunction;
+        }
+
+        @Override
+        public Symbol visitField(Field field, List<Symbol> context) {
+            Symbol newSymbol = InputColumn.fromSymbol(field, context);
+            if (newSymbol == null) {
+                throw new IllegalArgumentException("Unable to resolve order by symbol: " + field.path());
+            }
+            return newSymbol;
+        }
+
+        @Override
+        public Symbol visitLiteral(Literal symbol, List<Symbol> context) {
+            return symbol;
         }
     }
 }

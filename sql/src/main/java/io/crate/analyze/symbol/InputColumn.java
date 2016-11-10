@@ -72,10 +72,16 @@ public class InputColumn extends Symbol implements Comparable<InputColumn> {
     }
 
     /**
-     * generate an inputColumn which points to some symbol that is part of sourceList
+     * Generate and return an InputColumn which points to the position of the given symbol in the sourceList.
+     * If given symbol is not contained in the sourceList the return null.
      */
+    @Nullable
     public static InputColumn fromSymbol(Symbol symbol, List<? extends Symbol> sourceList) {
-        return new InputColumn(sourceList.indexOf(symbol), symbol.valueType());
+        int idx = sourceList.indexOf(symbol);
+        if (idx < 0) {
+            return null;
+        }
+        return new InputColumn(idx, symbol.valueType());
     }
 
     public InputColumn(int index, @Nullable DataType dataType) {

@@ -139,6 +139,7 @@ public class FetchPushDown {
 
         @Override
         public Void visitQueriedTable(QueriedTable table, VisitorContext context) {
+            context.replacedRelation = null;
             return null;
         }
 
@@ -149,6 +150,7 @@ public class FetchPushDown {
             QueriedDocTable subRelation = docTableFetchPushDown.pushDown();
             if (subRelation == null) {
                 // no fetch required
+                context.replacedRelation = null;
                 return null;
             }
             context.replacedRelation = subRelation;
@@ -178,6 +180,11 @@ public class FetchPushDown {
 
         @Override
         public Void visitMultiSourceSelect(MultiSourceSelect multiSourceSelect, VisitorContext context) {
+            if (multiSourceSelect.canBeFetched().isEmpty()) {
+                context.replacedRelation = null;
+                return null;
+            }
+
             MultiSourceFetchPushDown pd = new MultiSourceFetchPushDown(multiSourceSelect);
             pd.process();
             context.replacedRelation = multiSourceSelect;

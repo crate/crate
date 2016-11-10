@@ -58,10 +58,7 @@ import io.crate.types.DataTypes;
 import org.elasticsearch.cluster.ClusterService;
 
 import javax.annotation.Nullable;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-import java.util.Locale;
+import java.util.*;
 
 @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
 public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, StatementAnalysisContext> {
@@ -141,13 +138,21 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
                     node.getOffset().get(),
                     relationAnalysisContext.expressionAnalysisContext())));
             }
-            querySpec.orderBy(analyzeOrderBy(
+
+            ExpressionAnalyzer orderByExpressionAnalyzer = new ExpressionAnalyzer(
+                functions,
+                statementContext.sessionContext(),
+                statementContext.convertParamFunction(),
+                new FullQualifedNameFieldProvider(unnestSources(relationAnalysisContext.sources())),
+                new SubqueryAnalyzer(this, statementContext));
+            OrderBy orderBy = analyzeOrderBy(
                 selectAnalysis,
                 node.getOrderBy(),
-                expressionAnalyzer,
+                orderByExpressionAnalyzer,
                 expressionAnalysisContext,
                 false,
-                false));
+                false);
+            querySpec.orderBy(orderBy);
             return twoRelationsUnion;
         }
         return process(node.getQueryBody(), statementContext);
@@ -545,5 +550,74 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
             throw new UnsupportedOperationException("subquery in FROM must have an alias");
         }
         return super.visitTableSubquery(node, context);
+    }
+
+    // Builds a map of concrete table relations to allow the processing of the order by symbols of the union.
+    //
+    // eg: select f1(col1) from t1 union all ... order by f3(f2(f1(col1)))
+    //
+    // Normally f1(col1) of QueriedDocTable would be used to resolve the order by, but the order by symbols
+    // are processed by traversing the function call tree and trying to resolve col1 which would fail.
+    // Therefore this method will replace QueriedDocTable with t1 TableRelation so that the
+    // order by symbol col1 will be properly resolved.
+    private static Map<QualifiedName, AnalyzedRelation> unnestSources(Map<QualifiedName, AnalyzedRelation> sources) {
+
+        Map<QualifiedName, AnalyzedRelation> newSources = new HashMap<>();
+        for (AnalyzedRelation analyzedRelation : sources.values()) {
+            OrderByResolvingSourcesVisitor.INSTANCE.process(analyzedRelation, newSources);
+        }
+        return newSources;
+    }
+
+    private static class OrderByResolvingSourcesVisitor
+        extends AnalyzedRelationVisitor<Map<QualifiedName, AnalyzedRelation>, Void> {
+
+        private static final OrderByResolvingSourcesVisitor INSTANCE = new OrderByResolvingSourcesVisitor();
+
+        @Override
+        public Void visitTableRelation(TableRelation relation, Map<QualifiedName, AnalyzedRelation> context) {
+            context.put(relation.getQualifiedName(), relation);
+            return null;
+        }
+
+        @Override
+        public Void visitDocTableRelation(DocTableRelation relation, Map<QualifiedName, AnalyzedRelation> context) {
+            context.put(relation.getQualifiedName(), relation);
+            return null;
+        }
+
+        @Override
+        public Void visitQueriedTable(QueriedTable table, Map<QualifiedName, AnalyzedRelation> context) {
+            return process(table.tableRelation(), context);
+        }
+
+        @Override
+        public Void visitQueriedDocTable(QueriedDocTable table, Map<QualifiedName, AnalyzedRelation> context) {
+            return process(table.tableRelation(), context);
+        }
+
+        @Override
+        public Void visitMultiSourceSelect(MultiSourceSelect multiSourceSelect,
+                                           Map<QualifiedName, AnalyzedRelation> context) {
+            for (RelationSource relationSource : multiSourceSelect.sources().values()) {
+                process(relationSource.relation(), context);
+            }
+            return null;
+        }
+
+        @Override
+        public Void visitTwoRelationsUnion(TwoRelationsUnion twoRelationsUnion,
+                                           Map<QualifiedName, AnalyzedRelation> context) {
+            process(twoRelationsUnion.first(), context);
+            process(twoRelationsUnion.second(), context);
+            return null;
+        }
+
+        @Override
+        public Void visitQueriedSelectRelation(QueriedSelectRelation relation,
+                                               Map<QualifiedName, AnalyzedRelation> context) {
+            context.put(relation.getQualifiedName(), relation);
+            return null;
+        }
     }
 }
