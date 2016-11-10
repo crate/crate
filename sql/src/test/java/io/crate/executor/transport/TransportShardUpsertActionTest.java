@@ -42,6 +42,9 @@ import org.elasticsearch.common.xcontent.XContentFactory;
 import org.elasticsearch.index.IndexService;
 import org.elasticsearch.index.engine.DocumentAlreadyExistsException;
 import org.elasticsearch.index.engine.Engine;
+import org.elasticsearch.index.mapper.ContentPath;
+import org.elasticsearch.index.mapper.Mapper;
+import org.elasticsearch.index.mapper.object.ObjectMapper;
 import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.index.translog.Translog;
@@ -350,6 +353,24 @@ public class TransportShardUpsertActionTest extends CrateUnitTest {
             idx++;
         }
 
+    }
+
+    @Test
+    public void testValidateMapping() throws Exception {
+        /**
+         * create a mapping which contains an invalid column name
+         * {
+         *      "valid": {},
+         *      "_invalid": {}
+         * }
+         */
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("Column name must not start with '_'");
+        Mapper.BuilderContext builderContext = new Mapper.BuilderContext(null, new ContentPath());
+        Mapper.Builder validInnerMapper = new ObjectMapper.Builder("valid");
+        Mapper.Builder invalidInnerMapper = new ObjectMapper.Builder("_invalid");
+        Mapper outerMapper = new ObjectMapper.Builder("outer").add(validInnerMapper).add(invalidInnerMapper).build(builderContext);
+        TransportShardUpsertAction.validateMapping(Arrays.asList(outerMapper).iterator());
     }
 
     @Test

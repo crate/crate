@@ -57,6 +57,7 @@ import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 import static io.crate.testing.TestingHelpers.isLiteral;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.Mockito.mock;
@@ -221,6 +222,16 @@ public class ValueNormalizerTest extends CrateUnitTest {
             Literal.of(map), objInfo, stmtCtx);
         assertThat(normalized, instanceOf(Literal.class));
         assertThat(((Literal) normalized).value(), Matchers.<Object>is(map)); // stays the same
+    }
+
+    @Test
+    public void testNormalizeDynamicObjectWithRestrictedAdditionalColumn() throws Exception {
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("Column name must not start with '_'");
+        Reference objInfo = userTableInfo.getReference(new ColumnIdent("dyn"));
+        Map<String, Object> map = new HashMap<>();
+        map.put("_invalid_column_name", 0);
+        valueNormalizer.normalizeInputForReference(Literal.of(map), objInfo, stmtCtx);
     }
 
 

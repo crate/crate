@@ -70,16 +70,19 @@ public class AnalyzedColumnDefinition {
     private Expression generatedExpression;
     private final static Set<String> NO_DOC_VALUES_SUPPORT = Sets.newHashSet("object", "geo_shape");
 
+    public static void validateName(String name) {
+        Preconditions.checkArgument(!name.startsWith("_"), "Column name must not start with '_'");
+        if (ColumnIdent.INVALID_COLUMN_NAME_PREDICATE.apply(name)) {
+            throw new InvalidColumnNameException(name);
+        }
+    }
+
     public AnalyzedColumnDefinition(@Nullable AnalyzedColumnDefinition parent) {
         this.parent = parent;
     }
 
     public void name(String name) {
-        Preconditions.checkArgument(!name.startsWith("_"), "Column ident must not start with '_'");
-        if (ColumnIdent.INVALID_COLUMN_NAME_PREDICATE.apply(name)) {
-            throw new InvalidColumnNameException(name);
-        }
-
+        validateName(name);
         this.name = name;
         if (this.parent != null) {
             this.ident = ColumnIdent.getChild(this.parent.ident, name);

@@ -24,6 +24,7 @@ package io.crate.analyze.expressions;
 
 import com.google.common.base.Preconditions;
 import io.crate.analyze.EvaluatingNormalizer;
+import io.crate.analyze.AnalyzedColumnDefinition;
 import io.crate.analyze.symbol.DynamicReference;
 import io.crate.analyze.symbol.Literal;
 import io.crate.analyze.symbol.Symbol;
@@ -120,6 +121,7 @@ public class ValueNormalizer {
     @SuppressWarnings("unchecked")
     private void normalizeObjectValue(Map<String, Object> value, Reference info) {
         for (Map.Entry<String, Object> entry : value.entrySet()) {
+            AnalyzedColumnDefinition.validateName(entry.getKey());
             ColumnIdent nestedIdent = ColumnIdent.getChild(info.ident().columnIdent(), entry.getKey());
             TableInfo tableInfo = schemas.getTableInfo(info.ident().tableIdent());
             Reference nestedInfo = tableInfo.getReference(nestedIdent);

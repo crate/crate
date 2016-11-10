@@ -59,6 +59,35 @@ conflict occured.
 This function is especially useful in multiple-row inserts, because
 the values of the current row can be referenced.
 
+Insert from dynamic queries constraints
+---------------------------------------
+
+In some cases ``SELECT`` statements produce invalid data. This opens a rare
+occasion for inconsistent outcomes. If the select statement produces data where
+a few rows contain invalid column names, or where you have rows which types are
+not compatible among themselves, some rows will be inserted while others will
+fail.  In this case the errors are logged on the node. This could happen in the
+following cases:
+
+  * If you select invalid columns or incompatible data types with unnest
+    e.g.::
+
+        select unnest([{foo=2}, {foo='a string'}])
+
+    or::
+
+        select unnest([{_invalid_col='foo', valid_col='bar'}])
+
+  * If you select from an ignored object which contains different data
+    types for the same object column, e.g.::
+
+        insert into from_table (o) values ({col='foo'}),({col=1})
+        insert into to_table (i) (select o['col'] from t)
+
+Any updates which happened before the failure will be persisted, which will
+lead to inconsistent outcomes. So special care needs to be taken by the
+application when using statements which might produce dynamic data.
+
 Parameters
 ==========
 

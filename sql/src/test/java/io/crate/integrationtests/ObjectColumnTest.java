@@ -300,4 +300,14 @@ public class ObjectColumnTest extends SQLTransportIntegrationTest {
         assertEquals(1, response.rows()[0].length);
         assertThat((Map<String, Object>) response.rows()[0][0], Matchers.<String, Object>hasEntry("nested", 2));
     }
+
+    @Test
+    public void testAddRestrictedColumnName() throws Exception {
+        execute("create table test (foo object)");
+        ensureYellow();
+        execute("INSERT INTO test (o) (select {\"_w\"= 20} from sys.cluster)");
+        refresh();
+        execute("select count(*) from test");
+        assertEquals(response.rows()[0][0], 0L);
+    }
 }
