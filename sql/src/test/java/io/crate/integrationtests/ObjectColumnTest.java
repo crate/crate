@@ -30,6 +30,8 @@ import org.junit.Test;
 import java.util.HashMap;
 import java.util.Map;
 
+import static org.hamcrest.Matchers.is;
+
 public class ObjectColumnTest extends SQLTransportIntegrationTest {
 
     private Setup setup = new Setup(sqlExecutor);
@@ -299,5 +301,15 @@ public class ObjectColumnTest extends SQLTransportIntegrationTest {
         assertEquals(1, response.rowCount());
         assertEquals(1, response.rows()[0].length);
         assertThat((Map<String, Object>) response.rows()[0][0], Matchers.<String, Object>hasEntry("nested", 2));
+    }
+
+    @Test
+    public void testAddRestrictedColumnName() throws Exception {
+        execute("create table test (foo object)");
+        ensureYellow();
+        execute("INSERT INTO test (o) (select {\"_w\"= 20})");
+        refresh();
+        execute("select count(*) from test");
+        assertThat(response.rows()[0][0], is(0L));
     }
 }

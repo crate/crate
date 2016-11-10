@@ -27,6 +27,7 @@ import com.google.common.base.Function;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
 import io.crate.Constants;
+import io.crate.analyze.AnalyzedColumnDefinition;
 import io.crate.analyze.ConstraintsValidator;
 import io.crate.analyze.symbol.InputColumn;
 import io.crate.executor.transport.task.elasticsearch.FieldExtractorFactory;
@@ -60,6 +61,7 @@ import org.elasticsearch.index.IndexService;
 import org.elasticsearch.index.VersionType;
 import org.elasticsearch.index.engine.*;
 import org.elasticsearch.index.get.GetResult;
+import org.elasticsearch.index.mapper.Mapper;
 import org.elasticsearch.index.mapper.Mapping;
 import org.elasticsearch.index.mapper.SourceToParse;
 import org.elasticsearch.index.mapper.internal.ParentFieldMapper;
@@ -412,6 +414,7 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                                                              Engine.IndexingOperation operation) throws Throwable {
         Mapping update = operation.parsedDoc().dynamicMappingsUpdate();
         if (update != null) {
+            validateMapping(update.root().iterator());
             mappingUpdatedAction.updateMappingOnMasterSynchronously(
                 request.shardId().getIndex(), request.type(), update);
 
@@ -422,6 +425,16 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
             }
         }
         return operation;
+    }
+
+    @VisibleForTesting
+    static void validateMapping(Iterator<Mapper> mappers) {
+        while(mappers.hasNext()) {
+            Mapper mapper = mappers.next();
+            AnalyzedColumnDefinition.validateName(mapper.simpleName());
+            validateMapping(mapper.iterator());
+        }
+
     }
 
     private void shardIndexOperationOnReplica(ShardUpsertRequest request,
