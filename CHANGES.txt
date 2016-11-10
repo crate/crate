@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+2016/11/10 0.57.1
+=================
+
  - Fixed NPE in the ``percentile`` aggregation fucntion. The NPE was occurring
    in case when queried shards have no records.
 
