@@ -68,7 +68,7 @@ public class InsertFromSubQueryConsumer implements Consumer {
                 statement.tableInfo().partitionedBy(),
                 statement.partitionedBySymbols(),
                 statement.tableInfo().clusteredBy(),
-                statement.clusteredByIdx(),
+                statement.clusteredBySymbol(),
                 Settings.EMPTY,
                 statement.tableInfo().isPartitioned()
             );

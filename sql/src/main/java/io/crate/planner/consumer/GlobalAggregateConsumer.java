@@ -156,7 +156,10 @@ class GlobalAggregateConsumer implements Consumer {
             plannerContext.nextExecutionPhaseId(),
             "mergeOnHandler",
             collectPhase.nodeIds().size(),
-            Collections.emptyList(),
+            // if not root relation then no direct result can be used
+            table == context.rootRelation() ?
+                Collections.emptyList() :
+                Collections.singletonList(context.plannerContext().handlerNode()),
             Symbols.extractTypes(ap.outputs()),
             mergeProjections,
             DistributionInfo.DEFAULT_SAME_NODE,

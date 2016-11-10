@@ -38,16 +38,16 @@ public class MergeCountProjection extends Projection {
 
     public static final MergeCountProjection INSTANCE = new MergeCountProjection();
 
+    private final static List<Symbol> OUTPUTS = ImmutableList.<Symbol>of(
+        new Value(DataTypes.LONG)  // number of rows updated
+    );
+
     public static final ProjectionFactory<MergeCountProjection> FACTORY = new ProjectionFactory<MergeCountProjection>() {
         @Override
         public MergeCountProjection newInstance() {
             return INSTANCE;
         }
     };
-
-    protected final static List<Symbol> OUTPUTS = ImmutableList.<Symbol>of(
-        new Value(DataTypes.LONG)  // number of rows updated
-    );
 
     private MergeCountProjection() {
     }
