@@ -22,7 +22,6 @@
 
 package io.crate.executor.transport;
 
-import com.google.common.collect.ImmutableList;
 import com.google.common.util.concurrent.ListenableFuture;
 import io.crate.action.job.ContextPreparer;
 import io.crate.action.sql.DDLStatementDispatcher;
@@ -421,7 +420,6 @@ public class TransportExecutor implements Executor {
 
         static class NodeOperationTreeContext {
             private final String localNodeId;
-            private final List<NodeOperation> collectNodeOperations = new ArrayList<>();
             private final List<NodeOperation> nodeOperations = new ArrayList<>();
 
             private final Stack<Branch> branches = new Stack<>();
@@ -447,15 +445,6 @@ public class TransportExecutor implements Executor {
 
             public void addContextPhase(@Nullable ExecutionPhase executionPhase) {
                 addPhase(executionPhase, nodeOperations, false);
-            }
-
-            /**
-             * same as {@link #addPhase(ExecutionPhase)} but those phases will be added
-             * in the front of the nodeOperation list to make sure that they are later in the execution started last
-             * to avoid race conditions.
-             */
-            public void addCollectExecutionPhase(@Nullable ExecutionPhase executionPhase) {
-                addPhase(executionPhase, collectNodeOperations, true);
             }
 
             private void addPhase(@Nullable ExecutionPhase executionPhase,
@@ -507,12 +496,7 @@ public class TransportExecutor implements Executor {
 
 
             public Collection<NodeOperation> nodeOperations() {
-                return ImmutableList.<NodeOperation>builder()
-                    // collectNodeOperations must be first so that they're started last
-                    // to prevent context-setup race conditions
-                    .addAll(collectNodeOperations)
-                    .addAll(nodeOperations)
-                    .build();
+                return nodeOperations;
             }
         }
 
@@ -526,20 +510,20 @@ public class TransportExecutor implements Executor {
         @Override
         public Void visitDistributedGroupBy(DistributedGroupBy node, NodeOperationTreeContext context) {
             context.addPhase(node.reducerMergeNode());
-            context.addCollectExecutionPhase(node.collectPhase());
+            context.addPhase(node.collectPhase());
             return null;
         }
 
         @Override
         public Void visitCountPlan(CountPlan plan, NodeOperationTreeContext context) {
             context.addPhase(plan.mergeNode());
-            context.addCollectExecutionPhase(plan.countNode());
+            context.addPhase(plan.countNode());
             return null;
         }
 
         @Override
         public Void visitCollect(Collect plan, NodeOperationTreeContext context) {
-            context.addCollectExecutionPhase(plan.collectPhase());
+            context.addPhase(plan.collectPhase());
             return null;
         }
 
