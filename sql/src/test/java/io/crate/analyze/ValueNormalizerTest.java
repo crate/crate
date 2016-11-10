@@ -164,6 +164,16 @@ public class ValueNormalizerTest extends CrateUnitTest {
         assertThat(((Literal) normalized).value(), Matchers.<Object>is(map)); // stays the same
     }
 
+    @Test
+    public void testNormalizeDynamicObjectWithRestrictedAdditionalColumn() throws Exception {
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("Column name must not start with '_'");
+        Reference objInfo = userTableInfo.getReference(new ColumnIdent("dyn"));
+        Map<String, Object> map = new HashMap<>();
+        map.put("_invalid_column_name", 0);
+        valueNormalizer.normalizeInputForReference(Literal.of(map), objInfo);
+    }
+
 
     @Test(expected = ColumnUnknownException.class)
     public void testNormalizeStrictObjectLiteralWithAdditionalColumn() throws Exception {

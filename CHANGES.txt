@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fix: Prevent adding columns with restricted names to dynamic objects
+
  - Reduced the memory requirement for update and delete statements which only
    affect a small subset of a table
 
