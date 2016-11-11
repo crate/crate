@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Reduced the memory requirement for update and delete statements which only
+   affect a small subset of a table
+
  - Fixed an issue that caused the ``WHERE`` clause of queries on ``unnest(..)``
    to be ignored.
 
