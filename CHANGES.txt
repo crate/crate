@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fixed an issue that caused the ``WHERE`` clause of queries on ``unnest(..)``
+   to be ignored.
+
  - Added support for global aggregations on subselects.
 
  - Added the ``-C`` option for providing Crate settings and deprecated

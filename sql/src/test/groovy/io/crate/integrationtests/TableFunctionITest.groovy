@@ -82,4 +82,10 @@ class TableFunctionITest extends SQLTransportIntegrationTest {
         execute("refresh table t");
         assert printedTable(execute("select * from unnest([1, 2]) inner join t on t.id = col1").rows()) == "1| 1\n"
     }
+
+    @Test
+    public void testWhereClauseIsEvaluated() throws Exception {
+        execute("select col1 from unnest([1, 2]) where col1 = 2")
+        assert printedTable(response.rows()) == "2\n"
+    }
 }

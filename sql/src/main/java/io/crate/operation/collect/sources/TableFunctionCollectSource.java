@@ -24,6 +24,7 @@ package io.crate.operation.collect.sources;
 
 import com.google.common.collect.Iterables;
 import io.crate.analyze.OrderBy;
+import io.crate.analyze.WhereClause;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.analyze.symbol.Symbols;
 import io.crate.core.collections.Row;
@@ -34,6 +35,7 @@ import io.crate.metadata.tablefunctions.TableFunctionImplementation;
 import io.crate.operation.BaseImplementationSymbolVisitor;
 import io.crate.operation.Input;
 import io.crate.operation.collect.*;
+import io.crate.operation.projectors.InputCondition;
 import io.crate.operation.projectors.RowReceiver;
 import io.crate.planner.node.dql.CollectPhase;
 import io.crate.planner.node.dql.TableFunctionCollectPhase;
@@ -65,6 +67,10 @@ public class TableFunctionCollectSource implements CollectSource {
                                                     RowReceiver downstream,
                                                     JobCollectContext jobCollectContext) {
         TableFunctionCollectPhase phase = (TableFunctionCollectPhase) collectPhase;
+        WhereClause whereClause = phase.whereClause();
+        if (whereClause.noMatch()) {
+            return Collections.singletonList(RowsCollector.empty(downstream));
+        }
         TableFunctionImplementation tableFunctionSafe = functions.getTableFunctionSafe(phase.functionName());
         TableInfo tableInfo = tableFunctionSafe.createTableInfo(clusterService, Symbols.extractTypes(phase.arguments()));
         //noinspection unchecked  Only literals can be passed to table functions. Anything else is invalid SQL
@@ -75,9 +81,14 @@ public class TableFunctionCollectSource implements CollectSource {
         for (Symbol symbol : phase.toCollect()) {
             topLevelInputs.add(implementationVisitor.process(symbol, context));
         }
+
         Iterable<Row> rows = Iterables.transform(
             tableFunctionSafe.execute(inputs),
             new ValueAndInputRow<>(topLevelInputs, context.collectExpressions));
+        if (whereClause.hasQuery()) {
+            Input<Boolean> condition = (Input<Boolean>) implementationVisitor.process(whereClause.query(), context);
+            rows = Iterables.filter(rows, InputCondition.asPredicate(condition));
+        }
         OrderBy orderBy = phase.orderBy();
         if (orderBy != null) {
             rows = RowsTransformer.sortRows(Iterables.transform(rows, Row.MATERIALIZE), phase);
