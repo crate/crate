@@ -72,7 +72,7 @@ If the table is partitioned this clause can be used to alter only a single parti
 
 .. note:: BLOB tables cannot be partitioned and hence this clause cannot be used.
 
-This clause identifies a single partition. It takes one ore more partition
+This clause identifies a single partition. It takes one or more partition
 columns with a value each to identify the partition to alter.
 
 ::
