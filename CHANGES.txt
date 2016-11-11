@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fixed an issue that caused the ``WHERE`` clause of queries on ``unnest(..)``
+   to be ignored.
+
 2016/11/10 0.57.1
 =================
 
