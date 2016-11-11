@@ -23,6 +23,7 @@ package io.crate.operation.reference.doc.lucene;
 
 import io.crate.exceptions.UnhandledServerException;
 import io.crate.exceptions.UnsupportedFeatureException;
+import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RowGranularity;
 import io.crate.operation.reference.ReferenceResolver;
@@ -48,26 +49,30 @@ public class LuceneReferenceResolver implements ReferenceResolver<LuceneCollecto
     public LuceneCollectorExpression<?> getImplementation(Reference refInfo) {
         assert refInfo.granularity() == RowGranularity.DOC;
 
-        if (RawCollectorExpression.COLUMN_NAME.equals(refInfo.ident().columnIdent().name())) {
-            if (refInfo.ident().columnIdent().isColumn()) {
+        ColumnIdent columnIdent = refInfo.ident().columnIdent();
+        String name = columnIdent.name();
+        if (RawCollectorExpression.COLUMN_NAME.equals(name)) {
+            if (columnIdent.isColumn()) {
                 return new RawCollectorExpression();
             } else {
                 // TODO: implement an Object source expression which may support subscripts
                 throw new UnsupportedFeatureException(
                     String.format(Locale.ENGLISH, "_source expression does not support subscripts %s",
-                        refInfo.ident().columnIdent().fqn()));
+                        columnIdent.fqn()));
             }
-        } else if (IdCollectorExpression.COLUMN_NAME.equals(refInfo.ident().columnIdent().name())) {
+        } else if (UidCollectorExpression.COLUMN_NAME.equals(name)) {
+            return new UidCollectorExpression();
+        } else if (IdCollectorExpression.COLUMN_NAME.equals(name)) {
             return new IdCollectorExpression();
-        } else if (DocCollectorExpression.COLUMN_NAME.equals(refInfo.ident().columnIdent().name())) {
+        } else if (DocCollectorExpression.COLUMN_NAME.equals(name)) {
             return DocCollectorExpression.create(refInfo);
-        } else if (DocIdCollectorExpression.COLUMN_NAME.equals(refInfo.ident().columnIdent().name())) {
+        } else if (DocIdCollectorExpression.COLUMN_NAME.equals(name)) {
             return new DocIdCollectorExpression();
-        } else if (ScoreCollectorExpression.COLUMN_NAME.equals(refInfo.ident().columnIdent().name())) {
+        } else if (ScoreCollectorExpression.COLUMN_NAME.equals(name)) {
             return new ScoreCollectorExpression();
         }
 
-        String colName = refInfo.ident().columnIdent().fqn();
+        String colName = columnIdent.fqn();
         if (this.mapperService != null && mapperService.smartNameFieldType(colName) == null) {
             return NULL_COLLECTOR_EXPRESSION;
         }
