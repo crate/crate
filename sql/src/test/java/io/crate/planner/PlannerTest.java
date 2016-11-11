@@ -1278,12 +1278,20 @@ public class PlannerTest extends AbstractPlannerTest {
 
     @Test
     public void testReferenceToNestedAggregatedField() throws Exception {
-        expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage("Cannot create plan for: ");
-        plan("select ii, xx from ( " +
+        Merge merge = plan("select ii, xx from ( " +
              "  select i + i as ii, xx from (" +
              "    select i, sum(x) as xx from t1 group by i) as t) as tt " +
              "where (ii * 2) > 4 and (xx * 2) > 120");
+        Plan source = merge.subPlan();
+        assertThat(source, instanceOf(Collect.class));
+        assertThat(((Collect) source).collectPhase().projections(), contains(
+            instanceOf(GroupProjection.class)
+        ));
+        assertThat(merge.mergePhase().projections(), contains(
+            instanceOf(GroupProjection.class),
+            instanceOf(TopNProjection.class),
+            instanceOf(TopNProjection.class)
+        ));
     }
 
     @Test
