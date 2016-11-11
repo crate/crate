@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fixed an issue that caused the ``WHERE`` clause of queries on ``unnest(..)``
+   to be ignored.
+
  - Fixed NPE in the ``percentile`` aggregation fucntion. The NPE was occurring
    in case when queried shards have no records.
 
