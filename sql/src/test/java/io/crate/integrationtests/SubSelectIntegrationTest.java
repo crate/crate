@@ -378,4 +378,10 @@ public class SubSelectIntegrationTest extends SQLTransportIntegrationTest {
                 ") t");
         assertThat(TestingHelpers.printedTable(response.rows()), is("3.0\n"));
     }
+
+    @Test
+    public void testGlobalAggOnSubQueryWithWhereOnOuterRelation() throws Exception {
+        execute("select sum(x) from (select min(col1) as x from unnest([1])) as t where x = 2");
+        assertThat(TestingHelpers.printedTable(response.rows()), is("NULL\n"));
+    }
 }

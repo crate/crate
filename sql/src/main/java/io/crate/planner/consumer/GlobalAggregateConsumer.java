@@ -42,6 +42,7 @@ import io.crate.planner.node.dql.Collect;
 import io.crate.planner.node.dql.MergePhase;
 import io.crate.planner.node.dql.RoutedCollectPhase;
 import io.crate.planner.projection.AggregationProjection;
+import io.crate.planner.projection.FilterProjection;
 import io.crate.planner.projection.Projection;
 import io.crate.planner.projection.builder.ProjectionBuilder;
 import io.crate.planner.projection.builder.SplitPoints;
@@ -79,6 +80,11 @@ class GlobalAggregateConsumer implements Consumer {
         if (resultDescription.limit() > TopN.NO_LIMIT || resultDescription.orderBy() != null) {
             plan = Merge.ensureOnHandler(plan, plannerContext);
             resultDescription = plan.resultDescription();
+        }
+        WhereClause where = qs.where();
+        if (where != WhereClause.MATCH_ALL) {
+            FilterProjection whereFilter = ProjectionBuilder.filterProjection(splitPoints.toCollect(), where);
+            plan.addProjection(whereFilter, null, null, null, null);
         }
         List<Projection> postAggregationProjections = createPostAggregationProjections(qs, splitPoints, plannerContext);
         if (ExecutionPhases.executesOnHandler(plannerContext.handlerNode(), resultDescription.nodeIds())) {
