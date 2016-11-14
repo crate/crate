@@ -24,10 +24,10 @@ package io.crate.analyze.relations;
 
 import io.crate.analyze.MultiSourceSelect;
 import io.crate.analyze.QueriedSelectRelation;
+import io.crate.analyze.RelationSource;
 import io.crate.analyze.SelectAnalyzedStatement;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.testing.SQLExecutor;
-import io.crate.analyze.*;
 import io.crate.testing.T3;
 import org.elasticsearch.test.cluster.NoopClusterService;
 import org.junit.Test;
@@ -81,7 +81,9 @@ public class RelationNormalizerTest extends CrateUnitTest {
         assertThat(relation, instanceOf(QueriedSelectRelation.class));
         QueriedSelectRelation outerRelation = (QueriedSelectRelation) relation;
         assertThat(outerRelation.querySpec(),
-            isSQL("SELECT doc.t1.a, doc.t1.x, doc.t1.i ORDER BY doc.t1.x"));
+            isSQL("SELECT io.crate.analyze.QueriedSelectRelation.a, " +
+                  "io.crate.analyze.QueriedSelectRelation.x, " +
+                  "io.crate.analyze.QueriedSelectRelation.i ORDER BY io.crate.analyze.QueriedSelectRelation.x"));
         assertThat(outerRelation.subRelation(), instanceOf(QueriedDocTable.class));
         assertThat(outerRelation.subRelation().querySpec(),
             isSQL("SELECT doc.t1.a, doc.t1.x, doc.t1.i ORDER BY doc.t1.a LIMIT 10"));
@@ -109,7 +111,10 @@ public class RelationNormalizerTest extends CrateUnitTest {
         assertThat(relation, instanceOf(QueriedSelectRelation.class));
         QueriedSelectRelation outerRelation = (QueriedSelectRelation) relation;
         assertThat(outerRelation.querySpec(),
-            isSQL("SELECT doc.t1.a, doc.t1.x, doc.t1.i ORDER BY doc.t1.a DESC LIMIT 5"));
+            isSQL("SELECT io.crate.analyze.QueriedSelectRelation.a, " +
+                  "io.crate.analyze.QueriedSelectRelation.x, " +
+                  "io.crate.analyze.QueriedSelectRelation.i " +
+                  "ORDER BY io.crate.analyze.QueriedSelectRelation.a DESC LIMIT 5"));
         assertThat(outerRelation.subRelation(), instanceOf(QueriedDocTable.class));
         assertThat(outerRelation.subRelation().querySpec(),
             isSQL("SELECT doc.t1.a, doc.t1.x, doc.t1.i ORDER BY doc.t1.a LIMIT 10 OFFSET 5"));

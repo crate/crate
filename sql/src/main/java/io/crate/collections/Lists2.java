@@ -58,4 +58,12 @@ public class Lists2 {
             it.set(replaceFunction.apply(it.next()));
         }
     }
+
+    public static <T> List<T> copyAndReplace(List<T> list, Function<? super T, T> replaceFunc) {
+        List<T> copy = new ArrayList<T>(list.size());
+        for (T item : list) {
+            copy.add(replaceFunc.apply(item));
+        }
+        return copy;
+    }
 }

@@ -289,7 +289,7 @@ final class RelationNormalizer {
             }
 
             // Try to push down to the child
-            context.currentParentQSpec = querySpec;
+            context.currentParentQSpec = querySpec.copyAndReplace(i -> i);
             AnalyzedRelation processedChildRelation = process(relation.subRelation(), context);
 
             // If cannot be pushed down replace qSpec with possibly merged qSpec from context

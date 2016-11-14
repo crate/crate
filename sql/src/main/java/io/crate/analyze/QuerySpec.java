@@ -28,6 +28,7 @@ import com.google.common.collect.Lists;
 import io.crate.analyze.symbol.DefaultTraversalSymbolVisitor;
 import io.crate.analyze.symbol.RelationColumn;
 import io.crate.analyze.symbol.Symbol;
+import io.crate.collections.Lists2;
 import io.crate.metadata.TransactionContext;
 import io.crate.operation.scalar.cast.CastFunctionResolver;
 import io.crate.types.DataType;
@@ -242,17 +243,11 @@ public class QuerySpec {
 
 
     public QuerySpec copyAndReplace(com.google.common.base.Function<? super Symbol, Symbol> replaceFunction) {
-        if (groupBy.isPresent()) {
-            throw new UnsupportedOperationException("Replacing group by symbols is not implemented");
-        }
-        List<Symbol> newOutputs = new ArrayList<>(outputs.size());
-        for (Symbol output : outputs) {
-            newOutputs.add(replaceFunction.apply(output));
-        }
         QuerySpec newSpec = new QuerySpec()
             .limit(limit)
             .offset(offset)
-            .outputs(newOutputs);
+            .hasAggregates(hasAggregates)
+            .outputs(Lists2.copyAndReplace(outputs, replaceFunction));
         if (!where.hasQuery()) {
             newSpec.where(where);
         } else {
@@ -266,6 +261,9 @@ public class QuerySpec {
             if (havingClause.hasQuery()) {
                 newSpec.having(new HavingClause(replaceFunction.apply(havingClause.query)));
             }
+        }
+        if (groupBy.isPresent()) {
+            newSpec.groupBy(Lists2.copyAndReplace(groupBy.get(), replaceFunction));
         }
         return newSpec;
     }
