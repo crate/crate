@@ -128,23 +128,24 @@ public class SubSelectIntegrationTest extends SQLTransportIntegrationTest {
     @Test
     public void testNestedGroupByAggregation() throws Exception {
         setup.groupBySetup();
-
-        expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("Cannot create plan for: ");
         execute("select count(*) from (" +
                 "  select min(age) as minAge from characters group by gender) as ch " +
-                "group by minAge");
+                "group by minAge ");
+        assertThat(TestingHelpers.printedTable(response.rows()),
+            is("1\n" +
+               "1\n"));
     }
 
     @Test
     public void testOrderingOnNestedAggregation() throws Exception {
         setup.groupBySetup();
-
-        expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("Cannot create plan for: ");
         execute("select race, avg(age) as avgAge from ( " +
                 "  select * from characters where gender = 'male' order by age) as ch " +
-                "group by race");
+                "group by race order by race");
+        assertThat(TestingHelpers.printedTable(response.rows()),
+            is("Android| NULL\n" +
+               "Human| 73.0\n" +
+               "Vogon| NULL\n"));
     }
 
     @Test

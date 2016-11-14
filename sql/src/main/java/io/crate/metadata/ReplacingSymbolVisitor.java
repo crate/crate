@@ -27,12 +27,14 @@ import io.crate.analyze.symbol.Function;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.analyze.symbol.SymbolVisitor;
 
+import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
 
-public class ReplacingSymbolVisitor<C> extends SymbolVisitor<C, Symbol> {
+public class ReplacingSymbolVisitor<C> extends SymbolVisitor<C, Symbol>
+    implements com.google.common.base.Function<Symbol, Symbol> {
 
     private final ReplaceMode mode;
 
@@ -81,4 +83,9 @@ public class ReplacingSymbolVisitor<C> extends SymbolVisitor<C, Symbol> {
         return visitReference(symbol, context);
     }
 
+    @Nullable
+    @Override
+    public Symbol apply(@Nullable Symbol input) {
+        return process(input, null);
+    }
 }

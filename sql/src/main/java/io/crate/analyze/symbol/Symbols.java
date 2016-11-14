@@ -53,6 +53,8 @@ public class Symbols {
             return input instanceof GeneratedReference;
         }
     };
+    public static final com.google.common.base.Function<Symbol, Symbol> DEEP_COPY =
+        new ReplacingSymbolVisitor<Void>(ReplaceMode.COPY);
 
     public static List<DataType> extractTypes(List<? extends Symbol> symbols) {
         return Lists.transform(symbols, TYPES_FUNCTION);

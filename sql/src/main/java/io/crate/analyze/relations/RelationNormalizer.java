@@ -27,10 +27,7 @@ import com.google.common.collect.Collections2;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Maps;
 import io.crate.analyze.*;
-import io.crate.analyze.symbol.Aggregations;
-import io.crate.analyze.symbol.Field;
-import io.crate.analyze.symbol.Symbol;
-import io.crate.analyze.symbol.SymbolVisitor;
+import io.crate.analyze.symbol.*;
 import io.crate.metadata.*;
 import io.crate.operation.operator.AndOperator;
 import io.crate.planner.Limits;
@@ -289,7 +286,7 @@ final class RelationNormalizer {
             }
 
             // Try to push down to the child
-            context.currentParentQSpec = querySpec.copyAndReplace(i -> i);
+            context.currentParentQSpec = querySpec.copyAndReplace(Symbols.DEEP_COPY);
             AnalyzedRelation processedChildRelation = process(relation.subRelation(), context);
 
             // If cannot be pushed down replace qSpec with possibly merged qSpec from context
