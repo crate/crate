@@ -101,14 +101,14 @@ public class DateFormatFunctionTest extends AbstractScalarFunctionsTest {
     public void testInvalidTimeZone() throws Exception {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("invalid time zone value 'wrong timezone'");
-        sqlExpressions.normalize(sqlExpressions.asSymbol("date_format('%d.%m.%Y', 'wrong timezone', 0)"));
+        assertEvaluate("date_format('%d.%m.%Y', 'wrong timezone', 0)", null);
     }
 
     @Test
     public void testInvalidTimestamp() throws Exception {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("Invalid format: \"NO TIMESTAMP\"");
-        sqlExpressions.normalize(sqlExpressions.asSymbol("date_format('%d.%m.%Y', 'NO TIMESTAMP')"));
+        assertEvaluate("date_format('%d.%m.%Y', 'NO TIMESTAMP')", null);
     }
 
     @Test

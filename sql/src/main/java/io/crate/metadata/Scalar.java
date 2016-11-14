@@ -57,7 +57,11 @@ public abstract class Scalar<ReturnType, InputType> implements FunctionImplement
 
     @Override
     public Symbol normalizeSymbol(Function symbol, StmtCtx stmtCtx) {
-        return evaluateIfLiterals(this, symbol);
+        try {
+            return evaluateIfLiterals(this, symbol);
+        } catch (Throwable t) {
+            return symbol;
+        }
     }
 
     protected static boolean anyNonLiterals(Collection<? extends Symbol> arguments) {

@@ -1074,4 +1074,11 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
         assertThat(response.rowCount(), is(7L));
         assertThat((String) response.rows()[0][1], is("Numeric data types"));
     }
+
+    @Test
+    public void testScalarEvaluatesInErrorOnInformationSchema() throws Exception {
+        expectedException.expect(SQLActionException.class);
+        expectedException.expectMessage(" / by zero");
+        execute("select 1/0 from information_schema.tables");
+    }
 }
