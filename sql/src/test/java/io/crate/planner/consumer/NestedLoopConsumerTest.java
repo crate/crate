@@ -143,6 +143,15 @@ public class NestedLoopConsumerTest extends CrateUnitTest {
         assertThat(nlp.projections().get(0).outputs(), isSQL("INPUT(1), INPUT(0)"));
     }
 
+    @Test
+    public void testGlobalAggWithWhereDoesNotResultInFilterProjection() throws Exception {
+        NestedLoop nl = plan("select min(u1.name) from users u1, users u2 where u1.name like 'A%'");
+        assertThat(nl.nestedLoopPhase().projections(), contains(
+            instanceOf(TopNProjection.class),
+            instanceOf(AggregationProjection.class),
+            instanceOf(TopNProjection.class)
+        ));
+    }
 
     @Test
     public void testFunctionWithJoinCondition() throws Exception {

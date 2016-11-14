@@ -26,6 +26,7 @@ import com.google.common.base.Optional;
 import io.crate.analyze.MultiSourceSelect;
 import io.crate.analyze.QuerySpec;
 import io.crate.analyze.RelationSource;
+import io.crate.analyze.WhereClause;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.symbol.Field;
 import io.crate.analyze.symbol.Function;
@@ -74,6 +75,8 @@ class MultiSourceAggregationConsumer implements Consumer {
             Planner.Context plannerContext = context.plannerContext();
             Plan plan = plannerContext.planSubRelation(multiSourceSelect, context);
 
+            // whereClause is already handled within the plan, no need to add additional FilterProjection via addAggregations
+            qs.where(WhereClause.MATCH_ALL);
             return GlobalAggregateConsumer.addAggregations(qs, projectionBuilder, splitPoints, plannerContext, plan);
         }
     }
