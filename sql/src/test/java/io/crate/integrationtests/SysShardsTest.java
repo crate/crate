@@ -354,4 +354,15 @@ public class SysShardsTest extends SQLTransportIntegrationTest {
             assertThat(((Map<String, Long>) recovery.get("size")).entrySet(), equalTo(size.entrySet()));
         }
     }
+
+    @Test
+    public void testScalarEvaluatesInErrorOnSysShards() throws Exception {
+        // we need at least 1 shard, otherwise the table is empty and no evaluation occurs
+        execute("create table t1 (id integer) clustered into 1 shards with (number_of_replicas=0)");
+        ensureYellow();
+
+        expectedException.expect(SQLActionException.class);
+        expectedException.expectMessage(" / by zero");
+        execute("select 1/0 from sys.shards");
+    }
 }

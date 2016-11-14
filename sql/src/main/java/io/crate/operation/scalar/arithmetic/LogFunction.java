@@ -98,11 +98,14 @@ public abstract class LogFunction extends Scalar<Number, Number> {
         @Override
         public Number evaluate(Input<Number>... args) {
             assert args.length == 2;
-            if (args[0].value() == null || args[1].value() == null) {
+            Number value1 = args[0].value();
+            Number value2 = args[1].value();
+
+            if (value1 == null || value2 == null) {
                 return null;
             }
-            double value = args[0].value().doubleValue();
-            double base = args[1].value().doubleValue();
+            double value = value1.doubleValue();
+            double base = value2.doubleValue();
             double baseResult = Math.log(base);
             if (baseResult == 0) {
                 throw new IllegalArgumentException("log(x, b): given 'base' would result in a division by zero.");
@@ -129,11 +132,11 @@ public abstract class LogFunction extends Scalar<Number, Number> {
         @Override
         public Number evaluate(Input<Number>... args) {
             assert args.length == 1;
-            if (args[0].value() == null) {
+            Number value = args[0].value();
+            if (value == null) {
                 return null;
             }
-            double value = args[0].value().doubleValue();
-            return evaluate(value);
+            return evaluate(value.doubleValue());
         }
 
         protected Double evaluate(double value) {

@@ -1968,4 +1968,29 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         assertThat(response.rowCount(), is(2L));
 
     }
+
+    @Test
+    public void testScalarEvaluatesInErrorOnDocTable() throws Exception {
+        execute("create table t1 (id int) with (number_of_replicas=0)");
+        ensureYellow();
+        // we need at least 1 row, otherwise the table is empty and no evaluation occurs
+        execute("insert into t1 (id) values (1)");
+        refresh();
+
+        expectedException.expect(SQLActionException.class);
+        expectedException.expectMessage(" / by zero");
+        execute("select 1/0 from t1");
+    }
+
+    /**
+     * If the WHERE CLAUSE results in a NO MATCH, no expression evaluation error will be thrown as nothing is evaluated.
+     * This is different from e.g. postgres where evaluation always occurs.
+     */
+    @Test
+    public void testScalarEvaluatesInErrorOnDocTableNoMatch() throws Exception {
+        execute("create table t1 (id int) with (number_of_replicas=0)");
+        ensureYellow();
+        execute("select 1/0 from t1 where true = false");
+        assertThat(response.rowCount(), is(0L));
+    }
 }

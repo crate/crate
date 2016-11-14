@@ -1,66 +1,33 @@
 package io.crate.operation.operator;
 
-import io.crate.action.sql.SessionContext;
-import io.crate.analyze.symbol.Function;
-import io.crate.analyze.symbol.Literal;
-import io.crate.analyze.symbol.Symbol;
-import io.crate.metadata.Reference;
-import io.crate.metadata.TransactionContext;
-import io.crate.test.integration.CrateUnitTest;
+import io.crate.operation.scalar.AbstractScalarFunctionsTest;
 import org.junit.Test;
 
-import java.util.Arrays;
+import static io.crate.testing.SymbolMatchers.*;
 
-import static io.crate.testing.SymbolMatchers.isLiteral;
-import static org.hamcrest.CoreMatchers.instanceOf;
-
-public class OrOperatorTest extends CrateUnitTest {
+public class OrOperatorTest extends AbstractScalarFunctionsTest {
 
     @Test
-    public void testNormalizeSymbolReferenceAndLiteral() throws Exception {
-        OrOperator operator = new OrOperator();
+    public void testNormalize() throws Exception {
+        assertNormalize("name or true", isLiteral(true));
+        assertNormalize("true or name", isLiteral(true));
+        assertNormalize("false or name", isField("name"));
+        assertNormalize("name or name", isFunction(OrOperator.NAME));
 
-        Function function = new Function(
-            operator.info(), Arrays.<Symbol>asList(new Reference(), Literal.of(true)));
-        Symbol normalizedSymbol = operator.normalizeSymbol(function, new TransactionContext(SessionContext.SYSTEM_SESSION));
-        assertThat(normalizedSymbol, isLiteral(true));
+        assertNormalize("true or 1/0", isLiteral(true));
+        assertNormalize("1/0 or true", isLiteral(true));
     }
 
     @Test
-    public void testNormalizeSymbolReferenceAndLiteralFalse() throws Exception {
-        OrOperator operator = new OrOperator();
-        Function function = new Function(
-            operator.info(), Arrays.<Symbol>asList(new Reference(), Literal.of(false)));
-        Symbol normalizedSymbol = operator.normalizeSymbol(function, new TransactionContext(SessionContext.SYSTEM_SESSION));
-        assertThat(normalizedSymbol, instanceOf(Reference.class));
+    public void testEvaluate() throws Exception {
+        assertEvaluate("true or true", true);
+        assertEvaluate("false or false", false);
+        assertEvaluate("true or false", true);
+        assertEvaluate("false or true", true);
+        assertEvaluate("true or null", true);
+        assertEvaluate("null or true", true);
+        assertEvaluate("false or null", null);
+        assertEvaluate("null or false", null);
+        assertEvaluate("null or null", null);
     }
-
-    @Test
-    public void testNormalizeSymbolReferenceAndReference() throws Exception {
-        OrOperator operator = new OrOperator();
-
-        Function function = new Function(
-            operator.info(), Arrays.<Symbol>asList(new Reference(), new Reference()));
-        Symbol normalizedSymbol = operator.normalizeSymbol(function, new TransactionContext(SessionContext.SYSTEM_SESSION));
-        assertThat(normalizedSymbol, instanceOf(Function.class));
-    }
-
-    private Boolean or(Boolean left, Boolean right) {
-        OrOperator operator = new OrOperator();
-        return operator.evaluate(Literal.of(left), Literal.of(right));
-    }
-
-    @Test
-    public void testEvaluateAndOperator() {
-        assertTrue(or(true, true));
-        assertFalse(or(false, false));
-        assertTrue(or(true, false));
-        assertTrue(or(false, true));
-        assertTrue(or(true, null));
-        assertTrue(or(null, true));
-        assertNull(or(false, null));
-        assertNull(or(null, false));
-        assertNull(or(null, null));
-    }
-
 }

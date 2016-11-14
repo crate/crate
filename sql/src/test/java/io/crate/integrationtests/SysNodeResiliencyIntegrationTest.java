@@ -72,10 +72,4 @@ public class SysNodeResiliencyIntegrationTest extends SQLTransportIntegrationTes
         assertThat(response.rows()[0][2], is(notNullValue()));
         assertThat(response.rows()[0][3], is(unluckyNode));
     }
-
-    @Test
-    public void testNoMatchingNode() throws Exception {
-        execute("select id, name, hostname from sys.nodes where id = 'does-not-exist'");
-        assertThat(response.rowCount(), is(0L));
-    }
 }
