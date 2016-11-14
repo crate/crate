@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fixes evaluation of `OR` expressions if one argument evaluates to
+   `true` and the other results in an error.
+
  - Fix: Prevent adding columns with restricted names to dynamic objects
 
  - Reduced the memory requirement for update and delete statements which only

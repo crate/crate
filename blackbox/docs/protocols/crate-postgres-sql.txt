@@ -83,6 +83,13 @@ use case for it, let us know on `Github`_. We’re always improving and extendin
 Crate, and we love to hear feedback.
 
 
+Expression Evaluation
+=====================
+
+Unlike PostgreSQL, expressions are not evaluated if the query results
+in 0 rows either because of the table is empty or by a not matching
+where clause.
+
 .. _High Level Architecture: https://crate.io/overview/high-level-architecture
 .. _Value Expressions: https://www.postgresql.org/docs/current/static/sql-expressions.html
 .. _Arrays: https://www.postgresql.org/docs/current/static/arrays.html

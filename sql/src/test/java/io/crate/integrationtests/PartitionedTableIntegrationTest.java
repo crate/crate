@@ -2046,4 +2046,17 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
         execute("select * from test where entity = 0 and (id = 0 or id = 1)");
         assertThat(response.rowCount(), is(0L));
     }
+
+    @Test
+    public void testScalarEvaluatesInErrorOnPartitionedTable() throws Exception {
+        execute("create table t1 (id int) partitioned by (id) with (number_of_replicas=0)");
+        ensureYellow();
+        // we need at least 1 row/partition, otherwise the table is empty and no evaluation occurs
+        execute("insert into t1 (id) values (1)");
+        refresh();
+
+        expectedException.expect(SQLActionException.class);
+        expectedException.expectMessage(" / by zero");
+        execute("select id/0 from t1");
+    }
 }

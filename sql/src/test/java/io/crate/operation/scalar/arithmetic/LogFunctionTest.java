@@ -55,24 +55,15 @@ public class LogFunctionTest extends AbstractScalarFunctionsTest {
     }
 
     private Symbol normalizeLog(Number value, DataType valueType) {
-        LogFunction function = getFunction(LogFunction.NAME, valueType);
-        return normalize(value, valueType, function);
+        return normalize(LogFunction.NAME, value, valueType);
     }
 
     private Symbol normalizeLn(Number value, DataType valueType) {
-        LogFunction function = getFunction(LogFunction.LnFunction.NAME, valueType);
-        return normalize(value, valueType, function);
-    }
-
-    private Symbol normalize(Number value, DataType valueType, LogFunction function) {
-        return function.normalizeSymbol(new Function(function.info(),
-            Arrays.<Symbol>asList(Literal.of(valueType, value))), transactionContext);
+        return normalize(LogFunction.LnFunction.NAME, value, valueType);
     }
 
     private Symbol normalizeLog(Number value, DataType valueType, Number base, DataType baseType) {
-        LogFunction function = getFunction(LogFunction.NAME, valueType, baseType);
-        return function.normalizeSymbol(new Function(function.info(),
-            Arrays.<Symbol>asList(Literal.of(valueType, value), Literal.of(baseType, base))), transactionContext);
+        return normalize(LogFunction.NAME, Literal.of(valueType, value), Literal.of(baseType, base));
     }
 
     private Number evaluateLog(Number value, DataType valueType) {
@@ -127,40 +118,40 @@ public class LogFunctionTest extends AbstractScalarFunctionsTest {
     }
 
     @Test(expected = IllegalArgumentException.class)
-    public void testNormalizeLogZero() throws Exception {
+    public void testLogZero() throws Exception {
         // -Infinity
-        normalizeLog(0.0, DataTypes.DOUBLE);
+        assertEvaluate("log(0.0)", null);
     }
 
     @Test(expected = IllegalArgumentException.class)
-    public void testNormalizeLogNegative() throws Exception {
+    public void testLogNegative() throws Exception {
         // NaN
-        normalizeLog(-10.0, DataTypes.DOUBLE);
+        assertEvaluate("log(-10.0)", null);
     }
 
     @Test(expected = IllegalArgumentException.class)
-    public void testNormalizeLnZero() throws Exception {
+    public void testLnZero() throws Exception {
         // -Infinity
-        normalizeLn(0.0, DataTypes.DOUBLE);
+        assertEvaluate("ln(0.0)", null);
     }
 
     @Test(expected = IllegalArgumentException.class)
-    public void testNormalizeLnNegative() throws Exception {
+    public void testLnNegative() throws Exception {
         // NaN
-        normalizeLn(-10.0, DataTypes.DOUBLE);
+        assertEvaluate("ln(-10.0)", null);
     }
 
     @Test(expected = IllegalArgumentException.class)
-    public void testNormalizeLogDivisionByZero() throws Exception {
+    public void testLogDivisionByZero() throws Exception {
         // division by zero
-        normalizeLog(10.0, DataTypes.DOUBLE, 1.0, DataTypes.DOUBLE);
+        assertEvaluate("log(10.0, 1.0)", null);
     }
 
     @Test
     public void testNormalizeString() throws Exception {
-        assertThat(getFunction(LogFunction.NAME, DataTypes.STRING), Matchers.nullValue());
-        assertThat(getFunction(LogFunction.NAME, DataTypes.STRING, DataTypes.STRING), Matchers.nullValue());
-        assertThat(getFunction(LogFunction.LnFunction.NAME, DataTypes.STRING), Matchers.nullValue());
+        expectedException.expect(UnsupportedOperationException.class);
+        expectedException.expectMessage("unknown function: log(string)");
+        assertNormalize("log('foo')", Matchers.nullValue());
     }
 
     @Test

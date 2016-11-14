@@ -21,6 +21,7 @@
 
 package io.crate.integrationtests;
 
+import io.crate.action.sql.SQLActionException;
 import io.crate.testing.UseJdbc;
 import org.junit.Test;
 
@@ -58,5 +59,12 @@ public class SysClusterTest extends SQLTransportIntegrationTest {
         execute("explain select * from sys.cluster limit 2"); // using limit to test projection serialization as well
         assertThat(response.rowCount(), is(1L));
         assertThat((String) ((Map<String, Object>) response.rows()[0][0]).get("planType"), is("CollectAndMerge"));
+    }
+
+    @Test
+    public void testScalarEvaluatesInErrorOnSysCluster() throws Exception {
+        expectedException.expect(SQLActionException.class);
+        expectedException.expectMessage(" / by zero");
+        execute("select 1/0 from sys.cluster");
     }
 }
