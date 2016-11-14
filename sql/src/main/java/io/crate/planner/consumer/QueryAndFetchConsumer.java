@@ -23,10 +23,7 @@ package io.crate.planner.consumer;
 
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
-import io.crate.analyze.OrderBy;
-import io.crate.analyze.QueriedTable;
-import io.crate.analyze.QueriedTableRelation;
-import io.crate.analyze.QuerySpec;
+import io.crate.analyze.*;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.QueriedDocTable;
 import io.crate.analyze.symbol.Function;
@@ -37,14 +34,12 @@ import io.crate.collections.Lists2;
 import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.exceptions.VersionInvalidException;
 import io.crate.operation.predicate.MatchPredicate;
-import io.crate.planner.Limits;
-import io.crate.planner.Plan;
-import io.crate.planner.Planner;
-import io.crate.planner.PositionalOrderBy;
+import io.crate.planner.*;
 import io.crate.planner.node.dql.Collect;
 import io.crate.planner.node.dql.RoutedCollectPhase;
 import io.crate.planner.projection.Projection;
 import io.crate.planner.projection.TopNProjection;
+import io.crate.planner.projection.builder.ProjectionBuilder;
 
 import java.util.Collections;
 import java.util.List;
@@ -88,6 +83,28 @@ public class QueryAndFetchConsumer implements Consumer {
                 ensureNoLuceneOnlyPredicates(querySpec.where().query());
             }
             return normalSelect(table, context);
+        }
+
+        @Override
+        public Plan visitQueriedSelectRelation(QueriedSelectRelation relation, ConsumerContext context) {
+            QuerySpec qs = relation.querySpec();
+            if (qs.hasAggregates() || qs.groupBy().isPresent()) {
+                return null;
+            }
+            Planner.Context plannerContext = context.plannerContext();
+            Plan plan = plannerContext.planSubRelation(relation.subRelation(), context);
+            plan = Merge.ensureOnHandler(plan, plannerContext);
+
+            Limits limits = plannerContext.getLimits(qs);
+            TopNProjection topNProjection = ProjectionBuilder.topNProjection(
+                relation.subRelation().fields(),
+                qs.orderBy().orNull(),
+                limits.offset(),
+                limits.finalLimit(),
+                qs.outputs()
+            );
+            plan.addProjection(topNProjection, null, null, qs.outputs().size(), null);
+            return plan;
         }
 
         private void ensureNoLuceneOnlyPredicates(Symbol query) {

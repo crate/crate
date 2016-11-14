@@ -21,5 +21,4 @@ virtual relation on which the outer select can operate::
 Limitations
 ...........
 
- - Only queries that contain global aggregates in the outer relation or which
-   can be rewritten to a non-subselect are supported..
+ - GROUP BY clauses in the outer relation are not supported

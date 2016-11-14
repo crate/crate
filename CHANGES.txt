@@ -5,13 +5,14 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Extended the support for subqueries in the FROM clause: All statements
+   except any with GROUP BY clauses in the outer relation are now supported.
+
  - Reduced the memory requirement for update and delete statements which only
    affect a small subset of a table
 
  - Fixed an issue that caused the ``WHERE`` clause of queries on ``unnest(..)``
    to be ignored.
-
- - Added support for global aggregations on subselects.
 
  - Added the ``-C`` option for providing Crate settings and deprecated
    usage of the ``.es`` prefix with ``-D`` option.
