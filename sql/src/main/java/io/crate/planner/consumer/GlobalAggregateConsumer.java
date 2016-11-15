@@ -122,9 +122,9 @@ class GlobalAggregateConsumer implements Consumer {
         return createMerge(plan, plannerContext, postAggregationProjections);
     }
 
-    private static List<Projection> createPostAggregationProjections(QuerySpec qs,
-                                                                     SplitPoints splitPoints,
-                                                                     Planner.Context plannerContext) {
+    static List<Projection> createPostAggregationProjections(QuerySpec qs,
+                                                             SplitPoints splitPoints,
+                                                             Planner.Context plannerContext) {
         List<Projection> postAggregationProjections = new ArrayList<>();
         Optional<HavingClause> having = qs.having();
         if (having.isPresent()) {

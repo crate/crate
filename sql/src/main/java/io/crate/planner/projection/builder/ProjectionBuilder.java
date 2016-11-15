@@ -74,7 +74,7 @@ public class ProjectionBuilder {
     }
 
     public GroupProjection groupProjection(
-        Collection<Symbol> inputs,
+        Collection<? extends Symbol> inputs,
         Collection<Symbol> keys,
         Collection<Function> values,
         Aggregation.Step fromStep,

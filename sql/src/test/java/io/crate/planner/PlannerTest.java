@@ -1267,13 +1267,18 @@ public class PlannerTest extends AbstractPlannerTest {
 
     @Test
     public void testNestedGroupByAggregation() throws Exception {
-        expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage("Cannot create plan for: ");
-        plan("select count(*) from (" +
+        Merge merge = plan("select count(*) from (" +
              "  select max(load['1']) as maxLoad, hostname " +
              "  from sys.nodes " +
              "  group by hostname having max(load['1']) > 50) as nodes " +
              "group by hostname");
+        assertThat(merge.mergePhase().projections(), contains(
+            instanceOf(GroupProjection.class),
+            instanceOf(FilterProjection.class),
+            instanceOf(TopNProjection.class),
+            instanceOf(GroupProjection.class),
+            instanceOf(TopNProjection.class)
+        ));
     }
 
     @Test
