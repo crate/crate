@@ -222,7 +222,7 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
         }
     }
 
-    private boolean isAggregate(Symbol s) {
+    public static boolean isAggregate(Symbol s) {
         return AGGREGATION_SEARCHER.process(s, null);
     }
 
