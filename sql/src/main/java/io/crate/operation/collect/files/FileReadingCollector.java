@@ -71,15 +71,10 @@ public class FileReadingCollector implements CrateCollector {
     };
     private final List<UriWithGlob> fileUris;
 
-    public enum FileFormat {
-        JSON
-    }
-
     public FileReadingCollector(Collection<String> fileUris,
                                 List<Input<?>> inputs,
                                 List<LineCollectorExpression<?>> collectorExpressions,
                                 RowReceiver downstream,
-                                FileFormat format,
                                 String compression,
                                 Map<String, FileInputFactory> fileInputFactories,
                                 Boolean shared,

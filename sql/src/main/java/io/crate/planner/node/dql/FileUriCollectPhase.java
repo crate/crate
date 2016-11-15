@@ -96,10 +96,6 @@ public class FileUriCollectPhase extends AbstractProjectionsPhase implements Col
         return toCollect;
     }
 
-    public FileReadingCollector.FileFormat fileFormat() {
-        return FileReadingCollector.FileFormat.JSON;
-    }
-
     @Override
     public Type type() {
         return Type.FILE_URI_COLLECT;

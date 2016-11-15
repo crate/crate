@@ -68,12 +68,11 @@ public class FileCollectSource implements CollectSource {
 
         List<String> fileUris;
         fileUris = targetUriToStringList(fileUriCollectPhase.targetUri());
-        return ImmutableList.<CrateCollector>of(new FileReadingCollector(
+        return ImmutableList.of(new FileReadingCollector(
             fileUris,
             context.topLevelInputs(),
             context.expressions(),
             downstream,
-            fileUriCollectPhase.fileFormat(),
             fileUriCollectPhase.compression(),
             fileInputFactoryMap,
             fileUriCollectPhase.sharedStorage(),

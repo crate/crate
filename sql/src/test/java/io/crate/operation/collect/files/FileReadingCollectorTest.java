@@ -254,7 +254,6 @@ public class FileReadingCollectorTest extends CrateUnitTest {
             context.topLevelInputs(),
             context.expressions(),
             rowReceiver,
-            FileReadingCollector.FileFormat.JSON,
             compression,
             ImmutableMap.of(
                 LocalFsFileInputFactory.NAME, new LocalFsFileInputFactory(),
