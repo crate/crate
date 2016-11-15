@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - ``COPY FROM`` now correctly resolves files within symlinked folders when a
+   wildcard is used in the path.
+
  - Fixed an issue that caused join query to get stuck when an
    expression evaluation related to both relations caused an error.
 
