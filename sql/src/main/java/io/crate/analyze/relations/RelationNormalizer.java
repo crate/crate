@@ -27,10 +27,7 @@ import com.google.common.collect.Collections2;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Maps;
 import io.crate.analyze.*;
-import io.crate.analyze.symbol.Field;
-import io.crate.analyze.symbol.Function;
-import io.crate.analyze.symbol.Symbol;
-import io.crate.analyze.symbol.SymbolVisitor;
+import io.crate.analyze.symbol.*;
 import io.crate.metadata.*;
 import io.crate.operation.operator.AndOperator;
 import io.crate.operation.scalar.conditional.LeastFunction;
@@ -73,13 +70,21 @@ final class RelationNormalizer {
         if (parentQSpec == null) {
             return childQSpec;
         }
-
+        // merge everything: validation that merge is possible has already been done.
+        OrderBy newOrderBy;
+        if (parentQSpec.hasAggregates() || parentQSpec.groupBy().isPresent()) {
+            // select avg(x) from (select x from t order by x)
+            // -> can't keep order, but it doesn't matter for aggregations anyway so remove
+            newOrderBy = null;
+        } else {
+            newOrderBy = tryReplace(childQSpec.orderBy(), parentQSpec.orderBy());
+        }
         return new QuerySpec()
             .outputs(parentQSpec.outputs())
             .where(mergeWhere(childQSpec.where(), parentQSpec.where()))
-            .orderBy(tryReplace(childQSpec.orderBy(), parentQSpec.orderBy()))
-            .offset(Limits.add(childQSpec.offset(), parentQSpec.offset()))
-            .limit(mergeLimit(childQSpec.limit(), parentQSpec.limit()))
+            .orderBy(newOrderBy)
+            .offset(Limits.mergeAdd(childQSpec.offset(), parentQSpec.offset()))
+            .limit(Limits.mergeMin(childQSpec.limit(), parentQSpec.limit()))
             .groupBy(pushGroupBy(childQSpec.groupBy(), parentQSpec.groupBy()))
             .having(pushHaving(childQSpec.having(), parentQSpec.having()))
             .hasAggregates(childQSpec.hasAggregates() || parentQSpec.hasAggregates());
@@ -123,17 +128,6 @@ final class RelationNormalizer {
             return parentOrderBy.get();
         }
         return childOrderBy.orNull();
-    }
-
-    private static Optional<Symbol> mergeLimit(Optional<Symbol> limit1, Optional<Symbol> limit2) {
-        if (limit1.isPresent()) {
-            if (limit2.isPresent()) {
-                return Optional.of((Symbol) new Function(LeastFunction.TWO_LONG_INFO,
-                    Arrays.asList(limit1.get(), limit2.get())));
-            }
-            return limit1;
-        }
-        return limit2;
     }
 
     @Nullable
@@ -183,18 +177,28 @@ final class RelationNormalizer {
         if (parentQuerySpec == null) {
             return true;
         }
+        WhereClause parentWhere = parentQuerySpec.where();
+        boolean parentHasWhere = !parentWhere.equals(WhereClause.MATCH_ALL);
+        boolean childHasLimit = childQuerySpec.limit().isPresent();
+        if (parentHasWhere && childHasLimit) {
+            return false;
+        }
 
-        boolean hasAggregations = (parentQuerySpec.hasAggregates() || parentQuerySpec.groupBy().isPresent()) &&
-                                  (childQuerySpec.hasAggregates() || childQuerySpec.groupBy().isPresent() ||
-                                   childQuerySpec.orderBy().isPresent());
+        boolean parentHasAggregations = parentQuerySpec.hasAggregates() || parentQuerySpec.groupBy().isPresent();
+        boolean childHasAggregations = childQuerySpec.hasAggregates() || childQuerySpec.groupBy().isPresent();
+        if (parentHasAggregations && (childHasLimit || childHasAggregations)) {
+            return false;
+        }
 
-        boolean notMergeableOrderBy = childQuerySpec.orderBy().isPresent() && parentQuerySpec.orderBy().isPresent()
-                                      && !childQuerySpec.orderBy().equals(parentQuerySpec.orderBy())
-                                      && (childQuerySpec.limit().isPresent() || childQuerySpec.offset().isPresent());
-
-        return !hasAggregations && !notMergeableOrderBy &&
-               (!parentQuerySpec.where().hasQuery() || parentQuerySpec.where() == WhereClause.MATCH_ALL ||
-                !AggregateFunctionReferenceFinder.any(parentQuerySpec.where().query()));
+        Optional<OrderBy> childOrderBy = childQuerySpec.orderBy();
+        Optional<OrderBy> parentOrderBy = parentQuerySpec.orderBy();
+        if (childHasLimit && childOrderBy.isPresent() && parentOrderBy.isPresent() && !childOrderBy.equals(parentOrderBy)) {
+            return false;
+        }
+        if (parentHasWhere && parentWhere.hasQuery() && Aggregations.containsAggregation(parentWhere.query())) {
+            return false;
+        }
+        return true;
     }
 
     private static class Context {

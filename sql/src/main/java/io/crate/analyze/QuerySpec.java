@@ -28,6 +28,7 @@ import com.google.common.collect.Lists;
 import io.crate.analyze.symbol.DefaultTraversalSymbolVisitor;
 import io.crate.analyze.symbol.RelationColumn;
 import io.crate.analyze.symbol.Symbol;
+import io.crate.collections.Lists2;
 import io.crate.metadata.TransactionContext;
 import io.crate.operation.scalar.cast.CastFunctionResolver;
 import io.crate.types.DataType;
@@ -262,15 +263,15 @@ public class QuerySpec {
     }
 
     public void replace(com.google.common.base.Function<? super Symbol, Symbol> replaceFunction) {
-        ListIterator<Symbol> listIt = outputs.listIterator();
-        while (listIt.hasNext()) {
-            listIt.set(replaceFunction.apply(listIt.next()));
-        }
+        Lists2.replaceItems(outputs, replaceFunction);
         if (where.hasQuery()) {
             where = new WhereClause(replaceFunction.apply(where.query()), where.docKeys().orNull(), where.partitions());
         }
         if (orderBy.isPresent()) {
             orderBy.get().replace(replaceFunction);
+        }
+        if (groupBy.isPresent()) {
+            Lists2.replaceItems(groupBy.get(), replaceFunction);
         }
     }
 
