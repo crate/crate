@@ -130,6 +130,11 @@ public class SourceIndexWriterProjection extends AbstractIndexWriterProjection {
         }
         this.partitionedBySymbols = partitionedBySymbols;
 
+        // if clusteredByColumn equals _id then the routing is implicit.
+        if (clusteredByIdx == -1 && clusteredByColumn != null && !DocSysColumns.ID.equals(clusteredByColumn)) {
+            clusteredBySymbol = new InputColumn(currentInputIndex++, null);
+        }
+
         overwriteDuplicates = settings.getAsBoolean(OVERWRITE_DUPLICATES, OVERWRITE_DUPLICATES_DEFAULT);
         rawSourceSymbol = new InputColumn(currentInputIndex, DataTypes.STRING);
     }

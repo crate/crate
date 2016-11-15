@@ -530,4 +530,43 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
         execute("select name from names order by id");
         assertThat(TestingHelpers.printedTable(response.rows()), is("Arthur\nSlartibartfast\n"));
     }
+
+    public void copyFromIntoTableWithClusterBy() throws Exception {
+        execute("create table quotes (id int, quote string) " +
+            "clustered by (id)" +
+            "with (number_of_replicas = 0)");
+        ensureYellow();
+
+        String uriPath = Joiner.on("/").join(copyFilePath, "test_copy_from.json");
+        execute("copy quotes from ?", new Object[]{uriPath});
+        assertEquals(3L, response.rowCount());
+        refresh();
+
+        execute("select * from quotes");
+        assertEquals(3L, response.rowCount());
+        assertThat(response.rows()[0].length, is(2));
+
+        execute("select quote from quotes where id = 2");
+        assertThat((String) response.rows()[0][0], containsString("lot of time"));
+    }
+
+    public void copyFromIntoTableWithPkAndClusterBy() throws Exception {
+        execute("create table quotes (id int, quote string) " +
+            "primary key (id) " +
+            "clustered by (quote)" +
+            "with (number_of_replicas = 0)");
+        ensureYellow();
+
+        String uriPath = Joiner.on("/").join(copyFilePath, "test_copy_from.json");
+        execute("copy quotes from ?", new Object[]{uriPath});
+        assertEquals(3L, response.rowCount());
+        refresh();
+
+        execute("select * from quotes");
+        assertEquals(3L, response.rowCount());
+        assertThat(response.rows()[0].length, is(2));
+
+        execute("select quote from quotes where id = 3");
+        assertThat((String) response.rows()[0][0], containsString("Time is an illusion."));
+    }
 }

@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fixed an issue which prevented inserting data using the ``COPY FROM``
+   statement into tables created with the ``CLUSTERED BY`` clause.
+
  - Fixes evaluation of `OR` expressions if one argument evaluates to
    `true` and the other results in an error.
 
