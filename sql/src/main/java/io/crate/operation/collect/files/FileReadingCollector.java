@@ -43,6 +43,8 @@ import java.io.InputStreamReader;
 import java.net.SocketTimeoutException;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
 import java.util.regex.Matcher;
@@ -113,7 +115,33 @@ public class FileReadingCollector implements CrateCollector {
             Predicate<URI> globPredicate = null;
             Matcher hasGlobMatcher = HAS_GLOBS_PATTERN.matcher(uri.toString());
             if (hasGlobMatcher.matches()) {
-                preGlobUri = URI.create(hasGlobMatcher.group(1));
+                if (fileUri.startsWith("/") || fileUri.startsWith("file://")) {
+                    /*
+                     * Substitute a symlink with the real path.
+                     * The wildcard needs to be maintained, though, because it is used to generate the matcher.
+                     * Take the part before the wildcard (*) and try to resolved the real path.
+                     * If the part before the wildcard contains a part of the filename (e.g. /tmp/foo_*.json) then use the
+                     * parent directory of this filename to resolved the real path.
+                     * Then replace this part with the real path and generate the URI.
+                     */
+                    Path oldPath = Paths.get(toURI(hasGlobMatcher.group(1)));
+                    if (!Files.isDirectory(oldPath)) {
+                        oldPath = oldPath.getParent();
+                    }
+                    String oldPathAsString;
+                    String newPathAsString;
+                    try {
+                        oldPathAsString = oldPath.toUri().toString();
+                        newPathAsString = oldPath.toRealPath().toUri().toString();
+                    } catch (IOException e) {
+                        continue;
+                    }
+                    String resolvedFileUrl = uri.toString().replace(oldPathAsString, newPathAsString);
+                    uri = toURI(resolvedFileUrl);
+                    preGlobUri = toURI(newPathAsString);
+                } else {
+                    preGlobUri = URI.create(hasGlobMatcher.group(1));
+                }
                 globPredicate = new GlobPredicate(uri);
             }
 
