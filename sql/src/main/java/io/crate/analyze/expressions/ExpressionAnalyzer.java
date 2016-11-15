@@ -618,6 +618,12 @@ public class ExpressionAnalyzer {
             Symbol min = process(node.getMin(), context);
             Symbol max = process(node.getMax(), context);
 
+            if (value.valueType() == DataTypes.UNDEFINED ||
+                min.valueType() == DataTypes.UNDEFINED ||
+                max.valueType() == DataTypes.UNDEFINED) {
+                return Literal.NULL;
+            }
+
             Comparison gte = new Comparison(ComparisonExpression.Type.GREATER_THAN_OR_EQUAL, value, min);
             Function gteFunc = context.allocateFunction(
                 getFunctionInfo(gte.normalize(context).toFunctionIdent()), gte.arguments());

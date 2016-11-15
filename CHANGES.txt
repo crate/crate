@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fixed null value handling of comparison operator ``BETWEEN``.
+
  - Fixes evaluation of `OR` expressions if one argument evaluates to
    `true` and the other results in an error.
 
