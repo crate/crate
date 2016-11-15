@@ -23,6 +23,7 @@ package io.crate.integrationtests;
 
 import com.carrotsearch.randomizedtesting.LifecycleScope;
 import com.google.common.base.Joiner;
+import com.google.common.collect.ImmutableList;
 import io.crate.action.sql.SQLActionException;
 import io.crate.action.sql.SQLResponse;
 import io.crate.testing.TestingHelpers;
@@ -34,6 +35,7 @@ import org.junit.rules.TemporaryFolder;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
@@ -532,10 +534,10 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
     }
 
     @Test
-    public void copyFromIntoTableWithClusterBy() throws Exception {
+    public void testCopyFromIntoTableWithClusterBy() throws Exception {
         execute("create table quotes (id int, quote string) " +
-            "clustered by (id)" +
-            "with (number_of_replicas = 0)");
+                "clustered by (id)" +
+                "with (number_of_replicas = 0)");
         ensureYellow();
 
         String uriPath = Joiner.on("/").join(copyFilePath, "test_copy_from.json");
@@ -548,7 +550,7 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
     }
 
     @Test
-    public void copyFromIntoTableWithPkAndClusterBy() throws Exception {
+    public void testCopyFromIntoTableWithPkAndClusterBy() throws Exception {
         execute("create table quotes (id int primary key, quote string) " +
             "clustered by (id)" +
             "with (number_of_replicas = 0)");
@@ -561,5 +563,57 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
 
         execute("select quote from quotes where id = 3");
         assertThat((String) response.rows()[0][0], containsString("Time is an illusion."));
+    }
+
+    private Path setUpTableAndSymlink(String tableName) throws IOException {
+        execute(String.format(Locale.ENGLISH,
+            "create table %s (a int) with (number_of_replicas = 0)",
+            tableName));
+
+        Path tmpDir = newTempDir(LifecycleScope.TEST);
+        Path target = Files.createDirectories(tmpDir.resolve("target"));
+        File file = new File(target.toFile(), "integers.json");
+        String r1 = "{\"a\": 1}";
+        String r2 = "{\"a\": 2}";
+        String r3 = "{\"a\": 3}";
+        Files.write(file.toPath(), ImmutableList.of(r1, r2, r3), StandardCharsets.UTF_8);
+
+        return Files.createSymbolicLink(tmpDir.resolve("link"), target);
+    }
+
+    @Test
+    public void testCopyFromSymlinkFolderWithWildcard() throws Exception {
+        Path link = setUpTableAndSymlink("t");
+        execute("copy t from ? with (shared=true)", new Object[]{
+            link.toUri().toString() + "*"
+        });
+        assertThat(response.rowCount(), is(3L));
+    }
+
+    @Test
+    public void testCopyFromSymlinkFolderWithPrefixedWildcard() throws Exception {
+        Path link = setUpTableAndSymlink("t");
+        execute("copy t from ? with (shared=true)", new Object[]{
+            link.toUri().toString() + "i*"
+        });
+        assertThat(response.rowCount(), is(3L));
+    }
+
+    @Test
+    public void testCopyFromSymlinkFolderWithSuffixedWildcard() throws Exception {
+        Path link = setUpTableAndSymlink("t");
+        execute("copy t from ? with (shared=true)", new Object[]{
+            link.toUri().toString() + "*.json"
+        });
+        assertThat(response.rowCount(), is(3L));
+    }
+
+    @Test
+    public void testCopyFromFileInSymlinkFolder() throws Exception {
+        Path link = setUpTableAndSymlink("t");
+        execute("copy t from ? with (shared=true)", new Object[]{
+            link.toUri().toString() + "integers.json"
+        });
+        assertThat(response.rowCount(), is(3L));
     }
 }
