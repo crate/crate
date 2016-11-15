@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fixed an issue with certain subselects which led to incorrect results.
+   (E.g.: ``select sum(x) from (select x from t limit 1)``)
+
  - Fixed an issue which prevented inserting data using the ``COPY FROM``
    statement into tables created with the ``CLUSTERED BY`` clause.
 

@@ -49,7 +49,7 @@ public class Lists2 {
      * This is similar to {@link Lists#transform(List, Function)}, but instead of creating a view on a backing list
      * this function is actually mutating the provided list
      */
-    public static <T> void replaceItems(@Nullable List<T> list, Function<T, T> replaceFunction) {
+    public static <T> void replaceItems(@Nullable List<T> list, Function<? super T, T> replaceFunction) {
         if (list == null || list.isEmpty()) {
             return;
         }
