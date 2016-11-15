@@ -16,6 +16,10 @@ from crate.client import exceptions
 from tqdm import tqdm
 
 
+RE_VARCHAR = re.compile('VARCHAR\(\d+\)')
+varchar_to_string = partial(RE_VARCHAR.sub, 'string')
+
+
 class IncorrectResult(BaseException):
     pass
 
@@ -33,17 +37,18 @@ class Statement:
             <statement>
         """
         self.expect_ok = cmd[0].endswith('ok')
-        self.stmt = '\n'.join(cmd[1:])
+        self.query = '\n'.join(cmd[1:])
 
     def execute(self, cursor):
+        stmt = varchar_to_string(self.query)
         try:
-            cursor.execute(self.stmt)
+            cursor.execute(stmt)
         except exceptions.ProgrammingError as e:
             if self.expect_ok:
                 raise IncorrectResult(e)
 
     def __repr__(self):
-        return 'Statement<{0:.30}>'.format(self.stmt)
+        return 'Statement<{0:.30}>'.format(self.query)
 
 
 def validate_hash(rows, formats, expected_values, hash_):
@@ -160,6 +165,8 @@ class Query:
         rows = cursor.fetchall()
         if self.sort == 'rowsort':
             rows = sorted(rows, key=lambda row: [str(c) for c in row])
+        elif self.sort == 'valuesort':
+            raise NotImplementedError('valuesort not implemented')
         rows = [col for row in rows for col in row]
         self.format_rows(rows)
         self.validate_result(rows, self.result_formats)
@@ -209,7 +216,7 @@ def get_commands(lines):
     """Split lines by empty line occurences into lists of lines"""
     command = []
     for line in lines:
-        if line.startswith('hash-threshold'):
+        if line.startswith(('#', 'hash-threshold')):
             continue
         line = line.strip()
         if not line or line == '':
@@ -232,6 +239,20 @@ def _exec_on_crate(cmd):
     return True
 
 
+def _refresh_tables(cursor):
+    cursor.execute("select table_name from information_schema.tables where table_schema = 'doc'")
+    rows = cursor.fetchall()
+    for (table,) in rows:
+        cursor.execute('refresh table ' + table)
+
+
+def _drop_tables(cursor):
+    cursor.execute("select table_name from information_schema.tables where table_schema = 'doc'")
+    rows = cursor.fetchall()
+    for (table, ) in rows:
+        cursor.execute('drop table ' + table)
+
+
 def run_file(fh, hosts, verbose, failfast):
     conn = connect(hosts)
     cursor = conn.cursor()
@@ -241,21 +262,31 @@ def run_file(fh, hosts, verbose, failfast):
     incorrect_results = []
     commands = get_commands(fh)
     commands = (cmd for cmd in commands if _exec_on_crate(cmd))
-    for cmd in tqdm(commands):
-        s_or_q = parse_cmd(cmd)
-        try:
-            s_or_q.execute(cursor)
-        except exceptions.ProgrammingError as e:
-            unsupported_statements.append((cmd[1], e))
-            failures += 1
-        except IncorrectResult as e:
-            tqdm.write(str(cmd))
-            if failfast:
-                raise e
+    dml_done = False
+    try:
+        for cmd in tqdm(commands):
+            s_or_q = parse_cmd(cmd)
+            if not dml_done and isinstance(s_or_q, Query):
+                dml_done = True
+                _refresh_tables(cursor)
+            try:
+                s_or_q.execute(cursor)
+            except exceptions.ProgrammingError as e:
+                unsupported_statements.append((s_or_q.query, e))
+                failures += 1
+            except IncorrectResult as e:
+                tqdm.write(str(cmd))
+                tqdm.write(str(s_or_q.query))
+                if failfast:
+                    raise e
+                else:
+                    incorrect_results.append((cmd[1], e))
             else:
-                incorrect_results.append((cmd[1], e))
-        else:
-            worked += 1
+                worked += 1
+    finally:
+        _drop_tables(cursor)
+        cursor.close()
+        conn.close()
     print('{0} queries worked'.format(worked))
     print('{0} queries are unsupported'.format(failures))
     if not failfast:
@@ -265,7 +296,6 @@ def run_file(fh, hosts, verbose, failfast):
         print('Unsupported statements:')
         for unsupported in unsupported_statements:
             print('Query: \n\t{0}\n\t{1}'.format(*unsupported))
-
 
 
 def main():

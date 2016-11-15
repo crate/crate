@@ -1,3 +1,6 @@
 [submodule "es/upstream"]
 	path = es/upstream
 	url = https://github.com/crate/elasticsearch.git
+[submodule "blackbox/sqllogictest/testfiles"]
+	path = blackbox/sqllogictest/testfiles
+	url = https://github.com/crate/sqllogictest.git
