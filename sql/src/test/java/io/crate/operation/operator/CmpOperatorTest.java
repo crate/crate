@@ -1,116 +1,72 @@
 package io.crate.operation.operator;
 
-import io.crate.action.sql.SessionContext;
-import io.crate.analyze.symbol.Function;
-import io.crate.analyze.symbol.Literal;
-import io.crate.analyze.symbol.Symbol;
-import io.crate.analyze.symbol.Value;
-import io.crate.metadata.TransactionContext;
-import io.crate.operation.Input;
-import io.crate.test.integration.CrateUnitTest;
-import io.crate.types.DataTypes;
-import org.junit.Before;
+import io.crate.operation.scalar.AbstractScalarFunctionsTest;
 import org.junit.Test;
 
-import java.util.Arrays;
-
+import static io.crate.testing.SymbolMatchers.isFunction;
 import static io.crate.testing.SymbolMatchers.isLiteral;
-import static org.hamcrest.CoreMatchers.instanceOf;
 
-public class CmpOperatorTest extends CrateUnitTest {
+public class CmpOperatorTest extends AbstractScalarFunctionsTest {
 
-    private GtOperator op_gt_string;
-    private GteOperator op_gte_double;
-    private LtOperator op_lt_int;
-    private LteOperator op_lte_long;
-    private LtOperator op_lt_string;
-
-    private final TransactionContext transactionContext = new TransactionContext(SessionContext.SYSTEM_SESSION);
-
-    @Before
-    public void prepare() {
-        op_gt_string = new GtOperator(Operator.generateInfo(GtOperator.NAME, DataTypes.STRING));
-        op_lt_string = new LtOperator(Operator.generateInfo(LtOperator.NAME, DataTypes.STRING));
-        op_gte_double = new GteOperator(Operator.generateInfo(GteOperator.NAME, DataTypes.DOUBLE));
-        op_lt_int = new LtOperator(Operator.generateInfo(LtOperator.NAME, DataTypes.INTEGER));
-        op_lte_long = new LteOperator(Operator.generateInfo(LteOperator.NAME, DataTypes.LONG));
-    }
-
-    private Function getFunction(Operator operator, Symbol... symbols) {
-        return new Function(operator.info(), Arrays.asList(symbols));
-    }
-
-    private Symbol normalize(Operator operator, Symbol... symbols) {
-        return operator.normalizeSymbol(getFunction(operator, symbols), transactionContext);
+    @Test
+    public void testLte() {
+        assertNormalize("id <= 8", isFunction("op_<="));
+        assertNormalize("8 <= 200", isLiteral(true));
+        assertNormalize("0.1 <= 0.1", isLiteral(true));
+        assertNormalize("16 <= 8", isLiteral(false));
+        assertNormalize("'abc' <= 'abd'", isLiteral(true));
+        assertEvaluate("true <= null", null);
+        assertEvaluate("null <= 1", null);
+        assertEvaluate("null <= 'abc'", null);
+        assertEvaluate("null <= null", null);
     }
 
     @Test
-    public void testLteNormalizeSymbolTwoLiteral() throws Exception {
-        Symbol symbol = normalize(op_lte_long, Literal.of(8L), Literal.of(200L));
-        assertThat(symbol, isLiteral(true));
-
-        symbol = normalize(op_lte_long, Literal.of(8L), Literal.of(8L));
-        assertThat(symbol, isLiteral(true));
-
-        symbol = normalize(op_lte_long, Literal.of(16L), Literal.of(8L));
-        assertThat(symbol, isLiteral(false));
+    public void testLt() {
+        assertNormalize("id < 8", isFunction("op_<"));
+        assertNormalize("0.1 < 0.2", isLiteral(true));
+        assertNormalize("'abc' < 'abd'", isLiteral(true));
+        assertEvaluate("true < null", null);
+        assertEvaluate("null < 1", null);
+        assertEvaluate("null < name", null);
+        assertEvaluate("null < null", null);
     }
 
     @Test
-    public void testGteNormalizeSymbolTwoLiteral() throws Exception {
-        Symbol symbol = normalize(op_gte_double, Literal.of(0.03), Literal.of(0.4));
-        assertThat(symbol, isLiteral(false));
-
-        symbol = normalize(op_gte_double, Literal.of(0.4), Literal.of(0.4));
-        assertThat(symbol, isLiteral(true));
-
-        symbol = normalize(op_gte_double, Literal.of(0.6), Literal.of(0.4));
-        assertThat(symbol, isLiteral(true));
+    public void testGte() {
+        assertNormalize("id >= 8", isFunction("op_>="));
+        assertNormalize("0.1 >= 0.1", isLiteral(true));
+        assertNormalize("16 >= 8", isLiteral(true));
+        assertNormalize("'abc' >= 'abd'", isLiteral(false));
+        assertEvaluate("true >= null", null);
+        assertEvaluate("null >= 1", null);
+        assertEvaluate("null >= 'abc'", null);
+        assertEvaluate("null >= null", null);
     }
 
     @Test
-    public void testLtNormalizeSymbolTwoLiteralTrue() throws Exception {
-        Symbol symbol = normalize(op_lt_int, Literal.of(2), Literal.of(4));
-        assertThat(symbol, isLiteral(true));
+    public void testGt() {
+        assertNormalize("id > 200", isFunction("op_>"));
+        assertNormalize("0.1 > 0.1", isLiteral(false));
+        assertNormalize("16 > 8", isLiteral(true));
+        assertNormalize("'abd' > 'abc'", isLiteral(true));
+        assertEvaluate("true > null", null);
+        assertEvaluate("null > 1", null);
+        assertEvaluate("name > null", null);
+        assertEvaluate("null > null", null);
     }
 
     @Test
-    public void testLtNormalizeSymbolTwoLiteralFalse() throws Exception {
-        Symbol symbol = normalize(op_lt_int, Literal.of(4), Literal.of(2));
-        assertThat(symbol, isLiteral(false));
-    }
-
-    @Test
-    public void testLtNormalizeSymbolTwoLiteralFalseEq() throws Exception {
-        Symbol symbol = normalize(op_lt_int, Literal.of(4), Literal.of(4));
-        assertThat(symbol, isLiteral(false));
-    }
-
-    @Test
-    public void testGtNormalizeSymbolTwoLiteralFalse() throws Exception {
-        Symbol symbol = normalize(op_gt_string, Literal.of("aa"), Literal.of("bbb"));
-        assertThat(symbol, isLiteral(false));
-    }
-
-    @Test
-    public void testCisGtThanA() throws Exception {
-        assertTrue(op_gt_string.evaluate((Input) Literal.of("c"), (Input) Literal.of("a")));
-    }
-
-    @Test
-    public void testAisLtThanC() throws Exception {
-        assertTrue(op_lt_string.evaluate((Input) Literal.of("a"), (Input) Literal.of("c")));
-    }
-
-    @Test
-    public void testNormalizeSymbolWithNull() throws Exception {
-        Literal literal = (Literal) normalize(op_gt_string, Literal.NULL, Literal.of("aa"));
-        assertThat(literal, isLiteral(null, DataTypes.BOOLEAN));
-    }
-
-    @Test
-    public void testNormalizeSymbolNonLiteral() throws Exception {
-        Symbol symbol = normalize(op_gt_string, Literal.of("a"), new Value(DataTypes.STRING));
-        assertThat(symbol, instanceOf(Function.class));
+    public void testBetween() {
+        assertNormalize("0.1 between 0.01 and 0.2", isLiteral(true));
+        assertNormalize("10 between 1 and 2", isLiteral(false));
+        assertNormalize("'abd' between 'abc' and 'abe'", isLiteral(true));
+        assertEvaluate("1 between 0 and null", null);
+        assertEvaluate("1 between null and 10", null);
+        assertEvaluate("1 between null and null", null);
+        assertEvaluate("null between 1 and 10", null);
+        assertEvaluate("null between 1 and null", null);
+        assertEvaluate("null between null and 10", null);
+        assertEvaluate("null between null and null", null);
     }
 }
