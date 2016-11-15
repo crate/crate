@@ -269,15 +269,15 @@ public class QuerySpec {
     }
 
     public void replace(com.google.common.base.Function<? super Symbol, Symbol> replaceFunction) {
-        ListIterator<Symbol> listIt = outputs.listIterator();
-        while (listIt.hasNext()) {
-            listIt.set(replaceFunction.apply(listIt.next()));
-        }
+        Lists2.replaceItems(outputs, replaceFunction);
         if (where.hasQuery()) {
             where = new WhereClause(replaceFunction.apply(where.query()), where.docKeys().orNull(), where.partitions());
         }
         if (orderBy.isPresent()) {
             orderBy.get().replace(replaceFunction);
+        }
+        if (groupBy.isPresent()) {
+            Lists2.replaceItems(groupBy.get(), replaceFunction);
         }
     }
 

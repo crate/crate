@@ -219,6 +219,15 @@ public class RelationNormalizerTest extends CrateUnitTest {
         QueriedRelation relation = normalize(
             "select count(*), avg(x) as avgX from ( select * from (" +
             "  select * from t1 order by i) as tt) as ttt");
+        assertThat(relation, instanceOf(QueriedDocTable.class));
+        assertThat(relation.querySpec(),
+            isSQL("SELECT count(), avg(doc.t1.x)"));
+    }
+
+    @Test
+    public void testGlobalAggOnSubQueryWithLimit() throws Exception {
+        // need to apply limit before aggregation is done
+        QueriedRelation relation = normalize("select sum(x) from (select x from t1 limit 1) t");
         assertThat(relation, instanceOf(QueriedSelectRelation.class));
     }
 
