@@ -51,8 +51,10 @@ import static org.hamcrest.core.Is.is;
 @ESIntegTestCase.ClusterScope(numDataNodes = 2, randomDynamicTemplates = false)
 public class CopyIntegrationTest extends SQLHttpIntegrationTest {
 
-    private String copyFilePath = Paths.get(getClass().getResource("/essetup/data/copy").toURI()).toUri().toString();
-    private String nestedArrayCopyFilePath = Paths.get(getClass().getResource("/essetup/data/nested_array").toURI()).toUri().toString();
+    private final String copyFilePath =
+        Paths.get(getClass().getResource("/essetup/data/copy").toURI()).toUri().toString();
+    private final String nestedArrayCopyFilePath =
+        Paths.get(getClass().getResource("/essetup/data/nested_array").toURI()).toUri().toString();
 
     private Setup setup = new Setup(sqlExecutor);
 
@@ -522,5 +524,42 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
         execute("refresh table names");
         execute("select name from names order by id");
         assertThat(TestingHelpers.printedTable(response.rows()), is("Arthur\nSlartibartfast\n"));
+    }
+
+    public void copyFromIntoTableWithClusterBy() throws Exception {
+        execute("create table quotes (id int, quote string) " +
+            "clustered by (id)" +
+            "with (number_of_replicas = 0)");
+        ensureYellow();
+
+        execute("copy quotes from ?", new Object[]{copyFilePath + "test_copy_from.json"});
+        assertEquals(3L, response.rowCount());
+        refresh();
+
+        execute("select * from quotes");
+        assertEquals(3L, response.rowCount());
+        assertThat(response.rows()[0].length, is(2));
+
+        execute("select quote from quotes where id = 2");
+        assertThat((String) response.rows()[0][0], containsString("lot of time"));
+    }
+
+    public void copyFromIntoTableWithPkAndClusterBy() throws Exception {
+        execute("create table quotes (id int, quote string) " +
+            "primary key (id) " +
+            "clustered by (quote)" +
+            "with (number_of_replicas = 0)");
+        ensureYellow();
+
+        execute("copy quotes from ?", new Object[]{copyFilePath + "test_copy_from.json"});
+        assertEquals(3L, response.rowCount());
+        refresh();
+
+        execute("select * from quotes");
+        assertEquals(3L, response.rowCount());
+        assertThat(response.rows()[0].length, is(2));
+
+        execute("select quote from quotes where id = 3");
+        assertThat((String) response.rows()[0][0], containsString("Time is an illusion."));
     }
 }
