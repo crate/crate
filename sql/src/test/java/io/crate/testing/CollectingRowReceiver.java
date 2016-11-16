@@ -57,6 +57,10 @@ public class CollectingRowReceiver implements RowReceiver {
         return new LimitingReceiver(limit);
     }
 
+    public static CollectingRowReceiver withFailureOnRepeat() {
+        return new FailingOnRepeatReceiver();
+    }
+
     public CollectingRowReceiver() {
     }
 
@@ -182,6 +186,25 @@ public class CollectingRowReceiver implements RowReceiver {
                 return Result.PAUSE;
             }
             return result;
+        }
+    }
+
+    private static class FailingOnRepeatReceiver extends CollectingRowReceiver {
+
+        private boolean invokeFailure = false;
+
+        @Override
+        public Result setNextRow(Row row) {
+            if (invokeFailure) {
+                throw new IllegalStateException("dummy");
+            }
+            return super.setNextRow(row);
+        }
+
+        @Override
+        public void repeatUpstream() {
+            invokeFailure = true;
+            super.repeatUpstream();
         }
     }
 }
