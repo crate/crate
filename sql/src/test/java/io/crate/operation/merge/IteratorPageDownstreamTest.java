@@ -45,6 +45,8 @@ import org.mockito.Mockito;
 import javax.annotation.Nonnull;
 import java.util.concurrent.Executor;
 
+import static com.carrotsearch.randomizedtesting.RandomizedTest.$;
+import static com.carrotsearch.randomizedtesting.RandomizedTest.$$;
 import static org.hamcrest.core.Is.is;
 import static org.mockito.Mockito.*;
 
@@ -210,6 +212,23 @@ public class IteratorPageDownstreamTest extends CrateUnitTest {
             "a\n" +
             "b\n" +
             "c\n"));
+    }
+
+    @Test
+    public void testFailOnRepeatResultsInFailure() throws Exception {
+        CollectingRowReceiver rowReceiver = CollectingRowReceiver.withFailureOnRepeat(); // this one fails on 1st repeat
+        IteratorPageDownstream pageDownstream = new IteratorPageDownstream(
+            rowReceiver,
+            PassThroughPagingIterator.<Void, Row>repeatable(),
+            Optional.<Executor>absent());
+
+        SettableFuture<Bucket> b1 = SettableFuture.create();
+        b1.set(new ArrayBucket($$($("a"))));
+        pageDownstream.nextPage(new BucketPage(ImmutableList.of(b1)), pageConsumeListener);
+        pageDownstream.finish();
+        rowReceiver.repeatUpstream();
+
+        assertThat(rowReceiver.getNumFailOrFinishCalls(), is(2));
     }
 
     @Test
