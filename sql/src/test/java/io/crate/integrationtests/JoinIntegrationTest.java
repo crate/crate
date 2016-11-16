@@ -651,4 +651,17 @@ public class JoinIntegrationTest extends SQLTransportIntegrationTest {
         execute("select sum(t1.col1) from unnest([1, 1]) t1, unnest([1, 1]) t2 order by 1");
         assertThat(TestingHelpers.printedTable(response.rows()), is("4.0\n"));
     }
+
+    @Test
+    public void testFailureOfJoinDownstream() throws Exception {
+        // provoke an exception when the NL emits a row, must bubble up and NL must stop
+        expectedException.expectMessage("Cannot cast ");
+        execute("select cast(R.col2 || ' ' || L.col2 as integer)" +
+                "   from " +
+                "       unnest(['hello', 'world'], [1, 2]) L " +
+                "   inner join " +
+                "       unnest(['world', 'hello'], [1, 2]) R " +
+                "   on l.col1 = r.col1 " +
+                "where r.col1 > 1");
+    }
 }
