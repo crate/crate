@@ -72,12 +72,12 @@ abstract class DiskWatermarkNodesSysCheck extends AbstractSysNodeCheck {
 
     protected boolean validate(FsInfo fsInfo, double diskWatermarkPercents, long diskWatermarkBytes) {
         for (FsInfo.Path path : fsInfo) {
-            double usedDiskAsPercentage = 100.0 - (path.getFree().bytes() / (double) path.getTotal().bytes()) * 100.0;
+            double usedDiskAsPercentage = 100.0 - (path.getAvailable().bytes() / (double) path.getTotal().bytes()) * 100.0;
 
             // Byte values refer to free disk space
             // Percentage values refer to used disk space
             if ((usedDiskAsPercentage > diskWatermarkPercents)
-                || (path.getFree().bytes() < diskWatermarkBytes)) {
+                || (path.getAvailable().bytes() < diskWatermarkBytes)) {
                 return false;
             }
         }

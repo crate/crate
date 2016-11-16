@@ -202,20 +202,20 @@ public class SysNodeChecksTest extends CrateUnitTest {
         assertThat(highDiskWatermarkNodesSysCheck.severity(), is(SysCheck.Severity.HIGH));
 
         // Percentage values refer to used disk space
-        // sda: 170b is free;
-        // sdc: 150b is free
+        // sda: 160b is available
+        // sdc: 140b is available
         List<FsInfo.Path> sameSizeDisksGroup = ImmutableList.of(
             new FsInfo.Path("/middle", "/dev/sda", 300, 170, 160),
             new FsInfo.Path("/most", "/dev/sdc", 300, 150, 140)
         );
 
-        // disk.watermark.high: 140b
+        // disk.watermark.high: 139b
         when(fsInfo.iterator()).thenReturn(sameSizeDisksGroup.iterator());
-        assertThat(highDiskWatermarkNodesSysCheck.validate(fsInfo, 100.0, 140), is(true));
+        assertThat(highDiskWatermarkNodesSysCheck.validate(fsInfo, 100.0, 139), is(true));
 
-        // disk.watermark.high: 160b
+        // disk.watermark.high: 150b
         when(fsInfo.iterator()).thenReturn(sameSizeDisksGroup.iterator());
-        assertThat(highDiskWatermarkNodesSysCheck.validate(fsInfo, 100.0, 160), is(false));
+        assertThat(highDiskWatermarkNodesSysCheck.validate(fsInfo, 100.0, 150), is(false));
     }
 
     @Test
@@ -228,11 +228,11 @@ public class SysNodeChecksTest extends CrateUnitTest {
         assertThat(lowDiskWatermarkNodesSysCheck.severity(), is(SysCheck.Severity.HIGH));
 
         // Percentage values refer to used disk space
-        // sda: 60% is used;
+        // sda: 70% is used
         // sdc: 50% is used
         List<FsInfo.Path> differentSizeDisksGroup = ImmutableList.of(
             new FsInfo.Path("/middle", "/dev/sda", 100, 40, 30),
-            new FsInfo.Path("/most", "/dev/sdc", 300, 150, 140)
+            new FsInfo.Path("/most", "/dev/sdc", 300, 130, 150)
         );
 
         // disk.watermark.high: 75%
@@ -243,5 +243,4 @@ public class SysNodeChecksTest extends CrateUnitTest {
         when(fsInfo.iterator()).thenReturn(differentSizeDisksGroup.iterator());
         assertThat(lowDiskWatermarkNodesSysCheck.validate(fsInfo, 55.0, 0), is(false));
     }
-
 }

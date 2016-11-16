@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fixed inconsistency in the calculation of low/high disk watermark
+   thresholds for node checks and logs.
+
  - Fixed an issue with certain subselects which led to incorrect results.
    (E.g.: ``select sum(x) from (select x from t limit 1)``)
 
