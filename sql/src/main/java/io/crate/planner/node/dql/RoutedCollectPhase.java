@@ -291,9 +291,14 @@ public class RoutedCollectPhase extends AbstractProjectionsPhase implements Coll
         List<Symbol> newToCollect = normalizer.normalize(toCollect(), transactionContext);
         boolean changed = newToCollect != toCollect();
         WhereClause newWhereClause = whereClause().normalize(normalizer, transactionContext);
-        if (newWhereClause != whereClause()) {
-            changed = changed || newWhereClause != whereClause();
+        OrderBy orderBy = this.orderBy;
+        if (orderBy != null) {
+            List<Symbol> orderBySymbols = orderBy.orderBySymbols();
+            List<Symbol> normalizedOrderBy = normalizer.normalize(orderBySymbols, transactionContext);
+            changed = changed || orderBySymbols != normalizedOrderBy;
+            orderBy = new OrderBy(normalizedOrderBy, this.orderBy.reverseFlags(), this.orderBy.nullsFirst());
         }
+        changed = changed || newWhereClause != whereClause();
         if (changed) {
             result = new RoutedCollectPhase(
                 jobId(),
@@ -306,6 +311,7 @@ public class RoutedCollectPhase extends AbstractProjectionsPhase implements Coll
                 newWhereClause,
                 distributionInfo
             );
+            result.orderBy(orderBy);
         }
         return result;
     }
