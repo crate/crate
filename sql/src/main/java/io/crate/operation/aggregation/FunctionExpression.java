@@ -24,6 +24,8 @@ package io.crate.operation.aggregation;
 import io.crate.metadata.Scalar;
 import io.crate.operation.Input;
 
+import java.util.Arrays;
+
 public class FunctionExpression<ReturnType, InputType> implements Input<ReturnType> {
 
     private final Input<InputType>[] childInputs;
@@ -37,5 +39,12 @@ public class FunctionExpression<ReturnType, InputType> implements Input<ReturnTy
     @Override
     public ReturnType value() {
         return functionImplementation.evaluate(childInputs);
+    }
+
+    @Override
+    public String toString() {
+        return "FuncExpr{" +
+               functionImplementation.info().ident().name() +
+               ", args=" + Arrays.toString(childInputs) + '}';
     }
 }

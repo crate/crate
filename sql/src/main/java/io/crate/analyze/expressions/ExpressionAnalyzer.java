@@ -305,7 +305,8 @@ public class ExpressionAnalyzer {
                 Symbol operandSymbol = operandRightSymbol;
 
                 if (operandLeftSymbol != null) {
-                    operandSymbol = EqOperator.createFunction(operandLeftSymbol, operandRightSymbol);
+                    operandSymbol = EqOperator.createFunction(
+                        operandLeftSymbol, castIfNeededOrFail(operandRightSymbol, operandLeftSymbol.valueType()));
                 }
 
                 operands.add(operandSymbol);

@@ -128,4 +128,14 @@ public class ConditionalFunctionTest extends AbstractScalarFunctionsTest {
         assertEvaluate("if(id = 0, 'zero', 'other')", "zero", Literal.of(0), Literal.of(0));
         assertEvaluate("if(id = 0, 'zero', if(id = 1, 'one', 'other'))", "one", Literal.of(1), Literal.of(1));
     }
+
+    @Test
+    public void testCaseWithDifferentOperandTypes() throws Exception {
+        // x = long
+        // a = integer
+        String expression = "case x + 1 when a then 111 end";
+        assertEvaluate(expression, 111L,
+            Literal.of(110L),    // x
+            Literal.of(111));    // a
+    }
 }

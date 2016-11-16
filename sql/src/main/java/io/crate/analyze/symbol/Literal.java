@@ -141,10 +141,7 @@ public class Literal<ReturnType> extends Symbol implements Input<ReturnType>, Co
 
     @Override
     public String toString() {
-        return "Literal{" +
-               "value=" + BytesRefs.toString(value) +
-               ", type=" + type +
-               '}';
+        return "Literal{" + BytesRefs.toString(value) + ", type=" + type + '}';
     }
 
     @Override
