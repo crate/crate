@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fixed an issue that caused join query to get stuck when an
+   expression evaluation related to both relations caused an error.
+
  - Fixed inconsistency in the calculation of low/high disk watermark
    thresholds for node checks and logs.
 

@@ -27,18 +27,23 @@ import io.crate.operation.projectors.ExecutorResumeHandle;
 import io.crate.operation.projectors.RepeatHandle;
 import io.crate.operation.projectors.RowReceiver;
 
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.concurrent.Executor;
 
 public class RowSender implements Runnable, RepeatHandle {
 
+    protected final RowReceiver downstream;
     private final Iterable<Row> rows;
-    private final RowReceiver downstream;
     private final ExecutorResumeHandle resumeable;
 
     private volatile int numPauses = 0;
     private volatile int numResumes = 0;
     private Iterator<Row> iterator;
+
+    public static RowSender withFailure(RowReceiver rowReceiver, Executor executor) {
+        return new FailingSender(rowReceiver, executor);
+    }
 
     public RowSender(final Iterable<Row> rows, RowReceiver rowReceiver, Executor executor) {
         this.rows = rows;
@@ -55,20 +60,25 @@ public class RowSender implements Runnable, RepeatHandle {
 
     @Override
     public void run() {
-        loop:
-        while (iterator.hasNext()) {
-            RowReceiver.Result result = downstream.setNextRow(iterator.next());
-            switch (result) {
-                case CONTINUE:
-                    continue;
-                case PAUSE:
-                    numPauses++;
-                    downstream.pauseProcessed(resumeable);
-                    return;
-                case STOP:
-                    break loop;
+        try {
+            loop:
+            while (iterator.hasNext()) {
+                RowReceiver.Result result = downstream.setNextRow(iterator.next());
+                switch (result) {
+                    case CONTINUE:
+                        continue;
+                    case PAUSE:
+                        numPauses++;
+                        downstream.pauseProcessed(resumeable);
+                        return;
+                    case STOP:
+                        break loop;
+                }
+                throw new AssertionError("Unrecognized setNextRow result: " + result);
             }
-            throw new AssertionError("Unrecognized setNextRow result: " + result);
+        } catch (Throwable t) {
+            downstream.fail(t);
+            return;
         }
         downstream.finish(this);
     }
@@ -105,6 +115,18 @@ public class RowSender implements Runnable, RepeatHandle {
             return start > end ? nextValue + 1L : nextValue - 1L;
         } else {
             return end;
+        }
+    }
+
+    private static class FailingSender extends RowSender {
+
+        private FailingSender(RowReceiver rowReceiver, Executor executor) {
+            super(Collections.<Row>emptyList(), rowReceiver, executor);
+        }
+
+        @Override
+        public void run() {
+            downstream.fail(new IllegalStateException("dummy"));
         }
     }
 }
