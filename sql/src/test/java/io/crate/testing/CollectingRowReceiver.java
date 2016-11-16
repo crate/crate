@@ -57,6 +57,10 @@ public class CollectingRowReceiver implements RowReceiver {
         return new LimitingReceiver(limit);
     }
 
+    public static CollectingRowReceiver withFailure() {
+        return new FailingReceiver();
+    }
+
     public static CollectingRowReceiver withFailureOnRepeat() {
         return new FailingOnRepeatReceiver();
     }
@@ -186,6 +190,14 @@ public class CollectingRowReceiver implements RowReceiver {
                 return Result.PAUSE;
             }
             return result;
+        }
+    }
+
+    private static class FailingReceiver extends CollectingRowReceiver {
+
+        @Override
+        public Result setNextRow(Row row) {
+            throw new IllegalStateException("dummy");
         }
     }
 

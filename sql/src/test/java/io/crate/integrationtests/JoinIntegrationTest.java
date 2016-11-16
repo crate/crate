@@ -604,4 +604,17 @@ public class JoinIntegrationTest extends SQLTransportIntegrationTest {
             throw Exceptions.unwrap(t);
         }
     }
+
+    @Test
+    public void testFailureOfJoinDownstream() throws Exception {
+        // provoke an exception when the NL emits a row, must bubble up and NL must stop
+        expectedException.expectMessage("Cannot cast ");
+        execute("select cast(R.col2 || ' ' || L.col2 as integer)" +
+                "   from " +
+                "       unnest(['hello', 'world'], [1, 2]) L " +
+                "   inner join " +
+                "       unnest(['world', 'hello'], [1, 2]) R " +
+                "   on l.col1 = r.col1 " +
+                "where r.col1 > 1");
+    }
 }

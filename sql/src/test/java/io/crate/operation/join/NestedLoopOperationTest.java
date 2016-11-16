@@ -38,6 +38,7 @@ import io.crate.testing.CollectingRowReceiver;
 import io.crate.testing.RowSender;
 import io.crate.testing.TestingHelpers;
 import org.elasticsearch.common.util.CollectionUtils;
+import org.hamcrest.Matcher;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -53,8 +54,10 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
 import static io.crate.testing.RowGenerator.singleColRows;
+import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.isA;
 import static org.hamcrest.core.Is.is;
+import static org.junit.matchers.JUnitMatchers.isThrowable;
 
 public class NestedLoopOperationTest extends CrateUnitTest {
 
@@ -287,6 +290,135 @@ public class NestedLoopOperationTest extends CrateUnitTest {
         expectedException.expect(IllegalStateException.class);
         expectedException.expectMessage("dummy1");
         receiver.result();
+    }
+
+    @Test
+    public void testRightUpstreamFailureOnLeftFirstResultsInFailure() throws Exception {
+        CollectingRowReceiver receiver = new CollectingRowReceiver();
+
+        NestedLoopOperation nestedLoopOperation = unfilteredNestedLoopOperation(0, receiver);
+        ListenableRowReceiver left = nestedLoopOperation.leftRowReceiver();
+        ListenableRowReceiver right = nestedLoopOperation.rightRowReceiver();
+
+        List<Row> leftRows = singleColRows(1, 2, 3);
+        RowSender rsLeft = new RowSender(leftRows, left, executorService);
+        RowSender rsRight = RowSender.withFailure(right, executorService); // fail immediately
+        rsLeft.run();
+        rsRight.run();
+
+        try {
+            receiver.result();
+            fail("expecting to throw an exception");
+        } catch (Throwable t) {
+            Matcher<Throwable> matcher = instanceOf(IllegalStateException.class);
+            assertThat(t, isThrowable(matcher));
+        }
+
+        assertThat(receiver.getNumFailOrFinishCalls(), is(1));
+    }
+
+    @Test
+    public void testLeftUpstreamFailureOnRightFirstResultsInFailure() throws Exception {
+        CollectingRowReceiver receiver = new CollectingRowReceiver();
+
+        NestedLoopOperation nestedLoopOperation = unfilteredNestedLoopOperation(0, receiver);
+        ListenableRowReceiver left = nestedLoopOperation.leftRowReceiver();
+        ListenableRowReceiver right = nestedLoopOperation.rightRowReceiver();
+
+        List<Row> rightRows = singleColRows(1, 2, 3);
+        RowSender rsLeft = RowSender.withFailure(left, executorService); // fail immediately
+        RowSender rsRight = new RowSender(rightRows, right, executorService);
+        rsRight.run();
+        rsLeft.run();
+
+        try {
+            receiver.result();
+            fail("expecting to throw an exception");
+        } catch (Throwable t) {
+            Matcher<Throwable> matcher = instanceOf(IllegalStateException.class);
+            assertThat(t, isThrowable(matcher));
+        }
+
+        assertThat(receiver.getNumFailOrFinishCalls(), is(1));
+    }
+
+    @Test
+    public void testDownstreamFailOnLeftFirstResultsInFailure() throws Exception {
+        CollectingRowReceiver receiver = CollectingRowReceiver.withFailure();
+
+        NestedLoopOperation nestedLoopOperation = unfilteredNestedLoopOperation(0, receiver);
+        ListenableRowReceiver left = nestedLoopOperation.leftRowReceiver();
+        ListenableRowReceiver right = nestedLoopOperation.rightRowReceiver();
+
+        List<Row> leftRows = singleColRows(1, 2);
+        List<Row> rightRows = singleColRows(1, 2);
+        RowSender rsLeft = new RowSender(leftRows, left, executorService);
+        RowSender rsRight = new RowSender(rightRows, right, executorService);
+        rsLeft.run();
+        rsRight.run();
+
+        try {
+            receiver.result();
+            fail("expecting to throw an exception");
+        } catch (Throwable t) {
+            Matcher<Throwable> matcher = instanceOf(IllegalStateException.class);
+            assertThat(t, isThrowable(matcher));
+        }
+
+        assertThat(receiver.getNumFailOrFinishCalls(), is(1));
+    }
+
+    @Test
+    public void testDownstreamFailOnRightFirstResultsInFailure() throws Exception {
+        CollectingRowReceiver receiver = CollectingRowReceiver.withFailure();
+
+        NestedLoopOperation nestedLoopOperation = unfilteredNestedLoopOperation(0, receiver);
+        ListenableRowReceiver left = nestedLoopOperation.leftRowReceiver();
+        ListenableRowReceiver right = nestedLoopOperation.rightRowReceiver();
+
+        List<Row> leftRows = singleColRows(1, 2);
+        List<Row> rightRows = singleColRows(1, 2);
+        RowSender rsLeft = new RowSender(leftRows, left, executorService);
+        RowSender rsRight = new RowSender(rightRows, right, executorService);
+        rsRight.run();
+        rsLeft.run();
+
+        try {
+            receiver.result();
+            fail("expecting to throw an exception");
+        } catch (Throwable t) {
+            Matcher<Throwable> matcher = instanceOf(IllegalStateException.class);
+            assertThat(t, isThrowable(matcher));
+        }
+
+        assertThat(receiver.getNumFailOrFinishCalls(), is(1));
+    }
+
+    @Test
+    public void testDownstreamFailOnLeftJoinEmitResultsInFailure() throws Exception {
+        CollectingRowReceiver receiver = CollectingRowReceiver.withFailure();
+
+        NestedLoopOperation nestedLoopOperation = new NestedLoopOperation(
+            0, receiver, COL0_EQ_COL1, JoinType.LEFT, 1, 1);
+        ListenableRowReceiver left = nestedLoopOperation.leftRowReceiver();
+        ListenableRowReceiver right = nestedLoopOperation.rightRowReceiver();
+
+        List<Row> leftRows = singleColRows(1, 2);
+        List<Row> rightRows = singleColRows(2, 3);
+        RowSender rsLeft = new RowSender(leftRows, left, executorService);
+        RowSender rsRight = new RowSender(rightRows, right, executorService);
+        rsLeft.run();
+        rsRight.run();
+
+        try {
+            receiver.result();
+            fail("expecting to throw an exception");
+        } catch (Throwable t) {
+            Matcher<Throwable> matcher = instanceOf(IllegalStateException.class);
+            assertThat(t, isThrowable(matcher));
+        }
+
+        assertThat(receiver.getNumFailOrFinishCalls(), is(1));
     }
 
     @Test

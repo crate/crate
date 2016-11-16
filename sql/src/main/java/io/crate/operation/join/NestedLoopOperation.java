@@ -154,6 +154,7 @@ public class NestedLoopOperation implements CompletionListenable {
     private final JoinType joinType;
 
     private volatile Throwable upstreamFailure;
+    private volatile Throwable downstreamFailure;
     private volatile boolean stop = false;
     private volatile boolean emitRightJoin = false;
 
@@ -273,6 +274,9 @@ public class NestedLoopOperation implements CompletionListenable {
 
         @Override
         public Result setNextRow(Row row) {
+            if (downstreamFailure != null) {
+                Throwables.propagate(downstreamFailure);
+            }
             if (stop) {
                 LOGGER.trace("phase={} side=left method=setNextRow stop=true", phaseId);
                 return Result.STOP;
@@ -403,6 +407,9 @@ public class NestedLoopOperation implements CompletionListenable {
 
         @Override
         public Result setNextRow(final Row rightRow) {
+            if (downstreamFailure != null) {
+                Throwables.propagate(downstreamFailure);
+            }
             if (stop) {
                 return Result.STOP;
             }
@@ -470,35 +477,39 @@ public class NestedLoopOperation implements CompletionListenable {
                     // emit row with right one nulled
                     combinedRow.outerRow = left.lastRow;
                     combinedRow.innerRow = rightNullRow;
-                    Result result = emitRowAndTrace(combinedRow);
-                    LOGGER.trace("phase={} side=right method=finish firstCall={} emitNullRow result={}", phaseId, firstCall, result);
-                    switch (result) {
-                        case CONTINUE:
-                            break;
-                        case PAUSE:
-                            downstream.pauseProcessed(new ResumeHandle() {
-                                @Override
-                                public void resume(boolean async) {
-                                    if (tryFinish()) {
-                                        return;
+                    try {
+                        Result result = emitRowAndTrace(combinedRow);
+                        LOGGER.trace("phase={} side=right method=finish firstCall={} emitNullRow result={}", phaseId, firstCall, result);
+                        switch (result) {
+                            case CONTINUE:
+                                break;
+                            case PAUSE:
+                                downstream.pauseProcessed(new ResumeHandle() {
+                                    @Override
+                                    public void resume(boolean async) {
+                                        if (tryFinish()) {
+                                            return;
+                                        }
+                                        if (left.upstreamFinished) {
+                                            // empty left table + right or full join -> "post-loop" iterate over right again and emit null-rows
+                                            assert emitRightJoin :
+                                                "emitRightJoin must be true if tryFinish didn't return true and left upstream is finished as well";
+                                            switchTo(right.resumeable);
+                                        } else {
+                                            switchTo(left.resumeable);
+                                        }
                                     }
-                                    if (left.upstreamFinished) {
-                                        // empty left table + right or full join -> "post-loop" iterate over right again and emit null-rows
-                                        assert emitRightJoin :
-                                            "emitRightJoin must be true if tryFinish didn't return true and left upstream is finished as well";
-                                        switchTo(right.resumeable);
-                                    } else {
-                                        switchTo(left.resumeable);
-                                    }
-                                }
-                            });
-                            // return without setting upstreamFinished=true to ensure left-side get's paused (if it isn't already)
-                            // this way the resumeHandle call can un-pause it
-                            right.upstreamFinished  = false;
-                            return;
-                        case STOP:
-                            stop = true;
-                            break;
+                                });
+                                // return without setting upstreamFinished=true to ensure left-side get's paused (if it isn't already)
+                                // this way the resumeHandle call can un-pause it
+                                right.upstreamFinished  = false;
+                                return;
+                            case STOP:
+                                stop = true;
+                                break;
+                        }
+                    } catch (Throwable e) {
+                        downstreamFailure = e;
                     }
                 }
             }
@@ -522,6 +533,7 @@ public class NestedLoopOperation implements CompletionListenable {
         @Override
         public void fail(Throwable throwable) {
             LOGGER.trace("phase={} side=right method=fail error={}", phaseId, throwable);
+            stop = true;
             upstreamFailure = throwable;
             if (tryFinish()) {
                 return;
@@ -561,17 +573,21 @@ public class NestedLoopOperation implements CompletionListenable {
                 }
 
                 assert lastRow != null : "lastRow should be present";
-                Result result = emitRow(lastRow);
-                lastRow = null;
-                switch (result) {
-                    case CONTINUE:
-                        break;
-                    case PAUSE:
-                        downstream.pauseProcessed(delegate);
-                        return;
-                    case STOP:
-                        stop = true;
-                        break; // need to resume so that STOP can be processed
+                try {
+                    Result result = emitRow(lastRow);
+                    lastRow = null;
+                    switch (result) {
+                        case CONTINUE:
+                            break;
+                        case PAUSE:
+                            downstream.pauseProcessed(delegate);
+                            return;
+                        case STOP:
+                            stop = true;
+                            break; // need to resume so that STOP can be processed
+                    }
+                } catch (Throwable t) {
+                    downstreamFailure = t;
                 }
                 delegate.resume(async);
             }
