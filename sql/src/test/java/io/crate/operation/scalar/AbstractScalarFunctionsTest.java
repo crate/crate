@@ -62,6 +62,8 @@ public abstract class AbstractScalarFunctionsTest extends CrateUnitTest {
             .add("name", DataTypes.STRING)
             .add("tags", new ArrayType(DataTypes.STRING))
             .add("age", DataTypes.INTEGER)
+            .add("a", DataTypes.INTEGER)
+            .add("x", DataTypes.LONG)
             .add("shape", DataTypes.GEO_SHAPE)
             .add("timestamp", DataTypes.TIMESTAMP)
             .add("timezone", DataTypes.STRING)
@@ -74,7 +76,7 @@ public abstract class AbstractScalarFunctionsTest extends CrateUnitTest {
             .add("is_awesome", DataTypes.BOOLEAN)
             .build();
         TableRelation tableRelation = new TableRelation(tableInfo);
-        tableSources = ImmutableMap.<QualifiedName, AnalyzedRelation>of(new QualifiedName("users"), tableRelation);
+        tableSources = ImmutableMap.of(new QualifiedName("users"), tableRelation);
         sqlExpressions = new SqlExpressions(tableSources);
         functions = sqlExpressions.getInstance(Functions.class);
     }
@@ -216,6 +218,11 @@ public abstract class AbstractScalarFunctionsTest extends CrateUnitTest {
                 return delegate.value();
             }
             throw new AssertionError("Input.value() should only be called once");
+        }
+
+        @Override
+        public String toString() {
+            return delegate.toString();
         }
     }
 
