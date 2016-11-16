@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fixed ``ORDER BY`` clauses on scalar subqueries: In certain cases the ORDER
+   BY clause got removed resulting in an un-ordered result.
+
  - Fixed inconsistency in the calculation of low/high disk watermark
    thresholds for node checks and logs.
 

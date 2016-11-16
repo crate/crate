@@ -1993,4 +1993,20 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         execute("select 1/0 from t1 where true = false");
         assertThat(response.rowCount(), is(0L));
     }
+
+    @Test
+    public void testOrderByWorksOnSymbolWithLateNormalization() throws Exception {
+        execute("create table t (x int) with (number_of_replicas = 0)");
+        ensureYellow();
+        execute("insert into t (x) values (5), (10), (3)");
+        execute("refresh table t");
+
+        // cast is added to have a to_int(2) after the subquery is inserted
+        // this causes a normalization on the map-side which used to remove the order by
+        execute("select cast((select 2) as integer) * x from t order by 1");
+        assertThat(TestingHelpers.printedTable(response.rows()),
+            is("6\n" +
+               "10\n" +
+               "20\n"));
+    }
 }
