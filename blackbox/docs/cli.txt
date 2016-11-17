@@ -1,22 +1,22 @@
 .. highlight:: sh
 .. _cli:
 
-=========
-Crate CLI
-=========
+===========
+CrateDB CLI
+===========
 
 After downloading and extracting the tarball (see :ref:`install_targz`)
-you will be able to invoke the Crate executable in the ``bin`` directory.
+you will be able to invoke the CrateDB executable in the ``bin`` directory.
 The excutable is named ``crate``.
 
-The simplest way to start a Crate instance is to invoke ``crate`` without parameters.
+The simplest way to start a CrateDB instance is to invoke ``crate`` without parameters.
 This will start the process in the foreground.
 
 ::
 
   sh$ ./bin/crate
 
-You can also start Crate in the background using the ``-d`` option. When starting Crate
+You can also start CrateDB in the background using the ``-d`` option. When starting CrateDB
 in the background it is helpful to write the process id into a pid file so you can find
 out the process id easlily::
 
@@ -59,26 +59,26 @@ Example::
 Signal Handling
 ===============
 
-The Crate process can handle the following signals.
+The CrateDB process can handle the following signals.
 
-+-----------+-------------------------------------------+
-| Signal    | Description                               |
-+===========+===========================================+
-| ``TERM``  | Stops a running Crate process             |
-|           |                                           |
-|           | ``kill -TERM `cat /path/to/pidfile.pid``` |
-|           |                                           |
-+-----------+-------------------------------------------+
-| ``INT``   | Stops a running Crate process             |
-|           |                                           |
-|           | Same behaviour as ``TERM``.               |
-+-----------+-------------------------------------------+
-| ``USR2``  | Stops a running Crate process gracefully. |
-|           | See :ref:`cluster_upgrade` for more       |
-|           | information                               |
-|           |                                           |
-|           | ``kill -USR2 `cat /path/to/pidfile.pid``` |
-|           |                                           |
-|           | ``USR2`` is not supported on Windows.     |
-|           |                                           |
-+-----------+-------------------------------------------+
++-----------+---------------------------------------------+
+| Signal    | Description                                 |
++===========+=============================================+
+| ``TERM``  | Stops a running CrateDB process             |
+|           |                                             |
+|           | ``kill -TERM `cat /path/to/pidfile.pid```   |
+|           |                                             |
++-----------+---------------------------------------------+
+| ``INT``   | Stops a running CrateDB process             |
+|           |                                             |
+|           | Same behaviour as ``TERM``.                 |
++-----------+---------------------------------------------+
+| ``USR2``  | Stops a running CrateDB process gracefully. |
+|           | See :ref:`cluster_upgrade` for more         |
+|           | information                                 |
+|           |                                             |
+|           | ``kill -USR2 `cat /path/to/pidfile.pid```   |
+|           |                                             |
+|           | ``USR2`` is not supported on Windows.       |
+|           |                                             |
++-----------+---------------------------------------------+
