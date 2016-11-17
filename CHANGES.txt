@@ -5,6 +5,10 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fixed a race condition that could cause join statements or statements with a
+   very high limit to get stuck or result in a "Same bucket of a page set more
+   than once" error.
+
  - ``COPY FROM`` now correctly resolves files within symlinked folders when a
    wildcard is used in the path.
 
