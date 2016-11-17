@@ -4,7 +4,7 @@
  Plugins
 =========
 
-Crate implements a plugin loading infrastructure making it possible to
+CrateDB implements a plugin loading infrastructure making it possible to
 develop plugins for crate.
 
 A plugin must at least:
@@ -18,10 +18,10 @@ See our `example crate plugin`_ for details about that.
 
 .. _plugins_crate_dep:
 
-Plugin Crate Dependency
+Plugin CrateDB Dependency
 =======================
 
-In order to develop a plugin against a crate release, a dependency to
+In order to develop a plugin against a CrateDB release, a dependency to
 the crate's server libraries must be set up.
 
 Gradle
@@ -97,7 +97,7 @@ almost the same like you may know from Java's ServiceLoader.
 Constructor with ``Settings`` argument
 --------------------------------------
 
-Crate passes a ``Settings`` instance to the plugin implementation
+CrateDB passes a ``Settings`` instance to the plugin implementation
 constructor if such a constructor exists. Otherwise an empty
 constructor is used. By using the ``Settings`` instance, a plugin can
 process existing settings and/or implement it's own custom setting entries.
@@ -110,7 +110,7 @@ The `example crate plugin`_ makes use of that to implement a custom setting.
 Plugin Interface
 ================
 
-Crate uses `Guice`_ module binding concept and so does a plugin.
+CrateDB uses `Guice`_ module binding concept and so does a plugin.
 As described at the ``io.crate.Plugin`` interface, a plugin can load
 serveral module types by implementing relevant methods:
 

@@ -4,11 +4,11 @@
     :target: https://crate.io
 
 =================================
-CRATE: Put data to work. Simply.
+CRATEDB: Put data to work. Simply.
 =================================
 
 
-    Crate allows to query and compute data with SQL in real time by providing a
+    CrateDB allows to query and compute data with SQL in real time by providing a
     distributed aggregation engine, native search and super simple scalability.
 
 **https://crate.io**
@@ -76,10 +76,10 @@ Powerful Lucene based full-text search::
 Getting Started
 ===============
 
-Get Crate
+Get CrateDB
 ---------
 
-There are many ways to install Crate. The fastest way to try it out is just one command-line::
+There are many ways to install CrateDB. The fastest way to try it out is just one command-line::
 
     bash -c "$(curl -L try.crate.io)"
 
@@ -90,10 +90,10 @@ Or with docker::
 Visit our `getting started`_ page to see all available download and install options.
 
 
-Use Crate
+Use CrateDB
 ---------
 
-Crate includes an Administration UI that is available under http://localhost:4200/admin/.
+CrateDB includes an Administration UI that is available under http://localhost:4200/admin/.
 
 It also ships with a CLI called ``crash`` that can be used to run queries in a
 shell.

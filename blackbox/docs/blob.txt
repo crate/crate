@@ -5,8 +5,8 @@
 Blob Support
 ============
 
-Crate includes support to store `binary large objects`_. By utilizing
-Crate's cluster features the files can be replicated and sharded just
+CrateDB includes support to store `binary large objects`_. By utilizing
+CrateDB's cluster features the files can be replicated and sharded just
 like regular data.
 
 Creating a table for blobs
@@ -31,7 +31,7 @@ on a large cheap spinning disk.
 
 The custom blob data path can be set either globally by config or
 while creating a blob table. The path can be either absolute or relative
-and must be creatable/writable by the user Crate is running as.
+and must be creatable/writable by the user CrateDB is running as.
 A relative path value is relative to :ref:`env-crate-home`.
 
 Blob data will be stored under this path with the same directory

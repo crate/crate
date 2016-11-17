@@ -6,10 +6,10 @@
 Configuration
 =============
 
-Since Crate has sensible defaults, there is no configuration
+Since CrateDB has sensible defaults, there is no configuration
 needed at all for basic operation.
 
-Crate is mainly configured via a configuration file, which is
+CrateDB is mainly configured via a configuration file, which is
 located at ``config/crate.yml``. The vanilla configuration file
 distributed with the package has all available settings as comments
 in it along with the according default value.
@@ -229,7 +229,7 @@ Node Specific Settings
   | *Default:*    ``crate``
   | *Runtime:*   ``no``
 
-  The name of the Crate cluster the node should join to.
+  The name of the CrateDB cluster the node should join to.
 
 **node.name**
   | *Runtime:* ``no``
@@ -238,12 +238,12 @@ Node Specific Settings
 
 .. note::
 
-   Node names must be unique in a Crate cluster.
+   Node names must be unique in a CrateDB cluster.
 
 Node Types
 ----------
 
-Crate supports different kinds of nodes. The following settings can be used
+CrateDB supports different kinds of nodes. The following settings can be used
 to differentiate nodes upon startup:
 
 **node.master**
@@ -330,7 +330,7 @@ Hosts
   | *Default:*    ``0.0.0.0``
   | *Runtime:*   ``no``
 
-  The IP address Crate will bind itself to. This setting sets
+  The IP address CrateDB will bind itself to. This setting sets
   both the `network.bind_host`_ and `network.publish_host`_ values.
 
 .. _network.bind_host:
@@ -339,7 +339,7 @@ Hosts
   | *Default:*    ``0.0.0.0``
   | *Runtime:*   ``no``
 
-  This setting determines to which address Crate should bind itself
+  This setting determines to which address CrateDB should bind itself
   to. To only bind to localhost, set it to any local address or ``_local_``.
 
 .. _network.publish_host:
@@ -347,10 +347,10 @@ Hosts
 **network.publish_host**
   | *Runtime:*   ``no``
 
-  This setting is used by a Crate node to publish its own address
+  This setting is used by a CrateDB node to publish its own address
   to the rest of the cluster. Per default it is the first non local address.
 
-  To explicitly bind Crate to a specific interface use the interface
+  To explicitly bind CrateDB to a specific interface use the interface
   name between underscores. For example ``_eth0_``. This resolves to
   the ip address of this interface. With ``_eth0:ipv{4,6}_`` you
   explicitly listen on an ipv6 or ipv4 address.
@@ -365,7 +365,7 @@ Ports
 **http.port**
   | *Runtime:*   ``no``
 
-  This defines the TCP port range to which the Crate HTTP service will be bound to.
+  This defines the TCP port range to which the CrateDB HTTP service will be bound to.
   It defaults to ``4200-4300``. Always the first free port in this range is used. If this is set
   to an integer value it is considered as an explicit single port.
 
@@ -386,7 +386,7 @@ Ports
 **transport.tcp.port**
   | *Runtime:*   ``no``
 
-  This defines the TCP port range to which the Crate transport service will be bound to.
+  This defines the TCP port range to which the CrateDB transport service will be bound to.
   It defaults to ``4300-4400``. Always the first free port in this range is used. If this is set
   to an integer value it is considered as an explicit single port.
 
@@ -407,7 +407,7 @@ Ports
 **psql.port**
   | *Runtime:*   ``no``
 
-  This defines the TCP port range to which the Crate Postgres service will be bound to.
+  This defines the TCP port range to which the CrateDB Postgres service will be bound to.
   It defaults to ``5432-5532``. Always the first free port in this range is used. If this is set
   to an integer value it is considered as an explicit single port.
 
@@ -434,10 +434,10 @@ Paths
 **path.data**
   | *Runtime:* ``no``
 
-  Filesystem path to the directory where this Crate node stores its data (table
+  Filesystem path to the directory where this CrateDB node stores its data (table
   data and cluster metadata).
 
-  This setting can contain a comma separated list of paths. In this case Crate will
+  This setting can contain a comma separated list of paths. In this case CrateDB will
   stripe the data across both locations like in RAID 0.
 
 
@@ -471,8 +471,8 @@ Paths
   A list of filesystem or UNC paths where repositories of type
   :ref:`ref-create-repository-types-fs` may be stored.
 
-  Without this setting a Crate user could write snapshot files to any directory
-  that is writable by the Crate process. To safeguard against this security issue,
+  Without this setting a CrateDB user could write snapshot files to any directory
+  that is writable by the CrateDB process. To safeguard against this security issue,
   the possible paths have to be whitelisted here.
 
   See also :ref:`location <ref-create-repository-types-fs-location>` setting
@@ -494,9 +494,9 @@ Memory
   | *Runtime:* ``no``
   | *Default:* ``false``
 
-  Crate performs poorly when the JVM starts swapping: you should ensure that
-  it *never* swaps. If set to ``true``, Crate will use the ``mlockall`` system
-  call on startup to ensure that the memory pages of the Crate process
+  CrateDB performs poorly when the JVM starts swapping: you should ensure that
+  it *never* swaps. If set to ``true``, CrateDB will use the ``mlockall`` system
+  call on startup to ensure that the memory pages of the CrateDB process
   are locked into RAM.
 
 
@@ -510,42 +510,42 @@ The following settings can be used to adjust these timeouts:
   | *Default:* ``1000ms``
   | *Runtime:* ``no``
 
-  Crate will log a warning message if it takes more than the configured timespan
+  CrateDB will log a warning message if it takes more than the configured timespan
   to collect the *Eden Space* (heap).
 
 **monitor.jvm.gc.young.info**
   | *Default:* ``1000ms``
   | *Runtime:* ``no``
 
-  Crate will log an info message if it takes more than the configured timespan
+  CrateDB will log an info message if it takes more than the configured timespan
   to collect the *Eden Space* (heap).
 
 **monitor.jvm.gc.young.debug**
   | *Default:* ``1000ms``
   | *Runtime:* ``no``
 
-  Crate will log a debug message if it takes more than the configured timespan
+  CrateDB will log a debug message if it takes more than the configured timespan
   to collect the *Eden Space* (heap).
 
 **monitor.jvm.gc.old.warn**
   | *Default:* ``1000ms``
   | *Runtime:* ``no``
 
-  Crate will log a warning message if it takes more than the configured timespan
+  CrateDB will log a warning message if it takes more than the configured timespan
   to collect the *Old Gen* / *Tenured Gen* (heap).
 
 **monitor.jvm.gc.old.info**
   | *Default:* ``1000ms``
   | *Runtime:* ``no``
 
-  Crate will log an info message if it takes more than the configured timespan
+  CrateDB will log an info message if it takes more than the configured timespan
   to collect the *Old Gen* / *Tenured Gen* (heap).
 
 **monitor.jvm.gc.old.debug**
   | *Default:* ``1000ms``
   | *Runtime:* ``no``
 
-  Crate will log a debug message if it takes more than the configured timespan
+  CrateDB will log a debug message if it takes more than the configured timespan
   to collect the *Old Gen* / *Tenured Gen* (heap).
 
 
@@ -579,7 +579,7 @@ Blobs
 Repositories
 ------------
 
-Repositories are used to :ref:`backup <snapshot-restore>` a Crate cluster.
+Repositories are used to :ref:`backup <snapshot-restore>` a CrateDB cluster.
 
 **repositories.url.allowed_urls**
   | *Runtime:* ``no``
@@ -721,9 +721,9 @@ information about its usage.
 Graceful Stop
 -------------
 
-By default, when the Crate process stops it simply shuts down, possibly making some
+By default, when the CrateDB process stops it simply shuts down, possibly making some
 shards unavailable which leads to a *red* cluster state and lets some queries fail
-that required the now unavailable shards. In order to *safely* shutdown a Crate node,
+that required the now unavailable shards. In order to *safely* shutdown a CrateDB node,
 the graceful stop procedure can be used.
 
 The following cluster settings can be used to change the shutdown behaviour of
@@ -854,7 +854,7 @@ Unicast Host Discovery
 
   Boolean value whether discovery via multicast is enabled or not.
 
-Crate has built-in support for several different mechanisms how unicast hosts
+CrateDB has built-in support for several different mechanisms how unicast hosts
 for node discovery are obtained. The simplest mechanism is to specify the list
 of hosts in the configuration file.
 
@@ -919,7 +919,7 @@ would result in a list of discovery nodes ordered like::
 Discovery on Amazon EC2
 ***********************
 
-Crate has built-in support for discovery via the EC2 API. To enable EC2
+CrateDB has built-in support for discovery via the EC2 API. To enable EC2
 discovery the ``discovery.type`` setting needs to be set to ``ec2``.
 
 **cloud.aws.access_key**
@@ -998,13 +998,13 @@ Following settings control the discovery:
 Discovery on Microsoft Azure
 ****************************
 
-Crate has built-in support for discovery via the Azure Virtual Machine API.
+CrateDB has built-in support for discovery via the Azure Virtual Machine API.
 To enable Azure discovery set the ``discovery.type`` setting to ``azure``.
 
 **cloud.azure.management.resourcegroup.name**
   | *Runtime:*  ``no``
 
-  The name of the resource group the Crate cluster is running on.
+  The name of the resource group the CrateDB cluster is running on.
   All nodes need to be started within the same resource group.
 
 **cloud.azure.management.subscription.id**
@@ -1035,7 +1035,7 @@ To enable Azure discovery set the ``discovery.type`` setting to ``azure``.
 
   Defines the scope of the discovery. ``vnet`` will discover all VMs within the
   same virtual network (default), ``subnet`` will discover all VMs within the
-  same subnet of the Crate instance.
+  same subnet of the CrateDB instance.
 
 
 .. _conf_routing:
@@ -1586,7 +1586,7 @@ Metadata Gateway
 Session Setting Parameters
 ==========================
 
-The section lists the session setting parameters supported by Crate.
+The section lists the session setting parameters supported by CrateDB.
 Parameters can be set with the ``SET/SET SESSION`` statement, see :ref:`ref-set`.
 
 **search_path**
@@ -1595,13 +1595,13 @@ Parameters can be set with the ``SET/SET SESSION`` statement, see :ref:`ref-set`
    This parameter holds the default schema for a session that should be used when
    no schema is provided in queries.
    The value of ``search_path`` can be either a string or a comma-separated
-   list of strings. However, Crate only considers the first element when a
+   list of strings. However, CrateDB only considers the first element when a
    list is provided.
 
 Logging
 =======
 
-Crate comes, out of the box, with Log4j_ 1.2.x. It tries to simplify log4j
+CrateDB comes, out of the box, with Log4j_ 1.2.x. It tries to simplify log4j
 configuration by using YAML to configure it. The logging configuration
 file is at ``config/logging.yml``.
 
@@ -1696,7 +1696,7 @@ directory location. This variable is usally defined at the
 by-distribution shipped start-up script. In most cases it is the
 parent directory of the directory containing the ``bin/crate`` executable.
 
-:CRATE_HOME: Home directory of Crate installation. Used to refer
+:CRATE_HOME: Home directory of CrateDB installation. Used to refer
              to default config files, data locations, log files, etc.
              All configured relative paths will use this directory as
              a parent.
@@ -1704,7 +1704,7 @@ parent directory of the directory containing the ``bin/crate`` executable.
 CRATE_JAVA_OPTS
 ---------------
 
-This variable allows you to set `Java options`_ for Crate, such as as the thread
+This variable allows you to set `Java options`_ for CrateDB, such as as the thread
 stack size.
 
 For example, to change the stack size in order to avoid stack overflow
@@ -1724,7 +1724,7 @@ example::
 
     CRATE_HEAP_SIZE=4g
 
-Certain operations in Crate require a lot of records to be hold in
+Certain operations in CrateDB require a lot of records to be hold in
 memory at a time. If the amount of heap that can be allocated by the
 JVM is too low these operations would fail with an OutOfMemory exception.
 
@@ -1734,20 +1734,20 @@ But there are two limitations:
 Use max. 50% of available RAM
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Be aware that there is also another user of memory besides Crate's
+Be aware that there is also another user of memory besides CrateDB's
 HEAP: our underlying storage engine `Lucene`_. It leverages the
 underlying OS for caching in-memory data structures by
 design. `Lucene`_ indexes are split in several segment files, every
 file is immutable and will never change. This makes them super
 cache-friendly and the underlying OS will keep hot segments resident
 in memory for faster access. So if all system memory is assigned to
-Crate's HEAP, there won't be any left-over for `Lucene`_ which can
+CrateDB's HEAP, there won't be any left-over for `Lucene`_ which can
 cause serious performance impacts.
 
 .. note::
 
    A good recommendation is to assign 50% of the available memory to
-   Crate's HEAP while leaving the other 50% free. It will not get
+   CrateDB's HEAP while leaving the other 50% free. It will not get
    unused, `Lucene`_ will use whatever is left-over.
 
 Never use more than 30.5 Gigabyte
@@ -1769,15 +1769,15 @@ This boundary should be considered an upper bound for the heap size of any JVM a
 
 .. note::
 
-   In order to ensure that `Compressed Oops`_ are used no matter what JVM Crate runs on,
+   In order to ensure that `Compressed Oops`_ are used no matter what JVM CrateDB runs on,
    configuring the heap to a value less than or equal to *30.5 GB* (``30500m``) is suggested,
    as some JVMs only support `Compressed Oops`_ up to that value.
 
 
-Running Crate on machines with huge RAM
+Running CrateDB on machines with huge RAM
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-If hardware with much more RAM is available, it is suggested to run more than one Crate instance
+If hardware with much more RAM is available, it is suggested to run more than one CrateDB instance
 on that machine with each one having a heap size of around 30.5 GB (``30500m``).
 But still leave half of the available RAM to `Lucene`_.
 

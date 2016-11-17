@@ -4,12 +4,12 @@
 Usage Data Collector
 ====================
 
-The Crate Usage Data Collector (UDC) is a sub-system that gathers
+The CrateDB Usage Data Collector (UDC) is a sub-system that gathers
 usage data, reporting it to the UDC server at https://udc.crate.io.
 It is easy to disable, and does not collect any data that is confidential.
 For more information about what is being sent, see below.
 
-Crate uses this information as a form of automatic, effortless feedback from the
+CrateDB uses this information as a form of automatic, effortless feedback from the
 community. We want to verify that we are doing the right thing by matching
 download statistics with usage statistics. After each release, we can see if
 there is a larger retention span of the server software.
@@ -17,12 +17,12 @@ there is a larger retention span of the server software.
 The data collected is clearly stated here. If any future versions of this system
 collect additional data, we will clearly announce those changes.
 
-Crate is very concerned about your privacy. We do not disclose any personally
+CrateDB is very concerned about your privacy. We do not disclose any personally
 identifiable information.
 
 Technical Information
 =====================
-To gather good statistics about Crate usage, UDC collects this information:
+To gather good statistics about CrateDB usage, UDC collects this information:
 
     ================  =============================================================================
     Name              Description
@@ -46,8 +46,13 @@ done with a HTTP GET.
 
 Admin UI tracking
 =================
+<<<<<<< Updated upstream
 Since Admin UI v0.16.0 we are tracking the user-id along with the cluster-id to 
 know how many active users are currently using Crate.
+=======
+Since Admin UI v0.16.0 we are tracking the user-id along with the cluster-id to
+know how many active users are currently using CrateDB.
+>>>>>>> Stashed changes
 
 Configuration
 =============
@@ -64,7 +69,7 @@ Crate.
 
 .. note::
 
-    If UDC is disabled on the Crate server the Intercom service is deactivated.
+    If UDC is disabled on the CrateDB server the Intercom service is deactivated.
 
 
 .. highlight:: yaml
