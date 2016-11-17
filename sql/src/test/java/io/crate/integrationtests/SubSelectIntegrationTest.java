@@ -394,4 +394,17 @@ public class SubSelectIntegrationTest extends SQLTransportIntegrationTest {
         execute("select sum(x) from (select min(col1) as x from unnest([1])) as t where x = 2");
         assertThat(TestingHelpers.printedTable(response.rows()), is("NULL\n"));
     }
+
+    @Test
+    public void testSubQueryInSelectListOnDocTable() throws Exception {
+        execute("create table t (x int)");
+        ensureYellow();
+        execute("insert into t (x) values (1), (1)");
+        execute("refresh table t");
+
+        execute("select (select 2), x from t");
+        assertThat(TestingHelpers.printedTable(response.rows()),
+            is("2| 1\n" +
+               "2| 1\n"));
+    }
 }
