@@ -24,7 +24,10 @@ package io.crate.planner;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import io.crate.analyze.*;
+import io.crate.analyze.MultiSourceSelect;
+import io.crate.analyze.QueriedTable;
+import io.crate.analyze.QuerySpec;
+import io.crate.analyze.SelectAnalyzedStatement;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.AnalyzedRelationVisitor;
 import io.crate.analyze.relations.QueriedDocTable;
@@ -138,7 +141,10 @@ class SelectStatementPlanner {
                 table, querySpec, fetchPushDown, readerAllocations, fetchPhase, context.fetchSize());
             plannedSubQuery.addProjection(fp, null, null, fp.outputs().size(), null);
 
-            return new QueryThenFetch(plannedSubQuery, fetchPhase);
+            QueryThenFetch qtf = new QueryThenFetch(plannedSubQuery, fetchPhase);
+            SubqueryPlanner subqueryPlanner = new SubqueryPlanner(context);
+            Map<Plan, SelectSymbol> subqueries = subqueryPlanner.planSubQueries(querySpec);
+            return MultiPhasePlan.createIfNeeded(qtf, subqueries);
         }
 
         @Override
