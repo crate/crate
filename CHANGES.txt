@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Changed `<literal> = ANY([null])` to no longer result in a cast exception
+   but return null.
+
  - Fixed the `IN` and `ANY` predicates to return null if any of the arguments
    are null and there is no match.
 

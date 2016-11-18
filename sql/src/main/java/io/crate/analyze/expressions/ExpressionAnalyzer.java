@@ -445,9 +445,10 @@ public class ExpressionAnalyzer {
             // There is no proper type-precedence logic in place yet,
             // but in this case the side which has a column instead of functions/literals should dictate the type.
 
-            // x = ANY([null])              -> should not result in to-null casts
-            // int_col = ANY([1, 2, 3])     -> should cast to int instead of long (otherwise lucene query would be slow)
-            if (SymbolVisitors.any(Predicates.instanceOf(Field.class), leftSymbol)) {
+            // x = ANY([null])              -> must not result in to-null casts
+            // int_col = ANY([1, 2, 3])     -> must cast to int instead of long (otherwise lucene query would be slow)
+            // null = ANY([1, 2])           -> must not cast to null
+            if (SymbolVisitors.any(Predicates.instanceOf(Field.class), leftSymbol) || rightInnerType == DataTypes.UNDEFINED) {
                 arraySymbol = castIfNeededOrFail(arraySymbol, new ArrayType(leftSymbol.valueType()));
             } else {
                 leftSymbol = castIfNeededOrFail(leftSymbol, rightInnerType);
