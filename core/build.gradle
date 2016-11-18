@@ -5,10 +5,6 @@ apply plugin: 'de.thetaphi.forbiddenapis'
 
 archivesBaseName = 'crate-core'
 
-configurations {
-    all*.exclude group: 'org.apache.commons', module: 'commons-math3'
-}
-
 dependencies {
     compile project(':es:es-core')
     testCompile project(':testing')
