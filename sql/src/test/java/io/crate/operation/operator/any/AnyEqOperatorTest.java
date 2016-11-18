@@ -22,15 +22,10 @@
 package io.crate.operation.operator.any;
 
 import com.google.common.collect.ImmutableMap;
-import io.crate.action.sql.SessionContext;
-import io.crate.analyze.symbol.Function;
-import io.crate.analyze.symbol.Literal;
-import io.crate.analyze.symbol.Symbol;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
-import io.crate.metadata.TransactionContext;
 import io.crate.operation.operator.input.ObjectInput;
-import io.crate.test.integration.CrateUnitTest;
+import io.crate.operation.scalar.AbstractScalarFunctionsTest;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
@@ -38,9 +33,9 @@ import org.junit.Test;
 
 import java.util.Arrays;
 
-public class AnyEqOperatorTest extends CrateUnitTest {
+import static io.crate.testing.SymbolMatchers.isLiteral;
 
-    private final TransactionContext transactionContext = new TransactionContext(SessionContext.SYSTEM_SESSION);
+public class AnyEqOperatorTest extends AbstractScalarFunctionsTest {
 
     private Boolean anyEq(Object value, Object arrayExpr) {
 
@@ -50,28 +45,18 @@ public class AnyEqOperatorTest extends CrateUnitTest {
                 DataTypes.BOOLEAN)
         );
         return anyEqOperator.evaluate(new ObjectInput(value), new ObjectInput(arrayExpr));
-
-    }
-
-    private Boolean anyEqNormalizeSymbol(Object value, Object arrayExpr) {
-        AnyEqOperator anyEqOperator = new AnyEqOperator(
-            new FunctionInfo(
-                new FunctionIdent("any_=", Arrays.<DataType>asList(DataTypes.INTEGER, new ArrayType(DataTypes.INTEGER))),
-                DataTypes.BOOLEAN)
-        );
-        Function function = new Function(
-            anyEqOperator.info(),
-            Arrays.<Symbol>asList(
-                Literal.of(DataTypes.INTEGER, value),
-                Literal.of(new ArrayType(DataTypes.INTEGER), arrayExpr))
-        );
-        return (Boolean) ((Literal) anyEqOperator.normalizeSymbol(function, transactionContext)).value();
     }
 
     @Test
     public void testEvaluate() throws Exception {
-        assertTrue(anyEq(1, new Object[]{1}));
-        assertFalse(anyEq(1L, new Object[]{2L}));
+        assertEvaluate("1 = ANY([1])", true);
+        assertEvaluate("1 = ANY([2])", false);
+
+        /*
+        below is the same as - but the ExpressionAnalyzer prohibits this currently
+        assertEvaluate("{i=1, b=true} = ANY([{i=1, b=true}])", true);
+        assertEvaluate("{i=1, b=true} = ANY([{i=2, b=true}])", false);
+        */
         assertTrue(anyEq(
             ImmutableMap.<String, Object>builder()
                 .put("int", 1)
@@ -107,17 +92,16 @@ public class AnyEqOperatorTest extends CrateUnitTest {
 
     @Test
     public void testNormalizeSymbolNull() throws Exception {
-        assertNull(anyEqNormalizeSymbol(null, null));
-        assertNull(anyEqNormalizeSymbol(42, null));
-        assertNull(anyEqNormalizeSymbol(null, new Object[]{1}));
+        assertNormalize("null = ANY([null])", isLiteral(null));
+        assertNormalize("42 = ANY([null])", isLiteral(null));
+        assertNormalize("null = ANY([1])", isLiteral(null));
     }
 
     @Test
     public void testNormalizeSymbol() throws Exception {
-        assertTrue(anyEqNormalizeSymbol(42, new Object[]{42}));
-        assertTrue(anyEqNormalizeSymbol(42, new Object[]{1, 42, 2}));
-        assertFalse(anyEqNormalizeSymbol(42, new Object[]{}));
-        assertFalse(anyEqNormalizeSymbol(42, new Object[]{41, 43, -42}));
+        assertNormalize("42 = ANY([42])", isLiteral(true));
+        assertNormalize("42 = ANY([1, 42, 2])", isLiteral(true));
+        assertNormalize("42 = ANY([42])", isLiteral(true));
+        assertNormalize("42 = ANY([41, 43, -42])", isLiteral(false));
     }
-
 }
