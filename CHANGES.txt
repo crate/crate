@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+2016/11/18 0.56.4
+=================
+
  - Fixed a race condition that could cause join statements or statements with a
    very high limit to get stuck or result in a "Same bucket of a page set more
    than once" error.
