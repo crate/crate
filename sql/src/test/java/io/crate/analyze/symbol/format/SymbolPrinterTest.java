@@ -24,7 +24,6 @@ package io.crate.analyze.symbol.format;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
 import io.crate.analyze.relations.AbstractTableRelation;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.TableRelation;
@@ -33,14 +32,12 @@ import io.crate.metadata.*;
 import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.TestingTableInfo;
-import io.crate.operation.operator.InOperator;
 import io.crate.sql.tree.QualifiedName;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.testing.SqlExpressions;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
-import io.crate.types.SetType;
 import org.apache.lucene.util.BytesRef;
 import org.junit.Before;
 import org.junit.Test;
@@ -326,18 +323,6 @@ public class SymbolPrinterTest extends CrateUnitTest {
     public void testPrintRelationColumn() throws Exception {
         Symbol relationColumn = new RelationColumn(new QualifiedName(TABLE_NAME), 42, DataTypes.STRING);
         assertPrint(relationColumn, "RELCOL(formatter, 42)");
-    }
-
-    @Test
-    public void testPrintInOperator() throws Exception {
-        Symbol inQuery = sqlExpressions.asSymbol("bar in (1)");
-        assertPrint(inQuery, "(doc.formatter.bar = ANY(_array(1)))"); // internal in is rewritten to ANY
-        FunctionImplementation impl = sqlExpressions.functions().getSafe(new FunctionIdent(InOperator.NAME, Arrays.<DataType>asList(DataTypes.LONG, new SetType(DataTypes.LONG))));
-        Function fn = new Function(impl.info(), Arrays.asList(sqlExpressions.asSymbol("bar"), Literal.of(new SetType(DataTypes.LONG), ImmutableSet.of(1L, 2L))));
-        assertPrint(fn, "(doc.formatter.bar IN (1, 2))");
-        inQuery = sqlExpressions.asSymbol("bar in (1, abs(-10), 9)");
-        assertPrint(inQuery, "(doc.formatter.bar = ANY(_array(1, abs(-10), 9)))");
-        assertPrintStatic(inQuery, "(doc.formatter.bar = ANY(_array(1, abs(-10), 9)))");
     }
 
     @Test

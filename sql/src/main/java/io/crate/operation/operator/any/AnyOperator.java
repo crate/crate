@@ -71,11 +71,11 @@ public abstract class AnyOperator extends Operator<Object> {
 
     @SuppressWarnings("unchecked")
     protected Boolean doEvaluate(Object left, Iterable<?> rightIterable) {
-
+        boolean anyNulls = false;
         if (left instanceof Comparable) {
             for (Object elem : rightIterable) {
                 if (elem == null) {
-                    // ignore null values
+                    anyNulls = true;
                     continue;
                 }
                 assert (left.getClass().equals(elem.getClass()));
@@ -90,9 +90,8 @@ public abstract class AnyOperator extends Operator<Object> {
                     return true;
                 }
             }
-
         }
-        return false;
+        return anyNulls ? null : false;
     }
 
     @Override
