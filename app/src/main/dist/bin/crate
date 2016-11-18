@@ -170,7 +170,7 @@ while true; do
         ;;
         -D)
             if [[ $2 == es.* ]]; then
-                echo "Setting Crate specific settings with the -D option and the .es prefix has been deprecated."
+                echo "Setting Crate specific settings with the -D option and the es prefix has been deprecated."
                 echo "Please use the -C option to configure Crate.\n"
             fi
             properties="$properties -D$2"

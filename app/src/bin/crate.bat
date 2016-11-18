@@ -72,7 +72,7 @@ for /F "usebackq tokens=* delims= " %%A in (!params!) do (
     set param=%%A
 
     if "!param:~0,5!" equ "-Des." (
-        echo "Setting Crate specific settings with the -D option and the .es prefix has been deprecated."
+        echo "Setting Crate specific settings with the -D option and the es prefix has been deprecated."
         echo "Please use the -C option to configure Crate."
     ) else if "!param:~0,2!" equ "-C" (
         set param=!param:-C=-Des.!
