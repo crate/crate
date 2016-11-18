@@ -1,4 +1,5 @@
 
 cluster.name: dev
 discovery.zen.ping.multicast.enabled: false
+stats.service.interval: 0
 stats.enabled: true

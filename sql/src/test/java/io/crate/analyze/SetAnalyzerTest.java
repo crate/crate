@@ -161,7 +161,11 @@ public class SetAnalyzerTest extends CrateUnitTest {
         analysis = analyze("RESET GLOBAL stats");
         assertThat(
             analysis.settingsToRemove(),
-            containsInAnyOrder("stats.enabled", "stats.jobs_log_size", "stats.operations_log_size")
+            containsInAnyOrder(
+                "stats.enabled",
+                "stats.jobs_log_size",
+                "stats.operations_log_size",
+                "stats.service.interval")
         );
     }
 

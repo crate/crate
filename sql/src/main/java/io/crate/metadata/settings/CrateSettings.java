@@ -46,7 +46,11 @@ public class CrateSettings {
 
         @Override
         public List<Setting> children() {
-            return ImmutableList.<Setting>of(STATS_ENABLED, STATS_JOBS_LOG_SIZE, STATS_OPERATIONS_LOG_SIZE);
+            return ImmutableList.of(
+                STATS_ENABLED,
+                STATS_JOBS_LOG_SIZE,
+                STATS_OPERATIONS_LOG_SIZE,
+                STATS_SERVICE_REFRESH_INTERVAL);
         }
 
         @Override
@@ -80,6 +84,29 @@ public class CrateSettings {
         @Override
         public Integer minValue() {
             return 0;
+        }
+
+        @Override
+        public Setting parent() {
+            return STATS;
+        }
+    };
+
+    public static final TimeSetting STATS_SERVICE_REFRESH_INTERVAL = new TimeSetting() {
+
+        @Override
+        public String name() {
+            return "service.interval";
+        }
+
+        @Override
+        public TimeValue defaultValue() {
+            return TimeValue.timeValueHours(1);
+        }
+
+        @Override
+        public boolean isRuntime() {
+            return true;
         }
 
         @Override
@@ -1394,6 +1421,8 @@ public class CrateSettings {
             new SettingsAppliers.IntSettingsApplier(CrateSettings.STATS_OPERATIONS_LOG_SIZE))
         .put(CrateSettings.STATS_ENABLED.settingName(),
             new SettingsAppliers.BooleanSettingsApplier(CrateSettings.STATS_ENABLED))
+        .put(CrateSettings.STATS_SERVICE_REFRESH_INTERVAL.settingName(),
+            new SettingsAppliers.TimeSettingsApplier(CrateSettings.STATS_SERVICE_REFRESH_INTERVAL))
         .put(CrateSettings.CLUSTER.settingName(),
             new SettingsAppliers.ObjectSettingsApplier(CrateSettings.CLUSTER))
         .put(CrateSettings.GRACEFUL_STOP.settingName(),

@@ -5,6 +5,10 @@ Changes for Crate
 Unreleased
 ==========
 
+ - New setting ``stats.service.interval`` which allows to control
+   the refresh interval of the table statistics used to create optimal
+   query execution plans.
+
  - Changed `<literal> = ANY([null])` to no longer result in a cast exception
    but return null.
 

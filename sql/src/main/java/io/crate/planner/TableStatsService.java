@@ -25,34 +25,32 @@ package io.crate.planner;
 
 import com.carrotsearch.hppc.ObjectLongHashMap;
 import com.carrotsearch.hppc.ObjectLongMap;
+import com.google.common.annotations.VisibleForTesting;
 import io.crate.action.sql.BaseResultReceiver;
 import io.crate.action.sql.Option;
 import io.crate.action.sql.SQLOperations;
 import io.crate.core.collections.Row;
 import io.crate.metadata.TableIdent;
+import io.crate.metadata.settings.CrateSettings;
 import io.crate.types.DataType;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.component.AbstractComponent;
-import org.elasticsearch.common.inject.BindingAnnotation;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Provider;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.lucene.BytesRefs;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.TimeValue;
+import org.elasticsearch.node.settings.NodeSettingsService;
 import org.elasticsearch.threadpool.ThreadPool;
 
 import javax.annotation.Nonnull;
-import java.lang.annotation.ElementType;
-import java.lang.annotation.Retention;
-import java.lang.annotation.RetentionPolicy;
-import java.lang.annotation.Target;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
 @Singleton
-public class TableStatsService extends AbstractComponent implements Runnable {
+public class TableStatsService extends AbstractComponent implements NodeSettingsService.Listener, Runnable {
 
     static final String UNNAMED = "";
     static final int DEFAULT_SOFT_LIMIT = 10_000;
@@ -61,25 +59,28 @@ public class TableStatsService extends AbstractComponent implements Runnable {
 
     private final ClusterService clusterService;
     private final Provider<SQLOperations> sqlOperationsProvider;
+    private final ThreadPool threadPool;
     private volatile ObjectLongMap<TableIdent> tableStats = null;
-
-    @BindingAnnotation
-    @Target({ElementType.FIELD, ElementType.PARAMETER, ElementType.METHOD})
-    @Retention(RetentionPolicy.RUNTIME)
-    public @interface StatsUpdateInterval {
-    }
-
+    private TimeValue initialRefreshInterval;
+    @VisibleForTesting
+    ThreadPool.Cancellable refreshScheduledTask = null;
+    @VisibleForTesting
+    TimeValue lastRefreshInterval;
 
     @Inject
     public TableStatsService(Settings settings,
                              ThreadPool threadPool,
                              ClusterService clusterService,
-                             @StatsUpdateInterval TimeValue updateInterval,
+                             NodeSettingsService nodeSettingsService,
                              Provider<SQLOperations> sqlOperationsProvider) {
         super(settings);
+        this.threadPool = threadPool;
         this.clusterService = clusterService;
         this.sqlOperationsProvider = sqlOperationsProvider;
-        threadPool.scheduleWithFixedDelay(this, updateInterval, ThreadPool.Names.REFRESH);
+        initialRefreshInterval = extractRefreshInterval(settings);
+        lastRefreshInterval = initialRefreshInterval;
+        refreshScheduledTask = scheduleRefresh(initialRefreshInterval);
+        nodeSettingsService.addListener(this);
     }
 
     @Override
@@ -153,6 +154,32 @@ public class TableStatsService extends AbstractComponent implements Runnable {
             return stats.get(tableIdent);
         }
         return -1;
+    }
+
+    @Override
+    public void onRefreshSettings(Settings settings) {
+        TimeValue newRefreshInterval = extractRefreshInterval(settings);
+        if (!newRefreshInterval.equals(lastRefreshInterval)) {
+            if (refreshScheduledTask != null) {
+                refreshScheduledTask.cancel();
+            }
+            refreshScheduledTask = scheduleRefresh(newRefreshInterval);
+            lastRefreshInterval = newRefreshInterval;
+        }
+    }
+
+    private ThreadPool.Cancellable scheduleRefresh(TimeValue newRefreshInterval) {
+        if (newRefreshInterval.millis() > 0) {
+            return threadPool.scheduleWithFixedDelay(
+                this,
+                newRefreshInterval,
+                ThreadPool.Names.REFRESH);
+        }
+        return null;
+    }
+
+    private TimeValue extractRefreshInterval(Settings settings) {
+        return CrateSettings.STATS_SERVICE_REFRESH_INTERVAL.extractTimeValue(settings, initialRefreshInterval);
     }
 }
 

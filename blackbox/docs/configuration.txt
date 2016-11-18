@@ -664,6 +664,28 @@ Collecting Stats
   expressive results but also in more occupied RAM. Setting it to
   ``0`` disables collecting operation information.
 
+.. _stats.service.interval:
+
+**stats.service.interval**
+  | *Default:*    ``1h``
+  | *Runtime:*   ``yes``
+
+  Defines the refresh interval to refresh tables statistics used to
+  produce optimal query execution plans.
+
+  This field expects a time value either as a long or double or
+  alternatively as a string literal with a time suffix.
+  (``ms``, ``s``, ``m``, ``h``, ``d``, ``w``)
+
+  .. note::
+
+    If the value provided is 0 then the refresh is disabled.
+
+  .. note::
+
+    Using a very small value can cause a high load on the cluster.
+
+
 .. _conf_usage_data_collector:
 
 Usage Data Collector
