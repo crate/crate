@@ -21,6 +21,7 @@
 
 package io.crate.integrationtests;
 
+import io.crate.testing.TestingHelpers;
 import io.crate.testing.UseJdbc;
 import org.elasticsearch.test.ESIntegTestCase;
 import org.junit.Test;
@@ -178,6 +179,24 @@ public class LuceneQueryBuilderIntegrationTest extends SQLTransportIntegrationTe
         execute("refresh table t");
 
         execute("select * from t where concat(x, '') in ('x', 'y')");
+        assertThat(response.rowCount(), is(2L));
+    }
+
+    @Test
+    public void testWhereINWithNullArguments() throws Exception {
+        execute("create table t (x int) with (number_of_replicas = 0)");
+        ensureYellow();
+
+        execute("insert into t (x) values (1), (2)");
+        execute("refresh table t");
+
+        execute("select * from t where x in (1, null)");
+        assertThat(TestingHelpers.printedTable(response.rows()), is("1\n"));
+
+        execute("select * from t where x in (3, null)");
+        assertThat(response.rowCount(), is(0L));
+
+        execute("select * from t where coalesce(x in (3, null), true)");
         assertThat(response.rowCount(), is(2L));
     }
 }

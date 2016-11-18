@@ -440,20 +440,6 @@ public class LuceneQueryBuilder {
             }
         }
 
-        static class InQuery extends CmpQuery {
-
-            @Override
-            public Query apply(Function input, Context context) throws IOException {
-                Tuple<Reference, Literal> tuple = prepare(input);
-                if (tuple == null) {
-                    return null;
-                }
-                String field = tuple.v1().ident().columnIdent().fqn();
-                Literal literal = tuple.v2();
-                return termsQuery(field, literal);
-            }
-        }
-
         class NotQuery implements FunctionToQuery {
 
             private class SymbolToNotNullContext {
@@ -1121,7 +1107,6 @@ public class LuceneQueryBuilder {
                 .put(GteOperator.NAME, gteQuery)
                 .put(GtOperator.NAME, gtQuery)
                 .put(LikeOperator.NAME, new LikeQuery())
-                .put(InOperator.NAME, new InQuery())
                 .put(NotPredicate.NAME, new NotQuery())
                 .put(IsNullPredicate.NAME, new IsNullQuery())
                 .put(MatchPredicate.NAME, new ToMatchQuery())

@@ -304,12 +304,6 @@ public class ExpressionAnalyzer {
             Symbol left = process(node.getValue(), context);
             DataType targetType = left.valueType();
 
-            if (targetType.equals(DataTypes.UNDEFINED)) {
-                // dynamic or null values cannot be queried, in scalar use-cases (system tables)
-                // we currently have no dynamics
-                return Literal.NULL;
-            }
-
             Expression valueList = node.getValueList();
             if (!(valueList instanceof InListExpression)) {
                 throw new UnsupportedOperationException(String.format(Locale.ENGLISH,
@@ -319,7 +313,15 @@ public class ExpressionAnalyzer {
             List<Symbol> symbols = new ArrayList<>(expressions.size());
 
             for (Expression expression : expressions) {
-                symbols.add(castIfNeededOrFail(process(expression, context), targetType));
+                Symbol symbol = process(expression, context);
+                if (targetType == DataTypes.UNDEFINED) {
+                    targetType = symbol.valueType();
+                    left = castIfNeededOrFail(left, targetType);
+
+                    symbols.add(symbol);
+                } else {
+                    symbols.add(castIfNeededOrFail(symbol, targetType));
+                }
             }
             return context.allocateFunction(
                 AnyEqOperator.createInfo(targetType),

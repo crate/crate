@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fixed the `IN` and `ANY` predicates to return null if any of the arguments
+   are null and there is no match.
+
  - Fixed a race condition that could cause join statements or statements with a
    very high limit to get stuck or result in a "Same bucket of a page set more
    than once" error.

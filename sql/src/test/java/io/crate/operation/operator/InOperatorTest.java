@@ -20,175 +20,56 @@
  */
 package io.crate.operation.operator;
 
-import com.google.common.collect.Sets;
-import io.crate.action.sql.SessionContext;
-import io.crate.analyze.symbol.Function;
 import io.crate.analyze.symbol.Literal;
-import io.crate.analyze.symbol.Symbol;
-import io.crate.metadata.Reference;
-import io.crate.metadata.TransactionContext;
-import io.crate.operation.operator.input.ObjectInput;
-import io.crate.test.integration.CrateUnitTest;
-import io.crate.types.DataType;
+import io.crate.operation.operator.any.AnyOperator;
+import io.crate.operation.scalar.AbstractScalarFunctionsTest;
 import io.crate.types.DataTypes;
-import io.crate.types.SetType;
-import org.apache.lucene.util.BytesRef;
 import org.junit.Test;
 
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-
+import static io.crate.testing.SymbolMatchers.isFunction;
 import static io.crate.testing.SymbolMatchers.isLiteral;
-import static org.hamcrest.Matchers.instanceOf;
-import static org.hamcrest.Matchers.is;
 
-public class InOperatorTest extends CrateUnitTest {
-
-    private final TransactionContext transactionContext = new TransactionContext(SessionContext.SYSTEM_SESSION);
-
-    private static final DataType INTEGER_SET_TYPE = new SetType(DataTypes.INTEGER);
-    private static final DataType STRING_SET_TYPE = new SetType(DataTypes.STRING);
+public class InOperatorTest extends AbstractScalarFunctionsTest {
 
     @Test
     public void testNormalizeSymbolSetLiteralIntegerIncluded() {
-        Literal<Integer> inValue = Literal.of(1);
-        Literal inListValues = Literal.of(INTEGER_SET_TYPE, Sets.newHashSet(1, 2, 4, 8));
-
-        List<Symbol> arguments = new ArrayList<>();
-        arguments.add(inValue);
-        arguments.add(inListValues);
-
-        InOperator op = new InOperator(Operator.generateInfo(InOperator.NAME, DataTypes.INTEGER));
-        Function function = new Function(op.info(), arguments);
-        Symbol result = op.normalizeSymbol(function, transactionContext);
-
-        assertThat(result, isLiteral(true));
+        assertNormalize("1 in (1, 2, 4, 8)", isLiteral(true));
     }
 
     @Test
     public void testNormalizeSymbolSetLiteralIntegerNotIncluded() {
-        Literal<Integer> inValue = Literal.of(128);
-
-        Literal inListValues = Literal.of(INTEGER_SET_TYPE, Sets.newHashSet(1, 2, 4, 8));
-
-        List<Symbol> arguments = new ArrayList<>();
-        arguments.add(inValue);
-        arguments.add(inListValues);
-
-        InOperator op = new InOperator(Operator.generateInfo(InOperator.NAME, DataTypes.INTEGER));
-        Function function = new Function(op.info(), arguments);
-        Symbol result = op.normalizeSymbol(function, transactionContext);
-
-        assertThat(result, isLiteral(false));
+        assertNormalize("128 in (1, 2, 4, 8)", isLiteral(false));
     }
 
     @Test
     public void testNormalizeSymbolSetLiteralDifferentDataTypeValue() {
-        Literal<Double> value = Literal.of(2.0);
-        Literal inListValues = Literal.of(INTEGER_SET_TYPE, Sets.newHashSet(1, 2, 4, 8));
-
-        List<Symbol> arguments = new ArrayList<>();
-        arguments.add(value);
-        arguments.add(inListValues);
-
-        InOperator op = new InOperator(Operator.generateInfo(InOperator.NAME, DataTypes.INTEGER));
-        Function function = new Function(op.info(), arguments);
-        Symbol result = op.normalizeSymbol(function, transactionContext);
-
-        assertThat(result, isLiteral(false));
+        assertNormalize("2.3 in (1, 2, 4, 8)", isLiteral(false));
     }
 
     @Test
     public void testNormalizeSymbolSetLiteralReference() {
-        Reference reference = new Reference();
-        Literal inListValues = Literal.of(INTEGER_SET_TYPE, Sets.newHashSet(1, 2, 4, 8));
-
-        List<Symbol> arguments = new ArrayList<>();
-        arguments.add(reference);
-        arguments.add(inListValues);
-
-        InOperator op = new InOperator(Operator.generateInfo(InOperator.NAME, DataTypes.INTEGER));
-        Function function = new Function(op.info(), arguments);
-        Symbol result = op.normalizeSymbol(function, transactionContext);
-
-        assertThat(result, instanceOf(Function.class));
-        assertThat(((Function) result).info().ident().name(), is(InOperator.NAME));
+        assertNormalize("age in (1, 2)", isFunction(AnyOperator.OPERATOR_PREFIX + "="));
     }
 
     @Test
     public void testNormalizeSymbolSetLiteralStringIncluded() {
-        Literal inValue = Literal.of("charlie");
-        Literal inListValues = Literal.of(
-            STRING_SET_TYPE,
-            Sets.newHashSet(
-                new BytesRef("alpha"),
-                new BytesRef("bravo"),
-                new BytesRef("charlie"),
-                new BytesRef("delta")
-            )
-        );
-
-        List<Symbol> arguments = new ArrayList<>();
-        arguments.add(inValue);
-        arguments.add(inListValues);
-
-        InOperator op = new InOperator(Operator.generateInfo(InOperator.NAME, DataTypes.INTEGER));
-        Function function = new Function(op.info(), arguments);
-        Symbol result = op.normalizeSymbol(function, transactionContext);
-
-        assertThat(result, isLiteral(true));
+        assertNormalize("'charlie' in ('alpha', 'bravo', 'charlie', 'delta')", isLiteral(true));
     }
 
     @Test
     public void testNormalizeSymbolSetLiteralStringNotIncluded() {
-        Literal inValue = Literal.of("not included");
-        Literal inListValues = Literal.of(
-            STRING_SET_TYPE,
-            Sets.newHashSet(
-                new BytesRef("alpha"),
-                new BytesRef("bravo"),
-                new BytesRef("charlie"),
-                new BytesRef("delta")
-            )
-        );
-
-        List<Symbol> arguments = new ArrayList<>();
-        arguments.add(inValue);
-        arguments.add(inListValues);
-
-        InOperator op = new InOperator(Operator.generateInfo(InOperator.NAME, DataTypes.INTEGER));
-        Function function = new Function(op.info(), arguments);
-        Symbol result = op.normalizeSymbol(function, transactionContext);
-
-        assertThat(result, isLiteral(false));
-    }
-
-
-    private Boolean in(Object inValue, Object... inList) {
-        Set<Object> inListValues = new HashSet<>();
-        for (Object o : inList) {
-            inListValues.add(o);
-        }
-        InOperator op = new InOperator(Operator.generateInfo(InOperator.NAME, DataTypes.INTEGER));
-        return op.evaluate(new ObjectInput(inValue), new ObjectInput(inListValues));
+        assertNormalize("'not included' in ('alpha', 'bravo', 'charlie', 'delta')", isLiteral(false));
     }
 
     @Test
     public void testEvaluateInOperator() {
-        assertTrue(in(1, 1, 2, 4, 8));
-        assertFalse(in(128, 1, 2, 4, 8));
-        assertTrue(in("charlie", "alpha", "bravo", "charlie", "delta"));
-        assertFalse(in("not included", "alpha", "bravo", "charlie", "delta"));
-        assertNull(in(null, "alpha", "bravo", "charlie", "delta"));
-
-        // "where 'something' in (null)"
-        assertNull(in("something", new Object[]{null}));
-
-        // "where 'something' in null"
-        InOperator op = new InOperator(Operator.generateInfo(InOperator.NAME, DataTypes.STRING));
-        assertNull(op.evaluate(new ObjectInput("something"), new ObjectInput(null)));
+        assertEvaluate("null in ('alpha', 'bravo')", null);
+        assertEvaluate("name in ('alpha', 'bravo')", null, Literal.of(DataTypes.STRING, null));
+        assertEvaluate("null in (name)", null, Literal.of(DataTypes.STRING, null));
+        assertEvaluate("'alpha' in ('alpha', null)", true);
+        assertEvaluate("'alpha' in (null, 'alpha')", true);
+        assertEvaluate("'alpha' in ('beta', null)", null);
+        assertEvaluate("'alpha' in (null)", null);
+        assertEvaluate("null in (null)", null);
     }
-
 }

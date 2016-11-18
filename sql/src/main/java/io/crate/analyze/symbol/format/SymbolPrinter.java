@@ -28,17 +28,13 @@ import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Reference;
-import io.crate.operation.operator.InOperator;
 import io.crate.operation.operator.any.AnyOperator;
-import io.crate.types.SetType;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 
 import javax.annotation.Nullable;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
-import java.util.Set;
 
 import static io.crate.analyze.symbol.format.SymbolPrinter.Strings.*;
 
@@ -176,9 +172,7 @@ public class SymbolPrinter {
 
             // handle special functions
             String functionName = function.info().ident().name();
-            if (InOperator.NAME.equals(functionName)) {
-                printInOperator(function, context);
-            } else if (functionName.startsWith(AnyOperator.OPERATOR_PREFIX)) {
+            if (functionName.startsWith(AnyOperator.OPERATOR_PREFIX)) {
                 printAnyOperator(function, context);
             } else {
                 printGenericFunction(function, context);
@@ -237,37 +231,6 @@ public class SymbolPrinter {
         private String anyOperatorName(String functionName) {
             // handles NOT_LIKE -> NOT LIKE
             return functionName.substring(4).replace('_', ' ').toUpperCase(Locale.ENGLISH);
-        }
-
-        private void printInOperator(Function function, final SymbolPrinterContext context) {
-            // --> (ref IN (1, 2, 3))
-            List<Symbol> args = function.arguments();
-            assert args.size() == 2;
-            context.builder.append(PAREN_OPEN); // wrap operator in parens to ensure precedence
-            context.down();
-            process(args.get(0), context);
-            context.up();
-            context.builder.append(WS)
-                .append(IN)
-                .append(WS)
-                .append(PAREN_OPEN);
-            Symbol setArg = args.get(1);
-
-            context.down();
-            if (!context.verifyMaxDepthReached()) {
-                assert setArg instanceof Literal && setArg.valueType() instanceof SetType;
-                Set setValue = (Set) ((Literal) setArg).value();
-                for (Iterator iterator = setValue.iterator(); iterator.hasNext(); ) {
-                    Object elem = iterator.next();
-                    LiteralValueFormatter.INSTANCE.format(elem, context.builder);
-                    if (iterator.hasNext()) {
-                        context.builder.append(COMMA).append(WS);
-                    }
-                }
-            }
-            context.up();
-            context.builder.append(PAREN_CLOSE)
-                .append(PAREN_CLOSE);
         }
 
         @Override
