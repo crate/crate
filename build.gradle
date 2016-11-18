@@ -113,8 +113,10 @@ allprojects {
         }
     }
 
-    task cleanIdeaBuild << {
-        tasks.clean.execute()
+    if (!it.name.equals('es')) {
+        task cleanIdeaBuild << {
+            tasks.clean.execute()
+        }
     }
 }
 
