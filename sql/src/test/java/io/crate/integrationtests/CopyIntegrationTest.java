@@ -311,7 +311,7 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
     @Test
     public void testCopyToFile() throws Exception {
         expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage(containsString("Using COPY TO without specifying a DIRECTORY is deprecated"));
+        expectedException.expectMessage(containsString("Using COPY TO without specifying a DIRECTORY is not supported"));
 
         execute("create table singleshard (name string) clustered into 1 shards with (number_of_replicas = 0)");
         ensureYellow();

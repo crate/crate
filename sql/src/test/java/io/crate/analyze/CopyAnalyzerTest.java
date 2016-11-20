@@ -106,7 +106,7 @@ public class CopyAnalyzerTest extends CrateUnitTest {
     @Test
     public void testCopyToFile() throws Exception {
         expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage("Using COPY TO without specifying a DIRECTORY is deprecated");
+        expectedException.expectMessage("Using COPY TO without specifying a DIRECTORY is not supported");
         e.analyze("copy users to '/blah.txt'");
     }
 

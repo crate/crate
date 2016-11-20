@@ -151,7 +151,7 @@ class CopyAnalyzer {
 
     CopyToAnalyzedStatement convertCopyTo(CopyTo node, Analysis analysis) {
         if (!node.directoryUri()) {
-            throw new UnsupportedOperationException("Using COPY TO without specifying a DIRECTORY is deprecated");
+            throw new UnsupportedOperationException("Using COPY TO without specifying a DIRECTORY is not supported");
         }
 
         TableInfo tableInfo = schemas.getTableInfo(
