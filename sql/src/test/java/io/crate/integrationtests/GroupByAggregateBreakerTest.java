@@ -37,7 +37,7 @@ public class GroupByAggregateBreakerTest extends SQLTransportIntegrationTest {
         RamAccountingContext.FLUSH_BUFFER_SIZE = 24;
         return Settings.builder()
             .put(super.nodeSettings(nodeOrdinal))
-            .put(CrateCircuitBreakerService.QUERY_CIRCUIT_BREAKER_LIMIT_SETTING, "512b")
+            .put(CrateCircuitBreakerService.QUERY_CIRCUIT_BREAKER_LIMIT_SETTING, "256b")
             .build();
     }
 
@@ -51,6 +51,8 @@ public class GroupByAggregateBreakerTest extends SQLTransportIntegrationTest {
     public void selectGroupByWithBreaking() throws Exception {
         expectedException.expect(SQLActionException.class);
         expectedException.expectMessage("CircuitBreakingException: [query] Data too large, data for ");
+        // query takes 252 bytes of memory
+        // 252b * 1.09 = 275b => should break with limit 256b
         execute("select name, department, max(income), min(age) from employees group by name, department order by 3");
     }
 }
