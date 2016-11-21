@@ -29,7 +29,6 @@ import io.crate.operation.collect.CrateCollector;
 import io.crate.operation.collect.JobCollectContext;
 import io.crate.operation.collect.RowsCollector;
 import io.crate.operation.projectors.RowReceiver;
-import io.crate.planner.node.dql.CollectPhase;
 import io.crate.planner.node.dql.RoutedCollectPhase;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
@@ -47,15 +46,18 @@ public class SingleRowSource implements CollectSource {
     }
 
     @Override
-    public Collection<CrateCollector> getCollectors(CollectPhase phase, RowReceiver downstream, JobCollectContext jobCollectContext) {
-        RoutedCollectPhase collectPhase = (RoutedCollectPhase) phase;
+    public Collection<CrateCollector> getCollectors(RowReceiver downstream, JobCollectContext jobCollectContext) {
+        assert jobCollectContext.collectPhase() instanceof RoutedCollectPhase
+            : "collectPhase must be " + RoutedCollectPhase.class.getSimpleName();
+        RoutedCollectPhase collectPhase = (RoutedCollectPhase) jobCollectContext.collectPhase();
         ImplementationSymbolVisitor nodeImplementationSymbolVisitor = new ImplementationSymbolVisitor(functions);
         if (collectPhase.whereClause().noMatch()) {
             return ImmutableList.<CrateCollector>of(RowsCollector.empty(downstream));
         }
         assert !collectPhase.whereClause().hasQuery()
             : "WhereClause should have been normalized to either MATCH_ALL or NO_MATCH";
-        ImplementationSymbolVisitor.Context ctx = nodeImplementationSymbolVisitor.extractImplementations(collectPhase.toCollect());
+        ImplementationSymbolVisitor.Context ctx = nodeImplementationSymbolVisitor.extractImplementations(
+            collectPhase.toCollect());
         return ImmutableList.<CrateCollector>of(RowsCollector.single(new InputRow(ctx.topLevelInputs()), downstream));
     }
 }

@@ -37,7 +37,6 @@ import io.crate.operation.Input;
 import io.crate.operation.collect.*;
 import io.crate.operation.projectors.InputCondition;
 import io.crate.operation.projectors.RowReceiver;
-import io.crate.planner.node.dql.CollectPhase;
 import io.crate.planner.node.dql.TableFunctionCollectPhase;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.inject.Inject;
@@ -63,10 +62,10 @@ public class TableFunctionCollectSource implements CollectSource {
     }
 
     @Override
-    public Collection<CrateCollector> getCollectors(CollectPhase collectPhase,
-                                                    RowReceiver downstream,
-                                                    JobCollectContext jobCollectContext) {
-        TableFunctionCollectPhase phase = (TableFunctionCollectPhase) collectPhase;
+    public Collection<CrateCollector> getCollectors(RowReceiver downstream, JobCollectContext jobCollectContext) {
+        assert jobCollectContext.collectPhase() instanceof TableFunctionCollectPhase
+            : "collectPhase must be " + TableFunctionCollectPhase.class.getSimpleName();
+        TableFunctionCollectPhase phase = (TableFunctionCollectPhase) jobCollectContext.collectPhase();
         WhereClause whereClause = phase.whereClause();
         if (whereClause.noMatch()) {
             return Collections.singletonList(RowsCollector.empty(downstream));

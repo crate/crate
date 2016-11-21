@@ -181,9 +181,11 @@ public class ShardCollectService {
      * The RowReceiver that is used for {@link CrateCollector.Builder#build(RowReceiver)}
      * should be the first node-level projector.
      */
-    public CrateCollector.Builder getCollectorBuilder(RoutedCollectPhase collectPhase,
-                                                      Set<Requirement> downstreamRequirements,
+    public CrateCollector.Builder getCollectorBuilder(Set<Requirement> downstreamRequirements,
                                                       JobCollectContext jobCollectContext) throws Exception {
+        assert jobCollectContext.collectPhase() instanceof RoutedCollectPhase
+            : "collectPhase must be " + RoutedCollectPhase.class.getSimpleName();
+        RoutedCollectPhase collectPhase = (RoutedCollectPhase) jobCollectContext.collectPhase();
         assert collectPhase.orderBy() ==
                null : "getDocCollector shouldn't be called if there is an orderBy on the collectPhase";
         RoutedCollectPhase normalizedCollectNode = collectPhase.normalize(shardNormalizer, null);

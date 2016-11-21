@@ -93,7 +93,7 @@ public class MapSideDataCollectOperationTest extends CrateUnitTest {
             writer.write("{\"id\": 5, \"name\": \"Trillian\", \"details\": {\"age\": 33}}\n");
         }
 
-        FileUriCollectPhase collectNode = new FileUriCollectPhase(
+        FileUriCollectPhase collectPhase = new FileUriCollectPhase(
             UUID.randomUUID(),
             0,
             "test",
@@ -107,11 +107,12 @@ public class MapSideDataCollectOperationTest extends CrateUnitTest {
             null,
             false
         );
-        String threadPoolName = JobCollectContext.threadPoolName(collectNode, "noop_id");
+        String threadPoolName = JobCollectContext.threadPoolName(collectPhase, "noop_id");
 
         CollectingRowReceiver cd = new CollectingRowReceiver();
         JobCollectContext jobCollectContext = mock(JobCollectContext.class);
-        Collection<CrateCollector> collectors = collectOperation.createCollectors(collectNode, cd, jobCollectContext);
+        when(jobCollectContext.collectPhase()).thenReturn(collectPhase);
+        Collection<CrateCollector> collectors = collectOperation.createCollectors(cd, jobCollectContext);
         collectOperation.launchCollectors(collectors, threadPoolName);
         assertThat(cd.result(), contains(
             isRow("Arthur", 38),

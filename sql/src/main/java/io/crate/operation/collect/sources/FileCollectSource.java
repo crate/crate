@@ -33,7 +33,6 @@ import io.crate.operation.collect.files.FileInputFactory;
 import io.crate.operation.collect.files.FileReadingCollector;
 import io.crate.operation.projectors.RowReceiver;
 import io.crate.operation.reference.file.FileLineReferenceResolver;
-import io.crate.planner.node.dql.CollectPhase;
 import io.crate.planner.node.dql.FileUriCollectPhase;
 import io.crate.types.CollectionType;
 import io.crate.types.DataTypes;
@@ -58,9 +57,12 @@ public class FileCollectSource implements CollectSource {
     }
 
     @Override
-    public Collection<CrateCollector> getCollectors(CollectPhase collectPhase, RowReceiver downstream, JobCollectContext jobCollectContext) {
-        FileUriCollectPhase fileUriCollectPhase = (FileUriCollectPhase) collectPhase;
-        FileCollectInputSymbolVisitor.Context context = fileInputSymbolVisitor.extractImplementations(collectPhase.toCollect());
+    public Collection<CrateCollector> getCollectors(RowReceiver downstream, JobCollectContext jobCollectContext) {
+        assert jobCollectContext.collectPhase() instanceof FileUriCollectPhase
+            : "collectPhase must be " + FileUriCollectPhase.class.getSimpleName();
+        FileUriCollectPhase fileUriCollectPhase = (FileUriCollectPhase) jobCollectContext.collectPhase();
+        FileCollectInputSymbolVisitor.Context context =
+            fileInputSymbolVisitor.extractImplementations(fileUriCollectPhase.toCollect());
 
         String[] readers = fileUriCollectPhase.nodeIds().toArray(
             new String[fileUriCollectPhase.nodeIds().size()]);

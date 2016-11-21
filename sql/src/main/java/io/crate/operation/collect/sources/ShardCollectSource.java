@@ -49,7 +49,6 @@ import io.crate.operation.projectors.sorting.OrderingByPosition;
 import io.crate.operation.reference.sys.node.local.NodeSysExpression;
 import io.crate.operation.reference.sys.node.local.NodeSysReferenceResolver;
 import io.crate.planner.consumer.OrderByPositionVisitor;
-import io.crate.planner.node.dql.CollectPhase;
 import io.crate.planner.node.dql.RoutedCollectPhase;
 import io.crate.planner.projection.Projections;
 import org.elasticsearch.action.bulk.BulkRetryCoordinatorPool;
@@ -145,10 +144,11 @@ public class ShardCollectSource implements CollectSource {
     }
 
     @Override
-    public Collection<CrateCollector> getCollectors(CollectPhase phase,
-                                                    RowReceiver lastRR,
+    public Collection<CrateCollector> getCollectors(RowReceiver lastRR,
                                                     JobCollectContext jobCollectContext) {
-        RoutedCollectPhase collectPhase = (RoutedCollectPhase) phase;
+        assert jobCollectContext.collectPhase() instanceof RoutedCollectPhase
+            : "collectPhase must be of " + RoutedCollectPhase.class.getSimpleName();
+        RoutedCollectPhase collectPhase = (RoutedCollectPhase) jobCollectContext.collectPhase();
         NodeSysReferenceResolver referenceResolver = new NodeSysReferenceResolver(nodeSysExpression);
         ImplementationSymbolVisitor implementationSymbolVisitor = new ImplementationSymbolVisitor(functions);
         EvaluatingNormalizer nodeNormalizer = new EvaluatingNormalizer(
@@ -158,6 +158,7 @@ public class ShardCollectSource implements CollectSource {
             referenceResolver,
             null);
         RoutedCollectPhase normalizedPhase = collectPhase.normalize(nodeNormalizer, null);
+        jobCollectContext.collectPhase(normalizedPhase);
 
         ProjectorFactory projectorFactory = new ProjectionToProjectorVisitor(
             clusterService,
@@ -205,7 +206,7 @@ public class ShardCollectSource implements CollectSource {
         Map<String, List<Integer>> indexShards = locations.get(localNodeId);
         if (indexShards != null) {
             builders.addAll(
-                getDocCollectors(jobCollectContext, normalizedPhase, lastRR.requirements(), indexShards));
+                getDocCollectors(jobCollectContext, lastRR.requirements(), indexShards));
         }
 
         RowReceiver firstNodeRR = chain.firstProjector();
@@ -283,7 +284,6 @@ public class ShardCollectSource implements CollectSource {
     }
 
     private Collection<CrateCollector.Builder> getDocCollectors(JobCollectContext jobCollectContext,
-                                                                RoutedCollectPhase collectPhase,
                                                                 Set<Requirement> downstreamRequirements,
                                                                 Map<String, List<Integer>> indexShards) {
 
@@ -306,14 +306,16 @@ public class ShardCollectSource implements CollectSource {
                     shardInjector = indexService.shardInjectorSafe(shardId);
                     ShardCollectService shardCollectService = shardInjector.getInstance(ShardCollectService.class);
                     CrateCollector.Builder collector = shardCollectService.getCollectorBuilder(
-                        collectPhase,
                         downstreamRequirements,
                         jobCollectContext
                     );
                     crateCollectors.add(collector);
                 } catch (ShardNotFoundException | IllegalIndexShardStateException e) {
                     crateCollectors.add(remoteCollectorFactory.createCollector(
-                        indexName, shardId, collectPhase, jobCollectContext.queryPhaseRamAccountingContext()));
+                        indexName,
+                        shardId,
+                        (RoutedCollectPhase) jobCollectContext.collectPhase(),
+                        jobCollectContext.queryPhaseRamAccountingContext()));
                 } catch (InterruptedException e) {
                     throw Throwables.propagate(e);
                 } catch (Throwable t) {

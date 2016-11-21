@@ -53,7 +53,6 @@ public class JobCollectContext extends AbstractExecutionSubContext {
 
     private static final ESLogger LOGGER = Loggers.getLogger(JobCollectContext.class);
 
-    private final CollectPhase collectPhase;
     private final MapSideDataCollectOperation collectOperation;
     private final RamAccountingContext queryPhaseRamAccountingContext;
     private final RowReceiver rowReceiver;
@@ -64,6 +63,7 @@ public class JobCollectContext extends AbstractExecutionSubContext {
     private final ListenableRowReceiver listenableRowReceiver;
     private final String threadPoolName;
 
+    private CollectPhase collectPhase;
     private Collection<CrateCollector> collectors;
 
     public JobCollectContext(final CollectPhase collectPhase,
@@ -165,7 +165,7 @@ public class JobCollectContext extends AbstractExecutionSubContext {
 
     @Override
     public void innerPrepare() throws Exception {
-        collectors = collectOperation.createCollectors(collectPhase, rowReceiver, this);
+        collectors = collectOperation.createCollectors(rowReceiver, this);
     }
 
     @Override
@@ -200,6 +200,14 @@ public class JobCollectContext extends AbstractExecutionSubContext {
         return sharedShardContexts;
     }
 
+    public CollectPhase collectPhase() {
+        return collectPhase;
+    }
+
+    public void collectPhase(CollectPhase collectPhase) {
+        this.collectPhase = collectPhase;
+    }
+
     @VisibleForTesting
     static String threadPoolName(CollectPhase phase, String localNodeId) {
         if (phase instanceof RoutedCollectPhase) {
@@ -223,6 +231,4 @@ public class JobCollectContext extends AbstractExecutionSubContext {
     public Collection<CrateCollector> collectors() {
         return collectors;
     }
-
-
 }

@@ -41,9 +41,10 @@ public class ProjectorSetupCollectSource implements CollectSource {
     }
 
     @Override
-    public Collection<CrateCollector> getCollectors(CollectPhase collectPhase, RowReceiver downstream, JobCollectContext jobCollectContext) {
+    public Collection<CrateCollector> getCollectors(RowReceiver downstream, JobCollectContext jobCollectContext) {
+        CollectPhase collectPhase = jobCollectContext.collectPhase();
         if (collectPhase.projections().isEmpty()) {
-            return sourceDelegate.getCollectors(collectPhase, downstream, jobCollectContext);
+            return sourceDelegate.getCollectors(downstream, jobCollectContext);
         }
         FlatProjectorChain projectorChain = FlatProjectorChain.withAttachedDownstream(
             projectorFactory,
@@ -52,6 +53,6 @@ public class ProjectorSetupCollectSource implements CollectSource {
             downstream,
             collectPhase.jobId()
         );
-        return sourceDelegate.getCollectors(collectPhase, projectorChain.firstProjector(), jobCollectContext);
+        return sourceDelegate.getCollectors(projectorChain.firstProjector(), jobCollectContext);
     }
 }

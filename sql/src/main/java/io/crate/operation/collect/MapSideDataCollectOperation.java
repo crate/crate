@@ -89,12 +89,12 @@ public class MapSideDataCollectOperation {
      * &nbsp; -&gt; run node level collect (cluster level)<br>
      * </p>
      */
-    public Collection<CrateCollector> createCollectors(CollectPhase collectPhase,
-                                                       RowReceiver downstream,
-                                                       final JobCollectContext jobCollectContext) {
+    public Collection<CrateCollector> createCollectors(RowReceiver downstream,
+                                                       JobCollectContext jobCollectContext) {
+        CollectPhase collectPhase = jobCollectContext.collectPhase();
         CollectSource service = collectSourceResolver.getService(collectPhase);
-        collectPhase = normalize(collectPhase);
-        return service.getCollectors(collectPhase, downstream, jobCollectContext);
+        jobCollectContext.collectPhase(normalize(collectPhase));
+        return service.getCollectors(downstream, jobCollectContext);
     }
 
     private CollectPhase normalize(CollectPhase collectPhase) {

@@ -116,7 +116,7 @@ public class JobCollectContextTest extends RandomizedTest {
         CrateCollector collectorMock1 = mock(CrateCollector.class);
         CrateCollector collectorMock2 = mock(CrateCollector.class);
 
-        when(collectOperationMock.createCollectors(eq(collectPhase), any(RowReceiver.class), eq(jobCtx)))
+        when(collectOperationMock.createCollectors(any(RowReceiver.class), eq(jobCtx)))
             .thenReturn(ImmutableList.of(collectorMock1, collectorMock2));
         jobCtx.prepare();
         jobCtx.start();
