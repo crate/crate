@@ -56,6 +56,7 @@ public class OuterJoinIntegrationTest extends SQLTransportIntegrationTest {
                                                      "Douglas Adams| Chief Office\n"));
     }
 
+    @Test
     public void testLeftOuterJoinOrderOnOuterTable() throws Exception {
         // which employee works in which office?
         execute("select persons.name, offices.name from" +

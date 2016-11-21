@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fixed an issue in the runtime error handling that could cause
+   right-outer-join queries to get stuck.
+
 2016/11/18 0.56.4
 =================
 
