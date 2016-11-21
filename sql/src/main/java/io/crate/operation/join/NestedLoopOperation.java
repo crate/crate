@@ -207,11 +207,11 @@ public class NestedLoopOperation implements CompletionListenable {
             if (!left.upstreamFinished || !right.upstreamFinished) {
                 return false;
             }
-            if ((JoinType.RIGHT == joinType || JoinType.FULL == joinType) && !emitRightJoin) {
-                emitRightJoin = true;
-                return false;
-            }
             if (upstreamFailure == null) {
+                if ((JoinType.RIGHT == joinType || JoinType.FULL == joinType) && !emitRightJoin) {
+                    emitRightJoin = true;
+                    return false;
+                }
                 downstream.finish(RepeatHandle.UNSUPPORTED);
                 completionFuture.set(null);
                 left.finished.set(null);

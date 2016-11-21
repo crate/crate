@@ -264,6 +264,42 @@ public class NestedLoopOperationTest extends CrateUnitTest {
     }
 
     @Test
+    public void testRightJoinLeftUpstreamFails() throws Exception {
+        CollectingRowReceiver receiver = new CollectingRowReceiver();
+
+        NestedLoopOperation nl = new NestedLoopOperation(1, receiver, COL0_EQ_COL1, JoinType.RIGHT, 1, 1);
+        nl.leftRowReceiver().fail(new InterruptedException("Job killed"));
+        RowSender.generateRowsInRangeAndEmit(0, 10, nl.rightRowReceiver());
+
+        expectedException.expect(instanceOf(RuntimeException.class));
+        receiver.result();
+    }
+
+    @Test
+    public void testRightJoinRightUpstreamFails() throws Exception {
+        CollectingRowReceiver receiver = new CollectingRowReceiver();
+        NestedLoopOperation nl = new NestedLoopOperation(1, receiver, COL0_EQ_COL1, JoinType.RIGHT, 1, 1);
+
+        nl.rightRowReceiver().fail(new InterruptedException("Job killed"));
+        RowSender.generateRowsInRangeAndEmit(0, 10, nl.leftRowReceiver());
+
+        expectedException.expect(instanceOf(RuntimeException.class));
+        receiver.result();
+    }
+
+    @Test
+    public void testRightJoinDownstreamFailure() throws Exception {
+        CollectingRowReceiver receiver = CollectingRowReceiver.withFailure();
+        NestedLoopOperation nl = new NestedLoopOperation(1, receiver, COL0_EQ_COL1, JoinType.RIGHT, 1, 1);
+
+        RowSender.generateRowsInRangeAndEmit(0, 5, nl.leftRowReceiver());
+        RowSender.generateRowsInRangeAndEmit(0, 5, nl.rightRowReceiver());
+
+        expectedException.expect(instanceOf(IllegalStateException.class));
+        receiver.result();
+    }
+
+    @Test
     public void testFailIsOnlyForwardedOnce() throws Exception {
         CollectingRowReceiver receiver = new CollectingRowReceiver();
         List<ListenableRowReceiver> listenableRowReceivers = getRandomLeftAndRightRowReceivers(receiver);

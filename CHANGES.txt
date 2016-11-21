@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fixed an issue in the runtime error handling that could cause
+   right-outer-join queries to get stuck.
+
  - New setting ``stats.service.interval`` which allows to control
    the refresh interval of the table statistics used to create optimal
    query execution plans.
