@@ -21,6 +21,10 @@ test {
     }
 }
 
+jmh {
+    resultFormat = 'JSON'
+}
+
 forbiddenApisMain {
     bundledSignatures = ['jdk-unsafe', 'jdk-deprecated']
     ignoreFailures = false
