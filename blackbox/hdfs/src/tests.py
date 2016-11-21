@@ -19,6 +19,7 @@
 # with Crate these terms will supersede the license and you may use the
 # software solely pursuant to the terms of the relevant commercial agreement.
 
+import sys
 import unittest
 import os
 import zipfile
@@ -61,15 +62,16 @@ def add_hadoop_libs(hdfs_zip_path, path_to_dist):
         hdfs_zip.extractall(path=hdfs_plugin_location, members=hadoop_libs)
 
 
-def is_up(host, port):
-    """test if a host is up"""
-    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    ex = s.connect_ex((host, port))
-    if ex == 0:
-        s.close()
-        return True
-    return False
-
+def wait_for_minicluster(log, timeout=60):
+    start = time.time()
+    while True:
+        line = log.readline().decode('utf-8').strip()
+        elapsed = time.time() - start
+        sys.stderr.write(line + '\n')
+        if line.endswith('Cluster is active'):
+            return True
+        elif elapsed > timeout:
+            return False
 
 class HadoopLayer(object):
 
@@ -100,26 +102,41 @@ class HadoopLayer(object):
                             'hadoop-{version}'.format(version=HADOOP_VERSION))
 
     def setUp(self):
-        cmd = ['bash',
-               self.hadoop_bin, 'jar',
-               self.hadoop_mapreduce_client, 'minicluster',
-               '-nnport', NN_PORT, '-nomr', '-D', 'dfs.replication=0']
+        cmd = [
+            self.hadoop_bin, 'jar',
+            self.hadoop_mapreduce_client, 'minicluster',
+            '-nnport', NN_PORT, '-nomr', '-format',
+            '-D', 'dfs.replication=0',
+            '-D', 'dfs.client.use.datanode.hostname=true',
+            '-D', 'dfs.datanode.use.datanode.hostname=true',
+        ]
 
         JAVA_HOME = os.environ.get('JAVA_HOME', '/usr/lib/jvm/java-8-openjdk/')
+
         self.p = subprocess.Popen(
             cmd,
             cwd=os.path.dirname(self.hadoop_bin),
             env={
                 'JAVA_HOME': JAVA_HOME,
                 'HADOOP_CLASSPATH': self.yarn_server_jar
-            })
-        elapsed = 0.0
-        while not is_up('localhost', int(NN_PORT)) and elapsed < 5:
-            time.sleep(0.1)
-            elapsed += 0.1
+            },
+            stderr=subprocess.PIPE
+        )
+
+        if wait_for_minicluster(self.p.stderr):
+            print('>>> Hadoop cluster is active')
+        else:
+            print('>>> Could not start Hadoop cluster in time')
+            self.stop()
+
+    def stop(self):
+        if self.p:
+            self.p.terminate()
+            self.p.communicate()
+        self.p = None
 
     def tearDown(self):
-        self.p.kill()
+        self.stop()
 
 
 class HdfsCrateLayer(CrateLayer):
@@ -151,7 +168,6 @@ class HdfsIntegrationTest(unittest.TestCase):
 
 
 def test_suite():
-    suite = unittest.TestSuite(unittest.makeSuite(HdfsIntegrationTest))
     crate_layer = HdfsCrateLayer(
         'crate',
         crate_home=crate_path(),
@@ -159,5 +175,7 @@ def test_suite():
         transport_port=CRATE_TRANSPORT_PORT
     )
     hadoop_layer = HadoopLayer()
-    suite.layer = HadoopAndCrateLayer(crate_layer, hadoop_layer)
+    layer = HadoopAndCrateLayer(crate_layer, hadoop_layer)
+    suite = unittest.makeSuite(HdfsIntegrationTest)
+    suite.layer = layer
     return suite
