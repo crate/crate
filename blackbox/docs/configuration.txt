@@ -562,6 +562,54 @@ Elasticsearch HTTP REST API
     Manipulating your data via elasticsearch API and not via SQL
     might result in inconsistent data. You have been warned!
 
+Cross-Origin Resource Sharing (CORS)
+------------------------------------
+
+Many browsers support the `same-origin policy`_ which requires web applications
+to explicitly allow requests across origins. The `cross-origin resource sharing`_
+settings in CrateDB allow for configuring these.
+
+**http.cors.enabled**
+  | *Default:* ``false``
+  | *Runtime:* ``no``
+
+  Enable or disable `cross-origin resource sharing`_.
+
+**http.cors.allow-origin**
+  | *Default:* ``<empty>``
+  | *Runtime:* ``no``
+
+  Define allowed origins of a request. ``*`` allows *any* origin (which can be
+  a substantial security risk) and by prepending a ``/`` the string will be
+  treated as a regular expression. For example ``/https?:\/\/crate.io/`` will
+  allow requests from ``http://crate.io`` and ``https://crate.io``. This setting
+  disallows any origin by default.
+
+**http.cors.max-age**
+  | *Default:* ``1728000`` (20 days)
+  | *Runtime:* ``no``
+
+  Max cache age of a preflight request in seconds.
+
+**http.cors.allow-methods**
+  | *Default:* ``OPTIONS, HEAD, GET, POST, PUT, DELETE``
+  | *Runtime:* ``no``
+
+  Allowed HTTP methods.
+
+**http.cors.allow-headers**
+  | *Default:* ``X-Requested-With, Content-Type, Content-Length``
+  | *Runtime:* ``no``
+
+  Allowed HTTP headers.
+
+**http.cors.allow-credentials**
+  | *Default:* ``false``
+  | *Runtime:* ``no``
+
+  Add the ``Access-Control-Allow-Credentials`` header to responses.
+
+
 Blobs
 -----
 
@@ -1807,8 +1855,8 @@ to your config. This will prevent allocating primary and replica
 of the same shard on the same machine even if more than one instances
 running on it.
 
-
-
+.. _`same-origin policy`: https://developer.mozilla.org/en-US/docs/Web/Security/Same-origin_policy
+.. _`cross-origin resource sharing`: https://developer.mozilla.org/en-US/docs/Web/HTTP/Access_control_CORS
 .. _YAML: http://en.wikipedia.org/wiki/YAML
 .. _Log4j: https://logging.apache.org/log4j/1.2/
 .. _`hierarchical named loggers`: https://logging.apache.org/log4j/1.2/manual.html
