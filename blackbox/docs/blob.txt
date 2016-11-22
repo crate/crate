@@ -21,6 +21,11 @@ crate shell ``crash`` to issue the SQL statement::
 Now crate is configured to allow blobs to be management under the
 ``/_blobs/myblobs`` endpoint.
 
+.. note::
+
+    CrateDB allows to set multiple paths in the ``data.path`` setting. But in
+    the case of blob tables only the first entry will be used.
+
 Custom location for storing blob data
 =====================================
 
@@ -34,10 +39,18 @@ while creating a blob table. The path can be either absolute or relative
 and must be creatable/writable by the user Crate is running as.
 A relative path value is relative to :ref:`env-crate-home`.
 
-Blob data will be stored under this path with the same directory
-layout like normal data.::
+Blob data stored under this path will have the following layout::
 
-  /custom/blob/path/<CLUSTER_NAME>/node/<NODE_NO>/indices/.blob_<INDEX_NAME>/<SHARD_ID>/blobs
+  /custom/blob/path/indices/.blob_<INDEX_NAME>/<SHARD_ID>/blobs
+
+.. note::
+
+    This custom layout differs from the default layout. It doesn't include
+    cluster name or node number. Therefore it is important that multiple
+    CrateDB processes do not have shared access to the same ``blobs.path``
+    folder.
+    (This applies for multiple CrateDB processes on the same machines, or if
+    ``blobs.path`` points to a shared file system like NFS)
 
 Global by config
 ----------------
