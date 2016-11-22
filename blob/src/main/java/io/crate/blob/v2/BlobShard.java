@@ -79,7 +79,7 @@ public class BlobShard extends AbstractIndexShardComponent {
     private File blobDir(BlobEnvironment blobEnvironment) {
         if (indexSettings.get(BlobIndicesService.SETTING_INDEX_BLOBS_PATH) != null) {
             File blobPath = new File(indexSettings.get(BlobIndicesService.SETTING_INDEX_BLOBS_PATH));
-            blobEnvironment.validateBlobsPath(blobPath);
+            BlobEnvironment.validateBlobsPath(blobPath);
             return blobEnvironment.shardLocation(shardId, blobPath);
         } else {
             return blobEnvironment.shardLocation(shardId);

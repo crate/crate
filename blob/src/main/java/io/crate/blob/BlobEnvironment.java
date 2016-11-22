@@ -24,6 +24,7 @@ package io.crate.blob;
 import org.elasticsearch.cluster.ClusterName;
 import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.inject.Inject;
+import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.settings.SettingsException;
 import org.elasticsearch.env.NodeEnvironment;
 import org.elasticsearch.index.Index;
@@ -47,19 +48,19 @@ public class BlobEnvironment {
     private File blobsPath;
 
     @Inject
-    public BlobEnvironment(NodeEnvironment nodeEnvironment, ClusterName clusterName) {
+    public BlobEnvironment(Settings settings, NodeEnvironment nodeEnvironment, ClusterName clusterName) {
         this.nodeEnvironment = nodeEnvironment;
         this.clusterName = clusterName;
+        String customBlobsPathRoot = settings.get(SETTING_BLOBS_PATH);
+        if (customBlobsPathRoot != null) {
+            blobsPath = new File(customBlobsPathRoot);
+            validateBlobsPath(blobsPath);
+        }
     }
 
     @Nullable
     public File blobsPath() {
         return blobsPath;
-    }
-
-    public void blobsPath(File blobPath) {
-        validateBlobsPath(blobPath);
-        this.blobsPath = blobPath;
     }
 
     /**
@@ -105,7 +106,7 @@ public class BlobEnvironment {
     /**
      * Validates a given blobs data path
      */
-    public void validateBlobsPath(File blobsPath) {
+    public static void validateBlobsPath(File blobsPath) {
         if (blobsPath.exists()) {
             if (blobsPath.isFile()) {
                 throw new SettingsException(
@@ -128,11 +129,11 @@ public class BlobEnvironment {
     /**
      * Check if a given blob data path contains no indices and non crate related path
      */
-    public boolean isCustomBlobPathEmpty(File root) {
+    public static boolean isCustomBlobPathEmpty(File root) {
         return isCustomBlobPathEmpty(root, true);
     }
 
-    private boolean isCustomBlobPathEmpty(File file, boolean isRoot) {
+    private static boolean isCustomBlobPathEmpty(File file, boolean isRoot) {
         if (file == null || !file.exists() || !file.isDirectory()) {
             return false;
         }

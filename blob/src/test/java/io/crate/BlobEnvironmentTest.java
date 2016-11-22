@@ -56,7 +56,7 @@ public class BlobEnvironmentTest extends CrateUnitTest {
             .put("path.data", dataPath.toAbsolutePath()).build();
         Environment environment = new Environment(settings);
         nodeEnvironment = new NodeEnvironment(settings, environment);
-        blobEnvironment = new BlobEnvironment(nodeEnvironment, new ClusterName("test"));
+        blobEnvironment = new BlobEnvironment(settings, nodeEnvironment, new ClusterName("test"));
     }
 
     @After

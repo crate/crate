@@ -40,27 +40,22 @@ import org.elasticsearch.http.HttpServer;
 import org.elasticsearch.indices.recovery.BlobRecoverySource;
 import org.elasticsearch.transport.TransportService;
 
-import java.io.File;
-
 public class BlobService extends AbstractLifecycleComponent<BlobService> {
 
     private final Injector injector;
     private final BlobHeadRequestHandler blobHeadRequestHandler;
 
     private final ClusterService clusterService;
-    private final BlobEnvironment blobEnvironment;
 
     @Inject
     public BlobService(Settings settings,
                        ClusterService clusterService,
                        Injector injector,
-                       BlobHeadRequestHandler blobHeadRequestHandler,
-                       BlobEnvironment blobEnvironment) {
+                       BlobHeadRequestHandler blobHeadRequestHandler) {
         super(settings);
         this.clusterService = clusterService;
         this.injector = injector;
         this.blobHeadRequestHandler = blobHeadRequestHandler;
-        this.blobEnvironment = blobEnvironment;
     }
 
     public RemoteDigestBlob newBlob(String index, String digest) {
@@ -81,12 +76,6 @@ public class BlobService extends AbstractLifecycleComponent<BlobService> {
         transportServiceLogger.setLevel("ERROR");
         injector.getInstance(BlobRecoverySource.class).registerHandler();
         transportServiceLogger.setLevel(previousLevel);
-
-        // validate the optional blob path setting
-        String globalBlobPathPrefix = settings.get(BlobEnvironment.SETTING_BLOBS_PATH);
-        if (globalBlobPathPrefix != null) {
-            blobEnvironment.blobsPath(new File(globalBlobPathPrefix));
-        }
 
         blobHeadRequestHandler.registerHandler();
 

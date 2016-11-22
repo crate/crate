@@ -297,7 +297,7 @@ public class BlobIndicesService extends AbstractLifecycleComponent<BlobIndicesSe
         }
 
         // check if custom index blobs path is empty, if so delete whole path
-        if (customBlobsPath != null && blobEnvironment.isCustomBlobPathEmpty(customBlobsPath)) {
+        if (customBlobsPath != null && BlobEnvironment.isCustomBlobPathEmpty(customBlobsPath)) {
             logger.debug("[{}] Empty per table defined blobs path found, deleting leftover folders inside {}",
                 index, customBlobsPath.getAbsolutePath());
             try {
