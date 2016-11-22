@@ -5,6 +5,10 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fixed an issue at the `date_trunc` scalar evaluation that caused an
+   error to be thrown if the given `interval` is a reference and
+   evaluates to `NULL`.
+
  - Updated Crash to `0.19.1` which includes the following change:
 
     - ``--sysinfo`` does not fail any more when the name of the connected

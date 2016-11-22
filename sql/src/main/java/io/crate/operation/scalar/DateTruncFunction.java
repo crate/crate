@@ -160,6 +160,9 @@ public class DateTruncFunction extends Scalar<Long, Object> {
         }
         if (tzRounding == null) {
             BytesRef interval = (BytesRef) args[0].value();
+            if (interval == null) {
+                return null;
+            }
             return truncate(rounding(interval, timeZone), TimestampType.INSTANCE.value(value));
         }
         return truncate(tzRounding, TimestampType.INSTANCE.value(value));
