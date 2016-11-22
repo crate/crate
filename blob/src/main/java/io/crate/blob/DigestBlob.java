@@ -33,6 +33,7 @@ import org.jboss.netty.buffer.ChannelBuffer;
 import java.io.*;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
+import java.nio.file.Path;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.UUID;
@@ -74,12 +75,12 @@ public class DigestBlob {
         return file;
     }
 
-    private static File getTmpFilePath(BlobContainer blobContainer, String digest, UUID transferId) {
-        return new File(blobContainer.getTmpDirectory(), String.format("%s.%s", digest, transferId.toString()));
+    private static Path getTmpFilePath(BlobContainer blobContainer, String digest, UUID transferId) {
+        return blobContainer.getTmpDirectory().resolve(digest + "." + transferId.toString());
     }
 
     private File createTmpFile() throws IOException {
-        File tmpFile = getTmpFilePath(container, digest, transferId);
+        File tmpFile = getTmpFilePath(container, digest, transferId).toFile();
         tmpFile.createNewFile();
         tmpFile.deleteOnExit();
         return tmpFile;
@@ -216,7 +217,7 @@ public class DigestBlob {
     public static DigestBlob resumeTransfer(BlobContainer blobContainer, String digest,
                                             UUID transferId, long currentPos) {
         DigestBlob digestBlob = new DigestBlob(blobContainer, digest, transferId);
-        digestBlob.file = getTmpFilePath(blobContainer, digest, transferId);
+        digestBlob.file = getTmpFilePath(blobContainer, digest, transferId).toFile();
 
         try {
             logger.trace("Resuming DigestBlob {}. CurrentPos {}", digest, currentPos);

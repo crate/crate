@@ -21,20 +21,22 @@
 
 package io.crate.blob;
 
-import org.elasticsearch.cluster.ClusterName;
 import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.inject.Inject;
+import org.elasticsearch.common.io.PathUtils;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.settings.SettingsException;
 import org.elasticsearch.env.NodeEnvironment;
 import org.elasticsearch.index.Index;
 import org.elasticsearch.index.shard.ShardId;
 
-import java.io.File;
 import java.io.IOException;
+import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Iterator;
 import java.util.Locale;
+import java.util.stream.Stream;
 
 public class BlobEnvironment {
 
@@ -42,33 +44,33 @@ public class BlobEnvironment {
     public static final String BLOBS_SUB_PATH = "blobs";
 
     private final NodeEnvironment nodeEnvironment;
-    private final ClusterName clusterName;
 
     @Nullable
-    private File blobsPath;
+    private final Path blobsPath;
 
     @Inject
-    public BlobEnvironment(Settings settings, NodeEnvironment nodeEnvironment, ClusterName clusterName) {
+    public BlobEnvironment(Settings settings, NodeEnvironment nodeEnvironment) {
         this.nodeEnvironment = nodeEnvironment;
-        this.clusterName = clusterName;
         String customBlobsPathRoot = settings.get(SETTING_BLOBS_PATH);
         if (customBlobsPathRoot != null) {
-            blobsPath = new File(customBlobsPathRoot);
-            validateBlobsPath(blobsPath);
+            blobsPath = PathUtils.get(customBlobsPathRoot);
+            ensureExistsAndWritable(blobsPath);
+        } else {
+            blobsPath = null;
         }
     }
 
     @Nullable
-    public File blobsPath() {
+    public Path blobsPath() {
         return blobsPath;
     }
 
     /**
      * Return the index location respecting global blobs data path value
      */
-    public File indexLocation(Index index) {
+    public Path indexLocation(Index index) {
         if (blobsPath == null) {
-            return nodeEnvironment.indexPaths(index)[0].toFile();
+            return nodeEnvironment.indexPaths(index)[0];
         }
         return indexLocation(index, blobsPath);
     }
@@ -76,19 +78,18 @@ public class BlobEnvironment {
     /**
      * Return the index location according to the given base path
      */
-    public File indexLocation(Index index, File path) {
-        File indexLocation = nodeEnvironment.indexPaths(index)[0].toFile();
-        String dataPath = nodeEnvironment.nodeDataPaths()[0].toString();
-        String indexLocationSuffix = indexLocation.getAbsolutePath().substring(dataPath.length());
-        return new File(path, indexLocationSuffix);
+    public Path indexLocation(Index index, Path path) {
+        Path indexLocation = nodeEnvironment.indexPaths(index)[0];
+        Path dataPath = nodeEnvironment.nodeDataPaths()[0];
+        return path.resolve(dataPath.relativize(indexLocation));
     }
 
     /**
      * Return the shard location respecting global blobs data path value
      */
-    public File shardLocation(ShardId shardId) {
+    public Path shardLocation(ShardId shardId) {
         if (blobsPath == null) {
-            return new File(nodeEnvironment.availableShardPaths(shardId)[0].toFile(), BLOBS_SUB_PATH);
+            return nodeEnvironment.availableShardPaths(shardId)[0].resolve(BLOBS_SUB_PATH);
         }
         return shardLocation(shardId, blobsPath);
     }
@@ -96,32 +97,31 @@ public class BlobEnvironment {
     /**
      * Return the shard location according to the given base path
      */
-    public File shardLocation(ShardId shardId, File path) {
+    public Path shardLocation(ShardId shardId, Path path) {
         Path shardLocation = nodeEnvironment.availableShardPaths(shardId)[0];
         Path dataPath = nodeEnvironment.nodeDataPaths()[0];
-        String shardLocationSuffix = shardLocation.toAbsolutePath().toString().substring(dataPath.toString().length());
-        return new File(new File(path, shardLocationSuffix), BLOBS_SUB_PATH);
+        return path.resolve(dataPath.relativize(shardLocation));
     }
 
     /**
      * Validates a given blobs data path
      */
-    public static void validateBlobsPath(File blobsPath) {
-        if (blobsPath.exists()) {
-            if (blobsPath.isFile()) {
+    public static void ensureExistsAndWritable(Path blobsPath) {
+        if (Files.exists(blobsPath)) {
+            if (!Files.isDirectory(blobsPath)) {
                 throw new SettingsException(
-                    String.format(Locale.ENGLISH, "blobs path '%s' is a file, must be a directory", blobsPath.getAbsolutePath()));
+                    String.format(Locale.ENGLISH, "blobs path '%s' is a file, must be a directory", blobsPath));
             }
-            if (!blobsPath.canWrite()) {
+            if (!Files.isWritable(blobsPath)) {
                 throw new SettingsException(
-                    String.format(Locale.ENGLISH, "blobs path '%s' is not writable", blobsPath.getAbsolutePath()));
+                    String.format(Locale.ENGLISH, "blobs path '%s' is not writable", blobsPath));
             }
         } else {
             try {
-                Files.createDirectories(blobsPath.toPath());
+                Files.createDirectories(blobsPath);
             } catch (IOException e) {
                 throw new SettingsException(
-                    String.format(Locale.ENGLISH, "blobs path '%s' could not be created", blobsPath.getAbsolutePath()));
+                    String.format(Locale.ENGLISH, "blobs path '%s' could not be created", blobsPath));
             }
         }
     }
@@ -129,22 +129,35 @@ public class BlobEnvironment {
     /**
      * Check if a given blob data path contains no indices and non crate related path
      */
-    public static boolean isCustomBlobPathEmpty(File root) {
+    public static boolean isCustomBlobPathEmpty(Path root) throws IOException {
+        if (root == null) {
+            return false;
+        }
         return isCustomBlobPathEmpty(root, true);
     }
 
-    private static boolean isCustomBlobPathEmpty(File file, boolean isRoot) {
-        if (file == null || !file.exists() || !file.isDirectory()) {
+    private static boolean isCustomBlobPathEmpty(Path file, boolean isRoot) throws IOException {
+        if (!Files.isDirectory(file)) {
             return false;
         }
-        File[] children = file.listFiles();
-        if (children == null || children.length == 0) {
+        if (isRoot) {
+            try (DirectoryStream<Path> files = Files.newDirectoryStream(file)) {
+                Iterator<Path> it = files.iterator();
+                if (it.hasNext()) {
+                    Path firstFile = it.next();
+                    if (it.hasNext()) {
+                        return false;
+                    }
+                    if (firstFile.getFileName().toString().equals("indices")) {
+                        return isCustomBlobPathEmpty(file, false);
+                    }
+                }
+            }
             return true;
+        } else {
+            try (Stream<Path> files = Files.list(file)) {
+                return files.anyMatch(i -> true);
+            }
         }
-        //noinspection SimplifiableIfStatement
-        if (isRoot && children.length == 1 && children[0].getName().equals("indices")) {
-            return isCustomBlobPathEmpty(children[0], false);
-        }
-        return false;
     }
 }

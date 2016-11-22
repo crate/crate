@@ -21,7 +21,6 @@
 
 package org.elasticsearch.indices.recovery;
 
-import io.crate.blob.BlobWriteException;
 import io.crate.blob.exceptions.IllegalBlobRecoveryStateException;
 import io.crate.blob.v2.BlobShard;
 import io.crate.common.Hex;
@@ -40,8 +39,10 @@ import org.elasticsearch.transport.TransportRequestHandler;
 import org.elasticsearch.transport.TransportResponse;
 import org.elasticsearch.transport.TransportService;
 
-import java.io.File;
 import java.io.FileOutputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 
 
 public class BlobRecoveryTarget extends AbstractComponent {
@@ -160,23 +161,11 @@ public class BlobRecoveryTarget extends AbstractComponent {
 
             if (request.isLast()) {
                 transferStatus.outputStream().close();
-                File source = new File(shard.blobContainer().getBaseDirectory(),
-                    transferStatus.sourcePath()
-                );
-                File target = new File(shard.blobContainer().getBaseDirectory(),
-                    transferStatus.targetPath()
-                );
+                Path baseDirectory = shard.blobContainer().getBaseDirectory();
+                Path source = baseDirectory.resolve(transferStatus.sourcePath());
+                Path target = baseDirectory.resolve(transferStatus.targetPath());
 
-                if (target.exists()) {
-                    logger.info("target file {} exists already.", target.getName());
-                    // this might happen on bad timing while recovering/relocating.
-                    // noop
-                } else {
-                    if (!source.renameTo(target)) {
-                        throw new BlobWriteException(target.getName(), target.length(), null);
-                    }
-                }
-
+                Files.move(source, target, StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING);
                 onGoingRecovery.onGoingTransfers().remove(request.transferId());
             }
 
@@ -219,9 +208,8 @@ public class BlobRecoveryTarget extends AbstractComponent {
 
             BlobShard shard = status.blobShard;
             String tmpPath = request.path() + "." + request.transferId();
-            FileOutputStream outputStream = new FileOutputStream(
-                new File(shard.blobContainer().getBaseDirectory(), tmpPath)
-            );
+            Path baseDirectory = shard.blobContainer().getBaseDirectory();
+            FileOutputStream outputStream = new FileOutputStream(baseDirectory.resolve(tmpPath).toFile());
 
             BytesReference content = request.content();
             if (!content.hasArray()) {
@@ -231,15 +219,10 @@ public class BlobRecoveryTarget extends AbstractComponent {
 
             if (request.size() == request.content().length()) {  // start request contains the whole file.
                 outputStream.close();
-                File source = new File(shard.blobContainer().getBaseDirectory(), tmpPath);
-                File target = new File(shard.blobContainer().getBaseDirectory(), request.path());
-                if (!target.exists()) {
-                    if (!source.renameTo(target)) {
-                        throw new IllegalBlobRecoveryStateException(
-                            "couldn't rename file to " + request.path()
-                        );
-                    }
-                }
+                Path source = baseDirectory.resolve(tmpPath);
+                Path target = baseDirectory.resolve(request.path());
+
+                Files.move(source, target, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);
             } else {
                 BlobRecoveryTransferStatus transferStatus = new BlobRecoveryTransferStatus(
                     request.transferId(), outputStream, tmpPath, request.path()

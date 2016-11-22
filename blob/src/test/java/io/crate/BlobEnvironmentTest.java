@@ -23,7 +23,7 @@ package io.crate;
 
 import io.crate.blob.BlobEnvironment;
 import io.crate.test.integration.CrateUnitTest;
-import org.elasticsearch.cluster.ClusterName;
+import org.elasticsearch.common.io.PathUtils;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.settings.SettingsException;
 import org.elasticsearch.env.Environment;
@@ -35,6 +35,7 @@ import org.junit.rules.TemporaryFolder;
 
 import java.io.File;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Locale;
 
 import static org.hamcrest.Matchers.is;
@@ -56,7 +57,7 @@ public class BlobEnvironmentTest extends CrateUnitTest {
             .put("path.data", dataPath.toAbsolutePath()).build();
         Environment environment = new Environment(settings);
         nodeEnvironment = new NodeEnvironment(settings, environment);
-        blobEnvironment = new BlobEnvironment(settings, nodeEnvironment, new ClusterName("test"));
+        blobEnvironment = new BlobEnvironment(settings, nodeEnvironment);
     }
 
     @After
@@ -67,36 +68,36 @@ public class BlobEnvironmentTest extends CrateUnitTest {
 
     @Test
     public void testShardLocation() throws Exception {
-        File blobsPath = new File("/tmp/crate_blobs");
-        File shardLocation = blobEnvironment.shardLocation(new ShardId(".blob_test", 0), blobsPath);
-        assertThat(shardLocation.getAbsolutePath().substring(0, blobsPath.getAbsolutePath().length()),
-            is(blobsPath.getAbsolutePath()));
+        Path blobsPath = PathUtils.get("/tmp/crate_blobs");
+        Path shardLocation = blobEnvironment.shardLocation(new ShardId(".blob_test", 0), blobsPath);
+        assertThat(shardLocation.toString().substring(0, blobsPath.toString().length()),
+            is(blobsPath.toString()));
     }
 
     @Test
     public void testShardLocationWithoutCustomPath() throws Exception {
-        File shardLocation = blobEnvironment.shardLocation(new ShardId(".blob_test", 0));
+        Path shardLocation = blobEnvironment.shardLocation(new ShardId(".blob_test", 0));
         Path nodeShardPaths = nodeEnvironment.availableShardPaths(new ShardId(".blob_test", 0))[0];
-        assertThat(shardLocation.getAbsolutePath().substring(nodeShardPaths.toAbsolutePath().toString().length()),
+        assertThat(shardLocation.toString().substring(nodeShardPaths.toAbsolutePath().toString().length()),
             is(File.separator + BlobEnvironment.BLOBS_SUB_PATH));
     }
 
     @Test
     public void testIndexLocation() throws Exception {
-        File blobsPath = new File("/tmp/crate_blobs");
-        File indexLocation = blobEnvironment.indexLocation(new Index(".blob_test"), blobsPath);
-        assertThat(indexLocation.getAbsolutePath().substring(0, blobsPath.getAbsolutePath().length()),
-            is(blobsPath.getAbsolutePath()));
+        Path blobsPath = PathUtils.get("/tmp/crate_blobs");
+        Path indexLocation = blobEnvironment.indexLocation(new Index(".blob_test"), blobsPath);
+        assertThat(indexLocation.toString().substring(0, blobsPath.toString().length()),
+            is(blobsPath.toString()));
     }
 
     @Test
     public void testValidateIsFile() throws Exception {
-        File testFile = folder.newFile("test_blob_file.txt");
+        Path testFile = folder.newFile("test_blob_file.txt").toPath();
 
         expectedException.expect(SettingsException.class);
         expectedException.expectMessage(String.format(Locale.ENGLISH, "blobs path '%s' is a file, must be a directory",
-            testFile.getAbsolutePath()));
-        blobEnvironment.validateBlobsPath(testFile);
+            testFile.toString()));
+        blobEnvironment.ensureExistsAndWritable(testFile);
     }
 
     @Test
@@ -112,6 +113,6 @@ public class BlobEnvironmentTest extends CrateUnitTest {
         expectedException.expect(SettingsException.class);
         expectedException.expectMessage(String.format(Locale.ENGLISH, "blobs path '%s' could not be created",
             file.getAbsolutePath()));
-        blobEnvironment.validateBlobsPath(file);
+        blobEnvironment.ensureExistsAndWritable(file.toPath());
     }
 }

@@ -38,7 +38,6 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.env.Environment;
 import org.elasticsearch.index.IndexNotFoundException;
 
-import java.io.File;
 import java.nio.file.Path;
 
 public class InternalBlobTableInfoFactory implements BlobTableInfoFactory {
@@ -87,12 +86,12 @@ public class InternalBlobTableInfoFactory implements BlobTableInfoFactory {
         if (blobsPathStr != null) {
             blobsPath = new BytesRef(blobsPathStr);
         } else {
-            File path = blobEnvironment.blobsPath();
+            Path path = blobEnvironment.blobsPath();
             if (path != null) {
-                blobsPath = new BytesRef(path.getPath());
+                blobsPath = new BytesRef(path.toString());
             } else {
                 Path[] dataFiles = environment.dataFiles();
-                blobsPath = new BytesRef(dataFiles[0].toFile().getAbsolutePath());
+                blobsPath = new BytesRef(dataFiles[0].toString());
             }
         }
         return blobsPath;
