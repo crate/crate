@@ -39,6 +39,8 @@ Unreleased
 2016/11/22 0.57.2
 =================
 
+ - Fixed NPE that can occur on invalid HTTP requests.
+
  - Updated crate-admin to ``0.21.3`` which includes the following change:
 
     - The first table in the table list is selected by default.
