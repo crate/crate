@@ -47,6 +47,8 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
+import static org.hamcrest.Matchers.instanceOf;
+import static org.hamcrest.Matchers.not;
 import static org.hamcrest.core.Is.is;
 
 public abstract class AbstractScalarFunctionsTest extends CrateUnitTest {
@@ -61,9 +63,11 @@ public abstract class AbstractScalarFunctionsTest extends CrateUnitTest {
             .add("name", DataTypes.STRING)
             .add("tags", new ArrayType(DataTypes.STRING))
             .add("age", DataTypes.INTEGER)
+            .add("x", DataTypes.LONG)
             .add("shape", DataTypes.GEO_SHAPE)
             .add("timestamp", DataTypes.TIMESTAMP)
             .add("timezone", DataTypes.STRING)
+            .add("interval", DataTypes.STRING)
             .add("time_format", DataTypes.STRING)
             .add("long_array", new ArrayType(DataTypes.LONG))
             .add("regex_pattern", DataTypes.STRING)
@@ -150,6 +154,32 @@ public abstract class AbstractScalarFunctionsTest extends CrateUnitTest {
         assertThat(scalar.evaluate(arguments), is(expectedValue));
 
     }
+
+    public void assertCompile(String functionExpression,
+                              com.google.common.base.Function<Scalar, Matcher<Scalar>> matcher,
+                              Input... inputs) {
+        Symbol functionSymbol = sqlExpressions.asSymbol(functionExpression);
+        functionSymbol = sqlExpressions.normalize(functionSymbol);
+        assertThat("function expression was normalized, compile would not be hit", functionSymbol, not(instanceOf(Literal.class)));
+        Function function = (Function) functionSymbol;
+        Scalar scalar = (Scalar) functions.get(function.info().ident());
+        assert scalar != null : "function must be registered";
+
+        Input[] arguments = new Input[function.arguments().size()];
+        int idx = 0;
+        for (int i = 0; i < function.arguments().size(); i++) {
+            Symbol arg = function.arguments().get(i);
+            if (arg instanceof Input) {
+                arguments[i] = ((Input) arg);
+            } else {
+                arguments[i] = inputs[idx];
+                idx++;
+            }
+        }
+        Scalar compiled = scalar.compile(function.arguments());
+        assertThat(compiled, matcher.apply(scalar));
+    }
+
 
     private static boolean allArgsAreInputs(List<Symbol> arguments) {
         for (Symbol argument : arguments) {
