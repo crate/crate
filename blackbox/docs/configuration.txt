@@ -436,8 +436,10 @@ Paths
   Filesystem path to the directory where this Crate node stores its data (table
   data and cluster metadata).
 
-  This setting can contain a comma separated list of paths. In this case Crate will
-  stripe the data across both locations like in RAID 0.
+  Multiple paths can be set by using a comma separated list and each of these
+  paths will hold full shards (instead of striping data across them). In case
+  Crate finds striped shards at the provided locations (from Crate <0.55.0), 
+  these shards will be migrated automatically on startup.
 
 
 **path.work**
