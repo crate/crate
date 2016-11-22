@@ -16,13 +16,6 @@ Unreleased
 
  - Updated crate-admin to ``0.21.3`` which includes the following change:
 
-    - The first table in the table list is selected by default.
-
-    - developer news from crate.io website are now loaded correctly into newsfeed
-
-    - ``base_uri`` url parameter for development mode was not always recognized
-      correctly
-
     - fixed bug that caused the cluster REST URL link in nodes view page to be unsafe.
 
  - Updated Crash to `0.19.1` which includes the following change:
