@@ -221,7 +221,7 @@ public class HttpBlobHandler extends SimpleChannelUpstreamHandler implements
 
     private void sendResponse(HttpResponse response) {
         ChannelFuture cf = ctx.getChannel().write(response);
-        if (!HttpHeaders.isKeepAlive(currentMessage)) {
+        if (currentMessage != null && !HttpHeaders.isKeepAlive(currentMessage)) {
             cf.addListener(ChannelFutureListener.CLOSE);
         }
     }
