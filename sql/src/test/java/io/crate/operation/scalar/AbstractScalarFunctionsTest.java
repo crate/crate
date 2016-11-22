@@ -45,6 +45,8 @@ import org.junit.Before;
 
 import java.util.*;
 
+import static org.hamcrest.Matchers.instanceOf;
+import static org.hamcrest.Matchers.not;
 import static org.hamcrest.core.Is.is;
 
 public abstract class AbstractScalarFunctionsTest extends CrateUnitTest {
@@ -67,6 +69,7 @@ public abstract class AbstractScalarFunctionsTest extends CrateUnitTest {
             .add("shape", DataTypes.GEO_SHAPE)
             .add("timestamp", DataTypes.TIMESTAMP)
             .add("timezone", DataTypes.STRING)
+            .add("interval", DataTypes.STRING)
             .add("time_format", DataTypes.STRING)
             .add("long_array", new ArrayType(DataTypes.LONG))
             .add("regex_pattern", DataTypes.STRING)
@@ -165,6 +168,29 @@ public abstract class AbstractScalarFunctionsTest extends CrateUnitTest {
         assertThat(scalar.evaluate((Input[]) arguments), is(expectedValue));
 
     }
+
+    public void assertCompile(String functionExpression, java.util.function.Function<Scalar, Matcher<Scalar>> matcher, Input... inputs) {
+        Symbol functionSymbol = sqlExpressions.asSymbol(functionExpression);
+        functionSymbol = sqlExpressions.normalize(functionSymbol);
+        assertThat("function expression was normalized, compile would not be hit", functionSymbol, not(instanceOf(Literal.class)));
+        Function function = (Function) functionSymbol;
+        Scalar scalar = (Scalar) functions.get(function.info().ident());
+        assert scalar != null : "function must be registered";
+
+        InputApplierContext inputApplierContext = new InputApplierContext(inputs, sqlExpressions, false);
+        AssertingInput[] arguments = new AssertingInput[function.arguments().size()];
+        for (int i = 0; i < function.arguments().size(); i++) {
+            Symbol arg = function.arguments().get(i);
+            if (arg instanceof Input) {
+                arguments[i] = new AssertingInput(((Input) arg));
+            } else {
+                arguments[i] = new AssertingInput(INPUT_APPLIER.process(arg, inputApplierContext));
+            }
+        }
+        Scalar compiled = scalar.compile(function.arguments());
+        assertThat(compiled, matcher.apply(scalar));
+    }
+
 
     private static boolean allArgsAreInputs(List<Symbol> arguments) {
         for (Symbol argument : arguments) {

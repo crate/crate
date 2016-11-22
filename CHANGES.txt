@@ -5,6 +5,10 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fixed an issue at the `date_trunc` scalar evaluation that caused an
+   error to be thrown if the given `interval` is a reference and
+   evaluates to `NULL`.
+
  - Fixed an issue in the runtime error handling that could cause
    right-outer-join queries to get stuck.
 
