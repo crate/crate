@@ -48,8 +48,8 @@ public class DigestBlobTests extends CrateUnitTest {
         UUID transferId = UUID.randomUUID();
         int currentPos = 2;
 
-        BlobContainer container = new BlobContainer(tmpFolder.newFolder());
-        File filePath = new File(container.getTmpDirectory(), String.format(Locale.ENGLISH, "%s.%s", digest, transferId.toString()));
+        BlobContainer container = new BlobContainer(tmpFolder.newFolder().toPath());
+        File filePath = new File(container.getTmpDirectory().toFile(), String.format(Locale.ENGLISH, "%s.%s", digest, transferId.toString()));
         if (filePath.exists()) {
             filePath.delete();
         }
@@ -94,7 +94,7 @@ public class DigestBlobTests extends CrateUnitTest {
     @Test
     public void testResumeDigestBlobAddHeadAfterContent() throws IOException {
         UUID transferId = UUID.randomUUID();
-        BlobContainer container = new BlobContainer(tmpFolder.newFolder());
+        BlobContainer container = new BlobContainer(tmpFolder.newFolder().toPath());
         DigestBlob digestBlob = DigestBlob.resumeTransfer(
             container, "417de3231e23dcd6d224ff60918024bc6c59aa58", transferId, 2);
 

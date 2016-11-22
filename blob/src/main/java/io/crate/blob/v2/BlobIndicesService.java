@@ -50,6 +50,7 @@ import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Injector;
 import org.elasticsearch.common.inject.Provider;
 import org.elasticsearch.common.io.FileSystemUtils;
+import org.elasticsearch.common.io.PathUtils;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.Index;
 import org.elasticsearch.index.IndexService;
@@ -58,8 +59,9 @@ import org.elasticsearch.index.shard.ShardNotFoundException;
 import org.elasticsearch.indices.IndicesLifecycle;
 import org.elasticsearch.indices.IndicesService;
 
-import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 
 public class BlobIndicesService extends AbstractLifecycleComponent<BlobIndicesService> implements ClusterStateListener {
 
@@ -270,10 +272,11 @@ public class BlobIndicesService extends AbstractLifecycleComponent<BlobIndicesSe
     }
 
     private void deleteBlobIndexLocation(IndexMetaData current, String index) {
-        File indexLocation = null;
-        File customBlobsPath = null;
-        if (current.getSettings().get(BlobIndicesService.SETTING_INDEX_BLOBS_PATH) != null) {
-            customBlobsPath = new File(current.getSettings().get(BlobIndicesService.SETTING_INDEX_BLOBS_PATH));
+        Path indexLocation = null;
+        Path customBlobsPath = null;
+        String customBlobsPathStr = current.getSettings().get(BlobIndicesService.SETTING_INDEX_BLOBS_PATH);
+        if (customBlobsPathStr != null) {
+            customBlobsPath = PathUtils.get(customBlobsPathStr);
             indexLocation = blobEnvironment.indexLocation(new Index(index), customBlobsPath);
         } else if (blobEnvironment.blobsPath() != null) {
             indexLocation = blobEnvironment.indexLocation(new Index(index));
@@ -284,11 +287,11 @@ public class BlobIndicesService extends AbstractLifecycleComponent<BlobIndicesSe
             return;
         }
 
-        String absolutePath = indexLocation.getAbsolutePath();
-        if (indexLocation.exists()) {
+        Path absolutePath = indexLocation.toAbsolutePath();
+        if (Files.exists(indexLocation)) {
             logger.debug("[{}] Deleting blob index directory '{}'", index, absolutePath);
             try {
-                IOUtils.rm(indexLocation.toPath());
+                IOUtils.rm(indexLocation);
             } catch (IOException e) {
                 logger.warn("Could not delete blob index directory {}", absolutePath);
             }
@@ -296,14 +299,16 @@ public class BlobIndicesService extends AbstractLifecycleComponent<BlobIndicesSe
             logger.warn("wanted to delete blob index directory {} but it was already gone", absolutePath);
         }
 
-        // check if custom index blobs path is empty, if so delete whole path
-        if (customBlobsPath != null && BlobEnvironment.isCustomBlobPathEmpty(customBlobsPath)) {
-            logger.debug("[{}] Empty per table defined blobs path found, deleting leftover folders inside {}",
-                index, customBlobsPath.getAbsolutePath());
+        if (customBlobsPath != null) {
+            // check if custom index blobs path is empty, if so delete whole path
             try {
-                FileSystemUtils.deleteSubDirectories(customBlobsPath.toPath());
+                if (BlobEnvironment.isCustomBlobPathEmpty(customBlobsPath)) {
+                    logger.debug("[{}] Empty per table defined blobs path found, deleting leftover folders inside {}",
+                        index, customBlobsPath);
+                    FileSystemUtils.deleteSubDirectories(customBlobsPath);
+                }
             } catch (IOException e) {
-                logger.warn("Could not delete custom blob path {}", customBlobsPath.getAbsolutePath());
+                logger.warn("Could not delete custom blob path {}", customBlobsPath);
             }
         }
     }

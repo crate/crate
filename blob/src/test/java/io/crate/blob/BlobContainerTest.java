@@ -42,7 +42,7 @@ public class BlobContainerTest {
     @Test
     public void testGetFiles() throws Exception {
         File blobsPath = temporaryFolder.newFolder();
-        BlobContainer blobContainer = new BlobContainer(blobsPath);
+        BlobContainer blobContainer = new BlobContainer(blobsPath.toPath());
         blobContainer.getFile(digest("Content A")).createNewFile();
         blobContainer.getFile(digest("Content B")).createNewFile();
         blobContainer.getFile(digest("Content C")).createNewFile();

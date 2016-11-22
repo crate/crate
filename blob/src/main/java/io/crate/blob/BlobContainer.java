@@ -32,6 +32,7 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.*;
 
 public class BlobContainer {
@@ -51,29 +52,28 @@ public class BlobContainer {
         }
     }
 
-    private final File baseDirectory;
-    private final File tmpDirectory;
-    private final File varDirectory;
+    private final Path baseDirectory;
+    private final Path tmpDirectory;
+    private final Path varDirectory;
 
-    public BlobContainer(File baseDirectory) {
+    public BlobContainer(Path baseDirectory) {
         this.baseDirectory = baseDirectory;
-        this.tmpDirectory = new File(baseDirectory, "tmp");
-        this.varDirectory = new File(baseDirectory, "var");
+        this.tmpDirectory = baseDirectory.resolve("tmp");
+        this.varDirectory = baseDirectory.resolve("var");
         try {
-            Files.createDirectories(this.varDirectory.toPath());
+            Files.createDirectories(this.varDirectory);
+            createSubDirectories(this.varDirectory);
         } catch (IOException e) {
-            logger.error("Could not create 'var' path {}", this.varDirectory.getAbsolutePath());
+            logger.error("Could not create 'var' path {}", this.varDirectory);
             Throwables.propagate(e);
         }
 
         try {
-            Files.createDirectories(this.tmpDirectory.toPath());
+            Files.createDirectories(this.tmpDirectory);
         } catch (IOException e) {
-            logger.error("Could not create 'tmp' path {}", this.tmpDirectory.getAbsolutePath());
+            logger.error("Could not create 'tmp' path {}", this.tmpDirectory);
             Throwables.propagate(e);
         }
-
-        createSubDirectories(this.varDirectory);
     }
 
     /**
@@ -83,10 +83,11 @@ public class BlobContainer {
      *
      * @param parentDir
      */
-    private void createSubDirectories(File parentDir) {
+    private void createSubDirectories(Path parentDir) throws IOException {
         for (int i = 0; i < SUB_DIRS.length; i++) {
-            subDirs[i] = new File(parentDir, SUB_DIRS[i]);
-            subDirs[i].mkdir();
+            Path subDir = parentDir.resolve(SUB_DIRS[i]);
+            subDirs[i] = subDir.toFile();
+            Files.createDirectories(subDir);
         }
     }
 
@@ -140,20 +141,16 @@ public class BlobContainer {
         return newNames.toArray(new String[newNames.size()]);
     }
 
-    public File getBaseDirectory() {
+    public Path getBaseDirectory() {
         return baseDirectory;
     }
 
-    public File getTmpDirectory() {
+    public Path getTmpDirectory() {
         return tmpDirectory;
     }
 
-    public File getVarDirectory() {
-        return varDirectory;
-    }
-
     public File getFile(String digest) {
-        return new File(getVarDirectory(), digest.substring(0, 2) + File.separator + digest);
+        return varDirectory.resolve(digest.substring(0, 2)).resolve(digest).toFile();
     }
 
     public DigestBlob createBlob(String digest, UUID transferId) {
