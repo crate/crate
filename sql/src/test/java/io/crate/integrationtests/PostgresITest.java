@@ -23,15 +23,15 @@
 package io.crate.integrationtests;
 
 import io.crate.action.sql.SQLOperations;
+import io.crate.shade.org.postgresql.PGProperty;
+import io.crate.shade.org.postgresql.jdbc.PreferQueryMode;
+import io.crate.shade.org.postgresql.util.PSQLException;
+import io.crate.shade.org.postgresql.util.PSQLState;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.test.ESIntegTestCase;
 import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.Test;
-import org.postgresql.PGProperty;
-import org.postgresql.jdbc.PreferQueryMode;
-import org.postgresql.util.PSQLException;
-import org.postgresql.util.PSQLState;
 
 import java.sql.*;
 import java.util.*;

@@ -51,7 +51,6 @@ public class PostgresStatsTablesITest extends SQLTransportIntegrationTest {
 
     @Before
     public void initDriverAndStats() throws Exception {
-        Class.forName("org.postgresql.Driver");
         try (Connection conn = DriverManager.getConnection(JDBC_POSTGRESQL_URL)) {
             conn.createStatement().execute("set global stats.enabled=true");
         }
