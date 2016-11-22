@@ -5,7 +5,54 @@ Changes for Crate
 Unreleased
 ==========
 
-  - Updated Crash to `0.19.1` which includes the following change:
+ - New setting ``stats.service.interval`` which allows to control
+   the refresh interval of the table statistics used to create optimal
+   query execution plans.
+
+ - Added support for global aggregations on subselects.
+
+ - Added the ``-C`` option for providing Crate settings and deprecated
+   usage of the ``.es`` prefix with ``-D`` option.
+
+ - Added support for global aggregations on joins
+
+ - Log unhandled HTTP related exceptions as `debug` instead of `error`.
+
+ - Implemented ``if`` conditional function.
+
+ - F261/F262: Implemented ``CASE`` expression support.
+
+ - BREAKING: Removed ``schema_name`` from ``information_schema.tables``,
+   ``information_schema.columns`` and ``information_schema.table_constraints``
+   in favour of ``table_schema``.
+
+ - Removed the ``client`` package which contained the deprecated ``crate-client``.
+   You should start using the PostgreSQL JDBC driver instead.
+
+ - Removed the duplicate `rowcount` field from the HTTP response.
+
+ - Added the ``search_path`` session setting parameter. The default table
+   schema can be set with ``SET SESSION search_path = schema_name``.
+
+ - Removed java7 support
+
+2016/11/22 0.57.2
+=================
+
+ - Fixed NPE that can occur on invalid HTTP requests.
+
+ - Updated crate-admin to ``0.21.3`` which includes the following change:
+
+    - The first table in the table list is selected by default.
+
+    - developer news from crate.io website are now loaded correctly into newsfeed
+
+    - ``base_uri`` url parameter for development mode was not always recognized
+      correctly
+
+    - fixed bug that caused the cluster REST URL link in nodes view page to be unsafe.
+
+ - Updated Crash to `0.19.1` which includes the following change:
 
     - ``--sysinfo`` does not fail any more when the name of the connected
       CrateDB node contains a unicode character.
@@ -19,10 +66,6 @@ Unreleased
 
  - Fixed an issue in the runtime error handling that could cause
    right-outer-join queries to get stuck.
-
- - New setting ``stats.service.interval`` which allows to control
-   the refresh interval of the table statistics used to create optimal
-   query execution plans.
 
  - Changed `<literal> = ANY([null])` to no longer result in a cast exception
    but return null.
@@ -64,35 +107,6 @@ Unreleased
 
  - Fixed an issue that caused the ``WHERE`` clause of queries on ``unnest(..)``
    to be ignored.
-
- - Added support for global aggregations on subselects.
-
- - Added the ``-C`` option for providing Crate settings and deprecated
-   usage of the ``.es`` prefix with ``-D`` option.
-
- - Added support for global aggregations on joins
-
- - Log unhandled HTTP related exceptions as `debug` instead of `error`.
-
- - Fixed NPE that can occur on invalid HTTP requests.
-
- - Implemented ``if`` conditional function.
-
- - F261/F262: Implemented ``CASE`` expression support.
-
- - BREAKING: Removed ``schema_name`` from ``information_schema.tables``,
-   ``information_schema.columns`` and ``information_schema.table_constraints``
-   in favour of ``table_schema``.
-
- - Removed the ``client`` package which contained the deprecated ``crate-client``.
-   You should start using the PostgreSQL JDBC driver instead.
-
- - Removed the duplicate `rowcount` field from the HTTP response.
-
- - Added the ``search_path`` session setting parameter. The default table
-   schema can be set with ``SET SESSION search_path = schema_name``.
-
- - Removed java7 support
 
 2016/11/10 0.57.1
 =================
