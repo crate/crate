@@ -5,6 +5,14 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Updated Crash to `0.19.1` which includes the following change:
+
+    - ``--sysinfo`` does not fail any more when the name of the connected
+      CrateDB node contains a unicode character.
+
+    - Crash was trying to connect to invalid hosts if no hosts were provided
+      via ``--hosts`` argument and configuration file was already present.
+
  - Fixed an issue in the runtime error handling that could cause
    right-outer-join queries to get stuck.
 
