@@ -81,7 +81,12 @@ public class RemoteCollectorFactory {
         final String remoteNodeId = shardRouting.currentNodeId();
         assert remoteNodeId != null : "primaryShard not assigned :(";
         final String localNodeId = clusterService.localNode().id();
-        final RoutedCollectPhase newCollectPhase = createNewCollectPhase(childJobId, collectPhase, index, shardId, remoteNodeId);
+        final RoutedCollectPhase newCollectPhase = createNewCollectPhase(
+            childJobId,
+            collectPhase,
+            index, shardId,
+            remoteNodeId,
+            collectPhase.relationId());
 
         return new CrateCollector.Builder() {
             @Override
@@ -101,7 +106,12 @@ public class RemoteCollectorFactory {
     }
 
     private RoutedCollectPhase createNewCollectPhase(
-        UUID childJobId, RoutedCollectPhase collectPhase, String index, Integer shardId, String nodeId) {
+        UUID childJobId,
+        RoutedCollectPhase collectPhase,
+        String index,
+        Integer shardId,
+        String nodeId,
+        byte relationId) {
 
         Routing routing = new Routing(TreeMapBuilder.<String, Map<String, List<Integer>>>newMapBuilder().put(nodeId,
             TreeMapBuilder.<String, List<Integer>>newMapBuilder().put(index, Collections.singletonList(shardId)).map()).map());
@@ -114,7 +124,8 @@ public class RemoteCollectorFactory {
             collectPhase.toCollect(),
             new ArrayList<>(Projections.shardProjections(collectPhase.projections())),
             collectPhase.whereClause(),
-            DistributionInfo.DEFAULT_BROADCAST
+            DistributionInfo.DEFAULT_BROADCAST,
+            relationId
         );
     }
 }

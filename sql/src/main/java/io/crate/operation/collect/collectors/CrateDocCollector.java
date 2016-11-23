@@ -44,7 +44,6 @@ import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.lucene.MinimumScoreCollector;
 import org.elasticsearch.search.internal.ContextIndexSearcher;
-import org.elasticsearch.search.internal.SearchContext;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
@@ -74,19 +73,22 @@ public class CrateDocCollector implements CrateCollector, RepeatHandle {
         private final RamAccountingContext ramAccountingContext;
         private final List<Input<?>> inputs;
         private final Collection<? extends LuceneCollectorExpression<?>> expressions;
+        private final byte relationId;
 
         public Builder(CrateSearchContext searchContext,
                        Executor executor,
                        boolean doScores,
                        RamAccountingContext ramAccountingContext,
                        List<Input<?>> inputs,
-                       Collection<? extends LuceneCollectorExpression<?>> expressions) {
+                       Collection<? extends LuceneCollectorExpression<?>> expressions,
+                       byte relationId) {
             this.searchContext = searchContext;
             this.executor = executor;
             this.doScores = doScores;
             this.ramAccountingContext = ramAccountingContext;
             this.inputs = inputs;
             this.expressions = expressions;
+            this.relationId = relationId;
         }
 
         @Override
@@ -98,18 +100,20 @@ public class CrateDocCollector implements CrateCollector, RepeatHandle {
                 ramAccountingContext,
                 rowReceiver,
                 inputs,
-                expressions
+                expressions,
+                relationId
             );
         }
     }
 
-    public CrateDocCollector(final CrateSearchContext searchContext,
+    CrateDocCollector(final CrateSearchContext searchContext,
                              Executor executor,
                              boolean doScores,
                              RamAccountingContext ramAccountingContext,
                              RowReceiver rowReceiver,
                              List<Input<?>> inputs,
-                             Collection<? extends LuceneCollectorExpression<?>> expressions) {
+                             Collection<? extends LuceneCollectorExpression<?>> expressions,
+                             byte relationId) {
         this.searchContext = searchContext;
         this.rowReceiver = rowReceiver;
         this.expressions = expressions;
@@ -118,7 +122,8 @@ public class CrateDocCollector implements CrateCollector, RepeatHandle {
             searchContext.mapperService(),
             searchContext.fieldData(),
             fieldsVisitor,
-            ((int) searchContext.id())
+            (int) searchContext.id(),
+            relationId
         );
         this.doScores = doScores || searchContext.minimumScore() != null;
         SimpleCollector collector = new LuceneDocCollector(

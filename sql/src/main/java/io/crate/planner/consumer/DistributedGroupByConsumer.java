@@ -113,7 +113,8 @@ class DistributedGroupByConsumer implements Consumer {
                 splitPoints.leaves(),
                 ImmutableList.<Projection>of(groupProjection),
                 querySpec.where(),
-                DistributionInfo.DEFAULT_MODULO
+                DistributionInfo.DEFAULT_MODULO,
+                context.relationId()
             );
             // end: Map/Collect side
 

@@ -198,8 +198,9 @@ class SelectStatementPlanner {
                                                          FetchPhase fetchPhase,
                                                          int fetchSize) {
         Map<TableIdent, FetchSource> fetchSources = ImmutableMap.of(table.tableRelation().tableInfo().ident(),
-            new FetchSource(table.tableRelation().tableInfo().partitionedByColumns(),
-                ImmutableList.of(fetchPushDown.docIdCol()),
+            new FetchSource(
+                table.tableRelation().tableInfo().partitionedByColumns(),
+                ImmutableList.of(fetchPushDown.fetchIdCol()),
                 fetchPushDown.fetchRefs()));
 
         return new FetchProjection(

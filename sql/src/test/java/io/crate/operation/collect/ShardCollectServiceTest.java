@@ -69,8 +69,8 @@ public class ShardCollectServiceTest extends SQLHttpIntegrationTest {
             ImmutableList.<Symbol>of(),
             ImmutableList.<Projection>of(),
             WhereClause.MATCH_ALL,
-            DistributionInfo.DEFAULT_BROADCAST
-        );
+            DistributionInfo.DEFAULT_BROADCAST,
+            (byte) 0);
 
         // No read Isolation
         Iterable<Row> iterable = shardCollectService.getBlobRows(collectPhase, false);

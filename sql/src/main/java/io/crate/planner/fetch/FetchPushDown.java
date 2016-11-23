@@ -45,7 +45,7 @@ public class FetchPushDown {
 
     private final QuerySpec querySpec;
     private final DocTableRelation docTableRelation;
-    private static final InputColumn DOCID_COL = new InputColumn(0, DataTypes.LONG);
+    private static final InputColumn FETCHID_COL = new InputColumn(0, DataTypes.LONG);
     private LinkedHashMap<Reference, FetchReference> fetchRefs;
     private LinkedHashMap<Reference, FetchReference> partitionRefs;
 
@@ -54,8 +54,8 @@ public class FetchPushDown {
         this.docTableRelation = docTableRelation;
     }
 
-    public InputColumn docIdCol() {
-        return DOCID_COL;
+    public InputColumn fetchIdCol() {
+        return FETCHID_COL;
     }
 
     public Collection<Reference> fetchRefs() {
@@ -85,14 +85,14 @@ public class FetchPushDown {
     private FetchReference toFetchReference(Reference ref, LinkedHashMap<Reference, FetchReference> refs) {
         FetchReference fRef = refs.get(ref);
         if (fRef == null) {
-            fRef = new FetchReference(DOCID_COL, ref);
+            fRef = new FetchReference(FETCHID_COL, ref);
             refs.put(ref, fRef);
         }
         return fRef;
     }
 
     /**
-     * Create a new relation that has all columns which are only relevant for the final result replaced with a docid.
+     * Create a new relation that has all columns which are only relevant for the final result replaced with a fetchid.
      *
      * If values are only relevant for the final result the retrieval can be delayed until the last possible moment.
      * This should usually be used to avoid retrieving intermediate values which might be discarded.
@@ -105,14 +105,14 @@ public class FetchPushDown {
      *
      *     Becomes
      *
-     *     select _docid, a from t order by a limit 10      <-- executed per node
+     *     select _fetchid, a from t order by a limit 10    <-- executed per node
      *                                                          Result is num_nodes * limit
      *                                                          Order by value is included because it's necessary
      *                                                          to do ordered merge
      *
      *     apply limit 10                                   <-- once on handler via topN
      *                                                          (num_nodes * limit - limit) rows are discarded
-     *     fetch columns from nodes using _docids
+     *     fetch columns from nodes using _fetchids
      * </pre>
      */
     @Nullable
@@ -135,15 +135,15 @@ public class FetchPushDown {
 
         // build the subquery
         QuerySpec sub = new QuerySpec();
-        Reference docIdReference = DocSysColumns.forTable(docTableRelation.tableInfo().ident(), DocSysColumns.DOCID);
+        Reference fetchIdReference = DocSysColumns.forTable(docTableRelation.tableInfo().ident(), DocSysColumns.FETCHID);
 
         List<Symbol> outputs = new ArrayList<>();
         if (orderBy.isPresent()) {
             sub.orderBy(orderBy.get());
-            outputs.add(docIdReference);
+            outputs.add(fetchIdReference);
             outputs.addAll(context.querySymbols());
         } else {
-            outputs.add(docIdReference);
+            outputs.add(fetchIdReference);
         }
         for (Symbol symbol : querySpec.outputs()) {
             if (Symbols.containsColumn(symbol, DocSysColumns.SCORE) && !outputs.contains(symbol)) {

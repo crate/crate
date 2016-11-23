@@ -50,7 +50,7 @@ public class SymbolVisitors {
         @Override
         public Boolean visitFetchReference(FetchReference fetchReference, Predicate<? super Symbol> symbolPredicate) {
             return symbolPredicate.apply(fetchReference)
-                   || fetchReference.docId().accept(this, symbolPredicate)
+                   || fetchReference.fetchId().accept(this, symbolPredicate)
                    || fetchReference.ref().accept(this, symbolPredicate);
         }
 

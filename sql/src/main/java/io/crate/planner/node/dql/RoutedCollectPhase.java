@@ -57,6 +57,7 @@ public class RoutedCollectPhase extends AbstractProjectionsPhase implements Coll
 
     public static final ExecutionPhaseFactory<RoutedCollectPhase> FACTORY = RoutedCollectPhase::new;
 
+    private byte relationId = 0;
     private Routing routing;
     private List<Symbol> toCollect;
     private DistributionInfo distributionInfo;
@@ -83,7 +84,8 @@ public class RoutedCollectPhase extends AbstractProjectionsPhase implements Coll
                               List<Symbol> toCollect,
                               List<Projection> projections,
                               WhereClause whereClause,
-                              DistributionInfo distributionInfo) {
+                              DistributionInfo distributionInfo,
+                              byte relationId) {
         super(jobId, executionNodeId, name, projections);
         this.whereClause = whereClause;
         this.routing = routing;
@@ -91,6 +93,7 @@ public class RoutedCollectPhase extends AbstractProjectionsPhase implements Coll
         this.toCollect = toCollect;
         this.distributionInfo = distributionInfo;
         this.outputTypes = extractOutputTypes(toCollect, projections);
+        this.relationId = relationId;
     }
 
     @Override
@@ -218,6 +221,10 @@ public class RoutedCollectPhase extends AbstractProjectionsPhase implements Coll
         return maxRowGranularity;
     }
 
+    public byte relationId() {
+        return relationId;
+    }
+
     @Override
     public <C, R> R accept(ExecutionPhaseVisitor<C, R> visitor, C context) {
         return visitor.visitRoutedCollectPhase(this, context);
@@ -246,6 +253,8 @@ public class RoutedCollectPhase extends AbstractProjectionsPhase implements Coll
             orderBy = OrderBy.fromStream(in);
         }
         isPartitioned = in.readBoolean();
+
+        relationId = in.readByte();
     }
 
     @Override
@@ -278,6 +287,7 @@ public class RoutedCollectPhase extends AbstractProjectionsPhase implements Coll
             out.writeBoolean(false);
         }
         out.writeBoolean(isPartitioned);
+        out.writeByte(relationId);
     }
 
     /**
@@ -309,7 +319,8 @@ public class RoutedCollectPhase extends AbstractProjectionsPhase implements Coll
                 newToCollect,
                 projections,
                 newWhereClause,
-                distributionInfo
+                distributionInfo,
+                relationId
             );
             result.orderBy(orderBy);
         }
@@ -319,7 +330,8 @@ public class RoutedCollectPhase extends AbstractProjectionsPhase implements Coll
     public static RoutedCollectPhase forQueriedTable(Planner.Context plannerContext,
                                                      QueriedTableRelation table,
                                                      List<Symbol> toCollect,
-                                                     List<Projection> projections) {
+                                                     List<Projection> projections,
+                                                     byte relationId) {
         TableInfo tableInfo = table.tableRelation().tableInfo();
         WhereClause where = table.querySpec().where();
         if (table.tableRelation() instanceof TableFunctionRelation) {
@@ -335,7 +347,8 @@ public class RoutedCollectPhase extends AbstractProjectionsPhase implements Coll
                 args,
                 projections,
                 toCollect,
-                where
+                where,
+                relationId
             );
         }
         return new RoutedCollectPhase(
@@ -347,7 +360,8 @@ public class RoutedCollectPhase extends AbstractProjectionsPhase implements Coll
             toCollect,
             projections,
             where,
-            DistributionInfo.DEFAULT_BROADCAST
+            DistributionInfo.DEFAULT_BROADCAST,
+            relationId
         );
     }
 }

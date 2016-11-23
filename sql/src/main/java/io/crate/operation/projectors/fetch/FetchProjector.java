@@ -146,7 +146,7 @@ public class FetchProjector extends AbstractProjector {
     public Result setNextRow(Row row) {
         Object[] cells = row.materialize();
         collectRowContext.inputRow().cells = cells;
-        for (int i : collectRowContext.docIdPositions()) {
+        for (int i : collectRowContext.fetchIdPositions()) {
             Object docId = cells[i];
             if (docId != null) {
                 context.require((long) docId);
@@ -228,7 +228,7 @@ public class FetchProjector extends AbstractProjector {
         final ArrayBackedRow inputRow = collectRowContext.inputRow();
         final ArrayBackedRow[] fetchRows = collectRowContext.fetchRows();
         final ArrayBackedRow[] partitionRows = collectRowContext.partitionRows();
-        final int[] docIdPositions = collectRowContext.docIdPositions();
+        final int[] docIdPositions = collectRowContext.fetchIdPositions();
         final Object[][] nullCells = collectRowContext.nullCells();
 
         loop:
