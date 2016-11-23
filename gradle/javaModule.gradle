@@ -1,13 +1,13 @@
 apply plugin: "java"
 apply plugin: "maven"
 apply plugin: 'de.thetaphi.forbiddenapis'
+apply plugin: 'me.champeau.gradle.jmh'
 
 repositories {
     mavenCentral()
     jcenter()
     maven { url "https://jitpack.io" }
 }
-
 
 compileJava {
     options.warnings = true
@@ -27,4 +27,9 @@ if (project.hasProperty('testLogging')) {
 forbiddenApisMain {
     bundledSignatures = ['jdk-unsafe', 'jdk-deprecated']
     ignoreFailures = false
+}
+
+jmh {
+    resultFormat = 'JSON'
+    zip64 = true
 }

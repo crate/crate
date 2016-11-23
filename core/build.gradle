@@ -1,6 +1,5 @@
 apply from: "$rootDir/gradle/javaModule.gradle"
 
-apply plugin: 'me.champeau.gradle.jmh'
 
 archivesBaseName = 'crate-core'
 
@@ -18,10 +17,6 @@ test {
                 "*Test*"
         ]
     }
-}
-
-jmh {
-    resultFormat = 'JSON'
 }
 
 task getVersion(dependsOn: 'classes') << {
