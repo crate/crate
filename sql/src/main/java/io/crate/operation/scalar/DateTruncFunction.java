@@ -118,10 +118,6 @@ public class DateTruncFunction extends Scalar<Long, Object> {
     public Symbol normalizeSymbol(Function symbol, TransactionContext transactionContext) {
         assert symbol.arguments().size() > 1 && symbol.arguments().size() < 4 : "Invalid number of arguments";
 
-        if (containsNullLiteral(symbol.arguments())) {
-            return Literal.NULL;
-        }
-
         if (anyNonLiterals(symbol.arguments())) {
             return symbol;
         }

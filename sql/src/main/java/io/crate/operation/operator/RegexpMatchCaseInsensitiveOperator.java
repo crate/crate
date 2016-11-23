@@ -21,11 +21,7 @@
 
 package io.crate.operation.operator;
 
-import io.crate.analyze.symbol.Function;
-import io.crate.analyze.symbol.Literal;
-import io.crate.analyze.symbol.Symbol;
 import io.crate.metadata.FunctionInfo;
-import io.crate.metadata.TransactionContext;
 import io.crate.operation.Input;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
@@ -62,26 +58,5 @@ public class RegexpMatchCaseInsensitiveOperator extends Operator<BytesRef> {
     @Override
     public FunctionInfo info() {
         return INFO;
-    }
-
-    @Override
-    public Symbol normalizeSymbol(Function symbol, TransactionContext transactionContext) {
-        assert (symbol != null);
-        assert symbol.arguments().size() == 2;
-
-        if (anyNonLiterals(symbol.arguments())) {
-            return symbol;
-        }
-
-        if (containsNullLiteral(symbol.arguments())) {
-            return Literal.NULL;
-        }
-
-        return Literal.of(
-            evaluate(
-                (Literal) symbol.arguments().get(0),
-                (Literal) symbol.arguments().get(1)
-            )
-        );
     }
 }

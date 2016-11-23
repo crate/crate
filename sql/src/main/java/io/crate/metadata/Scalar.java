@@ -21,14 +21,11 @@
 
 package io.crate.metadata;
 
-import com.google.common.base.Predicate;
-import com.google.common.collect.Iterables;
 import io.crate.analyze.symbol.Function;
 import io.crate.analyze.symbol.Literal;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.operation.Input;
 
-import javax.annotation.Nullable;
 import java.util.Collection;
 import java.util.List;
 
@@ -38,13 +35,6 @@ import java.util.List;
  * @param <ReturnType> the class of the returned value
  */
 public abstract class Scalar<ReturnType, InputType> implements FunctionImplementation<Function> {
-
-    private static final Predicate<Symbol> NULL_LITERAL = new Predicate<Symbol>() {
-        @Override
-        public boolean apply(@Nullable Symbol input) {
-            return input instanceof Input && ((Input) input).value() == null;
-        }
-    };
 
     public abstract ReturnType evaluate(Input<InputType>... args);
 
@@ -71,10 +61,6 @@ public abstract class Scalar<ReturnType, InputType> implements FunctionImplement
             }
         }
         return false;
-    }
-
-    protected static boolean containsNullLiteral(Collection<Symbol> symbols) {
-        return Iterables.any(symbols, NULL_LITERAL);
     }
 
     /**

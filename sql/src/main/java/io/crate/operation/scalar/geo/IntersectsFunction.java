@@ -102,10 +102,6 @@ public class IntersectsFunction extends Scalar<Boolean, Object> {
         int numLiterals = 0;
         boolean literalConverted = false;
 
-        if (containsNullLiteral(symbol.arguments())) {
-            return Literal.NULL;
-        }
-
         if (left.symbolType().isValueSymbol()) {
             numLiterals++;
             Symbol converted = convertTo(DataTypes.GEO_SHAPE, (Literal) left);

@@ -142,10 +142,6 @@ public class WithinFunction extends Scalar<Boolean, Object> {
         boolean literalConverted = false;
         short numLiterals = 0;
 
-        if (containsNullLiteral(symbol.arguments())) {
-            return Literal.NULL;
-        }
-
         if (left.symbolType().isValueSymbol()) {
             numLiterals++;
             Symbol converted = convertTo(DataTypes.GEO_POINT, (Literal) left);

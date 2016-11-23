@@ -27,7 +27,6 @@ import io.crate.analyze.symbol.Literal;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.analyze.symbol.SymbolType;
 import io.crate.operation.scalar.AbstractScalarFunctionsTest;
-import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.junit.Test;
 
@@ -89,22 +88,6 @@ public class WithinFunctionTest extends AbstractScalarFunctionsTest {
     }
 
     @Test
-    public void testNormalizeNull() throws Exception {
-        Symbol normalizedSymbol = normalize(FNAME,
-            Literal.of(DataTypes.GEO_POINT, null),
-            createReference("foo", DataTypes.GEO_SHAPE));
-        assertThat(normalizedSymbol, isLiteral(null));
-    }
-
-    @Test
-    public void testNormalizeWithTwoLiterals() throws Exception {
-        Symbol normalized = normalize(FNAME,
-            Literal.newGeoPoint("POINT (10 10)"),
-            Literal.newGeoShape("POLYGON ((5 5, 20 5, 30 30, 5 30, 5 5))"));
-        assertThat(normalized, isLiteral(true));
-    }
-
-    @Test
     public void testNormalizeWithTwoStringLiterals() throws Exception {
         assertNormalize("within('POINT (10 10)', 'POLYGON ((5 5, 20 5, 30 30, 5 30, 5 5))')", isLiteral(true));
     }
@@ -117,7 +100,7 @@ public class WithinFunctionTest extends AbstractScalarFunctionsTest {
         assertThat(normalized, instanceOf(Function.class));
         Function function = (Function) normalized;
         Symbol symbol = function.arguments().get(1);
-        assertThat(symbol.valueType(), equalTo((DataType) DataTypes.GEO_SHAPE));
+        assertThat(symbol.valueType(), equalTo(DataTypes.GEO_SHAPE));
     }
 
     @Test
@@ -153,6 +136,6 @@ public class WithinFunctionTest extends AbstractScalarFunctionsTest {
             Literal.of("POINT (1.0 0.0)"),
             Literal.of(ImmutableMap.<String, Object>of("type", "Point", "coordinates", new double[]{0.0, 1.0})));
         assertThat(normalized.symbolType(), is(SymbolType.LITERAL));
-        assertThat(((Literal) normalized).value(), is((Object) Boolean.FALSE));
+        assertThat(((Literal) normalized).value(), is(Boolean.FALSE));
     }
 }
