@@ -5,6 +5,24 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Possibly BREAKING blob storage changes:
+
+   - Changed blob storage to utilize all paths listed under `path.data`.
+
+   - Changed the directory layout in case a custom `blobs.path` is configured.
+     This allows running two nodes on the same machine pointing to the same
+     `blobs.path` without conflicts.
+
+   These changes require a manual migration for users who have blob tables and
+   either had:
+
+     - Multiple paths configured under `path.data`
+
+     - A custom `blobs.path` set either globally or per table.
+
+   There will be a migration script which can be used to determine if any action needs to be taken.
+   It will also provide instructions on what has to be done.
+
  - Added scalar functions ``latitude`` and ``longitude`` to extract
    latitude and longitude of a ``geo_point``.
 

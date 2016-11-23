@@ -20,18 +20,25 @@
  * agreement.
  */
 
-package io.crate.operation.reference.sys.shard.blob;
+package io.crate.operation.reference.sys.shard;
 
-import io.crate.metadata.shard.blob.BlobShardReferenceImplementation;
-import io.crate.operation.reference.sys.shard.ShardPathExpression;
-import org.apache.lucene.util.BytesRef;
-import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.index.shard.IndexShard;
+import io.crate.metadata.ReferenceImplementation;
 
-public class BlobShardPathExpression extends ShardPathExpression implements BlobShardReferenceImplementation<BytesRef> {
+public class LiteralReferenceImplementation<T> implements ReferenceImplementation<T> {
 
-    @Inject
-    public BlobShardPathExpression(IndexShard indexShard) {
-        super(indexShard);
+    private final T value;
+
+    public LiteralReferenceImplementation(T value) {
+        this.value = value;
+    }
+
+    @Override
+    public T value() {
+        return value;
+    }
+
+    @Override
+    public ReferenceImplementation getChildImplementation(String name) {
+        return null;
     }
 }

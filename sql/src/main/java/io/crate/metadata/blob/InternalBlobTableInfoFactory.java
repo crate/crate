@@ -23,7 +23,6 @@ package io.crate.metadata.blob;
 
 import io.crate.analyze.NumberOfReplicas;
 import io.crate.analyze.TableParameterInfo;
-import io.crate.blob.BlobEnvironment;
 import io.crate.blob.v2.BlobIndicesService;
 import io.crate.exceptions.TableUnknownException;
 import io.crate.metadata.TableIdent;
@@ -43,15 +42,15 @@ import java.nio.file.Path;
 public class InternalBlobTableInfoFactory implements BlobTableInfoFactory {
 
     private final IndexNameExpressionResolver indexNameExpressionResolver;
-    private final BlobEnvironment blobEnvironment;
     private final Environment environment;
+    private final Path globalBlobPath;
 
     @Inject
-    public InternalBlobTableInfoFactory(IndexNameExpressionResolver indexNameExpressionResolver,
-                                        BlobEnvironment blobEnvironment,
+    public InternalBlobTableInfoFactory(Settings settings,
+                                        IndexNameExpressionResolver indexNameExpressionResolver,
                                         Environment environment) {
+        this.globalBlobPath = BlobIndicesService.getGlobalBlobPath(settings);
         this.indexNameExpressionResolver = indexNameExpressionResolver;
-        this.blobEnvironment = blobEnvironment;
         this.environment = environment;
     }
 
@@ -86,10 +85,11 @@ public class InternalBlobTableInfoFactory implements BlobTableInfoFactory {
         if (blobsPathStr != null) {
             blobsPath = new BytesRef(blobsPathStr);
         } else {
-            Path path = blobEnvironment.blobsPath();
+            Path path = globalBlobPath;
             if (path != null) {
                 blobsPath = new BytesRef(path.toString());
             } else {
+                // TODO: should we set this to null because there is no special blobPath?
                 Path[] dataFiles = environment.dataFiles();
                 blobsPath = new BytesRef(dataFiles[0].toString());
             }

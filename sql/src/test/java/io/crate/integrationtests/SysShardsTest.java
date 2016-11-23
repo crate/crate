@@ -78,8 +78,11 @@ public class SysShardsTest extends SQLTransportIntegrationTest {
         // b2
         String b2Path = (String) response.rows()[1][0];
         assertThat(b2Path, containsString("/nodes/"));
-        assertThat(b2Path, endsWith("/indices/.blob_b2/0")); // no /blobs suffix on custom blob path
-        assertThat((String) response.rows()[1][1], endsWith(blobs.toString() + "/indices/.blob_b2/0"));
+        assertThat(b2Path, endsWith("/indices/.blob_b2/0"));
+
+        String b2BlobPath = (String) response.rows()[1][1];
+        assertThat(b2BlobPath, containsString("/nodes/"));
+        assertThat(b2BlobPath, endsWith("/indices/.blob_b2/0/blobs"));
 
         // t1
         assertThat(response.rows()[2][1], nullValue());

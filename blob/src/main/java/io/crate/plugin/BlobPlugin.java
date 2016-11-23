@@ -24,10 +24,8 @@ package io.crate.plugin;
 
 import com.google.common.collect.ImmutableList;
 import io.crate.blob.*;
-import io.crate.blob.v2.BlobIndexModule;
-import io.crate.blob.v2.BlobIndicesService;
 import io.crate.blob.v2.BlobIndicesModule;
-import io.crate.blob.v2.BlobShardModule;
+import io.crate.blob.v2.BlobIndicesService;
 import io.crate.http.netty.CrateNettyHttpServerTransport;
 import org.elasticsearch.action.ActionModule;
 import org.elasticsearch.common.component.LifecycleComponent;
@@ -74,16 +72,6 @@ public class BlobPlugin extends Plugin {
             return Collections.emptyList();
         }
         return ImmutableList.<Class<? extends LifecycleComponent>>of(BlobService.class, BlobIndicesService.class);
-    }
-
-    @Override
-    public Collection<Module> indexModules(Settings indexSettings) {
-        return Collections.<Module>singletonList(new BlobIndexModule(indexSettings));
-    }
-
-    @Override
-    public Collection<Module> shardModules(Settings indexSettings) {
-        return Collections.<Module>singletonList(new BlobShardModule(indexSettings));
     }
 
     public void onModule(HttpServerModule module) {

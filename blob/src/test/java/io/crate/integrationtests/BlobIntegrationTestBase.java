@@ -22,14 +22,20 @@
 
 package io.crate.integrationtests;
 
+import com.google.common.base.Throwables;
+import io.crate.blob.v2.BlobIndicesService;
 import io.crate.plugin.BlobPlugin;
 import io.crate.rest.CrateRestFilter;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.node.Node;
 import org.elasticsearch.plugins.Plugin;
 import org.elasticsearch.test.ESIntegTestCase;
+import org.hamcrest.Matchers;
+import org.junit.After;
 
+import java.lang.reflect.Field;
 import java.util.Collection;
+import java.util.Map;
 
 public abstract class BlobIntegrationTestBase extends ESIntegTestCase {
 
@@ -48,4 +54,22 @@ public abstract class BlobIntegrationTestBase extends ESIntegTestCase {
         return pluginList(BlobPlugin.class);
     }
 
+    @After
+    public void assertNoIndicesRemaining() throws Exception {
+        internalCluster().wipeIndices("_all");
+        Iterable<BlobIndicesService> blobIndicesServices = internalCluster().getInstances(BlobIndicesService.class);
+        Field indicesField = BlobIndicesService.class.getDeclaredField("indices");
+        indicesField.setAccessible(true);
+        assertBusy(() -> {
+            for (BlobIndicesService blobIndicesService : blobIndicesServices) {
+                Map<String, Object> indices = null;
+                try {
+                    indices = (Map<String, Object>) indicesField.get(blobIndicesService);
+                    assertThat(indices.keySet(), Matchers.empty());
+                } catch (IllegalAccessException e) {
+                    throw Throwables.propagate(e);
+                }
+            }
+        });
+    }
 }

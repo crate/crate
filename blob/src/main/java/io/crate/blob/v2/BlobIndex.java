@@ -21,33 +21,36 @@
 
 package io.crate.blob.v2;
 
-import org.elasticsearch.cluster.ClusterService;
-import org.elasticsearch.cluster.routing.OperationRouting;
-import org.elasticsearch.cluster.routing.ShardIterator;
-import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.index.AbstractIndexComponent;
-import org.elasticsearch.index.Index;
-import org.elasticsearch.index.settings.IndexSettingsService;
+import org.elasticsearch.common.Nullable;
+import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.index.shard.ShardId;
 
-public class BlobIndex extends AbstractIndexComponent {
+import java.nio.file.Path;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
+class BlobIndex {
 
-    private final OperationRouting operationRouting;
-    private final ClusterService clusterService;
+    private final Map<Integer, BlobShard> shards = new ConcurrentHashMap<>();
+    private final Path globalBlobPath;
 
-    @Inject
-    public BlobIndex(Index index, IndexSettingsService indexSettingsService,
-                     OperationRouting operationRouting, ClusterService clusterService) {
-        super(index, indexSettingsService.getSettings());
-        this.operationRouting = operationRouting;
-        this.clusterService = clusterService;
+    BlobIndex(@Nullable Path globalBlobPath) {
+        this.globalBlobPath = globalBlobPath;
     }
 
-    public ShardId shardId(String digest) {
-        ShardIterator si = operationRouting.getShards(clusterService.state(), index.getName(), null, null, digest, "_only_local");
-        // TODO: check null and raise
-        return si.shardId();
+    void createShard(IndexShard indexShard) {
+        shards.put(indexShard.shardId().id(), new BlobShard(indexShard, globalBlobPath));
     }
 
+    BlobShard removeShard(ShardId shardId) {
+        BlobShard shard = shards.remove(shardId.id());
+        if (shard != null) {
+            shard.deleteShard();
+        }
+        return shard;
+    }
+
+    BlobShard getShard(int shardId) {
+        return shards.get(shardId);
+    }
 }

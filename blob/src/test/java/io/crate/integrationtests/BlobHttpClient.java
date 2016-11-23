@@ -20,30 +20,33 @@
  * agreement.
  */
 
-package io.crate.operation.reference.sys.shard.blob;
+package io.crate.integrationtests;
 
-import io.crate.blob.v2.BlobShard;
-import io.crate.metadata.ReferenceImplementation;
-import io.crate.metadata.shard.blob.BlobShardReferenceImplementation;
-import org.apache.lucene.util.BytesRef;
-import org.elasticsearch.common.inject.Inject;
+import io.crate.common.Hex;
+import io.crate.test.utils.Blobs;
+import org.apache.http.client.methods.CloseableHttpResponse;
+import org.apache.http.client.methods.HttpPut;
+import org.apache.http.entity.StringEntity;
+import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.impl.client.HttpClients;
 
-public class BlobShardBlobPathExpression implements BlobShardReferenceImplementation<BytesRef> {
+import java.io.IOException;
+import java.net.InetSocketAddress;
 
-    private final BytesRef path;
+class BlobHttpClient {
 
-    @Inject
-    public BlobShardBlobPathExpression(BlobShard blobShard) {
-        path = new BytesRef(blobShard.blobContainer().getBaseDirectory().toString());
+    private final InetSocketAddress address;
+
+    BlobHttpClient(InetSocketAddress address) {
+        this.address = address;
     }
 
-    @Override
-    public BytesRef value() {
-        return path;
-    }
-
-    @Override
-    public ReferenceImplementation getChildImplementation(String name) {
-        return null;
+    public CloseableHttpResponse put(String table, String body) throws IOException {
+        CloseableHttpClient httpClient = HttpClients.createDefault();
+        String digest = Hex.encodeHexString(Blobs.digest(body));
+        String url = Blobs.url(address, table + "/" + digest);
+        HttpPut httpPut = new HttpPut(url);
+        httpPut.setEntity(new StringEntity(body));
+        return httpClient.execute(httpPut);
     }
 }

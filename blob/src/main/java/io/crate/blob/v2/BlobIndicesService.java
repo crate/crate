@@ -21,15 +21,14 @@
 
 package io.crate.blob.v2;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Function;
 import com.google.common.base.Functions;
 import com.google.common.base.Predicate;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
 import io.crate.action.FutureActionListener;
-import io.crate.blob.BlobEnvironment;
 import io.crate.blob.BlobShardFuture;
-import org.apache.lucene.util.IOUtils;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.admin.indices.create.CreateIndexRequest;
 import org.elasticsearch.action.admin.indices.create.CreateIndexResponse;
@@ -40,86 +39,90 @@ import org.elasticsearch.action.admin.indices.delete.TransportDeleteIndexAction;
 import org.elasticsearch.action.admin.indices.settings.put.TransportUpdateSettingsAction;
 import org.elasticsearch.action.admin.indices.settings.put.UpdateSettingsRequest;
 import org.elasticsearch.action.admin.indices.settings.put.UpdateSettingsResponse;
-import org.elasticsearch.cluster.ClusterChangedEvent;
 import org.elasticsearch.cluster.ClusterService;
-import org.elasticsearch.cluster.ClusterStateListener;
-import org.elasticsearch.cluster.metadata.IndexMetaData;
-import org.elasticsearch.cluster.metadata.MetaData;
+import org.elasticsearch.cluster.routing.ShardIterator;
+import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.component.AbstractLifecycleComponent;
 import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.inject.Injector;
 import org.elasticsearch.common.inject.Provider;
-import org.elasticsearch.common.io.FileSystemUtils;
 import org.elasticsearch.common.io.PathUtils;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.common.settings.SettingsException;
 import org.elasticsearch.index.Index;
 import org.elasticsearch.index.IndexService;
+import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.index.shard.ShardNotFoundException;
 import org.elasticsearch.indices.IndicesLifecycle;
-import org.elasticsearch.indices.IndicesService;
 
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Locale;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
-public class BlobIndicesService extends AbstractLifecycleComponent<BlobIndicesService> implements ClusterStateListener {
+public class BlobIndicesService extends AbstractLifecycleComponent<BlobIndicesService> {
 
     public static final String SETTING_INDEX_BLOBS_ENABLED = "index.blobs.enabled";
     public static final String SETTING_INDEX_BLOBS_PATH = "index.blobs.path";
+    public static final String SETTING_BLOBS_PATH = "blobs.path";
     private static final String INDEX_PREFIX = ".blob_";
 
     private final Provider<TransportUpdateSettingsAction> transportUpdateSettingsActionProvider;
     private final Provider<TransportCreateIndexAction> transportCreateIndexActionProvider;
     private final Provider<TransportDeleteIndexAction> transportDeleteIndexActionProvider;
-    private final IndicesService indicesService;
-    private final IndicesLifecycle indicesLifecycle;
-    private final BlobEnvironment blobEnvironment;
     private final ClusterService clusterService;
+    private final IndicesLifecycle indicesLifecycle;
 
-    public static final Predicate<String> indicesFilter = new Predicate<String>() {
-        @Override
-        public boolean apply(String indexName) {
-            return isBlobIndex(indexName);
-        }
-    };
+    @VisibleForTesting
+    final Map<String, BlobIndex> indices = new ConcurrentHashMap<>();
 
-    public static final Function<String, String> STRIP_PREFIX = new Function<String, String>() {
-        @Override
-        public String apply(String indexName) {
-            return indexName(indexName);
-        }
-    };
+    public static final Predicate<String> indicesFilter = BlobIndicesService::isBlobIndex;
+    public static final Function<String, String> STRIP_PREFIX = BlobIndicesService::indexName;
+    private final LifecycleListener listener;
+
+    @Nullable
+    private final Path globalBlobPath;
 
     @Inject
     public BlobIndicesService(Settings settings,
                               Provider<TransportCreateIndexAction> transportCreateIndexActionProvider,
                               Provider<TransportDeleteIndexAction> transportDeleteIndexActionProvider,
                               Provider<TransportUpdateSettingsAction> transportUpdateSettingsActionProvider,
-                              IndicesService indicesService,
-                              IndicesLifecycle indicesLifecycle,
-                              BlobEnvironment blobEnvironment,
-                              ClusterService clusterService) {
+                              ClusterService clusterService,
+                              IndicesLifecycle indicesLifecycle) {
         super(settings);
         this.transportCreateIndexActionProvider = transportCreateIndexActionProvider;
         this.transportDeleteIndexActionProvider = transportDeleteIndexActionProvider;
         this.transportUpdateSettingsActionProvider = transportUpdateSettingsActionProvider;
-        this.indicesService = indicesService;
-        this.indicesLifecycle = indicesLifecycle;
-        this.blobEnvironment = blobEnvironment;
         this.clusterService = clusterService;
+        this.indicesLifecycle = indicesLifecycle;
+        this.listener = new LifecycleListener();
+        globalBlobPath = getGlobalBlobPath(settings);
         logger.setLevel("debug");
+    }
+
+    @Nullable
+    public static Path getGlobalBlobPath(Settings settings) {
+        String customGlobalBlobPathSetting = settings.get(SETTING_BLOBS_PATH);
+        if (customGlobalBlobPathSetting == null) {
+            return null;
+        }
+        Path globalBlobPath = PathUtils.get(customGlobalBlobPathSetting);
+        ensureExistsAndWritable(globalBlobPath);
+        return globalBlobPath;
     }
 
     @Override
     protected void doStart() {
         // add listener here to avoid guice proxy errors if the ClusterService could not be build
-        clusterService.addFirst(this);
+        indicesLifecycle.addListener(listener);
     }
 
     @Override
     protected void doStop() {
-        clusterService.remove(this);
+        indicesLifecycle.removeListener(listener);
     }
 
     @Override
@@ -128,6 +131,47 @@ public class BlobIndicesService extends AbstractLifecycleComponent<BlobIndicesSe
 
     public BlobShard blobShardSafe(ShardId shardId) {
         return blobShardSafe(shardId.getIndex(), shardId.id());
+    }
+
+    private class LifecycleListener extends IndicesLifecycle.Listener {
+
+        @Override
+        public void afterIndexCreated(IndexService indexService) {
+            String indexName = indexService.index().getName();
+            if (isBlobIndex(indexName)) {
+                BlobIndex oldBlobIndex = indices.put(indexName, new BlobIndex(globalBlobPath));
+                assert oldBlobIndex == null : "There must not be an index present if a new index is created";
+            }
+        }
+
+        @Override
+        public void afterIndexClosed(Index index, Settings indexSettings) {
+            String indexName = index.getName();
+            if (isBlobIndex(indexName)) {
+                BlobIndex blobIndex = indices.remove(indexName);
+                assert blobIndex != null : "BlobIndex not found on afterIndexDeleted";
+            }
+        }
+
+        @Override
+        public void afterIndexShardCreated(IndexShard indexShard) {
+            String index = indexShard.indexService().index().getName();
+            if (isBlobIndex(index)) {
+                BlobIndex blobIndex = indices.get(index);
+                assert blobIndex != null : "blobIndex must exists if a shard is created in it";
+                blobIndex.createShard(indexShard);
+            }
+        }
+
+        @Override
+        public void afterIndexShardDeleted(ShardId shardId, Settings indexSettings) {
+            String index = shardId.getIndex();
+            if (isBlobIndex(index)) {
+                BlobIndex blobIndex = indices.get(index);
+                assert blobIndex != null : "blobIndex must exists if a shard is deleted from it";
+                blobIndex.removeShard(shardId);
+            }
+        }
     }
 
     /**
@@ -173,36 +217,35 @@ public class BlobIndicesService extends AbstractLifecycleComponent<BlobIndicesSe
         return listener;
     }
 
+    @Nullable
     public BlobShard blobShard(String index, int shardId) {
-        IndexService indexService = indicesService.indexService(index);
-        if (indexService != null) {
-            try {
-                Injector injector = indexService.shardInjectorSafe(shardId);
-                return injector.getInstance(BlobShard.class);
-            } catch (ShardNotFoundException e) {
-                return null;
-            }
+        BlobIndex blobIndex = indices.get(index);
+        if (blobIndex == null) {
+            return null;
         }
-        return null;
+        return blobIndex.getShard(shardId);
     }
 
     public BlobShard blobShardSafe(String index, int shardId) {
         if (isBlobIndex(index)) {
-            return indicesService.indexServiceSafe(index).shardInjectorSafe(shardId).getInstance(BlobShard.class);
+            BlobShard blobShard = blobShard(index, shardId);
+            if (blobShard == null) {
+                throw new ShardNotFoundException(new ShardId(index, shardId));
+            }
+            return blobShard;
         }
         throw new BlobsDisabledException(index);
     }
 
-    private BlobIndex blobIndex(String index) {
-        return indicesService.indexServiceSafe(index).injector().getInstance(BlobIndex.class);
-    }
-
-    private ShardId localShardId(String index, String digest) {
-        return blobIndex(index).shardId(digest);
-    }
 
     public BlobShard localBlobShard(String index, String digest) {
         return blobShardSafe(localShardId(index, digest));
+    }
+
+    private ShardId localShardId(String index, String digest) {
+        ShardIterator si = clusterService.operationRouting().getShards(
+            clusterService.state(), index, null, null, digest, "_only_local");
+        return si.shardId();
     }
 
     public BlobShardFuture blobShardFuture(String index, int shardId) {
@@ -248,68 +291,24 @@ public class BlobIndicesService extends AbstractLifecycleComponent<BlobIndicesSe
         return indexName.substring(INDEX_PREFIX.length());
     }
 
-    @Override
-    public void clusterChanged(ClusterChangedEvent event) {
-        if (event.state().blocks().disableStatePersistence()) {
-            return;
-        }
-        MetaData currentMetaData = event.previousState().metaData();
-        // only delete indices when we already received a state
-        if (currentMetaData == null) {
-            return;
-        }
-        removeIndexLocationsForDeletedIndices(event, currentMetaData);
-    }
-
-    private void removeIndexLocationsForDeletedIndices(ClusterChangedEvent event, MetaData currentMetaData) {
-        MetaData newMetaData = event.state().metaData();
-        for (IndexMetaData current : currentMetaData) {
-            String index = current.getIndex();
-            if (!newMetaData.hasIndex(index) && isBlobIndex(index)) {
-                deleteBlobIndexLocation(current, index);
+    static boolean ensureExistsAndWritable(Path blobsPath) {
+        if (Files.exists(blobsPath)) {
+            if (!Files.isDirectory(blobsPath)) {
+                throw new SettingsException(
+                    String.format(Locale.ENGLISH, "blobs path '%s' is a file, must be a directory", blobsPath));
             }
-        }
-    }
-
-    private void deleteBlobIndexLocation(IndexMetaData current, String index) {
-        Path indexLocation = null;
-        Path customBlobsPath = null;
-        String customBlobsPathStr = current.getSettings().get(BlobIndicesService.SETTING_INDEX_BLOBS_PATH);
-        if (customBlobsPathStr != null) {
-            customBlobsPath = PathUtils.get(customBlobsPathStr);
-            indexLocation = blobEnvironment.indexLocation(new Index(index), customBlobsPath);
-        } else if (blobEnvironment.blobsPath() != null) {
-            indexLocation = blobEnvironment.indexLocation(new Index(index));
-        }
-
-        if (indexLocation == null) {
-            // default shard location - ES logic deletes everything in this case
-            return;
-        }
-
-        Path absolutePath = indexLocation.toAbsolutePath();
-        if (Files.exists(indexLocation)) {
-            logger.debug("[{}] Deleting blob index directory '{}'", index, absolutePath);
-            try {
-                IOUtils.rm(indexLocation);
-            } catch (IOException e) {
-                logger.warn("Could not delete blob index directory {}", absolutePath);
+            if (!Files.isWritable(blobsPath)) {
+                throw new SettingsException(
+                    String.format(Locale.ENGLISH, "blobs path '%s' is not writable", blobsPath));
             }
         } else {
-            logger.warn("wanted to delete blob index directory {} but it was already gone", absolutePath);
-        }
-
-        if (customBlobsPath != null) {
-            // check if custom index blobs path is empty, if so delete whole path
             try {
-                if (BlobEnvironment.isCustomBlobPathEmpty(customBlobsPath)) {
-                    logger.debug("[{}] Empty per table defined blobs path found, deleting leftover folders inside {}",
-                        index, customBlobsPath);
-                    FileSystemUtils.deleteSubDirectories(customBlobsPath);
-                }
+                Files.createDirectories(blobsPath);
             } catch (IOException e) {
-                logger.warn("Could not delete custom blob path {}", customBlobsPath);
+                throw new SettingsException(
+                    String.format(Locale.ENGLISH, "blobs path '%s' could not be created", blobsPath));
             }
         }
+        return true;
     }
 }

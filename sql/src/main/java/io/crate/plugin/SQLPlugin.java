@@ -46,7 +46,6 @@ import io.crate.metadata.sys.MetaDataSysModule;
 import io.crate.monitor.MonitorModule;
 import io.crate.operation.aggregation.impl.AggregationImplModule;
 import io.crate.operation.collect.CollectOperationModule;
-import io.crate.operation.collect.CollectShardModule;
 import io.crate.operation.collect.files.FileCollectModule;
 import io.crate.operation.merge.MergeOperationModule;
 import io.crate.operation.operator.OperatorModule;
@@ -58,7 +57,6 @@ import io.crate.operation.reference.sys.node.local.SysNodeExpressionModule;
 import io.crate.operation.reference.sys.repositories.SysRepositoriesModule;
 import io.crate.operation.reference.sys.repositories.SysRepositoriesService;
 import io.crate.operation.reference.sys.shard.SysShardExpressionModule;
-import io.crate.operation.reference.sys.shard.blob.BlobShardExpressionModule;
 import io.crate.operation.scalar.ScalarFunctionModule;
 import io.crate.operation.tablefunctions.TableFunctionModule;
 import io.crate.protocols.postgres.PostgresNetty;
@@ -169,8 +167,6 @@ public class SQLPlugin extends Plugin {
         if (!settings.getAsBoolean("node.client", false)) {
             modules.add(new MetaDataShardModule());
             modules.add(new SysShardExpressionModule());
-            modules.add(new BlobShardExpressionModule(indexSettings));
-            modules.add(new CollectShardModule());
         }
         return modules;
     }

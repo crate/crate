@@ -109,7 +109,6 @@ public class ShardCollectService {
                                BlobIndicesService blobIndicesService,
                                MapperService mapperService,
                                IndexFieldDataService indexFieldDataService,
-                               BlobShardReferenceResolver blobShardReferenceResolver,
                                CrateDocIndexService crateDocIndexService) {
         this.searchContextFactory = searchContextFactory;
         this.threadPool = threadPool;
@@ -121,7 +120,11 @@ public class ShardCollectService {
         this.indexFieldDataService = indexFieldDataService;
         isBlobShard = BlobIndicesService.isBlobShard(this.shardId);
 
-        shardResolver = isBlobShard ? blobShardReferenceResolver : referenceResolver;
+        if (isBlobShard) {
+            shardResolver = new BlobShardReferenceResolver(blobIndicesService.blobShardSafe(shardId));
+        } else {
+            shardResolver = referenceResolver;
+        }
         docInputSymbolVisitor = crateDocIndexService.docInputSymbolVisitor();
 
         this.functions = functions;

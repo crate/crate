@@ -22,6 +22,7 @@
 package org.elasticsearch.indices.recovery;
 
 import io.crate.blob.exceptions.IllegalBlobRecoveryStateException;
+import io.crate.blob.v2.BlobIndicesService;
 import io.crate.blob.v2.BlobShard;
 import io.crate.common.Hex;
 import org.elasticsearch.common.bytes.BytesReference;
@@ -31,8 +32,6 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.util.concurrent.ConcurrentCollections;
 import org.elasticsearch.common.util.concurrent.ConcurrentMapLong;
 import org.elasticsearch.index.shard.IndexShardClosedException;
-import org.elasticsearch.indices.IndicesLifecycle;
-import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportChannel;
 import org.elasticsearch.transport.TransportRequestHandler;
@@ -77,7 +76,7 @@ public class BlobRecoveryTarget extends AbstractComponent {
 
     private final ConcurrentMapLong<BlobRecoveryStatus> onGoingRecoveries = ConcurrentCollections.newConcurrentMapLong();
     private final RecoveryTarget indexRecoveryTarget;
-    private final IndicesService indicesService;
+    private final BlobIndicesService blobIndicesService;
 
     public static class Actions {
         public static final String FINALIZE_RECOVERY = "crate/blob/shard/recovery/finalize_recovery";
@@ -89,11 +88,11 @@ public class BlobRecoveryTarget extends AbstractComponent {
     }
 
     @Inject
-    public BlobRecoveryTarget(Settings settings, IndicesLifecycle indicesLifecycle, RecoveryTarget indexRecoveryTarget,
-                              IndicesService indicesService, TransportService transportService) {
+    public BlobRecoveryTarget(Settings settings, RecoveryTarget indexRecoveryTarget,
+                              BlobIndicesService blobIndicesService, TransportService transportService) {
         super(settings);
         this.indexRecoveryTarget = indexRecoveryTarget;
-        this.indicesService = indicesService;
+        this.blobIndicesService = blobIndicesService;
 
         transportService.registerRequestHandler(Actions.START_RECOVERY, BlobStartRecoveryRequest.class, ThreadPool.Names.GENERIC, new StartRecoveryRequestHandler());
         transportService.registerRequestHandler(Actions.START_PREFIX, BlobStartPrefixSyncRequest.class, ThreadPool.Names.GENERIC, new StartPrefixSyncRequestHandler());
@@ -118,10 +117,7 @@ public class BlobRecoveryTarget extends AbstractComponent {
                     throw new IndexShardClosedException(request.shardId());
                 }
 
-                BlobShard blobShard = indicesService.indexServiceSafe(
-                    onGoingIndexRecovery.shardId().getIndex()).shardInjectorSafe(
-                    onGoingIndexRecovery.shardId().id()).getInstance(BlobShard.class);
-
+                BlobShard blobShard = blobIndicesService.blobShardSafe(onGoingIndexRecovery.shardId());
                 BlobRecoveryStatus status = new BlobRecoveryStatus(onGoingIndexRecovery, blobShard);
                 onGoingRecoveries.put(request.recoveryId(), status);
                 channel.sendResponse(TransportResponse.Empty.INSTANCE);

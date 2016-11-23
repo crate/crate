@@ -27,7 +27,6 @@ public class BlobModule extends AbstractModule {
 
     @Override
     protected void configure() {
-        bind(BlobEnvironment.class).asEagerSingleton();
         bind(BlobService.class).asEagerSingleton();
     }
 }
