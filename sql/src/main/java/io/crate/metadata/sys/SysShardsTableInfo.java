@@ -88,9 +88,20 @@ public class SysShardsTableInfo extends StaticTableInfo {
             new ColumnIdent("recovery", ImmutableList.of("size", "recovered"));
         public static final ColumnIdent RECOVERY_SIZE_PERCENT =
             new ColumnIdent("recovery", ImmutableList.of("size", "percent"));
+
+        public static final ColumnIdent PATH = new ColumnIdent("path");
+        public static final ColumnIdent BLOB_PATH = new ColumnIdent("blob_path");
     }
 
     public static class ReferenceIdents {
+
+        /**
+         * Implementations have to be registered in
+         *  - {@link io.crate.operation.reference.sys.shard.SysShardExpressionModule}
+         *  - {@link io.crate.operation.reference.sys.shard.blob.BlobShardExpressionModule}
+         *  - {@link io.crate.operation.reference.sys.shard.unassigned.UnassignedShardsExpressionFactories}
+         */
+
         public static final ReferenceIdent ID = new ReferenceIdent(IDENT, Columns.ID);
         public static final ReferenceIdent SCHEMA_NAME = new ReferenceIdent(IDENT, Columns.SCHEMA_NAME);
         public static final ReferenceIdent TABLE_NAME = new ReferenceIdent(IDENT, Columns.TABLE_NAME);
@@ -103,6 +114,8 @@ public class SysShardsTableInfo extends StaticTableInfo {
         public static final ReferenceIdent ROUTING_STATE = new ReferenceIdent(IDENT, Columns.ROUTING_STATE);
         public static final ReferenceIdent ORPHAN_PARTITION = new ReferenceIdent(IDENT, Columns.ORPHAN_PARTITION);
         public static final ReferenceIdent RECOVERY = new ReferenceIdent(IDENT, Columns.RECOVERY);
+        public static final ReferenceIdent PATH = new ReferenceIdent(IDENT, Columns.PATH);
+        public static final ReferenceIdent BLOB_PATH = new ReferenceIdent(IDENT, Columns.BLOB_PATH);
     }
 
     private static final ImmutableList<ColumnIdent> PRIMARY_KEY = ImmutableList.of(
@@ -145,6 +158,8 @@ public class SysShardsTableInfo extends StaticTableInfo {
                 .register(Columns.RECOVERY_FILES_REUSED, IntegerType.INSTANCE)
                 .register(Columns.RECOVERY_FILES_RECOVERED, IntegerType.INSTANCE)
                 .register(Columns.RECOVERY_FILES_PERCENT, FloatType.INSTANCE)
+                .register(Columns.PATH, DataTypes.STRING)
+                .register(Columns.BLOB_PATH, DataTypes.STRING)
                 .putInfoOnly(SysNodesTableInfo.SYS_COL_IDENT, SysNodesTableInfo.tableColumnInfo(IDENT)),
             PRIMARY_KEY);
         this.service = service;

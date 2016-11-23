@@ -30,6 +30,7 @@ import io.crate.metadata.sys.MetaDataSysModule;
 import io.crate.metadata.sys.SysShardsTableInfo;
 import io.crate.operation.reference.NestedObjectExpression;
 import io.crate.operation.reference.sys.cluster.SysClusterExpressionModule;
+import io.crate.operation.reference.sys.shard.ShardPathExpression;
 import io.crate.operation.reference.sys.shard.SysShardExpressionModule;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.types.DataTypes;
@@ -57,14 +58,14 @@ import org.elasticsearch.threadpool.ThreadPool;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.Test;
-import org.mockito.invocation.InvocationOnMock;
-import org.mockito.stubbing.Answer;
 
+import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 import static io.crate.testing.TestingHelpers.refInfo;
+import static org.hamcrest.core.Is.is;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -76,6 +77,7 @@ public class SysShardsExpressionsTest extends CrateUnitTest {
 
     private String indexName = "wikipedia_de";
     private static ThreadPool threadPool = new ThreadPool("testing");
+    private IndexShard indexShard;
 
     @Before
     public void prepare() throws Exception {
@@ -118,22 +120,17 @@ public class SysShardsExpressionsTest extends CrateUnitTest {
             Index index = new Index(SysShardsTableInfo.IDENT.name());
             bind(Index.class).toInstance(index);
 
-            ShardId shardId = mock(ShardId.class);
-            when(shardId.getId()).thenReturn(1);
-            when(shardId.getIndex()).thenAnswer(new Answer<String>() {
-                @Override
-                public String answer(InvocationOnMock invocation) throws Throwable {
-                    return indexName;
-                }
-            });
+            ShardId shardId = new ShardId(indexName, 1);
             bind(ShardId.class).toInstance(shardId);
 
-            IndexShard indexShard = mock(IndexShard.class);
+            indexShard = mock(IndexShard.class);
             bind(IndexShard.class).toInstance(indexShard);
 
             StoreStats storeStats = mock(StoreStats.class);
             when(indexShard.storeStats()).thenReturn(storeStats);
             when(storeStats.getSizeInBytes()).thenReturn(123456L);
+            java.nio.file.Path dataPath = Paths.get("/dummy/" + indexName + "/1");
+            when(indexShard.shardPath()).thenReturn(new ShardPath(false, dataPath, dataPath, "123", shardId));
 
             DocsStats docsStats = mock(DocsStats.class);
             when(indexShard.docStats()).thenReturn(docsStats).thenThrow(IllegalIndexShardStateException.class);
@@ -187,6 +184,12 @@ public class SysShardsExpressionsTest extends CrateUnitTest {
     public void testShardInfoLookup() throws Exception {
         Reference info = new Reference(SysShardsTableInfo.ReferenceIdents.ID, RowGranularity.SHARD, IntegerType.INSTANCE);
         assertEquals(info, schemas.getTableInfo(SysShardsTableInfo.IDENT).getReference(SysShardsTableInfo.Columns.ID));
+    }
+
+    @Test
+    public void testPathExpression() throws Exception {
+        ShardPathExpression shardPathExpression = new ShardPathExpression(indexShard);
+        assertThat(shardPathExpression.value().utf8ToString(), is("/dummy/wikipedia_de/1"));
     }
 
     @Test

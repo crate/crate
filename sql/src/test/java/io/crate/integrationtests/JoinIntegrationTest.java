@@ -241,10 +241,10 @@ public class JoinIntegrationTest extends SQLTransportIntegrationTest {
                 "limit 4");
         assertThat(response.rowCount(), is(4L));
         assertThat(printedTable(response.rows()),
-            is("strict| id\n" +
+            is("strict| blob_path\n" +
+               "strict| id\n" +
                "strict| num_docs\n" +
-               "strict| orphan_partition\n" +
-               "strict| partition_ident\n"));
+               "strict| orphan_partition\n"));
     }
 
     @Test

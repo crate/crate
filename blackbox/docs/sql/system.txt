@@ -843,6 +843,32 @@ orphan_partition
 |                      | tables.                          |             |
 +----------------------+----------------------------------+-------------+
 
+path
+----
+
++----------------------+----------------------------------+-------------+
+|     Column Name      |           Description            | Return Type |
++======================+==================================+=============+
+| ``path``             | Path to the shard directory on   | ``String``  |
+|                      | the filesystem.                  |             |
+|                      | This directory contains state    |             |
+|                      | and index files.                 |             |
++----------------------+----------------------------------+-------------+
+
+
+blob_path
+---------
+
++----------------------+----------------------------------+-------------+
+|     Column Name      |           Description            | Return Type |
++======================+==================================+=============+
+| ``blob_path``        | Path to the directory which      | ``String``  |
+|                      | contains the blob files of the   |             |
+|                      | shard, or null if the shard is   |             |
+|                      | not a blob shard.                |             |
++----------------------+----------------------------------+-------------+
+
+
 _node
 -----
 
