@@ -24,7 +24,6 @@ package io.crate.planner.node.dql;
 
 import com.google.common.base.MoreObjects;
 import com.google.common.collect.Iterables;
-import io.crate.analyze.symbol.InputColumn;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.analyze.symbol.Symbols;
 import io.crate.planner.PositionalOrderBy;
@@ -32,10 +31,8 @@ import io.crate.planner.ResultDescription;
 import io.crate.planner.distribution.DistributionInfo;
 import io.crate.planner.distribution.UpstreamPhase;
 import io.crate.planner.node.ExecutionPhaseVisitor;
-import io.crate.planner.projection.FetchProjection;
 import io.crate.planner.projection.Projection;
 import io.crate.types.DataType;
-import io.crate.types.DataTypes;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
@@ -55,7 +52,6 @@ public class UnionPhase extends AbstractProjectionsPhase implements UpstreamPhas
     private int limit;
     private int offset;
     private Collection<String> executionNodes;
-    private boolean fetchRequired = false;
 
     private UnionPhase() {
     }
@@ -84,27 +80,6 @@ public class UnionPhase extends AbstractProjectionsPhase implements UpstreamPhas
 
     public int numUpstreams() {
         return numUpstreams;
-    }
-
-    public boolean isFetchRequired() {
-        return fetchRequired;
-    }
-
-    @Override
-    public void addProjection(Projection projection) {
-        if (projection instanceof FetchProjection) {
-            fetchRequired = true;
-
-            // prepend an output symbol, the inputId byte value will be injected by the union phase as the first column
-            for (Projection existingProjection : projections) {
-                existingProjection.prependOutput(new InputColumn(0, DataTypes.BYTE));
-            }
-
-            // fetch projections is always the last one, so just shift input columns without adding the one injected
-            // by the union phase
-            ((FetchProjection) projection).outputsPerRelation().forEach(InputColumn::shiftRight);
-        }
-        super.addProjection(projection);
     }
 
     @Override

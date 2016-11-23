@@ -2036,37 +2036,37 @@ public class SelectStatementAnalyzerTest extends CrateUnitTest {
     @Test
     public void testSelectHiddenColumn() throws Exception {
         expectedException.expect(ColumnUnknownException.class);
-        expectedException.expectMessage("Column _docid unknown");
-        analyze("select _docid + 1 from users");
+        expectedException.expectMessage("Column _fetchid unknown");
+        analyze("select _fetchid + 1 from users");
     }
 
     @Test
     public void testOrderByHiddenColumn() throws Exception {
         expectedException.expect(ColumnUnknownException.class);
-        expectedException.expectMessage("Column _docid unknown");
-        analyze("select * from users order by _docid");
+        expectedException.expectMessage("Column _fetchid unknown");
+        analyze("select * from users order by _fetchid");
 
     }
 
     @Test
     public void testWhereHiddenColumn() throws Exception {
         expectedException.expect(ColumnUnknownException.class);
-        expectedException.expectMessage("Column _docid unknown");
-        analyze("select * from users where _docid = 0");
+        expectedException.expectMessage("Column _fetchid unknown");
+        analyze("select * from users where _fetchid = 0");
     }
 
     @Test
     public void testGroupByHiddenColumn() throws Exception {
         expectedException.expect(ColumnUnknownException.class);
-        expectedException.expectMessage("Column _docid unknown");
-        analyze("select count(*) from users group by _docid");
+        expectedException.expectMessage("Column _fetchid unknown");
+        analyze("select count(*) from users group by _fetchid");
     }
 
     @Test
     public void testHavingHiddenColumn() throws Exception {
         expectedException.expect(ColumnUnknownException.class);
-        expectedException.expectMessage("Column _docid unknown");
-        analyze("select count(*) from users group by id having _docid > 0");
+        expectedException.expectMessage("Column _fetchid unknown");
+        analyze("select count(*) from users group by id having _fetchid > 0");
     }
 
     @Test

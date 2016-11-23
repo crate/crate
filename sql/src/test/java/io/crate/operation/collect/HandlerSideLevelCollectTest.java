@@ -46,11 +46,7 @@ import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
 
 import static org.hamcrest.core.Is.is;
 import static org.mockito.Mockito.mock;
@@ -80,8 +76,8 @@ public class HandlerSideLevelCollectTest extends SQLTransportIntegrationTest {
             toCollect,
             ImmutableList.<Projection>of(),
             whereClause,
-            DistributionInfo.DEFAULT_BROADCAST
-        );
+            DistributionInfo.DEFAULT_BROADCAST,
+            (byte) 0);
     }
 
     private RoutedCollectPhase collectNode(Routing routing, List<Symbol> toCollect, RowGranularity rowGranularity) {

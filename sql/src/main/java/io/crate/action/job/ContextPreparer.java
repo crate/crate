@@ -48,7 +48,6 @@ import io.crate.operation.count.CountOperation;
 import io.crate.operation.fetch.FetchContext;
 import io.crate.operation.join.NestedLoopOperation;
 import io.crate.operation.projectors.*;
-import io.crate.operation.union.PrependInputIdRowReceiver;
 import io.crate.planner.distribution.DistributionType;
 import io.crate.planner.distribution.UpstreamPhase;
 import io.crate.planner.node.ExecutionPhase;
@@ -644,9 +643,6 @@ public class ContextPreparer extends AbstractComponent {
             MultiUpstreamRowReceiver multiUpstreamRowReceiver = new MultiUpstreamRowReceiver(targetRowReceiver);
             for (int i = 0; i < unionPhase.numUpstreams(); i++) {
                 RowReceiver rowReceiver = multiUpstreamRowReceiver.newRowReceiver();
-                if (unionPhase.isFetchRequired()) {
-                    rowReceiver = new PrependInputIdRowReceiver(rowReceiver, inputId);
-                }
                 context.phaseIdToRowReceivers.put(toKey(unionPhase.phaseId(), inputId), rowReceiver);
                 inputId++;
             }

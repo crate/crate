@@ -41,7 +41,7 @@ import java.util.List;
 
 public class DocTableRelation extends AbstractTableRelation<DocTableInfo> {
 
-    private static final ImmutableSet<ColumnIdent> HIDDEN_COLUMNS = ImmutableSet.of(DocSysColumns.DOCID);
+    private static final ImmutableSet<ColumnIdent> HIDDEN_COLUMNS = ImmutableSet.of(DocSysColumns.FETCHID);
     private final static SortValidator SORT_VALIDATOR = new SortValidator();
 
     private static class SortValidator extends SymbolVisitor<DocTableRelation, Void> {

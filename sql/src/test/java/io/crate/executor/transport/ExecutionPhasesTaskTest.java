@@ -61,8 +61,8 @@ public class ExecutionPhasesTaskTest {
             ImmutableList.of(),
             ImmutableList.of(),
             WhereClause.MATCH_ALL,
-            DistributionInfo.DEFAULT_BROADCAST
-        );
+            DistributionInfo.DEFAULT_BROADCAST,
+            (byte) 0);
 
         MergePhase m1 = new MergePhase(
             jobId,

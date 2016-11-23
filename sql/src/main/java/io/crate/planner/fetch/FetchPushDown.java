@@ -164,7 +164,7 @@ public class FetchPushDown {
             if (fetchSource == null) {
                 context.fetchSources.put(tableIdent,
                     new FetchSource(relation.tableRelation().tableInfo().partitionedByColumns(),
-                        ImmutableList.of(docTableFetchPushDown.docIdCol()), fetchRefs));
+                        ImmutableList.of(docTableFetchPushDown.fetchIdCol()), fetchRefs));
             } else {
                 // merge fetch references without duplicates
                 LinkedHashSet<Reference> mergedFetchRefs = new LinkedHashSet<>();
@@ -172,7 +172,7 @@ public class FetchPushDown {
                 mergedFetchRefs.addAll(fetchRefs);
                 context.fetchSources.put(tableIdent,
                     new FetchSource(relation.tableRelation().tableInfo().partitionedByColumns(),
-                        ImmutableList.of(docTableFetchPushDown.docIdCol()), mergedFetchRefs));
+                        ImmutableList.of(docTableFetchPushDown.fetchIdCol()), mergedFetchRefs));
             }
 
             return null;

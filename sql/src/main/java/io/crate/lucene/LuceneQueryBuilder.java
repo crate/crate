@@ -1240,8 +1240,7 @@ public class LuceneQueryBuilder {
             final CollectorContext collectorContext = new CollectorContext(
                 context.mapperService,
                 context.fieldDataService,
-                new CollectorFieldsVisitor(expressions.size())
-            );
+                new CollectorFieldsVisitor(expressions.size()));
 
             for (LuceneCollectorExpression expression : expressions) {
                 expression.startCollect(collectorContext);

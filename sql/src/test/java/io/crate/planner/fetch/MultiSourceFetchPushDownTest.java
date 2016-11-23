@@ -59,8 +59,8 @@ public class MultiSourceFetchPushDownTest extends CrateUnitTest {
         pushDown("select a, b from t1, t2");
         assertThat(pd.remainingOutputs(), isSQL("FETCH(INPUT(0), doc.t1._doc['a']), FETCH(INPUT(1), doc.t2._doc['b'])"));
         assertThat(mss.querySpec(), isSQL("SELECT RELCOL(doc.t1, 0), RELCOL(doc.t2, 0)"));
-        assertThat(srcSpec("t1"), isSQL("SELECT doc.t1._docid"));
-        assertThat(srcSpec("t2"), isSQL("SELECT doc.t2._docid"));
+        assertThat(srcSpec("t1"), isSQL("SELECT doc.t1._fetchid"));
+        assertThat(srcSpec("t2"), isSQL("SELECT doc.t2._fetchid"));
 
         assertThat(pd.fetchSources().size(), is(2));
 
@@ -71,7 +71,7 @@ public class MultiSourceFetchPushDownTest extends CrateUnitTest {
         pushDown("select a, b from t1, t2 order by b");
         assertThat(pd.remainingOutputs(), isSQL("FETCH(INPUT(0), doc.t1._doc['a']), INPUT(1)"));
         assertThat(mss.querySpec(), isSQL("SELECT RELCOL(doc.t1, 0), RELCOL(doc.t2, 0) ORDER BY RELCOL(doc.t2, 0)"));
-        assertThat(srcSpec("t1"), isSQL("SELECT doc.t1._docid"));
+        assertThat(srcSpec("t1"), isSQL("SELECT doc.t1._fetchid"));
         assertThat(srcSpec("t2"), isSQL("SELECT doc.t2.b ORDER BY doc.t2.b"));
     }
 

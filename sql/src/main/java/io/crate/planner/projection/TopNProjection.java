@@ -118,16 +118,6 @@ public class TopNProjection extends Projection {
     }
 
     @Override
-    public void prependOutput(Symbol symbol) {
-        if (orderBy != null) {
-            InputColumn.shiftRight(orderBy);
-        }
-
-        InputColumn.shiftRight(outputs);
-        outputs.add(0, symbol);
-    }
-
-    @Override
     public void replaceSymbols(Function<Symbol, Symbol> replaceFunction) {
         Lists2.replaceItems(outputs, replaceFunction);
         Lists2.replaceItems(orderBy, replaceFunction);

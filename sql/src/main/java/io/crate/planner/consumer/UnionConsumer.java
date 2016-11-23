@@ -64,6 +64,7 @@ class UnionConsumer implements Consumer {
             for (QueriedRelation queriedRelation : unionSelect.relations()) {
                 Plan subPlan = context.plannerContext().planSubRelation(queriedRelation, context);
                 subPlans.add(Merge.ensureOnHandlerNoDirectResult(subPlan, context.plannerContext()));
+                context.incrementRelationId();
             }
 
             List<Symbol> outputs = unionSelect.querySpec().outputs();
