@@ -25,10 +25,7 @@ import com.google.common.base.Preconditions;
 import io.crate.analyze.symbol.Function;
 import io.crate.metadata.*;
 import io.crate.operation.Input;
-import io.crate.types.ArrayType;
-import io.crate.types.CollectionType;
-import io.crate.types.DataType;
-import io.crate.types.DataTypes;
+import io.crate.types.*;
 
 import java.util.List;
 

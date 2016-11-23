@@ -616,6 +616,39 @@ Example::
 Due to a limitation on the :ref:`geo_shape_data_type` datatype
 this function cannot be used in the :ref:`sql_reference_order_by`.
 
+
+latitude/longitude(geo_point) returns double
+--------------------------------------------
+
+The ``latitude`` and ``longitude`` function return the coordinates of latitude
+or longitude of a point, or ``NULL`` if not available. The input must be a
+column of type ``geo_point``, a valid WKT string or a double-array. See
+:ref:`geo_point_data_type` for more information on the implicit type casting of
+geo points.
+
+Example::
+
+    cr> select mountain, height, latitude(coordinates) as "lat", longitude(coordinates) as "lon"
+    ... from sys.summits order by height desc limit 1;
+    +------------+--------+---------+---------+
+    | mountain   | height |     lat |     lon |
+    +------------+--------+---------+---------+
+    | Mont Blanc |   4808 | 6.86444 | 45.8325 |
+    +------------+--------+---------+---------+
+    SELECT 1 row in set (... sec)
+
+Below is an example of the latitude/longitude functions which make use of the
+implicit type casting from strings to geo point::
+
+    cr> select longitude('POINT (10 20)'), latitude([10.0, 20.0]);
+    +----------------------------+-----------------------+
+    | longitude('POINT (10 20)') | latitude([10.0,20.0]) |
+    +----------------------------+-----------------------+
+    |                       20.0 |                  10.0 |
+    +----------------------------+-----------------------+
+    SELECT 1 row in set (... sec)
+
+
 .. _mathematical_functions:
 
 Mathematical Functions
