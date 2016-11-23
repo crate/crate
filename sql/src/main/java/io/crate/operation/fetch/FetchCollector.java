@@ -52,16 +52,15 @@ class FetchCollector {
                    Streamer<?>[] streamers,
                    MapperService mapperService,
                    Engine.Searcher searcher,
-                   IndexFieldDataService indexFieldDataService,
-                   int readerId) {
+                   IndexFieldDataService indexFieldDataService) {
         // use toArray to avoid iterator allocations in docIds loop
         this.collectorExpressions = collectorExpressions.toArray(new LuceneCollectorExpression[0]);
         this.streamers = streamers;
         this.readerContexts = searcher.searcher().getIndexReader().leaves();
         this.fieldsVisitor = new CollectorFieldsVisitor(this.collectorExpressions.length);
-        CollectorContext collectorContext = new CollectorContext(mapperService, indexFieldDataService, fieldsVisitor, readerId);
+        Context context = new Context(mapperService, indexFieldDataService, fieldsVisitor);
         for (LuceneCollectorExpression<?> collectorExpression : this.collectorExpressions) {
-            collectorExpression.startCollect(collectorContext);
+            collectorExpression.startCollect(context);
         }
         visitorEnabled = fieldsVisitor.required();
         this.row = new InputRow(collectorExpressions);
@@ -89,5 +88,24 @@ class FetchCollector {
             builder.add(row);
         }
         return builder.build();
+    }
+
+    public static final class Context extends CollectorContext {
+
+        public Context(MapperService mapperService,
+                       IndexFieldDataService fieldData,
+                       CollectorFieldsVisitor visitor) {
+            super(mapperService, fieldData, visitor, -1, (byte) 0);
+        }
+
+        @Override
+        public int readerId() {
+            throw new UnsupportedOperationException("readerId() not supported");
+        }
+
+        @Override
+        public byte relationId() {
+            throw new UnsupportedOperationException("relationId() not supported");
+        }
     }
 }

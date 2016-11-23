@@ -8,7 +8,6 @@ import io.crate.Constants;
 import io.crate.action.sql.SessionContext;
 import io.crate.analyze.*;
 import io.crate.metadata.*;
-import io.crate.metadata.blob.BlobTableInfoFactory;
 import io.crate.metadata.table.ColumnPolicy;
 import io.crate.metadata.table.SchemaInfo;
 import io.crate.sql.parser.SqlParser;
@@ -271,7 +270,7 @@ public class DocIndexMetaDataTest extends CrateUnitTest {
         });
 
         assertThat(fqns, Matchers.<List<String>>is(
-            ImmutableList.of("_doc", "_docid", "_id", "_raw", "_score", "_uid", "_version", "content", "datum", "id", "nested", "nested.inner_nested",
+            ImmutableList.of("_doc", "_fetchid", "_id", "_raw", "_score", "_uid", "_version", "content", "datum", "id", "nested", "nested.inner_nested",
                 "person", "person.birthday", "person.first_name", "title")));
 
     }

@@ -78,7 +78,7 @@ public class SQLTransportExecutor {
     public final static int DEFAULT_SOFT_LIMIT = 10_000;
 
     public static final TimeValue REQUEST_TIMEOUT = new TimeValue(Long.parseLong(
-        MoreObjects.firstNonNull(System.getenv(SQL_REQUEST_TIMEOUT), "5")), TimeUnit.SECONDS);
+        MoreObjects.firstNonNull(System.getenv(SQL_REQUEST_TIMEOUT), "5")), TimeUnit.HOURS);
 
     private static final ESLogger LOGGER = Loggers.getLogger(SQLTransportExecutor.class);
     private final ClientProvider clientProvider;

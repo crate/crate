@@ -31,32 +31,39 @@ public class CollectorContext {
     private final MapperService mapperService;
     private final IndexFieldDataService fieldData;
     private final CollectorFieldsVisitor fieldsVisitor;
-    private final int jobSearchContextId;
+    private final int readerId;
+    private final byte relationId;
 
     private SourceLookup sourceLookup;
 
     public CollectorContext(MapperService mapperService,
                             IndexFieldDataService fieldData,
                             CollectorFieldsVisitor visitor) {
-        this(mapperService, fieldData, visitor, -1);
+        this(mapperService, fieldData, visitor, -1, (byte) 0);
     }
 
     public CollectorContext(MapperService mapperService,
                             IndexFieldDataService fieldData,
                             CollectorFieldsVisitor visitor,
-                            int jobSearchContextId) {
+                            int readerId,
+                            byte relationId) {
         this.mapperService = mapperService;
         this.fieldData = fieldData;
         fieldsVisitor = visitor;
-        this.jobSearchContextId = jobSearchContextId;
+        this.readerId = readerId;
+        this.relationId = relationId;
     }
 
     public CollectorFieldsVisitor visitor() {
         return fieldsVisitor;
     }
 
-    public int jobSearchContextId() {
-        return jobSearchContextId;
+    public int readerId() {
+        return readerId;
+    }
+
+    public byte relationId() {
+        return relationId;
     }
 
     public MapperService mapperService() {

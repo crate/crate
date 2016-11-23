@@ -33,7 +33,7 @@ public abstract class DefaultTraversalSymbolVisitor<C, R> extends SymbolVisitor<
 
     @Override
     public R visitFetchReference(FetchReference fetchReference, C context) {
-        process(fetchReference.docId(), context);
+        process(fetchReference.fetchId(), context);
         process(fetchReference.ref(), context);
         return super.visitFetchReference(fetchReference, context);
     }

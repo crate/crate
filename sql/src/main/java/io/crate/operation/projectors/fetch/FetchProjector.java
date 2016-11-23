@@ -39,6 +39,7 @@ import io.crate.operation.Input;
 import io.crate.operation.InputRow;
 import io.crate.operation.fetch.FetchRowInputSymbolVisitor;
 import io.crate.operation.projectors.*;
+import io.crate.operation.reference.doc.lucene.FetchIds;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.util.concurrent.AbstractRunnable;
@@ -170,10 +171,10 @@ public class FetchProjector extends AbstractProjector {
     public Result setNextRow(Row row) {
         Object[] cells = row.materialize();
         collectRowContext.inputRow().cells = cells;
-        for (int i : collectRowContext.docIdPositions()) {
-            Object docId = cells[i];
-            if (docId != null) {
-                context.require((long) docId);
+        for (int i : collectRowContext.fetchIdPositions()) {
+            Object fetchId = cells[i];
+            if (fetchId != null) {
+                context.require((long) fetchId);
             }
         }
         inputValues.add(cells);
@@ -252,23 +253,29 @@ public class FetchProjector extends AbstractProjector {
         final ArrayBackedRow inputRow = collectRowContext.inputRow();
         final ArrayBackedRow[] fetchRows = collectRowContext.fetchRows();
         final ArrayBackedRow[] partitionRows = collectRowContext.partitionRows();
-        final int[] docIdPositions = collectRowContext.docIdPositions();
+        final int[] fetchIdPositions = collectRowContext.fetchIdPositions();
         final Object[][] nullCells = collectRowContext.nullCells();
 
         loop:
         for (int i = rowStartIdx; i < inputValues.size(); i++) {
             Object[] cells = inputValues.get(i);
             inputRow.cells = cells;
-            for (int j = 0; j < docIdPositions.length; j++) {
-                Object docObject = cells[docIdPositions[j]];
+            byte relationId = 0;
+            for (int j = 0; j < fetchIdPositions.length; j++) {
+                Object docObject = cells[fetchIdPositions[j]];
                 if (docObject == null) {
                     // can be null on outer joins
                     fetchRows[j].cells = nullCells[j];
                     continue;
                 }
-                long doc = (long) docObject;
-                int readerId = (int) (doc >> 32);
-                int docId = (int) (long) doc;
+                long fetchId = (long) docObject;
+                int readerId = FetchIds.extractReaderId(fetchId);
+                int docId = FetchIds.extractDocId(fetchId);
+                // All fetchIds have the same relationId since a MultiSourceSelect
+                // is treated as one relation if part of a union
+                if (j == 0) {
+                    relationId = FetchIds.extractRelationId(fetchId);
+                }
                 ReaderBucket readerBucket = context.getReaderBucket(readerId);
                 assert readerBucket != null : "readerBucket must not be null";
                 setPartitionRow(partitionRows, j, readerBucket);
@@ -276,7 +283,7 @@ public class FetchProjector extends AbstractProjector {
                 assert !readerBucket.fetchRequired() || fetchRows[j].cells != null :
                     "expecting ether fetchRequired to be false or fetchRow cells to be set";
             }
-            Row outputRow = outputRowResolver.resolveOutputRow(cells);
+            Row outputRow = outputRowResolver.resolveOutputRow(relationId);
             Result result = downstream.setNextRow(outputRow);
             switch (result) {
                 case CONTINUE:
@@ -414,7 +421,7 @@ public class FetchProjector extends AbstractProjector {
 
     interface OutputRowResolver {
 
-        Row resolveOutputRow(Object[] inputCells);
+        Row resolveOutputRow(byte relationId);
     }
 
     private static class SingleOutputRowResolver implements OutputRowResolver {
@@ -426,7 +433,7 @@ public class FetchProjector extends AbstractProjector {
         }
 
         @Override
-        public Row resolveOutputRow(Object[] inputCells) {
+        public Row resolveOutputRow(byte relationId) {
             return outputRow;
         }
     }
@@ -440,9 +447,8 @@ public class FetchProjector extends AbstractProjector {
         }
 
         @Override
-        public Row resolveOutputRow(Object[] inputCells) {
-            int relationInputIdx = ((Byte) inputCells[0]).intValue();
-            return outputRows.get(relationInputIdx);
+        public Row resolveOutputRow(byte relationId) {
+            return outputRows.get(relationId);
         }
     }
 }

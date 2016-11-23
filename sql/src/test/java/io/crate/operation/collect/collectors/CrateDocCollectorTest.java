@@ -28,7 +28,6 @@ import io.crate.action.sql.query.CrateSearchContext;
 import io.crate.operation.Input;
 import io.crate.operation.projectors.RowReceiver;
 import io.crate.operation.reference.doc.lucene.LuceneCollectorExpression;
-import org.elasticsearch.search.internal.SearchContext;
 import org.junit.Test;
 import org.mockito.Answers;
 
@@ -42,7 +41,7 @@ public class CrateDocCollectorTest {
         CrateSearchContext sc = mock(CrateSearchContext.class, Answers.RETURNS_MOCKS.get());
         RowReceiver rowReceiver = mock(RowReceiver.class, Answers.RETURNS_MOCKS.get());
         CrateDocCollector c = new CrateDocCollector(sc, MoreExecutors.directExecutor(), false, null,
-            rowReceiver, ImmutableList.<Input<?>>of(), ImmutableList.<LuceneCollectorExpression<?>>of());
+            rowReceiver, ImmutableList.<Input<?>>of(), ImmutableList.<LuceneCollectorExpression<?>>of(), (byte) 0);
 
         c.kill(null);
 

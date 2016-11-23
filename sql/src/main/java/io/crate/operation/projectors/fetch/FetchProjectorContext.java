@@ -32,6 +32,7 @@ import io.crate.analyze.symbol.Symbols;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.Reference;
 import io.crate.metadata.TableIdent;
+import io.crate.operation.reference.doc.lucene.FetchIds;
 import io.crate.planner.node.fetch.FetchSource;
 import org.apache.lucene.util.BytesRef;
 
@@ -66,9 +67,9 @@ public class FetchProjectorContext {
         return readerBuckets.get(readerId);
     }
 
-    ReaderBucket require(long doc) {
-        int readerId = (int) (doc >> 32);
-        int docId = (int) doc;
+    ReaderBucket require(long fetchId) {
+        int readerId = FetchIds.extractReaderId(fetchId);
+        int docId = FetchIds.extractDocId(fetchId);
         ReaderBucket readerBucket = readerBuckets.get(readerId);
         if (readerBucket == null) {
             readerBucket = createReaderBucket(readerId);
