@@ -151,7 +151,8 @@ class ReduceOnCollectorGroupByConsumer implements Consumer {
                 context.plannerContext(),
                 table,
                 splitPoints.leaves(),
-                projections
+                projections,
+                context.relationId()
             );
             return new Collect(
                 collectPhase,

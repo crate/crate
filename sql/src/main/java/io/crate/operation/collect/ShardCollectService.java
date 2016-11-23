@@ -256,7 +256,8 @@ public class ShardCollectService {
                 Symbols.containsColumn(collectPhase.toCollect(), DocSysColumns.SCORE),
                 jobCollectContext.queryPhaseRamAccountingContext(),
                 docCtx.topLevelInputs(),
-                docCtx.docLevelExpressions()
+                docCtx.docLevelExpressions(),
+                collectPhase.relationId()
             );
         } catch (Throwable t) {
             if (searchContext == null) {
@@ -303,7 +304,8 @@ public class ShardCollectService {
                 mapperService,
                 indexFieldDataService,
                 new CollectorFieldsVisitor(ctx.docLevelExpressions().size()),
-                sharedShardContext.readerId()
+                sharedShardContext.readerId(),
+                collectPhase.relationId()
             );
         } catch (Throwable t) {
             if (searchContext != null) {

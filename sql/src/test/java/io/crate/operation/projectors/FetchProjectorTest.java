@@ -67,7 +67,7 @@ public class FetchProjectorTest extends CrateUnitTest {
     @Before
     public void before() throws Exception {
         executorService = Executors.newFixedThreadPool(2);
-        // dummy FetchOperation that returns buckets for each reader-id where each row contains a column that is the same as the docId
+        // dummy FetchOperation that returns buckets for each reader-id where each row contains a column that is the same as the fetchId
         fetchOperation = new DummyFetchOperation();
     }
 

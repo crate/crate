@@ -271,7 +271,7 @@ public class DocIndexMetaDataTest extends CrateUnitTest {
         });
 
         assertThat(fqns, Matchers.<List<String>>is(
-            ImmutableList.of("_doc", "_docid", "_id", "_raw", "_score", "_uid", "_version", "content", "datum", "id", "nested", "nested.inner_nested",
+            ImmutableList.of("_doc", "_fetchid", "_id", "_raw", "_score", "_uid", "_version", "content", "datum", "id", "nested", "nested.inner_nested",
                 "person", "person.birthday", "person.first_name", "title")));
 
     }

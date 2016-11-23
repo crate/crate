@@ -89,7 +89,7 @@ public class FetchFieldExtractor {
     private static class IsFetchableVisitor extends AnalyzedRelationVisitor<Field, Boolean> {
 
         private static final IsFetchableVisitor INSTANCE = new IsFetchableVisitor();
-        private static final Set<Path> NOT_FETCHABLE = ImmutableSet.<Path>of(DocSysColumns.SCORE, DocSysColumns.DOCID);
+        private static final Set<Path> NOT_FETCHABLE = ImmutableSet.<Path>of(DocSysColumns.SCORE, DocSysColumns.FETCHID);
 
         public static Boolean isFetchable(Field field) {
             return INSTANCE.process(field.relation(), field);

@@ -55,7 +55,8 @@ public class TableFunctionCollectPhase extends RoutedCollectPhase implements Col
                                      List<? extends Symbol> arguments,
                                      List<Projection> projections,
                                      List<Symbol> outputs,
-                                     WhereClause whereClause) {
+                                     WhereClause whereClause,
+                                     byte relationId) {
         super(jobId,
             phaseId,
             functionName,
@@ -64,7 +65,8 @@ public class TableFunctionCollectPhase extends RoutedCollectPhase implements Col
             outputs,
             projections,
             whereClause,
-            DistributionInfo.DEFAULT_BROADCAST);
+            DistributionInfo.DEFAULT_BROADCAST,
+            relationId);
         this.arguments = arguments;
         this.functionName = functionName;
     }
