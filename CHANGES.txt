@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Added ``path`` and ``blob_path`` columns to the ``sys.shards`` table.
+
  - Improved performance of ``array_cat`` and ``array_difference``
    scalar functions if the array contains function expressions.
 

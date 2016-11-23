@@ -3,6 +3,7 @@ package io.crate.operation.reference.sys.shard.unassigned;
 import com.google.common.collect.ImmutableMap;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.ReferenceImplementation;
+import io.crate.metadata.RowCollectExpression;
 import io.crate.metadata.RowContextCollectorExpression;
 import io.crate.metadata.expressions.RowCollectExpressionFactory;
 import io.crate.metadata.shard.unassigned.UnassignedShard;
@@ -169,6 +170,28 @@ public class UnassignedShardsExpressionFactories {
                         @Override
                         public ReferenceImplementation getChildImplementation(String name) {
                             return this;
+                        }
+                    };
+                }
+            })
+            .put(SysShardsTableInfo.Columns.PATH, new RowCollectExpressionFactory() {
+                @Override
+                public RowCollectExpression create() {
+                    return new RowContextCollectorExpression() {
+                        @Override
+                        public Object value() {
+                            return null;
+                        }
+                    };
+                }
+            })
+            .put(SysShardsTableInfo.Columns.BLOB_PATH, new RowCollectExpressionFactory() {
+                @Override
+                public RowCollectExpression create() {
+                    return new RowContextCollectorExpression() {
+                        @Override
+                        public Object value() {
+                            return null;
                         }
                     };
                 }

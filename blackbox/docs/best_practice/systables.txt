@@ -145,10 +145,12 @@ provides access to the status and size of shards, its names and IDs::
     +--------------------------------+-----------+
     | column_name                    | data_type |
     +--------------------------------+-----------+
+    | blob_path                      | string    |
     | id                             | integer   |
     | num_docs                       | long      |
     | orphan_partition               | boolean   |
     | partition_ident                | string    |
+    | path                           | string    |
     | primary                        | boolean   |
     | recovery                       | object    |
     | recovery['files']              | object    |
@@ -171,7 +173,7 @@ provides access to the status and size of shards, its names and IDs::
     | state                          | string    |
     | table_name                     | string    |
     +--------------------------------+-----------+
-    SHOW 25 rows in set (... sec)
+    SHOW 27 rows in set (... sec)
 
 The cluster state is somewhat delicate when nodes join or leave, since
 in those situations shards have to be rearranged to ensure that each of

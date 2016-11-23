@@ -22,9 +22,9 @@
 package io.crate.integrationtests;
 
 import io.crate.action.sql.SQLActionException;
-import io.crate.testing.SQLResponse;
 import io.crate.blob.v2.BlobIndicesService;
 import io.crate.metadata.PartitionName;
+import io.crate.testing.SQLResponse;
 import io.crate.testing.TestingHelpers;
 import io.crate.testing.UseJdbc;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
@@ -33,6 +33,7 @@ import org.elasticsearch.test.ESIntegTestCase;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
@@ -57,6 +58,31 @@ public class SysShardsTest extends SQLTransportIntegrationTest {
             .build();
         blobIndicesService.createBlobTable("blobs", indexSettings);
         sqlExecutor.ensureGreen();
+    }
+
+    @Test
+    public void testPathAndBlobPath() throws Exception {
+        Path blobs = createTempDir("blobs");
+        execute("create table t1 (x int) clustered into 1 shards with (number_of_replicas = 0)");
+        execute("create blob table b1 clustered into 1 shards with (number_of_replicas = 0)");
+        execute("create blob table b2 " +
+                "clustered into 1 shards with (number_of_replicas = 0, blobs_path = '" + blobs.toString() + "')");
+        ensureYellow();
+
+        execute("select path, blob_path from sys.shards where table_name in ('t1', 'b1', 'b2') " +
+                "order by table_name asc");
+        // b1
+        // path + /blobs == blob_path without custom blob path
+        assertThat(response.rows()[0][0] + "/blobs", is(response.rows()[0][1]));
+
+        // b2
+        String b2Path = (String) response.rows()[1][0];
+        assertThat(b2Path, containsString("/nodes/"));
+        assertThat(b2Path, endsWith("/indices/.blob_b2/0")); // no /blobs suffix on custom blob path
+        assertThat((String) response.rows()[1][1], endsWith(blobs.toString() + "/indices/.blob_b2/0"));
+
+        // t1
+        assertThat(response.rows()[2][1], nullValue());
     }
 
     @Test
@@ -122,19 +148,21 @@ public class SysShardsTest extends SQLTransportIntegrationTest {
         SQLResponse response = execute(
             "select * from sys.shards where table_name = 'characters'");
         assertEquals(8L, response.rowCount());
-        assertEquals(12, response.cols().length);
+        assertEquals(14, response.cols().length);
     }
 
     @Test
     public void testSelectStarAllTables() throws Exception {
         SQLResponse response = execute("select * from sys.shards");
         assertEquals(26L, response.rowCount());
-        assertEquals(12, response.cols().length);
+        assertEquals(14, response.cols().length);
         assertThat(response.cols(), arrayContaining(
+            "blob_path",
             "id",
             "num_docs",
             "orphan_partition",
             "partition_ident",
+            "path",
             "primary",
             "recovery",
             "relocating_node",
@@ -150,7 +178,7 @@ public class SysShardsTest extends SQLTransportIntegrationTest {
         SQLResponse response = execute(
             "select * from sys.shards where table_name like 'charact%'");
         assertEquals(8L, response.rowCount());
-        assertEquals(12, response.cols().length);
+        assertEquals(14, response.cols().length);
     }
 
     @Test
@@ -158,7 +186,7 @@ public class SysShardsTest extends SQLTransportIntegrationTest {
         SQLResponse response = execute(
             "select * from sys.shards where table_name not like 'quotes%'");
         assertEquals(18L, response.rowCount());
-        assertEquals(12, response.cols().length);
+        assertEquals(14, response.cols().length);
     }
 
     @Test
@@ -166,7 +194,7 @@ public class SysShardsTest extends SQLTransportIntegrationTest {
         SQLResponse response = execute(
             "select * from sys.shards where table_name in ('characters')");
         assertEquals(8L, response.rowCount());
-        assertEquals(12, response.cols().length);
+        assertEquals(14, response.cols().length);
     }
 
     @Test
@@ -178,11 +206,11 @@ public class SysShardsTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testSelectOrderBy() throws Exception {
-        SQLResponse response = execute("select * from sys.shards order by table_name");
+        SQLResponse response = execute("select table_name, * from sys.shards order by table_name");
         assertEquals(26L, response.rowCount());
         List<String> tableNames = Arrays.asList("blobs", "characters", "quotes");
-        for (int i = 0; i < response.rowCount(); i++) {
-            assertThat(tableNames.contains(response.rows()[i][11]), is(true));
+        for (Object[] row : response.rows()) {
+            assertThat(tableNames.contains(row[0]), is(true));
         }
     }
 
