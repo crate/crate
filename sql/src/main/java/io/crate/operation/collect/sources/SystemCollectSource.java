@@ -42,7 +42,6 @@ import io.crate.operation.reference.sys.check.SysChecker;
 import io.crate.operation.reference.sys.check.SysNodeCheck;
 import io.crate.operation.reference.sys.repositories.SysRepositoriesService;
 import io.crate.operation.reference.sys.snapshot.SysSnapshots;
-import io.crate.planner.node.dql.CollectPhase;
 import io.crate.planner.node.dql.RoutedCollectPhase;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.discovery.DiscoveryService;
@@ -106,8 +105,10 @@ public class SystemCollectSource implements CollectSource {
     }
 
     @Override
-    public Collection<CrateCollector> getCollectors(CollectPhase phase, RowReceiver downstream, JobCollectContext jobCollectContext) {
-        RoutedCollectPhase collectPhase = (RoutedCollectPhase) phase;
+    public Collection<CrateCollector> getCollectors(RowReceiver downstream, JobCollectContext jobCollectContext) {
+        assert jobCollectContext.collectPhase() instanceof RoutedCollectPhase
+            : "collectPhase must be " + RoutedCollectPhase.class.getSimpleName();
+        RoutedCollectPhase collectPhase = (RoutedCollectPhase) jobCollectContext.collectPhase();
         Map<String, Map<String, List<Integer>>> locations = collectPhase.routing().locations();
         String table = Iterables.getOnlyElement(locations.get(discoveryService.localNode().id()).keySet());
         Supplier<Iterable<?>> iterableGetter = iterableGetters.get(table);
