@@ -80,8 +80,8 @@ public class HandlerSideLevelCollectTest extends SQLTransportIntegrationTest {
             toCollect,
             ImmutableList.<Projection>of(),
             whereClause,
-            DistributionInfo.DEFAULT_BROADCAST
-        );
+            DistributionInfo.DEFAULT_BROADCAST,
+            (byte) 0);
     }
 
     private RoutedCollectPhase collectNode(Routing routing, List<Symbol> toCollect, RowGranularity rowGranularity) {

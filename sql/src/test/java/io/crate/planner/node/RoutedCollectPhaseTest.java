@@ -67,7 +67,8 @@ public class RoutedCollectPhaseTest extends CrateUnitTest {
             toCollect,
             ImmutableList.<Projection>of(),
             WhereClause.MATCH_ALL,
-            DistributionInfo.DEFAULT_MODULO
+            DistributionInfo.DEFAULT_MODULO,
+            (byte) 5
         );
 
         BytesStreamOutput out = new BytesStreamOutput();
@@ -84,6 +85,7 @@ public class RoutedCollectPhaseTest extends CrateUnitTest {
         assertThat(cn.phaseId(), is(cn2.phaseId()));
         assertThat(cn.maxRowGranularity(), is(cn2.maxRowGranularity()));
         assertThat(cn.distributionInfo(), is(cn2.distributionInfo()));
+        assertThat(cn.relationId(), is(cn2.relationId()));
     }
 
     @Test
@@ -98,8 +100,8 @@ public class RoutedCollectPhaseTest extends CrateUnitTest {
             Collections.singletonList(toInt10),
             Collections.emptyList(),
             WhereClause.MATCH_ALL,
-            DistributionInfo.DEFAULT_SAME_NODE
-        );
+            DistributionInfo.DEFAULT_SAME_NODE,
+            (byte) 0);
         collect.orderBy(new OrderBy(Collections.singletonList(toInt10), new boolean[]{false}, new Boolean[]{null}));
         EvaluatingNormalizer normalizer = EvaluatingNormalizer.functionOnlyNormalizer(getFunctions(), ReplaceMode.COPY);
         RoutedCollectPhase normalizedCollect = collect.normalize(

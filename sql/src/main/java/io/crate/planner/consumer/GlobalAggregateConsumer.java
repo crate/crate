@@ -185,7 +185,8 @@ class GlobalAggregateConsumer implements Consumer {
             plannerContext,
             table,
             splitPoints.leaves(),
-            ImmutableList.of(ap)
+            ImmutableList.of(ap),
+            context.relationId()
         );
         Collect collect = new Collect(collectPhase, TopN.NO_LIMIT, 0, ap.outputs().size(), 1, null);
 

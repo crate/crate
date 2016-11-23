@@ -19,7 +19,7 @@ public class DocSysColumns {
     public static final ColumnIdent UID = new ColumnIdent("_uid");
     public static final ColumnIdent DOC = new ColumnIdent("_doc");
     public static final ColumnIdent RAW = new ColumnIdent("_raw");
-    public static final ColumnIdent DOCID = new ColumnIdent("_docid");
+    public static final ColumnIdent FETCHID = new ColumnIdent("_fetchid");
 
     public static final ImmutableMap<ColumnIdent, DataType> COLUMN_IDENTS = ImmutableMap.<ColumnIdent, DataType>builder()
         .put(ID, DataTypes.STRING)
@@ -28,7 +28,7 @@ public class DocSysColumns {
         .put(UID, DataTypes.STRING)
         .put(DOC, DataTypes.OBJECT)
         .put(RAW, DataTypes.STRING)
-        .put(DOCID, DataTypes.LONG)
+        .put(FETCHID, DataTypes.LONG)
         .build();
 
     private static final ImmutableMap<ColumnIdent, String> LUCENE_COLUMN_NAMES = ImmutableMap.<ColumnIdent, String>builder()

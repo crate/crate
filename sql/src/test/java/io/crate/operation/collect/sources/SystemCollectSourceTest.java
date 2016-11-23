@@ -66,8 +66,8 @@ public class SystemCollectSourceTest extends SQLTransportIntegrationTest {
             Collections.<Symbol>singletonList(shardId),
             ImmutableList.<Projection>of(),
             WhereClause.MATCH_ALL,
-            DistributionInfo.DEFAULT_BROADCAST
-        );
+            DistributionInfo.DEFAULT_BROADCAST,
+            (byte) 0);
         collectPhase.orderBy(new OrderBy(Collections.<Symbol>singletonList(shardId), new boolean[]{false}, new Boolean[]{null}));
         Iterable<Row> rows = systemCollectSource.toRowsIterable(collectPhase, Collections.singletonList(
             new UnassignedShard(new ShardId("foo", 1), mock(ClusterService.class), true, ShardRoutingState.UNASSIGNED)),
@@ -88,7 +88,8 @@ public class SystemCollectSourceTest extends SQLTransportIntegrationTest {
             ImmutableList.<Symbol>of(),
             ImmutableList.<Projection>of(),
             WhereClause.MATCH_ALL,
-            DistributionInfo.DEFAULT_BROADCAST);
+            DistributionInfo.DEFAULT_BROADCAST,
+            (byte) 0);
 
         // No read isolation
         List<String> noReadIsolationIterable = new ArrayList<>();

@@ -45,28 +45,28 @@ public class FetchRowInputSymbolVisitor extends BaseImplementationSymbolVisitor<
 
         private Map<TableIdent, FetchSource> fetchSources;
         private final FetchProjector.ArrayBackedRow inputRow = new FetchProjector.ArrayBackedRow();
-        private final int[] docIdPositions;
+        private final int[] fetchIdPositions;
         private final Object[][] nullCells;
 
         public Context(Map<TableIdent, FetchSource> fetchSources) {
             assert !fetchSources.isEmpty();
             this.fetchSources = fetchSources;
 
-            int numDocIds = 0;
+            int numFetchIds = 0;
             for (FetchSource fetchSource : fetchSources.values()) {
-                numDocIds += fetchSource.docIdCols().size();
+                numFetchIds += fetchSource.fetchIdCols().size();
             }
 
-            this.fetchRows = new FetchProjector.ArrayBackedRow[numDocIds];
-            this.docIdPositions = new int[numDocIds];
-            this.partitionRows = new FetchProjector.ArrayBackedRow[numDocIds];
-            nullCells = new Object[numDocIds][];
+            this.fetchRows = new FetchProjector.ArrayBackedRow[numFetchIds];
+            this.fetchIdPositions = new int[numFetchIds];
+            this.partitionRows = new FetchProjector.ArrayBackedRow[numFetchIds];
+            nullCells = new Object[numFetchIds][];
 
             int idx = 0;
             for (FetchSource fetchSource : fetchSources.values()) {
-                for (InputColumn col : fetchSource.docIdCols()) {
+                for (InputColumn col : fetchSource.fetchIdCols()) {
                     fetchRows[idx] = new FetchProjector.ArrayBackedRow();
-                    docIdPositions[idx] = col.index();
+                    fetchIdPositions[idx] = col.index();
                     if (!fetchSource.partitionedByColumns().isEmpty()) {
                         partitionRows[idx] = new FetchProjector.ArrayBackedRow();
                     }
@@ -77,10 +77,10 @@ public class FetchRowInputSymbolVisitor extends BaseImplementationSymbolVisitor<
         }
 
         /**
-         * @return an array with the positions of the docIds in the input
+         * @return an array with the positions of the fetchIds in the input
          */
-        public int[] docIdPositions() {
-            return docIdPositions;
+        public int[] fetchIdPositions() {
+            return fetchIdPositions;
         }
 
         public FetchProjector.ArrayBackedRow[] fetchRows() {
@@ -110,8 +110,8 @@ public class FetchRowInputSymbolVisitor extends BaseImplementationSymbolVisitor<
             for (FetchSource fetchSource : fetchSources.values()) {
                 idx = fetchSource.partitionedByColumns().indexOf(fetchReference.ref());
                 if (idx >= 0) {
-                    for (InputColumn col : fetchSource.docIdCols()) {
-                        if (col.equals(fetchReference.docId())) {
+                    for (InputColumn col : fetchSource.fetchIdCols()) {
+                        if (col.equals(fetchReference.fetchId())) {
                             fs = fetchSource;
                             break;
                         }
@@ -140,15 +140,15 @@ public class FetchRowInputSymbolVisitor extends BaseImplementationSymbolVisitor<
             for (Map.Entry<TableIdent, FetchSource> entry : fetchSources.entrySet()) {
                 if (entry.getKey().equals(fetchReference.ref().ident().tableIdent())) {
                     fs = entry.getValue();
-                    for (InputColumn col : fs.docIdCols()) {
-                        if (col.equals(fetchReference.docId())) {
+                    for (InputColumn col : fs.fetchIdCols()) {
+                        if (col.equals(fetchReference.fetchId())) {
                             break;
                         }
                         fetchIdx++;
                     }
                     break;
                 } else {
-                    fetchIdx += entry.getValue().docIdCols().size();
+                    fetchIdx += entry.getValue().fetchIdCols().size();
                 }
             }
             assert fs != null;

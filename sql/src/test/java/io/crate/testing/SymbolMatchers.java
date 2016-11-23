@@ -99,18 +99,18 @@ public class SymbolMatchers {
         return both(fm).and(hasDataType(dataType));
     }
 
-    public static Matcher<Symbol> isFetchRef(int docIdIdx, String ref) {
-        return isFetchRef(isInputColumn(docIdIdx), isReference(ref));
+    public static Matcher<Symbol> isFetchRef(int fetchIdIdx, String ref) {
+        return isFetchRef(isInputColumn(fetchIdIdx), isReference(ref));
     }
 
-    private static Matcher<Symbol> isFetchRef(Matcher<Symbol> docIdMatcher, Matcher<Symbol> refMatcher) {
+    private static Matcher<Symbol> isFetchRef(Matcher<Symbol> fetchIdMatcher, Matcher<Symbol> refMatcher) {
 
         FeatureMatcher<Symbol, Symbol> m1 = new FeatureMatcher<Symbol, Symbol>(
-            docIdMatcher, "docId", "docId"
+            fetchIdMatcher, "fetchId", "fetchId"
         ) {
             @Override
             protected Symbol featureValueOf(Symbol actual) {
-                return ((FetchReference) actual).docId();
+                return ((FetchReference) actual).fetchId();
             }
         };
 

@@ -32,7 +32,7 @@ import java.util.List;
 public class FetchSource {
 
     private final List<Reference> partitionedByColumns;
-    private final Collection<InputColumn> docIdCols;
+    private final Collection<InputColumn> fetchIdCols;
     private final Collection<Reference> references;
 
     public FetchSource(List<Reference> partitionedByColumns) {
@@ -40,15 +40,15 @@ public class FetchSource {
     }
 
     public FetchSource(List<Reference> partitionedByColumns,
-                       Collection<InputColumn> docIdCols,
+                       Collection<InputColumn> fetchIdCols,
                        Collection<Reference> references) {
         this.partitionedByColumns = partitionedByColumns;
-        this.docIdCols = docIdCols;
+        this.fetchIdCols = fetchIdCols;
         this.references = references;
     }
 
-    public Collection<InputColumn> docIdCols() {
-        return docIdCols;
+    public Collection<InputColumn> fetchIdCols() {
+        return fetchIdCols;
     }
 
     public List<Reference> partitionedByColumns() {

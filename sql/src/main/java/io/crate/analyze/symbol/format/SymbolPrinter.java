@@ -302,7 +302,7 @@ public class SymbolPrinter {
             }
 
             context.builder.append("FETCH(");
-            process(fetchReference.docId(), context);
+            process(fetchReference.fetchId(), context);
             context.builder.append(", ");
             process(fetchReference.ref(), context);
             context.builder.append(")");

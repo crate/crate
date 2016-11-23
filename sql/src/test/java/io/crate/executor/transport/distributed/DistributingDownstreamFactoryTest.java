@@ -77,8 +77,8 @@ public class DistributingDownstreamFactoryTest extends CrateUnitTest {
             ImmutableList.<Symbol>of(),
             ImmutableList.<Projection>of(),
             WhereClause.MATCH_ALL,
-            DistributionInfo.DEFAULT_MODULO
-        );
+            DistributionInfo.DEFAULT_MODULO,
+            (byte) 0);
         MergePhase mergePhase = new MergePhase(
             jobId,
             2,

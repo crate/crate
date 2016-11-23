@@ -88,8 +88,8 @@ public class RemoteCollectorTest {
             Collections.<Symbol>singletonList(createReference("name", DataTypes.STRING)),
             Collections.<Projection>emptyList(),
             WhereClause.MATCH_ALL,
-            DistributionInfo.DEFAULT_BROADCAST
-        );
+            DistributionInfo.DEFAULT_BROADCAST,
+            (byte) 0);
         transportJobAction = mock(TransportJobAction.class);
         transportKillJobsNodeAction = mock(TransportKillJobsNodeAction.class);
         rowReceiver = new CollectingRowReceiver();
