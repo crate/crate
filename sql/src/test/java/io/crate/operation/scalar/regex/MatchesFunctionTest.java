@@ -21,153 +21,58 @@
 
 package io.crate.operation.scalar.regex;
 
-import io.crate.analyze.symbol.Function;
 import io.crate.analyze.symbol.Literal;
-import io.crate.analyze.symbol.Symbol;
-import io.crate.operation.Input;
+import io.crate.metadata.Scalar;
 import io.crate.operation.scalar.AbstractScalarFunctionsTest;
 import io.crate.types.ArrayType;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
+import org.hamcrest.BaseMatcher;
+import org.hamcrest.Description;
+import org.hamcrest.Matcher;
 import org.junit.Test;
 
-import java.util.Arrays;
-import java.util.List;
-
 import static io.crate.testing.SymbolMatchers.isLiteral;
-import static io.crate.testing.TestingHelpers.createReference;
-import static org.hamcrest.Matchers.arrayContaining;
-import static org.hamcrest.Matchers.instanceOf;
 
 public class MatchesFunctionTest extends AbstractScalarFunctionsTest {
 
     @Test
     public void testCompile() throws Exception {
-        final Literal<BytesRef> pattern = Literal.of(".*(ba).*");
+        Matcher<Scalar> matcher = new BaseMatcher<Scalar>() {
+            @Override
+            public boolean matches(Object item) {
+                MatchesFunction regexpImpl = (MatchesFunction) item;
+                // ensure that the RegexMatcher was created due to compilation
+                return regexpImpl.regexMatcher() != null;
+            }
 
-        List<Symbol> arguments = Arrays.asList(
-            createReference("name", DataTypes.STRING),
-            pattern
-        );
-
-        Function function = (Function) sqlExpressions.asSymbol("regexp_matches(name, '" + pattern + "')");
-        MatchesFunction regexpImpl = (MatchesFunction) functions.get(function.info().ident());
-
-        regexpImpl.compile(arguments);
-
-        assertThat(regexpImpl.regexMatcher(), instanceOf(RegexMatcher.class));
-        assertEquals(true, regexpImpl.regexMatcher().match(new BytesRef("foobarbequebaz bar")));
-        assertThat(regexpImpl.regexMatcher().groups(), arrayContaining(new BytesRef("ba")));
-
-        arguments = Arrays.asList(
-            createReference("name", DataTypes.STRING),
-            pattern,
-            Literal.of("usn")
-        );
-        regexpImpl.compile(arguments);
-
-        assertThat(regexpImpl.regexMatcher(), instanceOf(RegexMatcher.class));
-        assertEquals(true, regexpImpl.regexMatcher().match(new BytesRef("foobarbequebaz bar")));
-        assertThat(regexpImpl.regexMatcher().groups(), arrayContaining(new BytesRef("ba")));
+            @Override
+            public void describeTo(Description description) {
+            }
+        };
+        assertCompile("regexp_matches(name, '.*(ba).*')", (s) -> matcher);
     }
 
     @Test
     public void testEvaluateWithCompile() throws Exception {
-        final Literal<BytesRef> pattern = Literal.of(".*(ba).*");
-
-        List<Symbol> arguments = Arrays.asList(
-            createReference("name", DataTypes.STRING),
-            pattern
-        );
-        Function function = (Function) sqlExpressions.asSymbol("regexp_matches(name, '" + pattern + "')");
-        MatchesFunction regexpImpl = (MatchesFunction) functions.get(function.info().ident());
-
-        regexpImpl.compile(arguments);
-
-        Input[] args = new Input[2];
-        args[0] = new Input<Object>() {
-            @Override
-            public Object value() {
-                return new BytesRef("foobarbequebaz bar");
-            }
-        };
-        args[1] = new Input<Object>() {
-            @Override
-            public Object value() {
-                return pattern.value();
-            }
-        };
-
-        BytesRef[] result = regexpImpl.evaluate(args);
-
-        assertThat(result, arrayContaining(new BytesRef("ba")));
+        BytesRef[] expected = new BytesRef[]{new BytesRef("ba")};
+        assertEvaluate("regexp_matches(name, '.*(ba).*')", expected, Literal.of("foobarbequebaz bar"));
     }
 
     @Test
     public void testEvaluate() throws Exception {
-        List<Symbol> arguments = Arrays.<Symbol>asList(
-            createReference("name", DataTypes.STRING),
-            createReference("regex_pattern", DataTypes.STRING)
-        );
-        Function function = (Function) sqlExpressions.asSymbol("regexp_matches(name, regex_pattern)");
-        MatchesFunction regexpImpl = (MatchesFunction) functions.get(function.info().ident());
-
-        regexpImpl.compile(arguments);
-
-        Input[] args = new Input[2];
-        args[0] = new Input<Object>() {
-            @Override
-            public Object value() {
-                return new BytesRef("foobarbequebaz bar");
-            }
-        };
-        args[1] = new Input<Object>() {
-            @Override
-            public Object value() {
-                return new BytesRef(".*(ba).*");
-            }
-        };
-
-        BytesRef[] result = regexpImpl.evaluate(args);
-
-        assertThat(result, arrayContaining(new BytesRef("ba")));
+        BytesRef[] expected = new BytesRef[]{new BytesRef("ba")};
+        assertEvaluate("regexp_matches(name, regex_pattern)", expected,
+            Literal.of("foobarbequebaz bar"),
+            Literal.of(".*(ba).*"));
     }
 
     @Test
     public void testEvaluateWithFlags() throws Exception {
-        final Literal<BytesRef> flags = Literal.of("usn");
-        List<Symbol> arguments = Arrays.<Symbol>asList(
-            createReference("text", DataTypes.STRING),
-            createReference("regex_pattern", DataTypes.STRING)
-        );
-        Function function = (Function) sqlExpressions.asSymbol("regexp_matches(name, regex_pattern)");
-        MatchesFunction regexpImpl = (MatchesFunction) functions.get(function.info().ident());
-
-        regexpImpl.compile(arguments);
-
-        Input[] args = new Input[3];
-        args[0] = new Input<Object>() {
-            @Override
-            public Object value() {
-                return new BytesRef("foobarbequebaz bar");
-            }
-        };
-        args[1] = new Input<Object>() {
-            @Override
-            public Object value() {
-                return new BytesRef(".*(ba).*");
-            }
-        };
-        args[2] = new Input<Object>() {
-            @Override
-            public Object value() {
-                return flags.value();
-            }
-        };
-
-        BytesRef[] result = regexpImpl.evaluate(args);
-
-        assertThat(result, arrayContaining(new BytesRef("ba")));
+        BytesRef[] expected = new BytesRef[]{new BytesRef("ba")};
+        assertEvaluate("regexp_matches(name, regex_pattern, 'usn')", expected,
+            Literal.of("foobarbequebaz bar"),
+            Literal.of(".*(ba).*"));
     }
 
     @Test
@@ -186,13 +91,13 @@ public class MatchesFunctionTest extends AbstractScalarFunctionsTest {
     public void testNormalizeSymbolWithInvalidFlags() throws Exception {
         expectedException.expect(UnsupportedOperationException.class);
         expectedException.expectMessage("flags must be of type string");
-        sqlExpressions.normalize(sqlExpressions.asSymbol("regexp_matches('foobar', 'foo', 1)"));
+        assertNormalize("regexp_matches('foobar', 'foo', 1)", null);
     }
 
     @Test
     public void testNormalizeSymbolWithInvalidNumberOfArguments() throws Exception {
         expectedException.expect(UnsupportedOperationException.class);
         expectedException.expectMessage("[regexp_matches] Function implementation not found for argument types [string]");
-        sqlExpressions.normalize(sqlExpressions.asSymbol("regexp_matches('foobar')"));
+        assertNormalize("regexp_matches('foobar')", null);
     }
 }

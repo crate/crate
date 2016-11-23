@@ -23,72 +23,52 @@
 package io.crate.operation.scalar.arithmetic;
 
 import io.crate.analyze.symbol.Literal;
-import io.crate.metadata.FunctionIdent;
-import io.crate.metadata.Scalar;
-import io.crate.operation.Input;
 import io.crate.operation.scalar.AbstractScalarFunctionsTest;
-import io.crate.types.DataType;
 import io.crate.types.DataTypes;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
-
-import java.util.Arrays;
 
 import static io.crate.testing.SymbolMatchers.isFunction;
 import static io.crate.testing.SymbolMatchers.isLiteral;
-import static org.hamcrest.Matchers.is;
 
 public class TrigonometricFunctionsTest extends AbstractScalarFunctionsTest {
 
-    private Scalar<Double, Number> getFunction(String name, DataType type) {
-        return (Scalar) functions.get(new FunctionIdent(name, Arrays.asList(type)));
-    }
-
-    private Number evaluate(String name, Number number, DataType type) {
-        return getFunction(name, type).evaluate((Input) Literal.of(type, number));
-    }
-
-    @Rule
-    public ExpectedException expectedException = ExpectedException.none();
-
     @Test
     public void testEvaluate() throws Exception {
-        assertThat(evaluate("sin", 1.0, DataTypes.DOUBLE), is(0.8414709848078965));
-        assertThat(evaluate("sin", 2.0F, DataTypes.FLOAT), is(0.9092974268256817));
-        assertThat(evaluate("sin", 3L, DataTypes.LONG), is(0.1411200080598672));
-        assertThat(evaluate("sin", 4, DataTypes.INTEGER), is(-0.7568024953079282));
-        assertThat(evaluate("sin", (short) 5, DataTypes.SHORT), is(-0.9589242746631385));
+        assertEvaluate("sin(double_val)", 0.8414709848078965, Literal.of(1.0));
+        assertEvaluate("sin(float_val)", 0.9092974268256817, Literal.of(2.0F));
+        assertEvaluate("sin(x)", 0.1411200080598672, Literal.of(3L));
+        assertEvaluate("sin(id)", -0.7568024953079282, Literal.of(4));
+        assertEvaluate("sin(short_val)", -0.9589242746631385, Literal.of(DataTypes.SHORT, (short) 5));
 
-        assertThat(evaluate("asin", 0.1234, DataTypes.DOUBLE), is(0.12371534584255098));
-        assertThat(evaluate("asin", 0.4321F, DataTypes.FLOAT), is(0.44682008883801516));
-        assertThat(evaluate("asin", 0L, DataTypes.LONG), is(0.0));
-        assertThat(evaluate("asin", 1, DataTypes.INTEGER), is(1.5707963267948966));
-        assertThat(evaluate("asin", (short) -1, DataTypes.SHORT), is(-1.5707963267948966));
+        assertEvaluate("asin(double_val)", 0.12371534584255098, Literal.of(0.1234));
+        assertEvaluate("asin(float_val)", 0.44682008883801516, Literal.of(0.4321F));
+        assertEvaluate("asin(x)", 0.0, Literal.of(0L));
+        assertEvaluate("asin(id)", 1.5707963267948966, Literal.of(1));
+        assertEvaluate("asin(short_val)", -1.5707963267948966, Literal.of(DataTypes.SHORT, (short) -1));
 
-        assertThat(evaluate("cos", 1.0, DataTypes.DOUBLE), is(0.5403023058681398));
-        assertThat(evaluate("cos", 2.0F, DataTypes.FLOAT), is(-0.4161468365471424));
-        assertThat(evaluate("cos", 3L, DataTypes.LONG), is(-0.9899924966004454));
-        assertThat(evaluate("cos", 4, DataTypes.INTEGER), is(-0.6536436208636119));
-        assertThat(evaluate("cos", (short) 5, DataTypes.SHORT), is(0.28366218546322625));
+        assertEvaluate("cos(double_val)", 0.5403023058681398, Literal.of(1.0));
+        assertEvaluate("cos(float_val)", -0.4161468365471424, Literal.of(2.0F));
+        assertEvaluate("cos(x)", -0.9899924966004454, Literal.of(3L));
+        assertEvaluate("cos(id)", -0.6536436208636119, Literal.of(4));
+        assertEvaluate("cos(short_val)", 0.28366218546322625, Literal.of(DataTypes.SHORT, (short) 5));
 
-        assertThat(evaluate("acos", 0.1234, DataTypes.DOUBLE), is(1.4470809809523457));
-        assertThat(evaluate("acos", 0.4321F, DataTypes.FLOAT), is(1.1239762379568814));
-        assertThat(evaluate("acos", 0L, DataTypes.LONG), is(1.5707963267948966));
-        assertThat(evaluate("acos", 1, DataTypes.INTEGER), is(0.0));
-        assertThat(evaluate("acos", (short) -1, DataTypes.SHORT), is(3.141592653589793));
+        assertEvaluate("acos(double_val)", 1.4470809809523457, Literal.of(0.1234));
+        assertEvaluate("acos(float_val)", 1.1239762379568814, Literal.of(0.4321F));
+        assertEvaluate("acos(x)", 1.5707963267948966, Literal.of(0L));
+        assertEvaluate("acos(id)", 0.0, Literal.of(1));
+        assertEvaluate("acos(short_val)", 3.141592653589793, Literal.of(DataTypes.SHORT, (short) -1));
 
-        assertThat(evaluate("tan", 1.0, DataTypes.DOUBLE), is(1.5574077246549023));
-        assertThat(evaluate("tan", 2.0F, DataTypes.FLOAT), is(-2.185039863261519));
-        assertThat(evaluate("tan", 3L, DataTypes.LONG), is(-0.1425465430742778));
-        assertThat(evaluate("tan", 4, DataTypes.INTEGER), is(1.1578212823495777));
-        assertThat(evaluate("tan", (short) 5, DataTypes.SHORT), is(-3.380515006246586));
+        assertEvaluate("tan(double_val)", 1.5574077246549023, Literal.of(1.0));
+        assertEvaluate("tan(float_val)", -2.185039863261519, Literal.of(2.0F));
+        assertEvaluate("tan(x)", -0.1425465430742778, Literal.of(3L));
+        assertEvaluate("tan(id)", 1.1578212823495777, Literal.of(4));
+        assertEvaluate("tan(short_val)", -3.380515006246586, Literal.of(DataTypes.SHORT, (short) 5));
 
-        assertThat(evaluate("atan", 0.1234, DataTypes.DOUBLE), is(0.12277930094473836));
-        assertThat(evaluate("atan", 0.4321F, DataTypes.FLOAT), is(0.4078690066146179));
-        assertThat(evaluate("atan", 0L, DataTypes.LONG), is(0.0));
-        assertThat(evaluate("atan", 1, DataTypes.INTEGER), is(0.7853981633974483));
-        assertThat(evaluate("atan", (short) -1, DataTypes.SHORT), is(-0.7853981633974483));
+        assertEvaluate("atan(double_val)", 0.12277930094473836, Literal.of(0.1234));
+        assertEvaluate("atan(float_val)", 0.4078690066146179, Literal.of(0.4321F));
+        assertEvaluate("atan(x)", 0.0, Literal.of(0L));
+        assertEvaluate("atan(id)", 0.7853981633974483, Literal.of(1));
+        assertEvaluate("atan(short_val)", -0.7853981633974483, Literal.of(DataTypes.SHORT, (short) -1));
     }
 
     @Test

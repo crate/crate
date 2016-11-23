@@ -154,7 +154,7 @@ public abstract class ConcatFunction extends Scalar<BytesRef, BytesRef> {
                 for (int i = 0; i < dataTypes.size(); i++) {
                     if (!dataTypes.get(i).isConvertableTo(DataTypes.STRING)) {
                         throw new IllegalArgumentException(String.format(Locale.ENGLISH,
-                            "Argument %d of the concat function can't be converted to string", i));
+                            "Argument %d of the concat function can't be converted to string", i + 1));
                     }
                 }
                 return new GenericConcatFunction(new FunctionInfo(new FunctionIdent(NAME, dataTypes), DataTypes.STRING));

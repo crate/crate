@@ -21,183 +21,61 @@
 
 package io.crate.operation.scalar.geo;
 
-import com.google.common.collect.Lists;
-import io.crate.action.sql.SessionContext;
-import io.crate.analyze.symbol.Function;
 import io.crate.analyze.symbol.Literal;
-import io.crate.analyze.symbol.Symbol;
-import io.crate.analyze.symbol.Symbols;
-import io.crate.metadata.FunctionIdent;
-import io.crate.metadata.TransactionContext;
-import io.crate.operation.Input;
 import io.crate.operation.scalar.AbstractScalarFunctionsTest;
-import io.crate.types.ArrayType;
-import io.crate.types.DataType;
 import io.crate.types.DataTypes;
-import org.hamcrest.Matchers;
 import org.junit.Test;
 
-import java.util.Arrays;
-import java.util.List;
-
 import static io.crate.testing.SymbolMatchers.isLiteral;
-import static io.crate.testing.TestingHelpers.createReference;
-import static org.hamcrest.Matchers.instanceOf;
-import static org.hamcrest.Matchers.is;
 
 public class DistanceFunctionTest extends AbstractScalarFunctionsTest {
 
-    private DistanceFunction getFunction(List<DataType> types) {
-        return (DistanceFunction) functions.get(
-            new FunctionIdent(DistanceFunction.NAME, types));
-    }
-
-    private DistanceFunction functionFromArgs(List<? extends Symbol> args) {
-        return getFunction(Symbols.extractTypes(args));
-    }
-
-    @SuppressWarnings("unchecked")
-    private Double evaluate(List<Literal> args) {
-        return functionFromArgs(args).evaluate(args.toArray(new Input[args.size()]));
-    }
-
-    @SuppressWarnings("unchecked")
-    private Symbol normalize(List<? extends Symbol> args) {
-        DistanceFunction distanceFunction = functionFromArgs(args);
-        return distanceFunction.normalizeSymbol(new Function(distanceFunction.info(), (List<Symbol>) args), new TransactionContext(SessionContext.SYSTEM_SESSION));
-    }
-
     @Test
     public void testResolveWithTooManyArguments() throws Exception {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("distance takes 2 arguments, not 4");
-        functions.get(new FunctionIdent(DistanceFunction.NAME,
-            Arrays.<DataType>asList(DataTypes.STRING, DataTypes.STRING, DataTypes.STRING, DataTypes.STRING)));
+        expectedException.expect(UnsupportedOperationException.class);
+        expectedException.expectMessage("distance takes 2 arguments, not 3");
+        assertNormalize("distance('POINT (10 20)', 'POINT (11 21)', 'foo')", null);
     }
 
     @Test
     public void testResolveWithInvalidType() throws Exception {
-        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expect(UnsupportedOperationException.class);
         expectedException.expectMessage("distance can't handle arguments of type \"long\"");
-        functions.get(new FunctionIdent(DistanceFunction.NAME,
-            Arrays.<DataType>asList(DataTypes.LONG, DataTypes.GEO_POINT)));
+        assertNormalize("distance(1, 'POINT (11 21)')", null);
     }
 
     @Test
     public void testEvaluateWithTwoGeoPointLiterals() throws Exception {
-        Double distance = evaluate(Arrays.<Literal>asList(
+        assertEvaluate("distance(geopoint, geopoint)", 144623.6842773458,
             Literal.of(DataTypes.GEO_POINT, new Double[]{10.04, 28.02}),
-            Literal.of(DataTypes.GEO_POINT, DataTypes.GEO_POINT.value("POINT(10.30 29.3)"))));
-        assertThat(distance, is(144623.6842773458));
+            Literal.of(DataTypes.GEO_POINT, DataTypes.GEO_POINT.value("POINT(10.30 29.3)")));
     }
 
     @Test
-    @SuppressWarnings("unchecked")
     public void testNormalizeWithStringTypes() throws Exception {
-        Symbol symbol = normalize(Arrays.<Symbol>asList(
-            Literal.of("POINT (10 20)"),
-            Literal.of("POINT (11 21)")
-        ));
-        assertThat(symbol, isLiteral(152462.70754934277));
+        // do not evaluate additional to the normalization as strings are only supported on normalization here
+        assertNormalize("distance('POINT (10 20)', 'POINT (11 21)')", isLiteral(152462.70754934277), false);
     }
 
     @Test
     public void testNormalizeWithDoubleArray() throws Exception {
-        DataType type = new ArrayType(DataTypes.DOUBLE);
-        Symbol symbol = normalize(Arrays.<Symbol>asList(
-            Literal.of(type, new Double[]{10.0, 20.0}),
-            Literal.of(type, new Double[]{11.0, 21.0})
-        ));
-        assertThat(symbol, isLiteral(152462.70754934277));
+        assertNormalize("distance([10.0, 20.0], [11.0, 21.0])", isLiteral(152462.70754934277), false);
     }
 
     @Test
-    @SuppressWarnings("unchecked")
     public void testNormalizeWithInvalidReferences() throws Exception {
         expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Cannot convert foo to a geo point");
-
-        normalize(Arrays.<Symbol>asList(
-            createReference("foo", DataTypes.STRING),
-            Literal.of(DataTypes.GEO_POINT, new Double[]{10.04, 28.02})
-        ));
-    }
-
-    @Test
-    public void testNormalizeWithValidRefAndStringLiteral() throws Exception {
-        Function symbol = (Function) normalize(Arrays.<Symbol>asList(
-            createReference("foo", DataTypes.GEO_POINT),
-            Literal.of("POINT(10 20)")
-        ));
-        assertThat(symbol.arguments().get(1),
-            isLiteral(new Double[]{10.0d, 20.0d}, DataTypes.GEO_POINT));
-
-        // args reversed
-        symbol = (Function) normalize(Arrays.<Symbol>asList(
-            Literal.of("POINT(10 20)"),
-            createReference("foo", DataTypes.GEO_POINT)
-        ));
-        assertThat(symbol.arguments().get(1),
-            isLiteral(new Double[]{10.0d, 20.0d}, DataTypes.GEO_POINT));
-    }
-
-    @Test
-    public void testNormalizeWithValidRefAndGeoPointLiteral() throws Exception {
-        Function symbol = (Function) normalize(Arrays.<Symbol>asList(
-            createReference("foo", DataTypes.GEO_POINT),
-            Literal.of(DataTypes.GEO_POINT, DataTypes.GEO_POINT.value("POINT (10 20)"))
-        ));
-        assertThat(symbol.arguments().get(1),
-            isLiteral(new Double[]{10.0d, 20.0d}, DataTypes.GEO_POINT));
-
-        // args reversed
-        symbol = (Function) normalize(Arrays.<Symbol>asList(
-            Literal.of(DataTypes.GEO_POINT, DataTypes.GEO_POINT.value("POINT (10 20)")),
-            createReference("foo", DataTypes.GEO_POINT)
-        ));
-        assertThat(symbol.arguments().get(1),
-            isLiteral(new Double[]{10.0d, 20.0d}, DataTypes.GEO_POINT));
-    }
-
-    @Test
-    public void testNormalizeWithValidGeoPointLiterals() throws Exception {
-        Literal symbol = (Literal) normalize(Arrays.<Symbol>asList(
-            Literal.of(DataTypes.GEO_POINT, DataTypes.GEO_POINT.value("POINT (10 20)")),
-            Literal.of(DataTypes.GEO_POINT, DataTypes.GEO_POINT.value("POINT (30 40)"))
-        ));
-        assertThat(symbol.value(), instanceOf(Double.class));
-
-        // args reversed
-        symbol = (Literal) normalize(Arrays.<Symbol>asList(
-            Literal.of(DataTypes.GEO_POINT, DataTypes.GEO_POINT.value("POINT (30 40)")),
-            Literal.of(DataTypes.GEO_POINT, DataTypes.GEO_POINT.value("POINT (10 20)"))
-        ));
-        assertThat(symbol.value(), instanceOf(Double.class));
-    }
-
-    @Test
-    public void testNormalizeWithTwoValidRefs() throws Exception {
-        List<Symbol> args = Arrays.<Symbol>asList(
-            createReference("foo", DataTypes.GEO_POINT),
-            createReference("foo2", DataTypes.GEO_POINT));
-        DistanceFunction distanceFunction = functionFromArgs(args);
-        Function functionSymbol = new Function(distanceFunction.info(), args);
-        Function normalizedFunction = (Function) distanceFunction.normalizeSymbol(functionSymbol, new TransactionContext(SessionContext.SYSTEM_SESSION));
-        assertThat(functionSymbol, Matchers.sameInstance(normalizedFunction));
+        expectedException.expectMessage("Cannot convert name to a geo point");
+        assertNormalize("distance(name, [10.04, 28.02])", null);
     }
 
     @Test
     public void testWithNullValue() throws Exception {
-        List<Literal> args = Arrays.<Literal>asList(
+        assertEvaluate("distance(geopoint, geopoint)", null,
             Literal.of(DataTypes.GEO_POINT, null),
-            Literal.of(DataTypes.GEO_POINT, DataTypes.GEO_POINT.value("POINT (10 20)"))
-        );
-        Double distance = evaluate(args);
-        assertNull(distance);
-        Symbol distanceSymbol = normalize(args);
-        assertNull(((Literal) distanceSymbol).value());
-
-        distanceSymbol = normalize(Lists.reverse(args));
-        assertNull(((Literal) distanceSymbol).value());
+            Literal.of(DataTypes.GEO_POINT, DataTypes.GEO_POINT.value("POINT (10 20)")));
+        assertEvaluate("distance(geopoint, geopoint)", null,
+            Literal.of(DataTypes.GEO_POINT, DataTypes.GEO_POINT.value("POINT (10 20)")),
+            Literal.of(DataTypes.GEO_POINT, null));
     }
 }

@@ -158,6 +158,10 @@ public class Literal<ReturnType> extends Symbol implements Input<ReturnType>, Co
         return new Literal<>(dataType, value);
     }
 
+    public static Literal<Set> of(Set value, DataType dataType) {
+        return new Literal<>(dataType, value);
+    }
+
     public static Literal<Long> of(Long value) {
         return new Literal<>(DataTypes.LONG, value);
     }

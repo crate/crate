@@ -38,6 +38,7 @@ import io.crate.testing.SqlExpressions;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
+import io.crate.types.SetType;
 import org.apache.lucene.util.BytesRef;
 import org.hamcrest.Matcher;
 import org.hamcrest.Matchers;
@@ -72,11 +73,16 @@ public abstract class AbstractScalarFunctionsTest extends CrateUnitTest {
             .add("interval", DataTypes.STRING)
             .add("time_format", DataTypes.STRING)
             .add("long_array", new ArrayType(DataTypes.LONG))
+            .add("int_array", new ArrayType(DataTypes.INTEGER))
+            .add("long_set", new SetType(DataTypes.LONG))
             .add("regex_pattern", DataTypes.STRING)
             .add("geoshape", DataTypes.GEO_SHAPE)
             .add("geopoint", DataTypes.GEO_POINT)
             .add("geostring", DataTypes.STRING)
             .add("is_awesome", DataTypes.BOOLEAN)
+            .add("double_val", DataTypes.DOUBLE)
+            .add("float_val", DataTypes.DOUBLE)
+            .add("short_val", DataTypes.SHORT)
             .build();
         TableRelation tableRelation = new TableRelation(tableInfo);
         tableSources = ImmutableMap.of(new QualifiedName("users"), tableRelation);

@@ -46,8 +46,7 @@ public class DateTruncFunctionTest extends AbstractScalarFunctionsTest {
 
     @Test
     public void testNullInterval() throws Exception {
-        String val = null;
-        assertEvaluate("date_trunc(interval, 919946281123)", null, Literal.of(val));
+        assertEvaluate("date_trunc(interval, 919946281123)", null, Literal.of((String) null));
     }
 
     @Test
@@ -59,9 +58,8 @@ public class DateTruncFunctionTest extends AbstractScalarFunctionsTest {
 
     @Test
     public void testNullTimestamp() throws Exception {
-        Long nullLong = null;
-        assertEvaluate("date_trunc('second', timestamp)", null, Literal.of(DataTypes.TIMESTAMP, nullLong));
-        assertEvaluate("date_trunc('second', 'UTC', timestamp)", null, Literal.of(DataTypes.TIMESTAMP, nullLong));
+        assertEvaluate("date_trunc('second', timestamp)", null, Literal.of(DataTypes.TIMESTAMP, null));
+        assertEvaluate("date_trunc('second', 'UTC', timestamp)", null, Literal.of(DataTypes.TIMESTAMP, null));
     }
 
     @Test

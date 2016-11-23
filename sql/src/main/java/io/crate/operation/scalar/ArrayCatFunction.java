@@ -29,10 +29,11 @@ import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 
-public class ArrayCatFunction extends Scalar<Object[], Object> {
+class ArrayCatFunction extends Scalar<Object[], Object> {
 
     public static final String NAME = "array_cat";
     private FunctionInfo functionInfo;
@@ -49,7 +50,7 @@ public class ArrayCatFunction extends Scalar<Object[], Object> {
         module.register(NAME, new Resolver());
     }
 
-    protected ArrayCatFunction(FunctionInfo functionInfo) {
+    ArrayCatFunction(FunctionInfo functionInfo) {
         this.functionInfo = functionInfo;
     }
 
@@ -60,40 +61,22 @@ public class ArrayCatFunction extends Scalar<Object[], Object> {
 
     @Override
     public Object[] evaluate(Input[] args) {
-        int counter = 0;
+        DataType innerType = ((ArrayType) this.info().returnType()).innerType();
+        List<Object> resultList = new ArrayList<>();
+
         for (Input array : args) {
-            if (array == null) {
-                continue;
-            }
             Object arrayValue = array.value();
             if (arrayValue == null) {
                 continue;
             }
 
             Object[] arg = (Object[]) arrayValue;
-            counter += arg.length;
-        }
-
-        DataType innerType = ((ArrayType) this.info().returnType()).innerType();
-
-        Object[] resultArray = new Object[counter];
-        counter = 0;
-        for (Input array : args) {
-            if (array == null) {
-                continue;
-            }
-            Object arrayValue = array.value();
-            if (array.value() == null) {
-                continue;
-            }
-
-            Object[] arg = (Object[]) arrayValue;
             for (Object element : arg) {
-                resultArray[counter++] = innerType.value(element);
+                resultList.add(innerType.value(element));
             }
         }
 
-        return resultArray;
+        return resultList.toArray();
     }
 
 

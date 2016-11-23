@@ -22,88 +22,79 @@
 package io.crate.operation.scalar;
 
 import io.crate.analyze.symbol.Literal;
-import io.crate.metadata.Scalar;
-import io.crate.sql.tree.Extract;
 import io.crate.types.DataTypes;
-import org.hamcrest.Matchers;
 import org.junit.Test;
-
-import static org.hamcrest.core.Is.is;
 
 public class ExtractFunctionsTest extends AbstractScalarFunctionsTest {
 
-    String D_2014_02_15___21_33_23 = "2014-02-15T21:33:23";
+    private static final String D_2014_02_15___21_33_23 = "2014-02-15T21:33:23";
 
-    private void assertEval(Extract.Field field, String datetimeString, int expected) {
-        Scalar scalar = (Scalar) functions.get(ExtractFunctions.getScalar(field).info().ident());
-        @SuppressWarnings("unchecked") Integer actual =
-            (Integer) scalar.evaluate(Literal.of(DataTypes.TIMESTAMP, DataTypes.TIMESTAMP.value(datetimeString)));
-        assertThat(actual, is(expected));
+    private void assertEvaluate(String functionExpression, Object expected) {
+        assertEvaluate(functionExpression, expected,
+            Literal.of(DataTypes.TIMESTAMP, DataTypes.TIMESTAMP.value(D_2014_02_15___21_33_23)));
     }
 
     @Test
     public void testYayNullValue() throws Exception {
-        Scalar scalar = (Scalar) functions.get(ExtractFunctions.getScalar(Extract.Field.DAY).info().ident());
-        @SuppressWarnings("unchecked") Long result = (Long) scalar.evaluate(Literal.of(DataTypes.TIMESTAMP, null));
-        assertThat(result, Matchers.nullValue());
+        assertEvaluate("extract(day from timestamp)", null, Literal.of(DataTypes.TIMESTAMP, null));
     }
 
     @Test
     public void testExtractCentury() throws Exception {
         // ISO century, see http://joda-time.sourceforge.net/field.html
-        assertEval(Extract.Field.CENTURY, D_2014_02_15___21_33_23, 20);
+        assertEvaluate("extract(century from timestamp)", 20);
     }
 
     @Test
     public void testExtractYear() throws Exception {
-        assertEval(Extract.Field.YEAR, D_2014_02_15___21_33_23, 2014);
+        assertEvaluate("extract(year from timestamp)", 2014);
     }
 
     @Test
     public void testExtractQuarter() throws Exception {
-        assertEval(Extract.Field.QUARTER, D_2014_02_15___21_33_23, 1);
+        assertEvaluate("extract(quarter from timestamp)", 1);
     }
 
     @Test
     public void testExtractMonth() throws Exception {
-        assertEval(Extract.Field.MONTH, D_2014_02_15___21_33_23, 2);
+        assertEvaluate("extract(month from timestamp)", 2);
     }
 
     @Test
     public void testExtractWeek() throws Exception {
-        assertEval(Extract.Field.WEEK, D_2014_02_15___21_33_23, 7);
+        assertEvaluate("extract(week from timestamp)", 7);
     }
 
     @Test
     public void testExtractDay() throws Exception {
-        assertEval(Extract.Field.DAY, D_2014_02_15___21_33_23, 15);
-        assertEval(Extract.Field.DAY_OF_MONTH, D_2014_02_15___21_33_23, 15);
+        assertEvaluate("extract(day from timestamp)", 15);
+        assertEvaluate("extract(day_of_month from timestamp)", 15);
     }
 
     @Test
     public void testDayOfWeek() throws Exception {
-        assertEval(Extract.Field.DAY_OF_WEEK, D_2014_02_15___21_33_23, 6);
-        assertEval(Extract.Field.DOW, D_2014_02_15___21_33_23, 6);
+        assertEvaluate("extract(day_of_week from timestamp)", 6);
+        assertEvaluate("extract(dow from timestamp)", 6);
     }
 
     @Test
     public void testDayOfYear() throws Exception {
-        assertEval(Extract.Field.DAY_OF_YEAR, D_2014_02_15___21_33_23, 46);
-        assertEval(Extract.Field.DOY, D_2014_02_15___21_33_23, 46);
+        assertEvaluate("extract(day_of_year from timestamp)", 46);
+        assertEvaluate("extract(doy from timestamp)", 46);
     }
 
     @Test
     public void testHour() throws Exception {
-        assertEval(Extract.Field.HOUR, D_2014_02_15___21_33_23, 21);
+        assertEvaluate("extract(hour from timestamp)", 21);
     }
 
     @Test
     public void testMinute() throws Exception {
-        assertEval(Extract.Field.MINUTE, D_2014_02_15___21_33_23, 33);
+        assertEvaluate("extract(minute from timestamp)", 33);
     }
 
     @Test
     public void testSecond() throws Exception {
-        assertEval(Extract.Field.SECOND, D_2014_02_15___21_33_23, 23);
+        assertEvaluate("extract(second from timestamp)", 23);
     }
 }

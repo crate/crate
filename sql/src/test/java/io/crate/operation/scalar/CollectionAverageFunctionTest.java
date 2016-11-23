@@ -21,52 +21,19 @@
 
 package io.crate.operation.scalar;
 
-import com.google.common.collect.ImmutableList;
-import io.crate.metadata.FunctionIdent;
-import io.crate.metadata.FunctionInfo;
-import io.crate.metadata.Functions;
-import io.crate.operation.Input;
-import io.crate.test.integration.CrateUnitTest;
-import io.crate.types.DataType;
-import io.crate.types.DataTypes;
+import io.crate.analyze.symbol.Literal;
+import io.crate.types.LongType;
 import io.crate.types.SetType;
 import org.junit.Test;
 
 import java.util.HashSet;
-import java.util.Set;
 
-import static io.crate.testing.TestingHelpers.getFunctions;
-
-public class CollectionAverageFunctionTest extends CrateUnitTest {
-
-    final FunctionIdent ident = new FunctionIdent(CollectionAverageFunction.NAME,
-        ImmutableList.<DataType>of(new SetType(DataTypes.LONG)));
-
-    @Test
-    public void testLookup() throws Exception {
-        Functions functions = getFunctions();
-        assertEquals(ident, functions.get(ident).info().ident());
-    }
+public class CollectionAverageFunctionTest extends AbstractScalarFunctionsTest {
 
     @Test
     public void testEvaluate() throws Exception {
-        CollectionAverageFunction function = new CollectionAverageFunction(
-            new FunctionInfo(
-                ident,
-                DataTypes.DOUBLE)
-        );
-
-        Input inputSet = new Input<Set<Long>>() {
-            @Override
-            public Set<Long> value() {
-                return new HashSet<Long>() {{
-                    add(3L);
-                    add(7L);
-                }};
-            }
-        };
-
-        assertEquals(new Double(5), function.evaluate(inputSet));
+        assertEvaluate("collection_avg(long_set)", 5d,
+            Literal.of(new HashSet<Long>() {{ add(3L); add(7L);}}, new SetType(LongType.INSTANCE)));
     }
 
 }
