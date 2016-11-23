@@ -126,8 +126,7 @@ public class IfFunction extends Scalar<Object, Object> {
                     NAME, returnType, valueType));
             }
         }
-        return new FunctionInfo(new FunctionIdent(NAME, dataTypes), returnType, FunctionInfo.Type.SCALAR,
-            FunctionInfo.DETERMINISTIC_AND_LAZY_ATTRIBUTES);
+        return new FunctionInfo(new FunctionIdent(NAME, dataTypes), returnType, FunctionInfo.Type.SCALAR);
     }
 
     private static class Resolver implements DynamicFunctionResolver {

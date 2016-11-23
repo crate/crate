@@ -93,7 +93,6 @@ public class EvaluatingNormalizer {
 
         @Nullable
         private final TransactionContext transactionContext;
-        private boolean normalizeToLiterals = true;
 
         public Context(@Nullable TransactionContext transactionContext) {
             this.transactionContext = transactionContext;
@@ -157,8 +156,7 @@ public class EvaluatingNormalizer {
 
         @Override
         public Symbol visitReference(Reference symbol, Context context) {
-            if (!context.normalizeToLiterals
-                || referenceResolver == null || symbol.granularity().ordinal() > granularity.ordinal()) {
+            if (referenceResolver == null || symbol.granularity().ordinal() > granularity.ordinal()) {
                 return symbol;
             }
 
@@ -182,13 +180,10 @@ public class EvaluatingNormalizer {
     private class CopyingVisitor extends BaseVisitor {
         @Override
         public Symbol visitFunction(Function function, Context context) {
-            boolean normalizeToLiterals = context.normalizeToLiterals;
-            context.normalizeToLiterals = !function.info().features().contains(FunctionInfo.Feature.LAZY_ATTRIBUTES);
             List<Symbol> newArgs = normalize(function.arguments(), context);
             if (newArgs != function.arguments()) {
                 function = new Function(function.info(), newArgs);
             }
-            context.normalizeToLiterals = normalizeToLiterals;
             return normalizeFunctionSymbol(function, context);
         }
     }
@@ -196,10 +191,7 @@ public class EvaluatingNormalizer {
     private class InPlaceVisitor extends BaseVisitor {
         @Override
         public Symbol visitFunction(Function function, Context context) {
-            boolean normalizeToLiterals = context.normalizeToLiterals;
-            context.normalizeToLiterals = !function.info().features().contains(FunctionInfo.Feature.LAZY_ATTRIBUTES);
             normalizeInplace(function.arguments(), context);
-            context.normalizeToLiterals = normalizeToLiterals;
             return normalizeFunctionSymbol(function, context);
         }
     }

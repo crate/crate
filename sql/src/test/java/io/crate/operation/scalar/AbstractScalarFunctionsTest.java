@@ -156,8 +156,7 @@ public abstract class AbstractScalarFunctionsTest extends CrateUnitTest {
         Scalar scalar = (Scalar) functions.get(function.info().ident());
         assert scalar != null : "function must be registered";
 
-        boolean normalize = !function.info().features().contains(FunctionInfo.Feature.LAZY_ATTRIBUTES);
-        InputApplierContext inputApplierContext = new InputApplierContext(inputs, sqlExpressions, normalize);
+        InputApplierContext inputApplierContext = new InputApplierContext(inputs, sqlExpressions);
         AssertingInput[] arguments = new AssertingInput[function.arguments().size()];
         for (int i = 0; i < function.arguments().size(); i++) {
             Symbol arg = function.arguments().get(i);
@@ -175,7 +174,7 @@ public abstract class AbstractScalarFunctionsTest extends CrateUnitTest {
 
     }
 
-    public void assertCompile(String functionExpression, java.util.function.Function<Scalar, Matcher<Scalar>> matcher, Input... inputs) {
+    public void assertCompile(String functionExpression, java.util.function.Function<Scalar, Matcher<Scalar>> matcher) {
         Symbol functionSymbol = sqlExpressions.asSymbol(functionExpression);
         functionSymbol = sqlExpressions.normalize(functionSymbol);
         assertThat("function expression was normalized, compile would not be hit", functionSymbol, not(instanceOf(Literal.class)));
@@ -183,16 +182,6 @@ public abstract class AbstractScalarFunctionsTest extends CrateUnitTest {
         Scalar scalar = (Scalar) functions.get(function.info().ident());
         assert scalar != null : "function must be registered";
 
-        InputApplierContext inputApplierContext = new InputApplierContext(inputs, sqlExpressions, false);
-        AssertingInput[] arguments = new AssertingInput[function.arguments().size()];
-        for (int i = 0; i < function.arguments().size(); i++) {
-            Symbol arg = function.arguments().get(i);
-            if (arg instanceof Input) {
-                arguments[i] = new AssertingInput(((Input) arg));
-            } else {
-                arguments[i] = new AssertingInput(INPUT_APPLIER.process(arg, inputApplierContext));
-            }
-        }
         Scalar compiled = scalar.compile(function.arguments());
         assertThat(compiled, matcher.apply(scalar));
     }
@@ -262,12 +251,10 @@ public abstract class AbstractScalarFunctionsTest extends CrateUnitTest {
 
         private final Iterator<Input> inputsIterator;
         private final SqlExpressions sqlExpressions;
-        private final boolean normalize;
 
-        InputApplierContext(Input[] inputs, SqlExpressions sqlExpressions, boolean normalize) {
+        InputApplierContext(Input[] inputs, SqlExpressions sqlExpressions) {
             this.inputsIterator = Arrays.asList(inputs).iterator();
             this.sqlExpressions = sqlExpressions;
-            this.normalize = normalize;
         }
 
         public Input next() {
@@ -311,17 +298,17 @@ public abstract class AbstractScalarFunctionsTest extends CrateUnitTest {
                 Input input = function.arguments().get(j).accept(this, context);
                 argInputs[j] = input;
                 // replace arguments on function for normalization
-                if (context.normalize && input instanceof Literal) {
+                if (input instanceof Literal) {
                     function.arguments().set(j, (Literal) argInputs[j]);
                 }
             }
 
-            if (context.normalize) {
+            try {
                 return (Input) context.sqlExpressions.normalize(function);
+            } catch (Exception e) {
+                Scalar scalar = (Scalar) context.sqlExpressions.functions().get(function.info().ident());
+                return new FunctionExpression<>(scalar, argInputs);
             }
-
-            Scalar scalar = (Scalar) context.sqlExpressions.functions().get(function.info().ident());
-            return new FunctionExpression<>(scalar, argInputs);
         }
     }
 }

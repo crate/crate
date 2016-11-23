@@ -587,22 +587,27 @@ public class WhereClauseAnalyzerTest extends CrateUnitTest {
     public void testSelectFromPartitionedTableUnsupported() throws Exception {
         // these queries won't work because we would have to execute 2 separate ESSearch tasks
         // and merge results which is not supported right now and maybe never will be
+        String expectedMessage = "logical conjunction of the conditions in the WHERE clause which involve " +
+                                 "partitioned columns led to a query that can't be executed.";
         try {
             analyzeSelectWhere("select id, name from parted where date = 1395961200000 or id = 1");
-            fail("Expected UnsupportedOperationException");
+            fail("Expected UnsupportedOperationException with message: " + expectedMessage);
         } catch (UnsupportedOperationException e) {
-            assertThat(e.getMessage(),
-                is("logical conjunction of the conditions in the WHERE clause which involve " +
-                   "partitioned columns led to a query that can't be executed."));
+            assertThat(e.getMessage(), is(expectedMessage));
         }
 
         try {
             analyzeSelectWhere("select id, name from parted where id = 1 or date = 1395961200000");
-            fail("Expected UnsupportedOperationException");
+            fail("Expected UnsupportedOperationException with message: " + expectedMessage);
         } catch (UnsupportedOperationException e) {
-            assertThat(e.getMessage(),
-                is("logical conjunction of the conditions in the WHERE clause which involve " +
-                   "partitioned columns led to a query that can't be executed."));
+            assertThat(e.getMessage(), is(expectedMessage));
+        }
+
+        try {
+            analyzeSelectWhere("select id, name from parted where date = 1395961200000 or date/0 = 1");
+            fail("Expected UnsupportedOperationException with message: " + expectedMessage);
+        } catch (UnsupportedOperationException e) {
+            assertThat(e.getMessage(), is(expectedMessage));
         }
     }
 
