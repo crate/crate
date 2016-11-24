@@ -26,6 +26,7 @@ import io.crate.blob.exceptions.DigestMismatchException;
 import io.crate.blob.pending_transfer.*;
 import io.crate.blob.v2.BlobIndicesService;
 import io.crate.blob.v2.BlobShard;
+import org.apache.lucene.util.IOUtils;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.node.DiscoveryNodes;
@@ -196,7 +197,7 @@ public class BlobTransferTarget extends AbstractComponent {
         try {
             digestBlob.addContent(request.content(), request.isLast());
         } catch (BlobWriteException e) {
-            activeTransfers.remove(status.transferId());
+            IOUtils.closeWhileHandlingException(activeTransfers.remove(status.transferId()));
             throw e;
         }
 
@@ -259,7 +260,8 @@ public class BlobTransferTarget extends AbstractComponent {
                 if (recoveryActive) {
                     finishedUploads.add(transferId);
                 } else {
-                    activeTransfers.remove(transferId);
+                    BlobTransferStatus transferStatus = activeTransfers.remove(transferId);
+                    IOUtils.closeWhileHandlingException(transferStatus);
                 }
             }
         }
@@ -340,7 +342,8 @@ public class BlobTransferTarget extends AbstractComponent {
             recoveryActive = false;
             for (UUID finishedUpload : finishedUploads) {
                 logger.debug("finished transfer and recovery for {}, removing state", finishedUpload);
-                activeTransfers.remove(finishedUpload);
+                BlobTransferStatus transferStatus = activeTransfers.remove(finishedUpload);
+                IOUtils.closeWhileHandlingException(transferStatus);
             }
         }
     }

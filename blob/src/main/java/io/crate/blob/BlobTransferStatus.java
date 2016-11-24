@@ -22,9 +22,11 @@
 package io.crate.blob;
 
 
+import java.io.Closeable;
+import java.io.IOException;
 import java.util.UUID;
 
-public class BlobTransferStatus {
+public class BlobTransferStatus implements Closeable {
 
     private final String index;
     private final UUID transferId;
@@ -46,5 +48,10 @@ public class BlobTransferStatus {
 
     public UUID transferId() {
         return transferId;
+    }
+
+    @Override
+    public void close() throws IOException {
+        digestBlob.close();
     }
 }

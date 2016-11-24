@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fixed a memory leak that was caused by blob uploads.
+
 2016/11/24 0.57.3
 =================
 

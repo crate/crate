@@ -22,6 +22,7 @@
 
 package io.crate.integrationtests;
 
+
 import io.crate.plugin.BlobPlugin;
 import io.crate.rest.CrateRestFilter;
 import org.elasticsearch.common.settings.Settings;
@@ -47,5 +48,4 @@ public abstract class BlobIntegrationTestBase extends ESIntegTestCase {
     protected Collection<Class<? extends Plugin>> nodePlugins() {
         return pluginList(BlobPlugin.class);
     }
-
 }
