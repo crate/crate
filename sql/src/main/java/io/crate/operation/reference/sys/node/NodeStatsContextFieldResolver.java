@@ -52,6 +52,7 @@ import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.Locale;
 import java.util.Map;
 
 @Singleton
@@ -100,7 +101,7 @@ public class NodeStatsContextFieldResolver {
         Consumer<NodeStatsContext> consumer = columnIdentToContext.get(columnIdent);
         if (consumer == null) {
             throw new IllegalArgumentException(
-                String.format("Cannot resolve NodeStatsContext field for \"%s\" column ident.", columnIdent)
+                String.format(Locale.ENGLISH, "Cannot resolve NodeStatsContext field for \"%s\" column ident.", columnIdent)
             );
         }
         return consumer;

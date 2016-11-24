@@ -160,7 +160,8 @@ class InsertFromSubQueryAnalyzer {
                                                               QuerySpec querySpec) {
         if (targetColumns.size() != querySpec.outputs().size()) {
             Joiner commaJoiner = Joiner.on(", ");
-            throw new IllegalArgumentException(String.format("Number of target columns (%s) of insert statement doesn't match number of source columns (%s)",
+            throw new IllegalArgumentException(String.format(Locale.ENGLISH,
+                "Number of target columns (%s) of insert statement doesn't match number of source columns (%s)",
                 commaJoiner.join(Iterables.transform(targetColumns, Reference.TO_COLUMN_NAME)),
                 commaJoiner.join(Iterables.transform(querySpec.outputs(), SymbolPrinter.FUNCTION))));
         }

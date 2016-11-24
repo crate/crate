@@ -1,6 +1,5 @@
 apply from: "$rootDir/gradle/javaModule.gradle"
 apply plugin: 'groovy'
-apply plugin: 'de.thetaphi.forbiddenapis'
 
 archivesBaseName = 'crate-sql'
 
@@ -53,11 +52,6 @@ sourceSets {
             runtimeClasspath += main.output + test.output + configurations.benchmarksRuntime
         }
     }
-}
-
-forbiddenApisMain {
-    bundledSignatures = ['jdk-unsafe', 'jdk-deprecated']
-    ignoreFailures = false
 }
 
 task benchmarks(type: Test) {

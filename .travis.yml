@@ -27,6 +27,7 @@ before_install:
 script:
   - ./gradlew -s test
   - ./gradlew -s itest
+  - ./gradlew -s forbiddenApisMain
   - ./blackbox/.venv/bin/sphinx-build -n -W -c docs/ -b html -E blackbox/docs/ docs/out/html
 
 after_success:

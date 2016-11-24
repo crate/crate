@@ -68,7 +68,8 @@ public final class ExpressionFormatter {
 
         @Override
         protected String visitExpression(Expression node, Void context) {
-            throw new UnsupportedOperationException(String.format("not yet implemented: %s.visit%s", getClass().getName(), node.getClass().getSimpleName()));
+            throw new UnsupportedOperationException(String.format(Locale.ENGLISH,
+                "not yet implemented: %s.visit%s", getClass().getName(), node.getClass().getSimpleName()));
         }
 
         @Override
@@ -109,12 +110,12 @@ public final class ExpressionFormatter {
 
         @Override
         protected String visitSubscriptExpression(SubscriptExpression node, Void context) {
-            return String.format("%s[%s]", node.name(), node.index());
+            return node.name() + "[" + node.index() + "]";
         }
 
         @Override
         public String visitParameterExpression(ParameterExpression node, Void context) {
-            return String.format("$%s", node.position());
+            return "$" + node.position();
         }
 
         @Override
