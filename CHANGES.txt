@@ -8,8 +8,6 @@ Unreleased
  - Added scalar functions ``latitude`` and ``longitude`` to extract
    latitude and longitude of a ``geo_point``.
 
- - Added ``path`` and ``blob_path`` columns to the ``sys.shards`` table.
-
  - Improved performance of ``array_cat`` and ``array_difference``
    scalar functions if the array contains function expressions.
 
@@ -43,6 +41,11 @@ Unreleased
    schema can be set with ``SET SESSION search_path = schema_name``.
 
  - Removed java7 support
+
+2016/11/24 0.57.3
+=================
+
+ - Added ``path`` and ``blob_path`` columns to the ``sys.shards`` table.
 
 2016/11/22 0.57.2
 =================
