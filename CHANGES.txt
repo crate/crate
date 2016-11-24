@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fixed a memory leak that was caused by blob uploads.
+
  - Possibly BREAKING blob storage changes:
 
    - Changed blob storage to utilize all paths listed under `path.data`.

@@ -40,7 +40,7 @@ import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicLong;
 
-public class DigestBlob {
+public class DigestBlob implements Closeable {
 
     private final String digest;
     private final BlobContainer container;
@@ -82,7 +82,6 @@ public class DigestBlob {
     private File createTmpFile() throws IOException {
         File tmpFile = getTmpFilePath(container, digest, transferId).toFile();
         tmpFile.createNewFile();
-        tmpFile.deleteOnExit();
         return tmpFile;
     }
 
@@ -170,6 +169,7 @@ public class DigestBlob {
         }
         File newFile = container.getFile(digest);
         file.renameTo(newFile);
+        file = null;
         return newFile;
     }
 
@@ -210,10 +210,6 @@ public class DigestBlob {
         return chunks;
     }
 
-    public BlobContainer container() {
-        return this.container;
-    }
-
     public static DigestBlob resumeTransfer(BlobContainer blobContainer, String digest,
                                             UUID transferId, long currentPos) {
         DigestBlob digestBlob = new DigestBlob(blobContainer, digest, transferId);
@@ -250,6 +246,13 @@ public class DigestBlob {
             headCatchedUpLatch.await();
         } catch (InterruptedException e) {
             Thread.interrupted();
+        }
+    }
+
+    @Override
+    public void close() throws IOException {
+        if (file != null) {
+            file.delete();
         }
     }
 }

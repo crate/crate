@@ -23,21 +23,42 @@
 package io.crate.integrationtests;
 
 import com.google.common.base.Throwables;
+import io.crate.blob.v2.BlobIndex;
 import io.crate.blob.v2.BlobIndicesService;
+import io.crate.blob.v2.BlobShard;
 import io.crate.plugin.BlobPlugin;
 import io.crate.rest.CrateRestFilter;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.node.Node;
 import org.elasticsearch.plugins.Plugin;
 import org.elasticsearch.test.ESIntegTestCase;
-import org.hamcrest.Matchers;
 import org.junit.After;
+import org.junit.Before;
 
+import java.io.IOException;
 import java.lang.reflect.Field;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.Collection;
 import java.util.Map;
+import java.util.function.Consumer;
+import java.util.stream.Stream;
+
+import static org.hamcrest.Matchers.empty;
+import static org.hamcrest.core.Is.is;
 
 public abstract class BlobIntegrationTestBase extends ESIntegTestCase {
+
+    private Field indicesField;
+    private Field shardsField;
+
+    @Before
+    public void initFields() throws Exception {
+        indicesField = BlobIndicesService.class.getDeclaredField("indices");
+        indicesField.setAccessible(true);
+        shardsField = BlobIndex.class.getDeclaredField("shards");
+        shardsField.setAccessible(true);
+    }
 
     @Override
     protected Settings nodeSettings(int nodeOrdinal) {
@@ -55,21 +76,36 @@ public abstract class BlobIntegrationTestBase extends ESIntegTestCase {
     }
 
     @After
-    public void assertNoIndicesRemaining() throws Exception {
-        internalCluster().wipeIndices("_all");
-        Iterable<BlobIndicesService> blobIndicesServices = internalCluster().getInstances(BlobIndicesService.class);
-        Field indicesField = BlobIndicesService.class.getDeclaredField("indices");
-        indicesField.setAccessible(true);
-        assertBusy(() -> {
-            for (BlobIndicesService blobIndicesService : blobIndicesServices) {
-                Map<String, Object> indices = null;
+    public void assertNoTmpFilesAndNoIndicesRemaining() throws Exception {
+        assertBusy(() -> forEachIndicesMap(i -> {
+            for (BlobIndex blobIndex : i.values()) {
                 try {
-                    indices = (Map<String, Object>) indicesField.get(blobIndicesService);
-                    assertThat(indices.keySet(), Matchers.empty());
-                } catch (IllegalAccessException e) {
+                    Map<Integer, BlobShard> o = (Map<Integer, BlobShard>) shardsField.get(blobIndex);
+                    for (BlobShard blobShard : o.values()) {
+                        Path tmpDir = blobShard.blobContainer().getTmpDirectory();
+                        try (Stream<Path> files = Files.list(tmpDir)) {
+                            assertThat(files.count(), is(0L));
+                        }
+                    }
+                } catch (IOException | IllegalAccessException e) {
                     throw Throwables.propagate(e);
                 }
             }
-        });
+        }));
+
+        internalCluster().wipeIndices("_all");
+        assertBusy(() -> forEachIndicesMap(i -> assertThat(i.keySet(), empty())));
+    }
+
+    private void forEachIndicesMap(Consumer<Map<String, BlobIndex>> consumer) {
+        Iterable<BlobIndicesService> blobIndicesServices = internalCluster().getInstances(BlobIndicesService.class);
+        for (BlobIndicesService blobIndicesService : blobIndicesServices) {
+            try {
+                Map<String, BlobIndex> indices = (Map<String, BlobIndex>) indicesField.get(blobIndicesService);
+                consumer.accept(indices);
+            } catch (IllegalAccessException e) {
+                throw Throwables.propagate(e);
+            }
+        }
     }
 }

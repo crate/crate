@@ -1,0 +1,3 @@
+
+@defaultMessage File is added to a list in DeleteOnExitHook causing a memory leak since CrateDB is a long running process
+java.io.File#deleteOnExit()

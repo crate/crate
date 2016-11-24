@@ -23,7 +23,10 @@ package io.crate.integrationtests;
 
 
 import com.google.common.base.Predicate;
+import com.google.common.base.Throwables;
 import com.google.common.collect.Iterables;
+import io.crate.blob.BlobTransferStatus;
+import io.crate.blob.BlobTransferTarget;
 import io.crate.blob.v2.BlobAdminClient;
 import io.crate.test.utils.Blobs;
 import org.apache.http.Header;
@@ -38,9 +41,11 @@ import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.transport.InetSocketTransportAddress;
 import org.elasticsearch.http.HttpServerTransport;
+import org.junit.After;
 import org.junit.Before;
 
 import java.io.IOException;
+import java.lang.reflect.Field;
 import java.net.InetSocketAddress;
 import java.net.URI;
 import java.util.*;
@@ -49,6 +54,7 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 
+import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.core.Is.is;
 
 public abstract class BlobHttpIntegrationTest extends BlobIntegrationTestBase {
@@ -57,6 +63,10 @@ public abstract class BlobHttpIntegrationTest extends BlobIntegrationTestBase {
     protected InetSocketAddress address2;
 
     protected CloseableHttpClient httpClient = HttpClients.createDefault();
+
+    static {
+        System.setProperty("tests.short_timeouts", "true");
+    }
 
     @Before
     public void setup() throws ExecutionException, InterruptedException {
@@ -79,6 +89,24 @@ public abstract class BlobHttpIntegrationTest extends BlobIntegrationTestBase {
                     .put("number_of_shards", 2)
                     .put("number_of_replicas", 0).build()).execute().actionGet();
         ensureGreen();
+    }
+
+    @After
+    public void assertNoActiveTransfersRemaining() throws Exception {
+        Iterable<BlobTransferTarget> transferTargets = internalCluster().getInstances(BlobTransferTarget.class);
+        final Field activeTransfersField = BlobTransferTarget.class.getDeclaredField("activeTransfers");
+        activeTransfersField.setAccessible(true);
+        assertBusy(() -> {
+            for (BlobTransferTarget transferTarget : transferTargets) {
+                Map<UUID, BlobTransferStatus> activeTransfers = null;
+                try {
+                    activeTransfers = (Map<UUID, BlobTransferStatus>) activeTransfersField.get(transferTarget);
+                    assertThat(activeTransfers.keySet(), empty());
+                } catch (IllegalAccessException e) {
+                    throw Throwables.propagate(e);
+                }
+            }
+        });
     }
 
     protected String blobUri(String digest) {
