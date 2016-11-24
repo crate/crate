@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+2016/11/24 0.57.3
+=================
+
  - Added ``path`` and ``blob_path`` columns to the ``sys.shards`` table.
 
 2016/11/22 0.57.2
