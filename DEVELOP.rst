@@ -182,6 +182,7 @@ The ``home`` directory will be set to ``<project_root>/sandbox/crate`` and the
 configuration files for it can be found in
 ``<project_root>/sandbox/crate/config``.
 
+
 Test Coverage
 --------------
 
@@ -200,6 +201,14 @@ Running `FindBugs`_ against our code base::
 The findbugs check will also be executed when running::
 
     ./gradlew check
+
+Forbidden APIs
+--------------
+
+Run `Forbidden APIs`_::
+
+    ./gradlew forbiddenApisMain
+
 
 Benchmark
 =========
@@ -319,3 +328,5 @@ the grammar changed::
 .. _`JMH introduction`: http://java-performance.info/jmh/
 
 .. _`JMH samples`: http://hg.openjdk.java.net/code-tools/jmh/file/tip/jmh-samples/src/main/java/org/openjdk/jmh/samples/
+
+.. _`Forbidden APIs`: https://github.com/policeman-tools/forbidden-apis

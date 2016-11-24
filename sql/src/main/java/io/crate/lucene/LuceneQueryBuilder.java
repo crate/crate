@@ -1082,10 +1082,10 @@ public class LuceneQueryBuilder {
         private static GeoPointFieldMapper.GeoPointFieldType getGeoPointFieldType(String fieldName, MapperService mapperService) {
             MappedFieldType fieldType = mapperService.smartNameFieldType(fieldName);
             if (fieldType == null) {
-                throw new IllegalArgumentException(String.format("column \"%s\" doesn't exist", fieldName));
+                throw new IllegalArgumentException(String.format(Locale.ENGLISH, "column \"%s\" doesn't exist", fieldName));
             }
             if (!(fieldType instanceof GeoPointFieldMapper.GeoPointFieldType)) {
-                throw new IllegalArgumentException(String.format("column \"%s\" isn't of type geo_point", fieldName));
+                throw new IllegalArgumentException(String.format(Locale.ENGLISH, "column \"%s\" isn't of type geo_point", fieldName));
             }
             return (GeoPointFieldMapper.GeoPointFieldType) fieldType;
         }

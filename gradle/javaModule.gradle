@@ -1,5 +1,6 @@
 apply plugin: "java"
 apply plugin: "maven"
+apply plugin: 'de.thetaphi.forbiddenapis'
 
 repositories {
     mavenCentral()
@@ -21,4 +22,9 @@ if (project.hasProperty('testLogging')) {
     test {
         testLogging.showStandardStreams = true
     }
+}
+
+forbiddenApisMain {
+    bundledSignatures = ['jdk-unsafe', 'jdk-deprecated']
+    ignoreFailures = false
 }

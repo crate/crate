@@ -57,7 +57,7 @@ public class KillStatement extends Statement {
 
     @Override
     public String toString() {
-        return jobId.isPresent() ? String.format("KILL '%s'", jobId.get()) : "KILL ALL";
+        return jobId.isPresent() ? "KILL '" + jobId.get() + "'" : "KILL ALL";
     }
 
     @Override

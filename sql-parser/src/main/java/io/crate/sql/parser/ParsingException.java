@@ -24,6 +24,8 @@ package io.crate.sql.parser;
 import org.antlr.runtime.ANTLRStringStream;
 import org.antlr.runtime.RecognitionException;
 
+import java.util.Locale;
+
 import static java.lang.String.format;
 
 public class ParsingException
@@ -55,6 +57,6 @@ public class ParsingException
 
     @Override
     public String getMessage() {
-        return format("line %s:%s: %s", getLineNumber(), getColumnNumber(), getErrorMessage());
+        return format(Locale.ENGLISH, "line %s:%s: %s", getLineNumber(), getColumnNumber(), getErrorMessage());
     }
 }

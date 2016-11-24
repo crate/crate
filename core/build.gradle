@@ -1,7 +1,6 @@
 apply from: "$rootDir/gradle/javaModule.gradle"
 
 apply plugin: 'me.champeau.gradle.jmh'
-apply plugin: 'de.thetaphi.forbiddenapis'
 
 archivesBaseName = 'crate-core'
 
@@ -23,11 +22,6 @@ test {
 
 jmh {
     resultFormat = 'JSON'
-}
-
-forbiddenApisMain {
-    bundledSignatures = ['jdk-unsafe', 'jdk-deprecated']
-    ignoreFailures = false
 }
 
 task getVersion(dependsOn: 'classes') << {
