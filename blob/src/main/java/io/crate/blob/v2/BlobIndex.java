@@ -29,10 +29,43 @@ import java.nio.file.Path;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
-class BlobIndex {
+public class BlobIndex {
+
+    private static final String INDEX_PREFIX = ".blob_";
+
+    /**
+     * check if this index is a blob table
+     * <p>
+     * This only works for indices that were created via SQL.
+     */
+    public static boolean isBlobIndex(String indexName) {
+        return indexName.startsWith(INDEX_PREFIX);
+    }
+
+    /**
+     * Returns the full index name, adds blob index prefix.
+     */
+    public static String fullIndexName(String indexName) {
+        if (isBlobIndex(indexName)) {
+            return indexName;
+        }
+        return INDEX_PREFIX + indexName;
+    }
+
+    /**
+     * Strips the blob index prefix from a full index name
+     */
+    public static String stripPrefix(String indexName) {
+        if (!isBlobIndex(indexName)) {
+            return indexName;
+        }
+        return indexName.substring(INDEX_PREFIX.length());
+    }
+
 
     private final Map<Integer, BlobShard> shards = new ConcurrentHashMap<>();
     private final Path globalBlobPath;
+
 
     BlobIndex(@Nullable Path globalBlobPath) {
         this.globalBlobPath = globalBlobPath;

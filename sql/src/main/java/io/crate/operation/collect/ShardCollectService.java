@@ -28,6 +28,7 @@ import io.crate.action.sql.query.CrateSearchContext;
 import io.crate.action.sql.query.LuceneSortGenerator;
 import io.crate.analyze.EvaluatingNormalizer;
 import io.crate.analyze.symbol.Symbols;
+import io.crate.blob.v2.BlobIndex;
 import io.crate.blob.v2.BlobIndicesService;
 import io.crate.core.collections.Row;
 import io.crate.executor.transport.TransportActionProvider;
@@ -118,7 +119,7 @@ public class ShardCollectService {
         this.blobIndicesService = blobIndicesService;
         this.mapperService = mapperService;
         this.indexFieldDataService = indexFieldDataService;
-        isBlobShard = BlobIndicesService.isBlobShard(this.shardId);
+        isBlobShard = BlobIndex.isBlobIndex(shardId.getIndex());
 
         if (isBlobShard) {
             shardResolver = new BlobShardReferenceResolver(blobIndicesService.blobShardSafe(shardId));

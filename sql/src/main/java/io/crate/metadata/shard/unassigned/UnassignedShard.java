@@ -1,6 +1,6 @@
 package io.crate.metadata.shard.unassigned;
 
-import io.crate.blob.v2.BlobIndicesService;
+import io.crate.blob.v2.BlobIndex;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.blob.BlobSchemaInfo;
@@ -71,12 +71,12 @@ public class UnassignedShard {
                            Boolean primary,
                            ShardRoutingState state) {
         String index = shardId.index().name();
-        boolean isBlobIndex = BlobIndicesService.isBlobIndex(index);
+        boolean isBlobIndex = BlobIndex.isBlobIndex(index);
         String tableName;
         String ident = "";
         if (isBlobIndex) {
             this.schemaName = BlobSchemaInfo.NAME;
-            tableName = BlobIndicesService.STRIP_PREFIX.apply(index);
+            tableName = BlobIndex.stripPrefix(index);
         } else if (PartitionName.isPartition(index)) {
             PartitionName partitionName = PartitionName.fromIndexOrTemplate(index);
             schemaName = partitionName.tableIdent().schema();

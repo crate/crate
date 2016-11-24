@@ -23,6 +23,7 @@ package io.crate.metadata.blob;
 
 import io.crate.analyze.NumberOfReplicas;
 import io.crate.analyze.TableParameterInfo;
+import io.crate.blob.v2.BlobIndex;
 import io.crate.blob.v2.BlobIndicesService;
 import io.crate.exceptions.TableUnknownException;
 import io.crate.metadata.TableIdent;
@@ -55,7 +56,7 @@ public class InternalBlobTableInfoFactory implements BlobTableInfoFactory {
     }
 
     private IndexMetaData resolveIndexMetaData(String tableName, ClusterState state) {
-        String index = BlobIndicesService.fullIndexName(tableName);
+        String index = BlobIndex.fullIndexName(tableName);
         String[] concreteIndices;
         try {
             concreteIndices = indexNameExpressionResolver.concreteIndices(

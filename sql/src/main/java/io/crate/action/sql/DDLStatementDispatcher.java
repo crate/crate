@@ -27,7 +27,7 @@ import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import io.crate.action.FutureActionListener;
 import io.crate.analyze.*;
-import io.crate.blob.v2.BlobIndicesService;
+import io.crate.blob.v2.BlobAdminClient;
 import io.crate.executor.transport.*;
 import org.elasticsearch.action.admin.indices.forcemerge.ForceMergeRequest;
 import org.elasticsearch.action.admin.indices.forcemerge.ForceMergeResponse;
@@ -35,6 +35,7 @@ import org.elasticsearch.action.admin.indices.refresh.RefreshRequest;
 import org.elasticsearch.action.admin.indices.refresh.RefreshResponse;
 import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.common.inject.Inject;
+import org.elasticsearch.common.inject.Provider;
 import org.elasticsearch.common.inject.Singleton;
 
 import javax.annotation.Nullable;
@@ -50,7 +51,7 @@ import java.util.UUID;
 @Singleton
 public class DDLStatementDispatcher {
 
-    private final BlobIndicesService blobIndicesService;
+    private final Provider<BlobAdminClient> blobAdminClient;
     private final TransportActionProvider transportActionProvider;
     private final TableCreator tableCreator;
     private final AlterTableOperation alterTableOperation;
@@ -61,13 +62,13 @@ public class DDLStatementDispatcher {
 
 
     @Inject
-    public DDLStatementDispatcher(BlobIndicesService blobIndicesService,
+    public DDLStatementDispatcher(Provider<BlobAdminClient> blobAdminClient,
                                   TableCreator tableCreator,
                                   AlterTableOperation alterTableOperation,
                                   RepositoryService repositoryService,
                                   SnapshotRestoreDDLDispatcher snapshotRestoreDDLDispatcher,
                                   TransportActionProvider transportActionProvider) {
-        this.blobIndicesService = blobIndicesService;
+        this.blobAdminClient = blobAdminClient;
         this.tableCreator = tableCreator;
         this.alterTableOperation = alterTableOperation;
         this.transportActionProvider = transportActionProvider;
@@ -142,7 +143,7 @@ public class DDLStatementDispatcher {
         public ListenableFuture<Long> visitCreateBlobTableStatement(
             CreateBlobTableAnalyzedStatement analysis, UUID jobId) {
             return wrapRowCountFuture(
-                blobIndicesService.createBlobTable(
+                blobAdminClient.get().createBlobTable(
                     analysis.tableName(),
                     analysis.tableParameter().settings()
                 ),
@@ -153,13 +154,13 @@ public class DDLStatementDispatcher {
         @Override
         public ListenableFuture<Long> visitAlterBlobTableStatement(AlterBlobTableAnalyzedStatement analysis, UUID jobId) {
             return wrapRowCountFuture(
-                blobIndicesService.alterBlobTable(analysis.table().ident().name(), analysis.tableParameter().settings()),
+                blobAdminClient.get().alterBlobTable(analysis.table().ident().name(), analysis.tableParameter().settings()),
                 1L);
         }
 
         @Override
         public ListenableFuture<Long> visitDropBlobTableStatement(DropBlobTableAnalyzedStatement analysis, UUID jobId) {
-            return wrapRowCountFuture(blobIndicesService.dropBlobTable(analysis.table().ident().name()), 1L);
+            return wrapRowCountFuture(blobAdminClient.get().dropBlobTable(analysis.table().ident().name()), 1L);
         }
 
         @Override

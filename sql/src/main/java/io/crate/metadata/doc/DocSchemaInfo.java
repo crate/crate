@@ -35,7 +35,7 @@ import com.google.common.collect.Collections2;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.UnmodifiableIterator;
 import com.google.common.util.concurrent.UncheckedExecutionException;
-import io.crate.blob.v2.BlobIndicesService;
+import io.crate.blob.v2.BlobIndex;
 import io.crate.exceptions.ResourceUnknownException;
 import io.crate.exceptions.UnhandledServerException;
 import io.crate.metadata.PartitionName;
@@ -108,7 +108,7 @@ public class DocSchemaInfo implements SchemaInfo {
                 if (input == null) {
                     return null;
                 }
-                if (BlobIndicesService.isBlobIndex(input)) {
+                if (BlobIndex.isBlobIndex(input)) {
                     return null;
                 }
                 if (PartitionName.isPartition(input)) {

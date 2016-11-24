@@ -27,7 +27,7 @@ import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
 import com.google.common.collect.FluentIterable;
 import com.google.common.util.concurrent.UncheckedExecutionException;
-import io.crate.blob.v2.BlobIndicesService;
+import io.crate.blob.v2.BlobIndex;
 import io.crate.exceptions.ResourceUnknownException;
 import io.crate.exceptions.UnhandledServerException;
 import io.crate.metadata.TableIdent;
@@ -122,8 +122,8 @@ public class BlobSchemaInfo implements SchemaInfo {
         // and add  state info to the TableInfo.
         return FluentIterable
             .from(Arrays.asList(clusterService.state().metaData().concreteAllOpenIndices()))
-            .filter(BlobIndicesService.indicesFilter)
-            .transform(BlobIndicesService.STRIP_PREFIX);
+            .filter(BlobIndex::isBlobIndex)
+            .transform(BlobIndex::stripPrefix);
     }
 
     @Override

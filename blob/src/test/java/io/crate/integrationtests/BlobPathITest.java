@@ -22,6 +22,7 @@
 
 package io.crate.integrationtests;
 
+import io.crate.blob.v2.BlobAdminClient;
 import io.crate.blob.v2.BlobIndicesService;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.transport.InetSocketTransportAddress;
@@ -48,7 +49,7 @@ import static org.hamcrest.core.Is.is;
 public class BlobPathITest extends BlobIntegrationTestBase {
 
     private BlobHttpClient client;
-    private BlobIndicesService blobIndicesService;
+    private BlobAdminClient blobAdminClient;
     private Path globalBlobPath;
 
     private Settings configureGlobalBlobPath() {
@@ -70,7 +71,7 @@ public class BlobPathITest extends BlobIntegrationTestBase {
         // using numDataNodes = 1 to launch the node doesn't work:
         // if globalBlobPath is created within nodeSetting it is sometimes not available for the tests
         internalCluster().startNode(settings);
-        blobIndicesService = internalCluster().getInstance(BlobIndicesService.class);
+        blobAdminClient = internalCluster().getInstance(BlobAdminClient.class);
 
         HttpServerTransport httpServerTransport = internalCluster().getInstance(HttpServerTransport.class);
         InetSocketAddress address = ((InetSocketTransportAddress) httpServerTransport
@@ -83,7 +84,7 @@ public class BlobPathITest extends BlobIntegrationTestBase {
         launchNodeAndInitClient(configureGlobalBlobPath());
 
         Settings indexSettings = oneShardAndZeroReplicas();
-        blobIndicesService.createBlobTable("test", indexSettings).get();
+        blobAdminClient.createBlobTable("test", indexSettings).get();
 
         client.put("test", "abcdefg");
         String digest = "2fb5e13419fc89246865e7a324f476ec624e8740";
@@ -100,7 +101,7 @@ public class BlobPathITest extends BlobIntegrationTestBase {
             .put(oneShardAndZeroReplicas())
             .put(BlobIndicesService.SETTING_INDEX_BLOBS_PATH, tableBlobPath.toString())
             .build();
-        blobIndicesService.createBlobTable("test", indexSettings).get();
+        blobAdminClient.createBlobTable("test", indexSettings).get();
 
         client.put("test", "abcdefg");
         String digest = "2fb5e13419fc89246865e7a324f476ec624e8740";
@@ -122,7 +123,7 @@ public class BlobPathITest extends BlobIntegrationTestBase {
             .put(SETTING_NUMBER_OF_REPLICAS, 0)
             .put(SETTING_NUMBER_OF_SHARDS, 2)
             .build();
-        blobIndicesService.createBlobTable("test", indexSettings).get();
+        blobAdminClient.createBlobTable("test", indexSettings).get();
 
         for (int i = 0; i < 10; i++) {
             client.put("test", "body" + i);

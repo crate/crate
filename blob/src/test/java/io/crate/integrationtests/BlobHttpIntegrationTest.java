@@ -24,7 +24,7 @@ package io.crate.integrationtests;
 
 import com.google.common.base.Predicate;
 import com.google.common.collect.Iterables;
-import io.crate.blob.v2.BlobIndicesService;
+import io.crate.blob.v2.BlobAdminClient;
 import io.crate.test.utils.Blobs;
 import org.apache.http.Header;
 import org.apache.http.client.methods.*;
@@ -64,14 +64,14 @@ public abstract class BlobHttpIntegrationTest extends BlobIntegrationTestBase {
         Iterator<HttpServerTransport> httpTransports = transports.iterator();
         address = ((InetSocketTransportAddress) httpTransports.next().boundAddress().publishAddress()).address();
         address2 = ((InetSocketTransportAddress) httpTransports.next().boundAddress().publishAddress()).address();
-        BlobIndicesService blobIndicesService = internalCluster().getInstance(BlobIndicesService.class);
+        BlobAdminClient blobAdminClient = internalCluster().getInstance(BlobAdminClient.class);
 
         Settings indexSettings = Settings.builder()
             .put(IndexMetaData.SETTING_NUMBER_OF_REPLICAS, 0)
             .put(IndexMetaData.SETTING_NUMBER_OF_SHARDS, 2)
             .build();
-        blobIndicesService.createBlobTable("test", indexSettings).get();
-        blobIndicesService.createBlobTable("test_blobs2", indexSettings).get();
+        blobAdminClient.createBlobTable("test", indexSettings).get();
+        blobAdminClient.createBlobTable("test_blobs2", indexSettings).get();
 
         client().admin().indices().prepareCreate("test_no_blobs")
             .setSettings(

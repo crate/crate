@@ -22,29 +22,12 @@
 package io.crate.blob.v2;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.base.Function;
-import com.google.common.base.Functions;
-import com.google.common.base.Predicate;
-import com.google.common.util.concurrent.ListenableFuture;
-import com.google.common.util.concurrent.SettableFuture;
-import io.crate.action.FutureActionListener;
 import io.crate.blob.BlobShardFuture;
-import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.action.admin.indices.create.CreateIndexRequest;
-import org.elasticsearch.action.admin.indices.create.CreateIndexResponse;
-import org.elasticsearch.action.admin.indices.create.TransportCreateIndexAction;
-import org.elasticsearch.action.admin.indices.delete.DeleteIndexRequest;
-import org.elasticsearch.action.admin.indices.delete.DeleteIndexResponse;
-import org.elasticsearch.action.admin.indices.delete.TransportDeleteIndexAction;
-import org.elasticsearch.action.admin.indices.settings.put.TransportUpdateSettingsAction;
-import org.elasticsearch.action.admin.indices.settings.put.UpdateSettingsRequest;
-import org.elasticsearch.action.admin.indices.settings.put.UpdateSettingsResponse;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.routing.ShardIterator;
 import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.component.AbstractLifecycleComponent;
 import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.inject.Provider;
 import org.elasticsearch.common.io.PathUtils;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.settings.SettingsException;
@@ -62,24 +45,23 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
+import static io.crate.blob.v2.BlobIndex.isBlobIndex;
+
+/**
+ * Manages the creation and deletion of BlobIndex and BlobShard instances.
+ */
 public class BlobIndicesService extends AbstractLifecycleComponent<BlobIndicesService> {
 
     public static final String SETTING_INDEX_BLOBS_ENABLED = "index.blobs.enabled";
     public static final String SETTING_INDEX_BLOBS_PATH = "index.blobs.path";
     public static final String SETTING_BLOBS_PATH = "blobs.path";
-    private static final String INDEX_PREFIX = ".blob_";
 
-    private final Provider<TransportUpdateSettingsAction> transportUpdateSettingsActionProvider;
-    private final Provider<TransportCreateIndexAction> transportCreateIndexActionProvider;
-    private final Provider<TransportDeleteIndexAction> transportDeleteIndexActionProvider;
     private final ClusterService clusterService;
     private final IndicesLifecycle indicesLifecycle;
 
     @VisibleForTesting
     final Map<String, BlobIndex> indices = new ConcurrentHashMap<>();
 
-    public static final Predicate<String> indicesFilter = BlobIndicesService::isBlobIndex;
-    public static final Function<String, String> STRIP_PREFIX = BlobIndicesService::indexName;
     private final LifecycleListener listener;
 
     @Nullable
@@ -87,15 +69,9 @@ public class BlobIndicesService extends AbstractLifecycleComponent<BlobIndicesSe
 
     @Inject
     public BlobIndicesService(Settings settings,
-                              Provider<TransportCreateIndexAction> transportCreateIndexActionProvider,
-                              Provider<TransportDeleteIndexAction> transportDeleteIndexActionProvider,
-                              Provider<TransportUpdateSettingsAction> transportUpdateSettingsActionProvider,
                               ClusterService clusterService,
                               IndicesLifecycle indicesLifecycle) {
         super(settings);
-        this.transportCreateIndexActionProvider = transportCreateIndexActionProvider;
-        this.transportDeleteIndexActionProvider = transportDeleteIndexActionProvider;
-        this.transportUpdateSettingsActionProvider = transportUpdateSettingsActionProvider;
         this.clusterService = clusterService;
         this.indicesLifecycle = indicesLifecycle;
         this.listener = new LifecycleListener();
@@ -174,49 +150,6 @@ public class BlobIndicesService extends AbstractLifecycleComponent<BlobIndicesSe
         }
     }
 
-    /**
-     * can be used to alter the number of replicas.
-     *
-     * @param tableName     name of the blob table
-     * @param indexSettings updated index settings
-     */
-    public ListenableFuture<Void> alterBlobTable(String tableName, Settings indexSettings) {
-        FutureActionListener<UpdateSettingsResponse, Void> listener =
-            new FutureActionListener<>(Functions.<Void>constant(null));
-
-        transportUpdateSettingsActionProvider.get().execute(
-            new UpdateSettingsRequest(indexSettings, fullIndexName(tableName)), listener);
-        return listener;
-    }
-
-    public ListenableFuture<Void> createBlobTable(String tableName,
-                                                  Settings indexSettings) {
-        Settings.Builder builder = Settings.builder();
-        builder.put(indexSettings);
-        builder.put(SETTING_INDEX_BLOBS_ENABLED, true);
-
-        final SettableFuture<Void> result = SettableFuture.create();
-        transportCreateIndexActionProvider.get().execute(new CreateIndexRequest(fullIndexName(tableName), builder.build()), new ActionListener<CreateIndexResponse>() {
-            @Override
-            public void onResponse(CreateIndexResponse createIndexResponse) {
-                assert createIndexResponse.isAcknowledged();
-                result.set(null);
-            }
-
-            @Override
-            public void onFailure(Throwable e) {
-                result.setException(e);
-            }
-        });
-        return result;
-    }
-
-    public ListenableFuture<Void> dropBlobTable(final String tableName) {
-        FutureActionListener<DeleteIndexResponse, Void> listener = new FutureActionListener<>(Functions.<Void>constant(null));
-        transportDeleteIndexActionProvider.get().execute(new DeleteIndexRequest(fullIndexName(tableName)), listener);
-        return listener;
-    }
-
     @Nullable
     public BlobShard blobShard(String index, int shardId) {
         BlobIndex blobIndex = indices.get(index);
@@ -237,7 +170,6 @@ public class BlobIndicesService extends AbstractLifecycleComponent<BlobIndicesSe
         throw new BlobsDisabledException(index);
     }
 
-
     public BlobShard localBlobShard(String index, String digest) {
         return blobShardSafe(localShardId(index, digest));
     }
@@ -251,44 +183,6 @@ public class BlobIndicesService extends AbstractLifecycleComponent<BlobIndicesSe
     public BlobShardFuture blobShardFuture(String index, int shardId) {
         return new BlobShardFuture(this, indicesLifecycle, index, shardId);
 
-    }
-
-    /**
-     * check if this index is a blob table
-     * <p>
-     * This only works for indices that were created via SQL.
-     */
-    public static boolean isBlobIndex(String indexName) {
-        return indexName.startsWith(INDEX_PREFIX);
-    }
-
-    /**
-     * check if given shard is part of an index that is a blob table
-     * <p>
-     * This only works for indices that were created via SQL.
-     */
-    public static boolean isBlobShard(ShardId shardId) {
-        return isBlobIndex(shardId.getIndex());
-    }
-
-    /**
-     * Returns the full index name, adds blob index prefix.
-     */
-    public static String fullIndexName(String indexName) {
-        if (isBlobIndex(indexName)) {
-            return indexName;
-        }
-        return INDEX_PREFIX + indexName;
-    }
-
-    /**
-     * Strips the blob index prefix from a full index name
-     */
-    public static String indexName(String indexName) {
-        if (!isBlobIndex(indexName)) {
-            return indexName;
-        }
-        return indexName.substring(INDEX_PREFIX.length());
     }
 
     static boolean ensureExistsAndWritable(Path blobsPath) {

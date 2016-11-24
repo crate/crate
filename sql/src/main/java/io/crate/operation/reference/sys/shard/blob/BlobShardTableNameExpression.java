@@ -21,7 +21,7 @@
 
 package io.crate.operation.reference.sys.shard.blob;
 
-import io.crate.blob.v2.BlobIndicesService;
+import io.crate.blob.v2.BlobIndex;
 import io.crate.metadata.SimpleObjectExpression;
 import io.crate.metadata.shard.blob.BlobShardReferenceImplementation;
 import org.apache.lucene.util.BytesRef;
@@ -35,7 +35,7 @@ public class BlobShardTableNameExpression extends SimpleObjectExpression<BytesRe
 
     @Inject
     public BlobShardTableNameExpression(ShardId shardId) {
-        this.tableName = BytesRefs.toBytesRef(BlobIndicesService.STRIP_PREFIX.apply(shardId.index().name()));
+        this.tableName = BytesRefs.toBytesRef(BlobIndex.stripPrefix(shardId.index().name()));
     }
 
     @Override

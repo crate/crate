@@ -46,9 +46,6 @@ public class BlobIndicesServiceTest extends CrateUnitTest {
         CompletableFuture<IndicesLifecycle.Listener> listenerFuture = new CompletableFuture<>();
         BlobIndicesService blobIndicesService = new BlobIndicesService(
             Settings.EMPTY,
-            null,
-            null,
-            null,
             new NoopClusterService(),
             new IndicesLifecycle() {
                 @Override

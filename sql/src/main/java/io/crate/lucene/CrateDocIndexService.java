@@ -22,7 +22,7 @@
 
 package io.crate.lucene;
 
-import io.crate.blob.v2.BlobIndicesService;
+import io.crate.blob.v2.BlobIndex;
 import io.crate.metadata.Functions;
 import io.crate.operation.Input;
 import io.crate.operation.collect.CollectInputSymbolVisitor;
@@ -42,7 +42,7 @@ public class CrateDocIndexService {
 
     @Inject
     public CrateDocIndexService(Index index, Functions functions, MapperService mapperService) {
-        if (BlobIndicesService.isBlobIndex(index.name())) {
+        if (BlobIndex.isBlobIndex(index.name())) {
             docInputSymbolVisitor = new CollectInputSymbolVisitor<>(functions, BlobReferenceResolver.INSTANCE);
         } else {
             ReferenceResolver<? extends Input<?>> resolver = new LuceneReferenceResolver(mapperService);

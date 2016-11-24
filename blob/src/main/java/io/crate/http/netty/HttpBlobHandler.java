@@ -27,6 +27,7 @@ import io.crate.blob.RemoteDigestBlob;
 import io.crate.blob.exceptions.DigestMismatchException;
 import io.crate.blob.exceptions.DigestNotFoundException;
 import io.crate.blob.exceptions.MissingHTTPEndpointException;
+import io.crate.blob.v2.BlobIndex;
 import io.crate.blob.v2.BlobIndicesService;
 import io.crate.blob.v2.BlobShard;
 import io.crate.blob.v2.BlobsDisabledException;
@@ -157,7 +158,7 @@ public class HttpBlobHandler extends SimpleChannelUpstreamHandler implements
         LOGGER.trace("matches index:{} digest:{}", index, digest);
         LOGGER.trace("HTTPMessage:%n{}", request);
 
-        index = BlobIndicesService.fullIndexName(index);
+        index = BlobIndex.fullIndexName(index);
 
         if (possibleRedirect(request, index, digest)) {
             reset();
