@@ -29,12 +29,15 @@ import java.util.Collection;
 
 public class QueriedTable extends QueriedTableRelation<TableRelation> {
 
-    public QueriedTable(TableRelation tableRelation, Collection<? extends Path> paths, QuerySpec querySpec) {
-        super(tableRelation, paths, querySpec);
+    public QueriedTable(byte relationId,
+                        TableRelation tableRelation,
+                        Collection<? extends Path> paths,
+                        QuerySpec querySpec) {
+        super(relationId, tableRelation, paths, querySpec);
     }
 
-    public QueriedTable(TableRelation tableRelation, QuerySpec querySpec) {
-        super(tableRelation, querySpec);
+    public QueriedTable(byte relationId, TableRelation tableRelation, QuerySpec querySpec) {
+        super(relationId, tableRelation, querySpec);
     }
 
     @Override

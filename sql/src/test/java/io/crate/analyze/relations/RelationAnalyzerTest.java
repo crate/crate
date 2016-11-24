@@ -22,6 +22,7 @@
 
 package io.crate.analyze.relations;
 
+import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.exceptions.ValidationException;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.testing.SQLExecutor;
@@ -37,5 +38,21 @@ public class RelationAnalyzerTest extends CrateUnitTest {
         expectedException.expect(ValidationException.class);
         expectedException.expectMessage("missing FROM-clause entry for relation 't3'");
         executor.analyze("select * from t1 join t2 on t1.a = t3.c join t3 on t2.b = t3.c");
+    }
+
+    @Test
+    public void testMaxNumberOfRelations() throws Exception {
+        StringBuilder sb = new StringBuilder();
+        for (short i = 0; i <= StatementAnalysisContext.MAX_RELATIONS; i++) {
+            sb.append("select * from (");
+        }
+        sb.append("select * from t1");
+        for (short i = 0; i <= StatementAnalysisContext.MAX_RELATIONS; i++) {
+            sb.append(") a").append(i);
+        }
+        System.out.println(sb.toString());
+        expectedException.expect(UnsupportedFeatureException.class);
+        expectedException.expectMessage("Query with more than " + StatementAnalysisContext.MAX_RELATIONS + " relations");
+        executor.analyze(sb.toString());
     }
 }

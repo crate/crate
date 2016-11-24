@@ -132,7 +132,7 @@ class NonDistributedGroupByConsumer implements Consumer {
                 table,
                 splitPoints.leaves(),
                 ImmutableList.<Projection>of(groupProjection),
-                context.relationId()
+                table.relationId()
             );
             Collect collect = new Collect(collectPhase, TopN.NO_LIMIT, 0, groupProjection.outputs().size(), -1, null);
 

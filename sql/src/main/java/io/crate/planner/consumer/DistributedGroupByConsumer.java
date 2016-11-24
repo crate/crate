@@ -114,7 +114,7 @@ class DistributedGroupByConsumer implements Consumer {
                 ImmutableList.<Projection>of(groupProjection),
                 querySpec.where(),
                 DistributionInfo.DEFAULT_MODULO,
-                context.relationId()
+                table.relationId()
             );
             // end: Map/Collect side
 

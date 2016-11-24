@@ -39,6 +39,7 @@ import io.crate.operation.Input;
 import io.crate.operation.InputRow;
 import io.crate.operation.fetch.FetchRowInputSymbolVisitor;
 import io.crate.operation.projectors.*;
+import io.crate.operation.reference.doc.lucene.FetchIds;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.util.concurrent.AbstractRunnable;
@@ -53,6 +54,8 @@ import java.util.concurrent.Executor;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
+
+import static io.crate.operation.reference.doc.lucene.FetchIds.extractDocId;
 
 public class FetchProjector extends AbstractProjector {
 
@@ -242,9 +245,9 @@ public class FetchProjector extends AbstractProjector {
                     fetchRows[j].cells = nullCells[j];
                     continue;
                 }
-                long doc = (long) docObject;
-                int readerId = (int) (doc >> 32);
-                int docId = (int) (long) doc;
+                long fetchId = (long) docObject;
+                int readerId = FetchIds.extractReaderId(fetchId);
+                int docId = FetchIds.extractDocId(fetchId);
                 ReaderBucket readerBucket = context.getReaderBucket(readerId);
                 assert readerBucket != null;
                 setPartitionRow(partitionRows, j, readerBucket);
