@@ -23,19 +23,16 @@ package io.crate.operation.reference.sys.shard;
 
 import io.crate.metadata.Schemas;
 import io.crate.metadata.SimpleObjectExpression;
-import io.crate.metadata.shard.ShardReferenceImplementation;
 import org.apache.lucene.util.BytesRef;
-import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.index.shard.ShardId;
 
 import java.util.regex.Matcher;
 
-public class ShardSchemaNameExpression extends SimpleObjectExpression<BytesRef> implements ShardReferenceImplementation<BytesRef> {
+public class ShardSchemaNameExpression extends SimpleObjectExpression<BytesRef> {
 
     private static final BytesRef DOC_SCHEMA_NAME = new BytesRef(Schemas.DEFAULT_SCHEMA_NAME);
     private final BytesRef schemaName;
 
-    @Inject
     public ShardSchemaNameExpression(ShardId shardId) {
         String indexName = shardId.getIndex();
         Matcher matcher = Schemas.SCHEMA_PATTERN.matcher(indexName);

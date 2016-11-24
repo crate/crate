@@ -23,18 +23,15 @@ package io.crate.operation.reference.sys.shard;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.SimpleObjectExpression;
-import io.crate.metadata.shard.ShardReferenceImplementation;
 import org.apache.lucene.util.BytesRef;
-import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.index.shard.ShardId;
 
 import java.util.regex.Matcher;
 
-public class ShardTableNameExpression extends SimpleObjectExpression<BytesRef> implements ShardReferenceImplementation<BytesRef> {
+public class ShardTableNameExpression extends SimpleObjectExpression<BytesRef> {
 
     private final BytesRef value;
 
-    @Inject
     public ShardTableNameExpression(ShardId shardId) {
         String index = shardId.getIndex();
         if (PartitionName.isPartition(index)) {

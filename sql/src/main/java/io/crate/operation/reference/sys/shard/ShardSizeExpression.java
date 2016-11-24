@@ -24,17 +24,14 @@ package io.crate.operation.reference.sys.shard;
 import com.google.common.base.Supplier;
 import com.google.common.base.Suppliers;
 import io.crate.metadata.SimpleObjectExpression;
-import io.crate.metadata.shard.ShardReferenceImplementation;
-import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.index.shard.IndexShard;
 
 import java.util.concurrent.TimeUnit;
 
-public class ShardSizeExpression extends SimpleObjectExpression<Long> implements ShardReferenceImplementation<Long> {
+public class ShardSizeExpression extends SimpleObjectExpression<Long> {
 
     private final Supplier<Long> sizeSupplier;
 
-    @Inject
     public ShardSizeExpression(final IndexShard indexShard) {
         sizeSupplier = Suppliers.memoizeWithExpiration(new Supplier<Long>() {
             @Override

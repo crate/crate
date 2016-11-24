@@ -21,48 +21,40 @@
 
 package io.crate.operation.reference.sys;
 
+import com.google.common.collect.ImmutableMap;
 import io.crate.metadata.*;
-import io.crate.metadata.shard.MetaDataShardModule;
+import io.crate.metadata.doc.DocSchemaInfoFactory;
+import io.crate.metadata.doc.TestingDocTableInfoFactory;
 import io.crate.metadata.shard.RecoveryShardReferenceResolver;
-import io.crate.metadata.shard.ShardReferenceImplementation;
 import io.crate.metadata.shard.ShardReferenceResolver;
-import io.crate.metadata.sys.MetaDataSysModule;
+import io.crate.metadata.sys.SysSchemaInfo;
 import io.crate.metadata.sys.SysShardsTableInfo;
 import io.crate.operation.reference.NestedObjectExpression;
-import io.crate.operation.reference.sys.cluster.SysClusterExpressionModule;
+import io.crate.operation.reference.ReferenceResolver;
 import io.crate.operation.reference.sys.shard.ShardPathExpression;
-import io.crate.operation.reference.sys.shard.SysShardExpressionModule;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.types.DataTypes;
 import io.crate.types.IntegerType;
 import org.apache.lucene.util.BytesRef;
-import org.elasticsearch.action.admin.indices.template.put.TransportPutIndexTemplateAction;
-import org.elasticsearch.cluster.ClusterName;
 import org.elasticsearch.cluster.ClusterService;
-import org.elasticsearch.cluster.ClusterState;
-import org.elasticsearch.cluster.metadata.IndexTemplateMetaData;
-import org.elasticsearch.cluster.metadata.MetaData;
 import org.elasticsearch.cluster.routing.ShardRouting;
 import org.elasticsearch.cluster.routing.ShardRoutingHelper;
 import org.elasticsearch.cluster.routing.UnassignedInfo;
-import org.elasticsearch.common.collect.ImmutableOpenMap;
-import org.elasticsearch.common.inject.AbstractModule;
-import org.elasticsearch.common.inject.Injector;
-import org.elasticsearch.common.inject.ModulesBuilder;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.Index;
+import org.elasticsearch.index.IndexService;
 import org.elasticsearch.index.shard.*;
 import org.elasticsearch.index.store.StoreStats;
 import org.elasticsearch.indices.recovery.RecoveryState;
-import org.elasticsearch.threadpool.ThreadPool;
-import org.junit.AfterClass;
+import org.elasticsearch.test.cluster.NoopClusterService;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.concurrent.TimeUnit;
 
 import static io.crate.testing.TestingHelpers.refInfo;
 import static org.hamcrest.core.Is.is;
@@ -72,112 +64,75 @@ import static org.mockito.Mockito.when;
 @SuppressWarnings("ConstantConditions")
 public class SysShardsExpressionsTest extends CrateUnitTest {
 
-    private AbstractReferenceResolver resolver;
-    private Schemas schemas;
-
+    private ReferenceResolver<?> resolver;
     private String indexName = "wikipedia_de";
-    private static ThreadPool threadPool = new ThreadPool("testing");
     private IndexShard indexShard;
+    private Schemas schemas;
 
     @Before
     public void prepare() throws Exception {
-        Injector injector = new ModulesBuilder().add(
-            new TestModule(),
-            new MetaDataModule(),
-            new MetaDataSysModule(),
-            new SysClusterExpressionModule(),
-            new MetaDataShardModule(),
-            new SysShardExpressionModule()
-        ).createInjector();
-        AbstractReferenceResolver shardRefResolver = injector.getInstance(ShardReferenceResolver.class);
-        IndexShard indexShard = injector.getInstance(IndexShard.class);
+        ClusterService clusterService = new NoopClusterService();
+        indexShard = mockIndexShard();
+        schemas = new Schemas(
+            Settings.EMPTY,
+            ImmutableMap.of("sys", new SysSchemaInfo(clusterService)),
+            clusterService,
+            new DocSchemaInfoFactory(new TestingDocTableInfoFactory(Collections.emptyMap()))
+        );
+        ShardReferenceResolver shardRefResolver = new ShardReferenceResolver(
+            clusterService,
+            schemas,
+            indexShard
+        );
         resolver = new RecoveryShardReferenceResolver(shardRefResolver, indexShard);
-        schemas = injector.getInstance(Schemas.class);
     }
 
-    @AfterClass
-    public static void after() throws Exception {
-        threadPool.shutdown();
-        threadPool.awaitTermination(1, TimeUnit.SECONDS);
-        threadPool = null;
-    }
+    private IndexShard mockIndexShard() {
+        IndexService indexService = mock(IndexService.class);
+        Index index = new Index(indexName);
+        ShardId shardId = new ShardId(indexName, 1);
 
-    class TestModule extends AbstractModule {
+        IndexShard indexShard = mock(IndexShard.class);
+        when(indexService.index()).thenReturn(index);
+        when(indexShard.indexService()).thenReturn(indexService);
+        when(indexShard.shardId()).thenReturn(shardId);
+        when(indexShard.state()).thenReturn(IndexShardState.STARTED);
 
-        @SuppressWarnings("unchecked")
-        @Override
-        protected void configure() {
-            bind(ThreadPool.class).toInstance(threadPool);
-            bind(Settings.class).toInstance(Settings.EMPTY);
+        StoreStats storeStats = mock(StoreStats.class);
+        when(storeStats.getSizeInBytes()).thenReturn(123456L);
+        when(indexShard.storeStats()).thenReturn(storeStats);
 
-            ClusterService clusterService = mock(ClusterService.class);
-            bind(ClusterService.class).toInstance(clusterService);
+        Path dataPath = Paths.get("/dummy/" + indexName + "/1");
+        when(indexShard.shardPath()).thenReturn(new ShardPath(false, dataPath, dataPath, "123", shardId));
 
-            ClusterName clusterName = mock(ClusterName.class);
-            when(clusterName.value()).thenReturn("crate");
-            bind(ClusterName.class).toInstance(clusterName);
+        DocsStats docsStats = new DocsStats(654321L, 0L);
+        when(indexShard.docStats()).thenReturn(docsStats).thenThrow(IllegalIndexShardStateException.class);
 
-            Index index = new Index(SysShardsTableInfo.IDENT.name());
-            bind(Index.class).toInstance(index);
+        ShardRouting shardRouting = ShardRouting.newUnassigned(
+            index.name(), shardId.id(), null, true, new UnassignedInfo(UnassignedInfo.Reason.INDEX_CREATED, "foo"));
+        ShardRoutingHelper.initialize(shardRouting, "node1");
+        ShardRoutingHelper.moveToStarted(shardRouting);
+        ShardRoutingHelper.relocate(shardRouting, "node_X");
+        when(indexShard.routingEntry()).thenReturn(shardRouting);
 
-            ShardId shardId = new ShardId(indexName, 1);
-            bind(ShardId.class).toInstance(shardId);
+        RecoveryState recoveryState = mock(RecoveryState.class);
+        when(indexShard.recoveryState()).thenReturn(recoveryState);
+        RecoveryState.Index recoveryStateIndex = mock(RecoveryState.Index.class);
+        RecoveryState.Timer recoveryStateTimer = mock(RecoveryState.Timer.class);
+        when(recoveryState.getIndex()).thenReturn(recoveryStateIndex);
+        when(recoveryState.getStage()).thenReturn(RecoveryState.Stage.DONE);
+        when(recoveryState.getTimer()).thenReturn(recoveryStateTimer);
+        when(recoveryState.getType()).thenReturn(RecoveryState.Type.REPLICA);
 
-            indexShard = mock(IndexShard.class);
-            bind(IndexShard.class).toInstance(indexShard);
+        when(recoveryStateIndex.totalBytes()).thenReturn(2048L);
+        when(recoveryStateIndex.reusedBytes()).thenReturn(1024L);
+        when(recoveryStateIndex.recoveredBytes()).thenReturn(1024L);
+        when(recoveryStateIndex.totalFileCount()).thenReturn(2);
+        when(recoveryStateIndex.reusedFileCount()).thenReturn(1);
+        when(recoveryStateIndex.recoveredFileCount()).thenReturn(1);
+        when(recoveryStateTimer.time()).thenReturn(10000L);
 
-            StoreStats storeStats = mock(StoreStats.class);
-            when(indexShard.storeStats()).thenReturn(storeStats);
-            when(storeStats.getSizeInBytes()).thenReturn(123456L);
-            java.nio.file.Path dataPath = Paths.get("/dummy/" + indexName + "/1");
-            when(indexShard.shardPath()).thenReturn(new ShardPath(false, dataPath, dataPath, "123", shardId));
-
-            DocsStats docsStats = mock(DocsStats.class);
-            when(indexShard.docStats()).thenReturn(docsStats).thenThrow(IllegalIndexShardStateException.class);
-            when(docsStats.getCount()).thenReturn(654321L);
-
-            RecoveryState recoveryState = mock(RecoveryState.class);
-            when(indexShard.recoveryState()).thenReturn(recoveryState);
-
-            RecoveryState.Index recoveryStateIndex = mock(RecoveryState.Index.class);
-            RecoveryState.Timer recoveryStateTimer = mock(RecoveryState.Timer.class);
-
-            when(recoveryState.getIndex()).thenReturn(recoveryStateIndex);
-            when(recoveryState.getStage()).thenReturn(RecoveryState.Stage.DONE);
-            when(recoveryState.getTimer()).thenReturn(recoveryStateTimer);
-            when(recoveryState.getType()).thenReturn(RecoveryState.Type.REPLICA);
-
-            when(recoveryStateIndex.totalBytes()).thenReturn(2048L);
-            when(recoveryStateIndex.reusedBytes()).thenReturn(1024L);
-            when(recoveryStateIndex.recoveredBytes()).thenReturn(1024L);
-
-            when(recoveryStateIndex.totalFileCount()).thenReturn(2);
-            when(recoveryStateIndex.reusedFileCount()).thenReturn(1);
-            when(recoveryStateIndex.recoveredFileCount()).thenReturn(1);
-
-            when(recoveryStateTimer.time()).thenReturn(10000L);
-
-            ShardRouting shardRouting = ShardRouting.newUnassigned(index.name(), shardId.id(), null, true, new UnassignedInfo(UnassignedInfo.Reason.INDEX_CREATED, "foo"));
-            ShardRoutingHelper.initialize(shardRouting, "node1");
-            ShardRoutingHelper.moveToStarted(shardRouting);
-            ShardRoutingHelper.relocate(shardRouting, "node_X");
-            when(indexShard.routingEntry()).thenReturn(shardRouting);
-
-            TransportPutIndexTemplateAction transportPutIndexTemplateAction = mock(TransportPutIndexTemplateAction.class);
-            bind(TransportPutIndexTemplateAction.class).toInstance(transportPutIndexTemplateAction);
-
-            when(indexShard.state()).thenReturn(IndexShardState.STARTED);
-
-            MetaData metaData = mock(MetaData.class);
-            when(metaData.hasConcreteIndex(
-                PartitionName.PARTITIONED_TABLE_PREFIX + ".wikipedia_de._1")).thenReturn(false);
-            when(metaData.concreteAllOpenIndices()).thenReturn(new String[0]);
-            when(metaData.templates()).thenReturn(ImmutableOpenMap.<String, IndexTemplateMetaData>of());
-            ClusterState clusterState = mock(ClusterState.class);
-            when(clusterService.state()).thenReturn(clusterState);
-            when(clusterState.metaData()).thenReturn(metaData);
-
-        }
+        return indexShard;
     }
 
     @Test
@@ -193,31 +148,23 @@ public class SysShardsExpressionsTest extends CrateUnitTest {
     }
 
     @Test
-    public void testClusterExpression() throws Exception {
-        // Looking up cluster wide expressions must work too
-        Reference refInfo = refInfo("sys.cluster.name", DataTypes.STRING, RowGranularity.CLUSTER);
-        ReferenceImplementation<BytesRef> name = (ReferenceImplementation<BytesRef>) resolver.getImplementation(refInfo);
-        assertEquals(new BytesRef("crate"), name.value());
-    }
-
-    @Test
     public void testId() throws Exception {
         Reference refInfo = refInfo("sys.shards.id", DataTypes.INTEGER, RowGranularity.SHARD);
-        ShardReferenceImplementation<Integer> shardExpression = (ShardReferenceImplementation<Integer>) resolver.getImplementation(refInfo);
+        ReferenceImplementation<Integer> shardExpression = (ReferenceImplementation<Integer>) resolver.getImplementation(refInfo);
         assertEquals(new Integer(1), shardExpression.value());
     }
 
     @Test
     public void testSize() throws Exception {
         Reference refInfo = refInfo("sys.shards.size", DataTypes.LONG, RowGranularity.SHARD);
-        ShardReferenceImplementation<Long> shardExpression = (ShardReferenceImplementation<Long>) resolver.getImplementation(refInfo);
+        ReferenceImplementation<Long> shardExpression = (ReferenceImplementation<Long>) resolver.getImplementation(refInfo);
         assertEquals(new Long(123456), shardExpression.value());
     }
 
     @Test
     public void testNumDocs() throws Exception {
         Reference refInfo = refInfo("sys.shards.num_docs", DataTypes.LONG, RowGranularity.SHARD);
-        ShardReferenceImplementation<Long> shardExpression = (ShardReferenceImplementation<Long>) resolver.getImplementation(refInfo);
+        ReferenceImplementation<Long> shardExpression = (ReferenceImplementation<Long>) resolver.getImplementation(refInfo);
         assertEquals(new Long(654321), shardExpression.value());
 
         // second call should throw Exception
@@ -227,35 +174,35 @@ public class SysShardsExpressionsTest extends CrateUnitTest {
     @Test
     public void testState() throws Exception {
         Reference refInfo = refInfo("sys.shards.state", DataTypes.STRING, RowGranularity.SHARD);
-        ShardReferenceImplementation<BytesRef> shardExpression = (ShardReferenceImplementation<BytesRef>) resolver.getImplementation(refInfo);
+        ReferenceImplementation<BytesRef> shardExpression = (ReferenceImplementation<BytesRef>) resolver.getImplementation(refInfo);
         assertEquals(new BytesRef("STARTED"), shardExpression.value());
     }
 
     @Test
     public void testRoutingState() throws Exception {
         Reference refInfo = refInfo("sys.shards.routing_state", DataTypes.STRING, RowGranularity.SHARD);
-        ShardReferenceImplementation<BytesRef> shardExpression = (ShardReferenceImplementation<BytesRef>) resolver.getImplementation(refInfo);
+        ReferenceImplementation<BytesRef> shardExpression = (ReferenceImplementation<BytesRef>) resolver.getImplementation(refInfo);
         assertEquals(new BytesRef("RELOCATING"), shardExpression.value());
     }
 
     @Test
     public void testPrimary() throws Exception {
         Reference refInfo = refInfo("sys.shards.primary", DataTypes.BOOLEAN, RowGranularity.SHARD);
-        ShardReferenceImplementation<BytesRef> shardExpression = (ShardReferenceImplementation<BytesRef>) resolver.getImplementation(refInfo);
+        ReferenceImplementation<BytesRef> shardExpression = (ReferenceImplementation<BytesRef>) resolver.getImplementation(refInfo);
         assertEquals(true, shardExpression.value());
     }
 
     @Test
     public void testRelocatingNode() throws Exception {
         Reference refInfo = refInfo("sys.shards.relocating_node", DataTypes.STRING, RowGranularity.CLUSTER);
-        ShardReferenceImplementation<BytesRef> shardExpression = (ShardReferenceImplementation<BytesRef>) resolver.getImplementation(refInfo);
+        ReferenceImplementation<BytesRef> shardExpression = (ReferenceImplementation<BytesRef>) resolver.getImplementation(refInfo);
         assertEquals(new BytesRef("node_X"), shardExpression.value());
     }
 
     @Test
     public void testTableName() throws Exception {
         Reference refInfo = refInfo("sys.shards.table_name", DataTypes.STRING, RowGranularity.SHARD);
-        ShardReferenceImplementation<BytesRef> shardExpression = (ShardReferenceImplementation<BytesRef>) resolver.getImplementation(refInfo);
+        ReferenceImplementation<BytesRef> shardExpression = (ReferenceImplementation<BytesRef>) resolver.getImplementation(refInfo);
         assertEquals(new BytesRef("wikipedia_de"), shardExpression.value());
     }
 
@@ -265,7 +212,7 @@ public class SysShardsExpressionsTest extends CrateUnitTest {
         indexName = PartitionName.PARTITIONED_TABLE_PREFIX + ".wikipedia_de._1";
         prepare();
         Reference refInfo = refInfo("sys.shards.table_name", DataTypes.STRING, RowGranularity.SHARD);
-        ShardReferenceImplementation<BytesRef> shardExpression = (ShardReferenceImplementation<BytesRef>) resolver.getImplementation(refInfo);
+        ReferenceImplementation<BytesRef> shardExpression = (ReferenceImplementation<BytesRef>) resolver.getImplementation(refInfo);
         assertEquals(new BytesRef("wikipedia_de"), shardExpression.value());
 
         // reset indexName
@@ -277,7 +224,7 @@ public class SysShardsExpressionsTest extends CrateUnitTest {
         indexName = PartitionName.PARTITIONED_TABLE_PREFIX + ".wikipedia_de._1";
         prepare();
         Reference refInfo = refInfo("sys.shards.partition_ident", DataTypes.STRING, RowGranularity.SHARD);
-        ShardReferenceImplementation<BytesRef> shardExpression = (ShardReferenceImplementation<BytesRef>) resolver.getImplementation(refInfo);
+        ReferenceImplementation<BytesRef> shardExpression = (ReferenceImplementation<BytesRef>) resolver.getImplementation(refInfo);
         assertEquals(new BytesRef("_1"), shardExpression.value());
 
         // reset indexName
@@ -288,7 +235,7 @@ public class SysShardsExpressionsTest extends CrateUnitTest {
     public void testPartitionIdentOfNonPartition() throws Exception {
         // expression should return NULL on non partitioned tables
         Reference refInfo = refInfo("sys.shards.partition_ident", DataTypes.STRING, RowGranularity.SHARD);
-        ShardReferenceImplementation<BytesRef> shardExpression = (ShardReferenceImplementation<BytesRef>) resolver.getImplementation(refInfo);
+        ReferenceImplementation<BytesRef> shardExpression = (ReferenceImplementation<BytesRef>) resolver.getImplementation(refInfo);
         assertEquals(new BytesRef(""), shardExpression.value());
     }
 
@@ -297,7 +244,7 @@ public class SysShardsExpressionsTest extends CrateUnitTest {
         indexName = PartitionName.PARTITIONED_TABLE_PREFIX + ".wikipedia_de._1";
         prepare();
         Reference refInfo = refInfo("sys.shards.orphan_partition", DataTypes.STRING, RowGranularity.SHARD);
-        ShardReferenceImplementation<Boolean> shardExpression = (ShardReferenceImplementation<Boolean>) resolver.getImplementation(refInfo);
+        ReferenceImplementation<Boolean> shardExpression = (ReferenceImplementation<Boolean>) resolver.getImplementation(refInfo);
         assertEquals(true, shardExpression.value());
 
         // reset indexName
@@ -307,7 +254,7 @@ public class SysShardsExpressionsTest extends CrateUnitTest {
     @Test
     public void testSchemaName() throws Exception {
         Reference refInfo = refInfo("sys.shards.schema_name", DataTypes.STRING, RowGranularity.SHARD);
-        ShardReferenceImplementation<BytesRef> shardExpression = (ShardReferenceImplementation<BytesRef>) resolver.getImplementation(refInfo);
+        ReferenceImplementation<BytesRef> shardExpression = (ReferenceImplementation<BytesRef>) resolver.getImplementation(refInfo);
         assertEquals(new BytesRef("doc"), shardExpression.value());
     }
 
@@ -316,7 +263,7 @@ public class SysShardsExpressionsTest extends CrateUnitTest {
         indexName = "my_schema.wikipedia_de";
         prepare();
         Reference refInfo = refInfo("sys.shards.schema_name", DataTypes.STRING, RowGranularity.SHARD);
-        ShardReferenceImplementation<BytesRef> shardExpression = (ShardReferenceImplementation<BytesRef>) resolver.getImplementation(refInfo);
+        ReferenceImplementation<BytesRef> shardExpression = (ReferenceImplementation<BytesRef>) resolver.getImplementation(refInfo);
         assertEquals(new BytesRef("my_schema"), shardExpression.value());
         // reset indexName
         indexName = "wikipedia_de";
@@ -328,7 +275,7 @@ public class SysShardsExpressionsTest extends CrateUnitTest {
         indexName = "my_schema.wikipedia_de";
         prepare();
         Reference refInfo = refInfo("sys.shards.table_name", DataTypes.STRING, RowGranularity.SHARD);
-        ShardReferenceImplementation<BytesRef> shardExpression = (ShardReferenceImplementation<BytesRef>) resolver.getImplementation(refInfo);
+        ReferenceImplementation<BytesRef> shardExpression = (ReferenceImplementation<BytesRef>) resolver.getImplementation(refInfo);
         assertEquals(new BytesRef("wikipedia_de"), shardExpression.value());
 
         // reset indexName

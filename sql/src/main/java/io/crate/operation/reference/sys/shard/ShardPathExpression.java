@@ -23,16 +23,13 @@
 package io.crate.operation.reference.sys.shard;
 
 import io.crate.metadata.ReferenceImplementation;
-import io.crate.metadata.shard.ShardReferenceImplementation;
 import org.apache.lucene.util.BytesRef;
-import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.index.shard.IndexShard;
 
-public class ShardPathExpression implements ShardReferenceImplementation<BytesRef> {
+public class ShardPathExpression implements ReferenceImplementation<BytesRef> {
 
     private final BytesRef path;
 
-    @Inject
     public ShardPathExpression(IndexShard indexShard) {
         path = new BytesRef(indexShard.shardPath().getDataPath().toString());
     }

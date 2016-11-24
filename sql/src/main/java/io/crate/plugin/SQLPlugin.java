@@ -41,7 +41,6 @@ import io.crate.metadata.pg_catalog.PgCatalogModule;
 import io.crate.metadata.settings.CrateSettings;
 import io.crate.metadata.settings.Setting;
 import io.crate.metadata.settings.SettingsAppliers;
-import io.crate.metadata.shard.MetaDataShardModule;
 import io.crate.metadata.sys.MetaDataSysModule;
 import io.crate.monitor.MonitorModule;
 import io.crate.operation.aggregation.impl.AggregationImplModule;
@@ -56,7 +55,6 @@ import io.crate.operation.reference.sys.cluster.SysClusterExpressionModule;
 import io.crate.operation.reference.sys.node.local.SysNodeExpressionModule;
 import io.crate.operation.reference.sys.repositories.SysRepositoriesModule;
 import io.crate.operation.reference.sys.repositories.SysRepositoriesService;
-import io.crate.operation.reference.sys.shard.SysShardExpressionModule;
 import io.crate.operation.scalar.ScalarFunctionModule;
 import io.crate.operation.tablefunctions.TableFunctionModule;
 import io.crate.protocols.postgres.PostgresNetty;
@@ -157,16 +155,6 @@ public class SQLPlugin extends Plugin {
         Collection<Module> modules = newArrayList();
         if (!settings.getAsBoolean("node.client", false)) {
             modules.add(new CrateIndexModule());
-        }
-        return modules;
-    }
-
-    @Override
-    public Collection<Module> shardModules(Settings indexSettings) {
-        Collection<Module> modules = newArrayList();
-        if (!settings.getAsBoolean("node.client", false)) {
-            modules.add(new MetaDataShardModule());
-            modules.add(new SysShardExpressionModule());
         }
         return modules;
     }

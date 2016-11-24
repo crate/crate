@@ -36,7 +36,7 @@ public class BlobShardReferenceResolver extends AbstractReferenceResolver {
     public BlobShardReferenceResolver(BlobShard blobShard) {
         IndexShard indexShard = blobShard.indexShard();
         ShardId shardId = indexShard.shardId();
-        implementations.put(SysShardsTableInfo.ReferenceIdents.ID, new BlobShardIdExpression(shardId));
+        implementations.put(SysShardsTableInfo.ReferenceIdents.ID, new ShardIdExpression(shardId));
         implementations.put(SysShardsTableInfo.ReferenceIdents.NUM_DOCS, new BlobShardNumDocsExpression(blobShard));
         implementations.put(SysShardsTableInfo.ReferenceIdents.PRIMARY, new ShardPrimaryExpression(indexShard));
         implementations.put(SysShardsTableInfo.ReferenceIdents.RELOCATING_NODE,

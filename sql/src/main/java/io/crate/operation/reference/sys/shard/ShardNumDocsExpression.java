@@ -22,16 +22,13 @@
 package io.crate.operation.reference.sys.shard;
 
 import io.crate.metadata.SimpleObjectExpression;
-import io.crate.metadata.shard.ShardReferenceImplementation;
-import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.index.shard.IllegalIndexShardStateException;
 import org.elasticsearch.index.shard.IndexShard;
 
-public class ShardNumDocsExpression extends SimpleObjectExpression<Long> implements ShardReferenceImplementation<Long> {
+public class ShardNumDocsExpression extends SimpleObjectExpression<Long> {
 
     private final IndexShard indexShard;
 
-    @Inject
     public ShardNumDocsExpression(IndexShard indexShard) {
         this.indexShard = indexShard;
     }

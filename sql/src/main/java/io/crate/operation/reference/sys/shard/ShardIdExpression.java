@@ -22,15 +22,12 @@
 package io.crate.operation.reference.sys.shard;
 
 import io.crate.metadata.SimpleObjectExpression;
-import io.crate.metadata.shard.ShardReferenceImplementation;
-import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.index.shard.ShardId;
 
-public class ShardIdExpression extends SimpleObjectExpression<Integer> implements ShardReferenceImplementation<Integer> {
+public class ShardIdExpression extends SimpleObjectExpression<Integer> {
 
     private final ShardId shardId;
 
-    @Inject
     public ShardIdExpression(ShardId shardId) {
         this.shardId = shardId;
     }

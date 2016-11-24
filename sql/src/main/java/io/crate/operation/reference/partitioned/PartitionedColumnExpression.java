@@ -23,10 +23,9 @@ package io.crate.operation.reference.partitioned;
 
 import io.crate.metadata.Reference;
 import io.crate.metadata.ReferenceImplementation;
-import io.crate.metadata.shard.ShardReferenceImplementation;
 import org.apache.lucene.util.BytesRef;
 
-public class PartitionedColumnExpression implements ShardReferenceImplementation {
+public class PartitionedColumnExpression implements ReferenceImplementation<Object> {
 
     private final Object value;
 

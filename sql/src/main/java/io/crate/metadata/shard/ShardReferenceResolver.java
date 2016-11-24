@@ -26,60 +26,84 @@ import io.crate.exceptions.ResourceUnknownException;
 import io.crate.exceptions.UnhandledServerException;
 import io.crate.metadata.*;
 import io.crate.metadata.doc.DocTableInfo;
+import io.crate.metadata.sys.SysShardsTableInfo;
 import io.crate.operation.reference.partitioned.PartitionedColumnExpression;
-import org.elasticsearch.common.inject.Inject;
+import io.crate.operation.reference.sys.shard.*;
+import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.index.Index;
+import org.elasticsearch.index.shard.IndexShard;
+import org.elasticsearch.index.shard.ShardId;
 
 import java.util.Locale;
-import java.util.Map;
 
 public class ShardReferenceResolver extends AbstractReferenceResolver {
 
     private static final ESLogger LOGGER = Loggers.getLogger(ShardReferenceResolver.class);
 
-    @Inject
-    public ShardReferenceResolver(Index index,
+    public ShardReferenceResolver(ClusterService clusterService,
                                   Schemas schemas,
-                                  final Map<ReferenceIdent, ReferenceImplementation> globalImplementations,
-                                  final Map<ReferenceIdent, ShardReferenceImplementation> shardImplementations) {
+                                  IndexShard indexShard) {
+        ShardId shardId = indexShard.shardId();
+        Index index = indexShard.indexService().index();
+
         ImmutableMap.Builder<ReferenceIdent, ReferenceImplementation> builder = ImmutableMap.builder();
-        builder.putAll(globalImplementations)
-            .putAll(shardImplementations);
-
         if (PartitionName.isPartition(index.name())) {
-            PartitionName partitionName;
-            try {
-                partitionName = PartitionName.fromIndexOrTemplate(index.name());
-            } catch (IllegalArgumentException e) {
-                throw new UnhandledServerException(String.format(Locale.ENGLISH,
-                    "Unable to load PARTITIONED BY columns from partition %s", index.name()), e);
-            }
-            TableIdent tableIdent = partitionName.tableIdent();
-            try {
-                DocTableInfo info = (DocTableInfo) schemas.getTableInfo(tableIdent);
-                if (!schemas.isOrphanedAlias(info)) {
-                    assert info.isPartitioned();
-                    int i = 0;
-                    int numPartitionedColumns = info.partitionedByColumns().size();
+            addPartitions(index, schemas, builder);
+        }
+        implementations.put(SysShardsTableInfo.ReferenceIdents.ID, new ShardIdExpression(shardId));
+        implementations.put(SysShardsTableInfo.ReferenceIdents.SIZE, new ShardSizeExpression(indexShard));
+        implementations.put(SysShardsTableInfo.ReferenceIdents.NUM_DOCS, new ShardNumDocsExpression(indexShard));
+        implementations.put(SysShardsTableInfo.ReferenceIdents.PRIMARY, new ShardPrimaryExpression(indexShard));
+        implementations.put(SysShardsTableInfo.ReferenceIdents.RELOCATING_NODE,
+            new ShardRelocatingNodeExpression(indexShard));
+        implementations.put(SysShardsTableInfo.ReferenceIdents.SCHEMA_NAME,
+            new ShardSchemaNameExpression(shardId));
+        implementations.put(SysShardsTableInfo.ReferenceIdents.STATE, new ShardStateExpression(indexShard));
+        implementations.put(SysShardsTableInfo.ReferenceIdents.ROUTING_STATE, new ShardRoutingStateExpression(indexShard));
+        implementations.put(SysShardsTableInfo.ReferenceIdents.TABLE_NAME, new ShardTableNameExpression(shardId));
+        implementations.put(SysShardsTableInfo.ReferenceIdents.PARTITION_IDENT,
+            new ShardPartitionIdentExpression(shardId));
+        implementations.put(SysShardsTableInfo.ReferenceIdents.ORPHAN_PARTITION,
+            new ShardPartitionOrphanedExpression(shardId, clusterService));
+        implementations.put(SysShardsTableInfo.ReferenceIdents.PATH, new ShardPathExpression(indexShard));
+        implementations.put(SysShardsTableInfo.ReferenceIdents.BLOB_PATH, new LiteralReferenceImplementation<>(null));
+        this.implementations.putAll(builder.build());
+    }
 
-                    assert partitionName.values().size() ==
-                           numPartitionedColumns : "invalid number of partitioned columns";
-                    for (Reference partitionedInfo : info.partitionedByColumns()) {
-                        builder.put(partitionedInfo.ident(), new PartitionedColumnExpression(
-                            partitionedInfo,
-                            partitionName.values().get(i)
-                        ));
-                        i++;
-                    }
-                } else {
-                    LOGGER.error("Orphaned partition '{}' with missing table '{}' found", index, tableIdent.fqn());
+    private void addPartitions(Index index,
+                               Schemas schemas,
+                               ImmutableMap.Builder<ReferenceIdent, ReferenceImplementation> builder) {
+        PartitionName partitionName;
+        try {
+            partitionName = PartitionName.fromIndexOrTemplate(index.name());
+        } catch (IllegalArgumentException e) {
+            throw new UnhandledServerException(String.format(Locale.ENGLISH,
+                "Unable to load PARTITIONED BY columns from partition %s", index.name()), e);
+        }
+        TableIdent tableIdent = partitionName.tableIdent();
+        try {
+            DocTableInfo info = (DocTableInfo) schemas.getTableInfo(tableIdent);
+            if (!schemas.isOrphanedAlias(info)) {
+                assert info.isPartitioned();
+                int i = 0;
+                int numPartitionedColumns = info.partitionedByColumns().size();
+
+                assert partitionName.values().size() ==
+                       numPartitionedColumns : "invalid number of partitioned columns";
+                for (Reference partitionedInfo : info.partitionedByColumns()) {
+                    builder.put(partitionedInfo.ident(), new PartitionedColumnExpression(
+                        partitionedInfo,
+                        partitionName.values().get(i)
+                    ));
+                    i++;
                 }
-            } catch (ResourceUnknownException e) {
+            } else {
                 LOGGER.error("Orphaned partition '{}' with missing table '{}' found", index, tableIdent.fqn());
             }
+        } catch (ResourceUnknownException e) {
+            LOGGER.error("Orphaned partition '{}' with missing table '{}' found", index, tableIdent.fqn());
         }
-        this.implementations.putAll(builder.build());
     }
 }

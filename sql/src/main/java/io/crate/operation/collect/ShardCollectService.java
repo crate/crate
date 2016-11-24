@@ -33,10 +33,7 @@ import io.crate.blob.v2.BlobIndicesService;
 import io.crate.core.collections.Row;
 import io.crate.executor.transport.TransportActionProvider;
 import io.crate.lucene.CrateDocIndexService;
-import io.crate.metadata.AbstractReferenceResolver;
-import io.crate.metadata.Functions;
-import io.crate.metadata.ReplaceMode;
-import io.crate.metadata.RowGranularity;
+import io.crate.metadata.*;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.shard.RecoveryShardReferenceResolver;
 import io.crate.metadata.shard.ShardReferenceResolver;
@@ -96,7 +93,8 @@ public class ShardCollectService {
     private final AbstractReferenceResolver shardResolver;
 
     @Inject
-    public ShardCollectService(SearchContextFactory searchContextFactory,
+    public ShardCollectService(Schemas schemas,
+                               SearchContextFactory searchContextFactory,
                                IndexNameExpressionResolver indexNameExpressionResolver,
                                ThreadPool threadPool,
                                ClusterService clusterService,
@@ -106,7 +104,6 @@ public class ShardCollectService {
                                ShardId shardId,
                                IndexShard indexShard,
                                Functions functions,
-                               ShardReferenceResolver referenceResolver,
                                BlobIndicesService blobIndicesService,
                                MapperService mapperService,
                                IndexFieldDataService indexFieldDataService,
@@ -124,7 +121,7 @@ public class ShardCollectService {
         if (isBlobShard) {
             shardResolver = new BlobShardReferenceResolver(blobIndicesService.blobShardSafe(shardId));
         } else {
-            shardResolver = referenceResolver;
+            shardResolver = new ShardReferenceResolver(clusterService, schemas, indexShard);
         }
         docInputSymbolVisitor = crateDocIndexService.docInputSymbolVisitor();
 
