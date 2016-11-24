@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fixed a memory leak that was caused by blob uploads.
+
  - Fixed NPE that can occur on invalid HTTP requests.
 
  - Fixed an issue at the `date_trunc` scalar evaluation that caused an
