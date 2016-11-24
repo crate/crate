@@ -1,6 +1,5 @@
 apply from: "$rootDir/gradle/javaModule.gradle"
 
-apply plugin: 'me.champeau.gradle.jmh'
 apply plugin: 'de.thetaphi.forbiddenapis'
 
 archivesBaseName = 'crate-core'
@@ -19,10 +18,6 @@ test {
                 "*Test*"
         ]
     }
-}
-
-jmh {
-    resultFormat = 'JSON'
 }
 
 forbiddenApisMain {

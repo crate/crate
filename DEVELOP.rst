@@ -239,6 +239,8 @@ Jmh
 `JMH`_ benchmarks can be executed using ``gradle``::
 
     $ ./gradlew :core:jmh
+    $ ./gradlew :sql:jmh
+
 
 By default this will look for benchmarks inside ``<module>/src/jmh/java`` and
 execute them.
