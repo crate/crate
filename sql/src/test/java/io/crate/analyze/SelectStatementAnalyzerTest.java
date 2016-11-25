@@ -885,10 +885,25 @@ public class SelectStatementAnalyzerTest extends BaseAnalyzerTest {
             "doc.users_multi_pk.id, doc.users_multi_pk.name, doc.users.name, concat(doc.users.name, doc.users_multi_pk.name)"));
     }
 
-
-    @Test(expected = UnsupportedOperationException.class)
-    public void testUnion() throws Exception {
+    @Test
+    public void testUnion() {
+        expectedException.expect(UnsupportedFeatureException.class);
+        expectedException.expectMessage("UNION is not supported");
         analyze("select * from users union select * from users_multi_pk");
+    }
+
+    @Test
+    public void testIntersect() {
+        expectedException.expect(UnsupportedFeatureException.class);
+        expectedException.expectMessage("INTERSECT is not supported");
+        analyze("select * from users intersect select * from users_multi_pk");
+    }
+
+    @Test
+    public void testExcept() {
+        expectedException.expect(UnsupportedFeatureException.class);
+        expectedException.expectMessage("EXCEPT is not supported");
+        analyze("select * from users except select * from users_multi_pk");
     }
 
     @Test(expected = IllegalArgumentException.class)

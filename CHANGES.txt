@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Improve error message for not supported set operations
+   `intersect` and `except`
+
  - Improved error handling:
    Sometimes a user would get a "Job Killed" error instead of the actual error
    that caused a query to get interrupted.

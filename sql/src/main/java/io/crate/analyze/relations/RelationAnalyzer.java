@@ -37,6 +37,7 @@ import io.crate.analyze.validator.HavingSymbolValidator;
 import io.crate.analyze.validator.SemanticSortValidator;
 import io.crate.exceptions.AmbiguousColumnAliasException;
 import io.crate.exceptions.RelationUnknownException;
+import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.exceptions.ValidationException;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.TableIdent;
@@ -89,7 +90,17 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
 
     @Override
     protected AnalyzedRelation visitUnion(Union node, StatementAnalysisContext context) {
-        throw new UnsupportedOperationException("UNION is not supported");
+        throw new UnsupportedFeatureException("UNION is not supported");
+    }
+
+    @Override
+    protected AnalyzedRelation visitIntersect(Intersect node, StatementAnalysisContext context) {
+        throw new UnsupportedFeatureException("INTERSECT is not supported");
+    }
+
+    @Override
+    protected AnalyzedRelation visitExcept(Except node, StatementAnalysisContext context) {
+        throw new UnsupportedFeatureException("EXCEPT is not supported");
     }
 
     @Override
