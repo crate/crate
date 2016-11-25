@@ -5,6 +5,10 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Improved error handling:
+   Sometimes a user would get a "Job Killed" error instead of the actual error
+   that caused a query to get interrupted.
+
  - Added subscript support for `cast` and `try_cast` expressions.
    e.g.: `select cast(coordinates as array(double))[1] from sys.summits`
    is now possible
