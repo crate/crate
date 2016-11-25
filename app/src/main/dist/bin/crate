@@ -134,9 +134,14 @@ launch_service()
     return $execval
 }
 
+args=$@
+if test "${args#*"-Des."}" != "$args"; then
+    echo "\nSetting Crate specific settings with the -D option and the es prefix has been deprecated."
+    echo "Please use the -C option to configure Crate.\n"
+fi
+
 # Parse any command line options.
-args=`getopt vdhp:D:X:C: "$@"`
-eval set -- "$args"
+eval set -- "`getopt vdhp:D:X:C: $args`"
 
 while true; do
     case $1 in
@@ -169,10 +174,6 @@ while true; do
             exit 0
         ;;
         -D)
-            if [[ $2 == es.* ]]; then
-                echo "Setting Crate specific settings with the -D option and the es prefix has been deprecated."
-                echo "Please use the -C option to configure Crate.\n"
-            fi
             properties="$properties -D$2"
             shift 2
         ;;
