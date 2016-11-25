@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Upgraded Elasticsearch to 2.4.2
+
  - Fixed a memory leak that was caused by blob uploads.
 
  - Possibly BREAKING blob storage changes:
