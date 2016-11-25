@@ -45,13 +45,15 @@ public class FetchPushDown {
 
     private final QuerySpec querySpec;
     private final DocTableRelation docTableRelation;
+    private final byte relationId;
     private static final InputColumn FETCHID_COL = new InputColumn(0, DataTypes.LONG);
     private LinkedHashMap<Reference, FetchReference> fetchRefs;
     private LinkedHashMap<Reference, FetchReference> partitionRefs;
 
-    public FetchPushDown(QuerySpec querySpec, DocTableRelation docTableRelation) {
+    public FetchPushDown(QuerySpec querySpec, DocTableRelation docTableRelation, byte relationId) {
         this.querySpec = querySpec;
         this.docTableRelation = docTableRelation;
+        this.relationId = relationId;
     }
 
     public InputColumn fetchIdCol() {
@@ -151,7 +153,7 @@ public class FetchPushDown {
             }
         }
         sub.outputs(outputs);
-        QueriedDocTable subRelation = new QueriedDocTable(docTableRelation, sub);
+        QueriedDocTable subRelation = new QueriedDocTable(relationId, docTableRelation, sub);
         HashMap<Symbol, InputColumn> symbolMap = new HashMap<>(sub.outputs().size());
 
         int index = 0;

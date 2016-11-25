@@ -32,12 +32,16 @@ import java.util.Collection;
 
 public class QueriedDocTable extends QueriedTableRelation<DocTableRelation> {
 
-    public QueriedDocTable(DocTableRelation tableRelation, Collection<? extends Path> paths, QuerySpec querySpec) {
-        super(tableRelation, paths, querySpec);
+    public QueriedDocTable(byte relationId,
+                           DocTableRelation tableRelation,
+                           Collection<? extends Path> paths,
+                           QuerySpec querySpec) {
+        super(relationId, tableRelation, paths, querySpec);
     }
 
-    public QueriedDocTable(DocTableRelation tableRelation, QuerySpec querySpec) {
-        super(tableRelation, querySpec);
+    public QueriedDocTable(byte relationId, DocTableRelation tableRelation,
+                           QuerySpec querySpec) {
+        super(relationId, tableRelation, querySpec);
     }
 
     @Override

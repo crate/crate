@@ -38,10 +38,15 @@ import java.util.List;
 public abstract class QueriedTableRelation<TR extends AbstractTableRelation> implements QueriedRelation {
 
     protected final TR tableRelation;
+    private final byte relationId;
     private final QuerySpec querySpec;
     private final Fields fields;
 
-    public QueriedTableRelation(TR tableRelation, Collection<? extends Path> outputNames, QuerySpec querySpec) {
+    protected QueriedTableRelation(byte relationId,
+                                   TR tableRelation,
+                                   Collection<? extends Path> outputNames,
+                                   QuerySpec querySpec) {
+        this.relationId = relationId;
         this.tableRelation = tableRelation;
         this.querySpec = querySpec;
         this.fields = new Fields(outputNames.size());
@@ -51,7 +56,8 @@ public abstract class QueriedTableRelation<TR extends AbstractTableRelation> imp
         }
     }
 
-    public QueriedTableRelation(TR tableRelation, QuerySpec querySpec) {
+    protected QueriedTableRelation(byte relationId, TR tableRelation, QuerySpec querySpec) {
+        this.relationId = relationId;
         this.tableRelation = tableRelation;
         this.querySpec = querySpec;
         this.fields = new Fields(querySpec.outputs().size());
@@ -97,5 +103,10 @@ public abstract class QueriedTableRelation<TR extends AbstractTableRelation> imp
     @Override
     public void setQualifiedName(@Nonnull QualifiedName qualifiedName) {
         tableRelation.setQualifiedName(qualifiedName);
+    }
+
+    @Override
+    public byte relationId() {
+        return relationId;
     }
 }

@@ -233,7 +233,7 @@ class CopyAnalyzer {
             throw new UnsupportedFeatureException("Output format not supported without specifying columns.");
         }
 
-        QueriedDocTable subRelation = new QueriedDocTable(tableRelation, querySpec);
+        QueriedDocTable subRelation = new QueriedDocTable((byte) 0, tableRelation, querySpec);
         return new CopyToAnalyzedStatement(subRelation, settings, uri, compressionType, outputFormat, outputNames, columnsDefined, overwrites);
     }
 

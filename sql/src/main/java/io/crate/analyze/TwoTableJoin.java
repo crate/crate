@@ -39,6 +39,7 @@ import java.util.List;
 
 public class TwoTableJoin implements QueriedRelation {
 
+    private final byte relationId;
     private final QuerySpec querySpec;
     private final RelationSource left;
     private final RelationSource right;
@@ -47,11 +48,13 @@ public class TwoTableJoin implements QueriedRelation {
     private final QualifiedName name;
     private final JoinPair joinPair;
 
-    public TwoTableJoin(QuerySpec querySpec,
+    public TwoTableJoin(byte relationId,
+                        QuerySpec querySpec,
                         RelationSource left,
                         RelationSource right,
                         Optional<OrderBy> remainingOrderBy,
                         JoinPair joinPair) {
+        this.relationId = relationId;
         this.querySpec = querySpec;
         this.left = left;
         this.right = right;
@@ -102,12 +105,17 @@ public class TwoTableJoin implements QueriedRelation {
 
     @Override
     public QualifiedName getQualifiedName() {
-        throw new UnsupportedOperationException("method not supported");
+        throw new UnsupportedOperationException("getQualifiedName not supported");
     }
 
     @Override
     public void setQualifiedName(@Nonnull QualifiedName qualifiedName) {
-        throw new UnsupportedOperationException("method not supported");
+        throw new UnsupportedOperationException("setQualifiedName not supported");
+    }
+
+    @Override
+    public byte relationId() {
+        return relationId;
     }
 
     public QualifiedName leftName() {

@@ -35,6 +35,7 @@ import java.util.*;
 
 public class MultiSourceSelect implements QueriedRelation {
 
+    private final byte relationId;
     private final RelationSplitter splitter;
     private final HashMap<QualifiedName, RelationSource> sources;
     private final QuerySpec querySpec;
@@ -43,11 +44,13 @@ public class MultiSourceSelect implements QueriedRelation {
     private final List<Symbol> outputSymbols;
     private QualifiedName qualifiedName;
 
-    public MultiSourceSelect(Map<QualifiedName, AnalyzedRelation> sources,
+    public MultiSourceSelect(byte relationId,
+                             Map<QualifiedName, AnalyzedRelation> sources,
                              List<Symbol> outputSymbols,
                              Collection<? extends Path> outputNames,
                              QuerySpec querySpec,
                              List<JoinPair> joinPairs) {
+        this.relationId = relationId;
         this.outputSymbols = ImmutableList.copyOf(outputSymbols);
         assert sources.size() > 1 : "MultiSourceSelect requires at least 2 relations";
         this.splitter = new RelationSplitter(querySpec, sources.values(), joinPairs);
@@ -109,6 +112,11 @@ public class MultiSourceSelect implements QueriedRelation {
     @Override
     public QuerySpec querySpec() {
         return querySpec;
+    }
+
+    @Override
+    public byte relationId() {
+        return relationId;
     }
 
     private static HashMap<QualifiedName, RelationSource> initializeSources(Map<QualifiedName, AnalyzedRelation> originalSources) {

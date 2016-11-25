@@ -101,8 +101,9 @@ class NestedLoopConsumer implements Consumer {
             QueriedRelation left;
             QueriedRelation right;
             try {
-                left = SubRelationConverter.INSTANCE.process(statement.left().relation(), statement.left());
-                right = SubRelationConverter.INSTANCE.process(statement.right().relation(), statement.right());
+                SubRelationConverter subRelationConverter = new SubRelationConverter(statement.relationId());
+                left = subRelationConverter.process(statement.left().relation(), statement.left());
+                right = subRelationConverter.process(statement.right().relation(), statement.right());
                 addOutputsAndSymbolMap(statement.left().querySpec().outputs(), statement.leftName(), nlOutputs, symbolMap);
                 addOutputsAndSymbolMap(statement.right().querySpec().outputs(), statement.rightName(), nlOutputs, symbolMap);
             } catch (ValidationException e) {
@@ -350,16 +351,20 @@ class NestedLoopConsumer implements Consumer {
 
     private static class SubRelationConverter extends AnalyzedRelationVisitor<RelationSource, QueriedRelation> {
 
-        static final SubRelationConverter INSTANCE = new SubRelationConverter();
+        private byte relationId;
+
+        private SubRelationConverter(byte relationId) {
+            this.relationId = relationId;
+        }
 
         @Override
         public QueriedRelation visitTableRelation(TableRelation tableRelation, RelationSource source) {
-            return new QueriedTable(tableRelation, source.querySpec());
+            return new QueriedTable(relationId, tableRelation, source.querySpec());
         }
 
         @Override
         public QueriedRelation visitDocTableRelation(DocTableRelation tableRelation, RelationSource source) {
-            return new QueriedDocTable(tableRelation, source.querySpec());
+            return new QueriedDocTable(relationId, tableRelation, source.querySpec());
         }
 
         @Override
@@ -369,8 +374,8 @@ class NestedLoopConsumer implements Consumer {
 
         @Override
         public QueriedRelation visitTableFunctionRelation(TableFunctionRelation tableFunctionRelation,
-                                                          RelationSource context) {
-            return new QueriedTable(tableFunctionRelation, context.querySpec());
+                                                          RelationSource source) {
+            return new QueriedTable(relationId, tableFunctionRelation, source.querySpec());
         }
 
         @Override
