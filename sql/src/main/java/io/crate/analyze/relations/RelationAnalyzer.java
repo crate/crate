@@ -36,7 +36,6 @@ import io.crate.analyze.symbol.Aggregations;
 import io.crate.analyze.symbol.Literal;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.analyze.symbol.Symbols;
-import io.crate.analyze.symbol.format.SymbolFormatter;
 import io.crate.analyze.symbol.format.SymbolPrinter;
 import io.crate.analyze.validator.GroupBySymbolValidator;
 import io.crate.analyze.validator.HavingSymbolValidator;
@@ -46,6 +45,7 @@ import io.crate.exceptions.RelationUnknownException;
 import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.exceptions.ValidationException;
 import io.crate.metadata.Functions;
+import io.crate.metadata.Path;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.doc.DocTableInfo;
@@ -188,7 +188,7 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
             expressionAnalysisContext);
 
         if (!node.getGroupBy().isEmpty() || expressionAnalysisContext.hasAggregates) {
-            ensureNonAggregatesInGroupBy(selectAnalysis.outputSymbols(), groupBy);
+            ensureNonAggregatesInGroupBy(selectAnalysis.outputSymbols(), selectAnalysis.outputNames(), groupBy);
         }
         boolean isDistinct = false;
         if (node.getSelect().isDistinct() && groupBy.isEmpty()) {
@@ -266,13 +266,16 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
         return groupBy;
     }
 
-    private void ensureNonAggregatesInGroupBy(List<Symbol> outputSymbols, List<Symbol> groupBy) throws IllegalArgumentException {
-        for (Symbol output : outputSymbols) {
+    private void ensureNonAggregatesInGroupBy(List<Symbol> outputSymbols,
+                                              List<Path> outputNames,
+                                              List<Symbol> groupBy) throws IllegalArgumentException {
+        for (int i = 0; i < outputSymbols.size(); i++) {
+            Symbol output = outputSymbols.get(i);
             if (groupBy == null || !groupBy.contains(output)) {
                 if (!Aggregations.containsAggregation(output)) {
                     throw new IllegalArgumentException(
-                        SymbolFormatter.format("column '%s' must appear in the GROUP BY clause " +
-                                               "or be used in an aggregation function", output));
+                        String.format(Locale.ENGLISH, "column '%s' must appear in the GROUP BY clause " +
+                                      "or be used in an aggregation function", outputNames.get(i).outputName()));
                 }
             }
         }
