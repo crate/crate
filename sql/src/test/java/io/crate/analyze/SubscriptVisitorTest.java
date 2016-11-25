@@ -23,7 +23,9 @@ package io.crate.analyze;
 
 import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.ArrayLiteral;
+import io.crate.sql.tree.Cast;
 import io.crate.sql.tree.Expression;
+import io.crate.sql.tree.TryCast;
 import io.crate.test.integration.CrateUnitTest;
 import org.junit.Test;
 
@@ -86,6 +88,20 @@ public class SubscriptVisitorTest extends CrateUnitTest {
 
         assertThat(context.expression(), is(notNullValue()));
         assertThat(context.expression(), instanceOf(ArrayLiteral.class));
+        assertThat(context.index(), is(1));
+    }
+
+    @Test
+    public void testSubscriptOnCast() throws Exception {
+        SubscriptContext context = analyzeSubscript("cast([1.1,2.1] as array(integer))[2]");
+        assertThat(context.expression(), instanceOf(Cast.class));
+        assertThat(context.index(), is(2));
+    }
+
+    @Test
+    public void testSubscriptOnTryCast() throws Exception {
+        SubscriptContext context = analyzeSubscript("try_cast([1] as array(double))[1]");
+        assertThat(context.expression(), instanceOf(TryCast.class));
         assertThat(context.index(), is(1));
     }
 

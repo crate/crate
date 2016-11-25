@@ -36,7 +36,9 @@ public class SubscriptVisitor extends AstVisitor<Void, SubscriptContext> {
         SubscriptExpression.class,
         QualifiedNameReference.class,
         FunctionCall.class,
-        ArrayLiteral.class
+        ArrayLiteral.class,
+        Cast.class,
+        TryCast.class
     );
     private static final Set<Class<?>> SUBSCRIPT_INDEX_CLASSES = ImmutableSet.<Class<?>>of(
         StringLiteral.class,
@@ -111,6 +113,18 @@ public class SubscriptVisitor extends AstVisitor<Void, SubscriptContext> {
         throw new UnsupportedOperationException(
             String.format(Locale.ENGLISH, "Array index must be in range 1 to %s",
                 MAX_VALUE));
+    }
+
+    @Override
+    protected Void visitCast(Cast node, SubscriptContext context) {
+        context.expression(node);
+        return null;
+    }
+
+    @Override
+    protected Void visitTryCast(TryCast node, SubscriptContext context) {
+        context.expression(node);
+        return null;
     }
 
     @Override

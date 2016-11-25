@@ -5,6 +5,10 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Added subscript support for `cast` and `try_cast` expressions.
+   e.g.: `select cast(coordinates as array(double))[1] from sys.summits`
+   is now possible
+
  - Upgraded Elasticsearch to 2.4.2
 
  - Fixed a memory leak that was caused by blob uploads.
