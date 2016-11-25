@@ -36,6 +36,8 @@ import javax.annotation.Nonnull;
 import java.io.IOException;
 import java.util.List;
 
+import static io.crate.exceptions.Exceptions.createSQLActionException;
+
 class RestResultSetReceiver extends BaseResultReceiver {
 
     private static final ESLogger LOGGER = Loggers.getLogger(RestResultSetReceiver.class);
@@ -92,7 +94,7 @@ class RestResultSetReceiver extends BaseResultReceiver {
     @Override
     public void fail(@Nonnull Throwable t) {
         try {
-            channel.sendResponse(new CrateThrowableRestResponse(channel, t));
+            channel.sendResponse(new CrateThrowableRestResponse(channel, createSQLActionException(t)));
         } catch (Throwable e) {
             LOGGER.error("failed to send failure response", e);
         } finally {

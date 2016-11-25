@@ -80,4 +80,11 @@ public class RestSQLActionIntegrationTest extends SQLHttpIntegrationTest {
         assertThat(response.getStatusLine().getStatusCode(), is(404));
         assertThat(EntityUtils.toString(response.getEntity()), containsString("TableUnknownException"));
     }
+
+    @Test
+    public void testExecutionErrorContainsStackTrace() throws Exception {
+        CloseableHttpResponse resp = post("{\"stmt\": \"select 1 / 0\"}");
+        String bodyAsString = EntityUtils.toString(resp.getEntity());
+        assertThat(bodyAsString, containsString("DivideFunction.java"));
+    }
 }
