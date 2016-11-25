@@ -255,6 +255,10 @@ public class NestedLoopOperation implements CompletionListenable {
 
         @Override
         public void kill(Throwable throwable) {
+            Throwable uf = upstreamFailure; // local variable to avoid multiple volatile reads
+            if (uf != null) {
+                throwable = uf; // prefer original upstream failure over kill exception
+            }
             killBoth(throwable);
             downstream.kill(throwable);
             completionFuture.setException(throwable);

@@ -98,16 +98,11 @@ public class ExecutionPhasesTask extends JobTask {
         assert nodeOperationTrees.size() == 1 : "must only have 1 NodeOperationTree for non-bulk operations";
         NodeOperationTree nodeOperationTree = nodeOperationTrees.get(0);
         Map<String, Collection<NodeOperation>> operationByServer = NodeOperationGrouper.groupByServer(nodeOperationTree.nodeOperations());
-        InitializationTracker initializationTracker = new InitializationTracker(operationByServer.size());
 
-        RowReceiver receiver = new InterceptingRowReceiver(
-            jobId(),
-            rowReceiver,
-            initializationTracker,
-            transportKillJobsNodeAction);
-        Tuple<ExecutionPhase, RowReceiver> handlerPhase = new Tuple<>(nodeOperationTree.leaf(), receiver);
+        List<ExecutionPhase> handlerPhases = Collections.singletonList(nodeOperationTree.leaf());
+        List<RowReceiver> handlerReceivers = Collections.singletonList(rowReceiver);
         try {
-            setupContext(operationByServer, Collections.singletonList(handlerPhase), initializationTracker);
+            setupContext(operationByServer, handlerPhases, handlerReceivers);
         } catch (Throwable throwable) {
             rowReceiver.fail(throwable);
         }
@@ -124,23 +119,18 @@ public class ExecutionPhasesTask extends JobTask {
                 }
             });
         Map<String, Collection<NodeOperation>> operationByServer = NodeOperationGrouper.groupByServer(nodeOperations);
-        InitializationTracker initializationTracker = new InitializationTracker(operationByServer.size());
 
-        List<Tuple<ExecutionPhase, RowReceiver>> handlerPhases = new ArrayList<>(nodeOperationTrees.size());
+        List<ExecutionPhase> handlerPhases = new ArrayList<>(nodeOperationTrees.size());
+        List<RowReceiver> handlerReceivers = new ArrayList<>(nodeOperationTrees.size());
         List<SettableFuture<Long>> results = new ArrayList<>(nodeOperationTrees.size());
         for (NodeOperationTree nodeOperationTree : nodeOperationTrees) {
             SettableFuture<Long> result = SettableFuture.create();
             results.add(result);
-            RowReceiver receiver = new InterceptingRowReceiver(
-                jobId(),
-                new RowCountResultRowDownstream(result),
-                initializationTracker,
-                transportKillJobsNodeAction);
-            handlerPhases.add(new Tuple<>(nodeOperationTree.leaf(), receiver));
+            handlerPhases.add(nodeOperationTree.leaf());
+            handlerReceivers.add(new RowCountResultRowDownstream(result));
         }
-
         try {
-            setupContext(operationByServer, handlerPhases, initializationTracker);
+            setupContext(operationByServer, handlerPhases, handlerReceivers);
         } catch (Throwable throwable) {
             return Futures.immediateFailedFuture(throwable);
         }
@@ -148,34 +138,65 @@ public class ExecutionPhasesTask extends JobTask {
     }
 
     private void setupContext(Map<String, Collection<NodeOperation>> operationByServer,
-                              List<Tuple<ExecutionPhase, RowReceiver>> handlerPhases,
-                              InitializationTracker initializationTracker) throws Throwable {
+                              List<ExecutionPhase> handlerPhases,
+                              List<RowReceiver> handlerReceivers) throws Throwable {
+        assert handlerPhases.size() == handlerReceivers.size() : "handlerPhases size must match handlerReceivers size";
 
         String localNodeId = clusterService.localNode().id();
         Collection<NodeOperation> localNodeOperations = operationByServer.remove(localNodeId);
         if (localNodeOperations == null) {
             localNodeOperations = Collections.emptyList();
         }
+        // + 1 for localJobContext which is always created
+        InitializationTracker initializationTracker = new InitializationTracker(operationByServer.size() + 1);
+
+        List<Tuple<ExecutionPhase, RowReceiver>> handlerPhaseAndReceiver = createHandlerPhaseAndReceivers(
+            handlerPhases, handlerReceivers, initializationTracker);
 
         JobExecutionContext.Builder builder = jobContextService.newBuilder(jobId(), localNodeId);
-        List<ListenableFuture<Bucket>> directResponseFutures =
-            contextPreparer.prepareOnHandler(localNodeOperations, builder, handlerPhases, new SharedShardContexts(indicesService));
+        List<ListenableFuture<Bucket>> directResponseFutures = contextPreparer.prepareOnHandler(
+            localNodeOperations, builder, handlerPhaseAndReceiver, new SharedShardContexts(indicesService));
         JobExecutionContext localJobContext = jobContextService.createContext(builder);
+        initializationTracker.jobInitialized();
 
-        List<PageBucketReceiver> pageBucketReceivers = getHandlerBucketReceivers(localJobContext, handlerPhases);
+        List<PageBucketReceiver> pageBucketReceivers = getHandlerBucketReceivers(localJobContext, handlerPhaseAndReceiver);
         int bucketIdx = 0;
 
         if (!localNodeOperations.isEmpty()) {
-            if (directResponseFutures.isEmpty()) {
-                initializationTracker.jobInitialized();
-            } else {
+            if (!directResponseFutures.isEmpty()) {
                 Futures.addCallback(Futures.allAsList(directResponseFutures),
                     new SetBucketCallback(pageBucketReceivers, bucketIdx, initializationTracker));
                 bucketIdx++;
             }
         }
-        localJobContext.start();
-        sendJobRequests(localNodeId, operationByServer, pageBucketReceivers, handlerPhases, bucketIdx, initializationTracker);
+        try {
+            localJobContext.start();
+        } catch (Throwable t) {
+            for (Tuple<ExecutionPhase, RowReceiver> executionPhaseRowReceiverTuple : handlerPhaseAndReceiver) {
+                executionPhaseRowReceiverTuple.v2().fail(t);
+            }
+            for (int i = 0; i < operationByServer.size(); i++) {
+                // not going to initialize remote jobs, but need to account for them
+                initializationTracker.jobInitializationFailed(t);
+            }
+            return;
+        }
+        sendJobRequests(
+            localNodeId, operationByServer, pageBucketReceivers, handlerPhaseAndReceiver, bucketIdx, initializationTracker);
+    }
+
+    private List<Tuple<ExecutionPhase, RowReceiver>> createHandlerPhaseAndReceivers(List<ExecutionPhase> handlerPhases,
+                                                                                    List<RowReceiver> handlerReceivers,
+                                                                                    InitializationTracker initializationTracker) {
+        List<Tuple<ExecutionPhase, RowReceiver>> handlerPhaseAndReceiver = new ArrayList<>();
+        ListIterator<RowReceiver> receiverIt = handlerReceivers.listIterator();
+
+        for (ExecutionPhase handlerPhase : handlerPhases) {
+            RowReceiver interceptingRowReceiver =
+                new InterceptingRowReceiver(jobId(), receiverIt.next(), initializationTracker, transportKillJobsNodeAction);
+            handlerPhaseAndReceiver.add(new Tuple<>(handlerPhase, interceptingRowReceiver));
+        }
+        return handlerPhaseAndReceiver;
     }
 
     private void sendJobRequests(String localNodeId,
