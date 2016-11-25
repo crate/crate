@@ -79,6 +79,11 @@ public class TestStatementBuilder {
         printStatement("select col['y'] / col[2 / 1] from foo");
         printStatement("select col[1] from foo");
 
+        printStatement("select - + 10");
+        printStatement("select - ( - - 10)");
+        printStatement("select - ( + - 10) * - ( - 10 - + 10)");
+        printStatement("select - - col['x']");
+
         // expressions as subscript index are only supported by the parser
         printStatement("select col[1 + 2] - col['y'] from foo");
 

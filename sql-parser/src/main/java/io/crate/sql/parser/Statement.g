@@ -496,8 +496,9 @@ numericTerm
     ;
 
 numericFactor
-    : '+'? subscript -> subscript
-    | '-' subscript  -> ^(NEGATIVE subscript)
+    : subscript -> subscript
+    | '+' numericFactor -> numericFactor
+    | '-' numericFactor -> ^(NEGATIVE numericFactor)
     ;
 
 subscript

@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Nested numeric factors do not require brackets any more;
+   e.g. ``SELECT + - 10`` is now supported.
+
  - Improved error message when column is missing from `group by`
    by using the column alias instead of the column name.
 

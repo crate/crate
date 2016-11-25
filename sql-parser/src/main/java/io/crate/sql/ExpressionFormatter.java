@@ -283,7 +283,7 @@ public final class ExpressionFormatter {
 
         @Override
         protected String visitNegativeExpression(NegativeExpression node, Void context) {
-            return "-" + process(node.getValue(), null);
+            return "- " + process(node.getValue(), null);
         }
 
         @Override

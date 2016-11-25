@@ -985,6 +985,21 @@ public class SelectStatementAnalyzerTest extends CrateUnitTest {
     }
 
     @Test
+    public void testPrefixedNumericLiterals() throws Exception {
+        SelectAnalyzedStatement analysis = analyze("select - - - 10");
+        List<Symbol> outputs = analysis.relation().querySpec().outputs();
+        assertThat(outputs.get(0), is(Literal.of(-10L)));
+
+        analysis = analyze("select - + - 10");
+        outputs = analysis.relation().querySpec().outputs();
+        assertThat(outputs.get(0), is(Literal.of(10L)));
+
+        analysis = analyze("select - (- 10 - + 10) * - (+ 10 + - 10)");
+        outputs = analysis.relation().querySpec().outputs();
+        assertThat(outputs.get(0), is(Literal.of(0L)));
+    }
+
+    @Test
     public void testAnyLike() throws Exception {
         SelectAnalyzedStatement analysis = analyze("select * from users where 'awesome' LIKE ANY (tags)");
         assertThat(analysis.relation().querySpec().where().hasQuery(), is(true));
