@@ -39,6 +39,7 @@ import io.crate.operation.Input;
 import io.crate.operation.InputRow;
 import io.crate.operation.fetch.FetchRowInputSymbolVisitor;
 import io.crate.operation.projectors.*;
+import io.crate.operation.reference.doc.lucene.FetchIds;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.util.concurrent.AbstractRunnable;
@@ -147,9 +148,9 @@ public class FetchProjector extends AbstractProjector {
         Object[] cells = row.materialize();
         collectRowContext.inputRow().cells = cells;
         for (int i : collectRowContext.fetchIdPositions()) {
-            Object docId = cells[i];
-            if (docId != null) {
-                context.require((long) docId);
+            Object fetchId = cells[i];
+            if (fetchId != null) {
+                context.require((long) fetchId);
             }
         }
         inputValues.add(cells);
@@ -228,23 +229,23 @@ public class FetchProjector extends AbstractProjector {
         final ArrayBackedRow inputRow = collectRowContext.inputRow();
         final ArrayBackedRow[] fetchRows = collectRowContext.fetchRows();
         final ArrayBackedRow[] partitionRows = collectRowContext.partitionRows();
-        final int[] docIdPositions = collectRowContext.fetchIdPositions();
+        final int[] fetchIdPositions = collectRowContext.fetchIdPositions();
         final Object[][] nullCells = collectRowContext.nullCells();
 
         loop:
         for (int i = rowStartIdx; i < inputValues.size(); i++) {
             Object[] cells = inputValues.get(i);
             inputRow.cells = cells;
-            for (int j = 0; j < docIdPositions.length; j++) {
-                Object docObject = cells[docIdPositions[j]];
-                if (docObject == null) {
+            for (int j = 0; j < fetchIdPositions.length; j++) {
+                Object fetchObject = cells[fetchIdPositions[j]];
+                if (fetchObject == null) {
                     // can be null on outer joins
                     fetchRows[j].cells = nullCells[j];
                     continue;
                 }
-                long doc = (long) docObject;
-                int readerId = (int) (doc >> 32);
-                int docId = (int) (long) doc;
+                long fetchId = (long) fetchObject;
+                int readerId = FetchIds.extractReaderId(fetchId);
+                int docId = FetchIds.extractDocId(fetchId);
                 ReaderBucket readerBucket = context.getReaderBucket(readerId);
                 assert readerBucket != null;
                 setPartitionRow(partitionRows, j, readerBucket);

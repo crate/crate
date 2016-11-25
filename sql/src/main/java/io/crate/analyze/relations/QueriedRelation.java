@@ -26,4 +26,7 @@ import io.crate.analyze.QuerySpec;
 public interface QueriedRelation extends AnalyzedRelation {
 
     QuerySpec querySpec();
+
+    // Unique id for each relation within  the relations tree of a query
+    byte relationId();
 }

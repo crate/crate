@@ -39,11 +39,16 @@ import java.util.List;
 
 public class QueriedSelectRelation implements QueriedRelation {
 
+    private final byte relationId;
     private final Fields fields;
     private QueriedRelation subRelation;
     private QuerySpec querySpec;
 
-    public QueriedSelectRelation(QueriedRelation subRelation, Collection<? extends Path> outputNames, QuerySpec querySpec) {
+    public QueriedSelectRelation(byte relationId,
+                                 QueriedRelation subRelation,
+                                 Collection<? extends Path> outputNames,
+                                 QuerySpec querySpec) {
+        this.relationId = relationId;
         this.subRelation = subRelation;
         this.querySpec = querySpec;
         this.fields = new Fields(outputNames.size());
@@ -97,5 +102,10 @@ public class QueriedSelectRelation implements QueriedRelation {
     @Override
     public void setQualifiedName(@Nonnull QualifiedName qualifiedName) {
         subRelation.setQualifiedName(qualifiedName);
+    }
+
+    @Override
+    public byte relationId() {
+        return relationId;
     }
 }

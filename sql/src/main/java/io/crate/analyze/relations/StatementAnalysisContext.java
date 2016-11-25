@@ -24,6 +24,7 @@ package io.crate.analyze.relations;
 import com.google.common.base.Function;
 import io.crate.action.sql.SessionContext;
 import io.crate.analyze.symbol.Symbol;
+import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.table.Operation;
 import io.crate.sql.tree.ParameterExpression;
@@ -33,11 +34,14 @@ import java.util.List;
 
 public class StatementAnalysisContext {
 
+    public static final short MAX_RELATIONS = 256;
+
     private final Operation currentOperation;
     private final TransactionContext transactionContext;
     private final SessionContext sessionContext;
     private final Function<ParameterExpression, Symbol> convertParamFunction;
     private final List<RelationAnalysisContext> lastRelationContextQueue = new ArrayList<>();
+    private short relationCounter = 0;
 
     public StatementAnalysisContext(SessionContext sessionContext,
                                     Function<ParameterExpression, Symbol> convertParamFunction,
@@ -84,5 +88,12 @@ public class StatementAnalysisContext {
 
     public Function<ParameterExpression,Symbol> convertParamFunction() {
         return convertParamFunction;
+    }
+
+    public byte nextRelationId() {
+        if (relationCounter >= MAX_RELATIONS) {
+            throw new UnsupportedFeatureException("Query with more than " + MAX_RELATIONS + " relations");
+        }
+        return (byte) relationCounter++;
     }
 }
