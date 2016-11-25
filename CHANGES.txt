@@ -5,8 +5,11 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Improved error message when column is missing from `group by`
+   by using the column alias instead of the column name.
+
  - Improve error message for not supported set operations
-   `intersect` and `except`
+   `intersect` and `except`.
 
  - Improved error handling:
    Sometimes a user would get a "Job Killed" error instead of the actual error
