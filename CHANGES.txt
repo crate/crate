@@ -5,6 +5,10 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Improved error handling:
+   Sometimes a user would get a "Job Killed" error instead of the actual error
+   that caused a query to get interrupted.
+
  - Fixed a memory leak that was caused by blob uploads.
 
 2016/11/24 0.57.3
