@@ -78,6 +78,9 @@ public class PutHeadChunkRunnable implements Runnable {
             File pendingFile;
             try {
                 pendingFile = digestBlob.file();
+                if (pendingFile == null) {
+                    pendingFile = digestBlob.getContainerFile();
+                }
                 fileInputStream = new FileInputStream(pendingFile);
             } catch (FileNotFoundException e) {
                 // this happens if the file has already been moved from tmpDirectory to containerDirectory
