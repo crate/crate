@@ -50,9 +50,7 @@ import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.test.cluster.NoopClusterService;
 import org.hamcrest.Matchers;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 
 import java.util.List;
 import java.util.Map;
@@ -75,9 +73,6 @@ public class NestedLoopConsumerTest extends CrateUnitTest {
         new Routing(ImmutableMap.<String, Map<String, List<Integer>>>of()))
         .add("nope", DataTypes.BOOLEAN)
         .build();
-
-    @Rule
-    public ExpectedException expectedException = ExpectedException.none();
 
     private NestedLoopConsumer consumer;
     private Planner.Context plannerContext;

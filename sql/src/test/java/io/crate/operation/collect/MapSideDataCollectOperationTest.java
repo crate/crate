@@ -30,7 +30,6 @@ import io.crate.operation.collect.sources.FileCollectSource;
 import io.crate.operation.reference.sys.node.local.NodeSysExpression;
 import io.crate.planner.node.dql.FileUriCollectPhase;
 import io.crate.planner.node.dql.RoutedCollectPhase;
-import io.crate.planner.projection.Projection;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.testing.CollectingRowReceiver;
 import io.crate.types.DataTypes;
@@ -43,7 +42,9 @@ import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
 import java.io.File;
-import java.io.FileWriter;
+import java.io.FileOutputStream;
+import java.io.OutputStreamWriter;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.Collection;
@@ -88,7 +89,7 @@ public class MapSideDataCollectOperationTest extends CrateUnitTest {
             threadPool
         );
         File tmpFile = temporaryFolder.newFile("fileUriCollectOperation.json");
-        try (FileWriter writer = new FileWriter(tmpFile)) {
+        try (OutputStreamWriter writer = new OutputStreamWriter(new FileOutputStream(tmpFile), StandardCharsets.UTF_8)) {
             writer.write("{\"name\": \"Arthur\", \"id\": 4, \"details\": {\"age\": 38}}\n");
             writer.write("{\"id\": 5, \"name\": \"Trillian\", \"details\": {\"age\": 33}}\n");
         }
@@ -103,7 +104,7 @@ public class MapSideDataCollectOperationTest extends CrateUnitTest {
                 createReference("name", DataTypes.STRING),
                 createReference(new ColumnIdent("details", "age"), DataTypes.INTEGER)
             ),
-            Arrays.<Projection>asList(),
+            Collections.emptyList(),
             null,
             false
         );

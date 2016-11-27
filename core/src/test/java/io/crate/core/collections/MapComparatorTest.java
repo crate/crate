@@ -23,9 +23,7 @@
 package io.crate.core.collections;
 
 import io.crate.test.integration.CrateUnitTest;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -33,9 +31,6 @@ import java.util.Map;
 import static org.hamcrest.Matchers.is;
 
 public class MapComparatorTest extends CrateUnitTest {
-
-    @Rule
-    public ExpectedException expectedException = ExpectedException.none();
 
     @Test
     public void testCompareNullMaps() {

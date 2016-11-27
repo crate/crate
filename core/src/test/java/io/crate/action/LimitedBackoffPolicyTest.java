@@ -26,18 +26,13 @@ import io.crate.test.integration.CrateUnitTest;
 import org.elasticsearch.action.bulk.BackoffPolicy;
 import org.elasticsearch.common.unit.TimeValue;
 import org.hamcrest.Matchers;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 
 import java.util.Iterator;
 import java.util.NoSuchElementException;
 
 
 public class LimitedBackoffPolicyTest extends CrateUnitTest {
-
-    @Rule
-    public ExpectedException expectedException = ExpectedException.none();
 
     @Test
     public void testNoNext() throws Exception {

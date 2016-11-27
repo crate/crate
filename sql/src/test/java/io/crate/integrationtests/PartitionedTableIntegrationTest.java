@@ -25,8 +25,8 @@ import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
 import io.crate.Constants;
 import io.crate.action.sql.SQLActionException;
-import io.crate.testing.SQLResponse;
 import io.crate.metadata.PartitionName;
+import io.crate.testing.SQLResponse;
 import io.crate.testing.TestingHelpers;
 import io.crate.testing.UseJdbc;
 import org.apache.lucene.util.BytesRef;
@@ -53,10 +53,11 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
-import java.io.BufferedWriter;
 import java.io.File;
-import java.io.FileWriter;
+import java.io.FileOutputStream;
+import java.io.OutputStreamWriter;
 import java.net.URISyntaxException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Paths;
 import java.util.*;
 
@@ -188,7 +189,9 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
                 ") partitioned by (month) with (number_of_replicas=0)");
         ensureGreen();
         File copyFromFile = folder.newFile();
-        try (BufferedWriter writer = new BufferedWriter(new FileWriter(copyFromFile))) {
+        try (OutputStreamWriter writer = new OutputStreamWriter(
+            new FileOutputStream(copyFromFile),
+            StandardCharsets.UTF_8)) {
             writer.write(
                 "{\"id\":1, \"month\":1425168000000, \"created\":1425901500000}\n" +
                 "{\"id\":2, \"month\":1420070400000,\"created\":1425901460000}");
@@ -1931,7 +1934,7 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
         execute("insert into fetch_partition_test (name, p) values (?, ?)", bulkArgs);
         execute("refresh table fetch_partition_test");
         execute("select count(*) from fetch_partition_test");
-        assertThat(((long) response.rows()[0][0]), is(3L));
+        assertThat(response.rows()[0][0], is(3L));
         execute("select count(*), job_id, arbitrary(name) from sys.operations_log where name='fetch' group by 2");
         assertThat(response.rowCount(), is(lessThanOrEqualTo(1L)));
     }
@@ -1995,7 +1998,7 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
 
         execute("select id from foo where match(name, 'Ford')");
         assertThat(response.rowCount(), is(1L));
-        assertThat((int) response.rows()[0][0], is(2));
+        assertThat(response.rows()[0][0], is(2));
     }
 
     @Test
@@ -2008,7 +2011,7 @@ public class PartitionedTableIntegrationTest extends SQLTransportIntegrationTest
 
         execute("select id from foo where match(name, 'Marvin')");
         assertThat(response.rowCount(), is(1L));
-        assertThat((int) response.rows()[0][0], is(1));
+        assertThat(response.rows()[0][0], is(1));
     }
 
     @Test

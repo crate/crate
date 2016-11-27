@@ -30,9 +30,7 @@ import io.crate.sql.tree.ParameterExpression;
 import io.crate.sql.tree.StringLiteral;
 import io.crate.test.integration.CrateUnitTest;
 import org.elasticsearch.common.settings.Settings;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 
 import java.util.HashMap;
 import java.util.List;
@@ -41,9 +39,6 @@ import java.util.Map;
 import static org.hamcrest.core.Is.is;
 
 public class ESClusterUpdateSettingsTaskTest extends CrateUnitTest {
-
-    @Rule
-    public ExpectedException expectedException = ExpectedException.none();
 
     @Test
     public void testUpdateSettingsWithInvalidTimeValue() throws Exception {

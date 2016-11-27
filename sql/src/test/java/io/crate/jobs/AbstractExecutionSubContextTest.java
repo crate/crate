@@ -43,15 +43,14 @@ public class AbstractExecutionSubContextTest extends CrateUnitTest {
 
     private TestingExecutionSubContext ctx;
 
-
-    Runnable killRunnable = new Runnable() {
+    private Runnable killRunnable = new Runnable() {
         @Override
         public void run() {
             ctx.kill(null);
         }
     };
 
-    Runnable closeRunnable = new Runnable() {
+    private Runnable closeRunnable = new Runnable() {
         @Override
         public void run() {
             ctx.close();
@@ -69,7 +68,7 @@ public class AbstractExecutionSubContextTest extends CrateUnitTest {
         List<Thread> threads = new ArrayList<Thread>(calls);
         for (int i = 0; i < calls; i++) {
             Thread t = new Thread(task);
-            t.run();
+            t.start();
             threads.add(t);
         }
         for (Thread thread : threads) {

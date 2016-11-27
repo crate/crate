@@ -66,9 +66,7 @@ import org.elasticsearch.test.cluster.NoopClusterService;
 import org.hamcrest.Matchers;
 import org.hamcrest.core.IsInstanceOf;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 
 import javax.annotation.Nullable;
 import java.util.Arrays;
@@ -88,8 +86,6 @@ import static org.hamcrest.core.Is.is;
 @SuppressWarnings("ConstantConditions")
 public class SelectStatementAnalyzerTest extends CrateUnitTest {
 
-    @Rule
-    public ExpectedException expectedException = ExpectedException.none();
     private SQLExecutor sqlExecutor;
 
     @Before

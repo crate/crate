@@ -30,9 +30,7 @@ import io.crate.metadata.table.Operation;
 import io.crate.sql.tree.QualifiedName;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.testing.DummyRelation;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 
 import java.util.Arrays;
 import java.util.Map;
@@ -41,9 +39,6 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.core.Is.is;
 
 public class FieldProviderTest extends CrateUnitTest {
-
-    @Rule
-    public ExpectedException expectedException = ExpectedException.none();
 
     private AnalyzedRelation dummyRelation = new DummyRelation("name");
 

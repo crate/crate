@@ -163,7 +163,7 @@ public class PartitionName {
         return tableIdent;
     }
 
-    @Nullable
+    @Override
     public String toString() {
         return asIndexName();
     }

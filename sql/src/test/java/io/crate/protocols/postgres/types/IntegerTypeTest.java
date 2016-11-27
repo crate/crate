@@ -24,6 +24,8 @@ package io.crate.protocols.postgres.types;
 
 import org.junit.Test;
 
+import java.nio.charset.StandardCharsets;
+
 public class IntegerTypeTest extends BasePGTypeTest<Integer> {
 
     public IntegerTypeTest() {
@@ -42,7 +44,7 @@ public class IntegerTypeTest extends BasePGTypeTest<Integer> {
 
     @Test
     public void testReadValueText() throws Exception {
-        byte[] bytesToRead = String.valueOf(Integer.MAX_VALUE).getBytes();
+        byte[] bytesToRead = String.valueOf(Integer.MAX_VALUE).getBytes(StandardCharsets.UTF_8);
         assertBytesReadText(bytesToRead, Integer.MAX_VALUE, bytesToRead.length);
     }
 }

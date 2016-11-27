@@ -297,10 +297,10 @@ public class SysNodesExpressionsTest extends CrateUnitTest {
         Map<String, Object> v = mem.value();
 
         assertEquals(12345342234L, v.get("free"));
-        assertEquals(new Short("78"), v.get("free_percent"));
+        assertEquals(Short.valueOf("78"), v.get("free_percent"));
 
         assertEquals(12345342234L, v.get("used"));
-        assertEquals(new Short("22"), v.get("used_percent"));
+        assertEquals(Short.valueOf("22"), v.get("used_percent"));
     }
 
     @Test

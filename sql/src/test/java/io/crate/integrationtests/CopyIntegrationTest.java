@@ -31,10 +31,10 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
-import java.io.BufferedWriter;
 import java.io.File;
-import java.io.FileWriter;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.OutputStreamWriter;
 import java.net.URISyntaxException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.DirectoryStream;
@@ -81,7 +81,7 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
         assertThat(response.rows()[0].length, is(2));
 
         execute("select quote from quotes where id = 1");
-        assertThat((String) response.rows()[0][0], is("Don't pa\u00f1ic."));
+        assertThat(response.rows()[0][0], is("Don't pa\u00f1ic."));
     }
 
     @Test
@@ -173,7 +173,7 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
         ensureYellow();
         File newFile = folder.newFile();
 
-        try (BufferedWriter writer = new BufferedWriter(new FileWriter(newFile))) {
+        try (OutputStreamWriter writer = new OutputStreamWriter(new FileOutputStream(newFile), StandardCharsets.UTF_8)) {
             writer.write("{id:1}\n");
             writer.write("\n");
             writer.write("{id:2}\n");
@@ -183,8 +183,8 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
         refresh();
 
         execute("select * from foo order by id");
-        assertThat((Integer) response.rows()[0][0], is(1));
-        assertThat((Integer) response.rows()[1][0], is(2));
+        assertThat(response.rows()[0][0], is(1));
+        assertThat(response.rows()[1][0], is(2));
     }
 
     @Test
@@ -192,7 +192,7 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
         execute("create table foo (id integer primary key) clustered into 1 shards with (number_of_replicas=0)");
         ensureYellow();
         File newFile = folder.newFile();
-        try (BufferedWriter writer = new BufferedWriter(new FileWriter(newFile))) {
+        try (OutputStreamWriter writer = new OutputStreamWriter(new FileOutputStream(newFile), StandardCharsets.UTF_8)) {
             writer.write("{|}");
         }
         expectedException.expect(SQLActionException.class);
@@ -327,6 +327,7 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
         SQLResponse response = execute("copy characters to DIRECTORY ?", new Object[]{uriTemplate});
         assertThat(response.rowCount(), is(7L));
         String[] list = folder.getRoot().list();
+        assertThat(list, is(notNullValue()));
         assertThat(list.length, greaterThanOrEqualTo(1));
         for (String file : list) {
             assertThat(file, startsWith("characters_"));
@@ -357,6 +358,7 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
         assertThat(response.rowCount(), is(1L));
 
         String[] list = folder.getRoot().list();
+        assertThat(list, is(notNullValue()));
         assertThat(list.length, is(1));
         String file = list[0];
         assertThat(file, both(startsWith("singleshard_")).and(endsWith(".json.gz")));
@@ -407,6 +409,7 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
         assertThat(response.rowCount(), is(1L));
 
         String[] list = folder.getRoot().list();
+        assertThat(list, is(notNullValue()));
         assertThat(list.length, is(1));
         List<String> lines = Files.readAllLines(
             Paths.get(folder.getRoot().toURI().resolve(list[0])), StandardCharsets.UTF_8);
@@ -487,8 +490,7 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
 
         // only one shard should have all imported rows, since we have the same routing for both rows
         response = execute("select count(*) from sys.shards where num_docs>0 and table_name='t'");
-        assertThat((long) response.rows()[0][0], is(1L));
-
+        assertThat(response.rows()[0][0], is(1L));
     }
 
     @Test

@@ -301,7 +301,7 @@ public class TestSqlParser {
 
     private static void assertParsed(String input, Node expected, Node parsed) {
         if (!parsed.equals(expected)) {
-            fail(format("expected\n\n%s\n\nto parse as\n\n%s\n\nbut was\n\n%s\n",
+            fail(format("expected%n%n%s%n%nto parse as%n%n%s%n%nbut was%n%n%s%n",
                 indent(input),
                 indent(formatSql(expected)),
                 indent(formatSql(parsed))));

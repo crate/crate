@@ -152,7 +152,7 @@ public abstract class BlobHttpIntegrationTest extends BlobIntegrationTestBase {
                         Integer statusCode = res.getStatusLine().getStatusCode();
                         String resultContent = EntityUtils.toString(res.getEntity());
                         if (!resultContent.equals(expected)) {
-                            logger.warn(String.format(Locale.ENGLISH, "incorrect response %d -- length: %d expected: %d\n",
+                            logger.warn(String.format(Locale.ENGLISH, "incorrect response %d -- length: %d expected: %d%n",
                                 indexerId, resultContent.length(), expected.length()));
                         }
                         results.put(indexerId, (statusCode >= 200 && statusCode < 300 &&
@@ -166,7 +166,7 @@ public abstract class BlobHttpIntegrationTest extends BlobIntegrationTestBase {
             };
             thread.start();
         }
-        latch.await(30L, TimeUnit.SECONDS);
+        assertThat(latch.await(30L, TimeUnit.SECONDS), is(true));
         return Iterables.all(results.values(), new Predicate<Boolean>() {
             @Override
             public boolean apply(Boolean input) {

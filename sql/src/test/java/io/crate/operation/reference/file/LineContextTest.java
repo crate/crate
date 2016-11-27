@@ -25,13 +25,15 @@ import io.crate.metadata.ColumnIdent;
 import io.crate.test.integration.CrateUnitTest;
 import org.junit.Test;
 
+import java.nio.charset.StandardCharsets;
+
 public class LineContextTest extends CrateUnitTest {
     @Test
     public void testGet() throws Exception {
         LineContext context = new LineContext();
 
         String source = "{\"name\": \"foo\", \"details\": {\"age\": 43}}";
-        context.rawSource(source.getBytes());
+        context.rawSource(source.getBytes(StandardCharsets.UTF_8));
 
         assertNull(context.get(new ColumnIdent("invalid", "column")));
         assertNull(context.get(new ColumnIdent("details", "invalid")));

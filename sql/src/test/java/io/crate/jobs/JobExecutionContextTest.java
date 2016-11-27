@@ -37,9 +37,7 @@ import io.crate.test.integration.CrateUnitTest;
 import io.crate.types.IntegerType;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.mockito.Mockito;
 
 import javax.annotation.Nonnull;
@@ -52,8 +50,6 @@ import static org.mockito.Mockito.*;
 
 public class JobExecutionContextTest extends CrateUnitTest {
 
-    @Rule
-    public ExpectedException expectedException = ExpectedException.none();
     private String coordinatorNode = "dummyNode";
 
     @Test

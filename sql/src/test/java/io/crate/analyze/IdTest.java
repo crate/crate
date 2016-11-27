@@ -26,9 +26,7 @@ import io.crate.metadata.ColumnIdent;
 import io.crate.test.integration.CrateUnitTest;
 import org.apache.lucene.util.BytesRef;
 import org.hamcrest.Matchers;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 
 import java.util.Collections;
 import java.util.List;
@@ -37,9 +35,6 @@ import java.util.NoSuchElementException;
 import static org.hamcrest.core.Is.is;
 
 public class IdTest extends CrateUnitTest {
-
-    @Rule
-    public ExpectedException expectedException = ExpectedException.none();
 
     private static final ColumnIdent _ID = ci("_id");
     private static final ImmutableList<ColumnIdent> _ID_LIST = ImmutableList.of(_ID);

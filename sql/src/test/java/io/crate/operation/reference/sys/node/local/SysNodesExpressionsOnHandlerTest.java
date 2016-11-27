@@ -203,9 +203,9 @@ public class SysNodesExpressionsOnHandlerTest extends CrateUnitTest {
 
         Map<String, Object> v = (Map<String, Object>) collectExpression.value();
         assertThat((long) v.get("free"), is(12345342234L));
-        assertThat((short) v.get("free_percent"), is(new Short("78")));
+        assertThat((short) v.get("free_percent"), is(Short.valueOf("78")));
         assertThat((long) v.get("used"), is(12345342234L));
-        assertThat((short) v.get("used_percent"), is(new Short("22")));
+        assertThat((short) v.get("used_percent"), is(Short.valueOf("22")));
     }
 
     @Test

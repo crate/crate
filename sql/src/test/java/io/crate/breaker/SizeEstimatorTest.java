@@ -42,8 +42,8 @@ public class SizeEstimatorTest extends CrateUnitTest {
     public void testConstant() throws Exception {
         SizeEstimator sizeEstimator = SizeEstimatorFactory.create(DataTypes.BYTE);
         assertThat(sizeEstimator.estimateSize(null), is(8L));
-        assertThat(sizeEstimator.estimateSize(new Byte("100")), is(16L));
-        assertThat(sizeEstimator.estimateSizeDelta(new Byte("100"), new Byte("42")), is(0L));
+        assertThat(sizeEstimator.estimateSize(Byte.valueOf("100")), is(16L));
+        assertThat(sizeEstimator.estimateSizeDelta(Byte.valueOf("100"), Byte.valueOf("42")), is(0L));
     }
 
     @Test
@@ -53,5 +53,4 @@ public class SizeEstimatorTest extends CrateUnitTest {
         assertThat(sizeEstimator.estimateSize(new Double[]{1.0d, 2.0d}), is(40L));
         assertThat(sizeEstimator.estimateSizeDelta(new Double[]{1.0d, 2.0d}, null), is(-32L));
     }
-
 }

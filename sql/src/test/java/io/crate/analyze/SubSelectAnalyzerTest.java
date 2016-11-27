@@ -27,18 +27,13 @@ import io.crate.exceptions.AmbiguousColumnAliasException;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.testing.SQLExecutor;
 import org.elasticsearch.test.cluster.NoopClusterService;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 
 import static io.crate.testing.SymbolMatchers.isField;
 import static io.crate.testing.T3.T1_INFO;
 import static org.hamcrest.Matchers.is;
 
 public class SubSelectAnalyzerTest extends CrateUnitTest {
-
-    @Rule
-    public ExpectedException expectedException = ExpectedException.none();
 
     private SQLExecutor executor = SQLExecutor.builder(new NoopClusterService())
         .enableDefaultTables()

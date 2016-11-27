@@ -33,18 +33,13 @@ import io.crate.test.integration.CrateUnitTest;
 import io.crate.testing.SQLExecutor;
 import org.elasticsearch.test.cluster.NoopClusterService;
 import org.hamcrest.Matchers;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 
 import java.util.Set;
 
 import static org.hamcrest.Matchers.*;
 
 public class SetAnalyzerTest extends CrateUnitTest {
-
-    @Rule
-    public ExpectedException expectedException = ExpectedException.none();
 
     private SQLExecutor executor = SQLExecutor.builder(new NoopClusterService()).build();
 

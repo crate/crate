@@ -52,6 +52,7 @@ import org.mockito.stubbing.Answer;
 import java.io.*;
 import java.net.MalformedURLException;
 import java.net.SocketTimeoutException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -83,15 +84,16 @@ public class FileReadingCollectorTest extends CrateUnitTest {
         tmpFile = File.createTempFile("fileReadingCollector", ".json", copy_from.toFile());
         tmpFileEmptyLine = File.createTempFile("emptyLine", ".json", copy_from_empty.toFile());
         try (BufferedWriter writer =
-                 new BufferedWriter(new OutputStreamWriter(new GZIPOutputStream(new FileOutputStream(tmpFileGz))))) {
+                 new BufferedWriter(new OutputStreamWriter(new GZIPOutputStream(new FileOutputStream(tmpFileGz)),
+                                    StandardCharsets.UTF_8))) {
             writer.write("{\"name\": \"Arthur\", \"id\": 4, \"details\": {\"age\": 38}}\n");
             writer.write("{\"id\": 5, \"name\": \"Trillian\", \"details\": {\"age\": 33}}\n");
         }
-        try (FileWriter writer = new FileWriter(tmpFile)) {
+        try (OutputStreamWriter writer = new OutputStreamWriter(new FileOutputStream(tmpFile), StandardCharsets.UTF_8)) {
             writer.write("{\"name\": \"Arthur\", \"id\": 4, \"details\": {\"age\": 38}}\n");
             writer.write("{\"id\": 5, \"name\": \"Trillian\", \"details\": {\"age\": 33}}\n");
         }
-        try (FileWriter writer = new FileWriter(tmpFileEmptyLine)) {
+        try (OutputStreamWriter writer = new OutputStreamWriter(new FileOutputStream(tmpFileEmptyLine), StandardCharsets.UTF_8)) {
             writer.write("{\"name\": \"Arthur\", \"id\": 4, \"details\": {\"age\": 38}}\n");
             writer.write("\n");
             writer.write("{\"id\": 5, \"name\": \"Trillian\", \"details\": {\"age\": 33}}\n");
@@ -111,9 +113,9 @@ public class FileReadingCollectorTest extends CrateUnitTest {
 
     @AfterClass
     public static void tearDownClass() throws Exception {
-        tmpFile.delete();
-        tmpFileGz.delete();
-        tmpFileEmptyLine.delete();
+        assertThat(tmpFile.delete(), is(true));
+        assertThat(tmpFileGz.delete(), is(true));
+        assertThat(tmpFileEmptyLine.delete(), is(true));
     }
 
     @Test

@@ -48,6 +48,7 @@ import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.test.ESIntegTestCase;
 import org.junit.Test;
 
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -58,10 +59,11 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
+import static org.hamcrest.Matchers.is;
 import static org.hamcrest.core.IsEqual.equalTo;
 
 @ESIntegTestCase.ClusterScope(scope = ESIntegTestCase.Scope.SUITE, numDataNodes = 0, numClientNodes = 0, transportClientRatio = 0)
-@ThreadLeakFilters(defaultFilters = true, filters = {RecoveryTests.RecoveryTestThreadFilter.class})
+@ThreadLeakFilters(filters = {RecoveryTests.RecoveryTestThreadFilter.class})
 public class RecoveryTests extends BlobIntegrationTestBase {
 
     public static class RecoveryTestThreadFilter implements ThreadFilter {
@@ -103,7 +105,7 @@ public class RecoveryTests extends BlobIntegrationTestBase {
     private String uploadFile(Client client, String content) {
         byte[] digest = Blobs.digest(content);
         String digestString = Hex.encodeHexString(digest);
-        byte[] contentBytes = content.getBytes();
+        byte[] contentBytes = content.getBytes(StandardCharsets.UTF_8);
         logger.trace("Uploading {} digest {}", content, digestString);
         BytesArray bytes = new BytesArray(new byte[]{contentBytes[0]});
         if (content.length() == 1) {
@@ -245,7 +247,7 @@ public class RecoveryTests extends BlobIntegrationTestBase {
         logger.trace("--> marking and waiting for upload threads to stop ...");
         timeBetweenChunks.set(0);
         stop.set(true);
-        stopLatch.await(60, TimeUnit.SECONDS);
+        assertThat(stopLatch.await(60, TimeUnit.SECONDS), is(true));
         logger.trace("--> uploading threads stopped");
 
         logger.trace("--> expected {} got {}", indexCounter.get(), uploadedDigests.size());

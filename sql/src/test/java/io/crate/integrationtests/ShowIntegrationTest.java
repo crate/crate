@@ -252,7 +252,8 @@ public class ShowIntegrationTest extends SQLTransportIntegrationTest {
         try {
             assertTrue(((String) response.rows()[0][0]).startsWith(expected));
         } catch (Throwable e) {
-            String msg = String.format(Locale.ENGLISH, "Row does not start with expected string:\n\nExpected: %s\nActual: %s\n", expected, response.rows()[0][0]);
+            String msg = String.format(Locale.ENGLISH, "Row does not start with expected string:%n%n" +
+                                                       "Expected: %s%nActual: %s%n", expected, response.rows()[0][0]);
             throw new AssertionError(msg);
         }
     }

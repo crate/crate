@@ -15,8 +15,9 @@ import org.junit.Test;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.io.PrintWriter;
+import java.io.OutputStream;
 import java.net.Socket;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
@@ -218,12 +219,13 @@ public class BlobIntegrationTest extends BlobHttpIntegrationTest {
         socket.setKeepAlive(true);
         socket.setSoTimeout(3000);
 
-        PrintWriter pw = new PrintWriter(socket.getOutputStream());
-        pw.print("HEAD /_blobs/invalid/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa HTTP/1.1\r\n");
-        pw.print("Host: localhost\r\n\r\n");
-        pw.flush();
+        OutputStream outputStream = socket.getOutputStream();
+        outputStream.write("HEAD /_blobs/invalid/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa HTTP/1.1\r\n"
+            .getBytes(StandardCharsets.UTF_8));
+        outputStream.write("Host: localhost\r\n\r\n".getBytes(StandardCharsets.UTF_8));
+        outputStream.flush();
 
-        BufferedReader reader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+        BufferedReader reader = new BufferedReader(new InputStreamReader(socket.getInputStream(), StandardCharsets.UTF_8));
         int linesRead = 0;
         while (linesRead < 3) {
             String line = reader.readLine();
@@ -232,9 +234,10 @@ public class BlobIntegrationTest extends BlobHttpIntegrationTest {
         }
 
         assertSocketIsConnected(socket);
-        pw.print("HEAD /_blobs/invalid/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa HTTP/1.1\r\n");
-        pw.print("Host: localhost\r\n\r\n");
-        pw.flush();
+        outputStream.write("HEAD /_blobs/invalid/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa HTTP/1.1\r\n"
+            .getBytes(StandardCharsets.UTF_8));
+        outputStream.write("Host: localhost\r\n\r\n".getBytes(StandardCharsets.UTF_8));
+        outputStream.flush();
         int read = reader.read();
         assertThat(read, greaterThan(-1));
         assertSocketIsConnected(socket);
@@ -246,12 +249,15 @@ public class BlobIntegrationTest extends BlobHttpIntegrationTest {
         socket.setKeepAlive(false);
         socket.setSoTimeout(3000);
 
-        PrintWriter pw = new PrintWriter(socket.getOutputStream());
-        pw.print("HEAD /_blobs/invalid/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa HTTP/1.0\r\n");
-        pw.print("Host: localhost\r\n\r\n");
-        pw.flush();
+        OutputStream outputStream = socket.getOutputStream();
+        outputStream.write("HEAD /_blobs/invalid/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa HTTP/1.0\r\n"
+            .getBytes(StandardCharsets.UTF_8));
+        outputStream.write("Host: localhost\r\n\r\n".getBytes(StandardCharsets.UTF_8));
+        outputStream.flush();
 
-        BufferedReader reader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+        BufferedReader reader = new BufferedReader(
+            new InputStreamReader(socket.getInputStream(),
+            StandardCharsets.UTF_8));
         String line;
         List<String> lines = new ArrayList<>();
         while ((line = reader.readLine()) != null) {

@@ -34,9 +34,7 @@ import org.elasticsearch.cluster.node.DiscoveryNodes;
 import org.elasticsearch.common.collect.ImmutableOpenMap;
 import org.junit.Before;
 import org.junit.BeforeClass;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 
 import java.util.Locale;
 
@@ -51,9 +49,6 @@ public class NumberOfShardsTest extends CrateUnitTest {
     private static DiscoveryNodes discoveryNodes = mock(DiscoveryNodes.class);
     private static ClusterState clusterState = mock(ClusterState.class);
     private static NumberOfShards numberOfShards;
-
-    @Rule
-    public ExpectedException expectedException = ExpectedException.none();
 
     @BeforeClass
     public static void beforeClass() {

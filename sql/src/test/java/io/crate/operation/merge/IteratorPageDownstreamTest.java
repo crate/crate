@@ -36,9 +36,7 @@ import io.crate.testing.CollectingRowReceiver;
 import io.crate.testing.TestingHelpers;
 import org.elasticsearch.common.breaker.CircuitBreakingException;
 import org.elasticsearch.common.util.concurrent.EsRejectedExecutionException;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 
@@ -57,9 +55,6 @@ public class IteratorPageDownstreamTest extends CrateUnitTest {
 
     @Mock
     PagingIterator<Void, Row> mockedPagingIterator;
-
-    @Rule
-    public ExpectedException expectedException = ExpectedException.none();
 
     @Test
     public void testMergeOnPagingIteratorIsCalledAfterALLBucketsAreReady() throws Exception {

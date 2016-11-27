@@ -151,21 +151,21 @@ public class SysShardsExpressionsTest extends CrateUnitTest {
     public void testId() throws Exception {
         Reference refInfo = refInfo("sys.shards.id", DataTypes.INTEGER, RowGranularity.SHARD);
         ReferenceImplementation<Integer> shardExpression = (ReferenceImplementation<Integer>) resolver.getImplementation(refInfo);
-        assertEquals(new Integer(1), shardExpression.value());
+        assertEquals(Integer.valueOf(1), shardExpression.value());
     }
 
     @Test
     public void testSize() throws Exception {
         Reference refInfo = refInfo("sys.shards.size", DataTypes.LONG, RowGranularity.SHARD);
         ReferenceImplementation<Long> shardExpression = (ReferenceImplementation<Long>) resolver.getImplementation(refInfo);
-        assertEquals(new Long(123456), shardExpression.value());
+        assertEquals(Long.valueOf(123456), shardExpression.value());
     }
 
     @Test
     public void testNumDocs() throws Exception {
         Reference refInfo = refInfo("sys.shards.num_docs", DataTypes.LONG, RowGranularity.SHARD);
         ReferenceImplementation<Long> shardExpression = (ReferenceImplementation<Long>) resolver.getImplementation(refInfo);
-        assertEquals(new Long(654321), shardExpression.value());
+        assertEquals(Long.valueOf(654321), shardExpression.value());
 
         // second call should throw Exception
         assertNull(shardExpression.value());
