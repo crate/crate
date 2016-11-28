@@ -26,6 +26,14 @@ import com.google.common.util.concurrent.SettableFuture;
 
 import java.util.concurrent.atomic.AtomicInteger;
 
+/**
+ * Triggers {@link #future} after {@code numServer} calls to either
+ * {@link #jobInitialized()} or {@link #jobInitializationFailed(Throwable)}
+ * <p>
+ *     If {@link #jobInitializationFailed(Throwable)}} has been called at least once
+ *     the future will emit a failure.
+ * </p>
+ */
 class InitializationTracker {
 
     final SettableFuture<Void> future;
@@ -51,6 +59,12 @@ class InitializationTracker {
         }
     }
 
+    /**
+     * Indicates that a jobInitialization failed
+     *
+     * @param t The cause of the initialization failure.
+     *          If no failure has been set so far or if it was an InterruptedException it is overwritten.
+     */
     void jobInitializationFailed(Throwable t) {
         synchronized (this) {
             if (failure == null || failure instanceof InterruptedException) {
@@ -59,5 +73,4 @@ class InitializationTracker {
         }
         jobInitialized();
     }
-
 }
