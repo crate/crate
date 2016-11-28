@@ -20,16 +20,27 @@
  * agreement.
  */
 
-package io.crate.lucene;
+package io.crate.operation.reference.sys.shard;
 
-import org.elasticsearch.common.inject.AbstractModule;
-import org.elasticsearch.index.mapper.ArrayMapper;
-import org.elasticsearch.index.mapper.array.DynamicArrayFieldMapperBuilderFactory;
+import io.crate.metadata.SimpleObjectExpression;
+import org.elasticsearch.index.shard.IndexShard;
+import org.elasticsearch.indices.recovery.RecoveryState;
 
-public class CrateIndexModule extends AbstractModule {
+public abstract class ShardRecoveryStateExpression<T> extends SimpleObjectExpression<T> {
+
+    private final IndexShard indexShard;
+
+    ShardRecoveryStateExpression(IndexShard indexShard) {
+        this.indexShard = indexShard;
+    }
 
     @Override
-    protected void configure() {
-        bind(DynamicArrayFieldMapperBuilderFactory.class).to(ArrayMapper.BuilderFactory.class).asEagerSingleton();
+    public T value() {
+        // the recoveryState is only null when the shard is in the initialization process where
+        // this expression must not be called
+        assert indexShard.recoveryState() != null : "recoveryState must not be null upon value call";
+        return innerValue(indexShard.recoveryState());
     }
+
+    protected abstract T innerValue(RecoveryState recoveryState);
 }

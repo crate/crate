@@ -66,7 +66,7 @@ public class LuceneDocCollectorTest extends SQLTransportIntegrationTest {
                 " \"countryName\" string," +
                 " population integer primary key" +
                 ") clustered into 1 shards with (number_of_replicas=0)");
-        refresh();
+        ensureGreen();
         generateData();
         collectorProvider = new LuceneDocCollectorProvider(internalCluster());
     }

@@ -59,7 +59,6 @@ public class BlobIndicesServiceTest extends CrateUnitTest {
                 }
             }
         );
-        blobIndicesService.start();
         IndicesLifecycle.Listener listener = listenerFuture.get(30, TimeUnit.SECONDS);
 
         IndexService indexService = mock(IndexService.class);

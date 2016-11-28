@@ -21,44 +21,43 @@
  */
 
 package io.crate.operation.reference.sys.shard;
-
-import io.crate.metadata.SimpleObjectExpression;
 import io.crate.operation.reference.NestedObjectExpression;
+import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.indices.recovery.RecoveryState;
 
-public class ShardRecoveryFilesExpression extends NestedObjectExpression {
+class ShardRecoveryFilesExpression extends NestedObjectExpression {
 
     private static final String USED = "used";
     private static final String REUSED = "reused";
     private static final String RECOVERED = "recovered";
     private static final String PERCENT = "percent";
 
-    public ShardRecoveryFilesExpression(RecoveryState recoveryState) {
-        addChildImplementations(recoveryState);
+    ShardRecoveryFilesExpression(IndexShard indexShard) {
+        addChildImplementations(indexShard);
     }
 
-    private void addChildImplementations(final RecoveryState recoveryState) {
-        childImplementations.put(USED, new SimpleObjectExpression<Integer>() {
+    private void addChildImplementations(IndexShard indexShard) {
+        childImplementations.put(USED, new ShardRecoveryStateExpression<Integer>(indexShard) {
             @Override
-            public Integer value() {
+            public Integer innerValue(RecoveryState recoveryState) {
                 return recoveryState.getIndex().totalFileCount();
             }
         });
-        childImplementations.put(REUSED, new SimpleObjectExpression<Integer>() {
+        childImplementations.put(REUSED, new ShardRecoveryStateExpression<Integer>(indexShard) {
             @Override
-            public Integer value() {
+            public Integer innerValue(RecoveryState recoveryState) {
                 return recoveryState.getIndex().reusedFileCount();
             }
         });
-        childImplementations.put(RECOVERED, new SimpleObjectExpression<Integer>() {
+        childImplementations.put(RECOVERED, new ShardRecoveryStateExpression<Integer>(indexShard) {
             @Override
-            public Integer value() {
+            public Integer innerValue(RecoveryState recoveryState) {
                 return recoveryState.getIndex().recoveredFileCount();
             }
         });
-        childImplementations.put(PERCENT, new SimpleObjectExpression<Float>() {
+        childImplementations.put(PERCENT, new ShardRecoveryStateExpression<Float>(indexShard) {
             @Override
-            public Float value() {
+            public Float innerValue(RecoveryState recoveryState) {
                 return recoveryState.getIndex().recoveredFilesPercent();
             }
         });

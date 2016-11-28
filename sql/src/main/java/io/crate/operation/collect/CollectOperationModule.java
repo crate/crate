@@ -22,6 +22,7 @@
 package io.crate.operation.collect;
 
 import io.crate.operation.collect.sources.InformationSchemaIterables;
+import io.crate.operation.collect.sources.ShardCollectSource;
 import io.crate.operation.collect.sources.SystemCollectSource;
 import org.elasticsearch.common.inject.AbstractModule;
 
@@ -31,6 +32,7 @@ public class CollectOperationModule extends AbstractModule {
         bind(InformationSchemaIterables.class).asEagerSingleton();
 
         bind(StatsTables.class).asEagerSingleton();
+        bind(ShardCollectSource.class).asEagerSingleton();
         bind(SystemCollectSource.class).asEagerSingleton();
     }
 }

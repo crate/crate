@@ -47,7 +47,7 @@ public class LuceneReferenceResolver implements ReferenceResolver<LuceneCollecto
 
     @Override
     public LuceneCollectorExpression<?> getImplementation(Reference refInfo) {
-        assert refInfo.granularity() == RowGranularity.DOC;
+        assert refInfo.granularity() == RowGranularity.DOC: "lucene collector expressions are required to be on DOC granularity";
 
         ColumnIdent columnIdent = refInfo.ident().columnIdent();
         String name = columnIdent.name();

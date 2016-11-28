@@ -22,7 +22,6 @@
 
 package io.crate.operation.reference.sys.shard;
 
-import io.crate.metadata.SimpleObjectExpression;
 import io.crate.operation.reference.NestedObjectExpression;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.lucene.BytesRefs;
@@ -37,32 +36,31 @@ public class ShardRecoveryExpression extends NestedObjectExpression {
     private static final String SIZE = "size";
     private static final String FILES = "files";
 
-
     public ShardRecoveryExpression(IndexShard indexShard) {
-        addChildImplementations(indexShard.recoveryState());
+        addChildImplementations(indexShard);
     }
 
-    private void addChildImplementations(final RecoveryState recoveryState) {
-        childImplementations.put(TOTAL_TIME, new SimpleObjectExpression<Long>() {
+    private void addChildImplementations(IndexShard indexShard) {
+        childImplementations.put(TOTAL_TIME, new ShardRecoveryStateExpression<Long>(indexShard) {
             @Override
-            public Long value() {
+            protected Long innerValue(RecoveryState recoveryState) {
                 return recoveryState.getTimer().time();
             }
         });
-        childImplementations.put(STAGE, new SimpleObjectExpression<BytesRef>() {
+        childImplementations.put(STAGE, new ShardRecoveryStateExpression<BytesRef>(indexShard) {
             @Override
-            public BytesRef value() {
+            public BytesRef innerValue(RecoveryState recoveryState) {
                 return BytesRefs.toBytesRef(recoveryState.getStage().name());
             }
         });
-        childImplementations.put(TYPE, new SimpleObjectExpression<BytesRef>() {
+        childImplementations.put(TYPE, new ShardRecoveryStateExpression<BytesRef>(indexShard) {
             @Override
-            public BytesRef value() {
+            public BytesRef innerValue(RecoveryState recoveryState) {
                 return BytesRefs.toBytesRef(recoveryState.getType().name());
             }
         });
-        childImplementations.put(SIZE, new ShardRecoverySizeExpression(recoveryState));
-        childImplementations.put(FILES, new ShardRecoveryFilesExpression(recoveryState));
+        childImplementations.put(SIZE, new ShardRecoverySizeExpression(indexShard));
+        childImplementations.put(FILES, new ShardRecoveryFilesExpression(indexShard));
     }
 
 }

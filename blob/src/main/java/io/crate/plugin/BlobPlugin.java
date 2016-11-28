@@ -22,10 +22,8 @@
 package io.crate.plugin;
 
 
-import com.google.common.collect.ImmutableList;
 import io.crate.blob.*;
 import io.crate.blob.v2.BlobIndicesModule;
-import io.crate.blob.v2.BlobIndicesService;
 import io.crate.http.netty.CrateNettyHttpServerTransport;
 import org.elasticsearch.action.ActionModule;
 import org.elasticsearch.common.component.LifecycleComponent;
@@ -71,7 +69,7 @@ public class BlobPlugin extends Plugin {
         if (settings.getAsBoolean("node.client", false)) {
             return Collections.emptyList();
         }
-        return ImmutableList.<Class<? extends LifecycleComponent>>of(BlobService.class, BlobIndicesService.class);
+        return Collections.singletonList(BlobService.class);
     }
 
     public void onModule(HttpServerModule module) {

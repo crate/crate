@@ -26,30 +26,33 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import io.crate.analyze.WhereClause;
-import io.crate.analyze.symbol.Symbol;
+import io.crate.blob.v2.BlobIndicesService;
+import io.crate.blob.v2.BlobShard;
 import io.crate.core.collections.Row;
 import io.crate.integrationtests.SQLHttpIntegrationTest;
 import io.crate.metadata.Routing;
 import io.crate.metadata.RowGranularity;
 import io.crate.planner.distribution.DistributionInfo;
 import io.crate.planner.node.dql.RoutedCollectPhase;
-import io.crate.planner.projection.Projection;
-import org.elasticsearch.common.inject.Injector;
-import org.elasticsearch.index.IndexService;
-import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.test.ESIntegTestCase;
 import org.junit.Test;
 
-import java.util.List;
-import java.util.Map;
+import java.lang.reflect.Method;
 import java.util.UUID;
 
 import static org.hamcrest.Matchers.is;
 
 @ESIntegTestCase.ClusterScope(numDataNodes = 1, numClientNodes = 0)
-public class ShardCollectServiceTest extends SQLHttpIntegrationTest {
+public class BlobShardCollectorProviderTest extends SQLHttpIntegrationTest {
 
-    private ShardCollectService shardCollectService;
+    private BlobShardCollectorProvider collectorProvider;
+
+    private Iterable<Row> getBlobRows(RoutedCollectPhase phase, boolean repeat) throws Exception {
+        Method m = BlobShardCollectorProvider.class.getDeclaredMethod("getBlobRows", RoutedCollectPhase.class, boolean.class);
+        m.setAccessible(true);
+        //noinspection unchecked
+        return (Iterable<Row>) m.invoke(collectorProvider, phase, repeat);
+    }
 
     @Test
     public void testReadIsolation() throws Exception {
@@ -57,29 +60,28 @@ public class ShardCollectServiceTest extends SQLHttpIntegrationTest {
         upload("b1", "foo");
         upload("b1", "bar");
         ensureGreen();
-
         assertBusy(new Initializer());
 
         RoutedCollectPhase collectPhase = new RoutedCollectPhase(
             UUID.randomUUID(),
             1,
             "collect",
-            new Routing(ImmutableMap.<String, Map<String, List<Integer>>>of()),
+            new Routing(ImmutableMap.of()),
             RowGranularity.SHARD,
-            ImmutableList.<Symbol>of(),
-            ImmutableList.<Projection>of(),
+            ImmutableList.of(),
+            ImmutableList.of(),
             WhereClause.MATCH_ALL,
             DistributionInfo.DEFAULT_BROADCAST
         );
 
         // No read Isolation
-        Iterable<Row> iterable = shardCollectService.getBlobRows(collectPhase, false);
+        Iterable<Row> iterable = getBlobRows(collectPhase, false);
         assertThat(Iterables.size(iterable), is(2));
         upload("b1", "newEntry1");
         assertThat(Iterables.size(iterable), is(3));
 
         // Read isolation
-        iterable = shardCollectService.getBlobRows(collectPhase, true);
+        iterable = getBlobRows(collectPhase, true);
         assertThat(Iterables.size(iterable), is(3));
         upload("b1", "newEntry2");
         assertThat(Iterables.size(iterable), is(3));
@@ -89,12 +91,12 @@ public class ShardCollectServiceTest extends SQLHttpIntegrationTest {
         @Override
         public void run() {
             try {
-                IndexService indexService = internalCluster().getInstance(IndicesService.class).indexService(".blob_b1");
-                assertNotNull(indexService);
-                Injector injector = indexService.shardInjectorSafe(0);
-                assertNotNull(injector);
-                shardCollectService = injector.getInstance(ShardCollectService.class);
-                assertNotNull(shardCollectService);
+                BlobIndicesService blobIndicesService = internalCluster().getInstance(BlobIndicesService.class);
+                BlobShard blobShard = blobIndicesService.blobShard(".blob_b1", 0);
+                assertNotNull(blobShard);
+                collectorProvider = new BlobShardCollectorProvider(blobShard, null, null,
+                    null, null, null, null, null);
+                assertNotNull(collectorProvider);
             } catch (Exception e) {
                 fail("Exception shouldn't be thrown: " + e.getMessage());
             }

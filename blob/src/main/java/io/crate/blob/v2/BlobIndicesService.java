@@ -26,7 +26,7 @@ import io.crate.blob.BlobShardFuture;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.routing.ShardIterator;
 import org.elasticsearch.common.Nullable;
-import org.elasticsearch.common.component.AbstractLifecycleComponent;
+import org.elasticsearch.common.component.AbstractComponent;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.io.PathUtils;
 import org.elasticsearch.common.settings.Settings;
@@ -50,7 +50,7 @@ import static io.crate.blob.v2.BlobIndex.isBlobIndex;
 /**
  * Manages the creation and deletion of BlobIndex and BlobShard instances.
  */
-public class BlobIndicesService extends AbstractLifecycleComponent<BlobIndicesService> {
+public class BlobIndicesService extends AbstractComponent {
 
     public static final String SETTING_INDEX_BLOBS_ENABLED = "index.blobs.enabled";
     public static final String SETTING_INDEX_BLOBS_PATH = "index.blobs.path";
@@ -62,8 +62,6 @@ public class BlobIndicesService extends AbstractLifecycleComponent<BlobIndicesSe
     @VisibleForTesting
     final Map<String, BlobIndex> indices = new ConcurrentHashMap<>();
 
-    private final LifecycleListener listener;
-
     @Nullable
     private final Path globalBlobPath;
 
@@ -74,7 +72,7 @@ public class BlobIndicesService extends AbstractLifecycleComponent<BlobIndicesSe
         super(settings);
         this.clusterService = clusterService;
         this.indicesLifecycle = indicesLifecycle;
-        this.listener = new LifecycleListener();
+        indicesLifecycle.addListener(new LifecycleListener());
         globalBlobPath = getGlobalBlobPath(settings);
         logger.setLevel("debug");
     }
@@ -88,21 +86,6 @@ public class BlobIndicesService extends AbstractLifecycleComponent<BlobIndicesSe
         Path globalBlobPath = PathUtils.get(customGlobalBlobPathSetting);
         ensureExistsAndWritable(globalBlobPath);
         return globalBlobPath;
-    }
-
-    @Override
-    protected void doStart() {
-        // add listener here to avoid guice proxy errors if the ClusterService could not be build
-        indicesLifecycle.addListener(listener);
-    }
-
-    @Override
-    protected void doStop() {
-        indicesLifecycle.removeListener(listener);
-    }
-
-    @Override
-    protected void doClose() {
     }
 
     public BlobShard blobShardSafe(ShardId shardId) {
