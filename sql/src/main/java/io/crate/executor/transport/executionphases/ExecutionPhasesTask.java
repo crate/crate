@@ -53,6 +53,41 @@ import javax.annotation.Nullable;
 import java.util.*;
 
 
+/**
+ * Creates and starts local and remote execution jobs using the provided
+ * NodeOperationTrees
+ *
+ * <pre>
+ * Direct Result:
+ *
+ *       N1   N2    N3  // <-- job context created via jobRequests using TransportJobAction
+ *        ^    ^    ^
+ *        |    |    |
+ *        +----+----+
+ *             |
+ *             |        // result is received via DirectResponseFutures
+ *             v
+ *            N1        // <-- job context created via ContextPreparer.prepareOnHandler
+ *             |
+ *          RowReceiver
+ *
+ *
+ * Push Result:
+ *                  // result is sent via DistributingDownstream
+ *       +------------------->---+
+ *       ^     ^     ^           |
+ *       |     |     |           |
+ *       N1   N2    N3           |
+ *        ^    ^    ^            |
+ *        |    |    |            |
+ *        +----+----+            |
+ *             |                 |  result is received via
+ *             |                 v  TransportDistributedResultAction
+ *            N1<----------------+  and passed into a PageDownstreamContext
+ *             |
+ *          RowReceiver
+ * </pre>
+ **/
 public class ExecutionPhasesTask extends JobTask {
 
     static final ESLogger LOGGER = Loggers.getLogger(ExecutionPhasesTask.class);
@@ -158,32 +193,53 @@ public class ExecutionPhasesTask extends JobTask {
         List<ListenableFuture<Bucket>> directResponseFutures = contextPreparer.prepareOnHandler(
             localNodeOperations, builder, handlerPhaseAndReceiver, new SharedShardContexts(indicesService));
         JobExecutionContext localJobContext = jobContextService.createContext(builder);
-        initializationTracker.jobInitialized();
 
         List<PageBucketReceiver> pageBucketReceivers = getHandlerBucketReceivers(localJobContext, handlerPhaseAndReceiver);
         int bucketIdx = 0;
 
-        if (!localNodeOperations.isEmpty()) {
-            if (!directResponseFutures.isEmpty()) {
-                Futures.addCallback(Futures.allAsList(directResponseFutures),
-                    new SetBucketCallback(pageBucketReceivers, bucketIdx, initializationTracker));
-                bucketIdx++;
+        /*
+         * If you touch anything here make sure the following tests pass with > 1k iterations:
+         *
+         * Seed: 112E1807417E925A - testInvalidPatternSyntax
+         * Seed: Any              - testRegularSelectWithFewAvailableThreadsShouldNeverGetStuck
+         * Seed: CC456FF5004F35D3 - testFailureOfJoinDownstream
+         */
+        if (!localNodeOperations.isEmpty() && !directResponseFutures.isEmpty()) {
+            Futures.addCallback(Futures.allAsList(directResponseFutures),
+                new SetBucketCallback(pageBucketReceivers, bucketIdx, initializationTracker));
+            bucketIdx++;
+            try {
+                // initializationTracker for localNodeOperations is triggered via SetBucketCallback
+
+                localJobContext.start();
+            } catch (Throwable t) {
+                accountFailureForRemoteOperations(operationByServer, initializationTracker, handlerPhaseAndReceiver, t);
+                return;
             }
-        }
-        try {
-            localJobContext.start();
-        } catch (Throwable t) {
-            for (Tuple<ExecutionPhase, RowReceiver> executionPhaseRowReceiverTuple : handlerPhaseAndReceiver) {
-                executionPhaseRowReceiverTuple.v2().fail(t);
-            }
-            for (int i = 0; i < operationByServer.size(); i++) {
-                // not going to initialize remote jobs, but need to account for them
+        } else {
+            try {
+                localJobContext.start();
+                initializationTracker.jobInitialized();
+            } catch (Throwable t) {
                 initializationTracker.jobInitializationFailed(t);
+                accountFailureForRemoteOperations(operationByServer, initializationTracker, handlerPhaseAndReceiver, t);
+                return;
             }
-            return;
         }
         sendJobRequests(
             localNodeId, operationByServer, pageBucketReceivers, handlerPhaseAndReceiver, bucketIdx, initializationTracker);
+    }
+
+    private void accountFailureForRemoteOperations(Map<String, Collection<NodeOperation>> operationByServer,
+                                                   InitializationTracker initializationTracker,
+                                                   List<Tuple<ExecutionPhase, RowReceiver>> handlerPhaseAndReceiver,
+                                                   Throwable t) {
+        for (Tuple<ExecutionPhase, RowReceiver> executionPhaseRowReceiverTuple : handlerPhaseAndReceiver) {
+            executionPhaseRowReceiverTuple.v2().fail(t);
+        }
+        for (int i = 0; i < operationByServer.size() + 1; i++) {
+            initializationTracker.jobInitializationFailed(t);
+        }
     }
 
     private List<Tuple<ExecutionPhase, RowReceiver>> createHandlerPhaseAndReceivers(List<ExecutionPhase> handlerPhases,
