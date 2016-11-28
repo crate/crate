@@ -1,6 +1,8 @@
-import unittest
 import os
+import re
 import faulthandler
+import logging
+import unittest
 import pathlib
 from functools import partial
 from testutils.ports import GLOBAL_PORT_POOL
@@ -18,10 +20,10 @@ tests_path = pathlib.Path(os.path.abspath(os.path.join(
 faulthandler.enable()
 
 # might want to change this to a blacklist at some point
-whitelist = set([
-    'select1.test',
-    'random/select/slt_good_0.test',
-])
+FILE_WHITELIST = [re.compile(o) for o in [
+    'select[1-4].test',
+    'random/select/slt_good_\d+.test',
+]]
 
 
 class TestMaker(type):
@@ -30,13 +32,14 @@ class TestMaker(type):
         for filename in tests_path.glob('**/*.test'):
             filepath = tests_path / filename
             relpath = str(filepath.relative_to(tests_path))
-            if relpath not in whitelist:
+            if not any(p.match(str(relpath)) for p in FILE_WHITELIST):
                 continue
             attrs['test_' + relpath] = partial(
                 run_file,
                 fh=filepath.open('r', encoding='utf-8'),
                 hosts='localhost:' + str(CRATE_HTTP_PORT),
-                verbose=False,
+                log_level=logging.WARNING,
+                log_file='sqllogic.log',
                 failfast=True
             )
         return type.__new__(cls, name, bases, attrs)

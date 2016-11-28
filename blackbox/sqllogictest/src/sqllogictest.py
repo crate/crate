@@ -1,5 +1,5 @@
 """
-Program to execute sqllogictest files against Crate.
+Program to execute sqllogictest files against CrateDB.
 
 See https://www.sqlite.org/sqllogictest/doc/trunk/about.wiki
 
@@ -7,8 +7,10 @@ This program can only execute "full scripts". "prototype scripts" are not
 supported.
 """
 
-import argparse
 import re
+import sys
+import logging
+import argparse
 from functools import partial
 from hashlib import md5
 from crate.client import connect
@@ -16,8 +18,14 @@ from crate.client import exceptions
 from tqdm import tqdm
 
 
-RE_VARCHAR = re.compile('VARCHAR\(\d+\)')
-varchar_to_string = partial(RE_VARCHAR.sub, 'string')
+QUERY_WHITELIST = [re.compile(o, re.IGNORECASE) for o in [
+    'SELECT .* FROM (t\d,? ){3,9}WHERE',     # BUG: certain join queries with > 3 tables fail
+    'CREATE INDEX.*',                        # CREATE INDEX is not supported, but raises SQLParseException
+    '.*BETWEEN.*NULL.*',                     # BETWEEN ident AND NULL is a bug
+]]
+
+varchar_to_string = partial(re.compile('VARCHAR\(\d+\)').sub, 'STRING')
+real_to_double = partial(re.compile('REAL').sub, 'DOUBLE')
 
 
 class IncorrectResult(BaseException):
@@ -41,6 +49,7 @@ class Statement:
 
     def execute(self, cursor):
         stmt = varchar_to_string(self.query)
+        stmt = real_to_double(stmt)
         try:
             cursor.execute(stmt)
         except exceptions.ProgrammingError as e:
@@ -253,16 +262,24 @@ def _drop_tables(cursor):
         cursor.execute('drop table ' + table)
 
 
-def run_file(fh, hosts, verbose, failfast):
+def get_logger(level, filename=None):
+    logger = logging.getLogger('sqllogic')
+    logger.setLevel(logging.NOTSET)
+    handler = logging.FileHandler(filename) if filename else logging.StreamHandler(sys.stdout)
+    handler.setLevel(level)
+    handler.setFormatter(logging.Formatter('%(levelname)s; %(testfile)s; %(message)s'))
+    logger.addHandler(handler)
+    return logger
+
+
+def run_file(fh, hosts, log_level, log_file, failfast):
+    logger = get_logger(log_level, log_file)
     conn = connect(hosts)
     cursor = conn.cursor()
-    worked = 0
-    failures = 0
-    unsupported_statements = []
-    incorrect_results = []
     commands = get_commands(fh)
     commands = (cmd for cmd in commands if _exec_on_crate(cmd))
     dml_done = False
+    attr = dict(testfile=fh.name)
     try:
         for cmd in tqdm(commands):
             s_or_q = parse_cmd(cmd)
@@ -272,41 +289,35 @@ def run_file(fh, hosts, verbose, failfast):
             try:
                 s_or_q.execute(cursor)
             except exceptions.ProgrammingError as e:
-                unsupported_statements.append((s_or_q.query, e))
-                failures += 1
+                logger.info('%s; %s', s_or_q.query, e, extra=attr)
             except IncorrectResult as e:
-                tqdm.write(str(cmd))
-                tqdm.write(str(s_or_q.query))
-                if failfast:
-                    raise e
+                if not any(p.match(s_or_q.query) for p in QUERY_WHITELIST):
+                    if failfast:
+                        raise e
+                    else:
+                        logger.error('%s; %s', s_or_q.query, e, extra=attr)
                 else:
-                    incorrect_results.append((cmd[1], e))
-            else:
-                worked += 1
+                    logger.debug('%s; %s', cmd[1], 'Query is whitelisted', extra=attr)
     finally:
         _drop_tables(cursor)
         cursor.close()
         conn.close()
-    print('{0} queries worked'.format(worked))
-    print('{0} queries are unsupported'.format(failures))
-    if not failfast:
-        for incorrect in incorrect_results:
-            print('Query: \n\t{0}\n\t{1}'.format(*incorrect))
-    if verbose:
-        print('Unsupported statements:')
-        for unsupported in unsupported_statements:
-            print('Query: \n\t{0}\n\t{1}'.format(*unsupported))
 
 
 def main():
-    parser = argparse.ArgumentParser()
-    parser.add_argument(
-        '-f', '--file', type=argparse.FileType('r'), required=True)
-    parser.add_argument('--hosts', type=str, default='http://localhost:4200')
-    parser.add_argument('-v', '--verbose', action='count')
-    parser.add_argument('--failfast', action='store_true', default=False)
+    parser = argparse.ArgumentParser(prog='sqllogictest.py', description=__doc__)
+    parser.add_argument('-f', '--file',
+                        type=argparse.FileType('r'), required=True)
+    parser.add_argument('--hosts',
+                        type=str, default='http://localhost:4200')
+    parser.add_argument('-l', '--log-level',
+                        type=int, default=logging.WARNING,
+                        help='Python log levels: DEBUG=10, INFO=20, WARNING=30, ERROR=40, CRITIICAL=50')
+    parser.add_argument('--failfast',
+                        action='store_true', default=False,
+                        help='Fail on first error.')
     args = parser.parse_args()
-    run_file(args.file, args.hosts, args.verbose, args.failfast)
+    run_file(args.file, args.hosts, args.log_level, None, args.failfast)
 
 
 if __name__ == "__main__":
