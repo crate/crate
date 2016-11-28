@@ -13,6 +13,11 @@ as one group. One row will always be returned.
 
 For a short summary of aggregation functions see :ref:`sql_dql_aggregation`.
 
+.. note::
+
+    Unless documented, global aggregation functions are unsupported in combination
+    with ``DISINCT``.
+
 count
 =====
 
@@ -241,6 +246,34 @@ Example::
     +---------------+-------------+
     SELECT 3 rows in set (... sec)
 
+avg(distinct columnName)
+------------------------
+
+The `avg` aggregation function also supports the `distinct` keyword. This keyword
+changes the behaviour of the function so that it will only average the number
+of distinct values in this column that are not ``NULL``::
+
+    cr> select avg(distinct position), count(*), date
+    ... from locations group by date
+    ... order by avg(distinct position) desc, count(*) desc;
+    +------------------------+----------+---------------+
+    | avg(DISTINCT position) | count(*) |          date |
+    +------------------------+----------+---------------+
+    |                    4.0 |        1 | 1367366400000 |
+    |                    3.6 |        8 | 1373932800000 |
+    |                    2.0 |        4 |  308534400000 |
+    +------------------------+----------+---------------+
+    SELECT 3 rows in set (... sec)
+
+::
+
+    cr> select avg(distinct position) from locations;
+    +------------------------+
+    | avg(DISTINCT position) |
+    +------------------------+
+    |                    3.5 |
+    +------------------------+
+    SELECT 1 row in set (... sec)
 
 geometric_mean
 ==============

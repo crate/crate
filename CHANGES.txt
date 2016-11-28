@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Improved error message if function is unsupported with `distinct`
+
  - Nested numeric factors do not require brackets any more;
    e.g. ``SELECT + - 10`` is now supported.
 

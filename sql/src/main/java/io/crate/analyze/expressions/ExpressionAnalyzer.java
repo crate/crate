@@ -158,7 +158,8 @@ public class ExpressionAnalyzer {
         FunctionInfo functionInfo;
         if (node.isDistinct()) {
             if (argumentTypes.size() > 1) {
-                throw new UnsupportedOperationException("Function(DISTINCT x) does not accept more than one argument");
+                throw new UnsupportedOperationException(String.format(Locale.ENGLISH,
+                    "%s(DISTINCT x) does not accept more than one argument", node.getName()));
             }
             // define the inner function. use the arguments/argumentTypes from above
             FunctionIdent innerIdent = new FunctionIdent(CollectSetAggregation.NAME, argumentTypes);
@@ -172,7 +173,12 @@ public class ExpressionAnalyzer {
                 ImmutableList.<DataType>of(new SetType(argumentTypes.get(0)));
 
             FunctionIdent ident = new FunctionIdent(nodeName, outerArgumentTypes);
-            functionInfo = getFunctionInfo(ident);
+            try {
+                functionInfo = getFunctionInfo(ident);
+            } catch (UnsupportedOperationException ex) {
+                throw new UnsupportedOperationException(String.format(Locale.ENGLISH,
+                    "unknown function %s(DISTINCT %s)", node.getName(), argumentTypes.get(0)), ex);
+            }
             arguments = outerArguments;
         } else {
             FunctionIdent ident = new FunctionIdent(node.getName().toString(), argumentTypes);
