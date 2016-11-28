@@ -53,6 +53,7 @@ import org.mockito.stubbing.Answer;
 
 import javax.annotation.Nullable;
 import java.io.ByteArrayOutputStream;
+import java.io.File;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.lang.reflect.Array;
@@ -442,5 +443,16 @@ public class TestingHelpers {
         random.nextBytes(buffer);
         System.arraycopy(strBytes, 0, buffer, offset, strBytes.length);
         return new BytesRef(buffer, offset, strBytes.length);
+    }
+
+    /**
+     * Converts file path separators of a string into canonical form
+     * e.g. Windows: "/test/" --> "\test\"
+     *      UNIX: "/test/"   --> "/test/"
+     * @param str The string that contains file path separator
+     * @return the resolved string
+     */
+    public static String resolveCanonicalString(String str) {
+        return str.replaceAll("/", java.util.regex.Matcher.quoteReplacement(File.separator));
     }
 }

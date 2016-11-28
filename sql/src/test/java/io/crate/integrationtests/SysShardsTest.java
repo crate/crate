@@ -39,6 +39,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
+import static io.crate.testing.TestingHelpers.resolveCanonicalString;
 import static org.hamcrest.Matchers.*;
 
 @ESIntegTestCase.ClusterScope(numClientNodes = 0, numDataNodes = 2)
@@ -60,6 +61,7 @@ public class SysShardsTest extends SQLTransportIntegrationTest {
         sqlExecutor.ensureGreen();
     }
 
+
     @Test
     public void testPathAndBlobPath() throws Exception {
         Path blobs = createTempDir("blobs");
@@ -73,17 +75,16 @@ public class SysShardsTest extends SQLTransportIntegrationTest {
                 "order by table_name asc");
         // b1
         // path + /blobs == blob_path without custom blob path
-        assertThat(response.rows()[0][0] + "/blobs", is(response.rows()[0][1]));
+        assertThat(response.rows()[0][0] + resolveCanonicalString("/blobs"), is(response.rows()[0][1]));
 
         // b2
         String b2Path = (String) response.rows()[1][0];
-        assertThat(b2Path, containsString("/nodes/"));
-        assertThat(b2Path, endsWith("/indices/.blob_b2/0"));
+        assertThat(b2Path, containsString(resolveCanonicalString("/nodes/")));
+        assertThat(b2Path, endsWith(resolveCanonicalString("/indices/.blob_b2/0")));
 
         String b2BlobPath = (String) response.rows()[1][1];
-        assertThat(b2BlobPath, containsString("/nodes/"));
-        assertThat(b2BlobPath, endsWith("/indices/.blob_b2/0/blobs"));
-
+        assertThat(b2BlobPath, containsString(resolveCanonicalString("/nodes/")));
+        assertThat(b2BlobPath, endsWith(resolveCanonicalString("/indices/.blob_b2/0/blobs")));
         // t1
         assertThat(response.rows()[2][1], nullValue());
     }
