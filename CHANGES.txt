@@ -4,6 +4,7 @@ Changes for Crate
 
 Unreleased
 ==========
+ - this is a app-veyor test
 
  - Improved error message if function is unsupported with `distinct`
 
