@@ -80,6 +80,7 @@ public class CompositeCollector implements CrateCollector {
     private final List<CrateCollector> collectors;
     private final Receiver receiver;
     private final RowReceiver downstream;
+    private boolean isDownstreamFinished = false;
 
     public CompositeCollector(Collection<? extends Builder> builders, RowReceiver rowReceiver) {
         assert builders.size() > 1 : "CompositeCollector must not be called with less than 2 collectors";
@@ -112,7 +113,11 @@ public class CompositeCollector implements CrateCollector {
 
         @Override
         public Result setNextRow(Row row) {
-            return downstream.setNextRow(row);
+            Result result = downstream.setNextRow(row);
+            if (result == Result.STOP) {
+                isDownstreamFinished = true;
+            }
+            return result;
         }
 
         @Override
@@ -136,11 +141,11 @@ public class CompositeCollector implements CrateCollector {
                 return;
             }
             repeatHandles[(calls - 1) % repeatHandles.length] = repeatable;
-            if (calls < repeatHandles.length) {
+            if (!isDownstreamFinished && calls < repeatHandles.length) {
                 // in first collect loop
                 collectors.get(calls).doCollect();
-            } else if (calls % repeatHandles.length == 0) {
-                // a loop over upstreams is finished
+            } else if (isDownstreamFinished || calls % repeatHandles.length == 0) {
+                // a loop over upstreams is finished or downstream returned Result.STOP
                 downstream.finish(this);
             } else {
                 // in a repeat loop

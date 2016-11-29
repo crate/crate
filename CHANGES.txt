@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fixed NPE that that can occur in join queries when left table
+   has no matching records.
+
  - Fixed issue that caused join queries to get stuck when killed.
 
  - Improved error message if function is unsupported with `distinct`
