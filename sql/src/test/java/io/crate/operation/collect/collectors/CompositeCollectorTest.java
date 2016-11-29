@@ -29,6 +29,7 @@ import io.crate.operation.collect.CrateCollector;
 import io.crate.operation.collect.RowsCollector;
 import io.crate.operation.projectors.RepeatHandle;
 import io.crate.operation.projectors.RowReceiver;
+import io.crate.test.integration.CrateUnitTest;
 import io.crate.testing.CollectingRowReceiver;
 import io.crate.testing.RowGenerator;
 import io.crate.testing.TestingHelpers;
@@ -37,12 +38,11 @@ import org.junit.Test;
 import javax.annotation.Nullable;
 import java.util.Arrays;
 
-import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
 import static org.mockito.Matchers.isNull;
 import static org.mockito.Mockito.*;
 
-public class CompositeCollectorTest {
+public class CompositeCollectorTest extends CrateUnitTest {
 
 
     private CrateCollector.Builder mockBuilder(final CrateCollector mock) {
@@ -84,7 +84,6 @@ public class CompositeCollectorTest {
 
     @Test
     public void testKill() throws Exception {
-
         CollectingRowReceiver rr = new CollectingRowReceiver();
         CrateCollector.Builder builder = new CrateCollector.Builder() {
 
@@ -116,5 +115,22 @@ public class CompositeCollectorTest {
         verify(c2, times(1)).kill(isNull(Throwable.class));
         verify(c3, never()).doCollect();
         verify(c3, never()).kill(isNull(Throwable.class));
+    }
+
+    @Test
+    public void testStop() throws Exception {
+        CollectingRowReceiver rr = CollectingRowReceiver.withLimit(3);
+
+        Iterable<Row> leftRows = RowGenerator.range(0, 5);
+        Iterable<Row> rightRows = RowGenerator.range(5, 10);
+
+        CrateCollector.Builder c1 = RowsCollector.builder(leftRows);
+        CrateCollector.Builder c2 = RowsCollector.builder(rightRows);
+
+        CompositeCollector collector = new CompositeCollector(Arrays.asList(c1, c2), rr);
+        collector.doCollect();
+
+        Bucket result = rr.result();
+        assertThat(TestingHelpers.printedTable(result), is("0\n1\n2\n"));
     }
 }
