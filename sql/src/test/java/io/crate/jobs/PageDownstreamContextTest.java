@@ -101,6 +101,6 @@ public class PageDownstreamContextTest extends CrateUnitTest {
 
         ctx.kill(null);
         assertThat(throwable.get(), Matchers.instanceOf(InterruptedException.class));
-        verify(downstream, times(1)).fail(any(InterruptedException.class));
+        verify(downstream, times(1)).kill(any(InterruptedException.class));
     }
 }

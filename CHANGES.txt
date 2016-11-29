@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fixed issue that caused join queries to get stuck when killed.
+
  - Improved error message when column is missing from `group by`
    by using the column alias instead of the column name.
 
