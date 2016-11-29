@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fixed issue that caused join queries to get stuck when killed.
+
  - Improved error message if function is unsupported with `distinct`
 
  - Nested numeric factors do not require brackets any more;

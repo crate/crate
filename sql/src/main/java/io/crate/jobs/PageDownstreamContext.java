@@ -201,7 +201,9 @@ public class PageDownstreamContext extends AbstractExecutionSubContext implement
 
     @Override
     protected void innerKill(@Nonnull Throwable t) {
-        innerClose(t);
+        pageDownstream.kill(t);
+        future.bytesUsed(ramAccountingContext.totalBytes());
+        ramAccountingContext.close();
     }
 
     @Override

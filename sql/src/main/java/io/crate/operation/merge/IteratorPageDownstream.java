@@ -184,4 +184,9 @@ public class IteratorPageDownstream implements PageDownstream, ResumeHandle, Rep
             lastListener.finish();
         }
     }
+
+    @Override
+    public void kill(Throwable t) {
+        rowReceiver.kill(t);
+    }
 }

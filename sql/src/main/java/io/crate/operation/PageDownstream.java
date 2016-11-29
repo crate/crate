@@ -39,4 +39,9 @@ public interface PageDownstream {
     void finish();
 
     void fail(Throwable t);
+
+    /**
+     * Kill an PageDownstream and stop execution.
+     */
+    void kill(Throwable t);
 }

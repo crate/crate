@@ -35,12 +35,14 @@ import io.crate.test.integration.CrateUnitTest;
 import io.crate.testing.CollectingRowReceiver;
 import io.crate.testing.TestingHelpers;
 import org.elasticsearch.common.breaker.CircuitBreakingException;
+import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.common.util.concurrent.EsRejectedExecutionException;
 import org.junit.Test;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 
 import javax.annotation.Nonnull;
+import java.util.concurrent.CancellationException;
 import java.util.concurrent.Executor;
 
 import static com.carrotsearch.randomizedtesting.RandomizedTest.$;
@@ -293,5 +295,19 @@ public class IteratorPageDownstreamTest extends CrateUnitTest {
         assertThat(rowReceiver.rows.size(), is(4));
         verify(pageConsumeListener, times(1)).needMore();
         verify(pageConsumeListener, times(0)).finish();
+    }
+
+    @Test
+    public void testKillCallsRowReceiver() throws Exception {
+        CollectingRowReceiver rowReceiver = new CollectingRowReceiver();
+        IteratorPageDownstream pageDownstream = new IteratorPageDownstream(
+            rowReceiver,
+            PassThroughPagingIterator.<Void, Row>repeatable(),
+            Optional.<Executor>absent());
+
+        pageDownstream.kill(null);
+
+        expectedException.expect(CancellationException.class);
+        rowReceiver.result(TimeValue.timeValueSeconds(5));
     }
 }
