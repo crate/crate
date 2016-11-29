@@ -51,6 +51,7 @@ import javax.annotation.Nullable;
 import java.util.*;
 import java.util.concurrent.Executor;
 import java.util.concurrent.RejectedExecutionException;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -183,7 +184,8 @@ public class NodeFetchOperation {
                 readerId,
                 lastThrowable,
                 threadLatch,
-                resultFuture
+                resultFuture,
+                fetchContext.isKilled()
             );
             try {
                 executor.execute(runnable);
@@ -201,6 +203,7 @@ public class NodeFetchOperation {
         private final AtomicReference<Throwable> lastThrowable;
         private final AtomicInteger threadLatch;
         private final SettableFuture<IntObjectMap<StreamBucket>> resultFuture;
+        private final AtomicBoolean contextKilledRef;
 
         CollectRunnable(FetchCollector collector,
                         IntContainer docIds,
@@ -208,7 +211,8 @@ public class NodeFetchOperation {
                         int readerId,
                         AtomicReference<Throwable> lastThrowable,
                         AtomicInteger threadLatch,
-                        SettableFuture<IntObjectMap<StreamBucket>> resultFuture) {
+                        SettableFuture<IntObjectMap<StreamBucket>> resultFuture,
+                        AtomicBoolean contextKilledRef) {
             this.collector = collector;
             this.docIds = docIds;
             this.fetched = fetched;
@@ -216,6 +220,7 @@ public class NodeFetchOperation {
             this.lastThrowable = lastThrowable;
             this.threadLatch = threadLatch;
             this.resultFuture = resultFuture;
+            this.contextKilledRef = contextKilledRef;
         }
 
         @Override
@@ -233,7 +238,16 @@ public class NodeFetchOperation {
                     if (throwable == null) {
                         resultFuture.set(fetched);
                     } else {
-                        resultFuture.setException(throwable);
+                        /* If the context gets killed the operation might fail due to the release of the underlying searchers.
+                         * Only a InterruptedException is sent to the fetch-client.
+                         * Otherwise the original exception which caused the kill could be overwritten by some
+                         * side-effect-exception that happened because of the kill.
+                         */
+                        if (contextKilledRef.get()) {
+                            resultFuture.setException(new InterruptedException());
+                        } else {
+                            resultFuture.setException(throwable);
+                        }
                     }
                 }
             }
