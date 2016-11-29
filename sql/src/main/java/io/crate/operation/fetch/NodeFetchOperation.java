@@ -25,14 +25,19 @@ import com.carrotsearch.hppc.IntContainer;
 import com.carrotsearch.hppc.IntObjectHashMap;
 import com.carrotsearch.hppc.IntObjectMap;
 import com.carrotsearch.hppc.cursors.IntObjectCursor;
+import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
 import io.crate.Streamer;
 import io.crate.analyze.symbol.Symbols;
+import io.crate.exceptions.Exceptions;
 import io.crate.executor.transport.StreamBucket;
+import io.crate.jobs.JobContextService;
+import io.crate.jobs.JobExecutionContext;
 import io.crate.metadata.Reference;
 import io.crate.metadata.TableIdent;
+import io.crate.operation.collect.StatsTables;
 import io.crate.operation.reference.doc.lucene.LuceneCollectorExpression;
 import io.crate.operation.reference.doc.lucene.LuceneReferenceResolver;
 import org.elasticsearch.common.inject.Inject;
@@ -41,11 +46,9 @@ import org.elasticsearch.common.util.concurrent.EsRejectedExecutionException;
 import org.elasticsearch.index.IndexService;
 import org.elasticsearch.threadpool.ThreadPool;
 
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.Executor;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -55,6 +58,8 @@ import java.util.concurrent.atomic.AtomicReference;
 public class NodeFetchOperation {
 
     private final Executor executor;
+    private final StatsTables statsTables;
+    private final JobContextService jobContextService;
 
     private static class TableFetchInfo {
 
@@ -87,8 +92,62 @@ public class NodeFetchOperation {
     }
 
     @Inject
-    public NodeFetchOperation(ThreadPool threadPool) {
+    public NodeFetchOperation(ThreadPool threadPool, StatsTables statsTables, JobContextService jobContextService) {
         executor = threadPool.executor(ThreadPool.Names.SEARCH);
+        this.statsTables = statsTables;
+        this.jobContextService = jobContextService;
+    }
+
+    public ListenableFuture<IntObjectMap<StreamBucket>> fetch(UUID jobId,
+                                                              int phaseId,
+                                                              @Nullable IntObjectMap<? extends IntContainer> docIdsToFetch,
+                                                              boolean closeContextOnFinish) {
+        SettableFuture<IntObjectMap<StreamBucket>> resultFuture = SettableFuture.create();
+        logStartAndSetupLogFinished(jobId, phaseId, resultFuture);
+
+        if (docIdsToFetch == null) {
+            if (closeContextOnFinish) {
+                tryCloseContext(jobId, phaseId);
+            }
+            return Futures.<IntObjectMap<StreamBucket>>immediateFuture(new IntObjectHashMap<StreamBucket>(0));
+        }
+
+        JobExecutionContext context = jobContextService.getContext(jobId);
+        FetchContext fetchContext = context.getSubContext(phaseId);
+        if (closeContextOnFinish) {
+            Futures.addCallback(resultFuture, new CloseContextCallback(fetchContext));
+        }
+        try {
+            doFetch(fetchContext, resultFuture, docIdsToFetch);
+        } catch (Throwable t) {
+            resultFuture.setException(t);
+        }
+        return resultFuture;
+    }
+
+    private void logStartAndSetupLogFinished(final UUID jobId, final int phaseId, ListenableFuture<?> resultFuture) {
+        statsTables.operationStarted(phaseId, jobId, "fetch");
+        Futures.addCallback(resultFuture, new FutureCallback<Object>() {
+        @Override
+            public void onSuccess(@Nullable Object result) {
+                statsTables.operationFinished(phaseId, jobId, null, 0);
+            }
+
+            @Override
+            public void onFailure(@Nonnull Throwable t) {
+                statsTables.operationFinished(phaseId, jobId, Exceptions.messageOf(t), 0);
+            }
+        });
+    }
+
+    private void tryCloseContext(UUID jobId, int phaseId) {
+        JobExecutionContext ctx = jobContextService.getContextOrNull(jobId);
+        if (ctx != null) {
+            FetchContext fetchContext = ctx.getSubContextOrNull(phaseId);
+            if (fetchContext != null) {
+                fetchContext.close();
+            }
+        }
     }
 
     private HashMap<TableIdent, TableFetchInfo> getTableFetchInfos(FetchContext fetchContext) {
@@ -100,18 +159,15 @@ public class NodeFetchOperation {
         return result;
     }
 
-    public ListenableFuture<IntObjectMap<StreamBucket>> doFetch(
-        final FetchContext fetchContext, @Nullable IntObjectMap<? extends IntContainer> toFetch) throws Exception {
-        if (toFetch == null) {
-            return Futures.<IntObjectMap<StreamBucket>>immediateFuture(new IntObjectHashMap<StreamBucket>(0));
-        }
+    private void doFetch(FetchContext fetchContext,
+                         SettableFuture<IntObjectMap<StreamBucket>> resultFuture,
+                         @Nullable IntObjectMap<? extends IntContainer> toFetch) throws Exception {
 
         final IntObjectHashMap<StreamBucket> fetched = new IntObjectHashMap<>(toFetch.size());
         HashMap<TableIdent, TableFetchInfo> tableFetchInfos = getTableFetchInfos(fetchContext);
         final AtomicReference<Throwable> lastThrowable = new AtomicReference<>(null);
         final AtomicInteger threadLatch = new AtomicInteger(toFetch.size());
 
-        final SettableFuture<IntObjectMap<StreamBucket>> resultFuture = SettableFuture.create();
         for (IntObjectCursor<? extends IntContainer> toFetchCursor : toFetch) {
             final int readerId = toFetchCursor.key;
             final IntContainer docIds = toFetchCursor.value;
@@ -135,7 +191,6 @@ public class NodeFetchOperation {
                 runnable.run();
             }
         }
-        return resultFuture;
     }
 
     private static class CollectRunnable implements Runnable {
@@ -184,4 +239,5 @@ public class NodeFetchOperation {
             }
         }
     }
+
 }
