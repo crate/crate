@@ -24,8 +24,8 @@ package io.crate.integrationtests;
 import io.crate.Build;
 import io.crate.Version;
 import io.crate.action.sql.SQLActionException;
-import io.crate.testing.SQLResponse;
 import io.crate.metadata.settings.CrateSettings;
+import io.crate.testing.SQLResponse;
 import io.crate.testing.SQLTransportExecutor;
 import io.crate.testing.TestingHelpers;
 import io.crate.testing.UseJdbc;
@@ -81,18 +81,6 @@ public class TransportSQLActionClassLifecycleTest extends SQLTransportIntegratio
     }
 
     @Test
-    public void testSelectOrderByNullSortingASC() throws Exception {
-        SQLResponse response = execute("select age from characters order by age");
-        assertEquals(32, response.rows()[0][0]);
-        assertEquals(34, response.rows()[1][0]);
-        assertEquals(43, response.rows()[2][0]);
-        assertEquals(112, response.rows()[3][0]);
-        assertEquals(null, response.rows()[4][0]);
-        assertEquals(null, response.rows()[5][0]);
-        assertEquals(null, response.rows()[6][0]);
-    }
-
-    @Test
     public void testSelectDoc() throws Exception {
         SQLResponse response = execute("select _doc from characters order by name desc limit 1");
         assertArrayEquals(new String[]{"_doc"}, response.cols());
@@ -123,15 +111,29 @@ public class TransportSQLActionClassLifecycleTest extends SQLTransportIntegratio
     }
 
     @Test
+    public void testSelectOrderByNullSortingASC() throws Exception {
+        execute("select age from characters order by age");
+        assertThat(TestingHelpers.printedTable(response.rows()),
+            is("32\n" +
+               "34\n" +
+               "43\n" +
+               "112\n" +
+               "NULL\n" +
+               "NULL\n" +
+               "NULL\n"));
+    }
+
+    @Test
     public void testSelectOrderByNullSortingDESC() throws Exception {
-        SQLResponse response = execute("select age from characters order by age desc");
-        assertEquals(null, response.rows()[0][0]);
-        assertEquals(null, response.rows()[1][0]);
-        assertEquals(null, response.rows()[2][0]);
-        assertEquals(112, response.rows()[3][0]);
-        assertEquals(43, response.rows()[4][0]);
-        assertEquals(34, response.rows()[5][0]);
-        assertEquals(32, response.rows()[6][0]);
+        execute("select age from characters order by age desc");
+        assertThat(TestingHelpers.printedTable(response.rows()),
+            is("NULL\n" +
+               "NULL\n" +
+               "NULL\n" +
+               "112\n" +
+               "43\n" +
+               "34\n" +
+               "32\n"));
     }
 
     @Test
@@ -160,24 +162,27 @@ public class TransportSQLActionClassLifecycleTest extends SQLTransportIntegratio
                "32\n"));
     }
 
+
     @Test
     public void testSelectGroupByOrderByNullSortingASC() throws Exception {
-        SQLResponse response = execute("select age from characters group by age order by age");
-        assertEquals(32, response.rows()[0][0]);
-        assertEquals(34, response.rows()[1][0]);
-        assertEquals(43, response.rows()[2][0]);
-        assertEquals(112, response.rows()[3][0]);
-        assertEquals(null, response.rows()[4][0]);
+        execute("select age from characters group by age order by age");
+        assertThat(TestingHelpers.printedTable(response.rows()),
+            is("32\n" +
+               "34\n" +
+               "43\n" +
+               "112\n" +
+               "NULL\n"));
     }
 
     @Test
     public void testSelectGroupByOrderByNullSortingDESC() throws Exception {
-        SQLResponse response = execute("select age from characters group by age order by age desc");
-        assertEquals(null, response.rows()[0][0]);
-        assertEquals(112, response.rows()[1][0]);
-        assertEquals(43, response.rows()[2][0]);
-        assertEquals(34, response.rows()[3][0]);
-        assertEquals(32, response.rows()[4][0]);
+        execute("select age from characters group by age order by age desc");
+        assertThat(TestingHelpers.printedTable(response.rows()),
+            is("NULL\n" +
+               "112\n" +
+               "43\n" +
+               "34\n" +
+               "32\n"));
     }
 
     @Test
