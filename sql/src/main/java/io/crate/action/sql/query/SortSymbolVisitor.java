@@ -35,8 +35,7 @@ import io.crate.operation.Input;
 import io.crate.operation.collect.CollectInputSymbolVisitor;
 import io.crate.operation.reference.doc.lucene.CollectorContext;
 import io.crate.operation.reference.doc.lucene.LuceneCollectorExpression;
-import io.crate.types.DataType;
-import io.crate.types.DataTypes;
+import io.crate.types.*;
 import org.apache.lucene.search.FieldComparator;
 import org.apache.lucene.search.SortField;
 import org.elasticsearch.index.fielddata.IndexFieldData;
@@ -180,14 +179,20 @@ public class SortSymbolVisitor extends SymbolVisitor<SortSymbolVisitor.SortSymbo
                 for (LuceneCollectorExpression collectorExpression : expressions) {
                     collectorExpression.startCollect(context.context);
                 }
+                DataType dataType = symbol.valueType();
+                Object missingValue = missingNullValue ? null : SortSymbolVisitor.missingObject(
+                    dataType,
+                    SortOrder.missing(context.reverseFlag, context.nullFirst),
+                    reversed);
+
                 if (context.context.visitor().required()) {
                     return new FieldsVisitorInputFieldComparator(
                         numHits,
                         context.context.visitor(),
                         expressions,
                         input,
-                        symbol.valueType(),
-                        missingNullValue ? null : missingObject(SortOrder.missing(context.reverseFlag, context.nullFirst), reversed)
+                        dataType,
+                        missingValue
                     );
 
                 } else {
@@ -195,8 +200,8 @@ public class SortSymbolVisitor extends SymbolVisitor<SortSymbolVisitor.SortSymbo
                         numHits,
                         expressions,
                         input,
-                        symbol.valueType(),
-                        missingNullValue ? null : missingObject(SortOrder.missing(context.reverseFlag, context.nullFirst), reversed)
+                        dataType,
+                        missingValue
                     );
                 }
             }
@@ -206,5 +211,33 @@ public class SortSymbolVisitor extends SymbolVisitor<SortSymbolVisitor.SortSymbo
                 return reducedType;
             }
         }, context.reverseFlag);
+    }
+
+    /**
+     * Return the missing object value according to the data type of the symbol and not the reducedType.
+     * The reducedType groups non-decimal numeric types to Long and uses Long's MIN_VALUE & MAX_VALUE
+     * to replace NULLs which can lead to ClassCastException when the original type was for example Integer.
+     */
+    private static Object missingObject(DataType dataType, Object missingValue, boolean reversed) {
+        boolean min = sortMissingFirst(missingValue) ^ reversed;
+        switch (dataType.id()) {
+            case IntegerType.ID:
+                return min ? Integer.MIN_VALUE : Integer.MAX_VALUE;
+            case LongType.ID:
+                return min ? Long.MIN_VALUE : Long.MAX_VALUE;
+            case FloatType.ID:
+                return min ? Float.NEGATIVE_INFINITY : Float.POSITIVE_INFINITY;
+            case DoubleType.ID:
+                return min ? Double.NEGATIVE_INFINITY : Double.POSITIVE_INFINITY;
+            case StringType.ID:
+                return null;
+            default:
+                throw new UnsupportedOperationException("Unsupported data type: " + dataType);
+        }
+    }
+
+    /** Whether missing values should be sorted first. */
+    private static boolean sortMissingFirst(Object missingValue) {
+        return "_first".equals(missingValue);
     }
 }

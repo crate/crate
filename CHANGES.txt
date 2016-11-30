@@ -5,6 +5,11 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fixed ClassCastException that occurs when executing queries with
+   `order by` that uses scalar functions which have integer return type
+   and null values are involved in the ordering.
+   e.g. ``SELECT * from t1 ORDER BY abs(col1)`` (col1 contains nulls)
+
  - Fixed NPE that that can occur in join queries when left table
    has no matching records.
 
