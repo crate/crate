@@ -135,6 +135,32 @@ public class TransportSQLActionClassLifecycleTest extends SQLTransportIntegratio
     }
 
     @Test
+    public void testSelectOrderByNullSortingASCWithFunction() throws Exception {
+        execute("select abs(age) from characters order by 1 asc");
+        assertThat(TestingHelpers.printedTable(response.rows()),
+            is("32\n" +
+               "34\n" +
+               "43\n" +
+               "112\n" +
+               "NULL\n" +
+               "NULL\n" +
+               "NULL\n"));
+    }
+
+    @Test
+    public void testSelectOrderByNullSortingDESCWithFunction() throws Exception {
+        execute("select abs(age) from characters order by 1 desc");
+        assertThat(TestingHelpers.printedTable(response.rows()),
+            is("NULL\n" +
+               "NULL\n" +
+               "NULL\n" +
+               "112\n" +
+               "43\n" +
+               "34\n" +
+               "32\n"));
+    }
+
+    @Test
     public void testSelectGroupByOrderByNullSortingASC() throws Exception {
         SQLResponse response = execute("select age from characters group by age order by age");
         assertEquals(32, response.rows()[0][0]);
