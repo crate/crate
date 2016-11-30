@@ -32,5 +32,7 @@ public interface PageBucketReceiver {
 
     void failure(int bucketIdx, Throwable throwable);
 
+    void killed(int bucketIdx, Throwable throwable);
+
     Streamer<?>[] streamers();
 }

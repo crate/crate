@@ -119,7 +119,7 @@ class InterceptingRowReceiver implements RowReceiver, FutureCallback<Void> {
                 new KillJobsRequest(Collections.singletonList(jobId)), new ActionListener<KillResponse>() {
                     @Override
                     public void onResponse(KillResponse killResponse) {
-                        LOGGER.trace("Killed {} jobs before forwarding the failure", killResponse.numKilled());
+                        LOGGER.trace("Killed {} jobs before forwarding the failure={}", killResponse.numKilled(), failure);
                         rowReceiver.fail(failure);
                     }
 

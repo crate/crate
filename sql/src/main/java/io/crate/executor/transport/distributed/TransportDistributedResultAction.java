@@ -128,7 +128,11 @@ public class TransportDistributedResultAction extends AbstractComponent implemen
                 request.isLast(),
                 new SendResponsePageResultListener(listener, request));
         } else {
-            pageBucketReceiver.failure(request.bucketIdx(), throwable);
+            if (request.isKilled()) {
+                pageBucketReceiver.killed(request.bucketIdx(), throwable);
+            } else {
+                pageBucketReceiver.failure(request.bucketIdx(), throwable);
+            }
             listener.onResponse(new DistributedResultResponse(false));
         }
     }

@@ -96,6 +96,7 @@ public class DistributingDownstream implements RowReceiver {
     private final Bucket[] buckets;
     private final boolean traceEnabled;
     private boolean upstreamFinished;
+    private boolean isKilled = false;
     private final AtomicReference<ResumeHandle> resumeHandleRef = new AtomicReference<>(ResumeHandle.INVALID);
     private volatile boolean stop = false;
     private final AtomicReference<Throwable> failure = new AtomicReference<>(null);
@@ -232,7 +233,7 @@ public class DistributingDownstream implements RowReceiver {
                 if (error == null) {
                     downstream.sendRequest(buckets[i], isLastRequest);
                 } else {
-                    downstream.sendRequest(error);
+                    downstream.sendRequest(error, isKilled);
                 }
             }
         }
@@ -250,7 +251,12 @@ public class DistributingDownstream implements RowReceiver {
     @Override
     public void kill(Throwable throwable) {
         stop = true;
-        // downstream will also eventually receive a kill - no need to forward it.
+        // forward kill reason to downstream if not already done, otherwise downstream may wait forever for a final result
+        if (failure.compareAndSet(null, throwable)) {
+            upstreamFinished = true;
+            isKilled = true;
+            trySendRequests();
+        }
     }
 
     @Override
@@ -267,10 +273,10 @@ public class DistributingDownstream implements RowReceiver {
             this.downstreamNodeId = downstreamNodeId;
         }
 
-        void sendRequest(Throwable t) {
+        void sendRequest(Throwable t, boolean isKilled) {
             distributedResultAction.pushResult(
                 downstreamNodeId,
-                new DistributedResultRequest(jobId, targetPhaseId, inputId, bucketIdx, streamers, t),
+                new DistributedResultRequest(jobId, targetPhaseId, inputId, bucketIdx, t, isKilled),
                 NO_OP_ACTION_LISTENER
             );
         }
