@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+2016/11/30 0.57.4
+=================
+
  - Fixed ClassCastException that occurs when executing queries with
    `order by` that uses scalar functions which have integer return type
    and null values are involved in the ordering.
