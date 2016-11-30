@@ -168,6 +168,15 @@ public class PageDownstreamContext extends AbstractExecutionSubContext implement
         }
     }
 
+    @Override
+    public void killed(int bucketIdx, Throwable throwable) {
+        traceLog("method=killed", bucketIdx, throwable);
+        synchronized (lock) {
+            setExhaustedUpstreams();
+            bucketFutures.get(bucketIdx).setException(throwable);
+        }
+    }
+
     private void clearPageIfFull(int bucketIdx) {
         if (allFuturesSet.cardinality() == numBuckets) {
             traceLog("page is full, clearing it", bucketIdx);
@@ -200,14 +209,15 @@ public class PageDownstreamContext extends AbstractExecutionSubContext implement
         } else {
             pageDownstream.fail(throwable);
         }
-
-        future.bytesUsed(ramAccountingContext.totalBytes());
-        ramAccountingContext.close();
     }
 
     @Override
     protected void innerKill(@Nonnull Throwable t) {
         pageDownstream.kill(t);
+    }
+
+    @Override
+    public void cleanup() {
         future.bytesUsed(ramAccountingContext.totalBytes());
         ramAccountingContext.close();
     }

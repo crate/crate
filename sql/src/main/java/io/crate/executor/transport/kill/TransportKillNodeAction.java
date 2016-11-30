@@ -87,10 +87,11 @@ abstract class TransportKillNodeAction<Request extends TransportRequest> extends
     }
 
     /**
-     * broadcasts the given kill request to all nodes in the cluster
+     * Broadcasts the given kill request to all nodes in the cluster
      */
     public void broadcast(Request request, ActionListener<KillResponse> listener) {
         DiscoveryNodes nodes = clusterService.state().nodes();
+
         listener = new MultiActionListener<>(nodes.size(), KillResponse.MERGE_FUNCTION, listener);
         DefaultTransportResponseHandler<KillResponse> responseHandler =
             new DefaultTransportResponseHandler<KillResponse>(listener) {

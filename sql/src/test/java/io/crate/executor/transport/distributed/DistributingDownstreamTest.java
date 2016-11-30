@@ -52,7 +52,9 @@ import java.util.UUID;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 
+import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.core.Is.is;
 import static org.mockito.Mockito.mock;
 
@@ -187,5 +189,41 @@ public class DistributingDownstreamTest extends CrateUnitTest {
         );
         rowSender.run();
         assertThat(requestsReceived.get(), is(3));
+    }
+
+    @Test
+    public void testKillFailureIsForwarded() throws Exception {
+        Streamer[] streamers = new Streamer[]{DataTypes.INTEGER.streamer()};
+        final AtomicReference<Throwable> throwableReceived = new AtomicReference<>();
+        TransportDistributedResultAction transportDistributedResultAction = new TransportDistributedResultAction(
+            mock(Transports.class),
+            mock(JobContextService.class),
+            mock(ThreadPool.class),
+            mock(TransportService.class),
+            Settings.EMPTY) {
+
+            @Override
+            public void pushResult(String node, final DistributedResultRequest request, final ActionListener<DistributedResultResponse> listener) {
+                if (request.isKilled() && request.throwable() != null) {
+                    throwableReceived.set(request.throwable());
+                }
+            }
+        };
+
+        DistributingDownstream dd = new DistributingDownstream(
+            Loggers.getLogger(DistributingDownstream.class),
+            UUID.randomUUID(),
+            new BroadcastingBucketBuilder(streamers, 2),
+            1,
+            (byte) 0,
+            0,
+            ImmutableList.of("n1", "n2"),
+            transportDistributedResultAction,
+            streamers,
+            2
+        );
+        dd.kill(new IllegalStateException("dummy"));
+
+        assertThat(throwableReceived.get(), instanceOf(IllegalStateException.class));
     }
 }

@@ -35,8 +35,7 @@ import java.util.UUID;
 
 import static io.crate.testing.TestingHelpers.isNullRow;
 import static io.crate.testing.TestingHelpers.isRow;
-import static org.hamcrest.Matchers.contains;
-import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.*;
 
 public class DistributedResultRequestTest extends CrateUnitTest {
 
@@ -64,5 +63,22 @@ public class DistributedResultRequestTest extends CrateUnitTest {
         assertThat(r1.executionPhaseInputId(), is(r2.executionPhaseInputId()));
 
         assertThat(r2.rows(), contains(isRow("ab"), isNullRow(), isRow("cd")));
+    }
+
+    @Test
+    public void testStreamingOfFailure() throws Exception {
+        UUID uuid = UUID.randomUUID();
+        Throwable throwable = new IllegalStateException("dummy");
+
+        DistributedResultRequest r1 = new DistributedResultRequest(uuid, 1, (byte) 3, 1, throwable, true);
+
+        BytesStreamOutput out = new BytesStreamOutput();
+        r1.writeTo(out);
+        StreamInput in = StreamInput.wrap(out.bytes());
+        DistributedResultRequest r2 = new DistributedResultRequest();
+        r2.readFrom(in);
+
+        assertThat(r2.throwable(), instanceOf(throwable.getClass()));
+        assertThat(r2.isKilled(), is(r1.isKilled()));
     }
 }
