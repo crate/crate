@@ -110,12 +110,12 @@ public class QuerySpecification
         return MoreObjects.toStringHelper(this)
             .add("select", select)
             .add("from", from)
-            .add("where", where.orNull())
+            .add("where", where)
             .add("groupBy", groupBy)
-            .add("having", having.orNull())
+            .add("having", having)
             .add("orderBy", orderBy)
-            .add("limit", limit.orNull())
-            .add("offset", offset.orNull())
+            .add("limit", limit)
+            .add("offset", offset)
             .toString();
     }
 

@@ -1,71 +1,42 @@
 /*
- * Licensed to CRATE Technology GmbH ("Crate") under one or more contributor
- * license agreements.  See the NOTICE file distributed with this work for
- * additional information regarding copyright ownership.  Crate licenses
- * this file to you under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.  You may
- * obtain a copy of the License at
+ * Licensed to Crate.io Inc. or its affiliates ("Crate.io") under one or
+ * more contributor license agreements.  See the NOTICE file distributed
+ * with this work for additional information regarding copyright ownership.
+ * Crate.io licenses this file to you under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with the
+ * License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
- * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  See the
- * License for the specific language governing permissions and limitations
- * under the License.
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  *
- * However, if you have executed another commercial license agreement
- * with Crate these terms will supersede the license and you may use the
- * software solely pursuant to the terms of the relevant commercial agreement.
+ * However, if you have executed another commercial license agreement with
+ * Crate.io these terms will supersede the license and you may use the
+ * software solely pursuant to the terms of the relevant commercial
+ * agreement.
  */
 
 package io.crate.sql.parser;
 
-import org.antlr.runtime.CharStream;
+import org.antlr.v4.runtime.CharStream;
+import org.antlr.v4.runtime.IntStream;
+import org.antlr.v4.runtime.misc.Interval;
 
-public class CaseInsensitiveStream
-    implements CharStream {
-    private CharStream stream;
+class CaseInsensitiveStream implements CharStream {
 
-    public CaseInsensitiveStream(CharStream stream) {
+    private final CharStream stream;
+
+    CaseInsensitiveStream(CharStream stream) {
         this.stream = stream;
     }
 
-    /**
-     * @return the LA value without case transformation
-     */
-    public int rawLA(int i) {
-        return stream.LA(i);
-    }
-
     @Override
-    public String substring(int start, int stop) {
-        return stream.substring(start, stop);
-    }
-
-    @Override
-    public int LT(int i) {
-        return LA(i);
-    }
-
-    @Override
-    public int getLine() {
-        return stream.getLine();
-    }
-
-    @Override
-    public void setLine(int line) {
-        stream.setLine(line);
-    }
-
-    @Override
-    public void setCharPositionInLine(int pos) {
-        stream.setCharPositionInLine(pos);
-    }
-
-    @Override
-    public int getCharPositionInLine() {
-        return stream.getCharPositionInLine();
+    public String getText(Interval interval) {
+        return stream.getText(interval);
     }
 
     @Override
@@ -75,11 +46,11 @@ public class CaseInsensitiveStream
 
     @Override
     public int LA(int i) {
-        int result = stream.LT(i);
+        int result = stream.LA(i);
 
         switch (result) {
             case 0:
-            case CharStream.EOF:
+            case IntStream.EOF:
                 return result;
             default:
                 return Character.toUpperCase(result);
@@ -92,23 +63,13 @@ public class CaseInsensitiveStream
     }
 
     @Override
-    public int index() {
-        return stream.index();
-    }
-
-    @Override
-    public void rewind(int marker) {
-        stream.rewind(marker);
-    }
-
-    @Override
-    public void rewind() {
-        stream.rewind();
-    }
-
-    @Override
     public void release(int marker) {
         stream.release(marker);
+    }
+
+    @Override
+    public int index() {
+        return stream.index();
     }
 
     @Override

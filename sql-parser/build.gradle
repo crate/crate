@@ -2,45 +2,42 @@ apply from: "$rootDir/gradle/javaModule.gradle"
 
 archivesBaseName = 'crate-sql-parser'
 
+ext.antlr = [
+        source : "src/main/antlr",
+        output : "src/main/java/io/crate/sql/parser/antlr/v4",
+        package: 'io.crate.sql.parser.antlr.v4'
+]
+
 configurations {
-    antlr3
+    antlr4
 }
 
 dependencies {
+    antlr4 "org.antlr:antlr4:${versions.antlr}"
+    compile "org.antlr:antlr4-runtime:${versions.antlr}"
+
     compile "com.google.code.findbugs:jsr305:${versions.jsr305}"
     compile "joda-time:joda-time:${versions.jodatime}"
     compile "com.google.guava:guava:${versions.guava}"
-    compile "org.antlr:antlr-runtime:${versions.antlr}"
 
-    antlr3 "org.antlr:antlr:${versions.antlr}"
     testCompile "org.hamcrest:hamcrest-all:${versions.hamcrest}"
     testCompile "junit:junit:${versions.junit}"
 }
 
-task generateWithANTLR3(type: Exec) {
-    String outputPath = 'src/main/java/io/crate/sql/parser';
-    ext.parserOutputFiles = files(
-            'src/main/java/io/crate/sql/parser/StatementLexer.java',
-            'src/main/java/io/crate/sql/parser/StatementParser.java',
-            'src/main/java/io/crate/sql/parser/StatementBuilder.java',
-            'src/main/java/io/crate/sql/parser/Statement.tokens',
-            'src/main/java/io/crate/sql/parser/StatementBuilder.tokens'
-    )
-    ext.parserInputFiles = files(
-            'src/main/java/io/crate/sql/parser/Statement.g',
-            'src/main/java/io/crate/sql/parser/StatementBuilder.g'
-    )
-
-    inputs.files(ext.parserInputFiles)
-    outputs.files(ext.parserOutputFiles)
-
-    commandLine = ['java', '-cp', configurations.antlr3.getAsPath(), 'org.antlr.Tool', '-o', outputPath] + ext.parserInputFiles
+task antlrOutputDir << {
+    mkdir(antlr.output)
 }
 
-tasks.withType(JavaCompile) {
-    it.dependsOn generateWithANTLR3
-}
+task generateGrammarSource(dependsOn: antlrOutputDir, type: JavaExec) {
+    inputs.dir file(antlr.source)
+    outputs.dir file(antlr.output)
 
+    def grammars = fileTree(antlr.source).include('**/*.g4')
+
+    main = 'org.antlr.v4.Tool'
+    classpath = configurations.antlr4
+    args = ["-o", "${antlr.output}", "-visitor", "-package", antlr.package, grammars.files].flatten()
+}
 
 test {
     // show standard out and standard error of the test JVM(s) on the console
@@ -56,12 +53,10 @@ test {
     }
 }
 
+tasks.withType(JavaCompile) {
+    it.dependsOn generateGrammarSource
+}
+
 clean {
-    doLast {
-        generateWithANTLR3.ext.parserOutputFiles.each {
-            it.delete()
-        }
-        file('Statement.tokens').delete()
-        file('StatementBuilder.tokens').delete()
-    }
+    delete antlr.output
 }

@@ -25,7 +25,6 @@ import com.google.common.collect.ImmutableMap;
 import io.crate.analyze.symbol.Literal;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.analyze.symbol.SymbolType;
-import io.crate.sql.parser.ParsingException;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.testing.SqlExpressions;
 import io.crate.testing.T3;
@@ -74,6 +73,21 @@ public class CompoundLiteralTest extends CrateUnitTest {
             .map()));
     }
 
+    @Test
+    public void testObjectConstructionWithExpressionsAsValues() throws Exception {
+        Literal objectLiteral = (Literal) expressions.normalize(expressions.asSymbol("{name = 1 + 2}"));
+        assertThat(objectLiteral.symbolType(), is(SymbolType.LITERAL));
+        assertThat(objectLiteral.value(), is(new MapBuilder<String, Object>().put("name", 3L).map()));
+
+        Literal nestedObjectLiteral = (Literal) expressions.normalize(expressions.asSymbol("{a = {name = concat('foo', 'bar')}}"));
+        @SuppressWarnings("unchecked") Map<String, Object> values = (Map<String, Object>) nestedObjectLiteral.value();
+        assertThat(values, is(new MapBuilder<String, Object>()
+            .put("a", new HashMap<String, Object>() {{
+                put("name", new BytesRef("foobar"));
+            }})
+            .map()));
+    }
+
     private Symbol analyzeExpression(String expression) {
         return expressions.normalize(expressions.asSymbol(expression));
     }
@@ -81,13 +95,6 @@ public class CompoundLiteralTest extends CrateUnitTest {
     @Test
     public void testObjectConstructionWithParameterExpression() throws Exception {
         assertThat(expressions.asSymbol("{ident=?}"), isFunction("_map"));
-    }
-
-    @Test
-    public void testObjectConstructionDoesNotSupportFunctionsAsValues() throws Exception {
-        expectedException.expect(ParsingException.class);
-        expectedException.expectMessage("line 1:4: mismatched input 'format' expecting '{'");
-        analyzeExpression("{a=format('%s.', 'dot')}");
     }
 
     @Test

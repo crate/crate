@@ -36,23 +36,14 @@ public class ShowColumns extends Statement {
     private final Optional<String> likePattern;
     private final Optional<Expression> where;
 
-
     public ShowColumns(QualifiedName table,
                        @Nullable QualifiedName schema,
+                       @Nullable Expression where,
                        @Nullable String likePattern) {
         this.table = checkNotNull(table, "table is null");
         this.schema = Optional.fromNullable(schema);
         this.likePattern = Optional.fromNullable(likePattern);
-        this.where = Optional.absent();
-    }
-
-    public ShowColumns(QualifiedName table,
-                       @Nullable QualifiedName schema,
-                       @Nullable Expression where) {
-        this.table = checkNotNull(table, "table is null");
         this.where = Optional.fromNullable(where);
-        this.schema = Optional.fromNullable(schema);
-        this.likePattern = Optional.absent();
     }
 
     public QualifiedName table() {

@@ -25,7 +25,6 @@ package io.crate.planner;
 import com.carrotsearch.hppc.IntHashSet;
 import com.carrotsearch.hppc.IntSet;
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
@@ -134,11 +133,12 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
 
         public Limits getLimits(QuerySpec querySpec) {
             Optional<Symbol> optLimit = querySpec.limit();
-            Integer limit = toInteger(optLimit.orNull());
+            Integer limit = toInteger(optLimit.orElse(null));
             if (limit == null) {
                 limit = TopN.NO_LIMIT;
             }
-            Integer offset = toInteger(querySpec.offset().or(Literal.ZERO));
+
+            Integer offset = toInteger(querySpec.offset().orElse(Literal.ZERO));
             if (offset == null) {
                 offset = 0;
             }
@@ -161,7 +161,7 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
 
         void applySoftLimit(QuerySpec querySpec) {
             if (softLimit != 0 && !querySpec.limit().isPresent()) {
-                querySpec.limit(Optional.<Symbol>of(Literal.of((long) softLimit)));
+                querySpec.limit(Optional.of(Literal.of((long) softLimit)));
             }
         }
 

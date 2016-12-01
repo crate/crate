@@ -22,42 +22,17 @@
 
 package io.crate.sql.parser;
 
-import org.antlr.v4.runtime.RecognitionException;
+enum IdentifierSymbol {
+    COLON(':'),
+    AT_SIGN('@');
 
-import java.util.Locale;
+    private final char symbol;
 
-import static java.lang.String.format;
-
-public class ParsingException extends RuntimeException {
-
-    private final int line;
-    private final int charPositionInLine;
-
-    ParsingException(String message, RecognitionException cause, int line, int charPositionInLine) {
-        super(message, cause);
-
-        this.line = line;
-        this.charPositionInLine = charPositionInLine;
+    IdentifierSymbol(char symbol) {
+        this.symbol = symbol;
     }
 
-    ParsingException(String message) {
-        this(message, null, 1, 0);
-    }
-
-    int getLineNumber() {
-        return line;
-    }
-
-    int getColumnNumber() {
-        return charPositionInLine + 1;
-    }
-
-    public String getErrorMessage() {
-        return super.getMessage();
-    }
-
-    @Override
-    public String getMessage() {
-        return format(Locale.ENGLISH, "line %s:%s: %s", getLineNumber(), getColumnNumber(), getErrorMessage());
+    public char getSymbol() {
+        return symbol;
     }
 }

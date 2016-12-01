@@ -22,42 +22,28 @@
 
 package io.crate.sql.parser;
 
-import org.antlr.v4.runtime.RecognitionException;
+import com.google.common.collect.Iterables;
 
-import java.util.Locale;
+import java.util.EnumSet;
 
-import static java.lang.String.format;
+import static java.util.Objects.requireNonNull;
 
-public class ParsingException extends RuntimeException {
+public class SqlParserOptions {
+    private final EnumSet<IdentifierSymbol> allowedIdentifierSymbols = EnumSet.noneOf(IdentifierSymbol.class);
 
-    private final int line;
-    private final int charPositionInLine;
-
-    ParsingException(String message, RecognitionException cause, int line, int charPositionInLine) {
-        super(message, cause);
-
-        this.line = line;
-        this.charPositionInLine = charPositionInLine;
+    public SqlParserOptions allowIdentifierSymbol(Iterable<IdentifierSymbol> identifierSymbols) {
+        Iterables.addAll(allowedIdentifierSymbols, identifierSymbols);
+        return this;
     }
 
-    ParsingException(String message) {
-        this(message, null, 1, 0);
+    public EnumSet<IdentifierSymbol> getAllowedIdentifierSymbols() {
+        return EnumSet.copyOf(allowedIdentifierSymbols);
     }
 
-    int getLineNumber() {
-        return line;
-    }
-
-    int getColumnNumber() {
-        return charPositionInLine + 1;
-    }
-
-    public String getErrorMessage() {
-        return super.getMessage();
-    }
-
-    @Override
-    public String getMessage() {
-        return format(Locale.ENGLISH, "line %s:%s: %s", getLineNumber(), getColumnNumber(), getErrorMessage());
+    public SqlParserOptions allowIdentifierSymbol(IdentifierSymbol... identifierSymbols) {
+        for (IdentifierSymbol identifierSymbol : identifierSymbols) {
+            allowedIdentifierSymbols.add(requireNonNull(identifierSymbol, "identifierSymbol is null"));
+        }
+        return this;
     }
 }

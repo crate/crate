@@ -1,22 +1,23 @@
 /*
- * Licensed to CRATE Technology GmbH ("Crate") under one or more contributor
- * license agreements.  See the NOTICE file distributed with this work for
- * additional information regarding copyright ownership.  Crate licenses
- * this file to you under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.  You may
- * obtain a copy of the License at
+ * Licensed to Crate.io Inc. or its affiliates ("Crate.io") under one or
+ * more contributor license agreements.  See the NOTICE file distributed
+ * with this work for additional information regarding copyright ownership.
+ * Crate.io licenses this file to you under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with the
+ * License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
- * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  See the
- * License for the specific language governing permissions and limitations
- * under the License.
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  *
- * However, if you have executed another commercial license agreement
- * with Crate these terms will supersede the license and you may use the
- * software solely pursuant to the terms of the relevant commercial agreement.
+ * However, if you have executed another commercial license agreement with
+ * Crate.io these terms will supersede the license and you may use the
+ * software solely pursuant to the terms of the relevant commercial
+ * agreement.
  */
 
 package io.crate.sql.parser;
@@ -26,7 +27,6 @@ import com.google.common.io.Resources;
 import io.crate.sql.Literals;
 import io.crate.sql.SqlFormatter;
 import io.crate.sql.tree.*;
-import org.antlr.runtime.tree.CommonTree;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -36,8 +36,9 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import static com.google.common.base.Strings.repeat;
 import static io.crate.sql.parser.TreeAssertions.assertFormattedSql;
-import static io.crate.sql.parser.TreePrinter.treeToString;
 import static java.lang.String.format;
+import static org.hamcrest.CoreMatchers.containsString;
+import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.core.Is.is;
 import static org.hamcrest.core.IsInstanceOf.instanceOf;
 import static org.junit.Assert.*;
@@ -60,20 +61,324 @@ public class TestStatementBuilder {
     }
 
     @Test
-    public void testStatementBuilder()
-        throws Exception {
-        printStatement("select * from foo");
-        printStatement("explain select * from foo");
+    public void testShowCreateTableStmtBuilder() {
+        printStatement("show create table test");
+        printStatement("show create table foo.test");
+        printStatement("show create table \"select\"");
+    }
 
+    @Test
+    public void testDropTableStmtBuilder() {
+        printStatement("drop table test");
+        printStatement("drop table if exists test");
+        printStatement("drop table bar.foo");
+    }
+
+    @Test
+    public void testShowTablesStmtBuilder() {
+        printStatement("show tables");
+        printStatement("show tables like '.*'");
+        printStatement("show tables from table_schema");
+        printStatement("show tables from \"tableSchema\"");
+        printStatement("show tables in table_schema");
+        printStatement("show tables from foo like '.*'");
+        printStatement("show tables in foo like '.*'");
+        printStatement("show tables from table_schema like '.*'");
+        printStatement("show tables in table_schema like '*'");
+        printStatement("show tables in table_schema where name = 'foo'");
+        printStatement("show tables in table_schema where name > 'foo'");
+        printStatement("show tables in table_schema where name != 'foo'");
+    }
+
+    @Test
+    public void testShowColumnsStmtBuilder() {
+        printStatement("show columns from table_name");
+        printStatement("show columns in table_name");
+        printStatement("show columns from table_name from table_schema");
+        printStatement("show columns in table_name from table_schema");
+        printStatement("show columns in foo like '*'");
+        printStatement("show columns from foo like '*'");
+        printStatement("show columns from table_name from table_schema like '*'");
+        printStatement("show columns in table_name from table_schema like '*'");
+        printStatement("show columns from table_name where column_name = 'foo'");
+        printStatement("show columns from table_name from table_schema where column_name = 'foo'");
+    }
+
+    @Test
+    public void testDeleteFromStmtBuilder() {
+        printStatement("delete from foo as alias");
+        printStatement("delete from foo");
+        printStatement("delete from schemah.foo where foo.a=foo.b and a is not null");
+        printStatement("delete from schemah.foo as alias where foo.a=foo.b and a is not null");
+    }
+
+    @Test
+    public void testShowSchemasStmtBuilder() {
+        printStatement("show schemas");
+        printStatement("show schemas like 'doc%'");
+        printStatement("show schemas where schema_name='doc'");
+        printStatement("show schemas where schema_name LIKE 'd%'");
+    }
+
+    @Test
+    public void testUpdateStmtBuilder() {
+        printStatement("update foo set \"column['looks_like_nested']\"=1");
+        printStatement("update foo set foo.a='b'");
+        printStatement("update bar.foo set bar.foo.t=3");
+        printStatement("update foo set col['x'] = 3");
+        printStatement("update foo set col['x'] = 3 where foo['x'] = 2");
+        printStatement("update schemah.foo set foo.a='b', foo.b=foo.a");
+        printStatement("update schemah.foo set foo.a=abs(-6.3334), x=true where x=false");
+    }
+
+    @Test
+    public void testExplainStmtBuilder() {
+        printStatement("explain drop table foo");
+    }
+
+    @Test
+    public void testSetStmtBuiler() throws Exception {
+        printStatement("set session some_setting = 1, ON");
+        printStatement("set session some_setting = false");
+        printStatement("set session some_setting = DEFAULT");
+        printStatement("set session some_setting = 1, 2, 3");
+        printStatement("set session some_setting = ON");
+        printStatement("set session some_setting = 'value'");
+
+        printStatement("set session some_setting TO DEFAULT");
+        printStatement("set session some_setting TO 'value'");
+        printStatement("set session some_setting TO 1, 2, 3");
+        printStatement("set session some_setting TO ON");
+        printStatement("set session some_setting TO true");
+        printStatement("set session some_setting TO 1, ON");
+
+        printStatement("set local some_setting = DEFAULT");
+        printStatement("set local some_setting = 'value'");
+        printStatement("set local some_setting = 1, 2, 3");
+        printStatement("set local some_setting = 1, ON");
+        printStatement("set local some_setting = ON");
+        printStatement("set local some_setting = false");
+
+        printStatement("set local some_setting TO DEFAULT");
+        printStatement("set local some_setting TO 'value'");
+        printStatement("set local some_setting TO 1, 2, 3");
+        printStatement("set local some_setting TO ON");
+        printStatement("set local some_setting TO true");
+        printStatement("set local some_setting TO ALWAYS");
+
+        printStatement("set some_setting TO 1, 2, 3");
+        printStatement("set some_setting TO ON");
+    }
+
+    @Test
+    public void testKillStmtBuilder() {
+        printStatement("kill all");
+        printStatement("kill '6a3d6fb6-1401-4333-933d-b38c9322fca7'");
+        printStatement("kill ?");
+        printStatement("kill $1");
+    }
+
+    @Test
+    public void testKillJob() {
+        KillStatement stmt = (KillStatement) SqlParser.createStatement("KILL $1");
+        assertThat(stmt.jobId().isPresent(), is(true));
+    }
+
+    @Test
+    public void testKillAll() throws Exception {
+        Statement stmt = SqlParser.createStatement("KILL ALL");
+        assertTrue(stmt.equals(new KillStatement()));
+    }
+
+    @Test
+    public void testRefreshStmtBuilder() {
+        printStatement("refresh table t");
+        printStatement("refresh table t partition (pcol='val'), tableh partition (pcol='val')");
+        printStatement("refresh table schemah.tableh");
+        printStatement("refresh table tableh partition (pcol='val')");
+        printStatement("refresh table tableh partition (pcol=?)");
+        printStatement("refresh table tableh partition (pcol['nested'] = ?)");
+    }
+
+    @Test
+    public void testOptimize() throws Exception {
+        printStatement("optimize table t");
+        printStatement("optimize table t1, t2");
+        printStatement("optimize table schema.t");
+        printStatement("optimize table schema.t1, schema.t2");
+        printStatement("optimize table t partition (pcol='val')");
+        printStatement("optimize table t partition (pcol=?)");
+        printStatement("optimize table t partition (pcol['nested'] = ?)");
+        printStatement("optimize table t partition (pcol='val') with (param1=val1, param2=val2)");
+        printStatement("optimize table t1 partition (pcol1='val1'), t2 partition (pcol2='val2')");
+        printStatement("optimize table t1 partition (pcol1='val1'), t2 partition (pcol2='val2') " +
+            "with (param1=val1, param2=val2, param3='val3')");
+    }
+
+    @Test
+    public void testSetSessionInvalidSetting() throws Exception {
+        expectedException.expect(ParsingException.class);
+        expectedException.expectMessage(containsString("no viable alternative"));
+        printStatement("set session 'some_setting' TO 1, ON");
+    }
+
+    @Test
+    public void testSetGlobal() throws Exception {
+        printStatement("set global sys.cluster['some_settings']['3'] = '1'");
+        printStatement("set global sys.cluster['some_settings'] = '1', other_setting = 2");
+        printStatement("set global transient sys.cluster['some_settings'] = '1'");
+        printStatement("set global persistent sys.cluster['some_settings'] = '1'");
+    }
+
+    @Test
+    public void testResetGlobalStmtBuilder() {
+        printStatement("reset global some_setting['nested'], other_setting");
+    }
+
+    @Test
+    public void testAlterTableStmtBuilder() {
+        printStatement("alter table t add foo integer");
+        printStatement("alter table t add foo['1']['2'] integer");
+
+        printStatement("alter table t set (number_of_replicas=4)");
+        printStatement("alter table schema.t set (number_of_replicas=4)");
+        printStatement("alter table t reset (number_of_replicas)");
+        printStatement("alter table t reset (property1, property2, property3)");
+
+        printStatement("alter table t add foo integer");
+        printStatement("alter table t add column foo integer");
+        printStatement("alter table t add foo integer primary key");
+        printStatement("alter table t add foo string index using fulltext");
+        printStatement("alter table t add column foo['x'] integer");
+        printStatement("alter table t add column foo integer");
+
+        printStatement("alter table t add column foo['x'] integer");
+        printStatement("alter table t add column foo['x']['y'] object as (z integer)");
+
+        printStatement("alter table t partition (partitioned_col=1) set (number_of_replicas=4)");
+        printStatement("alter table only t set (number_of_replicas=4)");
+    }
+
+    @Test
+    public void testCreateTableStmtBuilder() {
+        printStatement("create table if not exists t (id integer primary key, name string)");
+        printStatement("create table t (id integer primary key, name string)");
+        printStatement("create table t (id integer primary key, name string) clustered into 3 shards");
+        printStatement("create table t (id integer primary key, name string) clustered into ? shards");
+        printStatement("create table t (id integer primary key, name string) clustered by (id)");
+        printStatement("create table t (id integer primary key, name string) clustered by (id) into 4 shards");
+        printStatement("create table t (id integer primary key, name string) clustered by (id) into ? shards");
+        printStatement("create table t (id integer primary key, name string) with (number_of_replicas=4)");
+        printStatement("create table t (id integer primary key, name string) with (number_of_replicas=?)");
+        printStatement("create table t (id integer primary key, name string) clustered by (id) with (number_of_replicas=4)");
+        printStatement("create table t (id integer primary key, name string) clustered by (id) into 999 shards with (number_of_replicas=4)");
+        printStatement("create table t (id integer primary key, name string) with (number_of_replicas=-4)");
+        printStatement("create table t (o object(dynamic) as (i integer, d double))");
+        printStatement("create table t (id integer, name string, primary key (id))");
+        printStatement("create table t (" +
+            "  \"_i\" integer, " +
+            "  \"in\" int," +
+            "  \"Name\" string, " +
+            "  bo boolean," +
+            "  \"by\" byte," +
+            "  sh short," +
+            "  lo long," +
+            "  fl float," +
+            "  do double," +
+            "  \"ip_\" ip," +
+            "  ti timestamp," +
+            "  ob object" +
+            ")");
+        printStatement("create table \"TABLE\" (o object(dynamic))");
+        printStatement("create table \"TABLE\" (o object(strict))");
+        printStatement("create table \"TABLE\" (o object(ignored))");
+        printStatement("create table \"TABLE\" (o object(strict) as (inner_col object as (sub_inner_col timestamp, another_inner_col string)))");
+
+        printStatement("create table test (col1 int, col2 timestamp not null)");
+        printStatement("create table test (col1 int primary key not null, col2 timestamp)");
+
+        printStatement("create table t (" +
+            "name string index off, " +
+            "another string index using plain, " +
+            "\"full\" string index using fulltext," +
+            "analyzed string index using fulltext with (analyzer='german', param=?, list=[1,2,3])" +
+            ")");
+        printStatement("create table test (col1 string, col2 string," +
+            "index \"_col1_ft\" using fulltext(col1))");
+        printStatement("create table test (col1 string, col2 string," +
+            "index col1_col2_ft using fulltext(col1, col2) with (analyzer='custom'))");
+
+        printStatement("create table test (prime long, primes array(long), unique_dates set(timestamp))");
+        printStatement("create table test (nested set(set(array(boolean))))");
+        printStatement("create table test (object_array array(object(dynamic) as (i integer, s set(string))))");
+
+        printStatement("create table test (col1 int, col2 timestamp) partitioned by (col1)");
+        printStatement("create table test (col1 int, col2 timestamp) partitioned by (col1, col2)");
+        printStatement("create table test (col1 int, col2 timestamp) partitioned by (col1) clustered by (col2)");
+        printStatement("create table test (col1 int, col2 timestamp) clustered by (col2) partitioned by (col1)");
+        printStatement("create table test (col1 int, col2 object as (col3 timestamp)) partitioned by (col2['col3'])");
+    }
+
+    @Test
+    public void testBlobTable() throws Exception {
+        printStatement("drop blob table screenshots");
+
+        printStatement("create blob table screenshots");
+        printStatement("create blob table screenshots clustered into 5 shards");
+        printStatement("create blob table screenshots with (number_of_replicas=3)");
+        printStatement("create blob table screenshots with (number_of_replicas='0-all')");
+        printStatement("create blob table screenshots clustered into 5 shards with (number_of_replicas=3)");
+
+        printStatement("alter blob table screenshots set (number_of_replicas=3)");
+        printStatement("alter blob table screenshots set (number_of_replicas='0-all')");
+        printStatement("alter blob table screenshots reset (number_of_replicas)");
+    }
+
+    @Test
+    public void testCreateAnalyzerStmtBuilder() {
+        printStatement("create analyzer myAnalyzer ( tokenizer german )");
+        printStatement("create analyzer my_analyzer (" +
+            " token_filters (" +
+            "   filter_1," +
+            "   filter_2," +
+            "   filter_3 WITH (" +
+            "     \"key\"=?" +
+            "   )" +
+            " )," +
+            " tokenizer my_tokenizer WITH (" +
+            "   property='value'," +
+            "   property_list=['l', 'i', 's', 't']" +
+            " )," +
+            " char_filters (" +
+            "   filter_1," +
+            "   filter_2 WITH (" +
+            "     key='property'" +
+            "   )," +
+            "   filter_3" +
+            " )" +
+            ")");
+        printStatement("create analyzer \"My_Builtin\" extends builtin WITH (" +
+            "  over='write'" +
+            ")");
+    }
+
+    @Test
+    public void testStatementBuilder() throws Exception {
+        printStatement("select ab" +
+            " from (select (ii + y) as iiy, concat(a, b) as ab" +
+                " from (select t1.a, t2.b, t2.y, (t1.i + t2.i) as ii " +
+                    " from t1, t2 where t1.a='a' or t2.b='aa') as t)" +
+            " as tt order by iiy");
+        printStatement("select extract(day from x) from y");
+        printStatement("select * from foo order by 1, 2 limit 1 offset ?");
         printStatement("select * from foo a (x, y, z)");
-
         printStatement("select *, 123, * from foo");
-
         printStatement("select show from foo");
         printStatement("select extract(day from x), extract(dow from x) from y");
         printStatement("select extract('day' from x), extract(? from x) from y");
 
         printStatement("select 1 + 13 || '15' from foo");
+        printStatement("select \"test\" from foo");
         printStatement("select col['x'] + col['y'] from foo");
         printStatement("select col['x'] - col['y'] from foo");
         printStatement("select col['y'] / col[2 / 1] from foo");
@@ -84,7 +389,7 @@ public class TestStatementBuilder {
         printStatement("select - ( + - 10) * - ( - 10 - + 10)");
         printStatement("select - - col['x']");
 
-        // expressions as subscript index are only supported by the parser
+//         expressions as subscript index are only supported by the parser
         printStatement("select col[1 + 2] - col['y'] from foo");
 
         printStatement("select x is distinct from y from foo where a is not distinct from b");
@@ -113,126 +418,8 @@ public class TestStatementBuilder {
 
         printStatement("select \"TOTALPRICE\" \"my price\" from \"orders\"");
 
-        printStatement("select * from foo tablesample system (10+1)");
-        printStatement("select * from foo tablesample system (10) join bar tablesample bernoulli (30) on a.id = b.id");
-        printStatement("select * from foo tablesample bernoulli (10) stratify on (id)");
-        printStatement("select * from foo tablesample system (50) stratify on (id, name)");
-
         printStatement("select * from foo limit 100 offset 20");
         printStatement("select * from foo offset 20");
-
-        printStatement("delete from foo");
-        printStatement("delete from schemah.foo where foo.a=foo.b and a is not null");
-
-        printStatement("update foo set a=b");
-        printStatement("update schemah.foo set foo.a='b', foo.b=foo.a");
-        printStatement("update schemah.foo set foo.a=abs(-6.3334), x=true where x=false");
-
-
-        printStatement("create table if not exists t (id integer primary key, name string)");
-        printStatement("create table t (id integer primary key, name string)");
-        printStatement("create table t (id integer primary key, name string) clustered into 3 shards");
-        printStatement("create table t (id integer primary key, name string) clustered into ? shards");
-        printStatement("create table t (id integer primary key, name string) clustered by (id)");
-        printStatement("create table t (id integer primary key, name string) clustered by (id) into 4 shards");
-        printStatement("create table t (id integer primary key, name string) clustered by (id) into ? shards");
-        printStatement("create table t (id integer primary key, name string) with (number_of_replicas=4)");
-        printStatement("create table t (id integer primary key, name string) with (number_of_replicas=?)");
-        printStatement("create table t (id integer primary key, name string) clustered by (id) with (number_of_replicas=4)");
-        printStatement("create table t (id integer primary key, name string) clustered by (id) into 999 shards with (number_of_replicas=4)");
-        printStatement("create table t (id integer primary key, name string) with (number_of_replicas=-4)");
-        printStatement("create table t (o object(dynamic) as (i integer, d double))");
-        printStatement("create table t (id integer, name string, primary key (id))");
-        printStatement("create table t (" +
-                       "  \"_i\" integer, " +
-                       "  \"in\" int," +
-                       "  \"Name\" string, " +
-                       "  bo boolean," +
-                       "  \"by\" byte," +
-                       "  sh short," +
-                       "  lo long," +
-                       "  fl float," +
-                       "  do double," +
-                       "  \"ip_\" ip," +
-                       "  ti timestamp," +
-                       "  ob object" +
-                       ")");
-        printStatement("create table \"TABLE\" (o object(dynamic))");
-        printStatement("create table \"TABLE\" (o object(strict))");
-        printStatement("create table \"TABLE\" (o object(ignored))");
-        printStatement("create table \"TABLE\" (o object(strict) as (inner_col object as (sub_inner_col timestamp, another_inner_col string)))");
-
-        printStatement("create table test (col1 int, col2 timestamp not null)");
-        printStatement("create table test (col1 int primary key not null, col2 timestamp)");
-
-        printStatement("create table t (" +
-                       "name string index off, " +
-                       "another string index using plain, " +
-                       "\"full\" string index using fulltext," +
-                       "analyzed string index using fulltext with (analyzer='german', param=?, list=[1,2,3])" +
-                       ")");
-        printStatement("create table test (col1 string, col2 string," +
-                       "index \"_col1_ft\" using fulltext(col1))");
-        printStatement("create table test (col1 string, col2 string," +
-                       "index col1_col2_ft using fulltext(col1, col2) with (analyzer='custom'))");
-
-        printStatement("create table test (prime long, primes array(long), unique_dates set(timestamp))");
-        printStatement("create table test (nested set(set(array(boolean))))");
-        printStatement("create table test (object_array array(object(dynamic) as (i integer, s set(string))))");
-
-        printStatement("create table test (col1 int, col2 timestamp) partitioned by (col1)");
-        printStatement("create table test (col1 int, col2 timestamp) partitioned by (col1, col2)");
-        printStatement("create table test (col1 int, col2 timestamp) partitioned by (col1) clustered by (col2)");
-        printStatement("create table test (col1 int, col2 timestamp) clustered by (col2) partitioned by (col1)");
-        printStatement("create table test (col1 int, col2 object as (col3 timestamp)) partitioned by (col2['col3'])");
-
-        printStatement("create analyzer myAnalyzer ( tokenizer german )");
-        printStatement("create analyzer my_analyzer (" +
-                       " token_filters (" +
-                       "   filter_1," +
-                       "   filter_2," +
-                       "   filter_3 WITH (" +
-                       "     \"key\"=?" +
-                       "   )" +
-                       " )," +
-                       " tokenizer my_tokenizer WITH (" +
-                       "   property='value'," +
-                       "   property_list=['l', 'i', 's', 't']" +
-                       " )," +
-                       " char_filters (" +
-                       "   filter_1," +
-                       "   filter_2 WITH (" +
-                       "     key='property'" +
-                       "   )," +
-                       "   filter_3" +
-                       " )" +
-                       ")");
-        printStatement("create analyzer my_builtin extends builtin WITH (" +
-                       "  over='write'" +
-                       ")");
-        printStatement("refresh table t");
-        printStatement("refresh table t partition (pcol='val'), tableh partition (pcol='val')");
-        printStatement("refresh table schemah.tableh");
-        printStatement("refresh table tableh partition (pcol='val')");
-        printStatement("refresh table tableh partition (pcol=?)");
-        printStatement("refresh table tableh partition (pcol['nested'] = ?)");
-
-        printStatement("alter table t set (number_of_replicas=4)");
-        printStatement("alter table schema.t set (number_of_replicas=4)");
-        printStatement("alter table t reset (number_of_replicas)");
-        printStatement("alter table t reset (property1, property2, property3)");
-
-        printStatement("alter table t add foo integer");
-        printStatement("alter table t add column foo integer");
-        printStatement("alter table t add foo integer primary key");
-        printStatement("alter table t add foo string index using fulltext");
-
-        printStatement("alter table t add column foo['x'] integer");
-        printStatement("alter table t add column foo['x']['y'] object as (z integer)");
-
-        printStatement("alter table t partition (partitioned_col=1) set (number_of_replicas=4)");
-        printStatement("alter table only t set (number_of_replicas=4)");
-
 
         printStatement("select * from t where 'value' LIKE ANY (col)");
         printStatement("select * from t where 'value' NOT LIKE ANY (col)");
@@ -240,47 +427,18 @@ public class TestStatementBuilder {
         printStatement("select * from t where 'source' !~ 'pattern'");
         printStatement("select * from t where source_column ~ pattern_column");
         printStatement("select * from t where ? !~ ?");
-
-        printStatement("insert into t (a, b) values (1, 2) on duplicate key update a = a + 1");
-        printStatement("insert into t (a, b) values (1, 2) on duplicate key update a = a + 1, b = 3");
-        printStatement("insert into t (a, b) values (1, 2), (3, 4) on duplicate key update a = values (a) + 1, b = 4");
-        printStatement("insert into t (a, b) values (1, 2), (3, 4) on duplicate key update a = values (a) + 1, b = values(b) - 2");
-
-        printStatement("kill all");
-        printStatement("kill '6a3d6fb6-1401-4333-933d-b38c9322fca7'");
-
-        printStatement("show create table foo");
-
-        printStatement("show schemas");
-        printStatement("show schemas like 'doc%'");
-        printStatement("show schemas where schema_name='doc'");
-        printStatement("show schemas where schema_name LIKE 'd%'");
-
-        printStatement("show columns from table_name");
-        printStatement("show columns in table_name");
-        printStatement("show columns from table_name from table_schema");
-        printStatement("show columns in table_name from table_schema");
-        printStatement("show columns in foo like '*'");
-        printStatement("show columns from foo like '*'");
-        printStatement("show columns from table_name from table_schema like '*'");
-        printStatement("show columns in table_name from table_schema like '*'");
-        printStatement("show columns from table_name where column_name = 'foo'");
-        printStatement("show columns from table_name from table_schema where column_name = 'foo'");
-
-        printStatement("show tables");
-        printStatement("show tables like '.*'");
-        printStatement("show tables from table_schema");
-        printStatement("show tables in table_schema");
-        printStatement("show tables from foo like '.*'");
-        printStatement("show tables in foo like '.*'");
-        printStatement("show tables from table_schema like '.*'");
-        printStatement("show tables in table_schema like '*'");
-        printStatement("show tables from table_schema where table_name = 'foo'");
-        printStatement("show tables in table_schema where table_name = 'foo'");
     }
 
     @Test
-    public void testSystemInformationFunctions() {
+    public void testSelectAndSampleRelationStmtBuilder() {
+        printStatement("select * from foo tablesample system (10+1)");
+        printStatement("select * from foo tablesample system (10) join bar tablesample bernoulli (30) on a.id = b.id");
+        printStatement("select * from foo tablesample bernoulli (10) stratify on (id)");
+        printStatement("select * from foo tablesample system (50) stratify on (id, name)");
+    }
+
+    @Test
+    public void testSystemInformationFunctionsStmtBuilder() {
         printStatement("select current_schema");
         printStatement("select current_schema()");
         printStatement("select * from information_schema.tables where table_schema = current_schema");
@@ -288,8 +446,7 @@ public class TestStatementBuilder {
     }
 
     @Test
-    public void testStatementBuilderTpch()
-        throws Exception {
+    public void testStatementBuilderTpch() throws Exception {
         printTpchQuery(1, 3);
         printTpchQuery(2, 33, "part type like", "region name");
         printTpchQuery(3, "market segment", "2013-03-05");
@@ -327,7 +484,7 @@ public class TestStatementBuilder {
     }
 
     @Test
-    public void testArrayConstructor() {
+    public void testArrayConstructorStmtBuilder() {
         printStatement("select []");
         printStatement("select [ARRAY[1]]");
         printStatement("select ARRAY[]");
@@ -356,21 +513,6 @@ public class TestStatementBuilder {
     }
 
     @Test
-    public void testBlobTable() throws Exception {
-        printStatement("create blob table screenshots");
-        printStatement("create blob table screenshots clustered into 5 shards");
-        printStatement("create blob table screenshots with (number_of_replicas=3)");
-        printStatement("create blob table screenshots with (number_of_replicas='0-all')");
-        printStatement("create blob table screenshots clustered into 5 shards with (number_of_replicas=3)");
-
-        printStatement("drop blob table screenshots");
-
-        printStatement("alter blob table screenshots set (number_of_replicas=3)");
-        printStatement("alter blob table screenshots set (number_of_replicas='0-all')");
-        printStatement("alter blob table screenshots reset (number_of_replicas)");
-    }
-
-    @Test
     public void testCopy() throws Exception {
         printStatement("copy foo partition (a='x') from ?");
         printStatement("copy foo partition (a={key='value'}) from ?");
@@ -392,94 +534,35 @@ public class TestStatementBuilder {
     }
 
     @Test
-    public void testInsert() throws Exception {
+    public void testInsertStmtBuilder() throws Exception {
+        // insert from values
         printStatement("insert into foo (id, name) values ('string', 1.2)");
         printStatement("insert into foo values ('string', NULL)");
         printStatement("insert into foo (id, name) values ('string', 1.2), (abs(-4), 4+?)");
         printStatement("insert into schemah.foo (id, name) values ('string', 1.2)");
 
-        printStatement("insert into foo (id, name) (select id, name from bar order by id)");
-        printStatement("insert into foo (id, name) (select * from bar limit 3 offset 10)");
-        printStatement("insert into foo (wealth, name) (select sum(money), name from bar group by name)");
-        printStatement("insert into foo (select sum(money), name from bar group by name)");
+        printStatement("insert into t (a, b) values (1, 2) on duplicate key update a = a + 1");
+        printStatement("insert into t (a, b) values (1, 2) on duplicate key update a = a + 1, b = 3");
+        printStatement("insert into t (a, b) values (1, 2), (3, 4) on duplicate key update a = values (a) + 1, b = 4");
+        printStatement("insert into t (a, b) values (1, 2), (3, 4) on duplicate key update a = values (a) + 1, b = values(b) - 2");
 
+        InsertFromValues insert = (InsertFromValues) SqlParser.createStatement(
+                "insert into test_generated_column (id, ts) values (?, ?) on duplicate key update ts = ?"
+        );
+        Assignment onDuplicateAssignment = insert.onDuplicateKeyAssignments().get(0);
+        assertThat(onDuplicateAssignment.expression(), instanceOf(ParameterExpression.class));
+        assertThat(onDuplicateAssignment.expressions().get(0).toString(), is("$3"));
+
+        // insert from query
         printStatement("insert into foo (id, name) select id, name from bar order by id");
         printStatement("insert into foo (id, name) select * from bar limit 3 offset 10");
         printStatement("insert into foo (wealth, name) select sum(money), name from bar group by name");
         printStatement("insert into foo select sum(money), name from bar group by name");
-    }
 
-    @Test
-    public void testSetGlobal() throws Exception {
-        printStatement("set global sys.cluster['some_settings'] = '1'");
-        printStatement("set global sys.cluster['some_settings'] = '1', other_setting = 2");
-        printStatement("set global transient sys.cluster['some_settings'] = '1'");
-        printStatement("set global persistent sys.cluster['some_settings'] = '1'");
-
-        printStatement("reset global some_setting['nested'], other_setting");
-    }
-
-    @Test
-    public void testSetSession() throws Exception {
-        printStatement("set session some_setting = DEFAULT");
-        printStatement("set session some_setting = 'value'");
-        printStatement("set session some_setting = 1, 2, 3");
-        printStatement("set session some_setting = ON");
-        printStatement("set session some_setting = 1, ON");
-        printStatement("set session some_setting = false");
-
-        printStatement("set session some_setting TO DEFAULT");
-        printStatement("set session some_setting TO 'value'");
-        printStatement("set session some_setting TO 1, 2, 3");
-        printStatement("set session some_setting TO ON");
-        printStatement("set session some_setting TO true");
-        printStatement("set session some_setting TO 1, ON");
-
-    }
-
-    @Test
-    public void testSet() throws Exception {
-        printStatement("set some_setting = DEFAULT");
-        printStatement("set some_setting = 'value'");
-        printStatement("set some_setting = 1, '2', foo");
-        printStatement("set some_setting = on");
-        printStatement("set some_setting = 1, on");
-        printStatement("set some_setting = true");
-
-        printStatement("set some_setting TO DEFAULT");
-        printStatement("set some_setting TO 'value'");
-        printStatement("set some_setting TO 1, 2, 3");
-        printStatement("set some_setting TO ON");
-        printStatement("set some_setting TO true");
-        printStatement("set some_setting TO 1, ON");
-    }
-
-    @Test
-    public void testSetLocal() throws Exception {
-        printStatement("set local some_setting = DEFAULT");
-        printStatement("set local some_setting = 'value'");
-        printStatement("set local some_setting = 1, 2, 3");
-        printStatement("set local some_setting = 1, ON");
-        printStatement("set local some_setting = ON");
-        printStatement("set local some_setting = false");
-
-        printStatement("set local some_setting TO DEFAULT");
-        printStatement("set local some_setting TO 'value'");
-        printStatement("set local some_setting TO 1, 2, 3");
-        printStatement("set local some_setting TO ON");
-        printStatement("set local some_setting TO true");
-        printStatement("set local some_setting TO ALWAYS");
-    }
-
-    @Test
-    public void testSetSessionInvalidSetting() throws Exception {
-        try {
-            printStatement("set session 'some_setting' TO 1, ON");
-            fail();
-        } catch (IllegalArgumentException e) {
-            assertThat(e.getMessage(), is("bad tree from parser: no viable alternative at input 'some_setting'"));
-        }
-
+        printStatement("insert into foo (id, name) (select id, name from bar order by id)");
+        printStatement("insert into foo (id, name) (select * from bar limit 3 offset 10)");
+        printStatement("insert into foo (wealth, name) (select sum(money), name from bar group by name)");
+        printStatement("insert into foo (select sum(money), name from bar group by name)");
     }
 
     @Test
@@ -489,7 +572,8 @@ public class TestStatementBuilder {
     }
 
     @Test
-    public void testPredicates() throws Exception {
+    public void testMatchPredicateStmtBuilder() throws Exception {
+        printStatement("select * from foo where match (a['1']['2'], 'abc')");
         printStatement("select * from foo where match (a, 'abc')");
         printStatement("select * from foo where match ((a, b 2.0), 'abc')");
         printStatement("select * from foo where match ((a ?, b 2.0), ?)");
@@ -500,7 +584,7 @@ public class TestStatementBuilder {
     }
 
     @Test
-    public void testRepository() throws Exception {
+    public void testRepositoryStmtBuilder() throws Exception {
         printStatement("create repository my_repo type hdfs");
         printStatement("CREATE REPOSITORY \"myRepo\" TYPE \"fs\"");
         printStatement("CREATE REPOSITORY \"myRepo\" TYPE \"fs\" with (location='/mount/backups/my_backup', compress=True)");
@@ -517,7 +601,7 @@ public class TestStatementBuilder {
     }
 
     @Test
-    public void testSnapshot() throws Exception {
+    public void testSnapshotStmtBuilder() throws Exception {
         printStatement("CREATE SNAPSHOT my_repo.my_snapshot ALL");
         printStatement("CREATE SNAPSHOT my_repo.my_snapshot TABLE authors, books");
         printStatement("CREATE SNAPSHOT my_repo.my_snapshot TABLE authors, books with (wait_for_completion=True)");
@@ -533,8 +617,7 @@ public class TestStatementBuilder {
                                             "Table{only=false, books, partitionProperties=[]}])}"));
 
         statement = SqlParser.createStatement("DROP SNAPSHOT my_repo.my_snapshot");
-        assertThat(statement.toString(), is("DropSnapshot{" +
-                                            "name=my_repo.my_snapshot}"));
+        assertThat(statement.toString(), is("DropSnapshot{name=my_repo.my_snapshot}"));
 
         printStatement("RESTORE SNAPSHOT my_repo.my_snapshot ALL");
         printStatement("RESTORE SNAPSHOT my_repo.my_snapshot TABLE authors, books");
@@ -558,7 +641,7 @@ public class TestStatementBuilder {
     }
 
     @Test
-    public void testGeoShape() throws Exception {
+    public void testGeoShapeStmtBuilder() throws Exception {
         printStatement("create table test (" +
                        "    col1 geo_shape," +
                        "    col2 geo_shape index using geohash" +
@@ -577,21 +660,6 @@ public class TestStatementBuilder {
     }
 
     @Test
-    public void testOptimize() throws Exception {
-        printStatement("optimize table t");
-        printStatement("optimize table t1, t2");
-        printStatement("optimize table schema.t");
-        printStatement("optimize table schema.t1, schema.t2");
-        printStatement("optimize table t partition (pcol='val')");
-        printStatement("optimize table t partition (pcol=?)");
-        printStatement("optimize table t partition (pcol['nested'] = ?)");
-        printStatement("optimize table t partition (pcol='val') with (param1=val1, param2=val2)");
-        printStatement("optimize table t1 partition (pcol1='val1'), t2 partition (pcol2='val2')");
-        printStatement("optimize table t1 partition (pcol1='val1'), t2 partition (pcol2='val2') " +
-                       "with (param1=val1, param2=val2, param3='val3')");
-    }
-
-    @Test
     public void testCast() throws Exception {
         printStatement("select cast(y as integer) from foo");
     }
@@ -602,7 +670,7 @@ public class TestStatementBuilder {
     }
 
     @Test
-    public void testSubscript() throws Exception {
+    public void testSubscriptExpression() throws Exception {
         Expression expression = SqlParser.createExpression("a['sub']");
         assertThat(expression, instanceOf(SubscriptExpression.class));
         SubscriptExpression subscript = (SubscriptExpression) expression;
@@ -617,6 +685,18 @@ public class TestStatementBuilder {
         assertThat(subscript.index(), instanceOf(LongLiteral.class));
         assertThat(((LongLiteral) subscript.index()).getValue(), is(1L));
         assertThat(subscript.name(), instanceOf(ArrayLiteral.class));
+    }
+
+    @Test
+    public void testSafeSubscriptExpression() {
+        MatchPredicate matchPredicate = (MatchPredicate) SqlParser.createExpression("match (a['1']['2'], 'abc')");
+        assertThat(matchPredicate.idents().get(0).columnIdent().toString(), is("\"a\"['1']['2']"));
+
+        matchPredicate = (MatchPredicate) SqlParser.createExpression("match (a['1']['2']['4'], 'abc')");
+        assertThat(matchPredicate.idents().get(0).columnIdent().toString(), is("\"a\"['1']['2']['4']"));
+
+        expectedException.expect(ParsingException.class);
+        SqlParser.createExpression("match ([1]['1']['2'], 'abc')");
     }
 
     @Test
@@ -661,6 +741,25 @@ public class TestStatementBuilder {
     }
 
     @Test
+    public void testArrayLikeExpression() {
+        Expression expression = SqlParser.createExpression("'books%' LIKE ANY(race['interests'])");
+        assertThat(expression, instanceOf(ArrayLikePredicate.class));
+        ArrayLikePredicate arrayLikePredicate = (ArrayLikePredicate) expression;
+        assertThat(arrayLikePredicate.inverse(), is(false));
+        assertThat(arrayLikePredicate.getEscape(), is(nullValue()));
+        assertThat(arrayLikePredicate.getPattern().toString(), is("'books%'"));
+        assertThat(arrayLikePredicate.getValue().toString(), is("\"race\"['interests']"));
+
+        expression = SqlParser.createExpression("'b%' NOT LIKE ANY(race)");
+        assertThat(expression, instanceOf(ArrayLikePredicate.class));
+        arrayLikePredicate = (ArrayLikePredicate) expression;
+        assertThat(arrayLikePredicate.inverse(), is(true));
+        assertThat(arrayLikePredicate.getEscape(), is(nullValue()));
+        assertThat(arrayLikePredicate.getPattern().toString(), is("'b%'"));
+        assertThat(arrayLikePredicate.getValue().toString(), is("\"race\""));
+    }
+
+    @Test
     public void testStringLiteral() throws Exception {
         String[] testString = new String[]{
             "foo' or 1='1",
@@ -691,41 +790,16 @@ public class TestStatementBuilder {
         assertThat(objectLiteral.values().get("c").iterator().next(), instanceOf(ArrayLiteral.class));
         assertThat(objectLiteral.values().get("d").iterator().next(), instanceOf(ObjectLiteral.class));
 
-        ObjectLiteral quotedObjectLiteral = (ObjectLiteral) SqlParser.createExpression(
-            "{\"AbC\"=123}"
-        );
+        ObjectLiteral quotedObjectLiteral = (ObjectLiteral) SqlParser.createExpression("{\"AbC\"=123}");
         assertThat(quotedObjectLiteral.values().size(), is(1));
         assertThat(quotedObjectLiteral.values().get("AbC").iterator().next(), instanceOf(LongLiteral.class));
         assertThat(quotedObjectLiteral.values().get("abc").isEmpty(), is(true));
         assertThat(quotedObjectLiteral.values().get("ABC").isEmpty(), is(true));
 
-        try {
-            SqlParser.createExpression("{a=func('abc')");
-            fail();
-        } catch (ParsingException e) {
-            assertThat(e.getMessage(), is("line 1:4: mismatched input 'func' expecting '{'"));
-        }
-
-        try {
-            SqlParser.createExpression("{b=identifier}");
-            fail();
-        } catch (ParsingException e) {
-            assertThat(e.getMessage(), is("line 1:4: mismatched input 'identifier' expecting '{'"));
-        }
-
-        try {
-            SqlParser.createExpression("{c=1+4}");
-            fail();
-        } catch (ParsingException e) {
-            assertThat(e.getMessage(), is("line 1:5: mismatched input '+' expecting '}'"));
-        }
-
-        try {
-            SqlParser.createExpression("{d=sub['script']}");
-            fail();
-        } catch (ParsingException e) {
-            assertThat(e.getMessage(), is("line 1:4: mismatched input 'sub' expecting '{'"));
-        }
+        SqlParser.createExpression("{a=func('abc')}");
+        SqlParser.createExpression("{b=identifier}");
+        SqlParser.createExpression("{c=1+4}");
+        SqlParser.createExpression("{d=sub['script']}");
     }
 
     @Test
@@ -745,7 +819,6 @@ public class TestStatementBuilder {
         assertThat(multipleArrayLiteral.values().get(2), instanceOf(ObjectLiteral.class));
         assertThat(multipleArrayLiteral.values().get(3), instanceOf(ArrayLiteral.class));
     }
-
 
     @Test
     public void testParameterNode() throws Exception {
@@ -774,18 +847,6 @@ public class TestStatementBuilder {
             }
         }, null);
         assertEquals(3, counter.get());
-    }
-
-    @Test
-    public void testKillJob() {
-        KillStatement stmt = (KillStatement) SqlParser.createStatement("KILL $1");
-        assertThat(stmt.jobId().isPresent(), is(true));
-    }
-
-    @Test
-    public void testKillAll() throws Exception {
-        Statement stmt = SqlParser.createStatement("KILL ALL");
-        assertTrue(stmt.equals(new KillStatement()));
     }
 
     @Test
@@ -878,11 +939,7 @@ public class TestStatementBuilder {
         println(sql.trim());
         println("");
 
-        CommonTree tree = SqlParser.parseStatement(sql);
-        println(treeToString(tree));
-        println("");
-
-        Statement statement = SqlParser.createStatement(tree);
+        Statement statement = SqlParser.createStatement(sql);
         println(statement.toString());
         println("");
 
