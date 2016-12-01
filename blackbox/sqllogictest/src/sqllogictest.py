@@ -21,7 +21,6 @@ from tqdm import tqdm
 QUERY_WHITELIST = [re.compile(o, re.IGNORECASE) for o in [
     'SELECT .* FROM (t\d,? ){3,9}WHERE',     # BUG: certain join queries with > 3 tables fail
     'CREATE INDEX.*',                        # CREATE INDEX is not supported, but raises SQLParseException
-    '.*BETWEEN.*NULL.*',                     # BETWEEN ident AND NULL is a bug
 ]]
 
 varchar_to_string = partial(re.compile('VARCHAR\(\d+\)').sub, 'STRING')

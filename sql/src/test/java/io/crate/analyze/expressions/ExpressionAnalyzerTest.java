@@ -163,6 +163,13 @@ public class ExpressionAnalyzerTest extends CrateUnitTest {
     }
 
     @Test
+    public void testBetweenNullIsRewrittenToLteAndGte() throws Exception {
+        SqlExpressions expressions = new SqlExpressions(T3.SOURCES);
+        Symbol symbol = expressions.asSymbol("10 between 1 and NULL");
+        assertThat(symbol, isSQL("((10 >= 1) AND (10 <= NULL))"));
+    }
+
+    @Test
     public void testNonDeterministicFunctionsAlwaysNew() throws Exception {
         ExpressionAnalysisContext localContext = new ExpressionAnalysisContext();
         FunctionInfo info1 = new FunctionInfo(
