@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fixed issue which causes ``BETWEEN`` to return a wrong result if
+   ``min`` or ``max`` is null.
+
 2016/11/30 0.57.4
 =================
 

@@ -621,9 +621,7 @@ public class ExpressionAnalyzer {
             Symbol min = process(node.getMin(), context);
             Symbol max = process(node.getMax(), context);
 
-            if (value.valueType() == DataTypes.UNDEFINED ||
-                min.valueType() == DataTypes.UNDEFINED ||
-                max.valueType() == DataTypes.UNDEFINED) {
+            if (value.valueType() == DataTypes.UNDEFINED) {
                 return Literal.NULL;
             }
 
