@@ -110,25 +110,29 @@ And start Crate::
     ./app/build/install/crate/bin/crate
 
 
-Other common tasks are:
+Other common tasks are::
 
- - Running tests during development::
 
-    ./gradlew --parallel :sql:test -PtestForks=2 itest gtest
+    ./gradlew --parallel -PtestForks=2 :sql:test
 
-    To enable logging for tests::
+    ./gradlew itest
 
-    ./gradlew -PtestLogging test
-
-    Use @TestLogging(["<packageName1>:<logLevel1>", ...]) on your
-    test class or test method to enable more detailed logging.
-
-    Example:
-    @TestLogging("io.crate:DEBUG","io.crate.planner.consumer.NestedLoopConsumer:TRACE")
-
- - Run a single test::
+    ./gradlew -PtestLogging :sql:test
 
     ./gradlew test -Dtest.single='YourTestClass'
+
+    ./gradlew test --tests '*ClassName.testMethodName'
+
+    ./gradlew :sql:test -Dtests.seed=8352BE0120F826A9
+
+    ./gradlew :sql:test -Dtests.iters=20
+
+Use ``@TestLogging(["<packageName1>:<logLevel1>", ...])`` on your
+test class or test method to enable more detailed logging.
+
+Example::
+
+    @TestLogging("io.crate:DEBUG","io.crate.planner.consumer.NestedLoopConsumer:TRACE")
 
  - Building a tarball (which will be under ``app/build/distributions``)::
 

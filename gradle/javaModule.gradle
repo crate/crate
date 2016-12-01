@@ -34,3 +34,15 @@ jmh {
     resultFormat = 'JSON'
     zip64 = true
 }
+
+test {
+    // by default `-D` arguments are "catched" in the gradle process 
+    // and not passed-through to the test process.
+    // this enables test options like '-Dtests.iters=20'
+
+    System.properties.each { k, v ->
+        if (k.startsWith('tests.')) {
+            systemProperty k, v
+        }
+    }
+}
