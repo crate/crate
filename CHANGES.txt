@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fixed runtime error handling which could cause queries to get stuck
+   on failures.
+
  - Fixed issue which causes ``BETWEEN`` to return a wrong result if
    ``min`` or ``max`` is null.
 

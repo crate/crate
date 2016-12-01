@@ -144,27 +144,16 @@ public class PageDownstreamContext extends AbstractExecutionSubContext implement
     }
 
     @Override
-    public synchronized void failure(int bucketIdx, Throwable throwable) {
-        // can't trigger failure on pageDownstream immediately as it would remove the context which the other
-        // upstreams still require
+    public void failure(int bucketIdx, Throwable throwable) {
+        traceLog("method=failure", bucketIdx, throwable);
         synchronized (lock) {
-            traceLog("method=failure", bucketIdx, throwable);
             if (allFuturesSet.get(bucketIdx)) {
                 pageDownstream.fail(new IllegalStateException(String.format(Locale.ENGLISH,
                     "Same bucket of a page set more than once. node=%s method=failure phaseId=%d bucket=%d",
                     nodeName, id(), bucketIdx)));
                 return;
             }
-            if (pageEmpty()) {
-                traceLog("calling nextPage. method=failure", bucketIdx);
-                pageDownstream.nextPage(new BucketPage(bucketFutures), new ResultListenerBridgingConsumeListener());
-            }
-            setExhaustedUpstreams();
-
-            exhausted.set(bucketIdx);
-            bucketFutures.get(bucketIdx).setException(throwable);
-            allFuturesSet.set(bucketIdx);
-            clearPageIfFull(bucketIdx);
+            setBucketFailure(bucketIdx, throwable);
         }
     }
 
@@ -172,9 +161,27 @@ public class PageDownstreamContext extends AbstractExecutionSubContext implement
     public void killed(int bucketIdx, Throwable throwable) {
         traceLog("method=killed", bucketIdx, throwable);
         synchronized (lock) {
-            setExhaustedUpstreams();
-            bucketFutures.get(bucketIdx).setException(throwable);
+            if (allFuturesSet.get(bucketIdx)) {
+                traceLog("method=killed future already set", bucketIdx);
+                return;
+            }
+            setBucketFailure(bucketIdx, throwable);
         }
+    }
+
+    private void setBucketFailure(int bucketIdx, Throwable throwable) {
+        // can't trigger failure on pageDownstream immediately as it would remove the context which the other
+        // upstreams still require
+        if (pageEmpty()) {
+            traceLog("calling nextPage. method=setBucketFailure", bucketIdx);
+            pageDownstream.nextPage(new BucketPage(bucketFutures), new ResultListenerBridgingConsumeListener());
+        }
+        setExhaustedUpstreams();
+
+        exhausted.set(bucketIdx);
+        bucketFutures.get(bucketIdx).setException(throwable);
+        allFuturesSet.set(bucketIdx);
+        clearPageIfFull(bucketIdx);
     }
 
     private void clearPageIfFull(int bucketIdx) {
