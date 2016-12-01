@@ -66,8 +66,8 @@ public class CreateAnalyzer extends Statement {
     }
 
     /**
-     * if the statement contains any {@link io.crate.sql.tree.GenericProperty}s
-     * they will be gathered and returned as an instance of {@link io.crate.sql.tree.GenericProperties}.
+     * if the statement contains any {@link GenericProperty}s
+     * they will be gathered and returned as an instance of {@link GenericProperties}.
      */
     public GenericProperties getProperties() {
         return this.properties;

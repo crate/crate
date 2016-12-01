@@ -68,7 +68,7 @@ public class GenericProperties extends Node {
     }
 
     /**
-     * merge the given {@linkplain io.crate.sql.tree.GenericProperty} into the contained map.
+     * merge the given {@linkplain GenericProperty} into the contained map.
      *
      * @param property
      */
