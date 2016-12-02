@@ -58,7 +58,7 @@ public class MatchesFunction extends Scalar<BytesRef[], Object> implements Dynam
     private MatchesFunction() {
     }
 
-    public MatchesFunction(FunctionInfo info) {
+    private MatchesFunction(FunctionInfo info) {
         this.info = info;
     }
 
@@ -67,7 +67,7 @@ public class MatchesFunction extends Scalar<BytesRef[], Object> implements Dynam
         return info;
     }
 
-    public RegexMatcher regexMatcher() {
+    RegexMatcher regexMatcher() {
         return regexMatcher;
     }
 
@@ -157,7 +157,7 @@ public class MatchesFunction extends Scalar<BytesRef[], Object> implements Dynam
     }
 
     @Override
-    public FunctionImplementation<Function> getForTypes(List<DataType> dataTypes) throws IllegalArgumentException {
+    public FunctionImplementation getForTypes(List<DataType> dataTypes) throws IllegalArgumentException {
         Preconditions.checkArgument(dataTypes.size() > 1 && dataTypes.size() < 4
                                     && dataTypes.get(0) == DataTypes.STRING && dataTypes.get(1) == DataTypes.STRING,
             String.format(Locale.ENGLISH,

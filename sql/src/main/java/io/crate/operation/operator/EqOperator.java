@@ -81,7 +81,7 @@ public class EqOperator extends CmpOperator {
 
     private static class ArrayEqOperator extends CmpOperator {
 
-        protected ArrayEqOperator(FunctionInfo info) {
+        ArrayEqOperator(FunctionInfo info) {
             super(info);
         }
 
@@ -108,7 +108,7 @@ public class EqOperator extends CmpOperator {
 
         private final FunctionInfo info;
 
-        protected ObjectEqOperator(FunctionInfo info) {
+        ObjectEqOperator(FunctionInfo info) {
             this.info = info;
         }
 
@@ -132,7 +132,7 @@ public class EqOperator extends CmpOperator {
     static class EqOperatorResolver implements DynamicFunctionResolver {
 
         @Override
-        public FunctionImplementation<Function> getForTypes(List<DataType> dataTypes) throws IllegalArgumentException {
+        public FunctionImplementation getForTypes(List<DataType> dataTypes) throws IllegalArgumentException {
             Preconditions.checkArgument(dataTypes.size() == 2, "EqOperator must have 2 arguments");
             DataType leftType = dataTypes.get(0);
             DataType rightType = dataTypes.get(1);

@@ -43,7 +43,7 @@ public abstract class AnyOperator extends Operator<Object> {
     public static final String OPERATOR_PREFIX = "any_";
 
     /**
-     * called inside {@link #normalizeSymbol(io.crate.analyze.symbol.Function)}
+     * called inside {@link #no}
      * in order to interpret the result of compareTo
      * <p>
      * subclass has to implement this to evaluate the -1, 0, 1 to boolean
@@ -128,12 +128,12 @@ public abstract class AnyOperator extends Operator<Object> {
 
     public abstract static class AnyResolver implements DynamicFunctionResolver {
 
-        public abstract FunctionImplementation<Function> newInstance(FunctionInfo info);
+        public abstract FunctionImplementation newInstance(FunctionInfo info);
 
         public abstract String name();
 
         @Override
-        public FunctionImplementation<Function> getForTypes(List<DataType> dataTypes) throws IllegalArgumentException {
+        public FunctionImplementation getForTypes(List<DataType> dataTypes) throws IllegalArgumentException {
             checkArgument(dataTypes.size() == 2, "ANY operator requires exactly 2 arguments");
             checkArgument(DataTypes.isCollectionType(dataTypes.get(1)), "The second argument to ANY must be an array or set");
             checkArgument(((CollectionType) dataTypes.get(1)).innerType().equals(dataTypes.get(0)),

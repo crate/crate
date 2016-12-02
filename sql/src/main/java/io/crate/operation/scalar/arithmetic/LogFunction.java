@@ -59,7 +59,7 @@ public abstract class LogFunction extends Scalar<Number, Number> {
      * @param caller used in the error message for clarification purposes.
      * @return the validated result
      */
-    protected Double validateResult(Double result, String caller) {
+    Double validateResult(Double result, String caller) {
         if (result == null) {
             return null;
         }
@@ -69,13 +69,13 @@ public abstract class LogFunction extends Scalar<Number, Number> {
         return result;
     }
 
-    public LogFunction(FunctionInfo info) {
+    LogFunction(FunctionInfo info) {
         this.info = info;
     }
 
     static class LogBaseFunction extends LogFunction {
 
-        protected static void registerLogBaseFunctions(ScalarFunctionModule module) {
+        static void registerLogBaseFunctions(ScalarFunctionModule module) {
             // log(valueType, baseType) : double
             for (DataType baseType : ALLOWED_TYPES) {
                 for (DataType valueType : ALLOWED_TYPES) {
@@ -91,7 +91,7 @@ public abstract class LogFunction extends Scalar<Number, Number> {
             }
         }
 
-        public LogBaseFunction(FunctionInfo info) {
+        LogBaseFunction(FunctionInfo info) {
             super(info);
         }
 
@@ -117,7 +117,7 @@ public abstract class LogFunction extends Scalar<Number, Number> {
 
     static class Log10Function extends LogFunction {
 
-        protected static void registerLog10Functions(ScalarFunctionModule module) {
+        static void registerLog10Functions(ScalarFunctionModule module) {
             // log(dataType) : double
             for (DataType dt : ALLOWED_TYPES) {
                 FunctionInfo info = new FunctionInfo(new FunctionIdent(NAME, Arrays.asList(dt)), DataTypes.DOUBLE);
@@ -125,7 +125,7 @@ public abstract class LogFunction extends Scalar<Number, Number> {
             }
         }
 
-        public Log10Function(FunctionInfo info) {
+        Log10Function(FunctionInfo info) {
             super(info);
         }
 
@@ -147,7 +147,7 @@ public abstract class LogFunction extends Scalar<Number, Number> {
 
     public static class LnFunction extends Log10Function {
 
-        protected static void registerLnFunctions(ScalarFunctionModule module) {
+        static void registerLnFunctions(ScalarFunctionModule module) {
             // ln(dataType) : double
             for (DataType dt : ALLOWED_TYPES) {
                 FunctionInfo info = new FunctionInfo(new FunctionIdent(LnFunction.NAME, Arrays.asList(dt)), DataTypes.DOUBLE);
@@ -157,7 +157,7 @@ public abstract class LogFunction extends Scalar<Number, Number> {
 
         public static final String NAME = "ln";
 
-        public LnFunction(FunctionInfo info) {
+        LnFunction(FunctionInfo info) {
             super(info);
         }
 

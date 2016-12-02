@@ -23,7 +23,6 @@ package io.crate.operation.scalar;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
-import io.crate.analyze.symbol.Function;
 import io.crate.metadata.*;
 import io.crate.operation.Input;
 import io.crate.types.DataType;
@@ -40,10 +39,10 @@ public class SubstrFunction extends Scalar<BytesRef, Object> implements DynamicF
     private FunctionInfo info;
     private static final BytesRef EMPTY_BYTES_REF = new BytesRef("");
 
-    public SubstrFunction() {
+    private SubstrFunction() {
     }
 
-    public SubstrFunction(FunctionInfo info) {
+    private SubstrFunction(FunctionInfo info) {
         this.info = info;
     }
 
@@ -153,7 +152,7 @@ public class SubstrFunction extends Scalar<BytesRef, Object> implements DynamicF
     }
 
     @Override
-    public FunctionImplementation<Function> getForTypes(List<DataType> dataTypes) throws IllegalArgumentException {
+    public FunctionImplementation getForTypes(List<DataType> dataTypes) throws IllegalArgumentException {
         Preconditions.checkArgument(
             dataTypes.size() > 1 && dataTypes.size() < 4 && dataTypes.get(0) == DataTypes.STRING);
         return new SubstrFunction(createInfo(dataTypes));

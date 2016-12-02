@@ -21,7 +21,6 @@
 
 package io.crate.metadata;
 
-import io.crate.analyze.symbol.Function;
 import io.crate.types.DataType;
 
 import java.util.List;
@@ -36,5 +35,5 @@ public interface DynamicFunctionResolver {
      *
      * @throws java.lang.IllegalArgumentException thrown if there is no function that can handle the given types.
      */
-    FunctionImplementation<Function> getForTypes(List<DataType> dataTypes) throws IllegalArgumentException;
+    FunctionImplementation getForTypes(List<DataType> dataTypes) throws IllegalArgumentException;
 }

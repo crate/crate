@@ -35,13 +35,13 @@ import java.util.List;
 public abstract class ModulusFunction extends ArithmeticFunction implements OperatorFormatSpec {
 
     public static final String NAME = "modulus";
-    public static final String SQL_SYMBOL = "%";
+    private static final String SQL_SYMBOL = "%";
 
     public static void register(ScalarFunctionModule module) {
         module.register(NAME, new Resolver());
     }
 
-    public ModulusFunction(FunctionInfo info) {
+    ModulusFunction(FunctionInfo info) {
         super(info);
     }
 
@@ -52,7 +52,7 @@ public abstract class ModulusFunction extends ArithmeticFunction implements Oper
 
     private static class DoubleModulusFunction extends ModulusFunction {
 
-        public DoubleModulusFunction(FunctionInfo info) {
+        DoubleModulusFunction(FunctionInfo info) {
             super(info);
         }
 
@@ -74,7 +74,7 @@ public abstract class ModulusFunction extends ArithmeticFunction implements Oper
 
     private static class LongModulusFunction extends ModulusFunction {
 
-        public LongModulusFunction(FunctionInfo info) {
+        LongModulusFunction(FunctionInfo info) {
             super(info);
         }
 
@@ -97,7 +97,7 @@ public abstract class ModulusFunction extends ArithmeticFunction implements Oper
     private static class Resolver implements DynamicFunctionResolver {
 
         @Override
-        public FunctionImplementation<Function> getForTypes(List<DataType> dataTypes) throws IllegalArgumentException {
+        public FunctionImplementation getForTypes(List<DataType> dataTypes) throws IllegalArgumentException {
             validateTypes(dataTypes);
             if (containsTypesWithDecimal(dataTypes)) {
                 return new DoubleModulusFunction(genDoubleInfo(NAME, dataTypes));

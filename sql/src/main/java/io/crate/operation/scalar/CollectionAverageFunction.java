@@ -50,7 +50,7 @@ public class CollectionAverageFunction extends Scalar<Double, Set<Number>> {
         }
     }
 
-    public CollectionAverageFunction(FunctionInfo info) {
+    private CollectionAverageFunction(FunctionInfo info) {
         this.info = info;
     }
 

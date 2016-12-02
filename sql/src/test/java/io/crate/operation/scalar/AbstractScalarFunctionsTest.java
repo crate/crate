@@ -215,7 +215,7 @@ public abstract class AbstractScalarFunctionsTest extends CrateUnitTest {
         for (int i = 0; i < args.length; i++) {
             argTypes[i] = args[i].valueType();
         }
-        FunctionImplementation<Function> function = getFunction(functionName, argTypes);
+        FunctionImplementation function = getFunction(functionName, argTypes);
         return function.normalizeSymbol(new Function(function.info(),
             Arrays.asList(args)), transactionContext);
     }

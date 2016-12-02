@@ -22,7 +22,6 @@
 
 package io.crate.operation.scalar.arithmetic;
 
-import io.crate.analyze.symbol.Function;
 import io.crate.metadata.*;
 import io.crate.operation.Input;
 import io.crate.operation.scalar.ScalarFunctionModule;
@@ -50,7 +49,7 @@ public class MapFunction extends Scalar<Object, Object> {
 
     private final static DynamicFunctionResolver RESOLVER = new DynamicFunctionResolver() {
         @Override
-        public FunctionImplementation<Function> getForTypes(List<DataType> dataTypes) throws IllegalArgumentException {
+        public FunctionImplementation getForTypes(List<DataType> dataTypes) throws IllegalArgumentException {
             if (dataTypes.size() % 2 != 0) {
                 throw new IllegalArgumentException(
                     "Number of arguments to _map(...) must be a multiple of 2. Got " + dataTypes.size());

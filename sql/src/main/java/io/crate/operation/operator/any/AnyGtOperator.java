@@ -21,7 +21,6 @@
 
 package io.crate.operation.operator.any;
 
-import io.crate.analyze.symbol.Function;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.FunctionInfo;
 import io.crate.operation.operator.OperatorModule;
@@ -34,7 +33,7 @@ public class AnyGtOperator extends AnyOperator {
     static class AnyGtResolver extends AnyResolver {
 
         @Override
-        public FunctionImplementation<Function> newInstance(FunctionInfo info) {
+        public FunctionImplementation newInstance(FunctionInfo info) {
             return new AnyGtOperator(info);
         }
 
@@ -48,7 +47,7 @@ public class AnyGtOperator extends AnyOperator {
         module.registerDynamicOperatorFunction(NAME, new AnyGtResolver());
     }
 
-    protected AnyGtOperator(FunctionInfo functionInfo) {
+    AnyGtOperator(FunctionInfo functionInfo) {
         super(functionInfo);
     }
 

@@ -22,7 +22,6 @@
 
 package io.crate.operation.scalar.conditional;
 
-import io.crate.analyze.symbol.Function;
 import io.crate.metadata.DynamicFunctionResolver;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.FunctionInfo;
@@ -56,7 +55,7 @@ public class CoalesceFunction extends ConditionalFunction {
 
     private static class Resolver implements DynamicFunctionResolver {
         @Override
-        public FunctionImplementation<Function> getForTypes(List<DataType> dataTypes) throws IllegalArgumentException {
+        public FunctionImplementation getForTypes(List<DataType> dataTypes) throws IllegalArgumentException {
             return new CoalesceFunction(createInfo(NAME, dataTypes));
         }
     }

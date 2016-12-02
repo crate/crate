@@ -23,7 +23,6 @@
 package io.crate.operation.scalar;
 
 import com.google.common.base.Preconditions;
-import io.crate.analyze.symbol.Function;
 import io.crate.metadata.*;
 import io.crate.operation.Input;
 import io.crate.types.ArrayType;
@@ -83,7 +82,7 @@ class ArrayUniqueFunction extends Scalar<Object[], Object> {
     private static class Resolver implements DynamicFunctionResolver {
 
         @Override
-        public FunctionImplementation<Function> getForTypes(List<DataType> dataTypes) throws IllegalArgumentException {
+        public FunctionImplementation getForTypes(List<DataType> dataTypes) throws IllegalArgumentException {
             Preconditions.checkArgument(
                 dataTypes.size() >= 1 && dataTypes.size() <= 2, "array_unique function requires one or two arguments");
 

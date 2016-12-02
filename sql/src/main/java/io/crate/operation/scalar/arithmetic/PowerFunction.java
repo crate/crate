@@ -22,7 +22,6 @@
 
 package io.crate.operation.scalar.arithmetic;
 
-import io.crate.analyze.symbol.Function;
 import io.crate.metadata.*;
 import io.crate.operation.Input;
 import io.crate.operation.scalar.ScalarFunctionModule;
@@ -38,7 +37,7 @@ public abstract class PowerFunction extends Scalar<Number, Number> {
 
     private final FunctionInfo info;
 
-    public PowerFunction(FunctionInfo info) {
+    PowerFunction(FunctionInfo info) {
         this.info = info;
     }
 
@@ -53,7 +52,7 @@ public abstract class PowerFunction extends Scalar<Number, Number> {
 
     private static class DoublePowerFunction extends PowerFunction {
 
-        public DoublePowerFunction(FunctionInfo info) {
+        DoublePowerFunction(FunctionInfo info) {
             super(info);
         }
 
@@ -75,7 +74,7 @@ public abstract class PowerFunction extends Scalar<Number, Number> {
 
     private static class Resolver implements DynamicFunctionResolver {
         @Override
-        public FunctionImplementation<Function> getForTypes(List<DataType> dataTypes) throws IllegalArgumentException {
+        public FunctionImplementation getForTypes(List<DataType> dataTypes) throws IllegalArgumentException {
             if (dataTypes.size() != 2) {
                 throw new IllegalArgumentException(
                     "The number of arguments passed to power(...) must be 2. Got " + dataTypes.size());

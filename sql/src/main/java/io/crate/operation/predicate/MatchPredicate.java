@@ -45,7 +45,7 @@ import java.util.Set;
 /**
  * The match predicate is only used to generate lucene queries from.
  */
-public class MatchPredicate implements FunctionImplementation<Function> {
+public class MatchPredicate implements FunctionImplementation {
 
     public static final Set<DataType> SUPPORTED_TYPES = ImmutableSet.<DataType>of(DataTypes.STRING, DataTypes.GEO_SHAPE);
 

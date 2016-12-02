@@ -37,13 +37,13 @@ import java.util.List;
 public abstract class AddFunction extends ArithmeticFunction implements OperatorFormatSpec {
 
     public static final String NAME = "add";
-    public static final String SQL_SYMBOL = "+";
+    private static final String SQL_SYMBOL = "+";
 
     public static void register(ScalarFunctionModule module) {
         module.register(NAME, new Resolver());
     }
 
-    public AddFunction(FunctionInfo info) {
+    AddFunction(FunctionInfo info) {
         super(info);
     }
 
@@ -66,7 +66,7 @@ public abstract class AddFunction extends ArithmeticFunction implements Operator
 
     private static class DoubleAddFunction extends AddFunction {
 
-        public DoubleAddFunction(FunctionInfo info) {
+        DoubleAddFunction(FunctionInfo info) {
             super(info);
         }
 
@@ -88,7 +88,7 @@ public abstract class AddFunction extends ArithmeticFunction implements Operator
 
     private static class LongAddFunction extends AddFunction {
 
-        public LongAddFunction(FunctionInfo info) {
+        LongAddFunction(FunctionInfo info) {
             super(info);
         }
 
@@ -111,7 +111,7 @@ public abstract class AddFunction extends ArithmeticFunction implements Operator
     private static class Resolver implements DynamicFunctionResolver {
 
         @Override
-        public FunctionImplementation<Function> getForTypes(List<DataType> dataTypes) throws IllegalArgumentException {
+        public FunctionImplementation getForTypes(List<DataType> dataTypes) throws IllegalArgumentException {
             validateTypes(dataTypes);
             if (containsTypesWithDecimal(dataTypes)) {
                 return new DoubleAddFunction(genDoubleInfo(NAME, dataTypes, FunctionInfo.DETERMINISTIC_AND_COMPARISON_REPLACEMENT));

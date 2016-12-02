@@ -21,7 +21,6 @@
 
 package io.crate.operation.scalar.arithmetic;
 
-import io.crate.analyze.symbol.Function;
 import io.crate.metadata.DynamicFunctionResolver;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.FunctionInfo;
@@ -39,13 +38,13 @@ public abstract class SubtractFunction extends ArithmeticFunction {
         module.register(NAME, new Resolver());
     }
 
-    public SubtractFunction(FunctionInfo info) {
+    SubtractFunction(FunctionInfo info) {
         super(info);
     }
 
     private static class DoubleSubtractFunction extends SubtractFunction {
 
-        public DoubleSubtractFunction(FunctionInfo info) {
+        DoubleSubtractFunction(FunctionInfo info) {
             super(info);
         }
 
@@ -67,7 +66,7 @@ public abstract class SubtractFunction extends ArithmeticFunction {
 
     private static class LongSubtractFunction extends SubtractFunction {
 
-        public LongSubtractFunction(FunctionInfo info) {
+        LongSubtractFunction(FunctionInfo info) {
             super(info);
         }
 
@@ -90,7 +89,7 @@ public abstract class SubtractFunction extends ArithmeticFunction {
     private static class Resolver implements DynamicFunctionResolver {
 
         @Override
-        public FunctionImplementation<Function> getForTypes(List<DataType> dataTypes) throws IllegalArgumentException {
+        public FunctionImplementation getForTypes(List<DataType> dataTypes) throws IllegalArgumentException {
             validateTypes(dataTypes);
             if (containsTypesWithDecimal(dataTypes)) {
                 return new DoubleSubtractFunction(genDoubleInfo(NAME, dataTypes));

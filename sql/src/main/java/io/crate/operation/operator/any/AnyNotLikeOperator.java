@@ -21,7 +21,6 @@
 
 package io.crate.operation.operator.any;
 
-import io.crate.analyze.symbol.Function;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.FunctionInfo;
 import io.crate.operation.operator.LikeOperator;
@@ -36,7 +35,7 @@ public class AnyNotLikeOperator extends AbstractAnyLikeOperator {
     static class AnyNotLikeResolver extends AnyResolver {
 
         @Override
-        public FunctionImplementation<Function> newInstance(FunctionInfo info) {
+        public FunctionImplementation newInstance(FunctionInfo info) {
             return new AnyNotLikeOperator(info);
         }
 
@@ -50,7 +49,7 @@ public class AnyNotLikeOperator extends AbstractAnyLikeOperator {
         operatorModule.registerDynamicOperatorFunction(NAME, new AnyNotLikeResolver());
     }
 
-    public AnyNotLikeOperator(FunctionInfo info) {
+    AnyNotLikeOperator(FunctionInfo info) {
         super(info);
     }
 

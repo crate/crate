@@ -165,7 +165,7 @@ public class DistanceFunction extends Scalar<Double, Object> {
         );
 
         @Override
-        public FunctionImplementation<Function> getForTypes(List<DataType> dataTypes) throws IllegalArgumentException {
+        public FunctionImplementation getForTypes(List<DataType> dataTypes) throws IllegalArgumentException {
             Preconditions.checkArgument(dataTypes.size() == 2,
                 "%s takes 2 arguments, not %s", NAME, dataTypes.size());
             validateType(dataTypes.get(0));

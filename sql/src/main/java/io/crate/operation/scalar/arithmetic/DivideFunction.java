@@ -35,13 +35,13 @@ import java.util.List;
 public abstract class DivideFunction extends ArithmeticFunction implements OperatorFormatSpec {
 
     public static final String NAME = "divide";
-    public static final String SQL_SYMBOL = "/";
+    private static final String SQL_SYMBOL = "/";
 
     public static void register(ScalarFunctionModule module) {
         module.register(NAME, new Resolver());
     }
 
-    public DivideFunction(FunctionInfo info) {
+    DivideFunction(FunctionInfo info) {
         super(info);
     }
 
@@ -52,7 +52,7 @@ public abstract class DivideFunction extends ArithmeticFunction implements Opera
 
     private static class DoubleDivideFunction extends DivideFunction {
 
-        public DoubleDivideFunction(FunctionInfo info) {
+        DoubleDivideFunction(FunctionInfo info) {
             super(info);
         }
 
@@ -74,7 +74,7 @@ public abstract class DivideFunction extends ArithmeticFunction implements Opera
 
     private static class LongDivideFunction extends DivideFunction {
 
-        public LongDivideFunction(FunctionInfo info) {
+        LongDivideFunction(FunctionInfo info) {
             super(info);
         }
 
@@ -98,7 +98,7 @@ public abstract class DivideFunction extends ArithmeticFunction implements Opera
     private static class Resolver implements DynamicFunctionResolver {
 
         @Override
-        public FunctionImplementation<Function> getForTypes(List<DataType> dataTypes) throws IllegalArgumentException {
+        public FunctionImplementation getForTypes(List<DataType> dataTypes) throws IllegalArgumentException {
             validateTypes(dataTypes);
             if (containsTypesWithDecimal(dataTypes)) {
                 return new DoubleDivideFunction(genDoubleInfo(NAME, dataTypes));

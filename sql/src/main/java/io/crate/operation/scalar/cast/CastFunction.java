@@ -131,7 +131,7 @@ public class CastFunction extends Scalar<Object, Object> implements FunctionForm
         }
 
         @Override
-        public FunctionImplementation<Function> getForTypes(List<DataType> dataTypes) throws IllegalArgumentException {
+        public FunctionImplementation getForTypes(List<DataType> dataTypes) throws IllegalArgumentException {
             checkPreconditions(dataTypes);
             return new CastFunction(new FunctionInfo(new FunctionIdent(name, dataTypes), targetType));
         }
