@@ -331,7 +331,10 @@ public class NestedLoopConsumerTest extends CrateUnitTest {
 
     @Test
     public void testLimitNotAppliedWhenFilteringRemains() throws Exception {
-        QueryThenFetch plan = plan("select * from users u1, users u2, users u3, users u4 " +
+        QueryThenFetch plan = plan("select * from users u1 " +
+                                   "left join users u2 on u1.id=u2.id " +
+                                   "left join users u3 on u2.id=u3.id " +
+                                   "left join users u4 on u3.id=u4.id " +
                                    "where u1.name = u4.name " +
                                    "limit 10");
         NestedLoopPhase nl = ((NestedLoop) plan.subPlan()).nestedLoopPhase();

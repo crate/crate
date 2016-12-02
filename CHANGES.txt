@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Optimize execution of joins by ordering the join relations based on
+   join/where conditions.
+
  - Fixed issue in joins with 3 or more tables where limit was applied
    before `where` clause filtering which produced  wrong results.
 

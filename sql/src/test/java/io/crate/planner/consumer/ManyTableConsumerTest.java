@@ -187,4 +187,15 @@ public class ManyTableConsumerTest extends CrateUnitTest {
         // so index for t2.b must be shifted
         assertThat(root.joinPair().condition(), isSQL("(RELCOL(doc.t1, 0) = RELCOL(doc.t2, 0))"));
     }
+
+    @Test
+    public void test3TableSortOnWhere() throws Exception {
+        MultiSourceSelect mss = analyze("select * from t1,t2,t3 " +
+                                        "where t1.a=t3.c");
+        TwoTableJoin root = ManyTableConsumer.buildTwoTableJoinTree(mss);
+        assertThat(root.toString(), is("join.join.doc.t1.doc.t3.doc.t2"));
+        TwoTableJoin t1Andt3 = ((TwoTableJoin) root.left().relation());
+        assertThat(t1Andt3.toString(), is("join.doc.t1.doc.t3"));
+        assertThat(root.right().qualifiedName().toString(), is("doc.t2"));
+    }
 }

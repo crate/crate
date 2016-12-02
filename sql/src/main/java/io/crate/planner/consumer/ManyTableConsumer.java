@@ -70,9 +70,6 @@ public class ManyTableConsumer implements Consumer {
                                                            Set<? extends Set<QualifiedName>> implicitJoinedRelations,
                                                            List<JoinPair> joinPairs,
                                                            Collection<QualifiedName> preSorted) {
-        if (preSorted.isEmpty()) {
-            return relations;
-        }
         if (relations.size() == preSorted.size()) {
             return preSorted;
         }
