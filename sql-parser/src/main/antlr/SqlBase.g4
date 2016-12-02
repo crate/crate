@@ -28,10 +28,6 @@ singleExpression
 
 statement
     : query                                                            #statementDefault
-    | USE schema=identifier                                            #use
-    | USE catalog=identifier '.' schema=identifier                     #use
-    | CREATE SCHEMA (IF NOT EXISTS)? qualifiedName
-        (WITH tableProperties)?                                        #createSchema
     | DROP SCHEMA (IF EXISTS)? qualifiedName (CASCADE | RESTRICT)?     #dropSchema
     | ALTER SCHEMA qualifiedName RENAME TO identifier                  #renameSchema
     | CREATE TABLE (IF NOT EXISTS)? qualifiedName
@@ -49,42 +45,21 @@ statement
     | ALTER TABLE tableName=qualifiedName
         ADD COLUMN column=columnDefinition                             #addColumn
     | CREATE (OR REPLACE)? VIEW qualifiedName AS query                 #createView
-//    | DROP VIEW (IF EXISTS)? qualifiedName                             #dropView
-//    | CALL qualifiedName '(' (callArgument (',' callArgument)*)? ')'   #call
-//    | GRANT
-//        (privilege (',' privilege)* | ALL PRIVILEGES)
-//        ON TABLE? qualifiedName TO grantee=identifier
-//        (WITH GRANT OPTION)?                                           #grant
-//    | REVOKE
-//        (GRANT OPTION FOR)?
-//        (privilege (',' privilege)* | ALL PRIVILEGES)
-//        ON TABLE? qualifiedName FROM grantee=identifier                #revoke
     | EXPLAIN ANALYZE?
         ('(' explainOption (',' explainOption)* ')')? statement        #explain
     | SHOW CREATE TABLE qualifiedName                                  #showCreateTable
-//    | SHOW CREATE VIEW qualifiedName                                   #showCreateView
     | SHOW TABLES ((FROM | IN) qualifiedName)? (LIKE pattern=STRING)?  #showTables
     | SHOW SCHEMAS ((FROM | IN) identifier)? (LIKE pattern=STRING)?    #showSchemas
-//    | SHOW CATALOGS (LIKE pattern=STRING)?                             #showCatalogs
     | SHOW COLUMNS (FROM | IN) qualifiedName                           #showColumns
-    | DESCRIBE qualifiedName                                           #showColumns
-    | DESC qualifiedName                                               #showColumns
     | SHOW FUNCTIONS                                                   #showFunctions
     | SHOW SESSION                                                     #showSession
     | SET SESSION qualifiedName EQ expression                          #setSession
     | RESET SESSION qualifiedName                                      #resetSession
-//    | START TRANSACTION (transactionMode (',' transactionMode)*)?      #startTransaction
-//    | COMMIT WORK?                                                     #commit
-//    | ROLLBACK WORK?                                                   #rollback
     | SHOW PARTITIONS (FROM | IN) qualifiedName
         (WHERE booleanExpression)?
         (ORDER BY sortItem (',' sortItem)*)?
         (LIMIT limit=(INTEGER_VALUE | ALL))?                           #showPartitions
-    | PREPARE identifier FROM statement                                #prepare
-    | DEALLOCATE PREPARE identifier                                    #deallocate
     | EXECUTE identifier (USING expression (',' expression)*)?         #execute
-//    | DESCRIBE INPUT identifier                                        #describeInput
-//    | DESCRIBE OUTPUT identifier                                       #describeOutput
     ;
 
 query
@@ -154,7 +129,6 @@ groupBy
 groupingElement
     : groupingExpressions                                               #singleGroupingSet
     | ROLLUP '(' (qualifiedName (',' qualifiedName)*)? ')'              #rollup
-    | CUBE '(' (qualifiedName (',' qualifiedName)*)? ')'                #cube
     | GROUPING SETS '(' groupingSet (',' groupingSet)* ')'              #multipleGroupingSets
     ;
 
@@ -306,7 +280,6 @@ primaryExpression
     | name=LOCALTIME ('(' precision=INTEGER_VALUE ')')?                                   #specialDateTimeFunction
     | name=LOCALTIMESTAMP ('(' precision=INTEGER_VALUE ')')?                              #specialDateTimeFunction
     | SUBSTRING '(' valueExpression FROM valueExpression (FOR valueExpression)? ')'       #substring
-    | NORMALIZE '(' valueExpression (',' normalForm)? ')'                                 #normalize
     | EXTRACT '(' identifier FROM valueExpression ')'                                     #extract
     ;
 
