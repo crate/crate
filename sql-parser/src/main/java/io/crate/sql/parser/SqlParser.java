@@ -39,6 +39,8 @@ public class SqlParser {
         }
     };
 
+    public static final SqlParser INSTANCE = new SqlParser();
+
     private final EnumSet<IdentifierSymbol> allowedIdentifierSymbols;
 
     public SqlParser() {
@@ -51,12 +53,31 @@ public class SqlParser {
         allowedIdentifierSymbols = EnumSet.copyOf(options.getAllowedIdentifierSymbols());
     }
 
-    public Statement createStatement(String sql) {
+    public static Statement createStatement(String sql) {
+        return INSTANCE.generateStatement(sql);
+    }
+
+    private Statement generateStatement(String sql) {
         return (Statement) invokeParser("statement", sql, SqlBaseParser::singleStatement);
     }
 
-    public Expression createExpression(String expression) {
+    public static Expression createExpression(String expression) {
+        return INSTANCE.generateExpression(expression);
+    }
+
+    private Expression generateExpression(String expression) {
         return (Expression) invokeParser("expression", expression, SqlBaseParser::singleExpression);
+    }
+
+    public static String createIdentifier(String expression) {
+        return getParser(expression).identifier().getText();
+    }
+
+    private static SqlBaseParser getParser(String sql) {
+        CharStream stream = new CaseInsensitiveStream(new ANTLRInputStream(sql));
+        SqlBaseLexer lexer = new SqlBaseLexer(stream);
+        TokenStream tokenStream = new CommonTokenStream(lexer);
+        return new SqlBaseParser(tokenStream);
     }
 
     private Node invokeParser(String name, String sql, Function<SqlBaseParser, ParserRuleContext> parseFunction) {

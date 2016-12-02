@@ -105,7 +105,6 @@ public class TestSqlParser {
     public void testEmptyExpression() {
         expectedException.expect(ParsingException.class);
         expectedException.expectMessage("line 1:1: no viable alternative at input '<EOF>'");
-
         SqlParser.createExpression("");
     }
 
