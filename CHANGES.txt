@@ -8,38 +8,16 @@ Unreleased
  - Fixed issue which causes ``BETWEEN`` to return a wrong result if
    ``min`` or ``max`` is null.
 
- - Fixed ClassCastException that occurs when executing queries with
-   `order by` that uses scalar functions which have integer return type
-   and null values are involved in the ordering.
-   e.g. ``SELECT * from t1 ORDER BY abs(col1)`` (col1 contains nulls)
-
- - Fixed NPE that that can occur in join queries when left table
-   has no matching records.
-
- - Fixed issue that caused join queries to get stuck when killed.
-
  - Improved error message if function is unsupported with `distinct`
 
  - Nested numeric factors do not require brackets any more;
    e.g. ``SELECT + - 10`` is now supported.
-
- - Improved error message when column is missing from `group by`
-   by using the column alias instead of the column name.
-
- - Improve error message for not supported set operations
-   `intersect` and `except`.
-
- - Improved error handling:
-   Sometimes a user would get a "Job Killed" error instead of the actual error
-   that caused a query to get interrupted.
 
  - Added subscript support for `cast` and `try_cast` expressions.
    e.g.: `select cast(coordinates as array(double))[1] from sys.summits`
    is now possible
 
  - Upgraded Elasticsearch to 2.4.2
-
- - Fixed a memory leak that was caused by blob uploads.
 
  - Possibly BREAKING blob storage changes:
 
@@ -95,6 +73,31 @@ Unreleased
    schema can be set with ``SET SESSION search_path = schema_name``.
 
  - Removed java7 support
+
+2016/11/30 0.57.4
+=================
+
+ - Fixed ClassCastException that occurs when executing queries with
+   `order by` that uses scalar functions which have integer return type
+   and null values are involved in the ordering.
+   e.g. ``SELECT * from t1 ORDER BY abs(col1)`` (col1 contains nulls)
+
+ - Fixed NPE that that can occur in join queries when left table
+   has no matching records.
+
+ - Fixed issue that caused join queries to get stuck when killed.
+
+ - Improved error message when column is missing from `group by`
+   by using the column alias instead of the column name.
+
+ - Improve error message for not supported set operations
+   `intersect` and `except`.
+
+ - Improved error handling:
+   Sometimes a user would get a "Job Killed" error instead of the actual error
+   that caused a query to get interrupted.
+
+ - Fixed a memory leak that was caused by blob uploads.
 
 2016/11/24 0.57.3
 =================
