@@ -27,7 +27,6 @@ import io.crate.analyze.symbol.Symbol;
 import io.crate.collections.Lists2;
 import io.crate.metadata.TableIdent;
 import io.crate.planner.node.fetch.FetchSource;
-import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
 import java.io.IOException;
@@ -120,11 +119,6 @@ public class FetchProjection extends Projection {
     @Override
     public int hashCode() {
         return collectPhaseId;
-    }
-
-    @Override
-    public void readFrom(StreamInput in) throws IOException {
-        throw new UnsupportedOperationException();
     }
 
     @Override

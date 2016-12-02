@@ -63,8 +63,6 @@ public abstract class AbstractIndexWriterProjection extends Projection {
 
     protected boolean autoCreateIndices;
 
-    protected AbstractIndexWriterProjection() {
-    }
 
     protected AbstractIndexWriterProjection(TableIdent tableIdent,
                                             @Nullable String partitionIdent,
@@ -81,6 +79,32 @@ public abstract class AbstractIndexWriterProjection extends Projection {
         this.bulkActions = settings.getAsInt(BULK_SIZE, BULK_SIZE_DEFAULT);
         Preconditions.checkArgument(bulkActions > 0, "\"bulk_size\" must be greater than 0.");
     }
+
+    protected AbstractIndexWriterProjection(StreamInput in) throws IOException {
+        tableIdent = TableIdent.fromStream(in);
+
+        partitionIdent = in.readOptionalString();
+        idSymbols = Symbols.listFromStream(in);
+
+        int numPks = in.readVInt();
+        primaryKeys = new ArrayList<>(numPks);
+        for (int i = 0; i < numPks; i++) {
+            primaryKeys.add(ColumnIdent.fromStream(in));
+        }
+
+        partitionedBySymbols = Symbols.listFromStream(in);
+        if (in.readBoolean()) {
+            clusteredBySymbol = Symbols.fromStream(in);
+        } else {
+            clusteredBySymbol = null;
+        }
+        if (in.readBoolean()) {
+            clusteredByColumn = ColumnIdent.fromStream(in);
+        }
+        bulkActions = in.readVInt();
+        autoCreateIndices = in.readBoolean();
+    }
+
 
     public List<? extends Symbol> ids() {
         return idSymbols;
@@ -124,32 +148,6 @@ public abstract class AbstractIndexWriterProjection extends Projection {
     @Nullable
     public String partitionIdent() {
         return partitionIdent;
-    }
-
-    @Override
-    public void readFrom(StreamInput in) throws IOException {
-        tableIdent = TableIdent.fromStream(in);
-
-        partitionIdent = in.readOptionalString();
-        idSymbols = Symbols.listFromStream(in);
-
-        int numPks = in.readVInt();
-        primaryKeys = new ArrayList<>(numPks);
-        for (int i = 0; i < numPks; i++) {
-            primaryKeys.add(ColumnIdent.fromStream(in));
-        }
-
-        partitionedBySymbols = Symbols.listFromStream(in);
-        if (in.readBoolean()) {
-            clusteredBySymbol = Symbols.fromStream(in);
-        } else {
-            clusteredBySymbol = null;
-        }
-        if (in.readBoolean()) {
-            clusteredByColumn = ColumnIdent.fromStream(in);
-        }
-        bulkActions = in.readVInt();
-        autoCreateIndices = in.readBoolean();
     }
 
     @Override

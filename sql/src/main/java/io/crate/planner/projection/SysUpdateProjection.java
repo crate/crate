@@ -36,21 +36,20 @@ import java.util.*;
 
 public class SysUpdateProjection extends Projection {
 
-    public static final ProjectionFactory<SysUpdateProjection> FACTORY = new ProjectionFactory<SysUpdateProjection>() {
-        @Override
-        public SysUpdateProjection newInstance() {
-            return new SysUpdateProjection();
-        }
-    };
     private static final List<Value> OUTPUTS = Collections.singletonList(new Value(DataTypes.LONG));
 
     private Map<Reference, Symbol> assignments;
 
-    private SysUpdateProjection() {
-    }
-
     public SysUpdateProjection(Map<Reference, Symbol> assignments) {
         this.assignments = assignments;
+    }
+
+    public SysUpdateProjection(StreamInput in) throws IOException {
+        int numAssignments = in.readVInt();
+        assignments = new HashMap<>(numAssignments, 1.0f);
+        for (int i = 0; i < numAssignments; i++) {
+            assignments.put(Reference.fromStream(in), Symbols.fromStream(in));
+        }
     }
 
     @Override
@@ -80,15 +79,6 @@ public class SysUpdateProjection extends Projection {
 
     public Map<Reference, Symbol> assignments() {
         return assignments;
-    }
-
-    @Override
-    public void readFrom(StreamInput in) throws IOException {
-        int numAssignments = in.readVInt();
-        assignments = new HashMap<>(numAssignments, 1.0f);
-        for (int i = 0; i < numAssignments; i++) {
-            assignments.put(Reference.fromStream(in), Symbols.fromStream(in));
-        }
     }
 
     @Override

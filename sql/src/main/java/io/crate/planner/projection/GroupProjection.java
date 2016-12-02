@@ -42,20 +42,20 @@ public class GroupProjection extends Projection {
 
     private RowGranularity requiredGranularity = RowGranularity.CLUSTER;
 
-    public static final ProjectionFactory<GroupProjection> FACTORY = new ProjectionFactory<GroupProjection>() {
-        @Override
-        public GroupProjection newInstance() {
-            return new GroupProjection();
-        }
-    };
-
-    private GroupProjection() {
-    }
-
     public GroupProjection(List<Symbol> keys, List<Aggregation> values, RowGranularity requiredGranularity) {
         this.keys = keys;
         this.values = values;
         this.requiredGranularity = requiredGranularity;
+    }
+
+    public GroupProjection(StreamInput in) throws IOException {
+        keys = Symbols.listFromStream(in);
+        int size = in.readVInt();
+        values = new ArrayList<>(size);
+        for (int i = 0; i < size; i++) {
+            values.add((Aggregation) Symbols.fromStream(in));
+        }
+        requiredGranularity = RowGranularity.fromStream(in);
     }
 
     @Override
@@ -94,17 +94,6 @@ public class GroupProjection extends Projection {
             outputs.addAll(values);
         }
         return outputs;
-    }
-
-    @Override
-    public void readFrom(StreamInput in) throws IOException {
-        keys = Symbols.listFromStream(in);
-        int size = in.readVInt();
-        values = new ArrayList<>(size);
-        for (int i = 0; i < size; i++) {
-            values.add((Aggregation) Symbols.fromStream(in));
-        }
-        requiredGranularity = RowGranularity.fromStream(in);
     }
 
     @Override

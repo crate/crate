@@ -42,14 +42,13 @@ public class AggregationProjection extends Projection {
     private RowGranularity contextGranularity;
     private List<Aggregation> aggregations = ImmutableList.of();
 
-    public static final ProjectionFactory<AggregationProjection> FACTORY = new ProjectionFactory<AggregationProjection>() {
-        @Override
-        public AggregationProjection newInstance() {
-            return new AggregationProjection();
+    public AggregationProjection(StreamInput in) throws IOException {
+        int size = in.readVInt();
+        aggregations = new ArrayList<>(size);
+        for (int i = 0; i < size; i++) {
+            aggregations.add((Aggregation) Symbols.fromStream(in));
         }
-    };
-
-    private AggregationProjection() {
+        contextGranularity = RowGranularity.fromStream(in);
     }
 
     public AggregationProjection(List<Aggregation> aggregations, RowGranularity contextGranularity) {
@@ -84,16 +83,6 @@ public class AggregationProjection extends Projection {
     @Override
     public List<? extends Symbol> outputs() {
         return aggregations;
-    }
-
-    @Override
-    public void readFrom(StreamInput in) throws IOException {
-        int size = in.readVInt();
-        aggregations = new ArrayList<>(size);
-        for (int i = 0; i < size; i++) {
-            aggregations.add((Aggregation) Symbols.fromStream(in));
-        }
-        contextGranularity = RowGranularity.fromStream(in);
     }
 
     @Override

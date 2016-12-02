@@ -36,19 +36,9 @@ import java.util.Objects;
 
 public class FilterProjection extends Projection {
 
-    public static final ProjectionFactory<FilterProjection> FACTORY = new ProjectionFactory<FilterProjection>() {
-        @Override
-        public FilterProjection newInstance() {
-            return new FilterProjection();
-        }
-    };
-
     private Symbol query;
     private List<Symbol> outputs = ImmutableList.of();
     private RowGranularity requiredGranularity = RowGranularity.CLUSTER;
-
-    public FilterProjection() {
-    }
 
     @Override
     public RowGranularity requiredGranularity() {
@@ -74,9 +64,10 @@ public class FilterProjection extends Projection {
         this.query = query;
     }
 
-
-    public void query(Symbol query) {
-        this.query = query;
+    public FilterProjection(StreamInput in) throws IOException {
+        query = Symbols.fromStream(in);
+        outputs = Symbols.listFromStream(in);
+        requiredGranularity = RowGranularity.fromStream(in);
     }
 
     public Symbol query() {
@@ -110,13 +101,6 @@ public class FilterProjection extends Projection {
         FilterProjection that = (FilterProjection) o;
 
         return Objects.equals(query, that.query);
-    }
-
-    @Override
-    public void readFrom(StreamInput in) throws IOException {
-        query = Symbols.fromStream(in);
-        outputs = Symbols.listFromStream(in);
-        requiredGranularity = RowGranularity.fromStream(in);
     }
 
     @Override

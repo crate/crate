@@ -37,17 +37,18 @@ import java.util.List;
 
 public abstract class DMLProjection extends Projection {
 
-    protected final static List<Symbol> OUTPUTS = ImmutableList.<Symbol>of(
+    private final static List<Symbol> OUTPUTS = ImmutableList.<Symbol>of(
         new Value(DataTypes.LONG)  // number of rows updated
     );
 
-    protected Symbol uidSymbol;
+    Symbol uidSymbol;
 
-    public DMLProjection(Symbol uidSymbol) {
+    DMLProjection(Symbol uidSymbol) {
         this.uidSymbol = uidSymbol;
     }
 
-    public DMLProjection() {
+    DMLProjection(StreamInput in) throws IOException {
+        uidSymbol = Symbols.fromStream(in);
     }
 
     @Override
@@ -70,11 +71,6 @@ public abstract class DMLProjection extends Projection {
     @Override
     public int hashCode() {
         return Objects.hashCode(super.hashCode(), uidSymbol);
-    }
-
-    @Override
-    public void readFrom(StreamInput in) throws IOException {
-        uidSymbol = Symbols.fromStream(in);
     }
 
     @Override
