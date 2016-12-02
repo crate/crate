@@ -30,19 +30,12 @@ import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.junit.Test;
 
-import static io.crate.testing.TestingHelpers.createReference;
-
 public class TopNProjectionTest extends CrateUnitTest {
 
     @Test
     public void testStreaming() throws Exception {
-
         ImmutableList<Symbol> outputs = ImmutableList.of(new Value(DataTypes.BOOLEAN), new Value(DataTypes.INTEGER));
-        TopNProjection p = new TopNProjection(5, 10, outputs,
-            ImmutableList.<Symbol>of(createReference("foo", DataTypes.BOOLEAN)),
-            new boolean[]{true},
-            new Boolean[]{null});
-
+        TopNProjection p = new TopNProjection(5, 10, outputs);
 
         BytesStreamOutput out = new BytesStreamOutput();
         Projection.toStream(p, out);

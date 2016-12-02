@@ -39,10 +39,7 @@ import io.crate.planner.distribution.DistributionType;
 import io.crate.planner.node.dql.*;
 import io.crate.planner.node.dql.join.NestedLoop;
 import io.crate.planner.node.dql.join.NestedLoopPhase;
-import io.crate.planner.projection.AggregationProjection;
-import io.crate.planner.projection.FetchProjection;
-import io.crate.planner.projection.FilterProjection;
-import io.crate.planner.projection.TopNProjection;
+import io.crate.planner.projection.*;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.crate.types.DataTypes;
@@ -295,7 +292,7 @@ public class NestedLoopConsumerTest extends CrateUnitTest {
     @Test
     public void testOrderByOnJoinCondition() throws Exception {
         NestedLoop nl = plan("select u1.name || u2.name from users u1, users u2 order by u1.name, u1.name || u2.name");
-        List<Symbol> orderBy = ((TopNProjection) nl.nestedLoopPhase().projections().get(0)).orderBy();
+        List<Symbol> orderBy = ((OrderedTopNProjection) nl.nestedLoopPhase().projections().get(0)).orderBy();
         assertThat(orderBy, notNullValue());
         assertThat(orderBy.size(), is(2));
         assertThat(orderBy.get(0), isInputColumn(0));

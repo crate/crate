@@ -110,7 +110,7 @@ public class ProjectionToProjectorVisitor
     }
 
     @Override
-    public Projector visitTopNProjection(TopNProjection projection, Context context) {
+    public Projector visitOrderedTopN(OrderedTopNProjection projection, Context context) {
         Projector projector;
         List<Input<?>> inputs = new ArrayList<>();
         List<CollectExpression<Row, ?>> collectExpressions = new ArrayList<>();
@@ -119,49 +119,55 @@ public class ProjectionToProjectorVisitor
         inputs.addAll(ctx.topLevelInputs());
         collectExpressions.addAll(ctx.collectExpressions());
 
-        if (projection.isOrdered()) {
-            int numOutputs = inputs.size();
-            ImplementationSymbolVisitor.Context orderByCtx = symbolVisitor.extractImplementations(projection.orderBy());
+        int numOutputs = inputs.size();
+        ImplementationSymbolVisitor.Context orderByCtx = symbolVisitor.extractImplementations(projection.orderBy());
 
-            // append orderby inputs to row, needed for sorting on them
-            inputs.addAll(orderByCtx.topLevelInputs());
-            collectExpressions.addAll(orderByCtx.collectExpressions());
+        // append orderby inputs to row, needed for sorting on them
+        inputs.addAll(orderByCtx.topLevelInputs());
+        collectExpressions.addAll(orderByCtx.collectExpressions());
 
-            int[] orderByIndices = new int[inputs.size() - numOutputs];
-            int idx = 0;
-            for (int i = numOutputs; i < inputs.size(); i++) {
-                orderByIndices[idx++] = i;
-            }
+        int[] orderByIndices = new int[inputs.size() - numOutputs];
+        int idx = 0;
+        for (int i = numOutputs; i < inputs.size(); i++) {
+            orderByIndices[idx++] = i;
+        }
 
-            if (projection.limit() > TopN.NO_LIMIT) {
-                projector = new SortingTopNProjector(
-                    inputs,
-                    collectExpressions,
-                    numOutputs,
-                    OrderingByPosition.arrayOrdering(orderByIndices, projection.reverseFlags(), projection.nullsFirst()),
-                    projection.limit(),
-                    projection.offset()
-                );
-            } else {
-                projector = new SortingProjector(
-                    inputs,
-                    collectExpressions,
-                    numOutputs,
-                    OrderingByPosition.arrayOrdering(orderByIndices, projection.reverseFlags(), projection.nullsFirst()),
-                    projection.offset()
-                );
-            }
-        } else if (projection.limit() == TopN.NO_LIMIT
-                   && projection.offset() == TopN.NO_OFFSET) {
-            projector = new InputRowProjector(inputs, collectExpressions);
-        } else {
-            projector = new SimpleTopNProjector(
+        if (projection.limit() > TopN.NO_LIMIT) {
+            return new SortingTopNProjector(
                 inputs,
                 collectExpressions,
+                numOutputs,
+                OrderingByPosition.arrayOrdering(orderByIndices, projection.reverseFlags(), projection.nullsFirst()),
                 projection.limit(),
-                projection.offset());
+                projection.offset()
+            );
         }
-        return projector;
+        return new SortingProjector(
+            inputs,
+            collectExpressions,
+            numOutputs,
+            OrderingByPosition.arrayOrdering(orderByIndices, projection.reverseFlags(), projection.nullsFirst()),
+            projection.offset()
+        );
+    }
+
+    @Override
+    public Projector visitTopNProjection(TopNProjection projection, Context context) {
+        List<Input<?>> inputs = new ArrayList<>();
+        List<CollectExpression<Row, ?>> collectExpressions = new ArrayList<>();
+
+        ImplementationSymbolVisitor.Context ctx = symbolVisitor.extractImplementations(projection.outputs());
+        inputs.addAll(ctx.topLevelInputs());
+        collectExpressions.addAll(ctx.collectExpressions());
+
+        if (projection.limit() == TopN.NO_LIMIT && projection.offset() == TopN.NO_OFFSET) {
+            return new InputRowProjector(inputs, collectExpressions);
+        }
+        return new SimpleTopNProjector(
+            inputs,
+            collectExpressions,
+            projection.limit(),
+            projection.offset());
     }
 
     @Override

@@ -43,8 +43,8 @@ import io.crate.operation.projectors.TopN;
 import io.crate.planner.distribution.DistributionInfo;
 import io.crate.planner.node.dql.MergePhase;
 import io.crate.planner.projection.GroupProjection;
+import io.crate.planner.projection.OrderedTopNProjection;
 import io.crate.planner.projection.Projection;
-import io.crate.planner.projection.TopNProjection;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.testing.CollectingRowReceiver;
 import io.crate.types.DataType;
@@ -104,7 +104,7 @@ public class PageDownstreamFactoryTest extends CrateUnitTest {
 
     @Test
     public void testMergeSingleResult() throws Exception {
-        TopNProjection topNProjection = new TopNProjection(3, TopN.NO_OFFSET, InputColumn.numInputs(2),
+        OrderedTopNProjection topNProjection = new OrderedTopNProjection(3, TopN.NO_OFFSET, InputColumn.numInputs(2),
             Arrays.<Symbol>asList(new InputColumn(0)), new boolean[]{false}, new Boolean[]{null});
 
         MergePhase mergeNode = new MergePhase(

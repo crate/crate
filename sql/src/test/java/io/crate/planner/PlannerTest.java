@@ -152,7 +152,6 @@ public class PlannerTest extends AbstractPlannerTest {
         List<Projection> projections = collectPhase.projections();
         assertThat(projections.size(), is(1));
         assertThat(projections.get(0), instanceOf(TopNProjection.class));
-        assertThat(((TopNProjection) projections.get(0)).isOrdered(), is(false));
 
         MergePhase mergeNode = merge.mergePhase();
 
@@ -173,7 +172,6 @@ public class PlannerTest extends AbstractPlannerTest {
 
         TopNProjection topNProjection = (TopNProjection) collectPhase.projections().get(0);
         assertThat(topNProjection.limit(), is(10));
-        assertThat(topNProjection.isOrdered(), is(false));
 
         MergePhase mergePhase = merge.mergePhase();
         assertThat(mergePhase.outputTypes().size(), is(1));
@@ -221,7 +219,6 @@ public class PlannerTest extends AbstractPlannerTest {
         TopNProjection topN = (TopNProjection) mergeNode.projections().get(0);
         assertThat(topN.limit(), is(100_000));
         assertThat(topN.offset(), is(0));
-        assertNull(topN.orderBy());
 
         FetchProjection fetchProjection = (FetchProjection) mergeNode.projections().get(1);
 
@@ -238,7 +235,6 @@ public class PlannerTest extends AbstractPlannerTest {
         topN = (TopNProjection) mergeNode.projections().get(0);
         assertThat(topN.limit(), is(100_000));
         assertThat(topN.offset(), is(20));
-        assertNull(topN.orderBy());
 
         fetchProjection = (FetchProjection) mergeNode.projections().get(1);
     }

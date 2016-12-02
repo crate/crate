@@ -39,7 +39,6 @@ import io.crate.planner.node.dql.join.NestedLoop;
 import io.crate.planner.node.dql.join.NestedLoopPhase;
 import io.crate.planner.projection.FilterProjection;
 import io.crate.planner.projection.Projection;
-import io.crate.planner.projection.TopNProjection;
 import io.crate.planner.projection.builder.InputCreatingVisitor;
 import io.crate.planner.projection.builder.ProjectionBuilder;
 import io.crate.sql.tree.QualifiedName;
@@ -265,7 +264,7 @@ class NestedLoopConsumer implements Consumer {
             }
 
             int limit = isDistributed ? limits.limitAndOffset() : limits.finalLimit();
-            TopNProjection topN = ProjectionBuilder.topNProjection(
+            Projection topN = ProjectionBuilder.topNProjection(
                 nlOutputs,
                 orderBy,
                 isDistributed ? 0 : limits.offset(),

@@ -42,6 +42,7 @@ import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.operation.projectors.*;
 import io.crate.planner.node.dql.ESGet;
+import io.crate.planner.projection.OrderedTopNProjection;
 import io.crate.planner.projection.Projection;
 import io.crate.planner.projection.TopNProjection;
 import org.apache.lucene.util.BytesRef;
@@ -136,18 +137,24 @@ public class ESGetTask extends JobTask {
                         orderBySymbols.add(new InputColumn(i));
                     }
                 }
-                TopNProjection topNProjection = new TopNProjection(
-                    task.esGet.limit(),
-                    task.esGet.offset(),
-                    InputColumn.numInputs(task.esGet.outputs().size()),
-                    orderBySymbols,
-                    task.esGet.reverseFlags(),
-                    task.esGet.nullsFirst()
-                );
+                Projection projection;
+                if (task.esGet.sortSymbols().isEmpty()) {
+                    projection = new TopNProjection(
+                        task.esGet.limit(), task.esGet.offset(), InputColumn.numInputs(task.esGet.outputs().size()));
+                } else {
+                    projection = new OrderedTopNProjection(
+                        task.esGet.limit(),
+                        task.esGet.offset(),
+                        InputColumn.numInputs(task.esGet.outputs().size()),
+                        orderBySymbols,
+                        task.esGet.reverseFlags(),
+                        task.esGet.nullsFirst()
+                    );
+                }
                 return FlatProjectorChain.withAttachedDownstream(
                     task.projectorFactory,
                     null,
-                    ImmutableList.<Projection>of(topNProjection),
+                    ImmutableList.of(projection),
                     downstream,
                     task.jobId()
                 );

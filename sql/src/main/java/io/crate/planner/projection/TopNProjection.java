@@ -22,8 +22,6 @@
 package io.crate.planner.projection;
 
 import com.google.common.base.Function;
-import com.google.common.base.MoreObjects;
-import com.google.common.collect.ImmutableList;
 import io.crate.analyze.symbol.InputColumn;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.analyze.symbol.Symbols;
@@ -35,23 +33,13 @@ import org.elasticsearch.common.io.stream.StreamOutput;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
 public class TopNProjection extends Projection {
 
-    private int limit;
-    private int offset;
-
-    List<Symbol> outputs = ImmutableList.of();
-
-    @Nullable
-    private List<Symbol> orderBy;
-    @Nullable
-    private boolean[] reverseFlags;
-    @Nullable
-    private Boolean[] nullsFirst;
+    private final int limit;
+    private final int offset;
+    private final List<Symbol> outputs;
 
     public TopNProjection(int limit, int offset, List<Symbol> outputs) {
         this.limit = limit;
@@ -59,46 +47,10 @@ public class TopNProjection extends Projection {
         this.outputs = outputs;
     }
 
-    public TopNProjection(int limit,
-                          int offset,
-                          List<Symbol> outputs,
-                          @Nullable List<Symbol> orderBy,
-                          @Nullable boolean[] reverseFlags,
-                          @Nullable Boolean[] nullsFirst) {
-        this(limit, offset, outputs);
-        this.orderBy = MoreObjects.firstNonNull(orderBy, ImmutableList.<Symbol>of());
-        this.reverseFlags = MoreObjects.firstNonNull(reverseFlags, new boolean[0]);
-        this.nullsFirst = MoreObjects.firstNonNull(nullsFirst, new Boolean[0]);
-        assert
-            this.orderBy.size() == this.reverseFlags.length : "reverse flags length does not match orderBy items count";
-        assert this.nullsFirst.length == this.reverseFlags.length;
-    }
-
     public TopNProjection(StreamInput in) throws IOException {
         offset = in.readVInt();
         limit = in.readVInt();
-
         outputs = Symbols.listFromStream(in);
-
-        int numOrderBy = in.readVInt();
-
-        if (numOrderBy > 0) {
-            reverseFlags = new boolean[numOrderBy];
-
-            for (int i = 0; i < reverseFlags.length; i++) {
-                reverseFlags[i] = in.readBoolean();
-            }
-
-            orderBy = new ArrayList<>(numOrderBy);
-            for (int i = 0; i < reverseFlags.length; i++) {
-                orderBy.add(Symbols.fromStream(in));
-            }
-
-            nullsFirst = new Boolean[numOrderBy];
-            for (int i = 0; i < numOrderBy; i++) {
-                nullsFirst[i] = in.readOptionalBoolean();
-            }
-        }
     }
 
     @Override
@@ -114,30 +66,9 @@ public class TopNProjection extends Projection {
         return offset;
     }
 
-    @Nullable
-    public List<Symbol> orderBy() {
-        return orderBy;
-    }
-
-    @Nullable
-    public boolean[] reverseFlags() {
-        return reverseFlags;
-    }
-
-    @Nullable
-    public Boolean[] nullsFirst() {
-        return nullsFirst;
-    }
-
-    public boolean isOrdered() {
-        return reverseFlags != null && reverseFlags.length > 0;
-    }
-
-
     @Override
     public void replaceSymbols(Function<Symbol, Symbol> replaceFunction) {
         Lists2.replaceItems(outputs, replaceFunction);
-        Lists2.replaceItems(orderBy, replaceFunction);
     }
 
     @Override
@@ -155,20 +86,6 @@ public class TopNProjection extends Projection {
         out.writeVInt(offset);
         out.writeVInt(limit);
         Symbols.toStream(outputs, out);
-        if (isOrdered()) {
-            out.writeVInt(reverseFlags.length);
-            for (boolean reverseFlag : reverseFlags) {
-                out.writeBoolean(reverseFlag);
-            }
-            for (Symbol symbol : orderBy) {
-                Symbols.toStream(symbol, out);
-            }
-            for (Boolean nullFirst : nullsFirst) {
-                out.writeOptionalBoolean(nullFirst);
-            }
-        } else {
-            out.writeVInt(0);
-        }
     }
 
     @Override
@@ -180,11 +97,7 @@ public class TopNProjection extends Projection {
 
         if (limit != that.limit) return false;
         if (offset != that.offset) return false;
-        if (!orderBy.equals(that.orderBy)) return false;
         if (!outputs.equals(that.outputs)) return false;
-        if (!Arrays.equals(reverseFlags, that.reverseFlags)) return false;
-        if (!Arrays.equals(nullsFirst, that.nullsFirst)) return false;
-
         return true;
     }
 
@@ -193,9 +106,6 @@ public class TopNProjection extends Projection {
         int result = limit;
         result = 31 * result + offset;
         result = 31 * result + outputs.hashCode();
-        result = 31 * result + orderBy.hashCode();
-        result = 31 * result + Arrays.hashCode(reverseFlags);
-        result = 31 * result + Arrays.hashCode(nullsFirst);
         return result;
     }
 
@@ -205,9 +115,6 @@ public class TopNProjection extends Projection {
                "outputs=" + outputs +
                ", limit=" + limit +
                ", offset=" + offset +
-               ", orderBy=" + orderBy +
-               ", reverseFlags=" + Arrays.toString(reverseFlags) +
-               ", nullsFirst=" + Arrays.toString(nullsFirst) +
                '}';
     }
 
