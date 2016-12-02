@@ -34,7 +34,7 @@ import java.util.List;
  *
  * @param <ReturnType> the class of the returned value
  */
-public abstract class Scalar<ReturnType, InputType> implements FunctionImplementation<Function> {
+public abstract class Scalar<ReturnType, InputType> implements FunctionImplementation {
 
     public abstract ReturnType evaluate(Input<InputType>... args);
 

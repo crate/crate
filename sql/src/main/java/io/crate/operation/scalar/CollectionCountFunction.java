@@ -45,7 +45,7 @@ public class CollectionCountFunction extends Scalar<Long, Collection<DataType>> 
         mod.register(NAME, collectionCountResolver);
     }
 
-    public CollectionCountFunction(FunctionInfo info) {
+    CollectionCountFunction(FunctionInfo info) {
         this.info = info;
     }
 
@@ -76,7 +76,7 @@ public class CollectionCountFunction extends Scalar<Long, Collection<DataType>> 
         }
 
         @Override
-        public FunctionImplementation<Function> getForTypes(List<DataType> dataTypes) throws IllegalArgumentException {
+        public FunctionImplementation getForTypes(List<DataType> dataTypes) throws IllegalArgumentException {
             for (DataType dataType : dataTypes) {
                 if (!isCollectionType(dataType)) {
                     throw new IllegalArgumentException(String.format(Locale.ENGLISH,

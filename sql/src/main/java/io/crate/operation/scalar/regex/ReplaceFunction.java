@@ -53,7 +53,7 @@ public class ReplaceFunction extends Scalar<BytesRef, Object> implements Dynamic
     private ReplaceFunction() {
     }
 
-    public ReplaceFunction(FunctionInfo info) {
+    private ReplaceFunction(FunctionInfo info) {
         this.info = info;
     }
 
@@ -153,7 +153,7 @@ public class ReplaceFunction extends Scalar<BytesRef, Object> implements Dynamic
     }
 
     @Override
-    public FunctionImplementation<Function> getForTypes(List<DataType> dataTypes) throws IllegalArgumentException {
+    public FunctionImplementation getForTypes(List<DataType> dataTypes) throws IllegalArgumentException {
         Preconditions.checkArgument(dataTypes.size() >= 3 && dataTypes.size() <= 4);
         Preconditions.checkArgument(dataTypes.get(0) == DataTypes.STRING, "source argument must be of type string");
         Preconditions.checkArgument(dataTypes.get(1) == DataTypes.STRING, "pattern argument must be of type string");

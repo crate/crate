@@ -45,7 +45,7 @@ public abstract class ConcatFunction extends Scalar<BytesRef, BytesRef> {
         module.register(NAME, new Resolver());
     }
 
-    protected ConcatFunction(FunctionInfo functionInfo) {
+    ConcatFunction(FunctionInfo functionInfo) {
         this.functionInfo = functionInfo;
     }
 
@@ -69,7 +69,7 @@ public abstract class ConcatFunction extends Scalar<BytesRef, BytesRef> {
 
     private static class StringConcatFunction extends ConcatFunction {
 
-        protected StringConcatFunction(FunctionInfo functionInfo) {
+        StringConcatFunction(FunctionInfo functionInfo) {
             super(functionInfo);
         }
 
@@ -95,7 +95,7 @@ public abstract class ConcatFunction extends Scalar<BytesRef, BytesRef> {
 
     private static class GenericConcatFunction extends ConcatFunction {
 
-        protected GenericConcatFunction(FunctionInfo functionInfo) {
+        GenericConcatFunction(FunctionInfo functionInfo) {
             super(functionInfo);
         }
 
@@ -126,7 +126,7 @@ public abstract class ConcatFunction extends Scalar<BytesRef, BytesRef> {
     private static class Resolver implements DynamicFunctionResolver {
 
         @Override
-        public FunctionImplementation<Function> getForTypes(List<DataType> dataTypes) throws IllegalArgumentException {
+        public FunctionImplementation getForTypes(List<DataType> dataTypes) throws IllegalArgumentException {
             if (dataTypes.size() < 2) {
                 throw new IllegalArgumentException("concat function requires at least 2 arguments");
             } else if (dataTypes.size() == 2 && dataTypes.get(0).equals(DataTypes.STRING) &&

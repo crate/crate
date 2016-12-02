@@ -49,7 +49,7 @@ public abstract class NegateFunction<TOut, TIn> extends Scalar<TOut, TIn> {
 
     private static final DynamicFunctionResolver RESOLVER = new DynamicFunctionResolver() {
         @Override
-        public FunctionImplementation<Function> getForTypes(List<DataType> dataTypes) throws IllegalArgumentException {
+        public FunctionImplementation getForTypes(List<DataType> dataTypes) throws IllegalArgumentException {
             if (dataTypes.size() != 1) {
                 throw new IllegalArgumentException("_negate requires exactly one argument");
             }

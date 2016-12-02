@@ -23,7 +23,6 @@ package io.crate.operation.scalar.arithmetic;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
-import io.crate.analyze.symbol.Function;
 import io.crate.metadata.*;
 import io.crate.operation.Input;
 import io.crate.operation.scalar.ScalarFunctionModule;
@@ -48,7 +47,7 @@ public abstract class SquareRootFunction extends Scalar<Number, Number> {
         module.register(NAME, new Resolver());
     }
 
-    public SquareRootFunction(FunctionInfo info) {
+    SquareRootFunction(FunctionInfo info) {
         this.info = info;
     }
 
@@ -59,7 +58,7 @@ public abstract class SquareRootFunction extends Scalar<Number, Number> {
 
     static class DoubleSquareRootFunction extends SquareRootFunction {
 
-        public DoubleSquareRootFunction(FunctionInfo info) {
+        DoubleSquareRootFunction(FunctionInfo info) {
             super(info);
         }
 
@@ -78,7 +77,7 @@ public abstract class SquareRootFunction extends Scalar<Number, Number> {
     private static class Resolver implements DynamicFunctionResolver {
 
         @Override
-        public FunctionImplementation<Function> getForTypes(List<DataType> dataTypes) throws IllegalArgumentException {
+        public FunctionImplementation getForTypes(List<DataType> dataTypes) throws IllegalArgumentException {
             Preconditions.checkArgument(dataTypes.size() == 1,
                 "invalid size of arguments, 1 expected");
             Preconditions.checkArgument(ALLOWED_TYPES.contains(dataTypes.get(0)),

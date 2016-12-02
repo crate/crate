@@ -38,7 +38,7 @@ import javax.annotation.Nullable;
  * @param <TPartial> the intermediate type of the value used during aggregation
  * @param <TFinal>   the final type of the value after the aggregation is finished
  */
-public abstract class AggregationFunction<TPartial, TFinal> implements FunctionImplementation<Function> {
+public abstract class AggregationFunction<TPartial, TFinal> implements FunctionImplementation {
 
     /**
      * Called once per "aggregation cycle" to create an initial partial-state-value.

@@ -156,7 +156,7 @@ public class AnyNotLikeOperatorTest extends CrateUnitTest {
         Literal patternLiteral = Literal.of("A");
         Literal valuesLiteral = Literal.of(new ArrayType(DataTypes.STRING),
             new Object[]{new BytesRef("A"), new BytesRef("B")});
-        FunctionImplementation<Function> impl = new AnyNotLikeOperator.AnyNotLikeResolver().getForTypes(
+        FunctionImplementation impl = new AnyNotLikeOperator.AnyNotLikeResolver().getForTypes(
             Arrays.asList(DataTypes.STRING, valuesLiteral.valueType())
         );
         Function anyNotLikeFunction = new Function(impl.info(), Arrays.<Symbol>asList(patternLiteral, valuesLiteral));

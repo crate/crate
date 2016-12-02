@@ -61,7 +61,7 @@ public class CountAggregation extends AggregationFunction<CountAggregation.LongS
     private static class CountAggregationFunctionResolver implements DynamicFunctionResolver {
 
         @Override
-        public FunctionImplementation<Function> getForTypes(List<DataType> dataTypes) throws IllegalArgumentException {
+        public FunctionImplementation getForTypes(List<DataType> dataTypes) throws IllegalArgumentException {
             if (dataTypes.size() == 0) {
                 return new CountAggregation(COUNT_STAR_FUNCTION, false);
             } else {
@@ -131,7 +131,7 @@ public class CountAggregation extends AggregationFunction<CountAggregation.LongS
 
         long value = 0L;
 
-        public LongState() {
+        LongState() {
         }
 
         public LongState(long value) {

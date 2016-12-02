@@ -22,7 +22,6 @@
 
 package io.crate.operation.scalar.conditional;
 
-import io.crate.analyze.symbol.Function;
 import io.crate.metadata.DynamicFunctionResolver;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionImplementation;
@@ -56,7 +55,7 @@ public class LeastFunction extends ConditionalCompareFunction {
 
     private static class Resolver implements DynamicFunctionResolver {
         @Override
-        public FunctionImplementation<Function> getForTypes(List<DataType> dataTypes) throws IllegalArgumentException {
+        public FunctionImplementation getForTypes(List<DataType> dataTypes) throws IllegalArgumentException {
             return new LeastFunction(createInfo(NAME, dataTypes));
         }
     }

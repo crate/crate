@@ -23,7 +23,6 @@
 package io.crate.operation.scalar.conditional;
 
 import com.google.common.base.Preconditions;
-import io.crate.analyze.symbol.Function;
 import io.crate.metadata.DynamicFunctionResolver;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.FunctionInfo;
@@ -52,7 +51,7 @@ public class NullIfFunction extends ConditionalFunction {
 
     static class Resolver implements DynamicFunctionResolver {
         @Override
-        public FunctionImplementation<Function> getForTypes(List<DataType> dataTypes) throws IllegalArgumentException {
+        public FunctionImplementation getForTypes(List<DataType> dataTypes) throws IllegalArgumentException {
             Preconditions.checkArgument(dataTypes.size() == 2, "invalid size of arguments, 2 expected");
             return new NullIfFunction(createInfo(NAME, dataTypes));
         }

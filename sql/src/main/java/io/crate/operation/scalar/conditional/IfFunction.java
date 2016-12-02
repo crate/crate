@@ -132,7 +132,7 @@ public class IfFunction extends Scalar<Object, Object> {
     private static class Resolver implements DynamicFunctionResolver {
 
         @Override
-        public FunctionImplementation<Function> getForTypes(List<DataType> dataTypes) throws IllegalArgumentException {
+        public FunctionImplementation getForTypes(List<DataType> dataTypes) throws IllegalArgumentException {
             Preconditions.checkArgument(dataTypes.size() >= 2 && dataTypes.size() <= 3,
                 "Invalid number of arguments, must be either 2 or 3");
             Preconditions.checkArgument(dataTypes.get(0).id() == BooleanType.ID,

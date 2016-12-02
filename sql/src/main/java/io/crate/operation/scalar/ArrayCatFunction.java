@@ -22,7 +22,6 @@
 package io.crate.operation.scalar;
 
 import com.google.common.base.Preconditions;
-import io.crate.analyze.symbol.Function;
 import io.crate.metadata.*;
 import io.crate.operation.Input;
 import io.crate.types.ArrayType;
@@ -83,7 +82,7 @@ class ArrayCatFunction extends Scalar<Object[], Object> {
     private static class Resolver implements DynamicFunctionResolver {
 
         @Override
-        public FunctionImplementation<Function> getForTypes(List<DataType> dataTypes) throws IllegalArgumentException {
+        public FunctionImplementation getForTypes(List<DataType> dataTypes) throws IllegalArgumentException {
             Preconditions.checkArgument(dataTypes.size() == 2, "array_cat function requires 2 arguments");
 
             for (int i = 0; i < dataTypes.size(); i++) {

@@ -43,7 +43,7 @@ public class AnyEqOperator extends AnyOperator {
     private static class AnyEqResolver extends AnyResolver {
 
         @Override
-        public FunctionImplementation<Function> newInstance(FunctionInfo info) {
+        public FunctionImplementation newInstance(FunctionInfo info) {
             return new AnyEqOperator(info);
         }
 

@@ -14,7 +14,7 @@ public class GteOperator extends CmpOperator {
         }
     }
 
-    GteOperator(FunctionInfo info) {
+    private GteOperator(FunctionInfo info) {
         super(info);
     }
 

@@ -22,7 +22,6 @@
 
 package io.crate.operation.scalar.arithmetic;
 
-import io.crate.analyze.symbol.Function;
 import io.crate.metadata.*;
 import io.crate.operation.Input;
 import io.crate.operation.scalar.ScalarFunctionModule;
@@ -62,7 +61,7 @@ public class ArrayFunction extends Scalar<Object, Object> {
     private static final DynamicFunctionResolver RESOLVER = new DynamicFunctionResolver() {
 
         @Override
-        public FunctionImplementation<Function> getForTypes(List<DataType> dataTypes) throws IllegalArgumentException {
+        public FunctionImplementation getForTypes(List<DataType> dataTypes) throws IllegalArgumentException {
             return new ArrayFunction(createInfo(dataTypes));
         }
     };

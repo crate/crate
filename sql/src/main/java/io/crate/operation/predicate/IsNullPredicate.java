@@ -95,7 +95,7 @@ public class IsNullPredicate<T> extends Scalar<Boolean, T> implements FunctionFo
     private static class Resolver implements DynamicFunctionResolver {
 
         @Override
-        public FunctionImplementation<Function> getForTypes(List<DataType> dataTypes) throws IllegalArgumentException {
+        public FunctionImplementation getForTypes(List<DataType> dataTypes) throws IllegalArgumentException {
             Preconditions.checkArgument(
                 dataTypes.size() == 1, "the is null predicate takes only 1 argument");
 
