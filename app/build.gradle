@@ -267,7 +267,7 @@ distZip {
 
 ext {
     downloadDir = new File(buildDir, 'downloads')
-    crash_version = '0.19.1'
+    crash_version = '0.20.0'
 }
 
 def rootDir = project.parent.projectDir

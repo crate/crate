@@ -5,6 +5,11 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Updated Crash to `0.20.0` which includes the following change:
+
+    - Updated information_schema metadata queries to reflect the current state
+      of CrateDB.
+
  - Fixed issue which causes ``BETWEEN`` to return a wrong result if
    ``min`` or ``max`` is null.
 
