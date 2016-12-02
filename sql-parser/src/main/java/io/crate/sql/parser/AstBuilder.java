@@ -14,8 +14,8 @@
 
 package io.crate.sql.parser;
 
-import com.google.common.collect.ImmutableMap;
 import io.crate.sql.parser.antlr.v4.SqlBaseBaseVisitor;
+import io.crate.sql.parser.antlr.v4.SqlBaseLexer;
 import io.crate.sql.parser.antlr.v4.SqlBaseParser;
 import io.crate.sql.tree.*;
 import org.antlr.v4.runtime.ParserRuleContext;
@@ -24,14 +24,12 @@ import org.antlr.v4.runtime.tree.ParseTree;
 import org.antlr.v4.runtime.tree.TerminalNode;
 
 import java.util.List;
-import java.util.Map;
 import java.util.stream.Collectors;
 
 import static java.util.Objects.requireNonNull;
 import static java.util.stream.Collectors.toList;
 
-class AstBuilder
-    extends SqlBaseBaseVisitor<Node> {
+class AstBuilder extends SqlBaseBaseVisitor<Node> {
     private int parameterPosition = 0;
 
     @Override
@@ -60,25 +58,25 @@ class AstBuilder
 //            processTableProperties(context.tableProperties()));
 //    }
 
-    private Map<String, Expression> processTableProperties(SqlBaseParser.TablePropertiesContext tablePropertiesContext) {
-        ImmutableMap.Builder<String, Expression> properties = ImmutableMap.builder();
-        if (tablePropertiesContext != null) {
-            for (SqlBaseParser.TablePropertyContext tablePropertyContext : tablePropertiesContext.tableProperty()) {
-                properties.put(tablePropertyContext.identifier().getText(), (Expression) visit(tablePropertyContext.expression()));
-            }
-        }
-        return properties.build();
-    }
+//    private Map<String, Expression> processTableProperties(SqlBaseParser.TablePropertiesContext tablePropertiesContext) {
+//        ImmutableMap.Builder<String, Expression> properties = ImmutableMap.builder();
+//        if (tablePropertiesContext != null) {
+//            for (SqlBaseParser.TablePropertyContext tablePropertyContext : tablePropertiesContext.tableProperty()) {
+//                properties.put(tablePropertyContext.identifier().getText(), (Expression) visit(tablePropertyContext.expression()));
+//            }
+//        }
+//        return properties.build();
+//    }
 
     @Override
     public Node visitShowCreateTable(SqlBaseParser.ShowCreateTableContext context) {
         return new ShowCreateTable(new Table(getQualifiedName(context.qualifiedName())));
     }
 
-//    @Override
-//    public Node visitDropTable(SqlBaseParser.DropTableContext context) {
-//        return new DropTable(getLocation(context), getQualifiedName(context.qualifiedName()), context.EXISTS() != null);
-//    }
+    @Override
+    public Node visitDropTable(SqlBaseParser.DropTableContext context) {
+        return new DropTable(new Table(getQualifiedName(context.qualifiedName())), context.EXISTS() != null);
+    }
 //
 //    @Override
 //    public Node visitInsertInto(SqlBaseParser.InsertIntoContext context) {
@@ -284,35 +282,35 @@ class AstBuilder
 //        return new Values(getLocation(context), visit(context.expression(), Expression.class));
 //    }
 //
-//    @Override
-//    public Node visitExplain(SqlBaseParser.ExplainContext context) {
-//        return new Explain(getLocation(context), context.ANALYZE() != null, (Statement) visit(context.statement()), visit(context.explainOption(), ExplainOption.class));
-//    }
-//
-//    @Override
-//    public Node visitExplainFormat(SqlBaseParser.ExplainFormatContext context) {
-//        switch (context.value.getType()) {
-//            case SqlBaseLexer.GRAPHVIZ:
-//                return new ExplainFormat(getLocation(context), ExplainFormat.Type.GRAPHVIZ);
-//            case SqlBaseLexer.TEXT:
-//                return new ExplainFormat(getLocation(context), ExplainFormat.Type.TEXT);
-//        }
-//
-//        throw new IllegalArgumentException("Unsupported EXPLAIN format: " + context.value.getText());
-//    }
-//
-//    @Override
-//    public Node visitExplainType(SqlBaseParser.ExplainTypeContext context) {
-//        switch (context.value.getType()) {
-//            case SqlBaseLexer.LOGICAL:
-//                return new ExplainType(getLocation(context), ExplainType.Type.LOGICAL);
-//            case SqlBaseLexer.DISTRIBUTED:
-//                return new ExplainType(getLocation(context), ExplainType.Type.DISTRIBUTED);
-//        }
-//
-//        throw new IllegalArgumentException("Unsupported EXPLAIN type: " + context.value.getText());
-//    }
-//
+    @Override
+    public Node visitExplain(SqlBaseParser.ExplainContext context) {
+        return new Explain((Statement) visit(context.statement()), visit(context.explainOption(), ExplainOption.class));
+    }
+
+    @Override
+    public Node visitExplainFormat(SqlBaseParser.ExplainFormatContext context) {
+        switch (context.value.getType()) {
+            case SqlBaseLexer.GRAPHVIZ:
+                return new ExplainFormat(ExplainFormat.Type.GRAPHVIZ);
+            case SqlBaseLexer.TEXT:
+                return new ExplainFormat(ExplainFormat.Type.TEXT);
+        }
+
+        throw new IllegalArgumentException("Unsupported EXPLAIN format: " + context.value.getText());
+    }
+
+    @Override
+    public Node visitExplainType(SqlBaseParser.ExplainTypeContext context) {
+        switch (context.value.getType()) {
+            case SqlBaseLexer.LOGICAL:
+                return new ExplainType(ExplainType.Type.LOGICAL);
+            case SqlBaseLexer.DISTRIBUTED:
+                return new ExplainType(ExplainType.Type.DISTRIBUTED);
+        }
+
+        throw new IllegalArgumentException("Unsupported EXPLAIN type: " + context.value.getText());
+    }
+
 //    @Override
 //    public Node visitShowTables(SqlBaseParser.ShowTablesContext context) {
 //        return new ShowTables(
@@ -1019,12 +1017,12 @@ class AstBuilder
 //            .map(clazz::cast);
 //    }
 //
-//    private <T> List<T> visit(List<? extends ParserRuleContext> contexts, Class<T> clazz) {
-//        return contexts.stream()
-//            .map(this::visit)
-//            .map(clazz::cast)
-//            .collect(toList());
-//    }
+    private <T> List<T> visit(List<? extends ParserRuleContext> contexts, Class<T> clazz) {
+        return contexts.stream()
+            .map(this::visit)
+            .map(clazz::cast)
+            .collect(toList());
+    }
 //
 //    private static String unquote(String value) {
 //        return value.substring(1, value.length() - 1)

@@ -58,11 +58,28 @@ public class TestStatementBuilder {
     }
 
     @Test
-    public void testStatementBuilder()
-        throws Exception {
-        printStatement("show create table foo");
+    public void testShowCreateTableStmtBuilder() {
+        printStatement("show create table test");
+        printStatement("show create table foo.test");
+        printStatement("show create table \"select\"");
+    }
+
+    @Test
+    public void testDropTableStmtBuilder() {
+        printStatement("drop table test");
+        printStatement("drop table if exists test");
+        printStatement("drop table if exists \"foo.bar\"");
+    }
+
+    @Test
+    public void testExplainStmtBuilder() {
+        printStatement("explain drop table foo");
+    }
+
+    @Test
+    public void testStatementBuilder() throws Exception {
         printStatement("select * from foo");
-        printStatement("explain select * from foo");
+
 
         printStatement("select * from foo a (x, y, z)");
 
@@ -247,8 +264,6 @@ public class TestStatementBuilder {
 
         printStatement("kill all");
         printStatement("kill '6a3d6fb6-1401-4333-933d-b38c9322fca7'");
-
-        printStatement("show create table foo");
 
         printStatement("show schemas");
         printStatement("show schemas like 'doc%'");

@@ -28,38 +28,36 @@ singleExpression
 
 statement
     : query                                                            #statementDefault
-    | DROP SCHEMA (IF EXISTS)? qualifiedName (CASCADE | RESTRICT)?     #dropSchema
-    | ALTER SCHEMA qualifiedName RENAME TO identifier                  #renameSchema
-    | CREATE TABLE (IF NOT EXISTS)? qualifiedName
-        (WITH tableProperties)? AS query
-        (WITH (NO)? DATA)?                                             #createTableAsSelect
-    | CREATE TABLE (IF NOT EXISTS)? qualifiedName
-        '(' tableElement (',' tableElement)* ')'
-        (WITH tableProperties)?                                        #createTable
+//    | CREATE TABLE (IF NOT EXISTS)? qualifiedName
+//        (WITH tableProperties)? AS query
+//        (WITH (NO)? DATA)?                                             #createTableAsSelect
+//    | CREATE TABLE (IF NOT EXISTS)? qualifiedName
+//        '(' tableElement (',' tableElement)* ')'
+//        (WITH tableProperties)?                                        #createTable
     | DROP TABLE (IF EXISTS)? qualifiedName                            #dropTable
-    | INSERT INTO qualifiedName columnAliases? query                   #insertInto
-    | DELETE FROM qualifiedName (WHERE booleanExpression)?             #delete
-    | ALTER TABLE from=qualifiedName RENAME TO to=qualifiedName        #renameTable
-    | ALTER TABLE tableName=qualifiedName
-        RENAME COLUMN from=identifier TO to=identifier                 #renameColumn
-    | ALTER TABLE tableName=qualifiedName
-        ADD COLUMN column=columnDefinition                             #addColumn
-    | CREATE (OR REPLACE)? VIEW qualifiedName AS query                 #createView
+//    | INSERT INTO qualifiedName columnAliases? query                   #insertInto
+//    | DELETE FROM qualifiedName (WHERE booleanExpression)?             #delete
+//    | ALTER TABLE from=qualifiedName RENAME TO to=qualifiedName        #renameTable
+//    | ALTER TABLE tableName=qualifiedName
+//        RENAME COLUMN from=identifier TO to=identifier                 #renameColumn
+//    | ALTER TABLE tableName=qualifiedName
+//        ADD COLUMN column=columnDefinition                             #addColumn
+//    | CREATE (OR REPLACE)? VIEW qualifiedName AS query                 #createView
     | EXPLAIN ANALYZE?
         ('(' explainOption (',' explainOption)* ')')? statement        #explain
     | SHOW CREATE TABLE qualifiedName                                  #showCreateTable
-    | SHOW TABLES ((FROM | IN) qualifiedName)? (LIKE pattern=STRING)?  #showTables
-    | SHOW SCHEMAS ((FROM | IN) identifier)? (LIKE pattern=STRING)?    #showSchemas
-    | SHOW COLUMNS (FROM | IN) qualifiedName                           #showColumns
-    | SHOW FUNCTIONS                                                   #showFunctions
-    | SHOW SESSION                                                     #showSession
-    | SET SESSION qualifiedName EQ expression                          #setSession
-    | RESET SESSION qualifiedName                                      #resetSession
-    | SHOW PARTITIONS (FROM | IN) qualifiedName
-        (WHERE booleanExpression)?
-        (ORDER BY sortItem (',' sortItem)*)?
-        (LIMIT limit=(INTEGER_VALUE | ALL))?                           #showPartitions
-    | EXECUTE identifier (USING expression (',' expression)*)?         #execute
+//    | SHOW TABLES ((FROM | IN) qualifiedName)? (LIKE pattern=STRING)?  #showTables
+//    | SHOW SCHEMAS ((FROM | IN) identifier)? (LIKE pattern=STRING)?    #showSchemas
+//    | SHOW COLUMNS (FROM | IN) qualifiedName                           #showColumns
+//    | SHOW FUNCTIONS                                                   #showFunctions
+//    | SHOW SESSION                                                     #showSession
+//    | SET SESSION qualifiedName EQ expression                          #setSession
+//    | RESET SESSION qualifiedName                                      #resetSession
+//    | SHOW PARTITIONS (FROM | IN) qualifiedName
+//        (WHERE booleanExpression)?
+//        (ORDER BY sortItem (',' sortItem)*)?
+//        (LIMIT limit=(INTEGER_VALUE | ALL))?                           #showPartitions
+//    | EXECUTE identifier (USING expression (',' expression)*)?         #execute
     ;
 
 query
@@ -595,8 +593,6 @@ DEALLOCATE: 'DEALLOCATE';
 EXECUTE: 'EXECUTE';
 INPUT: 'INPUT';
 OUTPUT: 'OUTPUT';
-CASCADE: 'CASCADE';
-RESTRICT: 'RESTRICT';
 INCLUDING: 'INCLUDING';
 EXCLUDING: 'EXCLUDING';
 PROPERTIES: 'PROPERTIES';

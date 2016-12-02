@@ -69,8 +69,12 @@ public class SqlParser {
         return (Expression) invokeParser("expression", expression, SqlBaseParser::singleExpression);
     }
 
-    public static String createIdentifier(String expression) {
-        return getParser(expression).identifier().getText();
+    public static String createIdentifier(String expression) throws Exception {
+        SqlBaseParser.IdentifierContext sqlBaseParser = getParser(expression).identifier();
+        if (sqlBaseParser.exception != null) {
+            throw new Exception();
+        }
+        return sqlBaseParser.getText();
     }
 
     private static SqlBaseParser getParser(String sql) {
