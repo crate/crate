@@ -131,7 +131,7 @@ public class ProjectionBuilder {
         return new FilterProjection(query, outputs);
     }
 
-    public static TopNProjection topNProjection(
+    public static Projection topNProjection(
         Collection<? extends Symbol> inputs,
         @Nullable OrderBy orderBy,
         int offset,
@@ -147,16 +147,13 @@ public class ProjectionBuilder {
             outputsProcessed = inputVisitor.process(outputs, context);
         }
 
-        TopNProjection result;
         if (orderBy == null) {
-            result = new TopNProjection(limit, offset, outputsProcessed);
-        } else {
-            result = new TopNProjection(limit, offset, outputsProcessed,
-                inputVisitor.process(orderBy.orderBySymbols(), context),
-                orderBy.reverseFlags(),
-                orderBy.nullsFirst());
+            return new TopNProjection(limit, offset, outputsProcessed);
         }
-        return result;
+        return new OrderedTopNProjection(limit, offset, outputsProcessed,
+            inputVisitor.process(orderBy.orderBySymbols(), context),
+            orderBy.reverseFlags(),
+            orderBy.nullsFirst());
     }
 
     public static WriterProjection writerProjection(Collection<? extends Symbol> inputs,

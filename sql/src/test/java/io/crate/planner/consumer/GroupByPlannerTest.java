@@ -33,10 +33,7 @@ import io.crate.planner.node.dql.Collect;
 import io.crate.planner.node.dql.DistributedGroupBy;
 import io.crate.planner.node.dql.MergePhase;
 import io.crate.planner.node.dql.RoutedCollectPhase;
-import io.crate.planner.projection.FilterProjection;
-import io.crate.planner.projection.GroupProjection;
-import io.crate.planner.projection.Projection;
-import io.crate.planner.projection.TopNProjection;
+import io.crate.planner.projection.*;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.crate.types.DataType;
@@ -187,14 +184,13 @@ public class GroupByPlannerTest extends CrateUnitTest {
         Collect collect = ((Collect) merge.subPlan());
         RoutedCollectPhase collectPhase = ((RoutedCollectPhase) collect.collectPhase());
         assertThat(collectPhase.projections().size(), is(2));
-        assertThat(collectPhase.projections().get(1), instanceOf(TopNProjection.class));
-        assertThat(((TopNProjection) collectPhase.projections().get(1)).orderBy().size(), is(1));
+        assertThat(collectPhase.projections().get(1), instanceOf(OrderedTopNProjection.class));
+        assertThat(((OrderedTopNProjection) collectPhase.projections().get(1)).orderBy().size(), is(1));
 
         assertThat(collectPhase.projections().get(0).requiredGranularity(), is(RowGranularity.SHARD));
         MergePhase mergeNode = merge.mergePhase();
         assertThat(mergeNode.projections().size(), is(1));
-        TopNProjection projection = (TopNProjection) mergeNode.projections().get(0);
-        assertThat(projection.orderBy(), is(nullValue()));
+        assertThat(mergeNode.projections().get(0), instanceOf(TopNProjection.class));
 
         PositionalOrderBy positionalOrderBy = mergeNode.orderByPositions();
         assertThat(positionalOrderBy, notNullValue());
@@ -211,14 +207,13 @@ public class GroupByPlannerTest extends CrateUnitTest {
         Collect collect = (Collect) merge.subPlan();
         RoutedCollectPhase collectPhase = ((RoutedCollectPhase) collect.collectPhase());
         assertThat(collectPhase.projections().size(), is(2));
-        assertThat(collectPhase.projections().get(1), instanceOf(TopNProjection.class));
-        assertThat(((TopNProjection) collectPhase.projections().get(1)).orderBy().size(), is(1));
+        assertThat(collectPhase.projections().get(1), instanceOf(OrderedTopNProjection.class));
+        assertThat(((OrderedTopNProjection) collectPhase.projections().get(1)).orderBy().size(), is(1));
 
         assertThat(collectPhase.projections().get(0).requiredGranularity(), is(RowGranularity.SHARD));
         MergePhase mergeNode = merge.mergePhase();
         assertThat(mergeNode.projections().size(), is(1));
-        TopNProjection projection = (TopNProjection) mergeNode.projections().get(0);
-        assertThat(projection.orderBy(), is(nullValue()));
+        assertThat(mergeNode.projections().get(0), instanceOf(TopNProjection.class));
 
         PositionalOrderBy positionalOrderBy = mergeNode.orderByPositions();
         assertThat(positionalOrderBy, notNullValue());
@@ -240,8 +235,8 @@ public class GroupByPlannerTest extends CrateUnitTest {
 
         assertThat(mergePhase.projections(), contains(
             instanceOf(GroupProjection.class),
-            instanceOf(TopNProjection.class)));
-        TopNProjection topNProjection = (TopNProjection) mergePhase.projections().get(1);
+            instanceOf(OrderedTopNProjection.class)));
+        OrderedTopNProjection topNProjection = (OrderedTopNProjection) mergePhase.projections().get(1);
         Symbol orderBy = topNProjection.orderBy().get(0);
         assertThat(orderBy, instanceOf(InputColumn.class));
 
@@ -304,7 +299,7 @@ public class GroupByPlannerTest extends CrateUnitTest {
         Aggregation aggregationStep2 = groupProjection.values().get(0);
         assertThat(aggregationStep2.toStep(), is(Aggregation.Step.FINAL));
 
-        TopNProjection topNProjection = (TopNProjection) mergeNode.projections().get(1);
+        OrderedTopNProjection topNProjection = (OrderedTopNProjection) mergeNode.projections().get(1);
         Symbol collection_count = topNProjection.outputs().get(0);
         assertThat(collection_count, instanceOf(Function.class));
 

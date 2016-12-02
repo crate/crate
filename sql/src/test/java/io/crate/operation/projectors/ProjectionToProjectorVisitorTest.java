@@ -34,10 +34,7 @@ import io.crate.operation.ImplementationSymbolVisitor;
 import io.crate.operation.aggregation.impl.AverageAggregation;
 import io.crate.operation.aggregation.impl.CountAggregation;
 import io.crate.operation.operator.EqOperator;
-import io.crate.planner.projection.AggregationProjection;
-import io.crate.planner.projection.FilterProjection;
-import io.crate.planner.projection.GroupProjection;
-import io.crate.planner.projection.TopNProjection;
+import io.crate.planner.projection.*;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.testing.CollectingRowReceiver;
 import io.crate.testing.RowSender;
@@ -137,7 +134,7 @@ public class ProjectionToProjectorVisitorTest extends CrateUnitTest {
     @Test
     public void testSortingTopNProjection() throws Exception {
         List<Symbol> outputs = Arrays.<Symbol>asList(Literal.of("foo"), new InputColumn(0), new InputColumn(1));
-        TopNProjection projection = new TopNProjection(10, 0, outputs,
+        OrderedTopNProjection projection = new OrderedTopNProjection(10, 0, outputs,
             Arrays.<Symbol>asList(new InputColumn(0), new InputColumn(1)),
             new boolean[]{false, false},
             new Boolean[]{null, null}
@@ -149,7 +146,7 @@ public class ProjectionToProjectorVisitorTest extends CrateUnitTest {
     @Test
     public void testTopNProjectionToSortingProjector() throws Exception {
         List<Symbol> outputs = Arrays.asList(Literal.of("foo"), new InputColumn(0), new InputColumn(1));
-        TopNProjection projection = new TopNProjection(TopN.NO_LIMIT, TopN.NO_OFFSET, outputs,
+        OrderedTopNProjection projection = new OrderedTopNProjection(TopN.NO_LIMIT, TopN.NO_OFFSET, outputs,
             Arrays.<Symbol>asList(new InputColumn(0), new InputColumn(1)),
             new boolean[]{false, false},
             new Boolean[]{null, null}
@@ -196,7 +193,7 @@ public class ProjectionToProjectorVisitorTest extends CrateUnitTest {
         List<Symbol> outputs = Arrays.<Symbol>asList(
             new InputColumn(0, DataTypes.STRING), new InputColumn(1, DataTypes.STRING),
             new InputColumn(2, DataTypes.DOUBLE), new InputColumn(3, DataTypes.LONG));
-        TopNProjection topNProjection = new TopNProjection(10, 0, outputs,
+        OrderedTopNProjection topNProjection = new OrderedTopNProjection(10, 0, outputs,
             ImmutableList.<Symbol>of(new InputColumn(2, DataTypes.DOUBLE)),
             new boolean[]{false},
             new Boolean[]{null});
