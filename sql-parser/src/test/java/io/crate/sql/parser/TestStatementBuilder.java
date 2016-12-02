@@ -26,7 +26,6 @@ import com.google.common.io.Resources;
 import io.crate.sql.Literals;
 import io.crate.sql.SqlFormatter;
 import io.crate.sql.tree.*;
-import org.antlr.runtime.tree.CommonTree;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -36,7 +35,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import static com.google.common.base.Strings.repeat;
 import static io.crate.sql.parser.TreeAssertions.assertFormattedSql;
-import static io.crate.sql.parser.TreePrinter.treeToString;
 import static java.lang.String.format;
 import static org.hamcrest.core.Is.is;
 import static org.hamcrest.core.IsInstanceOf.instanceOf;
@@ -62,6 +60,7 @@ public class TestStatementBuilder {
     @Test
     public void testStatementBuilder()
         throws Exception {
+        printStatement("show create table foo");
         printStatement("select * from foo");
         printStatement("explain select * from foo");
 
@@ -872,12 +871,7 @@ public class TestStatementBuilder {
     private static void printStatement(String sql) {
         println(sql.trim());
         println("");
-
-        CommonTree tree = SqlParser.parseStatement(sql);
-        println(treeToString(tree));
-        println("");
-
-        Statement statement = SqlParser.createStatement(tree);
+        Statement statement = SqlParser.createStatement(sql);
         println(statement.toString());
         println("");
 
