@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fixed issue in joins with 3 or more tables where limit was applied
+   before `where` clause filtering which produced  wrong results.
+
  - Updated Crash to `0.20.0` which includes the following change:
 
     - Updated information_schema metadata queries to reflect the current state

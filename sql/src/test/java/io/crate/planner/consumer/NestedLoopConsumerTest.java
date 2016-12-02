@@ -331,4 +331,20 @@ public class NestedLoopConsumerTest extends CrateUnitTest {
         Plan plan = plan("select e.nope, u.name from empty e, users u order by e.nope, u.name");
         assertThat(plan, instanceOf(NestedLoop.class));
     }
+
+    @Test
+    public void testLimitNotAppliedWhenFilteringRemains() throws Exception {
+        QueryThenFetch plan = plan("select * from users u1, users u2, users u3, users u4 " +
+                                   "where u1.name = u4.name " +
+                                   "limit 10");
+        NestedLoopPhase nl = ((NestedLoop) plan.subPlan()).nestedLoopPhase();
+        assertThat(nl.projections().get(1), instanceOf(TopNProjection.class));
+        assertThat(((TopNProjection)nl.projections().get(1)).limit(), is(10));
+        nl = ((NestedLoop) ((NestedLoop) plan.subPlan()).left()).nestedLoopPhase();
+        assertThat(nl.projections().get(0), instanceOf(TopNProjection.class));
+        assertThat(((TopNProjection)nl.projections().get(0)).limit(), is(TopN.NO_LIMIT));
+        nl = ((NestedLoop) ((NestedLoop) ((NestedLoop) plan.subPlan()).left()).left()).nestedLoopPhase();
+        assertThat(nl.projections().get(0), instanceOf(TopNProjection.class));
+        assertThat(((TopNProjection)nl.projections().get(0)).limit(), is(TopN.NO_LIMIT));
+    }
 }
