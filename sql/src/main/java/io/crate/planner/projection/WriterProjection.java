@@ -82,8 +82,7 @@ public class WriterProjection extends Projection {
         GZIP
     }
 
-    public WriterProjection() {
-    }
+
 
     public WriterProjection(List<Symbol> inputs,
                             Symbol uri,
@@ -99,12 +98,25 @@ public class WriterProjection extends Projection {
         this.compressionType = compressionType;
     }
 
-    public static final ProjectionFactory<WriterProjection> FACTORY = new ProjectionFactory<WriterProjection>() {
-        @Override
-        public WriterProjection newInstance() {
-            return new WriterProjection();
+    public WriterProjection(StreamInput in) throws IOException {
+        uri = Symbols.fromStream(in);
+        int size = in.readVInt();
+        if (size > 0) {
+            outputNames = new ArrayList<>(size);
+            for (int i = 0; i < size; i++) {
+                outputNames.add(in.readString());
+            }
         }
-    };
+        inputs = Symbols.listFromStream(in);
+        int numOverwrites = in.readVInt();
+        overwrites = new HashMap<>(numOverwrites);
+        for (int i = 0; i < numOverwrites; i++) {
+            overwrites.put(ColumnIdent.fromStream(in), Symbols.fromStream(in));
+        }
+        int compressionTypeOrdinal = in.readInt();
+        compressionType = compressionTypeOrdinal >= 0 ? CompressionType.values()[compressionTypeOrdinal] : null;
+        outputFormat = OutputFormat.values()[in.readInt()];
+    }
 
     @Override
     public RowGranularity requiredGranularity() {
@@ -158,26 +170,6 @@ public class WriterProjection extends Projection {
         return visitor.visitWriterProjection(this, context);
     }
 
-    @Override
-    public void readFrom(StreamInput in) throws IOException {
-        uri = Symbols.fromStream(in);
-        int size = in.readVInt();
-        if (size > 0) {
-            outputNames = new ArrayList<>(size);
-            for (int i = 0; i < size; i++) {
-                outputNames.add(in.readString());
-            }
-        }
-        inputs = Symbols.listFromStream(in);
-        int numOverwrites = in.readVInt();
-        overwrites = new HashMap<>(numOverwrites);
-        for (int i = 0; i < numOverwrites; i++) {
-            overwrites.put(ColumnIdent.fromStream(in), Symbols.fromStream(in));
-        }
-        int compressionTypeOrdinal = in.readInt();
-        compressionType = compressionTypeOrdinal >= 0 ? CompressionType.values()[compressionTypeOrdinal] : null;
-        outputFormat = OutputFormat.values()[in.readInt()];
-    }
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
@@ -243,12 +235,14 @@ public class WriterProjection extends Projection {
     public WriterProjection normalize(EvaluatingNormalizer normalizer, TransactionContext transactionContext) {
         Symbol nUri = normalizer.normalize(uri, transactionContext);
         if (uri != nUri) {
-            WriterProjection p = new WriterProjection();
-            p.uri = nUri;
-            p.outputNames = outputNames;
-            p.compressionType = compressionType;
-            p.outputFormat = outputFormat;
-            return p;
+            return new WriterProjection(
+                inputs,
+                uri,
+                compressionType,
+                overwrites,
+                outputNames,
+                outputFormat
+            );
         }
         return this;
     }

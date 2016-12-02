@@ -28,7 +28,6 @@ import io.crate.analyze.symbol.Symbol;
 import io.crate.analyze.symbol.Value;
 import io.crate.metadata.RowGranularity;
 import io.crate.types.DataTypes;
-import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
 import java.io.IOException;
@@ -38,14 +37,7 @@ public class MergeCountProjection extends Projection {
 
     public static final MergeCountProjection INSTANCE = new MergeCountProjection();
 
-    public static final ProjectionFactory<MergeCountProjection> FACTORY = new ProjectionFactory<MergeCountProjection>() {
-        @Override
-        public MergeCountProjection newInstance() {
-            return INSTANCE;
-        }
-    };
-
-    protected final static List<Symbol> OUTPUTS = ImmutableList.<Symbol>of(
+    private final static List<Symbol> OUTPUTS = ImmutableList.<Symbol>of(
         new Value(DataTypes.LONG)  // number of rows updated
     );
 
@@ -62,9 +54,6 @@ public class MergeCountProjection extends Projection {
         return this == o;
     }
 
-    @Override
-    public void readFrom(StreamInput in) throws IOException {
-    }
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {

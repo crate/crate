@@ -28,13 +28,12 @@ import io.crate.analyze.symbol.Symbol;
 import io.crate.metadata.RowGranularity;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.common.io.stream.Streamable;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.List;
 
-public abstract class Projection implements Streamable {
+public abstract class Projection {
 
     public static final Predicate<Projection> IS_SHARD_PROJECTION = new Predicate<Projection>() {
         @Override
@@ -61,7 +60,7 @@ public abstract class Projection implements Streamable {
     public abstract void replaceSymbols(Function<Symbol, Symbol> replaceFunction);
 
     public interface ProjectionFactory<T extends Projection> {
-        T newInstance();
+        T newInstance(StreamInput in) throws IOException;
     }
 
     public abstract ProjectionType projectionType();
@@ -76,11 +75,10 @@ public abstract class Projection implements Streamable {
     }
 
     public static Projection fromStream(StreamInput in) throws IOException {
-        Projection projection = ProjectionType.values()[in.readVInt()].newInstance();
-        projection.readFrom(in);
-
-        return projection;
+        return ProjectionType.values()[in.readVInt()].newInstance(in);
     }
+
+    public abstract void writeTo(StreamOutput out) throws IOException;
 
     // force subclasses to implement equality
     @Override

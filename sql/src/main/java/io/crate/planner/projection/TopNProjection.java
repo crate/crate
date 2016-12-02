@@ -41,13 +41,6 @@ import java.util.List;
 
 public class TopNProjection extends Projection {
 
-    public static final ProjectionFactory<TopNProjection> FACTORY = new ProjectionFactory<TopNProjection>() {
-        @Override
-        public TopNProjection newInstance() {
-            return new TopNProjection();
-        }
-    };
-
     private int limit;
     private int offset;
 
@@ -59,10 +52,6 @@ public class TopNProjection extends Projection {
     private boolean[] reverseFlags;
     @Nullable
     private Boolean[] nullsFirst;
-
-    private TopNProjection() {
-        super();
-    }
 
     public TopNProjection(int limit, int offset, List<Symbol> outputs) {
         this.limit = limit;
@@ -83,6 +72,33 @@ public class TopNProjection extends Projection {
         assert
             this.orderBy.size() == this.reverseFlags.length : "reverse flags length does not match orderBy items count";
         assert this.nullsFirst.length == this.reverseFlags.length;
+    }
+
+    public TopNProjection(StreamInput in) throws IOException {
+        offset = in.readVInt();
+        limit = in.readVInt();
+
+        outputs = Symbols.listFromStream(in);
+
+        int numOrderBy = in.readVInt();
+
+        if (numOrderBy > 0) {
+            reverseFlags = new boolean[numOrderBy];
+
+            for (int i = 0; i < reverseFlags.length; i++) {
+                reverseFlags[i] = in.readBoolean();
+            }
+
+            orderBy = new ArrayList<>(numOrderBy);
+            for (int i = 0; i < reverseFlags.length; i++) {
+                orderBy.add(Symbols.fromStream(in));
+            }
+
+            nullsFirst = new Boolean[numOrderBy];
+            for (int i = 0; i < numOrderBy; i++) {
+                nullsFirst[i] = in.readOptionalBoolean();
+            }
+        }
     }
 
     @Override
@@ -132,34 +148,6 @@ public class TopNProjection extends Projection {
     @Override
     public <C, R> R accept(ProjectionVisitor<C, R> visitor, C context) {
         return visitor.visitTopNProjection(this, context);
-    }
-
-    @Override
-    public void readFrom(StreamInput in) throws IOException {
-        offset = in.readVInt();
-        limit = in.readVInt();
-
-        outputs = Symbols.listFromStream(in);
-
-        int numOrderBy = in.readVInt();
-
-        if (numOrderBy > 0) {
-            reverseFlags = new boolean[numOrderBy];
-
-            for (int i = 0; i < reverseFlags.length; i++) {
-                reverseFlags[i] = in.readBoolean();
-            }
-
-            orderBy = new ArrayList<>(numOrderBy);
-            for (int i = 0; i < reverseFlags.length; i++) {
-                orderBy.add(Symbols.fromStream(in));
-            }
-
-            nullsFirst = new Boolean[numOrderBy];
-            for (int i = 0; i < numOrderBy; i++) {
-                nullsFirst[i] = in.readOptionalBoolean();
-            }
-        }
     }
 
     @Override

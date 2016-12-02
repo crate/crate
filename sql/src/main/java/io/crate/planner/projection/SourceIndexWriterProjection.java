@@ -62,17 +62,6 @@ public class SourceIndexWriterProjection extends AbstractIndexWriterProjection {
     private final static String OVERWRITE_DUPLICATES = "overwrite_duplicates";
     private final static boolean OVERWRITE_DUPLICATES_DEFAULT = false;
 
-    public static final ProjectionFactory<SourceIndexWriterProjection> FACTORY =
-        new ProjectionFactory<SourceIndexWriterProjection>() {
-            @Override
-            public SourceIndexWriterProjection newInstance() {
-                return new SourceIndexWriterProjection();
-            }
-        };
-
-    protected SourceIndexWriterProjection() {
-    }
-
     public SourceIndexWriterProjection(TableIdent tableIdent,
                                        @Nullable String partitionIdent,
                                        Reference rawSourceReference,
@@ -140,6 +129,29 @@ public class SourceIndexWriterProjection extends AbstractIndexWriterProjection {
         rawSourceSymbol = new InputColumn(currentInputIndex, DataTypes.STRING);
     }
 
+    public SourceIndexWriterProjection(StreamInput in) throws IOException {
+        super(in);
+        overwriteDuplicates = in.readBoolean();
+        rawSourceReference = Reference.fromStream(in);
+        rawSourceSymbol = (InputColumn) Symbols.fromStream(in);
+
+
+        if (in.readBoolean()) {
+            int length = in.readVInt();
+            includes = new String[length];
+            for (int i = 0; i < length; i++) {
+                includes[i] = in.readString();
+            }
+        }
+        if (in.readBoolean()) {
+            int length = in.readVInt();
+            excludes = new String[length];
+            for (int i = 0; i < length; i++) {
+                excludes[i] = in.readString();
+            }
+        }
+    }
+
     @Override
     public <C, R> R accept(ProjectionVisitor<C, R> visitor, C context) {
         return visitor.visitSourceIndexWriterProjection(this, context);
@@ -192,30 +204,6 @@ public class SourceIndexWriterProjection extends AbstractIndexWriterProjection {
         result = 31 * result + (excludes != null ? Arrays.hashCode(excludes) : 0);
         result = 31 * result + rawSourceSymbol.hashCode();
         return result;
-    }
-
-    @Override
-    public void readFrom(StreamInput in) throws IOException {
-        super.readFrom(in);
-        overwriteDuplicates = in.readBoolean();
-        rawSourceReference = Reference.fromStream(in);
-        rawSourceSymbol = (InputColumn) Symbols.fromStream(in);
-
-
-        if (in.readBoolean()) {
-            int length = in.readVInt();
-            includes = new String[length];
-            for (int i = 0; i < length; i++) {
-                includes[i] = in.readString();
-            }
-        }
-        if (in.readBoolean()) {
-            int length = in.readVInt();
-            excludes = new String[length];
-            for (int i = 0; i < length; i++) {
-                excludes[i] = in.readString();
-            }
-        }
     }
 
     @Override

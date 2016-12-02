@@ -47,17 +47,6 @@ public class ColumnIndexWriterProjection extends AbstractIndexWriterProjection {
     @Nullable
     private Map<Reference, Symbol> onDuplicateKeyAssignments;
 
-    public static final ProjectionFactory<ColumnIndexWriterProjection> FACTORY =
-        new ProjectionFactory<ColumnIndexWriterProjection>() {
-            @Override
-            public ColumnIndexWriterProjection newInstance() {
-                return new ColumnIndexWriterProjection();
-            }
-        };
-
-    private ColumnIndexWriterProjection() {
-    }
-
     /**
      * @param tableIdent                identifying the table to write to
      * @param columns                   the columnReferences of all the columns to be written in order of appearance
@@ -92,6 +81,29 @@ public class ColumnIndexWriterProjection extends AbstractIndexWriterProjection {
                 columnReferences.remove(i);
             } else {
                 this.columnSymbols.add(new InputColumn(i, ref.valueType()));
+            }
+        }
+    }
+
+    ColumnIndexWriterProjection(StreamInput in) throws IOException {
+        super(in);
+
+        if (in.readBoolean()) {
+            columnSymbols = Symbols.listFromStream(in);
+        }
+        if (in.readBoolean()) {
+            int length = in.readVInt();
+            columnReferences = new ArrayList<>(length);
+            for (int i = 0; i < length; i++) {
+                columnReferences.add(Reference.fromStream(in));
+            }
+        }
+
+        if (in.readBoolean()) {
+            int mapSize = in.readVInt();
+            onDuplicateKeyAssignments = new HashMap<>(mapSize);
+            for (int i = 0; i < mapSize; i++) {
+                onDuplicateKeyAssignments.put(Reference.fromStream(in), Symbols.fromStream(in));
             }
         }
     }
@@ -151,30 +163,6 @@ public class ColumnIndexWriterProjection extends AbstractIndexWriterProjection {
         result = 31 * result + columnReferences.hashCode();
         result = 31 * result + (onDuplicateKeyAssignments != null ? onDuplicateKeyAssignments.hashCode() : 0);
         return result;
-    }
-
-    @Override
-    public void readFrom(StreamInput in) throws IOException {
-        super.readFrom(in);
-
-        if (in.readBoolean()) {
-            columnSymbols = Symbols.listFromStream(in);
-        }
-        if (in.readBoolean()) {
-            int length = in.readVInt();
-            columnReferences = new ArrayList<>(length);
-            for (int i = 0; i < length; i++) {
-                columnReferences.add(Reference.fromStream(in));
-            }
-        }
-
-        if (in.readBoolean()) {
-            int mapSize = in.readVInt();
-            onDuplicateKeyAssignments = new HashMap<>(mapSize);
-            for (int i = 0; i < mapSize; i++) {
-                onDuplicateKeyAssignments.put(Reference.fromStream(in), Symbols.fromStream(in));
-            }
-        }
     }
 
     @Override
