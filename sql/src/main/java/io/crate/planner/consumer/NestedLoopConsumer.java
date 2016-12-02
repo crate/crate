@@ -396,5 +396,4 @@ class NestedLoopConsumer implements Consumer {
             throw new ValidationException("JOIN with sub queries is not supported");
         }
     }
-
 }

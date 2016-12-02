@@ -28,10 +28,7 @@ import com.google.common.base.Predicate;
 import com.google.common.collect.*;
 import io.crate.analyze.*;
 import io.crate.analyze.relations.*;
-import io.crate.analyze.symbol.DefaultTraversalSymbolVisitor;
-import io.crate.analyze.symbol.Field;
-import io.crate.analyze.symbol.RelationColumn;
-import io.crate.analyze.symbol.Symbol;
+import io.crate.analyze.symbol.*;
 import io.crate.exceptions.ValidationException;
 import io.crate.metadata.ReplaceMode;
 import io.crate.metadata.ReplacingSymbolVisitor;
@@ -208,6 +205,7 @@ public class ManyTableConsumer implements Consumer {
         QuerySpec leftQuerySpec = leftSource.querySpec();
         Optional<RemainingOrderBy> remainingOrderBy = mss.remainingOrderBy();
         List<JoinPair> joinPairs = mss.joinPairs();
+        List<TwoTableJoin> twoTableJoinList = new ArrayList<>(orderedRelationNames.size());
 
         QualifiedName rightName;
         MultiSourceSelect.Source rightSource;
@@ -269,11 +267,27 @@ public class ManyTableConsumer implements Consumer {
             leftQuerySpec = newQuerySpec.copyAndReplace(replaceFunction);
             leftRelation = join;
             leftName = join.name();
+            twoTableJoinList.add(join);
         }
         TwoTableJoin join = (TwoTableJoin) leftRelation;
         if (!splitQuery.isEmpty()) {
             join.querySpec().where(new WhereClause(AndOperator.join(splitQuery.values())));
         }
+
+        // Find the last join pair that contains a filtering
+        int index = 0;
+        for (int i = twoTableJoinList.size() - 1; i >=0; i--) {
+            index = i;
+            WhereClause where = twoTableJoinList.get(i).querySpec().where();
+            if (where.hasQuery() && !(where.query() instanceof Literal)) {
+                break;
+            }
+        }
+        // Remove limit from all join pairs before the last filtered one
+        for (int i = 0; i < index; i++) {
+            twoTableJoinList.get(i).querySpec().limit(Optional.<Symbol>absent());
+        }
+
         return join;
     }
 

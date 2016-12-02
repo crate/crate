@@ -5,7 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
- - Upgraded Elasticsearch to 2.4.2
+ - Fixed issue in joins with 3 or more tables where limit was applied
+   before `where` clause filtering which produced  wrong results.
 
  - Fixed runtime error handling which could cause queries to get stuck
    on failures.
