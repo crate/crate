@@ -46,11 +46,11 @@ statement
     | EXPLAIN ANALYZE?
         ('(' explainOption (',' explainOption)* ')')? statement        #explain
     | SHOW CREATE TABLE qualifiedName                                  #showCreateTable
-//    | SHOW TABLES ((FROM | IN) qualifiedName)? (LIKE pattern=STRING)?  #showTables
+    | SHOW TABLES ((FROM | IN) qualifiedName)?
+        (LIKE pattern=STRING)?
+        (WHERE where=booleanExpression)?                               #showTables
 //    | SHOW SCHEMAS ((FROM | IN) identifier)? (LIKE pattern=STRING)?    #showSchemas
 //    | SHOW COLUMNS (FROM | IN) qualifiedName                           #showColumns
-//    | SHOW FUNCTIONS                                                   #showFunctions
-//    | SHOW SESSION                                                     #showSession
 //    | SET SESSION qualifiedName EQ expression                          #setSession
 //    | RESET SESSION qualifiedName                                      #resetSession
 //    | SHOW PARTITIONS (FROM | IN) qualifiedName

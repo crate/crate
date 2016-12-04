@@ -72,6 +72,21 @@ public class TestStatementBuilder {
     }
 
     @Test
+    public void testShowTablesStmtBuilder() {
+        printStatement("show tables");
+        printStatement("show tables like '.*'");
+        printStatement("show tables from table_schema");
+        printStatement("show tables in table_schema");
+        printStatement("show tables from foo like '.*'");
+        printStatement("show tables in foo like '.*'");
+        printStatement("show tables from table_schema like '.*'");
+        printStatement("show tables in table_schema like '*'");
+        printStatement("show tables in table_schema where name = 'foo'");
+        printStatement("show tables in table_schema where name > 'foo'");
+        printStatement("show tables in table_schema where name != 'foo'");
+    }
+
+    @Test
     public void testExplainStmtBuilder() {
         printStatement("explain drop table foo");
     }
@@ -280,17 +295,6 @@ public class TestStatementBuilder {
         printStatement("show columns in table_name from table_schema like '*'");
         printStatement("show columns from table_name where column_name = 'foo'");
         printStatement("show columns from table_name from table_schema where column_name = 'foo'");
-
-        printStatement("show tables");
-        printStatement("show tables like '.*'");
-        printStatement("show tables from table_schema");
-        printStatement("show tables in table_schema");
-        printStatement("show tables from foo like '.*'");
-        printStatement("show tables in foo like '.*'");
-        printStatement("show tables from table_schema like '.*'");
-        printStatement("show tables in table_schema like '*'");
-        printStatement("show tables from table_schema where table_name = 'foo'");
-        printStatement("show tables in table_schema where table_name = 'foo'");
     }
 
     @Test
