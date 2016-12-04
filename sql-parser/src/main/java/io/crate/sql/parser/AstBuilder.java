@@ -329,11 +329,15 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
         );
     }
 
-//    @Override
-//    public Node visitShowColumns(SqlBaseParser.ShowColumnsContext context) {
-//        return new ShowColumns(getLocation(context), getQualifiedName(context.qualifiedName()));
-//    }
-//
+    @Override
+    public Node visitShowColumns(SqlBaseParser.ShowColumnsContext context) {
+        return new ShowColumns(
+            context.qualifiedName().stream().map(AstBuilder::getQualifiedName).collect(toList()),
+            getTextIfPresent(context.pattern).map(AstBuilder::unquote),
+            visitIfPresent(context.booleanExpression(), Expression.class)
+        );
+    }
+
 //    @Override
 //    public Node visitShowPartitions(SqlBaseParser.ShowPartitionsContext context) {
 //        return new ShowPartitions(

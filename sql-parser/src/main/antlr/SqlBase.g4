@@ -49,9 +49,13 @@ statement
     | SHOW TABLES ((FROM | IN) qualifiedName)?
         (LIKE pattern=STRING)?
         (WHERE where=booleanExpression)?                               #showTables
-    | SHOW SCHEMAS (LIKE pattern=STRING)?
+    | SHOW SCHEMAS
+        (LIKE pattern=STRING)?
         (WHERE where=booleanExpression)?                               #showSchemas
-//    | SHOW COLUMNS (FROM | IN) qualifiedName                           #showColumns
+    | SHOW COLUMNS (FROM | IN) qualifiedName
+        ((FROM | IN) qualifiedName)?
+        (LIKE pattern=STRING)?
+        (WHERE where=booleanExpression)?                               #showColumns
 //    | SET SESSION qualifiedName EQ expression                          #setSession
 //    | RESET SESSION qualifiedName                                      #resetSession
 //    | SHOW PARTITIONS (FROM | IN) qualifiedName

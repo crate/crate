@@ -87,6 +87,20 @@ public class TestStatementBuilder {
     }
 
     @Test
+    public void testShowColumnsStmtBuilder() {
+        printStatement("show columns from table_name");
+        printStatement("show columns in table_name");
+        printStatement("show columns from table_name from table_schema");
+        printStatement("show columns in table_name from table_schema");
+        printStatement("show columns in foo like '*'");
+        printStatement("show columns from foo like '*'");
+        printStatement("show columns from table_name from table_schema like '*'");
+        printStatement("show columns in table_name from table_schema like '*'");
+        printStatement("show columns from table_name where column_name = 'foo'");
+        printStatement("show columns from table_name from table_schema where column_name = 'foo'");
+    }
+
+    @Test
     public void testShowSchemasStmtBuilder() {
         printStatement("show schemas");
         printStatement("show schemas like 'doc%'");
@@ -287,17 +301,6 @@ public class TestStatementBuilder {
 
         printStatement("kill all");
         printStatement("kill '6a3d6fb6-1401-4333-933d-b38c9322fca7'");
-
-        printStatement("show columns from table_name");
-        printStatement("show columns in table_name");
-        printStatement("show columns from table_name from table_schema");
-        printStatement("show columns in table_name from table_schema");
-        printStatement("show columns in foo like '*'");
-        printStatement("show columns from foo like '*'");
-        printStatement("show columns from table_name from table_schema like '*'");
-        printStatement("show columns in table_name from table_schema like '*'");
-        printStatement("show columns from table_name where column_name = 'foo'");
-        printStatement("show columns from table_name from table_schema where column_name = 'foo'");
     }
 
     @Test
