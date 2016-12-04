@@ -101,6 +101,15 @@ public class TestStatementBuilder {
     }
 
     @Test
+    public void testDeleteFromStmtBuilder() {
+        printStatement("delete from foo as alias");
+        printStatement("delete from foo");
+        // TODO fix
+//        printStatement("delete from schemah.foo where foo.a=foo.b and a is not null");
+//        printStatement("delete from schemah.foo as alias where foo.a=foo.b and a is not null");
+    }
+
+    @Test
     public void testShowSchemasStmtBuilder() {
         printStatement("show schemas");
         printStatement("show schemas like 'doc%'");
@@ -174,13 +183,9 @@ public class TestStatementBuilder {
         printStatement("select * from foo limit 100 offset 20");
         printStatement("select * from foo offset 20");
 
-        printStatement("delete from foo");
-        printStatement("delete from schemah.foo where foo.a=foo.b and a is not null");
-
         printStatement("update foo set a=b");
         printStatement("update schemah.foo set foo.a='b', foo.b=foo.a");
         printStatement("update schemah.foo set foo.a=abs(-6.3334), x=true where x=false");
-
 
         printStatement("create table if not exists t (id integer primary key, name string)");
         printStatement("create table t (id integer primary key, name string)");

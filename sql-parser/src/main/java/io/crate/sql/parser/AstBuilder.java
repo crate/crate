@@ -86,15 +86,15 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
 //            Optional.ofNullable(getColumnAliases(context.columnAliases())),
 //            (Query) visit(context.query()));
 //    }
-//
-//    @Override
-//    public Node visitDelete(SqlBaseParser.DeleteContext context) {
-//        return new Delete(
-//            getLocation(context),
-//            new Table(getLocation(context), getQualifiedName(context.qualifiedName())),
-//            visitIfPresent(context.booleanExpression(), Expression.class));
-//    }
-//
+
+    @Override
+    public Node visitDelete(SqlBaseParser.DeleteContext context) {
+        return new Delete(
+            (Relation) visit(context.aliasedRelation()),
+            visitIfPresent(context.booleanExpression(), Expression.class)
+        );
+    }
+
 //    @Override
 //    public Node visitRenameTable(SqlBaseParser.RenameTableContext context) {
 //        return new RenameTable(getLocation(context), getQualifiedName(context.from), getQualifiedName(context.to));
@@ -339,16 +339,6 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
     }
 
 //    @Override
-//    public Node visitShowPartitions(SqlBaseParser.ShowPartitionsContext context) {
-//        return new ShowPartitions(
-//            getLocation(context),
-//            getQualifiedName(context.qualifiedName()),
-//            visitIfPresent(context.booleanExpression(), Expression.class),
-//            visit(context.sortItem(), SortItem.class),
-//            getTextIfPresent(context.limit));
-//    }
-//
-//    @Override
 //    public Node visitSetSession(SqlBaseParser.SetSessionContext context) {
 //        return new SetSession(getLocation(context), getQualifiedName(context.qualifiedName()), (Expression) visit(context.expression()));
 //    }
@@ -365,15 +355,14 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
         return new NotExpression((Expression) visit(context.booleanExpression()));
     }
 
-//    @Override
-//    public Node visitLogicalBinary(SqlBaseParser.LogicalBinaryContext context) {
-//        return new LogicalBinaryExpression(
-//            getLocation(context.operator),
-//            getLogicalBinaryOperator(context.operator),
-//            (Expression) visit(context.left),
-//            (Expression) visit(context.right));
-//    }
-//
+    @Override
+    public Node visitLogicalBinary(SqlBaseParser.LogicalBinaryContext context) {
+        return new LogicalBinaryExpression(
+            getLogicalBinaryOperator(context.operator),
+            (Expression) visit(context.left),
+            (Expression) visit(context.right));
+    }
+
 //    // *************** from clause *****************
 //
 //    @Override
@@ -419,38 +408,39 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
 //
 //        return new Join(getLocation(context), joinType, left, right, Optional.of(criteria));
 //    }
-//
-//    @Override
-//    public Node visitSampledRelation(SqlBaseParser.SampledRelationContext context) {
-//        Relation child = (Relation) visit(context.aliasedRelation());
-//
-//        if (context.TABLESAMPLE() == null) {
-//            return child;
-//        }
-//
-//        return new SampledRelation(
-//            getLocation(context),
-//            child,
-//            getSamplingMethod((Token) context.sampleType().getChild(0).getPayload()),
-//            (Expression) visit(context.percentage));
-//    }
-//
-//    @Override
-//    public Node visitAliasedRelation(SqlBaseParser.AliasedRelationContext context) {
-//        Relation child = (Relation) visit(context.relationPrimary());
-//
-//        if (context.identifier() == null) {
-//            return child;
-//        }
-//
-//        return new AliasedRelation(getLocation(context), child, context.identifier().getText(), getColumnAliases(context.columnAliases()));
-//    }
-//
-//    @Override
-//    public Node visitTableName(SqlBaseParser.TableNameContext context) {
-//        return new Table(getLocation(context), getQualifiedName(context.qualifiedName()));
-//    }
-//
+
+    @Override
+    public Node visitSampledRelation(SqlBaseParser.SampledRelationContext context) {
+        Relation child = (Relation) visit(context.aliasedRelation());
+
+        if (context.TABLESAMPLE() == null) {
+            return child;
+        }
+
+        return new SampledRelation(
+            child,
+            getSamplingMethod((Token) context.sampleType().getChild(0).getPayload()),
+            (Expression) visit(context.percentage),
+            com.google.common.base.Optional.absent() // TODO fix that
+        );
+    }
+
+    @Override
+    public Node visitAliasedRelation(SqlBaseParser.AliasedRelationContext context) {
+        Relation child = (Relation) visit(context.relationPrimary());
+
+        if (context.identifier() == null) {
+            return child;
+        }
+
+        return new AliasedRelation(child, context.identifier().getText(), getColumnAliases(context.columnAliases()));
+    }
+
+    @Override
+    public Node visitTableName(SqlBaseParser.TableNameContext context) {
+        return new Table(getQualifiedName(context.qualifiedName()));
+    }
+
 //    @Override
 //    public Node visitSubqueryRelation(SqlBaseParser.SubqueryRelationContext context) {
 //        return new TableSubquery(getLocation(context), (Query) visit(context.query()));
@@ -722,9 +712,9 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
 //
 //    @Override
 //    public Node visitDereference(SqlBaseParser.DereferenceContext context) {
-//        return new DereferenceExpression(getLocation(context), (Expression) visit(context.base), context.fieldName.getText());
+//        return new DereferenceExpression((Expression) visit(context.base), context.fieldName.getText());
 //    }
-//
+
     @Override
     public Node visitColumnReference(SqlBaseParser.ColumnReferenceContext context) {
         return new QualifiedNameReference(QualifiedName.of(context.getText()));
@@ -1049,17 +1039,17 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
         return Optional.ofNullable(token).map(Token::getText);
     }
 
-//    private static List<String> getColumnAliases(SqlBaseParser.ColumnAliasesContext columnAliasesContext) {
-//        if (columnAliasesContext == null) {
-//            return null;
-//        }
-//
-//        return columnAliasesContext
-//            .identifier().stream()
-//            .map(ParseTree::getText)
-//            .collect(toList());
-//    }
-//
+    private static List<String> getColumnAliases(SqlBaseParser.ColumnAliasesContext columnAliasesContext) {
+        if (columnAliasesContext == null) {
+            return null;
+        }
+
+        return columnAliasesContext
+            .identifier().stream()
+            .map(ParseTree::getText)
+            .collect(toList());
+    }
+
 //    private static ArithmeticBinaryExpression.Type getArithmeticBinaryOperator(Token operator) {
 //        switch (operator.getType()) {
 //            case SqlBaseLexer.PLUS:
@@ -1175,29 +1165,29 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
 //
 //        throw new IllegalArgumentException("Unsupported bound type: " + token.getText());
 //    }
-//
-//    private static SampledRelation.Type getSamplingMethod(Token token) {
-//        switch (token.getType()) {
-//            case SqlBaseLexer.BERNOULLI:
-//                return SampledRelation.Type.BERNOULLI;
-//            case SqlBaseLexer.SYSTEM:
-//                return SampledRelation.Type.SYSTEM;
-//        }
-//
-//        throw new IllegalArgumentException("Unsupported sampling method: " + token.getText());
-//    }
-//
-//    private static LogicalBinaryExpression.Type getLogicalBinaryOperator(Token token) {
-//        switch (token.getType()) {
-//            case SqlBaseLexer.AND:
-//                return LogicalBinaryExpression.Type.AND;
-//            case SqlBaseLexer.OR:
-//                return LogicalBinaryExpression.Type.OR;
-//        }
-//
-//        throw new IllegalArgumentException("Unsupported operator: " + token.getText());
-//    }
-//
+
+    private static SampledRelation.Type getSamplingMethod(Token token) {
+        switch (token.getType()) {
+            case SqlBaseLexer.BERNOULLI:
+                return SampledRelation.Type.BERNOULLI;
+            case SqlBaseLexer.SYSTEM:
+                return SampledRelation.Type.SYSTEM;
+        }
+
+        throw new IllegalArgumentException("Unsupported sampling method: " + token.getText());
+    }
+
+    private static LogicalBinaryExpression.Type getLogicalBinaryOperator(Token token) {
+        switch (token.getType()) {
+            case SqlBaseLexer.AND:
+                return LogicalBinaryExpression.Type.AND;
+            case SqlBaseLexer.OR:
+                return LogicalBinaryExpression.Type.OR;
+        }
+
+        throw new IllegalArgumentException("Unsupported operator: " + token.getText());
+    }
+
 //    private static SortItem.NullOrdering getNullOrderingType(Token token) {
 //        switch (token.getType()) {
 //            case SqlBaseLexer.FIRST:

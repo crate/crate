@@ -30,8 +30,8 @@ import java.util.List;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
-public class SampledRelation
-    extends Relation {
+public class SampledRelation extends Relation {
+
     public enum Type {
         BERNOULLI,
         SYSTEM
@@ -96,9 +96,9 @@ public class SampledRelation
         }
         SampledRelation that = (SampledRelation) o;
         return Objects.equal(relation, that.relation) &&
-               Objects.equal(type, that.type) &&
-               Objects.equal(samplePercentage, that.samplePercentage) &&
-               Objects.equal(columnsToStratifyOn, that.columnsToStratifyOn);
+            Objects.equal(type, that.type) &&
+            Objects.equal(samplePercentage, that.samplePercentage) &&
+            Objects.equal(columnsToStratifyOn, that.columnsToStratifyOn);
     }
 
     @Override
