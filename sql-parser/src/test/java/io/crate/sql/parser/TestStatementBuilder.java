@@ -87,6 +87,14 @@ public class TestStatementBuilder {
     }
 
     @Test
+    public void testShowSchemasStmtBuilder() {
+        printStatement("show schemas");
+        printStatement("show schemas like 'doc%'");
+        printStatement("show schemas where schema_name='doc'");
+        printStatement("show schemas where schema_name LIKE 'd%'");
+    }
+
+    @Test
     public void testExplainStmtBuilder() {
         printStatement("explain drop table foo");
     }
@@ -279,11 +287,6 @@ public class TestStatementBuilder {
 
         printStatement("kill all");
         printStatement("kill '6a3d6fb6-1401-4333-933d-b38c9322fca7'");
-
-        printStatement("show schemas");
-        printStatement("show schemas like 'doc%'");
-        printStatement("show schemas where schema_name='doc'");
-        printStatement("show schemas where schema_name LIKE 'd%'");
 
         printStatement("show columns from table_name");
         printStatement("show columns in table_name");

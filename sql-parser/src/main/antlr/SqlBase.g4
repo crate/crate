@@ -49,7 +49,8 @@ statement
     | SHOW TABLES ((FROM | IN) qualifiedName)?
         (LIKE pattern=STRING)?
         (WHERE where=booleanExpression)?                               #showTables
-//    | SHOW SCHEMAS ((FROM | IN) identifier)? (LIKE pattern=STRING)?    #showSchemas
+    | SHOW SCHEMAS (LIKE pattern=STRING)?
+        (WHERE where=booleanExpression)?                               #showSchemas
 //    | SHOW COLUMNS (FROM | IN) qualifiedName                           #showColumns
 //    | SET SESSION qualifiedName EQ expression                          #setSession
 //    | RESET SESSION qualifiedName                                      #resetSession
@@ -423,7 +424,7 @@ nonReserved
     | CALL
     | GRANT | REVOKE | PRIVILEGES | PUBLIC | OPTION
     | SUBSTRING
-    | SCHEMA | CASCADE | RESTRICT
+    | SCHEMA
     | INPUT | OUTPUT
     | INCLUDING | EXCLUDING | PROPERTIES
     ;

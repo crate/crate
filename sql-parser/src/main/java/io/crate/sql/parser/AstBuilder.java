@@ -321,15 +321,14 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
         );
     }
 
-//    @Override
-//    public Node visitShowSchemas(SqlBaseParser.ShowSchemasContext context) {
-//        return new ShowSchemas(
-//            getLocation(context),
-//            getTextIfPresent(context.identifier()),
-//            getTextIfPresent(context.pattern)
-//                .map(AstBuilder::unquote));
-//    }
-//
+    @Override
+    public Node visitShowSchemas(SqlBaseParser.ShowSchemasContext context) {
+        return new ShowSchemas(
+            getTextIfPresent(context.pattern).map(AstBuilder::unquote),
+            visitIfPresent(context.booleanExpression(), Expression.class)
+        );
+    }
+
 //    @Override
 //    public Node visitShowColumns(SqlBaseParser.ShowColumnsContext context) {
 //        return new ShowColumns(getLocation(context), getQualifiedName(context.qualifiedName()));
@@ -523,21 +522,25 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
 //        return new IsNotNullPredicate(getLocation(context), child);
 //    }
 //
-//    @Override
-//    public Node visitLike(SqlBaseParser.LikeContext context) {
-//        Expression escape = null;
-//        if (context.escape != null) {
-//            escape = (Expression) visit(context.escape);
-//        }
-//
-//        Expression result = new LikePredicate(getLocation(context), (Expression) visit(context.value), (Expression) visit(context.pattern), escape);
-//
-//        if (context.NOT() != null) {
-//            result = new NotExpression(getLocation(context), result);
-//        }
-//
-//        return result;
-//    }
+    @Override
+    public Node visitLike(SqlBaseParser.LikeContext context) {
+        Expression escape = null;
+        if (context.escape != null) {
+            escape = (Expression) visit(context.escape);
+        }
+
+        Expression result = new LikePredicate(
+            (Expression) visit(context.value),
+            (Expression) visit(context.pattern),
+            escape
+        );
+
+        if (context.NOT() != null) {
+            result = new NotExpression(result);
+        }
+
+        return result;
+    }
 //
 //    @Override
 //    public Node visitInList(SqlBaseParser.InListContext context) {
