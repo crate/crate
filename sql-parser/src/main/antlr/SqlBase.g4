@@ -34,9 +34,9 @@ statement
 //    | CREATE TABLE (IF NOT EXISTS)? qualifiedName
 //        '(' tableElement (',' tableElement)* ')'
 //        (WITH tableProperties)?                                        #createTable
-    | DROP TABLE (IF EXISTS)? qualifiedName                            #dropTable
+    | DROP TABLE (IF EXISTS)? qualifiedName                           #dropTable
 //    | INSERT INTO qualifiedName columnAliases? query                   #insertInto
-    | DELETE FROM aliasedRelation (WHERE booleanExpression)?                  #delete
+    | DELETE FROM aliasedRelation (WHERE booleanExpression)?          #delete
 //    | ALTER TABLE from=qualifiedName RENAME TO to=qualifiedName        #renameTable
 //    | ALTER TABLE tableName=qualifiedName
 //        RENAME COLUMN from=identifier TO to=identifier                 #renameColumn
@@ -47,15 +47,12 @@ statement
         ('(' explainOption (',' explainOption)* ')')? statement        #explain
     | SHOW CREATE TABLE qualifiedName                                  #showCreateTable
     | SHOW TABLES ((FROM | IN) qualifiedName)?
-        (LIKE pattern=STRING)?
-        (WHERE where=booleanExpression)?                               #showTables
+        (LIKE pattern=STRING | WHERE where=booleanExpression)?         #showTables
     | SHOW SCHEMAS
-        (LIKE pattern=STRING)?
-        (WHERE where=booleanExpression)?                               #showSchemas
+        (LIKE pattern=STRING | WHERE where=booleanExpression)?         #showSchemas
     | SHOW COLUMNS (FROM | IN) qualifiedName
         ((FROM | IN) qualifiedName)?
-        (LIKE pattern=STRING)?
-        (WHERE where=booleanExpression)?                               #showColumns
+        (LIKE pattern=STRING | WHERE where=booleanExpression)?         #showColumns
 //    | SET SESSION qualifiedName EQ expression                          #setSession
 //    | RESET SESSION qualifiedName                                      #resetSession
 //    | SHOW PARTITIONS (FROM | IN) qualifiedName
