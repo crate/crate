@@ -43,7 +43,7 @@ statement
 //    | CREATE (OR REPLACE)? VIEW qualifiedName AS query                 #createView
     | EXPLAIN ANALYZE?
         ('(' explainOption (',' explainOption)* ')')? statement        #explain
-    | KILL (ALL | parameterExpression | STRING)                        #killStatement
+    | KILL (ALL | parameterOrLiteral)                                  #killStatement
     | SET (SESSION | LOCAL)? setAssignment                             #set
     | UPDATE aliasedRelation SET assignment (',' assignment)*
         (WHERE where=booleanExpression)?                               #update
@@ -262,10 +262,9 @@ valueExpression
 
 primaryExpression
     : interval                                                                            #intervalLiteral
+    | parameterOrLiteral                                                                  #parameterOrLiteralExpression
     | identifier STRING                                                                   #typeConstructor
     | DOUBLE_PRECISION STRING                                                             #typeConstructor
-    | simpleLiteral                                                                       #simpleLiteralExpression
-    | parameterExpression                                                                 #parameter
     | BINARY_LITERAL                                                                      #binaryLiteral
     | POSITION '(' valueExpression IN valueExpression ')'                                 #position
     // This case handles both an implicit row constructor or a simple parenthesized
@@ -283,7 +282,6 @@ primaryExpression
     | CASE whenClause+ (ELSE elseExpression=expression)? END                              #searchedCase
     | CAST '(' expression AS type ')'                                                     #cast
     | TRY_CAST '(' expression AS type ')'                                                 #cast
-    | ARRAY '[' (expression (',' expression)*)? ']'                                       #arrayConstructor
     | value=primaryExpression '[' index=valueExpression ']'                               #subscript
     | identifier                                                                          #columnReference
     | identifier ('.' identifier)*                                                        #dereference
@@ -296,11 +294,22 @@ primaryExpression
     | EXTRACT '(' identifier FROM valueExpression ')'                                     #extract
     ;
 
+parameterOrLiteral
+    : simpleLiteral                                                                       #simpleLiteralExpression
+    | parameterExpr                                                                       #parameter
+    | ARRAY '[' (expression (',' expression)*)? ']'                                       #arrayConstructor
+    ;
+
 simpleLiteral
     : NULL                                                                                #nullLiteral
     | number                                                                              #numericLiteral
     | booleanValue                                                                        #booleanLiteral
     | STRING                                                                              #stringLiteral
+    ;
+
+parameterExpr
+    : '$' INTEGER_VALUE                                                                   #positionalParameter
+    | '?'                                                                                 #parameterPlaceholder
     ;
 
 timeZoneSpecifier
@@ -455,10 +464,6 @@ normalForm
     : NFD | NFC | NFKD | NFKC
     ;
 
-parameterExpression
-    : '$' INTEGER_VALUE
-    | '?'
-    ;
 
 SELECT: 'SELECT';
 KILL: 'KILL';

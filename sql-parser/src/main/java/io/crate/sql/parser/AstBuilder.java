@@ -33,7 +33,7 @@ import static java.util.Objects.requireNonNull;
 import static java.util.stream.Collectors.toList;
 
 class AstBuilder extends SqlBaseBaseVisitor<Node> {
-    private int parameterPosition = 0;
+    private int parameterPosition = 1;
 
     @Override
     public Node visitSingleStatement(SqlBaseParser.SingleStatementContext context) {
@@ -140,7 +140,26 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
         }
     }
 
-    //    @Override
+    @Override
+    public Node visitKillStatement(SqlBaseParser.KillStatementContext context) {
+        if (context.ALL() != null) {
+            return new KillStatement();
+        }
+
+        return new KillStatement((Expression) visit(context.parameterOrLiteral()));
+    }
+
+//    @Override
+//    public Node visitRenameTable(SqlBaseParser.RenameTableContext context) {
+//        return new RenameTable(getLocation(context), getQualifiedName(context.from), getQualifiedName(context.to));
+//    }
+//
+//    @Override
+//    public Node visitRenameColumn(SqlBaseParser.RenameColumnContext context) {
+//        return new RenameColumn(getLocation(context), getQualifiedName(context.tableName), context.from.getText(), context.to.getText());
+//    }
+//
+//    @Override
 //    public Node visitAddColumn(SqlBaseParser.AddColumnContext context) {
 //        return new AddColumn(getLocation(context), getQualifiedName(context.qualifiedName()), (ColumnDefinition) visit(context.columnDefinition()));
 //    }
@@ -1003,7 +1022,18 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
 //        parameterPosition++;
 //        return parameter;
 //    }
-//
+
+    @Override
+    public Node visitParameterPlaceholder(SqlBaseParser.ParameterPlaceholderContext context) {
+        return new ParameterExpression(parameterPosition++);
+    }
+
+    @Override
+    public Node visitPositionalParameter(SqlBaseParser.PositionalParameterContext context) {
+        return new ParameterExpression(Integer.valueOf(context.INTEGER_VALUE().getText()));
+    }
+
+    //
 //    // ***************** arguments *****************
 //
 //    @Override

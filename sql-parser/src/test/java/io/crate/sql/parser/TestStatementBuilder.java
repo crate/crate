@@ -168,6 +168,14 @@ public class TestStatementBuilder {
     }
 
     @Test
+    public void testKillStmtBuilder() {
+        printStatement("kill all");
+        printStatement("kill '6a3d6fb6-1401-4333-933d-b38c9322fca7'");
+        printStatement("kill ?");
+        printStatement("kill $1");
+    }
+
+    @Test
     public void testSetSessionInvalidSetting() throws Exception {
         expectedException.expect(ParsingException.class);
         expectedException.expectMessage(containsString("no viable alternative"));
@@ -351,9 +359,6 @@ public class TestStatementBuilder {
         printStatement("insert into t (a, b) values (1, 2) on duplicate key update a = a + 1, b = 3");
         printStatement("insert into t (a, b) values (1, 2), (3, 4) on duplicate key update a = values (a) + 1, b = 4");
         printStatement("insert into t (a, b) values (1, 2), (3, 4) on duplicate key update a = values (a) + 1, b = values(b) - 2");
-
-        printStatement("kill all");
-        printStatement("kill '6a3d6fb6-1401-4333-933d-b38c9322fca7'");
     }
 
     @Test
