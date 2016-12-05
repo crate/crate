@@ -32,30 +32,30 @@ import java.nio.file.Path;
 
 import static org.hamcrest.Matchers.is;
 
+
 @ESIntegTestCase.ClusterScope(numDataNodes = 0, numClientNodes = 0)
-public class GeoBackwardCompatibilityTest extends SQLTransportIntegrationTest {
+public class ObjectTemplateMappingBWCTest extends SQLTransportIntegrationTest {
 
     @Before
     public void loadLegacy() throws IOException {
-        Path zippedIndexDir = getDataPath("/indices/bwc/bwc-legacy_geo_point-0.54.9.zip");
+        Path zippedIndexDir = getDataPath("/indices/bwc/bwc-object_template_mapping-0.54.9.zip");
         Settings nodeSettings = prepareBackwardsDataDir(zippedIndexDir);
         internalCluster().startNode(nodeSettings);
         ensureYellow();
     }
 
     /**
-     * Test backward compatibility of within geo query with index versions before 2.3
+     * Test that the mapping of the template is updated and you can create new partitions with the mapping.
      */
     @Test
-    public void testWithinQuery() throws IOException {
-        execute("select * from legacy_geo_point where within(p, 'POLYGON (( 5 5, 30 5, 30 30, 5 35, 5 5 ))')");
-        assertThat(response.rowCount(), is(1L));
-    }
-
-    @Test
-    public void testDistanceQuery() throws Exception {
-        execute("select * from legacy_geo_point where distance(p, 'POINT (10.0001 10.0001)') <= 20");
-        assertThat(response.rowCount(), is(1L));
+    public void testCreateNewPartition() throws IOException {
+        execute("INSERT INTO object_template_mapping (ts, attr, month) VALUES (1480923560000, {temp=19.8}, '201612')");
+        execute("REFRESH TABLE object_template_mapping");
+        execute("SELECT COUNT(*) FROM object_template_mapping");
+        assertThat((Long) response.rows()[0][0], is(2L));
+        execute("SELECT partition_ident FROM information_schema.table_partitions WHERE table_name='object_template_mapping' ORDER BY 1");
+        assertThat((String) response.rows()[0][0], is("043j4c1h6ooj2"));
+        assertThat((String) response.rows()[1][0], is("043j4c1h6ooj4"));
     }
 
 }

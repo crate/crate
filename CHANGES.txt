@@ -5,6 +5,10 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fix: Creating new partitions could have failed in case the partitioned table
+  was created prior to CrateDB version ``0.55.0`` and the table contained a
+  ``object`` column.
+
  - Fixed issue in joins with 3 or more tables where limit was applied
    before `where` clause filtering which produced  wrong results.
 
