@@ -149,7 +149,7 @@ class DistributedGroupByConsumer implements Consumer {
             } else {
                 topNOutputs = querySpec.outputs();
             }
-            reducerProjections.add(ProjectionBuilder.topNProjection(
+            reducerProjections.add(ProjectionBuilder.topNOrEval(
                 collectOutputs,
                 optOrderBy.orNull(),
                 0,

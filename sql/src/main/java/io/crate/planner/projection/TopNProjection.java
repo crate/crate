@@ -42,6 +42,8 @@ public class TopNProjection extends Projection {
     private final List<Symbol> outputs;
 
     public TopNProjection(int limit, int offset, List<Symbol> outputs) {
+        assert limit > TopN.NO_LIMIT : "limit of TopNProjection must not be negative/unlimited";
+
         this.limit = limit;
         this.offset = offset;
         this.outputs = outputs;
@@ -118,20 +120,4 @@ public class TopNProjection extends Projection {
                '}';
     }
 
-    @Nullable
-    public static TopNProjection createIfNeeded(Integer limit,
-                                                int offset,
-                                                int numOutputs,
-                                                List<DataType> inputTypes) {
-        if (limit == null) {
-            limit = TopN.NO_LIMIT;
-        }
-        if (limit == TopN.NO_LIMIT && offset == 0 && numOutputs >= inputTypes.size()) {
-            return null;
-        }
-        if (numOutputs < inputTypes.size()) {
-            inputTypes = inputTypes.subList(0, numOutputs);
-        }
-        return new TopNProjection(limit, offset, InputColumn.fromTypes(inputTypes));
-    }
 }

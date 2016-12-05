@@ -41,7 +41,7 @@ import io.crate.planner.node.dql.CountPlan;
 import io.crate.planner.node.dql.MergePhase;
 import io.crate.planner.projection.MergeCountProjection;
 import io.crate.planner.projection.Projection;
-import io.crate.planner.projection.TopNProjection;
+import io.crate.planner.projection.builder.ProjectionBuilder;
 import io.crate.types.DataTypes;
 
 import java.util.Collections;
@@ -83,7 +83,7 @@ public class CountConsumer implements Consumer {
 
             List<Projection> projections;
             Limits limits = context.plannerContext().getLimits(querySpec);
-            TopNProjection topN = TopNProjection.createIfNeeded(
+            Projection topN = ProjectionBuilder.topNOrEvalIfNeeded(
                 limits.finalLimit(), limits.offset(), 1, Symbols.extractTypes(MergeCountProjection.INSTANCE.outputs()));
             if (topN == null) {
                 projections = Collections.singletonList(MergeCountProjection.INSTANCE);

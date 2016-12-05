@@ -264,7 +264,7 @@ class NestedLoopConsumer implements Consumer {
             }
 
             int limit = isDistributed ? limits.limitAndOffset() : limits.finalLimit();
-            Projection topN = ProjectionBuilder.topNProjection(
+            Projection topN = ProjectionBuilder.topNOrEval(
                 nlOutputs,
                 orderBy,
                 isDistributed ? 0 : limits.offset(),

@@ -33,7 +33,6 @@ import io.crate.metadata.*;
 import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.TestingTableInfo;
-import io.crate.operation.projectors.TopN;
 import io.crate.planner.*;
 import io.crate.planner.distribution.DistributionType;
 import io.crate.planner.node.dql.*;
@@ -139,9 +138,9 @@ public class NestedLoopConsumerTest extends CrateUnitTest {
     public void testGlobalAggWithWhereDoesNotResultInFilterProjection() throws Exception {
         NestedLoop nl = plan("select min(u1.name) from users u1, users u2 where u1.name like 'A%'");
         assertThat(nl.nestedLoopPhase().projections(), contains(
-            instanceOf(TopNProjection.class),
+            instanceOf(EvalProjection.class),
             instanceOf(AggregationProjection.class),
-            instanceOf(TopNProjection.class)
+            instanceOf(EvalProjection.class)
         ));
     }
 
@@ -168,12 +167,10 @@ public class NestedLoopConsumerTest extends CrateUnitTest {
 
         NestedLoop nestedLoop = (NestedLoop) merge.subPlan();
         assertThat(nestedLoop.nestedLoopPhase().projections(),
-            Matchers.contains(instanceOf(FilterProjection.class), instanceOf(TopNProjection.class)));
+            Matchers.contains(instanceOf(FilterProjection.class), instanceOf(EvalProjection.class)));
 
-        TopNProjection topN = ((TopNProjection) nestedLoop.nestedLoopPhase().projections().get(1));
-        assertThat(topN.limit(), is(TopN.NO_LIMIT));
-        assertThat(topN.offset(), is(0));
-        assertThat(topN.outputs().size(), is(3));
+        EvalProjection eval = ((EvalProjection) nestedLoop.nestedLoopPhase().projections().get(1));
+        assertThat(eval.outputs().size(), is(3));
 
         MergePhase localMergePhase = merge.mergePhase();
         assertThat(localMergePhase.projections(),
@@ -199,11 +196,9 @@ public class NestedLoopConsumerTest extends CrateUnitTest {
         QueryThenFetch plan = plan("select u1.name, u2.name from users u1 cross join users u2");
         NestedLoop nestedLoop = (NestedLoop) plan.subPlan();
         assertThat(nestedLoop.nestedLoopPhase().projections(),
-            Matchers.contains(instanceOf(TopNProjection.class), instanceOf(FetchProjection.class)));
-        TopNProjection topN = ((TopNProjection) nestedLoop.nestedLoopPhase().projections().get(0));
-        assertThat(topN.limit(), is(TopN.NO_LIMIT));
-        assertThat(topN.offset(), is(0));
-        assertThat(topN.outputs().size(), is(2));
+            Matchers.contains(instanceOf(EvalProjection.class), instanceOf(FetchProjection.class)));
+        EvalProjection eval = ((EvalProjection) nestedLoop.nestedLoopPhase().projections().get(0));
+        assertThat(eval.outputs().size(), is(2));
 
         MergePhase leftMerge = nestedLoop.nestedLoopPhase().leftMergePhase();
         assertThat(leftMerge.projections().size(), is(0));
@@ -268,9 +263,9 @@ public class NestedLoopConsumerTest extends CrateUnitTest {
         NestedLoop nl = plan("select min(u1.name) from users u1, users u2");
         NestedLoopPhase nlPhase = nl.nestedLoopPhase();
         assertThat(nlPhase.projections(), contains(
-            instanceOf(TopNProjection.class),
+            instanceOf(EvalProjection.class),
             instanceOf(AggregationProjection.class),
-            instanceOf(TopNProjection.class)
+            instanceOf(EvalProjection.class)
         ));
         AggregationProjection aggregationProjection = (AggregationProjection) nlPhase.projections().get(1);
         Aggregation minAgg = aggregationProjection.aggregations().get(0);
@@ -283,9 +278,9 @@ public class NestedLoopConsumerTest extends CrateUnitTest {
         // shouldn't result in a NoopPlan because aggregations still need to be executed
         NestedLoop nl = plan("select count(*) from users u1, users u2 where false");
         assertThat(nl.nestedLoopPhase().projections(), contains(
-            instanceOf(TopNProjection.class),
+            instanceOf(EvalProjection.class),
             instanceOf(AggregationProjection.class),
-            instanceOf(TopNProjection.class)
+            instanceOf(EvalProjection.class)
         ));
     }
 
@@ -341,10 +336,8 @@ public class NestedLoopConsumerTest extends CrateUnitTest {
         assertThat(nl.projections().get(1), instanceOf(TopNProjection.class));
         assertThat(((TopNProjection)nl.projections().get(1)).limit(), is(10));
         nl = ((NestedLoop) ((NestedLoop) plan.subPlan()).left()).nestedLoopPhase();
-        assertThat(nl.projections().get(0), instanceOf(TopNProjection.class));
-        assertThat(((TopNProjection)nl.projections().get(0)).limit(), is(TopN.NO_LIMIT));
+        assertThat(nl.projections().get(0), instanceOf(EvalProjection.class));
         nl = ((NestedLoop) ((NestedLoop) ((NestedLoop) plan.subPlan()).left()).left()).nestedLoopPhase();
-        assertThat(nl.projections().get(0), instanceOf(TopNProjection.class));
-        assertThat(((TopNProjection)nl.projections().get(0)).limit(), is(TopN.NO_LIMIT));
+        assertThat(nl.projections().get(0), instanceOf(EvalProjection.class));
     }
 }

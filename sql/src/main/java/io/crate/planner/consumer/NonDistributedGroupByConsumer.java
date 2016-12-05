@@ -161,7 +161,7 @@ class NonDistributedGroupByConsumer implements Consumer {
             }
             Limits limits = context.plannerContext().getLimits(querySpec);
             List<Symbol> qsOutputs = querySpec.outputs();
-            mergeProjections.add(ProjectionBuilder.topNProjection(
+            mergeProjections.add(ProjectionBuilder.topNOrEval(
                 collectOutputs,
                 querySpec.orderBy().orNull(),
                 limits.offset(),
