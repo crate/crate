@@ -53,6 +53,7 @@ statement
     | SHOW COLUMNS (FROM | IN) qualifiedName
         ((FROM | IN) qualifiedName)?
         (LIKE pattern=STRING | WHERE where=booleanExpression)?         #showColumns
+    | KILL (ALL | parameterExpr | STRING)                              #killStatement
 //    | SET SESSION qualifiedName EQ expression                          #setSession
 //    | RESET SESSION qualifiedName                                      #resetSession
 //    | SHOW PARTITIONS (FROM | IN) qualifiedName
@@ -252,7 +253,7 @@ primaryExpression
     | booleanValue                                                                        #booleanLiteral
     | STRING                                                                              #stringLiteral
     | BINARY_LITERAL                                                                      #binaryLiteral
-    | '?'                                                                                 #parameter
+    | parameterExpr                                                                       #parameterExprssion
     | POSITION '(' valueExpression IN valueExpression ')'                                 #position
     // This case handles both an implicit row constructor or a simple parenthesized
     // expression. We can't make the two separate alternatives because it needs
@@ -434,7 +435,13 @@ normalForm
     : NFD | NFC | NFKD | NFKC
     ;
 
+parameterExpr
+    : '$' INTEGER_VALUE
+    | '?'
+    ;
+
 SELECT: 'SELECT';
+KILL: 'KILL';
 FROM: 'FROM';
 ADD: 'ADD';
 AS: 'AS';
