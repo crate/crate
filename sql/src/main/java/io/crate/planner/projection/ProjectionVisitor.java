@@ -85,5 +85,9 @@ public class ProjectionVisitor<C, R> {
     public R visitOrderedTopN(OrderedTopNProjection orderedTopNProjection, C context) {
         return visitProjection(orderedTopNProjection, context);
     }
+
+    public R visitEvalProjection(EvalProjection evalProjection, C context) {
+        return visitProjection(evalProjection, context);
+    }
 }
 

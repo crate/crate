@@ -131,8 +131,8 @@ class GlobalAggregateConsumer implements Consumer {
             postAggregationProjections.add(ProjectionBuilder.filterProjection(splitPoints.aggregates(), having.get()));
         }
         Limits limits = plannerContext.getLimits(qs);
-        // topN is used even if there is no limit because outptus might contain scalars which need to be executed
-        postAggregationProjections.add(ProjectionBuilder.topNProjection(
+        // topN is used even if there is no limit because outputs might contain scalars which need to be executed
+        postAggregationProjections.add(ProjectionBuilder.topNOrEval(
             splitPoints.aggregates(), null, limits.offset(), limits.finalLimit(), qs.outputs()));
         return postAggregationProjections;
     }

@@ -355,7 +355,8 @@ public class PlannerTest extends AbstractPlannerTest {
         MergePhase mergeNode = globalAggregate.mergePhase();
         assertThat(mergeNode.projections().size(), is(2));
         Projection projection1 = mergeNode.projections().get(1);
-        assertThat(projection1, instanceOf(TopNProjection.class));
+
+        assertThat(projection1, instanceOf(EvalProjection.class));
         Symbol collection_count = projection1.outputs().get(0);
         assertThat(collection_count, instanceOf(Function.class));
     }
@@ -383,12 +384,11 @@ public class PlannerTest extends AbstractPlannerTest {
         DistributedGroupBy distributedGroupBy = (DistributedGroupBy) planNode.subPlan();
 
         RoutedCollectPhase collectPhase = distributedGroupBy.collectPhase();
+        assertThat(collectPhase.projections(), contains(
+            instanceOf(GroupProjection.class)
+        ));
         assertThat(collectPhase.projections().size(), is(1));
         assertThat(collectPhase.projections().get(0), instanceOf(GroupProjection.class));
-
-        TopNProjection topNProjection = (TopNProjection) distributedGroupBy.reducerMergeNode().projections().get(1);
-        assertThat(topNProjection.limit(), is(TopN.NO_LIMIT));
-        assertThat(topNProjection.offset(), is(0));
 
         MergePhase mergeNode = planNode.mergePhase();
         assertThat(mergeNode.projections().size(), is(0));
@@ -584,7 +584,7 @@ public class PlannerTest extends AbstractPlannerTest {
         MergePhase mergeNode = nonDistributedGroupBy.mergePhase();
         assertThat(mergeNode.projections(), contains(
             instanceOf(GroupProjection.class),
-            instanceOf(TopNProjection.class),
+            instanceOf(EvalProjection.class),
             instanceOf(ColumnIndexWriterProjection.class)));
     }
 
@@ -595,12 +595,8 @@ public class PlannerTest extends AbstractPlannerTest {
         MergePhase mergeNode = nonDistributedGroupBy.mergePhase();
         assertThat(mergeNode.projections(), contains(
             instanceOf(GroupProjection.class),
-            instanceOf(TopNProjection.class),
+            instanceOf(EvalProjection.class),
             instanceOf(ColumnIndexWriterProjection.class)));
-
-        TopNProjection topN = (TopNProjection) mergeNode.projections().get(1);
-        assertThat(topN.offset(), is(TopN.NO_OFFSET));
-        assertThat(topN.limit(), is(TopN.NO_LIMIT));
     }
 
     @Test
@@ -619,7 +615,7 @@ public class PlannerTest extends AbstractPlannerTest {
         MergePhase mergeNode = groupBy.reducerMergeNode();
         assertThat(mergeNode.projections(), contains(
             instanceOf(GroupProjection.class),
-            instanceOf(TopNProjection.class),
+            instanceOf(EvalProjection.class),
             instanceOf(ColumnIndexWriterProjection.class)));
 
         ColumnIndexWriterProjection projection = (ColumnIndexWriterProjection) mergeNode.projections().get(2);
@@ -648,7 +644,7 @@ public class PlannerTest extends AbstractPlannerTest {
         MergePhase mergeNode = groupBy.reducerMergeNode();
         assertThat(mergeNode.projections(), contains(
             instanceOf(GroupProjection.class),
-            instanceOf(TopNProjection.class),
+            instanceOf(EvalProjection.class),
             instanceOf(ColumnIndexWriterProjection.class)));
         ColumnIndexWriterProjection projection = (ColumnIndexWriterProjection) mergeNode.projections().get(2);
         assertThat(projection.primaryKeys().size(), is(2));
@@ -679,10 +675,7 @@ public class PlannerTest extends AbstractPlannerTest {
             "insert into users (name, id) (select arbitrary(name), count(*) from users)");
         MergePhase mergeNode = globalAggregate.mergePhase();
         assertThat(mergeNode.projections().size(), is(3));
-        assertThat(mergeNode.projections().get(1), instanceOf(TopNProjection.class));
-        TopNProjection topN = (TopNProjection) mergeNode.projections().get(1);
-        assertThat(topN.limit(), is(TopN.NO_LIMIT));
-        assertThat(topN.offset(), is(TopN.NO_OFFSET));
+        assertThat(mergeNode.projections().get(1), instanceOf(EvalProjection.class));
 
         assertThat(mergeNode.projections().get(2), instanceOf(ColumnIndexWriterProjection.class));
         ColumnIndexWriterProjection projection = (ColumnIndexWriterProjection) mergeNode.projections().get(2);
@@ -728,13 +721,9 @@ public class PlannerTest extends AbstractPlannerTest {
         NestedLoop nestedLoop = plan(
             "insert into users (id, name) (select u1.id, u2.name from users u1 CROSS JOIN users u2)");
         assertThat(nestedLoop.nestedLoopPhase().projections(), contains(
-            instanceOf(TopNProjection.class),
+            instanceOf(EvalProjection.class),
             instanceOf(ColumnIndexWriterProjection.class)
         ));
-        assertThat(nestedLoop.nestedLoopPhase().projections().get(0), instanceOf(TopNProjection.class));
-        TopNProjection topN = (TopNProjection) nestedLoop.nestedLoopPhase().projections().get(0);
-        assertThat(topN.limit(), is(TopN.NO_LIMIT));
-        assertThat(topN.offset(), is(TopN.NO_OFFSET));
 
         assertThat(nestedLoop.nestedLoopPhase().projections().get(1), instanceOf(ColumnIndexWriterProjection.class));
         ColumnIndexWriterProjection projection = (ColumnIndexWriterProjection) nestedLoop.nestedLoopPhase().projections().get(1);
@@ -795,7 +784,7 @@ public class PlannerTest extends AbstractPlannerTest {
         RoutedCollectPhase collectPhase = ((RoutedCollectPhase) collect.collectPhase());
         assertThat(collectPhase.projections(), contains(
             instanceOf(GroupProjection.class),
-            instanceOf(TopNProjection.class),
+            instanceOf(EvalProjection.class),
             instanceOf(ColumnIndexWriterProjection.class)
         ));
         ColumnIndexWriterProjection columnIndexWriterProjection =
@@ -816,11 +805,9 @@ public class PlannerTest extends AbstractPlannerTest {
         RoutedCollectPhase collectPhase = ((RoutedCollectPhase) nonDistributedGroupBy.collectPhase());
         assertThat(collectPhase.projections(), contains(
             instanceOf(GroupProjection.class),
-            instanceOf(TopNProjection.class),
+            instanceOf(EvalProjection.class),
             instanceOf(ColumnIndexWriterProjection.class)));
-        TopNProjection collectTopN = (TopNProjection) collectPhase.projections().get(1);
-        assertThat(collectTopN.limit(), is(TopN.NO_LIMIT));
-        assertThat(collectTopN.offset(), is(TopN.NO_OFFSET));
+        EvalProjection collectTopN = (EvalProjection) collectPhase.projections().get(1);
         assertThat(collectTopN.outputs(), contains(isInputColumn(0), isFunction("to_string")));
 
         ColumnIndexWriterProjection columnIndexWriterProjection = (ColumnIndexWriterProjection) collectPhase.projections().get(2);
@@ -853,12 +840,10 @@ public class PlannerTest extends AbstractPlannerTest {
         assertThat(mergeNode.projections().get(1), instanceOf(FilterProjection.class));
         FilterProjection filterProjection = (FilterProjection) mergeNode.projections().get(1);
 
-        // apply the default limit
-        assertThat(mergeNode.projections().get(2), instanceOf(TopNProjection.class));
-        TopNProjection topN = (TopNProjection) mergeNode.projections().get(2);
-        assertThat(topN.outputs().get(0).valueType(), Is.<DataType>is(DataTypes.DOUBLE));
-        assertThat(topN.outputs().get(1).valueType(), Is.<DataType>is(DataTypes.STRING));
-        assertThat(topN.limit(), is(TopN.NO_LIMIT));
+        assertThat(mergeNode.projections().get(2), instanceOf(EvalProjection.class));
+        EvalProjection eval = (EvalProjection) mergeNode.projections().get(2);
+        assertThat(eval.outputs().get(0).valueType(), Is.<DataType>is(DataTypes.DOUBLE));
+        assertThat(eval.outputs().get(1).valueType(), Is.<DataType>is(DataTypes.STRING));
     }
 
     @Test
@@ -884,7 +869,7 @@ public class PlannerTest extends AbstractPlannerTest {
         assertThat(mergeNode.projections(), contains(
             instanceOf(GroupProjection.class),
             instanceOf(FilterProjection.class),
-            instanceOf(TopNProjection.class),
+            instanceOf(EvalProjection.class),
             instanceOf(ColumnIndexWriterProjection.class)));
 
         FilterProjection filterProjection = (FilterProjection) mergeNode.projections().get(1);
@@ -918,7 +903,7 @@ public class PlannerTest extends AbstractPlannerTest {
         assertThat(localMergeNode.projections(), contains(
             instanceOf(AggregationProjection.class),
             instanceOf(FilterProjection.class),
-            instanceOf(TopNProjection.class)));
+            instanceOf(EvalProjection.class)));
 
         AggregationProjection aggregationProjection = (AggregationProjection) localMergeNode.projections().get(0);
         assertThat(aggregationProjection.aggregations().size(), is(2));
@@ -929,8 +914,8 @@ public class PlannerTest extends AbstractPlannerTest {
         InputColumn inputColumn = (InputColumn) filterProjection.outputs().get(0);
         assertThat(inputColumn.index(), is(0));
 
-        TopNProjection topNProjection = (TopNProjection) localMergeNode.projections().get(2);
-        assertThat(topNProjection.outputs().size(), is(1));
+        EvalProjection evalProjection = (EvalProjection) localMergeNode.projections().get(2);
+        assertThat(evalProjection.outputs().size(), is(1));
     }
 
     @Test
@@ -1071,7 +1056,7 @@ public class PlannerTest extends AbstractPlannerTest {
 
         assertThat(collect.collectPhase().projections(), contains(
             instanceOf(GroupProjection.class),
-            instanceOf(TopNProjection.class)));
+            instanceOf(EvalProjection.class)));
         assertThat(collect.collectPhase().projections().get(0), instanceOf(GroupProjection.class));
 
         assertThat(optimizedPlan.mergePhase().projections().size(), is(0));

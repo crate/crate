@@ -29,7 +29,7 @@ import io.crate.planner.node.ExecutionPhases;
 import io.crate.planner.node.dql.Collect;
 import io.crate.planner.node.dql.MergePhase;
 import io.crate.planner.projection.Projection;
-import io.crate.planner.projection.TopNProjection;
+import io.crate.planner.projection.builder.ProjectionBuilder;
 import io.crate.types.DataType;
 
 import javax.annotation.Nullable;
@@ -86,7 +86,7 @@ public class Merge implements Plan, ResultDescription {
 
         // If a sub-Plan applies a limit it is usually limit+offset
         // So even if the execution is on the handler the limit may be too large and the final limit needs to be applied as well
-        TopNProjection topN = TopNProjection.createIfNeeded(
+        Projection topN = ProjectionBuilder.topNOrEvalIfNeeded(
             resultDescription.limit(),
             resultDescription.offset(),
             resultDescription.numOutputs(),
@@ -136,7 +136,7 @@ public class Merge implements Plan, ResultDescription {
             resultDescription.nodeIds().size(),
             handlerNodeIds,
             resultDescription.streamOutputs(),
-            addTopN(projections, topN),
+            addProjection(projections, topN),
             DistributionInfo.DEFAULT_SAME_NODE,
             resultDescription.orderBy()
         );
@@ -151,14 +151,14 @@ public class Merge implements Plan, ResultDescription {
         );
     }
 
-    private static List<Projection> addTopN(List<Projection> projections, @Nullable TopNProjection topN) {
-        if (topN == null) {
+    private static List<Projection> addProjection(List<Projection> projections, @Nullable Projection projection) {
+        if (projection == null) {
             return projections;
         }
         if (projections.isEmpty()) {
-            return Collections.singletonList(topN);
+            return Collections.singletonList(projection);
         } else {
-            projections.add(topN);
+            projections.add(projection);
             return projections;
         }
     }

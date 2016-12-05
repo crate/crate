@@ -39,7 +39,8 @@ public enum ProjectionType {
     SYS_UPDATE(SysUpdateProjection::new),
     DELETE(DeleteProjection::new),
     FETCH(null),
-    TOPN_ORDERED(OrderedTopNProjection::new);
+    TOPN_ORDERED(OrderedTopNProjection::new),
+    EVAL(EvalProjection::new);
 
     private final Projection.ProjectionFactory factory;
 

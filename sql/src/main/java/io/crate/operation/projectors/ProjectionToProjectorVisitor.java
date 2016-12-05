@@ -111,7 +111,6 @@ public class ProjectionToProjectorVisitor
 
     @Override
     public Projector visitOrderedTopN(OrderedTopNProjection projection, Context context) {
-        Projector projector;
         List<Input<?>> inputs = new ArrayList<>();
         List<CollectExpression<Row, ?>> collectExpressions = new ArrayList<>();
 
@@ -153,21 +152,19 @@ public class ProjectionToProjectorVisitor
 
     @Override
     public Projector visitTopNProjection(TopNProjection projection, Context context) {
-        List<Input<?>> inputs = new ArrayList<>();
-        List<CollectExpression<Row, ?>> collectExpressions = new ArrayList<>();
-
         ImplementationSymbolVisitor.Context ctx = symbolVisitor.extractImplementations(projection.outputs());
-        inputs.addAll(ctx.topLevelInputs());
-        collectExpressions.addAll(ctx.collectExpressions());
-
-        if (projection.limit() == TopN.NO_LIMIT && projection.offset() == TopN.NO_OFFSET) {
-            return new InputRowProjector(inputs, collectExpressions);
-        }
+        assert projection.limit() > TopN.NO_LIMIT : "TopNProjection must have a limit";
         return new SimpleTopNProjector(
-            inputs,
-            collectExpressions,
+            ctx.topLevelInputs(),
+            ctx.collectExpressions(),
             projection.limit(),
             projection.offset());
+    }
+
+    @Override
+    public Projector visitEvalProjection(EvalProjection projection, Context context) {
+        ImplementationSymbolVisitor.Context ctx = symbolVisitor.extractImplementations(projection.outputs());
+        return new InputRowProjector(ctx.topLevelInputs(), ctx.collectExpressions());
     }
 
     @Override

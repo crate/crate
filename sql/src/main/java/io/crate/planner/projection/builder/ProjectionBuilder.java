@@ -25,16 +25,15 @@ import com.google.common.collect.ImmutableList;
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.QueryClause;
 import io.crate.analyze.QuerySpec;
-import io.crate.analyze.symbol.Aggregation;
-import io.crate.analyze.symbol.Function;
-import io.crate.analyze.symbol.Literal;
-import io.crate.analyze.symbol.Symbol;
+import io.crate.analyze.symbol.*;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Functions;
 import io.crate.metadata.RowGranularity;
 import io.crate.operation.aggregation.AggregationFunction;
+import io.crate.operation.projectors.TopN;
 import io.crate.planner.projection.*;
+import io.crate.types.DataType;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
@@ -131,7 +130,15 @@ public class ProjectionBuilder {
         return new FilterProjection(query, outputs);
     }
 
-    public static Projection topNProjection(
+    /**
+     * Create a {@link OrderedTopNProjection}, {@link TopNProjection} or {@link EvalProjection}.
+     *
+     * @param inputs Symbols which describe the inputs the projection will receive
+     * @param outputs Symbols which describe the outputs.
+     *                If these symbols differ from the inputs the projection will evaluate the rows to produce
+     *                the desired outputs. (That is, evaluate functions or re-order the columns)
+     */
+    public static Projection topNOrEval(
         Collection<? extends Symbol> inputs,
         @Nullable OrderBy orderBy,
         int offset,
@@ -148,12 +155,45 @@ public class ProjectionBuilder {
         }
 
         if (orderBy == null) {
+            if ( limit == TopN.NO_LIMIT && offset == 0) {
+                return new EvalProjection(outputsProcessed);
+            }
             return new TopNProjection(limit, offset, outputsProcessed);
         }
         return new OrderedTopNProjection(limit, offset, outputsProcessed,
             inputVisitor.process(orderBy.orderBySymbols(), context),
             orderBy.reverseFlags(),
             orderBy.nullsFirst());
+    }
+
+    /**
+     * Create a {@link TopNProjection} or {@link EvalProjection} if required, otherwise null is returned.
+     * <p>
+     * The output symbols will consist of InputColumns.
+     * </p>
+     * @param numOutputs number of outputs this projection should have.
+     *                   If inputTypes is longer this projection will cut off superfluous columns
+     */
+    @Nullable
+    public static Projection topNOrEvalIfNeeded(Integer limit,
+                                                int offset,
+                                                int numOutputs,
+                                                List<DataType> inputTypes) {
+        if (limit == null) {
+            limit = TopN.NO_LIMIT;
+        }
+        int numInputTypes = inputTypes.size();
+        List<DataType> strippedInputs = inputTypes;
+        if (numOutputs < numInputTypes) {
+            strippedInputs = inputTypes.subList(0, numOutputs);
+        }
+        if (limit == TopN.NO_LIMIT && offset == 0) {
+            if (numOutputs >= numInputTypes) {
+                return null;
+            }
+            return new EvalProjection(InputColumn.fromTypes(strippedInputs));
+        }
+        return new TopNProjection(limit, offset, InputColumn.fromTypes(strippedInputs));
     }
 
     public static WriterProjection writerProjection(Collection<? extends Symbol> inputs,

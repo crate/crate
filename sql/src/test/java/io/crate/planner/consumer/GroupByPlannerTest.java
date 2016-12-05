@@ -82,8 +82,9 @@ public class GroupByPlannerTest extends CrateUnitTest {
         assertThat(mergeNode.numUpstreams(), is(2));
         assertThat(mergeNode.nodeIds().size(), is(2));
         assertEquals(mergeNode.inputTypes(), collectPhase.outputTypes());
-        assertThat(mergeNode.projections().size(), is(2)); // for the default limit there is always a TopNProjection
-        assertThat(mergeNode.projections().get(1), instanceOf(TopNProjection.class));
+        // for function evaluation and column-reordering there is always a EvalProjection
+        assertThat(mergeNode.projections().size(), is(2));
+        assertThat(mergeNode.projections().get(1), instanceOf(EvalProjection.class));
 
         assertThat(mergeNode.projections().get(0), instanceOf(GroupProjection.class));
         GroupProjection groupProjection = (GroupProjection) mergeNode.projections().get(0);
@@ -157,7 +158,7 @@ public class GroupByPlannerTest extends CrateUnitTest {
 
         assertThat(merge.mergePhase().projections(), contains(
             instanceOf(GroupProjection.class),
-            instanceOf(TopNProjection.class)));
+            instanceOf(EvalProjection.class)));
 
         Projection secondGroupProjection = merge.mergePhase().projections().get(0);
         assertThat(((Aggregation) secondGroupProjection.outputs().get(1)).fromStep(), is(Aggregation.Step.PARTIAL));
@@ -257,7 +258,7 @@ public class GroupByPlannerTest extends CrateUnitTest {
 
         assertThat(merge.mergePhase().projections(), contains(
             instanceOf(GroupProjection.class),
-            instanceOf(TopNProjection.class)));
+            instanceOf(EvalProjection.class)));
     }
 
     @Test
@@ -318,7 +319,7 @@ public class GroupByPlannerTest extends CrateUnitTest {
         assertThat(collectPhase.projections(), contains(
             instanceOf(GroupProjection.class),
             instanceOf(FilterProjection.class),
-            instanceOf(TopNProjection.class)
+            instanceOf(EvalProjection.class)
         ));
 
         FilterProjection filterProjection = (FilterProjection) collectPhase.projections().get(1);
@@ -408,7 +409,7 @@ public class GroupByPlannerTest extends CrateUnitTest {
         assertThat(reducerMerge.projections(), contains(
             instanceOf(GroupProjection.class),
             instanceOf(FilterProjection.class),
-            instanceOf(TopNProjection.class)
+            instanceOf(EvalProjection.class)
         ));
         Projection projection = reducerMerge.projections().get(1);
         assertThat(projection, instanceOf(FilterProjection.class));
@@ -422,11 +423,11 @@ public class GroupByPlannerTest extends CrateUnitTest {
         assertThat(((InputColumn) filterProjection.outputs().get(0)).index(), is(0));
         assertThat(((InputColumn) filterProjection.outputs().get(1)).index(), is(1));
 
-        // topN projection
+        // eval projection
         //      outputs: name, count(*)
-        TopNProjection topN = (TopNProjection) reducerMerge.projections().get(2);
-        assertThat(((InputColumn) topN.outputs().get(0)).index(), is(0));
-        assertThat(((InputColumn) topN.outputs().get(1)).index(), is(1));
+        EvalProjection eval = (EvalProjection) reducerMerge.projections().get(2);
+        assertThat(((InputColumn) eval.outputs().get(0)).index(), is(0));
+        assertThat(((InputColumn) eval.outputs().get(1)).index(), is(1));
 
         MergePhase localMerge = planNode.mergePhase();
         assertThat(localMerge.projections(), empty());

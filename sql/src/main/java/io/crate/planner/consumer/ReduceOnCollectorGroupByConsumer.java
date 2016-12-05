@@ -140,7 +140,7 @@ class ReduceOnCollectorGroupByConsumer implements Consumer {
             OrderBy orderBy = querySpec.orderBy().orNull();
             Limits limits = context.plannerContext().getLimits(querySpec);
             List<Symbol> qsOutputs = querySpec.outputs();
-            projections.add(ProjectionBuilder.topNProjection(
+            projections.add(ProjectionBuilder.topNOrEval(
                 collectOutputs,
                 orderBy,
                 0, // no offset
