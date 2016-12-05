@@ -61,6 +61,12 @@ statement
 //        (ORDER BY sortItem (',' sortItem)*)?
 //        (LIMIT limit=(INTEGER_VALUE | ALL))?                           #showPartitions
 //    | EXECUTE identifier (USING expression (',' expression)*)?         #execute
+    | UPDATE aliasedRelation SET assignment (',' assignment)*
+        (WHERE where=booleanExpression)?                               #update
+    ;
+
+assignment
+    : valueExpression EQ expression
     ;
 
 query
@@ -274,7 +280,7 @@ primaryExpression
     | ARRAY '[' (expression (',' expression)*)? ']'                                       #arrayConstructor
     | value=primaryExpression '[' index=valueExpression ']'                               #subscript
     | identifier                                                                          #columnReference
-    | base=primaryExpression '.' fieldName=identifier                                     #dereference
+    | identifier ('.' identifier)*                                                        #dereference
     | name=CURRENT_DATE                                                                   #specialDateTimeFunction
     | name=CURRENT_TIME ('(' precision=INTEGER_VALUE ')')?                                #specialDateTimeFunction
     | name=CURRENT_TIMESTAMP ('(' precision=INTEGER_VALUE ')')?                           #specialDateTimeFunction
@@ -442,6 +448,7 @@ parameterExpr
 
 SELECT: 'SELECT';
 KILL: 'KILL';
+UPDATE: 'UPDATE';
 FROM: 'FROM';
 ADD: 'ADD';
 AS: 'AS';
@@ -689,7 +696,7 @@ fragment DIGIT
     ;
 
 fragment LETTER
-    : [A-Z]
+    : [A-Za-z]
     ;
 
 SIMPLE_COMMENT

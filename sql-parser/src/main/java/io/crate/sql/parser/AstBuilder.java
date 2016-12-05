@@ -23,6 +23,7 @@ import org.antlr.v4.runtime.Token;
 import org.antlr.v4.runtime.tree.ParseTree;
 import org.antlr.v4.runtime.tree.TerminalNode;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -95,7 +96,21 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
         );
     }
 
-//    @Override
+    @Override
+    public Node visitUpdate(SqlBaseParser.UpdateContext context) {
+        return new Update(
+            (Relation) visit(context.aliasedRelation()),
+            visit(context.assignment(), Assignment.class),
+            visitIfPresent(context.where, Expression.class)
+        );
+    }
+
+    @Override
+    public Node visitAssignment(SqlBaseParser.AssignmentContext context) {
+        return new Assignment((Expression) visit(context.valueExpression()), (Expression) visit(context.expression()));
+    }
+
+    //    @Override
 //    public Node visitRenameTable(SqlBaseParser.RenameTableContext context) {
 //        return new RenameTable(getLocation(context), getQualifiedName(context.from), getQualifiedName(context.to));
 //    }
@@ -504,18 +519,18 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
 //
 //        return expression;
 //    }
-//
-//    @Override
-//    public Node visitNullPredicate(SqlBaseParser.NullPredicateContext context) {
-//        Expression child = (Expression) visit(context.value);
-//
-//        if (context.NOT() == null) {
-//            return new IsNullPredicate(getLocation(context), child);
-//        }
-//
-//        return new IsNotNullPredicate(getLocation(context), child);
-//    }
-//
+
+    @Override
+    public Node visitNullPredicate(SqlBaseParser.NullPredicateContext context) {
+        Expression child = (Expression) visit(context.value);
+
+        if (context.NOT() == null) {
+            return new IsNullPredicate(child);
+        }
+
+        return new IsNotNullPredicate(child);
+    }
+
     @Override
     public Node visitLike(SqlBaseParser.LikeContext context) {
         Expression escape = null;
@@ -699,28 +714,32 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
 //        String normalForm = Optional.ofNullable(context.normalForm()).map(ParserRuleContext::getText).orElse("NFC");
 //        return new FunctionCall(getLocation(context), QualifiedName.of("normalize"), ImmutableList.of(str, new StringLiteral(getLocation(context), normalForm)));
 //    }
-//
-//    @Override
-//    public Node visitSubscript(SqlBaseParser.SubscriptContext context) {
-//        return new SubscriptExpression(getLocation(context), (Expression) visit(context.value), (Expression) visit(context.index));
-//    }
-//
-//    @Override
-//    public Node visitSubqueryExpression(SqlBaseParser.SubqueryExpressionContext context) {
-//        return new SubqueryExpression(getLocation(context), (Query) visit(context.query()));
-//    }
-//
-//    @Override
-//    public Node visitDereference(SqlBaseParser.DereferenceContext context) {
-//        return new DereferenceExpression((Expression) visit(context.base), context.fieldName.getText());
-//    }
+
+    @Override
+    public Node visitSubscript(SqlBaseParser.SubscriptContext context) {
+        return new SubscriptExpression((Expression) visit(context.value), (Expression) visit(context.index));
+    }
+
+    @Override
+    public Node visitSubqueryExpression(SqlBaseParser.SubqueryExpressionContext context) {
+        return new SubqueryExpression((Query) visit(context.query()));
+    }
+
+    @Override
+    public Node visitDereference(SqlBaseParser.DereferenceContext context) {
+        List<String> parts = context
+            .identifier().stream()
+            .map(ParseTree::getText)
+            .collect(toList());
+        return new QualifiedNameReference(QualifiedName.of(parts));
+    }
 
     @Override
     public Node visitColumnReference(SqlBaseParser.ColumnReferenceContext context) {
-        return new QualifiedNameReference(QualifiedName.of(context.getText()));
+        return new QualifiedNameReference(QualifiedName.of(Arrays.asList(context.getText().split("\\."))));
     }
 
-//    @Override
+    //    @Override
 //    public Node visitSimpleCase(SqlBaseParser.SimpleCaseContext context) {
 //        return new SimpleCaseExpression(
 //            getLocation(context),
@@ -742,31 +761,30 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
 //        return new WhenClause(getLocation(context), (Expression) visit(context.condition), (Expression) visit(context.result));
 //    }
 //
-//    @Override
-//    public Node visitFunctionCall(SqlBaseParser.FunctionCallContext context) {
-//        Optional<Expression> filter = visitIfPresent(context.filter(), Expression.class);
-//        Optional<Window> window = visitIfPresent(context.over(), Window.class);
-//
-//        QualifiedName name = getQualifiedName(context.qualifiedName());
-//
-//        boolean distinct = isDistinct(context.setQuantifier());
-//
-//        if (name.toString().equalsIgnoreCase("if")) {
-//            check(context.expression().size() == 2 || context.expression().size() == 3, "Invalid number of arguments for 'if' function", context);
-//            check(!window.isPresent(), "OVER clause not valid for 'if' function", context);
-//            check(!distinct, "DISTINCT not valid for 'if' function", context);
-//
-//            Expression elseExpression = null;
-//            if (context.expression().size() == 3) {
-//                elseExpression = (Expression) visit(context.expression(2));
-//            }
-//
-//            return new IfExpression(
-//                getLocation(context),
-//                (Expression) visit(context.expression(0)),
-//                (Expression) visit(context.expression(1)),
-//                elseExpression);
-//        }
+    // TODO fix
+    @Override
+    public Node visitFunctionCall(SqlBaseParser.FunctionCallContext context) {
+        Optional<Window> window = visitIfPresent(context.over(), Window.class);
+
+        QualifiedName name = getQualifiedName(context.qualifiedName());
+
+        boolean distinct = isDistinct(context.setQuantifier());
+
+        if (name.toString().equalsIgnoreCase("if")) {
+            check(context.expression().size() == 2 || context.expression().size() == 3, "Invalid number of arguments for 'if' function", context);
+            check(!window.isPresent(), "OVER clause not valid for 'if' function", context);
+            check(!distinct, "DISTINCT not valid for 'if' function", context);
+
+            Expression elseExpression = null;
+            if (context.expression().size() == 3) {
+                elseExpression = (Expression) visit(context.expression(2));
+            }
+
+            return new IfExpression(
+                (Expression) visit(context.expression(0)),
+                (Expression) visit(context.expression(1)),
+                elseExpression);
+        }
 //        if (name.toString().equalsIgnoreCase("nullif")) {
 //            check(context.expression().size() == 2, "Invalid number of arguments for 'nullif' function", context);
 //            check(!window.isPresent(), "OVER clause not valid for 'nullif' function", context);
@@ -783,23 +801,21 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
 //
 //            return new CoalesceExpression(getLocation(context), visit(context.expression(), Expression.class));
 //        }
-//        if (name.toString().equalsIgnoreCase("try")) {
-//            check(context.expression().size() == 1, "The 'try' function must have exactly one argument", context);
-//            check(!window.isPresent(), "OVER clause not valid for 'try' function", context);
-//            check(!distinct, "DISTINCT not valid for 'try' function", context);
-//
+        if (name.toString().equalsIgnoreCase("try")) {
+            check(context.expression().size() == 1, "The 'try' function must have exactly one argument", context);
+            check(!window.isPresent(), "OVER clause not valid for 'try' function", context);
+            check(!distinct, "DISTINCT not valid for 'try' function", context);
+
 //            return new TryExpression(getLocation(context), (Expression) visit(getOnlyElement(context.expression())));
-//        }
-//
-//        return new FunctionCall(
-//            getLocation(context),
-//            getQualifiedName(context.qualifiedName()),
-//            window,
-//            filter,
-//            distinct,
-//            visit(context.expression(), Expression.class));
-//    }
-//
+        }
+
+        return new FunctionCall(
+            getQualifiedName(context.qualifiedName()),
+            window,
+            distinct,
+            visit(context.expression(), Expression.class));
+    }
+
 //    @Override
 //    public Node visitLambda(SqlBaseParser.LambdaContext context) {
 //        List<LambdaArgumentDeclaration> arguments = context.identifier().stream()

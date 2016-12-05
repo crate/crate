@@ -104,9 +104,8 @@ public class TestStatementBuilder {
     public void testDeleteFromStmtBuilder() {
         printStatement("delete from foo as alias");
         printStatement("delete from foo");
-        // TODO fix
-//        printStatement("delete from schemah.foo where foo.a=foo.b and a is not null");
-//        printStatement("delete from schemah.foo as alias where foo.a=foo.b and a is not null");
+        printStatement("delete from schemah.foo where foo.a=foo.b and a is not null");
+        printStatement("delete from schemah.foo as alias where foo.a=foo.b and a is not null");
     }
 
     @Test
@@ -115,6 +114,17 @@ public class TestStatementBuilder {
         printStatement("show schemas like 'doc%'");
         printStatement("show schemas where schema_name='doc'");
         printStatement("show schemas where schema_name LIKE 'd%'");
+    }
+
+    @Test
+    public void testUpdateStmtBuilder() {
+        printStatement("update foo set \"foo.t\"=3");
+        printStatement("update foo set foo.a=b");
+        printStatement("update bar.foo set bar.foo.t=3");
+        printStatement("update foo set col['x'] = 3");
+        printStatement("update schemah.foo set foo.a='b', foo.b=foo.a");
+        // TODO will be fixed when the function call is implemented
+//        printStatement("update schemah.foo set foo.a=abs(-6.3334), x=true where x=false");
     }
 
     @Test
@@ -182,10 +192,6 @@ public class TestStatementBuilder {
 
         printStatement("select * from foo limit 100 offset 20");
         printStatement("select * from foo offset 20");
-
-        printStatement("update foo set a=b");
-        printStatement("update schemah.foo set foo.a='b', foo.b=foo.a");
-        printStatement("update schemah.foo set foo.a=abs(-6.3334), x=true where x=false");
 
         printStatement("create table if not exists t (id integer primary key, name string)");
         printStatement("create table t (id integer primary key, name string)");
