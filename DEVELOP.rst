@@ -134,6 +134,11 @@ Example::
 
     @TestLogging("io.crate:DEBUG","io.crate.planner.consumer.NestedLoopConsumer:TRACE")
 
+Alternatively you could use this configuration in command line but then it's applied
+to all tests that are run with the command::
+
+    ./gradlew -PtestLogging -Dtests.loggers.levels=io.crate:DEBUG,io.crate.planner.consumer.NestedLoopConsumer:TRACE :sql:test
+
  - Building a tarball (which will be under ``app/build/distributions``)::
 
     ./gradlew distTar

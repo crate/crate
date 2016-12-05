@@ -27,7 +27,6 @@ import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
 import io.crate.test.GroovyTestSanitizer;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.test.ESTestCase;
-import org.elasticsearch.test.junit.listeners.LoggingListener;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.rules.ExpectedException;
@@ -35,7 +34,7 @@ import org.mockito.MockitoAnnotations;
 
 @ThreadLeakScope(ThreadLeakScope.Scope.SUITE)
 @ThreadLeakLingering(linger = 5000) // 5 sec lingering
-@Listeners({LoggingListener.class})
+@Listeners({SystemPropsTestLoggingListener.class})
 public abstract class CrateUnitTest extends ESTestCase {
 
     static {

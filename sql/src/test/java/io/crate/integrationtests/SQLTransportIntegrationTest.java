@@ -22,6 +22,7 @@
 package io.crate.integrationtests;
 
 import com.carrotsearch.hppc.cursors.ObjectCursor;
+import com.carrotsearch.randomizedtesting.annotations.Listeners;
 import com.google.common.base.Throwables;
 import com.google.common.collect.Multimap;
 import io.crate.action.sql.Option;
@@ -50,6 +51,7 @@ import io.crate.plugin.SQLPlugin;
 import io.crate.protocols.postgres.PostgresNetty;
 import io.crate.sql.parser.SqlParser;
 import io.crate.test.GroovyTestSanitizer;
+import io.crate.test.integration.SystemPropsTestLoggingListener;
 import io.crate.testing.CollectingRowReceiver;
 import io.crate.testing.SQLBulkResponse;
 import io.crate.testing.SQLResponse;
@@ -88,6 +90,7 @@ import java.util.concurrent.TimeUnit;
 import static io.crate.testing.SQLTransportExecutor.DEFAULT_SOFT_LIMIT;
 import static org.hamcrest.Matchers.is;
 
+@Listeners({SystemPropsTestLoggingListener.class})
 public abstract class SQLTransportIntegrationTest extends ESIntegTestCase {
 
     @Rule

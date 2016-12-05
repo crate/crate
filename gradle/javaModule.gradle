@@ -36,7 +36,7 @@ jmh {
 }
 
 test {
-    // by default `-D` arguments are "catched" in the gradle process 
+    // by default `-D` arguments are "caught" in the gradle process
     // and not passed-through to the test process.
     // this enables test options like '-Dtests.iters=20'
 
