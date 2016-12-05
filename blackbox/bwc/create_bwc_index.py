@@ -1,45 +1,64 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-import argparse
-import logging
 import os
+import urllib3
+import logging
 import zipfile
 import tarfile
-import urllib.request
+import argparse
 import tempfile
+import urllib.request
 from crate.testing.layer import CrateLayer
 from crate.client import connect
 
+http = urllib3.PoolManager()
 
 CRATE_HTTP_PORT = '42222'
 CRATE_TRANSPORT_PORT = '43333'
 BASE_URL = "https://cdn.crate.io/downloads/releases/crate-{0}.tar.gz"
 
 logging.basicConfig(level=logging.ERROR)
-LOGGER = logging.getLogger(__name__)
+LOGGER = logging.getLogger('bwc')
 
 
-CREATE_INDEX_SQL = """
-    CREATE TABLE legacy_geo_point (
-        id int primary key,
-        p geo_point
-    ) CLUSTERED INTO 1 SHARDS WITH (
-        number_of_replicas=0,
-        "translog.flush_threshold_ops"=0,
-        "gateway.local.sync"=0
-    );
-    INSERT INTO legacy_geo_point (id, p) VALUES (1, 'POINT (10 10)');
-    REFRESH TABLE legacy_geo_point;
-"""
+INDICES = {
+    'legacy_geo_point': '''
+        CREATE TABLE legacy_geo_point (
+            id int primary key,
+            p geo_point
+        ) CLUSTERED INTO 1 SHARDS WITH (
+            number_of_replicas=0,
+            "translog.flush_threshold_ops"=0,
+            "gateway.local.sync"=0
+        );
+        INSERT INTO legacy_geo_point (id, p) VALUES (1, 'POINT (10 10)');
+        REFRESH TABLE legacy_geo_point;''',
+    'object_template_mapping': '''
+        CREATE TABLE object_template_mapping (
+            ts TIMESTAMP,
+            attr OBJECT(dynamic) AS (
+                temp FLOAT
+            ),
+            month STRING
+        ) PARTITIONED BY (
+            month
+        ) CLUSTERED INTO 1 SHARDS WITH (
+            number_of_replicas=0,
+            "translog.flush_threshold_ops"=0,
+            "gateway.local.sync"=0
+        );
+        INSERT INTO object_template_mapping (ts, attr, month) VALUES (1480530180000, {temp=21.1}, '201611');
+        REFRESH TABLE object_template_mapping;''',
+}
 
 
 def download_crate(url):
-    LOGGER.info("Downloading crate")
+    LOGGER.info("Downloading CrateDB")
     try:
         fname, headers = urllib.request.urlretrieve(url)
     except urllib.error.HTTPError:
-        LOGGER.error("could not download crate from %s", url)
+        LOGGER.error("Could not download CrateDB from %s", url)
         raise
     with tarfile.open(fname, "r:gz") as tar:
         tempdir = tempfile.mkdtemp()
@@ -48,8 +67,8 @@ def download_crate(url):
         return os.path.join(tempdir, home_dir)
 
 
-def compress_index(version, data_dir, output_dir):
-    compress(data_dir, output_dir, 'bwc-index-%s.zip' % version)
+def compress_index(name, version, data_dir, output_dir):
+    compress(data_dir, output_dir, 'bwc-{}-{}.zip'.format(name, version))
 
 
 def compress(data_dir, output_dir, target):
@@ -69,29 +88,38 @@ def zipdir(path, ziph, basePath):
             ziph.write(filePath, inZipPath)
 
 
-def create_index(crate_home, output_dir):
+def create_index(index_name, crate_home, output_dir):
     crate_layer = CrateLayer(
         'data',
         crate_home=crate_home,
         port=CRATE_HTTP_PORT,
-        transport_port=CRATE_TRANSPORT_PORT
+        transport_port=CRATE_TRANSPORT_PORT,
+        settings={
+            'es.api.enabled': True,
+        }
     )
     crate_layer.start()
+    crate_http = 'localhost:{}'.format(CRATE_HTTP_PORT)
     try:
-        with connect('localhost:' + CRATE_HTTP_PORT) as conn:
+        with connect(crate_http) as conn:
             cur = conn.cursor()
-            cmds = CREATE_INDEX_SQL.split(';')
+            cmds = INDICES[index_name].split(';')
             for cmd in cmds[:-1]:
+                LOGGER.info(cmd)
                 cur.execute(cmd)
             cur.execute("select version['number'] from sys.nodes")
             version = cur.fetchone()[0]
-            compress_index(version, crate_layer.wdPath(), output_dir)
+            r = http.request('POST', crate_http + '/_flush')
+            r.read()
+            compress_index(index_name, version, crate_layer.wdPath(), output_dir)
     finally:
         crate_layer.stop()
 
 
 def parse_config():
     parser = argparse.ArgumentParser(description='Builds a crate table for backwards compatibility tests')
+    parser.add_argument('--index-name', '-n', required=True, choices=INDICES.keys(),
+                        help='The name of the index that should be created')
     parser.add_argument('--output-dir', '-o', default='../sql/src/test/resources/indices/bwc',
                         help='The directory to write the zipped index into')
     group = parser.add_mutually_exclusive_group(required=True)
@@ -110,7 +138,7 @@ def main():
     if crate_home is None:
         url = BASE_URL.format(cfg.crate_version)
         crate_home = download_crate(url)
-    create_index(crate_home, cfg.output_dir)
+    create_index(cfg.index_name, crate_home, cfg.output_dir)
 
 
 if __name__ == '__main__':
