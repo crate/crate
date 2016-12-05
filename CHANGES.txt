@@ -64,7 +64,9 @@ Unreleased
 
      - A custom `blobs.path` set either globally or per table.
 
-   There will be a migration script which can be used to determine if any action needs to be taken.
+   Please run the migration script provided **before** updating to examine
+   whether you're affected by these changes.
+   https://github.com/crate/crate-utils/tree/master/migrations/pre-1.0
    It will also provide instructions on what has to be done.
 
  - Added scalar functions ``latitude`` and ``longitude`` to extract
