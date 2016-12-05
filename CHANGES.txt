@@ -5,6 +5,10 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fix: Creating new partitions could have failed in case the partitioned table
+  was created prior to CrateDB version ``0.55.0`` and the table contained a
+  ``object`` column.
+
 2016/12/05 1.0.0
 ================
 
