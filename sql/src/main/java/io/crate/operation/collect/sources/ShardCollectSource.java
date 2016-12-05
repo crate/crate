@@ -30,6 +30,7 @@ import io.crate.action.job.SharedShardContext;
 import io.crate.action.job.SharedShardContexts;
 import io.crate.analyze.EvaluatingNormalizer;
 import io.crate.analyze.OrderBy;
+import io.crate.analyze.symbol.Symbols;
 import io.crate.core.collections.Buckets;
 import io.crate.core.collections.Row;
 import io.crate.exceptions.UnhandledServerException;
@@ -38,6 +39,7 @@ import io.crate.metadata.Functions;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.ReplaceMode;
 import io.crate.metadata.RowGranularity;
+import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.shard.unassigned.UnassignedShard;
 import io.crate.operation.ImplementationSymbolVisitor;
 import io.crate.operation.collect.*;
@@ -312,6 +314,12 @@ public class ShardCollectSource implements CollectSource {
                     );
                     crateCollectors.add(collector);
                 } catch (ShardNotFoundException | IllegalIndexShardStateException e) {
+                    // If toCollect contains a docId it means that this is a QueryThenFetch operation.
+                    // In such a case RemoteCollect cannot be used because on that node the FetchContext is missing
+                    // and the reader required in the fetchPhase would be missing.
+                    if (Symbols.containsColumn(collectPhase.toCollect(), DocSysColumns.DOCID)) {
+                        throw e;
+                    }
                     crateCollectors.add(remoteCollectorFactory.createCollector(
                         indexName, shardId, collectPhase, jobCollectContext.queryPhaseRamAccountingContext()));
                 } catch (InterruptedException e) {

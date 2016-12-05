@@ -5,6 +5,10 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fixed a rare race condition that could happen on select queries during a
+   shard relocation leading to a `ArrayIndexOutOfBoundsException` or a wrong
+   result.
+
  - Fix: Creating new partitions could have failed in case the partitioned table
   was created prior to CrateDB version ``0.55.0`` and the table contained a
   ``object`` column.
