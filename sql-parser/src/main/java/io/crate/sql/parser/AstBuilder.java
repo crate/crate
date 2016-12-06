@@ -14,6 +14,7 @@
 
 package io.crate.sql.parser;
 
+import com.google.common.collect.ImmutableList;
 import io.crate.sql.parser.antlr.v4.SqlBaseBaseVisitor;
 import io.crate.sql.parser.antlr.v4.SqlBaseLexer;
 import io.crate.sql.parser.antlr.v4.SqlBaseParser;
@@ -110,17 +111,36 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
         return new Assignment((Expression) visit(context.valueExpression()), (Expression) visit(context.expression()));
     }
 
+    @Override
+    public Node visitSet(SqlBaseParser.SetContext context) {
+        if (context.LOCAL() != null) {
+            return new SetStatement(SetStatement.Scope.LOCAL, (Assignment) visit(context.setAssignment()));
+        } else {
+            return new SetStatement(SetStatement.Scope.SESSION, (Assignment) visit(context.setAssignment()));
+        }
+    }
+
+    @Override
+    public Node visitSetAssignment(SqlBaseParser.SetAssignmentContext context) {
+        QualifiedNameReference name = new QualifiedNameReference(getQualifiedName(context.name));
+        if (context.setSettingValue().DEFAULT() != null) {
+            return new Assignment(name, ImmutableList.of());
+        }
+        return new Assignment(name, visit(context.setSettingValue().setExpression(), Expression.class));
+    }
+
+    @Override
+    public Node visitSetExpression(SqlBaseParser.SetExpressionContext context) {
+        if (context.ON() != null) {
+            return BooleanLiteral.TRUE_LITERAL;
+        } else if (context.identifier() != null) {
+            return visit(context.identifier());
+        } else {
+            return visit(context.simpleLiteral());
+        }
+    }
+
     //    @Override
-//    public Node visitRenameTable(SqlBaseParser.RenameTableContext context) {
-//        return new RenameTable(getLocation(context), getQualifiedName(context.from), getQualifiedName(context.to));
-//    }
-//
-//    @Override
-//    public Node visitRenameColumn(SqlBaseParser.RenameColumnContext context) {
-//        return new RenameColumn(getLocation(context), getQualifiedName(context.tableName), context.from.getText(), context.to.getText());
-//    }
-//
-//    @Override
 //    public Node visitAddColumn(SqlBaseParser.AddColumnContext context) {
 //        return new AddColumn(getLocation(context), getQualifiedName(context.qualifiedName()), (ColumnDefinition) visit(context.columnDefinition()));
 //    }
@@ -739,6 +759,16 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
         return new QualifiedNameReference(QualifiedName.of(Arrays.asList(context.getText().split("\\."))));
     }
 
+    @Override
+    public Node visitQuotedIdentifierAlternative(SqlBaseParser.QuotedIdentifierAlternativeContext context) {
+        return new QualifiedNameReference(QualifiedName.of(context.getText()));
+    }
+
+    @Override
+    public Node visitUnquotedIdentifier(SqlBaseParser.UnquotedIdentifierContext context) {
+        return new QualifiedNameReference(QualifiedName.of(context.getText()));
+    }
+
     //    @Override
 //    public Node visitSimpleCase(SqlBaseParser.SimpleCaseContext context) {
 //        return new SimpleCaseExpression(
@@ -894,23 +924,23 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
 //    }
 //
 //    // ************** literals **************
-//
-//    @Override
-//    public Node visitNullLiteral(SqlBaseParser.NullLiteralContext context) {
-//        return new NullLiteral(getLocation(context));
-//    }
+
+    @Override
+    public Node visitNullLiteral(SqlBaseParser.NullLiteralContext context) {
+        return NullLiteral.INSTANCE;
+    }
 
     @Override
     public Node visitStringLiteral(SqlBaseParser.StringLiteralContext context) {
         return new StringLiteral(unquote(context.STRING().getText()));
     }
 
-//    @Override
-//    public Node visitBinaryLiteral(SqlBaseParser.BinaryLiteralContext context) {
-//        String raw = context.BINARY_LITERAL().getText();
-//        return new BinaryLiteral(getLocation(context), unquote(raw.substring(1)));
-//    }
-//
+    @Override
+    public Node visitBinaryLiteral(SqlBaseParser.BinaryLiteralContext context) {
+        String raw = context.BINARY_LITERAL().getText();
+        return Literal.fromObject(Boolean.valueOf(unquote(raw.substring(1))));
+    }
+
 //    @Override
 //    public Node visitTypeConstructor(SqlBaseParser.TypeConstructorContext context) {
 //        String value = unquote(context.STRING().getText());
@@ -947,12 +977,12 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
         return new DoubleLiteral(context.getText());
     }
 
-//    @Override
-//    public Node visitBooleanValue(SqlBaseParser.BooleanValueContext context) {
-//        return new BooleanLiteral(getLocation(context), context.getText());
-//    }
-//
-//    @Override
+    @Override
+    public Node visitBooleanValue(SqlBaseParser.BooleanValueContext context) {
+        return Literal.fromObject(Boolean.valueOf(context.getText()));
+    }
+
+    //    @Override
 //    public Node visitInterval(SqlBaseParser.IntervalContext context) {
 //        return new IntervalLiteral(
 //            getLocation(context),

@@ -36,6 +36,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import static com.google.common.base.Strings.repeat;
 import static io.crate.sql.parser.TreeAssertions.assertFormattedSql;
 import static java.lang.String.format;
+import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.core.Is.is;
 import static org.hamcrest.core.IsInstanceOf.instanceOf;
 import static org.junit.Assert.*;
@@ -130,6 +131,47 @@ public class TestStatementBuilder {
     @Test
     public void testExplainStmtBuilder() {
         printStatement("explain drop table foo");
+    }
+
+    @Test
+    public void testSetSessionAndLocalStmtBuiler() throws Exception {
+        printStatement("set session some_setting = false");
+        printStatement("set session some_setting = DEFAULT");
+        printStatement("set session some_setting = 1, 2, 3");
+        printStatement("set session some_setting = ON");
+        printStatement("set session some_setting = 1, ON");
+        printStatement("set session some_setting = 'value'");
+
+        printStatement("set session some_setting TO DEFAULT");
+        printStatement("set session some_setting TO 'value'");
+        printStatement("set session some_setting TO 1, 2, 3");
+        printStatement("set session some_setting TO ON");
+        printStatement("set session some_setting TO true");
+        printStatement("set session some_setting TO 1, ON");
+
+        printStatement("set local some_setting = DEFAULT");
+        printStatement("set local some_setting = 'value'");
+        printStatement("set local some_setting = 1, 2, 3");
+        printStatement("set local some_setting = 1, ON");
+        printStatement("set local some_setting = ON");
+        printStatement("set local some_setting = false");
+
+        printStatement("set local some_setting TO DEFAULT");
+        printStatement("set local some_setting TO 'value'");
+        printStatement("set local some_setting TO 1, 2, 3");
+        printStatement("set local some_setting TO ON");
+        printStatement("set local some_setting TO true");
+        printStatement("set local some_setting TO ALWAYS");
+
+        printStatement("set some_setting TO 1, 2, 3");
+        printStatement("set some_setting TO ON");
+    }
+
+    @Test
+    public void testSetSessionInvalidSetting() throws Exception {
+        expectedException.expect(ParsingException.class);
+        expectedException.expectMessage(containsString("no viable alternative"));
+        printStatement("set session 'some_setting' TO 1, ON");
     }
 
     @Test
@@ -449,68 +491,7 @@ public class TestStatementBuilder {
         printStatement("reset global some_setting['nested'], other_setting");
     }
 
-    @Test
-    public void testSetSession() throws Exception {
-        printStatement("set session some_setting = DEFAULT");
-        printStatement("set session some_setting = 'value'");
-        printStatement("set session some_setting = 1, 2, 3");
-        printStatement("set session some_setting = ON");
-        printStatement("set session some_setting = 1, ON");
-        printStatement("set session some_setting = false");
 
-        printStatement("set session some_setting TO DEFAULT");
-        printStatement("set session some_setting TO 'value'");
-        printStatement("set session some_setting TO 1, 2, 3");
-        printStatement("set session some_setting TO ON");
-        printStatement("set session some_setting TO true");
-        printStatement("set session some_setting TO 1, ON");
-
-    }
-
-    @Test
-    public void testSet() throws Exception {
-        printStatement("set some_setting = DEFAULT");
-        printStatement("set some_setting = 'value'");
-        printStatement("set some_setting = 1, '2', foo");
-        printStatement("set some_setting = on");
-        printStatement("set some_setting = 1, on");
-        printStatement("set some_setting = true");
-
-        printStatement("set some_setting TO DEFAULT");
-        printStatement("set some_setting TO 'value'");
-        printStatement("set some_setting TO 1, 2, 3");
-        printStatement("set some_setting TO ON");
-        printStatement("set some_setting TO true");
-        printStatement("set some_setting TO 1, ON");
-    }
-
-    @Test
-    public void testSetLocal() throws Exception {
-        printStatement("set local some_setting = DEFAULT");
-        printStatement("set local some_setting = 'value'");
-        printStatement("set local some_setting = 1, 2, 3");
-        printStatement("set local some_setting = 1, ON");
-        printStatement("set local some_setting = ON");
-        printStatement("set local some_setting = false");
-
-        printStatement("set local some_setting TO DEFAULT");
-        printStatement("set local some_setting TO 'value'");
-        printStatement("set local some_setting TO 1, 2, 3");
-        printStatement("set local some_setting TO ON");
-        printStatement("set local some_setting TO true");
-        printStatement("set local some_setting TO ALWAYS");
-    }
-
-    @Test
-    public void testSetSessionInvalidSetting() throws Exception {
-        try {
-            printStatement("set session 'some_setting' TO 1, ON");
-            fail();
-        } catch (IllegalArgumentException e) {
-            assertThat(e.getMessage(), is("bad tree from parser: no viable alternative at input 'some_setting'"));
-        }
-
-    }
 
     @Test
     public void testParameterExpressionLimitOffset() throws Exception {
