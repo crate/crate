@@ -28,6 +28,7 @@ singleExpression
 
 statement
     : query                                                            #statementDefault
+    | showStmt                                                         #show
 //    | CREATE TABLE (IF NOT EXISTS)? qualifiedName
 //        (WITH tableProperties)? AS query
 //        (WITH (NO)? DATA)?                                             #createTableAsSelect
@@ -42,19 +43,22 @@ statement
 //    | CREATE (OR REPLACE)? VIEW qualifiedName AS query                 #createView
     | EXPLAIN ANALYZE?
         ('(' explainOption (',' explainOption)* ')')? statement        #explain
-    | SHOW CREATE TABLE qualifiedName                                  #showCreateTable
-    | SHOW TABLES ((FROM | IN) qualifiedName)?
-        (LIKE pattern=STRING | WHERE where=booleanExpression)?         #showTables
-    | SHOW SCHEMAS
-        (LIKE pattern=STRING | WHERE where=booleanExpression)?         #showSchemas
-    | SHOW COLUMNS (FROM | IN) qualifiedName
-        ((FROM | IN) qualifiedName)?
-        (LIKE pattern=STRING | WHERE where=booleanExpression)?         #showColumns
     | KILL (ALL | parameterExpression | STRING)                        #killStatement
     | SET (SESSION | LOCAL)? setAssignment                             #set
     | UPDATE aliasedRelation SET assignment (',' assignment)*
         (WHERE where=booleanExpression)?                               #update
     ;
+
+showStmt
+     : SHOW CREATE TABLE qualifiedName                                 #showCreateTable
+     | SHOW TABLES ((FROM | IN) qualifiedName)?
+        (LIKE pattern=STRING | WHERE where=booleanExpression)?         #showTables
+     | SHOW SCHEMAS
+        (LIKE pattern=STRING | WHERE where=booleanExpression)?         #showSchemas
+     | SHOW COLUMNS (FROM | IN) qualifiedName
+        ((FROM | IN) qualifiedName)?
+        (LIKE pattern=STRING | WHERE where=booleanExpression)?         #showColumns
+     ;
 
 setAssignment
     : (name=qualifiedName (EQ | TO) value=setSettingValue)
