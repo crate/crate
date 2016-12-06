@@ -111,7 +111,7 @@ public class FetchContext extends AbstractExecutionSubContext {
                         shardContexts.put(readerId, shardContext);
                         if (tablesWithFetchRefs.contains(ident)) {
                             try {
-                                searchers.put(readerId, shardContext.searcher());
+                                searchers.put(readerId, shardContext.acquireSearcher());
                             } catch (IndexNotFoundException e) {
                                 if (!PartitionName.isPartition(index)) {
                                     throw e;

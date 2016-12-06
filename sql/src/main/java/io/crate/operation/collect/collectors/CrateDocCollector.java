@@ -22,7 +22,6 @@
 
 package io.crate.operation.collect.collectors;
 
-import io.crate.action.sql.query.CrateSearchContext;
 import io.crate.breaker.CrateCircuitBreakerService;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.core.collections.Row;
@@ -43,6 +42,7 @@ import org.elasticsearch.common.breaker.CircuitBreakingException;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.lucene.MinimumScoreCollector;
+import org.elasticsearch.index.shard.ShardId;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
@@ -56,7 +56,9 @@ public class CrateDocCollector implements CrateCollector, RepeatHandle {
     private static final ESLogger LOGGER = Loggers.getLogger(CrateDocCollector.class);
 
     private final CollectorContext collectorContext;
-    private final CrateSearchContext searchContext;
+    private final ShardId shardId;
+    private final IndexSearcher indexSearcher;
+    private final Query query;
     private final RowReceiver rowReceiver;
     private final Collection<? extends LuceneCollectorExpression<?>> expressions;
     private final SimpleCollector luceneCollector;
@@ -66,22 +68,34 @@ public class CrateDocCollector implements CrateCollector, RepeatHandle {
 
     public static class Builder implements CrateCollector.Builder {
 
-        private final CrateSearchContext searchContext;
+        private final ShardId shardId;
+        private final IndexSearcher indexSearcher;
+        private final Query query;
+        private final Float minScore;
         private final Executor executor;
         private final boolean doScores;
+        private final CollectorContext collectorContext;
         private final RamAccountingContext ramAccountingContext;
         private final List<Input<?>> inputs;
         private final Collection<? extends LuceneCollectorExpression<?>> expressions;
 
-        public Builder(CrateSearchContext searchContext,
+        public Builder(ShardId shardId,
+                       IndexSearcher indexSearcher,
+                       Query query,
+                       Float minScore,
                        Executor executor,
                        boolean doScores,
+                       CollectorContext collectorContext,
                        RamAccountingContext ramAccountingContext,
                        List<Input<?>> inputs,
                        Collection<? extends LuceneCollectorExpression<?>> expressions) {
-            this.searchContext = searchContext;
+            this.shardId = shardId;
+            this.indexSearcher = indexSearcher;
+            this.query = query;
+            this.minScore = minScore;
             this.executor = executor;
             this.doScores = doScores;
+            this.collectorContext = collectorContext;
             this.ramAccountingContext = ramAccountingContext;
             this.inputs = inputs;
             this.expressions = expressions;
@@ -90,9 +104,13 @@ public class CrateDocCollector implements CrateCollector, RepeatHandle {
         @Override
         public CrateCollector build(RowReceiver rowReceiver) {
             return new CrateDocCollector(
-                searchContext,
+                shardId,
+                indexSearcher,
+                query,
+                minScore,
                 executor,
                 doScores,
+                collectorContext,
                 ramAccountingContext,
                 rowReceiver,
                 inputs,
@@ -101,24 +119,24 @@ public class CrateDocCollector implements CrateCollector, RepeatHandle {
         }
     }
 
-    public CrateDocCollector(final CrateSearchContext searchContext,
+    public CrateDocCollector(ShardId shardId,
+                             IndexSearcher indexSearcher,
+                             Query query,
+                             Float minScore,
                              Executor executor,
                              boolean doScores,
+                             CollectorContext collectorContext,
                              RamAccountingContext ramAccountingContext,
                              RowReceiver rowReceiver,
                              List<Input<?>> inputs,
                              Collection<? extends LuceneCollectorExpression<?>> expressions) {
-        this.searchContext = searchContext;
+        this.shardId = shardId;
+        this.indexSearcher = indexSearcher;
+        this.query = query;
+        this.collectorContext = collectorContext;
         this.rowReceiver = rowReceiver;
         this.expressions = expressions;
-        CollectorFieldsVisitor fieldsVisitor = new CollectorFieldsVisitor(expressions.size());
-        collectorContext = new CollectorContext(
-            searchContext.mapperService(),
-            searchContext.fieldData(),
-            fieldsVisitor,
-            ((int) searchContext.id())
-        );
-        this.doScores = doScores || searchContext.minScore() != null;
+        this.doScores = doScores || minScore != null;
         SimpleCollector collector = new LuceneDocCollector(
             ramAccountingContext,
             rowReceiver,
@@ -126,8 +144,8 @@ public class CrateDocCollector implements CrateCollector, RepeatHandle {
             new InputRow(inputs),
             expressions
         );
-        if (searchContext.minScore() != null) {
-            collector = new MinimumScoreCollector(collector, searchContext.minScore());
+        if (minScore != null) {
+            collector = new MinimumScoreCollector(collector, minScore);
         }
         luceneCollector = collector;
         this.resumeable = new ExecutorResumeHandle(executor, new Runnable() {
@@ -141,13 +159,13 @@ public class CrateDocCollector implements CrateCollector, RepeatHandle {
 
     private void debugLog(String message) {
         if (LOGGER.isDebugEnabled()) {
-            LOGGER.debug("{} {} {}", Thread.currentThread().getName(), searchContext.indexShard().shardId(), message);
+            LOGGER.debug("{} {} {}", Thread.currentThread().getName(), shardId, message);
         }
     }
 
     private void traceLog(String message) {
         if (LOGGER.isTraceEnabled()) {
-            LOGGER.trace("{} {} {}", Thread.currentThread().getName(), searchContext.indexShard().shardId(), message);
+            LOGGER.trace("{} {} {}", Thread.currentThread().getName(), shardId, message);
         }
     }
 
@@ -161,12 +179,11 @@ public class CrateDocCollector implements CrateCollector, RepeatHandle {
         if (collectorContext.visitor().required()) {
             collector = new FieldVisitorCollector(collector, collectorContext.visitor());
         }
-        IndexSearcher indexSearcher = searchContext.searcher();
 
         Weight weight;
         Iterator<LeafReaderContext> leavesIt;
         try {
-            weight = indexSearcher.createNormalizedWeight(searchContext.query(), doScores);
+            weight = indexSearcher.createNormalizedWeight(query, doScores);
             leavesIt = indexSearcher.getTopReaderContext().leaves().iterator();
         } catch (Throwable e) {
             fail(e);
@@ -241,14 +258,13 @@ public class CrateDocCollector implements CrateCollector, RepeatHandle {
 
     @Override
     public void kill(@Nullable Throwable throwable) {
-        debugLog("kill searchContext=" + searchContext);
+        debugLog("kill CrateDocCollector");
         rowReceiver.kill(throwable);
     }
 
     @Override
     public void repeat() {
         debugLog("repeat collect");
-        IndexSearcher indexSearcher = searchContext.searcher();
         Iterator<LeafReaderContext> iterator = indexSearcher.getTopReaderContext().leaves().iterator();
         innerCollect(state.collector, state.weight, iterator, null, null);
     }

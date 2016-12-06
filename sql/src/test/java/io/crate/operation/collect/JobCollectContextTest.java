@@ -24,13 +24,13 @@ package io.crate.operation.collect;
 import com.carrotsearch.randomizedtesting.RandomizedTest;
 import com.google.common.collect.ImmutableList;
 import io.crate.action.job.SharedShardContexts;
-import io.crate.action.sql.query.CrateSearchContext;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.metadata.Routing;
 import io.crate.metadata.RowGranularity;
 import io.crate.operation.projectors.RowReceiver;
 import io.crate.planner.node.dql.RoutedCollectPhase;
 import io.crate.testing.CollectingRowReceiver;
+import org.elasticsearch.index.engine.Engine;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.junit.Before;
 import org.junit.Test;
@@ -70,11 +70,11 @@ public class JobCollectContextTest extends RandomizedTest {
 
     @Test
     public void testAddingSameContextTwice() throws Exception {
-        CrateSearchContext mock1 = mock(CrateSearchContext.class);
-        CrateSearchContext mock2 = mock(CrateSearchContext.class);
+        Engine.Searcher mock1 = mock(Engine.Searcher.class);
+        Engine.Searcher mock2 = mock(Engine.Searcher.class);
         try {
-            jobCollectContext.addSearchContext(1, mock1);
-            jobCollectContext.addSearchContext(1, mock2);
+            jobCollectContext.addSearcher(1, mock1);
+            jobCollectContext.addSearcher(1, mock2);
 
             assertFalse(true); // second addContext call should have raised an exception
         } catch (IllegalArgumentException e) {
@@ -85,11 +85,11 @@ public class JobCollectContextTest extends RandomizedTest {
 
     @Test
     public void testCloseClosesSearchContexts() throws Exception {
-        CrateSearchContext mock1 = mock(CrateSearchContext.class);
-        CrateSearchContext mock2 = mock(CrateSearchContext.class);
+        Engine.Searcher mock1 = mock(Engine.Searcher.class);
+        Engine.Searcher mock2 = mock(Engine.Searcher.class);
 
-        jobCollectContext.addSearchContext(1, mock1);
-        jobCollectContext.addSearchContext(2, mock2);
+        jobCollectContext.addSearcher(1, mock1);
+        jobCollectContext.addSearcher(2, mock2);
 
         jobCollectContext.close();
 
@@ -100,7 +100,7 @@ public class JobCollectContextTest extends RandomizedTest {
 
     @Test
     public void testKillOnJobCollectContextPropagatesToCrateCollectors() throws Exception {
-        CrateSearchContext mock1 = mock(CrateSearchContext.class);
+        Engine.Searcher mock1 = mock(Engine.Searcher.class);
         MapSideDataCollectOperation collectOperationMock = mock(MapSideDataCollectOperation.class);
         CollectingRowReceiver rowReceiver = new CollectingRowReceiver();
 
@@ -112,7 +112,7 @@ public class JobCollectContextTest extends RandomizedTest {
             rowReceiver,
             mock(SharedShardContexts.class));
 
-        jobCtx.addSearchContext(1, mock1);
+        jobCtx.addSearcher(1, mock1);
         CrateCollector collectorMock1 = mock(CrateCollector.class);
         CrateCollector collectorMock2 = mock(CrateCollector.class);
 

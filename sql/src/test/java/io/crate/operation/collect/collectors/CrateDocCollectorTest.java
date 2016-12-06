@@ -24,11 +24,13 @@ package io.crate.operation.collect.collectors;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.util.concurrent.MoreExecutors;
-import io.crate.action.sql.query.CrateSearchContext;
 import io.crate.operation.Input;
 import io.crate.operation.projectors.RowReceiver;
+import io.crate.operation.reference.doc.lucene.CollectorContext;
 import io.crate.operation.reference.doc.lucene.LuceneCollectorExpression;
-import org.elasticsearch.search.internal.SearchContext;
+import org.apache.lucene.search.IndexSearcher;
+import org.apache.lucene.search.MatchAllDocsQuery;
+import org.elasticsearch.index.shard.ShardId;
 import org.junit.Test;
 import org.mockito.Answers;
 
@@ -39,10 +41,19 @@ public class CrateDocCollectorTest {
 
     @Test
     public void testCollectorKill() throws Exception {
-        CrateSearchContext sc = mock(CrateSearchContext.class, Answers.RETURNS_MOCKS.get());
         RowReceiver rowReceiver = mock(RowReceiver.class, Answers.RETURNS_MOCKS.get());
-        CrateDocCollector c = new CrateDocCollector(sc, MoreExecutors.directExecutor(), false, null,
-            rowReceiver, ImmutableList.<Input<?>>of(), ImmutableList.<LuceneCollectorExpression<?>>of());
+        CrateDocCollector c = new CrateDocCollector(
+            new ShardId("dummy", 1),
+            mock(IndexSearcher.class),
+            new MatchAllDocsQuery(),
+            null,
+            MoreExecutors.directExecutor(),
+            false,
+            mock(CollectorContext.class),
+            null,
+            rowReceiver,
+            ImmutableList.<Input<?>>of(),
+            ImmutableList.<LuceneCollectorExpression<?>>of());
 
         c.kill(null);
 

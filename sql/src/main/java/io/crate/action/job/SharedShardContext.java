@@ -54,7 +54,7 @@ public class SharedShardContext {
         this.readerId = readerId;
     }
 
-    public Engine.Searcher searcher() throws IndexNotFoundException {
+    public Engine.Searcher acquireSearcher() throws IndexNotFoundException {
         if (searcher != null) {
             searcher.inc();
             return searcher;

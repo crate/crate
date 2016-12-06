@@ -37,6 +37,7 @@ import io.crate.core.collections.Buckets;
 import io.crate.core.collections.Row;
 import io.crate.exceptions.UnhandledServerException;
 import io.crate.executor.transport.TransportActionProvider;
+import io.crate.lucene.LuceneQueryBuilder;
 import io.crate.metadata.*;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.shard.unassigned.UnassignedShard;
@@ -125,7 +126,7 @@ public class ShardCollectSource extends AbstractComponent implements CollectSour
 
     private final Map<ShardId, ShardCollectorProvider> shards = new ConcurrentHashMap<>();
     private final Functions functions;
-    private final SearchContextFactory searchContextFactory;
+    private final LuceneQueryBuilder luceneQueryBuilder;
 
 
     @Inject
@@ -135,6 +136,7 @@ public class ShardCollectSource extends AbstractComponent implements CollectSour
                               IndicesService indicesService,
                               Functions functions,
                               ClusterService clusterService,
+                              LuceneQueryBuilder luceneQueryBuilder,
                               ThreadPool threadPool,
                               TransportActionProvider transportActionProvider,
                               BulkRetryCoordinatorPool bulkRetryCoordinatorPool,
@@ -142,9 +144,9 @@ public class ShardCollectSource extends AbstractComponent implements CollectSour
                               SystemCollectSource systemCollectSource,
                               NodeSysExpression nodeSysExpression,
                               IndicesLifecycle indicesLifecycle,
-                              BlobIndicesService blobIndicesService,
-                              SearchContextFactory searchContextFactory) {
+                              BlobIndicesService blobIndicesService) {
         super(settings);
+        this.luceneQueryBuilder = luceneQueryBuilder;
         this.schemas = schemas;
         this.indexNameExpressionResolver = indexNameExpressionResolver;
         this.indicesService = indicesService;
@@ -157,7 +159,6 @@ public class ShardCollectSource extends AbstractComponent implements CollectSour
         this.executor = MoreExecutors.listeningDecorator((ExecutorService) threadPool.executor(ThreadPool.Names.SEARCH));
         this.blobIndicesService = blobIndicesService;
         this.functions = functions;
-        this.searchContextFactory = searchContextFactory;
         NodeSysReferenceResolver referenceResolver = new NodeSysReferenceResolver(nodeSysExpression);
         nodeNormalizer = new EvaluatingNormalizer(
             functions,
@@ -194,7 +195,7 @@ public class ShardCollectSource extends AbstractComponent implements CollectSour
                     indexNameExpressionResolver, threadPool, settings, transportActionProvider, bulkRetryCoordinatorPool);
             } else {
                 provider = new LuceneShardCollectorProvider(
-                    schemas, searchContextFactory, clusterService, functions, indexNameExpressionResolver, threadPool,
+                    schemas, luceneQueryBuilder, clusterService, functions, indexNameExpressionResolver, threadPool,
                     settings, transportActionProvider, bulkRetryCoordinatorPool, indexShard);
             }
             shards.put(indexShard.shardId(), provider);

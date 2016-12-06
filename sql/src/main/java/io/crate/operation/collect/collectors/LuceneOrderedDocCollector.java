@@ -24,7 +24,6 @@ package io.crate.operation.collect.collectors;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Iterables;
-import io.crate.action.sql.query.CrateSearchContext;
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.core.collections.Row;
@@ -51,7 +50,8 @@ public class LuceneOrderedDocCollector extends OrderedDocCollector {
 
     private static final ESLogger LOGGER = Loggers.getLogger(LuceneOrderedDocCollector.class);
 
-    private final CrateSearchContext searchContext;
+    private final Query query;
+    private final Float minScore;
     private final boolean doDocsScores;
     private final int batchSize;
     private final CollectorContext collectorContext;
@@ -67,7 +67,10 @@ public class LuceneOrderedDocCollector extends OrderedDocCollector {
     @Nullable
     private volatile FieldDoc lastDoc = null;
 
-    public LuceneOrderedDocCollector(CrateSearchContext searchContext,
+    public LuceneOrderedDocCollector(ShardId shardId,
+                                     IndexSearcher searcher,
+                                     Query query,
+                                     Float minScore,
                                      boolean doDocsScores,
                                      int batchSize,
                                      CollectorContext collectorContext,
@@ -75,11 +78,12 @@ public class LuceneOrderedDocCollector extends OrderedDocCollector {
                                      Sort sort,
                                      List<Input<?>> inputs,
                                      Collection<LuceneCollectorExpression<?>> expressions) {
-        super(searchContext.indexShard().shardId());
-        this.searchContext = searchContext;
+        super(shardId);
+        this.searcher = searcher;
+        this.query = query;
+        this.minScore = minScore;
         this.doDocsScores = doDocsScores;
         this.batchSize = batchSize;
-        searcher = searchContext.searcher();
         this.collectorContext = collectorContext;
         this.orderBy = orderBy;
         this.sort = sort;
@@ -116,7 +120,6 @@ public class LuceneOrderedDocCollector extends OrderedDocCollector {
 
     @Override
     public void close() {
-        searchContext.close();
     }
 
     private KeyIterable<ShardId, Row> initialSearch() throws IOException {
@@ -126,10 +129,10 @@ public class LuceneOrderedDocCollector extends OrderedDocCollector {
         }
         TopFieldCollector topFieldCollector = TopFieldCollector.create(sort, batchSize, true, doDocsScores, doDocsScores);
         Collector collector = topFieldCollector;
-        if (searchContext.minScore() != null) {
-            collector = new MinimumScoreCollector(collector, searchContext.minScore());
+        if (minScore != null) {
+            collector = new MinimumScoreCollector(collector, minScore);
         }
-        searcher.search(searchContext.query(), collector);
+        searcher.search(query, collector);
         return scoreDocToIterable(topFieldCollector.topDocs().scoreDocs);
     }
 
@@ -154,10 +157,10 @@ public class LuceneOrderedDocCollector extends OrderedDocCollector {
     private Query query(FieldDoc lastDoc) {
         Query query = nextPageQuery(lastDoc, orderBy, missingValues);
         if (query == null) {
-            return searchContext.query();
+            return this.query;
         }
         BooleanQuery.Builder searchAfterQuery = new BooleanQuery.Builder();
-        searchAfterQuery.add(searchContext.query(), BooleanClause.Occur.MUST);
+        searchAfterQuery.add(this.query, BooleanClause.Occur.MUST);
         searchAfterQuery.add(query, BooleanClause.Occur.MUST_NOT);
         return searchAfterQuery.build();
     }

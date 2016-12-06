@@ -28,7 +28,6 @@ import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.MoreExecutors;
 import io.crate.action.job.SharedShardContexts;
-import io.crate.action.sql.query.CrateSearchContext;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.jobs.AbstractExecutionSubContext;
 import io.crate.metadata.RowGranularity;
@@ -41,6 +40,7 @@ import io.crate.planner.node.dql.RoutedCollectPhase;
 import org.elasticsearch.common.StopWatch;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
+import org.elasticsearch.index.engine.Engine;
 import org.elasticsearch.threadpool.ThreadPool;
 
 import javax.annotation.Nonnull;
@@ -59,7 +59,7 @@ public class JobCollectContext extends AbstractExecutionSubContext {
     private final RowReceiver rowReceiver;
     private final SharedShardContexts sharedShardContexts;
 
-    private final IntObjectHashMap<CrateSearchContext> searchContexts = new IntObjectHashMap<>();
+    private final IntObjectHashMap<Engine.Searcher> searchers = new IntObjectHashMap<>();
     private final Object subContextLock = new Object();
     private final ListenableRowReceiver listenableRowReceiver;
     private final String threadPoolName;
@@ -94,20 +94,20 @@ public class JobCollectContext extends AbstractExecutionSubContext {
         this.threadPoolName = threadPoolName(collectPhase, localNodeId);
     }
 
-    public void addSearchContext(int jobSearchContextId, CrateSearchContext searchContext) {
+    public void addSearcher(int searcherId, Engine.Searcher searcher) {
         if (future.closed()) {
             // if this is closed and addContext is called this means the context got killed.
-            searchContext.close();
+            searcher.close();
             return;
         }
 
         synchronized (subContextLock) {
-            CrateSearchContext replacedContext = searchContexts.put(jobSearchContextId, searchContext);
-            if (replacedContext != null) {
-                replacedContext.close();
-                searchContext.close();
+            Engine.Searcher replacedSearcher = searchers.put(searcherId, searcher);
+            if (replacedSearcher != null) {
+                replacedSearcher.close();
+                searcher.close();
                 throw new IllegalArgumentException(String.format(Locale.ENGLISH,
-                    "ShardCollectContext for %d already added", jobSearchContextId));
+                    "ShardCollectContext for %d already added", searcherId));
             }
         }
     }
@@ -129,10 +129,10 @@ public class JobCollectContext extends AbstractExecutionSubContext {
 
     private void closeSearchContexts() {
         synchronized (subContextLock) {
-            for (ObjectCursor<CrateSearchContext> cursor : searchContexts.values()) {
+            for (ObjectCursor<Engine.Searcher> cursor : searchers.values()) {
                 cursor.value.close();
             }
-            searchContexts.clear();
+            searchers.clear();
         }
     }
 
@@ -158,7 +158,7 @@ public class JobCollectContext extends AbstractExecutionSubContext {
                "id=" + id +
                ", sharedContexts=" + sharedShardContexts +
                ", rowReceiver=" + rowReceiver +
-               ", searchContexts=" + Arrays.toString(searchContexts.keys) +
+               ", searchContexts=" + Arrays.toString(searchers.keys) +
                ", closed=" + future.closed() +
                '}';
     }
