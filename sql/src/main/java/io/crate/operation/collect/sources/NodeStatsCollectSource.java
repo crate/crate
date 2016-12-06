@@ -38,6 +38,8 @@ import io.crate.operation.collect.collectors.NodeStatsCollector;
 import io.crate.operation.projectors.RowReceiver;
 import io.crate.operation.reference.sys.RowContextReferenceResolver;
 import io.crate.operation.reference.sys.node.NodeStatsContext;
+import io.crate.operation.reference.sys.node.local.NodeSysExpression;
+import io.crate.operation.reference.sys.node.local.NodeSysReferenceResolver;
 import io.crate.planner.node.dql.CollectPhase;
 import io.crate.planner.node.dql.RoutedCollectPhase;
 import org.elasticsearch.cluster.ClusterService;
@@ -54,15 +56,18 @@ import java.util.List;
 public class NodeStatsCollectSource implements CollectSource {
 
     private final TransportActionProvider transportActionProvider;
+    private final NodeSysExpression nodeSysExpression;
     private final ClusterService clusterService;
     private final CollectInputSymbolVisitor<RowCollectExpression<?, ?>> inputSymbolVisitor;
     private final Functions functions;
 
     @Inject
     public NodeStatsCollectSource(TransportActionProvider transportActionProvider,
+                                  NodeSysExpression nodeSysExpression,
                                   ClusterService clusterService,
                                   Functions functions) {
         this.transportActionProvider = transportActionProvider;
+        this.nodeSysExpression = nodeSysExpression;
         this.clusterService = clusterService;
         this.inputSymbolVisitor = new CollectInputSymbolVisitor<>(functions, RowContextReferenceResolver.INSTANCE);
         this.functions = functions;
@@ -71,6 +76,9 @@ public class NodeStatsCollectSource implements CollectSource {
     @Override
     public Collection<CrateCollector> getCollectors(CollectPhase phase, RowReceiver downstream, JobCollectContext jobCollectContext) {
         RoutedCollectPhase collectPhase = (RoutedCollectPhase) phase;
+        EvaluatingNormalizer normalizer = new EvaluatingNormalizer(
+            functions, RowGranularity.DOC, ReplaceMode.COPY, new NodeSysReferenceResolver(nodeSysExpression), null);
+        collectPhase = collectPhase.normalize(normalizer, null);
         if (collectPhase.whereClause().noMatch()) {
             return ImmutableList.<CrateCollector>of(RowsCollector.empty(downstream));
         }

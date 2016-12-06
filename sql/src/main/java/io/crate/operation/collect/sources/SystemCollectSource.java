@@ -25,9 +25,12 @@ import com.google.common.base.Supplier;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
+import io.crate.analyze.EvaluatingNormalizer;
 import io.crate.core.collections.Row;
 import io.crate.metadata.Functions;
+import io.crate.metadata.ReplaceMode;
 import io.crate.metadata.RowCollectExpression;
+import io.crate.metadata.RowGranularity;
 import io.crate.metadata.information.*;
 import io.crate.metadata.pg_catalog.PgCatalogTables;
 import io.crate.metadata.pg_catalog.PgTypeTable;
@@ -40,6 +43,8 @@ import io.crate.operation.reference.sys.RowContextReferenceResolver;
 import io.crate.operation.reference.sys.check.SysCheck;
 import io.crate.operation.reference.sys.check.SysChecker;
 import io.crate.operation.reference.sys.check.SysNodeCheck;
+import io.crate.operation.reference.sys.node.local.NodeSysExpression;
+import io.crate.operation.reference.sys.node.local.NodeSysReferenceResolver;
 import io.crate.operation.reference.sys.repositories.SysRepositoriesService;
 import io.crate.operation.reference.sys.snapshot.SysSnapshots;
 import io.crate.planner.node.dql.CollectPhase;
@@ -60,6 +65,8 @@ import java.util.Set;
 public class SystemCollectSource implements CollectSource {
 
     private final CollectInputSymbolVisitor<RowCollectExpression<?, ?>> docInputSymbolVisitor;
+    private final Functions functions;
+    private final NodeSysExpression nodeSysExpression;
     private final ImmutableMap<String, Supplier<Iterable<?>>> iterableGetters;
     private final DiscoveryService discoveryService;
 
@@ -67,6 +74,7 @@ public class SystemCollectSource implements CollectSource {
     @Inject
     public SystemCollectSource(DiscoveryService discoveryService,
                                Functions functions,
+                               NodeSysExpression nodeSysExpression,
                                StatsTables statsTables,
                                InformationSchemaIterables informationSchemaIterables,
                                Set<SysCheck> sysChecks,
@@ -75,6 +83,8 @@ public class SystemCollectSource implements CollectSource {
                                SysSnapshots sysSnapshots,
                                PgCatalogTables pgCatalogTables) {
         docInputSymbolVisitor = new CollectInputSymbolVisitor<>(functions, RowContextReferenceResolver.INSTANCE);
+        this.functions = functions;
+        this.nodeSysExpression = nodeSysExpression;
 
         iterableGetters = ImmutableMap.<String, Supplier<Iterable<?>>>builder()
             .put(InformationSchemataTableInfo.IDENT.fqn(), informationSchemaIterables.schemas())
@@ -108,6 +118,11 @@ public class SystemCollectSource implements CollectSource {
     @Override
     public Collection<CrateCollector> getCollectors(CollectPhase phase, RowReceiver downstream, JobCollectContext jobCollectContext) {
         RoutedCollectPhase collectPhase = (RoutedCollectPhase) phase;
+        // sys.operations can contain a _node column - these refs need to be normalized into literals
+        EvaluatingNormalizer normalizer = new EvaluatingNormalizer(
+            functions, RowGranularity.DOC, ReplaceMode.COPY, new NodeSysReferenceResolver(nodeSysExpression), null);
+        collectPhase = collectPhase.normalize(normalizer, null);
+
         Map<String, Map<String, List<Integer>>> locations = collectPhase.routing().locations();
         String table = Iterables.getOnlyElement(locations.get(discoveryService.localNode().id()).keySet());
         Supplier<Iterable<?>> iterableGetter = iterableGetters.get(table);
