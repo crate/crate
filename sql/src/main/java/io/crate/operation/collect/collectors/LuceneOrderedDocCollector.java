@@ -24,6 +24,7 @@ package io.crate.operation.collect.collectors;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Iterables;
+import io.crate.action.sql.query.CrateSearchContext;
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.core.collections.Row;
@@ -39,8 +40,6 @@ import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.lucene.MinimumScoreCollector;
 import org.elasticsearch.index.shard.ShardId;
-import org.elasticsearch.search.internal.ContextIndexSearcher;
-import org.elasticsearch.search.internal.SearchContext;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
@@ -52,7 +51,7 @@ public class LuceneOrderedDocCollector extends OrderedDocCollector {
 
     private static final ESLogger LOGGER = Loggers.getLogger(LuceneOrderedDocCollector.class);
 
-    private final SearchContext searchContext;
+    private final CrateSearchContext searchContext;
     private final boolean doDocsScores;
     private final int batchSize;
     private final CollectorContext collectorContext;
@@ -61,14 +60,14 @@ public class LuceneOrderedDocCollector extends OrderedDocCollector {
     private final Collection<LuceneCollectorExpression<?>> expressions;
     private final ScoreDocRowFunction rowFunction;
     private final DummyScorer scorer;
-    private final ContextIndexSearcher searcher;
+    private final IndexSearcher searcher;
 
     private final Object[] missingValues;
 
     @Nullable
     private volatile FieldDoc lastDoc = null;
 
-    public LuceneOrderedDocCollector(SearchContext searchContext,
+    public LuceneOrderedDocCollector(CrateSearchContext searchContext,
                                      boolean doDocsScores,
                                      int batchSize,
                                      CollectorContext collectorContext,
@@ -117,7 +116,6 @@ public class LuceneOrderedDocCollector extends OrderedDocCollector {
 
     @Override
     public void close() {
-        searchContext.clearReleasables(SearchContext.Lifetime.PHASE);
         searchContext.close();
     }
 
@@ -128,12 +126,9 @@ public class LuceneOrderedDocCollector extends OrderedDocCollector {
         }
         TopFieldCollector topFieldCollector = TopFieldCollector.create(sort, batchSize, true, doDocsScores, doDocsScores);
         Collector collector = topFieldCollector;
-        if (searchContext.minimumScore() != null) {
-            collector = new MinimumScoreCollector(collector, searchContext.minimumScore());
+        if (searchContext.minScore() != null) {
+            collector = new MinimumScoreCollector(collector, searchContext.minScore());
         }
-        assert searchContext.queryCollectors().isEmpty() : "queryCollectors not supported";
-        assert searchContext.parsedPostFilter() == null : "parsedPostFilter not supported";
-
         searcher.search(searchContext.query(), collector);
         return scoreDocToIterable(topFieldCollector.topDocs().scoreDocs);
     }

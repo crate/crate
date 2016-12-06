@@ -21,51 +21,23 @@
 
 package io.crate.operation.collect;
 
-import com.google.common.base.Optional;
-import com.google.common.collect.ImmutableMap;
 import io.crate.action.sql.query.CrateSearchContext;
 import io.crate.analyze.WhereClause;
 import io.crate.lucene.LuceneQueryBuilder;
-import org.apache.lucene.search.Query;
-import org.elasticsearch.cache.recycler.PageCacheRecycler;
-import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
-import org.elasticsearch.common.util.BigArrays;
 import org.elasticsearch.index.IndexService;
 import org.elasticsearch.index.engine.Engine;
-import org.elasticsearch.index.query.ParsedQuery;
 import org.elasticsearch.index.shard.IndexShard;
-import org.elasticsearch.index.shard.ShardId;
-import org.elasticsearch.script.ScriptService;
-import org.elasticsearch.search.Scroll;
-import org.elasticsearch.search.SearchShardTarget;
-import org.elasticsearch.threadpool.ThreadPool;
 
 @Singleton
 public class SearchContextFactory {
 
     private LuceneQueryBuilder luceneQueryBuilder;
-    private ClusterService clusterService;
-    private final ScriptService scriptService;
-    private final PageCacheRecycler pageCacheRecycler;
-    private final BigArrays bigArrays;
-    private final ThreadPool threadPool;
-    private final ImmutableMap<String, Query> EMPTY_NAMED_FILTERS = ImmutableMap.of();
 
     @Inject
-    public SearchContextFactory(LuceneQueryBuilder luceneQueryBuilder,
-                                ClusterService clusterService,
-                                ScriptService scriptService,
-                                PageCacheRecycler pageCacheRecycler,
-                                BigArrays bigArrays,
-                                ThreadPool threadPool) {
+    public SearchContextFactory(LuceneQueryBuilder luceneQueryBuilder) {
         this.luceneQueryBuilder = luceneQueryBuilder;
-        this.clusterService = clusterService;
-        this.scriptService = scriptService;
-        this.pageCacheRecycler = pageCacheRecycler;
-        this.bigArrays = bigArrays;
-        this.threadPool = threadPool;
     }
 
     public CrateSearchContext createContext(
@@ -74,35 +46,16 @@ public class SearchContextFactory {
         Engine.Searcher engineSearcher,
         WhereClause whereClause) {
 
-        ShardId shardId = indexshard.shardId();
-        SearchShardTarget searchShardTarget = new SearchShardTarget(
-            clusterService.state().nodes().localNodeId(),
-            shardId.getIndex(),
-            shardId.id()
-        );
         IndexService indexService = indexshard.indexService();
-        CrateSearchContext searchContext = new CrateSearchContext(
+        LuceneQueryBuilder.Context context = luceneQueryBuilder.convert(
+            whereClause, indexService.mapperService(), indexService.fieldData(), indexService.cache());
+        return new CrateSearchContext(
             jobSearchContextId,
-            System.currentTimeMillis(),
-            searchShardTarget,
             engineSearcher,
             indexService,
             indexshard,
-            scriptService,
-            pageCacheRecycler,
-            bigArrays,
-            threadPool.estimatedTimeInMillisCounter(),
-            Optional.<Scroll>absent()
+            context.query(),
+            context.minScore()
         );
-        LuceneQueryBuilder.Context context = luceneQueryBuilder.convert(
-            whereClause, indexService.mapperService(), indexService.fieldData(), indexService.cache());
-        searchContext.parsedQuery(new ParsedQuery(context.query(), EMPTY_NAMED_FILTERS));
-
-        Float minScore = context.minScore();
-        if (minScore != null) {
-            searchContext.minimumScore(minScore);
-        }
-
-        return searchContext;
     }
 }

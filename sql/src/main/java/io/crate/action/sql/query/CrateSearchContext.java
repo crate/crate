@@ -21,225 +21,74 @@
 
 package io.crate.action.sql.query;
 
-import com.carrotsearch.hppc.ObjectObjectAssociativeContainer;
-import com.google.common.base.Optional;
-import io.crate.Constants;
-import org.apache.lucene.util.Counter;
-import org.elasticsearch.action.search.SearchType;
-import org.elasticsearch.cache.recycler.PageCacheRecycler;
-import org.elasticsearch.common.*;
-import org.elasticsearch.common.bytes.BytesReference;
-import org.elasticsearch.common.collect.ImmutableOpenMap;
-import org.elasticsearch.common.util.BigArrays;
+import org.apache.lucene.search.IndexSearcher;
+import org.apache.lucene.search.Query;
 import org.elasticsearch.index.IndexService;
 import org.elasticsearch.index.engine.Engine;
+import org.elasticsearch.index.fielddata.IndexFieldDataService;
+import org.elasticsearch.index.mapper.MapperService;
 import org.elasticsearch.index.shard.IndexShard;
-import org.elasticsearch.script.ScriptService;
-import org.elasticsearch.script.Template;
-import org.elasticsearch.search.Scroll;
-import org.elasticsearch.search.SearchService;
-import org.elasticsearch.search.SearchShardTarget;
-import org.elasticsearch.search.internal.DefaultSearchContext;
-import org.elasticsearch.search.internal.ShardSearchRequest;
 
-import java.io.IOException;
-import java.util.Set;
+import javax.annotation.Nullable;
+import java.util.concurrent.atomic.AtomicBoolean;
 
-public class CrateSearchContext extends DefaultSearchContext {
+public class CrateSearchContext {
 
+    private final long id;
     private final Engine.Searcher engineSearcher;
+    private final IndexService indexService;
+    private final IndexShard indexShard;
+    private final Query query;
+    @Nullable
+    private final Float minScore;
+
+    private final AtomicBoolean closed = new AtomicBoolean(false);
 
     public CrateSearchContext(long id,
-                              final long nowInMillis,
-                              SearchShardTarget shardTarget,
                               Engine.Searcher engineSearcher,
                               IndexService indexService,
-                              final IndexShard indexShard,
-                              ScriptService scriptService,
-                              PageCacheRecycler pageCacheRecycler,
-                              BigArrays bigArrays,
-                              Counter timeEstimateCounter,
-                              Optional<Scroll> scroll) {
-        super(id, new CrateSearchShardRequest(nowInMillis, scroll, indexShard),
-            shardTarget, engineSearcher, indexService,
-            indexShard, scriptService, pageCacheRecycler,
-            bigArrays, timeEstimateCounter, ParseFieldMatcher.STRICT, SearchService.NO_TIMEOUT);
+                              IndexShard indexShard,
+                              Query query,
+                              @Nullable Float minScore) {
+        this.id = id;
         this.engineSearcher = engineSearcher;
+        this.indexService = indexService;
+        this.indexShard = indexShard;
+        this.query = query;
+        this.minScore = minScore;
     }
 
-    public Engine.Searcher engineSearcher() {
-        return engineSearcher;
+    public void close() {
+        if (closed.compareAndSet(false, true)) {
+            engineSearcher.close();
+        }
     }
 
-    private static class CrateSearchShardRequest implements ShardSearchRequest {
+    public IndexShard indexShard() {
+        return indexShard;
+    }
 
-        private final String[] types = new String[]{Constants.DEFAULT_MAPPING_TYPE};
-        private final long nowInMillis;
-        private final Scroll scroll;
-        private final String index;
-        private final int shardId;
+    public IndexSearcher searcher() {
+        return engineSearcher.searcher();
+    }
 
-        private CrateSearchShardRequest(long nowInMillis, Optional<Scroll> scroll,
-                                        IndexShard indexShard) {
-            this.nowInMillis = nowInMillis;
-            this.scroll = scroll.orNull();
-            this.index = indexShard.indexService().index().name();
-            this.shardId = indexShard.shardId().id();
-        }
+    public Query query() {
+        return query;
+    }
 
-        @Override
-        public Boolean requestCache() {
-            return true;
-        }
+    public Float minScore() {
+        return minScore;
+    }
 
-        @Override
-        public Template template() {
-            return new Template();
-        }
+    public MapperService mapperService() {
+        return indexService.mapperService();
+    }
 
-        @Override
-        public String index() {
-            return index;
-        }
+    public IndexFieldDataService fieldData() {
+        return indexService.fieldData();
+    }
 
-        @Override
-        public int shardId() {
-            return shardId;
-        }
-
-        @Override
-        public String[] types() {
-            return types;
-        }
-
-        @Override
-        public BytesReference source() {
-            return null;
-        }
-
-        @Override
-        public void source(BytesReference source) {
-        }
-
-        @Override
-        public BytesReference extraSource() {
-            return null;
-        }
-
-        @Override
-        public int numberOfShards() {
-            return 0;
-        }
-
-        @Override
-        public SearchType searchType() {
-            return null;
-        }
-
-        @Override
-        public String[] filteringAliases() {
-            return Strings.EMPTY_ARRAY;
-        }
-
-        @Override
-        public long nowInMillis() {
-            return nowInMillis;
-        }
-
-        @Override
-        public BytesReference templateSource() {
-            return null;
-        }
-
-        @Override
-        public Scroll scroll() {
-            return scroll;
-        }
-
-        @Override
-        public void setProfile(boolean profile) {
-        }
-
-        @Override
-        public boolean isProfile() {
-            return false;
-        }
-
-        @Override
-        public BytesReference cacheKey() throws IOException {
-            return null;
-        }
-
-        @Override
-        public void copyContextAndHeadersFrom(HasContextAndHeaders other) {
-        }
-
-        @Override
-        public <V> V putInContext(Object key, Object value) {
-            return null;
-        }
-
-        @Override
-        public void putAllInContext(ObjectObjectAssociativeContainer<Object, Object> map) {
-
-        }
-
-        @Override
-        public <V> V getFromContext(Object key) {
-            return null;
-        }
-
-        @Override
-        public <V> V getFromContext(Object key, V defaultValue) {
-            return null;
-        }
-
-        @Override
-        public boolean hasInContext(Object key) {
-            return false;
-        }
-
-        @Override
-        public int contextSize() {
-            return 0;
-        }
-
-        @Override
-        public boolean isContextEmpty() {
-            return false;
-        }
-
-        @Override
-        public ImmutableOpenMap<Object, Object> getContext() {
-            return null;
-        }
-
-        @Override
-        public void copyContextFrom(HasContext other) {
-        }
-
-        @Override
-        public <V> void putHeader(String key, V value) {
-
-        }
-
-        @Override
-        public <V> V getHeader(String key) {
-            return null;
-        }
-
-        @Override
-        public boolean hasHeader(String key) {
-            return false;
-        }
-
-        @Override
-        public Set<String> getHeaders() {
-            return null;
-        }
-
-        @Override
-        public void copyHeadersFrom(HasHeaders from) {
-        }
+    public long id() {
+        return id;
     }
 }

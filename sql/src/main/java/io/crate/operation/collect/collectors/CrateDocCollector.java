@@ -43,8 +43,6 @@ import org.elasticsearch.common.breaker.CircuitBreakingException;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.lucene.MinimumScoreCollector;
-import org.elasticsearch.search.internal.ContextIndexSearcher;
-import org.elasticsearch.search.internal.SearchContext;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
@@ -120,7 +118,7 @@ public class CrateDocCollector implements CrateCollector, RepeatHandle {
             fieldsVisitor,
             ((int) searchContext.id())
         );
-        this.doScores = doScores || searchContext.minimumScore() != null;
+        this.doScores = doScores || searchContext.minScore() != null;
         SimpleCollector collector = new LuceneDocCollector(
             ramAccountingContext,
             rowReceiver,
@@ -128,8 +126,8 @@ public class CrateDocCollector implements CrateCollector, RepeatHandle {
             new InputRow(inputs),
             expressions
         );
-        if (searchContext.minimumScore() != null) {
-            collector = new MinimumScoreCollector(collector, searchContext.minimumScore());
+        if (searchContext.minScore() != null) {
+            collector = new MinimumScoreCollector(collector, searchContext.minScore());
         }
         luceneCollector = collector;
         this.resumeable = new ExecutorResumeHandle(executor, new Runnable() {
@@ -163,13 +161,13 @@ public class CrateDocCollector implements CrateCollector, RepeatHandle {
         if (collectorContext.visitor().required()) {
             collector = new FieldVisitorCollector(collector, collectorContext.visitor());
         }
-        ContextIndexSearcher contextIndexSearcher = searchContext.searcher();
+        IndexSearcher indexSearcher = searchContext.searcher();
 
         Weight weight;
         Iterator<LeafReaderContext> leavesIt;
         try {
-            weight = searchContext.engineSearcher().searcher().createNormalizedWeight(searchContext.query(), doScores);
-            leavesIt = contextIndexSearcher.getTopReaderContext().leaves().iterator();
+            weight = indexSearcher.createNormalizedWeight(searchContext.query(), doScores);
+            leavesIt = indexSearcher.getTopReaderContext().leaves().iterator();
         } catch (Throwable e) {
             fail(e);
             return;
@@ -250,7 +248,7 @@ public class CrateDocCollector implements CrateCollector, RepeatHandle {
     @Override
     public void repeat() {
         debugLog("repeat collect");
-        ContextIndexSearcher indexSearcher = searchContext.searcher();
+        IndexSearcher indexSearcher = searchContext.searcher();
         Iterator<LeafReaderContext> iterator = indexSearcher.getTopReaderContext().leaves().iterator();
         innerCollect(state.collector, state.weight, iterator, null, null);
     }
