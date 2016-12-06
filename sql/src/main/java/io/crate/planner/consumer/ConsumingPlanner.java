@@ -51,13 +51,13 @@ public class ConsumingPlanner {
         consumers.add(new InsertFromSubQueryConsumer());
         consumers.add(new QueryAndFetchConsumer());
         consumers.add(new MultiSourceAggregationConsumer(functions));
-        consumers.add(new ManyTableConsumer(this, new Rewriter(functions)));
+        consumers.add(new ManyTableConsumer(new Rewriter(functions)));
         consumers.add(new NestedLoopConsumer(clusterService, functions, tableStatsService));
     }
 
     @Nullable
     public Plan plan(AnalyzedRelation rootRelation, Planner.Context plannerContext) {
-        ConsumerContext consumerContext = new ConsumerContext(rootRelation, plannerContext);
+        ConsumerContext consumerContext = new ConsumerContext(plannerContext);
         return plan(rootRelation, consumerContext);
     }
 

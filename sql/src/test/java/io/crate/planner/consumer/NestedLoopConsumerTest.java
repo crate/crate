@@ -121,8 +121,7 @@ public class NestedLoopConsumerTest extends CrateUnitTest {
     @Test
     public void testInvalidRelation() throws Exception {
         QueriedTable queriedTable = mock(QueriedTable.class);
-        Plan relation = consumer.consume(
-            queriedTable, new ConsumerContext(queriedTable, plannerContext));
+        Plan relation = consumer.consume(queriedTable, new ConsumerContext(plannerContext));
 
         assertThat(relation, Matchers.nullValue());
     }

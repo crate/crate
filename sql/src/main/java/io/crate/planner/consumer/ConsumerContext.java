@@ -22,27 +22,20 @@
 package io.crate.planner.consumer;
 
 
-import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.exceptions.ValidationException;
 import io.crate.planner.Planner;
 import org.elasticsearch.common.Nullable;
 
 public class ConsumerContext {
 
-    private final AnalyzedRelation rootRelation;
     private final Planner.Context plannerContext;
 
     private ValidationException validationException;
 
     private Integer requiredPageSize;
 
-    public ConsumerContext(AnalyzedRelation rootRelation, Planner.Context plannerContext) {
-        this.rootRelation = rootRelation;
+    public ConsumerContext(Planner.Context plannerContext) {
         this.plannerContext = plannerContext;
-    }
-
-    public AnalyzedRelation rootRelation() {
-        return rootRelation;
     }
 
     public void validationException(ValidationException validationException) {

@@ -458,22 +458,6 @@ public class SQLTransportExecutor {
         return value;
     }
 
-    private static Object getCharArray(ResultSet resultSet, int i) throws SQLException {
-        Object value;
-        Array array = resultSet.getArray(i + 1);
-        if (array == null) {
-            value = null;
-        } else {
-            ResultSet arrRS = array.getResultSet();
-            List<Object> values = new ArrayList<>();
-            while (arrRS.next()) {
-                values.add(arrRS.getByte(2));
-            }
-            value = values.toArray(new Object[0]);
-        }
-        return value;
-    }
-
     private SQLBulkResponse executeBulk(String stmt, Object[][] bulkArgs, TimeValue timeout) {
         try {
             AdapterActionFuture<SQLBulkResponse, SQLBulkResponse> actionFuture = new TestTransportActionFuture<>();

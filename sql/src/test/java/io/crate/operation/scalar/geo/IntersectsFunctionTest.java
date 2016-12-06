@@ -33,11 +33,9 @@ import java.util.Arrays;
 
 import static io.crate.testing.SymbolMatchers.isLiteral;
 import static io.crate.testing.TestingHelpers.jsonMap;
-import static org.hamcrest.Matchers.*;
+import static org.hamcrest.Matchers.stringContainsInOrder;
 
 public class IntersectsFunctionTest extends AbstractScalarFunctionsTest {
-
-    public static final String FUNCTION_NAME = IntersectsFunction.NAME;
 
     @Test
     public void testNormalizeFromStringLiterals() throws Exception {

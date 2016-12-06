@@ -34,7 +34,6 @@ import io.crate.executor.JobTask;
 import io.crate.jobs.ESJobContext;
 import io.crate.jobs.JobContextService;
 import io.crate.jobs.JobExecutionContext;
-import io.crate.operation.projectors.FlatProjectorChain;
 import io.crate.operation.projectors.RowReceiver;
 import io.crate.operation.projectors.RowReceivers;
 import io.crate.planner.node.dml.ESDelete;
@@ -94,16 +93,15 @@ public class ESDeleteTask extends JobTask {
                 results.get(i).set(0L);
             }
         }
-        createContextBuilder("delete", requests, listeners, transport, null);
+        createContextBuilder("delete", requests, listeners, transport);
     }
 
     private void createContextBuilder(String operationName,
                                       List<? extends ActionRequest> requests,
                                       List<? extends ActionListener> listeners,
-                                      TransportAction transportAction,
-                                      @Nullable FlatProjectorChain projectorChain) {
+                                      TransportAction transportAction) {
         ESJobContext esJobContext = new ESJobContext(esDelete.executionPhaseId(), operationName,
-            requests, listeners, results, transportAction, projectorChain);
+            requests, listeners, results, transportAction);
         builder = jobContextService.newBuilder(jobId());
         builder.addSubContext(esJobContext);
     }

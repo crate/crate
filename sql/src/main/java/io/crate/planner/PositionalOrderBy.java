@@ -104,23 +104,6 @@ public class PositionalOrderBy {
     /**
      * Create OrderByPositions from a OrderBy definition.
      *
-     * The indices will simply be incremental with as many items as there are orderBySymbols in {@code orderBy}.
-     */
-    @Nullable
-    public static PositionalOrderBy of(@Nullable OrderBy orderBy) {
-        if (orderBy == null) {
-            return null;
-        }
-        int[] indices = new int[orderBy.orderBySymbols().size()];
-        for (int i = 0; i < indices.length; i++) {
-            indices[i] = i;
-        }
-        return new PositionalOrderBy(indices, orderBy.reverseFlags(), orderBy.nullsFirst());
-    }
-
-    /**
-     * Create OrderByPositions from a OrderBy definition.
-     *
      * @param orderByInputSymbols symbols which describe the output which should be sorted.
      *                            {@link OrderBy#orderBySymbols()} must point to those symbols.
      *                            This is used to create the correct indices mapping.

@@ -22,7 +22,6 @@
 package io.crate.integrationtests;
 
 import io.crate.core.collections.Bucket;
-import io.crate.executor.transport.TransportExecutor;
 import io.crate.planner.Merge;
 import io.crate.planner.node.dql.QueryThenFetch;
 import io.crate.planner.projection.FetchProjection;
@@ -30,8 +29,6 @@ import io.crate.testing.CollectingRowReceiver;
 import io.crate.testing.UseJdbc;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.test.ESIntegTestCase;
-import org.junit.After;
-import org.junit.Before;
 import org.junit.Test;
 
 import static org.hamcrest.Matchers.instanceOf;
@@ -41,18 +38,6 @@ import static org.hamcrest.core.Is.is;
 @ESIntegTestCase.ClusterScope(numDataNodes = 2, numClientNodes = 0)
 @UseJdbc
 public class FetchOperationIntegrationTest extends SQLTransportIntegrationTest {
-
-    private TransportExecutor executor;
-
-    @Before
-    public void transportSetUp() {
-        executor = internalCluster().getInstance(TransportExecutor.class);
-    }
-
-    @After
-    public void transportTearDown() {
-        executor = null;
-    }
 
     private void setUpCharacters() {
         sqlExecutor.exec("create table characters (id int primary key, name string) " +

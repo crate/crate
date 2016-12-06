@@ -109,7 +109,7 @@ public class LuceneDocCollectorProvider implements AutoCloseable {
             new ParameterContext(new RowN(args), Collections.<Row>emptyList()));
         Plan plan = queryAndFetchConsumer.consume(
             analysis.rootRelation(),
-            new ConsumerContext(analysis.rootRelation(), new Planner.Context(planner,
+            new ConsumerContext(new Planner.Context(planner,
                 cluster.clusterService(), UUID.randomUUID(), null, normalizer, new TransactionContext(SessionContext.SYSTEM_SESSION), 0, 0)));
         Collect collect = (Collect) plan;
         final RoutedCollectPhase collectPhase = ((RoutedCollectPhase) collect.collectPhase());

@@ -62,7 +62,7 @@ class SelectStatementPlanner {
     }
 
     private static Plan subPlan(AnalyzedRelation rel, Planner.Context context) {
-        ConsumerContext consumerContext = new ConsumerContext(rel, context);
+        ConsumerContext consumerContext = new ConsumerContext(context);
         Plan subPlan = context.planSubRelation(rel, consumerContext);
         assert subPlan != null : "plan must not be null";
         ValidationException validationException = consumerContext.validationException();

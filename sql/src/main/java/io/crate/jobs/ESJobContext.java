@@ -22,7 +22,6 @@
 package io.crate.jobs;
 
 import com.google.common.util.concurrent.SettableFuture;
-import io.crate.operation.projectors.FlatProjectorChain;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.ActionRequest;
 import org.elasticsearch.action.support.TransportAction;
@@ -43,23 +42,18 @@ public class ESJobContext extends AbstractExecutionSubContext {
     private final List<SettableFuture<Long>> resultFutures;
     private final TransportAction transportAction;
 
-    @Nullable
-    private final FlatProjectorChain projectorChain;
-
     public ESJobContext(int id,
                         String operationName,
                         List<? extends ActionRequest> requests,
                         List<? extends ActionListener> listeners,
                         List<SettableFuture<Long>> resultFutures,
-                        TransportAction transportAction,
-                        @Nullable FlatProjectorChain projectorChain) {
+                        TransportAction transportAction) {
         super(id, LOGGER);
         this.operationName = operationName;
         this.requests = requests;
         this.listeners = listeners;
         this.resultFutures = resultFutures;
         this.transportAction = transportAction;
-        this.projectorChain = projectorChain;
     }
 
     @Override

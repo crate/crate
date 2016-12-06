@@ -30,7 +30,6 @@ import org.elasticsearch.common.io.stream.StreamOutput;
 import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
 
 /**
@@ -53,17 +52,6 @@ public class InputColumn extends Symbol implements Comparable<InputColumn> {
         List<Symbol> inputColumns = new ArrayList<>(symbols.size());
         for (int i = 0; i < symbols.size(); i++) {
             inputColumns.add(new InputColumn(i, symbols.get(i).valueType()));
-        }
-        return inputColumns;
-    }
-
-    /**
-     * generate a list of inputColumn where each inputColumn points to some symbol that is part of sourceList
-     */
-    public static List<InputColumn> fromSymbols(Collection<? extends Symbol> symbols, List<? extends Symbol> sourceList) {
-        List<InputColumn> inputColumns = new ArrayList<>(symbols.size());
-        for (Symbol symbol : symbols) {
-            inputColumns.add(new InputColumn(sourceList.indexOf(symbol), symbol.valueType()));
         }
         return inputColumns;
     }

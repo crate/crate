@@ -258,10 +258,6 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
             return readerAllocations;
         }
 
-        public ClusterService clusterService() {
-            return clusterService;
-        }
-
         public Plan planSubRelation(AnalyzedRelation relation, ConsumerContext consumerContext) {
             assert consumingPlanner != null : "consumingPlanner needs to be present to plan sub relations";
             return consumingPlanner.plan(relation, consumerContext);
@@ -420,7 +416,7 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
 
     @Override
     protected Plan visitUpdateStatement(UpdateAnalyzedStatement statement, Context context) {
-        ConsumerContext consumerContext = new ConsumerContext(statement, context);
+        ConsumerContext consumerContext = new ConsumerContext(context);
         Plan plan = updateConsumer.consume(statement, consumerContext);
         if (plan == null) {
             throw new IllegalArgumentException("Couldn't plan Update statement");

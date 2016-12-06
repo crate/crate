@@ -47,8 +47,8 @@ public class ManyTableConsumer implements Consumer {
 
     private final Visitor visitor;
 
-    ManyTableConsumer(ConsumingPlanner consumingPlanner, Rewriter rewriter) {
-        this.visitor = new Visitor(consumingPlanner, rewriter);
+    ManyTableConsumer(Rewriter rewriter) {
+        this.visitor = new Visitor(rewriter);
     }
 
     @Override
@@ -357,11 +357,9 @@ public class ManyTableConsumer implements Consumer {
 
     private static class Visitor extends RelationPlanningVisitor {
 
-        private final ConsumingPlanner consumingPlanner;
         private final Rewriter rewriter;
 
-        public Visitor(ConsumingPlanner consumingPlanner, Rewriter rewriter) {
-            this.consumingPlanner = consumingPlanner;
+        public Visitor(Rewriter rewriter) {
             this.rewriter = rewriter;
         }
 

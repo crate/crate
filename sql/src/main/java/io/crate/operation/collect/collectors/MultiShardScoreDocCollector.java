@@ -55,7 +55,6 @@ public class MultiShardScoreDocCollector implements CrateCollector, ResumeHandle
     private final ListeningExecutorService executor;
     private final ListeningExecutorService directExecutor;
     private final FutureCallback<List<KeyIterable<ShardId, Row>>> futureCallback;
-    private final FlatProjectorChain flatProjectorChain;
     private final boolean singleShard;
     private IterableRowEmitter rowEmitter = null;
 
@@ -64,7 +63,6 @@ public class MultiShardScoreDocCollector implements CrateCollector, ResumeHandle
                                        Ordering<Row> rowOrdering,
                                        FlatProjectorChain flatProjectorChain,
                                        ListeningExecutorService executor) {
-        this.flatProjectorChain = flatProjectorChain;
         assert orderedDocCollectors.size() > 0 : "must have at least one shardContext";
         this.directExecutor = MoreExecutors.newDirectExecutorService();
         this.executor = executor;
