@@ -45,6 +45,11 @@ public final class TableDefinitions {
         .put("nodeTow", TreeMapBuilder.<String, List<Integer>>newMapBuilder().put("t1", Arrays.asList(3, 4)).map())
         .map());
 
+    private static final Routing PARTED_ROUTING = new Routing(TreeMapBuilder.<String, Map<String, List<Integer>>>newMapBuilder()
+        .put("nodeOne", TreeMapBuilder.<String, List<Integer>>newMapBuilder().put(".partitioned.parted.04232chj", Arrays.asList(1, 2)).map())
+        .put("nodeTwo", TreeMapBuilder.<String, List<Integer>>newMapBuilder().map())
+        .map());
+
     public static final TableIdent USER_TABLE_IDENT = new TableIdent(Schemas.DEFAULT_SCHEMA_NAME, "users");
 
     public static final DocTableInfo USER_TABLE_INFO = TestingTableInfo.builder(USER_TABLE_IDENT, SHARD_ROUTING)
@@ -62,6 +67,7 @@ public final class TableDefinitions {
         .add("tags", new ArrayType(DataTypes.STRING), null)
         .add("bytes", DataTypes.BYTE, null)
         .add("shorts", DataTypes.SHORT, null)
+        .add("date", DataTypes.TIMESTAMP, null)
         .add("shape", DataTypes.GEO_SHAPE)
         .add("ints", DataTypes.INTEGER, null)
         .add("floats", DataTypes.FLOAT, null)
@@ -118,6 +124,22 @@ public final class TableDefinitions {
             new PartitionName("parted", new ArrayList<BytesRef>() {{
                 add(null);
             }}).asIndexName())
+        .build();
+    public static final TableIdent PARTED_PKS_IDENT = new TableIdent(Schemas.DEFAULT_SCHEMA_NAME, "parted_pks");
+    public static final DocTableInfo PARTED_PKS_TI = new TestingTableInfo.Builder(
+        PARTED_PKS_IDENT, PARTED_ROUTING)
+        .add("id", DataTypes.INTEGER, null)
+        .add("name", DataTypes.STRING, null)
+        .add("date", DataTypes.TIMESTAMP, null, true)
+        .add("obj", DataTypes.OBJECT, null, ColumnPolicy.DYNAMIC)
+        // add 3 partitions/simulate already done inserts
+        .addPartitions(
+            new PartitionName("parted", Arrays.asList(new BytesRef("1395874800000"))).asIndexName(),
+            new PartitionName("parted", Arrays.asList(new BytesRef("1395961200000"))).asIndexName()
+        )
+        .addPrimaryKey("id")
+        .addPrimaryKey("date")
+        .clusteredBy("id")
         .build();
     public static final TableIdent TEST_MULTIPLE_PARTITIONED_TABLE_IDENT = new TableIdent(Schemas.DEFAULT_SCHEMA_NAME, "multi_parted");
     public static final DocTableInfo TEST_MULTIPLE_PARTITIONED_TABLE_INFO = new TestingTableInfo.Builder(
