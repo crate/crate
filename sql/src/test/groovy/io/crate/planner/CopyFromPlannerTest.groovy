@@ -27,15 +27,20 @@ import io.crate.metadata.doc.DocSysColumns
 import io.crate.planner.node.dql.Collect
 import io.crate.planner.node.dql.FileUriCollectPhase
 import io.crate.planner.projection.SourceIndexWriterProjection
+import io.crate.test.integration.CrateUnitTest
+import io.crate.testing.SQLExecutor
 import io.crate.testing.T3
 import org.apache.lucene.util.BytesRef
+import org.elasticsearch.test.cluster.NoopClusterService
 import org.junit.Test
 
-class CopyFromPlannerTest extends AbstractPlannerTest {
+class CopyFromPlannerTest extends CrateUnitTest {
+
+    SQLExecutor e = SQLExecutor.builder(new NoopClusterService()).enableDefaultTables().build();
 
     @Test
     public void testCopyFromPlan() throws Exception {
-        Collect plan =  plan("copy users from '/path/to/file.extension'");
+        Collect plan =  e.plan("copy users from '/path/to/file.extension'");
         assert plan.collectPhase() instanceof FileUriCollectPhase;
 
         FileUriCollectPhase collectPhase = (FileUriCollectPhase)plan.collectPhase();
@@ -44,7 +49,7 @@ class CopyFromPlannerTest extends AbstractPlannerTest {
 
     @Test
     public void testCopyFromNumReadersSetting() throws Exception {
-        Collect plan = plan("copy users from '/path/to/file.extension' with (num_readers=1)");
+        Collect plan = e.plan("copy users from '/path/to/file.extension' with (num_readers=1)");
         assert plan.collectPhase() instanceof FileUriCollectPhase
         FileUriCollectPhase collectPhase = (FileUriCollectPhase) plan.collectPhase();
         assert collectPhase.nodeIds().size() == 1
@@ -52,7 +57,7 @@ class CopyFromPlannerTest extends AbstractPlannerTest {
 
     @Test
     public void testCopyFromPlanWithParameters() throws Exception {
-        Collect collect = plan("copy users " +
+        Collect collect = e.plan("copy users " +
                 "from '/path/to/file.ext' with (bulk_size=30, compression='gzip', shared=true)");
         assert collect.collectPhase() instanceof FileUriCollectPhase
         FileUriCollectPhase collectPhase = (FileUriCollectPhase)collect.collectPhase();
@@ -62,7 +67,7 @@ class CopyFromPlannerTest extends AbstractPlannerTest {
         assert collectPhase.sharedStorage()
 
         // verify defaults:
-        collect = plan("copy users from '/path/to/file.ext'");
+        collect = e.plan("copy users from '/path/to/file.ext'");
         collectPhase = (FileUriCollectPhase)collect.collectPhase();
         assert collectPhase.compression() == null;
         assert collectPhase.sharedStorage() == null;
@@ -70,7 +75,7 @@ class CopyFromPlannerTest extends AbstractPlannerTest {
 
     @Test
     public void test_IdIsNotCollectedOrUsedAsClusteredBy() throws Exception {
-        Collect collect = (Collect) plan("copy t1 from '/path/file.ext'");
+        Collect collect = (Collect) e.plan("copy t1 from '/path/file.ext'");
         SourceIndexWriterProjection projection =
                 (SourceIndexWriterProjection) collect.collectPhase().projections().get(0);
         assert projection.clusteredBy() == null;
@@ -79,12 +84,12 @@ class CopyFromPlannerTest extends AbstractPlannerTest {
 
     @Test (expected = IllegalArgumentException.class)
     public void testCopyFromPlanWithInvalidParameters() throws Exception {
-        plan("copy users from '/path/to/file.ext' with (bulk_size=-28)");
+        e.plan("copy users from '/path/to/file.ext' with (bulk_size=-28)");
     }
 
     @Test
     public void testNodeFiltersNoMatch() throws Exception {
-        Collect cm = (Collect) plan("copy users from '/path' with (node_filters={name='foobar'})");
+        Collect cm = (Collect) e.plan("copy users from '/path' with (node_filters={name='foobar'})");
         assert cm.collectPhase().nodeIds() == []
     }
 }
