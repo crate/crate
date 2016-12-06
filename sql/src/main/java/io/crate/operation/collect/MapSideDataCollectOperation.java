@@ -23,19 +23,11 @@ package io.crate.operation.collect;
 
 import com.google.common.base.Function;
 import com.google.common.collect.Collections2;
-import io.crate.analyze.EvaluatingNormalizer;
-import io.crate.metadata.Functions;
-import io.crate.metadata.NestedReferenceResolver;
-import io.crate.metadata.ReplaceMode;
-import io.crate.metadata.RowGranularity;
 import io.crate.operation.ThreadPools;
 import io.crate.operation.collect.sources.CollectSource;
 import io.crate.operation.collect.sources.CollectSourceResolver;
 import io.crate.operation.projectors.RowReceiver;
-import io.crate.operation.reference.sys.node.local.NodeSysExpression;
-import io.crate.operation.reference.sys.node.local.NodeSysReferenceResolver;
 import io.crate.planner.node.dql.CollectPhase;
-import io.crate.planner.node.dql.RoutedCollectPhase;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.threadpool.ThreadPool;
@@ -51,25 +43,13 @@ import java.util.concurrent.ThreadPoolExecutor;
 @Singleton
 public class MapSideDataCollectOperation {
 
-    private final EvaluatingNormalizer clusterNormalizer;
     private final CollectSourceResolver collectSourceResolver;
-    private final Functions functions;
-    private final NodeSysExpression nodeSysExpression;
     private final ThreadPool threadPool;
 
     @Inject
-    public MapSideDataCollectOperation(Functions functions,
-                                       NestedReferenceResolver clusterReferenceResolver,
-                                       NodeSysExpression nodeSysExpression,
-                                       CollectSourceResolver collectSourceResolver,
-                                       ThreadPool threadPool) {
-        this.functions = functions;
-        this.nodeSysExpression = nodeSysExpression;
+    public MapSideDataCollectOperation(CollectSourceResolver collectSourceResolver, ThreadPool threadPool) {
         this.collectSourceResolver = collectSourceResolver;
         this.threadPool = threadPool;
-
-        clusterNormalizer = new EvaluatingNormalizer(
-            functions, RowGranularity.CLUSTER, ReplaceMode.COPY, clusterReferenceResolver, null);
     }
 
     /**
@@ -93,23 +73,7 @@ public class MapSideDataCollectOperation {
                                                        RowReceiver downstream,
                                                        final JobCollectContext jobCollectContext) {
         CollectSource service = collectSourceResolver.getService(collectPhase);
-        collectPhase = normalize(collectPhase);
         return service.getCollectors(collectPhase, downstream, jobCollectContext);
-    }
-
-    private CollectPhase normalize(CollectPhase collectPhase) {
-        collectPhase = collectPhase.normalize(clusterNormalizer, null);
-        if (collectPhase instanceof RoutedCollectPhase) {
-            RoutedCollectPhase routedCollectPhase = (RoutedCollectPhase) collectPhase;
-            switch (routedCollectPhase.maxRowGranularity()) {
-                case NODE:
-                case DOC:
-                    EvaluatingNormalizer normalizer = new EvaluatingNormalizer(
-                        functions, RowGranularity.DOC, ReplaceMode.COPY, new NodeSysReferenceResolver(nodeSysExpression), null);
-                    return collectPhase.normalize(normalizer, null);
-            }
-        }
-        return collectPhase;
     }
 
     public void launchCollectors(Collection<CrateCollector> shardCollectors, String threadPoolName) throws RejectedExecutionException {

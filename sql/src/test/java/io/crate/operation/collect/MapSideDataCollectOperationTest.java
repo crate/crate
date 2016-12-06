@@ -23,11 +23,11 @@ package io.crate.operation.collect;
 
 import io.crate.analyze.symbol.Literal;
 import io.crate.analyze.symbol.Symbol;
-import io.crate.metadata.*;
+import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.Functions;
 import io.crate.operation.collect.files.FileInputFactory;
 import io.crate.operation.collect.sources.CollectSourceResolver;
 import io.crate.operation.collect.sources.FileCollectSource;
-import io.crate.operation.reference.sys.node.local.NodeSysExpression;
 import io.crate.planner.node.dql.FileUriCollectPhase;
 import io.crate.planner.node.dql.RoutedCollectPhase;
 import io.crate.test.integration.CrateUnitTest;
@@ -72,19 +72,10 @@ public class MapSideDataCollectOperationTest extends CrateUnitTest {
     public void testFileUriCollect() throws Exception {
         ClusterService clusterService = new NoopClusterService();
         Functions functions = getFunctions();
-        NestedReferenceResolver referenceResolver = new NestedReferenceResolver() {
-            @Override
-            public ReferenceImplementation getImplementation(Reference referenceInfo) {
-                return null;
-            }
-        };
         CollectSourceResolver collectSourceResolver = mock(CollectSourceResolver.class);
         when(collectSourceResolver.getService(any(RoutedCollectPhase.class)))
             .thenReturn(new FileCollectSource(functions, clusterService, Collections.<String, FileInputFactory>emptyMap()));
         MapSideDataCollectOperation collectOperation = new MapSideDataCollectOperation(
-            functions,
-            referenceResolver,
-            mock(NodeSysExpression.class),
             collectSourceResolver,
             threadPool
         );

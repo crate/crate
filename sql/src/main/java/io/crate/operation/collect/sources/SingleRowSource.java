@@ -22,7 +22,11 @@
 package io.crate.operation.collect.sources;
 
 import com.google.common.collect.ImmutableList;
+import io.crate.analyze.EvaluatingNormalizer;
 import io.crate.metadata.Functions;
+import io.crate.metadata.NestedReferenceResolver;
+import io.crate.metadata.ReplaceMode;
+import io.crate.metadata.RowGranularity;
 import io.crate.operation.ImplementationSymbolVisitor;
 import io.crate.operation.InputRow;
 import io.crate.operation.collect.CrateCollector;
@@ -40,15 +44,19 @@ import java.util.Collection;
 public class SingleRowSource implements CollectSource {
 
     private final Functions functions;
+    private final EvaluatingNormalizer clusterNormalizer;
 
     @Inject
-    public SingleRowSource(Functions functions) {
+    public SingleRowSource(Functions functions, NestedReferenceResolver clusterRefResolver) {
         this.functions = functions;
+        clusterNormalizer = new EvaluatingNormalizer(
+            functions, RowGranularity.CLUSTER, ReplaceMode.COPY, clusterRefResolver, null);
     }
 
     @Override
     public Collection<CrateCollector> getCollectors(CollectPhase phase, RowReceiver downstream, JobCollectContext jobCollectContext) {
         RoutedCollectPhase collectPhase = (RoutedCollectPhase) phase;
+        collectPhase = collectPhase.normalize(clusterNormalizer, null);
         ImplementationSymbolVisitor nodeImplementationSymbolVisitor = new ImplementationSymbolVisitor(functions);
         if (collectPhase.whereClause().noMatch()) {
             return ImmutableList.<CrateCollector>of(RowsCollector.empty(downstream));
