@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+- Fixed an issue that caused select queries with bulk arguments to hang
+   instead of throwing the proper error.
+
 2016/12/06 0.57.5
 =================
 

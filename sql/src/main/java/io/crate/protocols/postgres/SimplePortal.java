@@ -97,15 +97,23 @@ public class SimplePortal extends AbstractPortal {
     }
 
     @Override
-    public Portal bind(String statementName, String query, Statement statement,
-                       List<Object> params, @Nullable FormatCodes.FormatCode[] resultFormatCodes) {
+    public Portal bind(String statementName,
+                       String query,
+                       Statement statement,
+                       List<Object> params,
+                       @Nullable FormatCodes.FormatCode[] resultFormatCodes) {
 
         if (statement.equals(this.statement)) {
             if (portalContext.isReadOnly()) { // Cannot have a bulk operation in read only mode
                 throw new ReadOnlyException();
             }
             BulkPortal portal = new BulkPortal(
-                name, this.query, this.statement, outputTypes, resultReceiver, maxRows, this.params, sessionContext, portalContext);
+                name,
+                this.query,
+                this.statement,
+                outputTypes,
+                fields(),
+                resultReceiver, maxRows, this.params, sessionContext, portalContext);
             return portal.bind(statementName, query, statement, params, resultFormatCodes);
         } else if (this.statement != null) {
             if (portalContext.isReadOnly()) { // Cannot have a batch operation in read only mode
@@ -136,10 +144,7 @@ public class SimplePortal extends AbstractPortal {
 
     @Override
     public List<Field> describe() {
-        if (analysis.rootRelation() == null) {
-            return null;
-        }
-        return analysis.rootRelation().fields();
+        return fields();
     }
 
     @Override
@@ -212,6 +217,12 @@ public class SimplePortal extends AbstractPortal {
         }
     }
 
+    private List<Field> fields() {
+        if (analysis.rootRelation() == null) {
+            return null;
+        }
+        return analysis.rootRelation().fields();
+    }
     private static class ResultReceiverRetryWrapper implements ResultReceiver {
 
         private final ResultReceiver delegate;

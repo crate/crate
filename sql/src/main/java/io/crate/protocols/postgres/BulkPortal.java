@@ -56,11 +56,13 @@ class BulkPortal extends AbstractPortal {
     private Statement statement;
     private int maxRows = 0;
     private List<? extends DataType> outputTypes;
+    private List<Field> fields;
 
     BulkPortal(String name,
                String query,
                Statement statement,
                List<? extends DataType> outputTypes,
+               @Nullable List<Field> fields,
                ResultReceiver resultReceiver,
                int maxRows,
                List<Object> params,
@@ -70,6 +72,7 @@ class BulkPortal extends AbstractPortal {
         this.query = query;
         this.statement = statement;
         this.outputTypes = outputTypes;
+        this.fields = fields;
         this.resultReceivers.add(resultReceiver);
         this.maxRows = maxRows;
         this.bulkArgs.add(params);
@@ -102,7 +105,7 @@ class BulkPortal extends AbstractPortal {
 
     @Override
     public List<Field> describe() {
-        return null;
+        return fields;
     }
 
     @Override

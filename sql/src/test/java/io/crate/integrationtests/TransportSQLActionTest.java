@@ -1913,9 +1913,15 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
     }
 
     @Test
-    public void testSelectWithBulkArgsRaisesUnsupportedError() throws Exception {
+    public void testSelectWithSingleBulkArgRaisesUnsupportedError() {
         expectedException.expectMessage("Bulk operations for statements that return result sets is not supported");
         execute("select * from sys.cluster", new Object[0][]);
+    }
+
+    @Test
+    public void testSelectWithBulkArgsRaisesUnsupportedError() {
+        expectedException.expectMessage("Bulk operations for statements that return result sets is not supported");
+        execute("select * from sys.cluster", new Object[][]{new Object[]{1}, new Object[]{2}});
     }
 
     @Test
