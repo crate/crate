@@ -67,12 +67,7 @@ public class ThreadPoolsExhaustedIntegrationTest extends SQLTransportIntegration
             } catch (TimeoutException e) {
                 fail("query run into a timeout");
             } catch (Exception e) {
-                assertThat(e.getMessage(), Matchers.anyOf(
-                    Matchers.containsString("rejected execution"),
-                    // FIXME: the original cause should bubble, not killed - ignore this for now
-                    // the main purpose of this test is to make sure queries don't get stuck
-                    Matchers.containsString("Job killed")
-                ));
+                assertThat(e.getMessage(), Matchers.containsString("rejected execution"));
             }
         }
     }
