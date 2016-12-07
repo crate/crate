@@ -25,7 +25,6 @@ import io.crate.analyze.symbol.Symbol;
 import io.crate.metadata.Functions;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
 
 public abstract class AbstractImplementationSymbolVisitor<C extends AbstractImplementationSymbolVisitor.Context>
@@ -53,7 +52,7 @@ public abstract class AbstractImplementationSymbolVisitor<C extends AbstractImpl
         return context;
     }
 
-    public C extractImplementations(Collection<? extends Symbol> symbols) {
+    public C extractImplementations(Iterable<? extends Symbol> symbols) {
         C context = newContext();
         for (Symbol symbol : symbols) {
             context.add(process(symbol, context));

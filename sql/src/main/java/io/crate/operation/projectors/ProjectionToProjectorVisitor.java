@@ -23,6 +23,7 @@ package io.crate.operation.projectors;
 
 import com.google.common.base.Predicate;
 import com.google.common.base.Supplier;
+import com.google.common.collect.Iterables;
 import io.crate.action.sql.SessionContext;
 import io.crate.analyze.EvaluatingNormalizer;
 import io.crate.analyze.symbol.*;
@@ -111,30 +112,29 @@ public class ProjectionToProjectorVisitor
 
     @Override
     public Projector visitOrderedTopN(OrderedTopNProjection projection, Context context) {
-        List<Input<?>> inputs = new ArrayList<>();
-        List<CollectExpression<Row, ?>> collectExpressions = new ArrayList<>();
+        /* OrderBy symbols are added to the rows to enable sorting on them post-collect. E.g.:
+         *
+         * outputs: [x]
+         * orderBy: [y]
+         *
+         * topLevelInputs: [x, y]
+         *                    /
+         * orderByIndices: [1]
+         */
+        ImplementationSymbolVisitor.Context ctx = symbolVisitor.extractImplementations(
+            Iterables.concat(projection.outputs(), projection.orderBy()));
 
-        ImplementationSymbolVisitor.Context ctx = symbolVisitor.extractImplementations(projection.outputs());
-        inputs.addAll(ctx.topLevelInputs());
-        collectExpressions.addAll(ctx.collectExpressions());
-
-        int numOutputs = inputs.size();
-        ImplementationSymbolVisitor.Context orderByCtx = symbolVisitor.extractImplementations(projection.orderBy());
-
-        // append orderby inputs to row, needed for sorting on them
-        inputs.addAll(orderByCtx.topLevelInputs());
-        collectExpressions.addAll(orderByCtx.collectExpressions());
-
+        int numOutputs = projection.outputs().size();
+        List<Input<?>> inputs = ctx.topLevelInputs();
         int[] orderByIndices = new int[inputs.size() - numOutputs];
         int idx = 0;
         for (int i = numOutputs; i < inputs.size(); i++) {
             orderByIndices[idx++] = i;
         }
-
         if (projection.limit() > TopN.NO_LIMIT) {
             return new SortingTopNProjector(
                 inputs,
-                collectExpressions,
+                ctx.collectExpressions(),
                 numOutputs,
                 OrderingByPosition.arrayOrdering(orderByIndices, projection.reverseFlags(), projection.nullsFirst()),
                 projection.limit(),
@@ -143,7 +143,7 @@ public class ProjectionToProjectorVisitor
         }
         return new SortingProjector(
             inputs,
-            collectExpressions,
+            ctx.collectExpressions(),
             numOutputs,
             OrderingByPosition.arrayOrdering(orderByIndices, projection.reverseFlags(), projection.nullsFirst()),
             projection.offset()
