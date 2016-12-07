@@ -42,8 +42,8 @@ public class IpTypeTest extends CrateUnitTest {
             new BytesRef("255.255.255.255")
         };
         for (BytesRef ip : validIps) {
-            assertEquals(true, IpType.isValid(ip));
-            assertEquals(true, IpType.isValid(TypeTestUtils.addOffset(ip)));
+            assertThat(IpType.isValid(ip), is(true));
+            assertThat(IpType.isValid(TypeTestUtils.addOffset(ip)), is(true));
         }
         BytesRef[] invalidIps = {
             new BytesRef("192.168.0.2555"),
@@ -72,8 +72,8 @@ public class IpTypeTest extends CrateUnitTest {
 
         };
         for (BytesRef ip : invalidIps) {
-            assertEquals(false, IpType.isValid(ip));
-            assertEquals(false, IpType.isValid(TypeTestUtils.addOffset(ip)));
+            assertThat(IpType.isValid(ip), is(false));
+            assertThat(IpType.isValid(TypeTestUtils.addOffset(ip)), is(false));
         }
     }
 

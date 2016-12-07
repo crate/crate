@@ -162,7 +162,7 @@ public class NodeFetchOperation {
 
     private void doFetch(FetchContext fetchContext,
                          SettableFuture<IntObjectMap<StreamBucket>> resultFuture,
-                         @Nullable IntObjectMap<? extends IntContainer> toFetch) throws Exception {
+                         IntObjectMap<? extends IntContainer> toFetch) throws Exception {
 
         final IntObjectHashMap<StreamBucket> fetched = new IntObjectHashMap<>(toFetch.size());
         HashMap<TableIdent, TableFetchInfo> tableFetchInfos = getTableFetchInfos(fetchContext);

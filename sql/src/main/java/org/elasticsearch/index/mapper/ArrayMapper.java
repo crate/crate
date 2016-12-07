@@ -122,12 +122,12 @@ public class ArrayMapper extends FieldMapper implements ArrayValueMapperParser {
         throw new IllegalArgumentException("expected a FieldMapper.Builder or ObjectMapper.Builder");
     }
 
-    static class ObjectArrayFieldType extends MappedFieldType {
+    static class ObjectArrayFieldType extends MappedFieldType implements Cloneable {
 
-        protected ObjectArrayFieldType() {
+        ObjectArrayFieldType() {
         }
 
-        public ObjectArrayFieldType(MappedFieldType ref) {
+        ObjectArrayFieldType(MappedFieldType ref) {
             super(ref);
         }
 

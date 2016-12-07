@@ -31,7 +31,7 @@ public class IpType extends StringType {
     public final static int ID = 5;
     public final static IpType INSTANCE = new IpType();
 
-    protected IpType() {
+    IpType() {
     }
 
     @Override
@@ -81,8 +81,8 @@ public class IpType extends StringType {
         return IpType.INSTANCE;
     }
 
-    static public boolean isValid(BytesRef ip) {
-        if (ip.length < 7 && ip.length > 15) { // minimum length of a valid ip address
+    static boolean isValid(BytesRef ip) {
+        if (ip.length < 7 || ip.length > 15) { // min/max length of a valid ip address
             return false;
         }
         boolean precededByZero = false;

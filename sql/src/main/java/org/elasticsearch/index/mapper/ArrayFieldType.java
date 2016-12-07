@@ -38,7 +38,7 @@ import org.elasticsearch.index.similarity.SimilarityProvider;
 import java.io.IOException;
 import java.util.List;
 
-class ArrayFieldType extends MappedFieldType {
+class ArrayFieldType extends MappedFieldType implements Cloneable {
 
     private final MappedFieldType innerFieldType;
 

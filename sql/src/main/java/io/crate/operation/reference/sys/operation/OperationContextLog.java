@@ -22,6 +22,7 @@
 package io.crate.operation.reference.sys.operation;
 
 import javax.annotation.Nullable;
+import java.util.Objects;
 import java.util.UUID;
 
 public class OperationContextLog {
@@ -67,6 +68,11 @@ public class OperationContextLog {
         if (o == null || getClass() != o.getClass()) return false;
         OperationContextLog that = (OperationContextLog) o;
         return operationContext.equals(that.operationContext);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(operationContext);
     }
 
     @Nullable

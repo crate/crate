@@ -174,7 +174,7 @@ public class StatsTables {
     }
 
     public void operationFinished(@Nullable Integer operationId, @Nullable UUID jobId, @Nullable String errorMessage, long usedBytes) {
-        if (operationId == null || jobId == null | !isEnabled()) {
+        if (operationId == null || jobId == null || !isEnabled()) {
             return;
         }
         OperationContext operationContext = operationsTable.remove(uniqueOperationId(operationId, jobId));
