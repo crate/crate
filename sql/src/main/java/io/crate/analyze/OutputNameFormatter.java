@@ -23,13 +23,13 @@ package io.crate.analyze;
 
 import com.google.common.collect.Iterables;
 import io.crate.sql.ExpressionFormatter;
+import io.crate.sql.tree.ArrayComparisonExpression;
 import io.crate.sql.tree.Expression;
 import io.crate.sql.tree.QualifiedNameReference;
 import io.crate.sql.tree.SubscriptExpression;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Locale;
 
 public class OutputNameFormatter {
 
@@ -52,7 +52,15 @@ public class OutputNameFormatter {
 
         @Override
         protected String visitSubscriptExpression(SubscriptExpression node, Void context) {
-            return String.format(Locale.ENGLISH, "%s[%s]", process(node.name(), null), process(node.index(), null));
+            return process(node.name(), null) + '[' + process(node.index(), null) + ']';
+        }
+
+        @Override
+        public String visitArrayComparisonExpression(ArrayComparisonExpression node, Void context) {
+            return process(node.getLeft(), null) + ' ' +
+                   node.getType().getValue() + ' ' +
+                   node.quantifier().name() + '(' +
+                   process(node.getRight(), null) + ')';
         }
     }
 }

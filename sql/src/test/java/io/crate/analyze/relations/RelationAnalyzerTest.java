@@ -22,11 +22,14 @@
 
 package io.crate.analyze.relations;
 
+import io.crate.analyze.SelectAnalyzedStatement;
 import io.crate.exceptions.ValidationException;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.testing.SQLExecutor;
 import org.elasticsearch.test.cluster.NoopClusterService;
 import org.junit.Test;
+
+import static org.hamcrest.core.Is.is;
 
 public class RelationAnalyzerTest extends CrateUnitTest {
 
@@ -37,5 +40,12 @@ public class RelationAnalyzerTest extends CrateUnitTest {
         expectedException.expect(ValidationException.class);
         expectedException.expectMessage("missing FROM-clause entry for relation 't3'");
         executor.analyze("select * from t1 join t2 on t1.a = t3.c join t3 on t2.b = t3.c");
+    }
+
+    @Test
+    public void testColumnNameFromArrayComparisonExpression() throws Exception {
+        SelectAnalyzedStatement statement = executor.analyze("select 'foo' = any(constraint_name) " +
+                                                             "from information_schema.table_constraints");
+        assertThat(statement.relation().fields().get(0).path().outputName(), is("'foo' = ANY(constraint_name)"));
     }
 }
