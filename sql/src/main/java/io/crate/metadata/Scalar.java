@@ -68,16 +68,17 @@ public abstract class Scalar<ReturnType, InputType> implements FunctionImplement
      * Otherwise it will return the function as is or NULL in case it contains a null literal
      */
     private static <ReturnType, InputType> Symbol evaluateIfLiterals(Scalar<ReturnType, InputType> scalar, Function function) {
-        Input[] inputs = new Input[function.arguments().size()];
-        int idx = 0;
-        for (Symbol arg : function.arguments()) {
-            if (arg instanceof Input) {
-                Input inputArg = (Input) arg;
-                inputs[idx] = inputArg;
-                idx++;
-            } else {
+        List<Symbol> arguments = function.arguments();
+        for (Symbol argument : arguments) {
+            if (!(argument instanceof Input)) {
                 return function;
             }
+        }
+        Input[] inputs = new Input[arguments.size()];
+        int idx = 0;
+        for (Symbol arg : arguments) {
+            inputs[idx] = (Input) arg;
+            idx++;
         }
         //noinspection unchecked
         return Literal.of(function.info().returnType(), scalar.evaluate(inputs));
