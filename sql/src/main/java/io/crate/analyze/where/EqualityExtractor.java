@@ -27,6 +27,7 @@ import io.crate.analyze.EvaluatingNormalizer;
 import io.crate.analyze.symbol.*;
 import io.crate.metadata.*;
 import io.crate.operation.operator.EqOperator;
+import io.crate.operation.operator.Operators;
 import io.crate.operation.operator.any.AnyEqOperator;
 import io.crate.types.CollectionType;
 import io.crate.types.DataType;
@@ -375,20 +376,23 @@ public class EqualityExtractor {
                         return x;
                     }
                 }
+            } else if (Operators.LOGICAL_OPERATORS.contains(functionName)) {
+                boolean proxyBelowPre = context.proxyBelow;
+                boolean proxyBelowPost = proxyBelowPre;
+                ArrayList<Symbol> args = new ArrayList<>(function.arguments().size());
+                for (Symbol arg : function.arguments()) {
+                    context.proxyBelow = proxyBelowPre;
+                    args.add(process(arg, context));
+                    proxyBelowPost = context.proxyBelow || proxyBelowPost;
+                }
+                context.proxyBelow = proxyBelowPost;
+                if (!context.proxyBelow && function.valueType().equals(DataTypes.BOOLEAN)) {
+                    return Literal.BOOLEAN_TRUE;
+                }
+                return new Function(function.info(), args);
             }
-            boolean proxyBelowPre = context.proxyBelow;
-            boolean proxyBelowPost = proxyBelowPre;
-            ArrayList<Symbol> args = new ArrayList<>(function.arguments().size());
-            for (Symbol arg : function.arguments()) {
-                context.proxyBelow = proxyBelowPre;
-                args.add(process(arg, context));
-                proxyBelowPost = context.proxyBelow || proxyBelowPost;
-            }
-            context.proxyBelow = proxyBelowPost;
-            if (!context.proxyBelow && function.valueType().equals(DataTypes.BOOLEAN)) {
-                return Literal.BOOLEAN_TRUE;
-            }
-            return new Function(function.info(), args);
+            context.seenUnknown = true;
+            return Literal.BOOLEAN_TRUE;
         }
     }
 
