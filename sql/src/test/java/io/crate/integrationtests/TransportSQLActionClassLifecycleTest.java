@@ -32,10 +32,8 @@ import io.crate.testing.UseJdbc;
 import org.apache.lucene.util.Constants;
 import org.elasticsearch.test.ESIntegTestCase;
 import org.hamcrest.Matchers;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
+import org.joda.time.DateTimeUtils;
+import org.junit.*;
 import org.junit.rules.TemporaryFolder;
 
 import java.nio.charset.StandardCharsets;
@@ -48,6 +46,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 
 import static com.carrotsearch.randomizedtesting.RandomizedTest.$;
 import static org.hamcrest.Matchers.*;
@@ -59,6 +58,26 @@ public class TransportSQLActionClassLifecycleTest extends SQLTransportIntegratio
 
     @Rule
     public TemporaryFolder folder = new TemporaryFolder();
+
+    @BeforeClass
+    public static void setTimeForTesting() throws Exception {
+        // A monotonically increasing system clock that prevents from clock adjustments (e.g. via NTP)
+        // and avoids synchronization.
+        DateTimeUtils.setCurrentMillisProvider(new DateTimeUtils.MillisProvider() {
+            private final AtomicLong lastTime = new AtomicLong();
+
+            @Override
+            public long getMillis() {
+                long now = System.currentTimeMillis();
+                long time = lastTime.incrementAndGet();
+                if (now >= time) {
+                    lastTime.compareAndSet(time, now);
+                    return lastTime.getAndIncrement();
+                }
+                return time;
+            }
+        });
+    }
 
     @Before
     public void initTestData() throws Exception {
@@ -641,12 +660,11 @@ public class TransportSQLActionClassLifecycleTest extends SQLTransportIntegratio
 
     @Test
     public void selectCurrentTimestamp() throws Exception {
-        long before = System.currentTimeMillis();
+        long before = DateTimeUtils.currentTimeMillis();
         SQLResponse response = execute("select current_timestamp from sys.cluster");
-        long after = System.currentTimeMillis();
-
+        long after = DateTimeUtils.currentTimeMillis();
         assertThat(response.cols(), arrayContaining("current_timestamp"));
-        assertThat((Long) response.rows()[0][0], allOf(greaterThanOrEqualTo(before), lessThanOrEqualTo(after)));
+        assertThat((long) response.rows()[0][0], allOf(greaterThanOrEqualTo(before), lessThanOrEqualTo(after)));
     }
 
     @Test
@@ -657,5 +675,4 @@ public class TransportSQLActionClassLifecycleTest extends SQLTransportIntegratio
         SQLResponse newResponse = execute("select * from sys.cluster where current_timestamp > current_timestamp");
         assertThat(newResponse.rowCount(), is(0L));
     }
-
 }
