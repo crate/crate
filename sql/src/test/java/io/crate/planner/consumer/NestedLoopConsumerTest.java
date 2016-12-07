@@ -112,9 +112,7 @@ public class NestedLoopConsumerTest extends CrateUnitTest {
 
     @Test
     public void testWhereWithNoMatchShouldReturnNoopPlan() throws Exception {
-        // TODO: once fetch is supported for cross joins, reset query to:
-        // select u1.name, u2.name from users u1, users u2 where 1 = 2
-        Plan plan = plan("select u1.name, u2.name from users u1, users u2 where 1 = 2 order by u1.name, u2.name");
+        Plan plan = plan("select u1.name, u2.name from users u1, users u2 where 1 = 2");
         assertThat(plan, instanceOf(NoopPlan.class));
     }
 
@@ -228,13 +226,11 @@ public class NestedLoopConsumerTest extends CrateUnitTest {
     @SuppressWarnings("ConstantConditions")
     @Test
     public void testOrderByPushDown() throws Exception {
-        // TODO: once fetch is supported for cross joins, reset query to:
-        // select u1.name, u2.name from users u1, users u2 order by u1.name
+        QueryThenFetch qtf = plan("select u1.name, u2.name from users u1, users u2 order by u1.name");
+        NestedLoop nl = (NestedLoop) qtf.subPlan();
 
-        NestedLoop plan = plan("select u1.name, u2.name from users u1, users u2 order by u1.name, u2.name");
-
-        assertThat(plan.left().resultDescription(), instanceOf(Collect.class));
-        Collect leftPlan = (Collect) plan.left();
+        assertThat(nl.left().resultDescription(), instanceOf(Collect.class));
+        Collect leftPlan = (Collect) nl.left();
         CollectPhase collectPhase = leftPlan.collectPhase();
         assertThat(collectPhase.projections().size(), is(0));
         assertThat(collectPhase.toCollect().get(0), isReference("name"));
