@@ -5,6 +5,10 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fix: error thrown when ``ANY`` or ``ALL`` array comparison expressions
+   are used in ``SELECT`` list.
+   e.g.:`select 'foo' = any(some_array)`
+
  - Fixed an issue that could lead to incorrect results if the WHERE clause
    contains primary key comparisons together with other functions like match.
 
