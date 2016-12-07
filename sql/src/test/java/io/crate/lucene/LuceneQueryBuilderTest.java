@@ -230,8 +230,8 @@ public class LuceneQueryBuilderTest extends CrateUnitTest {
     public void testRegexQueryFast() throws Exception {
         Query query = convert("name ~ '[a-z]'");
         assertThat(query, instanceOf(ConstantScoreQuery.class));
-        // TODO: FIX ME!
-        //assertThat(((ConstantScoreQuery)query).getFilter(), instanceOf(RegexpFilter.class));
+        ConstantScoreQuery scoreQuery = (ConstantScoreQuery) query;
+        assertThat(scoreQuery.getQuery(), instanceOf(RegexpQuery.class));
     }
 
     /**
