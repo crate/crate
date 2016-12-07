@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - ``INSERT`` statements now support ``SELECT`` statements without parentheses.
+
  - Fixed an issue that could lead to incorrect results if the WHERE clause
    contains primary key comparisons together with other functions like match.
 

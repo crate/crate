@@ -797,6 +797,7 @@ onDuplicateKey
 insertSource
    : VALUES values=insertValues -> $values
    | '(' query ')' -> query
+   | query -> query
    ;
 
 identList

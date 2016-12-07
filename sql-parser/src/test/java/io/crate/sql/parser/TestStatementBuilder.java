@@ -402,6 +402,11 @@ public class TestStatementBuilder {
         printStatement("insert into foo (id, name) (select * from bar limit 3 offset 10)");
         printStatement("insert into foo (wealth, name) (select sum(money), name from bar group by name)");
         printStatement("insert into foo (select sum(money), name from bar group by name)");
+
+        printStatement("insert into foo (id, name) select id, name from bar order by id");
+        printStatement("insert into foo (id, name) select * from bar limit 3 offset 10");
+        printStatement("insert into foo (wealth, name) select sum(money), name from bar group by name");
+        printStatement("insert into foo select sum(money), name from bar group by name");
     }
 
     @Test
