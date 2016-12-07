@@ -46,6 +46,7 @@ import java.util.Set;
 public class BlobShardCollectorProvider extends ShardCollectorProvider {
 
     private final BlobShard blobShard;
+    private final CollectInputSymbolVisitor implResolver;
 
     public BlobShardCollectorProvider(BlobShard blobShard,
                                       ClusterService clusterService,
@@ -56,7 +57,8 @@ public class BlobShardCollectorProvider extends ShardCollectorProvider {
                                       TransportActionProvider transportActionProvider,
                                       BulkRetryCoordinatorPool bulkRetryCoordinatorPool) {
         super(clusterService, new BlobShardReferenceResolver(blobShard), functions, indexNameExpressionResolver, threadPool, settings,
-            transportActionProvider, bulkRetryCoordinatorPool, blobShard.indexShard(), BlobReferenceResolver.INSTANCE);
+            transportActionProvider, bulkRetryCoordinatorPool, blobShard.indexShard());
+        implResolver = new CollectInputSymbolVisitor<>(functions, BlobReferenceResolver.INSTANCE);
         this.blobShard = blobShard;
     }
 
@@ -69,7 +71,7 @@ public class BlobShardCollectorProvider extends ShardCollectorProvider {
 
     private Iterable<Row> getBlobRows(RoutedCollectPhase collectPhase, boolean requiresRepeat) {
         Iterable<File> files = blobShard.blobContainer().getFiles();
-        Iterable<Row> rows = RowsTransformer.toRowsIterable(docInputSymbolVisitor, collectPhase, files);
+        Iterable<Row> rows = RowsTransformer.toRowsIterable(implResolver, collectPhase, files);
         if (requiresRepeat) {
             return ImmutableList.copyOf(rows);
         }

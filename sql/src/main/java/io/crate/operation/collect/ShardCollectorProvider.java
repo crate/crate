@@ -34,7 +34,6 @@ import io.crate.operation.ImplementationSymbolVisitor;
 import io.crate.operation.Input;
 import io.crate.operation.collect.collectors.OrderedDocCollector;
 import io.crate.operation.projectors.*;
-import io.crate.operation.reference.ReferenceResolver;
 import io.crate.planner.node.dql.RoutedCollectPhase;
 import io.crate.planner.projection.Projection;
 import io.crate.planner.projection.Projections;
@@ -52,12 +51,9 @@ import java.util.Set;
 
 public abstract class ShardCollectorProvider {
 
-    protected final IndexShard indexShard;
     private final ProjectorFactory projectorFactory;
-
-    final EvaluatingNormalizer shardNormalizer;
-    final CollectInputSymbolVisitor docInputSymbolVisitor;
     private final ImplementationSymbolVisitor shardImplementationSymbolVisitor;
+    final EvaluatingNormalizer shardNormalizer;
 
     ShardCollectorProvider(ClusterService clusterService,
                            AbstractReferenceResolver shardResolver,
@@ -67,12 +63,8 @@ public abstract class ShardCollectorProvider {
                            Settings settings,
                            TransportActionProvider transportActionProvider,
                            BulkRetryCoordinatorPool bulkRetryCoordinatorPool,
-                           IndexShard indexShard,
-                           ReferenceResolver<? extends Input<?>> referenceResolver) {
-        this.indexShard = indexShard;
+                           IndexShard indexShard) {
         this.shardImplementationSymbolVisitor = new ImplementationSymbolVisitor(functions);
-        this.docInputSymbolVisitor = new CollectInputSymbolVisitor<>(functions, referenceResolver);
-
         this.shardNormalizer = new EvaluatingNormalizer(
             functions,
             RowGranularity.SHARD,
@@ -80,7 +72,6 @@ public abstract class ShardCollectorProvider {
             new RecoveryShardReferenceResolver(shardResolver, indexShard),
             null
         );
-
         projectorFactory = new ProjectionToProjectorVisitor(
             clusterService,
             functions,

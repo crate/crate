@@ -59,6 +59,8 @@ public class LuceneShardCollectorProvider extends ShardCollectorProvider {
     private final ThreadPool threadPool;
     private final String localNodeId;
     private final LuceneQueryBuilder luceneQueryBuilder;
+    private final IndexShard indexShard;
+    private final CollectInputSymbolVisitor implResolver;
 
     public LuceneShardCollectorProvider(Schemas schemas,
                                         LuceneQueryBuilder luceneQueryBuilder,
@@ -72,10 +74,12 @@ public class LuceneShardCollectorProvider extends ShardCollectorProvider {
                                         IndexShard indexShard) {
         super(clusterService, new ShardReferenceResolver(clusterService, schemas, indexShard), functions,
             indexNameExpressionResolver, threadPool, settings, transportActionProvider, bulkRetryCoordinatorPool,
-            indexShard,  new LuceneReferenceResolver(indexShard.mapperService()));
+            indexShard);
         this.luceneQueryBuilder = luceneQueryBuilder;
         this.threadPool = threadPool;
+        this.indexShard = indexShard;
         this.localNodeId = clusterService.localNode().id();
+        this.implResolver = new CollectInputSymbolVisitor<>(functions, new LuceneReferenceResolver(indexShard.mapperService()));
     }
 
     @Override
@@ -93,7 +97,7 @@ public class LuceneShardCollectorProvider extends ShardCollectorProvider {
                 indexShard.indexService().cache()
             );
             jobCollectContext.addSearcher(sharedShardContext.readerId(), searcher);
-            CollectInputSymbolVisitor.Context docCtx = docInputSymbolVisitor.extractImplementations(collectPhase);
+            CollectInputSymbolVisitor.Context docCtx = implResolver.extractImplementations(collectPhase);
             Executor executor = threadPool.executor(ThreadPool.Names.SEARCH);
 
             return new CrateDocCollector.Builder(
@@ -135,7 +139,7 @@ public class LuceneShardCollectorProvider extends ShardCollectorProvider {
                 indexService.cache()
             );
             jobCollectContext.addSearcher(sharedShardContext.readerId(), searcher);
-            ctx = docInputSymbolVisitor.extractImplementations(collectPhase);
+            ctx = implResolver.extractImplementations(collectPhase);
             collectorContext = getCollectorContext(sharedShardContext.readerId(), ctx);
         } catch (Throwable t) {
             if (searcher != null) {
@@ -159,7 +163,7 @@ public class LuceneShardCollectorProvider extends ShardCollectorProvider {
             batchSize,
             collectorContext,
             collectPhase.orderBy(),
-            LuceneSortGenerator.generateLuceneSort(collectorContext, collectPhase.orderBy(), docInputSymbolVisitor),
+            LuceneSortGenerator.generateLuceneSort(collectorContext, collectPhase.orderBy(), implResolver),
             ctx.topLevelInputs(),
             ctx.docLevelExpressions()
         );
