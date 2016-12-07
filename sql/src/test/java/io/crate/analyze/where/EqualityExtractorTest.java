@@ -321,4 +321,18 @@ public class EqualityExtractorTest extends CrateUnitTest {
             contains(isLiteral(3), isLiteral(3))
         ));
     }
+
+    @Test
+    public void testNoPKExtractionIfMatchIsPresent() throws Exception {
+        Symbol query = query("x in (1, 2, 3) and match(a, 'Hello World')");
+        List<List<Symbol>> matches = analyzeExactX(query);
+        assertThat(matches, nullValue());
+    }
+
+    @Test
+    public void testNoPKExtractionIfFunctionUsingPKIsPresent() throws Exception {
+        Symbol query = query("x in (1, 2, 3) and substr(cast(x as string), 0) = 4");
+        List<List<Symbol>> matches = analyzeExactX(query);
+        assertThat(matches, nullValue());
+    }
 }
