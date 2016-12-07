@@ -57,7 +57,7 @@ public class LuceneOrderedDocCollector extends OrderedDocCollector {
     private final CollectorContext collectorContext;
     private final OrderBy orderBy;
     private final Sort sort;
-    private final Collection<LuceneCollectorExpression<?>> expressions;
+    private final Collection<? extends LuceneCollectorExpression<?>> expressions;
     private final ScoreDocRowFunction rowFunction;
     private final DummyScorer scorer;
     private final IndexSearcher searcher;
@@ -77,7 +77,7 @@ public class LuceneOrderedDocCollector extends OrderedDocCollector {
                                      OrderBy orderBy,
                                      Sort sort,
                                      List<Input<?>> inputs,
-                                     Collection<LuceneCollectorExpression<?>> expressions) {
+                                     Collection<? extends LuceneCollectorExpression<?>> expressions) {
         super(shardId);
         this.searcher = searcher;
         this.query = query;

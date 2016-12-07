@@ -52,7 +52,7 @@ public class WriterProjector extends AbstractProjector {
     private static final byte NEW_LINE = (byte) '\n';
 
     private final URI uri;
-    private final Set<CollectExpression<Row, ?>> collectExpressions;
+    private final Iterable<CollectExpression<Row, ?>> collectExpressions;
     private final List<Input<?>> inputs;
     private final Map<String, Object> overwrites;
     @Nullable
@@ -76,7 +76,7 @@ public class WriterProjector extends AbstractProjector {
                            String uri,
                            @Nullable WriterProjection.CompressionType compressionType,
                            @Nullable List<Input<?>> inputs,
-                           Set<CollectExpression<Row, ?>> collectExpressions,
+                           Iterable<CollectExpression<Row, ?>> collectExpressions,
                            Map<ColumnIdent, Object> overwrites,
                            @Nullable List<String> outputNames,
                            WriterProjection.OutputFormat outputFormat) {
@@ -200,12 +200,12 @@ public class WriterProjector extends AbstractProjector {
     static class DocWriter implements RowWriter {
 
         private final OutputStream outputStream;
-        private final Set<CollectExpression<Row, ?>> collectExpressions;
+        private final Iterable<CollectExpression<Row, ?>> collectExpressions;
         private final Map<String, Object> overwrites;
         private final XContentBuilder builder;
 
         public DocWriter(OutputStream outputStream,
-                         Set<CollectExpression<Row, ?>> collectExpressions,
+                         Iterable<CollectExpression<Row, ?>> collectExpressions,
                          Map<String, Object> overwrites) throws IOException {
             this.outputStream = outputStream;
             this.collectExpressions = collectExpressions;
@@ -263,13 +263,13 @@ public class WriterProjector extends AbstractProjector {
 
     static class ColumnRowWriter implements RowWriter {
 
-        private final Set<CollectExpression<Row, ?>> collectExpressions;
+        private final Iterable<CollectExpression<Row, ?>> collectExpressions;
         private final OutputStream outputStream;
         protected final List<Input<?>> inputs;
         protected final XContentBuilder builder;
 
         ColumnRowWriter(OutputStream outputStream,
-                        Set<CollectExpression<Row, ?>> collectExpressions,
+                        Iterable<CollectExpression<Row, ?>> collectExpressions,
                         List<Input<?>> inputs) throws IOException {
             this.outputStream = outputStream;
             this.collectExpressions = collectExpressions;
@@ -310,7 +310,7 @@ public class WriterProjector extends AbstractProjector {
         private final List<String> outputNames;
 
         public ColumnRowObjectWriter(OutputStream outputStream,
-                                     Set<CollectExpression<Row, ?>> collectExpressions,
+                                     Iterable<CollectExpression<Row, ?>> collectExpressions,
                                      List<Input<?>> inputs,
                                      List<String> outputNames) throws IOException {
             super(outputStream, collectExpressions, inputs);

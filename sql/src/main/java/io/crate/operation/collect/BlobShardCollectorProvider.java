@@ -29,6 +29,7 @@ import io.crate.core.collections.Row;
 import io.crate.executor.transport.TransportActionProvider;
 import io.crate.metadata.Functions;
 import io.crate.metadata.shard.blob.BlobShardReferenceResolver;
+import io.crate.operation.InputFactory;
 import io.crate.operation.collect.collectors.BlobOrderedDocCollector;
 import io.crate.operation.collect.collectors.OrderedDocCollector;
 import io.crate.operation.projectors.Requirement;
@@ -46,7 +47,7 @@ import java.util.Set;
 public class BlobShardCollectorProvider extends ShardCollectorProvider {
 
     private final BlobShard blobShard;
-    private final CollectInputSymbolVisitor implResolver;
+    private final InputFactory inputFactory;
 
     public BlobShardCollectorProvider(BlobShard blobShard,
                                       ClusterService clusterService,
@@ -58,7 +59,7 @@ public class BlobShardCollectorProvider extends ShardCollectorProvider {
                                       BulkRetryCoordinatorPool bulkRetryCoordinatorPool) {
         super(clusterService, new BlobShardReferenceResolver(blobShard), functions, indexNameExpressionResolver, threadPool, settings,
             transportActionProvider, bulkRetryCoordinatorPool, blobShard.indexShard());
-        implResolver = new CollectInputSymbolVisitor<>(functions, BlobReferenceResolver.INSTANCE);
+        inputFactory = new InputFactory(functions);
         this.blobShard = blobShard;
     }
 
@@ -71,7 +72,7 @@ public class BlobShardCollectorProvider extends ShardCollectorProvider {
 
     private Iterable<Row> getBlobRows(RoutedCollectPhase collectPhase, boolean requiresRepeat) {
         Iterable<File> files = blobShard.blobContainer().getFiles();
-        Iterable<Row> rows = RowsTransformer.toRowsIterable(implResolver, collectPhase, files);
+        Iterable<Row> rows = RowsTransformer.toRowsIterable(inputFactory, BlobReferenceResolver.INSTANCE, collectPhase, files);
         if (requiresRepeat) {
             return ImmutableList.copyOf(rows);
         }

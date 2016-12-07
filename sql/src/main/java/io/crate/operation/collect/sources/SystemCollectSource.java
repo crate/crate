@@ -29,12 +29,12 @@ import io.crate.analyze.EvaluatingNormalizer;
 import io.crate.core.collections.Row;
 import io.crate.metadata.Functions;
 import io.crate.metadata.ReplaceMode;
-import io.crate.metadata.RowCollectExpression;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.information.*;
 import io.crate.metadata.pg_catalog.PgCatalogTables;
 import io.crate.metadata.pg_catalog.PgTypeTable;
 import io.crate.metadata.sys.*;
+import io.crate.operation.InputFactory;
 import io.crate.operation.collect.*;
 import io.crate.operation.collect.files.SummitsIterable;
 import io.crate.operation.projectors.Requirement;
@@ -64,11 +64,11 @@ import java.util.Set;
  */
 public class SystemCollectSource implements CollectSource {
 
-    private final CollectInputSymbolVisitor<RowCollectExpression<?, ?>> docInputSymbolVisitor;
     private final Functions functions;
     private final NodeSysExpression nodeSysExpression;
     private final ImmutableMap<String, Supplier<Iterable<?>>> iterableGetters;
     private final DiscoveryService discoveryService;
+    private final InputFactory inputFactory;
 
 
     @Inject
@@ -82,7 +82,7 @@ public class SystemCollectSource implements CollectSource {
                                SysRepositoriesService sysRepositoriesService,
                                SysSnapshots sysSnapshots,
                                PgCatalogTables pgCatalogTables) {
-        docInputSymbolVisitor = new CollectInputSymbolVisitor<>(functions, RowContextReferenceResolver.INSTANCE);
+        inputFactory = new InputFactory(functions);
         this.functions = functions;
         this.nodeSysExpression = nodeSysExpression;
 
@@ -112,7 +112,7 @@ public class SystemCollectSource implements CollectSource {
         if (requiresRepeat) {
             iterable = ImmutableList.copyOf(iterable);
         }
-        return RowsTransformer.toRowsIterable(docInputSymbolVisitor, collectPhase, iterable);
+        return RowsTransformer.toRowsIterable(inputFactory, RowContextReferenceResolver.INSTANCE, collectPhase, iterable);
     }
 
     @Override

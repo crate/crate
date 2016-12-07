@@ -31,11 +31,10 @@ import com.google.common.collect.ImmutableMap;
 import io.crate.core.collections.Bucket;
 import io.crate.core.collections.Row;
 import io.crate.external.S3ClientHelper;
-import io.crate.metadata.FunctionResolver;
-import io.crate.metadata.FunctionIdent;
-import io.crate.metadata.FunctionImplementation;
-import io.crate.metadata.Functions;
+import io.crate.metadata.*;
 import io.crate.metadata.tablefunctions.TableFunctionImplementation;
+import io.crate.operation.InputFactory;
+import io.crate.operation.Input;
 import io.crate.operation.projectors.RowReceiver;
 import io.crate.operation.reference.file.FileLineReferenceResolver;
 import io.crate.test.integration.CrateUnitTest;
@@ -73,7 +72,7 @@ public class FileReadingCollectorTest extends CrateUnitTest {
     private static File tmpFile;
     private static File tmpFileGz;
     private static File tmpFileEmptyLine;
-    private FileCollectInputSymbolVisitor inputSymbolVisitor;
+    private InputFactory inputFactory;
 
     @BeforeClass
     public static void setUpClass() throws Exception {
@@ -107,8 +106,7 @@ public class FileReadingCollectorTest extends CrateUnitTest {
             ImmutableMap.<String, FunctionResolver>of(),
             Collections.<String, TableFunctionImplementation>emptyMap()
         );
-        inputSymbolVisitor =
-            new FileCollectInputSymbolVisitor(functions, FileLineReferenceResolver.INSTANCE);
+        inputFactory = new InputFactory(functions);
     }
 
     @AfterClass
@@ -249,12 +247,14 @@ public class FileReadingCollectorTest extends CrateUnitTest {
     }
 
     private void getObjects(Collection<String> fileUris, String compression, final S3ObjectInputStream s3InputStream, RowReceiver rowReceiver) throws Throwable {
-        FileCollectInputSymbolVisitor.Context context =
-            inputSymbolVisitor.extractImplementations(createReference("_raw", DataTypes.STRING));
+        Reference raw = createReference("_raw", DataTypes.STRING);
+        InputFactory.Context<LineCollectorExpression<?>> ctx =
+            inputFactory.ctxForRefs(FileLineReferenceResolver.INSTANCE::getImplementation);
+        List<Input<?>> inputs = Collections.singletonList(ctx.add(raw));
         FileReadingCollector collector = new FileReadingCollector(
             fileUris,
-            context.topLevelInputs(),
-            context.expressions(),
+            inputs,
+            ctx.expressions(),
             rowReceiver,
             compression,
             ImmutableMap.of(

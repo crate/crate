@@ -30,7 +30,7 @@ import io.crate.metadata.Reference;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.sys.SysNodesTableInfo;
-import io.crate.operation.collect.CollectInputSymbolVisitor;
+import io.crate.operation.InputFactory;
 import io.crate.operation.projectors.RowReceiver;
 import io.crate.planner.node.dql.RoutedCollectPhase;
 import io.crate.test.integration.CrateUnitTest;
@@ -46,6 +46,7 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 
+import static io.crate.testing.TestingHelpers.getFunctions;
 import static org.elasticsearch.test.ESAllocationTestCase.newNode;
 import static org.mockito.Mockito.*;
 
@@ -91,7 +92,7 @@ public class NodeStatsCollectorTest extends CrateUnitTest {
             rowReceiver,
             collectPhase,
             nodes,
-            mock(CollectInputSymbolVisitor.class)
+            new InputFactory(getFunctions())
         );
         collector.doCollect();
 
@@ -116,7 +117,7 @@ public class NodeStatsCollectorTest extends CrateUnitTest {
             rowReceiver,
             collectPhase,
             nodes,
-            mock(CollectInputSymbolVisitor.class)
+            new InputFactory(getFunctions())
         );
         collector.doCollect();
 

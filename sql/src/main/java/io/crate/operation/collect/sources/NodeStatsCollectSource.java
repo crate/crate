@@ -30,13 +30,12 @@ import io.crate.analyze.symbol.Symbol;
 import io.crate.executor.transport.TransportActionProvider;
 import io.crate.metadata.*;
 import io.crate.metadata.sys.SysNodesTableInfo;
-import io.crate.operation.collect.CollectInputSymbolVisitor;
+import io.crate.operation.InputFactory;
 import io.crate.operation.collect.CrateCollector;
 import io.crate.operation.collect.JobCollectContext;
 import io.crate.operation.collect.RowsCollector;
 import io.crate.operation.collect.collectors.NodeStatsCollector;
 import io.crate.operation.projectors.RowReceiver;
-import io.crate.operation.reference.sys.RowContextReferenceResolver;
 import io.crate.operation.reference.sys.node.NodeStatsContext;
 import io.crate.operation.reference.sys.node.local.NodeSysExpression;
 import io.crate.operation.reference.sys.node.local.NodeSysReferenceResolver;
@@ -58,8 +57,8 @@ public class NodeStatsCollectSource implements CollectSource {
     private final TransportActionProvider transportActionProvider;
     private final NodeSysExpression nodeSysExpression;
     private final ClusterService clusterService;
-    private final CollectInputSymbolVisitor<RowCollectExpression<?, ?>> inputSymbolVisitor;
     private final Functions functions;
+    private final InputFactory inputFactory;
 
     @Inject
     public NodeStatsCollectSource(TransportActionProvider transportActionProvider,
@@ -69,7 +68,7 @@ public class NodeStatsCollectSource implements CollectSource {
         this.transportActionProvider = transportActionProvider;
         this.nodeSysExpression = nodeSysExpression;
         this.clusterService = clusterService;
-        this.inputSymbolVisitor = new CollectInputSymbolVisitor<>(functions, RowContextReferenceResolver.INSTANCE);
+        this.inputFactory = new InputFactory(functions);
         this.functions = functions;
     }
 
@@ -93,7 +92,7 @@ public class NodeStatsCollectSource implements CollectSource {
                 downstream,
                 collectPhase,
                 nodes,
-                inputSymbolVisitor
+                inputFactory
             )
         );
     }

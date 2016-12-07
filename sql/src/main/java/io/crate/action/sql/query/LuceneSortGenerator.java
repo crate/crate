@@ -22,7 +22,7 @@
 package io.crate.action.sql.query;
 
 import io.crate.analyze.OrderBy;
-import io.crate.operation.collect.CollectInputSymbolVisitor;
+import io.crate.operation.collect.DocInputFactory;
 import io.crate.operation.reference.doc.lucene.CollectorContext;
 import org.apache.lucene.search.Sort;
 import org.apache.lucene.search.SortField;
@@ -34,11 +34,11 @@ public class LuceneSortGenerator {
     @Nullable
     public static Sort generateLuceneSort(CollectorContext context,
                                           OrderBy orderBy,
-                                          CollectInputSymbolVisitor<?> inputSymbolVisitor) {
+                                          DocInputFactory docInputFactory) {
         if (orderBy.orderBySymbols().isEmpty()) {
             return null;
         }
-        SortSymbolVisitor sortSymbolVisitor = new SortSymbolVisitor(inputSymbolVisitor);
+        SortSymbolVisitor sortSymbolVisitor = new SortSymbolVisitor(docInputFactory);
         SortField[] sortFields = sortSymbolVisitor.generateSortFields(
             orderBy.orderBySymbols(),
             context,

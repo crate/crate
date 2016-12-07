@@ -24,14 +24,12 @@ package io.crate.operation.collect;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import io.crate.analyze.Id;
-import io.crate.analyze.symbol.InputColumn;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.core.collections.Row;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Functions;
-import io.crate.operation.BaseImplementationSymbolVisitor;
-import io.crate.operation.ImplementationSymbolVisitor;
 import io.crate.operation.Input;
+import io.crate.operation.InputFactory;
 import io.crate.operation.Inputs;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.Nullable;
@@ -45,9 +43,9 @@ import java.util.List;
 public class RowShardResolver {
 
     private final com.google.common.base.Function<List<BytesRef>, String> idFunction;
-    private final ImplementationSymbolVisitor.Context visitorContext;
     private final List<Input<?>> primaryKeyInputs;
     private final Input<?> routingInput;
+    private final Iterable<CollectExpression<Row, ?>> expressions;
 
     private String id;
     private String routing;
@@ -58,19 +56,24 @@ public class RowShardResolver {
                             List<? extends Symbol> primaryKeySymbols,
                             @Nullable ColumnIdent clusteredByColumn,
                             @Nullable Symbol routingSymbol) {
-        Visitor visitor = new Visitor(functions);
+        InputFactory inputFactory = new InputFactory(functions);
+        InputFactory.Context<CollectExpression<Row, ?>> context = inputFactory.ctxForInputColumns();
         idFunction = Id.compileWithNullValidation(pkColumns, clusteredByColumn);
-        visitorContext = new ImplementationSymbolVisitor.Context();
-        routingInput = routingSymbol == null ? null : visitor.process(routingSymbol, visitorContext);
+        if (routingSymbol == null) {
+            routingInput = null;
+        } else {
+            routingInput = context.add(routingSymbol);
+        }
         primaryKeyInputs = new ArrayList<>(primaryKeySymbols.size());
         for (Symbol primaryKeySymbol : primaryKeySymbols) {
-            primaryKeyInputs.add(visitor.process(primaryKeySymbol, visitorContext));
+            primaryKeyInputs.add(context.add(primaryKeySymbol));
         }
+        expressions = context.expressions();
     }
 
 
     public void setNextRow(Row row) {
-        for (CollectExpression<Row, ?> expression : visitorContext.collectExpressions()) {
+        for (CollectExpression<Row, ?> expression : expressions) {
             expression.setNextRow(row);
         }
         id = idFunction.apply(pkValues(primaryKeyInputs));
@@ -101,17 +104,5 @@ public class RowShardResolver {
     @Nullable
     public String routing() {
         return routing;
-    }
-
-    static class Visitor extends BaseImplementationSymbolVisitor<ImplementationSymbolVisitor.Context> {
-
-        public Visitor(Functions functions) {
-            super(functions);
-        }
-
-        @Override
-        public Input<?> visitInputColumn(InputColumn inputColumn, ImplementationSymbolVisitor.Context context) {
-            return context.collectExpressionFor(inputColumn);
-        }
     }
 }

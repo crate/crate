@@ -26,20 +26,26 @@ import com.google.common.base.Supplier;
 import com.google.common.collect.Iterables;
 import io.crate.action.sql.SessionContext;
 import io.crate.analyze.EvaluatingNormalizer;
-import io.crate.analyze.symbol.*;
+import io.crate.analyze.symbol.Literal;
+import io.crate.analyze.symbol.Symbol;
+import io.crate.analyze.symbol.Symbols;
+import io.crate.analyze.symbol.ValueSymbolVisitor;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.core.collections.Row;
 import io.crate.executor.transport.ShardDeleteRequest;
 import io.crate.executor.transport.ShardUpsertRequest;
 import io.crate.executor.transport.TransportActionProvider;
-import io.crate.metadata.*;
+import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.Functions;
+import io.crate.metadata.Reference;
+import io.crate.metadata.TransactionContext;
 import io.crate.metadata.expressions.WritableExpression;
 import io.crate.metadata.settings.CrateSettings;
-import io.crate.operation.ImplementationSymbolVisitor;
+import io.crate.operation.AggregationContext;
+import io.crate.operation.InputFactory;
 import io.crate.operation.Input;
 import io.crate.operation.RowFilter;
 import io.crate.operation.collect.CollectExpression;
-import io.crate.operation.collect.CollectInputSymbolVisitor;
 import io.crate.operation.projectors.fetch.FetchProjector;
 import io.crate.operation.projectors.fetch.FetchProjectorContext;
 import io.crate.operation.projectors.fetch.TransportFetchOperation;
@@ -59,6 +65,7 @@ import org.elasticsearch.threadpool.ThreadPool;
 import javax.annotation.Nullable;
 import java.util.*;
 import java.util.concurrent.ThreadPoolExecutor;
+import java.util.function.Function;
 
 public class ProjectionToProjectorVisitor
     extends ProjectionVisitor<ProjectionToProjectorVisitor.Context, Projector> implements ProjectorFactory {
@@ -70,7 +77,7 @@ public class ProjectionToProjectorVisitor
     private final Settings settings;
     private final TransportActionProvider transportActionProvider;
     private final BulkRetryCoordinatorPool bulkRetryCoordinatorPool;
-    private final ImplementationSymbolVisitor symbolVisitor;
+    private final InputFactory inputFactory;
     private final EvaluatingNormalizer normalizer;
 
     @Nullable
@@ -83,7 +90,7 @@ public class ProjectionToProjectorVisitor
                                         Settings settings,
                                         TransportActionProvider transportActionProvider,
                                         BulkRetryCoordinatorPool bulkRetryCoordinatorPool,
-                                        ImplementationSymbolVisitor symbolVisitor,
+                                        InputFactory inputFactory,
                                         EvaluatingNormalizer normalizer,
                                         @Nullable ShardId shardId) {
         this.clusterService = clusterService;
@@ -93,7 +100,7 @@ public class ProjectionToProjectorVisitor
         this.settings = settings;
         this.transportActionProvider = transportActionProvider;
         this.bulkRetryCoordinatorPool = bulkRetryCoordinatorPool;
-        this.symbolVisitor = symbolVisitor;
+        this.inputFactory = inputFactory;
         this.normalizer = normalizer;
         this.shardId = shardId;
     }
@@ -105,9 +112,19 @@ public class ProjectionToProjectorVisitor
                                         Settings settings,
                                         TransportActionProvider transportActionProvider,
                                         BulkRetryCoordinatorPool bulkRetryCoordinatorPool,
-                                        ImplementationSymbolVisitor symbolVisitor,
+                                        InputFactory inputFactory,
                                         EvaluatingNormalizer normalizer) {
-        this(clusterService, functions, indexNameExpressionResolver, threadPool, settings, transportActionProvider, bulkRetryCoordinatorPool, symbolVisitor, normalizer, null);
+        this(clusterService,
+            functions,
+            indexNameExpressionResolver,
+            threadPool,
+            settings,
+            transportActionProvider,
+            bulkRetryCoordinatorPool,
+            inputFactory,
+            normalizer,
+            null
+        );
     }
 
     @Override
@@ -121,8 +138,9 @@ public class ProjectionToProjectorVisitor
          *                    /
          * orderByIndices: [1]
          */
-        ImplementationSymbolVisitor.Context ctx = symbolVisitor.extractImplementations(
-            Iterables.concat(projection.outputs(), projection.orderBy()));
+        InputFactory.Context<CollectExpression<Row, ?>> ctx = inputFactory.ctxForInputColumns();
+        ctx.add(projection.outputs());
+        ctx.add(projection.orderBy());
 
         int numOutputs = projection.outputs().size();
         List<Input<?>> inputs = ctx.topLevelInputs();
@@ -134,7 +152,7 @@ public class ProjectionToProjectorVisitor
         if (projection.limit() > TopN.NO_LIMIT) {
             return new SortingTopNProjector(
                 inputs,
-                ctx.collectExpressions(),
+                ctx.expressions(),
                 numOutputs,
                 OrderingByPosition.arrayOrdering(orderByIndices, projection.reverseFlags(), projection.nullsFirst()),
                 projection.limit(),
@@ -143,7 +161,7 @@ public class ProjectionToProjectorVisitor
         }
         return new SortingProjector(
             inputs,
-            ctx.collectExpressions(),
+            ctx.expressions(),
             numOutputs,
             OrderingByPosition.arrayOrdering(orderByIndices, projection.reverseFlags(), projection.nullsFirst()),
             projection.offset()
@@ -152,34 +170,34 @@ public class ProjectionToProjectorVisitor
 
     @Override
     public Projector visitTopNProjection(TopNProjection projection, Context context) {
-        ImplementationSymbolVisitor.Context ctx = symbolVisitor.extractImplementations(projection.outputs());
+        InputFactory.Context<CollectExpression<Row, ?>> ctx = inputFactory.ctxForInputColumns(projection.outputs());
         assert projection.limit() > TopN.NO_LIMIT : "TopNProjection must have a limit";
         return new SimpleTopNProjector(
             ctx.topLevelInputs(),
-            ctx.collectExpressions(),
+            ctx.expressions(),
             projection.limit(),
             projection.offset());
     }
 
     @Override
     public Projector visitEvalProjection(EvalProjection projection, Context context) {
-        ImplementationSymbolVisitor.Context ctx = symbolVisitor.extractImplementations(projection.outputs());
-        return new InputRowProjector(ctx.topLevelInputs(), ctx.collectExpressions());
+        InputFactory.Context<CollectExpression<Row, ?>> ctx = inputFactory.ctxForInputColumns(projection.outputs());
+        return new InputRowProjector(ctx.topLevelInputs(), ctx.expressions());
     }
 
     @Override
     public Projector visitGroupProjection(GroupProjection projection, Context context) {
-        ImplementationSymbolVisitor.Context symbolContext = symbolVisitor.extractImplementations(projection.keys());
-        List<Input<?>> keyInputs = symbolContext.topLevelInputs();
+        InputFactory.Context<CollectExpression<Row, ?>> ctx = inputFactory.ctxForAggregations();
 
-        for (Aggregation aggregation : projection.values()) {
-            symbolVisitor.process(aggregation, symbolContext);
-        }
+        ctx.add(projection.keys());
+        ctx.add(projection.values());
+
+        List<Input<?>> keyInputs = ctx.topLevelInputs();
         return new GroupingProjector(
             Symbols.extractTypes(projection.keys()),
             keyInputs,
-            symbolContext.collectExpressions().toArray(new CollectExpression[symbolContext.collectExpressions().size()]),
-            symbolContext.aggregations(),
+            Iterables.toArray(ctx.expressions(), CollectExpression.class),
+            ctx.aggregations().toArray(new AggregationContext[0]),
             context.ramAccountingContext
         );
     }
@@ -191,28 +209,24 @@ public class ProjectionToProjectorVisitor
 
     @Override
     public Projector visitAggregationProjection(AggregationProjection projection, Context context) {
-        ImplementationSymbolVisitor.Context symbolContext = new ImplementationSymbolVisitor.Context();
-        for (Aggregation aggregation : projection.aggregations()) {
-            symbolVisitor.process(aggregation, symbolContext);
-        }
+        InputFactory.Context<CollectExpression<Row, ?>> ctx = inputFactory.ctxForAggregations();
+        ctx.add(projection.aggregations());
         return new AggregationPipe(
-            symbolContext.collectExpressions(),
-            symbolContext.aggregations(),
+            ctx.expressions(),
+            ctx.aggregations().toArray(new AggregationContext[0]),
             context.ramAccountingContext);
     }
 
     @Override
     public Projector visitWriterProjection(WriterProjection projection, Context context) {
-        ImplementationSymbolVisitor.Context symbolContext = new ImplementationSymbolVisitor.Context();
+        InputFactory.Context<CollectExpression<Row, ?>> ctx = inputFactory.ctxForInputColumns();
 
         List<Input<?>> inputs = null;
         if (!projection.inputs().isEmpty()) {
-            inputs = new ArrayList<>(projection.inputs().size());
-            for (Symbol symbol : projection.inputs()) {
-                inputs.add(symbolVisitor.process(symbol, symbolContext));
-            }
+            ctx.add(projection.inputs());
+            inputs = ctx.topLevelInputs();
         }
-        Map<ColumnIdent, Object> overwrites = symbolMapToObject(projection.overwrites(), symbolContext, context.transactionContext);
+        Map<ColumnIdent, Object> overwrites = symbolMapToObject(projection.overwrites(), ctx, context.transactionContext);
 
         projection = projection.normalize(normalizer, context.transactionContext);
         String uri = ValueSymbolVisitor.STRING.process(projection.uri());
@@ -238,7 +252,7 @@ public class ProjectionToProjectorVisitor
             uri,
             projection.compressionType(),
             inputs,
-            symbolContext.collectExpressions(),
+            ctx.expressions(),
             overwrites,
             projection.outputNames(),
             projection.outputFormat()
@@ -246,7 +260,7 @@ public class ProjectionToProjectorVisitor
     }
 
     private Map<ColumnIdent, Object> symbolMapToObject(Map<ColumnIdent, Symbol> symbolMap,
-                                                       ImplementationSymbolVisitor.Context symbolContext,
+                                                       InputFactory.Context symbolContext,
                                                        TransactionContext transactionContext) {
         Map<ColumnIdent, Object> objectMap = new HashMap<>(symbolMap.size());
         for (Map.Entry<ColumnIdent, Symbol> entry : symbolMap.entrySet()) {
@@ -254,7 +268,7 @@ public class ProjectionToProjectorVisitor
             assert symbol != null : "symbol must not be null";
             objectMap.put(
                 entry.getKey(),
-                symbolVisitor.process(normalizer.normalize(symbol, transactionContext), symbolContext).value()
+                symbolContext.add(normalizer.normalize(symbol, transactionContext)).value()
             );
         }
         return objectMap;
@@ -262,12 +276,12 @@ public class ProjectionToProjectorVisitor
 
     @Override
     public Projector visitSourceIndexWriterProjection(SourceIndexWriterProjection projection, Context context) {
-        ImplementationSymbolVisitor.Context symbolContext = new ImplementationSymbolVisitor.Context();
+        InputFactory.Context<CollectExpression<Row, ?>> ctx = inputFactory.ctxForInputColumns();
         List<Input<?>> partitionedByInputs = new ArrayList<>(projection.partitionedBySymbols().size());
         for (Symbol partitionedBySymbol : projection.partitionedBySymbols()) {
-            partitionedByInputs.add(symbolVisitor.process(partitionedBySymbol, symbolContext));
+            partitionedByInputs.add(ctx.add(partitionedBySymbol));
         }
-        Input<?> sourceInput = symbolVisitor.process(projection.rawSource(), symbolContext);
+        Input<?> sourceInput = ctx.add(projection.rawSource());
         Supplier<String> indexNameResolver =
             IndexNameResolver.create(projection.tableIdent(), projection.partitionIdent(), partitionedByInputs);
         return new IndexWriterProjector(
@@ -284,7 +298,7 @@ public class ProjectionToProjectorVisitor
             projection.clusteredBy(),
             projection.clusteredByIdent(),
             sourceInput,
-            symbolContext.collectExpressions(),
+            ctx.expressions(),
             projection.bulkActions(),
             projection.includes(),
             projection.excludes(),
@@ -296,14 +310,14 @@ public class ProjectionToProjectorVisitor
 
     @Override
     public Projector visitColumnIndexWriterProjection(ColumnIndexWriterProjection projection, Context context) {
-        final ImplementationSymbolVisitor.Context symbolContext = new ImplementationSymbolVisitor.Context();
+        InputFactory.Context<CollectExpression<Row, ?>> ctx = inputFactory.ctxForInputColumns();
         List<Input<?>> partitionedByInputs = new ArrayList<>(projection.partitionedBySymbols().size());
         for (Symbol partitionedBySymbol : projection.partitionedBySymbols()) {
-            partitionedByInputs.add(symbolVisitor.process(partitionedBySymbol, symbolContext));
+            partitionedByInputs.add(ctx.add(partitionedBySymbol));
         }
         List<Input<?>> insertInputs = new ArrayList<>(projection.columnSymbols().size());
         for (Symbol symbol : projection.columnSymbols()) {
-            insertInputs.add(symbolVisitor.process(symbol, symbolContext));
+            insertInputs.add(ctx.add(symbol));
         }
         return new ColumnIndexWriterProjector(
             clusterService,
@@ -319,7 +333,7 @@ public class ProjectionToProjectorVisitor
             projection.clusteredByIdent(),
             projection.columnReferences(),
             insertInputs,
-            symbolContext.collectExpressions(),
+            ctx.expressions(),
             projection.onDuplicateKeyAssignments(),
             projection.bulkActions(),
             projection.autoCreateIndices(),
@@ -329,7 +343,7 @@ public class ProjectionToProjectorVisitor
 
     @Override
     public Projector visitFilterProjection(FilterProjection projection, Context context) {
-        Predicate<Row> rowFilter = RowFilter.create(symbolVisitor, projection.query());
+        Predicate<Row> rowFilter = RowFilter.create(inputFactory, projection.query());
         return new FilterProjector(rowFilter);
     }
 
@@ -400,10 +414,9 @@ public class ProjectionToProjectorVisitor
     }
 
     private CollectExpression<Row, ?> resolveUidCollectExpression(Symbol uidSymbol) {
-        ImplementationSymbolVisitor.Context ctx = new ImplementationSymbolVisitor.Context();
-        symbolVisitor.process(uidSymbol, ctx);
-        assert ctx.collectExpressions().size() == 1 : "uidSymbol must resolve to 1 collectExpression";
-        return ctx.collectExpressions().iterator().next();
+        InputFactory.Context<CollectExpression<Row, ?>> ctx = inputFactory.ctxForInputColumns();
+        ctx.add(uidSymbol);
+        return Iterables.getOnlyElement(ctx.expressions());
     }
 
     @Override
@@ -422,7 +435,7 @@ public class ProjectionToProjectorVisitor
                 projection.collectPhaseId()
             ),
             threadPool.executor(ThreadPool.Names.SUGGEST),
-            symbolVisitor.functions(),
+            functions,
             projection.outputSymbols(),
             projectorContext,
             projection.getFetchSize()
@@ -433,26 +446,24 @@ public class ProjectionToProjectorVisitor
     public Projector visitSysUpdateProjection(SysUpdateProjection projection, Context context) {
         Map<Reference, Symbol> assignments = projection.assignments();
 
-        CollectInputSymbolVisitor<RowCollectExpression<?, ?>> inputSymbolVisitor =
-            new CollectInputSymbolVisitor<>(functions, RowContextReferenceResolver.INSTANCE);
-        CollectInputSymbolVisitor.Context readCtx = inputSymbolVisitor.newContext();
-        CollectInputSymbolVisitor.Context writeCtx = inputSymbolVisitor.newContext();
+        Function<Symbol, Input<?>> symbolToInput = inputFactory.forRefs(RowContextReferenceResolver.INSTANCE);
+        InputFactory.Context readCtx = inputFactory.ctxForRefs(RowContextReferenceResolver.INSTANCE);
 
         List<Tuple<WritableExpression, Input<?>>> assignmentExpressions = new ArrayList<>(assignments.size());
         for (Map.Entry<Reference, Symbol> e : assignments.entrySet()) {
             Reference ref = e.getKey();
 
-            Input<?> targetCol = inputSymbolVisitor.process(ref, writeCtx);
+            Input<?> targetCol = symbolToInput.apply(ref);
             if (!(targetCol instanceof WritableExpression)) {
                 throw new IllegalArgumentException(String.format(Locale.ENGLISH,
                     "Column \"%s\" cannot be updated", ref.ident().columnIdent()));
             }
 
-            Input<?> sourceInput = inputSymbolVisitor.process(e.getValue(), readCtx);
+            Input<?> sourceInput = readCtx.add(e.getValue());
             assignmentExpressions.add(
                 new Tuple<>(((WritableExpression) targetCol), sourceInput));
         }
-        return new SysUpdateProjector(assignmentExpressions, readCtx.docLevelExpressions());
+        return new SysUpdateProjector(assignmentExpressions, readCtx.expressions());
     }
 
     @Override

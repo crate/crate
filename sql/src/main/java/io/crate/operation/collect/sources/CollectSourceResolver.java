@@ -35,7 +35,7 @@ import io.crate.metadata.sys.SysClusterTableInfo;
 import io.crate.metadata.sys.SysNodesTableInfo;
 import io.crate.metadata.sys.SysSchemaInfo;
 import io.crate.metadata.table.TableInfo;
-import io.crate.operation.ImplementationSymbolVisitor;
+import io.crate.operation.InputFactory;
 import io.crate.operation.collect.CrateCollector;
 import io.crate.operation.collect.JobCollectContext;
 import io.crate.operation.collect.RowsCollector;
@@ -87,7 +87,6 @@ public class CollectSourceResolver {
                                  NodeStatsCollectSource nodeStatsCollectSource) {
         this.clusterService = clusterService;
 
-        ImplementationSymbolVisitor nodeImplementationSymbolVisitor = new ImplementationSymbolVisitor(functions);
         EvaluatingNormalizer normalizer = EvaluatingNormalizer.functionOnlyNormalizer(functions, ReplaceMode.COPY);
         ProjectorFactory projectorFactory = new ProjectionToProjectorVisitor(
             clusterService,
@@ -97,7 +96,7 @@ public class CollectSourceResolver {
             settings,
             transportActionProvider,
             bulkRetryCoordinatorPool,
-            nodeImplementationSymbolVisitor,
+            new InputFactory(functions),
             normalizer
         );
         this.shardCollectSource = shardCollectSource;

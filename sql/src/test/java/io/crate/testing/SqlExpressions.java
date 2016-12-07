@@ -38,6 +38,7 @@ import io.crate.metadata.Functions;
 import io.crate.metadata.ReplaceMode;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.TransactionContext;
+import io.crate.operation.aggregation.impl.AggregationImplModule;
 import io.crate.operation.operator.OperatorModule;
 import io.crate.operation.predicate.PredicateModule;
 import io.crate.operation.scalar.ScalarFunctionModule;
@@ -83,6 +84,7 @@ public class SqlExpressions {
                           SessionContext sessionContext) {
         ModulesBuilder modulesBuilder = new ModulesBuilder()
             .add(new OperatorModule())
+            .add(new AggregationImplModule())
             .add(new ScalarFunctionModule())
             .add(new TableFunctionModule())
             .add(new PredicateModule());

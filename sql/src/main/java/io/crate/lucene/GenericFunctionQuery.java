@@ -52,7 +52,7 @@ class GenericFunctionQuery extends Query {
     private final Input<Boolean> condition;
 
     GenericFunctionQuery(Function function,
-                         Collection<LuceneCollectorExpression> expressions,
+                         Collection<? extends LuceneCollectorExpression<?>> expressions,
                          CollectorContext collectorContext,
                          Input<Boolean> condition) {
         this.function = function;

@@ -32,7 +32,8 @@ import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.operation.Input;
-import io.crate.operation.collect.CollectInputSymbolVisitor;
+import io.crate.operation.InputFactory;
+import io.crate.operation.collect.DocInputFactory;
 import io.crate.operation.reference.doc.lucene.CollectorContext;
 import io.crate.operation.reference.doc.lucene.LuceneCollectorExpression;
 import io.crate.types.*;
@@ -44,6 +45,7 @@ import org.elasticsearch.search.MultiValueMode;
 import org.elasticsearch.search.sort.SortParseElement;
 
 import java.io.IOException;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 
@@ -77,11 +79,11 @@ public class SortSymbolVisitor extends SymbolVisitor<SortSymbolVisitor.SortSymbo
         }
     }
 
-    private final CollectInputSymbolVisitor<?> inputSymbolVisitor;
+    private final DocInputFactory docInputFactory;
 
-    SortSymbolVisitor(CollectInputSymbolVisitor<?> inputSymbolVisitor) {
+    SortSymbolVisitor(DocInputFactory docInputFactory) {
         super();
-        this.inputSymbolVisitor = inputSymbolVisitor;
+        this.docInputFactory = docInputFactory;
     }
 
     SortField[] generateSortFields(List<Symbol> sortSymbols,
@@ -167,12 +169,9 @@ public class SortSymbolVisitor extends SymbolVisitor<SortSymbolVisitor.SortSymbo
                                       final SortSymbolContext context,
                                       final SortField.Type reducedType,
                                       final boolean missingNullValue) {
-        CollectInputSymbolVisitor.Context inputContext = inputSymbolVisitor.extractImplementations(symbol);
-        List<Input<?>> inputs = inputContext.topLevelInputs();
-        assert inputs.size() == 1 : "inputs.size() must be 1";
-        final Input input = inputs.get(0);
-        @SuppressWarnings("unchecked")
-        final List<LuceneCollectorExpression> expressions = inputContext.docLevelExpressions();
+        InputFactory.Context<? extends LuceneCollectorExpression<?>> inputContext = docInputFactory.getCtx();
+        final Input input = inputContext.add(symbol);
+        final Collection<? extends LuceneCollectorExpression<?>> expressions = inputContext.expressions();
 
         return new SortField(name, new IndexFieldData.XFieldComparatorSource() {
             @Override

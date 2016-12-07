@@ -31,25 +31,24 @@ import io.crate.operation.collect.CollectExpression;
 import io.crate.operation.projectors.InputCondition;
 
 import javax.annotation.Nullable;
-import java.util.Collection;
 
 public class RowFilter implements Predicate<Row> {
 
     private final Input<Boolean> filterCondition;
-    private final Collection<CollectExpression<Row, ?>> filterCollectExpressions;
+    private final Iterable<CollectExpression<Row, ?>> filterCollectExpressions;
 
-    public static Predicate<Row> create(ImplementationSymbolVisitor symbolVisitor, @Nullable Symbol filterSymbol) {
+    public static Predicate<Row> create(InputFactory inputFactory, @Nullable Symbol filterSymbol) {
         if (filterSymbol == null) {
             return Predicates.alwaysTrue();
         }
-        return new RowFilter(symbolVisitor, filterSymbol);
+        return new RowFilter(inputFactory, filterSymbol);
     }
 
-    private RowFilter(ImplementationSymbolVisitor symbolVisitor, Symbol filterSymbol) {
-        ImplementationSymbolVisitor.Context ctx = new ImplementationSymbolVisitor.Context();
+    private RowFilter(InputFactory inputFactory, Symbol filterSymbol) {
+        InputFactory.Context<CollectExpression<Row, ?>> ctx = inputFactory.ctxForInputColumns();
         //noinspection unchecked
-        filterCondition = (Input) symbolVisitor.process(filterSymbol, ctx);
-        filterCollectExpressions = ctx.collectExpressions();
+        filterCondition = (Input) ctx.add(filterSymbol);
+        filterCollectExpressions = ctx.expressions();
     }
 
     @Override

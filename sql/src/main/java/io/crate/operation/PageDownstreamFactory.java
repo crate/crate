@@ -62,7 +62,7 @@ public class PageDownstreamFactory {
                                  TransportActionProvider transportActionProvider,
                                  BulkRetryCoordinatorPool bulkRetryCoordinatorPool,
                                  Functions functions) {
-        ImplementationSymbolVisitor implementationSymbolVisitor = new ImplementationSymbolVisitor(functions);
+        InputFactory inputFactory = new InputFactory(functions);
         EvaluatingNormalizer normalizer = EvaluatingNormalizer.functionOnlyNormalizer(functions, ReplaceMode.COPY);
         this.projectionToProjectorVisitor = new ProjectionToProjectorVisitor(
             clusterService,
@@ -72,7 +72,7 @@ public class PageDownstreamFactory {
             settings,
             transportActionProvider,
             bulkRetryCoordinatorPool,
-            implementationSymbolVisitor,
+            inputFactory,
             normalizer
         );
     }

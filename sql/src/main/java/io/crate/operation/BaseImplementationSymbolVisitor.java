@@ -39,14 +39,10 @@ public class BaseImplementationSymbolVisitor<C> extends SymbolVisitor<C, Input<?
         this.functions = functions;
     }
 
-    public Functions functions() {
-        return functions;
-    }
-
     @Override
     public Input<?> visitFunction(Function function, C context) {
         final FunctionImplementation functionImplementation = functions.get(function.info().ident());
-        if (functionImplementation != null && functionImplementation instanceof Scalar<?, ?>) {
+        if (functionImplementation instanceof Scalar<?, ?>) {
             List<Symbol> arguments = function.arguments();
             Scalar<?, ?> scalarImpl = ((Scalar) functionImplementation).compile(arguments);
             Input[] argumentInputs = new Input[arguments.size()];

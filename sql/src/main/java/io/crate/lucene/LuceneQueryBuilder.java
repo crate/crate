@@ -46,7 +46,8 @@ import io.crate.metadata.Functions;
 import io.crate.metadata.Reference;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.operation.Input;
-import io.crate.operation.collect.CollectInputSymbolVisitor;
+import io.crate.operation.InputFactory;
+import io.crate.operation.collect.DocInputFactory;
 import io.crate.operation.collect.collectors.CollectorFieldsVisitor;
 import io.crate.operation.operator.*;
 import io.crate.operation.operator.any.*;
@@ -112,18 +113,18 @@ public class LuceneQueryBuilder {
 
     private static final ESLogger LOGGER = Loggers.getLogger(LuceneQueryBuilder.class);
     private final static Visitor VISITOR = new Visitor();
-    private final CollectInputSymbolVisitor<LuceneCollectorExpression<?>> inputSymbolVisitor;
+    private final DocInputFactory docInputFactory;
 
     @Inject
     public LuceneQueryBuilder(Functions functions) {
-        inputSymbolVisitor = new CollectInputSymbolVisitor<>(functions, new LuceneReferenceResolver(null));
+        docInputFactory = new DocInputFactory(functions, new LuceneReferenceResolver(null));
     }
 
     public Context convert(WhereClause whereClause,
                            MapperService mapperService,
                            IndexFieldDataService indexFieldDataService,
                            IndexCache indexCache) throws UnsupportedFeatureException {
-        Context ctx = new Context(inputSymbolVisitor, mapperService, indexFieldDataService, indexCache);
+        Context ctx = new Context(docInputFactory, mapperService, indexFieldDataService, indexCache);
         if (whereClause.noMatch()) {
             ctx.query = Queries.newMatchNoDocsQuery();
         } else if (!whereClause.hasQuery()) {
@@ -177,16 +178,16 @@ public class LuceneQueryBuilder {
 
         final Map<String, Object> filteredFieldValues = new HashMap<>();
 
-        final CollectInputSymbolVisitor<LuceneCollectorExpression<?>> inputSymbolVisitor;
+        final DocInputFactory docInputFactory;
         final MapperService mapperService;
         final IndexFieldDataService fieldDataService;
         final IndexCache indexCache;
 
-        Context(CollectInputSymbolVisitor<LuceneCollectorExpression<?>> inputSymbolVisitor,
+        Context(DocInputFactory docInputFactory,
                 MapperService mapperService,
                 IndexFieldDataService fieldDataService,
                 IndexCache indexCache) {
-            this.inputSymbolVisitor = inputSymbolVisitor;
+            this.docInputFactory = docInputFactory;
             this.mapperService = mapperService;
             this.fieldDataService = fieldDataService;
             this.indexCache = indexCache;
@@ -1235,12 +1236,11 @@ public class LuceneQueryBuilder {
             // reason2: would have to load each value into the field cache
             function = (Function) DocReferenceConverter.convertIf(function);
 
-            final CollectInputSymbolVisitor.Context ctx = context.inputSymbolVisitor.extractImplementations(function);
-            assert ctx.topLevelInputs().size() == 1 : "ctx.topLevelInputs().size() must be 1";
+            final InputFactory.Context<? extends LuceneCollectorExpression<?>> ctx = context.docInputFactory.getCtx();
             @SuppressWarnings("unchecked")
-            final Input<Boolean> condition = (Input<Boolean>) ctx.topLevelInputs().get(0);
+            final Input<Boolean> condition = (Input<Boolean>) ctx.add(function);
             @SuppressWarnings("unchecked")
-            final List<LuceneCollectorExpression> expressions = ctx.docLevelExpressions();
+            final Collection<? extends LuceneCollectorExpression<?>> expressions = ctx.expressions();
             final CollectorContext collectorContext = new CollectorContext(
                 context.mapperService,
                 context.fieldDataService,

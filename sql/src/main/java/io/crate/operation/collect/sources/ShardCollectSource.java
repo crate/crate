@@ -41,7 +41,7 @@ import io.crate.lucene.LuceneQueryBuilder;
 import io.crate.metadata.*;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.shard.unassigned.UnassignedShard;
-import io.crate.operation.ImplementationSymbolVisitor;
+import io.crate.operation.InputFactory;
 import io.crate.operation.collect.*;
 import io.crate.operation.collect.collectors.CompositeCollector;
 import io.crate.operation.collect.collectors.MultiShardScoreDocCollector;
@@ -175,7 +175,7 @@ public class ShardCollectSource extends AbstractComponent implements CollectSour
             settings,
             transportActionProvider,
             bulkRetryCoordinatorPool,
-            new ImplementationSymbolVisitor(functions),
+            new InputFactory(functions),
             nodeNormalizer
         );
 

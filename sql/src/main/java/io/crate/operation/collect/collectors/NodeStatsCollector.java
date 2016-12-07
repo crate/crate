@@ -29,13 +29,13 @@ import io.crate.executor.transport.NodeStatsResponse;
 import io.crate.executor.transport.TransportNodeStatsAction;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
-import io.crate.metadata.RowCollectExpression;
 import io.crate.metadata.sys.SysNodesTableInfo;
-import io.crate.operation.collect.CollectInputSymbolVisitor;
+import io.crate.operation.InputFactory;
 import io.crate.operation.collect.CrateCollector;
 import io.crate.operation.collect.RowsTransformer;
 import io.crate.operation.projectors.IterableRowEmitter;
 import io.crate.operation.projectors.RowReceiver;
+import io.crate.operation.reference.sys.RowContextReferenceResolver;
 import io.crate.operation.reference.sys.node.NodeStatsContext;
 import io.crate.planner.node.dql.RoutedCollectPhase;
 import org.elasticsearch.action.ActionListener;
@@ -53,7 +53,7 @@ public class NodeStatsCollector implements CrateCollector {
     private final RowReceiver rowReceiver;
     private final RoutedCollectPhase collectPhase;
     private final Collection<DiscoveryNode> nodes;
-    private final CollectInputSymbolVisitor<RowCollectExpression<?, ?>> inputSymbolVisitor;
+    private final InputFactory inputFactory;
     private final TopLevelColumnIdentVisitor topLevelColumnIdentVisitor = TopLevelColumnIdentVisitor.INSTANCE;
     private final AtomicInteger remainingRequests = new AtomicInteger();
 
@@ -61,12 +61,12 @@ public class NodeStatsCollector implements CrateCollector {
                               RowReceiver rowReceiver,
                               RoutedCollectPhase collectPhase,
                               Collection<DiscoveryNode> nodes,
-                              CollectInputSymbolVisitor<RowCollectExpression<?, ?>> inputSymbolVisitor) {
+                              InputFactory inputFactory) {
         this.transportStatTablesAction = transportStatTablesAction;
         this.rowReceiver = rowReceiver;
         this.collectPhase = collectPhase;
         this.nodes = nodes;
-        this.inputSymbolVisitor = inputSymbolVisitor;
+        this.inputFactory = inputFactory;
     }
 
     @Override
@@ -122,7 +122,7 @@ public class NodeStatsCollector implements CrateCollector {
     private void emmitRows(List<NodeStatsContext> rows) {
         new IterableRowEmitter(
             rowReceiver,
-            RowsTransformer.toRowsIterable(inputSymbolVisitor, collectPhase, rows)
+            RowsTransformer.toRowsIterable(inputFactory, RowContextReferenceResolver.INSTANCE, collectPhase, rows)
         ).run();
     }
 

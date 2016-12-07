@@ -41,7 +41,7 @@ class FieldsVisitorInputFieldComparator extends InputFieldComparator {
 
     FieldsVisitorInputFieldComparator(int numHits,
                                       CollectorFieldsVisitor fieldsVisitor,
-                                      List<LuceneCollectorExpression> collectorExpressions,
+                                      Iterable<? extends LuceneCollectorExpression<?>> collectorExpressions,
                                       Input input,
                                       DataType valueType,
                                       Object missingValue) {

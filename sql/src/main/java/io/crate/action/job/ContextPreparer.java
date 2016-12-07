@@ -96,7 +96,7 @@ public class ContextPreparer extends AbstractComponent {
     private final PageDownstreamFactory pageDownstreamFactory;
     private final DistributingDownstreamFactory distributingDownstreamFactory;
     private final InnerPreparer innerPreparer;
-    private final ImplementationSymbolVisitor symbolVisitor;
+    private final InputFactory inputFactory;
 
 
     @Inject
@@ -121,7 +121,7 @@ public class ContextPreparer extends AbstractComponent {
         this.pageDownstreamFactory = pageDownstreamFactory;
         this.distributingDownstreamFactory = distributingDownstreamFactory;
         innerPreparer = new InnerPreparer();
-        symbolVisitor = new ImplementationSymbolVisitor(functions);
+        inputFactory = new InputFactory(functions);
     }
 
     public List<ListenableFuture<Bucket>> prepareOnRemote(Iterable<? extends NodeOperation> nodeOperations,
@@ -587,7 +587,7 @@ public class ContextPreparer extends AbstractComponent {
             } else {
                 flatProjectorChain = FlatProjectorChain.withReceivers(Collections.singletonList(downstreamRowReceiver));
             }
-            Predicate<Row> joinCondition = RowFilter.create(symbolVisitor, phase.joinCondition());
+            Predicate<Row> joinCondition = RowFilter.create(inputFactory, phase.joinCondition());
 
             NestedLoopOperation nestedLoopOperation = new NestedLoopOperation(
                 phase.phaseId(),

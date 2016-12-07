@@ -30,7 +30,7 @@ import io.crate.core.collections.Bucket;
 import io.crate.core.collections.Row;
 import io.crate.executor.transport.TransportActionProvider;
 import io.crate.metadata.*;
-import io.crate.operation.ImplementationSymbolVisitor;
+import io.crate.operation.InputFactory;
 import io.crate.operation.aggregation.impl.AverageAggregation;
 import io.crate.operation.aggregation.impl.CountAggregation;
 import io.crate.operation.operator.EqOperator;
@@ -90,7 +90,6 @@ public class ProjectionToProjectorVisitorTest extends CrateUnitTest {
         MockitoAnnotations.initMocks(this);
         functions = getFunctions();
         threadPool = new ThreadPool("testing");
-        ImplementationSymbolVisitor symbolvisitor = new ImplementationSymbolVisitor(functions);
         visitor = new ProjectionToProjectorVisitor(
             mock(ClusterService.class),
             functions,
@@ -99,7 +98,7 @@ public class ProjectionToProjectorVisitorTest extends CrateUnitTest {
             Settings.EMPTY,
             mock(TransportActionProvider.class, Answers.RETURNS_DEEP_STUBS.get()),
             mock(BulkRetryCoordinatorPool.class),
-            symbolvisitor,
+            new InputFactory(functions),
             EvaluatingNormalizer.functionOnlyNormalizer(functions, ReplaceMode.COPY)
         );
 

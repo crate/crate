@@ -30,12 +30,14 @@ import io.crate.metadata.Functions;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.shard.ShardReferenceResolver;
+import io.crate.operation.InputFactory;
 import io.crate.operation.collect.collectors.CollectorFieldsVisitor;
 import io.crate.operation.collect.collectors.CrateDocCollector;
 import io.crate.operation.collect.collectors.LuceneOrderedDocCollector;
 import io.crate.operation.collect.collectors.OrderedDocCollector;
 import io.crate.operation.projectors.Requirement;
 import io.crate.operation.reference.doc.lucene.CollectorContext;
+import io.crate.operation.reference.doc.lucene.LuceneCollectorExpression;
 import io.crate.operation.reference.doc.lucene.LuceneReferenceResolver;
 import io.crate.planner.node.dql.RoutedCollectPhase;
 import org.elasticsearch.action.bulk.BulkRetryCoordinatorPool;
@@ -60,7 +62,7 @@ public class LuceneShardCollectorProvider extends ShardCollectorProvider {
     private final String localNodeId;
     private final LuceneQueryBuilder luceneQueryBuilder;
     private final IndexShard indexShard;
-    private final CollectInputSymbolVisitor implResolver;
+    private final DocInputFactory docInputFactory;
 
     public LuceneShardCollectorProvider(Schemas schemas,
                                         LuceneQueryBuilder luceneQueryBuilder,
@@ -79,7 +81,7 @@ public class LuceneShardCollectorProvider extends ShardCollectorProvider {
         this.threadPool = threadPool;
         this.indexShard = indexShard;
         this.localNodeId = clusterService.localNode().id();
-        this.implResolver = new CollectInputSymbolVisitor<>(functions, new LuceneReferenceResolver(indexShard.mapperService()));
+        this.docInputFactory = new DocInputFactory(functions, new LuceneReferenceResolver(indexShard.mapperService()));
     }
 
     @Override
@@ -97,7 +99,8 @@ public class LuceneShardCollectorProvider extends ShardCollectorProvider {
                 indexShard.indexService().cache()
             );
             jobCollectContext.addSearcher(sharedShardContext.readerId(), searcher);
-            CollectInputSymbolVisitor.Context docCtx = implResolver.extractImplementations(collectPhase);
+            InputFactory.Context<? extends LuceneCollectorExpression<?>> docCtx =
+                docInputFactory.extractImplementations(collectPhase);
             Executor executor = threadPool.executor(ThreadPool.Names.SEARCH);
 
             return new CrateDocCollector.Builder(
@@ -110,7 +113,7 @@ public class LuceneShardCollectorProvider extends ShardCollectorProvider {
                 getCollectorContext(sharedShardContext.readerId(), docCtx),
                 jobCollectContext.queryPhaseRamAccountingContext(),
                 docCtx.topLevelInputs(),
-                docCtx.docLevelExpressions()
+                docCtx.expressions()
             );
         } catch (Throwable t) {
             searcher.close();
@@ -126,7 +129,7 @@ public class LuceneShardCollectorProvider extends ShardCollectorProvider {
         RoutedCollectPhase collectPhase = phase.normalize(shardNormalizer, null);
 
         CollectorContext collectorContext;
-        CollectInputSymbolVisitor.Context ctx;
+        InputFactory.Context<? extends LuceneCollectorExpression<?>> ctx;
         Engine.Searcher searcher = null;
         LuceneQueryBuilder.Context queryContext;
         try {
@@ -139,7 +142,7 @@ public class LuceneShardCollectorProvider extends ShardCollectorProvider {
                 indexService.cache()
             );
             jobCollectContext.addSearcher(sharedShardContext.readerId(), searcher);
-            ctx = implResolver.extractImplementations(collectPhase);
+            ctx = docInputFactory.extractImplementations(collectPhase);
             collectorContext = getCollectorContext(sharedShardContext.readerId(), ctx);
         } catch (Throwable t) {
             if (searcher != null) {
@@ -163,17 +166,17 @@ public class LuceneShardCollectorProvider extends ShardCollectorProvider {
             batchSize,
             collectorContext,
             collectPhase.orderBy(),
-            LuceneSortGenerator.generateLuceneSort(collectorContext, collectPhase.orderBy(), implResolver),
+            LuceneSortGenerator.generateLuceneSort(collectorContext, collectPhase.orderBy(), docInputFactory),
             ctx.topLevelInputs(),
-            ctx.docLevelExpressions()
+            ctx.expressions()
         );
     }
 
-    private CollectorContext getCollectorContext(int readerId, CollectInputSymbolVisitor.Context ctx) {
+    private CollectorContext getCollectorContext(int readerId, InputFactory.Context ctx) {
         return new CollectorContext(
             indexShard.mapperService(),
             indexShard.indexFieldDataService(),
-            new CollectorFieldsVisitor(ctx.docLevelExpressions().size()),
+            new CollectorFieldsVisitor(ctx.expressions().size()),
             readerId
         );
     }

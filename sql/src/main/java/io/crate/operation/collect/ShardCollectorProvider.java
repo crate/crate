@@ -24,13 +24,14 @@ package io.crate.operation.collect;
 
 import io.crate.action.job.SharedShardContext;
 import io.crate.analyze.EvaluatingNormalizer;
+import io.crate.core.collections.Row;
 import io.crate.executor.transport.TransportActionProvider;
 import io.crate.metadata.AbstractReferenceResolver;
 import io.crate.metadata.Functions;
 import io.crate.metadata.ReplaceMode;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.shard.RecoveryShardReferenceResolver;
-import io.crate.operation.ImplementationSymbolVisitor;
+import io.crate.operation.InputFactory;
 import io.crate.operation.Input;
 import io.crate.operation.collect.collectors.OrderedDocCollector;
 import io.crate.operation.projectors.*;
@@ -52,7 +53,7 @@ import java.util.Set;
 public abstract class ShardCollectorProvider {
 
     private final ProjectorFactory projectorFactory;
-    private final ImplementationSymbolVisitor shardImplementationSymbolVisitor;
+    private final InputFactory inputFactory;
     final EvaluatingNormalizer shardNormalizer;
 
     ShardCollectorProvider(ClusterService clusterService,
@@ -64,7 +65,7 @@ public abstract class ShardCollectorProvider {
                            TransportActionProvider transportActionProvider,
                            BulkRetryCoordinatorPool bulkRetryCoordinatorPool,
                            IndexShard indexShard) {
-        this.shardImplementationSymbolVisitor = new ImplementationSymbolVisitor(functions);
+        this.inputFactory = new InputFactory(functions);
         this.shardNormalizer = new EvaluatingNormalizer(
             functions,
             RowGranularity.SHARD,
@@ -80,7 +81,7 @@ public abstract class ShardCollectorProvider {
             settings,
             transportActionProvider,
             bulkRetryCoordinatorPool,
-            shardImplementationSymbolVisitor,
+            inputFactory,
             shardNormalizer,
             indexShard.shardId()
         );
@@ -97,7 +98,10 @@ public abstract class ShardCollectorProvider {
         assert !collectPhase.whereClause().hasQuery()
             : "whereClause shouldn't have a query after normalize. Should be NO_MATCH or MATCH_ALL";
 
-        List<Input<?>> inputs = shardImplementationSymbolVisitor.extractImplementations(collectPhase.toCollect()).topLevelInputs();
+        InputFactory.Context<CollectExpression<Row, ?>> ctx =
+            inputFactory.ctxForInputColumns(collectPhase.toCollect());
+
+        List<Input<?>> inputs = ctx.topLevelInputs();
         Object[] row = new Object[inputs.size()];
         for (int i = 0; i < row.length; i++) {
             row[i] = inputs.get(i).value();

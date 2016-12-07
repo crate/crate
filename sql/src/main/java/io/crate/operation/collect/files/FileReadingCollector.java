@@ -62,7 +62,7 @@ public class FileReadingCollector implements CrateCollector {
     private final InputRow row;
     private final RowReceiver downstream;
     private final boolean compressed;
-    private final List<LineCollectorExpression<?>> collectorExpressions;
+    private final Iterable<LineCollectorExpression<?>> collectorExpressions;
 
     private static final Pattern HAS_GLOBS_PATTERN = Pattern.compile("(.*)[^\\\\]\\*.*");
     private static final Predicate<URI> MATCH_ALL_PREDICATE = new Predicate<URI>() {
@@ -75,7 +75,7 @@ public class FileReadingCollector implements CrateCollector {
 
     public FileReadingCollector(Collection<String> fileUris,
                                 List<Input<?>> inputs,
-                                List<LineCollectorExpression<?>> collectorExpressions,
+                                Iterable<LineCollectorExpression<?>> collectorExpressions,
                                 RowReceiver downstream,
                                 String compression,
                                 Map<String, FileInputFactory> fileInputFactories,

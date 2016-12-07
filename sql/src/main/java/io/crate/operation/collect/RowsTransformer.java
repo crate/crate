@@ -32,8 +32,10 @@ import io.crate.analyze.symbol.Symbol;
 import io.crate.core.collections.Buckets;
 import io.crate.core.collections.Row;
 import io.crate.operation.Input;
+import io.crate.operation.InputFactory;
 import io.crate.operation.projectors.InputCondition;
 import io.crate.operation.projectors.sorting.OrderingByPosition;
+import io.crate.operation.reference.ReferenceResolver;
 import io.crate.planner.node.dql.RoutedCollectPhase;
 import io.crate.types.DataTypes;
 
@@ -42,17 +44,21 @@ import java.util.Collections;
 
 public final class RowsTransformer {
 
-    public static Iterable<Row> toRowsIterable(CollectInputSymbolVisitor<?> docInputSymbolVisitor, RoutedCollectPhase collectPhase, Iterable<?> iterable) {
+    public static Iterable<Row> toRowsIterable(InputFactory inputFactory,
+                                               ReferenceResolver<?> referenceResolver,
+                                               RoutedCollectPhase collectPhase,
+                                               Iterable<?> iterable) {
         WhereClause whereClause = collectPhase.whereClause();
         if (whereClause.noMatch()) {
             return Collections.emptyList();
         }
+        InputFactory.Context ctx = inputFactory.ctxForRefs(referenceResolver);
+        ctx.add(collectPhase.toCollect());
 
-        CollectInputSymbolVisitor.Context ctx = docInputSymbolVisitor.extractImplementations(collectPhase.toCollect());
         OrderBy orderBy = collectPhase.orderBy();
         if (orderBy != null) {
             for (Symbol symbol : orderBy.orderBySymbols()) {
-                docInputSymbolVisitor.process(symbol, ctx);
+                ctx.add(symbol);
             }
         }
 
@@ -61,14 +67,14 @@ public final class RowsTransformer {
             assert DataTypes.BOOLEAN.equals(whereClause.query().valueType()) :
                 "whereClause.query() must be of type " +  DataTypes.BOOLEAN;
             //noinspection unchecked  whereClause().query() is a symbol of type boolean so it must become Input<Boolean>
-            condition = (Input<Boolean>) docInputSymbolVisitor.process(whereClause.query(), ctx);
+            condition = (Input<Boolean>) ctx.add(whereClause.query());
         } else {
             condition = Literal.BOOLEAN_TRUE;
         }
 
         @SuppressWarnings("unchecked")
         Iterable<Row> rows = Iterables.filter(
-            Iterables.transform(iterable, new ValueAndInputRow<>(ctx.topLevelInputs(), ctx.docLevelExpressions())),
+            Iterables.transform(iterable, new ValueAndInputRow<>(ctx.topLevelInputs(), ctx.expressions())),
             InputCondition.asPredicate(condition));
 
         if (orderBy == null) {
