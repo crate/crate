@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fixed an issue that could lead to incorrect results if the WHERE clause
+   contains primary key comparisons together with other functions like match.
+
  - Fixed an issue that caused select queries with bulk arguments to hang
    instead of throwing the proper error.
 
