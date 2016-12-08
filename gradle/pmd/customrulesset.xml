@@ -1,0 +1,60 @@
+<?xml version="1.0"?>
+<ruleset name="Crate custom ruleset"
+         xmlns="http://pmd.sf.net/ruleset/1.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://pmd.sf.net/ruleset/1.0.0 http://pmd.sf.net/ruleset_xml_schema.xsd"
+         xsi:noNamespaceSchemaLocation="http://pmd.sf.net/ruleset_xml_schema.xsd">
+
+    <description>
+        Crate custom ruleset
+    </description>
+
+    <rule name="AssertionWithoutMessage"
+          message="Assertion without message"
+          language="java"
+          class="net.sourceforge.pmd.lang.rule.XPathRule">
+        <description>
+            Don't use assert without a message
+        </description>
+        <properties>
+            <property name="xpath">
+                <value>
+                    <![CDATA[
+//AssertStatement
+[count(Expression)=1]
+]]>
+                </value>
+            </property>
+        </properties>
+        <priority>1</priority>
+        <example>
+            <![CDATA[assert <booleanCondition> : "message"]]>
+        </example>
+    </rule>
+
+    <rule name="ThrowExceptionWithoutMessage"
+          message="Throw exception without message"
+          language="java"
+          class="net.sourceforge.pmd.lang.rule.XPathRule">
+        <description>
+            Don't throw exception without a message
+        </description>
+        <properties>
+            <property name="xpath">
+                <value>
+                    <![CDATA[
+//ThrowStatement
+//AllocationExpression
+[not(ClassOrInterfaceType[@Image='VersionInvalidException']) and not(ClassOrInterfaceType[@Image='ReadOnlyException'])]
+[Arguments[@ArgumentCount = 0]]
+]]>
+                </value>
+            </property>
+        </properties>
+        <priority>1</priority>
+        <example>
+            <![CDATA[throw new UnsupportedOperationException("message")]]>
+        </example>
+    </rule>
+
+</ruleset>
