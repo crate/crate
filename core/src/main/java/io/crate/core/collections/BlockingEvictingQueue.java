@@ -29,7 +29,7 @@ public class BlockingEvictingQueue<E> extends ArrayBlockingQueue<E> implements B
 
     public BlockingEvictingQueue(int capacity) {
         super(capacity);
-        assert capacity > 0;
+        assert capacity > 0 : "capacity should be > 0";
     }
 
     @Override

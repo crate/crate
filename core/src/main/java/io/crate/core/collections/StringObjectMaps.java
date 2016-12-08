@@ -32,7 +32,7 @@ public class StringObjectMaps {
     public static
     @Nullable
     Object getByPath(Map<String, Object> map, String path) {
-        assert path != null;
+        assert path != null : "path should not be null";
         Object tmp;
         List<String> splittedPath = StringUtils.PATH_SPLITTER.splitToList(path);
         for (String pathElement : splittedPath.subList(0, splittedPath.size() - 1)) {

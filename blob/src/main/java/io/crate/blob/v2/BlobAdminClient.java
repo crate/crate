@@ -87,7 +87,7 @@ public class BlobAdminClient {
             new ActionListener<CreateIndexResponse>() {
                 @Override
                 public void onResponse(CreateIndexResponse createIndexResponse) {
-                    assert createIndexResponse.isAcknowledged();
+                    assert createIndexResponse.isAcknowledged() : "createIndexResponse must be acknowledged";
                     result.set(null);
                 }
 

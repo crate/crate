@@ -131,8 +131,8 @@ public class GeoPointType extends DataType<Double[]> implements Streamer<Double[
         if (val2 == null) {
             return 1;
         }
-        assert val1.length == 2;
-        assert val2.length == 2;
+        assert val1.length == 2 : "1st GeoPoint is empty";
+        assert val2.length == 2 : "2nd GeoPoint is empty";
 
         // this is probably not really correct, but should be sufficient for the compareValueTo use case
         // (which is ordering and equality check)

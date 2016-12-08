@@ -96,7 +96,7 @@ public class RemoteDigestBlob {
 
     public boolean delete() {
         logger.trace("delete");
-        assert (transferId == null);
+        assert transferId == null : "transferId should be null";
         DeleteBlobRequest request = new DeleteBlobRequest(
             index,
             Hex.decodeHex(digest)
@@ -107,7 +107,7 @@ public class RemoteDigestBlob {
 
     private Status start(ChannelBuffer buffer, boolean last) {
         logger.trace("start blob upload");
-        assert (transferId == null);
+        assert transferId == null : "transferId should be null";
         StartBlobRequest request = new StartBlobRequest(
             index,
             Hex.decodeHex(digest),
@@ -123,7 +123,7 @@ public class RemoteDigestBlob {
     }
 
     private Status chunk(ChannelBuffer buffer, boolean last) {
-        assert (transferId != null);
+        assert transferId != null : "transferId should not be null";
         PutChunkRequest request = new PutChunkRequest(
             index,
             Hex.decodeHex(digest),

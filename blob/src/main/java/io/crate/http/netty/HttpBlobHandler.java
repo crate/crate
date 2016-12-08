@@ -55,8 +55,7 @@ import static org.jboss.netty.handler.codec.http.HttpHeaders.Names.*;
 import static org.jboss.netty.handler.codec.http.HttpResponseStatus.*;
 import static org.jboss.netty.handler.codec.http.HttpVersion.HTTP_1_1;
 
-public class HttpBlobHandler extends SimpleChannelUpstreamHandler implements
-    LifeCycleAwareChannelHandler {
+public class HttpBlobHandler extends SimpleChannelUpstreamHandler implements LifeCycleAwareChannelHandler {
 
     private static final String CACHE_CONTROL_VALUE = "max-age=315360000";
     private static final String EXPIRES_VALUE = "Thu, 31 Dec 2037 23:59:59 GMT";
@@ -339,7 +338,7 @@ public class HttpBlobHandler extends SimpleChannelUpstreamHandler implements
                 writeFuture.addListener(ChannelFutureListener.CLOSE);
             }
         } catch (Throwable t) {
-            /**
+            /*
              * Make sure RandomAccessFile is closed when exception is raised.
              * In case of success, the ChannelFutureListener in "transferFile" will take care
              * that the resources are released.
@@ -370,7 +369,7 @@ public class HttpBlobHandler extends SimpleChannelUpstreamHandler implements
                 writeFuture.addListener(ChannelFutureListener.CLOSE);
             }
         } catch (Throwable t) {
-            /**
+            /*
              * Make sure RandomAccessFile is closed when exception is raised.
              * In case of success, the ChannelFutureListener in "transferFile" will take care
              * that the resources are released.
@@ -470,7 +469,7 @@ public class HttpBlobHandler extends SimpleChannelUpstreamHandler implements
                 break;
         }
 
-        assert exitStatus != null;
+        assert exitStatus != null : "exitStatus should not be null";
         LOGGER.trace("writeToFile exit status http:{} blob: {}", exitStatus, status);
         simpleResponse(exitStatus);
     }

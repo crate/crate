@@ -156,7 +156,7 @@ public class DigestBlob implements Closeable {
             calculateDigest();
         }
 
-        assert md != null;
+        assert md != null : "MessageDigest should not be null";
         try {
             String contentDigest = Hex.encodeHexString(md.digest());
             if (!contentDigest.equals(digest)) {
@@ -241,7 +241,7 @@ public class DigestBlob implements Closeable {
             return;
         }
 
-        assert headCatchedUpLatch != null;
+        assert headCatchedUpLatch != null : "headCatchedUpLatch should not be null";
         try {
             headCatchedUpLatch.await();
         } catch (InterruptedException e) {

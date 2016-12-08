@@ -43,13 +43,13 @@ public class RowN implements Row {
     }
 
     public void cells(Object[] cells) {
-        assert cells != null;
+        assert cells != null : "cells must not be null";
         this.cells = cells;
     }
 
     @Override
     public Object get(int index) {
-        assert cells != null;
+        assert cells != null : "cells must not be null";
         return cells[index];
     }
 

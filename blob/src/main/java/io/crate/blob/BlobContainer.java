@@ -37,9 +37,8 @@ import java.util.*;
 
 public class BlobContainer {
 
-    private final static ESLogger logger = Loggers.getLogger(BlobContainer.class);
-
-    public static final String[] SUB_DIRS = new String[256];
+    private static final ESLogger logger = Loggers.getLogger(BlobContainer.class);
+    private static final String[] SUB_DIRS = new String[256];
 
     public static final byte[] PREFIXES = new byte[256];
 
@@ -170,7 +169,7 @@ public class BlobContainer {
 
         private final File[] subDirs;
 
-        public RecursiveFileIterable(File[] subDirs) {
+        private RecursiveFileIterable(File[] subDirs) {
             this.subDirs = subDirs;
         }
 
@@ -189,7 +188,7 @@ public class BlobContainer {
         private File[] files = null;
         private int fileIndex = -1;
 
-        public RecursiveFileIterator(File[] subDirs) {
+        private RecursiveFileIterator(File[] subDirs) {
             this.subDirs = subDirs;
         }
 
@@ -216,12 +215,12 @@ public class BlobContainer {
                 return files[++fileIndex];
             }
 
-            throw new NoSuchElementException();
+            throw new NoSuchElementException("List of files is empty");
         }
 
         @Override
         public void remove() {
-            throw new UnsupportedOperationException();
+            throw new UnsupportedOperationException("remove is unsupported for " + BlobContainer.class.getSimpleName());
         }
     }
 }

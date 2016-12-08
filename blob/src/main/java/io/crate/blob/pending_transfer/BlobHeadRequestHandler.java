@@ -102,7 +102,7 @@ public class BlobHeadRequestHandler {
         @Override
         public void messageReceived(PutBlobHeadChunkRequest request, TransportChannel channel) throws Exception {
             BlobTransferStatus transferStatus = blobTransferTarget.getActiveTransfer(request.transferId);
-            assert transferStatus != null;
+            assert transferStatus != null : "transferStatus should not be null";
             transferStatus.digestBlob().addToHead(request.content);
             channel.sendResponse(TransportResponse.Empty.INSTANCE);
         }

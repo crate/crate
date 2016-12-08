@@ -131,7 +131,7 @@ public class SetType extends DataType implements CollectionType, Streamer<Set> {
 
     @Override
     public void writeValueTo(StreamOutput out, Object v) throws IOException {
-        assert v instanceof Set;
+        assert v instanceof Set : "v must be instance of Set";
         Set s = (Set) v;
         boolean containsNull = s.contains(null);
         out.writeVInt(containsNull ? s.size() - 1 : s.size());
