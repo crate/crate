@@ -17,6 +17,7 @@ pytz==2016.4
 six==1.10.0
 snowballstemmer==1.2.1
 Sphinx==1.4.4
+sphinx-autobuild==0.6.0
 sphinxcontrib-plantuml==0.8.1
 urllib3==1.16
 wcwidth==0.1.6
