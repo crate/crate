@@ -236,10 +236,15 @@ public class SQLOperations {
                     Statement statement = preparedStmt.statement();
 
                     AnalyzedRelation analyzedRelation;
-                    try {
-                        analyzedRelation = analyzer.unboundAnalyze(statement, sessionContext, preparedStmt.paramTypes());
-                    } catch (Throwable t) {
-                        throw Exceptions.createSQLActionException(t);
+                    if (preparedStmt.isRelationInitialized()) {
+                        analyzedRelation = preparedStmt.relation();
+                    } else {
+                        try {
+                            analyzedRelation = analyzer.unboundAnalyze(statement, sessionContext, preparedStmt.paramTypes());
+                            preparedStmt.relation(analyzedRelation);
+                        } catch (Throwable t) {
+                            throw Exceptions.createSQLActionException(t);
+                        }
                     }
                     if (analyzedRelation == null) {
                         // statement without result set -> return null for NoData msg

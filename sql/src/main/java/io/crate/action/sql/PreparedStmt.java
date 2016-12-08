@@ -35,7 +35,9 @@ class PreparedStmt {
     private final Statement statement;
     private final String query;
     private final ParamTypeHints paramTypes;
+
     private AnalyzedRelation relation;
+    private boolean relationInitialized = false;
 
     PreparedStmt(Statement statement, String query, List<DataType> paramTypes) {
         this.statement = statement;
@@ -55,12 +57,17 @@ class PreparedStmt {
         return query;
     }
 
+    public boolean isRelationInitialized() {
+        return relationInitialized;
+    }
+
     @Nullable
     public AnalyzedRelation relation() {
         return relation;
     }
 
-    public void relation(AnalyzedRelation relation) {
+    public void relation(@Nullable AnalyzedRelation relation) {
+        relationInitialized = true;
         this.relation = relation;
     }
 }
