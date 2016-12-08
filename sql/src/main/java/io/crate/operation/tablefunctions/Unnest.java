@@ -82,7 +82,7 @@ public class Unnest implements TableFunctionImplementation {
                     @Override
                     public Row next() {
                         if (!hasNext()) {
-                            throw new NoSuchElementException();
+                            throw new NoSuchElementException("No more rows");
                         }
                         for (int c = 0; c < numCols; c++) {
                             Object[] columnValues = values.get(c);
@@ -98,7 +98,8 @@ public class Unnest implements TableFunctionImplementation {
 
                     @Override
                     public void remove() {
-                        throw new UnsupportedOperationException();
+                        throw new UnsupportedOperationException("remove is not supported for " +
+                                                                Unnest.class.getSimpleName() + "$iterator");
                     }
                 };
             }

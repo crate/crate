@@ -107,7 +107,8 @@ public class TableElementsAnalyzer {
             context.analyzedColumnDefinition.name(ident.name());
 
             // nested columns can only be added using alter table so no other columns exist.
-            assert context.analyzedTableElements.columns().size() == 0;
+            assert context.analyzedTableElements.columns().size() == 0 :
+                "context.analyzedTableElements.columns().size() must be 0";
 
             AnalyzedColumnDefinition root = context.analyzedColumnDefinition;
             if (!ident.path().isEmpty()) {

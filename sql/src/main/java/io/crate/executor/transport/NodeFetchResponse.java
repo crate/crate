@@ -66,7 +66,7 @@ public class NodeFetchResponse extends TransportResponse {
         super.readFrom(in);
         int numReaders = in.readVInt();
         if (numReaders > 0) {
-            assert streamers != null;
+            assert streamers != null : "streamers must not be null";
             fetched = new IntObjectHashMap<>(numReaders);
             for (int i = 0; i < numReaders; i++) {
                 int readerId = in.readVInt();

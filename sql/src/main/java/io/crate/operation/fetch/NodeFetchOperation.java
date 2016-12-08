@@ -175,7 +175,7 @@ public class NodeFetchOperation {
 
             TableIdent ident = fetchContext.tableIdent(readerId);
             final TableFetchInfo tfi = tableFetchInfos.get(ident);
-            assert tfi != null;
+            assert tfi != null : "tfi must not be null";
 
             CollectRunnable runnable = new CollectRunnable(
                 tfi.createCollector(readerId),

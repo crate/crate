@@ -57,7 +57,7 @@ public class InputColumn extends Symbol implements Comparable<InputColumn> {
     }
 
     public InputColumn(int index, @Nullable DataType dataType) {
-        assert index >= 0;
+        assert index >= 0 : "index must be >= 0";
         this.index = index;
         this.dataType = MoreObjects.firstNonNull(dataType, DataTypes.UNDEFINED);
     }

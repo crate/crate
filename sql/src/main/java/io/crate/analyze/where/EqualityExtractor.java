@@ -246,7 +246,8 @@ class EqualityExtractor {
 
         @Override
         public void writeTo(StreamOutput out) throws IOException {
-            throw new UnsupportedOperationException();
+            throw new UnsupportedOperationException("writeTo not supported for " +
+                                                    EqProxy.class.getSimpleName());
         }
 
         public String forDisplay() {

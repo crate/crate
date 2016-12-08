@@ -123,7 +123,7 @@ public class RoutineInfos implements Iterable<RoutineInfo> {
                     @Nullable
                     @Override
                     public RoutineInfo apply(Map.Entry<String, Settings> input) {
-                        assert input != null;
+                        assert input != null : "input must not be null";
                         return new RoutineInfo(input.getKey(),
                             RoutineType.ANALYZER.getName()
                         );
@@ -135,7 +135,7 @@ public class RoutineInfos implements Iterable<RoutineInfo> {
                     @Nullable
                     @Override
                     public RoutineInfo apply(Map.Entry<String, Settings> input) {
-                        assert input != null;
+                        assert input != null : "input must not be null";
                         return new RoutineInfo(input.getKey(),
                             RoutineType.CHAR_FILTER.getName()
                         );
@@ -147,7 +147,7 @@ public class RoutineInfos implements Iterable<RoutineInfo> {
                     @Nullable
                     @Override
                     public RoutineInfo apply(Map.Entry<String, Settings> input) {
-                        assert input != null;
+                        assert input != null : "input must not be null";
                         return new RoutineInfo(input.getKey(),
                             RoutineType.TOKEN_FILTER.getName()
                         );
@@ -159,7 +159,7 @@ public class RoutineInfos implements Iterable<RoutineInfo> {
                     @Nullable
                     @Override
                     public RoutineInfo apply(Map.Entry<String, Settings> input) {
-                        assert input != null;
+                        assert input != null : "input must not be null";
                         return new RoutineInfo(input.getKey(),
                             RoutineType.TOKENIZER.getName()
                         );

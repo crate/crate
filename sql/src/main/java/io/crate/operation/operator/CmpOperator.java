@@ -34,9 +34,9 @@ public abstract class CmpOperator extends Operator<Object> {
 
     @Override
     public Boolean evaluate(Input<Object>... args) {
-        assert (args != null);
-        assert (args.length == 2);
-        assert (args[0] != null && args[1] != null);
+        assert args != null : "args must not be null";
+        assert args.length == 2 : "number of args must be 2";
+        assert args[0] != null && args[1] != null : "1st and 2nd argument must not be null";
 
         Object left = args[0].value();
         Object right = args[1].value();

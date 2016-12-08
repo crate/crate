@@ -239,7 +239,7 @@ public class ManyTableConsumer implements Consumer {
                 joinPair
             );
 
-            assert leftQuerySpec != null;
+            assert leftQuerySpec != null : "leftQuerySpec must not be null";
             final RelationColumnReWriteCtx reWriteCtx = new RelationColumnReWriteCtx(join);
             Function<? super Symbol, Symbol> replaceFunction = new Function<Symbol, Symbol>() {
                 @Nullable
@@ -328,7 +328,7 @@ public class ManyTableConsumer implements Consumer {
     }
 
     static TwoTableJoin twoTableJoin(Rewriter rewriter, MultiSourceSelect mss) {
-        assert mss.sources().size() == 2;
+        assert mss.sources().size() == 2 : "number of mss.sources() must be 2";
         Iterator<QualifiedName> it = getOrderedRelationNames(mss, ImmutableSet.<Set<QualifiedName>>of()).iterator();
         QualifiedName left = it.next();
         QualifiedName right = it.next();

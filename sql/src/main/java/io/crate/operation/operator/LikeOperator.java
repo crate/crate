@@ -67,8 +67,8 @@ public class LikeOperator extends Operator<BytesRef> {
 
     @Override
     public Boolean evaluate(Input<BytesRef>... args) {
-        assert (args != null);
-        assert (args.length == 2);
+        assert args != null : "args must not be null";
+        assert args.length == 2 : "number of args must be 2";
 
         BytesRef expression = args[0].value();
         BytesRef pattern = args[1].value();

@@ -53,7 +53,7 @@ public class AggregationProjection extends Projection {
 
     public AggregationProjection(List<Aggregation> aggregations, RowGranularity contextGranularity) {
         this.contextGranularity = contextGranularity;
-        assert aggregations != null;
+        assert aggregations != null : "aggregations must not be null";
         this.aggregations = aggregations;
     }
 

@@ -55,7 +55,7 @@ public class CurrentSchemaFunction extends Scalar<BytesRef, Object> implements F
 
     @Override
     public BytesRef evaluate(Input<Object>... args) {
-        assert args.length == 0;
+        assert args.length == 0 : "number of args must be 0";
         throw new UnsupportedOperationException("Cannot evaluate CURRENT_SCHEMA function.");
     }
 

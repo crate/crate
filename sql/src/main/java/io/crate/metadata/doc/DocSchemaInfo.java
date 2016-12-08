@@ -273,7 +273,7 @@ public class DocSchemaInfo implements SchemaInfo {
     }
 
     private void invalidateAliases(ImmutableOpenMap<String, AliasMetaData> aliases) {
-        assert aliases != null;
+        assert aliases != null : "aliases must not be null";
         if (aliases.size() > 0) {
             cache.invalidateAll(Arrays.asList(aliases.keys().toArray(String.class)));
         }

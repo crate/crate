@@ -181,7 +181,7 @@ public class QuerySpec {
             }
             i++;
         }
-        assert i == outputs.size();
+        assert i == outputs.size() : "i must be equal to outputs.size()";
         return -1;
     }
 

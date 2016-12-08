@@ -359,7 +359,7 @@ public class AnalyzedColumnDefinition {
     }
 
     public void ident(ColumnIdent ident) {
-        assert this.ident == null;
+        assert this.ident == null : "ident must be null";
         this.ident = ident;
     }
 

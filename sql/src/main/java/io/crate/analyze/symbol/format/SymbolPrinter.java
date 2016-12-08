@@ -63,7 +63,8 @@ public class SymbolPrinter {
     private static final OperatorFormatSpec SIMPLE_OPERATOR_FORMAT_SPEC = new OperatorFormatSpec() {
         @Override
         public String operator(Function function) {
-            assert function.info().ident().name().startsWith("op_");
+            assert function.info().ident().name().startsWith("op_") :
+                "function.info().ident().name() must start with 'op_'";
             return function.info().ident().name().substring(3).toUpperCase(Locale.ENGLISH);
         }
     };
@@ -207,7 +208,7 @@ public class SymbolPrinter {
         private void printAnyOperator(Function function, SymbolPrinterContext context) {
 
             List<Symbol> args = function.arguments();
-            assert args.size() == 2;
+            assert args.size() == 2 : "function's number of arguments must be 2";
             context.builder.append(PAREN_OPEN); // wrap operator in parens to ensure precedence
             context.down();
             process(args.get(0), context);

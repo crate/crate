@@ -54,7 +54,8 @@ public class BlobReferenceResolver implements ReferenceResolver<BlobCollectorExp
 
     @Override
     public BlobCollectorExpression<?> getImplementation(Reference refInfo) {
-        assert (BlobSchemaInfo.NAME.equals(refInfo.ident().tableIdent().schema()));
+        assert BlobSchemaInfo.NAME.equals(refInfo.ident().tableIdent().schema()) :
+            "schema name must be 'blob";
         ExpressionBuilder builder = expressionBuilder.get(refInfo.ident().columnIdent().name());
         if (builder != null) {
             return builder.create();

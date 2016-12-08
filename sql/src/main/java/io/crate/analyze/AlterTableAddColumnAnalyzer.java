@@ -111,14 +111,14 @@ class AlterTableAddColumnAnalyzer extends DefaultTraversalVisitor<AddColumnAnaly
                 continue;
             }
             Reference pkInfo = context.table().getReference(pkIdent);
-            assert pkInfo != null;
+            assert pkInfo != null : "pk must not be null";
 
             AnalyzedColumnDefinition pkColumn = new AnalyzedColumnDefinition(null);
             pkColumn.ident(pkIdent);
             pkColumn.name(pkIdent.name());
             pkColumn.isPrimaryKey(true);
 
-            assert !(pkInfo.valueType() instanceof CollectionType); // pk can't be an array
+            assert !(pkInfo.valueType() instanceof CollectionType) : "pk can't be an array";
             pkColumn.dataType(pkInfo.valueType().getName());
             context.analyzedTableElements().add(pkColumn);
         }

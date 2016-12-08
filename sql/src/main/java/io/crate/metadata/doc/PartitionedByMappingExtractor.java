@@ -41,7 +41,7 @@ public class PartitionedByMappingExtractor {
         @Override
         public Tuple<ColumnIdent, DataType> apply(List<String> partitioned) {
             ColumnIdent ident = ColumnIdent.fromPath(partitioned.get(0));
-            assert ident != null;
+            assert ident != null : "ident must not be null";
             DataType type = DocIndexMetaData.getColumnDataType(new MapBuilder<String, Object>().put("type", partitioned.get(1)).map());
             return new Tuple<>(ident, type);
         }

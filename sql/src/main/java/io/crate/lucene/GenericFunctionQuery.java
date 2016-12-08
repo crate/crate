@@ -102,7 +102,7 @@ class GenericFunctionQuery extends Query {
                     }
                 }
                 if (match) {
-                    assert s.score() == 0f;
+                    assert s.score() == 0f : "score must be 0";
                     return Explanation.match(0f, "Match on id " + doc);
                 } else {
                     return Explanation.match(0f, "No match on id " + doc);

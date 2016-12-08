@@ -61,7 +61,7 @@ public class SubstrFunction extends Scalar<BytesRef, Object> implements DynamicF
 
     @Override
     public BytesRef evaluate(Input[] args) {
-        assert (args.length >= 2 && args.length <= 3);
+        assert args.length == 2 || args.length == 3 : "number of arguments must be 2 or 3";
         final Object val = args[0].value();
         if (val == null) {
             return null;
@@ -147,7 +147,7 @@ public class SubstrFunction extends Scalar<BytesRef, Object> implements DynamicF
         }
 
         // Check if we didn't go over the limit on the last character.
-        if (pos > limit) throw new IllegalArgumentException();
+        if (pos > limit) throw new IllegalArgumentException("begin index must not be > end index");
         return new BytesRef(bytes, posBegin, pos - posBegin);
     }
 

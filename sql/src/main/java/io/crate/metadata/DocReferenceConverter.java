@@ -39,7 +39,7 @@ public class DocReferenceConverter {
     private final static Predicate<Reference> DEFAULT_PREDICATE = new Predicate<Reference>() {
         @Override
         public boolean apply(@Nullable Reference input) {
-            assert input != null;
+            assert input != null : "input must not be null";
 
             ReferenceIdent ident = input.ident();
             String schema = ident.tableIdent().schema();

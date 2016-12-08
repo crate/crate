@@ -162,7 +162,7 @@ public class StreamBucket implements Bucket, Streamable {
         if (size < 1) {
             return Collections.emptyIterator();
         }
-        assert streamers != null;
+        assert streamers != null : "streamers must not be null";
         return new RowIterator();
     }
 
@@ -176,7 +176,7 @@ public class StreamBucket implements Bucket, Streamable {
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
-        assert size > -1;
+        assert size > -1 : "size must be > -1";
         out.writeVInt(size);
         if (size > 0) {
             out.writeBytesReference(bytes);

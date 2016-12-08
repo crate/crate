@@ -75,7 +75,7 @@ abstract class TransportKillNodeAction<Request extends TransportRequest> extends
         Futures.addCallback(doKill(request), new FutureCallback<Integer>() {
             @Override
             public void onSuccess(@Nullable Integer result) {
-                assert result != null;
+                assert result != null : "result must not be null";
                 listener.onResponse(new KillResponse(result));
             }
 

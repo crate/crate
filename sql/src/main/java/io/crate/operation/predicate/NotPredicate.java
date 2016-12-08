@@ -53,8 +53,8 @@ public class NotPredicate extends Scalar<Boolean, Boolean> implements OperatorFo
 
     @Override
     public Symbol normalizeSymbol(Function symbol, TransactionContext transactionContext) {
-        assert (symbol != null);
-        assert (symbol.arguments().size() == 1);
+        assert symbol != null : "function must not be null";
+        assert symbol.arguments().size() == 1 : "function's number of arguments must be 1";
 
         Symbol arg = symbol.arguments().get(0);
         if (arg instanceof Input) {
@@ -74,7 +74,7 @@ public class NotPredicate extends Scalar<Boolean, Boolean> implements OperatorFo
 
     @Override
     public Boolean evaluate(Input<Boolean>... args) {
-        assert args.length == 1;
+        assert args.length == 1 : "number of args must be 1";
         Boolean value = args[0].value();
         return value != null ? !value : null;
     }

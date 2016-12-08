@@ -73,7 +73,7 @@ public class NestedLoopPhase extends AbstractProjectionsPhase implements Upstrea
                            int numRightOutputs) {
         super(jobId, executionNodeId, name, projections);
         Projection lastProjection = Iterables.getLast(projections, null);
-        assert lastProjection != null;
+        assert lastProjection != null : "lastProjection must not be null";
         outputTypes = Symbols.extractTypes(lastProjection.outputs());
         this.leftMergePhase = leftMergePhase;
         this.rightMergePhase = rightMergePhase;

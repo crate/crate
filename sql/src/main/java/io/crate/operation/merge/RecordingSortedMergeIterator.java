@@ -84,7 +84,7 @@ class RecordingSortedMergeIterator<TKey, TRow> extends UnmodifiableIterator<TRow
     @Override
     public TRow next() {
         if (!hasNext()) {
-            throw new NoSuchElementException();
+            throw new NoSuchElementException("no more rows should exist");
         }
         lastUsedIter = queue.remove();
         sortRecording.add(lastUsedIter.i); // record sorting for repeat

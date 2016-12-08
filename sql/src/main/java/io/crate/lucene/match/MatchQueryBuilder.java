@@ -79,7 +79,7 @@ public class MatchQueryBuilder {
     }
 
     public Query query(Map<String, Object> fields, BytesRef queryString) throws IOException {
-        assert fields.size() == 1;
+        assert fields.size() == 1 : "number of fields must be 1";
         Map.Entry<String, Object> entry = fields.entrySet().iterator().next();
         Query query = singleQueryAndApply(
             matchType.matchQueryType(), entry.getKey(), queryString, floatOrNull(entry.getValue()));
@@ -91,17 +91,21 @@ public class MatchQueryBuilder {
     }
 
     IllegalArgumentException illegalMatchType(String matchType) {
-        throw new IllegalArgumentException(String.format(Locale.ENGLISH,
-            "Unknown matchType \"%s\". Possible matchTypes are: %s", matchType,
-            Joiner.on(", ").join(Iterables.transform(SUPPORTED_TYPES.keySet(), new Function<BytesRef, String>() {
-                    @Nullable
-                    @Override
-                    public String apply(@Nullable BytesRef input) {
-                        return BytesRefs.toString(input);
-                    }
+        String matchTypes = Joiner.on(", ").join(Iterables.transform(SUPPORTED_TYPES.keySet(),
+            new Function<BytesRef, String>() {
+                @Nullable
+                @Override
+                public String apply(@Nullable BytesRef input) {
+                    return BytesRefs.toString(input);
                 }
+            }
 
-            ))));
+        ));
+        throw new IllegalArgumentException(String.format(
+            Locale.ENGLISH,
+            "Unknown matchType \"%s\". Possible matchTypes are: %s",
+            matchType,
+            matchTypes));
     }
 
     @Nullable

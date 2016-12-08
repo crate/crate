@@ -27,8 +27,8 @@ public class RoutineInfo {
     private String type;
 
     public RoutineInfo(String name, String type) {
-        assert name != null;
-        assert type != null;
+        assert name != null : "name must not be null";
+        assert type != null : "type must not be null";
         this.name = name;
         this.type = type;
     }

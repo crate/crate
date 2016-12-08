@@ -70,7 +70,7 @@ class QuerySplittingVisitor extends ReplacingSymbolVisitor<QuerySplittingVisitor
         Context context = new Context(joinPairs);
         context.query = process(query, context);
         if (!context.multiRelation) {
-            assert context.seenRelation != null;
+            assert context.seenRelation != null : "context.seenRelation must not be null";
             context.queries.put(context.seenRelation.getQualifiedName(), context.query);
             context.query = null;
         }
@@ -79,7 +79,7 @@ class QuerySplittingVisitor extends ReplacingSymbolVisitor<QuerySplittingVisitor
 
     @Override
     public Symbol process(Symbol symbol, @Nullable Context context) {
-        assert context != null;
+        assert context != null : "context must not be null";
         context.seenRelation = null;
         return super.process(symbol, context);
     }

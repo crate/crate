@@ -36,7 +36,7 @@ public class AlterBlobTableAnalyzedStatement extends AbstractDDLAnalyzedStatemen
     }
 
     public void table(TableIdent tableIdent) {
-        assert BlobSchemaInfo.NAME.equals(tableIdent.schema());
+        assert BlobSchemaInfo.NAME.equals(tableIdent.schema()) : "schema name must be 'blob'";
         tableInfo = (BlobTableInfo) schemas.getTableInfo(tableIdent);
     }
 

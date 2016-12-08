@@ -59,8 +59,8 @@ public class IsNullPredicate<T> extends Scalar<Boolean, T> implements FunctionFo
 
     @Override
     public Symbol normalizeSymbol(Function symbol, TransactionContext transactionContext) {
-        assert (symbol != null);
-        assert (symbol.arguments().size() == 1);
+        assert symbol != null : "function must not be null";
+        assert symbol.arguments().size() == 1 : "function's number of arguments must be 1";
 
         Symbol arg = symbol.arguments().get(0);
         if (arg.equals(Literal.NULL) || arg.valueType().equals(DataTypes.UNDEFINED)) {
@@ -73,7 +73,7 @@ public class IsNullPredicate<T> extends Scalar<Boolean, T> implements FunctionFo
 
     @Override
     public Boolean evaluate(Input[] args) {
-        assert args.length == 1;
+        assert args.length == 1 : "number of args must be 1";
         return args[0] == null || args[0].value() == null;
     }
 

@@ -151,7 +151,7 @@ public class TransportShardDeleteAction extends TransportShardAction<ShardDelete
         item.versionType(delete.versionType().versionTypeForReplicationAndRecovery());
         item.version(delete.version());
 
-        assert item.versionType().validateVersionForWrites(item.version());
+        assert item.versionType().validateVersionForWrites(item.version()) : "item.version() must be valid";
 
         return delete.found();
     }

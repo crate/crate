@@ -18,7 +18,7 @@ public class OrderByCollectorExpression extends LuceneCollectorExpression<Object
     private Object missingValue;
 
     public OrderByCollectorExpression(Symbol symbol, OrderBy orderBy) {
-        assert orderBy.orderBySymbols().contains(symbol);
+        assert orderBy.orderBySymbols().contains(symbol) : "symbol must be part of orderBy symbols";
         orderIndex = orderBy.orderBySymbols().indexOf(symbol);
         valueType = symbol.valueType();
         this.missingValue = LuceneMissingValue.missingValue(

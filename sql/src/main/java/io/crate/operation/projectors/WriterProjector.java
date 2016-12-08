@@ -128,7 +128,7 @@ public class WriterProjector extends AbstractProjector {
                         parent.put(currentKey, child);
                         parent = child;
                     } else {
-                        assert o instanceof Map;
+                        assert o instanceof Map : "o must be instance of Map";
                         parent = (Map) o;
                     }
                 }

@@ -116,8 +116,8 @@ public class ESGetTask extends JobTask {
                            TransportMultiGetAction transportAction,
                            RowReceiver downstream) {
             super(task, transportAction, downstream);
-            assert task.esGet.docKeys().size() > 1;
-            assert task.projectorFactory != null;
+            assert task.esGet.docKeys().size() > 1 : "number of docKeys must be > 1";
+            assert task.projectorFactory != null : "task.projectorFactory must not be null";
         }
 
         @Override
@@ -228,7 +228,7 @@ public class ESGetTask extends JobTask {
                             TransportGetAction transportAction,
                             RowReceiver downstream) {
             super(task, transportAction, downstream);
-            assert task.esGet.docKeys().size() == 1;
+            assert task.esGet.docKeys().size() == 1 : "numer of docKeys must be 1";
             this.row = new FieldExtractorRow<>(task.extractors);
         }
 
@@ -286,7 +286,7 @@ public class ESGetTask extends JobTask {
         this.esGet = esGet;
         this.jobContextService = jobContextService;
 
-        assert esGet.docKeys().size() > 0;
+        assert esGet.docKeys().size() > 0 : "number of docKeys must be > 0";
         assert esGet.limit() != 0 : "shouldn't execute ESGetTask if limit is 0";
 
         EvaluatingNormalizer normalizer = EvaluatingNormalizer.functionOnlyNormalizer(functions, ReplaceMode.MUTATE);
@@ -344,7 +344,7 @@ public class ESGetTask extends JobTask {
 
     public static String indexName(DocTableInfo tableInfo, @Nullable List<BytesRef> values) {
         if (tableInfo.isPartitioned()) {
-            assert values != null;
+            assert values != null : "values must not be null";
             return new PartitionName(tableInfo.ident(), values).asIndexName();
         } else {
             return tableInfo.ident().indexName();
@@ -423,7 +423,7 @@ public class ESGetTask extends JobTask {
                 @Override
                 public Object apply(GetResponse response) {
                     Map<String, Object> sourceAsMap = response.getSourceAsMap();
-                    assert sourceAsMap != null;
+                    assert sourceAsMap != null : "sourceAsMap must not be null";
                     return reference.valueType().value(XContentMapValues.extractValue(field, sourceAsMap));
                 }
             };

@@ -72,7 +72,7 @@ public class Extract
         if (field instanceof ParameterExpression) {
             fieldName = parameters[((ParameterExpression) field).index()].toString();
         } else {
-            assert field instanceof StringLiteral;
+            assert field instanceof StringLiteral : "field must be StringLiteral";
             fieldName = ((StringLiteral) field).getValue();
         }
         return Field.valueOf(fieldName.toUpperCase(Locale.ENGLISH));

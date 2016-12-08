@@ -86,7 +86,7 @@ public class ShardReferenceResolver extends AbstractReferenceResolver {
         try {
             DocTableInfo info = (DocTableInfo) schemas.getTableInfo(tableIdent);
             if (!schemas.isOrphanedAlias(info)) {
-                assert info.isPartitioned();
+                assert info.isPartitioned() : "table must be partitioned";
                 int i = 0;
                 int numPartitionedColumns = info.partitionedByColumns().size();
 

@@ -232,7 +232,7 @@ public class JobExecutionContext implements CompletionListenable {
 
         private RemoveSubContextPosition remove() {
             ExecutionSubContext removed = subContexts.remove(id);
-            assert removed != null;
+            assert removed != null : "removed must not be null";
             if (numSubContexts.decrementAndGet() == 0) {
                 finish();
                 return RemoveSubContextPosition.LAST;
@@ -242,7 +242,7 @@ public class JobExecutionContext implements CompletionListenable {
 
         @Override
         public void onSuccess(@Nullable CompletionState state) {
-            assert state != null;
+            assert state != null : "state must not be null";
             statsTables.operationFinished(id, jobId, null, state.bytesUsed());
             remove();
         }

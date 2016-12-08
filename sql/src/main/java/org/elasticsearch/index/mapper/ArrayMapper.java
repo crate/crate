@@ -78,7 +78,7 @@ public class ArrayMapper extends FieldMapper implements ArrayValueMapperParser {
     public static final XContentBuilderString INNER = new XContentBuilderString(INNER_TYPE);
     private Mapper innerMapper;
 
-    protected ArrayMapper(String simpleName, MappedFieldType fieldType, MappedFieldType defaultFieldType,
+    ArrayMapper(String simpleName, MappedFieldType fieldType, MappedFieldType defaultFieldType,
                           Settings indexSettings, MultiFields multiFields, CopyTo copyTo, Mapper innerMapper) {
         super(simpleName, fieldType, defaultFieldType, indexSettings, multiFields, copyTo);
         this.innerMapper = innerMapper;
@@ -193,7 +193,7 @@ public class ArrayMapper extends FieldMapper implements ArrayValueMapperParser {
 
     @Override
     public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
-        /**
+        /*
          * array mapping should look like:
          *
          * "fieldName": {
@@ -286,7 +286,6 @@ public class ArrayMapper extends FieldMapper implements ArrayValueMapperParser {
             context.path().add(simpleName());
             update = DocumentParser.parseObject(context, ((ObjectMapper) innerMapper), false);
             context.path().remove();
-            ;
         }
         return update;
     }
@@ -318,6 +317,7 @@ public class ArrayMapper extends FieldMapper implements ArrayValueMapperParser {
     protected void parseCreateField(ParseContext context, List<Field> fields) throws IOException {
         // parseCreateField is called in the original FieldMapper parse method.
         // Since parse is overwritten parseCreateField is never called
-        throw new UnsupportedOperationException();
+        throw new UnsupportedOperationException("parseCreateField not supported for " +
+                                                ArrayMapper.class.getSimpleName());
     }
 }

@@ -98,7 +98,7 @@ public class DistributedResultRequest extends TransportRequest {
 
     public void streamers(Streamer<?>[] streamers) {
         if (rows instanceof StreamBucket) {
-            assert streamers != null;
+            assert streamers != null : "streamers must not be null";
             ((StreamBucket) rows).streamers(streamers);
         }
         this.streamers = streamers;

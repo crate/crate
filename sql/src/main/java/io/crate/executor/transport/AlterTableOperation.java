@@ -278,7 +278,8 @@ public class AlterTableOperation {
             try {
                 Map<String, Object> mapping = parseMapping(cursor.value.toString());
                 Object o = mapping.get(Constants.DEFAULT_MAPPING_TYPE);
-                assert o != null && o instanceof Map;
+                assert o != null && o instanceof Map :
+                    "o must not be null and must be instance of Map";
 
                 XContentHelper.update(mergedMapping, (Map) o, false);
             } catch (IOException e) {

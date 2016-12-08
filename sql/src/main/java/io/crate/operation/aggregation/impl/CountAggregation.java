@@ -98,7 +98,7 @@ public class CountAggregation extends AggregationFunction<CountAggregation.LongS
 
     @Override
     public Symbol normalizeSymbol(Function function, TransactionContext transactionContext) {
-        assert (function.arguments().size() <= 1);
+        assert function.arguments().size() <= 1 : "function's number of arguments must be 0 or 1";
 
         if (function.arguments().size() == 1) {
             if (function.arguments().get(0).symbolType().isValueSymbol()) {

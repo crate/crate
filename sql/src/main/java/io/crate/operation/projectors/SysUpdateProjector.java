@@ -62,7 +62,7 @@ class SysUpdateProjector extends AbstractProjector {
     @SuppressWarnings("unchecked")
     @Override
     public Result setNextRow(Row row) {
-        assert row instanceof ValueAndInputRow;
+        assert row instanceof ValueAndInputRow : "row must be instance of ValueAndInputRow";
 
         for (CollectExpression<Row, ?> collectExpression : collectExpressions) {
             collectExpression.setNextRow(row);

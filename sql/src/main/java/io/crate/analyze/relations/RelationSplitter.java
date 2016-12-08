@@ -149,7 +149,7 @@ public final class RelationSplitter {
         // generate the outputs of the subSpecs
         for (Map.Entry<AnalyzedRelation, QuerySpec> entry : specs.entrySet()) {
             Collection<Symbol> fields = context.fields.get(entry.getKey());
-            assert entry.getValue().outputs() == null;
+            assert entry.getValue().outputs() == null : "entry.getValue().outputs() must not be null";
             entry.getValue().outputs(new ArrayList<>(fields));
         }
     }
@@ -159,7 +159,7 @@ public final class RelationSplitter {
             return;
         }
         Symbol query = querySpec.where().query();
-        assert query != null;
+        assert query != null : "query must not be null";
         QuerySplittingVisitor.Context context = QuerySplittingVisitor.INSTANCE.process(querySpec.where().query(), joinPairs);
         JoinConditionValidator.INSTANCE.process(context.query(), null);
         querySpec.where(new WhereClause(context.query()));
@@ -224,7 +224,7 @@ public final class RelationSplitter {
             AnalyzedRelation relation = entry.getKey();
             OrderBy newOrderBy = orderBy.subset(entry.getValue());
             QuerySpec spec = getSpec(relation);
-            assert !spec.orderBy().isPresent();
+            assert !spec.orderBy().isPresent() : "spec.orderBy() must not be present";
             spec.orderBy(newOrderBy);
             requiredForQuery.addAll(newOrderBy.orderBySymbols());
         }

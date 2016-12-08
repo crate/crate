@@ -61,7 +61,7 @@ public class SQLActionException extends ElasticsearchException {
      */
     public SQLActionException(String message, int errorCode, RestStatus status, StackTraceElement[] stackTraceElements) {
         this(message, errorCode, status);
-        assert stackTraceElements != null;
+        assert stackTraceElements != null : "stackTraceElements must not be null";
         setStackTrace(stackTraceElements);
     }
 
@@ -94,7 +94,7 @@ public class SQLActionException extends ElasticsearchException {
      */
     public int errorCode() {
         List<String> errorCodeHeader = getHeader(ERROR_CODE_KEY);
-        assert errorCodeHeader != null;
+        assert errorCodeHeader != null : "errorCodeHeader must not be null";
         return Integer.parseInt(errorCodeHeader.get(0));
     }
 

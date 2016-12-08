@@ -59,12 +59,12 @@ public class InformationSchemaIterables {
                 @Nullable
                 @Override
                 public Iterable<TableInfo> apply(SchemaInfo input) {
-                    assert input != null;
+                    assert input != null : "input must not be null";
                     // filter out partitions
                     return FluentIterable.from(input).filter(new Predicate<TableInfo>() {
                         @Override
                         public boolean apply(TableInfo input) {
-                            assert input != null;
+                            assert input != null : "input must not be null";
                             return !PartitionName.isPartition(input.ident().indexName());
                         }
                     });
@@ -77,7 +77,7 @@ public class InformationSchemaIterables {
                 @Nullable
                 @Override
                 public Iterable<ColumnContext> apply(TableInfo input) {
-                    assert input != null;
+                    assert input != null : "input must not be null";
                     return new ColumnsIterator(input);
                 }
             });

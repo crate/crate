@@ -58,7 +58,7 @@ class ReaderBucket {
         for (IntCursor intCursor : docs.keys()) {
             docs.indexReplace(intCursor.index, rowIterator.next().materialize());
         }
-        assert !rowIterator.hasNext();
+        assert !rowIterator.hasNext() : "no more rows should exist";
     }
 
     boolean fetchRequired() {

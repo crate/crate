@@ -79,7 +79,7 @@ public class CreateTableStatementAnalyzer extends DefaultTraversalVisitor<Create
 
     @Override
     public CreateTableAnalyzedStatement visitCreateTable(CreateTable node, Context context) {
-        assert context.statement == null;
+        assert context.statement == null : "context.statement must be null";
         context.statement = new CreateTableAnalyzedStatement(fulltextAnalyzerResolver);
         setTableIdent(node, context);
 

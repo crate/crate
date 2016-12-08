@@ -75,7 +75,7 @@ public class LineContext {
             if (o == null) {
                 return null;
             }
-            assert o instanceof Map;
+            assert o instanceof Map : "o must be instance of Map";
             parentMap = (Map) o;
         }
 

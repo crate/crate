@@ -58,7 +58,8 @@ public final class RowsTransformer {
 
         Input<Boolean> condition;
         if (whereClause.hasQuery()) {
-            assert DataTypes.BOOLEAN.equals(whereClause.query().valueType());
+            assert DataTypes.BOOLEAN.equals(whereClause.query().valueType()) :
+                "whereClause.query() must be of type " +  DataTypes.BOOLEAN;
             //noinspection unchecked  whereClause().query() is a symbol of type boolean so it must become Input<Boolean>
             condition = (Input<Boolean>) docInputSymbolVisitor.process(whereClause.query(), ctx);
         } else {

@@ -327,7 +327,7 @@ public class ShardCollectSource extends AbstractComponent implements CollectSour
         }
 
         OrderBy orderBy = collectPhase.orderBy();
-        assert orderBy != null;
+        assert orderBy != null : "orderBy must not be null";
         return new MultiShardScoreDocCollector(
             orderedDocCollectors,
             OrderingByPosition.rowOrdering(

@@ -221,7 +221,8 @@ public class ProjectionToProjectorVisitor
         StringBuilder sb = new StringBuilder(uri);
         Symbol resolvedFileName = normalizer.normalize(WriterProjection.DIRECTORY_TO_FILENAME, context.transactionContext);
         assert resolvedFileName instanceof Literal : "resolvedFileName must be a Literal, but is: " + resolvedFileName;
-        assert resolvedFileName.valueType() == StringType.INSTANCE;
+        assert resolvedFileName.valueType() == StringType.INSTANCE :
+            "resolvedFileName.valueType() must be " + StringType.INSTANCE;
         String fileName = ValueSymbolVisitor.STRING.process(resolvedFileName);
         if (!uri.endsWith("/")) {
             sb.append("/");
@@ -250,7 +251,7 @@ public class ProjectionToProjectorVisitor
         Map<ColumnIdent, Object> objectMap = new HashMap<>(symbolMap.size());
         for (Map.Entry<ColumnIdent, Symbol> entry : symbolMap.entrySet()) {
             Symbol symbol = entry.getValue();
-            assert symbol != null;
+            assert symbol != null : "symbol must not be null";
             objectMap.put(
                 entry.getKey(),
                 symbolVisitor.process(normalizer.normalize(symbol, transactionContext), symbolContext).value()

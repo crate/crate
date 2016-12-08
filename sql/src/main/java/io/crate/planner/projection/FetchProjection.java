@@ -123,6 +123,7 @@ public class FetchProjection extends Projection {
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
-        throw new UnsupportedOperationException();
+        throw new UnsupportedOperationException("writeTo is not supported for " +
+                                                FetchProjection.class.getSimpleName());
     }
 }

@@ -67,7 +67,7 @@ public class EqOperator extends CmpOperator {
 
     @Override
     public Boolean evaluate(Input[] args) {
-        assert args.length == 2;
+        assert args.length == 2 : "number of args must be 2";
         Object left = args[0].value();
         if (left == null) {
             return null;

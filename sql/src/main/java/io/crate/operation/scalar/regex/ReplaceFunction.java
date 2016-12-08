@@ -65,7 +65,7 @@ public class ReplaceFunction extends Scalar<BytesRef, Object> implements Dynamic
     @Override
     public Symbol normalizeSymbol(Function symbol, TransactionContext transactionContext) {
         final int size = symbol.arguments().size();
-        assert (size >= 3 && size <= 4);
+        assert size == 3 || size == 4 : "function's number of arguments must be 3 or 4";
 
         if (anyNonLiterals(symbol.arguments())) {
             return symbol;
@@ -94,7 +94,7 @@ public class ReplaceFunction extends Scalar<BytesRef, Object> implements Dynamic
 
     @Override
     public Scalar<BytesRef, Object> compile(List<Symbol> arguments) {
-        assert arguments.size() >= 3;
+        assert arguments.size() >= 3 : "number of arguments muts be > 3";
         String pattern = null;
         if (arguments.get(1).symbolType() == SymbolType.LITERAL) {
             Literal literal = (Literal) arguments.get(1);
@@ -106,7 +106,8 @@ public class ReplaceFunction extends Scalar<BytesRef, Object> implements Dynamic
         }
         BytesRef flags = null;
         if (arguments.size() == 4) {
-            assert arguments.get(3).symbolType() == SymbolType.LITERAL;
+            assert arguments.get(3).symbolType() == SymbolType.LITERAL
+                : "4th argument must be of type " + SymbolType.LITERAL;
             flags = (BytesRef) ((Literal) arguments.get(2)).value();
         }
 
@@ -120,7 +121,7 @@ public class ReplaceFunction extends Scalar<BytesRef, Object> implements Dynamic
 
     @Override
     public BytesRef evaluate(Input[] args) {
-        assert (args.length >= 3 && args.length <= 4);
+        assert args.length == 3 || args.length == 4 : "number of args must be 3 or 4";
         Object val = args[0].value();
         Object patternValue = args[1].value();
         Object replacementValue = args[2].value();

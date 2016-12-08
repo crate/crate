@@ -100,7 +100,8 @@ public class UpdateAnalyzer {
             null);
         columnExpressionAnalyzer.setResolveFieldsOperation(Operation.UPDATE);
 
-        assert Iterables.getOnlyElement(currentRelationContext.sources().values()) == analyzedRelation;
+        assert Iterables.getOnlyElement(currentRelationContext.sources().values()) == analyzedRelation :
+            "currentRelationContext.sources().values() must have one element and equal to analyzedRelation";
         ExpressionAnalyzer expressionAnalyzer = new ExpressionAnalyzer(
             functions,
             analysis.sessionContext(),

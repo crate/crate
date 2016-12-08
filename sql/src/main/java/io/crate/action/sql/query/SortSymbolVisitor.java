@@ -79,12 +79,12 @@ public class SortSymbolVisitor extends SymbolVisitor<SortSymbolVisitor.SortSymbo
 
     private final CollectInputSymbolVisitor<?> inputSymbolVisitor;
 
-    public SortSymbolVisitor(CollectInputSymbolVisitor<?> inputSymbolVisitor) {
+    SortSymbolVisitor(CollectInputSymbolVisitor<?> inputSymbolVisitor) {
         super();
         this.inputSymbolVisitor = inputSymbolVisitor;
     }
 
-    public SortField[] generateSortFields(List<Symbol> sortSymbols,
+    SortField[] generateSortFields(List<Symbol> sortSymbols,
                                           CollectorContext collectorContext,
                                           boolean[] reverseFlags,
                                           Boolean[] nullsFirst) {
@@ -96,7 +96,8 @@ public class SortSymbolVisitor extends SymbolVisitor<SortSymbolVisitor.SortSymbo
         return sortFields;
     }
 
-    public SortField generateSortField(Symbol symbol, SortSymbolContext sortSymbolContext) {
+
+    SortField generateSortField(Symbol symbol, SortSymbolContext sortSymbolContext) {
         return process(symbol, sortSymbolContext);
     }
 
@@ -168,7 +169,7 @@ public class SortSymbolVisitor extends SymbolVisitor<SortSymbolVisitor.SortSymbo
                                       final boolean missingNullValue) {
         CollectInputSymbolVisitor.Context inputContext = inputSymbolVisitor.extractImplementations(symbol);
         List<Input<?>> inputs = inputContext.topLevelInputs();
-        assert inputs.size() == 1;
+        assert inputs.size() == 1 : "inputs.size() must be 1";
         final Input input = inputs.get(0);
         @SuppressWarnings("unchecked")
         final List<LuceneCollectorExpression> expressions = inputContext.docLevelExpressions();

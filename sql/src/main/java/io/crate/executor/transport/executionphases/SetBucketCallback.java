@@ -38,7 +38,7 @@ class SetBucketCallback extends SetBucketAction implements FutureCallback<List<B
 
     @Override
     public void onSuccess(@Nullable List<Bucket> result) {
-        assert result != null;
+        assert result != null : "result must not be null";
         setBuckets(result);
     }
 

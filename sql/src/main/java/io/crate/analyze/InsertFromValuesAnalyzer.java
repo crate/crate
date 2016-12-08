@@ -73,7 +73,7 @@ class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
                     "Referenced column '%s' isn't part of the column list of the INSERT statement",
                     argumentColumn.path().outputName()));
             }
-            assert columnReference != null;
+            assert columnReference != null : "columnReference must not be null";
             DataType returnType = columnReference.valueType();
             assignmentColumns.add(columnReference.ident().columnIdent().fqn());
             return Literal.of(returnType, returnType.value(insertValues[columns.indexOf(columnReference)]));
@@ -288,7 +288,7 @@ class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
                 int idx = primaryKey.indexOf(columnIdent);
                 if (idx < 0) {
                     // oh look, one or more nested primary keys!
-                    assert value instanceof Map;
+                    assert value instanceof Map : "value must be instance of Map";
                     for (ColumnIdent pkIdent : primaryKey) {
                         if (!pkIdent.getRoot().equals(columnIdent)) {
                             continue;
@@ -324,7 +324,7 @@ class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
                 Assignment assignment = assignments.get(i);
                 Reference columnName = tableRelation.resolveField(
                     (Field) expressionAnalyzer.convert(assignment.columnName(), expressionAnalysisContext));
-                assert columnName != null;
+                assert columnName != null : "columnName must not be null";
 
                 Symbol valueSymbol = normalizer.normalize(
                     valuesAwareExpressionAnalyzer.convert(assignment.expression(), expressionAnalysisContext),
@@ -379,7 +379,7 @@ class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
         assert clusteredByIdent != null : "clusteredByIdent must not be null";
         if (columnValue != null && !columnIdent.equals(clusteredByIdent)) {
             // oh my gosh! A nested clustered by value!!!
-            assert columnValue instanceof Map;
+            assert columnValue instanceof Map : "columnValue must be instance of Map";
             columnValue = StringObjectMaps.fromMapByPath((Map) columnValue, clusteredByIdent.path());
         }
         if (columnValue == null) {
@@ -395,7 +395,7 @@ class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
             if (columnValue == null) {
                 return null;
             }
-            assert columnValue instanceof Map;
+            assert columnValue instanceof Map : "columnValue must be instance of Map";
             Map<String, Object> mapValue = (Map<String, Object>) columnValue;
             // hmpf, one or more nested partitioned by columns
 
@@ -507,7 +507,7 @@ class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
     private void addGeneratedPartitionedColumnValue(ColumnIdent columnIdent,
                                                     Object value,
                                                     Map<String, String> partitionMap) {
-        assert partitionMap != null;
+        assert partitionMap != null : "partitionMap must not be null";
         String generatedValue = BytesRefs.toString(value);
         String givenValue = partitionMap.get(columnIdent.name());
         if (givenValue == null) {

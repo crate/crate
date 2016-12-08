@@ -165,7 +165,7 @@ class DocTableInfoBuilder {
                 if (PartitionName.isPartition(index)) {
                     try {
                         PartitionName partitionName = PartitionName.fromIndexOrTemplate(index);
-                        assert partitionName.tableIdent().equals(ident);
+                        assert partitionName.tableIdent().equals(ident) : "ident must equal partitionName";
                         partitions.add(partitionName);
                     } catch (IllegalArgumentException e) {
                         // ignore

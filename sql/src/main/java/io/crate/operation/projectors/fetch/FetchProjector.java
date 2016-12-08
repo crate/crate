@@ -100,7 +100,7 @@ public class FetchProjector extends AbstractProjector {
 
         @Override
         public Object get(int index) {
-            assert cells != null;
+            assert cells != null : "cells must not be null";
             return cells[index];
         }
 
@@ -246,10 +246,11 @@ public class FetchProjector extends AbstractProjector {
                 int readerId = (int) (doc >> 32);
                 int docId = (int) (long) doc;
                 ReaderBucket readerBucket = context.getReaderBucket(readerId);
-                assert readerBucket != null;
+                assert readerBucket != null : "readerBucket must not be null";
                 setPartitionRow(partitionRows, j, readerBucket);
                 fetchRows[j].cells = readerBucket.get(docId);
-                assert !readerBucket.fetchRequired() || fetchRows[j].cells != null;
+                assert !readerBucket.fetchRequired() || fetchRows[j].cells != null :
+                    "readerBucket doesn't require fetch or row is fetched";
             }
             Result result = downstream.setNextRow(outputRow);
             switch (result) {
@@ -308,7 +309,7 @@ public class FetchProjector extends AbstractProjector {
     private void setPartitionRow(ArrayBackedRow[] partitionRows, int i, ReaderBucket readerBucket) {
         // TODO: could be improved by handling non partitioned requests differently
         if (partitionRows != null && partitionRows[i] != null) {
-            assert readerBucket.partitionValues != null;
+            assert readerBucket.partitionValues != null : "readerBucket's partitionValues must not be null";
             partitionRows[i].cells = readerBucket.partitionValues;
         }
     }

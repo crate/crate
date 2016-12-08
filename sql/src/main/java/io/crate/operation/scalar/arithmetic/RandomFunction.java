@@ -53,7 +53,7 @@ public class RandomFunction extends Scalar<Double, Void> {
     public Symbol normalizeSymbol(Function symbol, TransactionContext transactionContext) {
         /* There is no evaluation here, so the function is executed
            per row. Else every row would contain the same random value*/
-        assert symbol.arguments().size() == 0;
+        assert symbol.arguments().size() == 0 : "function's number of arguments must be 0";
         return symbol;
     }
 
@@ -65,7 +65,7 @@ public class RandomFunction extends Scalar<Double, Void> {
 
     @Override
     public Double evaluate(Input[] args) {
-        assert args.length == 0;
+        assert args.length == 0 : "number of args must be 0";
         return this.random.nextDouble();
     }
 }

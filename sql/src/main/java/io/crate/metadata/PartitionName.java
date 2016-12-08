@@ -190,7 +190,7 @@ public class PartitionName {
      * a templateName has the same format but without the ident.
      */
     public static PartitionName fromIndexOrTemplate(String indexOrTemplate) {
-        assert indexOrTemplate != null;
+        assert indexOrTemplate != null : "indexOrTemplate must not be null";
 
         List<String> parts = SPLITTER.splitToList(indexOrTemplate);
 

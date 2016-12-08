@@ -190,7 +190,7 @@ public class OptionParser {
         List<String> unknownOptions = new ArrayList<>();
         List<String> invalidOptions = new ArrayList<>();
         for (Object o : options.keySet()) {
-            assert o instanceof String;
+            assert o instanceof String : "option must be String";
             if (!SUPPORTED_OPTIONS.contains(o)) {
                 unknownOptions.add((String) o);
             } else {

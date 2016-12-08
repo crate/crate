@@ -67,7 +67,7 @@ class RestResultSetReceiver extends BaseResultReceiver {
             tmpBuilder = null;
             fail(e);
         }
-        assert tmpBuilder != null;
+        assert tmpBuilder != null : "tmpBuilder must not be null";
         builder = tmpBuilder;
     }
 

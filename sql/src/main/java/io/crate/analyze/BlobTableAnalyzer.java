@@ -41,7 +41,7 @@ abstract class BlobTableAnalyzer {
 
             return new TableIdent(tableNameParts.get(0), tableNameParts.get(1));
         }
-        assert tableNameParts.size() == 1;
+        assert tableNameParts.size() == 1 : "tableNameParts.size() must be 1";
         return new TableIdent(BlobSchemaInfo.NAME, tableNameParts.get(0));
     }
 }

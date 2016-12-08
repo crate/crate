@@ -86,7 +86,7 @@ public class CauseMatcher {
 
         @Override
         protected boolean matchesSafely(T item) {
-            assert item.getCause() != null;
+            assert item.getCause() != null : "item.getCause() must not be null";
             return fMatcher.matches(item.getCause().getCause());
         }
 

@@ -252,7 +252,8 @@ public class UpdateConsumer implements Consumer {
                                    UpsertById upsertById,
                                    int bulkIdx) {
         String[] indices = Planner.indices(tableInfo, whereClause);
-        assert tableInfo.isPartitioned() || indices.length == 1;
+        assert tableInfo.isPartitioned() || indices.length == 1 :
+            "table must be partitioned and number of indices should be 1";
 
         Tuple<String[], Symbol[]> assignments = Assignments.convert(nestedAnalysis.assignments());
 

@@ -402,7 +402,7 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
         item.versionType(item.versionType().versionTypeForReplicationAndRecovery());
         item.version(operation.version());
 
-        assert item.versionType().validateVersionForWrites(item.version());
+        assert item.versionType().validateVersionForWrites(item.version()) : "item.version() must be valid";
 
         return operation.getTranslogLocation();
     }

@@ -39,7 +39,7 @@ public class LuceneMissingValue {
     }
 
     public static Object missingValue(OrderBy orderBy, int orderIndex) {
-        assert orderIndex <= orderBy.orderBySymbols().size();
+        assert orderIndex <= orderBy.orderBySymbols().size() : "orderIndex must be < number of orderBy symbols";
         return missingValue(orderBy.reverseFlags()[orderIndex],
             orderBy.nullsFirst()[orderIndex],
             SortSymbolVisitor.LUCENE_TYPE_MAP.get(orderBy.orderBySymbols().get(orderIndex).valueType()));

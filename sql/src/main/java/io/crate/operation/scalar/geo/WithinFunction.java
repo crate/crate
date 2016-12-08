@@ -88,7 +88,7 @@ public class WithinFunction extends Scalar<Boolean, Object> {
 
     @Override
     public Boolean evaluate(Input[] args) {
-        assert args.length == 2;
+        assert args.length == 2 : "number of args must be 2";
         return evaluate(args[0], args[1]);
     }
 
@@ -112,7 +112,7 @@ public class WithinFunction extends Scalar<Boolean, Object> {
             shape = SpatialContext.GEO.makePoint(values[0], values[1]);
         } else if (left instanceof List) { // ESSearchTask / ESGetTask returns it as list
             List values = (List) left;
-            assert values.size() == 2;
+            assert values.size() == 2 : "number of values must be 2";
             shape = SpatialContext.GEO.makePoint((Double) values.get(0), (Double) values.get(1));
         } else if (left instanceof BytesRef) {
             shape = GeoJSONUtils.wkt2Shape(BytesRefs.toString(left));

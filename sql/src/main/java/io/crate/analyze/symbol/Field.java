@@ -111,15 +111,15 @@ public class Field extends Symbol {
      */
     public int index() {
         int idx;
-        assert path != null;
-        assert relation != null;
+        assert path != null : "path must not be null";
+        assert relation != null : "relation must not be null";
         // TODO: consider adding an indexOf method to relations or another way to efficiently get the index
         if (path instanceof ColumnIndex) {
             idx = ((ColumnIndex) path).index();
         } else {
             idx = relation.fields().indexOf(this);
         }
-        assert idx >= 0;
+        assert idx >= 0 : "idx must be >= 0";
         return idx;
     }
 }

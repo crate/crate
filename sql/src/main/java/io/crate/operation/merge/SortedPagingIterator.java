@@ -82,6 +82,7 @@ public class SortedPagingIterator<TKey, TRow> implements PagingIterator<TKey, TR
 
     @Override
     public void remove() {
-        throw new UnsupportedOperationException();
+        throw new UnsupportedOperationException("remove is not supported for " +
+                                                SortedPagingIterator.class.getSimpleName());
     }
 }

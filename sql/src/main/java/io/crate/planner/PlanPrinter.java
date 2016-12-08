@@ -68,18 +68,18 @@ public class PlanPrinter {
         private ExecutionPhase2MapVisitor() {
         }
 
-        static ImmutableMap.Builder<String, Object> toBuilder(ExecutionPhase node) {
-            assert node != null;
-            return INSTANCE.process(node, null);
+        static ImmutableMap.Builder<String, Object> toBuilder(ExecutionPhase executionPhase) {
+            assert executionPhase != null : "executionPhase must not be null";
+            return INSTANCE.process(executionPhase, null);
         }
 
         private static Iterable<Map<String, Object>> projections(Iterable<Projection> projections) {
             return FluentIterable.from(projections).transform(new Function<Projection, Map<String, Object>>() {
                 @Nullable
                 @Override
-                public Map<String, Object> apply(@Nullable Projection input) {
-                    assert input != null;
-                    return Projection2MapVisitor.toBuilder(input).build();
+                public Map<String, Object> apply(@Nullable Projection projection) {
+                    assert projection != null : "projection must not be null";
+                    return Projection2MapVisitor.toBuilder(projection).build();
                 }
             }).toList();
             // need to use a List because this is part of a map which is streamed to the client.
@@ -166,7 +166,7 @@ public class PlanPrinter {
         }
 
         static ImmutableMap.Builder<String, Object> toBuilder(Projection projection) {
-            assert projection != null;
+            assert projection != null : "projection must not be null";
             return INSTANCE.process(projection, null);
         }
 
@@ -205,7 +205,7 @@ public class PlanPrinter {
         }
 
         static Map<String, Object> toMap(Plan plan) {
-            assert plan != null;
+            assert plan != null : "plan must not be null";
             return INSTANCE.process(plan, null).build();
         }
 

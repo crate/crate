@@ -44,17 +44,17 @@ class RestRowCountReceiver extends BaseResultReceiver {
     private final long startTime;
     private final boolean includeTypes;
     private long rowCount;
-    final ResultToXContentBuilder builder;
+    private final ResultToXContentBuilder builder;
 
     RestRowCountReceiver(RestChannel channel, long startTime, boolean includeTypes) {
         this.channel = channel;
         this.startTime = startTime;
         this.includeTypes = includeTypes;
         builder = builder();
-        assert builder != null;
+        assert builder != null : "builder should not be null";
     }
 
-    ResultToXContentBuilder builder() {
+    private ResultToXContentBuilder builder() {
         ResultToXContentBuilder builder = null;
         try {
             builder = ResultToXContentBuilder.builder(channel);

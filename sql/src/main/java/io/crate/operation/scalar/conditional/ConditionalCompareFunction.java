@@ -35,8 +35,8 @@ abstract class ConditionalCompareFunction extends ConditionalFunction implements
 
     @Override
     public Object evaluate(Input... args) {
-        assert (args != null);
-        assert (args.length > 0);
+        assert args != null : "args must not be null";
+        assert args.length > 0 : "number of args must be > 1";
 
         if (args.length == 1) {
             return args[0].value();

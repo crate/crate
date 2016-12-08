@@ -83,7 +83,8 @@ public class ColumnIndexWriterProjector extends AbstractProjector {
         this.indexNameResolver = indexNameResolver;
         this.collectExpressions = collectExpressions;
         rowShardResolver = new RowShardResolver(functions, primaryKeyIdents, primaryKeySymbols, clusteredByColumn, routingSymbol);
-        assert columnReferences.size() == insertInputs.size();
+        assert columnReferences.size() == insertInputs.size()
+            : "number of insert inputs must be equal to the number of columns";
 
         String[] updateColumnNames;
         if (updateAssignments == null) {

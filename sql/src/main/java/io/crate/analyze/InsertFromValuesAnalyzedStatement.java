@@ -85,7 +85,7 @@ public class InsertFromValuesAnalyzedStatement extends AbstractInsertAnalyzedSta
     }
 
     private List<String> partitionedByColumnNames() {
-        assert tableInfo != null;
+        assert tableInfo != null : "tableInfo must not be null";
         List<String> names = new ArrayList<>(tableInfo.partitionedByColumns().size());
         for (Reference info : tableInfo.partitionedByColumns()) {
             names.add(info.ident().columnIdent().fqn());

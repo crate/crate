@@ -68,7 +68,7 @@ public class DistanceFunction extends Scalar<Double, Object> {
 
     @Override
     public Double evaluate(Input[] args) {
-        assert args.length == 2;
+        assert args.length == 2 : "number of args must be 2";
         return evaluate(args[0], args[1]);
     }
 

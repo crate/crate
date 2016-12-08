@@ -22,6 +22,7 @@
 package org.elasticsearch.action.bulk;
 
 import com.carrotsearch.hppc.cursors.IntCursor;
+import com.google.common.base.Optional;
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableSet;
@@ -65,8 +66,9 @@ import java.util.concurrent.atomic.AtomicReference;
  */
 public class BulkShardProcessor<Request extends ShardRequest> {
 
-    public static final int MAX_CREATE_INDICES_BULK_SIZE = 100;
     public static final int DEFAULT_BULK_SIZE = 10_000;
+
+    private static final int MAX_CREATE_INDICES_BULK_SIZE = 100;
 
     private final boolean autoCreateIndices;
     private final Predicate<String> shouldAutocreateIndexPredicate;
@@ -125,7 +127,7 @@ public class BulkShardProcessor<Request extends ShardRequest> {
             shouldAutocreateIndexPredicate = new Predicate<String>() {
                 @Override
                 public boolean apply(@Nullable String input) {
-                    assert input != null;
+                    assert input != null : "input must not be null";
                     return autoCreateIndex.shouldAutoCreate(input, BulkShardProcessor.this.clusterService.state());
                 }
             };
@@ -263,7 +265,7 @@ public class BulkShardProcessor<Request extends ShardRequest> {
 
                     @Override
                     public void onFailure(Throwable e) {
-                        processFailure(e, shardId, request, com.google.common.base.Optional.<BulkRetryCoordinator>absent());
+                        processFailure(e, shardId, request, Optional.absent());
                     }
                 });
                 it.remove();
@@ -429,7 +431,10 @@ public class BulkShardProcessor<Request extends ShardRequest> {
         trace("response executed.");
     }
 
-    private void processFailure(Throwable e, final ShardId shardId, final Request request, com.google.common.base.Optional<BulkRetryCoordinator> retryCoordinator) {
+    private void processFailure(Throwable e,
+                                final ShardId shardId,
+                                final Request request,
+                                Optional<BulkRetryCoordinator> retryCoordinator) {
         trace("execute failure");
         e = Exceptions.unwrap(e);
 
@@ -473,7 +478,7 @@ public class BulkShardProcessor<Request extends ShardRequest> {
 
                 @Override
                 public void onFailure(Throwable e) {
-                    processFailure(e, shardId, request, com.google.common.base.Optional.of(coordinator));
+                    processFailure(e, shardId, request, Optional.of(coordinator));
                 }
             });
         } else {

@@ -21,7 +21,6 @@
 
 package io.crate.operation.operator.any;
 
-import io.crate.analyze.symbol.Function;
 import io.crate.core.collections.MapComparator;
 import io.crate.metadata.DynamicFunctionResolver;
 import io.crate.metadata.FunctionIdent;
@@ -78,7 +77,7 @@ public abstract class AnyOperator extends Operator<Object> {
                     anyNulls = true;
                     continue;
                 }
-                assert (left.getClass().equals(elem.getClass()));
+                assert left.getClass().equals(elem.getClass()) : "class of left must be equal to the class of right";
 
                 if (compare(((Comparable) left).compareTo(elem))) {
                     return true;
@@ -96,9 +95,9 @@ public abstract class AnyOperator extends Operator<Object> {
 
     @Override
     public Boolean evaluate(Input<Object>... args) {
-        assert (args != null);
-        assert (args.length == 2);
-        assert args[0] != null;
+        assert args != null : "args must not be null";
+        assert args.length == 2 : "number of args must be 2";
+        assert args[0] != null : "1st argument must not be null";
 
         Object value = args[0].value();
         Object collectionReference = args[1].value();

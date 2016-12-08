@@ -53,7 +53,7 @@ public class JobResponse extends TransportResponse {
         List<Bucket> directResponse = directResponse();
         for (Bucket bucket : directResponse) {
             if (bucket instanceof StreamBucket) {
-                assert streamers != null;
+                assert streamers != null : "streamers must not be null";
                 ((StreamBucket) bucket).streamers(streamers);
             }
         }

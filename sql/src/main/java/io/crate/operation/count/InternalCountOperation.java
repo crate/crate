@@ -105,7 +105,7 @@ public class InternalCountOperation implements CountOperation {
             LuceneQueryBuilder.Context queryCtx = queryBuilder.convert(
                 whereClause, indexService.mapperService(), indexService.fieldData(), indexService.cache());
             if (Thread.interrupted()) {
-                throw new InterruptedException();
+                throw new InterruptedException("thread interrupted during count-operation");
             }
             return searcher.searcher().count(queryCtx.query());
         }

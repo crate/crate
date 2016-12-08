@@ -50,7 +50,7 @@ public abstract class SubtractFunction extends ArithmeticFunction {
 
         @Override
         public Number evaluate(Input[] args) {
-            assert args.length == 2;
+            assert args.length == 2 : "number of args must be 2";
             Object arg0Value = args[0].value();
             Object arg1Value = args[1].value();
 
@@ -72,7 +72,7 @@ public abstract class SubtractFunction extends ArithmeticFunction {
 
         @Override
         public Number evaluate(Input[] args) {
-            assert args.length == 2;
+            assert args.length == 2 : "number of args must be 2";
             Object arg0Value = args[0].value();
             Object arg1Value = args[1].value();
 

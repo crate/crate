@@ -74,7 +74,8 @@ public class FetchPushDown {
             }
             return toFetchReference(ref, fetchRefs);
         } else {
-            assert docTableRelation.tableInfo().isPartitioned() && granularity == RowGranularity.PARTITION;
+            assert docTableRelation.tableInfo().isPartitioned() && granularity == RowGranularity.PARTITION :
+                "table must be partitioned and granularity must be " + RowGranularity.PARTITION;
             if (partitionRefs == null) {
                 partitionRefs = new LinkedHashMap<>(docTableRelation.tableInfo().partitionedBy().size());
             }

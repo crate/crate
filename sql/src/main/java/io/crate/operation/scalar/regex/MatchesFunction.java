@@ -74,7 +74,7 @@ public class MatchesFunction extends Scalar<BytesRef[], Object> implements Dynam
     @Override
     public Symbol normalizeSymbol(Function symbol, TransactionContext transactionContext) {
         final int size = symbol.arguments().size();
-        assert (size >= 2 && size <= 3);
+        assert size == 2 || size == 3 : "function's number of arguments must be 2 or 3";
 
         if (anyNonLiterals(symbol.arguments())) {
             return symbol;
@@ -100,7 +100,7 @@ public class MatchesFunction extends Scalar<BytesRef[], Object> implements Dynam
 
     @Override
     public Scalar<BytesRef[], Object> compile(List<Symbol> arguments) {
-        assert arguments.size() > 1;
+        assert arguments.size() > 1 : "number of arguments must be > 1";
         String pattern = null;
         if (arguments.get(1).symbolType() == SymbolType.LITERAL) {
             Literal literal = (Literal) arguments.get(1);
@@ -112,7 +112,8 @@ public class MatchesFunction extends Scalar<BytesRef[], Object> implements Dynam
         }
         BytesRef flags = null;
         if (arguments.size() == 3) {
-            assert arguments.get(2).symbolType() == SymbolType.LITERAL;
+            assert arguments.get(2).symbolType() == SymbolType.LITERAL :
+                "3rd argument must be a " + SymbolType.LITERAL;
             flags = (BytesRef) ((Literal) arguments.get(2)).value();
         }
 
@@ -126,13 +127,13 @@ public class MatchesFunction extends Scalar<BytesRef[], Object> implements Dynam
 
     @Override
     public BytesRef[] evaluate(Input[] args) {
-        assert (args.length > 1 && args.length < 4);
+        assert args.length == 2 || args.length == 3 : "number of args must be 2 or 3";
         Object val = args[0].value();
         final Object patternValue = args[1].value();
         if (val == null || patternValue == null) {
             return null;
         }
-        assert patternValue instanceof BytesRef;
+        assert patternValue instanceof BytesRef : "patternValue must be BytesRef";
         // value can be a string if e.g. result is retrieved by ESSearchTask
         if (val instanceof String) {
             val = new BytesRef((String) val);

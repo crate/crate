@@ -70,7 +70,7 @@ class FieldCollectingVisitor extends DefaultTraversalSymbolVisitor<FieldCollecti
 
     @Override
     public Void process(Symbol symbol, @Nullable Context context) {
-        assert context != null;
+        assert context != null : "context must not be null";
         if (!context.skipIf.apply(symbol)) {
             super.process(symbol, context);
         }

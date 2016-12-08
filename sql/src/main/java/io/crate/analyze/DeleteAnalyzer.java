@@ -65,7 +65,7 @@ class DeleteAnalyzer {
         RelationAnalysisContext relationAnalysisContext = statementAnalysisContext.startRelation();
         AnalyzedRelation analyzedRelation = relationAnalyzer.analyze(node.getRelation(), statementAnalysisContext);
 
-        assert analyzedRelation instanceof DocTableRelation;
+        assert analyzedRelation instanceof DocTableRelation : "analyzedRelation must be DocTableRelation";
         DocTableRelation docTableRelation = (DocTableRelation) analyzedRelation;
         EvaluatingNormalizer normalizer = new EvaluatingNormalizer(
             functions,

@@ -61,7 +61,7 @@ public class VersionRewriter {
                 return function;
             }
             if (functionName.equals(EqOperator.NAME)) {
-                assert function.arguments().size() == 2;
+                assert function.arguments().size() == 2 : "function's number of arguments must be 2";
                 Symbol left = function.arguments().get(0);
                 Symbol right = function.arguments().get(1);
 
@@ -73,7 +73,7 @@ public class VersionRewriter {
                 ColumnIdent columnIdent = reference.ident().columnIdent();
 
                 if (DocSysColumns.VERSION.equals(columnIdent)) {
-                    assert context.version == null;
+                    assert context.version == null : "context.version must be null";
                     context.version = right;
                     return Literal.of(true);
                 }

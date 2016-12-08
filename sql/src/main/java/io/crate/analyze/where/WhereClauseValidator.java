@@ -103,7 +103,7 @@ public abstract class WhereClauseValidator {
                 || insideNotPredicate(context)) {
                 throw new UnsupportedOperationException(error);
             }
-            assert function.arguments().size() == 2;
+            assert function.arguments().size() == 2 : "function's number of arguments must be 2";
             Symbol right = function.arguments().get(1);
             if (!right.symbolType().isValueSymbol()) {
                 throw new UnsupportedOperationException(error);

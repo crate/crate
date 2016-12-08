@@ -316,7 +316,8 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
                 assert routing != null : tableInfo + " returned empty routing. Routing must not be null";
             } else {
                 for (TableRouting existing : existingRoutings) {
-                    assert preference == null || preference.equals(existing.preference);
+                    assert preference == null || preference.equals(existing.preference) :
+                        "preference must not be null or equals existing preference";
                     if (Objects.equals(existing.where, where)) {
                         return existing.routing;
                     }

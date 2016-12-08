@@ -61,7 +61,7 @@ public class PartitionInfos implements Iterable<PartitionInfo> {
         @Nullable
         @Override
         public PartitionInfo apply(@Nullable ObjectObjectCursor<String, IndexMetaData> input) {
-            assert input != null;
+            assert input != null : "input must not be null";
             PartitionName partitionName = PartitionName.fromIndexOrTemplate(input.key);
             try {
                 Map<String, Object> valuesMap = buildValuesMap(partitionName, input.value.mapping(Constants.DEFAULT_MAPPING_TYPE));

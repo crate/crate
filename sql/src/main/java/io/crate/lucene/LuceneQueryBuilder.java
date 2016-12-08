@@ -261,8 +261,8 @@ public class LuceneQueryBuilder {
 
             @Nullable
             protected Tuple<Reference, Literal> prepare(Function input) {
-                assert input != null;
-                assert input.arguments().size() == 2;
+                assert input != null : "function must not be null";
+                assert input.arguments().size() == 2 : "function's number of arguments must be 2";
 
                 Symbol left = input.arguments().get(0);
                 Symbol right = input.arguments().get(1);
@@ -270,7 +270,8 @@ public class LuceneQueryBuilder {
                 if (!(left instanceof Reference) || !(right.symbolType().isValueSymbol())) {
                     return null;
                 }
-                assert right.symbolType() == SymbolType.LITERAL;
+                assert right.symbolType() == SymbolType.LITERAL :
+                    "right.symbolType() must be " + SymbolType.LITERAL;
                 return new Tuple<>((Reference) left, (Literal) right);
             }
         }
@@ -486,8 +487,8 @@ public class LuceneQueryBuilder {
 
             @Override
             public Query apply(Function input, Context context) {
-                assert input != null;
-                assert input.arguments().size() == 1;
+                assert input != null : "function must not be null";
+                assert input.arguments().size() == 1 : "function's number of arguments must be 1";
                 /**
                  * not null -> null     -> no match
                  * not true -> false    -> no match
@@ -526,8 +527,8 @@ public class LuceneQueryBuilder {
 
             @Override
             public Query apply(Function input, Context context) {
-                assert input != null;
-                assert input.arguments().size() == 1;
+                assert input != null : "input must not be null";
+                assert input.arguments().size() == 1 : "function's number of arguments must be 1";
                 Symbol arg = input.arguments().get(0);
                 if (arg.symbolType() != SymbolType.REFERENCE) {
                     return null;
@@ -575,7 +576,7 @@ public class LuceneQueryBuilder {
         class AndQuery implements FunctionToQuery {
             @Override
             public Query apply(Function input, Context context) {
-                assert input != null;
+                assert input != null : "input must not be null";
                 BooleanQuery.Builder query = new BooleanQuery.Builder();
                 for (Symbol symbol : input.arguments()) {
                     query.add(process(symbol, context), BooleanClause.Occur.MUST);
@@ -587,7 +588,7 @@ public class LuceneQueryBuilder {
         class OrQuery implements FunctionToQuery {
             @Override
             public Query apply(Function input, Context context) {
-                assert input != null;
+                assert input != null : "input must not be null";
                 BooleanQuery.Builder query = new BooleanQuery.Builder();
                 query.setMinimumNumberShouldMatch(1);
                 for (Symbol symbol : input.arguments()) {
@@ -690,7 +691,7 @@ public class LuceneQueryBuilder {
                 String columnName = reference.ident().columnIdent().fqn();
                 QueryBuilderHelper builder = QueryBuilderHelper.forType(type);
                 Tuple<?, ?> bounds = boundsFunction.apply(value);
-                assert bounds != null;
+                assert bounds != null : "bounds must not be null";
                 return builder.rangeQuery(columnName, bounds.v1(), bounds.v2(), includeLower, includeUpper);
             }
         }
@@ -701,8 +702,10 @@ public class LuceneQueryBuilder {
             public Query apply(Function input, Context context) throws IOException {
                 List<Symbol> arguments = input.arguments();
                 assert arguments.size() == 4 : "invalid number of arguments";
-                assert Symbol.isLiteral(arguments.get(0), DataTypes.OBJECT); // fields
-                assert Symbol.isLiteral(arguments.get(2), DataTypes.STRING); // matchType
+                assert Symbol.isLiteral(arguments.get(0), DataTypes.OBJECT) :
+                    "fields must be literal";
+                assert Symbol.isLiteral(arguments.get(2), DataTypes.STRING) :
+                    "matchType must be literal";
 
                 Symbol queryTerm = arguments.get(1);
                 Preconditions.checkArgument(queryTerm instanceof Input, "queryTerm must be a literal");
@@ -986,7 +989,8 @@ public class LuceneQueryBuilder {
              */
             @Override
             public Query apply(Function parent, Function inner, Context context) {
-                assert inner.info().ident().name().equals(DistanceFunction.NAME);
+                assert inner.info().ident().name().equals(DistanceFunction.NAME) :
+                    "function must be " + DistanceFunction.NAME;
 
                 RefLiteralPair distanceRefLiteral = new RefLiteralPair(inner);
                 if (!distanceRefLiteral.isValid()) {
@@ -1130,7 +1134,7 @@ public class LuceneQueryBuilder {
 
         @Override
         public Query visitFunction(Function function, Context context) {
-            assert function != null;
+            assert function != null : "function must not be null";
             if (fieldIgnored(function, context)) {
                 return Queries.newMatchAllQuery();
             }
@@ -1232,7 +1236,7 @@ public class LuceneQueryBuilder {
             function = (Function) DocReferenceConverter.convertIf(function);
 
             final CollectInputSymbolVisitor.Context ctx = context.inputSymbolVisitor.extractImplementations(function);
-            assert ctx.topLevelInputs().size() == 1;
+            assert ctx.topLevelInputs().size() == 1 : "ctx.topLevelInputs().size() must be 1";
             @SuppressWarnings("unchecked")
             final Input<Boolean> condition = (Input<Boolean>) ctx.topLevelInputs().get(0);
             @SuppressWarnings("unchecked")

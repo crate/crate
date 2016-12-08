@@ -91,7 +91,8 @@ public class ProjectionBuilder {
                                                    InputCreatingVisitor.Context context) {
         ArrayList<Aggregation> aggregations = new ArrayList<>(functions.size());
         for (Function function : functions) {
-            assert function.info().type() == FunctionInfo.Type.AGGREGATE;
+            assert function.info().type() == FunctionInfo.Type.AGGREGATE :
+                "function type must be " + FunctionInfo.Type.AGGREGATE;
             Aggregation aggregation;
             List<Symbol> aggregationInputs;
             if (fromStep == Aggregation.Step.PARTIAL) {

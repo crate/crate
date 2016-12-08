@@ -67,7 +67,7 @@ class InsertFromSubQueryAnalyzer {
                     "Column '%s' that is used in the VALUES() expression is not part of the target column list",
                     argumentColumn));
             }
-            assert reference != null;
+            assert reference != null : "reference must not be null";
             return new InputColumn(i, argumentColumn.valueType());
         }
     }
@@ -207,7 +207,7 @@ class InsertFromSubQueryAnalyzer {
         for (Assignment assignment : assignments) {
             Reference columnName = tableRelation.resolveField(
                 (Field) expressionAnalyzer.convert(assignment.columnName(), expressionAnalysisContext));
-            assert columnName != null;
+            assert columnName != null : "columnName must not be null";
 
             Symbol valueSymbol = normalizer.normalize(
                 valuesAwareExpressionAnalyzer.convert(assignment.expression(), expressionAnalysisContext),
