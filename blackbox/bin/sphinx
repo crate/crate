@@ -2,13 +2,13 @@
 
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )/.." && pwd )"
 declare -i RESULT=0
-echo "\033[1mCleaning output folder ...\033[0m"
+printf "\033[1mCleaning output folder ...\033[0m\n"
 rm -rf $DIR/docs/out/
 RESULT+=$?
-echo "\033[1;44mBuilding server docs (html) ...\033[0m"
+printf "\033[1;44mBuilding server docs (html) ...\033[0m\n"
 $DIR/.venv/bin/sphinx-build -n -W -c $DIR/docs/ -b html -E $DIR/docs/ $DIR/docs/out/html
 RESULT+=$?
-echo "\033[1;44mBuilding server docs (text) ...\033[0m"
+printf "\033[1;44mBuilding server docs (text) ...\033[0m\n"
 $DIR/.venv/bin/sphinx-build -c $DIR/docs/ -b text -E $DIR/docs/ $DIR/docs/out/text
 RESULT+=$?
 exit $RESULT
