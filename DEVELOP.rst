@@ -54,6 +54,12 @@ To build the HTML and text documentation, run::
 
     $ ./bin/sphinx
 
+If you're editing the docs and want live rebuilds, run::
+
+    $ ./bin/sphinx dev
+
+This command watches the file system for changes and rebuilds the docs, refreshing your open browser tab, as needed.
+
 To test that all examples in the documentation execute correctly run::
 
     $ ./bin/test
