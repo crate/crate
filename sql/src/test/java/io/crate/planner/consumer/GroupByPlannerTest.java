@@ -23,11 +23,15 @@
 package io.crate.planner.consumer;
 
 import com.google.common.collect.Iterables;
+import io.crate.analyze.TableDefinitions;
 import io.crate.analyze.symbol.*;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RowGranularity;
+import io.crate.metadata.TableIdent;
+import io.crate.metadata.table.TestingTableInfo;
 import io.crate.operation.aggregation.impl.CountAggregation;
 import io.crate.planner.Merge;
+import io.crate.planner.Plan;
 import io.crate.planner.PositionalOrderBy;
 import io.crate.planner.node.dql.Collect;
 import io.crate.planner.node.dql.DistributedGroupBy;
@@ -42,13 +46,25 @@ import org.elasticsearch.test.cluster.NoopClusterService;
 import org.hamcrest.core.Is;
 import org.junit.Test;
 
+import static io.crate.analyze.TableDefinitions.shardRouting;
 import static io.crate.testing.SymbolMatchers.isAggregation;
 import static io.crate.testing.SymbolMatchers.isReference;
 import static org.hamcrest.Matchers.*;
 
 public class GroupByPlannerTest extends CrateUnitTest {
 
-    private SQLExecutor e = SQLExecutor.builder(new NoopClusterService()).enableDefaultTables().build();
+    private SQLExecutor e = SQLExecutor.builder(new NoopClusterService())
+        .enableDefaultTables()
+        .addDocTable(TableDefinitions.CLUSTERED_PARTED)
+        .addDocTable(TestingTableInfo.builder(
+            new TableIdent("doc", "empty_parted"), shardRouting("empty_parted"))
+            .add("id", DataTypes.INTEGER)
+            .add("date", DataTypes.TIMESTAMP, null, true)
+            .addPrimaryKey("id")
+            .addPrimaryKey("date")
+            .clusteredBy("id")
+            .build()
+        ).build();
 
     @Test
     public void testGroupByWithAggregationStringLiteralArguments() {
@@ -522,5 +538,95 @@ public class GroupByPlannerTest extends CrateUnitTest {
         assertThat(collectPhase.projections().size(), is(1));
         assertThat(collectPhase.projections().get(0), instanceOf(GroupProjection.class));
         assertThat(collectPhase.projections().get(0).requiredGranularity(), is(RowGranularity.SHARD));
+    }
+
+    @Test
+    public void testNoDistributedGroupByOnAllPrimaryKeys() throws Exception {
+        Merge merge = e.plan(
+            "select count(*), id, date from empty_parted group by id, date limit 20");
+        Collect collect = (Collect) merge.subPlan();
+        RoutedCollectPhase collectPhase = ((RoutedCollectPhase) collect.collectPhase());
+        assertThat(collectPhase.projections().size(), is(2));
+        assertThat(collectPhase.projections().get(0), instanceOf(GroupProjection.class));
+        assertThat(collectPhase.projections().get(0).requiredGranularity(), is(RowGranularity.SHARD));
+        assertThat(collectPhase.projections().get(1), instanceOf(TopNProjection.class));
+        MergePhase mergeNode = merge.mergePhase();
+        assertThat(mergeNode.projections().size(), is(1));
+        assertThat(mergeNode.projections().get(0), instanceOf(TopNProjection.class));
+    }
+
+    @Test
+    public void testNonDistributedGroupByAggregationsWrappedInScalar() throws Exception {
+        Merge planNode = e.plan(
+            "select (count(*) + 1), id from empty_parted group by id");
+        DistributedGroupBy distributedGroupBy = (DistributedGroupBy) planNode.subPlan();
+
+        RoutedCollectPhase collectPhase = distributedGroupBy.collectPhase();
+        assertThat(collectPhase.projections(), contains(
+            instanceOf(GroupProjection.class)
+        ));
+        assertThat(collectPhase.projections().size(), is(1));
+        assertThat(collectPhase.projections().get(0), instanceOf(GroupProjection.class));
+
+        MergePhase mergeNode = planNode.mergePhase();
+        assertThat(mergeNode.projections().size(), is(0));
+    }
+
+    @Test
+    public void testGroupByHaving() throws Exception {
+        Merge distributedGroupByMerge = e.plan(
+            "select avg(date), name from users group by name having min(date) > '1970-01-01'");
+        DistributedGroupBy distributedGroupBy = (DistributedGroupBy) distributedGroupByMerge.subPlan();
+        RoutedCollectPhase collectPhase = distributedGroupBy.collectPhase();
+        assertThat(collectPhase.projections().size(), is(1));
+        assertThat(collectPhase.projections().get(0), instanceOf(GroupProjection.class));
+
+        MergePhase mergeNode = distributedGroupBy.reducerMergeNode();
+
+        assertThat(mergeNode.projections().size(), is(3));
+
+        // grouping
+        assertThat(mergeNode.projections().get(0), instanceOf(GroupProjection.class));
+        GroupProjection groupProjection = (GroupProjection) mergeNode.projections().get(0);
+        assertThat(groupProjection.values().size(), is(2));
+
+        // filter the having clause
+        assertThat(mergeNode.projections().get(1), instanceOf(FilterProjection.class));
+        FilterProjection filterProjection = (FilterProjection) mergeNode.projections().get(1);
+
+        assertThat(mergeNode.projections().get(2), instanceOf(EvalProjection.class));
+        EvalProjection eval = (EvalProjection) mergeNode.projections().get(2);
+        assertThat(eval.outputs().get(0).valueType(), Is.<DataType>is(DataTypes.DOUBLE));
+        assertThat(eval.outputs().get(1).valueType(), Is.<DataType>is(DataTypes.STRING));
+    }
+
+    @Test
+    public void testNestedGroupByAggregation() throws Exception {
+        expectedException.expect(UnsupportedOperationException.class);
+        expectedException.expectMessage("Cannot create plan for: ");
+        e.plan("select count(*) from (" +
+             "  select max(load['1']) as maxLoad, hostname " +
+             "  from sys.nodes " +
+             "  group by hostname having max(load['1']) > 50) as nodes " +
+             "group by hostname");
+    }
+
+    @Test
+    public void testGroupByOnClusteredByColumnPartitionedOnePartition() throws Exception {
+        // only one partition hit
+        Merge optimizedPlan = e.plan("select count(*), city from clustered_parted where date=1395874800000 group by city");
+        Collect collect = (Collect) optimizedPlan.subPlan();
+
+        assertThat(collect.collectPhase().projections(), contains(
+            instanceOf(GroupProjection.class),
+            instanceOf(EvalProjection.class)));
+        assertThat(collect.collectPhase().projections().get(0), instanceOf(GroupProjection.class));
+
+        assertThat(optimizedPlan.mergePhase().projections().size(), is(0));
+
+        // > 1 partition hit
+        Plan plan = e.plan("select count(*), city from clustered_parted where date=1395874800000 or date=1395961200000 group by city");
+        assertThat(plan, instanceOf(Merge.class));
+        assertThat(((Merge) plan).subPlan(), instanceOf(DistributedGroupBy.class));
     }
 }
