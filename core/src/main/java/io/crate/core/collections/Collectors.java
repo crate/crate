@@ -20,24 +20,20 @@
  * agreement.
  */
 
-package io.crate.operation.scalar.conditional;
+package io.crate.core.collections;
 
-import io.crate.metadata.FunctionInfo;
-import io.crate.operation.scalar.ScalarFunctionModule;
+import com.google.common.collect.ImmutableList;
 
-public class GreatestFunction extends ConditionalCompareFunction {
-    public final static String NAME = "greatest";
+import java.util.stream.Collector;
 
-    private GreatestFunction(FunctionInfo info) {
-        super(info);
-    }
+public class Collectors {
 
-    @Override
-    public int compare(Object o1, Object o2) {
-        return info().returnType().compareValueTo(o2, o1);
-    }
-
-    public static void register(ScalarFunctionModule module) {
-        module.register(NAME, new ConditionalFunctionResolver(NAME, GreatestFunction::new));
+    public static <T> Collector<T, ImmutableList.Builder<T>, ImmutableList<T>> toImmutableList() {
+        return Collector.of(
+            ImmutableList.Builder::new,
+            ImmutableList.Builder::add,
+            (b1, b2) -> b1.addAll(b2.build()),
+            ImmutableList.Builder::build
+        );
     }
 }

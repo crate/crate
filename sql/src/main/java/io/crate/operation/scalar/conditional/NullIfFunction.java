@@ -22,10 +22,10 @@
 
 package io.crate.operation.scalar.conditional;
 
-import com.google.common.base.Preconditions;
-import io.crate.metadata.DynamicFunctionResolver;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.FunctionInfo;
+import io.crate.metadata.FunctionResolver;
+import io.crate.metadata.Signature;
 import io.crate.operation.Input;
 import io.crate.operation.scalar.ScalarFunctionModule;
 import io.crate.types.DataType;
@@ -49,11 +49,15 @@ public class NullIfFunction extends ConditionalFunction {
         module.register(NAME, new Resolver());
     }
 
-    static class Resolver implements DynamicFunctionResolver {
+    static class Resolver implements FunctionResolver {
         @Override
         public FunctionImplementation getForTypes(List<DataType> dataTypes) throws IllegalArgumentException {
-            Preconditions.checkArgument(dataTypes.size() == 2, "invalid size of arguments, 2 expected");
             return new NullIfFunction(createInfo(NAME, dataTypes));
+        }
+
+        @Override
+        public List<Signature> signatures() {
+            return Signature.SIGNATURES_ALL_PAIRS_OF_SAME;
         }
     }
 }

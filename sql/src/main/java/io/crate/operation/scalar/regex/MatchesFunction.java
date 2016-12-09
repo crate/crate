@@ -21,7 +21,7 @@
 
 package io.crate.operation.scalar.regex;
 
-import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableList;
 import io.crate.analyze.symbol.Function;
 import io.crate.analyze.symbol.Literal;
 import io.crate.analyze.symbol.Symbol;
@@ -34,15 +34,17 @@ import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
 
-import java.util.Arrays;
 import java.util.List;
-import java.util.Locale;
 
-public class MatchesFunction extends Scalar<BytesRef[], Object> implements DynamicFunctionResolver {
+public class MatchesFunction extends Scalar<BytesRef[], Object> implements FunctionResolver {
 
     public static final String NAME = "regexp_matches";
 
-    private static final DataType arrayStringType = new ArrayType(DataTypes.STRING);
+    private static final DataType ARRAY_STRING_TYPE = new ArrayType(DataTypes.STRING);
+    private static final List<Signature> SIGNATURES = ImmutableList.<Signature>builder()
+        .add(new Signature(DataTypes.STRING, DataTypes.STRING))
+        .add(new Signature(DataTypes.STRING, DataTypes.STRING, DataTypes.STRING))
+        .build();
 
     private static FunctionInfo createInfo(List<DataType> types) {
         return new FunctionInfo(new FunctionIdent(NAME, types), new ArrayType(types.get(0)));
@@ -95,7 +97,7 @@ public class MatchesFunction extends Scalar<BytesRef[], Object> implements Dynam
         if (size == 3) {
             args[2] = (Input) symbol.arguments().get(2);
         }
-        return Literal.of(evaluate(args), arrayStringType);
+        return Literal.of(evaluate(args), ARRAY_STRING_TYPE);
     }
 
     @Override
@@ -158,16 +160,11 @@ public class MatchesFunction extends Scalar<BytesRef[], Object> implements Dynam
 
     @Override
     public FunctionImplementation getForTypes(List<DataType> dataTypes) throws IllegalArgumentException {
-        Preconditions.checkArgument(dataTypes.size() > 1 && dataTypes.size() < 4
-                                    && dataTypes.get(0) == DataTypes.STRING && dataTypes.get(1) == DataTypes.STRING,
-            String.format(Locale.ENGLISH,
-                "[%s] Function implementation not found for argument types %s",
-                NAME, Arrays.toString(dataTypes.toArray())));
-        if (dataTypes.size() == 3) {
-            Preconditions.checkArgument(dataTypes.get(2) == DataTypes.STRING, "flags must be of type string");
-        }
         return new MatchesFunction(createInfo(dataTypes));
     }
 
-
+    @Override
+    public List<Signature> signatures() {
+        return SIGNATURES;
+    }
 }

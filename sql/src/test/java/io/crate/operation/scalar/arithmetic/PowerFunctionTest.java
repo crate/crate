@@ -64,7 +64,7 @@ public class PowerFunctionTest extends AbstractScalarFunctionsTest {
 
     @Test
     public void testInvalidNumberOfArguments() {
-        expectedException.expectMessage("The number of arguments passed to power(...) must be 2. Got 1");
+        expectedException.expectMessage("unknown function: power(long)");
         assertEvaluate("power(2)", null);
     }
 }

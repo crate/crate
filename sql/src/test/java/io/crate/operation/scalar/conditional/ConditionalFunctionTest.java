@@ -83,7 +83,7 @@ public class ConditionalFunctionTest extends AbstractScalarFunctionsTest {
     @Test
     public void testNullIfInvalidArgsLength() throws Exception {
         expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage("invalid size of arguments, 2 expected");
+        expectedException.expectMessage("unknown function: nullif(long, long, long)");
         assertEvaluate("nullif(1, 2, 3)", null);
     }
 

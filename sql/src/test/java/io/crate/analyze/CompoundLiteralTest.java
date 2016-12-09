@@ -123,16 +123,9 @@ public class CompoundLiteralTest extends CrateUnitTest {
 
     @Test
     public void testArrayDifferentTypes() throws Exception {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("All arguments to an array must have the same type. Found long and string");
+        expectedException.expect(UnsupportedOperationException.class);
+        expectedException.expectMessage("unknown function: _array(long, string)");
         analyzeExpression("[1, 'string']");
-    }
-
-    @Test
-    public void testArrayDifferentTypesString() throws Exception {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("All arguments to an array must have the same type. Found string and long");
-        analyzeExpression("['string', 1]");
     }
 
     @Test

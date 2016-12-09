@@ -1,6 +1,6 @@
 package io.crate.operation.operator;
 
-import io.crate.metadata.DynamicFunctionResolver;
+import io.crate.metadata.FunctionResolver;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.operation.operator.any.*;
@@ -13,15 +13,15 @@ import java.util.Map;
 public class OperatorModule extends AbstractModule {
 
     private Map<FunctionIdent, FunctionImplementation> functions = new HashMap<>();
-    private Map<String, DynamicFunctionResolver> dynamicFunctionResolvers = new HashMap<>();
+    private Map<String, FunctionResolver> dynamicFunctionResolvers = new HashMap<>();
     private MapBinder<FunctionIdent, FunctionImplementation> functionBinder;
-    private MapBinder<String, DynamicFunctionResolver> dynamicFunctionBinder;
+    private MapBinder<String, FunctionResolver> dynamicFunctionBinder;
 
     public void registerOperatorFunction(FunctionImplementation impl) {
         functions.put(impl.info().ident(), impl);
     }
 
-    public void registerDynamicOperatorFunction(String name, DynamicFunctionResolver resolver) {
+    public void registerDynamicOperatorFunction(String name, FunctionResolver resolver) {
         dynamicFunctionResolvers.put(name, resolver);
     }
 
@@ -51,12 +51,12 @@ public class OperatorModule extends AbstractModule {
         // by doing it here instead of the register functions, plugins can also use the
         // register functions in their onModule(...) hooks
         functionBinder = MapBinder.newMapBinder(binder(), FunctionIdent.class, FunctionImplementation.class);
-        dynamicFunctionBinder = MapBinder.newMapBinder(binder(), String.class, DynamicFunctionResolver.class);
+        dynamicFunctionBinder = MapBinder.newMapBinder(binder(), String.class, FunctionResolver.class);
         for (Map.Entry<FunctionIdent, FunctionImplementation> entry : functions.entrySet()) {
             functionBinder.addBinding(entry.getKey()).toInstance(entry.getValue());
 
         }
-        for (Map.Entry<String, DynamicFunctionResolver> entry : dynamicFunctionResolvers.entrySet()) {
+        for (Map.Entry<String, FunctionResolver> entry : dynamicFunctionResolvers.entrySet()) {
             dynamicFunctionBinder.addBinding(entry.getKey()).toInstance(entry.getValue());
         }
 

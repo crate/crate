@@ -24,6 +24,7 @@ package io.crate.operation.scalar;
 
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableList;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.metadata.*;
 import io.crate.operation.Input;
@@ -124,12 +125,13 @@ class ArrayDifferenceFunction extends Scalar<Object[], Object> {
     }
 
 
-    private static class Resolver implements DynamicFunctionResolver {
+    private static class Resolver implements FunctionResolver {
+
+        private static final List<Signature> SIGNATURES = ImmutableList.of(
+            new Signature(DataTypes.ANY_ARRAY, DataTypes.ANY_ARRAY));
 
         @Override
         public FunctionImplementation getForTypes(List<DataType> dataTypes) throws IllegalArgumentException {
-            Preconditions.checkArgument(dataTypes.size() == 2, "array_difference function requires 2 arguments");
-
             for (int i = 0; i < dataTypes.size(); i++) {
                 Preconditions.checkArgument(dataTypes.get(i) instanceof ArrayType, String.format(Locale.ENGLISH,
                     "Argument %d of the array_difference function is not an array type", i + 1));
@@ -150,6 +152,11 @@ class ArrayDifferenceFunction extends Scalar<Object[], Object> {
             }
 
             return new ArrayDifferenceFunction(createInfo(dataTypes), null);
+        }
+
+        @Override
+        public List<Signature> signatures() {
+            return SIGNATURES;
         }
     }
 }

@@ -92,7 +92,7 @@ public class CountAggregationTest extends AggregationTest {
     @Test
     public void testNormalizeWithNullLiteral() {
         assertThat(normalize("count", null, DataTypes.STRING), isLiteral(0L));
-        assertThat(normalize("count", null, null), isLiteral(0L));
+        assertThat(normalize("count", null, DataTypes.UNDEFINED), isLiteral(0L));
     }
 
     @Test

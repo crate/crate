@@ -22,7 +22,6 @@
 
 package io.crate.operation.scalar.cast;
 
-import com.google.common.base.Preconditions;
 import io.crate.analyze.symbol.Function;
 import io.crate.analyze.symbol.Literal;
 import io.crate.analyze.symbol.Symbol;
@@ -111,7 +110,7 @@ public class CastFunction extends Scalar<Object, Object> implements FunctionForm
         return true;
     }
 
-    private static class Resolver implements DynamicFunctionResolver {
+    private static class Resolver implements FunctionResolver {
 
         private final String name;
         private final DataType targetType;
@@ -122,8 +121,6 @@ public class CastFunction extends Scalar<Object, Object> implements FunctionForm
         }
 
         void checkPreconditions(List<DataType> dataTypes) {
-            Preconditions.checkArgument(dataTypes.size() == 1,
-                "invalid size of arguments, 1 expected");
             DataType convertFrom = dataTypes.get(0);
             if (!convertFrom.isConvertableTo(targetType)) {
                 throw new ConversionException(convertFrom, targetType);
@@ -134,6 +131,11 @@ public class CastFunction extends Scalar<Object, Object> implements FunctionForm
         public FunctionImplementation getForTypes(List<DataType> dataTypes) throws IllegalArgumentException {
             checkPreconditions(dataTypes);
             return new CastFunction(new FunctionInfo(new FunctionIdent(name, dataTypes), targetType));
+        }
+
+        @Override
+        public List<Signature> signatures() {
+            return Signature.SIGNATURES_SINGLE_ANY;
         }
     }
 

@@ -45,6 +45,7 @@ public class DataTypes {
     /**
      * If you add types here make sure to update the SizeEstimatorFactory in the SQL module.
      */
+    public final static AnyType ANY = AnyType.INSTANCE;
     public final static UndefinedType UNDEFINED = UndefinedType.INSTANCE;
     public final static NotSupportedType NOT_SUPPORTED = NotSupportedType.INSTANCE;
 
@@ -67,8 +68,11 @@ public class DataTypes {
     public final static GeoPointType GEO_POINT = GeoPointType.INSTANCE;
     public final static GeoShapeType GEO_SHAPE = GeoShapeType.INSTANCE;
 
-    public final static DataType DOUBLE_ARRAY = new ArrayType(DataTypes.DOUBLE);
-    public final static DataType OBJECT_ARRAY = new ArrayType(DataTypes.OBJECT);
+    public final static DataType ANY_ARRAY = new ArrayType(ANY);
+    public final static DataType DOUBLE_ARRAY = new ArrayType(DOUBLE);
+    public final static DataType OBJECT_ARRAY = new ArrayType(OBJECT);
+
+    public final static DataType ANY_SET = new SetType(ANY);
 
     public final static ImmutableList<DataType> PRIMITIVE_TYPES = ImmutableList.<DataType>of(
         BYTE,
@@ -91,7 +95,25 @@ public class DataTypes {
         LONG
     );
 
-    public static final Map<Integer, DataTypeFactory> TYPE_REGISTRY = new MapBuilder<Integer, DataTypeFactory>()
+    public static final ImmutableList<DataType> ALL_TYPES = ImmutableList.<DataType>builder()
+        .addAll(PRIMITIVE_TYPES)
+        .add(ANY_ARRAY)
+        .add(OBJECT)
+        .add(GEO_POINT)
+        .add(GEO_SHAPE)
+        .build();
+
+    private static final ImmutableList<DataType> ANY_TYPES = ImmutableList.of(
+        ANY,
+        ANY_ARRAY,
+        ANY_SET
+    );
+
+    /**
+     * Type registry list contains no member of {@link #ANY_TYPES} with intent, {@link #ANY_TYPES} are only used for
+     * {@code Signature} matching and do not support streaming.
+     */
+    private static final Map<Integer, DataTypeFactory> TYPE_REGISTRY = new MapBuilder<Integer, DataTypeFactory>()
         .put(UndefinedType.ID, UNDEFINED)
         .put(NotSupportedType.ID, NOT_SUPPORTED)
         .put(ByteType.ID, BYTE)
@@ -306,9 +328,23 @@ public class DataTypes {
     };
 
     /**
-     * Returns the first data type that is not {@link UNDEFINED}, or {@code UNDEFINED} if none found.
+     * Returns the first data type that is not {@link UndefinedType}, or {@code UNDEFINED} if none found.
      */
     public static DataType tryFindNotNullType(Iterable<? extends DataType> dataTypes) {
         return Iterables.find(dataTypes, NOT_NULL_TYPE_FILTER, UNDEFINED);
+    }
+
+    /**
+     * Returns true if the ID of the given data type matches one of the {@link #ANY_TYPES} id's.
+     * A {@link List#contains(Object)} call would always return true because the {@link AnyType#equals(Object)} method
+     * matches on any {@link DataType} for correct {@code Signature} matching.
+     */
+    public static boolean isAnyOrAnyCollection(DataType givenType) {
+        for (DataType dt : ANY_TYPES) {
+            if (dt.id() == givenType.id()) {
+                return true;
+            }
+        }
+        return false;
     }
 }

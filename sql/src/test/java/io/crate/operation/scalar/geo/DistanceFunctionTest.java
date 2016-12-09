@@ -33,14 +33,14 @@ public class DistanceFunctionTest extends AbstractScalarFunctionsTest {
     @Test
     public void testResolveWithTooManyArguments() throws Exception {
         expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage("distance takes 2 arguments, not 3");
+        expectedException.expectMessage("unknown function: distance(string, string, string)");
         assertNormalize("distance('POINT (10 20)', 'POINT (11 21)', 'foo')", null);
     }
 
     @Test
     public void testResolveWithInvalidType() throws Exception {
         expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage("distance can't handle arguments of type \"long\"");
+        expectedException.expectMessage("unknown function: distance(long, string)");
         assertNormalize("distance(1, 'POINT (11 21)')", null);
     }
 

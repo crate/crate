@@ -22,7 +22,6 @@
 
 package io.crate.operation.scalar.arithmetic;
 
-import com.google.common.collect.Iterables;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionInfo;
 import io.crate.operation.scalar.DoubleScalar;
@@ -35,9 +34,6 @@ import java.util.function.DoubleUnaryOperator;
 
 public final class TrigonometricFunctions {
 
-    private static final Iterable<DataType> SUPPORTED_INPUT_TYPES =
-        Iterables.concat(DataTypes.NUMERIC_PRIMITIVE_TYPES, Collections.singletonList(DataTypes.UNDEFINED));
-
     public static void register(ScalarFunctionModule module) {
         register(module, "sin", Math::sin);
         register(module, "asin", x -> Math.asin(checkRange(x)));
@@ -48,7 +44,7 @@ public final class TrigonometricFunctions {
     }
 
     private static void register(ScalarFunctionModule module, String name, DoubleUnaryOperator func) {
-        for (DataType inputType : SUPPORTED_INPUT_TYPES) {
+        for (DataType inputType : DataTypes.NUMERIC_PRIMITIVE_TYPES) {
             FunctionIdent ident = new FunctionIdent(name, Collections.singletonList(inputType));
             module.register(new DoubleScalar(new FunctionInfo(ident, DataTypes.DOUBLE), func));
         }

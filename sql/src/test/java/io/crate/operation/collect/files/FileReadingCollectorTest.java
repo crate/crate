@@ -31,7 +31,7 @@ import com.google.common.collect.ImmutableMap;
 import io.crate.core.collections.Bucket;
 import io.crate.core.collections.Row;
 import io.crate.external.S3ClientHelper;
-import io.crate.metadata.DynamicFunctionResolver;
+import io.crate.metadata.FunctionResolver;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.Functions;
@@ -104,7 +104,7 @@ public class FileReadingCollectorTest extends CrateUnitTest {
     public void prepare() throws Exception {
         Functions functions = new Functions(
             ImmutableMap.<FunctionIdent, FunctionImplementation>of(),
-            ImmutableMap.<String, DynamicFunctionResolver>of(),
+            ImmutableMap.<String, FunctionResolver>of(),
             Collections.<String, TableFunctionImplementation>emptyMap()
         );
         inputSymbolVisitor =

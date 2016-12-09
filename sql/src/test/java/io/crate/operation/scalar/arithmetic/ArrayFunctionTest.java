@@ -24,11 +24,8 @@ package io.crate.operation.scalar.arithmetic;
 
 import io.crate.analyze.symbol.Literal;
 import io.crate.operation.scalar.AbstractScalarFunctionsTest;
-import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.junit.Test;
-
-import java.util.Arrays;
 
 import static io.crate.testing.SymbolMatchers.isLiteral;
 
@@ -36,9 +33,9 @@ public class ArrayFunctionTest extends AbstractScalarFunctionsTest {
 
     @Test
     public void testTypeValidation() throws Exception {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("All arguments to an array must have the same type. Found integer and string");
-        ArrayFunction.createInfo(Arrays.<DataType>asList(DataTypes.INTEGER, DataTypes.STRING));
+        expectedException.expect(UnsupportedOperationException.class);
+        expectedException.expectMessage("unknown function: _array(long, string)");
+        assertEvaluate("ARRAY[1, 'foo']", null);
     }
 
     @Test

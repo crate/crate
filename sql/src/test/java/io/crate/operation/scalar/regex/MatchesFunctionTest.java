@@ -90,14 +90,14 @@ public class MatchesFunctionTest extends AbstractScalarFunctionsTest {
     @Test
     public void testNormalizeSymbolWithInvalidFlags() throws Exception {
         expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage("flags must be of type string");
+        expectedException.expectMessage("unknown function: regexp_matches(string, string, long)");
         assertNormalize("regexp_matches('foobar', 'foo', 1)", null);
     }
 
     @Test
     public void testNormalizeSymbolWithInvalidNumberOfArguments() throws Exception {
         expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage("[regexp_matches] Function implementation not found for argument types [string]");
+        expectedException.expectMessage("unknown function: regexp_matches(string)");
         assertNormalize("regexp_matches('foobar')", null);
     }
 }

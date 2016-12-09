@@ -22,7 +22,7 @@
 package io.crate.operation.scalar;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableList;
 import io.crate.metadata.*;
 import io.crate.operation.Input;
 import io.crate.types.DataType;
@@ -33,11 +33,24 @@ import org.elasticsearch.common.lucene.BytesRefs;
 import javax.annotation.Nonnull;
 import java.util.List;
 
-public class SubstrFunction extends Scalar<BytesRef, Object> implements DynamicFunctionResolver {
+public class SubstrFunction extends Scalar<BytesRef, Object> implements FunctionResolver {
 
     public static final String NAME = "substr";
-    private FunctionInfo info;
     private static final BytesRef EMPTY_BYTES_REF = new BytesRef("");
+    private static final List<Signature> SIGNATURES = buildSignatures();
+
+    private static List<Signature> buildSignatures() {
+        ImmutableList.Builder<Signature> builder = ImmutableList.builder();
+        for (DataType firstNumber : DataTypes.NUMERIC_PRIMITIVE_TYPES) {
+            builder.add(new Signature(DataTypes.STRING, firstNumber));
+            for (DataType secondNumber : DataTypes.NUMERIC_PRIMITIVE_TYPES) {
+                builder.add(new Signature(DataTypes.STRING, firstNumber, secondNumber));
+            }
+        }
+        return builder.build();
+    }
+
+    private FunctionInfo info;
 
     private SubstrFunction() {
     }
@@ -153,8 +166,11 @@ public class SubstrFunction extends Scalar<BytesRef, Object> implements DynamicF
 
     @Override
     public FunctionImplementation getForTypes(List<DataType> dataTypes) throws IllegalArgumentException {
-        Preconditions.checkArgument(
-            dataTypes.size() > 1 && dataTypes.size() < 4 && dataTypes.get(0) == DataTypes.STRING);
         return new SubstrFunction(createInfo(dataTypes));
+    }
+
+    @Override
+    public List<Signature> signatures() {
+        return SIGNATURES;
     }
 }

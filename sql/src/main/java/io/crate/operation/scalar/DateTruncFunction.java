@@ -106,6 +106,9 @@ public class DateTruncFunction extends Scalar<Long, Object> {
 
         // all validation is already done by {@link #normalizeSymbol()}
         BytesRef interval = (BytesRef) ((Input) arguments.get(0)).value();
+        if (interval == null) {
+            return this;
+        }
         BytesRef timeZone = TimeZoneParser.DEFAULT_TZ_BYTES_REF;
         if (arguments.size() == 3) {
             timeZone = (BytesRef) ((Input) arguments.get(1)).value();

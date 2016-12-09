@@ -23,6 +23,7 @@
 package io.crate.operation.scalar.arithmetic;
 
 import io.crate.operation.scalar.AbstractScalarFunctionsTest;
+import org.apache.lucene.util.BytesRef;
 import org.junit.Test;
 
 import java.util.HashMap;
@@ -33,13 +34,13 @@ public class MapFunctionTest extends AbstractScalarFunctionsTest {
     @Test
     public void testMapWithWrongNumOfArguments() throws Exception {
         expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage("Number of arguments to _map(...) must be a multiple of 2. Got 3");
+        expectedException.expectMessage("unknown function: _map(string, long, string)");
         assertEvaluate("_map('foo', 1, 'bar')", null);
     }
 
     @Test
     public void testKeysMustBeOfTypeString() throws Exception {
-        expectedException.expectMessage("Keys to _map must be of type string. Got long");
+        expectedException.expectMessage("unknown function: _map(long, long)");
         assertEvaluate("_map(10, 2)", null);
     }
 
@@ -47,6 +48,11 @@ public class MapFunctionTest extends AbstractScalarFunctionsTest {
     public void testEvaluation() throws Exception {
         Map<String, Object> m = new HashMap<>();
         m.put("foo", 10L);
+        // minimum args
         assertEvaluate("_map('foo', 10)", m);
+
+        // variable args
+        m.put("bar", new BytesRef("some"));
+        assertEvaluate("_map('foo', 10, 'bar', 'some')", m);
     }
 }

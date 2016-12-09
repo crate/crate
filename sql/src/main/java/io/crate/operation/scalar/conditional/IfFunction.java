@@ -22,7 +22,7 @@
 
 package io.crate.operation.scalar.conditional;
 
-import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import io.crate.analyze.symbol.Function;
 import io.crate.analyze.symbol.Symbol;
@@ -30,8 +30,8 @@ import io.crate.analyze.symbol.Symbols;
 import io.crate.metadata.*;
 import io.crate.operation.Input;
 import io.crate.operation.scalar.ScalarFunctionModule;
-import io.crate.types.BooleanType;
 import io.crate.types.DataType;
+import io.crate.types.DataTypes;
 
 import javax.annotation.Nullable;
 import java.util.List;
@@ -129,15 +129,27 @@ public class IfFunction extends Scalar<Object, Object> {
         return new FunctionInfo(new FunctionIdent(NAME, dataTypes), returnType, FunctionInfo.Type.SCALAR);
     }
 
-    private static class Resolver implements DynamicFunctionResolver {
+    private static class Resolver implements FunctionResolver {
+
+        private static final List<Signature> SIGNATURES = buildSignatures();
+
+        private static List<Signature> buildSignatures() {
+            ImmutableList.Builder<Signature> builder = ImmutableList.builder();
+            for (DataType dataType : DataTypes.ALL_TYPES) {
+                builder.add(new Signature(DataTypes.BOOLEAN, dataType));
+                builder.add(new Signature(DataTypes.BOOLEAN, dataType, dataType));
+            }
+            return builder.build();
+        }
 
         @Override
         public FunctionImplementation getForTypes(List<DataType> dataTypes) throws IllegalArgumentException {
-            Preconditions.checkArgument(dataTypes.size() >= 2 && dataTypes.size() <= 3,
-                "Invalid number of arguments, must be either 2 or 3");
-            Preconditions.checkArgument(dataTypes.get(0).id() == BooleanType.ID,
-                "Data type of first argument is expected to be a boolean");
             return new IfFunction(createInfo(dataTypes));
+        }
+
+        @Override
+        public List<Signature> signatures() {
+            return SIGNATURES;
         }
     }
 }

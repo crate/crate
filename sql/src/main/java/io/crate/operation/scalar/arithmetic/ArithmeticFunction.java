@@ -21,16 +21,12 @@
 
 package io.crate.operation.scalar.arithmetic;
 
-import com.google.common.base.Preconditions;
-import com.google.common.collect.Iterables;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Sets;
-import io.crate.metadata.FunctionIdent;
-import io.crate.metadata.FunctionInfo;
-import io.crate.metadata.Scalar;
+import io.crate.metadata.*;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 
-import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 
@@ -38,9 +34,6 @@ abstract class ArithmeticFunction extends Scalar<Number, Number> {
 
     private final static Set<DataType> NUMERIC_WITH_DECIMAL =
         Sets.newHashSet(DataTypes.FLOAT, DataTypes.DOUBLE);
-    private final static Set<DataType> ALLOWED_TYPES = Sets.newHashSet(
-        Iterables.concat(DataTypes.NUMERIC_PRIMITIVE_TYPES, Collections.singletonList(DataTypes.TIMESTAMP))
-    );
 
     protected final FunctionInfo info;
 
@@ -69,16 +62,6 @@ abstract class ArithmeticFunction extends Scalar<Number, Number> {
         return new FunctionInfo(new FunctionIdent(functionName, dataTypes), DataTypes.LONG, FunctionInfo.Type.SCALAR, features);
     }
 
-    static void validateTypes(List<DataType> dataTypes) {
-        Preconditions.checkArgument(dataTypes.size() == 2);
-        DataType leftType = dataTypes.get(0);
-        DataType rightType = dataTypes.get(1);
-        Preconditions.checkArgument(ALLOWED_TYPES.contains(leftType),
-            "invalid type %s of left argument", leftType.toString());
-        Preconditions.checkArgument(ALLOWED_TYPES.contains(rightType),
-            "invalid type %s of right argument", leftType.toString());
-    }
-
     static boolean containsTypesWithDecimal(List<DataType> dataTypes) {
         for (DataType dataType : dataTypes) {
             if (NUMERIC_WITH_DECIMAL.contains(dataType)) {
@@ -88,4 +71,17 @@ abstract class ArithmeticFunction extends Scalar<Number, Number> {
         return false;
     }
 
+    static abstract class ArithmeticFunctionResolver implements FunctionResolver {
+
+        private final static List<DataType> ALLOWED_TYPES = ImmutableList.<DataType>builder()
+            .addAll(DataTypes.NUMERIC_PRIMITIVE_TYPES)
+            .add(DataTypes.TIMESTAMP)
+            .build();
+        private static final List<Signature> SIGNATURES = Signature.pairedCombinationsOf(ALLOWED_TYPES);
+
+        @Override
+        public List<Signature> signatures() {
+            return SIGNATURES;
+        }
+    }
 }

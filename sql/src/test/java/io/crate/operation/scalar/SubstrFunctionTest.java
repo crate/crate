@@ -84,5 +84,11 @@ public class SubstrFunctionTest extends AbstractScalarFunctionsTest {
             Literal.of(1),
             Literal.of(DataTypes.SHORT, null));
     }
+
+    @Test
+    public void testInvalidArgs() throws Exception {
+        expectedException.expectMessage("unknown function: substr(string, string)");
+        assertNormalize("substr('foo', 'b')", null);
+    }
 }
 

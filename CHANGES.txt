@@ -5,6 +5,11 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fixed scalar signature registration, NULL literals are now supported.
+
+ - Fixed usage of aggregations with NULL values, no exception will be
+   thrown anymore but instead NULL values are properly processed.
+
  - Fix: ``chunk_size`` and ``buffer_size`` settings for creating repositories
    of type ``S3`` are not parsed correctly.
 

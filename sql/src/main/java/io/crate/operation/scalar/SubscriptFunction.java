@@ -21,19 +21,20 @@
 
 package io.crate.operation.scalar;
 
-import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableList;
 import io.crate.metadata.*;
 import io.crate.operation.Input;
-import io.crate.types.ArrayType;
-import io.crate.types.CollectionType;
-import io.crate.types.DataType;
-import io.crate.types.DataTypes;
+import io.crate.types.*;
 
 import java.util.List;
 
-public class SubscriptFunction extends Scalar<Object, Object[]> implements DynamicFunctionResolver {
+public class SubscriptFunction extends Scalar<Object, Object[]> implements FunctionResolver {
 
     public static final String NAME = "subscript";
+
+    private static final List<Signature> SIGNATURES = ImmutableList.of(
+        new Signature(DataTypes.ANY_ARRAY, DataTypes.INTEGER)
+    );
 
     private static FunctionInfo createInfo(List<DataType> argumentTypes, DataType returnType) {
         return new FunctionInfo(new FunctionIdent(NAME, argumentTypes), returnType);
@@ -86,12 +87,12 @@ public class SubscriptFunction extends Scalar<Object, Object[]> implements Dynam
 
     @Override
     public FunctionImplementation getForTypes(List<DataType> dataTypes) throws IllegalArgumentException {
-        Preconditions.checkArgument(dataTypes.size() == 2
-                                    && dataTypes.get(0).id() == ArrayType.ID
-                                    && dataTypes.get(1) == DataTypes.INTEGER);
         DataType returnType = ((CollectionType) dataTypes.get(0)).innerType();
         return new SubscriptFunction(createInfo(dataTypes, returnType));
     }
 
-
+    @Override
+    public List<Signature> signatures() {
+        return SIGNATURES;
+    }
 }
