@@ -46,7 +46,6 @@ import org.elasticsearch.action.admin.indices.template.put.PutIndexTemplateReque
 import org.elasticsearch.action.admin.indices.template.put.TransportPutIndexTemplateAction;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.cluster.metadata.MappingMetaData;
-import org.elasticsearch.common.Booleans;
 import org.elasticsearch.common.collect.Tuple;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.XContentHelper;
@@ -416,14 +415,7 @@ public class DocIndexMetaData {
     }
 
     private ColumnPolicy getColumnPolicy() {
-        Object dynamic = getNested(defaultMappingMap, "dynamic");
-        if (ColumnPolicy.STRICT.value().equals(String.valueOf(dynamic).toLowerCase(Locale.ENGLISH))) {
-            return ColumnPolicy.STRICT;
-        } else if (Booleans.isExplicitFalse(String.valueOf(dynamic))) {
-            return ColumnPolicy.IGNORED;
-        } else {
-            return ColumnPolicy.DYNAMIC;
-        }
+        return ColumnPolicy.of(defaultMappingMap.get("dynamic"));
     }
 
     private void createColumnDefinitions() {
