@@ -22,7 +22,6 @@
 
 package io.crate.metadata.doc;
 
-import com.google.common.util.concurrent.MoreExecutors;
 import io.crate.Constants;
 import io.crate.exceptions.TableUnknownException;
 import io.crate.metadata.Functions;
@@ -39,27 +38,17 @@ import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.metadata.MetaData;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.test.cluster.NoopClusterService;
-import org.junit.Before;
 import org.junit.Test;
-import org.mockito.Mock;
 
 import java.util.Collections;
 import java.util.Locale;
-import java.util.concurrent.ExecutorService;
 
+import static io.crate.testing.TestingHelpers.getFunctions;
 import static org.mockito.Mockito.mock;
 
 public class DocTableInfoBuilderTest extends CrateUnitTest {
 
-    private ExecutorService executorService;
-
-    @Mock
-    Functions functions;
-
-    @Before
-    public void prepare() throws Exception {
-        executorService = MoreExecutors.newDirectExecutorService();
-    }
+    private Functions functions = getFunctions();
 
     private String randomSchema() {
         if (randomBoolean()) {
@@ -101,7 +90,6 @@ public class DocTableInfoBuilderTest extends CrateUnitTest {
             clusterService,
             new IndexNameExpressionResolver(Settings.EMPTY),
             mock(TransportPutIndexTemplateAction.class),
-            executorService,
             false
         );
 

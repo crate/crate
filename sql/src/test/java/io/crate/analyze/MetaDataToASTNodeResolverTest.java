@@ -44,7 +44,6 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
-import java.util.concurrent.ExecutorService;
 
 import static org.mockito.Mockito.mock;
 
@@ -83,10 +82,9 @@ public class MetaDataToASTNodeResolverTest extends CrateUnitTest {
                 new BytesRef(numberOfReplicas),
                 tableParameters,
                 partitionedBy,
-                Collections.EMPTY_LIST,
+                Collections.emptyList(),
                 policy,
-                Operation.ALL,
-                mock(ExecutorService.class));
+                Operation.ALL);
         }
     }
 
