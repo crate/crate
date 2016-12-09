@@ -37,7 +37,14 @@ import org.elasticsearch.index.translog.TranslogConfig;
 import org.elasticsearch.index.translog.TranslogService;
 import org.elasticsearch.indices.IndicesWarmer;
 
+import javax.annotation.concurrent.Immutable;
+import javax.annotation.concurrent.ThreadSafe;
+
+@Immutable
+@ThreadSafe
 public class TableParameterInfo {
+
+    public static final TableParameterInfo INSTANCE = new TableParameterInfo();
 
     // all available table settings
     public static final String NUMBER_OF_REPLICAS = IndexMetaData.SETTING_NUMBER_OF_REPLICAS;
@@ -137,5 +144,8 @@ public class TableParameterInfo {
             .put(TableParameterInfo.REFRESH_INTERVAL, CrateTableSettings.REFRESH_INTERVAL.extractMillis(settings))
             .put(TableParameterInfo.UNASSIGNED_NODE_LEFT_DELAYED_TIMEOUT, CrateTableSettings.UNASSIGNED_NODE_LEFT_DELAYED_TIMEOUT.extractMillis(settings))
             .build();
+    }
+
+    protected TableParameterInfo() {
     }
 }
