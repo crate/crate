@@ -21,11 +21,10 @@
 
 package io.crate.operation.operator.any;
 
+import com.google.common.collect.ImmutableList;
+import io.crate.analyze.symbol.Function;
 import io.crate.core.collections.MapComparator;
-import io.crate.metadata.DynamicFunctionResolver;
-import io.crate.metadata.FunctionIdent;
-import io.crate.metadata.FunctionImplementation;
-import io.crate.metadata.FunctionInfo;
+import io.crate.metadata.*;
 import io.crate.operation.Input;
 import io.crate.operation.operator.Operator;
 import io.crate.types.BooleanType;
@@ -42,7 +41,7 @@ public abstract class AnyOperator extends Operator<Object> {
     public static final String OPERATOR_PREFIX = "any_";
 
     /**
-     * called inside {@link #no}
+     * called inside {@link #normalizeSymbol(Function, TransactionContext)}
      * in order to interpret the result of compareTo
      * <p>
      * subclass has to implement this to evaluate the -1, 0, 1 to boolean
@@ -125,7 +124,12 @@ public abstract class AnyOperator extends Operator<Object> {
         }
     }
 
-    public abstract static class AnyResolver implements DynamicFunctionResolver {
+    public abstract static class AnyResolver implements FunctionResolver {
+
+        private static final List<Signature> SIGNATURES = ImmutableList.<Signature>builder()
+            .add(new Signature(DataTypes.ANY, DataTypes.ANY_ARRAY))
+            .add(new Signature(DataTypes.ANY, DataTypes.ANY_SET))
+            .build();
 
         public abstract FunctionImplementation newInstance(FunctionInfo info);
 
@@ -133,11 +137,14 @@ public abstract class AnyOperator extends Operator<Object> {
 
         @Override
         public FunctionImplementation getForTypes(List<DataType> dataTypes) throws IllegalArgumentException {
-            checkArgument(dataTypes.size() == 2, "ANY operator requires exactly 2 arguments");
-            checkArgument(DataTypes.isCollectionType(dataTypes.get(1)), "The second argument to ANY must be an array or set");
             checkArgument(((CollectionType) dataTypes.get(1)).innerType().equals(dataTypes.get(0)),
                 "The inner type of the array/set passed to ANY must match its left expression");
             return newInstance(new FunctionInfo(new FunctionIdent(name(), dataTypes), BooleanType.INSTANCE));
+        }
+
+        @Override
+        public List<Signature> signatures() {
+            return SIGNATURES;
         }
     }
 }

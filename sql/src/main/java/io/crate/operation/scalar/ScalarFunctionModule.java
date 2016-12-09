@@ -21,7 +21,7 @@
 
 package io.crate.operation.scalar;
 
-import io.crate.metadata.DynamicFunctionResolver;
+import io.crate.metadata.FunctionResolver;
 import io.crate.metadata.FunctionIdent;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.operation.scalar.arithmetic.*;
@@ -47,16 +47,16 @@ import java.util.Map;
 public class ScalarFunctionModule extends AbstractModule {
 
     private Map<FunctionIdent, FunctionImplementation> functions = new HashMap<>();
-    private Map<String, DynamicFunctionResolver> resolver = new HashMap<>();
+    private Map<String, FunctionResolver> resolver = new HashMap<>();
     private MapBinder<FunctionIdent, FunctionImplementation> functionBinder;
-    private MapBinder<String, DynamicFunctionResolver> resolverBinder;
+    private MapBinder<String, FunctionResolver> resolverBinder;
 
     public void register(FunctionImplementation impl) {
         functions.put(impl.info().ident(), impl);
     }
 
-    public void register(String name, DynamicFunctionResolver dynamicFunctionResolver) {
-        resolver.put(name, dynamicFunctionResolver);
+    public void register(String name, FunctionResolver functionResolver) {
+        resolver.put(name, functionResolver);
     }
 
     @Override
@@ -124,12 +124,12 @@ public class ScalarFunctionModule extends AbstractModule {
         // by doing it here instead of the register functions, plugins can also use the
         // register functions in their onModule(...) hooks
         functionBinder = MapBinder.newMapBinder(binder(), FunctionIdent.class, FunctionImplementation.class);
-        resolverBinder = MapBinder.newMapBinder(binder(), String.class, DynamicFunctionResolver.class);
+        resolverBinder = MapBinder.newMapBinder(binder(), String.class, FunctionResolver.class);
         for (Map.Entry<FunctionIdent, FunctionImplementation> entry : functions.entrySet()) {
             functionBinder.addBinding(entry.getKey()).toInstance(entry.getValue());
 
         }
-        for (Map.Entry<String, DynamicFunctionResolver> entry : resolver.entrySet()) {
+        for (Map.Entry<String, FunctionResolver> entry : resolver.entrySet()) {
             resolverBinder.addBinding(entry.getKey()).toInstance(entry.getValue());
         }
 

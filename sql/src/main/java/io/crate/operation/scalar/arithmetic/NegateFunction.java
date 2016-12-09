@@ -47,12 +47,9 @@ public abstract class NegateFunction<TOut, TIn> extends Scalar<TOut, TIn> {
         return info;
     }
 
-    private static final DynamicFunctionResolver RESOLVER = new DynamicFunctionResolver() {
+    private static final FunctionResolver RESOLVER = new FunctionResolver() {
         @Override
         public FunctionImplementation getForTypes(List<DataType> dataTypes) throws IllegalArgumentException {
-            if (dataTypes.size() != 1) {
-                throw new IllegalArgumentException("_negate requires exactly one argument");
-            }
             DataType dataType = dataTypes.get(0);
             switch (dataType.id()) {
                 case DoubleType.ID:
@@ -67,6 +64,11 @@ public abstract class NegateFunction<TOut, TIn> extends Scalar<TOut, TIn> {
                     return new NegateLong();
             }
             throw new IllegalArgumentException("Cannot negate values of type " + dataType.getName());
+        }
+
+        @Override
+        public List<Signature> signatures() {
+            return Signature.SIGNATURES_SINGLE_NUMERIC;
         }
     };
 

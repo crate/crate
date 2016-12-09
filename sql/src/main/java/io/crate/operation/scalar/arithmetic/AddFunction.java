@@ -24,9 +24,7 @@ package io.crate.operation.scalar.arithmetic;
 import io.crate.analyze.symbol.Function;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.analyze.symbol.format.OperatorFormatSpec;
-import io.crate.metadata.DynamicFunctionResolver;
-import io.crate.metadata.FunctionImplementation;
-import io.crate.metadata.FunctionInfo;
+import io.crate.metadata.*;
 import io.crate.operation.Input;
 import io.crate.operation.scalar.ScalarFunctionModule;
 import io.crate.types.DataType;
@@ -108,11 +106,10 @@ public abstract class AddFunction extends ArithmeticFunction implements Operator
         }
     }
 
-    private static class Resolver implements DynamicFunctionResolver {
+    private static class Resolver extends ArithmeticFunctionResolver {
 
         @Override
         public FunctionImplementation getForTypes(List<DataType> dataTypes) throws IllegalArgumentException {
-            validateTypes(dataTypes);
             if (containsTypesWithDecimal(dataTypes)) {
                 return new DoubleAddFunction(genDoubleInfo(NAME, dataTypes, FunctionInfo.DETERMINISTIC_AND_COMPARISON_REPLACEMENT));
             }

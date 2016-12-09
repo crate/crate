@@ -28,7 +28,7 @@ import java.util.List;
 /**
  * resolver for methods that take a variable number of arguments or work with a lots of different arguments
  */
-public interface DynamicFunctionResolver {
+public interface FunctionResolver {
 
     /**
      * returns the function implementation for the given types.
@@ -36,4 +36,9 @@ public interface DynamicFunctionResolver {
      * @throws java.lang.IllegalArgumentException thrown if there is no function that can handle the given types.
      */
     FunctionImplementation getForTypes(List<DataType> dataTypes) throws IllegalArgumentException;
+
+    /**
+     * Returns a list of {@link Signature} elements a function should be registered to.
+     */
+    List<Signature> signatures();
 }

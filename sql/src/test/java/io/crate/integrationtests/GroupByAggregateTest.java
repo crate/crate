@@ -714,9 +714,10 @@ public class GroupByAggregateTest extends SQLTransportIntegrationTest {
     @Test
     public void testAggregateNonExistingColumn() throws Exception {
         this.setup.groupBySetup();
-        expectedException.expect(SQLActionException.class);
-        expectedException.expectMessage("unknown function: max(null)"); // TODO: better exception
-        execute("select max(details_ignored['lol']), race from characters group by race");
+        execute("select max(details_ignored['lol']), race from characters group by race order by race");
+        assertThat(TestingHelpers.printedTable(response.rows()), is("NULL| Android\n" +
+                                                                    "NULL| Human\n" +
+                                                                    "NULL| Vogon\n"));
     }
 
     @Test

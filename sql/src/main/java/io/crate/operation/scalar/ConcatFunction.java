@@ -22,6 +22,7 @@
 package io.crate.operation.scalar;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableList;
 import io.crate.analyze.symbol.Function;
 import io.crate.analyze.symbol.Literal;
 import io.crate.analyze.symbol.Symbol;
@@ -123,13 +124,14 @@ public abstract class ConcatFunction extends Scalar<BytesRef, BytesRef> {
         }
     }
 
-    private static class Resolver implements DynamicFunctionResolver {
+    private static class Resolver implements FunctionResolver {
+
+        private static final List<Signature> SIGNATURES = ImmutableList.of(
+            new Signature(1, DataTypes.ANY, DataTypes.ANY));
 
         @Override
         public FunctionImplementation getForTypes(List<DataType> dataTypes) throws IllegalArgumentException {
-            if (dataTypes.size() < 2) {
-                throw new IllegalArgumentException("concat function requires at least 2 arguments");
-            } else if (dataTypes.size() == 2 && dataTypes.get(0).equals(DataTypes.STRING) &&
+            if (dataTypes.size() == 2 && dataTypes.get(0).equals(DataTypes.STRING) &&
                        dataTypes.get(1).equals(DataTypes.STRING)) {
                 return new StringConcatFunction(new FunctionInfo(new FunctionIdent(NAME, dataTypes), DataTypes.STRING));
             } else if (dataTypes.size() == 2 && dataTypes.get(0) instanceof ArrayType &&
@@ -159,6 +161,11 @@ public abstract class ConcatFunction extends Scalar<BytesRef, BytesRef> {
                 }
                 return new GenericConcatFunction(new FunctionInfo(new FunctionIdent(NAME, dataTypes), DataTypes.STRING));
             }
+        }
+
+        @Override
+        public List<Signature> signatures() {
+            return SIGNATURES;
         }
     }
 }

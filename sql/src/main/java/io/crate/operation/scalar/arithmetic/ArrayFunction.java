@@ -22,47 +22,39 @@
 
 package io.crate.operation.scalar.arithmetic;
 
+import io.crate.core.collections.Collectors;
 import io.crate.metadata.*;
 import io.crate.operation.Input;
 import io.crate.operation.scalar.ScalarFunctionModule;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
-import io.crate.types.DataTypes;
 
-import java.util.Iterator;
 import java.util.List;
 
 public class ArrayFunction extends Scalar<Object, Object> {
 
-    private final static String NAME = "_array";
+    public final static String NAME = "_array";
+    private static final List<Signature> SIGNATURES = Signature.SIGNATURES_SINGLE_ALL.stream()
+        .map(dt -> new Signature(0, dt))
+        .collect(Collectors.toImmutableList());
+
+
     private final FunctionInfo info;
 
     public static FunctionInfo createInfo(List<DataType> argumentTypes) {
-        if (argumentTypes.isEmpty()) {
-            throw new IllegalArgumentException("Cannot determine type of empty array");
-        }
-        Iterator<DataType> it = argumentTypes.iterator();
-        DataType firstType = it.next();
-        while (it.hasNext()) {
-            DataType next = it.next();
-            if (next.equals(DataTypes.UNDEFINED)) {
-                continue;
-            }
-            if (firstType.equals(DataTypes.UNDEFINED)) {
-                firstType = next;
-            } else if (!firstType.equals(next)) {
-                throw new IllegalArgumentException("All arguments to an array must have the same type. " +
-                                                   "Found " + firstType.getName() + " and " + next.getName());
-            }
-        }
-        return new FunctionInfo(new FunctionIdent(NAME, argumentTypes), new ArrayType(firstType));
+        return new FunctionInfo(new FunctionIdent(NAME, argumentTypes), new ArrayType(argumentTypes.get(0)));
     }
 
-    private static final DynamicFunctionResolver RESOLVER = new DynamicFunctionResolver() {
+    private static final FunctionResolver RESOLVER = new FunctionResolver() {
 
         @Override
         public FunctionImplementation getForTypes(List<DataType> dataTypes) throws IllegalArgumentException {
             return new ArrayFunction(createInfo(dataTypes));
+        }
+
+        @Override
+        public List<Signature> signatures() {
+            return SIGNATURES;
         }
     };
 

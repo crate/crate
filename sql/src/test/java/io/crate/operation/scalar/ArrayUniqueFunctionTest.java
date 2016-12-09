@@ -60,7 +60,7 @@ public class ArrayUniqueFunctionTest extends AbstractScalarFunctionsTest {
     @Test
     public void testZeroArguments() throws Exception {
         expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage("array_unique function requires one or two arguments");
+        expectedException.expectMessage("unknown function: array_unique()");
         assertEvaluate("array_unique()", null);
     }
 

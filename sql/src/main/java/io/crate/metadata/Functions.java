@@ -22,26 +22,41 @@
 package io.crate.metadata;
 
 import com.google.common.base.Joiner;
+import com.google.common.collect.ArrayListMultimap;
+import com.google.common.collect.Maps;
+import com.google.common.collect.Multimap;
 import io.crate.metadata.tablefunctions.TableFunctionImplementation;
+import io.crate.types.DataType;
+import io.crate.types.DataTypes;
+import io.crate.types.UndefinedType;
+import org.elasticsearch.common.collect.Tuple;
 import org.elasticsearch.common.inject.Inject;
 
 import javax.annotation.Nullable;
-import java.util.Locale;
-import java.util.Map;
+import java.util.*;
 
 public class Functions {
 
-    private final Map<FunctionIdent, FunctionImplementation> functionImplementations;
-    private final Map<String, DynamicFunctionResolver> functionResolvers;
+    private final Map<String, FunctionResolver> functionResolvers;
     private final Map<String, TableFunctionImplementation> tableFunctionImplementationMap;
 
     @Inject
     public Functions(Map<FunctionIdent, FunctionImplementation> functionImplementations,
-                     Map<String, DynamicFunctionResolver> functionResolvers,
+                     Map<String, FunctionResolver> functionResolvers,
                      Map<String, TableFunctionImplementation> tableFunctionImplementationMap) {
-        this.functionImplementations = functionImplementations;
-        this.functionResolvers = functionResolvers;
+        this.functionResolvers = Maps.newHashMap(functionResolvers);
         this.tableFunctionImplementationMap = tableFunctionImplementationMap;
+        generateFunctionResolvers(functionImplementations);
+    }
+
+    private void generateFunctionResolvers(Map<FunctionIdent, FunctionImplementation> functionImplementations) {
+        Multimap<String, Tuple<FunctionIdent, FunctionImplementation>> signatureMap = ArrayListMultimap.create();
+        for (Map.Entry<FunctionIdent, FunctionImplementation> entry : functionImplementations.entrySet()) {
+            signatureMap.put(entry.getKey().name(), new Tuple<>(entry.getKey(), entry.getValue()));
+        }
+        for (String name : signatureMap.keys()) {
+            functionResolvers.put(name, new GeneratedFunctionResolver(signatureMap.get(name)));
+        }
     }
 
     /**
@@ -79,16 +94,74 @@ public class Functions {
      */
     @Nullable
     public FunctionImplementation get(FunctionIdent ident) throws IllegalArgumentException {
-        FunctionImplementation implementation = functionImplementations.get(ident);
-        if (implementation != null) {
-            return implementation;
-        }
-
-        DynamicFunctionResolver dynamicResolver = functionResolvers.get(ident.name());
+        FunctionResolver dynamicResolver = functionResolvers.get(ident.name());
         if (dynamicResolver != null) {
-            return dynamicResolver.getForTypes(ident.argumentTypes());
+            List<DataType> argumentTypes = ident.argumentTypes();
+            Signature signature = getMatchingSignature(argumentTypes, dynamicResolver);
+            if (signature != null) {
+                return dynamicResolver.getForTypes(replaceUndefinedDataTypesIfPossible(argumentTypes, signature));
+            }
         }
         return null;
+    }
+
+    /**
+     * Returns a possible matching {@link Signature} provided by a given {@link FunctionResolver}
+     */
+    @Nullable
+    private Signature getMatchingSignature(List<DataType> argumentTypes, FunctionResolver resolver) {
+        for (Signature signature : resolver.signatures()) {
+            if (signature.matches(argumentTypes)) {
+                return signature;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Replace possible {@link UndefinedType} elements with corresponding element at the matching signature.
+     * This will ensure, a function will be resolved with correct types.
+     *
+     * <p><strong>Note that if the corresponding element at the signature is an ANY type, it won't be used as a
+     * replacement for the {@link UndefinedType} as ANY types must only be used for signature matching.</strong></p>
+     */
+    private List<DataType> replaceUndefinedDataTypesIfPossible(List<DataType> argTypes, Signature matchingSignature) {
+        ListIterator<DataType> argsIt = argTypes.listIterator();
+        int signatureSize = matchingSignature.size();
+        boolean replacementNeeded = false;
+
+        // detect if any replacement is needed
+        while (argsIt.hasNext()) {
+            int i = argsIt.nextIndex();
+            DataType dt = argsIt.next();
+            if (i < signatureSize && dt.id() == UndefinedType.ID) {
+                DataType replacedDt = matchingSignature.get(i);
+                if (!DataTypes.isAnyOrAnyCollection(replacedDt)) {
+                    replacementNeeded = true;
+                    break;
+                }
+            }
+        }
+        if (!replacementNeeded) {
+            return argTypes;
+        }
+
+        // do the replacement. we must create a new list here, as we can't be sure the incoming list is mutable
+        List<DataType> newArgumentTypes = new ArrayList<>(argTypes.size());
+        argsIt = argTypes.listIterator();
+        while (argsIt.hasNext()) {
+            int i = argsIt.nextIndex();
+            DataType dt = argsIt.next();
+            if (i < signatureSize && dt.id() == UndefinedType.ID) {
+                DataType replacedDt = matchingSignature.get(i);
+                if (!DataTypes.isAnyOrAnyCollection(replacedDt)) {
+                    newArgumentTypes.add(replacedDt);
+                    continue;
+                }
+            }
+            newArgumentTypes.add(dt);
+        }
+        return newArgumentTypes;
     }
 
     /**
@@ -100,5 +173,31 @@ public class Functions {
             throw new UnsupportedOperationException("unknown table function: " + name);
         }
         return tableFunctionImplementation;
+    }
+
+    private static class GeneratedFunctionResolver implements FunctionResolver {
+
+        private final List<Signature> signatures;
+        private final Map<List<DataType>, FunctionImplementation> functions;
+
+        GeneratedFunctionResolver(Collection<Tuple<FunctionIdent, FunctionImplementation>> functionTuples) {
+            signatures = new ArrayList<>(functionTuples.size());
+            functions = new HashMap<>(functionTuples.size());
+            for (Tuple<FunctionIdent, FunctionImplementation> functionTuple : functionTuples) {
+                List<DataType> argumentTypes = functionTuple.v1().argumentTypes();
+                signatures.add(new Signature(argumentTypes));
+                functions.put(argumentTypes, functionTuple.v2());
+            }
+        }
+
+        @Override
+        public FunctionImplementation getForTypes(List<DataType> dataTypes) throws IllegalArgumentException {
+            return functions.get(dataTypes);
+        }
+
+        @Override
+        public List<Signature> signatures() {
+            return signatures;
+        }
     }
 }

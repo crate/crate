@@ -68,14 +68,14 @@ public class ArrayDifferenceFunctionTest extends AbstractScalarFunctionsTest {
     @Test
     public void testZeroArguments() throws Exception {
         expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage("array_difference function requires 2 arguments");
+        expectedException.expectMessage("unknown function: array_difference()");
         assertNormalize("array_difference()", null);
     }
 
     @Test
     public void testOneArgument() throws Exception {
         expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage("array_difference function requires 2 arguments");
+        expectedException.expectMessage("unknown function: array_difference(long_array)");
         assertNormalize("array_difference([1])", null);
     }
 

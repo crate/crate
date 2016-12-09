@@ -21,25 +21,23 @@
 
 package io.crate.operation.scalar;
 
+import com.google.common.collect.ImmutableList;
 import io.crate.analyze.symbol.Function;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.metadata.*;
 import io.crate.operation.Input;
-import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
-import io.crate.types.SetType;
 
 import java.util.Collection;
 import java.util.List;
-import java.util.Locale;
 
 public class CollectionCountFunction extends Scalar<Long, Collection<DataType>> {
 
     public static final String NAME = "collection_count";
     private final FunctionInfo info;
 
-    private static final DynamicFunctionResolver collectionCountResolver = new CollectionCountResolver();
+    private static final FunctionResolver collectionCountResolver = new CollectionCountResolver();
 
     public static void register(ScalarFunctionModule mod) {
         mod.register(NAME, collectionCountResolver);
@@ -69,27 +67,21 @@ public class CollectionCountFunction extends Scalar<Long, Collection<DataType>> 
         return function;
     }
 
-    static class CollectionCountResolver implements DynamicFunctionResolver {
+    static class CollectionCountResolver implements FunctionResolver {
 
-        private static boolean isCollectionType(DataType dataType) {
-            return dataType.id() == ArrayType.ID || dataType.id() == SetType.ID;
-        }
+        private static final List<Signature> SIGNATURES = ImmutableList.of(new Signature(DataTypes.ANY_SET));
 
         @Override
         public FunctionImplementation getForTypes(List<DataType> dataTypes) throws IllegalArgumentException {
-            for (DataType dataType : dataTypes) {
-                if (!isCollectionType(dataType)) {
-                    throw new IllegalArgumentException(String.format(Locale.ENGLISH,
-                        "Function \"%s\" got an invalid argument of type \"%s\"",
-                        NAME,
-                        dataType.getName()));
-                }
-            }
-
             return new CollectionCountFunction(new FunctionInfo(
                 new FunctionIdent(NAME, dataTypes),
                 DataTypes.LONG
             ));
+        }
+
+        @Override
+        public List<Signature> signatures() {
+            return SIGNATURES;
         }
     }
 }

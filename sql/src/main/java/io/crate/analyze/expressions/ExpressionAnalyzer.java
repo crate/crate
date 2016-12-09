@@ -664,10 +664,8 @@ public class ExpressionAnalyzer {
                 for (Expression value : values) {
                     arguments.add(process(value, context));
                 }
-                return context.allocateFunction(
-                    ArrayFunction.createInfo(Symbols.extractTypes(arguments)),
-                    arguments
-                );
+                FunctionIdent functionIdent = new FunctionIdent(ArrayFunction.NAME, Symbols.extractTypes(arguments));
+                return context.allocateFunction(getFunctionInfo(functionIdent), arguments);
             }
         }
 
@@ -682,7 +680,8 @@ public class ExpressionAnalyzer {
                 arguments.add(Literal.of(entry.getKey()));
                 arguments.add(process(entry.getValue(), context));
             }
-            return context.allocateFunction(MapFunction.createInfo(Symbols.extractTypes(arguments)), arguments);
+            FunctionIdent functionIdent = new FunctionIdent(MapFunction.NAME, Symbols.extractTypes(arguments));
+            return context.allocateFunction(getFunctionInfo(functionIdent), arguments);
         }
 
         @Override

@@ -22,6 +22,7 @@
 package io.crate.operation.scalar;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableList;
 import io.crate.metadata.*;
 import io.crate.operation.Input;
 import io.crate.types.DataType;
@@ -31,10 +32,12 @@ import org.apache.lucene.util.BytesRef;
 import java.util.List;
 import java.util.Locale;
 
-public class FormatFunction extends Scalar<BytesRef, Object> implements DynamicFunctionResolver {
+public class FormatFunction extends Scalar<BytesRef, Object> implements FunctionResolver {
 
     public static final String NAME = "format";
-    private FunctionInfo info;
+
+    private static final List<Signature> SIGNATURES = ImmutableList.of(
+        new Signature(1, DataTypes.STRING, DataTypes.ANY));
 
     public static void register(ScalarFunctionModule module) {
         module.register(NAME, new FormatFunction());
@@ -43,6 +46,8 @@ public class FormatFunction extends Scalar<BytesRef, Object> implements DynamicF
     private static FunctionInfo createInfo(List<DataType> types) {
         return new FunctionInfo(new FunctionIdent(NAME, types), DataTypes.STRING);
     }
+
+    private FunctionInfo info;
 
     private FormatFunction() {
     }
@@ -80,5 +85,10 @@ public class FormatFunction extends Scalar<BytesRef, Object> implements DynamicF
     public FunctionImplementation getForTypes(List<DataType> dataTypes) throws IllegalArgumentException {
         Preconditions.checkArgument(dataTypes.size() > 1 && dataTypes.get(0) == DataTypes.STRING);
         return new FormatFunction(createInfo(dataTypes));
+    }
+
+    @Override
+    public List<Signature> signatures() {
+        return SIGNATURES;
     }
 }

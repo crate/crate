@@ -22,15 +22,17 @@
 
 package io.crate.operation.scalar.arithmetic;
 
+import com.google.common.collect.ImmutableList;
 import io.crate.metadata.*;
 import io.crate.operation.Input;
 import io.crate.operation.scalar.ScalarFunctionModule;
+import io.crate.types.AnyType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
+import io.crate.types.StringType;
 import org.elasticsearch.common.lucene.BytesRefs;
 
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
@@ -45,24 +47,23 @@ import java.util.Map;
  */
 public class MapFunction extends Scalar<Object, Object> {
 
-    private final static String NAME = "_map";
+    public final static String NAME = "_map";
 
-    private final static DynamicFunctionResolver RESOLVER = new DynamicFunctionResolver() {
+    private final static List<Signature> SIGNATURES = ImmutableList.<Signature>builder()
+        .add(new Signature()) // allow empty map
+        .add(new Signature(0, StringType.INSTANCE, AnyType.INSTANCE))
+        .build();
+
+    private final static FunctionResolver RESOLVER = new FunctionResolver() {
+
         @Override
         public FunctionImplementation getForTypes(List<DataType> dataTypes) throws IllegalArgumentException {
-            if (dataTypes.size() % 2 != 0) {
-                throw new IllegalArgumentException(
-                    "Number of arguments to _map(...) must be a multiple of 2. Got " + dataTypes.size());
-            }
-            Iterator<DataType> it = dataTypes.iterator();
-            while (it.hasNext()) {
-                DataType keyType = it.next();
-                if (!keyType.equals(DataTypes.STRING)) {
-                    throw new IllegalArgumentException("Keys to _map must be of type string. Got " + keyType);
-                }
-                it.next();
-            }
             return new MapFunction(createInfo(dataTypes));
+        }
+
+        @Override
+        public List<Signature> signatures() {
+            return SIGNATURES;
         }
     };
 

@@ -45,7 +45,12 @@ public class DateTruncFunctionTest extends AbstractScalarFunctionsTest {
     }
 
     @Test
-    public void testNullInterval() throws Exception {
+    public void testNormalizeNullInterval() throws Exception {
+        assertNormalize("date_trunc(null, 919946281123)", isLiteral(null));
+    }
+
+    @Test
+    public void testEvaluateNullInterval() throws Exception {
         assertEvaluate("date_trunc(interval, 919946281123)", null, Literal.of((String) null));
     }
 

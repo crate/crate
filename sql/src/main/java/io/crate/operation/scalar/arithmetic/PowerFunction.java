@@ -31,19 +31,12 @@ import io.crate.types.DataTypes;
 import java.util.List;
 
 
-public abstract class PowerFunction extends Scalar<Number, Number> {
+public abstract class PowerFunction extends ArithmeticFunction {
 
     public static final String NAME = "power";
 
-    private final FunctionInfo info;
-
     PowerFunction(FunctionInfo info) {
-        this.info = info;
-    }
-
-    @Override
-    public FunctionInfo info() {
-        return info;
+        super(info);
     }
 
     public static void register(ScalarFunctionModule module) {
@@ -72,19 +65,9 @@ public abstract class PowerFunction extends Scalar<Number, Number> {
         }
     }
 
-    private static class Resolver implements DynamicFunctionResolver {
+    private static class Resolver extends ArithmeticFunctionResolver {
         @Override
         public FunctionImplementation getForTypes(List<DataType> dataTypes) throws IllegalArgumentException {
-            if (dataTypes.size() != 2) {
-                throw new IllegalArgumentException(
-                    "The number of arguments passed to power(...) must be 2. Got " + dataTypes.size());
-            }
-
-            for (DataType dataType : dataTypes) {
-                if (!DataTypes.NUMERIC_PRIMITIVE_TYPES.contains(dataType)) {
-                    throw new IllegalArgumentException("Received unsupported argument type " + dataType);
-                }
-            }
             FunctionInfo powerFunctionInfo =
                 new FunctionInfo(new FunctionIdent(NAME, dataTypes), DataTypes.DOUBLE);
             return new DoublePowerFunction(powerFunctionInfo);

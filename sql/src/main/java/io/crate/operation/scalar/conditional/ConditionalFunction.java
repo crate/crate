@@ -24,20 +24,21 @@ package io.crate.operation.scalar.conditional;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
-import io.crate.metadata.FunctionIdent;
-import io.crate.metadata.FunctionInfo;
-import io.crate.metadata.Scalar;
+import io.crate.core.collections.Collectors;
+import io.crate.metadata.*;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.function.Function;
 
 abstract class ConditionalFunction extends Scalar<Object, Object> {
+
     private final FunctionInfo info;
 
-    protected ConditionalFunction(FunctionInfo info) {
+    ConditionalFunction(FunctionInfo info) {
         this.info = info;
     }
 
@@ -54,5 +55,30 @@ abstract class ConditionalFunction extends Scalar<Object, Object> {
         Preconditions.checkArgument(types.size() == 1 || (types.size() == 2 && types.contains(DataTypes.UNDEFINED)),
             "all arguments for %s function must have the same data type", name);
         return new FunctionInfo(new FunctionIdent(name, dataTypes), DataTypes.tryFindNotNullType(dataTypes));
+    }
+
+    static class ConditionalFunctionResolver implements FunctionResolver {
+
+        private static final List<Signature> SIGNATURES = Signature.SIGNATURES_SINGLE_ALL.stream()
+            .map(dt -> new Signature(0, dt))
+            .collect(Collectors.toImmutableList());
+
+        private final String name;
+        private final Function<FunctionInfo, FunctionImplementation> fn;
+
+        ConditionalFunctionResolver(String name, Function<FunctionInfo, FunctionImplementation> fn) {
+            this.name = name;
+            this.fn = fn;
+        }
+
+        @Override
+        public FunctionImplementation getForTypes(List<DataType> dataTypes) throws IllegalArgumentException {
+            return fn.apply(createInfo(name, dataTypes));
+        }
+
+        @Override
+        public List<Signature> signatures() {
+            return SIGNATURES;
+        }
     }
 }

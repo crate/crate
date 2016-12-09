@@ -46,7 +46,7 @@ public class SquareRootFunctionTest extends AbstractScalarFunctionsTest {
 
     @Test
     public void testInvalidType() throws Exception {
-        expectedException.expectMessage("invalid datatype for sqrt function");
+        expectedException.expectMessage("unknown function: sqrt(string)");
         assertEvaluate("sqrt('foo')", null);
     }
 

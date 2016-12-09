@@ -92,7 +92,7 @@ public class IsNullPredicate<T> extends Scalar<Boolean, T> implements FunctionFo
         return true;
     }
 
-    private static class Resolver implements DynamicFunctionResolver {
+    private static class Resolver implements FunctionResolver {
 
         @Override
         public FunctionImplementation getForTypes(List<DataType> dataTypes) throws IllegalArgumentException {
@@ -100,6 +100,11 @@ public class IsNullPredicate<T> extends Scalar<Boolean, T> implements FunctionFo
                 dataTypes.size() == 1, "the is null predicate takes only 1 argument");
 
             return new IsNullPredicate<>(generateInfo(dataTypes));
+        }
+
+        @Override
+        public List<Signature> signatures() {
+            return Signature.SIGNATURES_SINGLE_ANY;
         }
     }
 }

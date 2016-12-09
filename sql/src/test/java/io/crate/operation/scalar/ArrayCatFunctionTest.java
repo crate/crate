@@ -55,21 +55,21 @@ public class ArrayCatFunctionTest extends AbstractScalarFunctionsTest {
     @Test
     public void testZeroArguments() throws Exception {
         expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage("array_cat function requires 2 arguments");
+        expectedException.expectMessage("unknown function: array_cat()");
         assertEvaluate("array_cat()", null);
     }
 
     @Test
     public void testOneArgument() throws Exception {
         expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage("array_cat function requires 2 arguments");
+        expectedException.expectMessage("unknown function: array_cat(long_array)");
         assertEvaluate("array_cat([1])", null);
     }
 
     @Test
     public void testThreeArguments() throws Exception {
         expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage("array_cat function requires 2 arguments");
+        expectedException.expectMessage("array_cat(long_array, long_array, long_array)");
         assertEvaluate("array_cat([1], [2], [3])", null);
     }
 

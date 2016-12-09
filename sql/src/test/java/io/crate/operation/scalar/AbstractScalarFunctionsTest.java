@@ -153,8 +153,7 @@ public abstract class AbstractScalarFunctionsTest extends CrateUnitTest {
             return;
         }
         Function function = (Function) functionSymbol;
-        Scalar scalar = (Scalar) functions.get(function.info().ident());
-        assert scalar != null : "function must be registered";
+        Scalar scalar = (Scalar) functions.getSafe(function.info().ident());
 
         InputApplierContext inputApplierContext = new InputApplierContext(inputs, sqlExpressions);
         AssertingInput[] arguments = new AssertingInput[function.arguments().size()];

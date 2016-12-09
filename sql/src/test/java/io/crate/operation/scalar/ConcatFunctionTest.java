@@ -34,9 +34,8 @@ public class ConcatFunctionTest extends AbstractScalarFunctionsTest {
     @Test
     public void testTooFewArguments() throws Exception {
         expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage("concat function requires at least 2 arguments");
+        expectedException.expectMessage("unknown function: concat(string)");
         assertNormalize("concat('foo')", null);
-        //assertEval("", 2);
     }
 
     @Test

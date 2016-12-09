@@ -21,14 +21,10 @@
 
 package io.crate.operation.operator;
 
-import com.google.common.base.Preconditions;
 import io.crate.analyze.symbol.Function;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.core.collections.MapComparator;
-import io.crate.metadata.DynamicFunctionResolver;
-import io.crate.metadata.FunctionIdent;
-import io.crate.metadata.FunctionImplementation;
-import io.crate.metadata.FunctionInfo;
+import io.crate.metadata.*;
 import io.crate.operation.Input;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
@@ -129,11 +125,10 @@ public class EqOperator extends CmpOperator {
         }
     }
 
-    static class EqOperatorResolver implements DynamicFunctionResolver {
+    static class EqOperatorResolver implements FunctionResolver {
 
         @Override
         public FunctionImplementation getForTypes(List<DataType> dataTypes) throws IllegalArgumentException {
-            Preconditions.checkArgument(dataTypes.size() == 2, "EqOperator must have 2 arguments");
             DataType leftType = dataTypes.get(0);
             DataType rightType = dataTypes.get(1);
 
@@ -145,6 +140,11 @@ public class EqOperator extends CmpOperator {
                 return new ObjectEqOperator(info);
             }
             return new EqOperator(info);
+        }
+
+        @Override
+        public List<Signature> signatures() {
+            return Signature.SIGNATURES_ALL_PAIRS_OF_SAME;
         }
     }
 }

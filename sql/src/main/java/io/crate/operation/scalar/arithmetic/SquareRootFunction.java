@@ -22,7 +22,6 @@
 package io.crate.operation.scalar.arithmetic;
 
 import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableSet;
 import io.crate.metadata.*;
 import io.crate.operation.Input;
 import io.crate.operation.scalar.ScalarFunctionModule;
@@ -30,22 +29,16 @@ import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 
 import java.util.List;
-import java.util.Set;
 
 public abstract class SquareRootFunction extends Scalar<Number, Number> {
 
     public static final String NAME = "sqrt";
-    private static final Set<DataType> ALLOWED_TYPES = ImmutableSet.<DataType>builder()
-        .addAll(DataTypes.NUMERIC_PRIMITIVE_TYPES)
-        .add(DataTypes.UNDEFINED)
-        .build();
-
-    private final FunctionInfo info;
-
 
     public static void register(ScalarFunctionModule module) {
         module.register(NAME, new Resolver());
     }
+
+    private final FunctionInfo info;
 
     SquareRootFunction(FunctionInfo info) {
         this.info = info;
@@ -74,15 +67,16 @@ public abstract class SquareRootFunction extends Scalar<Number, Number> {
 
     }
 
-    private static class Resolver implements DynamicFunctionResolver {
+    private static class Resolver implements FunctionResolver {
 
         @Override
         public FunctionImplementation getForTypes(List<DataType> dataTypes) throws IllegalArgumentException {
-            Preconditions.checkArgument(dataTypes.size() == 1,
-                "invalid size of arguments, 1 expected");
-            Preconditions.checkArgument(ALLOWED_TYPES.contains(dataTypes.get(0)),
-                "invalid datatype for %s function", NAME);
             return new DoubleSquareRootFunction(new FunctionInfo(new FunctionIdent(NAME, dataTypes), DataTypes.DOUBLE));
+        }
+
+        @Override
+        public List<Signature> signatures() {
+            return Signature.SIGNATURES_SINGLE_NUMERIC;
         }
     }
 
