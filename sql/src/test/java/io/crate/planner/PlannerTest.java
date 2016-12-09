@@ -18,12 +18,7 @@ import io.crate.operation.operator.EqOperator;
 import io.crate.operation.projectors.TopN;
 import io.crate.planner.node.ddl.DropTablePlan;
 import io.crate.planner.node.ddl.ESClusterUpdateSettingsPlan;
-import io.crate.planner.node.ddl.ESDeletePartition;
 import io.crate.planner.node.ddl.GenericDDLPlan;
-import io.crate.planner.node.dml.Delete;
-import io.crate.planner.node.dml.ESDelete;
-import io.crate.planner.node.dml.Upsert;
-import io.crate.planner.node.dml.UpsertById;
 import io.crate.planner.node.dql.*;
 import io.crate.planner.node.dql.join.JoinType;
 import io.crate.planner.node.dql.join.NestedLoop;
@@ -89,34 +84,6 @@ public class PlannerTest extends AbstractPlannerTest {
         ESGet esGet = plan("select name from users where id in (1, 2)");
         assertThat(esGet.docKeys().size(), is(2));
         assertThat(esGet.docKeys(), containsInAnyOrder(isDocKey(1L), isDocKey(2L)));
-    }
-
-    @Test
-    public void testDeletePlan() throws Exception {
-        ESDelete plan = plan("delete from users where id = 1");
-        assertThat(plan.tableInfo().ident().name(), is("users"));
-        assertThat(plan.docKeys().size(), is(1));
-        assertThat(plan.docKeys().get(0), isDocKey(1L));
-    }
-
-    @Test
-    public void testBulkDeletePartitionedTable() throws Exception {
-        ESDeletePartition plan = (ESDeletePartition) plan("delete from parted where date = ?", new Object[][]{
-            new Object[]{"0"},
-            new Object[]{"123"},
-        });
-        assertThat(plan.indices(), is(new String[]{".partitioned.parted.04130", ".partitioned.parted.04232chj"}));
-    }
-
-    @Test
-    public void testMultiDeletePlan() throws Exception {
-        Delete plan = plan("delete from users where id in (1, 2)");
-        assertThat(plan.nodes().size(), is(1));
-
-        Merge merge = (Merge) plan.nodes().get(0);
-        Collect collect = (Collect) merge.subPlan();
-        assertThat(collect.collectPhase().projections().size(), is(1));
-        assertThat(collect.collectPhase().projections().get(0), instanceOf(DeleteProjection.class));
     }
 
 
@@ -351,84 +318,7 @@ public class PlannerTest extends AbstractPlannerTest {
         assertThat(plan.subPlan(), instanceOf(Collect.class));
     }
 
-    @Test
-    public void testUpdateByQueryPlan() throws Exception {
-        Upsert plan = plan("update users set name='Vogon lyric fan'");
-        assertThat(plan.nodes().size(), is(1));
 
-        Merge merge = (Merge) plan.nodes().get(0);
-        Collect collect = (Collect) merge.subPlan();
-
-        RoutedCollectPhase collectPhase = ((RoutedCollectPhase) collect.collectPhase());
-        assertThat(collectPhase.routing(), is(shardRouting("users")));
-        assertFalse(collectPhase.whereClause().noMatch());
-        assertFalse(collectPhase.whereClause().hasQuery());
-        assertThat(collectPhase.projections().size(), is(1));
-        assertThat(collectPhase.projections().get(0), instanceOf(UpdateProjection.class));
-        assertThat(collectPhase.toCollect().size(), is(1));
-        assertThat(collectPhase.toCollect().get(0), instanceOf(Reference.class));
-        assertThat(((Reference) collectPhase.toCollect().get(0)).ident().columnIdent().fqn(), is("_uid"));
-
-        UpdateProjection updateProjection = (UpdateProjection) collectPhase.projections().get(0);
-        assertThat(updateProjection.uidSymbol(), instanceOf(InputColumn.class));
-
-        assertThat(updateProjection.assignmentsColumns()[0], is("name"));
-        Symbol symbol = updateProjection.assignments()[0];
-        assertThat(symbol, isLiteral("Vogon lyric fan", DataTypes.STRING));
-
-        MergePhase mergeNode = merge.mergePhase();
-        assertThat(mergeNode.projections().size(), is(1));
-        assertThat(mergeNode.projections().get(0), instanceOf(MergeCountProjection.class));
-
-        assertThat(mergeNode.outputTypes().size(), is(1));
-    }
-
-    @Test
-    public void testUpdateByIdPlan() throws Exception {
-        UpsertById upsertById = plan("update users set name='Vogon lyric fan' where id=1");
-        assertThat(upsertById.items().size(), is(1));
-
-        assertThat(upsertById.updateColumns()[0], is("name"));
-
-        UpsertById.Item item = upsertById.items().get(0);
-        assertThat(item.index(), is("users"));
-        assertThat(item.id(), is("1"));
-
-        Symbol symbol = item.updateAssignments()[0];
-        assertThat(symbol, isLiteral("Vogon lyric fan", DataTypes.STRING));
-    }
-
-    @Test
-    public void testUpdatePlanWithMultiplePrimaryKeyValues() throws Exception {
-        UpsertById plan = plan("update users set name='Vogon lyric fan' where id in (1,2,3)");
-
-        List<String> ids = new ArrayList<>(3);
-        for (UpsertById.Item item : plan.items()) {
-            ids.add(item.id());
-            assertThat(item.updateAssignments().length, is(1));
-            assertThat(item.updateAssignments()[0], isLiteral("Vogon lyric fan", DataTypes.STRING));
-        }
-
-        assertThat(ids, containsInAnyOrder("1", "2", "3"));
-    }
-
-    @Test
-    public void testUpdatePlanWithMultiplePrimaryKeyValuesPartitioned() throws Exception {
-        UpsertById planNode = plan("update parted set name='Vogon lyric fan' where " +
-                                   "(id=2 and date = 0) OR" +
-                                   "(id=3 and date=123)");
-
-        List<String> partitions = new ArrayList<>(2);
-        List<String> ids = new ArrayList<>(2);
-        for (UpsertById.Item item : planNode.items()) {
-            partitions.add(item.index());
-            ids.add(item.id());
-            assertThat(item.updateAssignments().length, is(1));
-            assertThat(item.updateAssignments()[0], isLiteral("Vogon lyric fan", DataTypes.STRING));
-        }
-        assertThat(ids, containsInAnyOrder("AgEyATA=", "AgEzAzEyMw==")); // multi primary key - values concatenated and base64'ed
-        assertThat(partitions, containsInAnyOrder(".partitioned.parted.04130", ".partitioned.parted.04232chj"));
-    }
 
     @Test
     public void testCopyToWithColumnsReferenceRewrite() throws Exception {
