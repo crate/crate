@@ -224,6 +224,15 @@ public class SQLExecutor {
         return (T) planner.plan(analysis, jobId, softLimit, fetchSize);
     }
 
+    public <T extends Plan> T plan(String stmt, Object[][] bulkArgs) {
+        Analysis analysis = analyzer.boundAnalyze(
+            SqlParser.createStatement(stmt),
+            SessionContext.SYSTEM_SESSION,
+            new ParameterContext(Row.EMPTY, Rows.of(bulkArgs)));
+        //noinspection unchecked
+        return (T) planner.plan(analysis, UUID.randomUUID(), 0, 0);
+    }
+
     public <T extends Plan> T plan(String statement) {
         return plan(statement, UUID.randomUUID(), 0, 0);
     }
