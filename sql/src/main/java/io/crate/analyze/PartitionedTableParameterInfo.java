@@ -23,7 +23,14 @@ package io.crate.analyze;
 
 import com.google.common.collect.ImmutableList;
 
-public class AlterPartitionedTableParameterInfo extends TableParameterInfo {
+import javax.annotation.concurrent.Immutable;
+import javax.annotation.concurrent.ThreadSafe;
+
+@Immutable
+@ThreadSafe
+public class PartitionedTableParameterInfo extends TableParameterInfo {
+
+    public static final PartitionedTableParameterInfo INSTANCE = new PartitionedTableParameterInfo();
 
     private static final ImmutableList<String> SUPPORTED_SETTINGS =
         ImmutableList.<String>builder()
@@ -54,5 +61,8 @@ public class AlterPartitionedTableParameterInfo extends TableParameterInfo {
     @Override
     public ImmutableList<String> supportedSettings() {
         return SUPPORTED_SETTINGS;
+    }
+
+    private PartitionedTableParameterInfo() {
     }
 }

@@ -24,7 +24,7 @@ package io.crate.metadata.doc;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.util.concurrent.SettableFuture;
-import io.crate.analyze.AlterPartitionedTableParameterInfo;
+import io.crate.analyze.PartitionedTableParameterInfo;
 import io.crate.analyze.TableParameterInfo;
 import io.crate.analyze.WhereClause;
 import io.crate.analyze.symbol.DynamicReference;
@@ -139,9 +139,9 @@ public class DocTableInfo implements TableInfo, ShardedTable {
         this.columnPolicy = columnPolicy;
         this.supportedOperations = supportedOperations;
         if (isPartitioned) {
-            tableParameterInfo = new AlterPartitionedTableParameterInfo();
+            tableParameterInfo = PartitionedTableParameterInfo.INSTANCE;
         } else {
-            tableParameterInfo = new TableParameterInfo();
+            tableParameterInfo = TableParameterInfo.INSTANCE;
         }
         // scale the fetchrouting timeout by n# of partitions
         this.routingFetchTimeout = new TimeValue(5 * Math.max(1, this.partitions.size()), TimeUnit.SECONDS);

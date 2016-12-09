@@ -37,7 +37,7 @@ import io.crate.action.sql.Option;
 import io.crate.action.sql.ResultReceiver;
 import io.crate.action.sql.SQLOperations;
 import io.crate.analyze.AddColumnAnalyzedStatement;
-import io.crate.analyze.AlterPartitionedTableParameterInfo;
+import io.crate.analyze.PartitionedTableParameterInfo;
 import io.crate.analyze.AlterTableAnalyzedStatement;
 import io.crate.analyze.TableParameter;
 import io.crate.core.MultiFutureCallback;
@@ -165,8 +165,8 @@ public class AlterTableOperation {
 
         if (table.isPartitioned()) {
             // create new filtered partition table settings
-            AlterPartitionedTableParameterInfo tableSettingsInfo =
-                (AlterPartitionedTableParameterInfo) table.tableParameterInfo();
+            PartitionedTableParameterInfo tableSettingsInfo =
+                (PartitionedTableParameterInfo) table.tableParameterInfo();
             TableParameter parameterWithFilteredSettings = new TableParameter(
                 analysis.tableParameter().settings(),
                 tableSettingsInfo.partitionTableSettingsInfo().supportedInternalSettings());

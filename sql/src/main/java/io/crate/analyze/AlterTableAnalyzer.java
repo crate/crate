@@ -54,10 +54,10 @@ class AlterTableAnalyzer extends DefaultTraversalVisitor<AlterTableAnalyzedState
 
         TableParameterInfo tableParameterInfo = statement.table().tableParameterInfo();
         if (statement.partitionName().isPresent()) {
-            assert tableParameterInfo instanceof AlterPartitionedTableParameterInfo :
-                "tableParameterInfo must be AlterPartitionedTableParameterInfo";
+            assert tableParameterInfo instanceof PartitionedTableParameterInfo :
+                "tableParameterInfo must be " + PartitionedTableParameterInfo.class.getSimpleName();
             assert !node.table().excludePartitions() : "Alter table ONLY not supported when using a partition";
-            tableParameterInfo = ((AlterPartitionedTableParameterInfo) tableParameterInfo).partitionTableSettingsInfo();
+            tableParameterInfo = ((PartitionedTableParameterInfo) tableParameterInfo).partitionTableSettingsInfo();
         }
         statement.excludePartitions(node.table().excludePartitions());
 
