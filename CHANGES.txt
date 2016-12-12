@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+2016/12/12 1.0.1
+================
+
  - Updated crate-admin to ``1.0.2`` which includes the following changes:
 
     - Removed pepper widget, support links are now in a Help section along with
