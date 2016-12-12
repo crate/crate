@@ -22,7 +22,7 @@
 
 package io.crate.analyze;
 
-public class DropRepositoryAnalyzedStatement extends AbstractDDLAnalyzedStatement {
+public class DropRepositoryAnalyzedStatement implements DDLStatement {
 
     private final String repositoryName;
 

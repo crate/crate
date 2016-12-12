@@ -26,7 +26,7 @@ import org.elasticsearch.common.settings.Settings;
 import javax.annotation.ParametersAreNonnullByDefault;
 
 @ParametersAreNonnullByDefault
-public class CreateRepositoryAnalyzedStatement extends AbstractDDLAnalyzedStatement {
+public class CreateRepositoryAnalyzedStatement implements DDLStatement {
 
     private final String repositoryName;
     private final String repositoryType;

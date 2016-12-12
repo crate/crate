@@ -22,30 +22,15 @@
 
 package io.crate.analyze;
 
-import org.elasticsearch.common.settings.Settings;
+public interface DDLStatement extends AnalyzedStatement {
 
-import java.util.Set;
-
-public class OptimizeTableAnalyzedStatement implements DDLStatement {
-
-    private final Set<String> indexNames;
-    private final Settings settings;
-
-    public OptimizeTableAnalyzedStatement(Set<String> indexNames, Settings settings) {
-        this.indexNames = indexNames;
-        this.settings = settings;
-    }
-
-    public Set<String> indexNames() {
-        return indexNames;
-    }
-
-    public Settings settings() {
-        return settings;
+    @Override
+    default boolean isWriteOperation() {
+        return true;
     }
 
     @Override
-    public <C, R> R accept(AnalyzedStatementVisitor<C, R> analyzedStatementVisitor, C context) {
-        return analyzedStatementVisitor.visitOptimizeTableStatement(this, context);
+    default <C, R> R accept(AnalyzedStatementVisitor<C, R> visitor, C context) {
+        return visitor.visitDDLStatement(this, context);
     }
 }

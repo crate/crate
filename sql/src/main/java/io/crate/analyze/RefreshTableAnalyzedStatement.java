@@ -23,7 +23,7 @@ package io.crate.analyze;
 
 import java.util.Set;
 
-public class RefreshTableAnalyzedStatement extends AbstractDDLAnalyzedStatement {
+public class RefreshTableAnalyzedStatement implements DDLStatement {
 
     private final Set<String> indexNames;
 
@@ -39,5 +39,4 @@ public class RefreshTableAnalyzedStatement extends AbstractDDLAnalyzedStatement 
     public <C, R> R accept(AnalyzedStatementVisitor<C, R> analyzedStatementVisitor, C context) {
         return analyzedStatementVisitor.visitRefreshTableStatement(this, context);
     }
-
 }

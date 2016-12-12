@@ -21,21 +21,11 @@
 
 package io.crate.analyze;
 
-public abstract class AbstractDDLAnalyzedStatement implements AnalyzedStatement {
+abstract class AbstractDDLAnalyzedStatement implements DDLStatement {
 
     protected final TableParameter tableParameter = new TableParameter();
 
-    @Override
-    public <C, R> R accept(AnalyzedStatementVisitor<C, R> analyzedStatementVisitor, C context) {
-        return analyzedStatementVisitor.visitDDLAnalyzedStatement(this, context);
-    }
-
     public TableParameter tableParameter() {
         return tableParameter;
-    }
-
-    @Override
-    public boolean isWriteOperation() {
-        return true;
     }
 }
