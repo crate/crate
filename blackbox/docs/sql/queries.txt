@@ -427,16 +427,16 @@ The result type is boolean.
     ==========  ======
     true        false
     false       true
-    null        true
+    null        null
     ==========  ======
 
-.. note::
+.. warning::
 
-   This is not compliant with the SQL standard and doesn't adhere to the
-   three-valued-logic.  According to the standard NOT ( NULL ) should actually
-   return NULL.
-
-
+   CrateDB handles the case of `NOT (NULL)` inconsistently. The above is only true when
+   the `NOT` appears in a `SELECT` clause or a `WHERE` clause that operates on system
+   tables. The result of `NOT (NULL)` in a `WHERE` clause that operates on user tables
+   will produce `TRUE`. This does not adhere to standard SQL three-valued-logic and will
+   be fixed in a future release.
 
 .. _sql_dql_in:
 
