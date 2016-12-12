@@ -446,7 +446,7 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
     }
 
     @Override
-    protected Plan visitDDLAnalyzedStatement(AbstractDDLAnalyzedStatement statement, Context context) {
+    protected Plan visitDDLStatement(DDLStatement statement, Context context) {
         return new GenericDDLPlan(context.jobId(), statement);
     }
 
@@ -455,7 +455,7 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
         if (analysis.noop()) {
             return new NoopPlan(context.jobId());
         }
-        return visitDDLAnalyzedStatement(analysis, context);
+        return visitDDLStatement(analysis, context);
     }
 
     @Override

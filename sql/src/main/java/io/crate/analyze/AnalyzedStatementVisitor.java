@@ -42,11 +42,11 @@ public class AnalyzedStatementVisitor<C, R> {
     }
 
     protected R visitCreateTableStatement(CreateTableAnalyzedStatement analysis, C context) {
-        return visitDDLAnalyzedStatement(analysis, context);
+        return visitDDLStatement(analysis, context);
     }
 
     protected R visitCreateRepositoryAnalyzedStatement(CreateRepositoryAnalyzedStatement analysis, C context) {
-        return visitDDLAnalyzedStatement(analysis, context);
+        return visitDDLStatement(analysis, context);
     }
 
     protected R visitDeleteStatement(DeleteAnalyzedStatement analysis, C context) {
@@ -70,39 +70,39 @@ public class AnalyzedStatementVisitor<C, R> {
     }
 
     protected R visitDropTableStatement(DropTableAnalyzedStatement analysis, C context) {
-        return visitDDLAnalyzedStatement(analysis, context);
+        return visitDDLStatement(analysis, context);
     }
 
     protected R visitCreateAnalyzerStatement(CreateAnalyzerAnalyzedStatement analysis, C context) {
-        return visitDDLAnalyzedStatement(analysis, context);
+        return visitDDLStatement(analysis, context);
     }
 
-    protected R visitDDLAnalyzedStatement(AbstractDDLAnalyzedStatement analysis, C context) {
+    protected R visitDDLStatement(DDLStatement analysis, C context) {
         return visitAnalyzedStatement(analysis, context);
     }
 
     public R visitCreateBlobTableStatement(CreateBlobTableAnalyzedStatement analysis, C context) {
-        return visitDDLAnalyzedStatement(analysis, context);
+        return visitDDLStatement(analysis, context);
     }
 
     public R visitDropBlobTableStatement(DropBlobTableAnalyzedStatement analysis, C context) {
-        return visitDDLAnalyzedStatement(analysis, context);
+        return visitDDLStatement(analysis, context);
     }
 
     public R visitOptimizeTableStatement(OptimizeTableAnalyzedStatement analysis, C context) {
-        return visitDDLAnalyzedStatement(analysis, context);
+        return visitDDLStatement(analysis, context);
     }
 
     public R visitRefreshTableStatement(RefreshTableAnalyzedStatement analysis, C context) {
-        return visitDDLAnalyzedStatement(analysis, context);
+        return visitDDLStatement(analysis, context);
     }
 
     public R visitAlterTableStatement(AlterTableAnalyzedStatement analysis, C context) {
-        return visitDDLAnalyzedStatement(analysis, context);
+        return visitDDLStatement(analysis, context);
     }
 
     public R visitAlterBlobTableStatement(AlterBlobTableAnalyzedStatement analysis, C context) {
-        return visitDDLAnalyzedStatement(analysis, context);
+        return visitDDLStatement(analysis, context);
     }
 
     public R visitSetStatement(SetAnalyzedStatement analysis, C context) {
@@ -110,7 +110,7 @@ public class AnalyzedStatementVisitor<C, R> {
     }
 
     public R visitAddColumnStatement(AddColumnAnalyzedStatement analysis, C context) {
-        return visitDDLAnalyzedStatement(analysis, context);
+        return visitDDLStatement(analysis, context);
     }
 
     public R visitKillAnalyzedStatement(KillAnalyzedStatement analysis, C context) {
@@ -126,19 +126,19 @@ public class AnalyzedStatementVisitor<C, R> {
     }
 
     public R visitDropRepositoryAnalyzedStatement(DropRepositoryAnalyzedStatement analysis, C context) {
-        return visitDDLAnalyzedStatement(analysis, context);
+        return visitDDLStatement(analysis, context);
     }
 
     public R visitDropSnapshotAnalyzedStatement(DropSnapshotAnalyzedStatement analysis, C context) {
-        return visitDDLAnalyzedStatement(analysis, context);
+        return visitDDLStatement(analysis, context);
     }
 
     public R visitCreateSnapshotAnalyzedStatement(CreateSnapshotAnalyzedStatement analysis, C context) {
-        return visitDDLAnalyzedStatement(analysis, context);
+        return visitDDLStatement(analysis, context);
     }
 
     public R visitRestoreSnapshotAnalyzedStatement(RestoreSnapshotAnalyzedStatement analysis, C context) {
-        return visitDDLAnalyzedStatement(analysis, context);
+        return visitDDLStatement(analysis, context);
     }
 
     public R visitResetAnalyzedStatement(ResetAnalyzedStatement resetAnalyzedStatement, C context) {

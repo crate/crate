@@ -25,7 +25,7 @@ import io.crate.metadata.Schemas;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.doc.DocTableInfo;
 
-public class AddColumnAnalyzedStatement extends AbstractDDLAnalyzedStatement {
+public class AddColumnAnalyzedStatement implements DDLStatement {
 
     private final Schemas schemas;
     private DocTableInfo tableInfo;

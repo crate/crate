@@ -24,7 +24,7 @@ package io.crate.analyze;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.table.TableInfo;
 
-public abstract class AbstractDropTableAnalyzedStatement<T extends TableInfo> extends AbstractDDLAnalyzedStatement {
+public abstract class AbstractDropTableAnalyzedStatement<T extends TableInfo> implements DDLStatement {
 
     private final boolean dropIfExists;
     private final boolean isNoop;

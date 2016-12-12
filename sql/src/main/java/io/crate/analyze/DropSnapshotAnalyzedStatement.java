@@ -21,7 +21,7 @@
 
 package io.crate.analyze;
 
-public class DropSnapshotAnalyzedStatement extends AbstractDDLAnalyzedStatement {
+public class DropSnapshotAnalyzedStatement implements DDLStatement {
 
     private final String repository;
     private final String snapshot;

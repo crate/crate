@@ -28,7 +28,7 @@ import org.elasticsearch.common.settings.Settings;
 
 import java.util.List;
 
-public class CreateSnapshotAnalyzedStatement extends AbstractDDLAnalyzedStatement {
+public class CreateSnapshotAnalyzedStatement implements DDLStatement {
 
     public static final List<String> ALL_INDICES = ImmutableList.of("_all");
 
