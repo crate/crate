@@ -205,38 +205,39 @@ public class DocSchemaInfo implements SchemaInfo {
 
     @Override
     public void update(ClusterChangedEvent event) {
-        assert event.metaDataChanged() : "metaDataChanged must be true for update to be called";
+        assert event.metaDataChanged() : "metaDataChanged must be true if update is called";
 
         // search for aliases of deleted and created indices, they must be invalidated also
+        MetaData prevMetaData = event.previousState().metaData();
         for (String index : event.indicesDeleted()) {
-            invalidateAliases(event.previousState().metaData().index(index).getAliases());
+            invalidateAliases(prevMetaData.index(index).getAliases());
         }
+        MetaData newMetaData = event.state().metaData();
         for (String index : event.indicesCreated()) {
-            invalidateAliases(event.state().metaData().index(index).getAliases());
+            invalidateAliases(newMetaData.index(index).getAliases());
         }
 
         // search for templates with changed meta data => invalidate template aliases
-        if (!event.state().metaData().templates().equals(event.previousState().metaData().templates())) {
-            // current state templates
-            for (ObjectCursor<IndexTemplateMetaData> cursor : event.state().metaData().getTemplates().values()) {
+        ImmutableOpenMap<String, IndexTemplateMetaData> newTemplates = newMetaData.templates();
+        ImmutableOpenMap<String, IndexTemplateMetaData> prevTemplates = prevMetaData.templates();
+        if (!newTemplates.equals(prevTemplates)) {
+            for (ObjectCursor<IndexTemplateMetaData> cursor : newTemplates.values()) {
                 invalidateAliases(cursor.value.aliases());
             }
-            // previous state templates
-            for (ObjectCursor<IndexTemplateMetaData> cursor : event.previousState().metaData().getTemplates().values()) {
+            for (ObjectCursor<IndexTemplateMetaData> cursor : prevTemplates.values()) {
                 invalidateAliases(cursor.value.aliases());
             }
         }
 
         // search indices with changed meta data
-        Iterator<String> it = cache.asMap().keySet().iterator();
-        MetaData metaData = event.state().getMetaData();
-        ObjectLookupContainer<String> templates = metaData.templates().keys();
-        ImmutableOpenMap<String, IndexMetaData> indices = metaData.indices();
-        while (it.hasNext()) {
-            String tableName = it.next();
+        Iterator<String> currentTablesIt = cache.asMap().keySet().iterator();
+        ObjectLookupContainer<String> templates = newTemplates.keys();
+        ImmutableOpenMap<String, IndexMetaData> indices = newMetaData.indices();
+        while (currentTablesIt.hasNext()) {
+            String tableName = currentTablesIt.next();
             String indexName = getIndexName(tableName);
 
-            IndexMetaData newIndexMetaData = event.state().getMetaData().index(indexName);
+            IndexMetaData newIndexMetaData = newMetaData.index(indexName);
             if (newIndexMetaData == null) {
                 cache.invalidate(tableName);
             } else if (event.indexMetaDataChanged(newIndexMetaData)) {
@@ -244,7 +245,7 @@ public class DocSchemaInfo implements SchemaInfo {
                 // invalidate aliases of changed indices
                 invalidateAliases(newIndexMetaData.getAliases());
 
-                IndexMetaData oldIndexMetaData = event.previousState().metaData().index(indexName);
+                IndexMetaData oldIndexMetaData = prevMetaData.index(indexName);
                 if (oldIndexMetaData != null) {
                     invalidateAliases(oldIndexMetaData.getAliases());
                 }
@@ -274,7 +275,7 @@ public class DocSchemaInfo implements SchemaInfo {
     private void invalidateAliases(ImmutableOpenMap<String, AliasMetaData> aliases) {
         assert aliases != null : "aliases must not be null";
         if (aliases.size() > 0) {
-            cache.invalidateAll(Arrays.asList(aliases.keys().toArray(String.class)));
+            aliases.keysIt().forEachRemaining(cache::invalidate);
         }
     }
 
