@@ -165,7 +165,7 @@ public class Schemas extends AbstractLifecycleComponent<Schemas> implements Iter
         }
     }
 
-    private Set<String> getNewCurrentSchemas(MetaData metaData) {
+    private static Set<String> getNewCurrentSchemas(MetaData metaData) {
         Set<String> schemas = new HashSet<>();
         for (String openIndex : metaData.concreteAllOpenIndices()) {
             addIfSchema(schemas, openIndex);
@@ -176,7 +176,7 @@ public class Schemas extends AbstractLifecycleComponent<Schemas> implements Iter
         return schemas;
     }
 
-    private void addIfSchema(Set<String> schemas, String indexOrTemplate) {
+    private static void addIfSchema(Set<String> schemas, String indexOrTemplate) {
         Matcher matcher = SCHEMA_PATTERN.matcher(indexOrTemplate);
         if (matcher.matches()) {
             schemas.add(matcher.group(1));

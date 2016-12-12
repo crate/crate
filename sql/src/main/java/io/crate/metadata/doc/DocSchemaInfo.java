@@ -205,58 +205,57 @@ public class DocSchemaInfo implements SchemaInfo {
 
     @Override
     public void update(ClusterChangedEvent event) {
-        if (event.metaDataChanged()) {
+        assert event.metaDataChanged() : "metaDataChanged must be true for update to be called";
 
-            // search for aliases of deleted and created indices, they must be invalidated also
-            for (String index : event.indicesDeleted()) {
-                invalidateAliases(event.previousState().metaData().index(index).getAliases());
-            }
-            for (String index : event.indicesCreated()) {
-                invalidateAliases(event.state().metaData().index(index).getAliases());
-            }
+        // search for aliases of deleted and created indices, they must be invalidated also
+        for (String index : event.indicesDeleted()) {
+            invalidateAliases(event.previousState().metaData().index(index).getAliases());
+        }
+        for (String index : event.indicesCreated()) {
+            invalidateAliases(event.state().metaData().index(index).getAliases());
+        }
 
-            // search for templates with changed meta data => invalidate template aliases
-            if (!event.state().metaData().templates().equals(event.previousState().metaData().templates())) {
-                // current state templates
-                for (ObjectCursor<IndexTemplateMetaData> cursor : event.state().metaData().getTemplates().values()) {
-                    invalidateAliases(cursor.value.aliases());
+        // search for templates with changed meta data => invalidate template aliases
+        if (!event.state().metaData().templates().equals(event.previousState().metaData().templates())) {
+            // current state templates
+            for (ObjectCursor<IndexTemplateMetaData> cursor : event.state().metaData().getTemplates().values()) {
+                invalidateAliases(cursor.value.aliases());
+            }
+            // previous state templates
+            for (ObjectCursor<IndexTemplateMetaData> cursor : event.previousState().metaData().getTemplates().values()) {
+                invalidateAliases(cursor.value.aliases());
+            }
+        }
+
+        // search indices with changed meta data
+        Iterator<String> it = cache.asMap().keySet().iterator();
+        MetaData metaData = event.state().getMetaData();
+        ObjectLookupContainer<String> templates = metaData.templates().keys();
+        ImmutableOpenMap<String, IndexMetaData> indices = metaData.indices();
+        while (it.hasNext()) {
+            String tableName = it.next();
+            String indexName = getIndexName(tableName);
+
+            IndexMetaData newIndexMetaData = event.state().getMetaData().index(indexName);
+            if (newIndexMetaData == null) {
+                cache.invalidate(tableName);
+            } else if (event.indexMetaDataChanged(newIndexMetaData)) {
+                cache.invalidate(tableName);
+                // invalidate aliases of changed indices
+                invalidateAliases(newIndexMetaData.getAliases());
+
+                IndexMetaData oldIndexMetaData = event.previousState().metaData().index(indexName);
+                if (oldIndexMetaData != null) {
+                    invalidateAliases(oldIndexMetaData.getAliases());
                 }
-                // previous state templates
-                for (ObjectCursor<IndexTemplateMetaData> cursor : event.previousState().metaData().getTemplates().values()) {
-                    invalidateAliases(cursor.value.aliases());
-                }
-            }
-
-            // search indices with changed meta data
-            Iterator<String> it = cache.asMap().keySet().iterator();
-            MetaData metaData = event.state().getMetaData();
-            ObjectLookupContainer<String> templates = metaData.templates().keys();
-            ImmutableOpenMap<String, IndexMetaData> indices = metaData.indices();
-            while (it.hasNext()) {
-                String tableName = it.next();
-                String indexName = getIndexName(tableName);
-
-                IndexMetaData newIndexMetaData = event.state().getMetaData().index(indexName);
-                if (newIndexMetaData == null) {
-                    cache.invalidate(tableName);
-                } else if (event.indexMetaDataChanged(newIndexMetaData)) {
-                    cache.invalidate(tableName);
-                    // invalidate aliases of changed indices
-                    invalidateAliases(newIndexMetaData.getAliases());
-
-                    IndexMetaData oldIndexMetaData = event.previousState().metaData().index(indexName);
-                    if (oldIndexMetaData != null) {
-                        invalidateAliases(oldIndexMetaData.getAliases());
-                    }
-                } else {
-                    // this is the case if a single partition has been modified using alter table <t> partition (...)
-                    String possibleTemplateName = PartitionName.templateName(name(), tableName);
-                    if (templates.contains(possibleTemplateName)) {
-                        for (ObjectObjectCursor<String, IndexMetaData> indexEntry : indices) {
-                            if (PartitionName.isPartition(indexEntry.key)) {
-                                cache.invalidate(tableName);
-                                break;
-                            }
+            } else {
+                // this is the case if a single partition has been modified using alter table <t> partition (...)
+                String possibleTemplateName = PartitionName.templateName(name(), tableName);
+                if (templates.contains(possibleTemplateName)) {
+                    for (ObjectObjectCursor<String, IndexMetaData> indexEntry : indices) {
+                        if (PartitionName.isPartition(indexEntry.key)) {
+                            cache.invalidate(tableName);
+                            break;
                         }
                     }
                 }
