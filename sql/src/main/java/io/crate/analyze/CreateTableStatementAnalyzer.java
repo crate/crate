@@ -80,7 +80,7 @@ public class CreateTableStatementAnalyzer extends DefaultTraversalVisitor<Create
     @Override
     public CreateTableAnalyzedStatement visitCreateTable(CreateTable node, Context context) {
         assert context.statement == null : "context.statement must be null";
-        context.statement = new CreateTableAnalyzedStatement(fulltextAnalyzerResolver);
+        context.statement = new CreateTableAnalyzedStatement();
         setTableIdent(node, context);
 
         // apply default in case it is not specified in the genericProperties,
@@ -92,7 +92,7 @@ public class CreateTableStatementAnalyzer extends DefaultTraversalVisitor<Create
         context.statement.analyzedTableElements(TableElementsAnalyzer.analyze(
             node.tableElements(),
             context.analysis.parameterContext(),
-            context.statement.fulltextAnalyzerResolver(),
+            fulltextAnalyzerResolver,
             null));
 
         // validate table elements
