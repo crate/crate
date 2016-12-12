@@ -8,10 +8,10 @@ import io.crate.Constants;
 import io.crate.action.sql.SessionContext;
 import io.crate.analyze.*;
 import io.crate.metadata.*;
-import io.crate.metadata.blob.BlobTableInfoFactory;
 import io.crate.metadata.table.ColumnPolicy;
 import io.crate.metadata.table.SchemaInfo;
 import io.crate.sql.parser.SqlParser;
+import io.crate.sql.tree.CreateTable;
 import io.crate.sql.tree.Statement;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.types.ArrayType;
@@ -911,7 +911,8 @@ public class DocIndexMetaDataTest extends CrateUnitTest {
         );
 
         Analysis analysis = new Analysis(SessionContext.SYSTEM_SESSION, ParameterContext.EMPTY, ParamTypeHints.EMPTY);
-        CreateTableAnalyzedStatement analyzedStatement = analyzer.analyze(statement, analysis);
+        CreateTableAnalyzedStatement analyzedStatement = analyzer.analyze(
+            (CreateTable) statement, analysis.parameterContext(), analysis.sessionContext());
 
         Settings.Builder settingsBuilder = Settings.builder()
             .put("index.number_of_shards", 1)

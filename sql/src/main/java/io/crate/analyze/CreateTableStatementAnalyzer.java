@@ -21,7 +21,9 @@
 package io.crate.analyze;
 
 import com.google.common.collect.ImmutableList;
+import io.crate.action.sql.SessionContext;
 import io.crate.analyze.expressions.ExpressionToStringVisitor;
+import io.crate.core.collections.Row;
 import io.crate.metadata.*;
 import io.crate.metadata.information.InformationSchemaInfo;
 import io.crate.metadata.pg_catalog.PgCatalogSchemaInfo;
@@ -49,17 +51,16 @@ public class CreateTableStatementAnalyzer extends DefaultTraversalVisitor<Create
     );
 
     static class Context {
-        Analysis analysis;
-        CreateTableAnalyzedStatement statement;
 
-        public Context(Analysis analysis) {
-            this.analysis = analysis;
+        private final CreateTableAnalyzedStatement statement;
+        private final ParameterContext parameterContext;
+
+        public Context(CreateTableAnalyzedStatement statement, ParameterContext parameterContext) {
+            this.statement = statement;
+            this.parameterContext = parameterContext;
         }
     }
 
-    public CreateTableAnalyzedStatement analyze(Node node, Analysis analysis) {
-        return super.process(node, new Context(analysis));
-    }
 
     public CreateTableStatementAnalyzer(Schemas schemas,
                                         FulltextAnalyzerResolver fulltextAnalyzerResolver,
@@ -77,61 +78,63 @@ public class CreateTableStatementAnalyzer extends DefaultTraversalVisitor<Create
             String.format(Locale.ENGLISH, "Encountered node %s but expected a CreateTable node", node));
     }
 
-    @Override
-    public CreateTableAnalyzedStatement visitCreateTable(CreateTable node, Context context) {
-        assert context.statement == null : "context.statement must be null";
-        context.statement = new CreateTableAnalyzedStatement();
-        setTableIdent(node, context);
+    public CreateTableAnalyzedStatement analyze(CreateTable createTable,
+                                                ParameterContext parameterContext,
+                                                SessionContext sessionContext) {
+        CreateTableAnalyzedStatement statement = new CreateTableAnalyzedStatement();
+        Row parameters = parameterContext.parameters();
+
+        TableIdent tableIdent = getTableIdent(createTable, sessionContext);
+        statement.table(tableIdent, createTable.ifNotExists(), schemas);
 
         // apply default in case it is not specified in the genericProperties,
         // if it is it will get overwritten afterwards.
         TABLE_PROPERTIES_ANALYZER.analyze(
-            context.statement.tableParameter(), new TableParameterInfo(),
-            node.properties(), context.analysis.parameterContext().parameters(), true);
-
-        context.statement.analyzedTableElements(TableElementsAnalyzer.analyze(
-            node.tableElements(),
-            context.analysis.parameterContext(),
-            fulltextAnalyzerResolver,
-            null));
+            statement.tableParameter(),
+            new TableParameterInfo(),
+            createTable.properties(),
+            parameters,
+            true
+        );
+        AnalyzedTableElements tableElements = TableElementsAnalyzer.analyze(
+            createTable.tableElements(), parameterContext, fulltextAnalyzerResolver, null);
 
         // validate table elements
-        context.statement.analyzedTableElements().finalizeAndValidate(
-            context.statement.tableIdent(),
+        tableElements.finalizeAndValidate(
+            tableIdent,
             null,
             functions,
-            context.analysis.parameterContext(),
-            context.analysis.sessionContext());
+            parameterContext,
+            sessionContext);
 
         // update table settings
-        context.statement.tableParameter().settingsBuilder().put(context.statement.analyzedTableElements().settings());
-        context.statement.tableParameter().settingsBuilder().put(
-            IndexMetaData.SETTING_NUMBER_OF_SHARDS,
-            numberOfShards.defaultNumberOfShards()
-        );
+        statement.tableParameter().settingsBuilder().put(tableElements.settings());
+        statement.tableParameter().settingsBuilder().put(
+            IndexMetaData.SETTING_NUMBER_OF_SHARDS, numberOfShards.defaultNumberOfShards());
 
-        for (CrateTableOption option : node.crateTableOptions()) {
+        Context context = new Context(statement, parameterContext);
+        statement.analyzedTableElements(tableElements);
+        for (CrateTableOption option : createTable.crateTableOptions()) {
             process(option, context);
         }
-
-        return context.statement;
+        return statement;
     }
 
-    private void setTableIdent(CreateTable node, Context context) {
-        TableIdent tableIdent = TableIdent.of(node.name(), context.analysis.sessionContext().defaultSchema());
+    private TableIdent getTableIdent(CreateTable node, SessionContext sessionContext) {
+        TableIdent tableIdent = TableIdent.of(node.name(), sessionContext.defaultSchema());
         if (READ_ONLY_SCHEMAS.contains(tableIdent.schema())) {
             throw new IllegalArgumentException(
                 String.format(Locale.ENGLISH, "Cannot create table in read-only schema '%s'", tableIdent.schema())
             );
         }
-        context.statement.table(tableIdent, node.ifNotExists(), schemas);
+        return tableIdent;
     }
 
     @Override
     public CreateTableAnalyzedStatement visitClusteredBy(ClusteredBy clusteredBy, Context context) {
         if (clusteredBy.column().isPresent()) {
             ColumnIdent routingColumn = ColumnIdent.fromPath(
-                ExpressionToStringVisitor.convert(clusteredBy.column().get(), context.analysis.parameterContext().parameters()));
+                ExpressionToStringVisitor.convert(clusteredBy.column().get(), context.parameterContext.parameters()));
 
             for (AnalyzedColumnDefinition column : context.statement.analyzedTableElements().partitionedByColumns) {
                 if (column.ident().equals(routingColumn)) {
@@ -152,7 +155,7 @@ public class CreateTableStatementAnalyzer extends DefaultTraversalVisitor<Create
         }
         context.statement.tableParameter().settingsBuilder().put(
             IndexMetaData.SETTING_NUMBER_OF_SHARDS,
-            numberOfShards.fromClusteredByClause(clusteredBy, context.analysis.parameterContext().parameters())
+            numberOfShards.fromClusteredByClause(clusteredBy, context.parameterContext.parameters())
         );
         return context.statement;
     }
@@ -161,7 +164,7 @@ public class CreateTableStatementAnalyzer extends DefaultTraversalVisitor<Create
     public CreateTableAnalyzedStatement visitPartitionedBy(PartitionedBy node, Context context) {
         for (Expression partitionByColumn : node.columns()) {
             ColumnIdent partitionedByIdent = ColumnIdent.fromPath(
-                ExpressionToStringVisitor.convert(partitionByColumn, context.analysis.parameterContext().parameters()));
+                ExpressionToStringVisitor.convert(partitionByColumn, context.parameterContext.parameters()));
             context.statement.analyzedTableElements().changeToPartitionedByColumn(partitionedByIdent, false);
             ColumnIdent routing = context.statement.routing();
             if (routing != null && routing.equals(partitionedByIdent)) {

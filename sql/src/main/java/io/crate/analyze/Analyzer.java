@@ -173,7 +173,7 @@ public class Analyzer {
 
         @Override
         public AnalyzedStatement visitCreateTable(CreateTable node, Analysis analysis) {
-            return createTableStatementAnalyzer.analyze(node, analysis);
+            return createTableStatementAnalyzer.analyze(node, analysis.parameterContext(), analysis.sessionContext());
         }
 
         public AnalyzedStatement visitShowCreateTable(ShowCreateTable node, Analysis analysis) {
