@@ -70,6 +70,7 @@ public class RestSQLActionIntegrationTest extends SQLHttpIntegrationTest {
     @Test
     public void testSetCustomSchema() throws IOException {
         execute("create table custom.foo (id string)");
+        ensureYellow();
         Header[] headers = new Header[]{
             new BasicHeader("Default-Schema", "custom")
         };

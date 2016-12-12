@@ -8,7 +8,6 @@ import io.crate.Constants;
 import io.crate.action.sql.SessionContext;
 import io.crate.analyze.*;
 import io.crate.metadata.*;
-import io.crate.metadata.blob.BlobTableInfoFactory;
 import io.crate.metadata.table.ColumnPolicy;
 import io.crate.metadata.table.SchemaInfo;
 import io.crate.sql.parser.SqlParser;
@@ -35,16 +34,11 @@ import org.elasticsearch.common.xcontent.XContentHelper;
 import org.elasticsearch.indices.analysis.IndicesAnalysisService;
 import org.elasticsearch.test.cluster.NoopClusterService;
 import org.hamcrest.Matchers;
-import org.junit.After;
-import org.junit.Before;
 import org.junit.Test;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.*;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
 
 import static io.crate.testing.SymbolMatchers.*;
 import static io.crate.testing.TestingHelpers.getFunctions;
@@ -54,8 +48,7 @@ import static org.mockito.Mockito.mock;
 
 public class DocIndexMetaDataTest extends CrateUnitTest {
 
-    private Functions functions;
-    private ExecutorService executorService;
+    private Functions functions = getFunctions();
 
     private IndexMetaData getIndexMetaData(String indexName, XContentBuilder builder) throws IOException {
         return getIndexMetaData(indexName, builder, Settings.Builder.EMPTY_SETTINGS, null);
@@ -85,18 +78,6 @@ public class DocIndexMetaDataTest extends CrateUnitTest {
 
     private DocIndexMetaData newMeta(IndexMetaData metaData, String name) throws IOException {
         return new DocIndexMetaData(functions, metaData, new TableIdent(null, name)).build();
-    }
-
-    @Before
-    public void before() throws Exception {
-        executorService = Executors.newFixedThreadPool(1);
-        functions = getFunctions();
-    }
-
-    @After
-    public void after() throws Exception {
-        executorService.shutdown();
-        executorService.awaitTermination(1, TimeUnit.SECONDS);
     }
 
     @Test
@@ -895,8 +876,7 @@ public class DocIndexMetaDataTest extends CrateUnitTest {
         DocTableInfoFactory docTableInfoFactory = new InternalDocTableInfoFactory(
             functions,
             new IndexNameExpressionResolver(Settings.EMPTY),
-            indexTemplateActionProvider,
-            executorService
+            indexTemplateActionProvider
         );
         DocSchemaInfo docSchemaInfo = new DocSchemaInfo(Schemas.DEFAULT_SCHEMA_NAME, clusterService, docTableInfoFactory);
         CreateTableStatementAnalyzer analyzer = new CreateTableStatementAnalyzer(

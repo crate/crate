@@ -87,7 +87,9 @@ public class Exceptions {
 
     public static boolean isShardFailure(Throwable e) {
         e = Exceptions.unwrap(e);
-        return e instanceof ShardNotFoundException || e instanceof IllegalIndexShardStateException;
+        return e instanceof ShardNotFoundException
+               || e instanceof IllegalIndexShardStateException
+               || e instanceof UnavailableShardsException;
     }
 
 

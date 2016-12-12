@@ -45,7 +45,6 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
-import java.util.concurrent.ExecutorService;
 
 import static org.elasticsearch.cluster.metadata.IndexMetaData.SETTING_NUMBER_OF_REPLICAS;
 import static org.elasticsearch.cluster.metadata.IndexMetaData.SETTING_NUMBER_OF_SHARDS;
@@ -54,7 +53,6 @@ class DocTableInfoBuilder {
 
     private final TableIdent ident;
     private final ClusterState state;
-    private ExecutorService executorService;
     private final boolean checkAliasSchema;
     private final Functions functions;
     private final ClusterService clusterService;
@@ -69,14 +67,12 @@ class DocTableInfoBuilder {
                         ClusterService clusterService,
                         IndexNameExpressionResolver indexNameExpressionResolver,
                         TransportPutIndexTemplateAction transportPutIndexTemplateAction,
-                        ExecutorService executorService,
                         boolean checkAliasSchema) {
         this.functions = functions;
         this.clusterService = clusterService;
         this.indexNameExpressionResolver = indexNameExpressionResolver;
         this.transportPutIndexTemplateAction = transportPutIndexTemplateAction;
         this.ident = ident;
-        this.executorService = executorService;
         this.state = clusterService.state();
         this.metaData = state.metaData();
         this.checkAliasSchema = checkAliasSchema;
@@ -201,7 +197,6 @@ class DocTableInfoBuilder {
             md.partitionedBy(),
             partitions,
             md.columnPolicy(),
-            md.supportedOperations(),
-            executorService);
+            md.supportedOperations());
     }
 }
