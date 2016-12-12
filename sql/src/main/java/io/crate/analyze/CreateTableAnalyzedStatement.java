@@ -22,7 +22,10 @@
 package io.crate.analyze;
 
 import io.crate.exceptions.TableAlreadyExistsException;
-import io.crate.metadata.*;
+import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.PartitionName;
+import io.crate.metadata.Schemas;
+import io.crate.metadata.TableIdent;
 
 import javax.annotation.Nullable;
 import java.util.Collection;
@@ -31,7 +34,6 @@ import java.util.Map;
 
 public class CreateTableAnalyzedStatement extends AbstractDDLAnalyzedStatement {
 
-    private final FulltextAnalyzerResolver fulltextAnalyzerResolver;
     private AnalyzedTableElements analyzedTableElements;
     private Map<String, Object> mapping;
     private ColumnIdent routingColumn;
@@ -39,8 +41,7 @@ public class CreateTableAnalyzedStatement extends AbstractDDLAnalyzedStatement {
     private boolean noOp = false;
     private boolean ifNotExists = false;
 
-    public CreateTableAnalyzedStatement(FulltextAnalyzerResolver fulltextAnalyzerResolver) {
-        this.fulltextAnalyzerResolver = fulltextAnalyzerResolver;
+    public CreateTableAnalyzedStatement() {
     }
 
     public void table(TableIdent tableIdent, boolean ifNotExists, Schemas schemas) {
@@ -129,10 +130,6 @@ public class CreateTableAnalyzedStatement extends AbstractDDLAnalyzedStatement {
             mapping.putAll(tableParameter.mappings());
         }
         return mapping;
-    }
-
-    public FulltextAnalyzerResolver fulltextAnalyzerResolver() {
-        return fulltextAnalyzerResolver;
     }
 
     public TableIdent tableIdent() {
