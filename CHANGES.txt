@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fix: ``chunk_size`` and ``buffer_size`` settings for creating repositories
+   of type ``S3`` are not parsed correctly.
+
  - Fix: error thrown when ``ANY`` or ``ALL`` array comparison expressions
    are used in ``SELECT`` list.
    e.g.:`select 'foo' = any(some_array)`
