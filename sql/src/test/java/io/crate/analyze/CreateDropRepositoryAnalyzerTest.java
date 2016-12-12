@@ -104,10 +104,10 @@ public class CreateDropRepositoryAnalyzerTest extends CrateUnitTest {
                                                              "access_key='0xAFFE'," +
                                                              "secret_key='0xCAFEE'," +
                                                              "concurrent_streams=4," +
-                                                             "chunk_size=12," +
+                                                             "chunk_size='12mb'," +
                                                              "compress=true," +
                                                              "server_side_encryption=false," +
-                                                             "buffer_size=128," +
+                                                             "buffer_size='128k'," +
                                                              "max_retries=2," +
                                                              "canned_acl=false)");
         assertThat(analysis.repositoryType(), is("s3"));
@@ -119,9 +119,9 @@ public class CreateDropRepositoryAnalyzerTest extends CrateUnitTest {
             is("access_key:0xAFFE," +
                "base_path:/holz/," +
                "bucket:abc," +
-               "buffer_size:128," +
+               "buffer_size:131072b," +
                "canned_acl:false," +
-               "chunk_size:12," +
+               "chunk_size:12582912b," +
                "compress:true," +
                "concurrent_streams:4," +
                "endpoint:www.example.com," +
