@@ -57,6 +57,57 @@ import java.util.*;
 import java.util.concurrent.ExecutionException;
 import java.util.regex.Matcher;
 
+/**
+ * SchemaInfo for all user tables.
+ *
+ * <p>
+ * Can be used to retrieve DocTableInfo's of tables in the `doc` or a custom schema.
+ * </p>
+ *
+ * <p>
+ *     See the following table for examples how the indexName is encoded.
+ *     Functions to encode/decode are either in {@link TableIdent} or {@link PartitionName}
+ * </p>
+ *
+ * <table>
+ *     <tr>
+ *         <th>schema</th>
+ *         <th>tableName</th>
+ *         <th>indices</th>
+ *         <th>partitioned</th>
+ *         <th>templateName</th>
+ *     </tr>
+ *
+ *     <tr>
+ *         <td>doc</td>
+ *         <td>t1</td>
+ *         <td>[ t1 ]</td>
+ *         <td>NO</td>
+ *         <td></td>
+ *     </tr>
+ *     <tr>
+ *         <td>doc</td>
+ *         <td>t1p</td>
+ *         <td>[ .partitioned.t1p.&lt;ident&gt; ]</td>
+ *         <td>YES</td>
+ *         <td>.partitioned.t1p.</td>
+ *     </tr>
+ *     <tr>
+ *         <td>custom</td>
+ *         <td>t1</td>
+ *         <td>[ custom.t1 ]</td>
+ *         <td>NO</td>
+ *         <td></td>
+ *     </tr>
+ *     <tr>
+ *         <td>custom</td>
+ *         <td>t1p</td>
+ *         <td>[ custom..partitioned.t1p.&lt;ident&gt; ]</td>
+ *         <td>YES</td>
+ *         <td>custom..partitioned.t1p.</td>
+ *     </tr>
+ * </table>
+ */
 public class DocSchemaInfo implements SchemaInfo {
 
     public static final String NAME = "doc";

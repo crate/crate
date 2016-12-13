@@ -56,6 +56,13 @@ import java.util.*;
 import java.util.concurrent.*;
 
 
+/**
+ * Represents a user table.
+ * <p>
+ *     A user table either maps to 1 lucene index (if not partitioned)
+ *     Or to multiple indices (if partitioned, or an alias)
+ * </p>
+ */
 public class DocTableInfo implements TableInfo, ShardedTable {
 
     private static final ESLogger logger = Loggers.getLogger(DocTableInfo.class);
