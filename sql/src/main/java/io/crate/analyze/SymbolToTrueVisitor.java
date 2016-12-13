@@ -31,7 +31,8 @@ import java.util.List;
 
 /**
  * <p>
- * Visitor to replace function symbols containing references with true literals.
+ * Visitor to replace all symbols beside of logical operators to true literals.
+ * As a result only logical operators will remain with all arguments converted to literals.
  * <p>
  * <br><br>
  * <b>WARNING</b>: The function tree that is processed by this visitor should already
@@ -48,7 +49,7 @@ import java.util.List;
  *     true and id is null  -&gt; true and true
  * </pre>
  */
-public class ReferenceToTrueVisitor extends SymbolVisitor<Void, Symbol> {
+public class SymbolToTrueVisitor extends SymbolVisitor<Void, Symbol> {
 
     @Override
     public Symbol visitFunction(Function symbol, Void context) {

@@ -25,7 +25,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 import io.crate.analyze.EvaluatingNormalizer;
 import io.crate.analyze.GeneratedColumnComparisonReplacer;
-import io.crate.analyze.ReferenceToTrueVisitor;
+import io.crate.analyze.SymbolToTrueVisitor;
 import io.crate.analyze.WhereClause;
 import io.crate.analyze.relations.DocTableRelation;
 import io.crate.analyze.symbol.Literal;
@@ -227,12 +227,12 @@ public class WhereClauseAnalyzer {
          */
 
         List<Tuple<Symbol, List<Literal>>> canMatch = new ArrayList<>();
-        ReferenceToTrueVisitor referenceToTrueVisitor = new ReferenceToTrueVisitor();
+        SymbolToTrueVisitor symbolToTrueVisitor = new SymbolToTrueVisitor();
         for (Map.Entry<Symbol, List<Literal>> entry : queryPartitionMap.entrySet()) {
             Symbol query = entry.getKey();
             List<Literal> partitions = entry.getValue();
 
-            Symbol symbol = referenceToTrueVisitor.process(query, null);
+            Symbol symbol = symbolToTrueVisitor.process(query, null);
             Symbol normalized = normalizer.normalize(symbol, transactionContext);
 
             assert normalized instanceof Literal && normalized.valueType().equals(DataTypes.BOOLEAN) :

@@ -35,14 +35,14 @@ import org.junit.Test;
 import static io.crate.testing.SymbolMatchers.isLiteral;
 
 
-public class ReferenceToTrueVisitorTest extends CrateUnitTest {
+public class SymbolToTrueVisitorTest extends CrateUnitTest {
 
-    private ReferenceToTrueVisitor visitor;
+    private SymbolToTrueVisitor visitor;
     private SqlExpressions expressions;
 
     @Before
     public void prepare() throws Exception {
-        visitor = new ReferenceToTrueVisitor();
+        visitor = new SymbolToTrueVisitor();
         DummyRelation dummyRelation = new DummyRelation("clustered_by",
             "number_of_shards",
             "table_name",
@@ -54,7 +54,7 @@ public class ReferenceToTrueVisitorTest extends CrateUnitTest {
     }
 
     private Symbol convert(Symbol symbol) {
-        return expressions.normalize(visitor.process(symbol, null));
+        return expressions.normalize(visitor.process(expressions.normalize(symbol), null));
     }
 
     private Symbol fromSQL(String expression) {
