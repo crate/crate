@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+2016/12/13 0.57.6
+=================
+
  - Fix: ``chunk_size`` and ``buffer_size`` settings for creating repositories
    of type ``S3`` are not parsed correctly.
 
