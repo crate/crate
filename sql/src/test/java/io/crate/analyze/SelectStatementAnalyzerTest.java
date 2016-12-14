@@ -1380,6 +1380,14 @@ public class SelectStatementAnalyzerTest extends CrateUnitTest {
     }
 
     @Test
+    public void testGroupByHavingRecursiveFunction() throws Exception {
+        SelectAnalyzedStatement analysis = analyze("select sum(floats), name from users " +
+                                                   "group by name having sum(power(power(id, id), id)) > 0");
+        assertThat(analysis.relation().querySpec().having().get().query(),
+            isSQL("(sum(power(power(doc.users.id, doc.users.id), doc.users.id)) > 0.0)"));
+    }
+
+    @Test
     public void testHavingWithoutGroupBy() throws Exception {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("HAVING clause can only be used in GROUP BY or global aggregate queries");
@@ -1943,5 +1951,6 @@ public class SelectStatementAnalyzerTest extends CrateUnitTest {
         expectedException.expectMessage("Cannot negate 'foo'. You may need to add explicit type casts");
         analyze("select - 'foo'");
     }
+
 
 }

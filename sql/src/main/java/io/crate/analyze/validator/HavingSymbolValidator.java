@@ -67,13 +67,15 @@ public class HavingSymbolValidator {
 
         @Override
         public Void visitFunction(Function symbol, HavingContext context) {
-            if (symbol.info().type().equals(FunctionInfo.Type.AGGREGATE)) {
+            if (symbol.info().type() == FunctionInfo.Type.AGGREGATE) {
                 context.insideAggregation = true;
             }
             for (Symbol argument : symbol.arguments()) {
                 process(argument, context);
             }
-            context.insideAggregation = false;
+            if (symbol.info().type() == FunctionInfo.Type.AGGREGATE) {
+                context.insideAggregation = false;
+            }
             return null;
         }
 
