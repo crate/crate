@@ -5,6 +5,10 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fixed an issue that causes an error to be thrown if nested method
+   calls are used in ``HAVING`` clause.
+   e.g.: `having sum(power(power(id, id), id)) > 1`
+
 2016/12/12 1.0.1
 ================
 
