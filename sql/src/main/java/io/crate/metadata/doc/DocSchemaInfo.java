@@ -24,14 +24,10 @@ package io.crate.metadata.doc;
 import com.carrotsearch.hppc.ObjectLookupContainer;
 import com.carrotsearch.hppc.cursors.ObjectCursor;
 import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
-import com.google.common.base.Function;
-import com.google.common.base.Predicate;
-import com.google.common.base.Predicates;
 import com.google.common.base.Throwables;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
-import com.google.common.collect.Collections2;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.UnmodifiableIterator;
 import com.google.common.util.concurrent.UncheckedExecutionException;
@@ -52,10 +48,14 @@ import org.elasticsearch.cluster.metadata.MetaData;
 import org.elasticsearch.common.collect.ImmutableOpenMap;
 
 import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-import java.util.*;
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.Set;
 import java.util.concurrent.ExecutionException;
+import java.util.function.Predicate;
 import java.util.regex.Matcher;
+import java.util.stream.Stream;
 
 /**
  * SchemaInfo for all user tables.
@@ -115,8 +115,6 @@ public class DocSchemaInfo implements SchemaInfo {
     private final ClusterService clusterService;
     private final DocTableInfoFactory docTableInfoFactory;
 
-    private final Predicate<String> tablesFilter;
-
     private final LoadingCache<String, DocTableInfo> cache = CacheBuilder.newBuilder()
         .maximumSize(10000)
         .build(
@@ -130,9 +128,11 @@ public class DocSchemaInfo implements SchemaInfo {
             }
         );
 
-    private final Function<String, TableInfo> tableInfoFunction;
+    private static final Predicate<String> NO_BLOB = ((Predicate<String>)BlobIndex::isBlobIndex).negate();
+    private static final Predicate<String> NO_PARTITION = ((Predicate<String>)PartitionName::isPartition).negate();
+
     private final String schemaName;
-    private final Function<String, String> indexToTableName;
+    private boolean isDocSchema;
 
     /**
      * DocSchemaInfo constructor for the all schemas.
@@ -141,56 +141,25 @@ public class DocSchemaInfo implements SchemaInfo {
                          ClusterService clusterService,
                          DocTableInfoFactory docTableInfoFactory) {
         this.schemaName = schemaName;
+        this.isDocSchema = Schemas.DEFAULT_SCHEMA_NAME.equals(schemaName);
         this.clusterService = clusterService;
         this.docTableInfoFactory = docTableInfoFactory;
-        this.tablesFilter = createSchemaNamePredicate(schemaName);
-        this.tableInfoFunction = new Function<String, TableInfo>() {
-            @Nullable
-            @Override
-            public TableInfo apply(@Nullable String input) {
-                assert input != null : "input must not be null";
-                return getTableInfo(getTableNameFromFQN(input));
-            }
-        };
-        this.indexToTableName = new Function<String, String>() {
-            @Nullable
-            @Override
-            public String apply(@Nullable String input) {
-                if (input == null) {
-                    return null;
-                }
-                if (BlobIndex.isBlobIndex(input)) {
-                    return null;
-                }
-                if (PartitionName.isPartition(input)) {
-                    return null;
-                }
-                return input;
-            }
-        };
     }
 
-    private static Predicate<String> createSchemaNamePredicate(final String schemaName) {
-        return Predicates.and(Predicates.notNull(), new Predicate<String>() {
-            @Override
-            public boolean apply(String input) {
-                Matcher matcher = Schemas.SCHEMA_PATTERN.matcher(input);
-                if (matcher.matches()) {
-                    return matcher.group(1).equals(schemaName);
-                } else {
-                    return Schemas.DEFAULT_SCHEMA_NAME.equals(schemaName);
-                }
-
-            }
-        });
-    }
-
-    private String getTableNameFromFQN(String fqn) {
-        Matcher matcher = Schemas.SCHEMA_PATTERN.matcher(fqn);
+    private static String getTableNameFromIndexName(String indexName) {
+        Matcher matcher = Schemas.SCHEMA_PATTERN.matcher(indexName);
         if (matcher.matches()) {
             return matcher.group(2);
         }
-        return fqn;
+        return indexName;
+    }
+
+    private boolean indexMatchesSchema(String index) {
+        Matcher matcher = Schemas.SCHEMA_PATTERN.matcher(index);
+        if (matcher.matches()) {
+            return matcher.group(1).equals(schemaName);
+        }
+        return isDocSchema;
     }
 
     private DocTableInfo innerGetTableInfo(String tableName) {
@@ -216,12 +185,14 @@ public class DocSchemaInfo implements SchemaInfo {
     }
 
     private Collection<String> tableNames() {
-        // TODO: once we support closing/opening tables change this to concreteIndices()
-        // and add  state info to the TableInfo.
-
         Set<String> tables = new HashSet<>();
-        tables.addAll(Collections2.filter(Collections2.transform(
-            Arrays.asList(clusterService.state().metaData().concreteAllOpenIndices()), indexToTableName), tablesFilter));
+
+        Stream.of(clusterService.state().metaData().concreteAllOpenIndices())
+            .filter(NO_BLOB)
+            .filter(NO_PARTITION)
+            .filter(this::indexMatchesSchema)
+            .map(DocSchemaInfo::getTableNameFromIndexName)
+            .forEach(tables::add);
 
         // Search for partitioned table templates
         UnmodifiableIterator<String> templates = clusterService.state().metaData().getTemplates().keysIt();
@@ -337,7 +308,7 @@ public class DocSchemaInfo implements SchemaInfo {
 
     @Override
     public Iterator<TableInfo> iterator() {
-        return Iterators.transform(tableNames().iterator(), tableInfoFunction);
+        return Iterators.transform(tableNames().iterator(), this::getTableInfo);
     }
 
     @Override
