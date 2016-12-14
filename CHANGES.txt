@@ -52,8 +52,8 @@ Unreleased
    result.
 
  - Fix: Creating new partitions could have failed in case the partitioned table
-  was created prior to CrateDB version ``0.55.0`` and the table contained a
-  ``object`` column.
+   was created prior to CrateDB version ``0.55.0`` and the table contained a
+   ``object`` column.
 
 2016/12/05 1.0.0
 ================
@@ -285,7 +285,7 @@ Unreleased
  - Updated crate-admin to ``0.21.1`` which includes the following changes:
 
      - Fix: Corrected the sql queries to display the table list in the
-     Tables view, and to create the tweets table only if it does not exist.
+       Tables view, and to create the tweets table only if it does not exist.
 
  - Fixed an issue that caused left outer joins to return an empty result if the
    joined table is empty.
@@ -1671,7 +1671,7 @@ Unreleased
 
  - Fixed a race condition in `ALTER TABLE <partitioned_table>` that could occur
    if a `DELETE FROM <partitioned_table>` was invoked immediately before the
-    `ALTER TABLE` statement.
+   `ALTER TABLE` statement.
 
 2015/06/16 0.50.0
 =================
@@ -2561,12 +2561,13 @@ NOTE: Upgrading from 0.47 or earlier versions requires a full cluster restart
    runtime by using ``SET/RESET``
 
  - BREAKING:
-   Existing cluster settings have been renamed:
+    Existing cluster settings have been renamed:
      - collect_stats to stats.enabled
      - jobs_log_size to stats.jobs_log_size
      - operations_log_size to stats.operations_log_size
-   Please refer to the ``Configuration`` section in the documentation
-   for more details
+
+    Please refer to the ``Configuration`` section in the documentation
+    for more details
 
 2014/09/22 0.43.1
 =================
