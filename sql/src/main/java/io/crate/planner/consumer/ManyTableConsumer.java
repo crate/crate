@@ -23,7 +23,6 @@
 package io.crate.planner.consumer;
 
 import com.google.common.base.Function;
-import com.google.common.base.Optional;
 import com.google.common.base.Predicate;
 import com.google.common.collect.*;
 import io.crate.analyze.*;
@@ -219,10 +218,10 @@ public class ManyTableConsumer implements Consumer {
                 newQuerySpec.where(new WhereClause(symbol));
             }
 
-            Optional<OrderBy> remainingOrderByToApply = Optional.absent();
+            Optional<OrderBy> remainingOrderByToApply = Optional.empty();
             if (remainingOrderBy.isPresent() && remainingOrderBy.get().validForRelations(names)) {
                 remainingOrderByToApply = Optional.of(remainingOrderBy.get().orderBy());
-                remainingOrderBy = Optional.absent();
+                remainingOrderBy = Optional.empty();
             }
 
             // get explicit join definition
@@ -282,7 +281,7 @@ public class ManyTableConsumer implements Consumer {
         }
         // Remove limit from all join pairs before the last filtered one
         for (int i = 0; i < index; i++) {
-            twoTableJoinList.get(i).querySpec().limit(Optional.absent());
+            twoTableJoinList.get(i).querySpec().limit(Optional.empty());
         }
 
         return join;
@@ -340,7 +339,7 @@ public class ManyTableConsumer implements Consumer {
             joinPair, mss.outputSymbols(), mss.querySpec(), left, right, leftSource.querySpec(), rightSource.querySpec());
         JoinPairs.removeOrderByOnOuterRelation(left, right, leftSource.querySpec(), rightSource.querySpec(), joinPair);
 
-        Optional<OrderBy> remainingOrderByToApply = Optional.absent();
+        Optional<OrderBy> remainingOrderByToApply = Optional.empty();
         if (mss.remainingOrderBy().isPresent() &&
             mss.remainingOrderBy().get().validForRelations(Sets.newHashSet(left, right))) {
             remainingOrderByToApply = Optional.of(mss.remainingOrderBy().get().orderBy());

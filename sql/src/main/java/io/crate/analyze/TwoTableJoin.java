@@ -22,7 +22,6 @@
 
 package io.crate.analyze;
 
-import com.google.common.base.Optional;
 import io.crate.analyze.relations.AnalyzedRelationVisitor;
 import io.crate.analyze.relations.JoinPair;
 import io.crate.analyze.relations.QueriedRelation;
@@ -36,6 +35,7 @@ import io.crate.sql.tree.QualifiedName;
 import javax.annotation.Nonnull;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 public class TwoTableJoin implements QueriedRelation {
 

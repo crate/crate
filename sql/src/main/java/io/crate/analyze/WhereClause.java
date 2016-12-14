@@ -22,7 +22,6 @@
 package io.crate.analyze;
 
 import com.google.common.base.MoreObjects;
-import com.google.common.base.Optional;
 import com.google.common.collect.Iterators;
 import io.crate.analyze.symbol.Literal;
 import io.crate.analyze.symbol.Symbol;
@@ -37,19 +36,16 @@ import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Streamable;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 public class WhereClause extends QueryClause implements Streamable {
 
     public static final WhereClause MATCH_ALL = new WhereClause(Literal.BOOLEAN_TRUE);
     public static final WhereClause NO_MATCH = new WhereClause(Literal.BOOLEAN_FALSE);
 
-    private Optional<Set<Symbol>> clusteredBy = Optional.absent();
+    private Optional<Set<Symbol>> clusteredBy = Optional.empty();
 
-    private Optional<DocKeys> docKeys = Optional.absent();
+    private Optional<DocKeys> docKeys = Optional.empty();
 
     private List<String> partitions = new ArrayList<>();
 
@@ -81,7 +77,7 @@ public class WhereClause extends QueryClause implements Streamable {
             return this;
         }
         WhereClause normalizedWhereClause = new WhereClause(normalizedQuery,
-            docKeys.orNull(), partitions);
+            docKeys.orElse(null), partitions);
         normalizedWhereClause.clusteredBy = clusteredBy;
         return normalizedWhereClause;
     }
@@ -119,7 +115,7 @@ public class WhereClause extends QueryClause implements Streamable {
     public void docKeys(@Nullable DocKeys docKeys) {
         assert this != NO_MATCH && this != MATCH_ALL : "may not set docKeys on MATCH_ALL/NO_MATCH singleton";
         if (docKeys == null) {
-            this.docKeys = Optional.absent();
+            this.docKeys = Optional.empty();
         } else {
             this.docKeys = Optional.of(docKeys);
         }

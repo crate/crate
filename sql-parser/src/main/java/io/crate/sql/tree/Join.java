@@ -22,13 +22,13 @@
 package io.crate.sql.tree;
 
 import com.google.common.base.MoreObjects;
-import com.google.common.base.Optional;
+
+import java.util.Optional;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 
-public class Join
-    extends Relation {
+public class Join extends Relation {
     public Join(Type type, Relation left, Relation right, Optional<JoinCriteria> criteria) {
         checkNotNull(left, "left is null");
         checkNotNull(right, "right is null");

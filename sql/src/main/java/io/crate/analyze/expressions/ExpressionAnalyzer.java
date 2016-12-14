@@ -22,7 +22,6 @@
 
 package io.crate.analyze.expressions;
 
-import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicates;
 import com.google.common.collect.*;

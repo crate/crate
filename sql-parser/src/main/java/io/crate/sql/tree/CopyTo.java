@@ -22,11 +22,11 @@
 package io.crate.sql.tree;
 
 import com.google.common.base.MoreObjects;
-import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
 
 import javax.annotation.Nullable;
 import java.util.List;
+import java.util.Optional;
 
 public class CopyTo extends Statement {
 
@@ -41,17 +41,17 @@ public class CopyTo extends Statement {
 
     public CopyTo(Table table,
                   @Nullable List<Expression> columns,
-                  @Nullable Expression whereClause,
+                  Optional<Expression> whereClause,
                   boolean directoryUri,
                   Expression targetUri,
-                  @Nullable GenericProperties genericProperties) {
+                  Optional<GenericProperties> genericProperties) {
 
         this.table = table;
         this.directoryUri = directoryUri;
         this.targetUri = targetUri;
-        this.genericProperties = Optional.fromNullable(genericProperties);
+        this.genericProperties = genericProperties;
         this.columns = MoreObjects.firstNonNull(columns, ImmutableList.<Expression>of());
-        this.whereClause = Optional.fromNullable(whereClause);
+        this.whereClause = whereClause;
     }
 
     public Table table() {

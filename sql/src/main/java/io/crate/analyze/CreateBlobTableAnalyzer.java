@@ -21,12 +21,13 @@
 
 package io.crate.analyze;
 
-import com.google.common.base.Optional;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.TableIdent;
 import io.crate.sql.tree.ClusteredBy;
 import io.crate.sql.tree.CreateBlobTable;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
+
+import java.util.Optional;
 
 class CreateBlobTableAnalyzer {
 

@@ -21,7 +21,6 @@
 
 package io.crate.planner.fetch;
 
-import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.QuerySpec;

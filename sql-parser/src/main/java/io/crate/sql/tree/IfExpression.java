@@ -22,23 +22,23 @@
 package io.crate.sql.tree;
 
 import com.google.common.base.Objects;
-import com.google.common.base.Optional;
+
+import java.util.Optional;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
 /**
  * IF(v1,v2[,v3]): CASE WHEN v1 THEN v2 [ELSE v3] END
  */
-public class IfExpression
-    extends Expression {
+public class IfExpression extends Expression {
     private final Expression condition;
     private final Expression trueValue;
     private final Optional<Expression> falseValue;
 
-    public IfExpression(Expression condition, Expression trueValue, Expression falseValue) {
+    public IfExpression(Expression condition, Expression trueValue, Optional<Expression> falseValue) {
         this.condition = checkNotNull(condition, "condition is null");
         this.trueValue = checkNotNull(trueValue, "trueValue is null");
-        this.falseValue = Optional.fromNullable(falseValue);
+        this.falseValue = falseValue;
     }
 
     public Expression getCondition() {

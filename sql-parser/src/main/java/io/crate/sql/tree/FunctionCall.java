@@ -22,9 +22,9 @@
 package io.crate.sql.tree;
 
 import com.google.common.base.Objects;
-import com.google.common.base.Optional;
 
 import java.util.List;
+import java.util.Optional;
 
 public class FunctionCall
     extends Expression {
@@ -39,7 +39,7 @@ public class FunctionCall
 
     public FunctionCall(QualifiedName name, Window window, boolean distinct, List<Expression> arguments) {
         this.name = name;
-        this.window = Optional.fromNullable(window);
+        this.window = Optional.ofNullable(window);
         this.distinct = distinct;
         this.arguments = arguments;
     }

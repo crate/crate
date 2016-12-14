@@ -23,19 +23,18 @@
 package io.crate.sql.tree;
 
 import com.google.common.base.MoreObjects;
-import com.google.common.base.Optional;
 
-import javax.annotation.Nullable;
 import java.util.List;
+import java.util.Optional;
 
 public class OptimizeStatement extends Statement {
 
     private final List<Table> tables;
     private final Optional<GenericProperties> properties;
 
-    public OptimizeStatement(List<Table> tables, @Nullable GenericProperties properties) {
+    public OptimizeStatement(List<Table> tables, Optional<GenericProperties> properties) {
         this.tables = tables;
-        this.properties = Optional.fromNullable(properties);
+        this.properties = properties;
     }
 
     public List<Table> tables() {

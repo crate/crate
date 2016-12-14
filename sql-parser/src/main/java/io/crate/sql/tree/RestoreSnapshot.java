@@ -23,10 +23,9 @@ package io.crate.sql.tree;
 
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Objects;
-import com.google.common.base.Optional;
 
-import javax.annotation.Nullable;
 import java.util.List;
+import java.util.Optional;
 
 public class RestoreSnapshot extends Statement {
 
@@ -34,20 +33,19 @@ public class RestoreSnapshot extends Statement {
     private final Optional<GenericProperties> properties;
     private final Optional<List<Table>> tableList;
 
-    public RestoreSnapshot(QualifiedName name,
-                           @Nullable GenericProperties genericProperties) {
+    public RestoreSnapshot(QualifiedName name, Optional<GenericProperties> genericProperties) {
         this.name = name;
-        this.properties = Optional.fromNullable(genericProperties);
-        this.tableList = Optional.absent();
+        this.properties = genericProperties;
+        this.tableList = Optional.empty();
 
     }
 
     public RestoreSnapshot(QualifiedName name,
                            List<Table> tableList,
-                           @Nullable GenericProperties genericProperties) {
+                           Optional<GenericProperties> genericProperties) {
         this.name = name;
         this.tableList = Optional.of(tableList);
-        this.properties = Optional.fromNullable(genericProperties);
+        this.properties = genericProperties;
 
     }
 

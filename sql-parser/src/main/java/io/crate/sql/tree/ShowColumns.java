@@ -23,9 +23,8 @@ package io.crate.sql.tree;
 
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Objects;
-import com.google.common.base.Optional;
 
-import javax.annotation.Nullable;
+import java.util.Optional;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
@@ -37,13 +36,13 @@ public class ShowColumns extends Statement {
     private final Optional<Expression> where;
 
     public ShowColumns(QualifiedName table,
-                       @Nullable QualifiedName schema,
-                       @Nullable Expression where,
-                       @Nullable String likePattern) {
+                       Optional<QualifiedName> schema,
+                       Optional<Expression> where,
+                       Optional<String> likePattern) {
         this.table = checkNotNull(table, "table is null");
-        this.schema = Optional.fromNullable(schema);
-        this.likePattern = Optional.fromNullable(likePattern);
-        this.where = Optional.fromNullable(where);
+        this.schema = schema;
+        this.likePattern = likePattern;
+        this.where = where;
     }
 
     public QualifiedName table() {
@@ -82,9 +81,9 @@ public class ShowColumns extends Statement {
         }
         ShowColumns o = (ShowColumns) obj;
         return Objects.equal(table, o.table) &&
-               Objects.equal(schema, o.schema) &&
-               Objects.equal(likePattern, o.likePattern) &&
-               Objects.equal(where, o.where);
+            Objects.equal(schema, o.schema) &&
+            Objects.equal(likePattern, o.likePattern) &&
+            Objects.equal(where, o.where);
     }
 
     @Override

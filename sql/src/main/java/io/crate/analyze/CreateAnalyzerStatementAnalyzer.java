@@ -21,7 +21,6 @@
 
 package io.crate.analyze;
 
-import com.google.common.base.Optional;
 import io.crate.analyze.expressions.ExpressionToStringVisitor;
 import io.crate.metadata.FulltextAnalyzerResolver;
 import io.crate.sql.tree.*;
@@ -30,6 +29,7 @@ import org.elasticsearch.common.settings.Settings;
 
 import java.util.Locale;
 import java.util.Map;
+import java.util.Optional;
 
 import static io.crate.analyze.CreateAnalyzerAnalyzedStatement.getSettingsKey;
 
@@ -191,7 +191,7 @@ class CreateAnalyzerStatementAnalyzer
                     throw new IllegalArgumentException(String.format(Locale.ENGLISH,
                         "Non-existing built-in char-filter '%s'", name));
                 }
-                validateCharFilterProperties(name, properties.orNull());
+                validateCharFilterProperties(name, properties.orElse(null));
                 // build
                 context.statement.addCharFilter(name, Settings.EMPTY);
             } else {

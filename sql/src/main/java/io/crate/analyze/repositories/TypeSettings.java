@@ -22,7 +22,6 @@
 
 package io.crate.analyze.repositories;
 
-import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableMap;
 import io.crate.metadata.settings.ByteSizeSetting;
 import io.crate.metadata.settings.SettingsApplier;
@@ -30,6 +29,7 @@ import io.crate.metadata.settings.SettingsAppliers;
 import io.crate.sql.tree.GenericProperties;
 
 import java.util.Map;
+import java.util.Optional;
 
 public class TypeSettings {
     private static final Map<String, SettingsApplier> GENERIC = ImmutableMap.<String, SettingsApplier>builder()
@@ -59,6 +59,6 @@ public class TypeSettings {
      * Return possible dynamic GenericProperties which will not be validated.
      */
     public Optional<GenericProperties> dynamicProperties(Optional<GenericProperties> genericProperties) {
-        return Optional.absent();
+        return Optional.empty();
     }
 }

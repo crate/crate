@@ -21,7 +21,6 @@
 
 package io.crate.analyze;
 
-import com.google.common.base.Optional;
 import com.google.common.base.Predicate;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
@@ -40,13 +39,13 @@ import java.util.*;
 
 public class QuerySpec {
 
-    private Optional<List<Symbol>> groupBy = Optional.absent();
-    private Optional<OrderBy> orderBy = Optional.absent();
-    private Optional<HavingClause> having = Optional.absent();
+    private Optional<List<Symbol>> groupBy = Optional.empty();
+    private Optional<OrderBy> orderBy = Optional.empty();
+    private Optional<HavingClause> having = Optional.empty();
     private List<Symbol> outputs;
     private WhereClause where = WhereClause.MATCH_ALL;
-    private Optional<Symbol> limit = Optional.absent();
-    private Optional<Symbol> offset = Optional.absent();
+    private Optional<Symbol> limit = Optional.empty();
+    private Optional<Symbol> offset = Optional.empty();
     private boolean hasAggregates = false;
 
     public Optional<List<Symbol>> groupBy() {
@@ -55,7 +54,7 @@ public class QuerySpec {
 
     public QuerySpec groupBy(@Nullable List<Symbol> groupBy) {
         assert groupBy == null || groupBy.size() > 0 : "groupBy must not be empty";
-        this.groupBy = Optional.fromNullable(groupBy);
+        this.groupBy = Optional.ofNullable(groupBy);
         return this;
     }
 
@@ -97,7 +96,7 @@ public class QuerySpec {
 
     public QuerySpec having(@Nullable HavingClause having) {
         if (having == null || !having.hasQuery() && !having.noMatch()) {
-            this.having = Optional.absent();
+            this.having = Optional.empty();
         } else {
             this.having = Optional.of(having);
         }
@@ -109,7 +108,7 @@ public class QuerySpec {
     }
 
     public QuerySpec orderBy(@Nullable OrderBy orderBy) {
-        this.orderBy = Optional.fromNullable(orderBy);
+        this.orderBy = Optional.ofNullable(orderBy);
         return this;
     }
 
@@ -251,7 +250,7 @@ public class QuerySpec {
         if (!where.hasQuery()) {
             newSpec.where(where);
         } else {
-            newSpec.where(new WhereClause(replaceFunction.apply(where.query()), where.docKeys().orNull(), where.partitions()));
+            newSpec.where(new WhereClause(replaceFunction.apply(where.query()), where.docKeys().orElse(null), where.partitions()));
         }
         if (orderBy.isPresent()) {
             newSpec.orderBy(orderBy.get().copyAndReplace(replaceFunction));
@@ -271,7 +270,7 @@ public class QuerySpec {
     public void replace(com.google.common.base.Function<? super Symbol, Symbol> replaceFunction) {
         Lists2.replaceItems(outputs, replaceFunction);
         if (where.hasQuery()) {
-            where = new WhereClause(replaceFunction.apply(where.query()), where.docKeys().orNull(), where.partitions());
+            where = new WhereClause(replaceFunction.apply(where.query()), where.docKeys().orElse(null), where.partitions());
         }
         if (orderBy.isPresent()) {
             orderBy.get().replace(replaceFunction);

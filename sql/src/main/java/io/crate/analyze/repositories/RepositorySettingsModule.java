@@ -22,7 +22,6 @@
 
 package io.crate.analyze.repositories;
 
-import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableMap;
 import io.crate.metadata.settings.*;
 import io.crate.sql.tree.Expression;
@@ -33,6 +32,7 @@ import org.elasticsearch.common.inject.multibindings.MapBinder;
 
 import java.util.Collections;
 import java.util.Map;
+import java.util.Optional;
 
 public class RepositorySettingsModule extends AbstractModule {
 
@@ -81,7 +81,7 @@ public class RepositorySettingsModule extends AbstractModule {
                     dynamicProperties.add(new GenericProperty(key, entry.getValue()));
                 }
             }
-            return Optional.fromNullable(dynamicProperties);
+            return Optional.ofNullable(dynamicProperties);
         }
     };
 

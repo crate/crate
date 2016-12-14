@@ -22,7 +22,6 @@
 
 package io.crate.analyze.relations;
 
-import com.google.common.base.Optional;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Maps;
@@ -40,6 +39,7 @@ import javax.annotation.Nullable;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 /**
  * The RelationNormalizer tries to merge the tree of relations in a QueriedSelectRelation into a single QueriedRelation.
@@ -128,7 +128,7 @@ final class RelationNormalizer {
         if (parentOrderBy.isPresent()) {
             return parentOrderBy.get();
         }
-        return childOrderBy.orNull();
+        return childOrderBy.orElse(null);
     }
 
 
@@ -137,14 +137,14 @@ final class RelationNormalizer {
     private static List<Symbol> pushGroupBy(Optional<List<Symbol>> childGroupBy, Optional<List<Symbol>> parentGroupBy) {
         assert !(childGroupBy.isPresent() && parentGroupBy.isPresent()) :
             "Cannot merge 'group by' if exists in both parent and child relations";
-        return childGroupBy.or(parentGroupBy).orNull();
+        return childGroupBy.map(Optional::of).orElse(parentGroupBy).orElse(null);
     }
 
     @Nullable
     private static HavingClause pushHaving(Optional<HavingClause> childHaving, Optional<HavingClause> parentHaving) {
         assert !(childHaving.isPresent() && parentHaving.isPresent()) :
             "Cannot merge 'having' if exists in both parent and child relations";
-        return childHaving.or(parentHaving).orNull();
+        return childHaving.map(Optional::of).orElse(parentHaving).orElse(null);
     }
 
     private static boolean canBeMerged(QuerySpec childQuerySpec, QuerySpec parentQuerySpec) {

@@ -22,7 +22,6 @@
 
 package io.crate.analyze;
 
-import com.google.common.base.Optional;
 import io.crate.core.collections.Row;
 import io.crate.core.collections.RowN;
 import io.crate.metadata.Schemas;
@@ -31,10 +30,7 @@ import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.*;
 import org.elasticsearch.common.collect.Tuple;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Locale;
+import java.util.*;
 
 class ShowStatementAnalyzer {
 

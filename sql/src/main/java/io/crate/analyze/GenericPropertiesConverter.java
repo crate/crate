@@ -21,7 +21,6 @@
 
 package io.crate.analyze;
 
-import com.google.common.base.Optional;
 import io.crate.analyze.expressions.ExpressionToStringVisitor;
 import io.crate.metadata.settings.SettingsApplier;
 import io.crate.sql.tree.ArrayLiteral;
@@ -29,10 +28,7 @@ import io.crate.sql.tree.Expression;
 import io.crate.sql.tree.GenericProperties;
 import org.elasticsearch.common.settings.Settings;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
+import java.util.*;
 
 public class GenericPropertiesConverter {
 

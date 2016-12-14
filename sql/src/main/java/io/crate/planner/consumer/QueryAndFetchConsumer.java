@@ -21,7 +21,6 @@
 
 package io.crate.planner.consumer;
 
-import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.QueriedTable;
@@ -48,6 +47,7 @@ import io.crate.planner.projection.TopNProjection;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 
 public class QueryAndFetchConsumer implements Consumer {
 
@@ -150,7 +150,7 @@ public class QueryAndFetchConsumer implements Consumer {
             } else {
                 collectPhase.pageSizeHint(requiredPageSize);
             }
-            collectPhase.orderBy(optOrderBy.orNull());
+            collectPhase.orderBy(optOrderBy.orElse(null));
 
             return new Collect(
                 collectPhase,
@@ -158,7 +158,7 @@ public class QueryAndFetchConsumer implements Consumer {
                 limits.offset(),
                 qsOutputs.size(),
                 limits.limitAndOffset(),
-                PositionalOrderBy.of(optOrderBy.orNull(), toCollect)
+                PositionalOrderBy.of(optOrderBy.orElse(null), toCollect)
             );
         }
     }

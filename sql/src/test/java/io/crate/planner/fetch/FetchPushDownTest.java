@@ -21,7 +21,6 @@
 
 package io.crate.planner.fetch;
 
-import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import io.crate.analyze.OrderBy;
@@ -37,9 +36,10 @@ import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.TestingTableInfo;
 import io.crate.operation.scalar.arithmetic.AbsFunction;
-import io.crate.operation.scalar.arithmetic.AddFunction;
 import io.crate.types.DataTypes;
 import org.junit.Test;
+
+import java.util.Optional;
 
 import static io.crate.testing.TestingHelpers.isSQL;
 import static org.hamcrest.Matchers.is;

@@ -23,7 +23,6 @@
 package io.crate.analyze.repositories;
 
 import com.google.common.base.Joiner;
-import com.google.common.base.Optional;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import io.crate.analyze.GenericPropertiesConverter;
@@ -38,6 +37,7 @@ import org.elasticsearch.common.settings.Settings;
 
 import java.util.Locale;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 
 @Singleton

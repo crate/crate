@@ -21,7 +21,6 @@
 
 package io.crate.planner.consumer;
 
-import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 import io.crate.analyze.*;
@@ -110,7 +109,7 @@ class NestedLoopConsumer implements Consumer {
             }
 
             // for nested loops we are fine to remove pushed down orders
-            OrderBy orderByBeforeSplit = querySpec.orderBy().orNull();
+            OrderBy orderByBeforeSplit = querySpec.orderBy().orElse(null);
 
             // replace all the fields in the root query spec
             replaceFields(statement.querySpec(), symbolMap);
@@ -134,10 +133,10 @@ class NestedLoopConsumer implements Consumer {
             Limits limits = context.plannerContext().getLimits(querySpec);
 
             if (filterNeeded || joinCondition != null || statement.remainingOrderBy().isPresent()) {
-                left.querySpec().limit(Optional.<Symbol>absent());
-                right.querySpec().limit(Optional.<Symbol>absent());
-                left.querySpec().offset(Optional.<Symbol>absent());
-                right.querySpec().offset(Optional.<Symbol>absent());
+                left.querySpec().limit(Optional.empty());
+                right.querySpec().limit(Optional.empty());
+                left.querySpec().offset(Optional.empty());
+                right.querySpec().offset(Optional.empty());
             }
 
             if (!filterNeeded && joinCondition == null && querySpec.limit().isPresent()) {
@@ -198,7 +197,7 @@ class NestedLoopConsumer implements Consumer {
                         leftResultDesc.streamOutputs(),
                         Collections.emptyList(),
                         DistributionInfo.DEFAULT_SAME_NODE,
-                        PositionalOrderBy.of(left.querySpec().orderBy().orNull(), left.querySpec().outputs())
+                        PositionalOrderBy.of(left.querySpec().orderBy().orElse(null), left.querySpec().outputs())
                     );
                 }
             }
@@ -219,7 +218,7 @@ class NestedLoopConsumer implements Consumer {
                         rightResultDesc.streamOutputs(),
                         Collections.emptyList(),
                         DistributionInfo.DEFAULT_SAME_NODE,
-                        PositionalOrderBy.of(right.querySpec().orderBy().orNull(), right.querySpec().outputs())
+                        PositionalOrderBy.of(right.querySpec().orderBy().orElse(null), right.querySpec().outputs())
                     );
                 }
                 rightPlan.setDistributionInfo(DistributionInfo.DEFAULT_BROADCAST);
@@ -258,7 +257,7 @@ class NestedLoopConsumer implements Consumer {
                 }
             }
 
-            OrderBy orderBy = statement.remainingOrderBy().orNull();
+            OrderBy orderBy = statement.remainingOrderBy().orElse(null);
             if (orderBy == null && joinType.isOuter()) {
                 orderBy = orderByBeforeSplit;
             }

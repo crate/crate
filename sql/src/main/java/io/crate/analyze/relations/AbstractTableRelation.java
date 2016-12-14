@@ -22,7 +22,6 @@
 package io.crate.analyze.relations;
 
 import com.google.common.base.MoreObjects;
-import com.google.common.base.Optional;
 import com.google.common.base.Predicate;
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.symbol.Field;

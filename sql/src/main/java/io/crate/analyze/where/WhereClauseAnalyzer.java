@@ -189,7 +189,7 @@ public class WhereClauseAnalyzer {
             Map.Entry<Symbol, List<Literal>> entry = Iterables.getOnlyElement(queryPartitionMap.entrySet());
             whereClause = new WhereClause(
                 entry.getKey(),
-                whereClause.docKeys().orNull(),
+                whereClause.docKeys().orElse(null),
                 new ArrayList<String>(entry.getValue().size()));
             whereClause.partitions(entry.getValue());
             return whereClause;
@@ -246,7 +246,7 @@ public class WhereClauseAnalyzer {
         if (canMatch.size() == 1) {
             Tuple<Symbol, List<Literal>> symbolListTuple = canMatch.get(0);
             WhereClause where = new WhereClause(symbolListTuple.v1(),
-                whereClause.docKeys().orNull(),
+                whereClause.docKeys().orElse(null),
                 new ArrayList<String>(symbolListTuple.v2().size()));
             where.partitions(symbolListTuple.v2());
             return where;

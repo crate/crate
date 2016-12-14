@@ -23,10 +23,10 @@ package io.crate.sql.tree;
 
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Objects;
-import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
 
 import java.util.List;
+import java.util.Optional;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
@@ -52,7 +52,6 @@ public class SampledRelation
         } else {
             this.columnsToStratifyOn = columnsToStratifyOn;
         }
-
     }
 
     public Relation getRelation() {

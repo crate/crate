@@ -22,7 +22,6 @@
 package io.crate.planner.consumer;
 
 
-import com.google.common.base.Optional;
 import io.crate.analyze.QuerySpec;
 import io.crate.analyze.relations.QueriedDocTable;
 import io.crate.analyze.where.DocKeys;
@@ -33,6 +32,8 @@ import io.crate.planner.NoopPlan;
 import io.crate.planner.Plan;
 import io.crate.planner.Planner;
 import io.crate.planner.node.dql.ESGet;
+
+import java.util.Optional;
 
 public class ESGetStatementPlanner {
 

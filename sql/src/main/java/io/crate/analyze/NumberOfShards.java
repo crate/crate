@@ -21,7 +21,6 @@
 
 package io.crate.analyze;
 
-import com.google.common.base.Optional;
 import io.crate.analyze.expressions.ExpressionToNumberVisitor;
 import io.crate.core.collections.Row;
 import io.crate.sql.tree.ClusteredBy;
@@ -29,6 +28,8 @@ import io.crate.sql.tree.Expression;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
+
+import java.util.Optional;
 
 @Singleton
 public class NumberOfShards {

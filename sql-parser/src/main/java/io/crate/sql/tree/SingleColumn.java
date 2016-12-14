@@ -22,8 +22,9 @@
 package io.crate.sql.tree;
 
 import com.google.common.base.Objects;
-import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
+
+import java.util.Optional;
 
 public class SingleColumn
     extends SelectItem {
@@ -38,12 +39,8 @@ public class SingleColumn
         this.alias = alias;
     }
 
-    public SingleColumn(Expression expression, String alias) {
-        this(expression, Optional.of(alias));
-    }
-
     public SingleColumn(Expression expression) {
-        this(expression, Optional.<String>absent());
+        this(expression, Optional.empty());
     }
 
     public Optional<String> getAlias() {

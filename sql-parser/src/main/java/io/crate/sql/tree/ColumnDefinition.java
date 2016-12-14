@@ -23,7 +23,6 @@ package io.crate.sql.tree;
 
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Objects;
-import com.google.common.collect.ImmutableList;
 
 import javax.annotation.Nullable;
 import java.util.List;
@@ -37,16 +36,12 @@ public class ColumnDefinition extends TableElement {
     private final ColumnType type;
     private final List<ColumnConstraint> constraints;
 
-    public ColumnDefinition(String ident, @Nullable Expression generatedExpression, @Nullable ColumnType type, @Nullable List<ColumnConstraint> constraints) {
+    public ColumnDefinition(String ident, @Nullable Expression generatedExpression, @Nullable ColumnType type, List<ColumnConstraint> constraints) {
         this.ident = ident;
         this.generatedExpression = generatedExpression;
         this.type = type;
         assert type != null || generatedExpression != null : "Either dataType or generatedExpression must be defined";
-        this.constraints = MoreObjects.firstNonNull(constraints, ImmutableList.<ColumnConstraint>of());
-    }
-
-    public ColumnDefinition(String ident, ColumnType type, List<ColumnConstraint> constraints) {
-        this(ident, null, type, constraints);
+        this.constraints = constraints;
     }
 
     public String ident() {

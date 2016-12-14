@@ -27,8 +27,7 @@ import com.google.common.collect.ImmutableList;
 import javax.annotation.Nullable;
 import java.util.List;
 
-public class Table
-    extends QueryBody {
+public class Table extends QueryBody {
     private final QualifiedName name;
     private final boolean excludePartitions;
     private final List<Assignment> partitionProperties;

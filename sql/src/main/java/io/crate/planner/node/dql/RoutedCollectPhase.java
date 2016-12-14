@@ -100,7 +100,7 @@ public class RoutedCollectPhase extends AbstractProjectionsPhase implements Coll
             Symbol query = whereClause.query();
             Symbol newQuery = replaceFunction.apply(query);
             if (query != newQuery) {
-                whereClause = new WhereClause(newQuery, whereClause.docKeys().orNull(), whereClause.partitions());
+                whereClause = new WhereClause(newQuery, whereClause.docKeys().orElse(null), whereClause.partitions());
             }
         }
         Lists2.replaceItems(toCollect, replaceFunction);

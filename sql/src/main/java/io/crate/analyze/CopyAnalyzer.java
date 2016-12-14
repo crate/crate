@@ -21,7 +21,6 @@
 
 package io.crate.analyze;
 
-import com.google.common.base.Optional;
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableList;
@@ -285,7 +284,7 @@ class CopyAnalyzer {
                 throw new IllegalArgumentException("Given partition ident does not match partition evaluated from where clause");
             }
 
-            return new WhereClause(whereClause.query(), whereClause.docKeys().orNull(),
+            return new WhereClause(whereClause.query(), whereClause.docKeys().orElse(null),
                 partitions.isEmpty() ? whereClause.partitions() : partitions);
         }
     }

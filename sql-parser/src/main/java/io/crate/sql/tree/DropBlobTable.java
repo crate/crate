@@ -35,10 +35,6 @@ public class DropBlobTable extends Statement {
         this.ignoreNonExistentTable = ignoreNonExistentTable;
     }
 
-    public DropBlobTable(Table table) {
-        this(table, false);
-    }
-
     public boolean ignoreNonExistentTable() {
         return ignoreNonExistentTable;
     }

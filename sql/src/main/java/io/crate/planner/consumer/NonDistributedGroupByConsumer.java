@@ -20,7 +20,6 @@
  */
 package io.crate.planner.consumer;
 
-import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
 import io.crate.analyze.HavingClause;
 import io.crate.analyze.QueriedTable;
@@ -49,6 +48,7 @@ import io.crate.planner.projection.builder.SplitPoints;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 class NonDistributedGroupByConsumer implements Consumer {
 
@@ -163,7 +163,7 @@ class NonDistributedGroupByConsumer implements Consumer {
             List<Symbol> qsOutputs = querySpec.outputs();
             mergeProjections.add(ProjectionBuilder.topNOrEval(
                 collectOutputs,
-                querySpec.orderBy().orNull(),
+                querySpec.orderBy().orElse(null),
                 limits.offset(),
                 limits.finalLimit(),
                 qsOutputs

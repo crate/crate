@@ -21,7 +21,6 @@
 
 package io.crate.analyze.relations;
 
-import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableSet;
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.symbol.*;
@@ -38,6 +37,7 @@ import io.crate.metadata.table.Operation;
 
 import javax.annotation.Nullable;
 import java.util.List;
+import java.util.Optional;
 
 public class DocTableRelation extends AbstractTableRelation<DocTableInfo> {
 

@@ -179,7 +179,7 @@ public class MetaDataToASTNodeResolver {
                 clusteredByExpression = expressionFromColumn(clusteredBy);
             }
             Expression numShards = new LongLiteral(Integer.toString(tableInfo.numberOfShards()));
-            options.add(new ClusteredBy(clusteredByExpression, numShards));
+            options.add(new ClusteredBy(Optional.ofNullable(clusteredByExpression), Optional.of(numShards)));
             // PARTITIONED BY (...)
             if (tableInfo.isPartitioned() && !tableInfo.partitionedBy().isEmpty()) {
                 options.add(new PartitionedBy(expressionsFromColumns(tableInfo.partitionedBy())));
@@ -213,17 +213,13 @@ public class MetaDataToASTNodeResolver {
             return properties;
         }
 
-        private boolean extractIfNotExists() {
-            return true;
-        }
 
         private CreateTable extractCreateTable() {
             Table table = extractTable();
             List<TableElement> tableElements = extractTableElements();
             List<CrateTableOption> tableOptions = extractTableOptions();
-            GenericProperties tableProperties = extractTableProperties();
-            boolean ifNotExists = extractIfNotExists();
-            return new CreateTable(table, tableElements, tableOptions, tableProperties, ifNotExists);
+            Optional<GenericProperties> tableProperties = Optional.of(extractTableProperties());
+            return new CreateTable(table, tableElements, tableOptions, tableProperties, true);
         }
 
         private Expression expressionFromColumn(ColumnIdent ident) {

@@ -23,7 +23,8 @@ package io.crate.sql.tree;
 
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Objects;
-import com.google.common.base.Optional;
+
+import java.util.Optional;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
@@ -37,10 +38,10 @@ public class WindowFrame
     private final FrameBound start;
     private final Optional<FrameBound> end;
 
-    public WindowFrame(Type type, FrameBound start, FrameBound end) {
+    public WindowFrame(Type type, FrameBound start, Optional<FrameBound> end) {
         this.type = checkNotNull(type, "type is null");
         this.start = checkNotNull(start, "start is null");
-        this.end = Optional.fromNullable(end);
+        this.end = end;
     }
 
     public Type getType() {

@@ -22,7 +22,6 @@
 
 package io.crate.analyze.relations;
 
-import com.google.common.base.Optional;
 import com.google.common.base.Supplier;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
@@ -78,7 +77,7 @@ public final class RelationSplitter {
     }
 
     public Optional<RemainingOrderBy> remainingOrderBy() {
-        return Optional.fromNullable(remainingOrderBy);
+        return Optional.ofNullable(remainingOrderBy);
     }
 
     public Set<Symbol> requiredForQuery() {

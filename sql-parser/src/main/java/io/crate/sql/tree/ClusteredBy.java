@@ -23,18 +23,17 @@ package io.crate.sql.tree;
 
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Objects;
-import com.google.common.base.Optional;
 
-import javax.annotation.Nullable;
+import java.util.Optional;
 
 public class ClusteredBy extends CrateTableOption {
 
     private final Optional<Expression> column;
     private final Optional<Expression> numberOfShards;
 
-    public ClusteredBy(@Nullable Expression column, @Nullable Expression numberOfShards) {
-        this.column = Optional.fromNullable(column);
-        this.numberOfShards = Optional.fromNullable(numberOfShards);
+    public ClusteredBy(Optional<Expression> column, Optional<Expression> numberOfShards) {
+        this.column = column;
+        this.numberOfShards = numberOfShards;
     }
 
     public Optional<Expression> column() {

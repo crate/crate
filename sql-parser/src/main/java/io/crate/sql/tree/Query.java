@@ -23,14 +23,13 @@ package io.crate.sql.tree;
 
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Objects;
-import com.google.common.base.Optional;
 
 import java.util.List;
+import java.util.Optional;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
-public class Query
-    extends Statement {
+public class Query extends Statement {
     private final Optional<With> with;
     private final QueryBody queryBody;
     private final List<SortItem> orderBy;
@@ -84,11 +83,11 @@ public class Query
     @Override
     public String toString() {
         return MoreObjects.toStringHelper(this)
-            .add("with", with.orNull())
+            .add("with", with)
             .add("queryBody", queryBody)
             .add("orderBy", orderBy)
-            .add("limit", limit.orNull())
-            .add("offset", offset.orNull())
+            .add("limit", limit)
+            .add("offset", offset)
             .omitNullValues()
             .toString();
     }

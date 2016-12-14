@@ -22,7 +22,6 @@
 package io.crate.planner.node.dql;
 
 import com.google.common.base.MoreObjects;
-import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.symbol.Symbol;
@@ -34,6 +33,7 @@ import io.crate.planner.UnnestablePlan;
 import io.crate.types.DataType;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 

@@ -206,7 +206,7 @@ public class UpdateConsumer implements Consumer {
         Symbol versionSymbol = null;
         if (whereClause.hasVersions()) {
             versionSymbol = VersionRewriter.get(whereClause.query());
-            whereClause = new WhereClause(whereClause.query(), whereClause.docKeys().orNull(), whereClause.partitions());
+            whereClause = new WhereClause(whereClause.query(), whereClause.docKeys().orElse(null), whereClause.partitions());
         }
 
         if (!whereClause.noMatch() || !(tableInfo.isPartitioned() && whereClause.partitions().isEmpty())) {

@@ -22,7 +22,6 @@
 
 package io.crate.planner;
 
-import com.google.common.base.Optional;
 import io.crate.analyze.symbol.Function;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.operation.projectors.TopN;
@@ -30,6 +29,7 @@ import io.crate.operation.scalar.arithmetic.AddFunction;
 import io.crate.operation.scalar.conditional.LeastFunction;
 
 import java.util.Arrays;
+import java.util.Optional;
 
 public class Limits {
 

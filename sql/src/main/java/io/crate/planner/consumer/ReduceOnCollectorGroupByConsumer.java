@@ -21,7 +21,6 @@
 
 package io.crate.planner.consumer;
 
-import com.google.common.base.Optional;
 import io.crate.analyze.HavingClause;
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.QuerySpec;
@@ -47,6 +46,7 @@ import io.crate.planner.projection.builder.SplitPoints;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 class ReduceOnCollectorGroupByConsumer implements Consumer {
 
@@ -137,7 +137,7 @@ class ReduceOnCollectorGroupByConsumer implements Consumer {
                 projections.add(fp);
             }
 
-            OrderBy orderBy = querySpec.orderBy().orNull();
+            OrderBy orderBy = querySpec.orderBy().orElse(null);
             Limits limits = context.plannerContext().getLimits(querySpec);
             List<Symbol> qsOutputs = querySpec.outputs();
             projections.add(ProjectionBuilder.topNOrEval(

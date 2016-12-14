@@ -21,7 +21,6 @@
 
 package io.crate.analyze;
 
-import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
 import io.crate.analyze.relations.*;
 import io.crate.analyze.symbol.Field;

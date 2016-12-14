@@ -460,7 +460,7 @@ public final class SqlFormatter {
 
         @Override
         protected Void visitJoin(Join node, Integer indent) {
-            JoinCriteria criteria = node.getCriteria().orNull();
+            JoinCriteria criteria = node.getCriteria().orElse(null);
             String type = node.getType().toString();
             if (criteria instanceof NaturalJoin) {
                 type = "NATURAL " + type;

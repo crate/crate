@@ -46,12 +46,6 @@ public class AddColumnDefinition extends TableElement {
         this.constraints = MoreObjects.firstNonNull(constraints, ImmutableList.<ColumnConstraint>of());
     }
 
-    public AddColumnDefinition(Expression name,
-                               Expression generatedExpression,
-                               List<ColumnConstraint> constraints) {
-        this(name, generatedExpression, null, constraints);
-    }
-
     public Expression name() {
         return name;
     }

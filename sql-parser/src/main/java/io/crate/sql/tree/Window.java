@@ -23,9 +23,9 @@ package io.crate.sql.tree;
 
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Objects;
-import com.google.common.base.Optional;
 
 import java.util.List;
+import java.util.Optional;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
@@ -35,10 +35,10 @@ public class Window
     private final List<SortItem> orderBy;
     private final Optional<WindowFrame> frame;
 
-    public Window(List<Expression> partitionBy, List<SortItem> orderBy, WindowFrame frame) {
+    public Window(List<Expression> partitionBy, List<SortItem> orderBy, Optional<WindowFrame> frame) {
         this.partitionBy = checkNotNull(partitionBy, "partitionBy is null");
         this.orderBy = checkNotNull(orderBy, "orderBy is null");
-        this.frame = Optional.fromNullable(frame);
+        this.frame = frame;
     }
 
     public List<Expression> getPartitionBy() {
@@ -68,8 +68,8 @@ public class Window
         }
         Window o = (Window) obj;
         return Objects.equal(partitionBy, o.partitionBy) &&
-               Objects.equal(orderBy, o.orderBy) &&
-               Objects.equal(frame, o.frame);
+            Objects.equal(orderBy, o.orderBy) &&
+            Objects.equal(frame, o.frame);
     }
 
     @Override

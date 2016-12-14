@@ -22,7 +22,6 @@
 
 package io.crate.planner.consumer;
 
-import com.google.common.base.Optional;
 import io.crate.analyze.MultiSourceSelect;
 import io.crate.analyze.QuerySpec;
 import io.crate.analyze.RelationSource;
@@ -40,6 +39,7 @@ import io.crate.planner.projection.builder.SplitPoints;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.ListIterator;
+import java.util.Optional;
 
 class MultiSourceAggregationConsumer implements Consumer {
 
@@ -105,10 +105,10 @@ class MultiSourceAggregationConsumer implements Consumer {
 
     private static void removeLimitOffsetAndOrder(QuerySpec querySpec) {
         if (querySpec.limit().isPresent()) {
-            querySpec.limit(Optional.absent());
+            querySpec.limit(Optional.empty());
         }
         if (querySpec.offset().isPresent()) {
-            querySpec.offset(Optional.absent());
+            querySpec.offset(Optional.empty());
         }
         if (querySpec.orderBy().isPresent()) {
             querySpec.orderBy(null);

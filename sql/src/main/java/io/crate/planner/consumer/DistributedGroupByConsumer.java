@@ -21,7 +21,6 @@
 
 package io.crate.planner.consumer;
 
-import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
 import io.crate.analyze.HavingClause;
 import io.crate.analyze.OrderBy;
@@ -53,6 +52,7 @@ import org.elasticsearch.common.inject.Singleton;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 @Singleton
 class DistributedGroupByConsumer implements Consumer {
@@ -151,7 +151,7 @@ class DistributedGroupByConsumer implements Consumer {
             }
             reducerProjections.add(ProjectionBuilder.topNOrEval(
                 collectOutputs,
-                optOrderBy.orNull(),
+                optOrderBy.orElse(null),
                 0,
                 limits.limitAndOffset(),
                 topNOutputs));
@@ -175,7 +175,7 @@ class DistributedGroupByConsumer implements Consumer {
                 limits.offset(),
                 querySpec.outputs().size(),
                 limits.limitAndOffset(),
-                PositionalOrderBy.of(optOrderBy.orNull(), topNOutputs)
+                PositionalOrderBy.of(optOrderBy.orElse(null), topNOutputs)
             );
         }
     }

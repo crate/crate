@@ -23,9 +23,8 @@ package io.crate.sql.tree;
 
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Objects;
-import com.google.common.base.Optional;
 
-import javax.annotation.Nullable;
+import java.util.Optional;
 
 public class CreateRepository extends Statement {
 
@@ -35,10 +34,10 @@ public class CreateRepository extends Statement {
 
     public CreateRepository(String repository,
                             String type,
-                            @Nullable GenericProperties genericProperties) {
+                            Optional<GenericProperties> genericProperties) {
         this.repository = repository;
         this.type = type;
-        this.properties = Optional.fromNullable(genericProperties);
+        this.properties = genericProperties;
     }
 
     public String repository() {
