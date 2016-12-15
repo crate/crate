@@ -48,7 +48,8 @@ public class SerializationTests extends CrateUnitTest {
         requestOut.sourceNodeId = "nodeId";
 
         requestOut.writeTo(outputStream);
-        StreamInput inputStream = StreamInput.wrap(outputStream.bytes());
+
+        StreamInput inputStream = outputStream.bytes().streamInput();
 
         PutChunkReplicaRequest requestIn = new PutChunkReplicaRequest();
         requestIn.readFrom(inputStream);
