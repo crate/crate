@@ -23,24 +23,30 @@ package io.crate.blob;
 
 import io.crate.blob.exceptions.MissingHTTPEndpointException;
 import io.crate.blob.pending_transfer.BlobHeadRequestHandler;
+import io.crate.blob.recovery.BlobRecoveryHandler;
 import io.crate.blob.v2.BlobIndex;
+import io.crate.blob.v2.BlobIndicesService;
+import org.apache.logging.log4j.Logger;
 import org.elasticsearch.ElasticsearchException;
-import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.node.DiscoveryNodes;
 import org.elasticsearch.cluster.routing.ShardIterator;
 import org.elasticsearch.cluster.routing.ShardRouting;
+import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.component.AbstractLifecycleComponent;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Injector;
-import org.elasticsearch.common.logging.ESLogger;
-import org.elasticsearch.common.logging.Loggers;
+import org.elasticsearch.common.lease.Releasable;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.http.HttpServer;
-import org.elasticsearch.indices.recovery.BlobRecoverySource;
+import org.elasticsearch.index.shard.IndexShard;
+import org.elasticsearch.indices.recovery.*;
 import org.elasticsearch.transport.TransportService;
 
-public class BlobService extends AbstractLifecycleComponent<BlobService> {
+import java.util.function.Function;
+import java.util.function.Supplier;
+
+public class BlobService extends AbstractLifecycleComponent {
 
     private final Injector injector;
     private final BlobHeadRequestHandler blobHeadRequestHandler;
@@ -70,14 +76,33 @@ public class BlobService extends AbstractLifecycleComponent<BlobService> {
     protected void doStart() throws ElasticsearchException {
         logger.info("BlobService.doStart() {}", this);
 
-        // suppress warning about replaced recovery handler
-        ESLogger transportServiceLogger = Loggers.getLogger(TransportService.class);
-        String previousLevel = transportServiceLogger.getLevel();
-        transportServiceLogger.setLevel("ERROR");
-        injector.getInstance(BlobRecoverySource.class).registerHandler();
-        transportServiceLogger.setLevel(previousLevel);
-
         blobHeadRequestHandler.registerHandler();
+        RecoverySettings recoverySettings = injector.getInstance(RecoverySettings.class);
+        recoverySettings.registerRecoverySourceHandlerProvider(new RecoverySourceHandlerProvider() {
+            @Override
+            public RecoverySourceHandler get(IndexShard shard,
+                                             StartRecoveryRequest request,
+                                             RemoteRecoveryTargetHandler recoveryTarget,
+                                             Function<String, Releasable> delayNewRecoveries,
+                                             Supplier<Long> currentClusterStateVersionSupplier,
+                                             Logger logger) {
+                if (!BlobIndex.isBlobIndex(shard.shardId().getIndexName())) {
+                    return null;
+                }
+                return new BlobRecoveryHandler(
+                    shard,
+                    recoveryTarget,
+                    request,
+                    currentClusterStateVersionSupplier,
+                    delayNewRecoveries,
+                    recoverySettings,
+                    logger,
+                    injector.getInstance(TransportService.class),
+                    injector.getInstance(BlobTransferTarget.class),
+                    injector.getInstance(BlobIndicesService.class)
+                );
+            }
+        });
 
         // by default the http server is started after the discovery service.
         // For the BlobService this is too late.
@@ -112,7 +137,7 @@ public class BlobService extends AbstractLifecycleComponent<BlobService> {
      */
     public String getRedirectAddress(String index, String digest) throws MissingHTTPEndpointException {
         ShardIterator shards = clusterService.operationRouting().getShards(
-            clusterService.state(), index, null, null, digest, "_local");
+            clusterService.state(), index, null, digest, "_local");
 
         String localNodeId = clusterService.state().nodes().getLocalNodeId();
         DiscoveryNodes nodes = clusterService.state().getNodes();
