@@ -77,6 +77,6 @@ public class SysSummitsTableInfo extends StaticTableInfo {
 
     @Override
     public Routing getRouting(WhereClause whereClause, @Nullable String preference) {
-        return Routing.forTableOnSingleNode(IDENT, clusterService.localNode().id());
+        return Routing.forTableOnSingleNode(IDENT, clusterService.localNode().getId());
     }
 }

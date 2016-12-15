@@ -119,6 +119,6 @@ public class InformationTableInfo extends StaticTableInfo {
 
     @Override
     public Routing getRouting(WhereClause whereClause, @Nullable String preference) {
-        return Routing.forTableOnSingleNode(ident(), clusterService.localNode().id());
+        return Routing.forTableOnSingleNode(ident(), clusterService.localNode().getId());
     }
 }

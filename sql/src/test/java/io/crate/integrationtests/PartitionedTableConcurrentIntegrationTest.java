@@ -23,9 +23,9 @@
 package io.crate.integrationtests;
 
 import com.google.common.util.concurrent.ListenableFuture;
-import io.crate.testing.SQLResponse;
 import io.crate.core.collections.Bucket;
 import io.crate.metadata.PartitionName;
+import io.crate.testing.SQLResponse;
 import io.crate.testing.SQLTransportExecutor;
 import io.crate.testing.UseJdbc;
 import org.apache.lucene.util.BytesRef;
@@ -115,7 +115,7 @@ public class PartitionedTableConcurrentIntegrationTest extends SQLTransportInteg
         List<String> nodeIds = new ArrayList<>(2);
         for (DiscoveryNode node : nodes) {
             if (node.dataNode()) {
-                nodeIds.add(node.id());
+                nodeIds.add(node.getId());
             }
         }
         final Map<String, String> nodeSwap = new HashMap<>(2);

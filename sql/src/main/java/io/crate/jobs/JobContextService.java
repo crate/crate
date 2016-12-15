@@ -99,7 +99,7 @@ public class JobContextService extends AbstractLifecycleComponent<JobContextServ
     }
 
     public JobExecutionContext.Builder newBuilder(UUID jobId) {
-        return new JobExecutionContext.Builder(jobId, clusterService.localNode().id(), statsTables);
+        return new JobExecutionContext.Builder(jobId, clusterService.localNode().getId(), statsTables);
     }
 
     public JobExecutionContext.Builder newBuilder(UUID jobId, String coordinatorNodeId) {

@@ -87,7 +87,7 @@ public class SysSnapshotsTableInfo extends StaticTableInfo {
     public Routing getRouting(WhereClause whereClause, @Nullable String preference) {
         // route to random master or data node,
         // because RepositoriesService (and so snapshots info) is only available there
-        return Routing.forTableOnSingleNode(IDENT, randomMasterOrDataNode().id());
+        return Routing.forTableOnSingleNode(IDENT, randomMasterOrDataNode().getId());
     }
 
     private DiscoveryNode randomMasterOrDataNode() {

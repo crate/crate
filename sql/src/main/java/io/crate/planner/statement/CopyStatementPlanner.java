@@ -207,7 +207,7 @@ public class CopyStatementPlanner {
             @Override
             public void apply(DiscoveryNode value) {
                 if (nodeFilters.apply(value) && counter.getAndDecrement() > 0) {
-                    nodes.add(value.id());
+                    nodes.add(value.getId());
                 }
             }
         });

@@ -119,11 +119,12 @@ public class DecommissioningService extends AbstractLifecycleComponent implement
         Set<String> toRemove = null;
         for (DiscoveryNode discoveryNode : nodesDelta.removedNodes()) {
             Map<String, String> asMap = transientSettings.getByPrefix(DECOMMISSION_PREFIX).getAsMap();
-            if (asMap.containsKey(discoveryNode.id())) {
+            String nodeId = discoveryNode.getId();
+            if (asMap.containsKey(nodeId)) {
                 if (toRemove == null) {
                     toRemove = new HashSet<>();
                 }
-                toRemove.add(DECOMMISSION_PREFIX + discoveryNode.id());
+                toRemove.add(DECOMMISSION_PREFIX + nodeId);
             }
         }
         return toRemove;
@@ -150,7 +151,7 @@ public class DecommissioningService extends AbstractLifecycleComponent implement
          * nodeIds are part of the key to prevent conflicts if other nodes are being decommissioned in parallel
          */
         Settings settings = Settings.builder().put(
-            DECOMMISSION_PREFIX + clusterService.localNode().id(), true).build();
+            DECOMMISSION_PREFIX + clusterService.localNode().getId(), true).build();
         updateSettingsAction.execute(new ClusterUpdateSettingsRequest().transientSettings(settings), new ActionListener<ClusterUpdateSettingsResponse>() {
             @Override
             public void onResponse(ClusterUpdateSettingsResponse clusterUpdateSettingsResponse) {
@@ -227,7 +228,7 @@ public class DecommissioningService extends AbstractLifecycleComponent implement
 
     @VisibleForTesting
     protected void removeDecommissioningSetting() {
-        HashSet<String> settingsToRemove = Sets.newHashSet(DECOMMISSION_PREFIX + clusterService.localNode().id());
+        HashSet<String> settingsToRemove = Sets.newHashSet(DECOMMISSION_PREFIX + clusterService.localNode().getId());
         updateSettingsAction.execute(new ClusterUpdateSettingsRequest().transientSettingsToRemove(settingsToRemove));
     }
 

@@ -115,7 +115,7 @@ public class Planner extends AnalyzedStatementVisitor<Planner.Context, Plan> {
             this.transactionContext = transactionContext;
             this.softLimit = softLimit;
             this.fetchSize = fetchSize;
-            this.handlerNode = clusterService.localNode().id();
+            this.handlerNode = clusterService.localNode().getId();
         }
 
         public EvaluatingNormalizer normalizer() {

@@ -178,7 +178,7 @@ public class ExecutionPhasesTask extends JobTask {
                               List<RowReceiver> handlerReceivers) throws Throwable {
         assert handlerPhases.size() == handlerReceivers.size() : "handlerPhases size must match handlerReceivers size";
 
-        String localNodeId = clusterService.localNode().id();
+        String localNodeId = clusterService.localNode().getId();
         Collection<NodeOperation> localNodeOperations = operationByServer.remove(localNodeId);
         if (localNodeOperations == null) {
             localNodeOperations = Collections.emptyList();

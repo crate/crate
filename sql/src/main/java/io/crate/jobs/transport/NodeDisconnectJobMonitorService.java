@@ -83,7 +83,7 @@ public class NodeDisconnectJobMonitorService
 
     @Override
     public void onNodeDisconnected(final DiscoveryNode node) {
-        final Collection<JobExecutionContext> contexts = jobContextService.getContextsByCoordinatorNode(node.id());
+        final Collection<JobExecutionContext> contexts = jobContextService.getContextsByCoordinatorNode(node.getId());
         if (contexts.isEmpty()) {
             return;
         }

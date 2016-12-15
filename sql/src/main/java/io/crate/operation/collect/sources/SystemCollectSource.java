@@ -124,7 +124,7 @@ public class SystemCollectSource implements CollectSource {
         collectPhase = collectPhase.normalize(normalizer, null);
 
         Map<String, Map<String, List<Integer>>> locations = collectPhase.routing().locations();
-        String table = Iterables.getOnlyElement(locations.get(discoveryService.localNode().id()).keySet());
+        String table = Iterables.getOnlyElement(locations.get(discoveryService.localNode().getId()).keySet());
         Supplier<Iterable<?>> iterableGetter = iterableGetters.get(table);
         assert iterableGetter != null : "iterableGetter for " + table + " must exist";
         return ImmutableList.<CrateCollector>of(

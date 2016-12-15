@@ -175,7 +175,7 @@ public class TransportExecutor implements Executor {
 
         private ExecutionPhasesTask executionPhasesTask(Plan plan) {
             List<NodeOperationTree> nodeOperationTrees = BULK_NODE_OPERATION_VISITOR.createNodeOperationTrees(
-                plan, clusterService.localNode().id());
+                plan, clusterService.localNode().getId());
             LOGGER.debug("Created NodeOperationTrees from Plan: {}", nodeOperationTrees);
             return new ExecutionPhasesTask(
                 plan.jobId(),

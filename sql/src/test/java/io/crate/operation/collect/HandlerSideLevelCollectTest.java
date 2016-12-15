@@ -46,11 +46,7 @@ import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
 
 import static org.hamcrest.core.Is.is;
 import static org.mockito.Mockito.mock;
@@ -103,7 +99,7 @@ public class HandlerSideLevelCollectTest extends SQLTransportIntegrationTest {
     private Bucket collect(RoutedCollectPhase collectPhase) throws Exception {
         CollectingRowReceiver collectingProjector = new CollectingRowReceiver();
         Collection<CrateCollector> collectors = operation.createCollectors(collectPhase, collectingProjector, mock(JobCollectContext.class));
-        operation.launchCollectors(collectors, JobCollectContext.threadPoolName(collectPhase, clusterService().localNode().id()));
+        operation.launchCollectors(collectors, JobCollectContext.threadPoolName(collectPhase, clusterService().localNode().getId()));
         return collectingProjector.result();
     }
 

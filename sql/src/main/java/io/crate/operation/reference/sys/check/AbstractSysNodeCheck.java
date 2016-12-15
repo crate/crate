@@ -42,7 +42,7 @@ public abstract class AbstractSysNodeCheck extends AbstractSysCheck implements S
     @Override
     public BytesRef nodeId() {
         if (nodeId == null) {
-            nodeId = new BytesRef(clusterService.localNode().id());
+            nodeId = new BytesRef(clusterService.localNode().getId());
         }
         return nodeId;
     }

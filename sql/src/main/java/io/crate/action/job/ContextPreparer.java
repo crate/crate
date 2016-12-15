@@ -128,7 +128,7 @@ public class ContextPreparer extends AbstractComponent {
                                                           JobExecutionContext.Builder contextBuilder,
                                                           SharedShardContexts sharedShardContexts) {
         ContextPreparer.PreparerContext preparerContext = new PreparerContext(
-            clusterService.localNode().id(),
+            clusterService.localNode().getId(),
             contextBuilder,
             logger,
             distributingDownstreamFactory,
@@ -150,7 +150,7 @@ public class ContextPreparer extends AbstractComponent {
                                                            List<Tuple<ExecutionPhase, RowReceiver>> handlerPhases,
                                                            SharedShardContexts sharedShardContexts) {
         ContextPreparer.PreparerContext preparerContext = new PreparerContext(
-            clusterService.localNode().id(),
+            clusterService.localNode().getId(),
             contextBuilder,
             logger,
             distributingDownstreamFactory,
@@ -447,7 +447,7 @@ public class ContextPreparer extends AbstractComponent {
         @Override
         public Boolean visitCountPhase(final CountPhase phase, final PreparerContext context) {
             Map<String, Map<String, List<Integer>>> locations = phase.routing().locations();
-            String localNodeId = clusterService.localNode().id();
+            String localNodeId = clusterService.localNode().getId();
             final Map<String, List<Integer>> indexShardMap = locations.get(localNodeId);
             if (indexShardMap == null) {
                 throw new IllegalArgumentException("The routing of the countNode doesn't contain the current nodeId");
@@ -561,7 +561,7 @@ public class ContextPreparer extends AbstractComponent {
             assert !routings.isEmpty()
                 : "Routings must be present. " +
                   "It doesn't make sense to have a FetchPhase on a node without at least one CollectPhase on the same node";
-            String localNodeId = clusterService.localNode().id();
+            String localNodeId = clusterService.localNode().getId();
             context.registerSubContext(new FetchContext(
                 phase,
                 localNodeId,

@@ -69,7 +69,7 @@ public class NodeStatsContextFieldResolverTest {
     @Before
     public void setup() {
         DiscoveryNode discoveryNode = mock(DiscoveryNode.class);
-        when(discoveryNode.id()).thenReturn("node_id");
+        when(discoveryNode.getId()).thenReturn("node_id");
         when(discoveryNode.name()).thenReturn("node_name");
         when(clusterService.localNode()).thenReturn(discoveryNode);
 

@@ -138,7 +138,7 @@ public class Unnest implements TableFunctionImplementation {
                 "col" + (i + 1)), ((CollectionType) argumentTypes.get(i)).innerType());
         }
 
-        final String localNodeId = clusterService.localNode().id();
+        final String localNodeId = clusterService.localNode().getId();
         return new StaticTableInfo(tableIdent, columnRegistrar, Collections.<ColumnIdent>emptyList()) {
             @Override
             public RowGranularity rowGranularity() {
