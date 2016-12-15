@@ -25,7 +25,6 @@ before_install:
   - ulimit -u 65535
 
 script:
-  - ./gradlew -s test
   - ./gradlew -s itest
   - ./gradlew -s forbiddenApisMain
   - ./gradlew -s pmdMain
