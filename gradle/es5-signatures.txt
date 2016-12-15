@@ -1,0 +1,2 @@
+@defaultMessage has been removed in favor of getLocalNodeId()
+org.elasticsearch.cluster.node.DiscoveryNodes#localNodeId()
