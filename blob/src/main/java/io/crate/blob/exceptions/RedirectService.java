@@ -29,18 +29,19 @@ import org.elasticsearch.action.admin.cluster.node.info.NodesInfoRequest;
 import org.elasticsearch.action.admin.cluster.node.info.NodesInfoResponse;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.cluster.ClusterChangedEvent;
-import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.ClusterStateListener;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.node.DiscoveryNodes;
 import org.elasticsearch.cluster.routing.ShardIterator;
 import org.elasticsearch.cluster.routing.ShardRouting;
+import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.component.AbstractLifecycleComponent;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.transport.TransportAddress;
 
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.stream.Stream;
@@ -48,7 +49,7 @@ import java.util.stream.Stream;
 /**
  * Keeps track of http urls of other nodes in the Cluster to provide redirects for blob operations
  */
-public class RedirectService extends AbstractLifecycleComponent<RedirectService> {
+public class RedirectService extends AbstractLifecycleComponent {
 
     private final ClusterService clusterService;
     private final ConcurrentMap<String, String> nodeIdToHttpAddr = new ConcurrentHashMap<>();
@@ -67,21 +68,22 @@ public class RedirectService extends AbstractLifecycleComponent<RedirectService>
         client.admin().cluster().nodesInfo(
             new NodesInfoRequest(nodeIds).http(true), new ActionListener<NodesInfoResponse>() {
                 @Override
-                public void onResponse(NodesInfoResponse nodeInfos) {
-                    fillMapFromResponse(nodeInfos, nodeIds);
+                public void onResponse(NodesInfoResponse nodesInfoResponse) {
+                    fillMapFromResponse(nodesInfoResponse, nodeIds);
                 }
 
                 @Override
-                public void onFailure(Throwable e) {
+                public void onFailure(Exception e) {
+
                 }
             }
         );
     }
 
     private void fillMapFromResponse(NodesInfoResponse nodeInfos, String[] nodeIds) {
-        for (int i = 0; i < nodeIds.length; i++) {
-            String httpAddress = getHttpAddress(nodeInfos.getAt(i));
-            nodeIdToHttpAddr.put(nodeIds[i], httpAddress);
+        Map<String, NodeInfo> nodesMap = nodeInfos.getNodesMap();
+        for (Map.Entry<String, NodeInfo> entry : nodesMap.entrySet()) {
+            nodeIdToHttpAddr.put(entry.getKey(), getHttpAddress(entry.getValue()));
         }
     }
 
@@ -99,7 +101,7 @@ public class RedirectService extends AbstractLifecycleComponent<RedirectService>
     public String getRedirectAddress(String index, String digest) throws MissingHTTPEndpointException {
         ClusterState state = clusterService.state();
         ShardIterator shards = clusterService.operationRouting().getShards(
-            state, index, null, null, digest, "_local");
+            state, index, null, digest, "_local");
         DiscoveryNodes nodes = state.getNodes();
         String localNodeId = nodes.getLocalNodeId();
         ShardRouting shard;
@@ -123,7 +125,7 @@ public class RedirectService extends AbstractLifecycleComponent<RedirectService>
                 // this case mostly occurs during node-startup
                 // where the nodeIdToHttpAddr map isn't fully initialized
                 NodesInfoResponse nodeInfos = client.admin().cluster().nodesInfo(new NodesInfoRequest(shardNodeId)).actionGet();
-                httpAddress = getHttpAddress(nodeInfos.iterator().next());
+                httpAddress = getHttpAddress(nodeInfos.getNodes().iterator().next());
                 nodeIdToHttpAddr.put(shardNodeId, httpAddress);
             }
             return httpAddress + "/_blobs/" + BlobIndex.stripPrefix(index) + "/" + digest;

@@ -25,15 +25,8 @@ before_install:
   - ulimit -u 65535
 
 script:
-  - ./gradlew -s test
-  - ./gradlew -s itest
+  - ./gradlew -s :blob:test
   - ./gradlew -s forbiddenApisMain
-  - ./gradlew -s pmdMain
-  - ./blackbox/.venv/bin/sphinx-build -n -W -c docs/ -b html -E blackbox/docs/ docs/out/html
-
-after_success:
-  - ./gradlew jacocoReport
-  - bash <(curl -s https://codecov.io/bash)
 
 
 branches:
