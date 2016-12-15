@@ -7,7 +7,6 @@
 *~
 .gradle
 *build/
-data/
 /out
 /sandbox
 /docs/eggs
