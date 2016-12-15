@@ -29,12 +29,13 @@ import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.network.NetworkService;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.util.BigArrays;
-import org.elasticsearch.http.netty.NettyHttpServerTransport;
+import org.elasticsearch.http.netty3.Netty3HttpServerTransport;
+import org.elasticsearch.threadpool.ThreadPool;
 import org.jboss.netty.channel.ChannelPipeline;
 import org.jboss.netty.channel.ChannelPipelineFactory;
 import org.jboss.netty.handler.stream.ChunkedWriteHandler;
 
-public class CrateNettyHttpServerTransport extends NettyHttpServerTransport {
+public class CrateNettyHttpServerTransport extends Netty3HttpServerTransport {
 
     private final BlobService blobService;
     protected final RedirectService redirectService;
@@ -44,10 +45,11 @@ public class CrateNettyHttpServerTransport extends NettyHttpServerTransport {
     public CrateNettyHttpServerTransport(Settings settings,
                                          NetworkService networkService,
                                          BigArrays bigArrays,
+                                         ThreadPool threadPool,
                                          BlobService blobService,
                                          RedirectService redirectService,
                                          BlobIndicesService blobIndicesService) {
-        super(settings, networkService, bigArrays);
+        super(settings, networkService, bigArrays, threadPool);
         this.blobService = blobService;
         this.redirectService = redirectService;
         this.blobIndicesService = blobIndicesService;
@@ -55,7 +57,7 @@ public class CrateNettyHttpServerTransport extends NettyHttpServerTransport {
 
     @Override
     public ChannelPipelineFactory configureServerChannelPipelineFactory() {
-        return new CrateHttpChannelPipelineFactory(this, redirectService, false, detailedErrorsEnabled);
+        return new CrateHttpChannelPipelineFactory(this, redirectService, false, detailedErrorsEnabled, threadPool);
     }
 
     protected static class CrateHttpChannelPipelineFactory extends HttpChannelPipelineFactory {
@@ -67,8 +69,9 @@ public class CrateNettyHttpServerTransport extends NettyHttpServerTransport {
         public CrateHttpChannelPipelineFactory(CrateNettyHttpServerTransport transport,
                                                RedirectService redirectService,
                                                boolean sslEnabled,
-                                               boolean detailedErrorsEnabled) {
-            super(transport, detailedErrorsEnabled);
+                                               boolean detailedErrorsEnabled,
+                                               ThreadPool threadPool) {
+            super(transport, detailedErrorsEnabled, threadPool.getThreadContext());
             this.transport = transport;
             this.redirectService = redirectService;
             this.sslEnabled = sslEnabled;

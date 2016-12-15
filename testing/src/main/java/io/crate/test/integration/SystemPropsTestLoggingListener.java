@@ -22,14 +22,8 @@
 
 package io.crate.test.integration;
 
-import org.elasticsearch.common.logging.ESLogger;
-import org.elasticsearch.common.logging.ESLoggerFactory;
-import org.elasticsearch.common.logging.Loggers;
-import org.junit.runner.Description;
-import org.junit.runner.Result;
 import org.junit.runner.notification.RunListener;
 
-import java.util.HashMap;
 import java.util.Map;
 
 /**
@@ -43,6 +37,8 @@ public class SystemPropsTestLoggingListener extends RunListener {
     private Map<String, String> previousLoggingMap;
     private Map<String, String> previousClassLoggingMap;
     private Map<String, String> previousPackageLoggingMap;
+
+    /*
 
     @Override
     public void testRunStarted(Description description) throws Exception {
@@ -66,12 +62,13 @@ public class SystemPropsTestLoggingListener extends RunListener {
         previousLoggingMap = reset(previousLoggingMap);
     }
 
-    private static ESLogger resolveLogger(String loggerName) {
+    private static Logger resolveLogger(String loggerName) {
         if (loggerName.equalsIgnoreCase("_root")) {
             return ESLoggerFactory.getRootLogger();
         }
         return Loggers.getLogger(loggerName);
     }
+
 
     private Map<String, String> processTestLogging() {
         Map<String, String> map = getLoggersAndLevelsFromSystemProperty();
@@ -80,7 +77,7 @@ public class SystemPropsTestLoggingListener extends RunListener {
         }
         Map<String, String> previousValues = new HashMap<>();
         for (Map.Entry<String, String> entry : map.entrySet()) {
-            ESLogger esLogger = resolveLogger(entry.getKey());
+            Logger esLogger = resolveLogger(entry.getKey());
             previousValues.put(entry.getKey(), esLogger.getLevel());
             esLogger.setLevel(entry.getValue());
         }
@@ -109,10 +106,11 @@ public class SystemPropsTestLoggingListener extends RunListener {
     private Map<String, String> reset(Map<String, String> map) {
         if (map != null) {
             for (Map.Entry<String, String> previousLogger : map.entrySet()) {
-                ESLogger esLogger = resolveLogger(previousLogger.getKey());
+                Logger esLogger = resolveLogger(previousLogger.getKey());
                 esLogger.setLevel(previousLogger.getValue());
             }
         }
         return null;
     }
+     */
 }

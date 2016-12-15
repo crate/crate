@@ -28,10 +28,11 @@ import io.crate.blob.v2.BlobIndicesService;
 import io.crate.http.netty.CrateNettyHttpServerTransport;
 import io.crate.plugin.BlobPlugin;
 import org.elasticsearch.common.inject.Inject;
+import org.elasticsearch.common.network.NetworkModule;
 import org.elasticsearch.common.network.NetworkService;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.util.BigArrays;
-import org.elasticsearch.http.HttpServerModule;
+import org.elasticsearch.threadpool.ThreadPool;
 import org.jboss.netty.channel.ChannelPipelineFactory;
 
 public class SslDummyPlugin extends BlobPlugin {
@@ -50,8 +51,11 @@ public class SslDummyPlugin extends BlobPlugin {
         return "ssl-dummy plugin";
     }
 
-    public void onModule(HttpServerModule module) {
-        module.setHttpServerTransport(SslHttpServerTransport.class, "crate ssl");
+
+    public void onModule(NetworkModule networkModule) {
+        if (networkModule.canRegisterHttpExtensions()) {
+            networkModule.registerHttpTransport("crate_ssl", SslHttpServerTransport.class);
+        }
     }
 
     public static class SslHttpServerTransport extends CrateNettyHttpServerTransport {
@@ -62,22 +66,20 @@ public class SslDummyPlugin extends BlobPlugin {
                                       BigArrays bigArrays,
                                       BlobService blobService,
                                       RedirectService redirectService,
-                                      BlobIndicesService blobIndicesService) {
-            super(settings, networkService, bigArrays, blobService, redirectService, blobIndicesService);
+                                      BlobIndicesService blobIndicesService,
+                                      ThreadPool threadPool){
+            super(settings, networkService, bigArrays, threadPool, blobService, redirectService, blobIndicesService);
         }
 
         @Override
         public ChannelPipelineFactory configureServerChannelPipelineFactory() {
-            return new SslChannelPipelineFactory(this, redirectService, true, detailedErrorsEnabled);
+            return new SslChannelPipelineFactory(this, true, detailedErrorsEnabled);
         }
 
-        public static class SslChannelPipelineFactory extends CrateNettyHttpServerTransport.CrateHttpChannelPipelineFactory {
+        class SslChannelPipelineFactory extends CrateNettyHttpServerTransport.CrateHttpChannelPipelineFactory {
 
-            public SslChannelPipelineFactory(CrateNettyHttpServerTransport transport,
-                                             RedirectService redirectService,
-                                             boolean sslEnabled,
-                                             boolean detailedErrorsEnabled) {
-                super(transport, redirectService, sslEnabled, detailedErrorsEnabled);
+            SslChannelPipelineFactory(CrateNettyHttpServerTransport transport, boolean sslEnabled, boolean detailedErrorsEnabled) {
+                super(transport, redirectService, sslEnabled, detailedErrorsEnabled, threadPool);
             }
         }
     }

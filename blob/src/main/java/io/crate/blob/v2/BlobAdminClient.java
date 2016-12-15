@@ -80,7 +80,7 @@ public class BlobAdminClient {
     public ListenableFuture<Void> createBlobTable(String tableName, Settings indexSettings) {
         Settings.Builder builder = Settings.builder();
         builder.put(indexSettings);
-        builder.put(SETTING_INDEX_BLOBS_ENABLED, true);
+        builder.put(SETTING_INDEX_BLOBS_ENABLED.getKey(), true);
 
         final SettableFuture<Void> result = SettableFuture.create();
         createIndexAction.execute(new CreateIndexRequest(fullIndexName(tableName), builder.build()),
@@ -92,7 +92,7 @@ public class BlobAdminClient {
                 }
 
                 @Override
-                public void onFailure(Throwable e) {
+                public void onFailure(Exception e) {
                     result.setException(e);
                 }
             });
