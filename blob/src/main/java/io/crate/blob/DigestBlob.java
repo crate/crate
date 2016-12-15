@@ -23,6 +23,7 @@ package io.crate.blob;
 
 import com.google.common.io.ByteStreams;
 import io.crate.blob.exceptions.DigestMismatchException;
+import io.crate.bp.Netty3Utils;
 import io.crate.common.Hex;
 import org.apache.lucene.util.IOUtils;
 import org.elasticsearch.common.bytes.BytesReference;
@@ -179,7 +180,7 @@ public class DigestBlob implements Closeable {
 
     public void addContent(BytesReference content, boolean last) {
         try {
-            addContent(content.toChannelBuffer(), last);
+            addContent(Netty3Utils.toChannelBuffer(content), last);
         } catch (IOException e) {
             throw new BlobWriteException(digest, size, e);
         }
@@ -191,7 +192,7 @@ public class DigestBlob implements Closeable {
         }
 
         int written = 0;
-        ChannelBuffer channelBuffer = content.toChannelBuffer();
+        ChannelBuffer channelBuffer = Netty3Utils.toChannelBuffer(content);
         int readableBytes = channelBuffer.readableBytes();
         assert readableBytes + headSize.get() <= headLength : "Got too many bytes in addToHead()";
 
