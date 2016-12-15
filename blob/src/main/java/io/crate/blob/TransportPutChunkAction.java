@@ -79,7 +79,7 @@ public class TransportPutChunkAction extends TransportReplicationAction<PutChunk
         final PutChunkReplicaRequest replicaRequest = new PutChunkReplicaRequest();
         replicaRequest.setShardId(request.shardId());
         replicaRequest.transferId = request.transferId();
-        replicaRequest.sourceNodeId = clusterService.localNode().id();
+        replicaRequest.sourceNodeId = clusterService.localNode().getId();
         replicaRequest.currentPos = request.currentPos();
         replicaRequest.content = request.content();
         replicaRequest.isLast = request.isLast();

@@ -111,7 +111,7 @@ public class SysNodeChecksTest extends CrateUnitTest {
         RecoveryAfterNodesSysCheck recoveryAfterNodesCheck =
             new RecoveryAfterNodesSysCheck(clusterService, Settings.EMPTY);
 
-        when(clusterService.localNode().id()).thenReturn("noop_id");
+        when(clusterService.localNode().getId()).thenReturn("noop_id");
         when(clusterService.state().nodes().getSize()).thenReturn(8);
 
         assertThat(recoveryAfterNodesCheck.id(), is(2));
@@ -127,7 +127,7 @@ public class SysNodeChecksTest extends CrateUnitTest {
         RecoveryAfterNodesSysCheck recoveryAfterNodesCheck =
             new RecoveryAfterNodesSysCheck(clusterService, Settings.EMPTY);
 
-        when(clusterService.localNode().id()).thenReturn("noop_id");
+        when(clusterService.localNode().getId()).thenReturn("noop_id");
         when(clusterService.state().nodes().getSize()).thenReturn(8);
 
         assertThat(recoveryAfterNodesCheck.id(), is(2));

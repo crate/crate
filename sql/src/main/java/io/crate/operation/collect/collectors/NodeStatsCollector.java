@@ -87,15 +87,16 @@ public class NodeStatsCollector implements CrateCollector {
                 break;
         }
         for (final DiscoveryNode node : nodes) {
+            final String nodeId = node.getId();
             if (emitDirectly) {
-                rows.add(new NodeStatsContext(node.id(), node.name()));
+                rows.add(new NodeStatsContext(nodeId, node.name()));
                 if (remainingRequests.decrementAndGet() == 0) {
                     emmitRows(rows);
                 }
                 continue;
             }
             final NodeStatsRequest request = new NodeStatsRequest(toCollect);
-            transportStatTablesAction.execute(node.id(), request, new ActionListener<NodeStatsResponse>() {
+            transportStatTablesAction.execute(nodeId, request, new ActionListener<NodeStatsResponse>() {
                 @Override
                 public void onResponse(NodeStatsResponse response) {
                     rows.add(response.nodeStatsContext());
@@ -107,7 +108,7 @@ public class NodeStatsCollector implements CrateCollector {
                 @Override
                 public void onFailure(Throwable t) {
                     if (t instanceof ReceiveTimeoutTransportException) {
-                        rows.add(new NodeStatsContext(node.id(), node.name()));
+                        rows.add(new NodeStatsContext(nodeId, node.name()));
                         if (remainingRequests.decrementAndGet() == 0) {
                             emmitRows(rows);
                         }

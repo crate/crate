@@ -283,7 +283,7 @@ public class Routing implements Streamable {
         Map<String, List<Integer>> tableMap = TreeMapBuilder.<String, List<Integer>>newMapBuilder()
             .put(tableIdent.fqn(), Collections.<Integer>emptyList()).map();
         for (DiscoveryNode node : nodes) {
-            nodesMapBuilder.put(node.id(), tableMap);
+            nodesMapBuilder.put(node.getId(), tableMap);
         }
         return new Routing(nodesMapBuilder.map());
     }

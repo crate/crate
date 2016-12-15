@@ -69,7 +69,7 @@ public class DistributingDownstreamFactory extends AbstractComponent {
         // TODO: set bucketIdx properly
         ArrayList<String> server = Lists.newArrayList(nodeOperation.executionPhase().nodeIds());
         Collections.sort(server);
-        int bucketIdx = Math.max(server.indexOf(clusterService.localNode().id()), 0);
+        int bucketIdx = Math.max(server.indexOf(clusterService.localNode().getId()), 0);
 
         MultiBucketBuilder multiBucketBuilder;
         switch (distributionInfo.distributionType()) {

@@ -227,7 +227,7 @@ public class ShardCollectSource extends AbstractComponent implements CollectSour
         RoutedCollectPhase collectPhase = (RoutedCollectPhase) phase;
         RoutedCollectPhase normalizedPhase = collectPhase.normalize(nodeNormalizer, null);
 
-        String localNodeId = clusterService.localNode().id();
+        String localNodeId = clusterService.localNode().getId();
 
 
         FlatProjectorChain chain = FlatProjectorChain.withAttachedDownstream(

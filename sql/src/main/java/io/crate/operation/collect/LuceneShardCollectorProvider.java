@@ -80,7 +80,7 @@ public class LuceneShardCollectorProvider extends ShardCollectorProvider {
         this.luceneQueryBuilder = luceneQueryBuilder;
         this.threadPool = threadPool;
         this.indexShard = indexShard;
-        this.localNodeId = clusterService.localNode().id();
+        this.localNodeId = clusterService.localNode().getId();
         this.docInputFactory = new DocInputFactory(functions, new LuceneReferenceResolver(indexShard.mapperService()));
     }
 

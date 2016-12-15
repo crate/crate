@@ -80,7 +80,7 @@ public class RemoteCollectorFactory {
 
         final String remoteNodeId = shardRouting.currentNodeId();
         assert remoteNodeId != null : "primaryShard not assigned :(";
-        final String localNodeId = clusterService.localNode().id();
+        final String localNodeId = clusterService.localNode().getId();
         final RoutedCollectPhase newCollectPhase = createNewCollectPhase(childJobId, collectPhase, index, shardId, remoteNodeId);
 
         return new CrateCollector.Builder() {

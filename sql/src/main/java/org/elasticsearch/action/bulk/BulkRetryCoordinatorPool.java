@@ -123,7 +123,7 @@ public class BulkRetryCoordinatorPool extends AbstractLifecycleComponent<BulkRet
             // remove retrycoordinators of removed nodes
             synchronized (coordinatorsByNodeId) {
                 for (DiscoveryNode node : event.nodesDelta().removedNodes()) {
-                    coordinatorsByNodeId.remove(node.id());
+                    coordinatorsByNodeId.remove(node.getId());
                 }
             }
         }

@@ -213,7 +213,7 @@ public class TransportBulkCreateIndicesAction
             Settings indexSettings = createIndexSettings(currentState, templates);
 
             testIndex = indicesToCreate.get(0);
-            indicesService.createIndex(testIndex, indexSettings, clusterService.localNode().id());
+            indicesService.createIndex(testIndex, indexSettings, clusterService.localNode().getId());
 
             // now add the mappings
             IndexService indexService = indicesService.indexServiceSafe(testIndex);

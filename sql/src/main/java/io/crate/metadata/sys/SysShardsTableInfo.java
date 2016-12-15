@@ -181,7 +181,7 @@ public class SysShardsTableInfo extends StaticTableInfo {
         String index = shardId.getIndex();
 
         if (shardRouting == null) {
-            node = service.localNode().id();
+            node = service.localNode().getId();
             id = UnassignedShard.markUnassigned(shardId.id());
         } else {
             node = shardRouting.currentNodeId();

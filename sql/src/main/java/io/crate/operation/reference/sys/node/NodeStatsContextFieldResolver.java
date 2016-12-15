@@ -112,7 +112,7 @@ public class NodeStatsContextFieldResolver {
             .put(SysNodesTableInfo.Columns.ID, new Consumer<NodeStatsContext>() {
                 @Override
                 public void accept(NodeStatsContext context) {
-                    context.id(BytesRefs.toBytesRef(clusterService.localNode().id()));
+                    context.id(BytesRefs.toBytesRef(clusterService.localNode().getId()));
                 }
             })
             .put(SysNodesTableInfo.Columns.NAME, new Consumer<NodeStatsContext>() {
