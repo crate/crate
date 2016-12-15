@@ -22,7 +22,7 @@
 package io.crate.blob;
 
 import io.crate.test.integration.CrateUnitTest;
-import org.elasticsearch.action.ActionWriteResponse;
+import org.elasticsearch.action.support.replication.ReplicationResponse;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.junit.Test;
@@ -35,7 +35,7 @@ public class DeleteBlobResponseTest extends CrateUnitTest {
     public void testDeleteBlobResponseStreaming() throws Exception {
         DeleteBlobResponse response = new DeleteBlobResponse();
         response.deleted = true;
-        response.setShardInfo(new ActionWriteResponse.ShardInfo());
+        response.setShardInfo(new ReplicationResponse.ShardInfo());
         BytesStreamOutput out = new BytesStreamOutput();
         response.writeTo(out);
 
