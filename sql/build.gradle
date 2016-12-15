@@ -85,6 +85,7 @@ task benchmarks(type: Test) {
     }
 }
 
+
 idea {
     module {
         testSourceDirs += file('src/benchmarks/java')

@@ -146,7 +146,7 @@ public class BlobTransferTarget extends AbstractComponent {
 
         DiscoveryNodes nodes = clusterService.state().getNodes();
         DiscoveryNode recipientNodeId = nodes.get(request.sourceNodeId);
-        String senderNodeId = nodes.localNodeId();
+        String senderNodeId = nodes.getLocalNodeId();
 
         BlobTransferInfoResponse transferInfoResponse =
             (BlobTransferInfoResponse) transportService.submitRequest(

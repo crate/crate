@@ -523,7 +523,7 @@ public class ContextPreparer extends AbstractComponent {
             context.registerSubContext(new JobCollectContext(
                 phase,
                 collectOperation,
-                clusterService.state().nodes().localNodeId(),
+                clusterService.state().nodes().getLocalNodeId(),
                 ramAccountingContext,
                 rowReceiver,
                 context.sharedShardContexts
@@ -538,7 +538,7 @@ public class ContextPreparer extends AbstractComponent {
             context.registerSubContext(new JobCollectContext(
                 phase,
                 collectOperation,
-                clusterService.state().nodes().localNodeId(),
+                clusterService.state().nodes().getLocalNodeId(),
                 ramAccountingContext,
                 rowReceiver,
                 context.sharedShardContexts

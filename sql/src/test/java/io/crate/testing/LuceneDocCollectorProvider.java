@@ -94,7 +94,7 @@ public class LuceneDocCollectorProvider implements AutoCloseable {
         SharedShardContexts sharedShardContexts = new SharedShardContexts(indicesService);
         JobExecutionContext.Builder builder = jobContextService.newBuilder(collectPhase.jobId());
         JobCollectContext jobCollectContext = new JobCollectContext(
-            collectPhase, collectOperation, cluster.clusterService().state().nodes().localNodeId(),
+            collectPhase, collectOperation, cluster.clusterService().state().nodes().getLocalNodeId(),
             RAM_ACCOUNTING_CONTEXT, downstream, sharedShardContexts);
         collectContexts.add(jobCollectContext);
         builder.addSubContext(jobCollectContext);

@@ -53,7 +53,7 @@ public class ClusterIdService extends AbstractLifecycleComponent<ClusterIdServic
     public void clusterChanged(ClusterChangedEvent event) {
         if (logger.isTraceEnabled()) {
             logger.trace("[{}] Receiving new cluster state, reason {}",
-                clusterService.state().nodes().localNodeId(), event.source());
+                clusterService.state().nodes().getLocalNodeId(), event.source());
         }
         if (event.source().equals("local-gateway-elected-state")) {
             // State recovered, read cluster_id
@@ -82,7 +82,7 @@ public class ClusterIdService extends AbstractLifecycleComponent<ClusterIdServic
 
             if (logger.isDebugEnabled()) {
                 logger.debug("[{}] Generated ClusterId {}",
-                    clusterService.state().nodes().localNodeId(), clusterId.value());
+                    clusterService.state().nodes().getLocalNodeId(), clusterId.value());
             }
             clusterIdFuture.set(clusterId);
         }
@@ -103,7 +103,7 @@ public class ClusterIdService extends AbstractLifecycleComponent<ClusterIdServic
 
             if (logger.isDebugEnabled()) {
                 logger.debug("[{}] Read ClusterId from settings {}",
-                    clusterService.state().nodes().localNodeId(), clusterId.value());
+                    clusterService.state().nodes().getLocalNodeId(), clusterId.value());
             }
             clusterIdFuture.set(clusterId);
         }

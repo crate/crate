@@ -140,7 +140,7 @@ public class CollectSourceResolver {
             if (!phase.isRouted()) {
                 return emptyCollectSource;
             }
-            String localNodeId = clusterService.state().nodes().localNodeId();
+            String localNodeId = clusterService.state().nodes().getLocalNodeId();
             Set<String> routingNodes = phase.routing().nodes();
             if (!routingNodes.contains(localNodeId)) {
                 throw new IllegalStateException("unsupported routing");
