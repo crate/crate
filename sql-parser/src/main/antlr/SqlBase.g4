@@ -182,6 +182,7 @@ booleanExpression
     | left=booleanExpression operator=OR right=booleanExpression                     #logicalBinary
     | MATCH '(' matchPredicateIdents ',' term=primaryExpression ')'
         (USING matchType=ident withProperties?)?                                     #match
+    | booleanExpression CAST_OPERATOR dataType                                       #doubleColonCast
     ;
 
 predicated
@@ -349,6 +350,7 @@ ident
     | nonReserved                                                                    #unquotedIdentifier
     | BACKQUOTED_IDENTIFIER                                                          #backQuotedIdentifier
     | DIGIT_IDENTIFIER                                                               #digitIdentifier
+    | COLON_IDENT                                                                    #colonIdentifier
     ;
 
 quotedIdentifier
@@ -772,6 +774,7 @@ ASTERISK: '*';
 SLASH: '/';
 PERCENT: '%';
 CONCAT: '||';
+CAST_OPERATOR: '::';
 
 STRING
     : '\'' ( ~'\'' | '\'\'' )* '\''
@@ -789,11 +792,11 @@ DECIMAL_VALUE
     ;
 
 IDENTIFIER
-    : (LETTER | '_') (LETTER | DIGIT | '_' | '@' | ':')*
+    : (LETTER | '_') (LETTER | DIGIT | '_' | '@')*
     ;
 
 DIGIT_IDENTIFIER
-    : DIGIT (LETTER | DIGIT | '_' | '@' | ':')+
+    : DIGIT (LETTER | DIGIT | '_' | '@')+
     ;
 
 QUOTED_IDENTIFIER

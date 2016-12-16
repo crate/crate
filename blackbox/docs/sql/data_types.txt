@@ -655,11 +655,13 @@ CAST
 
 A type ``cast`` specifies a conversion from one data type to
 another. It will only succeed if the value of the expression is
-convertable to the desired data type, otherwise an error is thrown.
+convertible to the desired data type, otherwise an error is thrown.
+Crate supports two equivalent syntaxes for type casts:
 
 ::
 
    cast(expression as type)
+   expression::type
 
 
 Example usages:
@@ -675,7 +677,7 @@ Example usages:
 
 ::
 
-    cr> select cast((2+10)/2 as string) from sys.nodes limit 1;
+    cr> select (2+10)/2::string;
     +--------------------------------+
     | CAST(((2 + 10) / 2) AS string) |
     +--------------------------------+

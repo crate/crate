@@ -45,4 +45,11 @@ public class CastFunctionTest extends AbstractScalarFunctionsTest {
         assertEvaluate("cast(10.4 as long)", 10L);
         assertEvaluate("to_long_array([10.2, 12.3])", new Long[] { 10L, 12L });
     }
+
+    @Test
+    public void testDoubleColonOperatorCast() {
+        assertEvaluate("10.4::string", new BytesRef("10.4"));
+        assertEvaluate("[1, 2, 0]::array(boolean)", new Boolean[]{true, true, false});
+        assertEvaluate("(1+3)/2::string", new BytesRef("2"));
+    }
 }

@@ -659,12 +659,18 @@ public class TestStatementBuilder {
     }
 
     @Test
-    public void testCast() throws Exception {
-        printStatement("select cast(y as integer) from foo");
-    }
-
-    @Test
-    public void testTryCast() throws Exception {
+    public void testCastStmtBuilder() throws Exception {
+        // double colon cast
+        printStatement("select 1+4::integer");
+        printStatement("select '2'::integer");
+        printStatement("select 1+3::string");
+        printStatement("select [0,1,5]::array(boolean)");
+        printStatement("select field::boolean");
+        printStatement("select port['http']::boolean");
+        // cast
+        printStatement("select cast(1+4 as integer) from foo");
+        printStatement("select cast('2' as integer) from foo");
+        // try cast
         printStatement("select try_cast(y as integer) from foo");
     }
 

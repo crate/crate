@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Added support for the double colon (::) cast operator.
+
  - Fixed NPE that occurred when an ``UPDATE`` statement inserted ``NULL`` value
    into a column that did not exist before.
 

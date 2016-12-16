@@ -160,6 +160,16 @@ public class SqlParser {
         }
 
         @Override
+        public void exitColonIdentifier(SqlBaseParser.ColonIdentifierContext context) {
+            Token token = context.COLON_IDENT().getSymbol();
+            throw new ParsingException(
+                "identifiers must not contain ':'",
+                null,
+                token.getLine(),
+                token.getCharPositionInLine());
+        }
+
+        @Override
         public void exitQuotedIdentifier(SqlBaseParser.QuotedIdentifierContext context) {
             // Remove quotes
             context.getParent().removeLastChild();
