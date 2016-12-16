@@ -21,14 +21,15 @@
 
 package io.crate.operation.scalar;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.crate.action.sql.SessionContext;
 import io.crate.analyze.relations.AnalyzedRelation;
-import io.crate.analyze.relations.TableRelation;
+import io.crate.analyze.relations.DocTableRelation;
 import io.crate.analyze.symbol.*;
 import io.crate.metadata.*;
 import io.crate.metadata.doc.DocSchemaInfo;
-import io.crate.metadata.table.TableInfo;
+import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.TestingTableInfo;
 import io.crate.operation.Input;
 import io.crate.operation.aggregation.FunctionExpression;
@@ -60,7 +61,7 @@ public abstract class AbstractScalarFunctionsTest extends CrateUnitTest {
 
     @Before
     public void prepareFunctions() throws Exception {
-        TableInfo tableInfo = TestingTableInfo.builder(new TableIdent(DocSchemaInfo.NAME, "users"), null)
+        DocTableInfo tableInfo = TestingTableInfo.builder(new TableIdent(DocSchemaInfo.NAME, "users"), null)
             .add("id", DataTypes.INTEGER)
             .add("name", DataTypes.STRING)
             .add("tags", new ArrayType(DataTypes.STRING))
@@ -83,8 +84,9 @@ public abstract class AbstractScalarFunctionsTest extends CrateUnitTest {
             .add("double_val", DataTypes.DOUBLE)
             .add("float_val", DataTypes.DOUBLE)
             .add("short_val", DataTypes.SHORT)
+            .add("obj", DataTypes.OBJECT, ImmutableList.of())
             .build();
-        TableRelation tableRelation = new TableRelation(tableInfo);
+        DocTableRelation tableRelation = new DocTableRelation(tableInfo);
         tableSources = ImmutableMap.of(new QualifiedName("users"), tableRelation);
         sqlExpressions = new SqlExpressions(tableSources);
         functions = sqlExpressions.getInstance(Functions.class);

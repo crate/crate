@@ -21,61 +21,32 @@
 
 package io.crate.operation.predicate;
 
-import io.crate.action.sql.SessionContext;
-import io.crate.analyze.symbol.Function;
 import io.crate.analyze.symbol.Literal;
-import io.crate.analyze.symbol.Symbol;
-import io.crate.metadata.*;
-import io.crate.operation.operator.EqOperator;
-import io.crate.test.integration.CrateUnitTest;
-import io.crate.types.DataType;
-import io.crate.types.DataTypes;
+import io.crate.operation.scalar.AbstractScalarFunctionsTest;
 import org.junit.Test;
 
-import java.util.Arrays;
-
+import static io.crate.testing.SymbolMatchers.isFunction;
 import static io.crate.testing.SymbolMatchers.isLiteral;
-import static org.hamcrest.CoreMatchers.instanceOf;
 
-public class NotPredicateTest extends CrateUnitTest {
-
-    private final TransactionContext transactionContext = new TransactionContext(SessionContext.SYSTEM_SESSION);
+public class NotPredicateTest extends AbstractScalarFunctionsTest {
 
     @Test
     public void testNormalizeSymbolNull() throws Exception {
-        NotPredicate predicate = new NotPredicate();
-        Function not = new Function(predicate.info(), Arrays.<Symbol>asList(Literal.NULL));
-
-        assertThat(predicate.normalizeSymbol(not, transactionContext), isLiteral(null));
+        assertNormalize("not null", isLiteral(null));
     }
 
     @Test
     public void testNormalizeSymbolBoolean() throws Exception {
-        NotPredicate predicate = new NotPredicate();
-        Function not = new Function(predicate.info(), Arrays.<Symbol>asList(Literal.of(true)));
-
-        assertThat(predicate.normalizeSymbol(not, transactionContext), isLiteral(false));
+        assertNormalize("not true", isLiteral(false));
     }
 
     @Test
     public void testNormalizeSymbol() throws Exception {
-        NotPredicate notPredicate = new NotPredicate();
+        assertNormalize("not name = 'foo'", isFunction(NotPredicate.NAME));
+    }
 
-        Reference name_ref = new Reference(
-            new ReferenceIdent(new TableIdent(null, "dummy"), "foo"),
-            RowGranularity.DOC, DataTypes.STRING);
-        Function eqName = new Function(
-            new FunctionInfo(
-                new FunctionIdent(EqOperator.NAME,
-                    Arrays.<DataType>asList(DataTypes.STRING, DataTypes.STRING)),
-                DataTypes.BOOLEAN
-            ),
-            Arrays.<Symbol>asList(name_ref, Literal.of("foo"))
-        );
-
-        Function not = new Function(notPredicate.info(), Arrays.<Symbol>asList(eqName));
-        Symbol normalized = notPredicate.normalizeSymbol(not, transactionContext);
-
-        assertThat(normalized, instanceOf(Function.class));
+    @Test
+    public void testEvaluate() throws Exception {
+        assertEvaluate("not name = 'foo'", false, Literal.of("foo"));
     }
 }

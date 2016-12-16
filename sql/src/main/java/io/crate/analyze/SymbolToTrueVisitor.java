@@ -25,13 +25,14 @@ import io.crate.analyze.symbol.*;
 import io.crate.metadata.Reference;
 import io.crate.operation.operator.Operators;
 import io.crate.operation.predicate.NotPredicate;
+import io.crate.types.DataTypes;
 
 import java.util.ArrayList;
 import java.util.List;
 
 /**
  * <p>
- * Visitor to replace all symbols beside of logical operators to true literals.
+ * Visitor to replace all symbols beside of logical operators to true or null literals.
  * As a result only logical operators will remain with all arguments converted to literals.
  * <p>
  * <br><br>
@@ -58,31 +59,48 @@ public class SymbolToTrueVisitor extends SymbolVisitor<Void, Symbol> {
         if (functionName.equals(NotPredicate.NAME)) {
             Symbol argument = symbol.arguments().get(0);
             if (argument instanceof Reference) {
-                return Literal.of(true);
+                return process(argument, context);
             } else if (argument instanceof Function) {
                 if (!Operators.LOGICAL_OPERATORS.contains(((Function) argument).info().ident().name())) {
-                    return Literal.of(true);
+                    return process(argument, context);
                 }
             }
         }
-        if (Operators.LOGICAL_OPERATORS.contains(functionName)) {
-            List<Symbol> newArgs = new ArrayList<>(symbol.arguments().size());
-            for (Symbol arg : symbol.arguments()) {
-                newArgs.add(process(arg, context));
+
+        List<Symbol> newArgs = new ArrayList<>(symbol.arguments().size());
+        boolean allLiterals = true;
+        boolean isNull = false;
+        for (Symbol arg : symbol.arguments()) {
+            Symbol processedArg = process(arg, context);
+            newArgs.add(processedArg);
+            if (!processedArg.symbolType().isValueSymbol()) {
+                allLiterals = false;
             }
-            return new Function(symbol.info(), newArgs);
-        } else {
-            return Literal.of(true);
+            if (processedArg.valueType().id() == DataTypes.UNDEFINED.id()) {
+                isNull = true;
+            }
         }
+        if (allLiterals && !Operators.LOGICAL_OPERATORS.contains(functionName)) {
+            return isNull ? Literal.NULL : Literal.BOOLEAN_TRUE;
+        }
+        return new Function(symbol.info(), newArgs);
     }
 
     @Override
     public Symbol visitMatchPredicate(MatchPredicate matchPredicate, Void context) {
-        return Literal.of(true);
+        return Literal.BOOLEAN_TRUE;
     }
 
     @Override
     protected Symbol visitSymbol(Symbol symbol, Void context) {
+        if (symbol.valueType().id() == DataTypes.UNDEFINED.id()) {
+            return Literal.NULL;
+        }
+        return Literal.BOOLEAN_TRUE;
+    }
+
+    @Override
+    public Symbol visitLiteral(Literal symbol, Void context) {
         return symbol;
     }
 }

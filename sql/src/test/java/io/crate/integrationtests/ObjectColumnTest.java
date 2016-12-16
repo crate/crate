@@ -216,7 +216,7 @@ public class ObjectColumnTest extends SQLTransportIntegrationTest {
             });
         refresh();
         execute("select details from ot where details['isbn']='978-0345391827'");
-        assertEquals(0, response.rowCount());
+        assertEquals(1, response.rowCount());
 
         execute("select details from ot where details['num_pages']>224");
         assertEquals(1, response.rowCount());

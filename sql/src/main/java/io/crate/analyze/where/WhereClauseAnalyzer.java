@@ -35,7 +35,6 @@ import io.crate.metadata.*;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.operation.reference.partitioned.PartitionExpression;
-import io.crate.types.DataTypes;
 import org.elasticsearch.common.collect.Tuple;
 
 import javax.annotation.Nullable;
@@ -112,7 +111,7 @@ public class WhereClauseAnalyzer {
             whereClause.clusteredBy(clusteredBy);
         }
         if (tableInfo.isPartitioned() && !whereClause.docKeys().isPresent()) {
-            whereClause = resolvePartitions(whereClause, tableInfo, functions, transactionContext);
+            whereClause = resolvePartitions(new WhereClause(normalizer.normalize(whereClause.query(), transactionContext)), tableInfo, functions, transactionContext);
         }
         return whereClause;
     }
@@ -235,8 +234,8 @@ public class WhereClauseAnalyzer {
             Symbol symbol = symbolToTrueVisitor.process(query, null);
             Symbol normalized = normalizer.normalize(symbol, transactionContext);
 
-            assert normalized instanceof Literal && normalized.valueType().equals(DataTypes.BOOLEAN) :
-                "after normalization and replacing all reference occurrences with true there must only be a boolean left";
+            assert normalized instanceof Literal :
+                "after normalization and replacing all reference occurrences with true there must only be a literal left";
 
             Object value = ((Literal) normalized).value();
             if (value != null && (Boolean) value) {

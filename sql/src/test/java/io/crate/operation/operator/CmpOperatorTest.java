@@ -1,5 +1,6 @@
 package io.crate.operation.operator;
 
+import io.crate.analyze.symbol.Literal;
 import io.crate.operation.scalar.AbstractScalarFunctionsTest;
 import org.junit.Test;
 
@@ -28,7 +29,7 @@ public class CmpOperatorTest extends AbstractScalarFunctionsTest {
         assertNormalize("'abc' < 'abd'", isLiteral(true));
         assertEvaluate("true < null", null);
         assertEvaluate("null < 1", null);
-        assertEvaluate("null < name", null);
+        assertEvaluate("null < name", null, Literal.of("foo"));
         assertEvaluate("null < null", null);
     }
 
@@ -52,7 +53,7 @@ public class CmpOperatorTest extends AbstractScalarFunctionsTest {
         assertNormalize("'abd' > 'abc'", isLiteral(true));
         assertEvaluate("true > null", null);
         assertEvaluate("null > 1", null);
-        assertEvaluate("name > null", null);
+        assertEvaluate("name > null", null, Literal.of("foo"));
         assertEvaluate("null > null", null);
     }
 

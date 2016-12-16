@@ -54,6 +54,7 @@ import io.crate.sql.parser.ParsingException;
 import io.crate.sql.tree.QualifiedName;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.testing.SQLExecutor;
+import io.crate.testing.UseJdbc;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
@@ -721,9 +722,8 @@ public class SelectStatementAnalyzerTest extends CrateUnitTest {
 
     @Test
     public void testNotTimestamp() throws Exception {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Invalid argument of type \"timestamp\" passed to (NOT \"date\") predicate. " +
-                                        "Argument must resolve to boolean or null");
+        expectedException.expect(UnsupportedOperationException.class);
+        expectedException.expectMessage("unknown function: op_not(timestamp)");
 
         analyze("select id, name from parted where not date");
     }

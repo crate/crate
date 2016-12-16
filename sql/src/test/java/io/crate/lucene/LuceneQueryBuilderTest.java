@@ -22,6 +22,7 @@
 package io.crate.lucene;
 
 import com.google.common.collect.ImmutableMap;
+import io.crate.action.sql.SessionContext;
 import io.crate.analyze.WhereClause;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.TableRelation;
@@ -149,7 +150,8 @@ public class LuceneQueryBuilderTest extends CrateUnitTest {
                 .build();
             TableRelation tableRelation = new TableRelation(tableInfo);
             Map<QualifiedName, AnalyzedRelation> tableSources = ImmutableMap.<QualifiedName, AnalyzedRelation>of(new QualifiedName(tableInfo.ident().name()), tableRelation);
-            SqlExpressions sqlExpressions = new SqlExpressions(tableSources, new Object[]{null});
+            SqlExpressions sqlExpressions = new SqlExpressions(
+                tableSources, tableRelation, new Object[]{null}, SessionContext.SYSTEM_SESSION);
 
             Query query = convert(new WhereClause(sqlExpressions.normalize(sqlExpressions.asSymbol("x = ?"))));
 

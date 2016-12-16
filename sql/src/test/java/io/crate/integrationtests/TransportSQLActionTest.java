@@ -284,35 +284,27 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
 
     @Test
     public void testFilterByNull() throws Exception {
-        execute("create table test (name string, o object(ignored))");
+        execute("create table test (id int, name string, o object(ignored))");
         ensureYellow();
 
-        client().prepareIndex("test", "default", "id1").setRefresh(true)
-            .setSource("{}")
-            .execute().actionGet();
-        client().prepareIndex("test", "default", "id2").setRefresh(true)
-            .setSource("{\"name\":\"Ruben Lenten\"}")
-            .execute().actionGet();
-        client().prepareIndex("test", "default", "id3").setRefresh(true)
-            .setSource("{\"name\":\"\"}")
-            .execute().actionGet();
+        execute("insert into test (id) values (1)");
+        execute("insert into test (id, name) values (2, 'Ruben Lenten'), (3, '')");
+        refresh();
 
-        execute("select \"_id\" from test where name is null");
+        execute("select id from test where name is null");
         assertEquals(1, response.rowCount());
-        assertEquals("id1", response.rows()[0][0]);
+        assertEquals(1, response.rows()[0][0]);
 
-        execute("select \"_id\" from test where name is not null order by \"_uid\"");
+        execute("select id from test where name is not null order by id");
         assertEquals(2, response.rowCount());
-        assertEquals("id2", response.rows()[0][0]);
+        assertEquals(2, response.rows()[0][0]);
 
-        // missing field of ignored object is null returns no match, so we cannot filter by it
-        execute("select \"_id\" from test where o['invalid'] is null");
-        assertEquals(0, response.rowCount());
+        execute("select id from test where o['invalid'] is null");
+        assertEquals(3, response.rowCount());
 
-        execute("select name from test where name is not null and name!=''");
+        execute("select name from test where name is not null and name != ''");
         assertEquals(1, response.rowCount());
         assertEquals("Ruben Lenten", response.rows()[0][0]);
-
     }
 
     @Test
@@ -1005,9 +997,8 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
     @Test
     public void selectWhereDynamicColumnIsNull() throws Exception {
         nonExistingColumnSetup();
-        // dynamic references type is undefined, so we just don't know if it matches
         execute("select * from quotes where o['something'] IS NULL");
-        assertEquals(0, response.rowCount());
+        assertEquals(2, response.rowCount());
     }
 
     @Test

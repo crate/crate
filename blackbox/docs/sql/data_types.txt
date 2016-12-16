@@ -510,9 +510,14 @@ but otherwise ignore them.
     cr> drop table my_table15;
     DROP OK, 1 row affected (... sec)
 
-New columns added to ``ignored`` objects can be retrieved as result column in a ``SELECT`` statement,
-but one cannot order by them or use them in a where clause. They are simply there for fetching,
-nothing else.
+.. note::
+
+   ``Ignored`` objects should be mainly used for storing and
+   fetching. Filtering by and ordering on them is possible but very
+   performance intensive. ``Ignored`` objects are a *black box* for
+   the storage engine, so the filtering/ordering is done using an
+   expensive table scan and a filter/order function outside of the
+   storage engine.
 
 .. _data-type-object-literals:
 

@@ -474,15 +474,8 @@ public class ExpressionAnalyzer {
         protected Symbol visitNotExpression(NotExpression node, ExpressionAnalysisContext context) {
             Symbol argument = process(node.getValue(), context);
 
-            DataType dataType = argument.valueType();
-            if (!dataType.equals(DataTypes.BOOLEAN) && !dataType.equals(DataTypes.UNDEFINED)) {
-                throw new IllegalArgumentException(String.format(Locale.ENGLISH,
-                    "Invalid argument of type \"%s\" passed to %s predicate. Argument must resolve to boolean or null",
-                    dataType,
-                    node
-                ));
-            }
-            return new Function(NotPredicate.INFO, Arrays.asList(argument));
+            FunctionIdent functionIdent = new FunctionIdent(NotPredicate.NAME, Arrays.asList(argument.valueType()));
+            return context.allocateFunction(getFunctionInfo(functionIdent), Arrays.asList(argument));
         }
 
         @Override
@@ -490,9 +483,6 @@ public class ExpressionAnalyzer {
             Symbol left = process(node.getLeft(), context);
             Symbol right = process(node.getRight(), context);
 
-            if (left.valueType().equals(DataTypes.UNDEFINED) || right.valueType().equals(DataTypes.UNDEFINED)) {
-                return Literal.NULL;
-            }
             Comparison comparison = new Comparison(node.getType(), left, right);
             comparison.normalize(context);
             FunctionInfo info = getFunctionInfo(comparison.toFunctionIdent());
@@ -565,10 +555,6 @@ public class ExpressionAnalyzer {
                 throw new UnsupportedOperationException("ESCAPE is not supported.");
             }
             Symbol expression = process(node.getValue(), context);
-            // catch null types, might be null or dynamic reference, which are both not supported
-            if (expression.valueType().equals(DataTypes.UNDEFINED)) {
-                return Literal.NULL;
-            }
             expression = castIfNeededOrFail(expression, DataTypes.STRING);
             Symbol pattern = castIfNeededOrFail(process(node.getPattern(), context), DataTypes.STRING);
             FunctionIdent functionIdent = FunctionIdent.of(LikeOperator.NAME, expression.valueType(), pattern.valueType());
@@ -578,11 +564,6 @@ public class ExpressionAnalyzer {
         @Override
         protected Symbol visitIsNullPredicate(IsNullPredicate node, ExpressionAnalysisContext context) {
             Symbol value = process(node.getValue(), context);
-
-            // currently there will be no result for dynamic references, so return here
-            if (!value.symbolType().isValueSymbol() && value.valueType().equals(DataTypes.UNDEFINED)) {
-                return Literal.NULL;
-            }
 
             FunctionIdent functionIdent =
                 new FunctionIdent(io.crate.operation.predicate.IsNullPredicate.NAME, ImmutableList.of(value.valueType()));
@@ -695,10 +676,6 @@ public class ExpressionAnalyzer {
             Symbol value = process(node.getValue(), context);
             Symbol min = process(node.getMin(), context);
             Symbol max = process(node.getMax(), context);
-
-            if (value.valueType() == DataTypes.UNDEFINED) {
-                return Literal.NULL;
-            }
 
             Comparison gte = new Comparison(ComparisonExpression.Type.GREATER_THAN_OR_EQUAL, value, min);
             Function gteFunc = context.allocateFunction(
@@ -819,8 +796,9 @@ public class ExpressionAnalyzer {
          * eq(2, name)  becomes  eq(name, 2)
          */
         private void swapIfNecessary() {
-            if (!(right instanceof Reference || right instanceof Field)
-                || left instanceof Reference || left instanceof Field) {
+            if ((!(right instanceof Reference || right instanceof Field)
+                || left instanceof Reference || left instanceof Field)
+                && leftType.id() != DataTypes.UNDEFINED.id()) {
                 return;
             }
             ComparisonExpression.Type type = SWAP_OPERATOR_TABLE.get(comparisonExpressionType);

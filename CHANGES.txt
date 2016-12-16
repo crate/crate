@@ -4,7 +4,9 @@ Changes for Crate
 
 Unreleased
 ==========
- 
+
+ - Added support for filtering and ordering on ``ignored`` object columns.
+
  - Fixed an issue that causes hanging queries if a data node disconnects from
    the cluster.
 

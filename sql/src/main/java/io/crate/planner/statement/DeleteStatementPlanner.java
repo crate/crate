@@ -70,9 +70,12 @@ public final class DeleteStatementPlanner {
                 continue;
             }
             if (whereClause.docKeys().isPresent() && whereClause.docKeys().get().size() == 1) {
-                docKeys.add(whereClause.docKeys().get().getOnlyKey());
-                itemToBulkIdx.put(itemIdx, bulkIdx);
-                itemIdx++;
+                DocKeys.DocKey docKey = whereClause.docKeys().get().getOnlyKey();
+                if (docKey.id() != null) {
+                    docKeys.add(docKey);
+                    itemToBulkIdx.put(itemIdx, bulkIdx);
+                    itemIdx++;
+                }
             } else if (!whereClause.noMatch()) {
                 whereClauses.add(whereClause);
             }

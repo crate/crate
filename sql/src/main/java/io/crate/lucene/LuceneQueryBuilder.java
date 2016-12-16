@@ -807,17 +807,17 @@ public class LuceneQueryBuilder {
                     return null;
                 }
                 String fieldName = prepare.v1().ident().columnIdent().fqn();
-                Object value = prepare.v2().value();
-
-                if (value instanceof BytesRef) {
-                    BytesRef pattern = ((BytesRef) value);
-                    if (isPcrePattern(pattern.utf8ToString())) {
-                        return new RegexQuery(new Term(fieldName, pattern));
-                    } else {
-                        return toLuceneRegexpQuery(fieldName, pattern, context);
-                    }
+                BytesRef pattern = BytesRefs.toBytesRef(prepare.v2().value());
+                if (pattern == null) {
+                    // cannot build query using null pattern value
+                    return null;
                 }
-                throw new IllegalArgumentException("Can only use ~ with patterns of type string");
+
+                if (isPcrePattern(pattern.utf8ToString())) {
+                    return new RegexQuery(new Term(fieldName, pattern));
+                } else {
+                    return toLuceneRegexpQuery(fieldName, pattern, context);
+                }
             }
         }
 
