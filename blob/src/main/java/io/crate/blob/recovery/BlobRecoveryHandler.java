@@ -63,7 +63,7 @@ public class BlobRecoveryHandler {
                                BlobIndicesService blobIndicesService,
                                IndexShard shard, StartRecoveryRequest request) {
         this.recoverySettings = recoverySettings;
-        this.blobShard = blobIndicesService.blobShardSafe(request.shardId().index().name(), request.shardId().id());
+        this.blobShard = blobIndicesService.blobShardSafe(request.shardId());
         this.request = request;
         this.transportService = transportService;
         this.blobTransferTarget = blobTransferTarget;

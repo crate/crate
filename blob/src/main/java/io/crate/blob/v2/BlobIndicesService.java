@@ -87,10 +87,6 @@ public class BlobIndicesService extends AbstractComponent {
         return globalBlobPath;
     }
 
-    public BlobShard blobShardSafe(ShardId shardId) {
-        return blobShardSafe(shardId.getIndex(), shardId.id());
-    }
-
     private class LifecycleListener extends IndicesLifecycle.Listener {
 
         @Override
@@ -133,19 +129,20 @@ public class BlobIndicesService extends AbstractComponent {
     }
 
     @Nullable
-    public BlobShard blobShard(String index, int shardId) {
-        BlobIndex blobIndex = indices.get(index);
+    public BlobShard blobShard(ShardId shardId) {
+        BlobIndex blobIndex = indices.get(shardId.getIndex());
         if (blobIndex == null) {
             return null;
         }
-        return blobIndex.getShard(shardId);
+        return blobIndex.getShard(shardId.id());
     }
 
-    public BlobShard blobShardSafe(String index, int shardId) {
+    public BlobShard blobShardSafe(ShardId shardId) {
+        String index = shardId.getIndex();
         if (isBlobIndex(index)) {
-            BlobShard blobShard = blobShard(index, shardId);
+            BlobShard blobShard = blobShard(shardId);
             if (blobShard == null) {
-                throw new ShardNotFoundException(new ShardId(index, shardId));
+                throw new ShardNotFoundException(shardId);
             }
             return blobShard;
         }
