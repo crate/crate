@@ -82,7 +82,22 @@ public class UpdateIntegrationTest extends SQLTransportIntegrationTest {
         expectedException.expect(SQLActionException.class);
         expectedException.expectMessage("SQLParseException: Cannot insert null value for column message");
         execute("update test set message=null where id=1");
-        assertEquals(0, response.rowCount());
+    }
+
+    @Test
+    public void testUpdateNullDynamicColumn() {
+        /*
+         * Regression test
+         * validating dynamically generated columns with NULL values led to NPE
+         */
+        execute("create table test (id int primary key)");
+        ensureYellow();
+        execute("insert into test (id) values (1)");
+        refresh();
+
+        execute("update test set dynamic_col=null");
+        refresh();
+        assertEquals(1, response.rowCount());
     }
 
     @Test

@@ -32,6 +32,7 @@ import java.util.Locale;
 public final class ConstraintsValidator {
 
     public static void validate(Object value, Reference targetColumn) {
+        assert targetColumn != null: "targetColumn is required to be able to validate it";
         // Validate NOT NULL constraint
         if (value == null && !targetColumn.isNullable()) {
             throw new IllegalArgumentException(String.format(Locale.ENGLISH,
