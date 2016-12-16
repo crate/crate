@@ -27,6 +27,7 @@ import io.crate.blob.RemoteDigestBlob;
 import io.crate.blob.exceptions.DigestMismatchException;
 import io.crate.blob.exceptions.DigestNotFoundException;
 import io.crate.blob.exceptions.MissingHTTPEndpointException;
+import io.crate.blob.exceptions.RedirectService;
 import io.crate.blob.v2.BlobIndex;
 import io.crate.blob.v2.BlobIndicesService;
 import io.crate.blob.v2.BlobShard;
@@ -70,6 +71,7 @@ public class HttpBlobHandler extends SimpleChannelUpstreamHandler implements Lif
 
     private final Matcher blobsMatcher = BLOBS_PATTERN.matcher("");
     private final BlobService blobService;
+    private final RedirectService redirectService;
     private final BlobIndicesService blobIndicesService;
     private final boolean sslEnabled;
     private final String scheme;
@@ -78,8 +80,9 @@ public class HttpBlobHandler extends SimpleChannelUpstreamHandler implements Lif
 
     private RemoteDigestBlob digestBlob;
 
-    public HttpBlobHandler(BlobService blobService, BlobIndicesService blobIndicesService, boolean sslEnabled) {
+    public HttpBlobHandler(BlobService blobService, RedirectService redirectService, BlobIndicesService blobIndicesService, boolean sslEnabled) {
         this.blobService = blobService;
+        this.redirectService = redirectService;
         this.blobIndicesService = blobIndicesService;
         this.sslEnabled = sslEnabled;
         this.scheme = sslEnabled ? "https://" : "http://";
@@ -94,7 +97,7 @@ public class HttpBlobHandler extends SimpleChannelUpstreamHandler implements Lif
              HttpHeaders.is100ContinueExpected(request))) {
             String redirectAddress;
             try {
-                redirectAddress = blobService.getRedirectAddress(index, digest);
+                redirectAddress = redirectService.getRedirectAddress(index, digest);
             } catch (MissingHTTPEndpointException ex) {
                 simpleResponse(HttpResponseStatus.BAD_GATEWAY);
                 return true;
