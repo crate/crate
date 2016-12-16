@@ -32,9 +32,9 @@ public class CoordinateFunctionTest extends AbstractScalarFunctionsTest {
 
     @Test
     public void testEvaluateWithGeoPointLiterals() throws Exception {
-        assertEvaluate("latitude(geopoint)", 9.7427,
+        assertEvaluate("longitude(geopoint)", 9.7427,
             Literal.of(DataTypes.GEO_POINT, DataTypes.GEO_POINT.value("POINT(9.7427 47.4050)")));
-        assertEvaluate("longitude(geopoint)", 47.4050,
+        assertEvaluate("latitude(geopoint)", 47.4050,
             Literal.of(DataTypes.GEO_POINT, DataTypes.GEO_POINT.value("POINT(9.7427 47.4050)")));
     }
 
@@ -48,14 +48,14 @@ public class CoordinateFunctionTest extends AbstractScalarFunctionsTest {
 
     @Test
     public void testNormalizeWithStringTypes() throws Exception {
-        assertNormalize("latitude('POINT (10 20)')", isLiteral(10.0), false);
-        assertNormalize("longitude('POINT (10 20)')", isLiteral(20.0), false);
+        assertNormalize("longitude('POINT (10 20)')", isLiteral(10.0), false);
+        assertNormalize("latitude('POINT (10 20)')", isLiteral(20.0), false);
     }
 
     @Test
     public void testNormalizeWithDoubleArray() throws Exception {
-        assertNormalize("latitude([10.0, 20.0])", isLiteral(10.0), false);
-        assertNormalize("longitude([10.0, 20.0])", isLiteral(20.0), false);
+        assertNormalize("longitude([10.0, 20.0])", isLiteral(10.0), false);
+        assertNormalize("latitude([10.0, 20.0])", isLiteral(20.0), false);
     }
 
     @Test
