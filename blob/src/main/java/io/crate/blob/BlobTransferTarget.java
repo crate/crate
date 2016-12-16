@@ -23,7 +23,10 @@ package io.crate.blob;
 
 import com.google.common.util.concurrent.SettableFuture;
 import io.crate.blob.exceptions.DigestMismatchException;
-import io.crate.blob.pending_transfer.*;
+import io.crate.blob.pending_transfer.BlobHeadRequestHandler;
+import io.crate.blob.pending_transfer.BlobInfoRequest;
+import io.crate.blob.pending_transfer.BlobTransferInfoResponse;
+import io.crate.blob.pending_transfer.GetBlobHeadRequest;
 import io.crate.blob.v2.BlobIndicesService;
 import io.crate.blob.v2.BlobShard;
 import org.apache.lucene.util.IOUtils;
@@ -162,12 +165,7 @@ public class BlobTransferTarget extends AbstractComponent {
                 }
             ).txGet();
 
-        BlobShard blobShard;
-        try {
-            blobShard = blobIndicesService.blobShardFuture(transferInfoResponse.index, shardId).get();
-        } catch (InterruptedException | ExecutionException e) {
-            throw new TransferRestoreException("failure loading blobShard", request.transferId, e);
-        }
+        BlobShard blobShard = blobIndicesService.blobShardSafe(transferInfoResponse.index, shardId);
 
         DigestBlob digestBlob = DigestBlob.resumeTransfer(
             blobShard.blobContainer(), transferInfoResponse.digest, request.transferId, request.currentPos
