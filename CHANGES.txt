@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - It is not possible any more to circumvent ``NOT NULL`` column constraint by
+   omitting the column in the ``INSERT`` statement.
+
  - Upgraded the parser from ANTLR3 to ANTLR4.
 
  - Fixed an issue that causes an error to be thrown if nested method

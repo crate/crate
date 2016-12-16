@@ -28,9 +28,8 @@ import io.crate.exceptions.ColumnUnknownException;
 import io.crate.exceptions.ColumnValidationException;
 import io.crate.exceptions.InvalidColumnNameException;
 import io.crate.exceptions.ValidationException;
-import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.PartitionName;
-import io.crate.metadata.Routing;
+import io.crate.metadata.Reference.IndexType;
+import io.crate.metadata.*;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.ColumnPolicy;
@@ -78,6 +77,13 @@ public class InsertFromValuesAnalyzerTest extends CrateUnitTest {
             .enableDefaultTables()
             .addDocTable(testAliasTableInfo)
             .addDocTable(nestedClusteredTableInfo);
+
+        TableIdent notNullColumnTableIdent = new TableIdent(null, "not_null_column");
+        TestingTableInfo.Builder notNullColumnTable = new TestingTableInfo.Builder(
+            notNullColumnTableIdent, new Routing(ImmutableMap.of()))
+            .add("id", DataTypes.INTEGER, null)
+            .add("name", DataTypes.STRING, null, ColumnPolicy.DYNAMIC, IndexType.NOT_ANALYZED, false, false);
+        executorBuilder.addDocTable(notNullColumnTable);
 
         TableIdent generatedColumnTableIdent = new TableIdent(null, "generated_column");
         TestingTableInfo.Builder generatedColumnTable = new TestingTableInfo.Builder(
@@ -316,6 +322,12 @@ public class InsertFromValuesAnalyzerTest extends CrateUnitTest {
                 }
             }
         );
+    }
+
+    public void testInsertNotNullConstraintAbsentColumn() throws Exception {
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("Cannot insert null value for column name");
+        e.analyze("insert into not_null_column (id) values (1)");
     }
 
     @Test
