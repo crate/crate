@@ -1141,6 +1141,18 @@ public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
     }
 
     @Test
+    public void testInsertFromSubQueryWithNotNullConstraintColumnAbsent() throws Exception {
+        execute("create table source(col1 integer)");
+        execute("create table target(col1 integer primary key, col2 integer not null)");
+        ensureYellow();
+        execute("insert into source (col1) values (1)");
+        refresh();
+
+        execute("insert into target (col1) (select col1 from source)");
+        assertEquals(0, response.rowCount());
+    }
+
+    @Test
     public void testInsertFromSubQueryWithNotNullConstraintAndGeneratedColumns() throws Exception {
         execute("create table source(id int, ts timestamp)");
         execute("create table target (" +
