@@ -71,7 +71,7 @@ public class TransportStartBlobAction
                                                                                  StartBlobRequest request) throws Throwable {
         logger.trace("shardOperationOnPrimary {}", request);
         final StartBlobResponse response = newResponseInstance();
-        transferTarget.startTransfer(request.shardId().id(), request, response);
+        transferTarget.startTransfer(request, response);
         return new Tuple<>(response, request);
     }
 
@@ -79,7 +79,7 @@ public class TransportStartBlobAction
     protected void shardOperationOnReplica(StartBlobRequest request) {
         logger.trace("shardOperationOnReplica operating on replica {}", request);
         final StartBlobResponse response = newResponseInstance();
-        transferTarget.startTransfer(request.shardId().id(), request, response);
+        transferTarget.startTransfer(request, response);
     }
 
     @Override

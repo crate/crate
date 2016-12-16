@@ -90,7 +90,7 @@ public class TransportPutChunkAction extends TransportReplicationAction<PutChunk
     @Override
     protected void shardOperationOnReplica(PutChunkReplicaRequest shardRequest) {
         PutChunkResponse response = newResponseInstance();
-        transferTarget.continueTransfer(shardRequest, response, shardRequest.shardId().id());
+        transferTarget.continueTransfer(shardRequest, response);
     }
 
     @Override

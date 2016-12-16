@@ -89,10 +89,10 @@ public class BlobTransferTarget extends AbstractComponent {
         return activeTransfers.get(transferId);
     }
 
-    public void startTransfer(int shardId, StartBlobRequest request, StartBlobResponse response) {
+    public void startTransfer(StartBlobRequest request, StartBlobResponse response) {
         logger.debug("startTransfer {} {}", request.transferId(), request.isLast());
 
-        BlobShard blobShard = blobIndicesService.blobShardSafe(request.index(), shardId);
+        BlobShard blobShard = blobIndicesService.blobShardSafe(request.shardId());
         File existing = blobShard.blobContainer().getFile(request.id());
         long size = existing.length();
         if (existing.exists()) {
@@ -123,10 +123,10 @@ public class BlobTransferTarget extends AbstractComponent {
         logger.debug("startTransfer finished {} {}", response.status(), response.size());
     }
 
-    public void continueTransfer(PutChunkReplicaRequest request, PutChunkResponse response, int shardId) {
+    public void continueTransfer(PutChunkReplicaRequest request, PutChunkResponse response) {
         BlobTransferStatus status = activeTransfers.get(request.transferId);
         if (status == null) {
-            status = restoreTransferStatus(request, shardId);
+            status = restoreTransferStatus(request);
         }
 
         addContent(request, response, status);
@@ -143,7 +143,7 @@ public class BlobTransferTarget extends AbstractComponent {
         addContent(request, response, status);
     }
 
-    private BlobTransferStatus restoreTransferStatus(PutChunkReplicaRequest request, int shardId) {
+    private BlobTransferStatus restoreTransferStatus(PutChunkReplicaRequest request) {
         logger.trace("Restoring transferContext for PutChunkReplicaRequest with transferId {}",
             request.transferId);
 
@@ -165,7 +165,7 @@ public class BlobTransferTarget extends AbstractComponent {
                 }
             ).txGet();
 
-        BlobShard blobShard = blobIndicesService.blobShardSafe(transferInfoResponse.index, shardId);
+        BlobShard blobShard = blobIndicesService.blobShardSafe(request.shardId());
 
         DigestBlob digestBlob = DigestBlob.resumeTransfer(
             blobShard.blobContainer(), transferInfoResponse.digest, request.transferId, request.currentPos
