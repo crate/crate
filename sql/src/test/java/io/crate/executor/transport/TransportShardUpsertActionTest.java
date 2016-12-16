@@ -97,7 +97,6 @@ public class TransportShardUpsertActionTest extends CrateUnitTest {
                                               ShardUpsertRequest.Item item,
                                               IndexShard indexShard,
                                               boolean tryInsertFirst,
-                                              Collection<ColumnIdent> notUsedNonGeneratedColumns,
                                               int retryCount) throws ElasticsearchException {
             throw new DocumentAlreadyExistsException(new ShardId(request.index(), request.shardId().id()), request.type(), item.id());
         }

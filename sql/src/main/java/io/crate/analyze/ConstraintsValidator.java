@@ -39,28 +39,4 @@ public final class ConstraintsValidator {
         }
     }
 
-    /**
-     * Called to validate constraints for insert statements.
-     * We need to validate constraints for all table columns that even if they are not
-     * part of the insert statement.
-     * <p>
-     * example:
-     * <pre>
-     *     create table test (a int, b int, c int not null);
-     *     insert into table (a, b) values (1, 2);
-     * </pre>
-     *
-     * @param notUsedNonGeneratedColumns Non-Generated Columns of the target table that are not used in insert statement
-     * @param tableInfo                  The target table info
-     */
-    public static void validateConstraintsForNotUsedColumns(Collection<ColumnIdent> notUsedNonGeneratedColumns,
-                                                            DocTableInfo tableInfo) {
-        // Validate NOT NULL constraint
-        for (ColumnIdent column : notUsedNonGeneratedColumns) {
-            if (!tableInfo.getReference(column).isNullable()) {
-                throw new IllegalArgumentException(String.format(Locale.ENGLISH,
-                    "Cannot insert null value for column %s", column.fqn()));
-            }
-        }
-    }
 }
