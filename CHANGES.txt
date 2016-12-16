@@ -4,6 +4,8 @@ Changes for Crate
 
 Unreleased
 ==========
+ 
+ - Fix: scalar functions `longitude/latitude` show misleading results.
 
  - Fixed an issue that causes ClassCastException on outer joins when
    ``WHERE`` clause contains a condition that prevents null values on
