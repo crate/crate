@@ -36,6 +36,7 @@ import io.crate.analyze.symbol.format.SymbolFormatter;
 import io.crate.core.StringUtils;
 import io.crate.core.collections.StringObjectMaps;
 import io.crate.exceptions.ColumnValidationException;
+import io.crate.executor.transport.TransportShardUpsertAction;
 import io.crate.metadata.*;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.Operation;
@@ -128,6 +129,7 @@ class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
             ReplaceMode.COPY,
             null,
             tableRelation);
+        analyzeColumns(statement.tableInfo(), statement.columns());
         for (ValuesList valuesList : node.valuesLists()) {
             analyzeValues(
                 tableRelation,
@@ -145,6 +147,11 @@ class InsertFromValuesAnalyzer extends AbstractInsertAnalyzer {
                 referenceToLiteralContext);
         }
         return statement;
+    }
+
+    private void analyzeColumns(DocTableInfo tableInfo, List<Reference> columns) {
+        Collection<ColumnIdent> notUsedNonGeneratedColumns = TransportShardUpsertAction.getNotUsedNonGeneratedColumns(columns.toArray(new Reference[]{}), tableInfo);
+        ConstraintsValidator.validateConstraintsForNotUsedColumns(notUsedNonGeneratedColumns, tableInfo);
     }
 
     private void validateValuesSize(List<Expression> values,

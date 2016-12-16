@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - It is not possible any more to circumvent ``NOT NULL`` column constraint by
+   omitting the column in the ``INSERT`` statement.
+
  - Fixed an issue that causes an error to be thrown if nested method
    calls are used in ``HAVING`` clause.
    e.g.: `having sum(power(power(id, id), id)) > 1`
