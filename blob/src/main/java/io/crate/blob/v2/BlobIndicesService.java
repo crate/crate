@@ -22,7 +22,6 @@
 package io.crate.blob.v2;
 
 import com.google.common.annotations.VisibleForTesting;
-import io.crate.blob.BlobShardFuture;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.routing.ShardIterator;
 import org.elasticsearch.common.Nullable;
@@ -161,11 +160,6 @@ public class BlobIndicesService extends AbstractComponent {
         ShardIterator si = clusterService.operationRouting().getShards(
             clusterService.state(), index, null, null, digest, "_only_local");
         return si.shardId();
-    }
-
-    public BlobShardFuture blobShardFuture(String index, int shardId) {
-        return new BlobShardFuture(this, indicesLifecycle, index, shardId);
-
     }
 
     static boolean ensureExistsAndWritable(Path blobsPath) {
