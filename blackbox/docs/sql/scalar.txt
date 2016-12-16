@@ -628,10 +628,10 @@ geo points.
 
 Example::
 
-    cr> select mountain, height, latitude(coordinates) as "lat", longitude(coordinates) as "lon"
+    cr> select mountain, height, longitude(coordinates) as "lon", latitude(coordinates) as "lat"
     ... from sys.summits order by height desc limit 1;
     +------------+--------+---------+---------+
-    | mountain   | height |     lat |     lon |
+    | mountain   | height |     lon |     lat |
     +------------+--------+---------+---------+
     | Mont Blanc |   4808 | 6.86444 | 45.8325 |
     +------------+--------+---------+---------+
@@ -640,12 +640,12 @@ Example::
 Below is an example of the latitude/longitude functions which make use of the
 implicit type casting from strings to geo point::
 
-    cr> select longitude('POINT (10 20)'), latitude([10.0, 20.0]);
-    +----------------------------+-----------------------+
-    | longitude('POINT (10 20)') | latitude([10.0,20.0]) |
-    +----------------------------+-----------------------+
-    |                       20.0 |                  10.0 |
-    +----------------------------+-----------------------+
+    cr> select latitude('POINT (10 20)'), longitude([10.0, 20.0]);
+    +---------------------------+------------------------+
+    | latitude('POINT (10 20)') | longitude([10.0,20.0]) |
+    +---------------------------+------------------------+
+    |                      20.0 |                   10.0 |
+    +---------------------------+------------------------+
     SELECT 1 row in set (... sec)
 
 

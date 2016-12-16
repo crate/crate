@@ -4,6 +4,8 @@ Changes for Crate
 
 Unreleased
 ==========
+ 
+ - Fix: scalar functions `longitude/latitude` show misleading results.
 
  - Upgraded the parser from ANTLR3 to ANTLR4.
 
