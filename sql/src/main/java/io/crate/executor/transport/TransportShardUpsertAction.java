@@ -283,7 +283,7 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
         Map<String, Object> pathsToUpdate = new LinkedHashMap<>();
         Map<String, Object> updatedGeneratedColumns = new LinkedHashMap<>();
         for (int i = 0; i < request.updateColumns().length; i++) {
-            /**
+            /*
              * NOTE: mapping isn't applied. So if an Insert was done using the ES Rest Endpoint
              * the data might be returned in the wrong format (date as string instead of long)
              */
@@ -291,7 +291,13 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
             Object value = SYMBOL_TO_FIELD_EXTRACTOR.convert(item.updateAssignments()[i], ctx).apply(getResult);
             Reference reference = tableInfo.getReference(ColumnIdent.fromPath(columnPath));
 
-            ConstraintsValidator.validate(value, reference);
+            if (reference != null) {
+                /*
+                 * it is possible to insert NULL into column that does not exist yet.
+                 * if there is no column reference, we must not validate!
+                 */
+                ConstraintsValidator.validate(value, reference);
+            }
 
             if (reference instanceof GeneratedReference) {
                 updatedGeneratedColumns.put(columnPath, value);

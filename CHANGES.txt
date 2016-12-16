@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fixed NPE that occurred when an ``UPDATE`` statement inserted ``NULL`` value
+   into a column that did not exist before.
+
  - It is not possible any more to circumvent ``NOT NULL`` column constraint by
    omitting the column in the ``INSERT`` statement.
 
