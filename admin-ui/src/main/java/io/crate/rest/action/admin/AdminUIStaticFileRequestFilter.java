@@ -1,0 +1,144 @@
+/*
+ * Licensed to Crate under one or more contributor license agreements.
+ * See the NOTICE file distributed with this work for additional
+ * information regarding copyright ownership.  Crate licenses this file
+ * to you under the Apache License, Version 2.0 (the "License"); you may
+ * not use this file except in compliance with the License.  You may
+ * obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+ * implied.  See the License for the specific language governing
+ * permissions and limitations under the License.
+ *
+ * However, if you have executed another commercial license agreement
+ * with Crate these terms will supersede the license and you may use the
+ * software solely pursuant to the terms of the relevant commercial
+ * agreement.
+ */
+
+package io.crate.rest.action.admin;
+
+import com.google.common.collect.ImmutableMap;
+import groovyjarjarantlr.StringUtils;
+import org.elasticsearch.common.inject.Inject;
+import org.elasticsearch.common.io.FileSystemUtils;
+import org.elasticsearch.env.Environment;
+import org.elasticsearch.rest.*;
+
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.attribute.BasicFileAttributes;
+import java.util.Locale;
+import java.util.Map;
+
+import static io.crate.rest.action.admin.AdminUIFrontpageAction.ADMIN_ENDPOINT;
+import static java.nio.file.Files.readAttributes;
+import static org.elasticsearch.rest.RestStatus.*;
+
+/**
+ * RestFilter for admin ui requests
+ * Serves files
+ */
+public class AdminUIStaticFileRequestFilter extends RestFilter {
+
+    private final Environment environment;
+
+    @Inject
+    public AdminUIStaticFileRequestFilter(Environment environment) {
+        this.environment = environment;
+    }
+
+    @Override
+    public void process(RestRequest request, RestChannel channel, RestFilterChain filterChain) throws IOException {
+        if (request.rawPath().startsWith(ADMIN_ENDPOINT)) {
+            serveSite(request, channel);
+        } else {
+            filterChain.continueProcessing(request, channel);
+        }
+    }
+
+    private void serveSite(RestRequest request, RestChannel channel) throws IOException {
+        if (request.method() != RestRequest.Method.GET) {
+            channel.sendResponse(new BytesRestResponse(FORBIDDEN));
+            return;
+        }
+        String sitePath = request.rawPath().substring(ADMIN_ENDPOINT.length());
+
+        // we default to index.html, or what the plugin provides (as a unix-style path)
+        // this is a relative path under _site configured by the plugin.
+        if (sitePath.length() == 0) {
+            sitePath = "index.html";
+        } else {
+            sitePath = StringUtils.stripFront(sitePath, '/');
+        }
+        final Path siteFile = environment.pluginsFile().resolve("crate-admin").resolve("_site");
+
+        final String separator = siteFile.getFileSystem().getSeparator();
+        // Convert file separators.
+        sitePath = sitePath.replace("/", separator);
+        Path file = siteFile.resolve(sitePath);
+
+        // return not found instead of forbidden to prevent malicious requests to find out if files exist or don't exist
+        if (!Files.exists(file) || FileSystemUtils.isHidden(file) ||
+            !file.toAbsolutePath().normalize().startsWith(siteFile.toAbsolutePath().normalize())) {
+            channel.sendResponse(new BytesRestResponse(NOT_FOUND));
+            return;
+        }
+
+        BasicFileAttributes attributes = readAttributes(file, BasicFileAttributes.class);
+        if (!attributes.isRegularFile()) {
+            // If it's not a regular file, we send a 403
+            channel.sendResponse(new BytesRestResponse(FORBIDDEN));
+            return;
+        }
+
+        try {
+            byte[] data = Files.readAllBytes(file);
+            channel.sendResponse(new BytesRestResponse(OK, guessMimeType(file.toAbsolutePath().toString()), data));
+        } catch (IOException e) {
+            channel.sendResponse(new BytesRestResponse(INTERNAL_SERVER_ERROR));
+        }
+    }
+
+    private static String guessMimeType(String path) {
+        int lastDot = path.lastIndexOf('.');
+        if (lastDot == -1) {
+            return "";
+        }
+        String extension = path.substring(lastDot + 1).toLowerCase(Locale.ROOT);
+        String mimeType = DEFAULT_MIME_TYPES.get(extension);
+        if (mimeType == null) {
+            return "";
+        }
+        return mimeType;
+    }
+
+    private static final Map<String, String> DEFAULT_MIME_TYPES = new ImmutableMap.Builder<String, String>()
+        .put("txt", "text/plain")
+        .put("css", "text/css")
+        .put("csv", "text/csv")
+        .put("htm", "text/html")
+        .put("html", "text/html")
+        .put("xml", "text/xml")
+        .put("js", "text/javascript") // Technically it should be application/javascript (RFC 4329), but IE8 struggles with that
+        .put("xhtml", "application/xhtml+xml")
+        .put("json", "application/json")
+        .put("pdf", "application/pdf")
+        .put("zip", "application/zip")
+        .put("tar", "application/x-tar")
+        .put("gif", "image/gif")
+        .put("jpeg", "image/jpeg")
+        .put("jpg", "image/jpeg")
+        .put("tiff", "image/tiff")
+        .put("tif", "image/tiff")
+        .put("png", "image/png")
+        .put("svg", "image/svg+xml")
+        .put("ico", "image/vnd.microsoft.icon")
+        .put("mp3", "audio/mpeg")
+        .build();
+}

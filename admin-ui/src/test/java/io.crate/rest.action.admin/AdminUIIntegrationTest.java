@@ -21,6 +21,10 @@ import static org.hamcrest.core.Is.is;
 @ESIntegTestCase.ClusterScope(scope = ESIntegTestCase.Scope.SUITE, numDataNodes = 2)
 public class AdminUIIntegrationTest extends AdminUIHttpIntegrationTest {
 
+    private URI adminURI() throws URISyntaxException {
+        return new URI(String.format(Locale.ENGLISH, "http://%s:%d/admin/", address.getHostName(), address.getPort()));
+    }
+
     @Test
     public void testNonBrowserRequestToRoot() throws IOException {
         //request to root
@@ -46,11 +50,10 @@ public class AdminUIIntegrationTest extends AdminUIHttpIntegrationTest {
 
         List<URI> allRedirectLocations = getAllRedirectLocations("", headers);
 
-        URI crateAdminURI = new URI(String.format(Locale.ENGLISH, "http://%s:%d/_plugin/crate-admin/", address.getHostName(), address.getPort()));
         // allRedirectLocations should not be null
         assertThat(allRedirectLocations, notNullValue());
         // allRedirectLocations should contain the crateAdminUI URI
-        assertThat(allRedirectLocations.contains(crateAdminURI), is(true));
+        assertThat(allRedirectLocations.contains(adminURI()), is(true));
     }
 
     @Test
@@ -62,10 +65,42 @@ public class AdminUIIntegrationTest extends AdminUIHttpIntegrationTest {
 
         List<URI> allRedirectLocations = getAllRedirectLocations("admin", headers);
 
-        URI crateAdminURI = new URI(String.format(Locale.ENGLISH, "http://%s:%d/_plugin/crate-admin/", address.getHostName(), address.getPort()));
         // all redirect locations should not be null
         assertThat(allRedirectLocations, notNullValue());
         // all redirect locations should contain the crateAdminUI URI
-        assertThat(allRedirectLocations.contains(crateAdminURI), is(true));
+        assertThat(allRedirectLocations.contains(adminURI()), is(true));
+    }
+
+    @Test
+    public void testPostForbidden() throws IOException {
+        CloseableHttpResponse response = post("/admin/");
+        //status should be 403 FORBIDDEN
+        assertThat(response.getStatusLine().getStatusCode(), is(403));
+    }
+
+    @Test
+    public void testGetIndexHTML() throws IOException {
+        assertIsIndexResponse(get("/admin/"));
+        assertIsIndexResponse(get("/admin/index.html"));
+        assertIsIndexResponse(get("/admin//index.html"));
+    }
+
+    @Test
+    public void testTrailingSlash() throws Exception {
+        // trailing slash is removed
+        assertIsIndexResponse(get("/admin/index.html/"));
+    }
+
+    @Test
+    public void testNotFound() throws Exception {
+        CloseableHttpResponse response = get("/admin/does/not/exist.html");
+        assertThat(response.getStatusLine().getStatusCode(), is(404));
+    }
+
+    private static void assertIsIndexResponse(CloseableHttpResponse response) throws IOException {
+        //response body should not be null
+        String bodyAsString = EntityUtils.toString(response.getEntity());
+        assertThat(bodyAsString, is("<h1>Crate Admin</h1>\n"));
+        assertThat(response.getHeaders("Content-Type")[0].getValue(), is("text/html"));
     }
 }

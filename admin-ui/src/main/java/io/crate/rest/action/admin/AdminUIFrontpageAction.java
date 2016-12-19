@@ -24,14 +24,12 @@
 
 package io.crate.rest.action.admin;
 
-import com.google.common.collect.ImmutableSet;
 import io.crate.rest.CrateRestMainAction;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.rest.*;
 
-import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -42,20 +40,24 @@ import static org.elasticsearch.rest.RestRequest.Method.GET;
  */
 public class AdminUIFrontpageAction extends BaseRestHandler {
 
+    static final String ADMIN_ENDPOINT = "/admin/";
     private static final Pattern USER_AGENT_BROWSER_PATTERN = Pattern.compile("(Mozilla|Chrome|Safari|Opera|Android|AppleWebKit)+?[/\\s][\\d.]+");
     private final CrateRestMainAction crateRestMainAction;
     private final RestController controller;
+    private final AdminUIStaticFileRequestFilter requestFilter;
 
     @Inject
-    public AdminUIFrontpageAction(CrateRestMainAction crateRestMainAction, Settings settings, Client client, RestController controller) {
+    public AdminUIFrontpageAction(CrateRestMainAction crateRestMainAction, Settings settings, Client client, RestController controller, AdminUIStaticFileRequestFilter staticFileRequestFilter) {
         super(settings, controller, client);
         this.crateRestMainAction = crateRestMainAction;
         this.controller = controller;
+        this.requestFilter = staticFileRequestFilter;
     }
 
     public void registerHandler() {
         controller.registerHandler(GET, "/", this);
         controller.registerHandler(GET, "/admin", this);
+        controller.registerFilter(requestFilter);
     }
 
     @Override
@@ -65,13 +67,13 @@ public class AdminUIFrontpageAction extends BaseRestHandler {
             return;
         }
 
-        if (request.header("accept") != null &&  request.header("accept").toString().contains("application/json")){
+        if (request.header("accept") != null && request.header("accept").contains("application/json")){
             crateRestMainAction.handleRequest(request, channel, client);
             return;
         }
 
         BytesRestResponse resp = new BytesRestResponse(RestStatus.TEMPORARY_REDIRECT);
-        resp.addHeader("Location", "/_plugin/crate-admin/");
+        resp.addHeader("Location", ADMIN_ENDPOINT);
         channel.sendResponse(resp);
     }
 
