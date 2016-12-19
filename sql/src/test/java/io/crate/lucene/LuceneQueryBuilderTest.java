@@ -43,31 +43,22 @@ import org.apache.lucene.spatial.prefix.IntersectsPrefixTreeQuery;
 import org.apache.lucene.spatial.prefix.WithinPrefixTreeQuery;
 import org.elasticsearch.Version;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
+import org.elasticsearch.common.UUIDs;
 import org.elasticsearch.common.compress.CompressedXContent;
-import org.elasticsearch.common.inject.Injector;
-import org.elasticsearch.common.inject.ModulesBuilder;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.settings.SettingsModule;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentFactory;
-import org.elasticsearch.env.Environment;
-import org.elasticsearch.env.EnvironmentModule;
 import org.elasticsearch.index.Index;
-import org.elasticsearch.index.IndexNameModule;
-import org.elasticsearch.index.analysis.AnalysisModule;
+import org.elasticsearch.index.IndexSettings;
 import org.elasticsearch.index.analysis.AnalysisService;
 import org.elasticsearch.index.cache.IndexCache;
 import org.elasticsearch.index.fielddata.IndexFieldData;
 import org.elasticsearch.index.fielddata.IndexFieldDataService;
 import org.elasticsearch.index.fielddata.IndexGeoPointFieldData;
 import org.elasticsearch.index.mapper.ArrayMapper;
-import org.elasticsearch.index.mapper.MappedFieldType;
 import org.elasticsearch.index.mapper.MapperService;
 import org.elasticsearch.index.mapper.array.DynamicArrayFieldMapperBuilderFactoryProvider;
-import org.elasticsearch.index.settings.IndexSettingsModule;
-import org.elasticsearch.index.similarity.SimilarityLookupService;
-import org.elasticsearch.indices.IndicesModule;
-import org.elasticsearch.indices.analysis.IndicesAnalysisService;
+import org.elasticsearch.index.similarity.SimilarityService;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -76,6 +67,7 @@ import org.mockito.Answers;
 
 import java.nio.file.Path;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Map;
 
 import static org.hamcrest.Matchers.*;
@@ -117,10 +109,12 @@ public class LuceneQueryBuilderTest extends CrateUnitTest {
             .put(IndexMetaData.SETTING_VERSION_CREATED, Version.CURRENT)
             .put("path.home", tempDir)
             .build();
-        Index index = new Index(users.ident().indexName());
-        when(indexCache.indexSettings()).thenReturn(indexSettings);
+        Index index = new Index(users.ident().indexName(), UUIDs.randomBase64UUID());
+        // TODO: Fix
+        //when(indexCache.getIndexSettings()).thenReturn(new IndexSettings()indexSettings);
+        IndexSettings idxSettings = null;
         AnalysisService analysisService = createAnalysisService(indexSettings, index);
-        mapperService = createMapperService(index, indexSettings, analysisService);
+        mapperService = createMapperService(index, idxSettings, analysisService);
 
         // @formatter:off
         XContentBuilder xContentBuilder = XContentFactory.jsonBuilder()
@@ -148,28 +142,32 @@ public class LuceneQueryBuilderTest extends CrateUnitTest {
 
         indexFieldDataService = mock(IndexFieldDataService.class);
         IndexFieldData geoFieldData = mock(IndexGeoPointFieldData.class);
-        when(geoFieldData.getFieldNames()).thenReturn(new MappedFieldType.Names("point"));
-        when(indexFieldDataService.getForField(mapperService.smartNameFieldType("point"))).thenReturn(geoFieldData);
+
+        when(geoFieldData.getFieldName()).thenReturn("point");
+        when(indexFieldDataService.getForField(mapperService.fullName("point"))).thenReturn(geoFieldData);
     }
 
-    private MapperService createMapperService(Index index, Settings indexSettings, AnalysisService analysisService) {
+    private MapperService createMapperService(Index index, IndexSettings indexSettings, AnalysisService analysisService) {
         DynamicArrayFieldMapperBuilderFactoryProvider arrayMapperProvider =
             new DynamicArrayFieldMapperBuilderFactoryProvider();
         arrayMapperProvider.dynamicArrayFieldMapperBuilderFactory = new ArrayMapper.BuilderFactory();
+        /*
         IndicesModule indicesModule = new IndicesModule();
         indicesModule.registerMapper(ArrayMapper.CONTENT_TYPE, new ArrayMapper.TypeParser());
+        */
         return new MapperService(
-            index,
             indexSettings,
             analysisService,
-            new SimilarityLookupService(index, indexSettings),
+            new SimilarityService(indexSettings, Collections.emptyMap()),
             null,
-            indicesModule.getMapperRegistry(),
+            null, // indicesModule.getMapperRegistry(),
             arrayMapperProvider
         );
     }
 
     private AnalysisService createAnalysisService(Settings indexSettings, Index index) {
+        return null;
+        /*
         Injector parentInjector = new ModulesBuilder()
             .add(new SettingsModule(indexSettings), new EnvironmentModule(new Environment(indexSettings)))
             .createInjector();
@@ -180,6 +178,7 @@ public class LuceneQueryBuilderTest extends CrateUnitTest {
                 indexSettings,
                 parentInjector.getInstance(IndicesAnalysisService.class))).createChildInjector(parentInjector);
         return injector.getInstance(AnalysisService.class);
+        */
     }
 
     private WhereClause asWhereClause(String expression) {
@@ -232,7 +231,7 @@ public class LuceneQueryBuilderTest extends CrateUnitTest {
     @Test
     public void testLteQuery() throws Exception {
         Query query = convert("x <= 10");
-        assertThat(query, instanceOf(NumericRangeQuery.class));
+        assertThat(query, instanceOf(LegacyNumericRangeQuery.class));
         assertThat(query.toString(), is("x:{* TO 10]"));
     }
 
@@ -267,7 +266,7 @@ public class LuceneQueryBuilderTest extends CrateUnitTest {
     @Test
     public void testGteQuery() throws Exception {
         Query query = convert("x >= 10");
-        assertThat(query, instanceOf(NumericRangeQuery.class));
+        assertThat(query, instanceOf(LegacyNumericRangeQuery.class));
         assertThat(query.toString(), is("x:[10 TO *}"));
     }
 

@@ -22,16 +22,17 @@
 
 package io.crate.jobs.transport;
 
+import io.crate.exceptions.Exceptions;
 import io.crate.executor.transport.kill.KillJobsRequest;
 import io.crate.executor.transport.kill.KillResponse;
 import io.crate.executor.transport.kill.TransportKillJobsNodeAction;
 import io.crate.jobs.JobContextService;
+import org.apache.logging.log4j.Logger;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.common.component.AbstractLifecycleComponent;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
-import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.TimeValue;
@@ -39,16 +40,16 @@ import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportConnectionListener;
 import org.elasticsearch.transport.TransportService;
 
-import java.util.*;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 /**
  * service that listens to node-disconnected-events and kills jobContexts that were started by the nodes that got disconnected
  */
 @Singleton
-public class NodeDisconnectJobMonitorService
-    extends AbstractLifecycleComponent<NodeDisconnectJobMonitorService>
-    implements TransportConnectionListener {
+public class NodeDisconnectJobMonitorService extends AbstractLifecycleComponent implements TransportConnectionListener {
 
     private final ThreadPool threadPool;
     private final JobContextService jobContextService;
@@ -56,7 +57,7 @@ public class NodeDisconnectJobMonitorService
 
     private final static TimeValue DELAY = TimeValue.timeValueMinutes(1);
     private final TransportKillJobsNodeAction killJobsNodeAction;
-    private final static ESLogger LOGGER = Loggers.getLogger(NodeDisconnectJobMonitorService.class);
+    private final static Logger LOGGER = Loggers.getLogger(NodeDisconnectJobMonitorService.class);
 
     @Inject
     public NodeDisconnectJobMonitorService(Settings settings,
@@ -104,7 +105,7 @@ public class NodeDisconnectJobMonitorService
                     }
 
                     @Override
-                    public void onFailure(Throwable e) {
+                    public void onFailure(Exception e) {
                         LOGGER.warn("failed to send kill request to nodes");
                     }
                 }, Arrays.asList(node.getId()));

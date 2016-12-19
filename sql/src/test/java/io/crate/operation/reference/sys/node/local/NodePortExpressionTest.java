@@ -27,6 +27,7 @@ import org.elasticsearch.node.service.NodeService;
 import org.hamcrest.Matchers;
 import org.junit.Test;
 
+import static org.mockito.Matchers.anyBoolean;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -36,7 +37,18 @@ public class NodePortExpressionTest extends CrateUnitTest {
     public void testNoHttpServerAvailable() throws Exception {
         NodeService nodeService = mock(NodeService.class);
         NodeInfo nodeInfo = mock(NodeInfo.class);
-        when(nodeService.info()).thenReturn(nodeInfo);
+        when(nodeService.info(
+            anyBoolean(),
+            anyBoolean(),
+            anyBoolean(),
+            anyBoolean(),
+            anyBoolean(),
+            anyBoolean(),
+            anyBoolean(),
+            anyBoolean(),
+            anyBoolean(),
+            anyBoolean()
+        )).thenReturn(nodeInfo);
         when(nodeInfo.getHttp()).thenReturn(null);
 
         NodePortExpression nodePortExpression = new NodePortExpression(nodeService);

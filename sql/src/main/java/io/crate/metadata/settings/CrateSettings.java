@@ -25,6 +25,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Sets;
 import io.crate.breaker.CrateCircuitBreakerService;
+import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.ByteSizeUnit;
 import org.elasticsearch.common.unit.ByteSizeValue;
 import org.elasticsearch.common.unit.TimeValue;
@@ -123,7 +124,7 @@ public class CrateSettings {
 
         @Override
         public List<Setting> children() {
-            return ImmutableList.<Setting>of(GRACEFUL_STOP, ROUTING, CLUSTER_INFO);
+            return ImmutableList.of(GRACEFUL_STOP, ROUTING, CLUSTER_INFO);
         }
 
         @Override
@@ -146,7 +147,7 @@ public class CrateSettings {
 
         @Override
         public List<Setting> children() {
-            return ImmutableList.<Setting>of(
+            return ImmutableList.of(
                 GRACEFUL_STOP_MIN_AVAILABILITY,
                 GRACEFUL_STOP_REALLOCATE,
                 GRACEFUL_STOP_TIMEOUT,
@@ -217,7 +218,7 @@ public class CrateSettings {
 
         @Override
         public List<Setting> children() {
-            return ImmutableList.<Setting>of(DISCOVERY_ZEN);
+            return ImmutableList.of(DISCOVERY_ZEN);
         }
 
         @Override
@@ -234,7 +235,7 @@ public class CrateSettings {
 
         @Override
         public List<Setting> children() {
-            return ImmutableList.<Setting>of(
+            return ImmutableList.of(
                 DISCOVERY_ZEN_MIN_MASTER_NODES,
                 DISCOVERY_ZEN_PING_TIMEOUT,
                 DISCOVERY_ZEN_PUBLISH_TIMEOUT
@@ -311,7 +312,7 @@ public class CrateSettings {
 
         @Override
         public List<Setting> children() {
-            return ImmutableList.<Setting>of(ROUTING_ALLOCATION);
+            return ImmutableList.of(ROUTING_ALLOCATION);
         }
 
         @Override
@@ -338,7 +339,7 @@ public class CrateSettings {
 
         @Override
         public List<Setting> children() {
-            return ImmutableList.<Setting>of(
+            return ImmutableList.of(
                 ROUTING_ALLOCATION_ENABLE,
                 ROUTING_ALLOCATION_ALLOW_REBALANCE,
                 ROUTING_ALLOCATION_CLUSTER_CONCURRENT_REBALANCE,
@@ -407,7 +408,7 @@ public class CrateSettings {
 
         @Override
         public List<Setting> children() {
-            return ImmutableList.<Setting>of(
+            return ImmutableList.of(
                 ROUTING_ALLOCATION_INCLUDE_IP,
                 ROUTING_ALLOCATION_INCLUDE_HOST,
                 ROUTING_ALLOCATION_INCLUDE_ID,
@@ -447,7 +448,7 @@ public class CrateSettings {
 
         @Override
         public List<Setting> children() {
-            return ImmutableList.<Setting>of(
+            return ImmutableList.of(
                 ROUTING_ALLOCATION_EXCLUDE_IP,
                 ROUTING_ALLOCATION_EXCLUDE_HOST,
                 ROUTING_ALLOCATION_EXCLUDE_ID,
@@ -487,7 +488,7 @@ public class CrateSettings {
 
         @Override
         public List<Setting> children() {
-            return ImmutableList.<Setting>of(
+            return ImmutableList.of(
                 ROUTING_ALLOCATION_REQUIRE_IP,
                 ROUTING_ALLOCATION_REQUIRE_HOST,
                 ROUTING_ALLOCATION_REQUIRE_ID,
@@ -531,7 +532,7 @@ public class CrateSettings {
 
         @Override
         public List<Setting> children() {
-            return ImmutableList.<Setting>of(
+            return ImmutableList.of(
                 ROUTING_ALLOCATION_BALANCE_SHARD,
                 ROUTING_ALLOCATION_BALANCE_INDEX,
                 ROUTING_ALLOCATION_BALANCE_PRIMARY,
@@ -646,7 +647,7 @@ public class CrateSettings {
 
         @Override
         public List<Setting> children() {
-            return ImmutableList.<Setting>of(
+            return ImmutableList.of(
                 ROUTING_ALLOCATION_DISK_THRESHOLD_ENABLED,
                 ROUTING_ALLOCATION_DISK_WATERMARK
             );
@@ -680,7 +681,7 @@ public class CrateSettings {
 
         @Override
         public List<Setting> children() {
-            return ImmutableList.<Setting>of(
+            return ImmutableList.of(
                 ROUTING_ALLOCATION_DISK_WATERMARK_LOW,
                 ROUTING_ALLOCATION_DISK_WATERMARK_HIGH
             );
@@ -706,7 +707,7 @@ public class CrateSettings {
 
         @Override
         public List<Setting> children() {
-            return ImmutableList.<Setting>of(INDICES_RECOVERY, INDICES_STORE, INDICES_FIELDDATA, INDICES_BREAKER);
+            return ImmutableList.of(INDICES_RECOVERY, INDICES_STORE, INDICES_FIELDDATA, INDICES_BREAKER);
         }
 
         @Override
@@ -723,7 +724,7 @@ public class CrateSettings {
 
         @Override
         public List<Setting> children() {
-            return ImmutableList.<Setting>of(
+            return ImmutableList.of(
                 INDICES_RECOVERY_CONCURRENT_STREAMS,
                 INDICES_RECOVERY_FILE_CHUNK_SIZE,
                 INDICES_RECOVERY_TRANSLOG_OPS,
@@ -900,7 +901,7 @@ public class CrateSettings {
 
         @Override
         public List<Setting> children() {
-            return ImmutableList.<Setting>of(INDICES_STORE_THROTTLE);
+            return ImmutableList.of(INDICES_STORE_THROTTLE);
         }
 
         @Override
@@ -922,7 +923,7 @@ public class CrateSettings {
 
         @Override
         public List<Setting> children() {
-            return ImmutableList.<Setting>of(
+            return ImmutableList.of(
                 INDICES_STORE_THROTTLE_TYPE,
                 INDICES_STORE_THROTTLE_MAX_BYTES_PER_SEC
             );
@@ -953,7 +954,7 @@ public class CrateSettings {
 
         @Override
         public List<Setting> children() {
-            return ImmutableList.<Setting>of(INDICES_FIELDDATA_BREAKER);
+            return ImmutableList.of(INDICES_FIELDDATA_BREAKER);
         }
 
         @Override
@@ -975,7 +976,7 @@ public class CrateSettings {
 
         @Override
         public List<Setting> children() {
-            return ImmutableList.<Setting>of(
+            return ImmutableList.of(
                 INDICES_FIELDDATA_BREAKER_LIMIT,
                 INDICES_FIELDDATA_BREAKER_OVERHEAD
             );
@@ -1025,7 +1026,7 @@ public class CrateSettings {
 
         @Override
         public List<Setting> children() {
-            return ImmutableList.<Setting>of(
+            return ImmutableList.of(
                 INDICES_BREAKER_QUERY,
                 INDICES_BREAKER_REQUEST
             );
@@ -1050,7 +1051,7 @@ public class CrateSettings {
 
         @Override
         public List<Setting> children() {
-            return ImmutableList.<Setting>of(
+            return ImmutableList.of(
                 INDICES_BREAKER_QUERY_LIMIT,
                 INDICES_BREAKER_QUERY_OVERHEAD
             );
@@ -1068,9 +1069,16 @@ public class CrateSettings {
     };
 
     public static final StringSetting INDICES_BREAKER_QUERY_LIMIT = new StringSetting(
-        "limit", null, true, CrateCircuitBreakerService.DEFAULT_QUERY_CIRCUIT_BREAKER_LIMIT, INDICES_BREAKER_QUERY);
+        "limit",
+        null,
+        true,
+        CrateCircuitBreakerService.QUERY_CIRCUIT_BREAKER_LIMIT_SETTING.getDefaultRaw(Settings.EMPTY),
+        INDICES_BREAKER_QUERY);
 
     public static final DoubleSetting INDICES_BREAKER_QUERY_OVERHEAD = new DoubleSetting() {
+        private final Double defaultValue =
+            CrateCircuitBreakerService.QUERY_CIRCUIT_BREAKER_OVERHEAD_SETTING.getDefault(Settings.EMPTY);
+
         @Override
         public String name() {
             return "overhead";
@@ -1078,7 +1086,7 @@ public class CrateSettings {
 
         @Override
         public Double defaultValue() {
-            return CrateCircuitBreakerService.DEFAULT_QUERY_CIRCUIT_BREAKER_OVERHEAD_CONSTANT;
+            return defaultValue;
         }
 
         @Override
@@ -1100,7 +1108,7 @@ public class CrateSettings {
 
         @Override
         public List<Setting> children() {
-            return ImmutableList.<Setting>of(
+            return ImmutableList.of(
                 INDICES_BREAKER_REQUEST_LIMIT,
                 INDICES_BREAKER_REQUEST_OVERHEAD
             );
@@ -1150,7 +1158,7 @@ public class CrateSettings {
 
         @Override
         public List<Setting> children() {
-            return ImmutableList.<Setting>of(CLUSTER_INFO_UPDATE);
+            return ImmutableList.of(CLUSTER_INFO_UPDATE);
         }
 
         @Override
@@ -1172,7 +1180,7 @@ public class CrateSettings {
 
         @Override
         public List<Setting> children() {
-            return ImmutableList.<Setting>of(
+            return ImmutableList.of(
                 CLUSTER_INFO_UPDATE_INTERVAL
             );
         }
@@ -1219,7 +1227,7 @@ public class CrateSettings {
 
         @Override
         public List<Setting> children() {
-            return ImmutableList.<Setting>of(BULK_REQUEST_TIMEOUT);
+            return ImmutableList.of(BULK_REQUEST_TIMEOUT);
         }
 
         @Override
@@ -1258,7 +1266,7 @@ public class CrateSettings {
 
         @Override
         public List<Setting> children() {
-            return ImmutableList.<Setting>of(GATEWAY_RECOVERY_AFTER_NODES, GATEWAY_EXPECTED_NODES, GATEWAY_RECOVER_AFTER_TIME);
+            return ImmutableList.of(GATEWAY_RECOVERY_AFTER_NODES, GATEWAY_EXPECTED_NODES, GATEWAY_RECOVER_AFTER_TIME);
         }
 
         @Override
@@ -1313,7 +1321,7 @@ public class CrateSettings {
 
         @Override
         public List<Setting> children() {
-            return ImmutableList.<Setting>of(UDC_ENABLED, UDC_INITIAL_DELAY, UDC_INTERVAL, UDC_URL);
+            return ImmutableList.of(UDC_ENABLED, UDC_INITIAL_DELAY, UDC_INTERVAL, UDC_URL);
         }
 
         @Override
@@ -1383,7 +1391,7 @@ public class CrateSettings {
 
         @Override
         public List<Setting> children() {
-            return ImmutableList.<Setting>of(PSQL_PORT, PSQL_ENABLED);
+            return ImmutableList.of(PSQL_PORT, PSQL_ENABLED);
         }
 
         @Override
@@ -1403,13 +1411,13 @@ public class CrateSettings {
         }
     };
 
-    public static final List<Setting<?, ?>> CRATE_SETTINGS = ImmutableList.<Setting<?, ?>>of(
+    public static final List<Setting<?, ?>> CRATE_SETTINGS = ImmutableList.of(
         STATS,
         BULK,
         GRACEFUL_STOP
     );
 
-    public static final List<Setting> SETTINGS = ImmutableList.<Setting>of(
+    public static final List<Setting> SETTINGS = ImmutableList.of(
         STATS, CLUSTER, DISCOVERY, INDICES, BULK, GATEWAY, UDC, PSQL);
 
     static final Map<String, SettingsApplier> SUPPORTED_SETTINGS = ImmutableMap.<String, SettingsApplier>builder()

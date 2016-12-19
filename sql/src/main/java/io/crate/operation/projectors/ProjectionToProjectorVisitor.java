@@ -42,8 +42,8 @@ import io.crate.metadata.TransactionContext;
 import io.crate.metadata.expressions.WritableExpression;
 import io.crate.metadata.settings.CrateSettings;
 import io.crate.operation.AggregationContext;
-import io.crate.operation.InputFactory;
 import io.crate.operation.Input;
+import io.crate.operation.InputFactory;
 import io.crate.operation.RowFilter;
 import io.crate.operation.collect.CollectExpression;
 import io.crate.operation.projectors.fetch.FetchProjector;
@@ -55,8 +55,8 @@ import io.crate.planner.projection.*;
 import io.crate.types.StringType;
 import org.elasticsearch.action.bulk.BulkRetryCoordinatorPool;
 import org.elasticsearch.action.bulk.BulkShardProcessor;
-import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
+import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.collect.Tuple;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.shard.ShardId;
@@ -434,7 +434,7 @@ public class ProjectionToProjectorVisitor
                 context.jobId,
                 projection.collectPhaseId()
             ),
-            threadPool.executor(ThreadPool.Names.SUGGEST),
+            threadPool.executor(ThreadPool.Names.SEARCH), // FIXME: SUGGEST is gone
             functions,
             projection.outputSymbols(),
             projectorContext,

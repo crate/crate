@@ -21,19 +21,17 @@
 
 package io.crate.exceptions;
 
-import org.elasticsearch.cluster.metadata.SnapshotId;
 
 import java.util.Locale;
 
 public class SnapshotUnknownException extends ResourceUnknownException {
 
-    public SnapshotUnknownException(SnapshotId snapshotId, Throwable cause) {
-        super(errorMsg(snapshotId), cause);
+    public SnapshotUnknownException(String snapshotName, Throwable cause) {
+        super(errorMsg(snapshotName), cause);
     }
 
-    private static String errorMsg(SnapshotId snapshotId) {
-        return String.format(Locale.ENGLISH, "Snapshot '%s.%s' unknown",
-            snapshotId.getRepository(), snapshotId.getSnapshot());
+    private static String errorMsg(String snapshotName) {
+        return String.format(Locale.ENGLISH, "Snapshot '%s' unknown", snapshotName);
     }
 
     @Override

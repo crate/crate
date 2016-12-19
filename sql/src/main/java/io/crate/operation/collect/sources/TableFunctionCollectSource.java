@@ -32,14 +32,14 @@ import io.crate.metadata.Functions;
 import io.crate.metadata.Reference;
 import io.crate.metadata.table.TableInfo;
 import io.crate.metadata.tablefunctions.TableFunctionImplementation;
-import io.crate.operation.InputFactory;
 import io.crate.operation.Input;
+import io.crate.operation.InputFactory;
 import io.crate.operation.collect.*;
 import io.crate.operation.projectors.InputCondition;
 import io.crate.operation.projectors.RowReceiver;
 import io.crate.planner.node.dql.CollectPhase;
 import io.crate.planner.node.dql.TableFunctionCollectPhase;
-import org.elasticsearch.cluster.ClusterService;
+import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 

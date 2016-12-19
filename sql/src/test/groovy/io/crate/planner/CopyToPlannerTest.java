@@ -31,11 +31,11 @@ import io.crate.metadata.table.TestingTableInfo;
 import io.crate.planner.node.dql.Collect;
 import io.crate.planner.node.dql.RoutedCollectPhase;
 import io.crate.planner.projection.WriterProjection;
-import io.crate.test.integration.CrateUnitTest;
+import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
-import org.elasticsearch.test.cluster.NoopClusterService;
+import org.junit.Before;
 import org.junit.Test;
 
 import java.util.Arrays;
@@ -43,18 +43,23 @@ import java.util.Arrays;
 import static io.crate.analyze.TableDefinitions.shardRouting;
 import static org.hamcrest.Matchers.is;
 
-public class CopyToPlannerTest extends CrateUnitTest {
+public class CopyToPlannerTest extends CrateDummyClusterServiceUnitTest {
 
-    private SQLExecutor e = SQLExecutor.builder(new NoopClusterService())
-        .addDocTable(TableDefinitions.USER_TABLE_INFO)
-        .addDocTable(
-            new TestingTableInfo.Builder(new TableIdent("doc", "parted_generated"), shardRouting("parted_generated"))
-                .add("ts", DataTypes.TIMESTAMP, null)
-                .addGeneratedColumn("day", DataTypes.TIMESTAMP, "date_trunc('day', ts)", true)
-                .addPartitions(
-                    new PartitionName("parted_generated", Arrays.asList(new BytesRef("1395874800000"))).asIndexName(),
-                    new PartitionName("parted_generated", Arrays.asList(new BytesRef("1395961200000"))).asIndexName())
-        ).build();
+    private SQLExecutor e;
+
+    @Before
+    public void prepare() {
+        e = SQLExecutor.builder(clusterService)
+            .addDocTable(TableDefinitions.USER_TABLE_INFO)
+            .addDocTable(
+                new TestingTableInfo.Builder(new TableIdent("doc", "parted_generated"), shardRouting("parted_generated"))
+                    .add("ts", DataTypes.TIMESTAMP, null)
+                    .addGeneratedColumn("day", DataTypes.TIMESTAMP, "date_trunc('day', ts)", true)
+                    .addPartitions(
+                        new PartitionName("parted_generated", Arrays.asList(new BytesRef("1395874800000"))).asIndexName(),
+                        new PartitionName("parted_generated", Arrays.asList(new BytesRef("1395961200000"))).asIndexName())
+            ).build();
+    }
 
     @Test
     public void testCopyToWithColumnsReferenceRewrite() throws Exception {

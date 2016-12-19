@@ -104,7 +104,7 @@ public class DocIndexMetaData {
         this.functions = functions;
         this.ident = ident;
         this.metaData = metaData;
-        this.isAlias = !metaData.getIndex().equals(ident.indexName());
+        this.isAlias = !metaData.getIndex().getName().equals(ident.indexName());
         this.numberOfShards = metaData.getNumberOfShards();
         Settings settings = metaData.getSettings();
         this.numberOfReplicas = NumberOfReplicas.fromSettings(settings);
@@ -254,23 +254,58 @@ public class DocIndexMetaData {
         return type;
     }
 
-    private Reference.IndexType getColumnIndexType(Map<String, Object> columnProperties) {
-        String indexType = (String) columnProperties.get("index");
-        String analyzerName = (String) columnProperties.get("analyzer");
-        if (indexType != null) {
-            if (indexType.equals(Reference.IndexType.NOT_ANALYZED.toString())) {
-                return Reference.IndexType.NOT_ANALYZED;
-            } else if (indexType.equals(Reference.IndexType.NO.toString())) {
-                return Reference.IndexType.NO;
-            } else if (indexType.equals(Reference.IndexType.ANALYZED.toString())
-                       && analyzerName != null && !analyzerName.equals("keyword")) {
+    /**
+     * Get the IndexType from columnProperties.
+     * <br />
+     * Properties might look like:
+     * <pre>
+     *     {
+     *         "type": "integer"
+     *     }
+     *
+     *
+     *     {
+     *         "type": "text",
+     *         "analyzer": "english"
+     *     }
+     *
+     *
+     *     {
+     *          "type": "text",
+     *          "fields": {
+     *              "keyword": {
+     *                  "type": "keyword",
+     *                  "ignore_above": "256"
+     *              }
+     *          }
+     *     }
+     *
+     *     {
+     *         "type": "date",
+     *         "index": "no"
+     *     }
+     *
+     *     {
+     *          "type": "keyword",
+     *          "index": false
+     *     }
+     * </pre>
+     */
+    private static Reference.IndexType getColumnIndexType(Map<String, Object> columnProperties) {
+        Object index = columnProperties.get("index");
+        if (index == null) {
+            if ("text".equals(columnProperties.get("type"))) {
                 return Reference.IndexType.ANALYZED;
             }
-        } // default indexType is analyzed so need to check analyzerName if indexType is null
-        else if (analyzerName != null && !analyzerName.equals("keyword")) {
-            return Reference.IndexType.ANALYZED;
+            return Reference.IndexType.NOT_ANALYZED;
         }
-        return Reference.IndexType.NOT_ANALYZED;
+        if ("no".equals(index)) {
+            return Reference.IndexType.NO;
+        }
+        if ("not_analyzed".equals(index)) {
+            return Reference.IndexType.NOT_ANALYZED;
+        }
+        return Reference.IndexType.ANALYZED;
     }
 
     private static ColumnIdent childIdent(@Nullable ColumnIdent ident, String name) {
@@ -599,7 +634,7 @@ public class DocIndexMetaData {
      * @return the name of the underlying index even if this table is referenced by alias
      */
     public String concreteIndexName() {
-        return metaData.getIndex();
+        return metaData.getIndex().getName();
     }
 
     public boolean isAlias() {

@@ -274,6 +274,8 @@ public final class DataTypes {
     private static final ImmutableMap<String, DataType> MAPPING_NAMES_TO_TYPES = ImmutableMap.<String, DataType>builder()
         .put("date", DataTypes.TIMESTAMP)
         .put("string", DataTypes.STRING)
+        .put("keyword", DataTypes.STRING)
+        .put("text", DataTypes.STRING)
         .put("boolean", DataTypes.BOOLEAN)
         .put("byte", DataTypes.BYTE)
         .put("short", DataTypes.SHORT)

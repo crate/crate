@@ -33,6 +33,7 @@ import io.crate.metadata.TableIdent;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.types.DataTypes;
 import org.elasticsearch.action.ActionListener;
+import org.elasticsearch.common.UUIDs;
 import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.common.util.concurrent.EsRejectedExecutionException;
 import org.elasticsearch.index.shard.ShardId;
@@ -55,7 +56,7 @@ public class BulkRetryCoordinatorTest extends CrateUnitTest {
     private static TableIdent charactersIdent = new TableIdent(null, "foo");
     private static Reference fooRef = new Reference(
         new ReferenceIdent(charactersIdent, "bar"), RowGranularity.DOC, DataTypes.STRING);
-    private static ShardId shardId = new ShardId("foo", 1);
+    private static ShardId shardId = new ShardId("foo", UUIDs.randomBase64UUID(), 1);
 
     abstract class MockShardUpsertActionDelegate extends TransportShardUpsertActionDelegate {
         public MockShardUpsertActionDelegate() {
@@ -96,7 +97,7 @@ public class BulkRetryCoordinatorTest extends CrateUnitTest {
             }
 
             @Override
-            public void onFailure(Throwable e) {
+            public void onFailure(Exception e) {
             }
         });
 
@@ -124,7 +125,7 @@ public class BulkRetryCoordinatorTest extends CrateUnitTest {
             }
 
             @Override
-            public void onFailure(Throwable e) {
+            public void onFailure(Exception e) {
                 future.set(null);
             }
         });
@@ -159,7 +160,7 @@ public class BulkRetryCoordinatorTest extends CrateUnitTest {
                         }
 
                         @Override
-                        public void onFailure(Throwable e) {
+                        public void onFailure(Exception e) {
                         }
                     });
                 }

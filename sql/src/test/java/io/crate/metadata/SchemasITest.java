@@ -84,7 +84,9 @@ public class SchemasITest extends SQLTransportIntegrationTest {
     public void testTableAlias() throws Exception {
         execute("create table terminator (model string, good boolean, actor object)");
         IndicesAliasesRequest request = new IndicesAliasesRequest();
-        request.addAlias("entsafter", "terminator");
+        request.addAliasAction(IndicesAliasesRequest.AliasActions.add()
+            .alias("entsafter")
+            .index("terminator"));
         client().admin().indices().aliases(request).actionGet();
         ensureYellow();
 
@@ -103,8 +105,10 @@ public class SchemasITest extends SQLTransportIntegrationTest {
         execute("create table terminator (model string, good boolean, actor object)");
         execute("create table transformer (model string, good boolean, actor object)");
         IndicesAliasesRequest request = new IndicesAliasesRequest();
-        request.addAlias("entsafter", "terminator");
-        request.addAlias("entsafter", "transformer");
+        request.addAliasAction(
+            IndicesAliasesRequest.AliasActions.add().alias("entsafter").index("terminator"));
+        request.addAliasAction(
+            IndicesAliasesRequest.AliasActions.add().alias("entsafter").index("transformer"));
         client().admin().indices().aliases(request).actionGet();
         ensureYellow();
 
