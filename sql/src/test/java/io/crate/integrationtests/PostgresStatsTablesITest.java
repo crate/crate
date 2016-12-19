@@ -52,7 +52,10 @@ public class PostgresStatsTablesITest extends SQLTransportIntegrationTest {
     @Before
     public void initDriverAndStats() throws Exception {
         try (Connection conn = DriverManager.getConnection(JDBC_POSTGRESQL_URL)) {
-            conn.createStatement().execute("set global stats.enabled=true");
+            conn.createStatement().execute("set global stats.enabled = true");
+            ResultSet rs = conn.createStatement().executeQuery("select stmt from sys.jobs");
+            assertTrue("sys.jobs must contain statement", rs.next());
+            assertEquals(rs.getString(1), "select stmt from sys.jobs");
         }
     }
 
@@ -60,6 +63,8 @@ public class PostgresStatsTablesITest extends SQLTransportIntegrationTest {
     public void resetStats() throws Exception {
         try (Connection conn = DriverManager.getConnection(JDBC_POSTGRESQL_URL)) {
             conn.createStatement().execute("reset global stats.enabled");
+            ResultSet rs = conn.createStatement().executeQuery("select stmt from sys.jobs");
+            assertFalse("sys.jobs must not contain entries", rs.next());
         }
     }
 

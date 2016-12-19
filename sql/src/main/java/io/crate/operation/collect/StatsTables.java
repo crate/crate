@@ -142,11 +142,8 @@ public class StatsTables {
      */
     public void logExecutionEnd(UUID jobId, @Nullable String errorMessage) {
         activeRequests.decrement();
-        if (!isEnabled()) {
-            return;
-        }
         JobContext jobContext = jobsTable.remove(jobId);
-        if (jobContext == null) {
+        if (!isEnabled() || jobContext == null) {
             return;
         }
         Queue<JobContextLog> jobContextLogs = jobsLog.get();
