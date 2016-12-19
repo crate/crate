@@ -22,16 +22,21 @@
 
 package io.crate.analyze;
 
-import io.crate.test.integration.CrateUnitTest;
+import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
-import org.elasticsearch.test.cluster.NoopClusterService;
+import org.junit.Before;
 import org.junit.Test;
 
 import static io.crate.testing.TestingHelpers.isSQL;
 
-public class ShowStatementsAnalyzerTest extends CrateUnitTest {
+public class ShowStatementsAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
-    private SQLExecutor executor = SQLExecutor.builder(new NoopClusterService()).build();
+    private SQLExecutor executor;
+
+    @Before
+    public void prepare() {
+        executor = SQLExecutor.builder(clusterService).build();
+    }
 
     private SelectAnalyzedStatement analyze(String stmt) {
         return executor.analyze(stmt);

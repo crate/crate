@@ -27,7 +27,8 @@ import io.crate.planner.Plan;
 import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.Statement;
 import io.crate.testing.SQLExecutor;
-import org.elasticsearch.test.cluster.NoopClusterService;
+import org.elasticsearch.test.ClusterServiceUtils;
+import org.elasticsearch.threadpool.TestThreadPool;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.Scope;
 import org.openjdk.jmh.annotations.State;
@@ -42,7 +43,10 @@ import java.util.UUID;
 @State(value = Scope.Benchmark)
 public class PreExecutionBenchmark {
 
-    private SQLExecutor e = SQLExecutor.builder(new NoopClusterService()).enableDefaultTables().build();
+    // TODO: need to close threadPool
+    private SQLExecutor e = SQLExecutor.builder(
+        ClusterServiceUtils.createClusterService(new TestThreadPool("benchmarks"))
+    ).enableDefaultTables().build();
     private Statement selectStatement = SqlParser.createStatement("select name from users");
     private Analysis selectAnalysis = e.analyzer.boundAnalyze(selectStatement, SessionContext.SYSTEM_SESSION, ParameterContext.EMPTY);
     private UUID jobId = UUID.randomUUID();

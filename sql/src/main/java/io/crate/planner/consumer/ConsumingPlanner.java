@@ -28,7 +28,7 @@ import io.crate.analyze.symbol.SelectSymbol;
 import io.crate.exceptions.ValidationException;
 import io.crate.metadata.Functions;
 import io.crate.planner.*;
-import org.elasticsearch.cluster.ClusterService;
+import org.elasticsearch.cluster.service.ClusterService;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;

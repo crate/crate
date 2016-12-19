@@ -48,13 +48,12 @@ public class CrateRestMainAction extends BaseRestHandler {
     @Inject
     public CrateRestMainAction(Settings settings,
                                RestController controller,
-                               ClusterName clusterName,
                                ClusterService clusterService,
                                CrateRestFilter crateRestFilter) {
         super(settings);
         this.version = Version.CURRENT;
         this.controller = controller;
-        this.clusterName = clusterName;
+        this.clusterName = ClusterName.CLUSTER_NAME_SETTING.get(settings);
         this.clusterService = clusterService;
         controller.registerFilter(crateRestFilter);
     }

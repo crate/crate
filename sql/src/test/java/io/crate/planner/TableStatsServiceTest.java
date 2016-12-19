@@ -29,17 +29,10 @@ import io.crate.core.collections.RowN;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.settings.CrateSettings;
 import io.crate.protocols.postgres.FormatCodes;
-import io.crate.test.integration.CrateUnitTest;
-import io.crate.types.DataType;
-import org.elasticsearch.cluster.ClusterService;
-import org.elasticsearch.cluster.node.DiscoveryNode;
-import org.elasticsearch.common.inject.Provider;
+import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
+import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.TimeValue;
-import org.elasticsearch.node.settings.NodeSettingsService;
-import org.elasticsearch.threadpool.ThreadPool;
-import org.junit.After;
-import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
 
@@ -56,31 +49,15 @@ import static org.mockito.Matchers.anyByte;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.*;
 
-public class TableStatsServiceTest extends CrateUnitTest {
-
-    private ThreadPool threadPool;
-
-    @Before
-    public void init() throws Exception {
-        threadPool = new ThreadPool("dummy");
-    }
-
-    @After
-    public void clearThreadPool() throws Exception {
-        threadPool.shutdown();
-        threadPool.awaitTermination(30, TimeUnit.SECONDS);
-    }
+public class TableStatsServiceTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testSettingsChanges() {
-        ClusterService clusterService = mock(ClusterService.class);
-
         // Initially disabled
         TableStatsService statsService = new TableStatsService(
             Settings.builder().put(CrateSettings.STATS_SERVICE_REFRESH_INTERVAL.settingName(), 0).build(),
-            threadPool,
+            THREAD_POOL,
             clusterService,
-            new NodeSettingsService(Settings.EMPTY),
             () -> mock(SQLOperations.class));
 
         assertThat(statsService.lastRefreshInterval,
@@ -90,15 +67,17 @@ public class TableStatsServiceTest extends CrateUnitTest {
         // Default setting
         statsService = new TableStatsService(
             Settings.EMPTY,
-            threadPool,
+            THREAD_POOL,
             clusterService,
-            new NodeSettingsService(Settings.EMPTY),
             () -> mock(SQLOperations.class));
 
         assertThat(statsService.lastRefreshInterval,
             is(CrateSettings.STATS_SERVICE_REFRESH_INTERVAL.defaultValue()));
         assertThat(statsService.refreshScheduledTask, is(notNullValue()));
 
+        fail("need to test this differently");
+
+        /*
         // Update setting
         statsService.onRefreshSettings(Settings.builder()
             .put(CrateSettings.STATS_SERVICE_REFRESH_INTERVAL.settingName(), "10m").build());
@@ -121,6 +100,7 @@ public class TableStatsServiceTest extends CrateUnitTest {
         assertThat(statsService.lastRefreshInterval,
             is(CrateSettings.STATS_SERVICE_REFRESH_INTERVAL.defaultValue()));
         assertThat(statsService.refreshScheduledTask, is(notNullValue()));
+        */
     }
 
     @Test
@@ -141,8 +121,6 @@ public class TableStatsServiceTest extends CrateUnitTest {
 
     @Test
     public void testStatsQueriesCorrectly() throws Exception {
-        ClusterService clusterService = mock(ClusterService.class);
-        when(clusterService.localNode()).thenReturn(mock(DiscoveryNode.class));
         final SQLOperations sqlOperations = mock(SQLOperations.class);
         SQLOperations.Session session = mock(SQLOperations.Session.class);
         when(sqlOperations.createSession(eq("sys"), eq(Option.NONE), eq(TableStatsService.DEFAULT_SOFT_LIMIT)))
@@ -150,21 +128,15 @@ public class TableStatsServiceTest extends CrateUnitTest {
 
         TableStatsService statsService = new TableStatsService(
             Settings.EMPTY,
-            threadPool,
+            THREAD_POOL,
             clusterService,
-            new NodeSettingsService(Settings.EMPTY),
-            new Provider<SQLOperations>() {
-                @Override
-                public SQLOperations get() {
-                    return sqlOperations;
-                }
-            });
+            () -> sqlOperations);
         statsService.run();
 
         verify(session, times(1)).parse(
             eq(TableStatsService.UNNAMED),
             eq(TableStatsService.STMT),
-            eq(Collections.<DataType>emptyList()));
+            eq(Collections.emptyList()));
         verify(session, times(1)).bind(
             eq(TableStatsService.UNNAMED),
             eq(TableStatsService.UNNAMED),
@@ -185,15 +157,9 @@ public class TableStatsServiceTest extends CrateUnitTest {
 
         TableStatsService statsService = new TableStatsService(
             Settings.EMPTY,
-            threadPool,
+            THREAD_POOL,
             clusterService,
-            new NodeSettingsService(Settings.EMPTY),
-            new Provider<SQLOperations>() {
-                @Override
-                public SQLOperations get() {
-                    return sqlOperations;
-                }
-            });
+            () -> sqlOperations);
 
         statsService.run();
         Mockito.verify(sqlOperations, times(0)).createSession(anyString(), anySetOf(Option.class), anyByte());

@@ -55,7 +55,7 @@ public class FunctionTest extends CrateUnitTest {
         BytesStreamOutput output = new BytesStreamOutput();
         Symbols.toStream(fn, output);
 
-        StreamInput input = StreamInput.wrap(output.bytes());
+        StreamInput input = output.bytes().streamInput();
         Function fn2 = (Function) Symbols.fromStream(input);
 
         assertThat(fn, is(equalTo(fn2)));

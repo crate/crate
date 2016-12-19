@@ -33,17 +33,16 @@ import io.crate.core.collections.Row;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.settings.CrateSettings;
 import io.crate.types.DataType;
-import org.elasticsearch.cluster.ClusterService;
+import org.apache.logging.log4j.Logger;
+import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.component.AbstractComponent;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Provider;
 import org.elasticsearch.common.inject.Singleton;
-import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.lucene.BytesRefs;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.TimeValue;
-import org.elasticsearch.node.settings.NodeSettingsService;
 import org.elasticsearch.threadpool.ThreadPool;
 
 import javax.annotation.Nonnull;
@@ -51,7 +50,7 @@ import java.util.Collections;
 import java.util.function.Consumer;
 
 @Singleton
-public class TableStatsService extends AbstractComponent implements NodeSettingsService.Listener, Runnable {
+public class TableStatsService extends AbstractComponent implements Runnable {
 
     static final String UNNAMED = "";
     static final int DEFAULT_SOFT_LIMIT = 10_000;
@@ -73,7 +72,6 @@ public class TableStatsService extends AbstractComponent implements NodeSettings
     public TableStatsService(Settings settings,
                              ThreadPool threadPool,
                              ClusterService clusterService,
-                             NodeSettingsService nodeSettingsService,
                              Provider<SQLOperations> sqlOperationsProvider) {
         super(settings);
         this.threadPool = threadPool;
@@ -83,7 +81,6 @@ public class TableStatsService extends AbstractComponent implements NodeSettings
         lastRefreshInterval = initialRefreshInterval;
         refreshScheduledTask = scheduleRefresh(initialRefreshInterval);
         resultReceiver = new TableStatsResultReceiver(this::setTableStats);
-        nodeSettingsService.addListener(this);
     }
 
     @Override
@@ -119,7 +116,7 @@ public class TableStatsService extends AbstractComponent implements NodeSettings
 
     static class TableStatsResultReceiver extends BaseResultReceiver {
 
-        private final static ESLogger LOGGER = Loggers.getLogger(TableStatsResultReceiver.class);
+        private final static Logger LOGGER = Loggers.getLogger(TableStatsResultReceiver.class);
 
         private final Consumer<ObjectLongMap<TableIdent>> tableStatsConsumer;
         private ObjectLongMap<TableIdent> newStats = new ObjectLongHashMap<>();
@@ -162,18 +159,6 @@ public class TableStatsService extends AbstractComponent implements NodeSettings
             return stats.get(tableIdent);
         }
         return -1;
-    }
-
-    @Override
-    public void onRefreshSettings(Settings settings) {
-        TimeValue newRefreshInterval = extractRefreshInterval(settings);
-        if (!newRefreshInterval.equals(lastRefreshInterval)) {
-            if (refreshScheduledTask != null) {
-                refreshScheduledTask.cancel();
-            }
-            refreshScheduledTask = scheduleRefresh(newRefreshInterval);
-            lastRefreshInterval = newRefreshInterval;
-        }
     }
 
     private ThreadPool.Cancellable scheduleRefresh(TimeValue newRefreshInterval) {

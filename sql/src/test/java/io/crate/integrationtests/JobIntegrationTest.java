@@ -40,7 +40,7 @@ public class JobIntegrationTest extends SQLTransportIntegrationTest {
 
     @Override
     protected Settings nodeSettings(int nodeOrdinal) {
-        return Settings.settingsBuilder()
+        return Settings.builder()
             .put(super.nodeSettings(nodeOrdinal))
             .put("plugin.types", CrateCorePlugin.class.getName())
             .build();
@@ -52,7 +52,7 @@ public class JobIntegrationTest extends SQLTransportIntegrationTest {
             new SQLTransportExecutor.ClientProvider() {
                 @Override
                 public Client client() {
-                    return internalCluster().clientNodeClient();
+                    return internalCluster().coordOnlyNodeClient();
                 }
 
                 @Nullable

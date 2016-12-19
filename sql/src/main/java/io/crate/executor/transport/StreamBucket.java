@@ -126,12 +126,22 @@ public class StreamBucket implements Bucket, Streamable {
         }
     }
 
-    private class RowIterator implements Iterator<Row> {
+    private static class RowIterator implements Iterator<Row> {
 
-        private final StreamInput input = bytes.streamInput();
+        private final Streamer<?>[] streamers;
+        private final int size;
+        private final StreamInput input;
+        private final Object[] current;
+        private final RowN row;
         private int pos = 0;
-        private final Object[] current = new Object[streamers.length];
-        private final Row row = new RowN(current);
+
+        private RowIterator(StreamInput streamInput, Streamer<?>[] streamers, int size) {
+            this.streamers = streamers;
+            this.size = size;
+            input = streamInput;
+            current = new Object[streamers.length];
+            row = new RowN(current);
+        }
 
         @Override
         public boolean hasNext() {
@@ -153,7 +163,6 @@ public class StreamBucket implements Bucket, Streamable {
 
         @Override
         public void remove() {
-
         }
     }
 
@@ -163,7 +172,11 @@ public class StreamBucket implements Bucket, Streamable {
             return Collections.emptyIterator();
         }
         assert streamers != null : "streamers must not be null";
-        return new RowIterator();
+        try {
+            return new RowIterator(bytes.streamInput(), streamers, size);
+        } catch (IOException e) {
+            throw Throwables.propagate(e);
+        }
     }
 
     @Override

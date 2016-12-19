@@ -23,17 +23,17 @@ package io.crate.metadata;
 
 import com.google.common.collect.ImmutableList;
 import io.crate.Constants;
-import io.crate.test.integration.CrateUnitTest;
+import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.Version;
 import org.elasticsearch.cluster.ClusterName;
-import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.cluster.metadata.MetaData;
+import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.collect.ImmutableOpenMap;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.test.cluster.NoopClusterService;
+import org.elasticsearch.test.ClusterServiceUtils;
 import org.junit.Test;
 
 import java.util.HashMap;
@@ -43,14 +43,14 @@ import java.util.Map;
 import static org.hamcrest.Matchers.hasEntry;
 import static org.hamcrest.Matchers.is;
 
-public class PartitionInfosTest extends CrateUnitTest {
+public class PartitionInfosTest extends CrateDummyClusterServiceUnitTest {
 
     private ClusterService mockService(Map<String, IndexMetaData> indices) {
         ImmutableOpenMap<String, IndexMetaData> indicesMap =
             ImmutableOpenMap.<String, IndexMetaData>builder().putAll(indices).build();
-        return new NoopClusterService(
+        return ClusterServiceUtils.createClusterService(
             ClusterState.builder(ClusterName.DEFAULT).metaData(
-                MetaData.builder().indices(indicesMap).build()).build());
+                MetaData.builder().indices(indicesMap).build()).build(), THREAD_POOL);
     }
 
     private static Settings defaultSettings() {
@@ -92,7 +92,7 @@ public class PartitionInfosTest extends CrateUnitTest {
         assertThat(partitioninfo.name().asIndexName(), is(partitionName.asIndexName()));
         assertThat(partitioninfo.numberOfShards(), is(10));
         assertThat(partitioninfo.numberOfReplicas().utf8ToString(), is("4"));
-        assertThat(partitioninfo.values(), hasEntry("col", (Object) "foo"));
+        assertThat(partitioninfo.values(), hasEntry("col", "foo"));
         assertThat(iter.hasNext(), is(false));
     }
 
@@ -113,8 +113,8 @@ public class PartitionInfosTest extends CrateUnitTest {
         assertThat(partitioninfo.name().asIndexName(), is(partitionName.asIndexName()));
         assertThat(partitioninfo.numberOfShards(), is(10));
         assertThat(partitioninfo.numberOfReplicas().utf8ToString(), is("4"));
-        assertThat(partitioninfo.values(), hasEntry("col", (Object) "foo"));
-        assertThat(partitioninfo.values(), hasEntry("col2", (Object) 1));
+        assertThat(partitioninfo.values(), hasEntry("col", "foo"));
+        assertThat(partitioninfo.values(), hasEntry("col2", 1));
         assertThat(iter.hasNext(), is(false));
     }
 }

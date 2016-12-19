@@ -27,11 +27,11 @@ import com.carrotsearch.hppc.IntSet;
 import com.google.common.annotations.VisibleForTesting;
 import io.crate.action.sql.SQLOperations;
 import io.crate.metadata.settings.CrateSettings;
+import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.component.AbstractLifecycleComponent;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
-import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.network.NetworkAddress;
 import org.elasticsearch.common.network.NetworkService;
@@ -69,7 +69,7 @@ public class PostgresNetty extends AbstractLifecycleComponent {
 
     private final boolean enabled;
     private final String port;
-    private final ESLogger namedLogger;
+    private final Logger namedLogger;
 
     private ServerBootstrap bootstrap;
 

@@ -27,27 +27,23 @@ import io.crate.exceptions.TableAlreadyExistsException;
 import io.crate.exceptions.TableUnknownException;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.blob.BlobSchemaInfo;
-import io.crate.test.integration.CrateUnitTest;
+import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
-import org.elasticsearch.test.cluster.NoopClusterService;
 import org.junit.Before;
 import org.junit.Test;
 
 import static org.hamcrest.Matchers.is;
 
-public class BlobTableAnalyzerTest extends CrateUnitTest {
+public class BlobTableAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     private SQLExecutor e;
 
     @Before
-    public void init() throws Exception {
-        NoopClusterService clusterService = new NoopClusterService();
+    public void prepare() {
         TableIdent myBlobsIdent = new TableIdent(BlobSchemaInfo.NAME, "blobs");
         TestingBlobTableInfo myBlobsTableInfo = TableDefinitions.createBlobTable(myBlobsIdent, clusterService);
-        e = SQLExecutor.builder(clusterService)
-            .addBlobTable(myBlobsTableInfo)
-            .build();
+        e = SQLExecutor.builder(clusterService).addBlobTable(myBlobsTableInfo).build();
     }
 
     @Test(expected = IllegalArgumentException.class)
@@ -101,7 +97,8 @@ public class BlobTableAnalyzerTest extends CrateUnitTest {
             "create blob table screenshots with (blobs_path='/tmp/crate_blob_data')");
 
         assertThat(analysis.tableIdent().name(), is("screenshots"));
-        assertThat(analysis.tableParameter().settings().get(BlobIndicesService.SETTING_INDEX_BLOBS_PATH), is("/tmp/crate_blob_data"));
+        assertThat(analysis.tableParameter().settings().get(BlobIndicesService.SETTING_INDEX_BLOBS_PATH.getKey()),
+            is("/tmp/crate_blob_data"));
     }
 
     @Test
@@ -110,7 +107,8 @@ public class BlobTableAnalyzerTest extends CrateUnitTest {
             "create blob table screenshots with (blobs_path=?)", new Object[]{"/tmp/crate_blob_data"});
 
         assertThat(analysis.tableIdent().name(), is("screenshots"));
-        assertThat(analysis.tableParameter().settings().get(BlobIndicesService.SETTING_INDEX_BLOBS_PATH), is("/tmp/crate_blob_data"));
+        assertThat(analysis.tableParameter().settings().get(BlobIndicesService.SETTING_INDEX_BLOBS_PATH.getKey()),
+            is("/tmp/crate_blob_data"));
     }
 
     @Test

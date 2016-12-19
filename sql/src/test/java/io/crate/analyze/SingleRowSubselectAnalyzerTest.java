@@ -22,20 +22,23 @@
 
 package io.crate.analyze;
 
-import io.crate.test.integration.CrateUnitTest;
+import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
-import org.elasticsearch.test.cluster.NoopClusterService;
 import org.hamcrest.Matchers;
+import org.junit.Before;
 import org.junit.Test;
 
 import static io.crate.testing.TestingHelpers.isSQL;
 import static org.hamcrest.Matchers.allOf;
 
-public class SingleRowSubselectAnalyzerTest extends CrateUnitTest {
+public class SingleRowSubselectAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
-    SQLExecutor e = SQLExecutor.builder(new NoopClusterService())
-        .enableDefaultTables()
-        .build();
+    private SQLExecutor e;
+
+    @Before
+    public void prepare() {
+        e = SQLExecutor.builder(clusterService).enableDefaultTables().build();
+    }
 
     @Test
     public void testSingleRowSubselectInWhereClause() throws Exception {

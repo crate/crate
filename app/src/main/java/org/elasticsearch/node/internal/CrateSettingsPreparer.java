@@ -22,54 +22,59 @@
 package org.elasticsearch.node.internal;
 
 import io.crate.Constants;
+import org.elasticsearch.cli.Terminal;
 import org.elasticsearch.cluster.ClusterName;
-import org.elasticsearch.common.cli.Terminal;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.common.settings.SettingsException;
 import org.elasticsearch.env.Environment;
 
+import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Map;
 
 import static org.elasticsearch.common.Strings.cleanPath;
-import static org.elasticsearch.common.settings.Settings.settingsBuilder;
 
 public class CrateSettingsPreparer {
 
-    public static final String IGNORE_SYSTEM_PROPERTIES_SETTING = "config.ignore_system_properties";
-
     /**
      * ES_COPY_OF: core/src/main/java/org/elasticsearch/node/internal/InternalSettingsPreparer.java
-     * This is a copy of {@link InternalSettingsPreparer#prepareEnvironment(Settings, Terminal)}
+     * This is a copy of {@link InternalSettingsPreparer#prepareEnvironment(Settings, Terminal, Map)}
      * <p>
      * with the addition of the "applyCrateDefaults" call.
      */
-    public static Environment prepareEnvironment(Settings input, Terminal terminal) {
+    public static Environment prepareEnvironment(Settings input, Terminal terminal, Map<String, String> properties) {
         // just create enough settings to build the environment, to get the config dir
-        Settings.Builder output = settingsBuilder();
-        InternalSettingsPreparer.initializeSettings(output, input, true);
+        Settings.Builder output = Settings.builder();
+        InternalSettingsPreparer.initializeSettings(output, input, true, properties);
         Environment environment = new Environment(output.build());
+
 
         Path path = environment.configFile().resolve("crate.yml");
         if (Files.exists(path)) {
-            output.loadFromPath(path);
+            try {
+                output.loadFromPath(path);
+            } catch (IOException e) {
+                throw new SettingsException("Failed to load settings from " + path.toString(), e);
+            }
         }
 
         // re-initialize settings now that the config file has been loaded
         // TODO: only re-initialize if a config file was actually loaded
-        InternalSettingsPreparer.initializeSettings(output, input, false);
-        InternalSettingsPreparer.finalizeSettings(output, terminal, environment.configFile());
+        InternalSettingsPreparer.initializeSettings(output, input, false, properties);
+        InternalSettingsPreparer.finalizeSettings(output, terminal);
 
         applyCrateDefaults(output);
 
         environment = new Environment(output.build());
 
         // we put back the path.logs so we can use it in the logging configuration file
-        output.put("path.logs", cleanPath(environment.logsFile().toAbsolutePath().toString()));
+        output.put(Environment.PATH_LOGS_SETTING.getKey(), cleanPath(environment.logsFile().toAbsolutePath().toString()));
 
         return new Environment(output.build());
     }
 
-    static void applyCrateDefaults(Settings.Builder settingsBuilder) {
+    private static void applyCrateDefaults(Settings.Builder settingsBuilder) {
         // read also from crate.yml by default if no other config path has been set
         // if there is also a elasticsearch.yml file this file will be read first and the settings in crate.yml
         // will overwrite them.
@@ -80,7 +85,7 @@ public class CrateSettingsPreparer {
         putIfAbsent(settingsBuilder, "network.host", "0.0.0.0");
 
         // Set the default cluster name if not explicitly defined
-        if (settingsBuilder.get(ClusterName.SETTING).equals(ClusterName.DEFAULT.value())) {
+        if (settingsBuilder.get(ClusterName.CLUSTER_NAME_SETTING.getKey()).equals(ClusterName.DEFAULT.value())) {
             settingsBuilder.put("cluster.name", "crate");
         }
     }

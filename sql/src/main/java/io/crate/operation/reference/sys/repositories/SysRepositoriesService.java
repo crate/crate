@@ -22,10 +22,10 @@
 package io.crate.operation.reference.sys.repositories;
 
 import org.elasticsearch.cluster.ClusterChangedEvent;
-import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.ClusterStateListener;
 import org.elasticsearch.cluster.metadata.RepositoriesMetaData;
 import org.elasticsearch.cluster.metadata.RepositoryMetaData;
+import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.component.AbstractLifecycleComponent;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
@@ -37,7 +37,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 @Singleton
-public class SysRepositoriesService extends AbstractLifecycleComponent<SysRepositoriesService> implements ClusterStateListener {
+public class SysRepositoriesService extends AbstractLifecycleComponent implements ClusterStateListener {
 
     private final ClusterService clusterService;
     private Map<String, SysRepository> repositoriesTable = new HashMap<>();

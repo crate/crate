@@ -31,7 +31,7 @@ import io.crate.core.collections.RowN;
 import io.crate.core.collections.RowNull;
 import io.crate.operation.projectors.*;
 import io.crate.planner.node.dql.join.JoinType;
-import org.elasticsearch.common.logging.ESLogger;
+import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.logging.Loggers;
 
 import java.util.Set;
@@ -141,7 +141,7 @@ import java.util.concurrent.atomic.AtomicReference;
  */
 public class NestedLoopOperation implements CompletionListenable {
 
-    private final static ESLogger LOGGER = Loggers.getLogger(NestedLoopOperation.class);
+    private final static Logger LOGGER = Loggers.getLogger(NestedLoopOperation.class);
     private final boolean traceEnabled = LOGGER.isTraceEnabled();
 
     private final CompletableFuture<Void> completionFuture = new CompletableFuture<>();

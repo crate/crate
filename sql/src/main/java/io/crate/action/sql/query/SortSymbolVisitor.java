@@ -43,7 +43,6 @@ import org.apache.lucene.search.SortField;
 import org.elasticsearch.index.fielddata.IndexFieldData;
 import org.elasticsearch.index.mapper.MappedFieldType;
 import org.elasticsearch.search.MultiValueMode;
-import org.elasticsearch.search.sort.SortParseElement;
 
 import java.io.IOException;
 import java.util.Collection;
@@ -53,6 +52,7 @@ import java.util.Map;
 public class SortSymbolVisitor extends SymbolVisitor<SortSymbolVisitor.SortSymbolContext, SortField> {
 
     private static final SortField SORT_SCORE_REVERSE = new SortField(null, SortField.Type.SCORE, true);
+    private static final SortField SORT_SCORE = new SortField(null, SortField.Type.SCORE);
 
     public static final Map<DataType, SortField.Type> LUCENE_TYPE_MAP = ImmutableMap.<DataType, SortField.Type>builder()
         .put(DataTypes.BOOLEAN, SortField.Type.LONG)
@@ -110,8 +110,7 @@ public class SortSymbolVisitor extends SymbolVisitor<SortSymbolVisitor.SortSymbo
     /**
      * generate a SortField from a Reference symbol.
      * <p>
-     * the implementation is similar to what {@link org.elasticsearch.search.sort.SortParseElement}
-     * does.
+     * the implementation is similar to how ES 2.4 SortParseElement worked
      */
     @Override
     public SortField visitReference(final Reference symbol, final SortSymbolContext context) {
@@ -120,11 +119,17 @@ public class SortSymbolVisitor extends SymbolVisitor<SortSymbolVisitor.SortSymbo
         // with the reference valueType.
         // this is why we use a custom comparator source with the same logic as ES
 
+        /**
+         * TODO:
+         * There is now {@link org.elasticsearch.search.sort.SortFieldAndFormat}, maybe that can be used.
+         * See {@link org.elasticsearch.search.sort.ScoreSortBuilder}
+         */
+
         ColumnIdent columnIdent = symbol.ident().columnIdent();
 
         if (columnIdent.isColumn()) {
-            if (SortParseElement.SCORE_FIELD_NAME.equals(columnIdent.name())) {
-                return !context.reverseFlag ? SORT_SCORE_REVERSE : SortParseElement.SORT_SCORE;
+            if (DocSysColumns.SCORE.equals(columnIdent)) {
+                return !context.reverseFlag ? SORT_SCORE_REVERSE : SORT_SCORE;
             } else if (DocSysColumns.RAW.equals(columnIdent) || DocSysColumns.ID.equals(columnIdent)) {
                 return customSortField(DocSysColumns.nameForLucene(columnIdent), symbol, context,
                     LUCENE_TYPE_MAP.get(symbol.valueType()), false);
@@ -140,7 +145,7 @@ public class SortSymbolVisitor extends SymbolVisitor<SortSymbolVisitor.SortSymbo
             indexName = columnIdent.fqn();
             fieldComparatorSource = new NullFieldComparatorSource(LUCENE_TYPE_MAP.get(symbol.valueType()), context.reverseFlag, context.nullFirst);
         } else {
-            indexName = fieldType.names().indexName();
+            indexName = fieldType.name();
             fieldComparatorSource = context.context.fieldData()
                 .getForField(fieldType)
                 .comparatorSource(SortOrder.missing(context.reverseFlag, context.nullFirst), sortMode, null);

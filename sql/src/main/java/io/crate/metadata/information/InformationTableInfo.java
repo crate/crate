@@ -25,7 +25,7 @@ import com.google.common.collect.ImmutableList;
 import io.crate.analyze.WhereClause;
 import io.crate.metadata.*;
 import io.crate.metadata.table.StaticTableInfo;
-import org.elasticsearch.cluster.ClusterService;
+import org.elasticsearch.cluster.service.ClusterService;
 
 import javax.annotation.Nullable;
 import java.util.Map;

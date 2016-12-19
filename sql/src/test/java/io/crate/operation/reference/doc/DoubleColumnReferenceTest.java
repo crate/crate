@@ -23,16 +23,16 @@ package io.crate.operation.reference.doc;
 
 import io.crate.operation.reference.doc.lucene.DoubleColumnReference;
 import org.apache.lucene.document.Document;
-import org.apache.lucene.document.DoubleField;
 import org.apache.lucene.document.Field;
+import org.apache.lucene.document.LegacyDoubleField;
 import org.apache.lucene.document.StringField;
 import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.MatchAllDocsQuery;
 import org.apache.lucene.search.ScoreDoc;
 import org.apache.lucene.search.TopDocs;
+import org.elasticsearch.index.mapper.LegacyDoubleFieldMapper;
 import org.elasticsearch.index.mapper.MappedFieldType;
-import org.elasticsearch.index.mapper.core.DoubleFieldMapper;
 import org.junit.Test;
 
 import static org.hamcrest.core.Is.is;
@@ -46,15 +46,15 @@ public class DoubleColumnReferenceTest extends DocLevelExpressionsTest {
         for (double d = 0.5; d < 10.0d; d++) {
             Document doc = new Document();
             doc.add(new StringField("_id", Double.toString(d), Field.Store.NO));
-            doc.add(new DoubleField(column, d, Field.Store.NO));
+            doc.add(new LegacyDoubleField(column, d, Field.Store.NO));
             writer.addDocument(doc);
         }
     }
 
     @Test
     public void testFieldCacheExpression() throws Exception {
-        MappedFieldType fieldType = DoubleFieldMapper.Defaults.FIELD_TYPE.clone();
-        fieldType.setNames(new MappedFieldType.Names("d"));
+        MappedFieldType fieldType = LegacyDoubleFieldMapper.Defaults.FIELD_TYPE.clone();
+        fieldType.setName(column);
         DoubleColumnReference doubleColumn = new DoubleColumnReference(column, fieldType);
         doubleColumn.startCollect(ctx);
         doubleColumn.setNextReader(readerContext);

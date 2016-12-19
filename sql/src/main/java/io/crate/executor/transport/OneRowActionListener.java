@@ -60,4 +60,9 @@ public class OneRowActionListener<Response> implements ActionListener<Response>,
             onFailure(t);
         }
     }
+
+    @Override
+    public void onFailure(Exception e) {
+        rowReceiver.fail(e);
+    }
 }

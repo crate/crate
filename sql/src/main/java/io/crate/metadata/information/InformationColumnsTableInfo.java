@@ -31,7 +31,7 @@ import io.crate.metadata.TableIdent;
 import io.crate.metadata.table.ColumnPolicy;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
-import org.elasticsearch.cluster.ClusterService;
+import org.elasticsearch.cluster.service.ClusterService;
 
 public class InformationColumnsTableInfo extends InformationTableInfo {
 

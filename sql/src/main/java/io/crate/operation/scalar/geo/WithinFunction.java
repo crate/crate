@@ -23,9 +23,6 @@ package io.crate.operation.scalar.geo;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
-import com.spatial4j.core.context.SpatialContext;
-import com.spatial4j.core.shape.Shape;
-import com.spatial4j.core.shape.SpatialRelation;
 import io.crate.analyze.symbol.Function;
 import io.crate.analyze.symbol.Literal;
 import io.crate.analyze.symbol.Symbol;
@@ -40,6 +37,9 @@ import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.lucene.BytesRefs;
+import org.locationtech.spatial4j.context.SpatialContext;
+import org.locationtech.spatial4j.shape.Shape;
+import org.locationtech.spatial4j.shape.SpatialRelation;
 
 import java.util.Arrays;
 import java.util.List;
