@@ -254,17 +254,24 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                                            ShardUpsertRequest request,
                                            ShardUpsertRequest.Item item,
                                            IndexShard indexShard) throws ElasticsearchException {
-        final GetResult getResult = indexShard.getService().get(request.type(), item.id(),
+        final GetResult getResult = indexShard.getService().get(
+            request.type(),
+            item.id(),
             new String[]{RoutingFieldMapper.NAME, ParentFieldMapper.NAME, TTLFieldMapper.NAME},
-            true, Versions.MATCH_ANY, VersionType.INTERNAL, FetchSourceContext.FETCH_SOURCE, false);
+            true,
+            Versions.MATCH_ANY,
+            VersionType.INTERNAL,
+            FetchSourceContext.FETCH_SOURCE,
+            false
+        );
 
         if (!getResult.isExists()) {
-            throw new DocumentMissingException(new ShardId(request.index(), request.shardId().id()), request.type(), item.id());
+            throw new DocumentMissingException(request.shardId(), request.type(), item.id());
         }
 
         if (getResult.internalSourceRef() == null) {
             // no source, we can't do nothing, through a failure...
-            throw new DocumentSourceMissingException(new ShardId(request.index(), request.shardId().id()), request.type(), item.id());
+            throw new DocumentSourceMissingException(request.shardId(), request.type(), item.id());
         }
 
         if (item.version() != Versions.MATCH_ANY && item.version() != getResult.getVersion()) {
