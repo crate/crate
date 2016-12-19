@@ -86,7 +86,7 @@ public class NodeStatsContextFieldResolver {
     }
 
     public NodeStatsContext forColumns(Collection<ColumnIdent> columns) {
-        NodeStatsContext context = NodeStatsContext.newInstance();
+        NodeStatsContext context = new NodeStatsContext(true);
         if (columns.isEmpty()) {
             return context;
         }

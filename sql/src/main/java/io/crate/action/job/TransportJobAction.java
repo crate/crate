@@ -45,7 +45,7 @@ import java.util.List;
 public class TransportJobAction implements NodeAction<JobRequest, JobResponse> {
 
     public static final String ACTION_NAME = "crate/sql/job";
-    private static final String EXECUTOR = ThreadPool.Names.PERCOLATE;
+    private static final String EXECUTOR = ThreadPool.Names.SEARCH;
 
     private final IndicesService indicesService;
     private final Transports transports;
@@ -62,8 +62,9 @@ public class TransportJobAction implements NodeAction<JobRequest, JobResponse> {
         this.transports = transports;
         this.jobContextService = jobContextService;
         this.contextPreparer = contextPreparer;
-        transportService.registerRequestHandler(ACTION_NAME,
-            JobRequest.class,
+        transportService.registerRequestHandler(
+            ACTION_NAME,
+            JobRequest::new,
             EXECUTOR,
             new NodeActionRequestHandler<JobRequest, JobResponse>(this) {});
     }
@@ -90,7 +91,7 @@ public class TransportJobAction implements NodeAction<JobRequest, JobResponse> {
             JobExecutionContext context = jobContextService.createContext(contextBuilder);
             context.start();
         } catch (Throwable t) {
-            actionListener.onFailure(t);
+            actionListener.onFailure((Exception) t);
             return;
         }
 
@@ -105,7 +106,7 @@ public class TransportJobAction implements NodeAction<JobRequest, JobResponse> {
 
                 @Override
                 public void onFailure(@Nonnull Throwable t) {
-                    actionListener.onFailure(t);
+                    actionListener.onFailure((Exception) t);
                 }
             });
         }

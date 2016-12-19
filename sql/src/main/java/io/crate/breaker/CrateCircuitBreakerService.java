@@ -29,7 +29,6 @@ import org.elasticsearch.indices.breaker.AllCircuitBreakerStats;
 import org.elasticsearch.indices.breaker.BreakerSettings;
 import org.elasticsearch.indices.breaker.CircuitBreakerService;
 import org.elasticsearch.indices.breaker.CircuitBreakerStats;
-import org.elasticsearch.node.settings.NodeSettingsService;
 
 import java.util.Locale;
 
@@ -52,7 +51,6 @@ public class CrateCircuitBreakerService extends CircuitBreakerService {
 
     @Inject
     public CrateCircuitBreakerService(Settings settings,
-                                      NodeSettingsService nodeSettingsService,
                                       CircuitBreakerService esCircuitBreakerService) {
         super(settings);
         this.esCircuitBreakerService = esCircuitBreakerService;
@@ -70,7 +68,7 @@ public class CrateCircuitBreakerService extends CircuitBreakerService {
                     DEFAULT_QUERY_CIRCUIT_BREAKER_TYPE)));
 
         registerBreaker(queryBreakerSettings);
-        nodeSettingsService.addListener(new ApplySettings());
+        //nodeSettingsService.addListener(new ApplySettings());
     }
 
     @Override
@@ -97,34 +95,4 @@ public class CrateCircuitBreakerService extends CircuitBreakerService {
         return String.format(Locale.ENGLISH, BREAKING_EXCEPTION_MESSAGE, label,
             limit, new ByteSizeValue(limit));
     }
-
-    public class ApplySettings implements NodeSettingsService.Listener {
-
-        @Override
-        public void onRefreshSettings(Settings settings) {
-
-            // Query breaker settings
-            long newQueryMax = settings.getAsMemory(
-                QUERY_CIRCUIT_BREAKER_LIMIT_SETTING,
-                CrateCircuitBreakerService.this.settings.getAsMemory(
-                    QUERY_CIRCUIT_BREAKER_LIMIT_SETTING,
-                    DEFAULT_QUERY_CIRCUIT_BREAKER_LIMIT
-                ).toString()).getBytes();
-            Double newQueryOverhead = settings.getAsDouble(
-                QUERY_CIRCUIT_BREAKER_OVERHEAD_SETTING,
-                CrateCircuitBreakerService.this.settings.getAsDouble(
-                    QUERY_CIRCUIT_BREAKER_OVERHEAD_SETTING,
-                    DEFAULT_QUERY_CIRCUIT_BREAKER_OVERHEAD_CONSTANT
-                ));
-            if (newQueryMax != CrateCircuitBreakerService.this.queryBreakerSettings.getLimit()
-                || newQueryOverhead != CrateCircuitBreakerService.this.queryBreakerSettings.getOverhead()) {
-
-                BreakerSettings newQuerySettings = new BreakerSettings(
-                    QUERY, newQueryMax, newQueryOverhead,
-                    CrateCircuitBreakerService.this.queryBreakerSettings.getType());
-                registerBreaker(newQuerySettings);
-            }
-        }
-    }
-
 }

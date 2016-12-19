@@ -26,17 +26,16 @@ import com.google.common.collect.ImmutableSet;
 import io.crate.Constants;
 import io.crate.exceptions.AnalyzerInvalidException;
 import io.crate.exceptions.AnalyzerUnknownException;
-import org.elasticsearch.cluster.ClusterService;
+import org.apache.logging.log4j.Logger;
+import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
-import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.settings.loader.JsonSettingsLoader;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentFactory;
-import org.elasticsearch.indices.analysis.IndicesAnalysisService;
 
 import java.io.IOException;
 import java.util.HashMap;
@@ -50,7 +49,7 @@ import java.util.Set;
 public class FulltextAnalyzerResolver {
 
     private final ClusterService clusterService;
-    private final IndicesAnalysisService indicesAnalysisService;
+    //private final IndicesAnalysisService indicesAnalysisService;
 
     // redefined list of extended analyzers not available outside of
     // a concrete index (see AnalyzerModule.ExtendedProcessor)
@@ -67,7 +66,7 @@ public class FulltextAnalyzerResolver {
     // used for saving the creation statement
     public static final String SQL_STATEMENT_KEY = "_sql_stmt";
 
-    private static final ESLogger logger = Loggers.getLogger(FulltextAnalyzerResolver.class);
+    private static final Logger logger = Loggers.getLogger(FulltextAnalyzerResolver.class);
 
 
     public enum CustomType {

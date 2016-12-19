@@ -32,7 +32,6 @@ import org.elasticsearch.cluster.routing.allocation.decider.Decision;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.node.settings.NodeSettingsService;
 
 import java.util.Map;
 import java.util.Set;
@@ -48,11 +47,9 @@ public class DecommissionAllocationDecider extends AllocationDecider {
     private DataAvailability dataAvailability; // set in onRefreshSettings in the CTOR
 
     @Inject
-    public DecommissionAllocationDecider(Settings settings, NodeSettingsService nodeSettingsService) {
+    public DecommissionAllocationDecider(Settings settings) {
         super(settings);
-        ApplySettings applySettings = new ApplySettings();
-        applySettings.onRefreshSettings(settings);
-        nodeSettingsService.addListener(applySettings);
+        //nodeSettingsService.addListener(applySettings);
     }
 
     @Override
@@ -85,14 +82,5 @@ public class DecommissionAllocationDecider extends AllocationDecider {
             return allocation.decision(Decision.NO, NAME, "node is being decommissioned");
         }
         return allocation.decision(Decision.YES, NAME, "node isn't decommissioned");
-    }
-
-    private class ApplySettings implements NodeSettingsService.Listener {
-        @Override
-        public void onRefreshSettings(Settings settings) {
-            Map<String, String> decommissionMap = settings.getByPrefix(DecommissioningService.DECOMMISSION_PREFIX).getAsMap();
-            decommissioningNodes = decommissionMap.keySet();
-            dataAvailability = DataAvailability.of(CrateSettings.GRACEFUL_STOP_MIN_AVAILABILITY.extract(settings));
-        }
     }
 }

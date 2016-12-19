@@ -161,7 +161,7 @@ public class BulkRetryCoordinator {
 
         @Override
         public void onFailure(Exception e) {
-            e = Exceptions.unwrap(e);
+            e = (Exception) Exceptions.unwrap(e);
             if (e instanceof EsRejectedExecutionException && operation.delay.hasNext()) {
                 threadPool.schedule(operation.delay.next(), ThreadPool.Names.SAME, new Runnable() {
                     @Override
