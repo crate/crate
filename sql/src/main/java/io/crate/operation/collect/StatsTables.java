@@ -30,9 +30,12 @@ import io.crate.operation.reference.sys.job.JobContext;
 import io.crate.operation.reference.sys.job.JobContextLog;
 import io.crate.operation.reference.sys.operation.OperationContext;
 import io.crate.operation.reference.sys.operation.OperationContextLog;
+import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.collect.Tuple;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
+import org.elasticsearch.common.settings.ClusterSettings;
+import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
 
 import javax.annotation.Nullable;
@@ -69,7 +72,6 @@ public class StatsTables {
     private final OperationsLogIterableGetter operationsLogIterableGetter;
     private final LongAdder activeRequests = new LongAdder();
 
-    protected final NodeSettingsService.Listener listener = new NodeSettingListener();
     private int initialOperationsLogSize;
     private int initialJobsLogSize;
     private boolean initialIsEnabled;
@@ -77,8 +79,20 @@ public class StatsTables {
     volatile int lastJobsLogSize;
     private volatile boolean lastIsEnabled;
 
+    private final static Setting<Integer> OPERATIONS_LOG_SIZE = Setting.intSetting(
+        "operations_log_size",
+        10_000,
+        0,
+        Integer.MAX_VALUE,
+        Setting.Property.NodeScope,
+        Setting.Property.Dynamic
+    );
+
     @Inject
-    public StatsTables(Settings settings, NodeSettingsService nodeSettingsService) {
+    public StatsTables(Settings settings, ClusterService clusterService) {
+        ClusterSettings clusterSettings = clusterService.getClusterSettings();
+
+
         int operationsLogSize = CrateSettings.STATS_OPERATIONS_LOG_SIZE.extract(settings);
         int jobsLogSize = CrateSettings.STATS_JOBS_LOG_SIZE.extract(settings);
         boolean isEnabled = CrateSettings.STATS_ENABLED.extract(settings);
@@ -98,7 +112,8 @@ public class StatsTables {
         lastJobsLogSize = jobsLogSize;
         lastIsEnabled = isEnabled;
 
-        nodeSettingsService.addListener(listener);
+        clusterSettings.addSettingsUpdateConsumer(OPERATIONS_LOG_SIZE, this::setOperationsLog);
+
         jobsLogIterableGetter = new JobsLogIterableGetter();
         jobsIterableGetter = new JobsIterableGetter();
         operationsIterableGetter = new OperationsIterableGetter();
@@ -259,6 +274,7 @@ public class StatsTables {
         }
     }
 
+    /*
     private class NodeSettingListener implements NodeSettingsService.Listener {
 
         @Override
@@ -300,6 +316,7 @@ public class StatsTables {
             }
         }
     }
+    */
 
     private Integer extractJobsLogSize(Settings settings) {
         return CrateSettings.STATS_JOBS_LOG_SIZE.extract(settings, initialJobsLogSize);

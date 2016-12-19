@@ -32,7 +32,6 @@ import io.crate.executor.transport.NodeActionRequestHandler;
 import io.crate.jobs.JobContextService;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.cluster.node.DiscoveryNode;
-import org.elasticsearch.cluster.node.DiscoveryNodes;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.component.AbstractComponent;
 import org.elasticsearch.common.settings.Settings;
@@ -88,7 +87,7 @@ abstract class TransportKillNodeAction<Request extends TransportRequest> extends
 
             @Override
             public void onFailure(@Nonnull Throwable t) {
-                listener.onFailure(t);
+                listener.onFailure((Exception) t);
             }
         });
     }

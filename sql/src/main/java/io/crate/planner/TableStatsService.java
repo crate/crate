@@ -41,7 +41,6 @@ import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.lucene.BytesRefs;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.TimeValue;
-import org.elasticsearch.node.settings.NodeSettingsService;
 import org.elasticsearch.threadpool.ThreadPool;
 
 import javax.annotation.Nonnull;
@@ -50,7 +49,7 @@ import java.util.Collections;
 import java.util.List;
 
 @Singleton
-public class TableStatsService extends AbstractComponent implements NodeSettingsService.Listener, Runnable {
+public class TableStatsService extends AbstractComponent implements Runnable {
 
     static final String UNNAMED = "";
     static final int DEFAULT_SOFT_LIMIT = 10_000;
@@ -71,7 +70,6 @@ public class TableStatsService extends AbstractComponent implements NodeSettings
     public TableStatsService(Settings settings,
                              ThreadPool threadPool,
                              ClusterService clusterService,
-                             NodeSettingsService nodeSettingsService,
                              Provider<SQLOperations> sqlOperationsProvider) {
         super(settings);
         this.threadPool = threadPool;
@@ -80,7 +78,6 @@ public class TableStatsService extends AbstractComponent implements NodeSettings
         initialRefreshInterval = extractRefreshInterval(settings);
         lastRefreshInterval = initialRefreshInterval;
         refreshScheduledTask = scheduleRefresh(initialRefreshInterval);
-        nodeSettingsService.addListener(this);
     }
 
     @Override
@@ -154,18 +151,6 @@ public class TableStatsService extends AbstractComponent implements NodeSettings
             return stats.get(tableIdent);
         }
         return -1;
-    }
-
-    @Override
-    public void onRefreshSettings(Settings settings) {
-        TimeValue newRefreshInterval = extractRefreshInterval(settings);
-        if (!newRefreshInterval.equals(lastRefreshInterval)) {
-            if (refreshScheduledTask != null) {
-                refreshScheduledTask.cancel();
-            }
-            refreshScheduledTask = scheduleRefresh(newRefreshInterval);
-            lastRefreshInterval = newRefreshInterval;
-        }
     }
 
     private ThreadPool.Cancellable scheduleRefresh(TimeValue newRefreshInterval) {

@@ -65,10 +65,7 @@ import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.IndexNotFoundException;
 import org.elasticsearch.index.IndexService;
-import org.elasticsearch.index.shard.IllegalIndexShardStateException;
-import org.elasticsearch.index.shard.IndexShard;
-import org.elasticsearch.index.shard.ShardId;
-import org.elasticsearch.index.shard.ShardNotFoundException;
+import org.elasticsearch.index.shard.*;
 import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.threadpool.ThreadPool;
 
@@ -142,7 +139,6 @@ public class ShardCollectSource extends AbstractComponent implements CollectSour
                               RemoteCollectorFactory remoteCollectorFactory,
                               SystemCollectSource systemCollectSource,
                               NodeSysExpression nodeSysExpression,
-                              IndicesLifecycle indicesLifecycle,
                               BlobIndicesService blobIndicesService) {
         super(settings);
         this.luceneQueryBuilder = luceneQueryBuilder;
@@ -178,17 +174,17 @@ public class ShardCollectSource extends AbstractComponent implements CollectSour
             nodeNormalizer
         );
 
-        indicesLifecycle.addListener(new LifecycleListener());
+        //indicesLifecycle.addListener(new LifecycleListener());
     }
 
-    private class LifecycleListener extends IndicesLifecycle.Listener {
+    private class LifecycleListener implements IndexEventListener {
 
         @Override
         public void afterIndexShardCreated(IndexShard indexShard) {
             logger.debug("creating shard in {} {} {}", ShardCollectSource.this, indexShard.shardId(), shards.size());
             assert !shards.containsKey(indexShard.shardId()) : "shard entry already exists upon add";
             ShardCollectorProvider provider;
-            if (isBlobIndex(indexShard.shardId().getIndex())) {
+            if (isBlobIndex(indexShard.shardId().getIndexName())) {
                 BlobShard blobShard = blobIndicesService.blobShardSafe(indexShard.shardId());
                 provider = new BlobShardCollectorProvider(blobShard, clusterService, functions,
                     indexNameExpressionResolver, threadPool, settings, transportActionProvider, bulkRetryCoordinatorPool);
