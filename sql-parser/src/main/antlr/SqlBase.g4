@@ -23,7 +23,7 @@
 grammar SqlBase;
 
 singleStatement
-    : statement EOF
+    : statement SEMICOLON? EOF
     ;
 
 singleExpression
@@ -775,6 +775,7 @@ SLASH: '/';
 PERCENT: '%';
 CONCAT: '||';
 CAST_OPERATOR: '::';
+SEMICOLON: ';';
 
 STRING
     : '\'' ( ~'\'' | '\'\'' )* '\''

@@ -75,6 +75,11 @@ public class TestStatementBuilder {
     }
 
     @Test
+    public void testStmtWithSemicolonBuilder() {
+        printStatement("select 1;");
+    }
+
+    @Test
     public void testShowTablesStmtBuilder() {
         printStatement("show tables");
         printStatement("show tables like '.*'");

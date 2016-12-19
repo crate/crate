@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Allow semi-colon (;) in the end of simple SQL statements.
+
  - Enhanced performance optimisation of full joins by rewriting them to left,
    right or inner joins when conditions in ``WHERE`` exclude null values.
 

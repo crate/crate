@@ -553,10 +553,6 @@ class ConnectionContext {
             Messages.sendReadyForQuery(channel);
             return;
         }
-        // TODO: support multiple statements
-        if (query.endsWith(";")) {
-            query = query.substring(0, query.length() - 1);
-        }
         try {
             session.parse("", query, Collections.<DataType>emptyList());
             session.bind("", "", Collections.emptyList(), null);
