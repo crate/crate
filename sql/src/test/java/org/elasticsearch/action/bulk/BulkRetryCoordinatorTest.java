@@ -96,7 +96,7 @@ public class BulkRetryCoordinatorTest extends CrateUnitTest {
             }
 
             @Override
-            public void onFailure(Throwable e) {
+            public void onFailure(Exception e) {
             }
         });
 
@@ -124,7 +124,7 @@ public class BulkRetryCoordinatorTest extends CrateUnitTest {
             }
 
             @Override
-            public void onFailure(Throwable e) {
+            public void onFailure(Exception e) {
                 future.set(null);
             }
         });
@@ -159,7 +159,7 @@ public class BulkRetryCoordinatorTest extends CrateUnitTest {
                         }
 
                         @Override
-                        public void onFailure(Throwable e) {
+                        public void onFailure(Exception e) {
                         }
                     });
                 }

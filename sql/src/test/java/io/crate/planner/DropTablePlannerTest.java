@@ -28,7 +28,7 @@ import io.crate.planner.node.ddl.DropTablePlan;
 import io.crate.planner.node.ddl.GenericDDLPlan;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.testing.SQLExecutor;
-import org.elasticsearch.cluster.ClusterService;
+import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.test.cluster.NoopClusterService;
 import org.junit.Test;
 

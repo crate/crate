@@ -26,8 +26,8 @@ import com.google.common.base.Throwables;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.doc.DocSysColumns;
 import org.apache.lucene.util.BytesRef;
-import org.elasticsearch.common.Base64;
 import org.elasticsearch.common.Strings;
+import org.elasticsearch.common.UUIDs;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 
 import javax.annotation.Nonnull;
@@ -43,7 +43,7 @@ public class Id {
         @Nullable
         @Override
         public String apply(@Nullable List<BytesRef> input) {
-            return Strings.base64UUID();
+            return UUIDs.base64UUID();
         }
     };
 

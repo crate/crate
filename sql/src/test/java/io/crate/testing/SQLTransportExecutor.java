@@ -49,7 +49,7 @@ import org.elasticsearch.client.Requests;
 import org.elasticsearch.cluster.health.ClusterHealthStatus;
 import org.elasticsearch.common.Priority;
 import org.elasticsearch.common.io.stream.NotSerializableExceptionWrapper;
-import org.elasticsearch.common.logging.ESLogger;
+import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.common.xcontent.XContentBuilder;
@@ -80,7 +80,7 @@ public class SQLTransportExecutor {
     public static final TimeValue REQUEST_TIMEOUT = new TimeValue(Long.parseLong(
         MoreObjects.firstNonNull(System.getenv(SQL_REQUEST_TIMEOUT), "5")), TimeUnit.SECONDS);
 
-    private static final ESLogger LOGGER = Loggers.getLogger(SQLTransportExecutor.class);
+    private static final Logger LOGGER = Loggers.getLogger(SQLTransportExecutor.class);
     private final ClientProvider clientProvider;
 
     public SQLTransportExecutor(ClientProvider clientProvider) {
@@ -514,7 +514,7 @@ public class SQLTransportExecutor {
         }
 
         @Override
-        public void onFailure(Throwable e) {
+        public void onFailure(Exception e) {
             Throwable cause = ExceptionsHelper.unwrapCause(e);
             if (cause instanceof NotSerializableExceptionWrapper) {
                 NotSerializableExceptionWrapper wrapper = ((NotSerializableExceptionWrapper) cause);

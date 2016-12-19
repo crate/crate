@@ -26,11 +26,10 @@ import com.google.common.util.concurrent.UncheckedExecutionException;
 import io.crate.action.sql.SQLActionException;
 import io.crate.metadata.PartitionName;
 import io.crate.sql.parser.ParsingException;
-import org.elasticsearch.common.logging.ESLogger;
+import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.util.concurrent.UncategorizedExecutionException;
 import org.elasticsearch.index.IndexNotFoundException;
-import org.elasticsearch.index.engine.DocumentAlreadyExistsException;
 import org.elasticsearch.index.mapper.MapperParsingException;
 import org.elasticsearch.index.shard.IllegalIndexShardStateException;
 import org.elasticsearch.index.shard.ShardNotFoundException;
@@ -50,7 +49,7 @@ import java.util.concurrent.ExecutionException;
 
 public class Exceptions {
 
-    private final static ESLogger LOGGER = Loggers.getLogger(Exceptions.class);
+    private final static Logger LOGGER = Loggers.getLogger(Exceptions.class);
 
     public static Throwable unwrap(@Nonnull Throwable t) {
         int counter = 0;

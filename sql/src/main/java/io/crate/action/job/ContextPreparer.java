@@ -63,14 +63,14 @@ import io.crate.planner.node.dql.RoutedCollectPhase;
 import io.crate.planner.node.dql.join.NestedLoopPhase;
 import io.crate.planner.node.fetch.FetchPhase;
 import io.crate.types.DataTypes;
-import org.elasticsearch.cluster.ClusterService;
+import org.apache.logging.log4j.Logger;
+import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.breaker.CircuitBreaker;
 import org.elasticsearch.common.breaker.NoopCircuitBreaker;
 import org.elasticsearch.common.collect.Tuple;
 import org.elasticsearch.common.component.AbstractComponent;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
-import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.threadpool.ThreadPool;
@@ -86,8 +86,8 @@ import java.util.stream.Stream;
 public class ContextPreparer extends AbstractComponent {
 
     private final MapSideDataCollectOperation collectOperation;
-    private final ESLogger pageDownstreamContextLogger;
-    private final ESLogger nlContextLogger;
+    private final Logger pageDownstreamContextLogger;
+    private final Logger nlContextLogger;
     private final ClusterService clusterService;
     private final CountOperation countOperation;
     private final ThreadPool threadPool;
@@ -352,12 +352,12 @@ public class ContextPreparer extends AbstractComponent {
         private final List<ListenableFuture<Bucket>> directResponseFutures = new ArrayList<>();
         private final NodeOperationCtx opCtx;
         private final JobExecutionContext.Builder contextBuilder;
-        private final ESLogger logger;
+        private final Logger logger;
         private List<ExecutionPhase> leafs = new ArrayList<>();
 
         PreparerContext(String localNodeId,
                         JobExecutionContext.Builder contextBuilder,
-                        ESLogger logger,
+                        Logger logger,
                         DistributingDownstreamFactory distributingDownstreamFactory,
                         Iterable<? extends NodeOperation> nodeOperations,
                         @Nullable SharedShardContexts sharedShardContexts) {

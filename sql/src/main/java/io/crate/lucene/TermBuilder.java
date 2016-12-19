@@ -25,7 +25,7 @@ import io.crate.types.*;
 import org.apache.lucene.util.BytesRef;
 import org.apache.lucene.util.BytesRefBuilder;
 import org.apache.lucene.util.NumericUtils;
-import org.elasticsearch.index.mapper.core.BooleanFieldMapper.Values;
+import org.elasticsearch.index.mapper.BooleanFieldMapper;
 
 import java.util.Locale;
 
@@ -127,9 +127,9 @@ abstract class TermBuilder<T> {
         @Override
         public BytesRef term(Boolean value) {
             if (value == null) {
-                return Values.FALSE;
+                return BooleanFieldMapper.Values.FALSE;
             }
-            return value ? Values.TRUE : Values.FALSE;
+            return value ? BooleanFieldMapper.Values.TRUE : BooleanFieldMapper.Values.FALSE;
         }
     }
 

@@ -26,7 +26,7 @@ import com.google.common.collect.ImmutableList;
 import io.crate.metadata.settings.CrateSettings;
 import io.crate.operation.reference.sys.check.SysCheck;
 import io.crate.test.integration.CrateUnitTest;
-import org.elasticsearch.cluster.ClusterService;
+import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.monitor.fs.FsInfo;

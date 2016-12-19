@@ -40,7 +40,7 @@ import org.elasticsearch.action.admin.cluster.snapshots.restore.RestoreSnapshotR
 import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
-import org.elasticsearch.common.logging.ESLogger;
+import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.snapshots.SnapshotInfo;
 import org.elasticsearch.snapshots.SnapshotState;
@@ -52,7 +52,7 @@ import static io.crate.analyze.SnapshotSettings.WAIT_FOR_COMPLETION;
 @Singleton
 public class SnapshotRestoreDDLDispatcher {
 
-    private static final ESLogger LOGGER = Loggers.getLogger(SnapshotRestoreDDLDispatcher.class);
+    private static final Logger LOGGER = Loggers.getLogger(SnapshotRestoreDDLDispatcher.class);
     private final TransportActionProvider transportActionProvider;
 
     @Inject
@@ -77,7 +77,7 @@ public class SnapshotRestoreDDLDispatcher {
                 }
 
                 @Override
-                public void onFailure(Throwable e) {
+                public void onFailure(Exception e) {
                     future.setException(e);
                 }
             }
@@ -125,7 +125,7 @@ public class SnapshotRestoreDDLDispatcher {
             }
 
             @Override
-            public void onFailure(Throwable e) {
+            public void onFailure(Exception e) {
                 resultFuture.setException(e);
             }
         });

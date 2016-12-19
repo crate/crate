@@ -106,7 +106,7 @@ public class NodeStatsCollector implements CrateCollector {
                 }
 
                 @Override
-                public void onFailure(Throwable t) {
+                public void onFailure(Exception t) {
                     if (t instanceof ReceiveTimeoutTransportException) {
                         rows.add(new NodeStatsContext(nodeId, node.name()));
                         if (remainingRequests.decrementAndGet() == 0) {

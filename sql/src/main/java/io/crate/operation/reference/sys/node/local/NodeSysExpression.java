@@ -27,7 +27,7 @@ import io.crate.metadata.sys.SysNodesTableInfo;
 import io.crate.monitor.ExtendedNodeInfo;
 import io.crate.operation.reference.NestedObjectExpression;
 import io.crate.operation.reference.sys.node.local.fs.NodeFsExpression;
-import org.elasticsearch.cluster.ClusterService;
+import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.discovery.Discovery;
 import org.elasticsearch.monitor.jvm.JvmService;

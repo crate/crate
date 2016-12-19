@@ -43,7 +43,7 @@ import org.elasticsearch.action.bulk.BulkResponse;
 import org.elasticsearch.action.index.IndexRequest;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.common.bytes.BytesArray;
-import org.elasticsearch.common.logging.ESLogger;
+import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.xcontent.XContentFactory;
 import org.elasticsearch.test.ESIntegTestCase;
@@ -79,7 +79,7 @@ public class LuceneDocCollectorBenchmark extends SQLTransportIntegrationTest {
     public static final int BENCHMARK_ROUNDS = 100;
     public static final int WARMUP_ROUNDS = 10;
 
-    public final static ESLogger logger = Loggers.getLogger(LuceneDocCollectorBenchmark.class);
+    public final static Logger logger = Loggers.getLogger(LuceneDocCollectorBenchmark.class);
     private CollectingRowReceiver collectingRowReceiver = new CollectingRowReceiver();
     private LuceneDocCollectorProvider collectorProvider;
 

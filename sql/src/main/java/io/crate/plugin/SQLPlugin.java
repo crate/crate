@@ -62,14 +62,12 @@ import io.crate.rest.action.RestSQLAction;
 import org.elasticsearch.action.bulk.BulkModule;
 import org.elasticsearch.action.bulk.BulkRetryCoordinatorPool;
 import org.elasticsearch.cluster.ClusterModule;
-import org.elasticsearch.cluster.settings.Validator;
 import org.elasticsearch.common.component.LifecycleComponent;
 import org.elasticsearch.common.inject.Module;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.mapper.ArrayMapper;
 import org.elasticsearch.indices.IndicesModule;
 import org.elasticsearch.plugins.Plugin;
-import org.elasticsearch.rest.RestModule;
 
 import java.util.Collection;
 
@@ -85,7 +83,7 @@ public class SQLPlugin extends Plugin {
 
     @Override
     public Settings additionalSettings() {
-        Settings.Builder settingsBuilder = Settings.settingsBuilder();
+        Settings.Builder settingsBuilder = Settings.builder();
 
         // Set default analyzer
         settingsBuilder.put("index.analysis.analyzer.default.type", "keyword");

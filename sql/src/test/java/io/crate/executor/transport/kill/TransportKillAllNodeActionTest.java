@@ -57,7 +57,7 @@ public class TransportKillAllNodeActionTest {
             }
 
             @Override
-            public void onFailure(Throwable throwable) {
+            public void onFailure(Exception throwable) {
                 latch.countDown();
             }
         });

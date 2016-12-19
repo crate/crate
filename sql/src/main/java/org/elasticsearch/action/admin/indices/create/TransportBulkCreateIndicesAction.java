@@ -33,7 +33,9 @@ import org.elasticsearch.Version;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.support.ActionFilters;
 import org.elasticsearch.action.support.master.TransportMasterNodeAction;
-import org.elasticsearch.cluster.*;
+import org.elasticsearch.cluster.AckedClusterStateUpdateTask;
+import org.elasticsearch.cluster.ClusterState;
+import org.elasticsearch.cluster.ClusterStateTaskExecutor;
 import org.elasticsearch.cluster.ack.ClusterStateUpdateResponse;
 import org.elasticsearch.cluster.block.ClusterBlockException;
 import org.elasticsearch.cluster.block.ClusterBlockLevel;
@@ -42,8 +44,9 @@ import org.elasticsearch.cluster.node.DiscoveryNodes;
 import org.elasticsearch.cluster.routing.RoutingTable;
 import org.elasticsearch.cluster.routing.allocation.AllocationService;
 import org.elasticsearch.cluster.routing.allocation.RoutingAllocation;
+import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.Priority;
-import org.elasticsearch.common.Strings;
+import org.elasticsearch.common.UUIDs;
 import org.elasticsearch.common.compress.CompressedXContent;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
@@ -59,7 +62,6 @@ import org.elasticsearch.index.IndexService;
 import org.elasticsearch.index.mapper.DocumentMapper;
 import org.elasticsearch.index.mapper.MapperParsingException;
 import org.elasticsearch.index.mapper.MapperService;
-import org.elasticsearch.index.query.IndexQueryParserService;
 import org.elasticsearch.indices.IndexAlreadyExistsException;
 import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.threadpool.ThreadPool;
@@ -71,7 +73,6 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.util.*;
 
-import static org.elasticsearch.common.settings.Settings.settingsBuilder;
 
 /**
  * creates one or more indices within one cluster-state-update-task
@@ -128,7 +129,7 @@ public class TransportBulkCreateIndicesAction
                                             Set<IndexTemplateFilter> indexTemplateFilters,
                                             IndexNameExpressionResolver indexNameExpressionResolver,
                                             ActionFilters actionFilters) {
-        super(settings, NAME, transportService, clusterService, threadPool, actionFilters, indexNameExpressionResolver, BulkCreateIndicesRequest.class);
+        super(settings, NAME, transportService, clusterService, threadPool, actionFilters, indexNameExpressionResolver, BulkCreateIndicesRequest::new);
         this.environment = environment;
         this.aliasValidator = aliasValidator;
         this.version = version;
@@ -176,7 +177,7 @@ public class TransportBulkCreateIndicesAction
             }
 
             @Override
-            public void onFailure(Throwable e) {
+            public void onFailure(Exception e) {
                 listener.onFailure(e);
             }
         };
@@ -354,7 +355,7 @@ public class TransportBulkCreateIndicesAction
     }
 
     private Settings createIndexSettings(ClusterState currentState, List<IndexTemplateMetaData> templates) {
-        Settings.Builder indexSettingsBuilder = settingsBuilder();
+        Settings.Builder indexSettingsBuilder = Settings.builder();
         // apply templates, here, in reverse order, since first ones are better matching
         for (int i = templates.size() - 1; i >= 0; i--) {
             indexSettingsBuilder.put(templates.get(i).settings());
@@ -383,7 +384,7 @@ public class TransportBulkCreateIndicesAction
             indexSettingsBuilder.put(IndexMetaData.SETTING_CREATION_DATE, System.currentTimeMillis());
         }
 
-        indexSettingsBuilder.put(IndexMetaData.SETTING_INDEX_UUID, Strings.randomBase64UUID());
+        indexSettingsBuilder.put(IndexMetaData.SETTING_INDEX_UUID, UUIDs.randomBase64UUID());
 
         return indexSettingsBuilder.build();
     }

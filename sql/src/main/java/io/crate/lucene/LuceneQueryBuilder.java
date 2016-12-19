@@ -25,9 +25,6 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
-import com.spatial4j.core.context.jts.JtsSpatialContext;
-import com.spatial4j.core.shape.Rectangle;
-import com.spatial4j.core.shape.Shape;
 import com.vividsolutions.jts.geom.Coordinate;
 import com.vividsolutions.jts.geom.Geometry;
 import io.crate.Constants;
@@ -64,15 +61,14 @@ import io.crate.operation.scalar.geo.WithinFunction;
 import io.crate.types.CollectionType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
+import org.apache.logging.log4j.Logger;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.queries.TermsQuery;
 import org.apache.lucene.search.*;
 import org.apache.lucene.spatial.geopoint.document.GeoPointField;
-import org.apache.lucene.spatial.geopoint.search.GeoPointDistanceRangeQuery;
 import org.apache.lucene.spatial.prefix.PrefixTreeStrategy;
 import org.apache.lucene.spatial.query.SpatialArgs;
 import org.apache.lucene.spatial.query.SpatialOperation;
-import org.apache.lucene.spatial.util.GeoDistanceUtils;
 import org.apache.lucene.util.BytesRef;
 import org.apache.lucene.util.automaton.RegExp;
 import org.elasticsearch.ExceptionsHelper;
@@ -85,33 +81,30 @@ import org.elasticsearch.common.geo.GeoUtils;
 import org.elasticsearch.common.geo.ShapeRelation;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
-import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.lucene.BytesRefs;
 import org.elasticsearch.common.lucene.search.Queries;
 import org.elasticsearch.index.cache.IndexCache;
 import org.elasticsearch.index.fielddata.IndexFieldDataService;
 import org.elasticsearch.index.fielddata.IndexGeoPointFieldData;
-import org.elasticsearch.index.mapper.MappedFieldType;
-import org.elasticsearch.index.mapper.MapperService;
-import org.elasticsearch.index.mapper.Uid;
-import org.elasticsearch.index.mapper.geo.GeoPointFieldMapper;
-import org.elasticsearch.index.mapper.geo.GeoShapeFieldMapper;
+import org.elasticsearch.index.mapper.*;
 import org.elasticsearch.index.query.RegexpFlag;
 import org.elasticsearch.index.search.geo.GeoDistanceRangeQuery;
 import org.elasticsearch.index.search.geo.GeoPolygonQuery;
-import org.elasticsearch.index.search.geo.InMemoryGeoBoundingBoxQuery;
+import org.locationtech.spatial4j.context.jts.JtsSpatialContext;
+import org.locationtech.spatial4j.shape.Rectangle;
+import org.locationtech.spatial4j.shape.Shape;
 
 import java.io.IOException;
 import java.util.*;
 
 import static io.crate.operation.scalar.regex.RegexMatcher.isPcrePattern;
-import static org.apache.lucene.spatial.util.GeoEncodingUtils.TOLERANCE;
+import static org.elasticsearch.common.geo.GeoUtils.TOLERANCE;
 
 @Singleton
 public class LuceneQueryBuilder {
 
-    private static final ESLogger LOGGER = Loggers.getLogger(LuceneQueryBuilder.class);
+    private static final Logger LOGGER = Loggers.getLogger(LuceneQueryBuilder.class);
     private final static Visitor VISITOR = new Visitor();
     private final DocInputFactory docInputFactory;
 
@@ -126,7 +119,7 @@ public class LuceneQueryBuilder {
                            IndexCache indexCache) throws UnsupportedFeatureException {
         Context ctx = new Context(docInputFactory, mapperService, indexFieldDataService, indexCache);
         if (whereClause.noMatch()) {
-            ctx.query = Queries.newMatchNoDocsQuery();
+            ctx.query = Queries.newMatchNoDocsQuery("whereClause no-match");
         } else if (!whereClause.hasQuery()) {
             ctx.query = Queries.newMatchAllQuery();
         } else {
@@ -724,7 +717,7 @@ public class LuceneQueryBuilder {
 
                 Map fields = (Map) ((Literal) arguments.get(0)).value();
                 String fieldName = ((String) Iterables.getOnlyElement(fields.keySet()));
-                MappedFieldType fieldType = context.mapperService.smartNameFieldType(fieldName);
+                MappedFieldType fieldType = context.mapperService.unmappedFieldType(fieldName);
                 GeoShapeFieldMapper.GeoShapeFieldType geoShapeFieldType = (GeoShapeFieldMapper.GeoShapeFieldType) fieldType;
                 String matchType = ((BytesRef) ((Input) arguments.get(2)).value()).utf8ToString();
                 @SuppressWarnings("unchecked")
@@ -1051,7 +1044,7 @@ public class LuceneQueryBuilder {
                         return null;
                 }
 
-                final Version indexCreated = Version.indexCreated(context.indexCache.indexSettings());
+                final Version indexCreated = Version.indexCreated(context.indexCache.getIndexSettings().getSettings());
                 final Query query;
                 if (indexCreated.before(Version.V_2_3_0)) {
                     query = new GeoDistanceRangeQuery(
@@ -1073,7 +1066,7 @@ public class LuceneQueryBuilder {
                         to = GeoDistanceUtils.maxRadialDistanceMeters(geoPoint.lon(), geoPoint.lat());
                     }
                     query = new GeoPointDistanceRangeQuery(
-                        fieldData.getFieldNames().indexName(),
+                        fieldData.index().getName(),
                         GeoPointField.TermEncoding.PREFIX,
                         geoPoint.lon(), geoPoint.lat(),
                         (includeLower) ? from : from + TOLERANCE,
