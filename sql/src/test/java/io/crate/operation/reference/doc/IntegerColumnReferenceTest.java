@@ -24,15 +24,12 @@ package io.crate.operation.reference.doc;
 import io.crate.operation.reference.doc.lucene.IntegerColumnReference;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field;
-import org.apache.lucene.document.NumericDocValuesField;
 import org.apache.lucene.document.StringField;
 import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.MatchAllDocsQuery;
 import org.apache.lucene.search.ScoreDoc;
 import org.apache.lucene.search.TopDocs;
-import org.elasticsearch.index.fielddata.FieldDataType;
-import org.elasticsearch.index.mapper.MappedFieldType;
 import org.junit.Test;
 
 import static org.hamcrest.core.Is.is;
@@ -44,24 +41,19 @@ public class IntegerColumnReferenceTest extends DocLevelExpressionsTest {
         for (int i = -10; i < 10; i++) {
             Document doc = new Document();
             doc.add(new StringField("_id", Integer.toString(i), Field.Store.NO));
-            doc.add(new NumericDocValuesField(fieldName().indexName(), i));
+            doc.add(new NumericDocValuesField(fieldName(), i));
             writer.addDocument(doc);
         }
     }
 
     @Override
-    protected MappedFieldType.Names fieldName() {
-        return new MappedFieldType.Names("i");
-    }
-
-    @Override
-    protected FieldDataType fieldType() {
-        return new FieldDataType("int");
+    protected String fieldName() {
+        return "i";
     }
 
     @Test
     public void testIntegerExpression() throws Exception {
-        IntegerColumnReference integerColumn = new IntegerColumnReference(fieldName().indexName());
+        IntegerColumnReference integerColumn = new IntegerColumnReference(fieldName());
         integerColumn.startCollect(ctx);
         integerColumn.setNextReader(readerContext);
         IndexSearcher searcher = new IndexSearcher(readerContext.reader());

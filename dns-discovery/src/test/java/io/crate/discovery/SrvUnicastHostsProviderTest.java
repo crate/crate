@@ -22,7 +22,6 @@
 
 package io.crate.discovery;
 
-import org.elasticsearch.Version;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.transport.LocalTransportAddress;
@@ -47,8 +46,8 @@ public class SrvUnicastHostsProviderTest {
 
     abstract class DummySrvUnicastHostsProvider extends SrvUnicastHostsProvider {
 
-        public DummySrvUnicastHostsProvider(Settings settings, TransportService transportService, Version version) {
-            super(settings, transportService, version);
+        public DummySrvUnicastHostsProvider(Settings settings, TransportService transportService) {
+            super(settings, transportService);
         }
 
         @Override
@@ -70,47 +69,42 @@ public class SrvUnicastHostsProviderTest {
 
     @Test
     public void testInvalidResolver() throws Exception {
-        Settings.Builder builder = Settings.settingsBuilder()
-            .put(SrvUnicastHostsProvider.DISCOVERY_SRV_RESOLVER, "foobar.txt")
-            .put(SrvUnicastHostsProvider.DISCOVERY_SRV_QUERY, "_crate._srv.foo.txt");
-        SrvUnicastHostsProvider unicastHostsProvider = new SrvUnicastHostsProvider(builder.build(),
-            transportService, Version.CURRENT);
+        Settings.Builder builder = Settings.builder()
+            .put(SrvUnicastHostsProvider.DISCOVERY_SRV_RESOLVER.getKey(), "foobar.txt")
+            .put(SrvUnicastHostsProvider.DISCOVERY_SRV_QUERY.getKey(), "_crate._srv.foo.txt");
+        SrvUnicastHostsProvider unicastHostsProvider = new SrvUnicastHostsProvider(builder.build(), transportService);
         assertNull(unicastHostsProvider.resolver);
         assertNull(unicastHostsProvider.lookupRecords());
     }
 
     @Test
     public void testValidResolver() throws Exception {
-        Settings.Builder builder = Settings.settingsBuilder()
-            .put(SrvUnicastHostsProvider.DISCOVERY_SRV_RESOLVER, "8.8.4.4");
-        SrvUnicastHostsProvider unicastHostsProvider = new SrvUnicastHostsProvider(builder.build(),
-            transportService, Version.CURRENT);
+        Settings.Builder builder = Settings.builder()
+            .put(SrvUnicastHostsProvider.DISCOVERY_SRV_RESOLVER.getKey(), "8.8.4.4");
+        SrvUnicastHostsProvider unicastHostsProvider = new SrvUnicastHostsProvider(builder.build(), transportService);
         assertEquals("/8.8.4.4:53", ((SimpleResolver) unicastHostsProvider.resolver).getAddress().toString());
     }
 
     @Test
     public void testValidResolverWithPort() throws Exception {
-        Settings.Builder builder = Settings.settingsBuilder()
-            .put(SrvUnicastHostsProvider.DISCOVERY_SRV_RESOLVER, "127.0.0.1:5353");
-        SrvUnicastHostsProvider unicastHostsProvider = new SrvUnicastHostsProvider(builder.build(),
-            transportService, Version.CURRENT);
+        Settings.Builder builder = Settings.builder()
+            .put(SrvUnicastHostsProvider.DISCOVERY_SRV_RESOLVER.getKey(), "127.0.0.1:5353");
+        SrvUnicastHostsProvider unicastHostsProvider = new SrvUnicastHostsProvider(builder.build(), transportService);
         assertEquals("/127.0.0.1:5353", ((SimpleResolver) unicastHostsProvider.resolver).getAddress().toString());
     }
 
     @Test
     public void testValidResolverWithInvalidPort() throws Exception {
-        Settings.Builder builder = Settings.settingsBuilder()
-            .put(SrvUnicastHostsProvider.DISCOVERY_SRV_RESOLVER, "127.0.0.1:42a");
-        SrvUnicastHostsProvider unicastHostsProvider = new SrvUnicastHostsProvider(builder.build(),
-            transportService, Version.CURRENT);
+        Settings.Builder builder = Settings.builder()
+            .put(SrvUnicastHostsProvider.DISCOVERY_SRV_RESOLVER.getKey(), "127.0.0.1:42a");
+        SrvUnicastHostsProvider unicastHostsProvider = new SrvUnicastHostsProvider(builder.build(), transportService);
         assertEquals("/127.0.0.1:53", ((SimpleResolver) unicastHostsProvider.resolver).getAddress().toString());
     }
 
     @Test
     public void testBuildDynamicNodesNoQuery() throws Exception {
         // no query -> empty list of discovery nodes
-        SrvUnicastHostsProvider unicastHostsProvider = new SrvUnicastHostsProvider(Settings.EMPTY,
-            transportService, Version.CURRENT);
+        SrvUnicastHostsProvider unicastHostsProvider = new SrvUnicastHostsProvider(Settings.EMPTY, transportService);
         List<DiscoveryNode> discoNodes = unicastHostsProvider.buildDynamicNodes();
         assertTrue(discoNodes.isEmpty());
     }
@@ -118,10 +112,9 @@ public class SrvUnicastHostsProviderTest {
     @Test
     public void testBuildDynamicNoRecords() throws Exception {
         // no records -> empty list of discovery nodes
-        Settings.Builder builder = Settings.settingsBuilder()
-            .put(SrvUnicastHostsProvider.DISCOVERY_SRV_QUERY, "_crate._srv.crate.internal");
-        SrvUnicastHostsProvider unicastHostsProvider = new DummySrvUnicastHostsProvider(builder.build(),
-            transportService, Version.CURRENT) {
+        Settings.Builder builder = Settings.builder()
+            .put(SrvUnicastHostsProvider.DISCOVERY_SRV_QUERY.getKey(), "_crate._srv.crate.internal");
+        SrvUnicastHostsProvider unicastHostsProvider = new DummySrvUnicastHostsProvider(builder.build(), transportService) {
             @Override
             protected Record[] lookupRecords() throws TextParseException {
                 return null;
@@ -134,10 +127,9 @@ public class SrvUnicastHostsProviderTest {
     @Test
     public void testBuildDynamicNodes() throws Exception {
         // records
-        Settings.Builder builder = Settings.settingsBuilder()
+        Settings.Builder builder = Settings.builder()
             .put(SrvUnicastHostsProvider.DISCOVERY_SRV_QUERY, "_crate._srv.crate.internal");
-        SrvUnicastHostsProvider unicastHostsProvider = new DummySrvUnicastHostsProvider(builder.build(),
-            transportService, Version.CURRENT) {
+        SrvUnicastHostsProvider unicastHostsProvider = new DummySrvUnicastHostsProvider(builder.build(), transportService) {
             @Override
             protected Record[] lookupRecords() throws TextParseException {
                 Name srvName = Name.fromConstantString("_crate._srv.crate.internal.");
@@ -153,8 +145,7 @@ public class SrvUnicastHostsProviderTest {
 
     @Test
     public void testParseRecords() throws Exception {
-        SrvUnicastHostsProvider unicastHostsProvider = new SrvUnicastHostsProvider(Settings.EMPTY,
-            transportService, Version.CURRENT);
+        SrvUnicastHostsProvider unicastHostsProvider = new SrvUnicastHostsProvider(Settings.EMPTY, transportService);
 
         Name srvName = Name.fromConstantString("_crate._srv.crate.internal.");
         Record[] records = new Record[]{

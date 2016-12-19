@@ -22,12 +22,12 @@
 
 package io.crate.jobs;
 
-import org.elasticsearch.common.logging.ESLogger;
+import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.logging.Loggers;
 
 public class DummySubContext extends AbstractExecutionSubContext {
 
-    private static final ESLogger LOGGER = Loggers.getLogger(DummySubContext.class);
+    private static final Logger LOGGER = Loggers.getLogger(DummySubContext.class);
 
     public DummySubContext() {
         this(1);

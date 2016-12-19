@@ -48,7 +48,7 @@ import io.crate.planner.projection.SourceIndexWriterProjection;
 import io.crate.planner.projection.WriterProjection;
 import io.crate.planner.projection.builder.ProjectionBuilder;
 import org.apache.lucene.util.BytesRef;
-import org.elasticsearch.cluster.ClusterService;
+import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.node.DiscoveryNodes;
 
@@ -202,8 +202,8 @@ public class CopyStatementPlanner {
                                                         int maxNodes,
                                                         final Predicate<DiscoveryNode> nodeFilters) {
         final AtomicInteger counter = new AtomicInteger(maxNodes);
-        final List<String> nodes = new ArrayList<>(allNodes.size());
-        allNodes.dataNodes().values().forEach(new ObjectProcedure<DiscoveryNode>() {
+        final List<String> nodes = new ArrayList<>(allNodes.getSize());
+        allNodes.getDataNodes().values().forEach(new ObjectProcedure<DiscoveryNode>() {
             @Override
             public void apply(DiscoveryNode value) {
                 if (nodeFilters.apply(value) && counter.getAndDecrement() > 0) {

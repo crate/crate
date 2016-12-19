@@ -86,7 +86,7 @@ public class LuceneDocCollectorProvider implements AutoCloseable {
     }
 
     private Iterable<CrateCollector> createNodeCollectors(String nodeId, RoutedCollectPhase collectPhase, RowReceiver downstream) throws Exception {
-        String nodeName = cluster.clusterService().state().nodes().get(nodeId).name();
+        String nodeName = cluster.clusterService().state().nodes().get(nodeId).getName();
         IndicesService indicesService = cluster.getInstance(IndicesService.class, nodeName);
         JobContextService jobContextService = cluster.getInstance(JobContextService.class, nodeName);
         MapSideDataCollectOperation collectOperation = cluster.getInstance(MapSideDataCollectOperation.class, nodeName);

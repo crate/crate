@@ -34,7 +34,7 @@ import io.crate.metadata.ReplacingSymbolVisitor;
 import io.crate.operation.operator.AndOperator;
 import io.crate.planner.Plan;
 import io.crate.sql.tree.QualifiedName;
-import org.elasticsearch.common.logging.ESLogger;
+import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.logging.Loggers;
 
 import javax.annotation.Nullable;
@@ -42,7 +42,7 @@ import java.util.*;
 
 public class ManyTableConsumer implements Consumer {
 
-    private static final ESLogger LOGGER = Loggers.getLogger(ManyTableConsumer.class);
+    private static final Logger LOGGER = Loggers.getLogger(ManyTableConsumer.class);
 
     private final Visitor visitor;
 

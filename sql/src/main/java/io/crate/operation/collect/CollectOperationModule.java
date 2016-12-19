@@ -21,17 +21,26 @@
 
 package io.crate.operation.collect;
 
+import io.crate.operation.collect.sources.IndexEventListenerDelegate;
 import io.crate.operation.collect.sources.InformationSchemaIterables;
 import io.crate.operation.collect.sources.ShardCollectSource;
 import io.crate.operation.collect.sources.SystemCollectSource;
 import org.elasticsearch.common.inject.AbstractModule;
 
 public class CollectOperationModule extends AbstractModule {
+
+    private final IndexEventListenerDelegate indexEventListenerDelegate;
+
+    public CollectOperationModule(IndexEventListenerDelegate indexEventListenerDelegate) {
+        this.indexEventListenerDelegate = indexEventListenerDelegate;
+    }
+
     @Override
     protected void configure() {
         bind(InformationSchemaIterables.class).asEagerSingleton();
 
         bind(StatsTables.class).asEagerSingleton();
+        bind(IndexEventListenerDelegate.class).toInstance(indexEventListenerDelegate);
         bind(ShardCollectSource.class).asEagerSingleton();
         bind(SystemCollectSource.class).asEagerSingleton();
     }

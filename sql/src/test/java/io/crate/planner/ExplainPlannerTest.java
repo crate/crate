@@ -24,9 +24,9 @@ package io.crate.planner;
 
 import com.google.common.collect.ImmutableList;
 import io.crate.planner.node.management.ExplainPlan;
-import io.crate.test.integration.CrateUnitTest;
+import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
-import org.elasticsearch.test.cluster.NoopClusterService;
+import org.junit.Before;
 import org.junit.Test;
 
 import java.util.List;
@@ -34,7 +34,7 @@ import java.util.Map;
 
 import static org.hamcrest.Matchers.greaterThan;
 
-public class ExplainPlannerTest extends CrateUnitTest {
+public class ExplainPlannerTest extends CrateDummyClusterServiceUnitTest {
 
     private static final List<String> EXPLAIN_TEST_STATEMENTS = ImmutableList.of(
         "select id from sys.cluster",
@@ -46,7 +46,12 @@ public class ExplainPlannerTest extends CrateUnitTest {
         "select * from users where name = (select 'name')"
     );
 
-    private SQLExecutor e = SQLExecutor.builder(new NoopClusterService()) .enableDefaultTables() .build();
+    private SQLExecutor e;
+
+    @Before
+    public void prepare() {
+        e = SQLExecutor.builder(clusterService).enableDefaultTables().build();
+    }
 
     @Test
     public void testExplain() throws Exception {

@@ -20,14 +20,15 @@
  * agreement.
  */
 
-package org.elasticsearch.bootstrap;
+package io.crate.metadata.settings;
 
-/**
- * A wrapper around org.elasticsearch.bootstrap.StartupError, to us it
- * as well.
- */
-public class StartupErrorProxy extends RuntimeException {
-    public StartupErrorProxy(Throwable cause) {
-        throw new StartupError(cause);
-    }
+import org.elasticsearch.common.settings.Setting;
+import org.elasticsearch.common.settings.Settings;
+
+public class AnalyzerSettings {
+
+    public static final String CUSTOM_ANALYSIS_SETTINGS_PREFIX = "crate.analysis.custom.";
+    public static final Setting<Settings> CUSTOM_ANALYSIS_SETTING_GROUP = Setting.groupSetting(
+        CUSTOM_ANALYSIS_SETTINGS_PREFIX, Setting.Property.NodeScope, Setting.Property.Dynamic);
+
 }

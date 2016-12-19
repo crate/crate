@@ -139,7 +139,7 @@ public class DistributedResultRequest extends TransportRequest {
 
         boolean failure = in.readBoolean();
         if (failure) {
-            throwable = in.readThrowable();
+            throwable = in.readException();
             isKilled = in.readBoolean();
         } else {
             StreamBucket bucket = new StreamBucket(streamers);
@@ -161,7 +161,7 @@ public class DistributedResultRequest extends TransportRequest {
         boolean failure = throwable != null;
         out.writeBoolean(failure);
         if (failure) {
-            out.writeThrowable(throwable);
+            out.writeException(throwable);
             out.writeBoolean(isKilled);
         } else {
             // TODO: we should not rely on another bucket in this class and instead write to the stream directly

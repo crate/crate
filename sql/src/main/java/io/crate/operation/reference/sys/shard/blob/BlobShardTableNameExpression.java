@@ -35,7 +35,7 @@ public class BlobShardTableNameExpression extends SimpleObjectExpression<BytesRe
 
     @Inject
     public BlobShardTableNameExpression(ShardId shardId) {
-        this.tableName = BytesRefs.toBytesRef(BlobIndex.stripPrefix(shardId.index().name()));
+        this.tableName = BytesRefs.toBytesRef(BlobIndex.stripPrefix(shardId.getIndexName()));
     }
 
     @Override

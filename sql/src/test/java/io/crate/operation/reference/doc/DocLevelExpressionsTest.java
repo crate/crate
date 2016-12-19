@@ -28,14 +28,12 @@ import org.apache.lucene.index.*;
 import org.apache.lucene.store.RAMDirectory;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.IndexService;
-import org.elasticsearch.index.fielddata.FieldDataType;
 import org.elasticsearch.index.fielddata.IndexFieldData;
 import org.elasticsearch.index.fielddata.IndexFieldDataService;
 import org.elasticsearch.index.mapper.MappedFieldType;
 import org.elasticsearch.index.mapper.MapperService;
 import org.junit.After;
 import org.junit.Before;
-import org.mockito.Matchers;
 
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.mock;
@@ -56,10 +54,8 @@ public abstract class DocLevelExpressionsTest extends CrateSingleNodeTest {
 
         MapperService mapperService = mock(MapperService.class);
         MappedFieldType fieldMapper = mock(MappedFieldType.class);
-        when(fieldMapper.names()).thenReturn(fieldName());
-        when(fieldMapper.fieldDataType()).thenReturn(fieldType());
-        when(mapperService.smartNameFieldType(anyString(), Matchers.<String[]>any())).thenReturn(fieldMapper);
-
+        when(fieldMapper.name()).thenReturn(fieldName());
+        when(mapperService.fullName(anyString())).thenReturn(fieldMapper);
 
         IndexFieldData<?> fieldData = ifd.getForField(fieldMapper);
         writer = new IndexWriter(new RAMDirectory(),
@@ -68,7 +64,7 @@ public abstract class DocLevelExpressionsTest extends CrateSingleNodeTest {
 
         insertValues(writer);
 
-        DirectoryReader directoryReader = DirectoryReader.open(writer, true);
+        DirectoryReader directoryReader = DirectoryReader.open(writer, true, true);
         readerContext = directoryReader.leaves().get(0);
         fieldData.load(readerContext);
 
@@ -84,7 +80,5 @@ public abstract class DocLevelExpressionsTest extends CrateSingleNodeTest {
 
     protected abstract void insertValues(IndexWriter writer) throws Exception;
 
-    protected abstract MappedFieldType.Names fieldName();
-
-    protected abstract FieldDataType fieldType();
+    protected abstract String fieldName();
 }

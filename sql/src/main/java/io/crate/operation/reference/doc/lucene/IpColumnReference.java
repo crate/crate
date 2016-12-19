@@ -26,7 +26,6 @@ import org.apache.lucene.index.DocValues;
 import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.SortedNumericDocValues;
 import org.apache.lucene.util.BytesRef;
-import org.elasticsearch.index.mapper.ip.IpFieldMapper;
 
 import java.io.IOException;
 
@@ -53,7 +52,7 @@ public class IpColumnReference extends LuceneCollectorExpression<BytesRef> {
                 value = null;
                 break;
             case 1:
-                value = new BytesRef(IpFieldMapper.longToIp(values.valueAt(0)));
+                value = new BytesRef(LegacyIpFieldMapper.longToIp(values.valueAt(0)));
                 break;
             default:
                 throw new GroupByOnArrayUnsupportedException(columnName);

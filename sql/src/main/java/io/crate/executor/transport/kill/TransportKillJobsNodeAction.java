@@ -23,7 +23,7 @@ package io.crate.executor.transport.kill;
 
 import com.google.common.util.concurrent.ListenableFuture;
 import io.crate.jobs.JobContextService;
-import org.elasticsearch.cluster.ClusterService;
+import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.settings.Settings;
@@ -37,7 +37,7 @@ public class TransportKillJobsNodeAction extends TransportKillNodeAction<KillJob
                                        JobContextService jobContextService,
                                        ClusterService clusterService,
                                        TransportService transportService) {
-        super("crate/sql/kill_jobs", settings, jobContextService, clusterService, transportService);
+        super("crate/sql/kill_jobs", settings, jobContextService, clusterService, transportService, KillJobsRequest::new);
     }
 
     @Override

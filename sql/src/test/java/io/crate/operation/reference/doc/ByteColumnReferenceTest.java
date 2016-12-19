@@ -24,15 +24,12 @@ package io.crate.operation.reference.doc;
 import io.crate.operation.reference.doc.lucene.ByteColumnReference;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field;
-import org.apache.lucene.document.NumericDocValuesField;
 import org.apache.lucene.document.StringField;
 import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.MatchAllDocsQuery;
 import org.apache.lucene.search.ScoreDoc;
 import org.apache.lucene.search.TopDocs;
-import org.elasticsearch.index.fielddata.FieldDataType;
-import org.elasticsearch.index.mapper.MappedFieldType;
 import org.junit.Test;
 
 import static org.hamcrest.core.Is.is;
@@ -43,24 +40,19 @@ public class ByteColumnReferenceTest extends DocLevelExpressionsTest {
         for (byte b = -10; b < 10; b++) {
             Document doc = new Document();
             doc.add(new StringField("_id", Byte.toString(b), Field.Store.NO));
-            doc.add(new NumericDocValuesField(fieldName().indexName(), b));
+            doc.add(new NumericDocValuesField(fieldName(), b));
             writer.addDocument(doc);
         }
     }
 
     @Override
-    protected MappedFieldType.Names fieldName() {
-        return new MappedFieldType.Names("b");
-    }
-
-    @Override
-    protected FieldDataType fieldType() {
-        return new FieldDataType("byte");
+    protected String fieldName() {
+        return "b";
     }
 
     @Test
     public void testByteExpression() throws Exception {
-        ByteColumnReference byteColumn = new ByteColumnReference(fieldName().indexName());
+        ByteColumnReference byteColumn = new ByteColumnReference(fieldName());
         byteColumn.startCollect(ctx);
         byteColumn.setNextReader(readerContext);
         IndexSearcher searcher = new IndexSearcher(readerContext.reader());

@@ -34,7 +34,7 @@ import io.crate.operation.reference.sys.cluster.ClusterLoggingOverridesExpressio
 import io.crate.operation.reference.sys.cluster.ClusterSettingsExpression;
 import io.crate.types.ArrayType;
 import io.crate.types.DataTypes;
-import org.elasticsearch.cluster.ClusterService;
+import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 

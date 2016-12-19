@@ -31,8 +31,6 @@ import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.MatchAllDocsQuery;
 import org.apache.lucene.search.ScoreDoc;
 import org.apache.lucene.search.TopDocs;
-import org.elasticsearch.index.fielddata.FieldDataType;
-import org.elasticsearch.index.mapper.MappedFieldType;
 import org.junit.Test;
 
 import static org.hamcrest.core.Is.is;
@@ -50,21 +48,13 @@ public class BooleanColumnReferenceTest extends DocLevelExpressionsTest {
     }
 
     @Override
-    protected MappedFieldType.Names fieldName() {
-        return new MappedFieldType.Names("bool");
-    }
-
-    /**
-     * @see {@link org.elasticsearch.index.mapper.core.BooleanFieldMapper}
-     */
-    @Override
-    protected FieldDataType fieldType() {
-        return new FieldDataType("string");
+    protected String fieldName() {
+        return "bool";
     }
 
     @Test
     public void testBooleanExpression() throws Exception {
-        BooleanColumnReference booleanColumn = new BooleanColumnReference(fieldName().indexName());
+        BooleanColumnReference booleanColumn = new BooleanColumnReference(fieldName());
         booleanColumn.startCollect(ctx);
         booleanColumn.setNextReader(readerContext);
         IndexSearcher searcher = new IndexSearcher(readerContext.reader());

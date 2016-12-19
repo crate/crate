@@ -25,49 +25,42 @@ package io.crate.operation.reference.sys.check.node;
 import io.crate.metadata.settings.CrateSettings;
 import io.crate.metadata.settings.StringSetting;
 import io.crate.operation.reference.sys.check.AbstractSysNodeCheck;
+import org.apache.logging.log4j.Logger;
 import org.elasticsearch.ElasticsearchParseException;
-import org.elasticsearch.cluster.ClusterService;
-import org.elasticsearch.common.logging.ESLogger;
+import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.ByteSizeValue;
 import org.elasticsearch.common.unit.RatioValue;
 import org.elasticsearch.monitor.fs.FsInfo;
-import org.elasticsearch.monitor.fs.FsProbe;
-
-import java.io.IOException;
+import org.elasticsearch.monitor.fs.FsService;
 
 
 abstract class DiskWatermarkNodesSysCheck extends AbstractSysNodeCheck {
 
-    private static final ESLogger LOGGER = Loggers.getLogger(DiskWatermarkNodesSysCheck.class);
+    private static final Logger LOGGER = Loggers.getLogger(DiskWatermarkNodesSysCheck.class);
 
     private final StringSetting watermarkSetting;
+    private final FsService fsService;
     private final Settings settings;
-    private final FsProbe fsProbe;
 
     DiskWatermarkNodesSysCheck(int id,
                                String description,
                                StringSetting watermarkSetting,
                                Severity severity,
                                ClusterService clusterService,
-                               Settings settings,
-                               FsProbe fsProbe) {
+                               FsService fsService,
+                               Settings settings) {
         super(id, description, severity, clusterService);
+        this.fsService = fsService;
         this.settings = settings;
-        this.fsProbe = fsProbe;
         this.watermarkSetting = watermarkSetting;
     }
 
     @Override
     public boolean validate() {
-        try {
-            return !thresholdEnabled() ||
-                   validate(fsProbe.stats(), thresholdPercentageFromWatermark(), thresholdBytesFromWatermark());
-        } catch (IOException e) {
-            LOGGER.error("Unable to determine the node disk usage while validating high/low disk watermark check: ", e);
-            return false;
-        }
+        return !thresholdEnabled() ||
+               validate(fsService.stats(), thresholdPercentageFromWatermark(), thresholdBytesFromWatermark());
     }
 
     protected boolean validate(FsInfo fsInfo, double diskWatermarkPercents, long diskWatermarkBytes) {

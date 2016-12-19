@@ -26,7 +26,7 @@ import com.carrotsearch.hppc.IntArrayList;
 import com.google.common.base.Objects;
 import com.google.common.collect.Iterators;
 import io.crate.Constants;
-import org.elasticsearch.action.support.replication.ReplicationRequest;
+import org.elasticsearch.action.support.replication.ReplicatedWriteRequest;
 import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
@@ -39,8 +39,8 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.UUID;
 
-public abstract class ShardRequest<T extends ReplicationRequest<T>, I extends ShardRequest.Item>
-    extends ReplicationRequest<T> implements Iterable<I> {
+public abstract class ShardRequest<T extends ShardRequest<T, I>, I extends ShardRequest.Item>
+    extends ReplicatedWriteRequest<T> implements Iterable<I> {
 
     @Nullable
     private String routing;
@@ -57,7 +57,7 @@ public abstract class ShardRequest<T extends ReplicationRequest<T>, I extends Sh
         setShardId(shardId);
         this.routing = routing;
         this.jobId = jobId;
-        this.index = shardId.getIndex();
+        this.index = shardId.getIndexName();
         locations = new IntArrayList();
         items = new ArrayList<>();
     }
@@ -152,7 +152,7 @@ public abstract class ShardRequest<T extends ReplicationRequest<T>, I extends Sh
     /**
      * A single item with just an id.
      */
-    public static class Item implements Streamable {
+    public static abstract class Item implements Streamable {
 
         protected String id;
 

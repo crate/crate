@@ -38,25 +38,6 @@ public class CrateTableSettings {
 
     public static final BoolSetting BLOCKS_METADATA = new BoolSetting(TableParameterInfo.BLOCKS_METADATA, false, true);
 
-    public static final BoolSetting FLUSH_DISABLE = new BoolSetting(TableParameterInfo.FLUSH_DISABLE, false, true);
-
-    public static final TimeSetting TRANSLOG_INTERVAL = new TimeSetting() {
-        @Override
-        public String name() {
-            return TableParameterInfo.TRANSLOG_INTERVAL;
-        }
-
-        @Override
-        public TimeValue defaultValue() {
-            return TimeValue.timeValueSeconds(5);
-        }
-
-        @Override
-        public boolean isRuntime() {
-            return true;
-        }
-    };
-
     public static final IntSetting TOTAL_SHARDS_PER_NODE = new IntSetting(TableParameterInfo.TOTAL_SHARDS_PER_NODE, -1, true);
 
     public static final StringSetting ROUTING_ALLOCATION_ENABLE = new StringSetting(
@@ -77,26 +58,6 @@ public class CrateTableSettings {
 
     public static final ByteSizeSetting FLUSH_THRESHOLD_SIZE = new ByteSizeSetting(
         TableParameterInfo.FLUSH_THRESHOLD_SIZE, new ByteSizeValue(200, ByteSizeUnit.MB), true);
-
-    public static final IntSetting FLUSH_THRESHOLD_OPS = new IntSetting(TableParameterInfo.FLUSH_THRESHOLD_OPS, Integer.MAX_VALUE, true);
-
-    public static final TimeSetting FLUSH_THRESHOLD_PERIOD = new TimeSetting() {
-
-        @Override
-        public String name() {
-            return TableParameterInfo.FLUSH_THRESHOLD_PERIOD;
-        }
-
-        @Override
-        public TimeValue defaultValue() {
-            return TimeValue.timeValueMinutes(30);
-        }
-
-        @Override
-        public boolean isRuntime() {
-            return true;
-        }
-    };
 
     public static final BoolSetting WARMER_ENABLED = new BoolSetting(TableParameterInfo.WARMER_ENABLED, true, true);
 

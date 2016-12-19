@@ -31,8 +31,8 @@ import io.crate.executor.transport.NodeAction;
 import io.crate.executor.transport.NodeActionRequestHandler;
 import io.crate.jobs.JobContextService;
 import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.node.DiscoveryNode;
+import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.component.AbstractComponent;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.threadpool.ThreadPool;
@@ -43,6 +43,7 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.*;
 import java.util.concurrent.Callable;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
@@ -59,14 +60,16 @@ abstract class TransportKillNodeAction<Request extends TransportRequest> extends
                             Settings settings,
                             JobContextService jobContextService,
                             ClusterService clusterService,
-                            TransportService transportService) {
+                            TransportService transportService,
+                            Supplier<Request> requestSupplier) {
         super(settings);
         this.jobContextService = jobContextService;
         this.clusterService = clusterService;
         this.transportService = transportService;
         this.name = name;
-        transportService.registerRequestHandler(name,
-            this,
+        transportService.registerRequestHandler(
+            name,
+            requestSupplier,
             ThreadPool.Names.GENERIC,
             new NodeActionRequestHandler<Request, KillResponse>(this) {});
     }
@@ -84,7 +87,7 @@ abstract class TransportKillNodeAction<Request extends TransportRequest> extends
 
             @Override
             public void onFailure(@Nonnull Throwable t) {
-                listener.onFailure(t);
+                listener.onFailure((Exception) t);
             }
         });
     }
@@ -103,6 +106,7 @@ abstract class TransportKillNodeAction<Request extends TransportRequest> extends
         listener = new MultiActionListener<>(filteredNodes.size(), KillResponse.MERGE_FUNCTION, listener);
         DefaultTransportResponseHandler<KillResponse> responseHandler =
             new DefaultTransportResponseHandler<KillResponse>(listener) {
+
                 @Override
                 public KillResponse newInstance() {
                     return new KillResponse(0);

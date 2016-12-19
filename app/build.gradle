@@ -336,12 +336,15 @@ jar {
 }
 
 task downloadPlugins(
-        dependsOn: [':admin-ui:downloadPlugin', ':sigar:jar', ':es-repository-hdfs:distZip', ':azure-discovery:jar']) << {
+        dependsOn: [':admin-ui:downloadPlugin', ':sigar:jar', ':azure-discovery:jar']) << {
 
-    copy {
-        from(zipTree(project(':es-repository-hdfs').tasks.distZip.archivePath))
-        into 'plugins/elasticsearch-repository-hdfs'
-    }
+    // FIXME: re-enable HDFS plugin
+    //    dependsOn: [':admin-ui:downloadPlugin', ':sigar:jar', ':es-repository-hdfs:distZip', ':azure-discovery:jar']) << {
+    //
+    //copy {
+    //    from(zipTree(project(':es-repository-hdfs').tasks.distZip.archivePath))
+    //    into 'plugins/elasticsearch-repository-hdfs'
+    //}
 
     copy {
         // jar file

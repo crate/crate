@@ -24,20 +24,23 @@ package io.crate.analyze;
 
 import io.crate.analyze.relations.QueriedDocTable;
 import io.crate.exceptions.AmbiguousColumnAliasException;
-import io.crate.test.integration.CrateUnitTest;
+import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
-import org.elasticsearch.test.cluster.NoopClusterService;
+import org.junit.Before;
 import org.junit.Test;
 
 import static io.crate.testing.SymbolMatchers.isField;
 import static io.crate.testing.T3.T1_INFO;
 import static org.hamcrest.Matchers.is;
 
-public class SubSelectAnalyzerTest extends CrateUnitTest {
+public class SubSelectAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
-    private SQLExecutor executor = SQLExecutor.builder(new NoopClusterService())
-        .enableDefaultTables()
-        .build();
+    private SQLExecutor executor;
+
+    @Before
+    public void prepare() {
+        executor = SQLExecutor.builder(clusterService).enableDefaultTables().build();
+    }
 
     private SelectAnalyzedStatement analyze(String stmt) {
         return executor.analyze(stmt);

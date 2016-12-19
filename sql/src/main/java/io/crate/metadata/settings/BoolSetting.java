@@ -67,4 +67,13 @@ public class BoolSetting extends Setting<Boolean, Boolean> {
     public DataType dataType() {
         return DataTypes.BOOLEAN;
     }
+
+    @Override
+    org.elasticsearch.common.settings.Setting<Boolean> createESSetting() {
+        return org.elasticsearch.common.settings.Setting.boolSetting(
+            settingName(),
+            defaultValue(),
+            propertiesForUpdateConsumer()
+        );
+    }
 }

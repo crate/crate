@@ -25,9 +25,8 @@ package io.crate.analyze;
 import io.crate.exceptions.TableUnknownException;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.blob.BlobSchemaInfo;
-import io.crate.test.integration.CrateUnitTest;
+import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
-import org.elasticsearch.test.cluster.NoopClusterService;
 import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.Test;
@@ -36,19 +35,15 @@ import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.core.IsCollectionContaining.hasItem;
 
-public class OptimizeTableAnalyzerTest extends CrateUnitTest {
+public class OptimizeTableAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     private SQLExecutor e;
 
     @Before
-    public void init() throws Exception {
+    public void prepare() {
         TableIdent myBlobsIdent = new TableIdent(BlobSchemaInfo.NAME, "blobs");
-        NoopClusterService clusterService = new NoopClusterService();
         TestingBlobTableInfo myBlobsTableInfo = TableDefinitions.createBlobTable(myBlobsIdent, clusterService);
-        e = SQLExecutor.builder(clusterService)
-            .enableDefaultTables()
-            .addBlobTable(myBlobsTableInfo)
-            .build();
+        e = SQLExecutor.builder(clusterService).enableDefaultTables().addBlobTable(myBlobsTableInfo).build();
     }
 
     @Test
