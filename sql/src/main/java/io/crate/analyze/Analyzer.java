@@ -30,10 +30,10 @@ import io.crate.metadata.FulltextAnalyzerResolver;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Schemas;
 import io.crate.sql.tree.*;
-import org.elasticsearch.cluster.ClusterService;
+import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
-import org.elasticsearch.indices.analysis.IndicesAnalysisService;
+import org.elasticsearch.index.analysis.AnalysisRegistry;
 
 import java.util.Locale;
 
@@ -72,7 +72,7 @@ public class Analyzer {
     public Analyzer(Schemas schemas,
                     Functions functions,
                     ClusterService clusterService,
-                    IndicesAnalysisService indicesAnalysisService,
+                    AnalysisRegistry analysisRegistry,
                     RepositoryService repositoryService,
                     RepositoryParamValidator repositoryParamValidator) {
         NumberOfShards numberOfShards = new NumberOfShards(clusterService);
@@ -80,7 +80,7 @@ public class Analyzer {
         this.dropTableAnalyzer = new DropTableAnalyzer(schemas);
         this.dropBlobTableAnalyzer = new DropBlobTableAnalyzer(schemas);
         FulltextAnalyzerResolver fulltextAnalyzerResolver =
-            new FulltextAnalyzerResolver(clusterService, indicesAnalysisService);
+            new FulltextAnalyzerResolver(clusterService, analysisRegistry);
         this.createTableStatementAnalyzer = new CreateTableStatementAnalyzer(
             schemas,
             fulltextAnalyzerResolver,

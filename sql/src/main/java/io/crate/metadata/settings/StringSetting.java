@@ -29,11 +29,12 @@ import org.elasticsearch.common.settings.Settings;
 import javax.annotation.Nullable;
 import java.util.Locale;
 import java.util.Set;
+import java.util.function.Function;
 
 public class StringSetting extends Setting<String, String> {
 
     private final String name;
-    protected final Set<String> allowedValues;
+    final Set<String> allowedValues;
     private final boolean isRuntime;
 
     @Nullable
@@ -104,5 +105,15 @@ public class StringSetting extends Setting<String, String> {
             );
         }
         return null;
+    }
+
+    @Override
+    org.elasticsearch.common.settings.Setting<String> createESSetting() {
+        return new org.elasticsearch.common.settings.Setting<>(
+            settingName(),
+            defaultValue(),
+            Function.identity(),
+            propertiesForUpdateConsumer()
+        );
     }
 }

@@ -21,10 +21,10 @@
 
 package io.crate.action.job;
 
+import org.apache.logging.log4j.Logger;
 import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.search.IndexSearcher;
 import org.elasticsearch.ElasticsearchException;
-import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.index.IndexNotFoundException;
 import org.elasticsearch.index.IndexService;
@@ -37,7 +37,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 public class SharedShardContext {
 
-    private final static ESLogger LOGGER = Loggers.getLogger(SharedShardContext.class);
+    private final static Logger LOGGER = Loggers.getLogger(SharedShardContext.class);
 
     private final Object mutex = new Object();
     private final IndicesService indicesService;
@@ -70,7 +70,7 @@ public class SharedShardContext {
 
     public synchronized IndexShard indexShard() {
         if (indexShard == null) {
-            indexShard = indexService().shardSafe(shardId.id());
+            indexShard = indexService().getShard(shardId.id());
         }
         return indexShard;
     }

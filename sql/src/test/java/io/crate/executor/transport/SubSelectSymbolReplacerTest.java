@@ -25,18 +25,23 @@ package io.crate.executor.transport;
 import io.crate.analyze.symbol.SelectSymbol;
 import io.crate.planner.MultiPhasePlan;
 import io.crate.planner.node.dql.ESGet;
-import io.crate.test.integration.CrateUnitTest;
+import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import org.apache.lucene.util.BytesRef;
-import org.elasticsearch.test.cluster.NoopClusterService;
+import org.junit.Before;
 import org.junit.Test;
 
 import static io.crate.testing.SymbolMatchers.isLiteral;
 import static org.hamcrest.Matchers.contains;
 
-public class SubSelectSymbolReplacerTest extends CrateUnitTest {
+public class SubSelectSymbolReplacerTest extends CrateDummyClusterServiceUnitTest {
 
-    private SQLExecutor e = SQLExecutor.builder(new NoopClusterService()).enableDefaultTables().build();
+    private SQLExecutor e;
+
+    @Before
+    public void prepare() {
+        e = SQLExecutor.builder(clusterService).enableDefaultTables().build();
+    }
 
     @Test
     public void testSelectSymbolsAreReplacedInSelectListOfPrimaryKeyLookups() throws Exception {

@@ -39,8 +39,8 @@ import org.junit.Test;
 
 import java.util.*;
 
+import static io.crate.testing.DiscoveryNodes.newNode;
 import static io.crate.testing.TestingHelpers.getFunctions;
-import static org.elasticsearch.test.ESAllocationTestCase.newNode;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -52,9 +52,9 @@ public class NodeStatsCollectSourceTest extends CrateUnitTest {
     @Before
     public void prepare() throws Exception {
         discoveryNodes = new ArrayList<>();
-        discoveryNodes.add(newNode("Ford Perfect", "node-1", ImmutableMap.<String, String>of()));
-        discoveryNodes.add(newNode("Trillian", "node-2", ImmutableMap.<String, String>of()));
-        discoveryNodes.add(newNode("Arthur", "node-3", ImmutableMap.<String, String>of()));
+        discoveryNodes.add(newNode("Ford Perfect", "node-1"));
+        discoveryNodes.add(newNode("Trillian", "node-2"));
+        discoveryNodes.add(newNode("Arthur", "node-3"));
     }
 
     private List<DiscoveryNode> filterNodes(String where) throws NoSuchFieldException, IllegalAccessException {

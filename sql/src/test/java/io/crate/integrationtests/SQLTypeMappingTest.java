@@ -21,7 +21,6 @@
 
 package io.crate.integrationtests;
 
-import com.google.common.base.Predicate;
 import io.crate.action.sql.SQLActionException;
 import io.crate.testing.SQLResponse;
 import io.crate.testing.TestingHelpers;
@@ -447,17 +446,14 @@ public class SQLTypeMappingTest extends SQLTransportIntegrationTest {
         execute("insert into arr (id, tags, new) values (3, ['wow', 'much', 'wow'], ?)", new Object[]{new Double[]{null, 42.7}});
         refresh();
         waitNoPendingTasksOnAll();
-        awaitBusy(new Predicate<Object>() {
-            @Override
-            public boolean apply(Object input) {
-                SQLResponse res = execute("select column_name, data_type from information_schema.columns where table_name='arr'");
-                for (Object[] row : res.rows()) {
-                    if ("new".equals(row[0]) && "double_array".equals(row[1])) {
-                        return true;
-                    }
+        awaitBusy(() -> {
+            SQLResponse res = execute("select column_name, data_type from information_schema.columns where table_name='arr'");
+            for (Object[] row : res.rows()) {
+                if ("new".equals(row[0]) && "double_array".equals(row[1])) {
+                    return true;
                 }
-                return false;
             }
+            return false;
         });
     }
 

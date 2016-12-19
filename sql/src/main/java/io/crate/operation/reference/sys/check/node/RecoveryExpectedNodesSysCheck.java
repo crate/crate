@@ -24,7 +24,7 @@ package io.crate.operation.reference.sys.check.node;
 
 import io.crate.metadata.settings.CrateSettings;
 import io.crate.operation.reference.sys.check.AbstractSysNodeCheck;
-import org.elasticsearch.cluster.ClusterService;
+import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.settings.Settings;
@@ -46,7 +46,7 @@ public class RecoveryExpectedNodesSysCheck extends AbstractSysNodeCheck {
 
     @Override
     public boolean validate() {
-        return validate(clusterService.state().nodes().masterAndDataNodes().size(),
+        return validate(clusterService.state().nodes().getMasterAndDataNodes().size(),
             CrateSettings.GATEWAY_EXPECTED_NODES.extract(settings)
         );
     }

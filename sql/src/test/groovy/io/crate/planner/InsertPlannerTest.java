@@ -37,11 +37,11 @@ import io.crate.planner.node.dql.MergePhase;
 import io.crate.planner.node.dql.RoutedCollectPhase;
 import io.crate.planner.node.dql.join.NestedLoop;
 import io.crate.planner.projection.*;
-import io.crate.test.integration.CrateUnitTest;
+import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
-import org.elasticsearch.test.cluster.NoopClusterService;
+import org.junit.Before;
 import org.junit.Test;
 
 import java.util.List;
@@ -52,12 +52,17 @@ import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.collection.IsIterableContainingInOrder.contains;
 import static org.hamcrest.core.Is.is;
 
-public class InsertPlannerTest extends CrateUnitTest {
+public class InsertPlannerTest extends CrateDummyClusterServiceUnitTest {
 
-    private SQLExecutor e = SQLExecutor.builder(new NoopClusterService())
-        .enableDefaultTables()
-        .addDocTable(TableDefinitions.PARTED_PKS_TI)
-        .build();
+    private SQLExecutor e;
+
+    @Before
+    public void prepare() {
+        e = SQLExecutor.builder(clusterService)
+            .enableDefaultTables()
+            .addDocTable(TableDefinitions.PARTED_PKS_TI)
+            .build();
+    }
 
     @Test
     public void testInsertPlan() throws Exception {
@@ -76,8 +81,8 @@ public class InsertPlannerTest extends CrateUnitTest {
         assertThat(item.routing(), is("42"));
 
         assertThat(item.insertValues().length, is(2));
-        assertThat((Long) item.insertValues()[0], is(42L));
-        assertThat((BytesRef) item.insertValues()[1], is(new BytesRef("Deep Thought")));
+        assertThat(item.insertValues()[0], is(42L));
+        assertThat(item.insertValues()[1], is(new BytesRef("Deep Thought")));
     }
 
     @Test
@@ -97,16 +102,16 @@ public class InsertPlannerTest extends CrateUnitTest {
         assertThat(item1.id(), is("42"));
         assertThat(item1.routing(), is("42"));
         assertThat(item1.insertValues().length, is(2));
-        assertThat((Long) item1.insertValues()[0], is(42L));
-        assertThat((BytesRef) item1.insertValues()[1], is(new BytesRef("Deep Thought")));
+        assertThat(item1.insertValues()[0], is(42L));
+        assertThat(item1.insertValues()[1], is(new BytesRef("Deep Thought")));
 
         UpsertById.Item item2 = upsertById.items().get(1);
         assertThat(item2.index(), is("users"));
         assertThat(item2.id(), is("99"));
         assertThat(item2.routing(), is("99"));
         assertThat(item2.insertValues().length, is(2));
-        assertThat((Long) item2.insertValues()[0], is(99L));
-        assertThat((BytesRef) item2.insertValues()[1], is(new BytesRef("Marvin")));
+        assertThat(item2.insertValues()[0], is(99L));
+        assertThat(item2.insertValues()[1], is(new BytesRef("Marvin")));
     }
 
     @Test
@@ -369,7 +374,7 @@ public class InsertPlannerTest extends CrateUnitTest {
         assertThat(item.routing(), is("1"));
 
         assertThat(item.insertValues().length, is(2));
-        assertThat((Long) item.insertValues()[0], is(1L));
+        assertThat(item.insertValues()[0], is(1L));
         assertNull(item.insertValues()[1]);
 
         assertThat(item.updateAssignments().length, is(1));
@@ -386,7 +391,7 @@ public class InsertPlannerTest extends CrateUnitTest {
         assertThat(toCollect.size(), is(2));
         assertThat(toCollect.get(0), isFunction("to_long"));
         assertThat(((Function) toCollect.get(0)).arguments().get(0), isReference("_doc['id']"));
-        assertThat((Reference) toCollect.get(1), equalTo(new Reference(
+        assertThat(toCollect.get(1), equalTo(new Reference(
             new ReferenceIdent(TableDefinitions.PARTED_PKS_IDENT, "date"), RowGranularity.PARTITION, DataTypes.TIMESTAMP)));
     }
 
@@ -416,8 +421,5 @@ public class InsertPlannerTest extends CrateUnitTest {
         assertThat(localMergeNode.projections().size(), is(1));
         assertThat(localMergeNode.projections().get(0), instanceOf(MergeCountProjection.class));
         assertThat(localMergeNode.finalProjection().get().outputs().size(), is(1));
-
     }
-
-
 }

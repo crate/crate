@@ -37,13 +37,13 @@ import org.elasticsearch.action.admin.cluster.repositories.delete.TransportDelet
 import org.elasticsearch.action.admin.cluster.repositories.put.PutRepositoryRequest;
 import org.elasticsearch.action.admin.cluster.repositories.put.PutRepositoryResponse;
 import org.elasticsearch.action.admin.cluster.repositories.put.TransportPutRepositoryAction;
-import org.elasticsearch.cluster.ClusterService;
+import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.cluster.metadata.RepositoriesMetaData;
 import org.elasticsearch.cluster.metadata.RepositoryMetaData;
 import org.elasticsearch.common.inject.CreationException;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
-import org.elasticsearch.common.logging.ESLogger;
+import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.repositories.RepositoryException;
 
@@ -52,7 +52,7 @@ import javax.annotation.Nullable;
 @Singleton
 public class RepositoryService {
 
-    private static final ESLogger LOGGER = Loggers.getLogger(RepositoryService.class);
+    private static final Logger LOGGER = Loggers.getLogger(RepositoryService.class);
 
     private final ClusterService clusterService;
     private final TransportDeleteRepositoryAction deleteRepositoryAction;
@@ -97,7 +97,7 @@ public class RepositoryService {
                 }
 
                 @Override
-                public void onFailure(Throwable e) {
+                public void onFailure(Exception e) {
                     future.setException(e);
                 }
             }
@@ -119,7 +119,7 @@ public class RepositoryService {
             }
 
             @Override
-            public void onFailure(Throwable e) {
+            public void onFailure(Exception e) {
                 final Throwable t = convertRepositoryException(e);
 
                 // in case the put repo action fails in the verificationPhase the repository got already created
