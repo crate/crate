@@ -22,23 +22,19 @@
 
 package io.crate.operation.reference.sys.cluster;
 
+import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import org.apache.lucene.util.BytesRef;
-import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.node.settings.NodeSettingsService;
 import org.junit.Test;
 
 import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertThat;
-import static org.mockito.Mockito.mock;
 
-public class ClusterSettingsExpressionTest {
-
+public class ClusterSettingsExpressionTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testSettingsAreAppliedImmediately() throws Exception {
         ClusterSettingsExpression clusterSettingsExpression = new ClusterSettingsExpression(
-            Settings.builder().put("bulk.request_timeout", "20s").build(), mock(NodeSettingsService.class), mock(ClusterService.class));
+            Settings.builder().put("bulk.request_timeout", "20s").build(), clusterService);
 
         assertThat(((BytesRef) clusterSettingsExpression
                 .getChildImplementation("bulk")

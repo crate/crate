@@ -26,10 +26,9 @@ import io.crate.exceptions.JobKilledException;
 import org.elasticsearch.ExceptionsHelper;
 import org.elasticsearch.action.support.ActionFilters;
 import org.elasticsearch.action.support.TransportActions;
-import org.elasticsearch.cluster.ClusterService;
-import org.elasticsearch.cluster.action.index.MappingUpdatedAction;
 import org.elasticsearch.cluster.action.shard.ShardStateAction;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
+import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.settings.Settings;
@@ -45,34 +44,28 @@ import org.elasticsearch.transport.TransportService;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 @Singleton
-public class TransportShardDeleteAction extends TransportShardAction<ShardDeleteRequest> {
+public class TransportShardDeleteAction extends TransportShardAction<ShardDeleteRequest, ShardDeleteRequest.Item> {
 
     private final static String ACTION_NAME = "indices:crate/data/write/delete";
 
     @Inject
     public TransportShardDeleteAction(Settings settings,
                                       TransportService transportService,
-                                      MappingUpdatedAction mappingUpdatedAction,
                                       IndexNameExpressionResolver indexNameExpressionResolver,
                                       ClusterService clusterService,
                                       IndicesService indicesService,
                                       ThreadPool threadPool,
                                       ShardStateAction shardStateAction,
                                       ActionFilters actionFilters) {
-        super(settings, ACTION_NAME, transportService, mappingUpdatedAction, indexNameExpressionResolver,
-            clusterService, indicesService, threadPool, shardStateAction, actionFilters, ShardDeleteRequest.class);
-    }
-
-    @Override
-    protected boolean checkWriteConsistency() {
-        return true;
+        super(settings, ACTION_NAME, transportService, indexNameExpressionResolver,
+            clusterService, indicesService, threadPool, shardStateAction, actionFilters, ShardDeleteRequest::new);
     }
 
     @Override
     protected ShardResponse processRequestItems(ShardId shardId, ShardDeleteRequest request, AtomicBoolean killed) throws InterruptedException {
         ShardResponse shardResponse = new ShardResponse();
-        IndexService indexService = indicesService.indexServiceSafe(request.index());
-        IndexShard indexShard = indexService.shardSafe(shardId.id());
+        IndexService indexService = indicesService.indexServiceSafe(shardId.getIndex());
+        IndexShard indexShard = indexService.getShard(shardId.id());
         for (int i = 0; i < request.itemIndices().size(); i++) {
             int location = request.itemIndices().get(i);
             ShardDeleteRequest.Item item = request.items().get(i);
@@ -119,8 +112,8 @@ public class TransportShardDeleteAction extends TransportShardAction<ShardDelete
 
     @Override
     protected void processRequestItemsOnReplica(ShardId shardId, ShardDeleteRequest request) {
-        IndexService indexService = indicesService.indexServiceSafe(request.index());
-        IndexShard indexShard = indexService.shardSafe(shardId.id());
+        IndexService indexService = indicesService.indexServiceSafe(request.shardId().getIndex());
+        IndexShard indexShard = indexService.getShard(shardId.id());
         for (int i = 0; i < request.itemIndices().size(); i++) {
             int location = request.itemIndices().get(i);
             if (request.skipFromLocation() == location) {
@@ -129,19 +122,10 @@ public class TransportShardDeleteAction extends TransportShardAction<ShardDelete
             }
 
             ShardDeleteRequest.Item item = request.items().get(i);
-            try {
-                Engine.Delete delete = indexShard.prepareDeleteOnReplica(request.type(), item.id(), item.version(), item.versionType());
-                indexShard.delete(delete);
-                logger.trace("{} REPLICA: successfully deleted [{}]/[{}]", request.shardId(), request.type(), item.id());
-            } catch (Throwable e) {
-                // if its not an ignore replica failure, we need to make sure to bubble up the failure
-                // so we will fail the shard
-                if (!ignoreReplicaException(e)) {
-                    throw e;
-                }
-            }
+            Engine.Delete delete = indexShard.prepareDeleteOnReplica(request.type(), item.id(), item.version(), item.versionType());
+            indexShard.delete(delete);
+            logger.trace("{} REPLICA: successfully deleted [{}]/[{}]", request.shardId(), request.type(), item.id());
         }
-
     }
 
     private boolean shardDeleteOperationOnPrimary(ShardDeleteRequest request, ShardDeleteRequest.Item item, IndexShard indexShard) {

@@ -32,7 +32,7 @@ import io.crate.metadata.sys.SysClusterTableInfo;
 import io.crate.operation.reference.sys.check.AbstractSysCheck;
 import io.crate.operation.reference.sys.cluster.ClusterSettingsExpression;
 import io.crate.types.DataTypes;
-import org.elasticsearch.cluster.ClusterService;
+import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 
@@ -66,7 +66,7 @@ public class MinMasterNodesSysCheck extends AbstractSysCheck {
 
     @Override
     public boolean validate() {
-        return validate(clusterService.state().nodes().masterNodes().size(),
+        return validate(clusterService.state().nodes().getMasterNodes().size(),
             (Integer) nestedReferenceResolver.getImplementation(MIN_MASTER_NODES_REFERENCE_INFO).value());
     }
 

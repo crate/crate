@@ -37,11 +37,11 @@ import io.crate.protocols.postgres.SimplePortal;
 import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.Statement;
 import io.crate.types.DataType;
-import org.elasticsearch.cluster.ClusterService;
+import org.apache.logging.log4j.Logger;
+import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Provider;
 import org.elasticsearch.common.inject.Singleton;
-import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.transport.NodeDisconnectedException;
@@ -54,7 +54,7 @@ import java.util.*;
 public class SQLOperations {
 
     public final static String NODE_READ_ONLY_SETTING = "node.sql.read_only";
-    private final static ESLogger LOGGER = Loggers.getLogger(SQLOperations.class);
+    private final static Logger LOGGER = Loggers.getLogger(SQLOperations.class);
 
     // Parser can't handle empty statement but postgres requires support for it.
     // This rewrite is done so that bind/describe calls on an empty statement will work as well

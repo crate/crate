@@ -22,43 +22,15 @@
 
 package io.crate.operation.collect.stats;
 
-import com.google.common.collect.ImmutableList;
-import io.crate.breaker.CrateCircuitBreakerService;
-import io.crate.breaker.RamAccountingContext;
-import io.crate.core.collections.BlockingEvictingQueue;
-import io.crate.metadata.settings.CrateSettings;
-import io.crate.operation.reference.sys.job.JobContext;
-import io.crate.operation.reference.sys.job.JobContextLog;
-import io.crate.operation.reference.sys.operation.OperationContext;
-import io.crate.operation.reference.sys.operation.OperationContextLog;
 import io.crate.test.integration.CrateUnitTest;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.unit.TimeValue;
-import org.elasticsearch.indices.breaker.CircuitBreakerService;
-import org.elasticsearch.indices.breaker.HierarchyCircuitBreakerService;
-import org.elasticsearch.node.settings.NodeSettingsService;
-import org.hamcrest.Matchers;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
-
-import java.lang.reflect.Field;
-import java.util.List;
-import java.util.Queue;
-import java.util.UUID;
-import java.util.concurrent.ConcurrentLinkedDeque;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-
-import static org.hamcrest.core.Is.is;
 
 public class StatsTablesTest extends CrateUnitTest {
+
+    /*
 
     private ScheduledExecutorService scheduler;
     private static CrateCircuitBreakerService breakerService;
     private RamAccountingContext ramAccountingContext;
-    private static NodeSettingsService nodeSettingsService = new NodeSettingsService(Settings.EMPTY);
 
     @Before
     public void createScheduler() {
@@ -240,4 +212,5 @@ public class StatsTablesTest extends CrateUnitTest {
         assertThat(stats.clearInterval(TimeValue.timeValueSeconds(20L)), is(2000L));
         assertThat(stats.clearInterval(TimeValue.timeValueHours(720L)), is(86_400_000L));  // 30 days
     }
+    */
 }

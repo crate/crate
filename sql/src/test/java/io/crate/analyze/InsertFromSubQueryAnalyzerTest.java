@@ -30,11 +30,10 @@ import io.crate.metadata.TableIdent;
 import io.crate.metadata.table.TestingTableInfo;
 import io.crate.operation.scalar.SubstrFunction;
 import io.crate.operation.scalar.cast.CastFunctionResolver;
-import io.crate.test.integration.CrateUnitTest;
+import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.crate.types.DataTypes;
 import io.crate.types.StringType;
-import org.elasticsearch.test.cluster.NoopClusterService;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -47,14 +46,13 @@ import static io.crate.testing.SymbolMatchers.*;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 
-public class InsertFromSubQueryAnalyzerTest extends CrateUnitTest {
+public class InsertFromSubQueryAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     private SQLExecutor e;
 
     @Before
-    public void initGeneratedColumnTable() throws Exception {
-        SQLExecutor.Builder builder = SQLExecutor.builder(new NoopClusterService())
-            .enableDefaultTables();
+    public void prepare() {
+        SQLExecutor.Builder builder = SQLExecutor.builder(clusterService).enableDefaultTables();
 
         TableIdent usersGeneratedIdent = new TableIdent(null, "users_generated");
         TestingTableInfo.Builder usersGenerated = new TestingTableInfo.Builder(usersGeneratedIdent, SHARD_ROUTING)

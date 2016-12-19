@@ -56,7 +56,7 @@ public class ShardRecoveryExpression extends NestedObjectExpression {
         childImplementations.put(TYPE, new ShardRecoveryStateExpression<BytesRef>(indexShard) {
             @Override
             public BytesRef innerValue(RecoveryState recoveryState) {
-                return BytesRefs.toBytesRef(recoveryState.getType().name());
+                return BytesRefs.toBytesRef(recoveryState.getRecoverySource().getType().name());
             }
         });
         childImplementations.put(SIZE, new ShardRecoverySizeExpression(indexShard));

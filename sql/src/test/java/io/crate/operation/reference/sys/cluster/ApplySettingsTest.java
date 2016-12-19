@@ -21,19 +21,16 @@
 
 package io.crate.operation.reference.sys.cluster;
 
-import io.crate.metadata.settings.CrateSettings;
 import io.crate.test.integration.CrateUnitTest;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.unit.TimeValue;
 import org.junit.Test;
-
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.TimeUnit;
 
 public class ApplySettingsTest extends CrateUnitTest {
 
     @Test
     public void testOnRefreshSettings() throws Exception {
+
+        fail("update test");
+        /*
 
         ConcurrentHashMap<String, Object> values = new ConcurrentHashMap<>();
         ClusterSettingsExpression.ApplySettings applySettings = new ClusterSettingsExpression.ApplySettings(Settings.EMPTY, values);
@@ -61,12 +58,14 @@ public class ApplySettingsTest extends CrateUnitTest {
 
         name = CrateSettings.DISCOVERY_ZEN_MIN_MASTER_NODES.settingName();
         assertEquals(values.get(name), settings.getAsInt(name, 2));
-
+        */
     }
 
     @Test
     public void testOnRefreshSettingsWithInitial() throws Exception {
 
+        fail("update test");
+        /*
         ConcurrentHashMap<String, Object> values = new ConcurrentHashMap<>();
         values.put(CrateSettings.BULK_REQUEST_TIMEOUT.settingName(), CrateSettings.BULK_REQUEST_TIMEOUT.defaultValue());
         Settings initialSettings = Settings.builder()
@@ -97,5 +96,6 @@ public class ApplySettingsTest extends CrateUnitTest {
 
         name = CrateSettings.DISCOVERY_ZEN_MIN_MASTER_NODES.settingName();
         assertEquals(values.get(name), settings.getAsInt(name, 2));
+        */
     }
 }
