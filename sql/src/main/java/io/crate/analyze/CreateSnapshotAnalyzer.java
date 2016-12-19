@@ -41,10 +41,10 @@ import io.crate.metadata.table.TableInfo;
 import io.crate.sql.tree.CreateSnapshot;
 import io.crate.sql.tree.QualifiedName;
 import io.crate.sql.tree.Table;
-import org.elasticsearch.cluster.metadata.SnapshotId;
-import org.elasticsearch.common.logging.ESLogger;
+import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.snapshots.SnapshotId;
 
 import java.util.*;
 
@@ -53,7 +53,7 @@ import static io.crate.analyze.SnapshotSettings.WAIT_FOR_COMPLETION;
 
 class CreateSnapshotAnalyzer {
 
-    private static final ESLogger LOGGER = Loggers.getLogger(CreateSnapshotAnalyzer.class);
+    private static final Logger LOGGER = Loggers.getLogger(CreateSnapshotAnalyzer.class);
     private final RepositoryService repositoryService;
     private final Schemas schemas;
 

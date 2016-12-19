@@ -27,7 +27,7 @@ import io.crate.action.sql.SQLOperations;
 import io.crate.executor.Executor;
 import io.crate.operation.collect.StatsTables;
 import io.crate.testing.SQLExecutor;
-import org.elasticsearch.cluster.ClusterService;
+import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Provider;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.node.settings.NodeSettingsService;

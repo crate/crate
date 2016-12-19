@@ -10,7 +10,7 @@ import org.apache.lucene.util.BytesRefBuilder;
 import org.apache.lucene.util.NumericUtils;
 import org.elasticsearch.common.lucene.BytesRefs;
 import org.elasticsearch.common.lucene.search.Queries;
-import org.elasticsearch.index.mapper.ip.IpFieldMapper;
+import org.elasticsearch.index.mapper.IpFieldMapper;
 
 import javax.annotation.Nullable;
 import java.util.Locale;
@@ -63,7 +63,7 @@ public abstract class QueryBuilderHelper {
 
     public Query eq(String columnName, Object value) {
         if (value == null) {
-            return Queries.newMatchNoDocsQuery();
+            return Queries.newMatchNoDocsQuery("eq null");
         }
         return rangeQuery(columnName, value, value, true, true);
     }
@@ -81,7 +81,7 @@ public abstract class QueryBuilderHelper {
         @Override
         public Query eq(String columnName, Object value) {
             if (value == null) {
-                return Queries.newMatchNoDocsQuery();
+                return Queries.newMatchNoDocsQuery("eq null");
             }
             return new TermQuery(new Term(columnName, (boolean) value ? "T" : "F"));
         }

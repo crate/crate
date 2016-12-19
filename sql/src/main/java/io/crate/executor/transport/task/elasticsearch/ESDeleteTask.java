@@ -153,7 +153,7 @@ public class ESDeleteTask extends JobTask {
         }
 
         @Override
-        public void onFailure(Throwable e) {
+        public void onFailure(Exception e) {
             e = Exceptions.unwrap(e); // unwrap to get rid of RemoteTransportException
             if (e instanceof VersionConflictEngineException) {
                 // treat version conflict as rows affected = 0

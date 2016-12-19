@@ -31,7 +31,7 @@ import io.crate.metadata.Reference;
 import io.crate.metadata.Routing;
 import io.crate.metadata.TableIdent;
 import io.crate.planner.node.fetch.FetchPhase;
-import org.elasticsearch.common.logging.ESLogger;
+import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.index.IndexNotFoundException;
 import org.elasticsearch.index.IndexService;
@@ -44,7 +44,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 public class FetchContext extends AbstractExecutionSubContext {
 
-    private static final ESLogger LOGGER = Loggers.getLogger(FetchContext.class);
+    private static final Logger LOGGER = Loggers.getLogger(FetchContext.class);
     private final IntObjectHashMap<Engine.Searcher> searchers = new IntObjectHashMap<>();
     private final IntObjectHashMap<SharedShardContext> shardContexts = new IntObjectHashMap<>();
     private final FetchPhase phase;

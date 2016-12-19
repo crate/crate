@@ -28,7 +28,7 @@ import io.crate.operation.reference.sys.repositories.SysRepositoriesService;
 import io.crate.operation.reference.sys.repositories.SysRepository;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
-import org.elasticsearch.common.logging.ESLogger;
+import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.snapshots.Snapshot;
 import org.elasticsearch.snapshots.SnapshotsService;
@@ -42,7 +42,7 @@ public class SysSnapshots implements Supplier<Iterable<?>> {
 
     private final SysRepositoriesService sysRepositoriesService;
     private final SnapshotsService snapshotsService;
-    private static final ESLogger LOGGER = Loggers.getLogger(SysSnapshots.class);
+    private static final Logger LOGGER = Loggers.getLogger(SysSnapshots.class);
 
     @Inject
     public SysSnapshots(SysRepositoriesService sysRepositoriesService, SnapshotsService snapshotsService) {

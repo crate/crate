@@ -157,7 +157,7 @@ class BulkPortal extends AbstractPortal {
                 }
 
                 @Override
-                public void onFailure(Throwable t) {
+                public void onFailure(Exception t) {
                     for (ResultReceiver resultReceiver : resultReceivers) {
                         resultReceiver.fail(t);
                     }

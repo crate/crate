@@ -23,7 +23,7 @@ package io.crate.operation.reference.sys.cluster;
 
 import io.crate.metadata.SimpleObjectExpression;
 import org.apache.lucene.util.BytesRef;
-import org.elasticsearch.cluster.ClusterService;
+import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 
 public class ClusterMasterNodeExpression extends SimpleObjectExpression<BytesRef> {

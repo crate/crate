@@ -37,11 +37,11 @@ import org.elasticsearch.action.admin.indices.delete.DeleteIndexResponse;
 import org.elasticsearch.action.admin.indices.template.put.PutIndexTemplateRequest;
 import org.elasticsearch.action.admin.indices.template.put.PutIndexTemplateResponse;
 import org.elasticsearch.action.support.IndicesOptions;
-import org.elasticsearch.cluster.ClusterService;
+import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
-import org.elasticsearch.common.logging.ESLogger;
+import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.indices.IndexAlreadyExistsException;
@@ -54,7 +54,7 @@ public class TableCreator {
 
     private static final Long SUCCESS_RESULT = 1L;
 
-    protected static final ESLogger logger = Loggers.getLogger(TableCreator.class);
+    protected static final Logger logger = Loggers.getLogger(TableCreator.class);
 
     private final ClusterService clusterService;
     private final IndexNameExpressionResolver indexNameExpressionResolver;
@@ -109,7 +109,7 @@ public class TableCreator {
                 }
 
                 @Override
-                public void onFailure(Throwable e) {
+                public void onFailure(Exception e) {
                     setException(result, e, statement);
                 }
             });
@@ -124,7 +124,7 @@ public class TableCreator {
                 }
 
                 @Override
-                public void onFailure(Throwable e) {
+                public void onFailure(Exception e) {
                     setException(result, e, statement);
                 }
             });
@@ -163,7 +163,7 @@ public class TableCreator {
                 }
 
                 @Override
-                public void onFailure(Throwable e) {
+                public void onFailure(Exception e) {
                     listener.onFailure(e);
                 }
             });
@@ -196,7 +196,7 @@ public class TableCreator {
                 }
 
                 @Override
-                public void onFailure(Throwable e) {
+                public void onFailure(Exception e) {
                     listener.onFailure(e);
                 }
             });
@@ -227,7 +227,7 @@ public class TableCreator {
         }
 
         @Override
-        public void onFailure(Throwable e) {
+        public void onFailure(Exception e) {
             result.setException(e);
         }
     }

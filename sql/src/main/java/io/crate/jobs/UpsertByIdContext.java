@@ -29,7 +29,7 @@ import io.crate.planner.node.dml.UpsertById;
 import org.elasticsearch.ExceptionsHelper;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.bulk.BulkRequestExecutor;
-import org.elasticsearch.common.logging.ESLogger;
+import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.index.IndexNotFoundException;
 import org.elasticsearch.index.engine.DocumentMissingException;
@@ -40,7 +40,7 @@ import javax.annotation.Nullable;
 
 public class UpsertByIdContext extends AbstractExecutionSubContext {
 
-    private final static ESLogger LOGGER = Loggers.getLogger(UpsertByIdContext.class);
+    private final static Logger LOGGER = Loggers.getLogger(UpsertByIdContext.class);
 
     private final ShardUpsertRequest request;
     private final UpsertById.Item item;
@@ -79,7 +79,7 @@ public class UpsertByIdContext extends AbstractExecutionSubContext {
             }
 
             @Override
-            public void onFailure(Throwable e) {
+            public void onFailure(Exception e) {
                 if (future.closed()) {
                     return;
                 }

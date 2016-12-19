@@ -42,7 +42,6 @@ import org.apache.lucene.search.SortField;
 import org.elasticsearch.index.fielddata.IndexFieldData;
 import org.elasticsearch.index.mapper.MappedFieldType;
 import org.elasticsearch.search.MultiValueMode;
-import org.elasticsearch.search.sort.SortParseElement;
 
 import java.io.IOException;
 import java.util.Collection;

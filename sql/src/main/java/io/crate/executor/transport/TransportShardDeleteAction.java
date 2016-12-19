@@ -26,10 +26,10 @@ import io.crate.exceptions.JobKilledException;
 import org.elasticsearch.ExceptionsHelper;
 import org.elasticsearch.action.support.ActionFilters;
 import org.elasticsearch.action.support.TransportActions;
-import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.action.index.MappingUpdatedAction;
 import org.elasticsearch.cluster.action.shard.ShardStateAction;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
+import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.settings.Settings;
@@ -72,7 +72,7 @@ public class TransportShardDeleteAction extends TransportShardAction<ShardDelete
     protected ShardResponse processRequestItems(ShardId shardId, ShardDeleteRequest request, AtomicBoolean killed) throws InterruptedException {
         ShardResponse shardResponse = new ShardResponse();
         IndexService indexService = indicesService.indexServiceSafe(request.index());
-        IndexShard indexShard = indexService.shardSafe(shardId.id());
+        IndexShard indexShard = indexService.getShard(shardId.id());
         for (int i = 0; i < request.itemIndices().size(); i++) {
             int location = request.itemIndices().get(i);
             ShardDeleteRequest.Item item = request.items().get(i);
@@ -119,8 +119,8 @@ public class TransportShardDeleteAction extends TransportShardAction<ShardDelete
 
     @Override
     protected void processRequestItemsOnReplica(ShardId shardId, ShardDeleteRequest request) {
-        IndexService indexService = indicesService.indexServiceSafe(request.index());
-        IndexShard indexShard = indexService.shardSafe(shardId.id());
+        IndexService indexService = indicesService.indexServiceSafe(request.shardId().getIndex());
+        IndexShard indexShard = indexService.getShard(shardId.id());
         for (int i = 0; i < request.itemIndices().size(); i++) {
             int location = request.itemIndices().get(i);
             if (request.skipFromLocation() == location) {

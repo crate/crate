@@ -37,8 +37,8 @@ import io.crate.operation.projectors.RowReceiver;
 import io.crate.operation.projectors.RowReceivers;
 import io.crate.planner.node.dql.CollectPhase;
 import io.crate.planner.node.dql.RoutedCollectPhase;
+import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.StopWatch;
-import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.index.engine.Engine;
 import org.elasticsearch.threadpool.ThreadPool;
@@ -51,7 +51,7 @@ import java.util.Locale;
 
 public class JobCollectContext extends AbstractExecutionSubContext {
 
-    private static final ESLogger LOGGER = Loggers.getLogger(JobCollectContext.class);
+    private static final Logger LOGGER = Loggers.getLogger(JobCollectContext.class);
 
     private final CollectPhase collectPhase;
     private final MapSideDataCollectOperation collectOperation;
@@ -216,7 +216,7 @@ public class JobCollectContext extends AbstractExecutionSubContext {
         }
 
         // Anything else like INFORMATION_SCHEMA tables or sys.cluster table collector
-        return ThreadPool.Names.PERCOLATE;
+        return ThreadPool.Names.SEARCH; // TODO: PERCOLATE is gone;
     }
 
     @VisibleForTesting

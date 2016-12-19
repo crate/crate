@@ -22,7 +22,8 @@
 
 package io.crate.exceptions;
 
-import org.elasticsearch.cluster.metadata.SnapshotId;
+
+import org.elasticsearch.snapshots.SnapshotId;
 
 import java.util.Locale;
 

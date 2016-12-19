@@ -26,7 +26,7 @@ import com.google.common.annotations.VisibleForTesting;
 import io.crate.metadata.Functions;
 import io.crate.metadata.TableIdent;
 import org.elasticsearch.action.admin.indices.template.put.TransportPutIndexTemplateAction;
-import org.elasticsearch.cluster.ClusterService;
+import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Provider;

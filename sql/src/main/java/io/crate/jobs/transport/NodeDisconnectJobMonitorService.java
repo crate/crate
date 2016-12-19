@@ -46,9 +46,7 @@ import java.util.stream.Collectors;
  * service that listens to node-disconnected-events and kills jobContexts that were started by the nodes that got disconnected
  */
 @Singleton
-public class NodeDisconnectJobMonitorService
-    extends AbstractLifecycleComponent<NodeDisconnectJobMonitorService>
-    implements TransportConnectionListener {
+public class NodeDisconnectJobMonitorService extends AbstractLifecycleComponent implements TransportConnectionListener {
 
     private final ThreadPool threadPool;
     private final JobContextService jobContextService;

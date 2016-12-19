@@ -29,7 +29,7 @@ import io.crate.exceptions.TableUnknownException;
 import io.crate.metadata.TableIdent;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.action.support.IndicesOptions;
-import org.elasticsearch.cluster.ClusterService;
+import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;

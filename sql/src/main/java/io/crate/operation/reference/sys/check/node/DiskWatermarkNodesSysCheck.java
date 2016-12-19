@@ -26,8 +26,8 @@ import io.crate.metadata.settings.CrateSettings;
 import io.crate.metadata.settings.StringSetting;
 import io.crate.operation.reference.sys.check.AbstractSysNodeCheck;
 import org.elasticsearch.ElasticsearchParseException;
-import org.elasticsearch.cluster.ClusterService;
-import org.elasticsearch.common.logging.ESLogger;
+import org.elasticsearch.cluster.service.ClusterService;
+import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.ByteSizeValue;
@@ -40,7 +40,7 @@ import java.io.IOException;
 
 abstract class DiskWatermarkNodesSysCheck extends AbstractSysNodeCheck {
 
-    private static final ESLogger LOGGER = Loggers.getLogger(DiskWatermarkNodesSysCheck.class);
+    private static final Logger LOGGER = Loggers.getLogger(DiskWatermarkNodesSysCheck.class);
 
     private final StringSetting watermarkSetting;
     private final Settings settings;

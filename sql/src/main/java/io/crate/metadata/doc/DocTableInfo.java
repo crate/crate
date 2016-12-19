@@ -36,16 +36,16 @@ import io.crate.metadata.table.ColumnPolicy;
 import io.crate.metadata.table.Operation;
 import io.crate.metadata.table.ShardedTable;
 import io.crate.metadata.table.TableInfo;
+import org.apache.logging.log4j.Logger;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.cluster.ClusterChangedEvent;
-import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.ClusterStateObserver;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.routing.GroupShardsIterator;
 import org.elasticsearch.cluster.routing.ShardIterator;
 import org.elasticsearch.cluster.routing.ShardRouting;
-import org.elasticsearch.common.logging.ESLogger;
+import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.index.IndexNotFoundException;
@@ -65,7 +65,7 @@ import java.util.concurrent.*;
  */
 public class DocTableInfo implements TableInfo, ShardedTable {
 
-    private static final ESLogger logger = Loggers.getLogger(DocTableInfo.class);
+    private static final Logger logger = Loggers.getLogger(DocTableInfo.class);
 
     private final TimeValue routingFetchTimeout;
 
@@ -192,10 +192,11 @@ public class DocTableInfo implements TableInfo, ShardedTable {
             locations.put(shardRouting.currentNodeId(), nodeMap);
         }
 
-        List<Integer> shards = nodeMap.get(shardRouting.getIndex());
+        String indexName = shardRouting.getIndexName();
+        List<Integer> shards = nodeMap.get(indexName);
         if (shards == null) {
             shards = new ArrayList<>();
-            nodeMap.put(shardRouting.getIndex(), shards);
+            nodeMap.put(indexName, shards);
         }
         shards.add(shardRouting.id());
     }

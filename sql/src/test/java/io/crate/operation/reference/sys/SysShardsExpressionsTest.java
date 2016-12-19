@@ -36,7 +36,7 @@ import io.crate.test.integration.CrateUnitTest;
 import io.crate.types.DataTypes;
 import io.crate.types.IntegerType;
 import org.apache.lucene.util.BytesRef;
-import org.elasticsearch.cluster.ClusterService;
+import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.cluster.routing.ShardRouting;
 import org.elasticsearch.cluster.routing.ShardRoutingHelper;
 import org.elasticsearch.cluster.routing.UnassignedInfo;

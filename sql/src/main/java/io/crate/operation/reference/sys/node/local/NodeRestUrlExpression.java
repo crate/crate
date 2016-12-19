@@ -23,7 +23,7 @@ package io.crate.operation.reference.sys.node.local;
 
 import io.crate.metadata.SimpleObjectExpression;
 import org.apache.lucene.util.BytesRef;
-import org.elasticsearch.cluster.ClusterService;
+import org.elasticsearch.cluster.service.ClusterService;
 
 class NodeRestUrlExpression extends SimpleObjectExpression<BytesRef> {
 

@@ -25,7 +25,7 @@ package io.crate.integrationtests;
 import com.carrotsearch.hppc.cursors.ObjectCursor;
 import io.crate.testing.TestingHelpers;
 import io.crate.testing.UseJdbc;
-import org.elasticsearch.cluster.ClusterService;
+import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.cluster.routing.IndexShardRoutingTable;
 import org.elasticsearch.cluster.routing.allocation.command.MoveAllocationCommand;
 import org.elasticsearch.common.Priority;

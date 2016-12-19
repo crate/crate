@@ -23,8 +23,8 @@
 package io.crate.analyze;
 
 import com.google.common.collect.ImmutableList;
-import org.elasticsearch.cluster.metadata.SnapshotId;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.snapshots.SnapshotId;
 
 import java.util.List;
 

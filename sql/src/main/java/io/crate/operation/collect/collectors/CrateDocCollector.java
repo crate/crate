@@ -39,7 +39,7 @@ import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.search.*;
 import org.apache.lucene.util.Bits;
 import org.elasticsearch.common.breaker.CircuitBreakingException;
-import org.elasticsearch.common.logging.ESLogger;
+import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.lucene.MinimumScoreCollector;
 import org.elasticsearch.index.shard.ShardId;
@@ -53,7 +53,7 @@ import java.util.concurrent.Executor;
 
 public class CrateDocCollector implements CrateCollector, RepeatHandle {
 
-    private static final ESLogger LOGGER = Loggers.getLogger(CrateDocCollector.class);
+    private static final Logger LOGGER = Loggers.getLogger(CrateDocCollector.class);
 
     private final CollectorContext collectorContext;
     private final ShardId shardId;

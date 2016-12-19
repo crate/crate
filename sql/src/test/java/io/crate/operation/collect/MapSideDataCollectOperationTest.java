@@ -33,7 +33,7 @@ import io.crate.planner.node.dql.RoutedCollectPhase;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.testing.CollectingRowReceiver;
 import io.crate.types.DataTypes;
-import org.elasticsearch.cluster.ClusterService;
+import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.test.cluster.NoopClusterService;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.junit.Before;

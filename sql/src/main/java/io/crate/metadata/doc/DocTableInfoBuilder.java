@@ -30,13 +30,13 @@ import io.crate.metadata.TableIdent;
 import org.elasticsearch.Version;
 import org.elasticsearch.action.admin.indices.template.put.TransportPutIndexTemplateAction;
 import org.elasticsearch.action.support.IndicesOptions;
-import org.elasticsearch.cluster.ClusterService;
+import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.metadata.IndexTemplateMetaData;
 import org.elasticsearch.cluster.metadata.MetaData;
-import org.elasticsearch.common.logging.ESLogger;
+import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.IndexNotFoundException;
@@ -62,7 +62,7 @@ class DocTableInfoBuilder {
     private final TransportPutIndexTemplateAction transportPutIndexTemplateAction;
     private final MetaData metaData;
     private String[] concreteIndices;
-    private static final ESLogger logger = Loggers.getLogger(DocTableInfoBuilder.class);
+    private static final Logger logger = Loggers.getLogger(DocTableInfoBuilder.class);
 
     DocTableInfoBuilder(Functions functions,
                         TableIdent ident,

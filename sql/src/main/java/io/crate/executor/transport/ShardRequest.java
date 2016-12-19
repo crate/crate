@@ -57,7 +57,7 @@ public abstract class ShardRequest<T extends ReplicationRequest<T>, I extends Sh
         setShardId(shardId);
         this.routing = routing;
         this.jobId = jobId;
-        this.index = shardId.getIndex();
+        this.index = shardId.getIndexName();
         locations = new IntArrayList();
         items = new ArrayList<>();
     }

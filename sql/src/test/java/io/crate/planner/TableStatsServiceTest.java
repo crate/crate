@@ -31,7 +31,7 @@ import io.crate.metadata.settings.CrateSettings;
 import io.crate.protocols.postgres.FormatCodes;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.types.DataType;
-import org.elasticsearch.cluster.ClusterService;
+import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.common.inject.Provider;
 import org.elasticsearch.common.settings.Settings;

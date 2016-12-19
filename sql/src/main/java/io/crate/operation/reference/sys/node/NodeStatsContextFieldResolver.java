@@ -30,18 +30,17 @@ import io.crate.metadata.sys.SysNodesTableInfo;
 import io.crate.monitor.ExtendedNodeInfo;
 import io.crate.monitor.ThreadPools;
 import io.crate.protocols.postgres.PostgresNetty;
+import org.apache.logging.log4j.Logger;
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.action.admin.cluster.node.info.NodeInfo;
-import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.node.DiscoveryNode;
+import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
-import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.lucene.BytesRefs;
 import org.elasticsearch.common.transport.InetSocketTransportAddress;
 import org.elasticsearch.common.transport.TransportAddress;
-import org.elasticsearch.common.util.Consumer;
 import org.elasticsearch.monitor.jvm.JvmService;
 import org.elasticsearch.monitor.os.OsService;
 import org.elasticsearch.node.service.NodeService;
@@ -54,11 +53,12 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
+import java.util.function.Consumer;
 
 @Singleton
 public class NodeStatsContextFieldResolver {
 
-    private final static ESLogger LOGGER = Loggers.getLogger(NodeStatsContextFieldResolver.class);
+    private final static Logger LOGGER = Loggers.getLogger(NodeStatsContextFieldResolver.class);
 
     private final OsService osService;
     private final JvmService jvmService;
@@ -118,7 +118,7 @@ public class NodeStatsContextFieldResolver {
             .put(SysNodesTableInfo.Columns.NAME, new Consumer<NodeStatsContext>() {
                 @Override
                 public void accept(NodeStatsContext context) {
-                    context.name(BytesRefs.toBytesRef(clusterService.localNode().name()));
+                    context.name(BytesRefs.toBytesRef(clusterService.localNode().getName()));
                 }
             })
             .put(SysNodesTableInfo.Columns.HOSTNAME, new Consumer<NodeStatsContext>() {
@@ -136,7 +136,7 @@ public class NodeStatsContextFieldResolver {
                 public void accept(NodeStatsContext context) {
                     DiscoveryNode node = clusterService.localNode();
                     if (node != null) {
-                        String url = node.attributes().get("http_address");
+                        String url = node.getAttributes().get("http_address");
                         context.restUrl(BytesRefs.toBytesRef(url));
                     }
                 }

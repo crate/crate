@@ -51,11 +51,11 @@ import org.elasticsearch.action.ActionRequest;
 import org.elasticsearch.action.ActionResponse;
 import org.elasticsearch.action.get.*;
 import org.elasticsearch.action.support.TransportAction;
-import org.elasticsearch.common.logging.ESLogger;
+import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.xcontent.support.XContentMapValues;
 import org.elasticsearch.index.IndexNotFoundException;
-import org.elasticsearch.search.fetch.source.FetchSourceContext;
+import org.elasticsearch.search.fetch.subphase.FetchSourceContext;
 
 import javax.annotation.Nullable;
 import java.util.*;
@@ -78,7 +78,7 @@ public class ESGetTask extends JobTask {
         Request extends ActionRequest, Response extends ActionResponse> extends AbstractExecutionSubContext
         implements ActionListener<Response> {
 
-        private static final ESLogger LOGGER = Loggers.getLogger(JobContext.class);
+        private static final Logger LOGGER = Loggers.getLogger(JobContext.class);
 
 
         private final Request request;
@@ -198,7 +198,7 @@ public class ESGetTask extends JobTask {
         }
 
         @Override
-        public void onFailure(Throwable e) {
+        public void onFailure(Exception e) {
             downstream.fail(e);
             close(e);
         }
@@ -263,7 +263,7 @@ public class ESGetTask extends JobTask {
         }
 
         @Override
-        public void onFailure(Throwable e) {
+        public void onFailure(Exception e) {
             if (task.esGet.tableInfo().isPartitioned() && e instanceof IndexNotFoundException) {
                 // this means we have no matching document
                 downstream.finish(RepeatHandle.UNSUPPORTED);

@@ -54,7 +54,7 @@ public class MultiActionListener<SingleResponse, FinalResponse> implements Actio
     }
 
     @Override
-    public void onFailure(Throwable e) {
+    public void onFailure(Exception e) {
         lastThrowable.set(e);
         countdown();
     }

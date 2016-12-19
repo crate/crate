@@ -34,8 +34,6 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.gateway.PrimaryShardAllocator;
 import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.index.translog.TranslogConfig;
-import org.elasticsearch.index.translog.TranslogService;
-import org.elasticsearch.indices.IndicesWarmer;
 
 import javax.annotation.concurrent.Immutable;
 import javax.annotation.concurrent.ThreadSafe;
