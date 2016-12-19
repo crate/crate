@@ -21,17 +21,17 @@
 
 package org.elasticsearch.action.bulk;
 
+import org.apache.logging.log4j.Logger;
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.cluster.ClusterChangedEvent;
-import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.ClusterStateListener;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.routing.IndexRoutingTable;
 import org.elasticsearch.cluster.routing.IndexShardRoutingTable;
+import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.component.AbstractLifecycleComponent;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
-import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.IndexNotFoundException;
@@ -43,9 +43,9 @@ import java.util.HashMap;
 import java.util.Map;
 
 @Singleton
-public class BulkRetryCoordinatorPool extends AbstractLifecycleComponent<BulkRetryCoordinatorPool> implements ClusterStateListener {
+public class BulkRetryCoordinatorPool extends AbstractLifecycleComponent implements ClusterStateListener {
 
-    private static final ESLogger LOGGER = Loggers.getLogger(BulkRetryCoordinatorPool.class);
+    private static final Logger LOGGER = Loggers.getLogger(BulkRetryCoordinatorPool.class);
 
     private final Map<String, BulkRetryCoordinator> coordinatorsByNodeId;
     private final Map<ShardId, BulkRetryCoordinator> coordinatorsByShardId;
@@ -70,7 +70,7 @@ public class BulkRetryCoordinatorPool extends AbstractLifecycleComponent<BulkRet
                 IndexRoutingTable indexRoutingTable = clusterService.state().routingTable()
                     .index(shardId.getIndex());
                 if (indexRoutingTable == null) {
-                    throw new IndexNotFoundException("cannot find index " + shardId.index());
+                    throw new IndexNotFoundException(shardId.getIndex());
                 }
                 IndexShardRoutingTable shardRoutingTable = indexRoutingTable.shard(shardId.id());
                 if (shardRoutingTable == null) {

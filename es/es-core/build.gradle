@@ -1,3 +1,6 @@
+import java.time.ZoneOffset;
+import java.time.ZonedDateTime;
+
 dependencies {
 
     compile "org.apache.lucene:lucene-core:${versions.lucene}"
@@ -59,6 +62,17 @@ dependencies {
     // end ES compile dependencies
 
     compile "org.codehaus.groovy:groovy-all:2.4.4:indy"
+}
+
+// Build.java in ES sources will read those properties
+jar {
+    manifest {
+        attributes(
+            "Change": "git rev-parse HEAD".execute([], new File("es/upstream")).in.text.trim(),
+            "Build-Date": ZonedDateTime.now(ZoneOffset.UTC),
+            "X-Compile-Elasticsearch-Snapshot": false
+        )
+    }
 }
 
 

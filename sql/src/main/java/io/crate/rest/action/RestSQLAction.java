@@ -24,13 +24,14 @@ package io.crate.rest.action;
 
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.ListenableFuture;
 import io.crate.action.sql.*;
 import io.crate.action.sql.parser.SQLXContentSourceContext;
 import io.crate.action.sql.parser.SQLXContentSourceParser;
 import io.crate.analyze.symbol.Field;
 import io.crate.exceptions.SQLParseException;
 import io.crate.types.DataType;
-import org.elasticsearch.client.Client;
+import org.elasticsearch.client.node.NodeClient;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.XContentBuilder;
@@ -38,6 +39,7 @@ import org.elasticsearch.rest.*;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.util.*;
@@ -53,19 +55,24 @@ public class RestSQLAction extends BaseRestHandler {
     private final SQLOperations sqlOperations;
 
     @Inject
-    public RestSQLAction(Settings settings, Client client, RestController controller, SQLOperations sqlOperations) {
-        super(settings, controller, client);
+    public RestSQLAction(Settings settings, RestController controller, SQLOperations sqlOperations) {
+        super(settings);
         this.sqlOperations = sqlOperations;
 
         controller.registerHandler(RestRequest.Method.POST, "/_sql", this);
     }
 
+    private static void sendBadRequest(RestChannel channel, String errorMsg) throws IOException {
+        channel.sendResponse(new CrateThrowableRestResponse(
+            channel,
+            new SQLActionException(errorMsg, 4000, RestStatus.BAD_REQUEST)
+        ));
+    }
+
     @Override
-    public void handleRequest(final RestRequest request, final RestChannel channel, Client client) throws Exception {
+    protected RestChannelConsumer prepareRequest(RestRequest request, NodeClient client) throws IOException {
         if (!request.hasContent()) {
-            channel.sendResponse(new CrateThrowableRestResponse(channel,
-                new SQLActionException("missing request body", 4000, RestStatus.BAD_REQUEST)));
-            return;
+            return channel -> sendBadRequest(channel, "missing request body");
         }
 
         SQLXContentSourceContext context = new SQLXContentSourceContext();
@@ -75,23 +82,22 @@ public class RestSQLAction extends BaseRestHandler {
         } catch (SQLParseException e) {
             StringWriter stackTrace = new StringWriter();
             e.printStackTrace(new PrintWriter(stackTrace));
-            channel.sendResponse(new CrateThrowableRestResponse(channel,
-                new SQLActionException(e.getMessage(), 4000, RestStatus.BAD_REQUEST, e.getStackTrace())));
-            return;
+            return channel -> channel.sendResponse(
+                new CrateThrowableRestResponse(
+                    channel,
+                    new SQLActionException(e.getMessage(), 4000, RestStatus.BAD_REQUEST, e.getStackTrace()))
+            );
         }
 
         Object[] args = context.args();
         Object[][] bulkArgs = context.bulkArgs();
         if (args != null && args.length > 0 && bulkArgs != null && bulkArgs.length > 0) {
-            channel.sendResponse(new CrateThrowableRestResponse(channel,
-                new SQLActionException("request body contains args and bulk_args. It's forbidden to provide both",
-                    4000, RestStatus.BAD_REQUEST)));
-            return;
+            return channel -> sendBadRequest(channel, "request body contains args and bulk_args. It's forbidden to provide both");
         }
         if (bulkArgs != null && bulkArgs.length > 0) {
-            executeBulkRequest(context, request, channel);
+            return executeBulkRequest(context, request);
         } else {
-            executeSimpleRequest(context, request, channel);
+            return executeSimpleRequest(context, request);
         }
     }
 
@@ -103,7 +109,7 @@ public class RestSQLAction extends BaseRestHandler {
         return Option.NONE;
     }
 
-    private void executeSimpleRequest(SQLXContentSourceContext context, final RestRequest request, final RestChannel channel) {
+    private RestChannelConsumer executeSimpleRequest(SQLXContentSourceContext context, final RestRequest request) {
         SQLOperations.Session session = sqlOperations.createSession(
             request.header(REQUEST_HEADER_SCHEMA),
             toOptions(request),
@@ -115,21 +121,33 @@ public class RestSQLAction extends BaseRestHandler {
             session.bind(UNNAMED, UNNAMED, args, null);
             List<Field> outputFields = session.describe('P', UNNAMED);
             if (outputFields == null) {
-                ResultReceiver resultReceiver
-                    = new RestRowCountReceiver(channel, startTime, request.paramAsBoolean("types", false));
-                session.execute(UNNAMED, 1, resultReceiver);
-            } else {
-                ResultReceiver resultReceiver =
-                    new RestResultSetReceiver(channel, outputFields, startTime, request.paramAsBoolean("types", false));
-                session.execute(UNNAMED, 0, resultReceiver);
+                return channel -> {
+                    try {
+                        ResultReceiver resultReceiver
+                            = new RestRowCountReceiver(channel, startTime, request.paramAsBoolean("types", false));
+                        session.execute(UNNAMED, 1, resultReceiver);
+                        session.sync();
+                    } catch (Throwable t) {
+                        errorResponse(channel, t);
+                    }
+                };
             }
-            session.sync();
+            return channel -> {
+                try {
+                    ResultReceiver resultReceiver =
+                        new RestResultSetReceiver(channel, outputFields, startTime, request.paramAsBoolean("types", false));
+                    session.execute(UNNAMED, 0, resultReceiver);
+                    session.sync();
+                } catch (Throwable t) {
+                    errorResponse(channel, t);
+                }
+            };
         } catch (Throwable t) {
-            errorResponse(channel, t);
+            return channel -> errorResponse(channel, t);
         }
     }
 
-    private void executeBulkRequest(SQLXContentSourceContext context, final RestRequest request, final RestChannel channel) {
+    private RestChannelConsumer executeBulkRequest(SQLXContentSourceContext context, final RestRequest request) {
         SQLOperations.Session session = sqlOperations.createSession(
             request.header(REQUEST_HEADER_SCHEMA),
             toOptions(request),
@@ -154,27 +172,30 @@ public class RestSQLAction extends BaseRestHandler {
                 throw new UnsupportedOperationException(
                     "Bulk operations for statements that return result sets is not supported");
             }
-            Futures.addCallback(session.sync(), new FutureCallback<Object>() {
-                @Override
-                public void onSuccess(@Nullable Object result) {
-                    try {
-                        XContentBuilder builder = ResultToXContentBuilder.builder(channel)
-                            .cols(Collections.<Field>emptyList())
-                            .duration(startTime)
-                            .bulkRows(results).build();
-                        channel.sendResponse(new BytesRestResponse(RestStatus.OK, builder));
-                    } catch (Throwable e) {
-                        onFailure(e);
+            return channel -> {
+                ListenableFuture<?> sync = session.sync();
+                Futures.addCallback(sync, new FutureCallback<Object>() {
+                    @Override
+                    public void onSuccess(@Nullable Object result) {
+                        try {
+                            XContentBuilder builder = ResultToXContentBuilder.builder(channel)
+                                .cols(Collections.emptyList())
+                                .duration(startTime)
+                                .bulkRows(results).build();
+                            channel.sendResponse(new BytesRestResponse(RestStatus.OK, builder));
+                        } catch (Throwable e) {
+                            onFailure(e);
+                        }
                     }
-                }
-                @Override
-                public void onFailure(@Nonnull Throwable t) {
-                    errorResponse(channel, t);
+                    @Override
+                    public void onFailure(@Nonnull Throwable t) {
+                        errorResponse(channel, t);
 
-                }
-            });
+                    }
+                });
+            };
         } catch (Throwable t) {
-            errorResponse(channel, t);
+            return channel -> errorResponse(channel, t);
         }
     }
 

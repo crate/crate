@@ -26,7 +26,7 @@ import io.crate.metadata.ReferenceImplementation;
 import io.crate.operation.reference.NestedObjectExpression;
 import io.crate.operation.reference.sys.SysObjectArrayReference;
 import org.apache.lucene.util.BytesRef;
-import org.elasticsearch.cluster.ClusterService;
+import org.elasticsearch.cluster.service.ClusterService;
 
 import java.util.ArrayList;
 import java.util.List;

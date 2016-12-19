@@ -26,10 +26,9 @@ import com.google.common.base.Joiner;
 import io.crate.action.sql.SQLActionException;
 import io.crate.testing.TestingHelpers;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateResponse;
-import org.elasticsearch.cluster.SnapshotsInProgress;
-import org.elasticsearch.cluster.metadata.SnapshotId;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.TimeValue;
+import org.elasticsearch.snapshots.SnapshotId;
 import org.elasticsearch.snapshots.SnapshotInfo;
 import org.junit.Before;
 import org.junit.ClassRule;
@@ -157,10 +156,19 @@ public class SnapshotRestoreIntegrationTest extends SQLTransportIntegrationTest 
             if (snapshotInfos.get(0).state().completed()) {
                 // Make sure that snapshot clean up operations are finished
                 ClusterStateResponse stateResponse = client().admin().cluster().prepareState().get();
-                SnapshotsInProgress snapshotsInProgress = stateResponse.getState().getMetaData().custom(SnapshotsInProgress.TYPE);
+
+                // TODO:
+                fail("adopt test");
+                break;
+
+                /*
+                SnapshotsInProgress snapshotsInProgress = stateResponse.getState()
+                    .getMetaData()
+                    .custom(SnapshotsInProgress.TYPE);
                 if (snapshotsInProgress == null || snapshotsInProgress.snapshot(snapshotId) == null) {
                     return snapshotInfos.get(0);
                 }
+                */
             }
             Thread.sleep(100);
         }

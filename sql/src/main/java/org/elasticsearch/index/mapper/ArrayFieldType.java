@@ -31,8 +31,8 @@ import org.elasticsearch.action.fieldstats.FieldStats;
 import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.unit.Fuzziness;
 import org.elasticsearch.index.analysis.NamedAnalyzer;
-import org.elasticsearch.index.fielddata.FieldDataType;
 import org.elasticsearch.index.query.QueryParseContext;
+import org.elasticsearch.index.query.QueryShardContext;
 import org.elasticsearch.index.similarity.SimilarityProvider;
 
 import java.io.IOException;
@@ -70,26 +70,6 @@ class ArrayFieldType extends MappedFieldType implements Cloneable {
     }
 
     @Override
-    public boolean isNumeric() {
-        return innerFieldType.isNumeric();
-    }
-
-    @Override
-    public boolean isSortable() {
-        return innerFieldType.isSortable();
-    }
-
-    @Override
-    public FieldDataType fieldDataType() {
-        return innerFieldType.fieldDataType();
-    }
-
-    @Override
-    public void setFieldDataType(FieldDataType fieldDataType) {
-        innerFieldType.setFieldDataType(fieldDataType);
-    }
-
-    @Override
     public boolean hasDocValues() {
         return innerFieldType.hasDocValues();
     }
@@ -97,16 +77,6 @@ class ArrayFieldType extends MappedFieldType implements Cloneable {
     @Override
     public void setHasDocValues(boolean hasDocValues) {
         innerFieldType.setHasDocValues(hasDocValues);
-    }
-
-    @Override
-    public Loading normsLoading() {
-        return innerFieldType.normsLoading();
-    }
-
-    @Override
-    public void setNormsLoading(Loading normsLoading) {
-        innerFieldType.setNormsLoading(normsLoading);
     }
 
     @Override
@@ -165,38 +135,13 @@ class ArrayFieldType extends MappedFieldType implements Cloneable {
     }
 
     @Override
-    public Object value(Object value) {
-        return innerFieldType.value(value);
-    }
-
-    @Override
     public Object valueForSearch(Object value) {
         return innerFieldType.valueForSearch(value);
     }
 
     @Override
-    public BytesRef indexedValueForSearch(Object value) {
-        return innerFieldType.indexedValueForSearch(value);
-    }
-
-    @Override
-    public boolean useTermQueryWithQueryString() {
-        return innerFieldType.useTermQueryWithQueryString();
-    }
-
-    @Override
-    public Term createTerm(Object value) {
-        return innerFieldType.createTerm(value);
-    }
-
-    @Override
-    public Query termQuery(Object value, @Nullable QueryParseContext context) {
-        return innerFieldType.termQuery(value, context);
-    }
-
-    @Override
-    public Query termsQuery(List values, @Nullable QueryParseContext context) {
-        return innerFieldType.termsQuery(values, context);
+    public Query termQuery(Object value, @Nullable QueryShardContext context) {
+        return null;
     }
 
     @Override
@@ -210,23 +155,8 @@ class ArrayFieldType extends MappedFieldType implements Cloneable {
     }
 
     @Override
-    public Query prefixQuery(String value, @Nullable MultiTermQuery.RewriteMethod method, @Nullable QueryParseContext context) {
-        return innerFieldType.prefixQuery(value, method, context);
-    }
-
-    @Override
-    public Query regexpQuery(String value, int flags, int maxDeterminizedStates, @Nullable MultiTermQuery.RewriteMethod method, @Nullable QueryParseContext context) {
-        return innerFieldType.regexpQuery(value, flags, maxDeterminizedStates, method, context);
-    }
-
-    @Override
     public Query nullValueQuery() {
         return innerFieldType.nullValueQuery();
-    }
-
-    @Override
-    public FieldStats stats(Terms terms, int maxDoc) throws IOException {
-        return innerFieldType.stats(terms, maxDoc);
     }
 
     @Override

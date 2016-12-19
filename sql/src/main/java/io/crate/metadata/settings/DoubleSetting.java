@@ -27,11 +27,11 @@ import org.elasticsearch.common.settings.Settings;
 
 public abstract class DoubleSetting extends Setting<Double, Double> {
 
-    public Double maxValue() {
+    Double maxValue() {
         return Double.MAX_VALUE;
     }
 
-    public Double minValue() {
+    Double minValue() {
         return Double.MIN_VALUE;
     }
 
@@ -43,5 +43,15 @@ public abstract class DoubleSetting extends Setting<Double, Double> {
     @Override
     public Double extract(Settings settings) {
         return settings.getAsDouble(settingName(), defaultValue());
+    }
+
+    @Override
+    org.elasticsearch.common.settings.Setting<Double> createESSetting() {
+        return org.elasticsearch.common.settings.Setting.doubleSetting(
+            settingName(),
+            defaultValue(),
+            minValue(),
+            propertiesForUpdateConsumer()
+        );
     }
 }

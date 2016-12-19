@@ -22,18 +22,14 @@
 
 package io.crate.metadata.doc;
 
-import com.google.common.annotations.VisibleForTesting;
 import io.crate.metadata.Functions;
 import io.crate.metadata.TableIdent;
 import org.elasticsearch.action.admin.indices.template.put.TransportPutIndexTemplateAction;
-import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
+import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Provider;
 import org.elasticsearch.common.inject.Singleton;
-import org.elasticsearch.threadpool.ThreadPool;
-
-import java.util.concurrent.ExecutorService;
 
 @Singleton
 public class InternalDocTableInfoFactory implements DocTableInfoFactory {
@@ -41,28 +37,14 @@ public class InternalDocTableInfoFactory implements DocTableInfoFactory {
     private final Functions functions;
     private final IndexNameExpressionResolver indexNameExpressionResolver;
     private final Provider<TransportPutIndexTemplateAction> putIndexTemplateActionProvider;
-    private final ExecutorService executorService;
 
     @Inject
     public InternalDocTableInfoFactory(Functions functions,
                                        IndexNameExpressionResolver indexNameExpressionResolver,
-                                       Provider<TransportPutIndexTemplateAction> putIndexTemplateActionProvider,
-                                       ThreadPool threadPool) {
-        this(functions,
-            indexNameExpressionResolver,
-            putIndexTemplateActionProvider,
-            (ExecutorService) threadPool.executor(ThreadPool.Names.SUGGEST));
-    }
-
-    @VisibleForTesting
-    InternalDocTableInfoFactory(Functions functions,
-                                IndexNameExpressionResolver indexNameExpressionResolver,
-                                Provider<TransportPutIndexTemplateAction> transportPutIndexTemplateActionProvider,
-                                ExecutorService executorService) {
+                                       Provider<TransportPutIndexTemplateAction> putIndexTemplateActionProvider) {
         this.functions = functions;
         this.indexNameExpressionResolver = indexNameExpressionResolver;
-        putIndexTemplateActionProvider = transportPutIndexTemplateActionProvider;
-        this.executorService = executorService;
+        this.putIndexTemplateActionProvider = putIndexTemplateActionProvider;
     }
 
     @Override
@@ -74,7 +56,6 @@ public class InternalDocTableInfoFactory implements DocTableInfoFactory {
             clusterService,
             indexNameExpressionResolver,
             putIndexTemplateActionProvider.get(),
-            executorService,
             checkAliasSchema
         );
         return builder.build();

@@ -30,7 +30,7 @@ import io.crate.core.collections.BucketPage;
 import io.crate.operation.PageConsumeListener;
 import io.crate.operation.PageDownstream;
 import io.crate.operation.PageResultListener;
-import org.elasticsearch.common.logging.ESLogger;
+import org.apache.logging.log4j.Logger;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -53,7 +53,7 @@ public class PageDownstreamContext extends AbstractExecutionSubContext implement
     private final BitSet exhausted;
     private final ArrayList<PageResultListener> listeners = new ArrayList<>();
 
-    public PageDownstreamContext(ESLogger logger,
+    public PageDownstreamContext(Logger logger,
                                  String nodeName,
                                  int id,
                                  String name,

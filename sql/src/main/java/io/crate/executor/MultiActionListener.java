@@ -33,7 +33,7 @@ import java.util.concurrent.atomic.AtomicReference;
 public class MultiActionListener<SingleResponse, FinalResponse> implements ActionListener<SingleResponse> {
 
     private final AtomicInteger counter;
-    private final AtomicReference<Throwable> lastThrowable = new AtomicReference<>(null);
+    private final AtomicReference<Exception> lastExceptions = new AtomicReference<>(null);
     private final Function<List<SingleResponse>, FinalResponse> mergeFunction;
     private final ActionListener<? super FinalResponse> actionListener;
     private final ArrayList<SingleResponse> results;
@@ -54,18 +54,18 @@ public class MultiActionListener<SingleResponse, FinalResponse> implements Actio
     }
 
     @Override
-    public void onFailure(Throwable e) {
-        lastThrowable.set(e);
+    public void onFailure(Exception e) {
+        lastExceptions.set(e);
         countdown();
     }
 
     private void countdown() {
         if (counter.decrementAndGet() == 0) {
-            Throwable t = lastThrowable.get();
-            if (t == null) {
+            Exception e = lastExceptions.get();
+            if (e == null) {
                 actionListener.onResponse(mergeFunction.apply(results));
             } else {
-                actionListener.onFailure(t);
+                actionListener.onFailure(e);
             }
         }
     }

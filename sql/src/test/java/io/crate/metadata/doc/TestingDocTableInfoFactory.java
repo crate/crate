@@ -24,7 +24,7 @@ package io.crate.metadata.doc;
 
 import io.crate.exceptions.TableUnknownException;
 import io.crate.metadata.TableIdent;
-import org.elasticsearch.cluster.ClusterService;
+import org.elasticsearch.cluster.service.ClusterService;
 
 import java.util.Map;
 

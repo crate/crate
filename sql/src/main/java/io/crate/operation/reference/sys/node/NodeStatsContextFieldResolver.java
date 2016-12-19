@@ -30,35 +30,36 @@ import io.crate.metadata.sys.SysNodesTableInfo;
 import io.crate.monitor.ExtendedNodeInfo;
 import io.crate.monitor.ThreadPools;
 import io.crate.protocols.postgres.PostgresNetty;
-import org.elasticsearch.ElasticsearchException;
+import org.apache.logging.log4j.Logger;
 import org.elasticsearch.action.admin.cluster.node.info.NodeInfo;
-import org.elasticsearch.cluster.ClusterService;
+import org.elasticsearch.action.admin.cluster.node.stats.NodeStats;
+import org.elasticsearch.action.admin.indices.stats.CommonStatsFlags;
 import org.elasticsearch.cluster.node.DiscoveryNode;
+import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
-import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.lucene.BytesRefs;
 import org.elasticsearch.common.transport.InetSocketTransportAddress;
 import org.elasticsearch.common.transport.TransportAddress;
-import org.elasticsearch.common.util.Consumer;
+import org.elasticsearch.monitor.MonitorService;
 import org.elasticsearch.monitor.jvm.JvmService;
 import org.elasticsearch.monitor.os.OsService;
 import org.elasticsearch.node.service.NodeService;
 import org.elasticsearch.threadpool.ThreadPool;
 
-import java.io.IOException;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
+import java.util.function.Consumer;
 
 @Singleton
 public class NodeStatsContextFieldResolver {
 
-    private final static ESLogger LOGGER = Loggers.getLogger(NodeStatsContextFieldResolver.class);
+    private final static Logger LOGGER = Loggers.getLogger(NodeStatsContextFieldResolver.class);
 
     private final OsService osService;
     private final JvmService jvmService;
@@ -70,14 +71,13 @@ public class NodeStatsContextFieldResolver {
 
     @Inject
     public NodeStatsContextFieldResolver(ClusterService clusterService,
-                                         OsService osService,
+                                         MonitorService monitorService,
                                          NodeService nodeService,
-                                         JvmService jvmService,
                                          ThreadPool threadPool,
                                          ExtendedNodeInfo extendedNodeInfo,
                                          PostgresNetty postgresNetty) {
-        this.osService = osService;
-        this.jvmService = jvmService;
+        this.osService = monitorService.osService();
+        this.jvmService = monitorService.jvmService();
         this.clusterService = clusterService;
         this.nodeService = nodeService;
         this.threadPool = threadPool;
@@ -86,7 +86,7 @@ public class NodeStatsContextFieldResolver {
     }
 
     public NodeStatsContext forColumns(Collection<ColumnIdent> columns) {
-        NodeStatsContext context = NodeStatsContext.newInstance();
+        NodeStatsContext context = new NodeStatsContext(true);
         if (columns.isEmpty()) {
             return context;
         }
@@ -118,7 +118,7 @@ public class NodeStatsContextFieldResolver {
             .put(SysNodesTableInfo.Columns.NAME, new Consumer<NodeStatsContext>() {
                 @Override
                 public void accept(NodeStatsContext context) {
-                    context.name(BytesRefs.toBytesRef(clusterService.localNode().name()));
+                    context.name(BytesRefs.toBytesRef(clusterService.localNode().getName()));
                 }
             })
             .put(SysNodesTableInfo.Columns.HOSTNAME, new Consumer<NodeStatsContext>() {
@@ -136,7 +136,7 @@ public class NodeStatsContextFieldResolver {
                 public void accept(NodeStatsContext context) {
                     DiscoveryNode node = clusterService.localNode();
                     if (node != null) {
-                        String url = node.attributes().get("http_address");
+                        String url = node.getAttributes().get("http_address");
                         context.restUrl(BytesRefs.toBytesRef(url));
                     }
                 }
@@ -147,15 +147,15 @@ public class NodeStatsContextFieldResolver {
                     Integer http = null;
                     Integer pgsql = null;
                     Integer transport;
-                    NodeInfo info = nodeService.info();
+                    NodeInfo info = nodeService.info(false, false, false, false, false,
+                        false, true, false, false, false);
                     if (info.getHttp() != null) {
                         http = portFromAddress(info.getHttp().address().publishAddress());
                     }
-                    try {
-                        transport = portFromAddress(nodeService.stats().getNode().address());
-                    } catch (IOException e) {
-                        throw new ElasticsearchException("unable to get node transport statistics", e);
-                    }
+
+                    NodeStats nodeStats = nodeService.stats(CommonStatsFlags.NONE, false, false, false, false,
+                        false,false, false, false, false, false, false);
+                    transport = portFromAddress(nodeStats.getNode().getAddress());
                     if (postgresNetty.boundAddress() != null) {
                         pgsql = portFromAddress(postgresNetty.boundAddress().publishAddress());
                     }
@@ -212,18 +212,18 @@ public class NodeStatsContextFieldResolver {
             .put(SysNodesTableInfo.Columns.OS_INFO, new Consumer<NodeStatsContext>() {
                 @Override
                 public void accept(NodeStatsContext context) {
-                    context.osInfo(nodeService.info().getOs());
+                    NodeInfo nodeInfo = nodeService.info(false, true, false, false, false, false,
+                        false, false, false, false);
+                    context.osInfo(nodeInfo.getOs());
                 }
             })
             .put(SysNodesTableInfo.Columns.PROCESS, new Consumer<NodeStatsContext>() {
                 @Override
                 public void accept(NodeStatsContext context) {
                     context.extendedProcessCpuStats(extendedNodeInfo.processCpuStats());
-                    try {
-                        context.processStats(nodeService.stats().getProcess());
-                    } catch (IOException e) {
-                        throw new ElasticsearchException("unable to get node statistics", e);
-                    }
+                    NodeStats nodeStats = nodeService.stats(CommonStatsFlags.NONE, false, true, false, false,
+                        false,false, false, false, false, false, false);
+                    context.processStats(nodeStats.getProcess());
                 }
             })
             .put(SysNodesTableInfo.Columns.FS, new Consumer<NodeStatsContext>() {

@@ -32,6 +32,7 @@ import io.crate.operation.projectors.FlatProjectorChain;
 import io.crate.operation.projectors.sorting.OrderingByPosition;
 import io.crate.testing.CollectingRowReceiver;
 import io.crate.testing.TestingHelpers;
+import org.elasticsearch.common.UUIDs;
 import org.elasticsearch.index.shard.ShardId;
 import org.junit.Test;
 import org.mockito.invocation.InvocationOnMock;
@@ -56,9 +57,9 @@ public class MultiShardScoreDocCollectorTest {
             OrderingByPosition.rowOrdering(new int[]{0}, new boolean[]{false}, new Boolean[]{null});
 
         List<OrderedDocCollector> collectors = new ArrayList<>();
-        collectors.add(mockedCollector(new ShardId("p1", 0), 0, singleColRows(1, 1)));
-        collectors.add(mockedCollector(new ShardId("p2", 0), 2, singleColRows(2, 2, 2)));
-        collectors.add(mockedCollector(new ShardId("p1", 1), 10, singleColRows(3, 3)));
+        collectors.add(mockedCollector(new ShardId("p1", UUIDs.randomBase64UUID(), 0), 0, singleColRows(1, 1)));
+        collectors.add(mockedCollector(new ShardId("p2", UUIDs.randomBase64UUID(), 0), 2, singleColRows(2, 2, 2)));
+        collectors.add(mockedCollector(new ShardId("p1", UUIDs.randomBase64UUID(), 1), 10, singleColRows(3, 3)));
 
         CollectingRowReceiver rowReceiver = CollectingRowReceiver.withLimit(6);
         FlatProjectorChain projectorChain = FlatProjectorChain.withReceivers(Collections.singletonList(rowReceiver));

@@ -29,16 +29,13 @@ import io.crate.metadata.RowGranularity;
 import io.crate.metadata.settings.CrateSettings;
 import io.crate.operation.reference.NestedObjectExpression;
 import io.crate.operation.reference.sys.cluster.SysClusterExpressionModule;
-import io.crate.test.integration.CrateUnitTest;
+import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.types.DataTypes;
-import org.elasticsearch.cluster.ClusterName;
-import org.elasticsearch.cluster.ClusterService;
+import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Injector;
 import org.elasticsearch.common.inject.Module;
 import org.elasticsearch.common.inject.ModulesBuilder;
-import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.MemorySizeValue;
-import org.elasticsearch.test.cluster.NoopClusterService;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -47,7 +44,7 @@ import java.util.Map;
 import static io.crate.testing.TestingHelpers.refInfo;
 import static org.hamcrest.Matchers.is;
 
-public class TestGlobalSysExpressions extends CrateUnitTest {
+public class TestGlobalSysExpressions extends CrateDummyClusterServiceUnitTest {
 
     private NestedReferenceResolver resolver;
 
@@ -56,9 +53,7 @@ public class TestGlobalSysExpressions extends CrateUnitTest {
         Injector injector = new ModulesBuilder()
             .add(new SysClusterExpressionModule())
             .add((Module) binder -> {
-                binder.bind(ClusterService.class).toInstance(new NoopClusterService());
-                binder.bind(Settings.class).toInstance(Settings.EMPTY);
-                binder.bind(ClusterName.class).toInstance(new ClusterName("cluster"));
+                binder.bind(ClusterService.class).toInstance(clusterService);
                 binder.bind(NestedReferenceResolver.class).to(GlobalReferenceResolver.class).asEagerSingleton();
             }).createInjector();
         resolver = injector.getInstance(NestedReferenceResolver.class);

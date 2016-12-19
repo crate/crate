@@ -23,6 +23,7 @@
 package io.crate.executor.transport;
 
 import io.crate.test.integration.CrateUnitTest;
+import org.elasticsearch.common.UUIDs;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.index.shard.ShardId;
@@ -36,7 +37,7 @@ public class ShardDeleteRequestTest extends CrateUnitTest {
 
     @Test
     public void testStreaming() throws Exception {
-        ShardId shardId = new ShardId("test", 1);
+        ShardId shardId = new ShardId("test", UUIDs.randomBase64UUID(), 1);
         UUID jobId = UUID.randomUUID();
         ShardDeleteRequest request = new ShardDeleteRequest(shardId, "42", jobId);
 

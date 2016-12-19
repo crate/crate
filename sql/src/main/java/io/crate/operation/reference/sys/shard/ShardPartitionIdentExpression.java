@@ -31,8 +31,9 @@ public class ShardPartitionIdentExpression implements ReferenceImplementation<By
     private final BytesRef value;
 
     public ShardPartitionIdentExpression(ShardId shardId) {
-        if (PartitionName.isPartition(shardId.getIndex())) {
-            value = new BytesRef(PartitionName.fromIndexOrTemplate(shardId.getIndex()).ident());
+        String indexName = shardId.getIndexName();
+        if (PartitionName.isPartition(indexName)) {
+            value = new BytesRef(PartitionName.fromIndexOrTemplate(indexName).ident());
         } else {
             value = EMPTY;
         }

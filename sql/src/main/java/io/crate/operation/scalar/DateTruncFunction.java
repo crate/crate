@@ -21,7 +21,6 @@
 package io.crate.operation.scalar;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import io.crate.analyze.symbol.Function;
 import io.crate.analyze.symbol.Literal;
 import io.crate.analyze.symbol.Symbol;
@@ -37,18 +36,18 @@ import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.collect.MapBuilder;
 import org.elasticsearch.common.rounding.DateTimeUnit;
 import org.elasticsearch.common.rounding.Rounding;
-import org.elasticsearch.common.rounding.TimeZoneRounding;
 import org.joda.time.DateTimeZone;
 
 import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 
 public class DateTruncFunction extends Scalar<Long, Object> {
 
     public static final String NAME = "date_trunc";
 
-    private static final ImmutableMap<BytesRef, DateTimeUnit> DATE_FIELD_PARSERS = MapBuilder.<BytesRef, DateTimeUnit>newMapBuilder()
+    private static final Map<BytesRef, DateTimeUnit> DATE_FIELD_PARSERS = MapBuilder.<BytesRef, DateTimeUnit>newMapBuilder()
         // we only store timestamps in milliseconds since epoch.
         // therefore, we supporting 'milliseconds' and 'microseconds' wouldn't affect anything.
         .put(new BytesRef("year"), DateTimeUnit.YEAR_OF_CENTURY)
@@ -171,10 +170,7 @@ public class DateTruncFunction extends Scalar<Long, Object> {
         DateTimeUnit intervalAsUnit = intervalAsUnit(interval);
         DateTimeZone timeZone = TimeZoneParser.parseTimeZone(timeZoneString);
 
-        TimeZoneRounding.Builder tzRoundingBuilder = TimeZoneRounding.builder(intervalAsUnit);
-        return tzRoundingBuilder
-            .timeZone(timeZone)
-            .build();
+        return Rounding.builder(intervalAsUnit).timeZone(timeZone).build();
     }
 
     /**

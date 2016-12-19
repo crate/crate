@@ -33,7 +33,7 @@ public class ShardTableNameExpression implements ReferenceImplementation<BytesRe
     private final BytesRef value;
 
     public ShardTableNameExpression(ShardId shardId) {
-        String index = shardId.getIndex();
+        String index = shardId.getIndexName();
         if (PartitionName.isPartition(index)) {
             value = new BytesRef(PartitionName.fromIndexOrTemplate(index).tableIdent().name());
         } else {

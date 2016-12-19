@@ -41,10 +41,10 @@ import io.crate.operation.reference.doc.lucene.CollectorContext;
 import io.crate.operation.reference.doc.lucene.LuceneCollectorExpression;
 import io.crate.operation.reference.doc.lucene.LuceneReferenceResolver;
 import io.crate.planner.node.dql.RoutedCollectPhase;
+import org.apache.logging.log4j.Logger;
 import org.elasticsearch.action.bulk.BulkRetryCoordinatorPool;
-import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
-import org.elasticsearch.common.logging.ESLogger;
+import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.IndexService;
@@ -57,7 +57,7 @@ import java.util.concurrent.Executor;
 
 public class LuceneShardCollectorProvider extends ShardCollectorProvider {
 
-    private static final ESLogger LOGGER = Loggers.getLogger(LuceneShardCollectorProvider.class);
+    private static final Logger LOGGER = Loggers.getLogger(LuceneShardCollectorProvider.class);
 
     private final ThreadPool threadPool;
     private final String localNodeId;
@@ -83,7 +83,7 @@ public class LuceneShardCollectorProvider extends ShardCollectorProvider {
         this.threadPool = threadPool;
         this.indexShard = indexShard;
         this.localNodeId = clusterService.localNode().getId();
-        fieldTypeLookup = indexShard.mapperService()::smartNameFieldType;
+        fieldTypeLookup = indexShard.mapperService()::fullName;
         this.docInputFactory = new DocInputFactory(functions, new LuceneReferenceResolver(fieldTypeLookup));
     }
 
@@ -99,7 +99,7 @@ public class LuceneShardCollectorProvider extends ShardCollectorProvider {
                 collectPhase.whereClause(),
                 indexShard.mapperService(),
                 indexShard.indexFieldDataService(),
-                indexShard.indexService().cache()
+                sharedShardContext.indexService().cache()
             );
             jobCollectContext.addSearcher(sharedShardContext.readerId(), searcher);
             InputFactory.Context<? extends LuceneCollectorExpression<?>> docCtx =

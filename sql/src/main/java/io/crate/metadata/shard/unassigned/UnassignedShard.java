@@ -5,7 +5,7 @@ import io.crate.metadata.PartitionName;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.blob.BlobSchemaInfo;
 import org.apache.lucene.util.BytesRef;
-import org.elasticsearch.cluster.ClusterService;
+import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.cluster.routing.ShardRoutingState;
 import org.elasticsearch.index.shard.ShardId;
 
@@ -70,7 +70,7 @@ public class UnassignedShard {
                            ClusterService clusterService,
                            Boolean primary,
                            ShardRoutingState state) {
-        String index = shardId.index().name();
+        String index = shardId.getIndexName();
         boolean isBlobIndex = BlobIndex.isBlobIndex(index);
         String tableName;
         String ident = "";
