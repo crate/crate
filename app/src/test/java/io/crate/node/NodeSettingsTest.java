@@ -24,11 +24,9 @@ package io.crate.node;
 import io.crate.Constants;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
-import org.apache.log4j.varia.NullAppender;
+import org.elasticsearch.cli.Terminal;
 import org.elasticsearch.client.Client;
-import org.elasticsearch.common.cli.Terminal;
 import org.elasticsearch.common.inject.CreationException;
-import org.elasticsearch.common.lease.Releasables;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.env.Environment;
 import org.elasticsearch.node.internal.CrateSettingsPreparer;
@@ -41,6 +39,7 @@ import java.io.File;
 import java.io.IOException;
 import java.net.URISyntaxException;
 import java.nio.file.Paths;
+import java.util.Collections;
 
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.core.Is.is;
@@ -61,17 +60,16 @@ public class NodeSettingsTest {
     public NodeSettingsTest() throws URISyntaxException {
     }
 
-    private void doSetup() throws IOException {
+    private void doSetup() throws Exception {
         // mute log4j warning by configuring a dummy logger
         if (!loggingConfigured) {
             Logger root = Logger.getRootLogger();
             root.removeAllAppenders();
             root.setLevel(Level.OFF);
-            root.addAppender(new NullAppender());
             loggingConfigured = true;
         }
         tmp.create();
-        Settings.Builder builder = Settings.settingsBuilder()
+        Settings.Builder builder = Settings.builder()
             .put("node.name", "node-test")
             .put("node.data", true)
             .put("index.store.type", "default")
@@ -84,7 +82,7 @@ public class NodeSettingsTest {
             .put("node.local", true);
 
         Terminal terminal = Terminal.DEFAULT;
-        Environment environment = CrateSettingsPreparer.prepareEnvironment(builder.build(), terminal);
+        Environment environment = CrateSettingsPreparer.prepareEnvironment(builder.build(), terminal, Collections.emptyMap());
         node = new CrateNode(environment);
         node.start();
         client = node.client();
@@ -98,7 +96,7 @@ public class NodeSettingsTest {
             client = null;
         }
         if (node != null) {
-            Releasables.close(node);
+            node.close();
             node = null;
         }
     }
@@ -107,7 +105,7 @@ public class NodeSettingsTest {
      * The default cluster name is "crate" if not set differently in crate settings
      */
     @Test
-    public void testClusterName() throws IOException {
+    public void testClusterName() throws Exception {
         doSetup();
         assertEquals("crate",
             client.admin().cluster().prepareHealth().
@@ -118,7 +116,7 @@ public class NodeSettingsTest {
      * The default cluster name is "crate" if not set differently in crate settings
      */
     @Test
-    public void testClusterNameSystemProp() throws IOException {
+    public void testClusterNameSystemProp() throws Exception {
         System.setProperty("es.cluster.name", "system");
         doSetup();
         assertEquals("system",
@@ -148,7 +146,7 @@ public class NodeSettingsTest {
     }
 
     @Test
-    public void testDefaultPorts() throws IOException {
+    public void testDefaultPorts() throws Exception {
         doSetup();
 
         assertEquals(
@@ -163,12 +161,12 @@ public class NodeSettingsTest {
 
     @Test
     public void testInvalidUnicastHost() throws Exception {
-        Settings.Builder builder = Settings.settingsBuilder()
+        Settings.Builder builder = Settings.builder()
             .put("discovery.zen.ping.multicast.enabled", false)
             .put("discovery.zen.ping.unicast.hosts", "nonexistinghost:4300")
             .put("path.home", CRATE_CONFIG_PATH);
         Terminal terminal = Terminal.DEFAULT;
-        Environment environment = CrateSettingsPreparer.prepareEnvironment(builder.build(), terminal);
+        Environment environment = CrateSettingsPreparer.prepareEnvironment(builder.build(), terminal, Collections.emptyMap());
 
         try {
             node = new CrateNode(environment);

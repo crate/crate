@@ -33,7 +33,5 @@ public class Constants {
     public static final String TRANSPORT_PORT_RANGE = "4300-4400";
     public static final String THRIFT_PORT_RANGE = "4500-4600";
 
-    public static final String CUSTOM_ANALYSIS_SETTINGS_PREFIX = "crate.analysis.custom";
-
     public static final int MAX_SHARD_MISSING_RETRIES = 3;
 }

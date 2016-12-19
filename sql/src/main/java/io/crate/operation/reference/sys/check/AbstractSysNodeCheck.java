@@ -23,7 +23,7 @@
 package io.crate.operation.reference.sys.check;
 
 import org.apache.lucene.util.BytesRef;
-import org.elasticsearch.cluster.ClusterService;
+import org.elasticsearch.cluster.service.ClusterService;
 
 public abstract class AbstractSysNodeCheck extends AbstractSysCheck implements SysNodeCheck {
 

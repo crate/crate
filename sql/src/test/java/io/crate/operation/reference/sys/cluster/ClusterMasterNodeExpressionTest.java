@@ -22,9 +22,9 @@
 package io.crate.operation.reference.sys.cluster;
 
 import io.crate.test.integration.CrateUnitTest;
-import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.node.DiscoveryNodes;
+import org.elasticsearch.cluster.service.ClusterService;
 import org.hamcrest.Matchers;
 import org.junit.Test;
 
@@ -40,7 +40,7 @@ public class ClusterMasterNodeExpressionTest extends CrateUnitTest {
         DiscoveryNodes nodes = mock(DiscoveryNodes.class);
         when(clusterService.state()).thenReturn(state);
         when(state.nodes()).thenReturn(nodes);
-        when(nodes.masterNodeId()).thenReturn(null);
+        when(nodes.getMasterNodeId()).thenReturn(null);
         ClusterMasterNodeExpression clusterMasterNodeExpression = new ClusterMasterNodeExpression(clusterService);
 
         assertThat(clusterMasterNodeExpression.value(), Matchers.nullValue());

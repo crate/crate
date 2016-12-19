@@ -24,21 +24,20 @@ package io.crate.metadata.sys;
 
 import io.crate.metadata.Reference;
 import io.crate.metadata.table.TableInfo;
-import io.crate.test.integration.CrateUnitTest;
+import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.TestingHelpers;
-import org.elasticsearch.test.cluster.NoopClusterService;
 import org.junit.Before;
 import org.junit.Test;
 
 import java.util.Locale;
 
-public class SystemTableInfoTest extends CrateUnitTest {
+public class SystemTableInfoTest extends CrateDummyClusterServiceUnitTest {
 
     private SysSchemaInfo sysSchemaInfo;
 
     @Before
-    public void prepare() throws Exception {
-        sysSchemaInfo = new SysSchemaInfo(new NoopClusterService());
+    public void prepare() {
+        sysSchemaInfo = new SysSchemaInfo(clusterService);
     }
 
     @Test

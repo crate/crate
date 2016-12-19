@@ -37,7 +37,7 @@ import io.crate.operation.collect.CollectExpression;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.elasticsearch.common.breaker.CircuitBreakingException;
-import org.elasticsearch.common.logging.ESLogger;
+import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.unit.ByteSizeValue;
 
@@ -50,7 +50,7 @@ import static io.crate.operation.projectors.RowReceiver.Result.STOP;
 public class GroupingProjector extends AbstractProjector {
 
 
-    private static final ESLogger logger = Loggers.getLogger(GroupingProjector.class);
+    private static final Logger logger = Loggers.getLogger(GroupingProjector.class);
     private final RamAccountingContext ramAccountingContext;
 
     private final Grouper grouper;

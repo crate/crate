@@ -21,8 +21,8 @@
 
 package io.crate.integrationtests;
 
-import io.crate.testing.SQLResponse;
 import io.crate.operation.reference.sys.check.SysCheck.Severity;
+import io.crate.testing.SQLResponse;
 import io.crate.testing.TestingHelpers;
 import io.crate.testing.UseJdbc;
 import org.elasticsearch.cluster.ClusterState;
@@ -63,7 +63,7 @@ public class SysCheckerIntegrationTest extends SQLTransportIntegrationTest {
 
     private int numberOfMasterNodes() {
         ClusterState clusterState = client().admin().cluster().prepareState().execute().actionGet().getState();
-        return clusterState.nodes().masterNodes().size();
+        return clusterState.nodes().getMasterNodes().size();
     }
 
     @Test

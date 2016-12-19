@@ -141,15 +141,18 @@ public class JobCollectContextTest extends RandomizedTest {
         when(collectPhase.routing()).thenReturn(routing);
         when(routing.containsShards(localNodeId)).thenReturn(false);
 
+        // TODO: bulk used to be percolate here, changed it to bulk for now so it fails
+        // need to decide what to use instead
+
         // sys.cluster (single row collector)
         when(collectPhase.maxRowGranularity()).thenReturn(RowGranularity.CLUSTER);
         String threadPoolExecutorName = JobCollectContext.threadPoolName(collectPhase, localNodeId);
-        assertThat(threadPoolExecutorName, is(ThreadPool.Names.PERCOLATE));
+        assertThat(threadPoolExecutorName, is(ThreadPool.Names.BULK));
 
         // partition values only of a partitioned doc table (single row collector)
         when(collectPhase.maxRowGranularity()).thenReturn(RowGranularity.PARTITION);
         threadPoolExecutorName = JobCollectContext.threadPoolName(collectPhase, localNodeId);
-        assertThat(threadPoolExecutorName, is(ThreadPool.Names.PERCOLATE));
+        assertThat(threadPoolExecutorName, is(ThreadPool.Names.BULK));
 
         // sys.nodes (single row collector)
         when(collectPhase.maxRowGranularity()).thenReturn(RowGranularity.NODE);
@@ -166,6 +169,6 @@ public class JobCollectContextTest extends RandomizedTest {
         // information_schema.*
         when(collectPhase.maxRowGranularity()).thenReturn(RowGranularity.DOC);
         threadPoolExecutorName = JobCollectContext.threadPoolName(collectPhase, localNodeId);
-        assertThat(threadPoolExecutorName, is(ThreadPool.Names.PERCOLATE));
+        assertThat(threadPoolExecutorName, is(ThreadPool.Names.BULK));
     }
 }

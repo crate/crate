@@ -86,7 +86,7 @@ public class MergeNodeTest extends CrateUnitTest {
         node.writeTo(output);
 
 
-        StreamInput input = StreamInput.wrap(output.bytes());
+        StreamInput input = output.bytes().streamInput();
         MergePhase node2 = MergePhase.FACTORY.create();
         node2.readFrom(input);
 

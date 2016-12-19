@@ -160,19 +160,11 @@ public class PartitionsSettingsExpression extends AbstractPartitionsSettingsExpr
             addChildImplementations();
         }
 
-        public static final String FLUSH_THRESHOLD_OPS = "flush_threshold_ops";
         public static final String FLUSH_THRESHOLD_SIZE = "flush_threshold_size";
-        public static final String FLUSH_THRESHOLD_PERIOD = "flush_threshold_period";
-        public static final String DISABLE_FLUSH = "disable_flush";
-        public static final String INTERVAL = "interval";
         public static final String SYNC_INTERVAL = "sync_interval";
 
         private void addChildImplementations() {
-            childImplementations.put(FLUSH_THRESHOLD_OPS, new PartitionTableParameterExpression(TableParameterInfo.FLUSH_THRESHOLD_OPS));
             childImplementations.put(FLUSH_THRESHOLD_SIZE, new PartitionTableParameterExpression(TableParameterInfo.FLUSH_THRESHOLD_SIZE));
-            childImplementations.put(FLUSH_THRESHOLD_PERIOD, new PartitionTableParameterExpression(TableParameterInfo.FLUSH_THRESHOLD_PERIOD));
-            childImplementations.put(DISABLE_FLUSH, new PartitionTableParameterExpression(TableParameterInfo.FLUSH_DISABLE));
-            childImplementations.put(INTERVAL, new PartitionTableParameterExpression(TableParameterInfo.TRANSLOG_INTERVAL));
             childImplementations.put(SYNC_INTERVAL, new PartitionTableParameterExpression(TableParameterInfo.TRANSLOG_SYNC_INTERVAL));
         }
     }

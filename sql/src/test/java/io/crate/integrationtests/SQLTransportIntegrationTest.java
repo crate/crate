@@ -116,7 +116,7 @@ public abstract class SQLTransportIntegrationTest extends ESIntegTestCase {
 
     @Override
     protected Collection<Class<? extends Plugin>> nodePlugins() {
-        return pluginList(BlobPlugin.class, SQLPlugin.class, CrateCorePlugin.class);
+        return Arrays.asList(BlobPlugin.class, SQLPlugin.class, CrateCorePlugin.class);
     }
 
     protected SQLResponse response;
@@ -235,7 +235,7 @@ public abstract class SQLTransportIntegrationTest extends ESIntegTestCase {
                     for (IndicesService indicesService : indexServices) {
                         for (IndexService indexService : indicesService) {
                             for (IndexShard indexShard : indexService) {
-                                assertThat(indexShard.getOperationsCount(), Matchers.equalTo(0));
+                                assertThat(indexShard.getActiveOperationsCount(), Matchers.equalTo(0));
                             }
                         }
                     }
@@ -432,7 +432,7 @@ public abstract class SQLTransportIntegrationTest extends ESIntegTestCase {
         XContentBuilder builder = XContentFactory.jsonBuilder().startObject();
 
         for (IndexMetaData indexMetaData : metaData) {
-            builder.startObject(indexMetaData.getIndex(), XContentBuilder.FieldCaseConversion.NONE);
+            builder.startObject(indexMetaData.getIndex().getName()); // TODO:, XContentBuilder.FieldCaseConversion.NONE);
             builder.startObject("settings");
             Settings settings = indexMetaData.getSettings();
             for (Map.Entry<String, String> entry : settings.getAsMap().entrySet()) {

@@ -46,7 +46,7 @@ class SetBucketActionListener extends SetBucketAction implements ActionListener<
     }
 
     @Override
-    public void onFailure(@Nonnull Throwable t) {
-        failed(t);
+    public void onFailure(@Nonnull Exception e) {
+        failed(e);
     }
 }

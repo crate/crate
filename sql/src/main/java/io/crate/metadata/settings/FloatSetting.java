@@ -27,11 +27,11 @@ import org.elasticsearch.common.settings.Settings;
 
 public abstract class FloatSetting extends Setting<Float, Float> {
 
-    public Float maxValue() {
+    Float maxValue() {
         return Float.MAX_VALUE;
     }
 
-    public Float minValue() {
+    Float minValue() {
         return Float.MIN_VALUE;
     }
 
@@ -43,5 +43,14 @@ public abstract class FloatSetting extends Setting<Float, Float> {
     @Override
     public Float extract(Settings settings) {
         return settings.getAsFloat(settingName(), defaultValue());
+    }
+
+    @Override
+    org.elasticsearch.common.settings.Setting<Float> createESSetting() {
+        return org.elasticsearch.common.settings.Setting.floatSetting(
+            settingName(),
+            defaultValue(),
+            propertiesForUpdateConsumer()
+        );
     }
 }
