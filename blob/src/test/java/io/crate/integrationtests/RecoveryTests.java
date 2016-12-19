@@ -42,7 +42,6 @@ import org.elasticsearch.common.bytes.BytesArray;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.test.ESIntegTestCase;
-import org.elasticsearch.test.junit.annotations.TestLogging;
 import org.junit.Test;
 
 import java.nio.charset.StandardCharsets;
@@ -133,7 +132,6 @@ public class RecoveryTests extends BlobIntegrationTestBase {
     }
 
     @Test
-    @TestLogging("io.crate:TRACE")
     public void testPrimaryRelocationWhileIndexing() throws Exception {
         final int numberOfRelocations = 1;
         final int numberOfWriters = 2;

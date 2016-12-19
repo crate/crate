@@ -25,8 +25,8 @@ package io.crate.operation.collect.stats;
 import com.google.common.collect.ForwardingQueue;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.breaker.SizeEstimator;
+import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.breaker.CircuitBreaker;
-import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 
 import java.util.Locale;
@@ -36,7 +36,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 public class RamAccountingQueue<T> extends ForwardingQueue<T> {
 
-    private static final ESLogger LOGGER = Loggers.getLogger(RamAccountingQueue.class);
+    private static final Logger LOGGER = Loggers.getLogger(RamAccountingQueue.class);
 
     private final Queue<T> delegate;
     private RamAccountingContext context;

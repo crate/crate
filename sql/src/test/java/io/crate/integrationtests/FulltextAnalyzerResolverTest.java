@@ -22,11 +22,9 @@
 package io.crate.integrationtests;
 
 import com.google.common.base.Joiner;
-import com.google.common.base.Predicate;
-import com.google.common.collect.Sets;
 import io.crate.action.sql.SQLActionException;
-import io.crate.testing.SQLResponse;
 import io.crate.metadata.FulltextAnalyzerResolver;
+import io.crate.testing.SQLResponse;
 import io.crate.testing.UseJdbc;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateResponse;
 import org.elasticsearch.common.settings.Settings;
@@ -39,7 +37,9 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.Set;
+import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import static org.hamcrest.Matchers.*;
 import static org.hamcrest.collection.IsMapContaining.hasEntry;
@@ -65,16 +65,13 @@ public class FulltextAnalyzerResolverTest extends SQLTransportIntegrationTest {
     @Override
     @After
     public void tearDown() throws Exception {
-        Set<String> settingsToRemove = Sets.filter(getPersistentClusterSettings().getAsMap().keySet(), new Predicate<String>() {
-            @Override
-            public boolean apply(String input) {
-                return input.startsWith("crate");
-            }
-        });
+        Map<String, Object> settingsToRemove = getPersistentClusterSettings().getAsMap().keySet().stream()
+            .filter(s -> s.startsWith("crate"))
+            .collect(Collectors.toMap(Function.identity(), null));
         if (!settingsToRemove.isEmpty()) {
             client().admin().cluster().prepareUpdateSettings()
-                .setTransientSettingsToRemove(settingsToRemove)
-                .setPersistentSettingsToRemove(settingsToRemove).execute().actionGet();
+                .setPersistentSettings(settingsToRemove)
+                .setTransientSettings(settingsToRemove).execute().actionGet();
         }
         super.tearDown();
     }

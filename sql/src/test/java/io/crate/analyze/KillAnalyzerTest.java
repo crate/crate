@@ -21,9 +21,9 @@
 
 package io.crate.analyze;
 
-import io.crate.test.integration.CrateUnitTest;
+import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
-import org.elasticsearch.test.cluster.NoopClusterService;
+import org.junit.Before;
 import org.junit.Test;
 
 import java.util.Locale;
@@ -31,9 +31,14 @@ import java.util.UUID;
 
 import static org.hamcrest.core.Is.is;
 
-public class KillAnalyzerTest extends CrateUnitTest {
+public class KillAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
-    private SQLExecutor e = SQLExecutor.builder(new NoopClusterService()).build();
+    private SQLExecutor e;
+
+    @Before
+    public void prepare() {
+        e = SQLExecutor.builder(clusterService).build();
+    }
 
     @Test
     public void testAnalyzeKillAll() throws Exception {

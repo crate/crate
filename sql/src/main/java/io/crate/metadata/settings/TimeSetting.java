@@ -35,11 +35,11 @@ public abstract class TimeSetting extends Setting<TimeValue, String> {
         return new TimeValue(60_000);
     }
 
-    public TimeValue maxValue() {
+    TimeValue maxValue() {
         return new TimeValue(Long.MAX_VALUE);
     }
 
-    public TimeValue minValue() {
+    TimeValue minValue() {
         return new TimeValue(0);
     }
 
@@ -63,5 +63,14 @@ public abstract class TimeSetting extends Setting<TimeValue, String> {
 
     public TimeValue extractTimeValue(Settings settings, @Nullable TimeValue defaultValue) {
         return settings.getAsTime(settingName(), defaultValue != null ? defaultValue : defaultValue());
+    }
+
+    @Override
+    org.elasticsearch.common.settings.Setting<TimeValue> createESSetting() {
+        return org.elasticsearch.common.settings.Setting.timeSetting(
+            settingName(),
+            defaultValue(),
+            propertiesForUpdateConsumer()
+        );
     }
 }

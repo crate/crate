@@ -30,7 +30,7 @@ import io.crate.metadata.table.TestingTableInfo;
 import io.crate.types.ArrayType;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
-import org.elasticsearch.cluster.ClusterService;
+import org.elasticsearch.cluster.service.ClusterService;
 
 import java.util.ArrayList;
 import java.util.Arrays;

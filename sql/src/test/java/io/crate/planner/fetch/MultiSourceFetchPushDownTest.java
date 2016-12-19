@@ -26,21 +26,26 @@ import io.crate.analyze.MultiSourceSelect;
 import io.crate.analyze.QuerySpec;
 import io.crate.analyze.SelectAnalyzedStatement;
 import io.crate.sql.tree.QualifiedName;
-import io.crate.test.integration.CrateUnitTest;
+import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
-import org.elasticsearch.test.cluster.NoopClusterService;
+import org.junit.Before;
 import org.junit.Test;
 
 import static io.crate.testing.TestingHelpers.isSQL;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.core.Is.is;
 
-public class MultiSourceFetchPushDownTest extends CrateUnitTest {
+public class MultiSourceFetchPushDownTest extends CrateDummyClusterServiceUnitTest {
 
     private MultiSourceSelect mss;
     private MultiSourceFetchPushDown pd;
 
-    private SQLExecutor e = SQLExecutor.builder(new NoopClusterService()).enableDefaultTables().build();
+    private SQLExecutor e;
+
+    @Before
+    public void prepare() {
+        e = SQLExecutor.builder(clusterService).enableDefaultTables().build();
+    }
 
     private void pushDown(String stmt) {
         SelectAnalyzedStatement a = e.analyze(stmt);

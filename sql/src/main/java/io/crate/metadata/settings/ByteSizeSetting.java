@@ -39,7 +39,7 @@ public class ByteSizeSetting extends Setting<ByteSizeValue, String> {
         this(name, defaultValue, isRuntime, null);
     }
 
-    public ByteSizeSetting(String name, ByteSizeValue defaultValue, boolean isRuntime, @Nullable Setting<?, ?> parent) {
+    ByteSizeSetting(String name, ByteSizeValue defaultValue, boolean isRuntime, @Nullable Setting<?, ?> parent) {
         this.name = name;
         this.defaultValue = defaultValue;
         this.isRuntime = isRuntime;
@@ -51,11 +51,11 @@ public class ByteSizeSetting extends Setting<ByteSizeValue, String> {
         return parent;
     }
 
-    public long maxValue() {
+    long maxValue() {
         return Long.MAX_VALUE;
     }
 
-    public long minValue() {
+    long minValue() {
         return Long.MIN_VALUE;
     }
 
@@ -90,5 +90,14 @@ public class ByteSizeSetting extends Setting<ByteSizeValue, String> {
 
     private ByteSizeValue extractByteSizeValue(Settings settings) {
         return settings.getAsBytesSize(settingName(), defaultValue());
+    }
+
+    @Override
+    org.elasticsearch.common.settings.Setting<ByteSizeValue> createESSetting() {
+        return org.elasticsearch.common.settings.Setting.byteSizeSetting(
+            settingName(),
+            defaultValue(),
+            propertiesForUpdateConsumer()
+        );
     }
 }

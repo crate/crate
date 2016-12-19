@@ -23,21 +23,22 @@
 package io.crate.operation.collect.stats;
 
 import com.google.common.annotations.VisibleForTesting;
-import io.crate.breaker.*;
+import io.crate.breaker.CrateCircuitBreakerService;
+import io.crate.breaker.JobContextLogSizeEstimator;
+import io.crate.breaker.OperationContextLogSizeEstimator;
+import io.crate.breaker.SizeEstimator;
 import io.crate.core.collections.BlockingEvictingQueue;
 import io.crate.metadata.settings.CrateSettings;
 import io.crate.operation.reference.sys.job.ContextLog;
 import io.crate.operation.reference.sys.job.JobContextLog;
 import io.crate.operation.reference.sys.operation.OperationContextLog;
-import org.elasticsearch.common.breaker.CircuitBreaker;
+import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.component.AbstractLifecycleComponent;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Provider;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.TimeValue;
-import org.elasticsearch.indices.breaker.CircuitBreakerService;
-import org.elasticsearch.node.settings.NodeSettingsService;
 import org.elasticsearch.threadpool.ThreadPool;
 
 import java.util.Queue;
@@ -53,9 +54,8 @@ import java.util.concurrent.ScheduledFuture;
  * in the same jvm the memoryTables aren't shared between the nodes.
  */
 @Singleton
-public class StatsTablesService extends AbstractLifecycleComponent<StatsTablesService> implements Provider<StatsTables> {
+public class StatsTablesService extends AbstractLifecycleComponent implements Provider<StatsTables> {
 
-    protected final NodeSettingsService.Listener listener = new NodeSettingListener();
     private final ScheduledExecutorService scheduler;
     private final CrateCircuitBreakerService breakerService;
 
@@ -80,21 +80,21 @@ public class StatsTablesService extends AbstractLifecycleComponent<StatsTablesSe
 
     @Inject
     public StatsTablesService(Settings settings,
-                              NodeSettingsService nodeSettingsService,
+                              ClusterService clusterService,
                               ThreadPool threadPool,
                               CrateCircuitBreakerService breakerService) {
-        this(settings, nodeSettingsService, threadPool.scheduler(), breakerService);
+        this(settings, clusterService, threadPool.scheduler(), breakerService);
     }
 
     @VisibleForTesting
     StatsTablesService(Settings settings,
-                       NodeSettingsService nodeSettingsService,
+                       ClusterService clusterService,
                        ScheduledExecutorService scheduledExecutorService,
                        CrateCircuitBreakerService breakerService) {
         super(settings);
         scheduler = scheduledExecutorService;
         this.breakerService = breakerService;
-        nodeSettingsService.addListener(listener);
+        //nodeSettingsService.addListener(listener);
 
         int jobsLogSize = CrateSettings.STATS_JOBS_LOG_SIZE.extract(settings);
         TimeValue jobsLogExpiration = CrateSettings.STATS_JOBS_LOG_EXPIRATION.extractTimeValue(settings);
@@ -124,12 +124,14 @@ public class StatsTablesService extends AbstractLifecycleComponent<StatsTablesSe
             setOperationsLogSink(0, TimeValue.timeValueSeconds(0L));
         }
 
+        /*
         this.breakerService.addBreakerChangeListener(CrateCircuitBreakerService.JOBS_LOG,
             (CircuitBreaker breaker) -> setJobsLogSink(lastJobsLogSize, lastJobsLogExpiration)
         );
         this.breakerService.addBreakerChangeListener(CrateCircuitBreakerService.OPERATIONS_LOG,
             (CircuitBreaker breaker) -> setOperationsLogSink(lastOperationsLogSize, lastOperationsLogExpiration)
         );
+        */
     }
 
     private void setJobsLogSink(int size, TimeValue expiration) {
@@ -240,6 +242,7 @@ public class StatsTablesService extends AbstractLifecycleComponent<StatsTablesSe
         return statsTables();
     }
 
+    /*
     private class NodeSettingListener implements NodeSettingsService.Listener {
 
         @Override
@@ -289,5 +292,5 @@ public class StatsTablesService extends AbstractLifecycleComponent<StatsTablesSe
             }
         }
     }
-
+    */
 }

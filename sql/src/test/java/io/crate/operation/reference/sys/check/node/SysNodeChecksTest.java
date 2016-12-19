@@ -25,13 +25,12 @@ package io.crate.operation.reference.sys.check.node;
 import com.google.common.collect.ImmutableList;
 import io.crate.metadata.settings.CrateSettings;
 import io.crate.operation.reference.sys.check.SysCheck;
-import io.crate.test.integration.CrateUnitTest;
-import org.elasticsearch.cluster.ClusterService;
+import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
+import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.TimeValue;
+import org.elasticsearch.monitor.MonitorService;
 import org.elasticsearch.monitor.fs.FsInfo;
-import org.elasticsearch.monitor.fs.FsProbe;
-import org.elasticsearch.test.cluster.NoopClusterService;
 import org.junit.Test;
 import org.mockito.Answers;
 
@@ -41,9 +40,7 @@ import static org.hamcrest.core.Is.is;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-public class SysNodeChecksTest extends CrateUnitTest {
-
-    private final ClusterService clusterService = new NoopClusterService();
+public class SysNodeChecksTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testRecoveryExpectedNodesCheckWithDefaultSetting() {
@@ -177,8 +174,10 @@ public class SysNodeChecksTest extends CrateUnitTest {
 
     @Test
     public void testValidationDiskWatermarkCheckInBytes() {
-        DiskWatermarkNodesSysCheck highDiskWatermarkNodesSysCheck
-            = new HighDiskWatermarkNodesSysCheck(clusterService, Settings.EMPTY, mock(FsProbe.class));
+        DiskWatermarkNodesSysCheck highDiskWatermarkNodesSysCheck = new HighDiskWatermarkNodesSysCheck(
+            clusterService,
+            Settings.EMPTY,
+            mock(MonitorService.class));
 
         assertThat(highDiskWatermarkNodesSysCheck.id(), is(5));
         assertThat(highDiskWatermarkNodesSysCheck.nodeId().utf8ToString(), is("noop_id"));
@@ -203,8 +202,10 @@ public class SysNodeChecksTest extends CrateUnitTest {
 
     @Test
     public void testValidationDiskWatermarkCheckInPercents() {
-        DiskWatermarkNodesSysCheck lowDiskWatermarkNodesSysCheck
-            = new LowDiskWatermarkNodesSysCheck(clusterService, Settings.EMPTY, mock(FsProbe.class));
+        DiskWatermarkNodesSysCheck lowDiskWatermarkNodesSysCheck = new LowDiskWatermarkNodesSysCheck(
+            clusterService,
+            Settings.EMPTY,
+            mock(MonitorService.class));
 
         assertThat(lowDiskWatermarkNodesSysCheck.id(), is(6));
         assertThat(lowDiskWatermarkNodesSysCheck.nodeId().utf8ToString(), is("noop_id"));

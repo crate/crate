@@ -24,18 +24,18 @@ package io.crate.jobs;
 
 import com.google.common.util.concurrent.ListenableFuture;
 import io.crate.exceptions.JobKilledException;
-import org.elasticsearch.common.logging.ESLogger;
+import org.apache.logging.log4j.Logger;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 public abstract class AbstractExecutionSubContext implements ExecutionSubContext {
 
-    protected final ESLogger logger;
+    protected final Logger logger;
     protected final SubExecutionContextFuture future = new SubExecutionContextFuture();
     protected final int id;
 
-    protected AbstractExecutionSubContext(int id, ESLogger logger) {
+    protected AbstractExecutionSubContext(int id, Logger logger) {
         this.id = id;
         this.logger = logger;
     }

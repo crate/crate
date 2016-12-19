@@ -29,19 +29,24 @@ import io.crate.sql.tree.Expression;
 import io.crate.sql.tree.Literal;
 import io.crate.sql.tree.ObjectLiteral;
 import io.crate.sql.tree.SetStatement;
-import io.crate.test.integration.CrateUnitTest;
+import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
-import org.elasticsearch.test.cluster.NoopClusterService;
 import org.hamcrest.Matchers;
+import org.junit.Before;
 import org.junit.Test;
 
 import java.util.Set;
 
 import static org.hamcrest.Matchers.*;
 
-public class SetAnalyzerTest extends CrateUnitTest {
+public class SetAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
-    private SQLExecutor executor = SQLExecutor.builder(new NoopClusterService()).build();
+    private SQLExecutor executor;
+
+    @Before
+    public void prepare() {
+        executor = SQLExecutor.builder(clusterService).build();
+    }
 
     private <T> T analyze(String stmt) {
         return executor.analyze(stmt);

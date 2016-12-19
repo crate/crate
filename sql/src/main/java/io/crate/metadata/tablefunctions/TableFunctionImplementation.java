@@ -26,7 +26,7 @@ import io.crate.core.collections.Bucket;
 import io.crate.metadata.table.TableInfo;
 import io.crate.operation.Input;
 import io.crate.types.DataType;
-import org.elasticsearch.cluster.ClusterService;
+import org.elasticsearch.cluster.service.ClusterService;
 
 import java.util.Collection;
 import java.util.List;

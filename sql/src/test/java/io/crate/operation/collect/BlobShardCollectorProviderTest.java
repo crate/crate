@@ -34,6 +34,8 @@ import io.crate.metadata.Routing;
 import io.crate.metadata.RowGranularity;
 import io.crate.planner.distribution.DistributionInfo;
 import io.crate.planner.node.dql.RoutedCollectPhase;
+import org.elasticsearch.cluster.metadata.MetaData;
+import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.test.ESIntegTestCase;
 import org.junit.Test;
@@ -92,8 +94,11 @@ public class BlobShardCollectorProviderTest extends SQLHttpIntegrationTest {
         @Override
         public void run() {
             try {
+                ClusterService clusterService = internalCluster().getInstance(ClusterService.class);
+                MetaData metaData = clusterService.state().getMetaData();
+                String indexUUID = metaData.index(".blob_b1").getIndexUUID();
                 BlobIndicesService blobIndicesService = internalCluster().getInstance(BlobIndicesService.class);
-                BlobShard blobShard = blobIndicesService.blobShard(new ShardId(".blob_b1", 0));
+                BlobShard blobShard = blobIndicesService.blobShard(new ShardId(".blob_b1", indexUUID, 0));
                 assertNotNull(blobShard);
                 collectorProvider = new BlobShardCollectorProvider(blobShard, null, null,
                     null, null, null, null, null);

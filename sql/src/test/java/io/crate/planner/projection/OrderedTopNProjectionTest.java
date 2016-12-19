@@ -50,7 +50,7 @@ public class OrderedTopNProjectionTest extends CrateUnitTest {
         BytesStreamOutput out = new BytesStreamOutput();
         Projection.toStream(p, out);
 
-        StreamInput in = StreamInput.wrap(out.bytes());
+        StreamInput in = out.bytes().streamInput();
         Projection projection = Projection.fromStream(in);
 
         assertThat(projection, equalTo(p));

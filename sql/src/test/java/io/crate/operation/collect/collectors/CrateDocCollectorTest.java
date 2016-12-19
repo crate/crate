@@ -30,6 +30,7 @@ import io.crate.operation.reference.doc.lucene.CollectorContext;
 import io.crate.operation.reference.doc.lucene.LuceneCollectorExpression;
 import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.MatchAllDocsQuery;
+import org.elasticsearch.common.UUIDs;
 import org.elasticsearch.index.shard.ShardId;
 import org.junit.Test;
 import org.mockito.Answers;
@@ -43,7 +44,7 @@ public class CrateDocCollectorTest {
     public void testCollectorKill() throws Exception {
         RowReceiver rowReceiver = mock(RowReceiver.class, Answers.RETURNS_MOCKS.get());
         CrateDocCollector c = new CrateDocCollector(
-            new ShardId("dummy", 1),
+            new ShardId("dummy", UUIDs.randomBase64UUID(), 1),
             mock(IndexSearcher.class),
             new MatchAllDocsQuery(),
             null,
