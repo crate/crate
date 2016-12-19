@@ -49,6 +49,7 @@ import io.crate.operation.reference.sys.repositories.SysRepositoriesService;
 import io.crate.operation.reference.sys.snapshot.SysSnapshots;
 import io.crate.planner.node.dql.CollectPhase;
 import io.crate.planner.node.dql.RoutedCollectPhase;
+import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.discovery.DiscoveryService;
 
@@ -67,12 +68,12 @@ public class SystemCollectSource implements CollectSource {
     private final Functions functions;
     private final NodeSysExpression nodeSysExpression;
     private final ImmutableMap<String, Supplier<Iterable<?>>> iterableGetters;
-    private final DiscoveryService discoveryService;
+    private final ClusterService clusterService;
     private final InputFactory inputFactory;
 
 
     @Inject
-    public SystemCollectSource(DiscoveryService discoveryService,
+    public SystemCollectSource(ClusterService clusterService,
                                Functions functions,
                                NodeSysExpression nodeSysExpression,
                                StatsTables statsTables,
@@ -82,6 +83,7 @@ public class SystemCollectSource implements CollectSource {
                                SysRepositoriesService sysRepositoriesService,
                                SysSnapshots sysSnapshots,
                                PgCatalogTables pgCatalogTables) {
+        this.clusterService = clusterService;
         inputFactory = new InputFactory(functions);
         this.functions = functions;
         this.nodeSysExpression = nodeSysExpression;
@@ -105,7 +107,6 @@ public class SystemCollectSource implements CollectSource {
             .put(SysSummitsTableInfo.IDENT.fqn(), new SummitsIterable())
             .put(PgTypeTable.IDENT.fqn(), pgCatalogTables.pgTypes())
             .build();
-        this.discoveryService = discoveryService;
     }
 
     Iterable<Row> toRowsIterable(RoutedCollectPhase collectPhase, Iterable<?> iterable, boolean requiresRepeat) {
@@ -124,7 +125,7 @@ public class SystemCollectSource implements CollectSource {
         collectPhase = collectPhase.normalize(normalizer, null);
 
         Map<String, Map<String, List<Integer>>> locations = collectPhase.routing().locations();
-        String table = Iterables.getOnlyElement(locations.get(discoveryService.localNode().getId()).keySet());
+        String table = Iterables.getOnlyElement(locations.get(clusterService.localNode().getId()).keySet());
         Supplier<Iterable<?>> iterableGetter = iterableGetters.get(table);
         assert iterableGetter != null : "iterableGetter for " + table + " must exist";
         return ImmutableList.<CrateCollector>of(
