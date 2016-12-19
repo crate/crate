@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Do not display current statement in ``sys.jobs`` that disabled stats.
+
  - Added support for the double colon (::) cast operator.
 
  - Fixed NPE that occurred when an ``UPDATE`` statement inserted ``NULL`` value
