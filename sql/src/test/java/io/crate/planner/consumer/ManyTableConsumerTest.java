@@ -41,7 +41,6 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Set;
 
-import static io.crate.testing.TestingHelpers.getFunctions;
 import static io.crate.testing.TestingHelpers.isSQL;
 import static org.hamcrest.core.Is.is;
 
@@ -154,7 +153,7 @@ public class ManyTableConsumerTest extends CrateUnitTest {
         MultiSourceSelect mss = analyze("select * from t1 " +
                                         "left join t2 on t1.a = t2.b " +
                                         "order by t2.b");
-        TwoTableJoin root = ManyTableConsumer.twoTableJoin(new Rewriter(getFunctions()), mss);
+        TwoTableJoin root = ManyTableConsumer.twoTableJoin(mss);
 
         assertThat(root.right().querySpec().orderBy().isPresent(), is(false));
         assertThat(root.querySpec().orderBy().get(), isSQL("RELCOL(doc.t2, 0)"));
@@ -181,7 +180,7 @@ public class ManyTableConsumerTest extends CrateUnitTest {
         MultiSourceSelect mss = analyze("select t1.a from t1 " +
                                         "left join t2 on t1.a = t2.b " +
                                         "where t1.x = 1 and t2.y in (1)");
-        TwoTableJoin root = ManyTableConsumer.twoTableJoin(new Rewriter(getFunctions()), mss);
+        TwoTableJoin root = ManyTableConsumer.twoTableJoin(mss);
         // if Rewriter does not operate correctly on the joinPairs, t2 RelationColumn index would be 1 instead of 0
         // 2 outputs, t2.y + t2.b on t2 are rewritten to t2.b only because whereClause outputs must not be collected
         // so index for t2.b must be shifted

@@ -41,11 +41,12 @@ public final class JoinPairs {
     /**
      * Find and return a {@link JoinPair} for the given relation names, also check for reversed names.
      * If the {@link JoinType} is INNER and a pair is found for the reversed names, merge the join conditions.
-     * Found join pairs will be removed from the list.
+     * Found join pairs will be removed from the list if consume is true.
      */
     public static JoinPair ofRelationsWithMergedConditions(QualifiedName left,
                                                            QualifiedName right,
-                                                           List<JoinPair> joinPairs) {
+                                                           List<JoinPair> joinPairs,
+                                                           boolean consume) {
         JoinPair joinPair = ofRelations(left, right, joinPairs, true);
         if (joinPair == null) {
             // default to cross join (or inner, doesn't matter)
@@ -57,10 +58,14 @@ public final class JoinPairs {
             JoinPair joinPairReverse = ofRelations(right, left, joinPairs, false);
             if (joinPairReverse != null) {
                 joinPair.condition(AndOperator.join(Arrays.asList(joinPair.condition(), joinPairReverse.condition())));
-                joinPairs.remove(joinPairReverse);
+                if (consume) {
+                    joinPairs.remove(joinPairReverse);
+                }
             }
         }
-        joinPairs.remove(joinPair);
+        if (consume) {
+            joinPairs.remove(joinPair);
+        }
 
         return joinPair;
     }

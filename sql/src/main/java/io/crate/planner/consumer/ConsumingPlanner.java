@@ -22,7 +22,6 @@
 package io.crate.planner.consumer;
 
 import io.crate.analyze.QuerySpec;
-import io.crate.analyze.Rewriter;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.QueriedRelation;
 import io.crate.analyze.symbol.SelectSymbol;
@@ -51,7 +50,7 @@ public class ConsumingPlanner {
         consumers.add(new InsertFromSubQueryConsumer());
         consumers.add(new QueryAndFetchConsumer());
         consumers.add(new MultiSourceAggregationConsumer(functions));
-        consumers.add(new ManyTableConsumer(this, new Rewriter(functions)));
+        consumers.add(new ManyTableConsumer());
         consumers.add(new NestedLoopConsumer(clusterService, functions, tableStatsService));
     }
 
