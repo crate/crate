@@ -36,10 +36,7 @@ import io.crate.planner.Limits;
 import io.crate.sql.tree.QualifiedName;
 
 import javax.annotation.Nullable;
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 
 /**
  * The RelationNormalizer tries to merge the tree of relations in a QueriedSelectRelation into a single QueriedRelation.
@@ -406,15 +403,31 @@ final class RelationNormalizer {
         }
 
         @Override
-        public AnalyzedRelation visitMultiSourceSelect(MultiSourceSelect multiSourceSelect, Context context) {
-            QuerySpec querySpec = multiSourceSelect.querySpec();
+        public AnalyzedRelation visitMultiSourceSelect(MultiSourceSelect mss, Context context) {
+            QuerySpec querySpec = mss.querySpec();
             querySpec.normalize(context.normalizer, context.transactionContext);
             // must create a new MultiSourceSelect because paths and query spec changed
-            multiSourceSelect = new MultiSourceSelect(mapSourceRelations(multiSourceSelect),
-                multiSourceSelect.outputSymbols(), context.paths(), querySpec,
-                multiSourceSelect.joinPairs());
-            multiSourceSelect.pushDownQuerySpecs();
-            return multiSourceSelect;
+            mss = new MultiSourceSelect(mapSourceRelations(mss),
+                mss.outputSymbols(), context.paths(), querySpec,
+                mss.joinPairs());
+            mss.pushDownQuerySpecs();
+            if (mss.sources().size() == 2) {
+                Iterator<RelationSource> it = mss.sources().values().iterator();
+                RelationSource leftSource = it.next();
+                RelationSource rightSource = it.next();
+                QualifiedName left = leftSource.qualifiedName();
+                QualifiedName right = rightSource.qualifiedName();
+                Rewriter.tryRewriteOuterToInnerJoin(
+                    context.normalizer,
+                    JoinPairs.ofRelationsWithMergedConditions(left, right, mss.joinPairs(), false),
+                    mss.outputSymbols(),
+                    mss.querySpec(),
+                    left,
+                    right,
+                    leftSource.querySpec(),
+                    rightSource.querySpec());
+            }
+            return mss;
         }
     }
 }

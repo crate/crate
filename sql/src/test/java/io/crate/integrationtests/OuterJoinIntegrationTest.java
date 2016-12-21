@@ -46,7 +46,7 @@ public class OuterJoinIntegrationTest extends SQLTransportIntegrationTest {
     }
 
     @Test
-    public void testLeftOuterJoin() throws Exception {
+    public void testLeftOuterJoin() {
         // which employee works in which office?
         execute("select persons.name, offices.name from" +
                 " employees as persons left join offices on office_id = offices.id" +
@@ -57,7 +57,7 @@ public class OuterJoinIntegrationTest extends SQLTransportIntegrationTest {
     }
 
     @Test
-    public void testLeftOuterJoinOrderOnOuterTable() throws Exception {
+    public void testLeftOuterJoinOrderOnOuterTable() {
         // which employee works in which office?
         execute("select persons.name, offices.name from" +
                 " employees as persons left join offices on office_id = offices.id" +
@@ -68,7 +68,7 @@ public class OuterJoinIntegrationTest extends SQLTransportIntegrationTest {
     }
 
     @Test
-    public void test3TableLeftOuterJoin() throws Exception {
+    public void test3TableLeftOuterJoin() {
         execute(
             "select professions.name, employees.name, offices.name from" +
             " professions left join employees on profession_id = professions.id" +
@@ -81,7 +81,7 @@ public class OuterJoinIntegrationTest extends SQLTransportIntegrationTest {
     }
 
     @Test
-    public void test3TableLeftOuterJoinOrderByOuterTable() throws Exception {
+    public void test3TableLeftOuterJoinOrderByOuterTable() {
         execute(
             "select professions.name, employees.name, offices.name from" +
             " professions left join employees on profession_id = professions.id" +
@@ -94,7 +94,7 @@ public class OuterJoinIntegrationTest extends SQLTransportIntegrationTest {
     }
 
     @Test
-    public void testRightOuterJoin() throws Exception {
+    public void testRightOuterJoin() {
         execute("select offices.name, persons.name from" +
                 " employees as persons right join offices on office_id = offices.id" +
                 " order by offices.id");
@@ -104,7 +104,7 @@ public class OuterJoinIntegrationTest extends SQLTransportIntegrationTest {
     }
 
     @Test
-    public void test3TableLeftAndRightOuterJoin() throws Exception {
+    public void test3TableLeftAndRightOuterJoin() {
         execute(
             "select professions.name, employees.name, offices.name from" +
             " offices left join employees on office_id = offices.id" +
@@ -117,7 +117,7 @@ public class OuterJoinIntegrationTest extends SQLTransportIntegrationTest {
     }
 
     @Test
-    public void testFullOuterJoin() throws Exception {
+    public void testFullOuterJoin() {
         execute("select persons.name, offices.name from" +
                 " offices full join employees as persons on office_id = offices.id" +
                 " order by offices.id");
@@ -128,7 +128,7 @@ public class OuterJoinIntegrationTest extends SQLTransportIntegrationTest {
     }
 
     @Test
-    public void testOuterJoinWithFunctionsInOrderBy() throws Exception {
+    public void testOuterJoinWithFunctionsInOrderBy() {
         execute("select coalesce(persons.name, ''), coalesce(offices.name, '') from" +
                 " offices full join employees as persons on office_id = offices.id" +
                 " order by 1, 2");
@@ -139,7 +139,7 @@ public class OuterJoinIntegrationTest extends SQLTransportIntegrationTest {
     }
 
     @Test
-    public void testLeftJoinWithFilterOnInner() throws Exception {
+    public void testLeftJoinWithFilterOnInner() {
         execute("select employees.name, offices.name from" +
                 " employees left join offices on office_id = offices.id" +
                 " where employees.id < 3" +
@@ -149,7 +149,8 @@ public class OuterJoinIntegrationTest extends SQLTransportIntegrationTest {
     }
 
     @Test
-    public void testLeftJoinWithFilterOnOuter() throws Exception {
+    public void testLeftJoinWithFilterOnOuter() {
+        // It's rewritten to an Inner Join because of the filtering condition in where clause
         execute("select employees.name, offices.name from" +
                 " employees left join offices on office_id = offices.id" +
                 " where offices.size > 100" +

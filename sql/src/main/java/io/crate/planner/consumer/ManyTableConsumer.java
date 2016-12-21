@@ -46,8 +46,8 @@ public class ManyTableConsumer implements Consumer {
 
     private final Visitor visitor;
 
-    ManyTableConsumer(Rewriter rewriter) {
-        this.visitor = new Visitor(rewriter);
+    ManyTableConsumer() {
+        this.visitor = new Visitor();
     }
 
     @Override
@@ -225,7 +225,7 @@ public class ManyTableConsumer implements Consumer {
             }
 
             // get explicit join definition
-            JoinPair joinPair = JoinPairs.ofRelationsWithMergedConditions(leftName, rightName, joinPairs);
+            JoinPair joinPair = JoinPairs.ofRelationsWithMergedConditions(leftName, rightName, joinPairs, true);
 
             JoinPairs.removeOrderByOnOuterRelation(leftName, rightName, leftQuerySpec, rightSource.querySpec(), joinPair);
 
@@ -326,17 +326,15 @@ public class ManyTableConsumer implements Consumer {
         }
     }
 
-    static TwoTableJoin twoTableJoin(Rewriter rewriter, MultiSourceSelect mss) {
+    static TwoTableJoin twoTableJoin(MultiSourceSelect mss) {
         assert mss.sources().size() == 2 : "number of mss.sources() must be 2";
-        Iterator<QualifiedName> it = getOrderedRelationNames(mss, ImmutableSet.<Set<QualifiedName>>of()).iterator();
+        Iterator<QualifiedName> it = getOrderedRelationNames(mss, ImmutableSet.of()).iterator();
         QualifiedName left = it.next();
         QualifiedName right = it.next();
-        JoinPair joinPair = JoinPairs.ofRelationsWithMergedConditions(left, right, mss.joinPairs());
+        JoinPair joinPair = JoinPairs.ofRelationsWithMergedConditions(left, right, mss.joinPairs(), true);
         RelationSource leftSource = mss.sources().get(left);
         RelationSource rightSource = mss.sources().get(right);
 
-        rewriter.tryRewriteOuterToInnerJoin(
-            joinPair, mss.outputSymbols(), mss.querySpec(), left, right, leftSource.querySpec(), rightSource.querySpec());
         JoinPairs.removeOrderByOnOuterRelation(left, right, leftSource.querySpec(), rightSource.querySpec(), joinPair);
 
         Optional<OrderBy> remainingOrderByToApply = Optional.empty();
@@ -356,18 +354,12 @@ public class ManyTableConsumer implements Consumer {
 
     private static class Visitor extends RelationPlanningVisitor {
 
-        private final Rewriter rewriter;
-
-        public Visitor(Rewriter rewriter) {
-            this.rewriter = rewriter;
-        }
-
         @Override
         public Plan visitMultiSourceSelect(MultiSourceSelect mss, ConsumerContext context) {
             if (isUnsupportedStatement(mss, context)) return null;
             replaceFieldsWithRelationColumns(mss);
             if (mss.sources().size() == 2) {
-                return planSubRelation(context, twoTableJoin(rewriter, mss));
+                return planSubRelation(context, twoTableJoin(mss));
             }
             return planSubRelation(context, buildTwoTableJoinTree(mss));
         }
@@ -440,6 +432,12 @@ public class ManyTableConsumer implements Consumer {
         @Override
         public Void visitRelationColumn(RelationColumn relationColumn, Set<QualifiedName> context) {
             context.add(relationColumn.relationName());
+            return null;
+        }
+
+        @Override
+        public Void visitField(Field field, Set<QualifiedName> context) {
+            context.add(field.relation().getQualifiedName());
             return null;
         }
     }

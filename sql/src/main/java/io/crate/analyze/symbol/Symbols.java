@@ -150,24 +150,24 @@ public class Symbols {
         }
     }
 
-    private static class RCReplaceVisitor
-        extends ReplacingSymbolVisitor<com.google.common.base.Function<? super RelationColumn, ? extends Symbol>> {
+    private static class FieldReplaceVisitor
+        extends ReplacingSymbolVisitor<com.google.common.base.Function<? super Field, ? extends Symbol>> {
 
-        public final static RCReplaceVisitor INSTANCE = new RCReplaceVisitor();
+        public final static FieldReplaceVisitor INSTANCE = new FieldReplaceVisitor();
 
-        private RCReplaceVisitor() {
+        private FieldReplaceVisitor() {
             super(ReplaceMode.COPY);
         }
 
         @Override
-        public Symbol visitRelationColumn(RelationColumn relationColumn,
-                                          com.google.common.base.Function<? super RelationColumn, ? extends Symbol> replaceFunction) {
-            return replaceFunction.apply(relationColumn);
+        public Symbol visitField(Field field,
+                                 com.google.common.base.Function<? super Field, ? extends Symbol> replaceFunction) {
+            return replaceFunction.apply(field);
         }
     }
 
-    public static Symbol replaceRelationColumn(Symbol symbol,
-                                               com.google.common.base.Function<? super RelationColumn, ? extends Symbol> replaceFunction) {
-        return RCReplaceVisitor.INSTANCE.process(symbol, replaceFunction);
+    public static Symbol replaceField(Symbol symbol,
+                                      com.google.common.base.Function<? super Field, ? extends Symbol> replaceFunction) {
+        return FieldReplaceVisitor.INSTANCE.process(symbol, replaceFunction);
     }
 }

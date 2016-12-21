@@ -28,24 +28,14 @@ import com.google.common.collect.Sets;
 import io.crate.analyze.relations.JoinPair;
 import io.crate.analyze.relations.QuerySplitter;
 import io.crate.analyze.symbol.*;
-import io.crate.metadata.Functions;
-import io.crate.metadata.ReplaceMode;
-import io.crate.metadata.ReplacingSymbolVisitor;
 import io.crate.operation.operator.AndOperator;
 import io.crate.planner.node.dql.join.JoinType;
 import io.crate.sql.tree.QualifiedName;
-import org.elasticsearch.common.collect.Tuple;
 
 import javax.annotation.Nullable;
 import java.util.*;
 
 public class Rewriter {
-
-    private final EvaluatingNormalizer normalizer;
-
-    public Rewriter(Functions functions) {
-        normalizer = EvaluatingNormalizer.functionOnlyNormalizer(functions, ReplaceMode.COPY);
-    }
 
     /**
      * Rewrite an Outer join to an inner join if possible.
@@ -77,13 +67,14 @@ public class Rewriter {
      *          t2.x > 10   # if t2.x is NULL this is always FALSE
      * </pre>
      */
-    public void tryRewriteOuterToInnerJoin(JoinPair joinPair,
-                                           List<Symbol> mssOutputSymbols,
-                                           QuerySpec multiSourceQuerySpec,
-                                           QualifiedName left,
-                                           QualifiedName right,
-                                           QuerySpec leftQuerySpec,
-                                           QuerySpec rightQuerySpec) {
+    public static void tryRewriteOuterToInnerJoin(EvaluatingNormalizer normalizer,
+                                                  JoinPair joinPair,
+                                                  List<Symbol> mssOutputSymbols,
+                                                  QuerySpec multiSourceQuerySpec,
+                                                  QualifiedName left,
+                                                  QualifiedName right,
+                                                  QuerySpec leftQuerySpec,
+                                                  QuerySpec rightQuerySpec) {
         assert left.equals(joinPair.left()) : "This JoinPair has a different left Qualified name: " + joinPair.left();
         assert right.equals(joinPair.right()) :
             "This JoinPair has a different left Qualified name: " + joinPair.right();
@@ -111,13 +102,13 @@ public class Rewriter {
             return;
         }
 
-        Symbol symbol = Symbols.replaceRelationColumn(
+        Symbol symbol = Symbols.replaceField(
             outerRelationQuery,
-            new Function<RelationColumn, Symbol>() {
+            new Function<Field, Symbol>() {
                 @Nullable
                 @Override
-                public Symbol apply(@Nullable RelationColumn input) {
-                    if (input != null && input.relationName().equals(outerRelation)) {
+                public Symbol apply(@Nullable Field input) {
+                    if (input != null && input.relation().getQualifiedName().equals(outerRelation)) {
                         return Literal.NULL;
                     }
                     return input;
@@ -140,117 +131,70 @@ public class Rewriter {
         );
     }
 
-    private void applyOuterToInnerJoinRewrite(JoinPair joinPair,
-                                              List<Symbol> mssOutputSymbols,
-                                              QuerySpec multiSourceQuerySpec,
-                                              QuerySpec outerSpec,
-                                              QualifiedName outerRelation,
-                                              Map<Set<QualifiedName>, Symbol> splitQueries,
-                                              Symbol outerRelationQuery) {
+    private static void applyOuterToInnerJoinRewrite(JoinPair joinPair,
+                                                     List<Symbol> mssOutputSymbols,
+                                                     QuerySpec multiSourceQuerySpec,
+                                                     QuerySpec outerSpec,
+                                                     QualifiedName outerRelation,
+                                                     Map<Set<QualifiedName>, Symbol> splitQueries,
+                                                     Symbol outerRelationQuery) {
         joinPair.joinType(JoinType.INNER);
-        DereferenceRelationColumnFunction dereferenceRelationColumnFunction =
-            new DereferenceRelationColumnFunction(outerRelation, outerSpec, mssOutputSymbols, joinPair.condition());
-        outerSpec.where(outerSpec.where().add(Symbols.replaceRelationColumn(
+        RemoveFieldsNotToCollectFunction removeFieldsNotToCollectFunction =
+            new RemoveFieldsNotToCollectFunction(outerRelation, mssOutputSymbols, joinPair.condition());
+        outerSpec.where(outerSpec.where().add(Symbols.replaceField(
             outerRelationQuery,
-            dereferenceRelationColumnFunction)));
+            removeFieldsNotToCollectFunction)));
         if (splitQueries.isEmpty()) {
             multiSourceQuerySpec.where(WhereClause.MATCH_ALL);
         } else {
             multiSourceQuerySpec.where(new WhereClause(AndOperator.join(splitQueries.values())));
         }
-        for (Tuple<RelationColumn, Symbol> symbolToRemove : dereferenceRelationColumnFunction.symbolsToNotCollect()) {
-            final RelationColumn removedRC = symbolToRemove.v1();
-            outerSpec.outputs().remove(symbolToRemove.v2());
-            multiSourceQuerySpec.outputs().remove(removedRC);
-
-            Function<Symbol, Symbol> replaceFunction = new RelationColumnIndexShifter(removedRC);
-            joinPair.replaceCondition(replaceFunction);
-            multiSourceQuerySpec.replace(replaceFunction);
+        for (Field fieldToRemove : removeFieldsNotToCollectFunction.fieldsToNotCollect()) {
+            outerSpec.outputs().remove(fieldToRemove);
+            multiSourceQuerySpec.outputs().remove(fieldToRemove);
         }
     }
 
     /**
-     * Function to replace RelationColumns with the symbol they're pointing to
-     * <p>
-     * Also collects any RelationColumn which are being replaced and no longer required to be collected into {@link #symbolsToNotCollect()}
+     * Remove fields which are being replaced and no longer
+     * required to be collected and add them in {@link #fieldsToNotCollect()}
      */
-    private static class DereferenceRelationColumnFunction implements Function<RelationColumn, Symbol> {
+    private static class RemoveFieldsNotToCollectFunction implements Function<Field, Symbol> {
         private final QualifiedName outerRelation;
-        private final QuerySpec outerSpec;
         private final List<Symbol> mssOutputSymbols;
         private final Symbol joinCondition;
-        private final Set<Tuple<RelationColumn, Symbol>> symbolsToNotCollect;
+        private final Set<Field> fieldsToNotCollect;
 
-        DereferenceRelationColumnFunction(QualifiedName outerRelation,
-                                          QuerySpec outerSpec,
-                                          List<Symbol> mssOutputSymbols,
-                                          Symbol joinCondition) {
+        RemoveFieldsNotToCollectFunction(QualifiedName outerRelation,
+                                         List<Symbol> mssOutputSymbols,
+                                         Symbol joinCondition) {
             this.outerRelation = outerRelation;
-            this.outerSpec = outerSpec;
             this.mssOutputSymbols = mssOutputSymbols;
             this.joinCondition = joinCondition;
-            this.symbolsToNotCollect = new HashSet<>();
+            this.fieldsToNotCollect = new HashSet<>();
         }
 
         @Nullable
         @Override
-        public Symbol apply(@Nullable RelationColumn input) {
+        public Symbol apply(@Nullable Field input) {
             if (input == null) {
                 return null;
             }
-            if (!input.relationName().equals(outerRelation)) {
+            if (!input.relation().getQualifiedName().equals(outerRelation)) {
                 return input;
             }
-            Symbol symbol = outerSpec.outputs().get(input.index());
 
             // if the column was only added to the outerSpec outputs because of the whereClause
             // it's possible to not collect it as long is it isn't used somewhere else
-            if (!mssOutputSymbols.contains(symbol) &&
-                !SymbolVisitors.any(Predicates.<Symbol>equalTo(input), joinCondition)) {
-                symbolsToNotCollect.add(new Tuple<>(input, symbol));
+            if (!mssOutputSymbols.contains(input) &&
+                !SymbolVisitors.any(Predicates.equalTo(input), joinCondition)) {
+                fieldsToNotCollect.add(input);
             }
-            return symbol;
+            return input;
         }
 
-        Collection<Tuple<RelationColumn, Symbol>> symbolsToNotCollect() {
-            return symbolsToNotCollect;
-        }
-    }
-
-    /**
-     * shift other relationColumns when one was removed
-     * e.g. if the outerSpec had outputs: [o1, o2, o3]
-     * and o2 got removed
-     * a RelationColumn(o, 2) would now point to nothing instead of o3
-     * so all indices needs to be decreased
-     */
-    private static class RelationColumnIndexShifter extends ReplacingSymbolVisitor<Void>
-        implements Function<Symbol, Symbol> {
-
-        private final RelationColumn removedRelationColumn;
-
-        RelationColumnIndexShifter(RelationColumn removedRelationColumn) {
-            super(ReplaceMode.COPY);
-            this.removedRelationColumn = removedRelationColumn;
-        }
-
-        @Nullable
-        @Override
-        public Symbol apply(@Nullable Symbol input) {
-            return process(input, null);
-        }
-
-        @Override
-        public Symbol visitRelationColumn(RelationColumn relationColumn, Void context) {
-            if (relationColumn.relationName().equals(removedRelationColumn.relationName())
-                && relationColumn.index() > removedRelationColumn.index()) {
-
-                return new RelationColumn(
-                    relationColumn.relationName(),
-                    relationColumn.index() - 1,
-                    relationColumn.valueType());
-            }
-            return relationColumn;
+        Collection<Field> fieldsToNotCollect() {
+            return fieldsToNotCollect;
         }
     }
 }
