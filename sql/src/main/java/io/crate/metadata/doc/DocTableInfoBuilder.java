@@ -39,6 +39,7 @@ import org.elasticsearch.cluster.metadata.MetaData;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.index.Index;
 import org.elasticsearch.index.IndexNotFoundException;
 
 import java.io.IOException;
@@ -61,7 +62,7 @@ class DocTableInfoBuilder {
     private final IndexNameExpressionResolver indexNameExpressionResolver;
     private final TransportPutIndexTemplateAction transportPutIndexTemplateAction;
     private final MetaData metaData;
-    private String[] concreteIndices;
+    private Index[] concreteIndices;
     private static final Logger logger = Loggers.getLogger(DocTableInfoBuilder.class);
 
     DocTableInfoBuilder(Functions functions,
@@ -108,8 +109,8 @@ class DocTableInfoBuilder {
         if ((!createdFromTemplate && concreteIndices.length == 1) || !checkAliasSchema) {
             return docIndexMetaData;
         }
-        for (String concreteIndice : concreteIndices) {
-            if (IndexMetaData.State.CLOSE.equals(metaData.indices().get(concreteIndice).getState())) {
+        for (Index concreteIndice : concreteIndices) {
+            if (IndexMetaData.State.CLOSE.equals(metaData.indices().get(concreteIndice.getName()).getState())) {
                 throw new UnhandledServerException(
                     String.format(Locale.ENGLISH, "Unable to access the partition %s, it is closed", concreteIndice));
             }
@@ -125,7 +126,7 @@ class DocTableInfoBuilder {
         return docIndexMetaData;
     }
 
-    private DocIndexMetaData buildDocIndexMetaData(String index) {
+    private DocIndexMetaData buildDocIndexMetaData(Index index) {
         DocIndexMetaData docIndexMetaData;
         try {
             docIndexMetaData = new DocIndexMetaData(functions, metaData.index(index), ident);
@@ -161,10 +162,11 @@ class DocTableInfoBuilder {
     private List<PartitionName> buildPartitions(DocIndexMetaData md) {
         List<PartitionName> partitions = new ArrayList<>();
         if (md.partitionedBy().size() > 0) {
-            for (String index : concreteIndices) {
-                if (PartitionName.isPartition(index)) {
+            for (Index index : concreteIndices) {
+                String indexName = index.getName();
+                if (PartitionName.isPartition(indexName)) {
                     try {
-                        PartitionName partitionName = PartitionName.fromIndexOrTemplate(index);
+                        PartitionName partitionName = PartitionName.fromIndexOrTemplate(indexName);
                         assert partitionName.tableIdent().equals(ident) : "ident must equal partitionName";
                         partitions.add(partitionName);
                     } catch (IllegalArgumentException e) {
