@@ -24,6 +24,7 @@ package io.crate.operation.reference.doc.lucene;
 import io.crate.exceptions.UnhandledServerException;
 import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.DocReferenceConverter;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RowGranularity;
 import io.crate.operation.reference.ReferenceResolver;
@@ -103,6 +104,9 @@ public class LuceneReferenceResolver implements ReferenceResolver<LuceneCollecto
                 return new GeoPointColumnReference(colName);
             case GeoShapeType.ID:
                 return new GeoShapeColumnReference(colName);
+            case ArrayType.ID:
+            case SetType.ID:
+                return DocCollectorExpression.create(DocReferenceConverter.toSourceLookup(refInfo));
             default:
                 throw new UnhandledServerException(String.format(Locale.ENGLISH, "unsupported type '%s'", refInfo.valueType().getName()));
         }
