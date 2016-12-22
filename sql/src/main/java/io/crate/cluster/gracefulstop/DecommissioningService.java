@@ -159,7 +159,7 @@ public class DecommissioningService extends AbstractLifecycleComponent implement
 
                 // NOTE: it waits for ALL relocating shards, not just those that involve THIS node.
                 ClusterHealthRequest request = new ClusterHealthRequest()
-                    .waitForRelocatingShards(0)
+                    .waitForNoRelocatingShards(true)
                     .waitForEvents(Priority.LANGUID)
                     .timeout(gracefulStopTimeout);
 

@@ -24,6 +24,7 @@ package io.crate.lucene;
 import io.crate.types.*;
 import org.apache.lucene.util.BytesRef;
 import org.apache.lucene.util.BytesRefBuilder;
+import org.apache.lucene.util.LegacyNumericUtils;
 import org.apache.lucene.util.NumericUtils;
 import org.elasticsearch.index.mapper.BooleanFieldMapper;
 
@@ -75,7 +76,7 @@ abstract class TermBuilder<T> {
         @Override
         public BytesRef term(Integer value) {
             BytesRefBuilder builder = new BytesRefBuilder();
-            NumericUtils.intToPrefixCoded(value, 0, builder);
+            LegacyNumericUtils.intToPrefixCoded(value, 0, builder);
             return builder.get();
         }
     }
@@ -98,7 +99,7 @@ abstract class TermBuilder<T> {
         @Override
         public BytesRef term(Long value) {
             BytesRefBuilder builder = new BytesRefBuilder();
-            NumericUtils.longToPrefixCoded(value, 0, builder);
+            LegacyNumericUtils.longToPrefixCoded(value, 0, builder);
             return builder.get();
         }
     }
@@ -108,7 +109,7 @@ abstract class TermBuilder<T> {
         public BytesRef term(Double value) {
             long longValue = NumericUtils.doubleToSortableLong(value);
             BytesRefBuilder bytesRef = new BytesRefBuilder();
-            NumericUtils.longToPrefixCoded(longValue, 0, bytesRef);
+            LegacyNumericUtils.longToPrefixCoded(longValue, 0, bytesRef);
             return bytesRef.get();
         }
     }
@@ -118,7 +119,7 @@ abstract class TermBuilder<T> {
         public BytesRef term(Float value) {
             int intValue = NumericUtils.floatToSortableInt(value);
             BytesRefBuilder bytesRef = new BytesRefBuilder();
-            NumericUtils.intToPrefixCoded(intValue, 0, bytesRef);
+            LegacyNumericUtils.intToPrefixCoded(intValue, 0, bytesRef);
             return bytesRef.get();
         }
     }
