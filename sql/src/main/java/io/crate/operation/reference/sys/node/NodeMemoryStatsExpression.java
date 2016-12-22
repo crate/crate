@@ -38,7 +38,7 @@ class NodeMemoryStatsExpression extends NestedNodeStatsExpression {
             public Long innerValue() {
                 OsStats.Mem mem = this.row.osStats().getMem();
                 if (mem != null) {
-                    return mem.getFree().bytes();
+                    return mem.getFree().getBytes();
                 }
                 return -1L;
             }
@@ -48,7 +48,7 @@ class NodeMemoryStatsExpression extends NestedNodeStatsExpression {
             public Long innerValue() {
                 OsStats.Mem mem = this.row.osStats().getMem();
                 if (mem != null) {
-                    return mem.getUsed().bytes();
+                    return mem.getUsed().getBytes();
                 }
                 return -1L;
             }

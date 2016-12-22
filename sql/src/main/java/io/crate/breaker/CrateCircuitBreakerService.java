@@ -59,7 +59,7 @@ public class CrateCircuitBreakerService extends CircuitBreakerService {
 
         long memoryLimit = settings.getAsMemory(
             QUERY_CIRCUIT_BREAKER_LIMIT_SETTING,
-            DEFAULT_QUERY_CIRCUIT_BREAKER_LIMIT).bytes();
+            DEFAULT_QUERY_CIRCUIT_BREAKER_LIMIT).getBytes();
         double overhead = settings.getAsDouble(
             QUERY_CIRCUIT_BREAKER_OVERHEAD_SETTING,
             DEFAULT_QUERY_CIRCUIT_BREAKER_OVERHEAD_CONSTANT);
@@ -109,7 +109,7 @@ public class CrateCircuitBreakerService extends CircuitBreakerService {
                 CrateCircuitBreakerService.this.settings.getAsMemory(
                     QUERY_CIRCUIT_BREAKER_LIMIT_SETTING,
                     DEFAULT_QUERY_CIRCUIT_BREAKER_LIMIT
-                ).toString()).bytes();
+                ).toString()).getBytes();
             Double newQueryOverhead = settings.getAsDouble(
                 QUERY_CIRCUIT_BREAKER_OVERHEAD_SETTING,
                 CrateCircuitBreakerService.this.settings.getAsDouble(

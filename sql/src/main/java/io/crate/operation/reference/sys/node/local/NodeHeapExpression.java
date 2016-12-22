@@ -41,19 +41,19 @@ class NodeHeapExpression extends NestedObjectExpression {
         childImplementations.put(FREE, new SimpleObjectExpression<Long>() {
             @Override
             public Long value() {
-                return stats.getMem().getHeapMax().bytes() - stats.getMem().getHeapUsed().bytes();
+                return stats.getMem().getHeapMax().getBytes() - stats.getMem().getHeapUsed().getBytes();
             }
         });
         childImplementations.put(USED, new SimpleObjectExpression<Long>() {
             @Override
             public Long value() {
-                return stats.getMem().getHeapUsed().bytes();
+                return stats.getMem().getHeapUsed().getBytes();
             }
         });
         childImplementations.put(MAX, new SimpleObjectExpression<Long>() {
             @Override
             public Long value() {
-                return stats.getMem().getHeapMax().bytes();
+                return stats.getMem().getHeapMax().getBytes();
             }
         });
         childImplementations.put(PROBE_TIMESTAMP, new SimpleObjectExpression<Long>() {

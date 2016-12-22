@@ -37,21 +37,21 @@ class NodeHeapStatsExpression extends NestedNodeStatsExpression {
             public Long innerValue() {
                 JvmStats stats = this.row.jvmStats();
                 JvmStats.Mem mem = stats.getMem();
-                return mem.getHeapMax().bytes() - mem.getHeapUsed().bytes();
+                return mem.getHeapMax().getBytes() - mem.getHeapUsed().getBytes();
             }
         });
         childImplementations.put(USED, new SimpleNodeStatsExpression<Long>() {
             @Override
             public Long innerValue() {
                 JvmStats stats = this.row.jvmStats();
-                return stats.getMem().getHeapUsed().bytes();
+                return stats.getMem().getHeapUsed().getBytes();
             }
         });
         childImplementations.put(MAX, new SimpleNodeStatsExpression<Long>() {
             @Override
             public Long innerValue() {
                 JvmStats stats = this.row.jvmStats();
-                return stats.getMem().getHeapMax().bytes();
+                return stats.getMem().getHeapMax().getBytes();
             }
         });
         childImplementations.put(PROBE_TIMESTAMP, new SimpleNodeStatsExpression<Long>() {
