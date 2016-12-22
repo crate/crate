@@ -38,6 +38,7 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.*;
 import java.util.concurrent.ConcurrentMap;
+import java.util.stream.Stream;
 
 @Singleton
 public class JobContextService extends AbstractLifecycleComponent<JobContextService> {
@@ -83,14 +84,17 @@ public class JobContextService extends AbstractLifecycleComponent<JobContextServ
         return context;
     }
 
-    public Collection<JobExecutionContext> getContextsByCoordinatorNode(final String coordinatorNodeId) {
-        List<JobExecutionContext> contexts = new ArrayList<>();
-        for (JobExecutionContext jobExecutionContext : activeContexts.values()) {
-            if (jobExecutionContext.coordinatorNodeId().equals(coordinatorNodeId)) {
-                contexts.add(jobExecutionContext);
-            }
-        }
-        return contexts;
+    public Stream<UUID> getJobIdsByCoordinatorNode(final String coordinatorNodeId) {
+        return activeContexts.values()
+            .stream()
+            .filter(jobExecutionContext -> jobExecutionContext.coordinatorNodeId().equals(coordinatorNodeId))
+            .map(JobExecutionContext::jobId);
+    }
+
+    public Stream<UUID> getJobIdsByParticipatingNodes(final String nodeId) {
+        return activeContexts.values().stream()
+            .filter(i -> i.participatingNodes().contains(nodeId))
+            .map(JobExecutionContext::jobId);
     }
 
     @Nullable
@@ -99,11 +103,15 @@ public class JobContextService extends AbstractLifecycleComponent<JobContextServ
     }
 
     public JobExecutionContext.Builder newBuilder(UUID jobId) {
-        return new JobExecutionContext.Builder(jobId, clusterService.localNode().getId(), statsTables);
+        return new JobExecutionContext.Builder(jobId, clusterService.localNode().getId(), Collections.emptyList(), statsTables);
     }
 
     public JobExecutionContext.Builder newBuilder(UUID jobId, String coordinatorNodeId) {
-        return new JobExecutionContext.Builder(jobId, coordinatorNodeId, statsTables);
+        return new JobExecutionContext.Builder(jobId, coordinatorNodeId, Collections.emptyList(), statsTables);
+    }
+
+    public JobExecutionContext.Builder newBuilder(UUID jobId, String coordinatorNodeId, Collection<String> participatingNodes) {
+        return new JobExecutionContext.Builder(jobId, coordinatorNodeId, participatingNodes, statsTables);
     }
 
     public JobExecutionContext createContext(JobExecutionContext.Builder contextBuilder) throws Exception {

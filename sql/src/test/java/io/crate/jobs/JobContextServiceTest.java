@@ -37,6 +37,7 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.stream.Collectors;
 
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.is;
@@ -73,12 +74,12 @@ public class JobContextServiceTest extends CrateUnitTest {
         builder.addSubContext(new DummySubContext(1));
 
         JobExecutionContext ctx = jobContextService.createContext(builder);
-        Iterable<JobExecutionContext> contexts = jobContextService.getContextsByCoordinatorNode("wrongNodeId");
+        Iterable<UUID> contexts = jobContextService.getJobIdsByCoordinatorNode("wrongNodeId").collect(Collectors.toList());
 
         assertThat(contexts.iterator().hasNext(), is(false));
 
-        contexts = jobContextService.getContextsByCoordinatorNode("noop_id");
-        assertThat(contexts, contains(ctx));
+        contexts = jobContextService.getJobIdsByCoordinatorNode("noop_id").collect(Collectors.toList());
+        assertThat(contexts, contains(ctx.jobId()));
     }
 
     @Test
