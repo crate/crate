@@ -96,7 +96,7 @@ public class LuceneShardCollectorProvider extends ShardCollectorProvider {
                 collectPhase.whereClause(),
                 indexShard.mapperService(),
                 indexShard.indexFieldDataService(),
-                indexShard.indexService().cache()
+                sharedShardContext.indexService().cache()
             );
             jobCollectContext.addSearcher(sharedShardContext.readerId(), searcher);
             InputFactory.Context<? extends LuceneCollectorExpression<?>> docCtx =

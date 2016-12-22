@@ -89,7 +89,7 @@ public class NodeStatsCollector implements CrateCollector {
         for (final DiscoveryNode node : nodes) {
             final String nodeId = node.getId();
             if (emitDirectly) {
-                rows.add(new NodeStatsContext(nodeId, node.name()));
+                rows.add(new NodeStatsContext(nodeId, node.getName()));
                 if (remainingRequests.decrementAndGet() == 0) {
                     emmitRows(rows);
                 }
@@ -108,7 +108,7 @@ public class NodeStatsCollector implements CrateCollector {
                 @Override
                 public void onFailure(Exception t) {
                     if (t instanceof ReceiveTimeoutTransportException) {
-                        rows.add(new NodeStatsContext(nodeId, node.name()));
+                        rows.add(new NodeStatsContext(nodeId, node.getName()));
                         if (remainingRequests.decrementAndGet() == 0) {
                             emmitRows(rows);
                         }

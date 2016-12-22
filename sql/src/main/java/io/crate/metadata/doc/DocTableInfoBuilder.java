@@ -27,16 +27,16 @@ import io.crate.exceptions.UnhandledServerException;
 import io.crate.metadata.Functions;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.TableIdent;
+import org.apache.logging.log4j.Logger;
 import org.elasticsearch.Version;
 import org.elasticsearch.action.admin.indices.template.put.TransportPutIndexTemplateAction;
 import org.elasticsearch.action.support.IndicesOptions;
-import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.metadata.IndexTemplateMetaData;
 import org.elasticsearch.cluster.metadata.MetaData;
-import org.apache.logging.log4j.Logger;
+import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.Index;
@@ -46,7 +46,6 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
-import java.util.concurrent.ExecutorService;
 
 import static org.elasticsearch.cluster.metadata.IndexMetaData.SETTING_NUMBER_OF_REPLICAS;
 import static org.elasticsearch.cluster.metadata.IndexMetaData.SETTING_NUMBER_OF_SHARDS;
@@ -55,7 +54,6 @@ class DocTableInfoBuilder {
 
     private final TableIdent ident;
     private final ClusterState state;
-    private ExecutorService executorService;
     private final boolean checkAliasSchema;
     private final Functions functions;
     private final ClusterService clusterService;
@@ -70,14 +68,12 @@ class DocTableInfoBuilder {
                         ClusterService clusterService,
                         IndexNameExpressionResolver indexNameExpressionResolver,
                         TransportPutIndexTemplateAction transportPutIndexTemplateAction,
-                        ExecutorService executorService,
                         boolean checkAliasSchema) {
         this.functions = functions;
         this.clusterService = clusterService;
         this.indexNameExpressionResolver = indexNameExpressionResolver;
         this.transportPutIndexTemplateAction = transportPutIndexTemplateAction;
         this.ident = ident;
-        this.executorService = executorService;
         this.state = clusterService.state();
         this.metaData = state.metaData();
         this.checkAliasSchema = checkAliasSchema;
@@ -203,7 +199,6 @@ class DocTableInfoBuilder {
             md.partitionedBy(),
             partitions,
             md.columnPolicy(),
-            md.supportedOperations(),
-            executorService);
+            md.supportedOperations());
     }
 }

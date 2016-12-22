@@ -44,9 +44,11 @@ import io.crate.sql.tree.Table;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.index.Index;
 import org.elasticsearch.snapshots.SnapshotId;
 
 import java.util.*;
+import java.util.stream.Stream;
 
 import static io.crate.analyze.SnapshotSettings.IGNORE_UNAVAILABLE;
 import static io.crate.analyze.SnapshotSettings.WAIT_FOR_COMPLETION;
@@ -109,7 +111,7 @@ class CreateSnapshotAnalyzer {
                 Operation.blockedRaiseException(tableInfo, Operation.READ);
                 DocTableInfo docTableInfo = (DocTableInfo) tableInfo;
                 if (table.partitionProperties().isEmpty()) {
-                    snapshotIndices.addAll(Arrays.asList(docTableInfo.concreteIndices()));
+                    Stream.of(docTableInfo.concreteIndices()).map(Index::getName).forEach(snapshotIndices::add);
                 } else {
                     PartitionName partitionName = PartitionPropertiesAnalyzer.toPartitionName(
                         docTableInfo,

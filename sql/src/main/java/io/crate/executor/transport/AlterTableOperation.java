@@ -37,8 +37,8 @@ import io.crate.action.sql.Option;
 import io.crate.action.sql.ResultReceiver;
 import io.crate.action.sql.SQLOperations;
 import io.crate.analyze.AddColumnAnalyzedStatement;
-import io.crate.analyze.PartitionedTableParameterInfo;
 import io.crate.analyze.AlterTableAnalyzedStatement;
+import io.crate.analyze.PartitionedTableParameterInfo;
 import io.crate.analyze.TableParameter;
 import io.crate.core.MultiFutureCallback;
 import io.crate.core.collections.Row;
@@ -56,10 +56,10 @@ import org.elasticsearch.action.admin.indices.settings.put.UpdateSettingsRespons
 import org.elasticsearch.action.admin.indices.template.put.PutIndexTemplateRequest;
 import org.elasticsearch.action.admin.indices.template.put.PutIndexTemplateResponse;
 import org.elasticsearch.action.support.IndicesOptions;
-import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.cluster.metadata.AliasMetaData;
 import org.elasticsearch.cluster.metadata.IndexTemplateMetaData;
 import org.elasticsearch.cluster.metadata.MetaData;
+import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.compress.CompressedXContent;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
@@ -67,11 +67,13 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.XContentFactory;
 import org.elasticsearch.common.xcontent.XContentHelper;
 import org.elasticsearch.common.xcontent.XContentParser;
+import org.elasticsearch.index.Index;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.*;
+import java.util.stream.Stream;
 
 @Singleton
 public class AlterTableOperation {
@@ -181,7 +183,7 @@ public class AlterTableOperation {
                 results.add(updateTemplate(analysis.tableParameter(), table.ident()));
 
                 if (!analysis.excludePartitions()) {
-                    String[] indices = table.concreteIndices();
+                    String[] indices = Stream.of(table.concreteIndices()).map(Index::getName).toArray(String[]::new);
                     results.add(updateMapping(analysis.tableParameter().mappings(), indices));
                     results.add(updateSettings(parameterWithFilteredSettings, indices));
                 }
@@ -341,7 +343,7 @@ public class AlterTableOperation {
         if (tableInfo.isPartitioned()) {
             if (partitionName == null) {
                 // all partitions
-                indexNames = tableInfo.concreteIndices();
+                indexNames = Stream.of(tableInfo.concreteIndices()).map(Index::getName).toArray(String[]::new);
             } else {
                 // single partition
                 indexNames = new String[]{partitionName.asIndexName()};
