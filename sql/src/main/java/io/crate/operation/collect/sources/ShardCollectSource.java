@@ -304,10 +304,10 @@ public class ShardCollectSource extends AbstractComponent implements CollectSour
             String indexName = entry.getKey();
 
             for (Integer shardNum : entry.getValue()) {
-                SharedShardContext context = sharedShardContexts.getOrCreateContext(new ShardId(indexName, shardNum));
+                ShardId shardId = new ShardId(indexName, shardNum);
+                SharedShardContext context = sharedShardContexts.getOrCreateContext(shardId);
 
                 try {
-                    ShardId shardId = new ShardId(indexName, shardNum);
                     ShardCollectorProvider shardCollectorProvider = getCollectorProviderSafe(shardId);
                     orderedDocCollectors.add(shardCollectorProvider.getOrderedCollector(collectPhase,
                         context,
@@ -355,16 +355,17 @@ public class ShardCollectSource extends AbstractComponent implements CollectSour
 
         List<CrateCollector.Builder> crateCollectors = new ArrayList<>();
         for (Map.Entry<String, List<Integer>> entry : indexShards.entrySet()) {
+            String indexName = entry.getKey();
             try {
-                indicesService.indexServiceSafe(entry.getKey());
+                indicesService.indexServiceSafe(indexName);
             } catch (IndexNotFoundException e) {
-                if (PartitionName.isPartition(entry.getKey())) {
+                if (PartitionName.isPartition(indexName)) {
                     continue;
                 }
                 throw e;
             }
             for (Integer shardNum : entry.getValue()) {
-                ShardId shardId = new ShardId(entry.getKey(), shardNum);
+                ShardId shardId = new ShardId(indexName, shardNum);
                 try {
                     ShardCollectorProvider shardCollectorProvider = getCollectorProviderSafe(shardId);
                     CrateCollector.Builder collector = shardCollectorProvider.getCollectorBuilder(
@@ -416,15 +417,15 @@ public class ShardCollectSource extends AbstractComponent implements CollectSour
                     unassignedShards.add(toUnassignedShard(new ShardId(indexName, UnassignedShard.markAssigned(shard))));
                     continue;
                 }
+                ShardId shardId = new ShardId(indexName, shard);
                 try {
-                    ShardId shardId = new ShardId(indexName, shard);
                     ShardCollectorProvider shardCollectorProvider = getCollectorProviderSafe(shardId);
                     Object[] row = shardCollectorProvider.getRowForShard(normalizedPhase);
                     if (row != null) {
                         rows.add(row);
                     }
                 } catch (ShardNotFoundException | IllegalIndexShardStateException e) {
-                    unassignedShards.add(toUnassignedShard(new ShardId(indexName, shard)));
+                    unassignedShards.add(toUnassignedShard(shardId));
                 } catch (Throwable t) {
                     t.printStackTrace();
                     throw new UnhandledServerException(t);
