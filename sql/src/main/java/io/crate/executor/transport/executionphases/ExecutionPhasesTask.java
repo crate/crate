@@ -189,7 +189,7 @@ public class ExecutionPhasesTask extends JobTask {
         List<Tuple<ExecutionPhase, RowReceiver>> handlerPhaseAndReceiver = createHandlerPhaseAndReceivers(
             handlerPhases, handlerReceivers, initializationTracker);
 
-        JobExecutionContext.Builder builder = jobContextService.newBuilder(jobId(), localNodeId);
+        JobExecutionContext.Builder builder = jobContextService.newBuilder(jobId(), localNodeId, operationByServer.keySet());
         List<ListenableFuture<Bucket>> directResponseFutures = contextPreparer.prepareOnHandler(
             localNodeOperations, builder, handlerPhaseAndReceiver, new SharedShardContexts(indicesService));
         JobExecutionContext localJobContext = jobContextService.createContext(builder);

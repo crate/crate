@@ -21,7 +21,6 @@
 
 package io.crate.jobs;
 
-import com.google.common.base.Function;
 import com.google.common.collect.Lists;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
@@ -45,13 +44,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 public class JobExecutionContext implements CompletionListenable {
 
     private static final ESLogger LOGGER = Loggers.getLogger(JobExecutionContext.class);
-    public static final Function<? super JobExecutionContext, UUID> TO_ID = new Function<JobExecutionContext, UUID>() {
-        @Nullable
-        @Override
-        public UUID apply(@Nullable JobExecutionContext input) {
-            return input == null ? null : input.jobId();
-        }
-    };
 
     private final UUID jobId;
     private final ConcurrentMap<Integer, ExecutionSubContext> subContexts;
@@ -62,7 +54,9 @@ public class JobExecutionContext implements CompletionListenable {
     private final StatsTables statsTables;
     private final SettableFuture<Void> finishedFuture = SettableFuture.create();
     private final AtomicBoolean killSubContextsOngoing = new AtomicBoolean(false);
+    private final Collection<String> participatedNodes;
     private volatile Throwable failure;
+
 
     public static class Builder {
 
@@ -70,10 +64,12 @@ public class JobExecutionContext implements CompletionListenable {
         private final String coordinatorNode;
         private final StatsTables statsTables;
         private final LinkedHashMap<Integer, ExecutionSubContext> subContexts = new LinkedHashMap<>();
+        private final Collection<String> participatingNodes;
 
-        Builder(UUID jobId, String coordinatorNode, StatsTables statsTables) {
+        Builder(UUID jobId, String coordinatorNode, Collection<String> participatingNodes, StatsTables statsTables) {
             this.jobId = jobId;
             this.coordinatorNode = coordinatorNode;
+            this.participatingNodes = participatingNodes;
             this.statsTables = statsTables;
         }
 
@@ -94,16 +90,18 @@ public class JobExecutionContext implements CompletionListenable {
         }
 
         JobExecutionContext build() throws Exception {
-            return new JobExecutionContext(jobId, coordinatorNode, statsTables, subContexts);
+            return new JobExecutionContext(jobId, coordinatorNode, participatingNodes, statsTables, subContexts);
         }
     }
 
 
     private JobExecutionContext(UUID jobId,
                                 String coordinatorNodeId,
+                                Collection<String> participatingNodes,
                                 StatsTables statsTables,
                                 LinkedHashMap<Integer, ExecutionSubContext> contextMap) throws Exception {
         this.coordinatorNodeId = coordinatorNodeId;
+        this.participatedNodes = participatingNodes;
         orderedContextIds = Lists.newArrayList(contextMap.keySet());
         this.jobId = jobId;
         this.statsTables = statsTables;
@@ -127,6 +125,10 @@ public class JobExecutionContext implements CompletionListenable {
 
     String coordinatorNodeId() {
         return coordinatorNodeId;
+    }
+
+    Collection<String> participatingNodes() {
+        return participatedNodes;
     }
 
     private void prepare(Map<Integer, ExecutionSubContext> contextMap) throws Exception {

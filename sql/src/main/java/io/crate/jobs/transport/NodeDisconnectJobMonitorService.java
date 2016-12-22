@@ -22,20 +22,25 @@
 
 package io.crate.jobs.transport;
 
-import com.google.common.collect.Collections2;
+import io.crate.executor.transport.kill.KillJobsRequest;
+import io.crate.executor.transport.kill.KillResponse;
+import io.crate.executor.transport.kill.TransportKillJobsNodeAction;
 import io.crate.jobs.JobContextService;
-import io.crate.jobs.JobExecutionContext;
+import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.common.component.AbstractLifecycleComponent;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
+import org.elasticsearch.common.logging.ESLogger;
+import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportConnectionListener;
 import org.elasticsearch.transport.TransportService;
 
-import java.util.Collection;
+import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * service that listens to node-disconnected-events and kills jobContexts that were started by the nodes that got disconnected
@@ -50,16 +55,20 @@ public class NodeDisconnectJobMonitorService
     private final TransportService transportService;
 
     private final static TimeValue DELAY = TimeValue.timeValueMinutes(1);
+    private final TransportKillJobsNodeAction killJobsNodeAction;
+    private final static ESLogger LOGGER = Loggers.getLogger(NodeDisconnectJobMonitorService.class);
 
     @Inject
     public NodeDisconnectJobMonitorService(Settings settings,
                                            ThreadPool threadPool,
                                            JobContextService jobContextService,
-                                           TransportService transportService) {
+                                           TransportService transportService,
+                                           TransportKillJobsNodeAction killJobsNodeAction) {
         super(settings);
         this.threadPool = threadPool;
         this.jobContextService = jobContextService;
         this.transportService = transportService;
+        this.killJobsNodeAction = killJobsNodeAction;
     }
 
 
@@ -83,16 +92,27 @@ public class NodeDisconnectJobMonitorService
 
     @Override
     public void onNodeDisconnected(final DiscoveryNode node) {
-        final Collection<JobExecutionContext> contexts = jobContextService.getContextsByCoordinatorNode(node.id());
+        final Collection<UUID> contexts = jobContextService.getJobIdsByCoordinatorNode(node.getId()).collect(Collectors.toList());
         if (contexts.isEmpty()) {
-            return;
+            // Disconnected node is not a handler node --> kill jobs on all participated nodes
+            contexts.addAll(jobContextService.getJobIdsByParticipatingNodes(node.getId()).collect(Collectors.toList()));
+            KillJobsRequest killJobsRequest = new KillJobsRequest(contexts);
+            if (!contexts.isEmpty()) {
+                killJobsNodeAction.broadcast(killJobsRequest, new ActionListener<KillResponse>() {
+                    @Override
+                    public void onResponse(KillResponse killResponse) {
+                    }
+
+                    @Override
+                    public void onFailure(Throwable e) {
+                        LOGGER.warn("failed to send kill request to nodes");
+                    }
+                }, Arrays.asList(node.getId()));
+            } else {
+                return;
+            }
         }
 
-        threadPool.schedule(DELAY, ThreadPool.Names.GENERIC, new Runnable() {
-            @Override
-            public void run() {
-                jobContextService.killJobs(Collections2.transform(contexts, JobExecutionContext.TO_ID));
-            }
-        });
+        threadPool.schedule(DELAY, ThreadPool.Names.GENERIC, () -> jobContextService.killJobs(contexts));
     }
 }

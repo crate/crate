@@ -33,7 +33,6 @@ import io.crate.jobs.JobContextService;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.node.DiscoveryNode;
-import org.elasticsearch.cluster.node.DiscoveryNodes;
 import org.elasticsearch.common.component.AbstractComponent;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.threadpool.ThreadPool;
@@ -42,7 +41,11 @@ import org.elasticsearch.transport.TransportService;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import java.util.*;
 import java.util.concurrent.Callable;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
 
 abstract class TransportKillNodeAction<Request extends TransportRequest> extends AbstractComponent
     implements NodeAction<Request, KillResponse>, Callable<Request> {
@@ -90,9 +93,14 @@ abstract class TransportKillNodeAction<Request extends TransportRequest> extends
      * Broadcasts the given kill request to all nodes in the cluster
      */
     public void broadcast(Request request, ActionListener<KillResponse> listener) {
-        DiscoveryNodes nodes = clusterService.state().nodes();
+        broadcast(request, listener, Collections.emptyList());
+    }
 
-        listener = new MultiActionListener<>(nodes.size(), KillResponse.MERGE_FUNCTION, listener);
+    public void broadcast(Request request, ActionListener<KillResponse> listener, Collection<String> excludedNodeIds) {
+        Stream<DiscoveryNode> nodes = StreamSupport.stream(clusterService.state().nodes().spliterator(), false);
+        Collection<DiscoveryNode> filteredNodes = nodes.filter(node -> !excludedNodeIds.contains(node.getId())).collect(Collectors.toList());
+
+        listener = new MultiActionListener<>(filteredNodes.size(), KillResponse.MERGE_FUNCTION, listener);
         DefaultTransportResponseHandler<KillResponse> responseHandler =
             new DefaultTransportResponseHandler<KillResponse>(listener) {
                 @Override
@@ -100,7 +108,7 @@ abstract class TransportKillNodeAction<Request extends TransportRequest> extends
                     return new KillResponse(0);
                 }
             };
-        for (DiscoveryNode node : nodes) {
+        for (DiscoveryNode node : filteredNodes) {
             transportService.sendRequest(node, name, request, responseHandler);
         }
     }
