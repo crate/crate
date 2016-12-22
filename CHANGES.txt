@@ -4,6 +4,9 @@ Changes for Crate
 
 Unreleased
 ==========
+ 
+ - Fixed an issue that causes hanging queries if a data node disconnects from
+   the cluster.
 
 2016/12/13 0.57.6
 =================

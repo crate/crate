@@ -93,17 +93,31 @@ public class JobContextService extends AbstractLifecycleComponent<JobContextServ
         return contexts;
     }
 
+    public Collection<JobExecutionContext> getJobIdsByParticipatingNodes(final String nodeId) {
+        List<JobExecutionContext> contexts = new ArrayList<>();
+        for (JobExecutionContext jobExecutionContext : activeContexts.values()) {
+            if (jobExecutionContext.participatingNodes().contains(nodeId)) {
+                contexts.add(jobExecutionContext);
+            }
+        }
+        return contexts;
+    }
+
     @Nullable
     public JobExecutionContext getContextOrNull(UUID jobId) {
         return activeContexts.get(jobId);
     }
 
     public JobExecutionContext.Builder newBuilder(UUID jobId) {
-        return new JobExecutionContext.Builder(jobId, clusterService.localNode().id(), statsTables);
+        return new JobExecutionContext.Builder(jobId, clusterService.localNode().getId(), Collections.<String>emptyList(), statsTables);
     }
 
     public JobExecutionContext.Builder newBuilder(UUID jobId, String coordinatorNodeId) {
-        return new JobExecutionContext.Builder(jobId, coordinatorNodeId, statsTables);
+        return new JobExecutionContext.Builder(jobId, coordinatorNodeId, Collections.<String>emptyList(), statsTables);
+    }
+
+    public JobExecutionContext.Builder newBuilder(UUID jobId, String coordinatorNodeId, Collection<String> participatingNodes) {
+        return new JobExecutionContext.Builder(jobId, coordinatorNodeId, participatingNodes, statsTables);
     }
 
     public JobExecutionContext createContext(JobExecutionContext.Builder contextBuilder) throws Exception {

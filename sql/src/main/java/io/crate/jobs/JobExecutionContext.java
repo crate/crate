@@ -62,7 +62,9 @@ public class JobExecutionContext implements CompletionListenable {
     private final StatsTables statsTables;
     private final SettableFuture<Void> finishedFuture = SettableFuture.create();
     private final AtomicBoolean killSubContextsOngoing = new AtomicBoolean(false);
+    private final Collection<String> participatedNodes;
     private volatile Throwable failure;
+
 
     public static class Builder {
 
@@ -70,10 +72,12 @@ public class JobExecutionContext implements CompletionListenable {
         private final String coordinatorNode;
         private final StatsTables statsTables;
         private final LinkedHashMap<Integer, ExecutionSubContext> subContexts = new LinkedHashMap<>();
+        private final Collection<String> participatingNodes;
 
-        Builder(UUID jobId, String coordinatorNode, StatsTables statsTables) {
+        Builder(UUID jobId, String coordinatorNode, Collection<String> participatingNodes, StatsTables statsTables) {
             this.jobId = jobId;
             this.coordinatorNode = coordinatorNode;
+            this.participatingNodes = participatingNodes;
             this.statsTables = statsTables;
         }
 
@@ -94,16 +98,18 @@ public class JobExecutionContext implements CompletionListenable {
         }
 
         JobExecutionContext build() throws Exception {
-            return new JobExecutionContext(jobId, coordinatorNode, statsTables, subContexts);
+            return new JobExecutionContext(jobId, coordinatorNode, participatingNodes, statsTables, subContexts);
         }
     }
 
 
     private JobExecutionContext(UUID jobId,
                                 String coordinatorNodeId,
+                                Collection<String> participatingNodes,
                                 StatsTables statsTables,
                                 LinkedHashMap<Integer, ExecutionSubContext> contextMap) throws Exception {
         this.coordinatorNodeId = coordinatorNodeId;
+        this.participatedNodes = participatingNodes;
         orderedContextIds = Lists.newArrayList(contextMap.keySet());
         this.jobId = jobId;
         this.statsTables = statsTables;
@@ -127,6 +133,10 @@ public class JobExecutionContext implements CompletionListenable {
 
     String coordinatorNodeId() {
         return coordinatorNodeId;
+    }
+
+    Collection<String> participatingNodes() {
+        return participatedNodes;
     }
 
     private void prepare(Map<Integer, ExecutionSubContext> contextMap) throws Exception {

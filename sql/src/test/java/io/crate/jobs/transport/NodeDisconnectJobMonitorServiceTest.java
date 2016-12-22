@@ -23,13 +23,17 @@
 package io.crate.jobs.transport;
 
 import io.crate.exceptions.ContextMissingException;
+import io.crate.executor.transport.kill.KillJobsRequest;
+import io.crate.executor.transport.kill.TransportKillJobsNodeAction;
 import io.crate.jobs.DummySubContext;
 import io.crate.jobs.JobContextService;
 import io.crate.jobs.JobExecutionContext;
 import io.crate.operation.collect.StatsTables;
 import io.crate.test.integration.CrateUnitTest;
 import org.elasticsearch.Version;
+import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.cluster.node.DiscoveryNode;
+import org.elasticsearch.cluster.node.DiscoveryNodes;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.transport.DummyTransportAddress;
 import org.elasticsearch.common.unit.TimeValue;
@@ -42,12 +46,12 @@ import org.junit.rules.ExpectedException;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
+import java.util.Arrays;
 import java.util.UUID;
 
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyString;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 public class NodeDisconnectJobMonitorServiceTest extends CrateUnitTest {
 
@@ -71,16 +75,48 @@ public class NodeDisconnectJobMonitorServiceTest extends CrateUnitTest {
                 return null;
             }
         });
-
         NodeDisconnectJobMonitorService monitorService = new NodeDisconnectJobMonitorService(
             Settings.EMPTY,
             threadPool,
             jobContextService,
-            mock(TransportService.class));
+            mock(TransportService.class),
+            mock(TransportKillJobsNodeAction.class));
 
         monitorService.onNodeDisconnected(new DiscoveryNode("noop_id", DummyTransportAddress.INSTANCE, Version.CURRENT));
 
         expectedException.expect(ContextMissingException.class);
         jobContextService.getContext(context.jobId());
+    }
+
+    @Test
+    public void testOnParticipatingNodeDisconnectedKillsJob() throws Exception {
+        JobContextService jobContextService = new JobContextService(
+            Settings.EMPTY, new NoopClusterService(), mock(StatsTables.class));
+
+        DiscoveryNode coordinator_node = new DiscoveryNode("coordinator_node_id", DummyTransportAddress.INSTANCE, Version.CURRENT);
+        DiscoveryNode data_node = new DiscoveryNode("data_node_id", DummyTransportAddress.INSTANCE, Version.CURRENT);
+
+        DiscoveryNodes discoveryNodes = DiscoveryNodes.builder()
+            .localNodeId("coordinator_node_id")
+            .put(coordinator_node)
+            .put(data_node).build();
+
+        JobExecutionContext.Builder builder = jobContextService.newBuilder(UUID.randomUUID(), coordinator_node.getId(), Arrays.asList(coordinator_node.getId(), data_node.getId()));
+        builder.addSubContext(new DummySubContext());
+        jobContextService.createContext(builder);
+        TransportKillJobsNodeAction killAction = mock(TransportKillJobsNodeAction.class);
+
+        NodeDisconnectJobMonitorService monitorService = new NodeDisconnectJobMonitorService(
+            Settings.EMPTY,
+            mock(ThreadPool.class),
+            jobContextService,
+            mock(TransportService.class),
+            killAction);
+
+        monitorService.onNodeDisconnected(discoveryNodes.get("data_node_id"));
+        verify(killAction, times(1)).broadcast(
+            any(KillJobsRequest.class),
+            any(ActionListener.class),
+            eq(Arrays.asList(discoveryNodes.get("data_node_id").getId())));
     }
 }
