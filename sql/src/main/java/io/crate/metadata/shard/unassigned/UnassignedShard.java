@@ -70,7 +70,7 @@ public class UnassignedShard {
                            ClusterService clusterService,
                            Boolean primary,
                            ShardRoutingState state) {
-        String index = shardId.index().name();
+        String index = shardId.getIndexName();
         boolean isBlobIndex = BlobIndex.isBlobIndex(index);
         String tableName;
         String ident = "";

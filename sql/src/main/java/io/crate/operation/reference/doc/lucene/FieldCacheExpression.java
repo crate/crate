@@ -29,9 +29,6 @@ import org.elasticsearch.index.mapper.MappedFieldType;
 public abstract class FieldCacheExpression<IFD extends IndexFieldData, ReturnType> extends
     ColumnReferenceCollectorExpression<ReturnType> {
 
-    private final static String[] DEFAULT_MAPPING_TYPES = new String[]{
-        Constants.DEFAULT_MAPPING_TYPE};
-
     protected IFD indexFieldData;
 
     public FieldCacheExpression(String columnName) {
@@ -39,7 +36,7 @@ public abstract class FieldCacheExpression<IFD extends IndexFieldData, ReturnTyp
     }
 
     public void startCollect(CollectorContext context) {
-        MappedFieldType mapper = context.mapperService().smartNameFieldType(columnName, DEFAULT_MAPPING_TYPES);
+        MappedFieldType mapper = context.mapperService().fullName(columnName);
         indexFieldData = context.fieldData().getForField(mapper);
     }
 }
