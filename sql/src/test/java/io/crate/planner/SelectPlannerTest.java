@@ -578,5 +578,4 @@ public class SelectPlannerTest extends CrateUnitTest {
         merge = (Merge) qtf.subPlan();
         assertThat(merge.mergePhase().nodeIds().size(), is(0));
     }
-
 }

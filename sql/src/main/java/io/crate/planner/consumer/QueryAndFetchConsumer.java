@@ -143,7 +143,7 @@ public class QueryAndFetchConsumer implements Consumer {
                 projections
             );
             Integer requiredPageSize = context.requiredPageSize();
-            if (requiredPageSize == null ) {
+            if (requiredPageSize == null) {
                 if (limits.hasLimit()) {
                     collectPhase.nodePageSizeHint(limits.limitAndOffset());
                 }

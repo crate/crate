@@ -23,5 +23,5 @@ package io.crate.types;
 
 public interface CollectionType {
 
-    public DataType<?> innerType();
+    DataType<?> innerType();
 }

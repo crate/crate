@@ -38,7 +38,7 @@ import org.elasticsearch.common.logging.Loggers;
 import java.io.IOException;
 import java.util.*;
 
-public class DataTypes {
+public final class DataTypes {
 
     private final static ESLogger logger = Loggers.getLogger(DataTypes.class);
 
