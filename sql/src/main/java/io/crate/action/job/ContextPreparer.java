@@ -566,6 +566,7 @@ public class ContextPreparer extends AbstractComponent {
                 phase,
                 localNodeId,
                 context.sharedShardContexts,
+                clusterService.state().metaData(),
                 routings));
             return true;
         }
