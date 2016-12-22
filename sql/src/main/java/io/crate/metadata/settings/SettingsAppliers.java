@@ -259,7 +259,7 @@ public class SettingsAppliers {
         }
 
         private ByteSizeValue validate(ByteSizeValue num) {
-            if (num.bytes() < setting.minValue() || num.bytes() > setting.maxValue()) {
+            if (num.getBytes() < setting.minValue() || num.getBytes() > setting.maxValue()) {
                 throw invalidException();
             }
             return num;
@@ -284,7 +284,7 @@ public class SettingsAppliers {
 
         public void applyValue(Settings.Builder settingsBuilder, ByteSizeValue value) {
             value = validate(value);
-            settingsBuilder.put(name, value.bytes(), ByteSizeUnit.BYTES);
+            settingsBuilder.put(name, value.getBytes(), ByteSizeUnit.BYTES);
         }
 
         @Override

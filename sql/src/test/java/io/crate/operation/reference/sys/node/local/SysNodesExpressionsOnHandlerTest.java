@@ -76,16 +76,13 @@ public class SysNodesExpressionsOnHandlerTest extends CrateUnitTest {
         // jvm
         JvmStats jvmStats = mock(JvmStats.class);
         JvmStats.Mem jvmStatsMem = mock(JvmStats.Mem.class);
-        ByteSizeValue heapByteSizeValueMax = mock(ByteSizeValue.class);
-        when(heapByteSizeValueMax.bytes()).thenReturn(123456L);
+        ByteSizeValue heapByteSizeValueMax = new ByteSizeValue(123456L);
         when(jvmStatsMem.getHeapMax()).thenReturn(heapByteSizeValueMax);
         when(jvmStatsMem.getHeapUsed()).thenReturn(heapByteSizeValueMax);
         when(jvmStats.getMem()).thenReturn(jvmStatsMem);
 
         // mem
-        ByteSizeValue byteSizeValue = mock(ByteSizeValue.class);
-        when(byteSizeValue.bytes()).thenReturn(12345342234L);
-        when(byteSizeValue.toString()).thenReturn("11.4gb");
+        ByteSizeValue byteSizeValue = new ByteSizeValue(12345342234L);
 
         // os service
         OsService osService = mock(OsService.class);

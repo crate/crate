@@ -49,7 +49,7 @@ class NodeMemoryExpression extends NestedObjectExpression {
             @Override
             public Long value() {
                 if (mem != null) {
-                    return mem.getFree().bytes();
+                    return mem.getFree().getBytes();
                 }
                 return -1L;
             }
@@ -58,7 +58,7 @@ class NodeMemoryExpression extends NestedObjectExpression {
             @Override
             public Long value() {
                 if (mem != null) {
-                    return mem.getUsed().bytes();
+                    return mem.getUsed().getBytes();
                 }
                 return -1L;
             }

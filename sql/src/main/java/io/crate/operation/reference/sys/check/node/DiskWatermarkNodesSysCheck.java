@@ -72,12 +72,12 @@ abstract class DiskWatermarkNodesSysCheck extends AbstractSysNodeCheck {
 
     protected boolean validate(FsInfo fsInfo, double diskWatermarkPercents, long diskWatermarkBytes) {
         for (FsInfo.Path path : fsInfo) {
-            double usedDiskAsPercentage = 100.0 - (path.getAvailable().bytes() / (double) path.getTotal().bytes()) * 100.0;
+            double usedDiskAsPercentage = 100.0 - (path.getAvailable().getBytes() / (double) path.getTotal().getBytes()) * 100.0;
 
             // Byte values refer to free disk space
             // Percentage values refer to used disk space
             if ((usedDiskAsPercentage > diskWatermarkPercents)
-                || (path.getAvailable().bytes() < diskWatermarkBytes)) {
+                || (path.getAvailable().getBytes() < diskWatermarkBytes)) {
                 return false;
             }
         }
@@ -97,9 +97,9 @@ abstract class DiskWatermarkNodesSysCheck extends AbstractSysNodeCheck {
             return ByteSizeValue.parseBytesSizeValue(
                 watermarkSetting.extract(settings),
                 watermarkSetting.name()
-            ).bytes();
+            ).getBytes();
         } catch (ElasticsearchParseException ex) {
-            return ByteSizeValue.parseBytesSizeValue("0b", watermarkSetting.name()).bytes();
+            return ByteSizeValue.parseBytesSizeValue("0b", watermarkSetting.name()).getBytes();
         }
     }
 
