@@ -38,6 +38,7 @@ import io.crate.analyze.symbol.format.SymbolFormatter;
 import io.crate.analyze.symbol.format.SymbolPrinter;
 import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.geo.GeoJSONUtils;
+import io.crate.lucene.match.CrateRegexQuery;
 import io.crate.lucene.match.MatchQueryBuilder;
 import io.crate.lucene.match.MultiMatchQueryBuilder;
 import io.crate.metadata.DocReferenceConverter;
@@ -814,7 +815,7 @@ public class LuceneQueryBuilder {
                 }
 
                 if (isPcrePattern(pattern.utf8ToString())) {
-                    return new RegexQuery(new Term(fieldName, pattern));
+                    return new CrateRegexQuery(new Term(fieldName, pattern));
                 } else {
                     return toLuceneRegexpQuery(fieldName, pattern, context);
                 }
