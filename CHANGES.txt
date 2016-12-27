@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fix: throw correct error if one tries to create a table starting with ``_``
+
  - Fixed an issue that causes UnhandledServerException on joins
    when ``WHERE`` clause contains conditions on columns of array type
    of both tables which are separated with the ``OR` operator.

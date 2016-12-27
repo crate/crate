@@ -121,6 +121,9 @@ public class TableIdent implements Streamable {
                 return false;
             }
         }
+        if (name.startsWith("_")) {
+            return false;
+        }
         return true;
     }
 
