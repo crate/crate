@@ -501,6 +501,13 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateUnitTest {
     }
 
     @Test
+    public void testTableStartWithUnderscore() throws Exception {
+        expectedException.expect(InvalidTableNameException.class);
+        expectedException.expectMessage("table name \"_invalid\" is invalid.");
+        e.analyze("create table _invalid (id integer primary key)");
+    }
+
+    @Test
     public void testHasColumnDefinition() throws Exception {
         CreateTableAnalyzedStatement analysis = e.analyze(
             "create table my_table (" +
