@@ -4,7 +4,9 @@ Changes for Crate
 
 Unreleased
 ==========
- 
+
+ - Improved error message if ``match`` predicate is called with an unsupported query-term.
+
  - Fixed an issue that causes hanging queries if a data node disconnects from
    the cluster.
 

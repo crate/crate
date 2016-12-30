@@ -730,6 +730,7 @@ public class ExpressionAnalyzer {
             verifyTypesForMatch(identBoostMap.keySet(), columnType);
 
             Symbol queryTerm = castIfNeededOrFail(process(node.value(), context), columnType);
+            Preconditions.checkArgument(queryTerm instanceof Literal, SymbolFormatter.format("queryTerm must be a literal"));
             String matchType = io.crate.operation.predicate.MatchPredicate.getMatchType(node.matchType(), columnType);
 
             List<Symbol> mapArgs = new ArrayList<>(node.properties().size() * 2);
