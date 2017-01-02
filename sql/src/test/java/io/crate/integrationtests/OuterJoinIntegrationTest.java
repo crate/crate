@@ -128,6 +128,16 @@ public class OuterJoinIntegrationTest extends SQLTransportIntegrationTest {
     }
 
     @Test
+    public void testFullOuterJoinWithFilters() {
+        // It's rewritten to an Inner Join because of the filtering condition in where clause
+        execute("select persons.name, offices.name from" +
+                " offices full join employees as persons on office_id = offices.id" +
+                " where offices.name='Entresol' and persons.name='Trillian' " +
+                " order by offices.id");
+        assertThat(printedTable(response.rows()), is("Trillian| Entresol\n"));
+    }
+
+    @Test
     public void testOuterJoinWithFunctionsInOrderBy() {
         execute("select coalesce(persons.name, ''), coalesce(offices.name, '') from" +
                 " offices full join employees as persons on office_id = offices.id" +

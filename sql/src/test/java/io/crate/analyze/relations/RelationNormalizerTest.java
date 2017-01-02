@@ -36,6 +36,7 @@ import org.junit.Test;
 import static io.crate.testing.TestingHelpers.isSQL;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.nullValue;
 
 public class RelationNormalizerTest extends CrateUnitTest {
 
@@ -344,27 +345,6 @@ public class RelationNormalizerTest extends CrateUnitTest {
     }
 
     @Test
-    public void testSubSelectOnFullJoinWithFilterRewrittenToInner() throws Exception {
-        QueriedRelation relation = normalize(
-            "select col1, col2 from ( " +
-            "  select t1.a as col1, t2.i as col2, t2.y as col3 " +
-            "  from t1 full join t2 on t1.a = t2.b where t2.y > 60) as t " +
-            "where col1 = 'a' order by col3");
-        assertThat(relation, instanceOf(MultiSourceSelect.class));
-        MultiSourceSelect mss = (MultiSourceSelect) relation;
-        assertThat(mss.querySpec(), isSQL(
-            "SELECT doc.t1.a, doc.t2.i WHERE (doc.t2.y > 60) ORDER BY doc.t2.y"));
-        assertThat(mss.joinPairs().get(0).joinType(), is(JoinType.INNER));
-        assertThat(mss.joinPairs().get(0).condition(), isSQL("(doc.t1.a = doc.t2.b)"));
-
-        // make sure that where clause wasn't pushed down since but be applied after the FULL join
-        RelationSource t1 = mss.sources().get(T3.T1);
-        assertThat(t1.querySpec().where().query(), isSQL("(doc.t1.a = 'a')"));
-        RelationSource t2 = mss.sources().get(T3.T2);
-        assertThat(t2.querySpec().where().query(), isSQL("null"));
-    }
-
-    @Test
     public void testSubSelectOnJoinsWithLimitAndOffset() throws Exception {
         QueriedRelation relation = normalize(
             "select col1, col2 from ( " +
@@ -374,5 +354,94 @@ public class RelationNormalizerTest extends CrateUnitTest {
         assertThat(relation, instanceOf(MultiSourceSelect.class));
         assertThat(relation.querySpec(), isSQL(
             "SELECT doc.t1.a, doc.t2.i ORDER BY doc.t2.y LIMIT least(5, 10) OFFSET add(5, 2)"));
+    }
+
+    @Test
+    public void testFullJoinWithFiltersRewrittenToInner() throws Exception {
+        QueriedRelation relation = normalize(
+            "select t1.a, t2.i " +
+            "from t1 full join t2 on t1.a = t2.b " +
+            "where t2.y is not null and t1.a = 'a'");
+        assertThat(relation, instanceOf(MultiSourceSelect.class));
+        MultiSourceSelect mss = (MultiSourceSelect) relation;
+        assertThat(mss.querySpec(), isSQL("SELECT doc.t1.a, doc.t2.i"));
+
+        assertThat(mss.joinPairs().get(0).joinType(), is(JoinType.INNER));
+        assertThat(mss.joinPairs().get(0).condition(), isSQL("(doc.t1.a = doc.t2.b)"));
+
+        // make sure that the conditions of where clause were pushed down to the relations
+        RelationSource t1 = mss.sources().get(T3.T1);
+        assertThat(t1.querySpec().where().query(), isSQL("(doc.t1.a = 'a')"));
+        RelationSource t2 = mss.sources().get(T3.T2);
+        assertThat(t2.querySpec().where().query(), isSQL("(NOT (ISNULL doc.t2.y))"));
+    }
+
+    @Test
+    public void testFullJoinWithFiltersRewrittenToLeft() throws Exception {
+        QueriedRelation relation = normalize(
+            "select t1.a, t2.i " +
+            "from t1 full join t2 on t1.a = t2.b " +
+            "where t2.y is null and t1.a = 'a'");
+        assertThat(relation, instanceOf(MultiSourceSelect.class));
+        MultiSourceSelect mss = (MultiSourceSelect) relation;
+        assertThat(mss.querySpec(),
+            isSQL("SELECT doc.t1.a, doc.t2.i WHERE (ISNULL doc.t2.y)"));
+
+        assertThat(mss.joinPairs().get(0).joinType(), is(JoinType.LEFT));
+        assertThat(mss.joinPairs().get(0).left().toString(), is("doc.t1"));
+        assertThat(mss.joinPairs().get(0).right().toString(), is("doc.t2"));
+        assertThat(mss.joinPairs().get(0).condition(), isSQL("(doc.t1.a = doc.t2.b)"));
+
+        // make sure that where clause for t1 wasn't pushed down since but be applied after the FULL join
+        RelationSource t1 = mss.sources().get(T3.T1);
+        assertThat(t1.querySpec().where().query(), isSQL("(doc.t1.a = 'a')"));
+        RelationSource t2 = mss.sources().get(T3.T2);
+        assertThat(t2.querySpec().where().query(), is(nullValue()));
+    }
+
+    @Test
+    public void testFullJoinWithFiltersRewrittenToRight() throws Exception {
+        QueriedRelation relation = normalize(
+            "select t1.a as col1, t2.i as col2 " +
+            "from t1 full join t2 on t1.a = t2.b " +
+            "where t1.x is null and t2.b = 'b'");
+        assertThat(relation, instanceOf(MultiSourceSelect.class));
+        MultiSourceSelect mss = (MultiSourceSelect) relation;
+        assertThat(mss.querySpec(),
+            isSQL("SELECT doc.t1.a, doc.t2.i WHERE (ISNULL doc.t1.x)"));
+
+        assertThat(mss.joinPairs().get(0).joinType(), is(JoinType.RIGHT));
+        assertThat(mss.joinPairs().get(0).left().toString(), is("doc.t1"));
+        assertThat(mss.joinPairs().get(0).right().toString(), is("doc.t2"));
+        assertThat(mss.joinPairs().get(0).condition(), isSQL("(doc.t1.a = doc.t2.b)"));
+
+        // make sure that where clause for t2 wasn't pushed down since but be applied after the FULL join
+        RelationSource t1 = mss.sources().get(T3.T1);
+        assertThat(t1.querySpec().where().query(), is(nullValue()));
+        RelationSource t2 = mss.sources().get(T3.T2);
+        assertThat(t2.querySpec().where().query(), isSQL("(doc.t2.b = 'b')"));
+    }
+
+    @Test
+    public void testFullJoinWithFiltersNotRewritten() throws Exception {
+        QueriedRelation relation = normalize(
+            "select t1.a as col1, t2.i as col2, t2.y as col3 " +
+            "from t1 full join t2 on t1.a = t2.b " +
+            "where t1.x is null and t2.b = null order by col3");
+        assertThat(relation, instanceOf(MultiSourceSelect.class));
+        MultiSourceSelect mss = (MultiSourceSelect) relation;
+        assertThat(mss.querySpec(),
+            isSQL("SELECT doc.t1.a, doc.t2.i, doc.t2.y WHERE ((ISNULL doc.t1.x) AND NULL) ORDER BY doc.t2.y"));
+
+        assertThat(mss.joinPairs().get(0).joinType(), is(JoinType.FULL));
+        assertThat(mss.joinPairs().get(0).left().toString(), is("doc.t1"));
+        assertThat(mss.joinPairs().get(0).right().toString(), is("doc.t2"));
+        assertThat(mss.joinPairs().get(0).condition(), isSQL("(doc.t1.a = doc.t2.b)"));
+
+        // make sure that where clause wasn't pushed down since but be applied after the FULL join
+        RelationSource t1 = mss.sources().get(T3.T1);
+        assertThat(t1.querySpec().where().query(), is(nullValue()));
+        RelationSource t2 = mss.sources().get(T3.T2);
+        assertThat(t2.querySpec().where().query(), is(nullValue()));
     }
 }
