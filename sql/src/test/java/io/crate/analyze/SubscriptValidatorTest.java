@@ -22,50 +22,36 @@
 package io.crate.analyze;
 
 import io.crate.sql.parser.SqlParser;
-import io.crate.sql.tree.ArrayLiteral;
-import io.crate.sql.tree.Cast;
-import io.crate.sql.tree.Expression;
-import io.crate.sql.tree.TryCast;
+import io.crate.sql.tree.*;
 import io.crate.test.integration.CrateUnitTest;
 import org.junit.Test;
 
+import static io.crate.testing.TestingHelpers.isSQL;
 import static org.hamcrest.Matchers.*;
 
 
-public class SubscriptVisitorTest extends CrateUnitTest {
-
-    public SubscriptVisitor visitor = new SubscriptVisitor();
+public class SubscriptValidatorTest extends CrateUnitTest {
 
     private SubscriptContext analyzeSubscript(String expressionString) {
         SubscriptContext context = new SubscriptContext();
         Expression expression = SqlParser.createExpression(expressionString);
-        expression.accept(visitor, context);
+        SubscriptValidator.validate((SubscriptExpression) expression, context);
         return context;
     }
 
     @Test
     public void testVisitSubscriptExpression() throws Exception {
         SubscriptContext context = analyzeSubscript("a['x']['y']");
-
-        assertEquals("a", context.qName().getSuffix());
-        assertEquals("x", context.parts().get(0));
-        assertEquals("y", context.parts().get(1));
+        assertThat("a", context.qName().getSuffix(), is("a"));
+        assertThat("x", context.parts().get(0), is("x"));
+        assertThat("y", context.parts().get(1), is("y"));
     }
 
     @Test
     public void testInvalidSubscriptExpressionName() throws Exception {
-        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expect(UnsupportedOperationException.class);
         expectedException.expectMessage("An expression of type StringLiteral cannot have an index accessor ([])");
-
         analyzeSubscript("'a'['x']['y']");
-    }
-
-    @Test
-    public void testInvalidSubscriptExpressionIndex() throws Exception {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("index of subscript has to be a string or long literal or parameter. Any other index expression is not supported");
-
-        analyzeSubscript("a[x]['y']");
     }
 
     @Test
@@ -85,41 +71,53 @@ public class SubscriptVisitorTest extends CrateUnitTest {
     @Test
     public void testSubscriptOnArrayLiteral() throws Exception {
         SubscriptContext context = analyzeSubscript("[1,2,3][1]");
-
         assertThat(context.expression(), is(notNullValue()));
         assertThat(context.expression(), instanceOf(ArrayLiteral.class));
-        assertThat(context.index(), is(1));
+        assertThat(context.index(), isSQL("CAST(1 AS integer)"));
     }
 
     @Test
     public void testSubscriptOnCast() throws Exception {
         SubscriptContext context = analyzeSubscript("cast([1.1,2.1] as array(integer))[2]");
         assertThat(context.expression(), instanceOf(Cast.class));
-        assertThat(context.index(), is(2));
+        assertThat(context.index(), isSQL("CAST(2 AS integer)"));
     }
 
     @Test
     public void testSubscriptOnTryCast() throws Exception {
         SubscriptContext context = analyzeSubscript("try_cast([1] as array(double))[1]");
         assertThat(context.expression(), instanceOf(TryCast.class));
-        assertThat(context.index(), is(1));
+        assertThat(context.index(), isSQL("CAST(1 AS integer)"));
+    }
+
+    @Test
+    public void testVisitSubscriptWithIndexExpression() throws Exception {
+        SubscriptContext context = analyzeSubscript("a[1+2]");
+        assertThat(context.qName().getSuffix(), is("a"));
+        assertThat(context.index(), isSQL("(1 + 2)"));
+    }
+
+    @SuppressWarnings("ConstantConditions")
+    @Test
+    public void testVisitSubscriptWithNestedIndexExpression() throws Exception {
+        SubscriptContext context = analyzeSubscript("a[a[abs(2-3)]]");
+        assertThat(context.qName().getSuffix(), is("a"));
+        context = analyzeSubscript(context.index().toString());
+        assertThat(context.qName().getSuffix(), is("a"));
+        assertThat(context.index(), isSQL("abs((2 - 3))"));
     }
 
     @Test
     public void testStringSubscriptOnArrayLiteral() throws Exception {
-
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("Array literals can only be accessed via numeric index.");
-
         analyzeSubscript("[1,2,3]['abc']");
     }
 
     @Test
     public void testNestedArrayAccess() throws Exception {
-
         expectedException.expect(UnsupportedOperationException.class);
         expectedException.expectMessage("Nested array access is not supported");
-
         analyzeSubscript("a[1][2]");
     }
 
@@ -127,8 +125,6 @@ public class SubscriptVisitorTest extends CrateUnitTest {
     public void testNegativeArrayAccess() throws Exception {
         expectedException.expect(UnsupportedOperationException.class);
         expectedException.expectMessage("Array index must be in range 1 to 2147483648");
-
         analyzeSubscript("ref[-1]");
     }
-
 }

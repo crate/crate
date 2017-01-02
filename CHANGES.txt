@@ -4,7 +4,12 @@ Changes for Crate
 
 Unreleased
 ==========
- 
+
+ - Fixed an issue that causes `UnsupportedFeatureException` for operations
+   on a table where array access is used inside generated columns.
+   e.g.: `CREATE TABLE t1 (cola string, gencola AS (a[1]))`
+   error thrown when: `SELECT * from t1`, `DROP TABLE t1`, etc.
+
  - Fixed an issue that causes hanging queries if a data node disconnects from
    the cluster.
 

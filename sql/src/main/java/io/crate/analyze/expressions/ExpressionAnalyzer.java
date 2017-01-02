@@ -31,7 +31,7 @@ import io.crate.action.sql.SessionContext;
 import io.crate.analyze.DataTypeAnalyzer;
 import io.crate.analyze.NegativeLiteralVisitor;
 import io.crate.analyze.SubscriptContext;
-import io.crate.analyze.SubscriptVisitor;
+import io.crate.analyze.SubscriptValidator;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.FieldProvider;
 import io.crate.analyze.symbol.*;
@@ -91,7 +91,6 @@ public class ExpressionAnalyzer {
 
     private final static DataTypeAnalyzer DATA_TYPE_ANALYZER = new DataTypeAnalyzer();
     private final static NegativeLiteralVisitor NEGATIVE_LITERAL_VISITOR = new NegativeLiteralVisitor();
-    private final static SubscriptVisitor SUBSCRIPT_VISITOR = new SubscriptVisitor();
     private final SessionContext sessionContext;
     private final com.google.common.base.Function<ParameterExpression, Symbol> convertParamFunction;
     private final FieldProvider<?> fieldProvider;
@@ -278,6 +277,13 @@ public class ExpressionAnalyzer {
 
         @Override
         protected Symbol visitFunctionCall(FunctionCall node, ExpressionAnalysisContext context) {
+            // If it's subscript function then use the special handling
+            // and validation that is used for the subscript operator `[]`
+            if (node.getName().toString().equalsIgnoreCase(SubscriptFunction.NAME)) {
+                assert node.getArguments().size() == 2 : "Number of arguments for subscript function must be 2";
+                return visitSubscriptExpression(
+                    new SubscriptExpression(node.getArguments().get(0), node.getArguments().get(1)), context);
+            }
             return convertFunctionCall(node, context);
         }
 
@@ -423,7 +429,7 @@ public class ExpressionAnalyzer {
         @Override
         protected Symbol visitSubscriptExpression(SubscriptExpression node, ExpressionAnalysisContext context) {
             SubscriptContext subscriptContext = new SubscriptContext();
-            SUBSCRIPT_VISITOR.process(node, subscriptContext);
+            SubscriptValidator.validate(node, subscriptContext);
             return resolveSubscriptSymbol(subscriptContext, context);
         }
 
@@ -440,13 +446,14 @@ public class ExpressionAnalyzer {
                                                         "are valid subscript symbols");
             }
             assert subscriptSymbol != null : "subscriptSymbol must not be null";
-            Integer index = subscriptContext.index();
+            Expression index = subscriptContext.index();
             if (index != null) {
+                Symbol indexSymbol = index.accept(this, context);
                 // rewrite array access to subscript scalar
                 FunctionIdent functionIdent = new FunctionIdent(SubscriptFunction.NAME,
-                    ImmutableList.of(subscriptSymbol.valueType(), DataTypes.INTEGER));
+                    ImmutableList.of(subscriptSymbol.valueType(), indexSymbol.valueType()));
                 return context.allocateFunction(getFunctionInfo(functionIdent),
-                    Arrays.asList(subscriptSymbol, Literal.of(index)));
+                    Arrays.asList(subscriptSymbol, indexSymbol));
             }
             return subscriptSymbol;
         }
