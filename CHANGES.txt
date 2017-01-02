@@ -5,6 +5,11 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fixed an issue that causes `UnsupportedFeatureException` for operations
+   on a table where array access is used inside generated columns.
+   e.g.: `CREATE TABLE t1 (cola string, gencola AS (a[1]))`
+   error thrown when: `SELECT * from t1`, `DROP TABLE t1`, etc.
+
  - Updated crate-admin to ``1.0.3`` which includes the following change:
 
     - Added compatibility with future crate versions which will serve

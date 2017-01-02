@@ -22,6 +22,7 @@
 package io.crate.analyze.expressions;
 
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.crate.action.sql.Option;
 import io.crate.action.sql.SessionContext;
@@ -36,7 +37,7 @@ import io.crate.analyze.symbol.Symbol;
 import io.crate.metadata.*;
 import io.crate.metadata.table.TableInfo;
 import io.crate.sql.parser.SqlParser;
-import io.crate.sql.tree.QualifiedName;
+import io.crate.sql.tree.*;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.testing.DummyRelation;
 import io.crate.testing.SqlExpressions;
@@ -121,6 +122,27 @@ public class ExpressionAnalyzerTest extends CrateUnitTest {
         assertNull(ExpressionAnalyzer.getQuotedSubscriptLiteral("obj"));
         assertNull(ExpressionAnalyzer.getQuotedSubscriptLiteral("obj.x"));
         assertNull(ExpressionAnalyzer.getQuotedSubscriptLiteral("obj[x][y]"));
+    }
+
+    @Test
+    public void testAnalyzeSubscriptFunctionCall() throws Exception {
+        // Test when use subscript function is used explicitly then it's handled (and validated)
+        // the same way it's handled when the subscript operator `[]` is used
+        ExpressionAnalyzer expressionAnalyzer = new ExpressionAnalyzer(
+            functions,
+            new SessionContext(0, EnumSet.of(Option.ALLOW_QUOTED_SUBSCRIPT), null),
+            paramTypeHints,
+            new FullQualifedNameFieldProvider(dummySources),
+            null);
+        ExpressionAnalysisContext expressionAnalysisContext = new ExpressionAnalysisContext();
+        FunctionCall subscriptFunctionCall = new FunctionCall(
+            new QualifiedName("subscript"),
+            ImmutableList.of(
+                new ArrayLiteral(ImmutableList.of(new StringLiteral("obj"))),
+                new LongLiteral("1")));
+
+        Function function = (Function) expressionAnalyzer.convert(subscriptFunctionCall, expressionAnalysisContext);
+        assertEquals("subscript(_array(Literal{obj, type=string}),Literal{1, type=integer})", function.toString());
     }
 
     @Test

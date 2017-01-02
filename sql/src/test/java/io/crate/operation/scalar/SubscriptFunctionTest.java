@@ -58,4 +58,11 @@ public class SubscriptFunctionTest extends AbstractScalarFunctionsTest {
             Arrays.<DataType>asList(new SetType(DataTypes.INTEGER), DataTypes.INTEGER));
         functions.getSafe(functionIdent);
     }
+
+    @Test
+    public void testIndexExpressionIsNotInteger() throws Exception {
+        expectedException.expect(UnsupportedOperationException.class);
+        expectedException.expectMessage("unknown function: subscript(string_array, long)");
+        assertNormalize("subscript(['Youri', 'Ruben'], 1 + 1)", isLiteral("Ruben"));
+    }
 }
