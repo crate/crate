@@ -5,6 +5,11 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Updated crate-admin to ``1.0.3`` which includes the following change:
+
+    - Added compatibility with future crate versions which will serve
+      the admin-ui from `/admin/` instead of `/_plugins/crate-admin/`.
+
  - Fixed a NPE when using a ``percentile`` aggregation in a multi-node
    environment.
 
