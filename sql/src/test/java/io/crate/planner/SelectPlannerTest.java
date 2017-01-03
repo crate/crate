@@ -134,10 +134,10 @@ public class SelectPlannerTest extends CrateUnitTest {
         assertThat(collectPhase.projections().get(0), instanceOf(AggregationProjection.class));
         assertThat(collectPhase.projections().get(0).requiredGranularity(), is(RowGranularity.SHARD));
 
-        MergePhase mergeNode = globalAggregate.mergePhase();
+        MergePhase mergePhase = globalAggregate.mergePhase();
 
-        assertEquals(CountAggregation.LongStateType.INSTANCE, Iterables.get(mergeNode.inputTypes(), 0));
-        assertEquals(DataTypes.LONG, mergeNode.outputTypes().get(0));
+        assertEquals(CountAggregation.LongStateType.INSTANCE, Iterables.get(mergePhase.inputTypes(), 0));
+        assertEquals(DataTypes.LONG, mergePhase.outputTypes().get(0));
     }
 
     @Test
@@ -207,14 +207,14 @@ public class SelectPlannerTest extends CrateUnitTest {
         RoutedCollectPhase collectPhase = ((RoutedCollectPhase) ((Collect) merge.subPlan()).collectPhase());
         assertThat(collectPhase.nodePageSizeHint(), is(100_000));
 
-        MergePhase mergeNode = merge.mergePhase();
-        assertThat(mergeNode.projections().size(), is(2));
-        assertThat(mergeNode.finalProjection().get(), instanceOf(FetchProjection.class));
-        TopNProjection topN = (TopNProjection) mergeNode.projections().get(0);
+        MergePhase mergePhase = merge.mergePhase();
+        assertThat(mergePhase.projections().size(), is(2));
+        assertThat(mergePhase.finalProjection().get(), instanceOf(FetchProjection.class));
+        TopNProjection topN = (TopNProjection) mergePhase.projections().get(0);
         assertThat(topN.limit(), is(100_000));
         assertThat(topN.offset(), is(0));
 
-        FetchProjection fetchProjection = (FetchProjection) mergeNode.projections().get(1);
+        FetchProjection fetchProjection = (FetchProjection) mergePhase.projections().get(1);
 
         // with offset
         qtf = e.plan("select name from users limit 100000 offset 20");
@@ -223,14 +223,14 @@ public class SelectPlannerTest extends CrateUnitTest {
         collectPhase = ((RoutedCollectPhase) ((Collect) merge.subPlan()).collectPhase());
         assertThat(collectPhase.nodePageSizeHint(), is(100_000 + 20));
 
-        mergeNode = merge.mergePhase();
-        assertThat(mergeNode.projections().size(), is(2));
-        assertThat(mergeNode.finalProjection().get(), instanceOf(FetchProjection.class));
-        topN = (TopNProjection) mergeNode.projections().get(0);
+        mergePhase = merge.mergePhase();
+        assertThat(mergePhase.projections().size(), is(2));
+        assertThat(mergePhase.finalProjection().get(), instanceOf(FetchProjection.class));
+        topN = (TopNProjection) mergePhase.projections().get(0);
         assertThat(topN.limit(), is(100_000));
         assertThat(topN.offset(), is(20));
 
-        fetchProjection = (FetchProjection) mergeNode.projections().get(1);
+        fetchProjection = (FetchProjection) mergePhase.projections().get(1);
     }
 
 
@@ -296,9 +296,9 @@ public class SelectPlannerTest extends CrateUnitTest {
         assertThat(collectPhase.toCollect().get(0), instanceOf(Reference.class));
         assertThat(((Reference) collectPhase.toCollect().get(0)).ident().columnIdent().name(), is("name"));
 
-        MergePhase mergeNode = globalAggregate.mergePhase();
-        assertThat(mergeNode.projections().size(), is(2));
-        Projection projection1 = mergeNode.projections().get(1);
+        MergePhase mergePhase = globalAggregate.mergePhase();
+        assertThat(mergePhase.projections().size(), is(2));
+        Projection projection1 = mergePhase.projections().get(1);
 
         assertThat(projection1, instanceOf(EvalProjection.class));
         Symbol collection_count = projection1.outputs().get(0);
@@ -337,7 +337,7 @@ public class SelectPlannerTest extends CrateUnitTest {
     @Test
     public void testCountOnPartitionedTable() throws Exception {
         CountPlan plan = e.plan("select count(*) from parted where date = 1395874800000");
-        assertThat(plan.countNode().whereClause().partitions(), containsInAnyOrder(".partitioned.parted.04732cpp6ks3ed1o60o30c1g"));
+        assertThat(plan.countPhase().whereClause().partitions(), containsInAnyOrder(".partitioned.parted.04732cpp6ks3ed1o60o30c1g"));
     }
 
     @Test(expected = UnsupportedOperationException.class)
@@ -561,10 +561,10 @@ public class SelectPlannerTest extends CrateUnitTest {
     public void testGlobalCountPlan() throws Exception {
         CountPlan plan = e.plan("select count(*) from users");
 
-        assertThat(plan.countNode().whereClause(), equalTo(WhereClause.MATCH_ALL));
+        assertThat(plan.countPhase().whereClause(), equalTo(WhereClause.MATCH_ALL));
 
-        assertThat(plan.mergeNode().projections().size(), is(1));
-        assertThat(plan.mergeNode().projections().get(0), instanceOf(MergeCountProjection.class));
+        assertThat(plan.mergePhase().projections().size(), is(1));
+        assertThat(plan.mergePhase().projections().get(0), instanceOf(MergeCountProjection.class));
     }
 
     @SuppressWarnings("ConstantConditions")

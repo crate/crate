@@ -37,7 +37,7 @@ import java.util.Map;
 
 import static org.hamcrest.Matchers.*;
 
-public class CountNodeTest extends CrateUnitTest {
+public class CountPhaseTest extends CrateUnitTest {
 
     @Test
     public void testStreaming() throws Exception {
@@ -48,10 +48,10 @@ public class CountNodeTest extends CrateUnitTest {
                     .put("i2", Arrays.asList(1, 2)).map())
                 .put("n2", TreeMapBuilder.<String, List<Integer>>newMapBuilder()
                     .put("i1", Collections.singletonList(3)).map()).map());
-        CountPhase countNode = new CountPhase(1, routing, WhereClause.MATCH_ALL, DistributionInfo.DEFAULT_BROADCAST);
+        CountPhase countPhase = new CountPhase(1, routing, WhereClause.MATCH_ALL, DistributionInfo.DEFAULT_BROADCAST);
 
         BytesStreamOutput out = new BytesStreamOutput(10);
-        countNode.writeTo(out);
+        countPhase.writeTo(out);
 
         StreamInput in = StreamInput.wrap(out.bytes());
 

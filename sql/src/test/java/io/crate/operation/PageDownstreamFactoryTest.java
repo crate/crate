@@ -107,7 +107,7 @@ public class PageDownstreamFactoryTest extends CrateUnitTest {
         OrderedTopNProjection topNProjection = new OrderedTopNProjection(3, TopN.NO_OFFSET, InputColumn.numInputs(2),
             Arrays.<Symbol>asList(new InputColumn(0)), new boolean[]{false}, new Boolean[]{null});
 
-        MergePhase mergeNode = new MergePhase(
+        MergePhase mergePhase = new MergePhase(
             UUID.randomUUID(),
             0,
             "merge",
@@ -134,7 +134,7 @@ public class PageDownstreamFactoryTest extends CrateUnitTest {
             functions
         );
         CollectingRowReceiver rowReceiver = new CollectingRowReceiver();
-        final PageDownstream pageDownstream = getPageDownstream(mergeNode, pageDownstreamFactory, rowReceiver);
+        final PageDownstream pageDownstream = getPageDownstream(mergePhase, pageDownstreamFactory, rowReceiver);
         final SettableFuture<?> future = SettableFuture.create();
         pageDownstream.nextPage(page, new PageConsumeListener() {
             @Override
@@ -157,11 +157,11 @@ public class PageDownstreamFactoryTest extends CrateUnitTest {
         ));
     }
 
-    private PageDownstream getPageDownstream(MergePhase mergeNode,
+    private PageDownstream getPageDownstream(MergePhase mergePhase,
                                              PageDownstreamFactory pageDownstreamFactory,
                                              CollectingRowReceiver rowReceiver) {
         return pageDownstreamFactory.createMergeNodePageDownstream(
-            mergeNode,
+            mergePhase,
             rowReceiver,
             randomBoolean(),
             RAM_ACCOUNTING_CONTEXT,
@@ -170,7 +170,7 @@ public class PageDownstreamFactoryTest extends CrateUnitTest {
 
     @Test
     public void testMergeMultipleResults() throws Exception {
-        MergePhase mergeNode = new MergePhase(
+        MergePhase mergePhase = new MergePhase(
             UUID.randomUUID(),
             0,
             "merge",
@@ -190,7 +190,7 @@ public class PageDownstreamFactoryTest extends CrateUnitTest {
             functions
         );
         CollectingRowReceiver rowReceiver = new CollectingRowReceiver();
-        final PageDownstream pageDownstream = getPageDownstream(mergeNode, pageDownstreamFactory, rowReceiver);
+        final PageDownstream pageDownstream = getPageDownstream(mergePhase, pageDownstreamFactory, rowReceiver);
 
         Bucket rows = new ArrayBucket(new Object[][]{{0, 100.0d}});
         BucketPage page1 = new BucketPage(Futures.immediateFuture(rows));

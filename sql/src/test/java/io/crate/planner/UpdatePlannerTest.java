@@ -80,11 +80,11 @@ public class UpdatePlannerTest extends CrateUnitTest {
         Symbol symbol = updateProjection.assignments()[0];
         assertThat(symbol, isLiteral("Vogon lyric fan", DataTypes.STRING));
 
-        MergePhase mergeNode = merge.mergePhase();
-        assertThat(mergeNode.projections().size(), is(1));
-        assertThat(mergeNode.projections().get(0), instanceOf(MergeCountProjection.class));
+        MergePhase mergePhase = merge.mergePhase();
+        assertThat(mergePhase.projections().size(), is(1));
+        assertThat(mergePhase.projections().get(0), instanceOf(MergeCountProjection.class));
 
-        assertThat(mergeNode.outputTypes().size(), is(1));
+        assertThat(mergePhase.outputTypes().size(), is(1));
     }
 
     @Test

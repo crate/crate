@@ -113,8 +113,8 @@ public class InsertPlannerTest extends CrateUnitTest {
     public void testInsertFromSubQueryNonDistributedGroupBy() throws Exception {
         Merge nonDistributedGroupBy = e.plan(
             "insert into users (id, name) (select count(*), name from sys.nodes group by name)");
-        MergePhase mergeNode = nonDistributedGroupBy.mergePhase();
-        assertThat(mergeNode.projections(), contains(
+        MergePhase mergePhase = nonDistributedGroupBy.mergePhase();
+        assertThat(mergePhase.projections(), contains(
             instanceOf(GroupProjection.class),
             instanceOf(EvalProjection.class),
             instanceOf(ColumnIndexWriterProjection.class)));
@@ -124,8 +124,8 @@ public class InsertPlannerTest extends CrateUnitTest {
     public void testInsertFromSubQueryNonDistributedGroupByWithCast() throws Exception {
         Merge nonDistributedGroupBy = e.plan(
             "insert into users (id, name) (select name, count(*) from sys.nodes group by name)");
-        MergePhase mergeNode = nonDistributedGroupBy.mergePhase();
-        assertThat(mergeNode.projections(), contains(
+        MergePhase mergePhase = nonDistributedGroupBy.mergePhase();
+        assertThat(mergePhase.projections(), contains(
             instanceOf(GroupProjection.class),
             instanceOf(EvalProjection.class),
             instanceOf(ColumnIndexWriterProjection.class)));
@@ -144,13 +144,13 @@ public class InsertPlannerTest extends CrateUnitTest {
         Merge planNode = e.plan(
             "insert into users (id, name) (select name, count(*) from users group by name)");
         DistributedGroupBy groupBy = (DistributedGroupBy) planNode.subPlan();
-        MergePhase mergeNode = groupBy.reducerMergeNode();
-        assertThat(mergeNode.projections(), contains(
+        MergePhase mergePhase = groupBy.reducerMergeNode();
+        assertThat(mergePhase.projections(), contains(
             instanceOf(GroupProjection.class),
             instanceOf(EvalProjection.class),
             instanceOf(ColumnIndexWriterProjection.class)));
 
-        ColumnIndexWriterProjection projection = (ColumnIndexWriterProjection) mergeNode.projections().get(2);
+        ColumnIndexWriterProjection projection = (ColumnIndexWriterProjection) mergePhase.projections().get(2);
         assertThat(projection.primaryKeys().size(), is(1));
         assertThat(projection.primaryKeys().get(0).fqn(), is("id"));
         assertThat(projection.columnReferences().size(), is(2));
@@ -173,12 +173,12 @@ public class InsertPlannerTest extends CrateUnitTest {
         Merge planNode = e.plan(
             "insert into parted_pks (id, date) (select id, date from users group by id, date)");
         DistributedGroupBy groupBy = (DistributedGroupBy) planNode.subPlan();
-        MergePhase mergeNode = groupBy.reducerMergeNode();
-        assertThat(mergeNode.projections(), contains(
+        MergePhase mergePhase = groupBy.reducerMergeNode();
+        assertThat(mergePhase.projections(), contains(
             instanceOf(GroupProjection.class),
             instanceOf(EvalProjection.class),
             instanceOf(ColumnIndexWriterProjection.class)));
-        ColumnIndexWriterProjection projection = (ColumnIndexWriterProjection) mergeNode.projections().get(2);
+        ColumnIndexWriterProjection projection = (ColumnIndexWriterProjection) mergePhase.projections().get(2);
         assertThat(projection.primaryKeys().size(), is(2));
         assertThat(projection.primaryKeys().get(0).fqn(), is("id"));
         assertThat(projection.primaryKeys().get(1).fqn(), is("date"));
@@ -205,12 +205,12 @@ public class InsertPlannerTest extends CrateUnitTest {
     public void testInsertFromSubQueryGlobalAggregate() throws Exception {
         Merge globalAggregate = e.plan(
             "insert into users (name, id) (select arbitrary(name), count(*) from users)");
-        MergePhase mergeNode = globalAggregate.mergePhase();
-        assertThat(mergeNode.projections().size(), is(3));
-        assertThat(mergeNode.projections().get(1), instanceOf(EvalProjection.class));
+        MergePhase mergePhase = globalAggregate.mergePhase();
+        assertThat(mergePhase.projections().size(), is(3));
+        assertThat(mergePhase.projections().get(1), instanceOf(EvalProjection.class));
 
-        assertThat(mergeNode.projections().get(2), instanceOf(ColumnIndexWriterProjection.class));
-        ColumnIndexWriterProjection projection = (ColumnIndexWriterProjection) mergeNode.projections().get(2);
+        assertThat(mergePhase.projections().get(2), instanceOf(ColumnIndexWriterProjection.class));
+        ColumnIndexWriterProjection projection = (ColumnIndexWriterProjection) mergePhase.projections().get(2);
 
         assertThat(projection.columnReferences().size(), is(2));
         assertThat(projection.columnReferences().get(0).ident().columnIdent().fqn(), is("name"));
@@ -395,14 +395,14 @@ public class InsertPlannerTest extends CrateUnitTest {
         Merge planNode = e.plan(
             "insert into users (id, name) (select name, count(*) from users group by name having count(*) > 3)");
         DistributedGroupBy groupByNode = (DistributedGroupBy) planNode.subPlan();
-        MergePhase mergeNode = groupByNode.reducerMergeNode();
-        assertThat(mergeNode.projections(), contains(
+        MergePhase mergePhase = groupByNode.reducerMergeNode();
+        assertThat(mergePhase.projections(), contains(
             instanceOf(GroupProjection.class),
             instanceOf(FilterProjection.class),
             instanceOf(EvalProjection.class),
             instanceOf(ColumnIndexWriterProjection.class)));
 
-        FilterProjection filterProjection = (FilterProjection) mergeNode.projections().get(1);
+        FilterProjection filterProjection = (FilterProjection) mergePhase.projections().get(1);
         assertThat(filterProjection.outputs().size(), is(2));
         assertThat(filterProjection.outputs().get(0), instanceOf(InputColumn.class));
         assertThat(filterProjection.outputs().get(1), instanceOf(InputColumn.class));

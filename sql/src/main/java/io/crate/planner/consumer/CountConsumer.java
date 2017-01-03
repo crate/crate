@@ -75,7 +75,7 @@ public class CountConsumer implements Consumer {
             TableInfo tableInfo = table.tableRelation().tableInfo();
             Routing routing = context.plannerContext().allocateRouting(tableInfo, querySpec.where(), null);
             Planner.Context plannerContext = context.plannerContext();
-            CountPhase countNode = new CountPhase(
+            CountPhase countPhase = new CountPhase(
                 plannerContext.nextExecutionPhaseId(),
                 routing,
                 querySpec.where(),
@@ -90,18 +90,18 @@ public class CountConsumer implements Consumer {
             } else {
                 projections = ImmutableList.of(MergeCountProjection.INSTANCE, topN);
             }
-            MergePhase mergeNode = new MergePhase(
+            MergePhase mergePhase = new MergePhase(
                 plannerContext.jobId(),
                 plannerContext.nextExecutionPhaseId(),
                 "count-merge",
-                countNode.nodeIds().size(),
+                countPhase.nodeIds().size(),
                 Collections.emptyList(),
                 Collections.singletonList(DataTypes.LONG),
                 projections,
                 DistributionInfo.DEFAULT_SAME_NODE,
                 null
             );
-            return new CountPlan(countNode, mergeNode);
+            return new CountPlan(countPhase, mergePhase);
         }
 
         private boolean hasOnlyGlobalCount(List<Symbol> symbols) {
