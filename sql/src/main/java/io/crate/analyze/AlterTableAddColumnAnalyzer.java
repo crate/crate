@@ -116,7 +116,7 @@ class AlterTableAddColumnAnalyzer extends DefaultTraversalVisitor<AddColumnAnaly
             AnalyzedColumnDefinition pkColumn = new AnalyzedColumnDefinition(null);
             pkColumn.ident(pkIdent);
             pkColumn.name(pkIdent.name());
-            pkColumn.isPrimaryKey(true);
+            pkColumn.setPrimaryKeyConstraint();
 
             assert !(pkInfo.valueType() instanceof CollectionType) : "pk can't be an array";
             pkColumn.dataType(pkInfo.valueType().getName());
@@ -130,7 +130,7 @@ class AlterTableAddColumnAnalyzer extends DefaultTraversalVisitor<AddColumnAnaly
 
     private void ensureNoIndexDefinitions(List<AnalyzedColumnDefinition> columns) {
         for (AnalyzedColumnDefinition column : columns) {
-            if (column.isIndex()) {
+            if (column.isIndexColumn()) {
                 throw new UnsupportedOperationException(
                     "Adding an index using ALTER TABLE ADD COLUMN is not supported");
             }

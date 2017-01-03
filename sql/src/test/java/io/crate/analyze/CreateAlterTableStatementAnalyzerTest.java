@@ -981,4 +981,11 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateUnitTest {
         expectedException.expectMessage("Cannot use column \"name\" as primary key within an array object");
         e.analyze("create table test (arr array(object as (user object as (name string primary key), id long)))");
     }
+
+    @Test
+    public void testCreateTableWithInvalidIndexConstraint() throws Exception {
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("INDEX constraint cannot be used on columns of type \"object\"");
+        e.analyze("create table test (obj object index off)");
+    }
 }

@@ -5,6 +5,10 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fixed ``INDEX`` constraint validation. Defining it on complex data
+   types like e.g. ``object`` was silently ignored instead of throwing
+   an error.
+
  - Allow semi-colon (;) in the end of simple SQL statements.
 
  - Enhanced performance optimisation of full joins by rewriting them to left,

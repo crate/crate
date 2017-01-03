@@ -39,6 +39,19 @@ import java.util.*;
 
 public class AnalyzedColumnDefinition {
 
+    private final static Set<String> UNSUPPORTED_PK_TYPES = Sets.newHashSet(
+        DataTypes.OBJECT.getName(),
+        DataTypes.GEO_POINT.getName(),
+        DataTypes.GEO_SHAPE.getName()
+    );
+
+    private final static Set<String> UNSUPPORTED_INDEX_TYPES = Sets.newHashSet(
+        "array",
+        DataTypes.OBJECT.getName(),
+        DataTypes.GEO_POINT.getName(),
+        DataTypes.GEO_SHAPE.getName()
+    );
+
     private final AnalyzedColumnDefinition parent;
     private ColumnIdent ident;
     private String name;
@@ -58,12 +71,6 @@ public class AnalyzedColumnDefinition {
     private ArrayList<String> copyToTargets;
     private boolean isParentColumn;
 
-    private final static Set<String> UNSUPPORTED_PK_TYPES = Sets.newHashSet(
-        DataTypes.OBJECT.getName(),
-        DataTypes.GEO_POINT.getName(),
-        DataTypes.GEO_SHAPE.getName()
-    );
-
     @Nullable
     private String formattedGeneratedExpression;
     @Nullable
@@ -77,7 +84,7 @@ public class AnalyzedColumnDefinition {
         }
     }
 
-    public AnalyzedColumnDefinition(@Nullable AnalyzedColumnDefinition parent) {
+    AnalyzedColumnDefinition(@Nullable AnalyzedColumnDefinition parent) {
         this.parent = parent;
     }
 
@@ -100,11 +107,15 @@ public class AnalyzedColumnDefinition {
         return this.analyzer;
     }
 
-    public void index(String index) {
+    void indexConstraint(String index) {
         this.index = index;
     }
 
-    public void geoTree(String geoTree) {
+    String indexConstraint() {
+        return MoreObjects.firstNonNull(index, "not_analyzed");
+    }
+
+    void geoTree(String geoTree) {
         this.geoTree = geoTree;
     }
 
@@ -112,12 +123,8 @@ public class AnalyzedColumnDefinition {
         this.analyzerSettings = settings;
     }
 
-    public void geoSettings(Settings settings) {
+    void geoSettings(Settings settings) {
         this.geoSettings = settings;
-    }
-
-    public String index() {
-        return MoreObjects.firstNonNull(index, "not_analyzed");
     }
 
     public void dataType(String dataType) {
@@ -137,33 +144,33 @@ public class AnalyzedColumnDefinition {
         return this.dataType;
     }
 
-    public void objectType(String objectType) {
+    void objectType(String objectType) {
         this.objectType = objectType;
     }
 
-    public void collectionType(String type) {
+    void collectionType(String type) {
         this.collectionType = type;
     }
 
-    public boolean docValues() {
-        return !isIndex()
+    private boolean docValues() {
+        return !isIndexColumn()
                && collectionType == null
-               && index().equals("not_analyzed");
+               && indexConstraint().equals("not_analyzed");
     }
 
-    protected boolean isIndex() {
+    boolean isIndexColumn() {
         return isIndex;
     }
 
-    public void isIndex(boolean isIndex) {
-        this.isIndex = isIndex;
+    void setAsIndexColumn() {
+        this.isIndex = true;
     }
 
-    public void addChild(AnalyzedColumnDefinition analyzedColumnDefinition) {
+    void addChild(AnalyzedColumnDefinition analyzedColumnDefinition) {
         children.add(analyzedColumnDefinition);
     }
 
-    public boolean hasChildren() {
+    boolean hasChildren() {
         return !children.isEmpty();
     }
 
@@ -186,7 +193,11 @@ public class AnalyzedColumnDefinition {
                     ident.sqlFqn()
                 ));
         }
-        if (isPrimaryKey()) {
+        if (index != null && UNSUPPORTED_INDEX_TYPES.contains(dataType)) {
+            throw new IllegalArgumentException(String.format(Locale.ENGLISH,
+                "INDEX constraint cannot be used on columns of type \"%s\"", dataType));
+        }
+        if (hasPrimaryKeyConstraint()) {
             ensureTypeCanBeUsedAsKey();
         }
         for (AnalyzedColumnDefinition child : children) {
@@ -213,13 +224,13 @@ public class AnalyzedColumnDefinition {
         return name;
     }
 
-    public Map<String, Object> toMapping() {
+    Map<String, Object> toMapping() {
         Map<String, Object> mapping = new HashMap<>();
 
         mapping.put("type", dataType());
 
         if ("date".equals(dataType())) {
-            /**
+            /*
              * We want 1000 not be be interpreted as year 1000AD but as 1970-01-01T00:00:01.000
              * so prefer date mapping format epoch_millis over strict_date_optional_time
              */
@@ -227,7 +238,7 @@ public class AnalyzedColumnDefinition {
         }
         if (!NO_DOC_VALUES_SUPPORT.contains(dataType)) {
             mapping.put("doc_values", docValues());
-            mapping.put("index", index());
+            mapping.put("index", indexConstraint());
             mapping.put("store", false);
         }
 
@@ -308,23 +319,23 @@ public class AnalyzedColumnDefinition {
         return ident;
     }
 
-    public void isPrimaryKey(boolean isPrimaryKey) {
-        this.isPrimaryKey = isPrimaryKey;
+    void setPrimaryKeyConstraint() {
+        this.isPrimaryKey = true;
     }
 
-    public boolean isPrimaryKey() {
+    boolean hasPrimaryKeyConstraint() {
         return this.isPrimaryKey;
     }
 
-    public void isNotNull(boolean notNull) {
-        isNotNull = notNull;
+    void setNotNullConstraint() {
+        isNotNull = true;
     }
 
-    public boolean isNotNull() {
+    boolean hasNotNullConstraint() {
         return isNotNull;
     }
 
-    public Map<String, Object> toMetaIndicesMapping() {
+    Map<String, Object> toMetaIndicesMapping() {
         return ImmutableMap.of();
     }
 
@@ -335,9 +346,7 @@ public class AnalyzedColumnDefinition {
 
         AnalyzedColumnDefinition that = (AnalyzedColumnDefinition) o;
 
-        if (ident != null ? !ident.equals(that.ident) : that.ident != null) return false;
-
-        return true;
+        return ident != null ? ident.equals(that.ident) : that.ident == null;
     }
 
     @Override
@@ -354,7 +363,7 @@ public class AnalyzedColumnDefinition {
         return children;
     }
 
-    public void addCopyTo(Set<String> targets) {
+    void addCopyTo(Set<String> targets) {
         this.copyToTargets = Lists.newArrayList(targets);
     }
 
@@ -363,19 +372,19 @@ public class AnalyzedColumnDefinition {
         this.ident = ident;
     }
 
-    public boolean isArrayOrInArray() {
+    boolean isArrayOrInArray() {
         return collectionType != null || (parent != null && parent.isArrayOrInArray());
     }
 
-    public void isParentColumn(boolean isParentColumn) {
-        this.isParentColumn = isParentColumn;
+    void markAsParentColumn() {
+        this.isParentColumn = true;
     }
 
     /**
      * @return true if this column has a defined child
      * (which is not coming from an object column definition payload in case of ADD COLUMN)
      */
-    public boolean isParentColumn() {
+    boolean isParentColumn() {
         return isParentColumn;
     }
 
