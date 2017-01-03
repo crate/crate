@@ -159,6 +159,7 @@ public class SetAnalyzerTest extends CrateUnitTest {
             containsInAnyOrder(
                 "stats.enabled",
                 "stats.jobs_log_size",
+                "stats.jobs_log_expiration",
                 "stats.operations_log_size",
                 "stats.service.interval")
         );

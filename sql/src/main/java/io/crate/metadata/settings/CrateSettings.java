@@ -49,6 +49,7 @@ public class CrateSettings {
             return ImmutableList.of(
                 STATS_ENABLED,
                 STATS_JOBS_LOG_SIZE,
+                STATS_JOBS_LOG_EXPIRATION,
                 STATS_OPERATIONS_LOG_SIZE,
                 STATS_SERVICE_REFRESH_INTERVAL);
         }
@@ -72,6 +73,28 @@ public class CrateSettings {
         @Override
         public Integer minValue() {
             return 0;
+        }
+
+        @Override
+        public Setting parent() {
+            return STATS;
+        }
+    };
+
+    public static final TimeSetting STATS_JOBS_LOG_EXPIRATION = new TimeSetting() {
+        @Override
+        public String name() {
+            return "jobs_log_expiration";
+        }
+
+        @Override
+        public TimeValue defaultValue() {
+            return TimeValue.timeValueSeconds(0L);
+        }
+
+        @Override
+        public boolean isRuntime() {
+            return true;
         }
 
         @Override
@@ -1417,6 +1440,8 @@ public class CrateSettings {
             new SettingsAppliers.ObjectSettingsApplier(CrateSettings.STATS))
         .put(CrateSettings.STATS_JOBS_LOG_SIZE.settingName(),
             new SettingsAppliers.IntSettingsApplier(CrateSettings.STATS_JOBS_LOG_SIZE))
+        .put(CrateSettings.STATS_JOBS_LOG_EXPIRATION.settingName(),
+            new SettingsAppliers.TimeSettingsApplier(CrateSettings.STATS_JOBS_LOG_EXPIRATION))
         .put(CrateSettings.STATS_OPERATIONS_LOG_SIZE.settingName(),
             new SettingsAppliers.IntSettingsApplier(CrateSettings.STATS_OPERATIONS_LOG_SIZE))
         .put(CrateSettings.STATS_ENABLED.settingName(),
