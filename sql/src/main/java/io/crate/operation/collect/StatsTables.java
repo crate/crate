@@ -34,15 +34,18 @@ import org.elasticsearch.common.collect.Tuple;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.node.settings.NodeSettingsService;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.ThreadSafe;
+import java.util.Iterator;
 import java.util.Map;
 import java.util.Queue;
 import java.util.UUID;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicReference;
 
 /**
@@ -61,7 +64,7 @@ public class StatsTables {
 
     private final Map<UUID, JobContext> jobsTable = new ConcurrentHashMap<>();
     private final Map<Tuple<Integer, UUID>, OperationContext> operationsTable = new ConcurrentHashMap<>();
-    final AtomicReference<BlockingQueue<JobContextLog>> jobsLog = new AtomicReference<>(NOOP_JOBS_LOG);
+    final AtomicReference<Queue<JobContextLog>> jobsLog = new AtomicReference<>(NOOP_JOBS_LOG);
     final AtomicReference<BlockingQueue<OperationContextLog>> operationsLog = new AtomicReference<>(NOOP_OPERATIONS_LOG);
 
     private final JobsLogIterableGetter jobsLogIterableGetter;
@@ -73,30 +76,35 @@ public class StatsTables {
     protected final NodeSettingsService.Listener listener = new NodeSettingListener();
     private int initialOperationsLogSize;
     private int initialJobsLogSize;
+    private TimeValue initialJobsLogExpiration;
     private boolean initialIsEnabled;
     volatile int lastOperationsLogSize;
     volatile int lastJobsLogSize;
+    volatile TimeValue lastJobsLogExpiration;
     private volatile boolean lastIsEnabled;
 
     @Inject
     public StatsTables(Settings settings, NodeSettingsService nodeSettingsService) {
         int operationsLogSize = CrateSettings.STATS_OPERATIONS_LOG_SIZE.extract(settings);
         int jobsLogSize = CrateSettings.STATS_JOBS_LOG_SIZE.extract(settings);
+        TimeValue jobsLogExpiration = CrateSettings.STATS_JOBS_LOG_EXPIRATION.extractTimeValue(settings);
         boolean isEnabled = CrateSettings.STATS_ENABLED.extract(settings);
 
         if (isEnabled) {
-            setJobsLog(jobsLogSize);
+            setJobsLog(jobsLogSize, jobsLogExpiration);
             setOperationsLog(operationsLogSize);
         } else {
-            setJobsLog(0);
+            setJobsLog(0, TimeValue.timeValueSeconds(0L));
             setOperationsLog(0);
         }
 
         initialIsEnabled = isEnabled;
         initialJobsLogSize = jobsLogSize;
+        initialJobsLogExpiration = jobsLogExpiration;
         initialOperationsLogSize = operationsLogSize;
         lastOperationsLogSize = operationsLogSize;
         lastJobsLogSize = jobsLogSize;
+        lastJobsLogExpiration = jobsLogExpiration;
         lastIsEnabled = isEnabled;
 
         nodeSettingsService.addListener(listener);
@@ -249,15 +257,27 @@ public class StatsTables {
         }
     }
 
-    private void setJobsLog(int size) {
+    private void setJobsLog(int size, TimeValue expiration) {
+        Queue newQ;
+
         if (size == 0) {
-            jobsLog.set(NOOP_JOBS_LOG);
+            if (expiration.getMillis() > 0) {
+                newQ = new ConcurrentLinkedQueue<JobContextLog>();
+            } else {
+                jobsLog.set(NOOP_JOBS_LOG);
+                return;
+            }
         } else {
-            Queue<JobContextLog> oldQ = jobsLog.get();
-            BlockingEvictingQueue<JobContextLog> newQ = new BlockingEvictingQueue<>(size);
-            newQ.addAll(oldQ);
-            jobsLog.set(newQ);
+            if (expiration.getMillis() > 0) {
+                newQ = new ConcurrentLinkedQueue<JobContextLog>();
+            } else {
+                newQ = new BlockingEvictingQueue<JobContextLog>(size);
+            }
         }
+
+        Queue<JobContextLog> oldQ = jobsLog.get();
+        newQ.addAll(oldQ);
+        jobsLog.set(newQ);
     }
 
     private class NodeSettingListener implements NodeSettingsService.Listener {
@@ -275,14 +295,16 @@ public class StatsTables {
                 }
 
                 int jobSize = extractJobsLogSize(settings);
-                if (jobSize != lastJobsLogSize) {
+                TimeValue jobExpiration = extractJobsLogExpiration(settings);
+                if (jobSize != lastJobsLogSize || jobExpiration != lastJobsLogExpiration) {
                     lastJobsLogSize = jobSize;
-                    setJobsLog(jobSize);
+                    lastJobsLogExpiration = jobExpiration;
+                    setJobsLog(jobSize, jobExpiration);
                 }
 
             } else if (wasEnabled) { // !becomesEnabled
                 setOperationsLog(0);
-                setJobsLog(0);
+                setJobsLog(0, TimeValue.timeValueSeconds(0L));
                 lastIsEnabled = false;
 
                 lastOperationsLogSize = extractOperationsLogSize(settings);
@@ -296,14 +318,20 @@ public class StatsTables {
                 setOperationsLog(opSize);
 
                 int jobSize = extractJobsLogSize(settings);
+                TimeValue jobExpiration = extractJobsLogExpiration(settings);
                 lastJobsLogSize = jobSize;
-                setJobsLog(jobSize);
+                lastJobsLogExpiration = jobExpiration;
+                setJobsLog(jobSize, jobExpiration);
             }
         }
     }
 
     private Integer extractJobsLogSize(Settings settings) {
         return CrateSettings.STATS_JOBS_LOG_SIZE.extract(settings, initialJobsLogSize);
+    }
+
+    private TimeValue extractJobsLogExpiration(Settings settings) {
+        return CrateSettings.STATS_JOBS_LOG_EXPIRATION.extractTimeValue(settings, initialJobsLogExpiration);
     }
 
     private Boolean extractIsEnabled(Settings settings) {

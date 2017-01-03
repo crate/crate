@@ -64,14 +64,25 @@ public class StatsTablesTest extends CrateUnitTest {
         assertThat(stats.isEnabled(), is(true));
         assertThat(stats.lastJobsLogSize, is(100));
         assertThat(stats.lastOperationsLogSize, is(200));
-
         assertThat(stats.jobsLog.get(), Matchers.instanceOf(BlockingEvictingQueue.class));
 
+        // switch jobs_log queue
+        stats.listener.onRefreshSettings(Settings.builder()
+            .put(CrateSettings.STATS_JOBS_LOG_EXPIRATION.settingName(), "10s").build());
+        assertThat(stats.jobsLog.get(), Matchers.instanceOf(TimeEvictingConcurrentLogQueue.class));
 
         stats.listener.onRefreshSettings(Settings.builder()
-            .put(CrateSettings.STATS_ENABLED.settingName(), false).build());
+            .put(CrateSettings.STATS_JOBS_LOG_SIZE.settingName(), 0)
+            .put(CrateSettings.STATS_JOBS_LOG_EXPIRATION.settingName(), "0s").build());
+        assertThat(stats.jobsLog.get(), Matchers.instanceOf(NoopQueue.class));
+
+        stats.listener.onRefreshSettings(Settings.builder()
+            .put(CrateSettings.STATS_JOBS_LOG_EXPIRATION.settingName(), "10s").build());
+        assertThat(stats.jobsLog.get(), Matchers.instanceOf(TimeEvictingConcurrentLogQueue.class));
 
         // logs got wiped:
+        stats.listener.onRefreshSettings(Settings.builder()
+            .put(CrateSettings.STATS_ENABLED.settingName(), false).build());
         assertThat(stats.jobsLog.get(), Matchers.instanceOf(NoopQueue.class));
         assertThat(stats.isEnabled(), is(false));
     }
