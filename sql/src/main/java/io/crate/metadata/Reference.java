@@ -216,6 +216,6 @@ public class Reference extends Symbol {
     }
 
     public static <R extends Reference> R fromStream(StreamInput in) throws IOException {
-        return (R) SymbolType.values()[in.readVInt()].newInstance(in);
+        return (R) SymbolType.VALUES.get(in.readVInt()).newInstance(in);
     }
 }

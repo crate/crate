@@ -21,6 +21,7 @@
 
 package io.crate.analyze.symbol;
 
+import com.google.common.collect.ImmutableList;
 import io.crate.metadata.GeneratedReference;
 import io.crate.metadata.GeoReference;
 import io.crate.metadata.IndexReference;
@@ -28,6 +29,7 @@ import io.crate.metadata.Reference;
 import org.elasticsearch.common.io.stream.StreamInput;
 
 import java.io.IOException;
+import java.util.List;
 
 public enum SymbolType {
 
@@ -47,6 +49,8 @@ public enum SymbolType {
     GENERATED_REFERENCE(GeneratedReference::new),
     PARAMETER(ParameterSymbol::new),
     SELECT_SYMBOL(SelectSymbol::new);
+
+    public static final List<SymbolType> VALUES = ImmutableList.copyOf(values());
 
     private final Symbol.SymbolFactory factory;
 
