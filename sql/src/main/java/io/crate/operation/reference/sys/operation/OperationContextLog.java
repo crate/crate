@@ -21,11 +21,13 @@
 
 package io.crate.operation.reference.sys.operation;
 
+import io.crate.operation.reference.sys.Log;
+
 import javax.annotation.Nullable;
 import java.util.Objects;
 import java.util.UUID;
 
-public class OperationContextLog {
+public class OperationContextLog implements Log{
 
     private final OperationContext operationContext;
     @Nullable
@@ -50,10 +52,12 @@ public class OperationContextLog {
         return operationContext.name;
     }
 
+    @Override
     public long started() {
         return operationContext.started;
     }
 
+    @Override
     public long ended() {
         return ended;
     }
