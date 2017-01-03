@@ -5,6 +5,10 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fixed ``INDEX`` constraint validation. Defining it on complex data
+   types like e.g. ``object`` was silently ignored instead of throwing
+   an error.
+
  - Fixed an issue that causes `UnsupportedFeatureException` for operations
    on a table where array access is used inside generated columns.
    e.g.: `CREATE TABLE t1 (cola string, gencola AS (a[1]))`

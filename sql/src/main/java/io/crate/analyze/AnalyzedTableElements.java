@@ -69,7 +69,7 @@ public class AnalyzedTableElements {
         Map<String, Object> indicesMap = new HashMap<>();
         for (AnalyzedColumnDefinition column : columns) {
             properties.put(column.name(), column.toMapping());
-            if (column.isIndex()) {
+            if (column.isIndexColumn()) {
                 indicesMap.put(column.name(), column.toMetaIndicesMapping());
             }
             if (column.formattedGeneratedExpression() != null) {
@@ -123,7 +123,7 @@ public class AnalyzedTableElements {
     }
 
     private void expandColumn(AnalyzedColumnDefinition column) {
-        if (column.isIndex()) {
+        if (column.isIndexColumn()) {
             columnIdents.remove(column.ident());
             return;
         }
@@ -140,7 +140,7 @@ public class AnalyzedTableElements {
             notNullColumns = new HashSet<>();
             for (AnalyzedColumnDefinition column : columns) {
                 String fqn = column.ident().fqn();
-                if (column.isNotNull() && !primaryKeys().contains(fqn)) { // Columns part of pk are implicitly not null
+                if (column.hasNotNullConstraint() && !primaryKeys().contains(fqn)) { // Columns part of pk are implicitly not null
                     notNullColumns.add(fqn);
                 }
             }
@@ -160,7 +160,7 @@ public class AnalyzedTableElements {
     }
 
     private static void addPrimaryKeys(Set<String> primaryKeys, AnalyzedColumnDefinition column) {
-        if (column.isPrimaryKey()) {
+        if (column.hasPrimaryKeyConstraint()) {
             String fqn = column.ident().fqn();
             checkPrimaryKeyAlreadyDefined(primaryKeys, fqn);
             primaryKeys.add(fqn);
@@ -293,7 +293,7 @@ public class AnalyzedTableElements {
     }
 
     private void addCopyToInfo(AnalyzedColumnDefinition column) {
-        if (!column.isIndex()) {
+        if (!column.isIndexColumn()) {
             Set<String> targets = copyToMap.get(column.ident().fqn());
             if (targets != null) {
                 column.addCopyTo(targets);
@@ -407,13 +407,13 @@ public class AnalyzedTableElements {
 
 
         }
-        if (columnDefinition.index().equals("analyzed")) {
+        if (columnDefinition.indexConstraint().equals("analyzed")) {
             throw new IllegalArgumentException(String.format(Locale.ENGLISH,
                 "Cannot use column %s with fulltext index in PARTITIONED BY clause",
                 columnDefinition.ident().sqlFqn()));
         }
         columnIdents.remove(columnDefinition.ident());
-        columnDefinition.index(Reference.IndexType.NO.toString());
+        columnDefinition.indexConstraint(Reference.IndexType.NO.toString());
         partitionedByColumns.add(columnDefinition);
     }
 
