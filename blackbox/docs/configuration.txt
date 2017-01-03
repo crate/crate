@@ -688,7 +688,7 @@ Collecting Stats
   A boolean indicating whether or not to collect statistical
   information about the cluster.
 
-.. _stats. jobs_log_size:
+.. _stats.jobs_log_size:
 
 **stats.jobs_log_size**
   | *Default:*   ``10000``
@@ -700,6 +700,23 @@ Collecting Stats
   job to be executed on the cluster. A higher number results in more
   expressive results but also in more occupied RAM. Setting it to
   ``0`` disables collecting job information.
+
+.. _stats.jobs_log_expiration:
+
+**stats.jobs_log_expiration**
+  | *Default:*  ``0s`` (disabled)
+  | *Runtime:*  ``yes``
+
+  This setting specifies the period which the jobs are stored in the ``sys.jobs_log``
+  table. It periodically clears entries that are completed and older than the
+  specified time interval. This setting overrides ``jobs_log_size`` and logs a
+  warning message if both settings are set explicitly. If the value is set to
+  ``0`` the setting gets disabled.
+
+.. note::
+
+  If both setttings ``stats.jobs_log_size`` and ``stats.jobs_log_expiration``
+  are disabled, no job information will be collected.
 
 .. _stats.operations_log_size:
 
