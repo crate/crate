@@ -51,7 +51,6 @@ import io.crate.planner.node.dql.CollectPhase;
 import io.crate.planner.node.dql.RoutedCollectPhase;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.discovery.DiscoveryService;
 
 import java.util.Collection;
 import java.util.List;
@@ -89,13 +88,13 @@ public class SystemCollectSource implements CollectSource {
         this.nodeSysExpression = nodeSysExpression;
 
         iterableGetters = ImmutableMap.<String, Supplier<Iterable<?>>>builder()
-            .put(InformationSchemataTableInfo.IDENT.fqn(), informationSchemaIterables.schemas())
-            .put(InformationTablesTableInfo.IDENT.fqn(), informationSchemaIterables.tables())
-            .put(InformationPartitionsTableInfo.IDENT.fqn(), informationSchemaIterables.partitions())
-            .put(InformationColumnsTableInfo.IDENT.fqn(), informationSchemaIterables.columns())
-            .put(InformationTableConstraintsTableInfo.IDENT.fqn(), informationSchemaIterables.constraints())
-            .put(InformationRoutinesTableInfo.IDENT.fqn(), informationSchemaIterables.routines())
-            .put(InformationSqlFeaturesTableInfo.IDENT.fqn(), informationSchemaIterables.features())
+            .put(InformationSchemataTableInfo.IDENT.fqn(), informationSchemaIterables::schemas)
+            .put(InformationTablesTableInfo.IDENT.fqn(), informationSchemaIterables::tables)
+            .put(InformationPartitionsTableInfo.IDENT.fqn(), informationSchemaIterables::partitions)
+            .put(InformationColumnsTableInfo.IDENT.fqn(), informationSchemaIterables::columns)
+            .put(InformationTableConstraintsTableInfo.IDENT.fqn(), informationSchemaIterables::constraints)
+            .put(InformationRoutinesTableInfo.IDENT.fqn(), informationSchemaIterables::routines)
+            .put(InformationSqlFeaturesTableInfo.IDENT.fqn(), informationSchemaIterables::features)
             .put(SysJobsTableInfo.IDENT.fqn(), statsTables.jobsGetter())
             .put(SysJobsLogTableInfo.IDENT.fqn(), statsTables.jobsLogGetter())
             .put(SysOperationsTableInfo.IDENT.fqn(), statsTables.operationsGetter())

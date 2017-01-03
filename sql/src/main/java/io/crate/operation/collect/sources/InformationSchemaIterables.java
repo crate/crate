@@ -21,111 +21,76 @@
 
 package io.crate.operation.collect.sources;
 
-import com.google.common.base.Function;
-import com.google.common.base.Predicate;
-import com.google.common.base.Supplier;
-import com.google.common.base.Suppliers;
 import com.google.common.collect.FluentIterable;
 import io.crate.metadata.*;
 import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.table.TableInfo;
+import io.crate.operation.collect.files.SqlFeatureContext;
 import io.crate.operation.collect.files.SqlFeaturesIterable;
 import io.crate.operation.reference.information.ColumnContext;
 import io.crate.types.DataTypes;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 
-import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.Iterator;
+import java.util.Objects;
+import java.util.stream.StreamSupport;
 
 public class InformationSchemaIterables {
 
-    private final Supplier<Iterable<?>> schemas;
-    private final Supplier<Iterable<?>> tablesGetter;
-    private final Supplier<Iterable<?>> partitionsGetter;
-    private final Supplier<Iterable<?>> columnsGetter;
-    private final Supplier<Iterable<?>> constraintsGetter;
-    private final Supplier<Iterable<?>> routinesGetter;
-    private final Supplier<Iterable<?>> featuresGetter;
+    private final Schemas schemas;
+    private final FluentIterable<TableInfo> tablesIterable;
+    private final PartitionInfos partitionInfos;
+    private final FluentIterable<ColumnContext> columnsIterable;
+    private final FluentIterable<TableInfo> constraints;
+    private final FluentIterable<RoutineInfo> routines;
+    private final SqlFeaturesIterable sqlFeatures;
 
     @Inject
     public InformationSchemaIterables(final Schemas schemas,
                                       FulltextAnalyzerResolver ftResolver,
                                       ClusterService clusterService) throws IOException {
-        this.schemas = Suppliers.<Iterable<?>>ofInstance(schemas);
-        FluentIterable<TableInfo> tablesIterable = FluentIterable.from(schemas)
-            .transformAndConcat(new Function<SchemaInfo, Iterable<TableInfo>>() {
-                @Nullable
-                @Override
-                public Iterable<TableInfo> apply(SchemaInfo input) {
-                    assert input != null : "input must not be null";
-                    // filter out partitions
-                    return FluentIterable.from(input).filter(new Predicate<TableInfo>() {
-                        @Override
-                        public boolean apply(TableInfo input) {
-                            assert input != null : "input must not be null";
-                            return !PartitionName.isPartition(input.ident().indexName());
-                        }
-                    });
-                }
-            });
-        tablesGetter = Suppliers.<Iterable<?>>ofInstance(tablesIterable);
-        partitionsGetter = Suppliers.<Iterable<?>>ofInstance(new PartitionInfos(clusterService));
-        FluentIterable<ColumnContext> columnsIterable = tablesIterable.transformAndConcat(
-            new Function<TableInfo, Iterable<ColumnContext>>() {
-                @Nullable
-                @Override
-                public Iterable<ColumnContext> apply(TableInfo input) {
-                    assert input != null : "input must not be null";
-                    return new ColumnsIterator(input);
-                }
-            });
-        columnsGetter = Suppliers.<Iterable<?>>ofInstance(columnsIterable);
-        constraintsGetter = Suppliers.<Iterable<?>>ofInstance(tablesIterable.filter(new Predicate<TableInfo>() {
-            @Override
-            public boolean apply(@Nullable TableInfo input) {
-                return input != null && input.primaryKey().size() > 0;
-            }
-        }));
+        this.schemas = schemas;
+        tablesIterable = FluentIterable.from(schemas)
+            .transformAndConcat(schema -> FluentIterable.from(schema)
+                .filter(i -> !PartitionName.isPartition(i.ident().indexName())));
+        partitionInfos = new PartitionInfos(clusterService);
+        columnsIterable = tablesIterable.transformAndConcat(ColumnsIterator::new);
+
+        constraints = tablesIterable.filter(i -> i != null && i.primaryKey().size() > 0);
 
         RoutineInfos routineInfos = new RoutineInfos(ftResolver);
-        routinesGetter = Suppliers.<Iterable<?>>ofInstance(FluentIterable.from(routineInfos)
-            .filter(new Predicate<RoutineInfo>() {
-                @Override
-                public boolean apply(@Nullable RoutineInfo input) {
-                    return input != null;
-                }
-            }));
-        featuresGetter = Suppliers.<Iterable<?>>ofInstance(new SqlFeaturesIterable());
+        routines = FluentIterable.from(routineInfos).filter(Objects::nonNull);
+        sqlFeatures = new SqlFeaturesIterable();
     }
 
-    public Supplier<Iterable<?>> schemas() {
+    public Iterable<SchemaInfo> schemas() {
         return schemas;
     }
 
-    public Supplier<Iterable<?>> tables() {
-        return tablesGetter;
+    public Iterable<TableInfo> tables() {
+        return tablesIterable;
     }
 
-    public Supplier<Iterable<?>> partitions() {
-        return partitionsGetter;
+    public Iterable<PartitionInfo> partitions() {
+        return partitionInfos;
     }
 
-    public Supplier<Iterable<?>> columns() {
-        return columnsGetter;
+    public Iterable<ColumnContext> columns() {
+        return columnsIterable;
     }
 
-    public Supplier<Iterable<?>> constraints() {
-        return constraintsGetter;
+    public Iterable<TableInfo> constraints() {
+        return constraints;
     }
 
-    public Supplier<Iterable<?>> routines() {
-        return routinesGetter;
+    public Iterable<RoutineInfo> routines() {
+        return routines;
     }
 
-    public Supplier<Iterable<?>> features() {
-        return featuresGetter;
+    public Iterable<SqlFeatureContext> features() {
+        return sqlFeatures;
     }
 
     static class ColumnsIterator implements Iterator<ColumnContext>, Iterable<ColumnContext> {
@@ -136,14 +101,9 @@ public class InformationSchemaIterables {
         ColumnsIterator(TableInfo ti) {
             context.tableInfo = ti;
             context.ordinal = 0;
-            columns = FluentIterable.from(ti).filter(new Predicate<Reference>() {
-                @Override
-                public boolean apply(@Nullable Reference input) {
-                    return input != null
-                           && !input.ident().columnIdent().isSystemColumn()
-                           && input.valueType() != DataTypes.NOT_SUPPORTED;
-                }
-            }).iterator();
+            columns = StreamSupport.stream(ti.spliterator(), false)
+                .filter(i -> !i.ident().columnIdent().isSystemColumn() && i.valueType() != DataTypes.NOT_SUPPORTED)
+                .iterator();
         }
 
         @Override
@@ -167,6 +127,5 @@ public class InformationSchemaIterables {
         public Iterator<ColumnContext> iterator() {
             return this;
         }
-
     }
 }
