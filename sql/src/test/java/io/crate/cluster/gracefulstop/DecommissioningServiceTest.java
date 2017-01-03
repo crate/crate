@@ -23,7 +23,7 @@
 package io.crate.cluster.gracefulstop;
 
 import io.crate.action.sql.SQLOperations;
-import io.crate.operation.collect.StatsTables;
+import io.crate.operation.collect.stats.StatsTables;
 import org.elasticsearch.action.admin.cluster.health.TransportClusterHealthAction;
 import org.elasticsearch.action.admin.cluster.settings.TransportClusterUpdateSettingsAction;
 import org.elasticsearch.cluster.ClusterService;
@@ -52,15 +52,17 @@ public class DecommissioningServiceTest {
 
     @Before
     public void setUp() throws Exception {
-        statsTables = new StatsTables(Settings.EMPTY, mock(NodeSettingsService.class));
+        NodeSettingsService settingsService = new NodeSettingsService(Settings.EMPTY);
+
         threadPool = mock(ThreadPool.class, Answers.RETURNS_MOCKS.get());
+        statsTables = new StatsTables(() -> true);
         sqlOperations = mock(SQLOperations.class, Answers.RETURNS_MOCKS.get());
         decommissioningService = new TestableDecommissioningService(
             Settings.EMPTY,
             new NoopClusterService(),
             statsTables,
             threadPool,
-            mock(NodeSettingsService.class),
+            settingsService,
             sqlOperations,
             mock(TransportClusterHealthAction.class),
             mock(TransportClusterUpdateSettingsAction.class)

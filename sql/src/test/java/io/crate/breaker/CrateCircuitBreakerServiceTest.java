@@ -95,8 +95,9 @@ public class CrateCircuitBreakerServiceTest extends CrateUnitTest {
         CircuitBreakerService esBreakerService = spy(new HierarchyCircuitBreakerService(Settings.EMPTY, settingsService));
         CrateCircuitBreakerService breakerService = new CrateCircuitBreakerService(settings, settingsService, esBreakerService);
 
-        assertThat(breakerService.queryBreakerSettings().getLimit(), is(10_485_760L));
-        assertThat(breakerService.queryBreakerSettings().getOverhead(), is(1.0));
+        CircuitBreaker breaker = breakerService.getBreaker(CrateCircuitBreakerService.QUERY);
+        assertThat(breaker.getLimit(), is(10_485_760L));
+        assertThat(breaker.getOverhead(), is(1.0));
 
         Settings newSettings = Settings.settingsBuilder()
             .put(CrateCircuitBreakerService.QUERY_CIRCUIT_BREAKER_LIMIT_SETTING, "100m")
@@ -104,15 +105,16 @@ public class CrateCircuitBreakerServiceTest extends CrateUnitTest {
             .build();
 
         listeners[0].onRefreshSettings(newSettings);
-        // expecting 2 times because registerBreaker() is also called from constructor of CrateCircuitBreakerService
-        verify(esBreakerService, times(2)).registerBreaker(Matchers.any());
+        // expecting 4 times because registerBreaker() is also called from constructor of CrateCircuitBreakerService 3 times
+        verify(esBreakerService, times(4)).registerBreaker(Matchers.any());
 
-        assertThat(breakerService.queryBreakerSettings().getLimit(), is(104_857_600L));
-        assertThat(breakerService.queryBreakerSettings().getOverhead(), is(2.0));
+        breaker = breakerService.getBreaker(CrateCircuitBreakerService.QUERY);
+        assertThat(breaker.getLimit(), is(104_857_600L));
+        assertThat(breaker.getOverhead(), is(2.0));
 
         // updating with same settings should not register a new breaker
         listeners[0].onRefreshSettings(newSettings);
-        verify(esBreakerService, times(2)).registerBreaker(Matchers.any());
+        verify(esBreakerService, times(4)).registerBreaker(Matchers.any());
     }
 
     @Test
@@ -129,7 +131,7 @@ public class CrateCircuitBreakerServiceTest extends CrateUnitTest {
             Settings.EMPTY, settingsService, esBreakerService);
 
         CircuitBreakerStats[] stats = breakerService.stats().getAllStats();
-        assertThat(stats.length, is(5));
+        assertThat(stats.length, is(7));
 
         CircuitBreakerStats queryBreakerStats = breakerService.stats(CrateCircuitBreakerService.QUERY);
         assertThat(queryBreakerStats.getEstimated(), is(0L));

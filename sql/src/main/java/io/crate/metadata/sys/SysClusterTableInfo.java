@@ -56,12 +56,33 @@ public class SysClusterTableInfo extends StaticTableInfo {
                 .register("master_node", DataTypes.STRING, null)
                 .register(ClusterSettingsExpression.NAME, DataTypes.OBJECT, null)
                 .register(ClusterSettingsExpression.NAME, DataTypes.OBJECT, ImmutableList.of(CrateSettings.STATS.name()))
+
                 .register(ClusterSettingsExpression.NAME, DataTypes.INTEGER, ImmutableList.of(CrateSettings.STATS.name(),
                     CrateSettings.STATS_JOBS_LOG_SIZE.name()))
+                .register(ClusterSettingsExpression.NAME, DataTypes.STRING, ImmutableList.of(CrateSettings.STATS.name(),
+                    CrateSettings.STATS_JOBS_LOG_EXPIRATION.name()))
                 .register(ClusterSettingsExpression.NAME, DataTypes.INTEGER, ImmutableList.of(CrateSettings.STATS.name(),
                     CrateSettings.STATS_OPERATIONS_LOG_SIZE.name()))
+                .register(ClusterSettingsExpression.NAME, DataTypes.STRING, ImmutableList.of(CrateSettings.STATS.name(),
+                    CrateSettings.STATS_OPERATIONS_LOG_EXPIRATION.name()))
                 .register(ClusterSettingsExpression.NAME, DataTypes.BOOLEAN, ImmutableList.of(CrateSettings.STATS.name(),
                     CrateSettings.STATS_ENABLED.name()))
+                .register(ClusterSettingsExpression.NAME, DataTypes.OBJECT, ImmutableList.of(CrateSettings.STATS.name(),
+                    CrateSettings.STATS_BREAKER.name()))
+                .register(ClusterSettingsExpression.NAME, DataTypes.OBJECT, ImmutableList.of(CrateSettings.STATS.name(),
+                    CrateSettings.STATS_BREAKER.name(),
+                    CrateSettings.STATS_BREAKER_JOBS_LOG.name()))
+                .register(ClusterSettingsExpression.NAME, DataTypes.STRING, ImmutableList.of(CrateSettings.STATS.name(),
+                    CrateSettings.STATS_BREAKER.name(),
+                    CrateSettings.STATS_BREAKER_JOBS_LOG.name(),
+                    CrateSettings.STATS_BREAKER_JOBS_LOG_LIMIT.name()))
+                .register(ClusterSettingsExpression.NAME, DataTypes.OBJECT, ImmutableList.of(CrateSettings.STATS.name(),
+                    CrateSettings.STATS_BREAKER.name(),
+                    CrateSettings.STATS_BREAKER_OPERATIONS_LOG.name()))
+                .register(ClusterSettingsExpression.NAME, DataTypes.STRING, ImmutableList.of(CrateSettings.STATS.name(),
+                    CrateSettings.STATS_BREAKER.name(),
+                    CrateSettings.STATS_BREAKER_OPERATIONS_LOG.name(),
+                    CrateSettings.STATS_BREAKER_OPERATIONS_LOG_LIMIT.name()))
 
                 .register(ClusterSettingsExpression.NAME, DataTypes.OBJECT, ImmutableList.of(CrateSettings.DISCOVERY.name()))
                 .register(ClusterSettingsExpression.NAME, DataTypes.OBJECT, ImmutableList.of(CrateSettings.DISCOVERY.name(),

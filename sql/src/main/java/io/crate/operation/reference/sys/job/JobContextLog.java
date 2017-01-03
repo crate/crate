@@ -21,10 +21,12 @@
 
 package io.crate.operation.reference.sys.job;
 
+import com.google.common.annotations.VisibleForTesting;
+
 import javax.annotation.Nullable;
 import java.util.UUID;
 
-public class JobContextLog {
+public class JobContextLog implements ContextLog {
 
     private final JobContext jobContext;
 
@@ -39,6 +41,13 @@ public class JobContextLog {
         this.ended = System.currentTimeMillis();
     }
 
+    @VisibleForTesting
+    public JobContextLog(JobContext jobContext, @Nullable String errorMessage, long ended) {
+        this.jobContext = jobContext;
+        this.errorMessage = errorMessage;
+        this.ended = ended;
+    }
+
     public UUID id() {
         return jobContext.id;
     }
@@ -47,10 +56,12 @@ public class JobContextLog {
         return jobContext.stmt;
     }
 
+    @Override
     public long started() {
         return jobContext.started;
     }
 
+    @Override
     public long ended() {
         return ended;
     }
@@ -59,4 +70,5 @@ public class JobContextLog {
     public String errorMessage() {
         return errorMessage;
     }
+
 }

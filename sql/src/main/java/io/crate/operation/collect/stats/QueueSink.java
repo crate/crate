@@ -20,33 +20,40 @@
  * agreement.
  */
 
-package io.crate.protocols.postgres;
+package io.crate.operation.collect.stats;
 
-import com.google.common.util.concurrent.FutureCallback;
-import io.crate.exceptions.Exceptions;
-import io.crate.operation.collect.stats.StatsTables;
+import java.util.Iterator;
+import java.util.Queue;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-import java.util.UUID;
+public class QueueSink<T> implements LogSink<T> {
 
-public class StatsTablesUpdateListener implements FutureCallback<Object> {
+    private final Queue<T> queue;
+    private final Runnable onClose;
 
-    private final UUID jobId;
-    private final StatsTables statsTables;
-
-    public StatsTablesUpdateListener(UUID jobId, StatsTables statsTables) {
-        this.jobId = jobId;
-        this.statsTables = statsTables;
+    public QueueSink(Queue<T> queue, Runnable onClose) {
+        this.queue = queue;
+        this.onClose = onClose;
     }
 
     @Override
-    public void onSuccess(@Nullable Object result) {
-        statsTables.logExecutionEnd(jobId, null);
+    public void add(T item) {
+        queue.offer(item);
     }
 
     @Override
-    public void onFailure(@Nonnull Throwable t) {
-        statsTables.logExecutionEnd(jobId, Exceptions.messageOf(t));
+    public void addAll(Iterable<T> iterable) {
+        for (T t : iterable) {
+            add(t);
+        }
+    }
+
+    @Override
+    public Iterator<T> iterator() {
+        return queue.iterator();
+    }
+
+    @Override
+    public void close() {
+        onClose.run();
     }
 }

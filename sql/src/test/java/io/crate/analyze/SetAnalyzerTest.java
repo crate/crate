@@ -157,9 +157,16 @@ public class SetAnalyzerTest extends CrateUnitTest {
         assertThat(
             analysis.settingsToRemove(),
             containsInAnyOrder(
+                "stats.breaker.operations_log.limit",
+                "stats.breaker.operations_log",
+                "stats.breaker.jobs_log.limit",
+                "stats.breaker.jobs_log",
+                "stats.breaker",
                 "stats.enabled",
                 "stats.jobs_log_size",
+                "stats.jobs_log_expiration",
                 "stats.operations_log_size",
+                "stats.operations_log_expiration",
                 "stats.service.interval")
         );
     }

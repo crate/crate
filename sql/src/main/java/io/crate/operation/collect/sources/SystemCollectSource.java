@@ -36,6 +36,7 @@ import io.crate.metadata.sys.*;
 import io.crate.operation.InputFactory;
 import io.crate.operation.collect.*;
 import io.crate.operation.collect.files.SummitsIterable;
+import io.crate.operation.collect.stats.StatsTables;
 import io.crate.operation.projectors.Requirement;
 import io.crate.operation.projectors.RowReceiver;
 import io.crate.operation.reference.sys.RowContextReferenceResolver;

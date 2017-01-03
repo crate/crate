@@ -172,8 +172,15 @@ currently applied cluster settings.
     | settings['logger']['level']                                                       | string       |
     | settings['logger']['name']                                                        | string       |
     | settings['stats']                                                                 | object       |
+    | settings['stats']['breaker']                                                      | object       |
+    | settings['stats']['breaker']['jobs_log']                                          | object       |
+    | settings['stats']['breaker']['jobs_log']['limit']                                 | string       |
+    | settings['stats']['breaker']['operations_log']                                    | object       |
+    | settings['stats']['breaker']['operations_log']['limit']                           | string       |
     | settings['stats']['enabled']                                                      | boolean      |
+    | settings['stats']['jobs_log_expiration']                                          | string       |
     | settings['stats']['jobs_log_size']                                                | integer      |
+    | settings['stats']['operations_log_expiration']                                    | string       |
     | settings['stats']['operations_log_size']                                          | integer      |
     | settings['udc']                                                                   | object       |
     | settings['udc']['enabled']                                                        | boolean      |
@@ -181,7 +188,7 @@ currently applied cluster settings.
     | settings['udc']['interval']                                                       | string       |
     | settings['udc']['url']                                                            | string       |
     +-----------------------------------------------------------------------------------+--------------+
-    SELECT 93 rows in set (... sec)
+    SELECT 100 rows in set (... sec)
 
 For further details, see the :ref:`Cluster Settings <conf-cluster-settings>` configuration section.
 
@@ -1052,7 +1059,8 @@ limit old entries are discarded as new entries are added::
     +-...+------------------------------------...-+-...-----+-...---+-------+
     SELECT 2 rows in set (... sec)
 
-See :ref:`ref-set` on how to change the size of the tables.
+See :ref:`conf_collecting_stats` on how to enable logging and change the size of
+the corresponding tables.
 
 As described above the stats tracking is deactivated by default and has to be
 enabled using the ``SET`` statement. The same statement can be used to
