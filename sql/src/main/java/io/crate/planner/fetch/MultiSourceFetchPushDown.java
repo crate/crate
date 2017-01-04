@@ -37,36 +37,29 @@ import io.crate.types.DataTypes;
 
 import java.util.*;
 
-public class MultiSourceFetchPushDown {
+class MultiSourceFetchPushDown {
 
     private final MultiSourceSelect statement;
 
     private List<Symbol> remainingOutputs;
     private Map<TableIdent, FetchSource> fetchSources;
 
-
-    public static MultiSourceFetchPushDown pushDown(MultiSourceSelect statement) {
-        MultiSourceFetchPushDown pd = new MultiSourceFetchPushDown(statement);
-        pd.process();
-        return pd;
-    }
-
-    private MultiSourceFetchPushDown(MultiSourceSelect statement) {
+    MultiSourceFetchPushDown(MultiSourceSelect statement) {
         this.statement = statement;
         this.fetchSources = new HashMap<>(statement.sources().size());
     }
 
-    public Map<TableIdent, FetchSource> fetchSources() {
+    Map<TableIdent, FetchSource> fetchSources() {
         return fetchSources;
     }
 
-    public List<Symbol> remainingOutputs() {
+    List<Symbol> remainingOutputs() {
         return remainingOutputs;
     }
 
-    private void process() {
+    void process() {
         remainingOutputs = statement.querySpec().outputs();
-        statement.querySpec().outputs(new ArrayList<Symbol>());
+        statement.querySpec().outputs(new ArrayList<>());
 
         HashMap<Symbol, Symbol> topLevelOutputMap = new HashMap<>(statement.canBeFetched().size());
         HashMap<Symbol, Symbol> mssOutputMap = new HashMap<>(statement.querySpec().outputs().size() + 2);
@@ -156,4 +149,3 @@ public class MultiSourceFetchPushDown {
         }
     }
 }
-

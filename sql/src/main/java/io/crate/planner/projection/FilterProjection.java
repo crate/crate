@@ -60,8 +60,8 @@ public class FilterProjection extends Projection {
     }
 
     public FilterProjection(Symbol query, List<Symbol> outputs) {
-        outputs(outputs);
-        this.query = query;
+        this(query);
+        this.outputs = outputs;
     }
 
     public FilterProjection(StreamInput in) throws IOException {
@@ -87,10 +87,6 @@ public class FilterProjection extends Projection {
     @Override
     public List<Symbol> outputs() {
         return outputs;
-    }
-
-    public void outputs(List<Symbol> outputs) {
-        this.outputs = outputs;
     }
 
     @Override
