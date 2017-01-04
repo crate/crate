@@ -28,7 +28,7 @@ Install via tar.gz
 .. highlight:: sh
 
 After downloading the latest stable version of CrateDB from
-`https://crate.io/download/ <https://crate.io/download/>`_
+`crate.io/download/ <https://crate.io/download/>`_
 the package needs to be unpacked::
 
    sh$ tar zxf crate-*.tar.gz
@@ -53,10 +53,15 @@ your browser once Crate is started::
 
   http://host1.example.com:4200/
 
-**The admin interface runs on each node where CrateDB is installed.**
-**If the previous URL is accessed via libraries (eg. cURL),
-or via offline browsers (eg. wget) the request will be handled
-by the CrateDB Rest API, and the response will be JSON.**
+.. note::
+
+    The admin interface runs on each node where CrateDB is installed.
+
+.. note::
+
+    If the previous URL is accessed via libraries (eg. cURL), or via offline
+    browsers (eg. wget) the request will be handled by the CrateDB Rest API,
+    and the response will be JSON.
 
 
 Install using Docker
