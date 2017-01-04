@@ -23,7 +23,6 @@ package io.crate.planner.projection;
 
 import com.google.common.collect.ImmutableList;
 import io.crate.analyze.symbol.InputColumn;
-import io.crate.analyze.symbol.Symbol;
 import io.crate.metadata.RowGranularity;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.testing.SqlExpressions;
@@ -40,7 +39,7 @@ public class FilterProjectionTest extends CrateUnitTest {
 
         FilterProjection p = new FilterProjection(
             sqlExpressions.normalize(sqlExpressions.asSymbol("a = 'foo'")),
-            ImmutableList.<Symbol>of(new InputColumn(1))
+            ImmutableList.of(new InputColumn(1))
         );
         p.requiredGranularity(RowGranularity.SHARD);
 
