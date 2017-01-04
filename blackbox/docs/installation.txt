@@ -14,9 +14,9 @@ how to setup the unicast configuration.
 Java (JVM) version
 ==================
 
-CrateDB requires a working `Java 8`_ virtual machine. We recommend
-using `Oracle's Java`_ on OSX and OpenJDK_ on Linux Systems.
-The same JVM version must be used on all CrateDB nodes and clients.
+CrateDB requires `Java 8`_. We recommend using `Oracle's Java`_ on OSX and
+OpenJDK_ on Linux Systems.
+The same JVM version must be used on all CrateDB nodes.
 
 We recommend installing `Java 8`_ update 20 or later.
 
