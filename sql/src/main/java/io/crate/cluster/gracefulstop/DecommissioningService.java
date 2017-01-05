@@ -35,17 +35,18 @@ import org.elasticsearch.action.admin.cluster.settings.ClusterUpdateSettingsRequ
 import org.elasticsearch.action.admin.cluster.settings.ClusterUpdateSettingsResponse;
 import org.elasticsearch.action.admin.cluster.settings.TransportClusterUpdateSettingsAction;
 import org.elasticsearch.cluster.ClusterChangedEvent;
-import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.cluster.ClusterStateListener;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.node.DiscoveryNodes;
+import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.Priority;
 import org.elasticsearch.common.component.AbstractLifecycleComponent;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
+import org.elasticsearch.common.settings.ClusterSettings;
+import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.TimeValue;
-import org.elasticsearch.node.settings.NodeSettingsService;
 import org.elasticsearch.threadpool.ThreadPool;
 import sun.misc.Signal;
 import sun.misc.SignalHandler;
@@ -73,13 +74,12 @@ public class DecommissioningService extends AbstractLifecycleComponent implement
     private Boolean forceStop;
     private DataAvailability dataAvailability;
 
-
     @Inject
     public DecommissioningService(Settings settings,
                                   final ClusterService clusterService,
                                   StatsTables statsTables,
                                   ThreadPool threadPool,
-                                  NodeSettingsService nodeSettingsService,
+                                  ClusterSettings clusterSettings,
                                   SQLOperations sqlOperations,
                                   final TransportClusterHealthAction healthAction,
                                   final TransportClusterUpdateSettingsAction updateSettingsAction) {
@@ -91,9 +91,13 @@ public class DecommissioningService extends AbstractLifecycleComponent implement
         this.healthAction = healthAction;
         this.updateSettingsAction = updateSettingsAction;
 
-        ApplySettings applySettings = new ApplySettings();
-        applySettings.onRefreshSettings(settings);
-        nodeSettingsService.addListener(applySettings);
+        gracefulStopTimeout = CrateSettings.GRACEFUL_STOP_TIMEOUT.extractTimeValue(settings);
+        forceStop = CrateSettings.GRACEFUL_STOP_FORCE.extract(settings);
+        dataAvailability = DataAvailability.of(CrateSettings.GRACEFUL_STOP_MIN_AVAILABILITY.extract(settings));
+
+        CrateSettings.GRACEFUL_STOP_TIMEOUT.registerUpdateConsumer(clusterSettings, this::setGracefulStopTimeout);
+        CrateSettings.GRACEFUL_STOP_FORCE.registerUpdateConsumer(clusterSettings, this::setGracefulStopForce);
+        CrateSettings.GRACEFUL_STOP_MIN_AVAILABILITY.registerUpdateConsumer(clusterSettings, this::setDataAvailability);
 
         try {
             Signal signal = new Signal("USR2");
@@ -250,12 +254,15 @@ public class DecommissioningService extends AbstractLifecycleComponent implement
         }
     }
 
-    private class ApplySettings implements NodeSettingsService.Listener {
-        @Override
-        public void onRefreshSettings(Settings settings) {
-            gracefulStopTimeout = CrateSettings.GRACEFUL_STOP_TIMEOUT.extractTimeValue(settings);
-            forceStop = CrateSettings.GRACEFUL_STOP_FORCE.extract(settings);
-            dataAvailability = DataAvailability.of(CrateSettings.GRACEFUL_STOP_MIN_AVAILABILITY.extract(settings));
-        }
+    private void setGracefulStopTimeout(TimeValue gracefulStopTimeout) {
+        this.gracefulStopTimeout = gracefulStopTimeout;
+    }
+
+    private void setGracefulStopForce(boolean forceStop) {
+        this.forceStop = forceStop;
+    }
+
+    private void setDataAvailability(String dataAvailability) {
+        this.dataAvailability = DataAvailability.of(dataAvailability);
     }
 }
