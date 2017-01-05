@@ -66,7 +66,7 @@ public class IntSetting extends Setting<Integer, Integer> {
         return isRuntimeSetting;
     }
 
-    public Integer maxValue() {
+    Integer maxValue() {
         return this.maxValue;
     }
 
@@ -86,5 +86,14 @@ public class IntSetting extends Setting<Integer, Integer> {
 
     public Integer extract(Settings settings, @Nonnull Integer defaultValue) {
         return settings.getAsInt(settingName(), defaultValue);
+    }
+
+    @Override
+    public org.elasticsearch.common.settings.Setting<Integer> esSetting() {
+        return org.elasticsearch.common.settings.Setting.intSetting(
+            settingName(),
+            defaultValue(),
+            propertiesForUpdateConsumer()
+        );
     }
 }
