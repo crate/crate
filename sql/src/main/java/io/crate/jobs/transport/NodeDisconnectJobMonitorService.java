@@ -26,12 +26,12 @@ import io.crate.executor.transport.kill.KillJobsRequest;
 import io.crate.executor.transport.kill.KillResponse;
 import io.crate.executor.transport.kill.TransportKillJobsNodeAction;
 import io.crate.jobs.JobContextService;
+import org.apache.logging.log4j.Logger;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.common.component.AbstractLifecycleComponent;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
-import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.TimeValue;
@@ -39,7 +39,9 @@ import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportConnectionListener;
 import org.elasticsearch.transport.TransportService;
 
-import java.util.*;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 /**
@@ -54,7 +56,7 @@ public class NodeDisconnectJobMonitorService extends AbstractLifecycleComponent 
 
     private final static TimeValue DELAY = TimeValue.timeValueMinutes(1);
     private final TransportKillJobsNodeAction killJobsNodeAction;
-    private final static ESLogger LOGGER = Loggers.getLogger(NodeDisconnectJobMonitorService.class);
+    private final static Logger LOGGER = Loggers.getLogger(NodeDisconnectJobMonitorService.class);
 
     @Inject
     public NodeDisconnectJobMonitorService(Settings settings,
