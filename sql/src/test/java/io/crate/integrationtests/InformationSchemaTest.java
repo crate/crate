@@ -23,7 +23,6 @@ package io.crate.integrationtests;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
 import io.crate.action.sql.SQLActionException;
 import io.crate.testing.TestingHelpers;
 import io.crate.testing.UseJdbc;
@@ -35,12 +34,7 @@ import org.junit.Test;
 import java.util.HashMap;
 import java.util.Map;
 
-import static org.hamcrest.Matchers.arrayContaining;
-import static org.hamcrest.Matchers.both;
-import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.greaterThanOrEqualTo;
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.lessThanOrEqualTo;
+import static org.hamcrest.Matchers.*;
 
 
 @ESIntegTestCase.ClusterScope(numDataNodes = 2)
@@ -346,14 +340,18 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
         assertEquals("myotheranalyzer", response.rows()[1][0]);
         assertEquals("ANALYZER", response.rows()[1][1]);
         client().admin().cluster().prepareUpdateSettings()
-            .setPersistentSettingsToRemove(
-                ImmutableSet.of("crate.analysis.custom.analyzer.myanalyzer",
-                    "crate.analysis.custom.analyzer.myotheranalyzer",
-                    "crate.analysis.custom.filter.myanalyzer_mytokenfilter"))
-            .setTransientSettingsToRemove(
-                ImmutableSet.of("crate.analysis.custom.analyzer.myanalyzer",
-                    "crate.analysis.custom.analyzer.myotheranalyzer",
-                    "crate.analysis.custom.filter.myanalyzer_mytokenfilter"))
+            .setPersistentSettings(
+                MapBuilder.<String, Object>newMapBuilder()
+                    .put("crate.analysis.custom.analyzer.myanalyzer", null)
+                    .put("crate.analysis.custom.analyzer.myotheranalyzer", null)
+                    .put("crate.analysis.custom.filter.myanalyzer_mytokenfilter", null)
+                    .map())
+            .setTransientSettings(
+                MapBuilder.<String, Object>newMapBuilder()
+                    .put("crate.analysis.custom.analyzer.myanalyzer", null)
+                    .put("crate.analysis.custom.analyzer.myotheranalyzer", null)
+                    .put("crate.analysis.custom.filter.myanalyzer_mytokenfilter", null)
+                    .map())
             .execute().actionGet();
     }
 
