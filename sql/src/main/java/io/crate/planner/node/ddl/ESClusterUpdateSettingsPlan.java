@@ -21,20 +21,18 @@
 
 package io.crate.planner.node.ddl;
 
-import com.google.common.collect.ImmutableMap;
 import io.crate.planner.PlanVisitor;
 import io.crate.planner.UnnestablePlan;
 import io.crate.sql.tree.Expression;
 
-import javax.annotation.Nullable;
 import java.util.*;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 public class ESClusterUpdateSettingsPlan extends UnnestablePlan {
 
     private final Map<String, List<Expression>> persistentSettings;
     private final Map<String, List<Expression>> transientSettings;
-    private final Set<String> transientSettingsToRemove;
-    private final Set<String> persistentSettingsToRemove;
     private final UUID jobId;
 
     public ESClusterUpdateSettingsPlan(UUID jobId,
@@ -47,9 +45,6 @@ public class ESClusterUpdateSettingsPlan extends UnnestablePlan {
         // which we don't
         this.transientSettings = new HashMap<>(persistentSettings);
         this.transientSettings.putAll(transientSettings);
-
-        persistentSettingsToRemove = null;
-        transientSettingsToRemove = null;
     }
 
     public ESClusterUpdateSettingsPlan(UUID jobId, Map<String, List<Expression>> persistentSettings) {
@@ -57,11 +52,10 @@ public class ESClusterUpdateSettingsPlan extends UnnestablePlan {
     }
 
     public ESClusterUpdateSettingsPlan(UUID jobId, Set<String> persistentSettingsToRemove, Set<String> transientSettingsToRemove) {
-        this.jobId = jobId;
-        this.persistentSettingsToRemove = persistentSettingsToRemove;
-        this.transientSettingsToRemove = transientSettingsToRemove;
-        persistentSettings = ImmutableMap.of();
-        transientSettings = ImmutableMap.of();
+        this(jobId,
+            persistentSettingsToRemove.stream().collect(Collectors.toMap(Function.identity(), null)),
+            transientSettingsToRemove.stream().collect(Collectors.toMap(Function.identity(), null))
+            );
     }
 
     public Map<String, List<Expression>> persistentSettings() {
@@ -70,16 +64,6 @@ public class ESClusterUpdateSettingsPlan extends UnnestablePlan {
 
     public Map<String, List<Expression>> transientSettings() {
         return transientSettings;
-    }
-
-    @Nullable
-    public Set<String> persistentSettingsToRemove() {
-        return persistentSettingsToRemove;
-    }
-
-    @Nullable
-    public Set<String> transientSettingsToRemove() {
-        return transientSettingsToRemove;
     }
 
     @Override

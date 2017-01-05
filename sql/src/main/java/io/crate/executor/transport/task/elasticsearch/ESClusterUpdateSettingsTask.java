@@ -80,12 +80,6 @@ public class ESClusterUpdateSettingsTask extends JobTask {
         ClusterUpdateSettingsRequest request = new ClusterUpdateSettingsRequest();
         request.persistentSettings(persistentSettings);
         request.transientSettings(transientSettings);
-        if (plan.persistentSettingsToRemove() != null) {
-            request.persistentSettingsToRemove(plan.persistentSettingsToRemove());
-        }
-        if (plan.transientSettingsToRemove() != null) {
-            request.transientSettingsToRemove(plan.transientSettingsToRemove());
-        }
         return request;
     }
 }

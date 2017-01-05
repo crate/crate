@@ -23,7 +23,6 @@
 package io.crate.cluster.gracefulstop;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.collect.Sets;
 import io.crate.action.sql.SQLOperations;
 import io.crate.metadata.settings.CrateSettings;
 import io.crate.operation.collect.StatsTables;
@@ -40,11 +39,11 @@ import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.node.DiscoveryNodes;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.Priority;
+import org.elasticsearch.common.collect.MapBuilder;
 import org.elasticsearch.common.component.AbstractLifecycleComponent;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.settings.ClusterSettings;
-import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.threadpool.ThreadPool;
@@ -52,9 +51,8 @@ import sun.misc.Signal;
 import sun.misc.SignalHandler;
 
 import javax.annotation.Nullable;
-import java.util.HashSet;
+import java.util.HashMap;
 import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
@@ -111,24 +109,24 @@ public class DecommissioningService extends AbstractLifecycleComponent implement
         if (!event.localNodeMaster() || !event.nodesRemoved()) {
             return;
         }
-        Set<String> removedDecommissionedNodes = getRemovedDecommissionedNodes(
+        Map<String, Object> removedDecommissionedNodes = getRemovedDecommissionedNodes(
             event.nodesDelta(), event.state().metaData().transientSettings());
         if (removedDecommissionedNodes != null) {
-            updateSettingsAction.execute(new ClusterUpdateSettingsRequest().transientSettingsToRemove(removedDecommissionedNodes));
+            updateSettingsAction.execute(new ClusterUpdateSettingsRequest().transientSettings(removedDecommissionedNodes));
         }
     }
 
     @Nullable
-    private static Set<String> getRemovedDecommissionedNodes(DiscoveryNodes.Delta nodesDelta, Settings transientSettings) {
-        Set<String> toRemove = null;
+    private static Map<String, Object> getRemovedDecommissionedNodes(DiscoveryNodes.Delta nodesDelta, Settings transientSettings) {
+        Map<String, Object> toRemove = null;
         for (DiscoveryNode discoveryNode : nodesDelta.removedNodes()) {
             Map<String, String> asMap = transientSettings.getByPrefix(DECOMMISSION_PREFIX).getAsMap();
             String nodeId = discoveryNode.getId();
             if (asMap.containsKey(nodeId)) {
                 if (toRemove == null) {
-                    toRemove = new HashSet<>();
+                    toRemove = new HashMap<>();
                 }
-                toRemove.add(DECOMMISSION_PREFIX + nodeId);
+                toRemove.put(DECOMMISSION_PREFIX + nodeId, null);
             }
         }
         return toRemove;
@@ -232,8 +230,10 @@ public class DecommissioningService extends AbstractLifecycleComponent implement
 
     @VisibleForTesting
     protected void removeDecommissioningSetting() {
-        HashSet<String> settingsToRemove = Sets.newHashSet(DECOMMISSION_PREFIX + clusterService.localNode().getId());
-        updateSettingsAction.execute(new ClusterUpdateSettingsRequest().transientSettingsToRemove(settingsToRemove));
+        Map<String, Object> settingsToRemove = MapBuilder.<String, Object>newMapBuilder()
+            .put(DECOMMISSION_PREFIX + clusterService.localNode().getId(), null)
+            .map();
+        updateSettingsAction.execute(new ClusterUpdateSettingsRequest().transientSettings(settingsToRemove));
     }
 
     @Override
