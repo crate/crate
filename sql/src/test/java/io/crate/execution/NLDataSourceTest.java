@@ -26,6 +26,7 @@ import io.crate.core.collections.Bucket;
 import io.crate.core.collections.Buckets;
 import io.crate.core.collections.CollectionBucket;
 import io.crate.core.collections.Row1;
+import io.crate.testing.CollectingRowReceiver;
 import io.crate.testing.TestingHelpers;
 import org.junit.Test;
 
@@ -53,7 +54,7 @@ public class NLDataSourceTest {
         );
 
         NLDataSource nlDataSource = new NLDataSource(left, right);
-        RowReceiver rr = new RowReceiver();
+        CollectingRowReceiver rr = new CollectingRowReceiver();
         Driver driver = new Driver(nlDataSource, rr);
         driver.run();
 
@@ -83,7 +84,7 @@ public class NLDataSourceTest {
 
         NLDataSource nlDataSource = new NLDataSource(left, right);
 
-        RowReceiver rr = new RowReceiver();
+        CollectingRowReceiver rr = new CollectingRowReceiver();
         Driver driver = new Driver(nlDataSource, rr);
         driver.run();
 
@@ -98,4 +99,57 @@ public class NLDataSourceTest {
             ));
     }
 
+    @Test
+    public void testNestedNL() throws Exception {
+        DataSource t1 = new StaticDataSource(
+            Buckets.of(new Row1(1)),
+            Buckets.of(new Row1(2)));
+
+        DataSource t2 = new StaticDataSource(
+            new CollectionBucket(Arrays.asList(
+                new Object[] { 10 },
+                new Object[] { 20 }
+            )),
+            Buckets.of(new Row1(30))
+        );
+
+        DataSource t3 = new StaticDataSource(
+            new CollectionBucket(Arrays.asList(
+                new Object[] { 100 },
+                new Object[] { 200 }
+            )),
+            Buckets.of(new Row1(300))
+        );
+
+        NLDataSource nlDataSource = new NLDataSource(
+            new NLDataSource(t1, t2),
+            t3
+        );
+
+        CollectingRowReceiver rr = new CollectingRowReceiver();
+        Driver driver = new Driver(nlDataSource, rr);
+        driver.run();
+
+        Bucket result = rr.result();
+        assertThat(TestingHelpers.printedTable(result),
+            is("1| 10| 100\n" +
+               "1| 10| 200\n" +
+               "1| 10| 300\n" +
+               "1| 20| 100\n" +
+               "1| 20| 200\n" +
+               "1| 20| 300\n" +
+               "1| 30| 100\n" +
+               "1| 30| 200\n" +
+               "1| 30| 300\n" +
+               "2| 10| 100\n" +
+               "2| 10| 200\n" +
+               "2| 10| 300\n" +
+               "2| 20| 100\n" +
+               "2| 20| 200\n" +
+               "2| 20| 300\n" +
+               "2| 30| 100\n" +
+               "2| 30| 200\n" +
+               "2| 30| 300\n"
+            ));
+    }
 }

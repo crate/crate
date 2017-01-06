@@ -23,19 +23,19 @@
 package io.crate.execution;
 
 import io.crate.core.collections.Row;
+import io.crate.operation.projectors.RepeatHandle;
+import io.crate.operation.projectors.RowReceiver;
 
 import java.util.Iterator;
 import java.util.concurrent.CompletableFuture;
-import java.util.function.Function;
 
 public class Driver {
 
     private final DataSource source;
-    private final Receiver<Row> receiver;
-    private Function<Row, Receiver.Result<Row>> onNext;
+    private final RowReceiver receiver;
 
 
-    public Driver(DataSource source, Receiver<Row> receiver) {
+    public Driver(DataSource source, RowReceiver receiver) {
         this.source = source;
         this.receiver = receiver;
     }
@@ -43,27 +43,21 @@ public class Driver {
     private void consumeIt(Iterator<Row> it, boolean isLast) {
         while (it.hasNext()) {
             Row row = it.next();
-            Receiver.Result<Row> result = receiver.onNext(row);
-            switch (result.type()) {
+            RowReceiver.Result result = receiver.setNextRow(row);
+            switch (result) {
                 case CONTINUE:
                     continue;
                 case STOP:
-                    receiver.onFinish();
+                    receiver.finish(RepeatHandle.UNSUPPORTED);
+                    source.close();
                     return;
-                case SUSPEND:
-                    result.continuation().whenComplete((resumeHandle, throwable) -> {
-                        resumeHandle.resume();
-                        if (throwable == null) {
-                            consumeIt(it, isLast);
-                        } else {
-                            receiver.onError(throwable);
-                        }
-                    });
+                case PAUSE:
+                    receiver.pauseProcessed(async -> consumeIt(it, isLast));
                     return;
             }
         }
         if (isLast) {
-            receiver.onFinish();
+            receiver.finish(RepeatHandle.UNSUPPORTED);
             source.close();
         } else {
             run();
@@ -78,7 +72,7 @@ public class Driver {
     private void run(CompletableFuture<Page> pageFuture) {
         pageFuture
             .thenAccept(this::consumePage)
-            .exceptionally(t -> { receiver.onError(t); return null; } );
+            .exceptionally(t -> { receiver.fail(t); return null; } );
     }
 
     public void run() {

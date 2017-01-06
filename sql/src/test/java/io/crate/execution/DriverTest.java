@@ -24,6 +24,7 @@ package io.crate.execution;
 
 import io.crate.core.collections.Bucket;
 import io.crate.core.collections.CollectionBucket;
+import io.crate.testing.CollectingRowReceiver;
 import io.crate.testing.TestingHelpers;
 import org.junit.Test;
 
@@ -50,7 +51,7 @@ public class DriverTest {
                 new Object[] { 10 }
             ))
         );
-        RowReceiver receiver = new RowReceiver();
+        CollectingRowReceiver receiver = new CollectingRowReceiver();
 
         Driver driver = new Driver(dataSource, receiver);
         driver.run();
