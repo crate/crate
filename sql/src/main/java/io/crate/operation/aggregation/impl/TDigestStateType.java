@@ -25,7 +25,6 @@ package io.crate.operation.aggregation.impl;
 import io.crate.Streamer;
 import io.crate.types.DataType;
 import io.crate.types.DataTypeFactory;
-import io.crate.types.DataTypes;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
@@ -33,12 +32,8 @@ import java.io.IOException;
 
 class TDigestStateType extends DataType<TDigestState> implements Streamer<TDigestState>, DataTypeFactory {
 
-    private static final int ID = 5120;
-    public static final TDigestStateType INSTANCE = new TDigestStateType();
-
-    static {
-        DataTypes.register(ID, INSTANCE);
-    }
+    static final int ID = 5120;
+    static final TDigestStateType INSTANCE = new TDigestStateType();
 
     private TDigestStateType() {
     }

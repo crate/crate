@@ -36,7 +36,10 @@ import java.util.Arrays;
 class PercentileAggregation extends AggregationFunction<TDigestState, Object> {
 
     private static final String NAME = "percentile";
-    private final FunctionInfo info;
+
+    static {
+        DataTypes.register(TDigestStateType.ID, TDigestStateType.INSTANCE);
+    }
 
     public static void register(AggregationImplModule mod) {
         for (DataType<?> t : DataTypes.NUMERIC_PRIMITIVE_TYPES) {
@@ -48,6 +51,8 @@ class PercentileAggregation extends AggregationFunction<TDigestState, Object> {
                 FunctionInfo.Type.AGGREGATE)));
         }
     }
+
+    private final FunctionInfo info;
 
     PercentileAggregation(FunctionInfo info) {
         this.info = info;

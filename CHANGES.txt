@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fixed a NPE when using a ``percentile`` aggregation in a multi-node
+   environment.
+
  - Fixed ``INDEX`` constraint validation. Defining it on complex data
    types like e.g. ``object`` was silently ignored instead of throwing
    an error.
