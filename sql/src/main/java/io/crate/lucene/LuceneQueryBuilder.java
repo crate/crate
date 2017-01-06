@@ -38,6 +38,7 @@ import io.crate.analyze.symbol.format.SymbolFormatter;
 import io.crate.analyze.symbol.format.SymbolPrinter;
 import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.geo.GeoJSONUtils;
+import io.crate.lucene.match.CrateRegexCapabilities;
 import io.crate.lucene.match.CrateRegexQuery;
 import io.crate.lucene.match.MatchQueryBuilder;
 import io.crate.lucene.match.MultiMatchQueryBuilder;
@@ -65,8 +66,6 @@ import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.queries.TermsQuery;
-import org.apache.lucene.sandbox.queries.regex.JavaUtilRegexCapabilities;
-import org.apache.lucene.sandbox.queries.regex.RegexQuery;
 import org.apache.lucene.search.*;
 import org.apache.lucene.spatial.geopoint.document.GeoPointField;
 import org.apache.lucene.spatial.geopoint.search.GeoPointDistanceRangeQuery;
@@ -834,10 +833,9 @@ public class LuceneQueryBuilder {
                 Object value = prepare.v2().value();
 
                 if (value instanceof BytesRef) {
-                    RegexQuery query = new RegexQuery(new Term(fieldName, BytesRefs.toBytesRef(value)));
-                    query.setRegexImplementation(new JavaUtilRegexCapabilities(
-                        JavaUtilRegexCapabilities.FLAG_CASE_INSENSITIVE |
-                        JavaUtilRegexCapabilities.FLAG_UNICODE_CASE));
+                    CrateRegexQuery query = new CrateRegexQuery(
+                        new Term(fieldName, BytesRefs.toBytesRef(value)),
+                        CrateRegexCapabilities.FLAG_CASE_INSENSITIVE | CrateRegexCapabilities.FLAG_UNICODE_CASE);
                     return query;
                 }
                 throw new IllegalArgumentException("Can only use ~* with patterns of type string");

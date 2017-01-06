@@ -39,10 +39,10 @@ class CrateRegexTermsEnum extends FilteredTermsEnum {
 
     private CrateRegexCapabilities.JavaUtilRegexMatcher regexImpl;
 
-    CrateRegexTermsEnum(TermsEnum tenum, Term term) {
+    CrateRegexTermsEnum(TermsEnum tenum, Term term, int flags) {
         super(tenum);
         String text = term.text();
-        this.regexImpl = CrateRegexCapabilities.compile(text);
+        this.regexImpl = CrateRegexCapabilities.compile(text, flags);
 
         setInitialSeekTerm(new BytesRef(""));
     }

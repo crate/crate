@@ -31,10 +31,13 @@ import java.util.regex.Pattern;
 /**
  * An implementation tying Java's built-in java.util.regex to {@link CrateRegexQuery}.
  */
-final class CrateRegexCapabilities {
+public final class CrateRegexCapabilities {
 
-    public static JavaUtilRegexMatcher compile(String regex) {
-        return new CrateRegexCapabilities.JavaUtilRegexMatcher(regex);
+    public static final int FLAG_UNICODE_CASE = Pattern.UNICODE_CASE;
+    public static final int FLAG_CASE_INSENSITIVE = Pattern.CASE_INSENSITIVE;
+
+    static JavaUtilRegexMatcher compile(String regex, int flags) {
+        return new CrateRegexCapabilities.JavaUtilRegexMatcher(regex, flags);
     }
 
     static class JavaUtilRegexMatcher {
@@ -42,8 +45,8 @@ final class CrateRegexCapabilities {
         private final Matcher matcher;
         private final CharsRefBuilder utf16 = new CharsRefBuilder();
 
-        JavaUtilRegexMatcher(String regex) {
-            this.pattern = Pattern.compile(regex, 0);
+        JavaUtilRegexMatcher(String regex, int flags) {
+            this.pattern = Pattern.compile(regex, flags);
             this.matcher = this.pattern.matcher(utf16.get());
         }
 

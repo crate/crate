@@ -40,17 +40,26 @@ import java.util.Objects;
  */
 public class CrateRegexQuery extends MultiTermQuery {
 
-    private Term term;
+    private final Term term;
+    private final int flags;
 
     /** Constructs a query for terms matching <code>term</code>. */
     public CrateRegexQuery(Term term) {
         super(term.field());
         this.term = term;
+        this.flags = 0;
+    }
+
+    /** Constructs a query for terms matching <code>term</code>. */
+    public CrateRegexQuery(Term term, int flags) {
+        super(term.field());
+        this.term = term;
+        this.flags = flags;
     }
 
     @Override
     protected FilteredTermsEnum getTermsEnum(Terms terms, AttributeSource atts) throws IOException {
-        return new CrateRegexTermsEnum(terms.iterator(), term);
+        return new CrateRegexTermsEnum(terms.iterator(), term, flags);
     }
 
     @Override
@@ -61,6 +70,7 @@ public class CrateRegexQuery extends MultiTermQuery {
             buffer.append(":");
         }
         buffer.append(term.text());
+        buffer.append(",flags:").append(flags);
         return buffer.toString();
     }
 
@@ -70,12 +80,13 @@ public class CrateRegexQuery extends MultiTermQuery {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         if (!super.equals(o)) return false;
-        CrateRegexQuery that = (CrateRegexQuery) o;
-        return Objects.equals(term, that.term);
+        CrateRegexQuery query = (CrateRegexQuery) o;
+        return flags == query.flags &&
+               Objects.equals(term, query.term);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(super.hashCode(), term);
+        return Objects.hash(super.hashCode(), term, flags);
     }
 }
