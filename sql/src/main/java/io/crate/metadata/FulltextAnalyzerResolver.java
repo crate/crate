@@ -36,6 +36,7 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.settings.loader.JsonSettingsLoader;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentFactory;
+import org.elasticsearch.index.analysis.AnalysisRegistry;
 
 import java.io.IOException;
 import java.util.HashMap;
@@ -49,7 +50,7 @@ import java.util.Set;
 public class FulltextAnalyzerResolver {
 
     private final ClusterService clusterService;
-    //private final IndicesAnalysisService indicesAnalysisService;
+    private final AnalysisRegistry analysisRegistry;
 
     // redefined list of extended analyzers not available outside of
     // a concrete index (see AnalyzerModule.ExtendedProcessor)
@@ -77,7 +78,7 @@ public class FulltextAnalyzerResolver {
 
         private String name;
 
-        private CustomType(String name) {
+        CustomType(String name) {
             this.name = name;
         }
 
@@ -88,9 +89,9 @@ public class FulltextAnalyzerResolver {
 
     @Inject
     public FulltextAnalyzerResolver(ClusterService clusterService,
-                                    IndicesAnalysisService indicesAnalysisService) {
+                                    AnalysisRegistry analysisRegistry) {
         this.clusterService = clusterService;
-        this.indicesAnalysisService = indicesAnalysisService;
+        this.analysisRegistry = analysisRegistry;
     }
 
     public boolean hasAnalyzer(String name) {
@@ -98,7 +99,11 @@ public class FulltextAnalyzerResolver {
     }
 
     public boolean hasBuiltInAnalyzer(String name) {
-        return indicesAnalysisService.hasAnalyzer(name);
+        try {
+            return analysisRegistry.getAnalyzer(name) != null;
+        } catch (IOException e) {
+            return false;
+        }
     }
 
     /**
@@ -108,7 +113,7 @@ public class FulltextAnalyzerResolver {
      */
     public Set<String> getBuiltInAnalyzers() {
         return new ImmutableSet.Builder<String>()
-            .addAll(indicesAnalysisService.analyzerProviderFactories().keySet()).build();
+            .addAll(analysisRegistry.getAnalyzers().keySet()).build();
     }
 
     /**
@@ -140,12 +145,12 @@ public class FulltextAnalyzerResolver {
 
 
     public boolean hasBuiltInTokenizer(String name) {
-        return indicesAnalysisService.hasTokenizer(name);
+        return analysisRegistry.getTokenizerProvider(name) != null;
     }
 
     public Set<String> getBuiltInTokenizers() {
         return new ImmutableSet.Builder<String>()
-            .addAll(indicesAnalysisService.tokenizerFactories().keySet())
+            .addAll(analysisRegistry.getTokenizers().keySet())
             .build();
     }
 
@@ -159,12 +164,12 @@ public class FulltextAnalyzerResolver {
     }
 
     public boolean hasBuiltInCharFilter(String name) {
-        return EXTENDED_BUILTIN_CHAR_FILTERS.contains(name) || indicesAnalysisService.hasCharFilter(name);
+        return EXTENDED_BUILTIN_CHAR_FILTERS.contains(name) || analysisRegistry.getCharFilterProvider(name) != null;
     }
 
     public Set<String> getBuiltInCharFilters() {
         return new ImmutableSet.Builder<String>().addAll(EXTENDED_BUILTIN_CHAR_FILTERS)
-            .addAll(indicesAnalysisService.charFilterFactories().keySet())
+            .addAll(analysisRegistry.getCharFilters().keySet())
             .build();
     }
 
@@ -178,13 +183,13 @@ public class FulltextAnalyzerResolver {
     }
 
     public boolean hasBuiltInTokenFilter(String name) {
-        return EXTENDED_BUILTIN_TOKEN_FILTERS.contains(name) || indicesAnalysisService.hasTokenFilter(name);
+        return EXTENDED_BUILTIN_TOKEN_FILTERS.contains(name) || analysisRegistry.getTokenFilterProvider(name) != null;
     }
 
     public Set<String> getBuiltInTokenFilters() {
         return new ImmutableSet.Builder<String>()
             .addAll(EXTENDED_BUILTIN_TOKEN_FILTERS)
-            .addAll(indicesAnalysisService.tokenFilterFactories().keySet())
+            .addAll(analysisRegistry.getTokenFilters().keySet())
             .build();
     }
 
@@ -215,7 +220,7 @@ public class FulltextAnalyzerResolver {
     }
 
     public static Settings decodeSettings(String encodedSettings) throws IOException {
-        Map<String, String> loaded = new JsonSettingsLoader().load(encodedSettings);
+        Map<String, String> loaded = new JsonSettingsLoader(false).load(encodedSettings);
         return Settings.builder().put(loaded).build();
 
 
