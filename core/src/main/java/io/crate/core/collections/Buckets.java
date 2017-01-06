@@ -22,6 +22,7 @@
 package io.crate.core.collections;
 
 import com.google.common.base.Function;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
 
 import java.util.Iterator;
@@ -84,4 +85,35 @@ public class Buckets {
     }
 
 
+    public static Bucket concat(Bucket b1, Bucket b2) {
+        return new Bucket() {
+            @Override
+            public int size() {
+                return b1.size() + b2.size();
+            }
+
+            @Override
+            public Iterator<Row> iterator() {
+                return Iterators.concat(b1.iterator(), b2.iterator());
+            }
+        };
+    }
+
+    public static Bucket skip(Bucket bucket, int numToSkip) {
+        if (numToSkip >= bucket.size()) {
+            return Bucket.EMPTY;
+        }
+        final Iterable<Row> skippedRows = Iterables.skip(bucket, numToSkip);
+        return new Bucket() {
+            @Override
+            public int size() {
+                return bucket.size() - numToSkip;
+            }
+
+            @Override
+            public Iterator<Row> iterator() {
+                return skippedRows.iterator();
+            }
+        };
+    }
 }

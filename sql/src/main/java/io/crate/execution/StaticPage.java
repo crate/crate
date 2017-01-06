@@ -20,44 +20,26 @@
  * agreement.
  */
 
-package io.crate.operation.join;
+package io.crate.execution;
 
-import io.crate.core.collections.Row;
+import io.crate.core.collections.Bucket;
 
-public class CombinedRow implements Row {
+public class StaticPage implements Page {
+    private final Bucket bucket;
+    private final boolean isLast;
 
-    public volatile Row outerRow;
-    public volatile Row innerRow;
-
-    @Override
-    public int size() {
-        return outerRow.size() + innerRow.size();
+    public StaticPage(Bucket bucket, boolean isLast) {
+        this.bucket = bucket;
+        this.isLast = isLast;
     }
 
     @Override
-    public Object get(int index) {
-        if (index < outerRow.size()) {
-            return outerRow.get(index);
-        }
-        return innerRow.get(index - outerRow.size());
+    public Bucket bucket() {
+        return bucket;
     }
 
     @Override
-    public Object[] materialize() {
-        Object[] left = outerRow.materialize();
-        Object[] right = innerRow.materialize();
-
-        Object[] newRow = new Object[left.length + right.length];
-        System.arraycopy(left, 0, newRow, 0, left.length);
-        System.arraycopy(right, 0, newRow, left.length, right.length);
-        return newRow;
-    }
-
-    @Override
-    public String toString() {
-        return "CombinedRow{" +
-               " outer=" + outerRow +
-               ", inner=" + innerRow +
-               '}';
+    public boolean isLast() {
+        return isLast;
     }
 }

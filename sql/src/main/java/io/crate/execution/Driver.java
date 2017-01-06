@@ -1,0 +1,87 @@
+/*
+ * Licensed to Crate under one or more contributor license agreements.
+ * See the NOTICE file distributed with this work for additional
+ * information regarding copyright ownership.  Crate licenses this file
+ * to you under the Apache License, Version 2.0 (the "License"); you may
+ * not use this file except in compliance with the License.  You may
+ * obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+ * implied.  See the License for the specific language governing
+ * permissions and limitations under the License.
+ *
+ * However, if you have executed another commercial license agreement
+ * with Crate these terms will supersede the license and you may use the
+ * software solely pursuant to the terms of the relevant commercial
+ * agreement.
+ */
+
+package io.crate.execution;
+
+import io.crate.core.collections.Row;
+
+import java.util.Iterator;
+import java.util.concurrent.CompletableFuture;
+import java.util.function.Function;
+
+public class Driver {
+
+    private final DataSource source;
+    private final Receiver<Row> receiver;
+    private Function<Row, Receiver.Result<Row>> onNext;
+
+
+    public Driver(DataSource source, Receiver<Row> receiver) {
+        this.source = source;
+        this.receiver = receiver;
+    }
+
+    private void consumeIt(Iterator<Row> it, boolean isLast) {
+        while (it.hasNext()) {
+            Row row = it.next();
+            Receiver.Result<Row> result = receiver.onNext(row);
+            switch (result.type()) {
+                case CONTINUE:
+                    continue;
+                case STOP:
+                    receiver.onFinish();
+                    return;
+                case SUSPEND:
+                    result.continuation().whenComplete((resumeHandle, throwable) -> {
+                        resumeHandle.resume();
+                        if (throwable == null) {
+                            consumeIt(it, isLast);
+                        } else {
+                            receiver.onError(throwable);
+                        }
+                    });
+                    return;
+            }
+        }
+        if (isLast) {
+            receiver.onFinish();
+            source.close();
+        } else {
+            run();
+        }
+    }
+
+    private void consumePage(Page page) {
+        Iterator<Row> it = page.bucket().iterator();
+        consumeIt(it, page.isLast());
+    }
+
+    private void run(CompletableFuture<Page> pageFuture) {
+        pageFuture
+            .thenAccept(this::consumePage)
+            .exceptionally(t -> { receiver.onError(t); return null; } );
+    }
+
+    public void run() {
+        run(source.fetch());
+    }
+}

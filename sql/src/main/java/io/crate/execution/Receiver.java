@@ -20,44 +20,49 @@
  * agreement.
  */
 
-package io.crate.operation.join;
+package io.crate.execution;
 
-import io.crate.core.collections.Row;
+import java.util.concurrent.CompletableFuture;
+import java.util.function.Function;
 
-public class CombinedRow implements Row {
+public interface Receiver<T> {
 
-    public volatile Row outerRow;
-    public volatile Row innerRow;
-
-    @Override
-    public int size() {
-        return outerRow.size() + innerRow.size();
+    enum Type {
+        CONTINUE,
+        SUSPEND,
+        STOP
     }
 
-    @Override
-    public Object get(int index) {
-        if (index < outerRow.size()) {
-            return outerRow.get(index);
+    @FunctionalInterface
+    interface ResumeHandle {
+        void resume();
+    }
+
+    interface Result<T> {
+        Result CONTINUE = new Result() {
+            @Override
+            public Type type() {
+                return Type.CONTINUE;
+            }
+
+            @Override
+            public CompletableFuture<Function> continuation() {
+                throw new UnsupportedOperationException("CONTINUE result has no continuation");
+            }
+
+        };
+        static <T> Result<T> getContinue() {
+            //noinspection unchecked
+            return (Result<T>) CONTINUE;
         }
-        return innerRow.get(index - outerRow.size());
+
+        Type type();
+        CompletableFuture<ResumeHandle> continuation();
     }
 
-    @Override
-    public Object[] materialize() {
-        Object[] left = outerRow.materialize();
-        Object[] right = innerRow.materialize();
+    Result<T> onNext(T item);
 
-        Object[] newRow = new Object[left.length + right.length];
-        System.arraycopy(left, 0, newRow, 0, left.length);
-        System.arraycopy(right, 0, newRow, left.length, right.length);
-        return newRow;
-    }
+    void onFinish();
 
-    @Override
-    public String toString() {
-        return "CombinedRow{" +
-               " outer=" + outerRow +
-               ", inner=" + innerRow +
-               '}';
-    }
+    void onError(Throwable t);
 }

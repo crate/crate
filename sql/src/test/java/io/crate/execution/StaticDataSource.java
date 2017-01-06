@@ -20,44 +20,31 @@
  * agreement.
  */
 
-package io.crate.operation.join;
+package io.crate.execution;
 
-import io.crate.core.collections.Row;
+import io.crate.core.collections.Bucket;
 
-public class CombinedRow implements Row {
+import java.util.Arrays;
+import java.util.Iterator;
+import java.util.concurrent.CompletableFuture;
 
-    public volatile Row outerRow;
-    public volatile Row innerRow;
+public class StaticDataSource implements DataSource {
 
-    @Override
-    public int size() {
-        return outerRow.size() + innerRow.size();
+    private final Iterator<Bucket> it;
+
+    StaticDataSource(Bucket... buckets) {
+        it = Arrays.asList(buckets).iterator();
     }
 
     @Override
-    public Object get(int index) {
-        if (index < outerRow.size()) {
-            return outerRow.get(index);
+    public CompletableFuture<Page> fetch() {
+        if (it.hasNext()) {
+            return CompletableFuture.completedFuture(new StaticPage(it.next(), !it.hasNext()));
         }
-        return innerRow.get(index - outerRow.size());
+        return CompletableFuture.completedFuture(Page.LAST);
     }
 
     @Override
-    public Object[] materialize() {
-        Object[] left = outerRow.materialize();
-        Object[] right = innerRow.materialize();
-
-        Object[] newRow = new Object[left.length + right.length];
-        System.arraycopy(left, 0, newRow, 0, left.length);
-        System.arraycopy(right, 0, newRow, left.length, right.length);
-        return newRow;
-    }
-
-    @Override
-    public String toString() {
-        return "CombinedRow{" +
-               " outer=" + outerRow +
-               ", inner=" + innerRow +
-               '}';
+    public void close() {
     }
 }
