@@ -44,6 +44,7 @@ import org.elasticsearch.common.component.AbstractLifecycleComponent;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.settings.ClusterSettings;
+import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.threadpool.ThreadPool;
@@ -60,6 +61,8 @@ import java.util.concurrent.TimeoutException;
 public class DecommissioningService extends AbstractLifecycleComponent implements SignalHandler, ClusterStateListener {
 
     static final String DECOMMISSION_PREFIX = "crate.internal.decommission.";
+    public static final Setting<Settings> DECOMMISSION_INTERNAL_SETTING_GROUP = Setting.groupSetting(
+        DECOMMISSION_PREFIX, Setting.Property.NodeScope, Setting.Property.Dynamic);
 
     private final ClusterService clusterService;
     private final StatsTables statsTables;

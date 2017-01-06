@@ -22,25 +22,22 @@
 package io.crate.plugin;
 
 import com.google.common.collect.ImmutableList;
-import io.crate.Constants;
 import io.crate.analyze.repositories.RepositorySettingsModule;
 import io.crate.breaker.CircuitBreakerModule;
 import io.crate.breaker.CrateCircuitBreakerService;
-import io.crate.cluster.gracefulstop.DecommissionAllocationDecider;
 import io.crate.cluster.gracefulstop.DecommissioningService;
 import io.crate.executor.transport.TransportExecutorModule;
 import io.crate.jobs.JobContextService;
 import io.crate.jobs.JobModule;
 import io.crate.jobs.transport.NodeDisconnectJobMonitorService;
-import io.crate.lucene.CrateIndexModule;
 import io.crate.metadata.MetaDataModule;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.blob.MetaDataBlobModule;
 import io.crate.metadata.information.MetaDataInformationModule;
 import io.crate.metadata.pg_catalog.PgCatalogModule;
+import io.crate.metadata.settings.AnalyzerSettings;
 import io.crate.metadata.settings.CrateSettings;
 import io.crate.metadata.settings.Setting;
-import io.crate.metadata.settings.SettingsAppliers;
 import io.crate.metadata.sys.MetaDataSysModule;
 import io.crate.monitor.MonitorModule;
 import io.crate.operation.aggregation.impl.AggregationImplModule;
@@ -61,23 +58,25 @@ import io.crate.protocols.postgres.PostgresNetty;
 import io.crate.rest.action.RestSQLAction;
 import org.elasticsearch.action.bulk.BulkModule;
 import org.elasticsearch.action.bulk.BulkRetryCoordinatorPool;
-import org.elasticsearch.cluster.ClusterModule;
 import org.elasticsearch.common.component.LifecycleComponent;
 import org.elasticsearch.common.inject.Module;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.mapper.ArrayMapper;
-import org.elasticsearch.indices.IndicesModule;
+import org.elasticsearch.index.mapper.Mapper;
+import org.elasticsearch.plugins.ActionPlugin;
+import org.elasticsearch.plugins.MapperPlugin;
 import org.elasticsearch.plugins.Plugin;
+import org.elasticsearch.rest.RestHandler;
 
-import java.util.Collection;
+import java.util.*;
 
 import static com.google.common.collect.Lists.newArrayList;
 
-public class SQLPlugin extends Plugin {
+public class SQLPlugin extends Plugin implements ActionPlugin, MapperPlugin {
 
     private final Settings settings;
 
-    public SQLPlugin(Settings settings) {
+    SQLPlugin(Settings settings) {
         this.settings = settings;
     }
 
@@ -95,6 +94,21 @@ public class SQLPlugin extends Plugin {
         return settingsBuilder.build();
     }
 
+    @Override
+    public List<org.elasticsearch.common.settings.Setting<?>> getSettings() {
+        // add our dynamic cluster settings
+        List<org.elasticsearch.common.settings.Setting<?>> settings = Arrays.asList(
+            AnalyzerSettings.CUSTOM_ANALYSIS_SETTING_GROUP,
+            CrateCircuitBreakerService.QUERY_CIRCUIT_BREAKER_LIMIT_SETTING,
+            CrateCircuitBreakerService.QUERY_CIRCUIT_BREAKER_OVERHEAD_SETTING,
+            DecommissioningService.DECOMMISSION_INTERNAL_SETTING_GROUP
+        );
+        for (Setting setting : CrateSettings.SETTINGS) {
+            settings.add(setting.esSetting());
+        }
+        return settings;
+    }
+
     public String name() {
         return "sql";
     }
@@ -104,8 +118,8 @@ public class SQLPlugin extends Plugin {
     }
 
     @Override
-    public Collection<Class<? extends LifecycleComponent>> nodeServices() {
-        return ImmutableList.<Class<? extends LifecycleComponent>>of(
+    public Collection<Class<? extends LifecycleComponent>> getGuiceServiceClasses() {
+        return ImmutableList.of(
             DecommissioningService.class,
             BulkRetryCoordinatorPool.class,
             NodeDisconnectJobMonitorService.class,
@@ -116,7 +130,7 @@ public class SQLPlugin extends Plugin {
     }
 
     @Override
-    public Collection<Module> nodeModules() {
+    public Collection<Module> createGuiceModules() {
         Collection<Module> modules = newArrayList();
         modules.add(new SQLModule());
 
@@ -147,6 +161,8 @@ public class SQLPlugin extends Plugin {
         return modules;
     }
 
+    /*
+    FIXME: fix dynamic array mapper registration
 
     @Override
     public Collection<Module> indexModules(Settings indexSettings) {
@@ -156,39 +172,15 @@ public class SQLPlugin extends Plugin {
         }
         return modules;
     }
+    */
 
-    public void onModule(RestModule restModule) {
-        restModule.addRestAction(RestSQLAction.class);
+    @Override
+    public List<Class<? extends RestHandler>> getRestHandlers() {
+        return Collections.singletonList(RestSQLAction.class);
     }
 
-    public void onModule(ClusterModule clusterModule) {
-        // add our dynamic cluster settings
-        clusterModule.registerClusterDynamicSetting(Constants.CUSTOM_ANALYSIS_SETTINGS_PREFIX + "*", Validator.EMPTY);
-
-        clusterModule.registerClusterDynamicSetting(CrateCircuitBreakerService.QUERY_CIRCUIT_BREAKER_LIMIT_SETTING, Validator.MEMORY_SIZE);
-        clusterModule.registerClusterDynamicSetting(CrateCircuitBreakerService.QUERY_CIRCUIT_BREAKER_OVERHEAD_SETTING, Validator.NON_NEGATIVE_DOUBLE);
-
-        clusterModule.registerClusterDynamicSetting("crate.internal.decommission.*", Validator.EMPTY);
-
-        registerSettings(clusterModule, CrateSettings.CRATE_SETTINGS);
-
-        clusterModule.registerAllocationDecider(DecommissionAllocationDecider.class);
-    }
-
-    private void registerSettings(ClusterModule clusterModule, Collection<? extends Setting> settings) {
-        for (Setting setting : settings) {
-            /**
-             * validation is done in
-             * {@link SettingsAppliers.AbstractSettingsApplier#apply(org.elasticsearch.common.settings.Settings.Builder, Object[], io.crate.sql.tree.Expression)}
-             * here we use Validator.EMPTY, since ES ignores invalid settings silently
-             **/
-
-            clusterModule.registerClusterDynamicSetting(setting.settingName(), Validator.EMPTY);
-            registerSettings(clusterModule, setting.children());
-        }
-    }
-
-    public void onModule(IndicesModule indicesModule) {
-        indicesModule.registerMapper(ArrayMapper.CONTENT_TYPE, new ArrayMapper.TypeParser());
+    @Override
+    public Map<String, Mapper.TypeParser> getMappers() {
+        return Collections.singletonMap(ArrayMapper.CONTENT_TYPE, new ArrayMapper.TypeParser());
     }
 }

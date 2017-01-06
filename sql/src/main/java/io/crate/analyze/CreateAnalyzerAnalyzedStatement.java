@@ -21,8 +21,8 @@
 
 package io.crate.analyze;
 
-import io.crate.Constants;
 import io.crate.metadata.FulltextAnalyzerResolver;
+import io.crate.metadata.settings.AnalyzerSettings;
 import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.collect.Tuple;
 import org.elasticsearch.common.settings.Settings;
@@ -255,7 +255,7 @@ public class CreateAnalyzerAnalyzedStatement extends AbstractDDLAnalyzedStatemen
 
         String encodedAnalyzerSettings = FulltextAnalyzerResolver.encodeSettings(analyzerSettings()).utf8ToString();
         builder.put(
-            String.format(Locale.ENGLISH, "%s.analyzer.%s", Constants.CUSTOM_ANALYSIS_SETTINGS_PREFIX, ident),
+            String.format(Locale.ENGLISH, "%s.analyzer.%s", AnalyzerSettings.CUSTOM_ANALYSIS_SETTINGS_PREFIX, ident),
             encodedAnalyzerSettings
         );
 
@@ -272,14 +272,14 @@ public class CreateAnalyzerAnalyzedStatement extends AbstractDDLAnalyzedStatemen
 
         if (tokenizerDefinition != null && !tokenizerDefinition.v2().getAsMap().isEmpty()) {
             builder.put(
-                String.format(Locale.ENGLISH, "%s.tokenizer.%s", Constants.CUSTOM_ANALYSIS_SETTINGS_PREFIX, tokenizerDefinition.v1()),
+                String.format(Locale.ENGLISH, "%s.tokenizer.%s", AnalyzerSettings.CUSTOM_ANALYSIS_SETTINGS_PREFIX, tokenizerDefinition.v1()),
                 FulltextAnalyzerResolver.encodeSettings(tokenizerDefinition.v2()).utf8ToString()
             );
         }
         for (Map.Entry<String, Settings> tokenFilterDefinition : tokenFilters.entrySet()) {
             if (!tokenFilterDefinition.getValue().getAsMap().isEmpty()) {
                 builder.put(
-                    String.format(Locale.ENGLISH, "%s.filter.%s", Constants.CUSTOM_ANALYSIS_SETTINGS_PREFIX, tokenFilterDefinition.getKey()),
+                    String.format(Locale.ENGLISH, "%s.filter.%s", AnalyzerSettings.CUSTOM_ANALYSIS_SETTINGS_PREFIX, tokenFilterDefinition.getKey()),
                     FulltextAnalyzerResolver.encodeSettings(tokenFilterDefinition.getValue()).utf8ToString()
                 );
             }
@@ -287,7 +287,7 @@ public class CreateAnalyzerAnalyzedStatement extends AbstractDDLAnalyzedStatemen
         for (Map.Entry<String, Settings> charFilterDefinition : charFilters.entrySet()) {
             if (!charFilterDefinition.getValue().getAsMap().isEmpty()) {
                 builder.put(
-                    String.format(Locale.ENGLISH, "%s.char_filter.%s", Constants.CUSTOM_ANALYSIS_SETTINGS_PREFIX, charFilterDefinition.getKey()),
+                    String.format(Locale.ENGLISH, "%s.char_filter.%s", AnalyzerSettings.CUSTOM_ANALYSIS_SETTINGS_PREFIX, charFilterDefinition.getKey()),
                     FulltextAnalyzerResolver.encodeSettings(charFilterDefinition.getValue()).utf8ToString()
                 );
             }
