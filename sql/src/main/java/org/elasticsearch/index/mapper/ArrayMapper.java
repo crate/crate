@@ -24,15 +24,15 @@ package org.elasticsearch.index.mapper;
 
 import com.google.common.base.Throwables;
 import org.apache.lucene.document.Field;
+import org.apache.lucene.search.Query;
 import org.elasticsearch.ElasticsearchParseException;
+import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.XContentBuilder;
-import org.elasticsearch.common.xcontent.XContentBuilderString;
 import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.index.mapper.array.DynamicArrayFieldMapperBuilderFactory;
-import org.elasticsearch.index.mapper.object.ArrayValueMapperParser;
-import org.elasticsearch.index.mapper.object.ObjectMapper;
+import org.elasticsearch.index.query.QueryShardContext;
 
 import java.io.IOException;
 import java.util.Iterator;
@@ -93,10 +93,9 @@ public class ArrayMapper extends FieldMapper implements ArrayValueMapperParser {
                     return null;
                 }
                 Mapper mapper = innerBuilder.build(builderContext);
-                mapper = DocumentParser.parseAndMergeUpdate(mapper, context);
+                DocumentParser.parseObjectOrField(context, mapper);
                 MappedFieldType mappedFieldType = newArrayFieldType(innerBuilder);
-                String fullName = context.path().fullPathAsText(name);
-                mappedFieldType.setNames(new MappedFieldType.Names(fullName));
+                mappedFieldType.setName(name);
                 return new ArrayMapper(
                     name,
                     mappedFieldType,
@@ -139,6 +138,12 @@ public class ArrayMapper extends FieldMapper implements ArrayValueMapperParser {
         public String typeName() {
             return ArrayMapper.CONTENT_TYPE;
         }
+
+        @Override
+        public Query termQuery(Object value, @Nullable QueryShardContext context) {
+            // FIXME: return correct termQuery
+            return null;
+        }
     }
 
     public static class Builder extends FieldMapper.Builder<Builder, ArrayMapper> {
@@ -154,7 +159,6 @@ public class ArrayMapper extends FieldMapper implements ArrayValueMapperParser {
         @Override
         public ArrayMapper build(BuilderContext context) {
             Mapper innerMapper = innerBuilder.build(context);
-            fieldType.setNames(buildNames(context));
             return new ArrayMapper(name, fieldType, defaultFieldType, context.indexSettings(),
                 multiFieldsBuilder.build(this, context), copyTo, innerMapper);
         }
@@ -232,7 +236,7 @@ public class ArrayMapper extends FieldMapper implements ArrayValueMapperParser {
 
         builder.startObject(simpleName());
         builder.field("type", contentType());
-        builder.field(INNER, innerMap);
+        builder.field(INNER_TYPE, innerMap);
         return builder.endObject();
     }
 
@@ -283,7 +287,7 @@ public class ArrayMapper extends FieldMapper implements ArrayValueMapperParser {
         } else {
             assert innerMapper instanceof ObjectMapper : "innerMapper must be a FieldMapper or an ObjectMapper";
             context.path().add(simpleName());
-            update = DocumentParser.parseObject(context, ((ObjectMapper) innerMapper), false);
+            update = DocumentParser.parseObject(context, ((ObjectMapper) innerMapper), context.parser().currentName());
             context.path().remove();
         }
         return update;
