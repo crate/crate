@@ -304,6 +304,13 @@ public class DataTypes {
         return PRIMITIVE_TYPES.contains(type);
     }
 
+    /**
+     * Register a custom data type to the type registry.
+     *
+     * <p>Note: If registering is done inside a static block, be sure the class is loaded initially.
+     * Otherwise it might not be registered on all nodes.
+     * </p>
+     */
     public static void register(int id, DataTypeFactory dataTypeFactory) {
         if (TYPE_REGISTRY.put(id, dataTypeFactory) != null) {
             throw new IllegalArgumentException("Already got a dataType with id " + id);
