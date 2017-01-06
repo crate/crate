@@ -23,9 +23,9 @@ package io.crate.metadata;
 
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableSet;
-import io.crate.Constants;
 import io.crate.exceptions.AnalyzerInvalidException;
 import io.crate.exceptions.AnalyzerUnknownException;
+import io.crate.metadata.settings.AnalyzerSettings;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.bytes.BytesReference;
@@ -234,7 +234,7 @@ public class FulltextAnalyzerResolver {
             return null;
         }
         String encodedSettings = clusterService.state().metaData().persistentSettings().get(
-            String.format(Locale.ENGLISH, "%s.%s.%s", Constants.CUSTOM_ANALYSIS_SETTINGS_PREFIX, type.getName(), name)
+            String.format(Locale.ENGLISH, "%s.%s.%s", AnalyzerSettings.CUSTOM_ANALYSIS_SETTINGS_PREFIX, type.getName(), name)
         );
         Settings decoded = null;
         if (encodedSettings != null) {
@@ -249,7 +249,7 @@ public class FulltextAnalyzerResolver {
 
     private Settings getCustomThingies(CustomType type) {
         Map<String, Settings> settingsMap = clusterService.state().metaData().persistentSettings
-            ().getGroups(Constants.CUSTOM_ANALYSIS_SETTINGS_PREFIX);
+            ().getGroups(AnalyzerSettings.CUSTOM_ANALYSIS_SETTINGS_PREFIX);
         Settings result = settingsMap.get(type.getName());
         return result != null ? result : Settings.EMPTY;
     }
@@ -263,7 +263,7 @@ public class FulltextAnalyzerResolver {
      */
     private boolean hasCustomThingy(String name, CustomType type) {
         return clusterService.state().metaData().persistentSettings().getAsMap().containsKey(
-            String.format(Locale.ROOT, "%s.%s.%s", Constants.CUSTOM_ANALYSIS_SETTINGS_PREFIX, type.getName(), name));
+            String.format(Locale.ROOT, "%s.%s.%s", AnalyzerSettings.CUSTOM_ANALYSIS_SETTINGS_PREFIX, type.getName(), name));
     }
 
     /**
