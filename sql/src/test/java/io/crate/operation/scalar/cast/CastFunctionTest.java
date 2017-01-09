@@ -51,5 +51,10 @@ public class CastFunctionTest extends AbstractScalarFunctionsTest {
         assertEvaluate("10.4::string", new BytesRef("10.4"));
         assertEvaluate("[1, 2, 0]::array(boolean)", new Boolean[]{true, true, false});
         assertEvaluate("(1+3)/2::string", new BytesRef("2"));
+        assertEvaluate("'10'::long + 5", 15L);
+        assertEvaluate("-4::string", new BytesRef("-4"));
+        assertEvaluate("'-4'::long", -4L);
+        assertEvaluate("-4::string || ' apples'", new BytesRef("-4 apples"));
+        assertEvaluate("'-4'::long + 10", 6L);
     }
 }

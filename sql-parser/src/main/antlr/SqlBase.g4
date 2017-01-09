@@ -182,7 +182,6 @@ booleanExpression
     | left=booleanExpression operator=OR right=booleanExpression                     #logicalBinary
     | MATCH '(' matchPredicateIdents ',' term=primaryExpression ')'
         (USING matchType=ident withProperties?)?                                     #match
-    | booleanExpression CAST_OPERATOR dataType                                       #doubleColonCast
     ;
 
 predicated
@@ -209,6 +208,7 @@ valueExpression
         right=valueExpression                                                        #arithmeticBinary
     | left=valueExpression operator=(PLUS | MINUS) right=valueExpression             #arithmeticBinary
     | left=valueExpression CONCAT right=valueExpression                              #concatenation
+    | valueExpression CAST_OPERATOR dataType                                         #doubleColonCast
     ;
 
 primaryExpression

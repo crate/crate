@@ -949,7 +949,7 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
 
     @Override
     public Node visitDoubleColonCast(SqlBaseParser.DoubleColonCastContext context) {
-        return new Cast((Expression) visit(context.booleanExpression()), (ColumnType) visit(context.dataType()));
+        return new Cast((Expression) visit(context.valueExpression()), (ColumnType) visit(context.dataType()));
     }
 
     // Primary expressions
