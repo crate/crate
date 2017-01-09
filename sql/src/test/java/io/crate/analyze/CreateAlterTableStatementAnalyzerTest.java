@@ -58,9 +58,10 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
 
     private SQLExecutor e;
 
+    @Override
     @Before
-    public void prepare() {
-        super.prepare();
+    public void setUp() {
+        super.setUp();
         String analyzerSettings = FulltextAnalyzerResolver.encodeSettings(
             Settings.builder().put("search", "foobar").build()).utf8ToString();
         MetaData metaData = MetaData.builder()

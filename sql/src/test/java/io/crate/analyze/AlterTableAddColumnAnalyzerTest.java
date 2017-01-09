@@ -42,13 +42,14 @@ import static org.hamcrest.core.IsEqual.equalTo;
 
 public class AlterTableAddColumnAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
-    private SQLExecutor e;
-
+    @Override
     @Before
-    public void prepare() {
-        super.prepare();
+    public void setUp() {
+        super.setUp();
         e = SQLExecutor.builder(dummyClusterService).enableDefaultTables().build();
     }
+
+    private SQLExecutor e;
 
     @Test
     public void testAddColumnOnSystemTableIsNotAllowed() throws Exception {

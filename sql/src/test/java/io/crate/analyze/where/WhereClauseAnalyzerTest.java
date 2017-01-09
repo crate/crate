@@ -72,9 +72,10 @@ public class WhereClauseAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     private final TransactionContext transactionContext = new TransactionContext(SessionContext.SYSTEM_SESSION);
     private SQLExecutor e;
 
+    @Override
     @Before
-    public void prepare() {
-        super.prepare();
+    public void setUp() {
+        super.setUp();
         SQLExecutor.Builder builder = SQLExecutor.builder(dummyClusterService);
         registerTables(builder);
 
