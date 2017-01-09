@@ -7,6 +7,7 @@ This program can only execute "full scripts". "prototype scripts" are not
 supported.
 """
 
+import os
 import re
 import sys
 import logging
@@ -276,10 +277,12 @@ def run_file(fh, hosts, log_level, log_file, failfast):
     cursor = conn.cursor()
     commands = get_commands(fh)
     commands = (cmd for cmd in commands if _exec_on_crate(cmd))
+    if os.environ.get('TQDM_ENABLED', 'True').lower() == 'true':
+        commands = tqdm(commands)
     dml_done = False
     attr = dict(testfile=fh.name)
     try:
-        for cmd in tqdm(commands):
+        for cmd in commands:
             s_or_q = parse_cmd(cmd)
             if not dml_done and isinstance(s_or_q, Query):
                 dml_done = True
