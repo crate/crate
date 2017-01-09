@@ -38,6 +38,7 @@ import io.crate.shade.org.postgresql.util.PSQLException;
 import io.crate.shade.org.postgresql.util.ServerErrorMessage;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
+import org.apache.logging.log4j.Logger;
 import org.elasticsearch.ElasticsearchTimeoutException;
 import org.elasticsearch.ExceptionsHelper;
 import org.elasticsearch.action.ActionFuture;
@@ -49,7 +50,6 @@ import org.elasticsearch.client.Requests;
 import org.elasticsearch.cluster.health.ClusterHealthStatus;
 import org.elasticsearch.common.Priority;
 import org.elasticsearch.common.io.stream.NotSerializableExceptionWrapper;
-import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.common.xcontent.XContentBuilder;
@@ -324,7 +324,7 @@ public class SQLTransportExecutor {
         XContentBuilder builder = JsonXContent.contentBuilder();
         builder.map(value);
         builder.close();
-        return builder.bytes().toUtf8();
+        return builder.bytes().utf8ToString();
     }
 
     private static String toJsonString(Collection values) throws IOException {
@@ -336,7 +336,7 @@ public class SQLTransportExecutor {
         }
         builder.endArray();
         builder.close();
-        return builder.bytes().toUtf8();
+        return builder.bytes().utf8ToString();
     }
 
     private static PGobject toPGObjectJson(String json) throws SQLException {
@@ -482,7 +482,7 @@ public class SQLTransportExecutor {
         ClusterHealthResponse actionGet = client.admin().cluster().health(
             Requests.clusterHealthRequest()
                 .waitForStatus(state)
-                .waitForEvents(Priority.LANGUID).waitForRelocatingShards(0)
+                .waitForEvents(Priority.LANGUID).waitForNoRelocatingShards(false)
         ).actionGet();
 
         if (actionGet.isTimedOut()) {
