@@ -38,12 +38,12 @@ import io.crate.planner.node.dql.DistributedGroupBy;
 import io.crate.planner.node.dql.MergePhase;
 import io.crate.planner.node.dql.RoutedCollectPhase;
 import io.crate.planner.projection.*;
-import io.crate.test.integration.CrateUnitTest;
+import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
-import org.elasticsearch.test.cluster.NoopClusterService;
 import org.hamcrest.core.Is;
+import org.junit.Before;
 import org.junit.Test;
 
 import static io.crate.analyze.TableDefinitions.shardRouting;
@@ -51,20 +51,27 @@ import static io.crate.testing.SymbolMatchers.isAggregation;
 import static io.crate.testing.SymbolMatchers.isReference;
 import static org.hamcrest.Matchers.*;
 
-public class GroupByPlannerTest extends CrateUnitTest {
+public class GroupByPlannerTest extends CrateDummyClusterServiceUnitTest {
 
-    private SQLExecutor e = SQLExecutor.builder(new NoopClusterService())
-        .enableDefaultTables()
-        .addDocTable(TableDefinitions.CLUSTERED_PARTED)
-        .addDocTable(TestingTableInfo.builder(
-            new TableIdent("doc", "empty_parted"), shardRouting("empty_parted"))
-            .add("id", DataTypes.INTEGER)
-            .add("date", DataTypes.TIMESTAMP, null, true)
-            .addPrimaryKey("id")
-            .addPrimaryKey("date")
-            .clusteredBy("id")
-            .build()
-        ).build();
+    private SQLExecutor e;
+
+    @Before
+    public void prepare() {
+        super.prepare();
+        e  = SQLExecutor.builder(
+            dummyClusterService)
+            .enableDefaultTables()
+            .addDocTable(TableDefinitions.CLUSTERED_PARTED)
+            .addDocTable(TestingTableInfo.builder(
+                new TableIdent("doc", "empty_parted"), shardRouting("empty_parted"))
+                .add("id", DataTypes.INTEGER)
+                .add("date", DataTypes.TIMESTAMP, null, true)
+                .addPrimaryKey("id")
+                .addPrimaryKey("date")
+                .clusteredBy("id")
+                .build()
+            ).build();
+    }
 
     @Test
     public void testGroupByWithAggregationStringLiteralArguments() {

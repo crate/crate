@@ -26,17 +26,13 @@ import io.crate.action.sql.Option;
 import io.crate.action.sql.SQLOperations;
 import io.crate.executor.Executor;
 import io.crate.operation.collect.StatsTables;
+import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
-import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.test.ClusterServiceUtils;
-import org.elasticsearch.threadpool.TestThreadPool;
-import org.elasticsearch.threadpool.ThreadPool;
 import org.jboss.netty.buffer.ChannelBuffer;
 import org.jboss.netty.buffer.ChannelBuffers;
 import org.jboss.netty.channel.Channel;
 import org.jboss.netty.handler.codec.embedder.DecoderEmbedder;
-import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
@@ -47,31 +43,28 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
-import java.util.concurrent.TimeUnit;
 
 import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
 import static org.mockito.Mockito.*;
 
-public class ConnectionContextTest {
+public class ConnectionContextTest extends CrateDummyClusterServiceUnitTest {
 
-    private ThreadPool threadPool = new TestThreadPool("dummy");
-    private ClusterService clusterService = ClusterServiceUtils.createClusterService(threadPool);
-    private SQLExecutor e = SQLExecutor.builder(clusterService).build();
+    private SQLExecutor e;
     private SQLOperations sqlOperations;
     private List<SQLOperations.Session> sessions = new ArrayList<>();
 
     @Before
-    public void setUp() throws Exception {
+    public void prepare() {
+        super.prepare();
+        e = SQLExecutor.builder(dummyClusterService).build();
         sqlOperations = new SQLOperations(
             e.analyzer,
             e.planner,
             () -> mock(Executor.class),
-            new StatsTables(Settings.EMPTY, clusterService),
+            new StatsTables(Settings.EMPTY, dummyClusterService),
             Settings.EMPTY,
-            clusterService
+            dummyClusterService
         ) {
-
             @Override
             public Session createSession(@Nullable String defaultSchema, Set<Option> options, int defaultLimit) {
                 Session session = super.createSession(defaultSchema, options, defaultLimit);
@@ -79,11 +72,6 @@ public class ConnectionContextTest {
                 return session;
             }
         };
-    }
-
-    @After
-    public void tearDown() throws Exception {
-        ThreadPool.terminate(threadPool, 30, TimeUnit.SECONDS);
     }
 
     @Test
@@ -132,7 +120,7 @@ public class ConnectionContextTest {
         ClientMessages.sendStartupMessage(buffer, "doc");
         ClientMessages.sendParseMessage(buffer, "S1", "select ?, ?", new int[0]); // no type hints for parameters
 
-        List<Object> params = Arrays.<Object>asList(10, 20);
+        List<Object> params = Arrays.asList(10, 20);
         ClientMessages.sendBindMessage(buffer, "P1", "S1", params);
 
         e.offer(buffer);
