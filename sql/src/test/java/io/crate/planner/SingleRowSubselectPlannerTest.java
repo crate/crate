@@ -26,17 +26,23 @@ import io.crate.planner.node.dql.Collect;
 import io.crate.planner.node.dql.ESGet;
 import io.crate.planner.node.dql.QueryThenFetch;
 import io.crate.planner.node.dql.join.NestedLoop;
-import io.crate.test.integration.CrateUnitTest;
+import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
-import org.elasticsearch.test.cluster.NoopClusterService;
+import org.junit.Before;
 import org.junit.Test;
 
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.instanceOf;
 
-public class SingleRowSubselectPlannerTest extends CrateUnitTest {
+public class SingleRowSubselectPlannerTest extends CrateDummyClusterServiceUnitTest {
 
-    private SQLExecutor e = SQLExecutor.builder(new NoopClusterService()).enableDefaultTables().build();
+    private SQLExecutor e;
+
+    @Override
+    @Before
+    public void setUp() {
+        e = SQLExecutor.builder(dummyClusterService).enableDefaultTables().build();
+    }
 
     @Test
     public void testPlanSimpleSelectWithSingleRowSubSelectInWhereClause() throws Exception {
