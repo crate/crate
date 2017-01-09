@@ -22,6 +22,7 @@
 
 package io.crate.jobs.transport;
 
+import io.crate.exceptions.Exceptions;
 import io.crate.executor.transport.kill.KillJobsRequest;
 import io.crate.executor.transport.kill.KillResponse;
 import io.crate.executor.transport.kill.TransportKillJobsNodeAction;
@@ -104,7 +105,7 @@ public class NodeDisconnectJobMonitorService extends AbstractLifecycleComponent 
                     }
 
                     @Override
-                    public void onFailure(Throwable e) {
+                    public void onFailure(Exception e) {
                         LOGGER.warn("failed to send kill request to nodes");
                     }
                 }, Arrays.asList(node.getId()));

@@ -75,7 +75,7 @@ public class ESGetTask extends JobTask {
     private final FetchSourceContext fsc;
 
     static abstract class JobContext<Action extends TransportAction<Request, Response>,
-        Request extends ActionRequest, Response extends ActionResponse> extends AbstractExecutionSubContext
+        Request extends ActionRequest<Request>, Response extends ActionResponse> extends AbstractExecutionSubContext
         implements ActionListener<Response> {
 
         private static final Logger LOGGER = Loggers.getLogger(JobContext.class);

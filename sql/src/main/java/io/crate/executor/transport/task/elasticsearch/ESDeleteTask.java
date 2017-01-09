@@ -39,6 +39,7 @@ import io.crate.operation.projectors.RowReceivers;
 import io.crate.planner.node.dml.ESDelete;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.ActionRequest;
+import org.elasticsearch.action.DocWriteResponse;
 import org.elasticsearch.action.delete.DeleteRequest;
 import org.elasticsearch.action.delete.DeleteResponse;
 import org.elasticsearch.action.delete.TransportDeleteAction;
@@ -145,7 +146,7 @@ public class ESDeleteTask extends JobTask {
 
         @Override
         public void onResponse(DeleteResponse response) {
-            if (!response.isFound()) {
+            if (response.getResult() == DocWriteResponse.Result.NOT_FOUND) {
                 result.set(0L);
             } else {
                 result.set(1L);
@@ -154,12 +155,12 @@ public class ESDeleteTask extends JobTask {
 
         @Override
         public void onFailure(Exception e) {
-            e = Exceptions.unwrap(e); // unwrap to get rid of RemoteTransportException
-            if (e instanceof VersionConflictEngineException) {
+            Throwable t = Exceptions.unwrap(e); // unwrap to get rid of RemoteTransportException
+            if (t instanceof VersionConflictEngineException) {
                 // treat version conflict as rows affected = 0
                 result.set(0L);
             } else {
-                result.setException(e);
+                result.setException(t);
             }
         }
     }
