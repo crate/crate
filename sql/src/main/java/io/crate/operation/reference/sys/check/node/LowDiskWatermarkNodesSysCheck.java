@@ -28,6 +28,7 @@ import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.monitor.fs.FsInfo;
 import org.elasticsearch.monitor.fs.FsProbe;
 
 @Singleton
@@ -40,8 +41,8 @@ public class LowDiskWatermarkNodesSysCheck extends DiskWatermarkNodesSysCheck {
                                               " The cluster will not allocate new shards to the node. Please check the node disk usage.";
 
     @Inject
-    public LowDiskWatermarkNodesSysCheck(ClusterService clusterService, Settings settings, FsProbe fsProbe) {
-        super(ID, DESCRIPTION, LOW_DISK_WATERMARK_SETTING, Severity.HIGH, clusterService, settings, fsProbe);
+    public LowDiskWatermarkNodesSysCheck(ClusterService clusterService, Settings settings, FsProbe fsProbe, FsInfo fsInfo) {
+        super(ID, DESCRIPTION, LOW_DISK_WATERMARK_SETTING, Severity.HIGH, clusterService, settings, fsProbe, fsInfo);
     }
 
 }

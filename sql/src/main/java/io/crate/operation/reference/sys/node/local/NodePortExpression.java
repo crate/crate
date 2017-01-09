@@ -24,13 +24,12 @@ package io.crate.operation.reference.sys.node.local;
 
 import io.crate.metadata.SimpleObjectExpression;
 import io.crate.operation.reference.NestedObjectExpression;
-import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.action.admin.cluster.node.info.NodeInfo;
+import org.elasticsearch.action.admin.cluster.node.stats.NodeStats;
+import org.elasticsearch.action.admin.indices.stats.CommonStatsFlags;
 import org.elasticsearch.common.transport.InetSocketTransportAddress;
 import org.elasticsearch.common.transport.TransportAddress;
 import org.elasticsearch.node.service.NodeService;
-
-import java.io.IOException;
 
 class NodePortExpression extends NestedObjectExpression {
 
@@ -48,7 +47,8 @@ class NodePortExpression extends NestedObjectExpression {
         childImplementations.put(HTTP, new SimpleObjectExpression<Integer>() {
             @Override
             public Integer value() {
-                NodeInfo nodeInfo = nodeService.info();
+                NodeInfo nodeInfo = nodeService.info(false, false, false, false, false,
+                    false, true, false, false, false);
                 if (nodeInfo.getHttp() == null) {
                     return null;
                 }
@@ -58,11 +58,9 @@ class NodePortExpression extends NestedObjectExpression {
         childImplementations.put(TRANSPORT, new SimpleObjectExpression<Integer>() {
             @Override
             public Integer value() {
-                try {
-                    return portFromAddress(nodeService.stats().getNode().address());
-                } catch (IOException e) {
-                    throw new ElasticsearchException("unable to get transport statistics");
-                }
+                NodeStats nodeStats = nodeService.stats(CommonStatsFlags.NONE, false, false, false, false,
+                    false,false, false, false, false, false, false);
+                return portFromAddress(nodeStats.getNode().getAddress());
             }
         });
     }
