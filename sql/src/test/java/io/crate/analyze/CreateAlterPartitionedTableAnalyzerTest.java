@@ -25,14 +25,14 @@ import io.crate.exceptions.ColumnUnknownException;
 import io.crate.metadata.FulltextAnalyzerResolver;
 import io.crate.metadata.PartitionName;
 import io.crate.sql.parser.ParsingException;
-import io.crate.test.integration.CrateUnitTest;
+import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.cluster.ClusterName;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.MetaData;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.test.cluster.NoopClusterService;
+import org.elasticsearch.test.ClusterServiceUtils;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -43,22 +43,22 @@ import java.util.Map;
 import static io.crate.testing.TestingHelpers.mapToSortedString;
 import static org.hamcrest.Matchers.*;
 
-public class CreateAlterPartitionedTableAnalyzerTest extends CrateUnitTest {
+public class CreateAlterPartitionedTableAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     private SQLExecutor e;
 
     @Before
-    public void init() throws Exception {
+    public void prepare() {
+        super.prepare();
         String analyzerSettings = FulltextAnalyzerResolver.encodeSettings(
-            Settings.builder().put("search", "foobar").build()).toUtf8();
+            Settings.builder().put("search", "foobar").build()).utf8ToString();
         MetaData metaData = MetaData.builder()
             .persistentSettings(
                 Settings.builder().put("crate.analysis.custom.analyzer.ft_search", analyzerSettings).build())
             .build();
         ClusterState state = ClusterState.builder(ClusterName.DEFAULT).metaData(metaData).build();
-        e = SQLExecutor.builder(new NoopClusterService(state))
-            .enableDefaultTables()
-            .build();
+        ClusterServiceUtils.setState(dummyClusterService, state);
+        e = SQLExecutor.builder(dummyClusterService).enableDefaultTables().build();
     }
 
     @Test

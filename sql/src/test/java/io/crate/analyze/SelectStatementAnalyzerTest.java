@@ -52,17 +52,14 @@ import io.crate.operation.scalar.geo.DistanceFunction;
 import io.crate.operation.scalar.regex.MatchesFunction;
 import io.crate.sql.parser.ParsingException;
 import io.crate.sql.tree.QualifiedName;
-import io.crate.test.integration.CrateUnitTest;
+import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
-import io.crate.testing.UseJdbc;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
-import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.collect.MapBuilder;
 import org.elasticsearch.common.lucene.BytesRefs;
-import org.elasticsearch.test.cluster.NoopClusterService;
 import org.hamcrest.Matchers;
 import org.hamcrest.core.IsInstanceOf;
 import org.junit.Before;
@@ -79,14 +76,14 @@ import static io.crate.testing.TestingHelpers.mapToSortedString;
 import static org.hamcrest.Matchers.*;
 import static org.hamcrest.core.Is.is;
 
-
 @SuppressWarnings("ConstantConditions")
-public class SelectStatementAnalyzerTest extends CrateUnitTest {
+public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     private SQLExecutor sqlExecutor;
 
     @Before
-    public void init() throws Exception {
+    public void prepare() {
+        super.prepare();
         DocTableInfo fooUserTableInfo = TestingTableInfo.builder(new TableIdent("foo", "users"), SHARD_ROUTING)
             .add("id", DataTypes.LONG, null)
             .add("name", DataTypes.STRING, null)
@@ -94,10 +91,9 @@ public class SelectStatementAnalyzerTest extends CrateUnitTest {
             .build();
         DocTableInfoFactory fooTableFactory = new TestingDocTableInfoFactory(
             ImmutableMap.of(fooUserTableInfo.ident(), fooUserTableInfo));
-        ClusterService clusterService = new NoopClusterService();
-        sqlExecutor = SQLExecutor.builder(clusterService)
+        sqlExecutor = SQLExecutor.builder(dummyClusterService)
             .enableDefaultTables()
-            .addSchema(new DocSchemaInfo("foo", clusterService, fooTableFactory))
+            .addSchema(new DocSchemaInfo("foo", dummyClusterService, fooTableFactory))
             .build();
     }
 

@@ -24,10 +24,10 @@ package io.crate.analyze;
 import io.crate.core.collections.StringObjectMaps;
 import io.crate.metadata.ColumnIdent;
 import io.crate.sql.parser.ParsingException;
-import io.crate.test.integration.CrateUnitTest;
+import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
-import org.elasticsearch.test.cluster.NoopClusterService;
 import org.hamcrest.Matchers;
+import org.junit.Before;
 import org.junit.Test;
 
 import java.util.Arrays;
@@ -40,9 +40,15 @@ import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.core.IsEqual.equalTo;
 
-public class AlterTableAddColumnAnalyzerTest extends CrateUnitTest {
+public class AlterTableAddColumnAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
-    private SQLExecutor e = SQLExecutor.builder(new NoopClusterService()).enableDefaultTables().build();
+    private SQLExecutor e;
+
+    @Before
+    public void prepare() {
+        super.prepare();
+        e = SQLExecutor.builder(dummyClusterService).enableDefaultTables().build();
+    }
 
     @Test
     public void testAddColumnOnSystemTableIsNotAllowed() throws Exception {

@@ -24,7 +24,7 @@ package io.crate.analyze;
 import com.google.common.collect.ImmutableList;
 import io.crate.exceptions.*;
 import io.crate.metadata.PartitionName;
-import io.crate.test.integration.CrateUnitTest;
+import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.cluster.ClusterName;
@@ -32,21 +32,21 @@ import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.MetaData;
 import org.elasticsearch.cluster.metadata.RepositoriesMetaData;
 import org.elasticsearch.cluster.metadata.RepositoryMetaData;
-import org.elasticsearch.cluster.metadata.SnapshotId;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.test.cluster.NoopClusterService;
+import org.elasticsearch.test.ClusterServiceUtils;
 import org.junit.Before;
 import org.junit.Test;
 
 import static io.crate.analyze.TableDefinitions.*;
 import static org.hamcrest.Matchers.*;
 
-public class SnapshotRestoreAnalyzerTest extends CrateUnitTest {
+public class SnapshotRestoreAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     private SQLExecutor executor;
 
     @Before
-    public void before() throws Exception {
+    public void prepare() {
+        super.prepare();
         RepositoriesMetaData repositoriesMetaData = new RepositoriesMetaData(
             new RepositoryMetaData(
                 "my_repo",
@@ -57,8 +57,8 @@ public class SnapshotRestoreAnalyzerTest extends CrateUnitTest {
             .metaData(MetaData.builder()
                 .putCustom(RepositoriesMetaData.TYPE, repositoriesMetaData))
             .build();
-        NoopClusterService clusterService = new NoopClusterService(clusterState);
-        executor = SQLExecutor.builder(clusterService)
+        ClusterServiceUtils.setState(dummyClusterService, clusterState);
+        executor = SQLExecutor.builder(dummyClusterService)
             .addDocTable(USER_TABLE_INFO)
             .addDocTable(TEST_DOC_LOCATIONS_TABLE_INFO)
             .addDocTable(TEST_PARTITIONED_TABLE_INFO)
@@ -74,7 +74,8 @@ public class SnapshotRestoreAnalyzerTest extends CrateUnitTest {
         CreateSnapshotAnalyzedStatement statement = analyze("CREATE SNAPSHOT my_repo.my_snapshot ALL WITH (wait_for_completion=true)");
         assertThat(statement.indices(), is(CreateSnapshotAnalyzedStatement.ALL_INDICES));
         assertThat(statement.isAllSnapshot(), is(true));
-        assertThat(statement.snapshotId(), is(new SnapshotId("my_repo", "my_snapshot")));
+        assertThat(statement.snapshot().getRepository(), is("my_repo"));
+        assertThat(statement.snapshot().getSnapshotId().getName(), is("my_snapshot"));
         assertThat(statement.includeMetadata(), is(true));
         assertThat(statement.snapshotSettings().getAsMap(),
             allOf(
@@ -157,7 +158,8 @@ public class SnapshotRestoreAnalyzerTest extends CrateUnitTest {
         CreateSnapshotAnalyzedStatement statement = analyze("CREATE SNAPSHOT my_repo.my_snapshot TABLE users, locations WITH (wait_for_completion=true)");
         assertThat(statement.indices(), containsInAnyOrder("users", "locations"));
         assertThat(statement.isAllSnapshot(), is(false));
-        assertThat(statement.snapshotId(), is(new SnapshotId("my_repo", "my_snapshot")));
+        assertThat(statement.snapshot().getRepository(), is("my_repo"));
+        assertThat(statement.snapshot().getSnapshotId().getName(), is("my_snapshot"));
         assertThat(statement.includeMetadata(), is(true));
         assertThat(statement.snapshotSettings().getAsMap().size(), is(2));
         assertThat(statement.snapshotSettings().getAsMap(),

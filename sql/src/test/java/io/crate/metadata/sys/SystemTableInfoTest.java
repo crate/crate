@@ -24,32 +24,21 @@ package io.crate.metadata.sys;
 
 import io.crate.metadata.Reference;
 import io.crate.metadata.table.TableInfo;
-import io.crate.test.integration.CrateUnitTest;
+import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.TestingHelpers;
-import org.elasticsearch.test.ClusterServiceUtils;
-import org.elasticsearch.threadpool.TestThreadPool;
-import org.elasticsearch.threadpool.ThreadPool;
-import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
 import java.util.Locale;
-import java.util.concurrent.TimeUnit;
 
-public class SystemTableInfoTest extends CrateUnitTest {
+public class SystemTableInfoTest extends CrateDummyClusterServiceUnitTest {
 
     private SysSchemaInfo sysSchemaInfo;
-    private TestThreadPool threadPool;
 
     @Before
-    public void prepare() throws Exception {
-        threadPool = new TestThreadPool("dummy");
-        sysSchemaInfo = new SysSchemaInfo(ClusterServiceUtils.createClusterService(threadPool));
-    }
-
-    @After
-    public void tearDown() throws Exception {
-        ThreadPool.terminate(threadPool, 30, TimeUnit.SECONDS);
+    public void prepare() {
+        super.prepare();
+        sysSchemaInfo = new SysSchemaInfo(dummyClusterService);
     }
 
     @Test

@@ -31,7 +31,7 @@ import io.crate.metadata.FulltextAnalyzerResolver;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.table.ColumnPolicy;
 import io.crate.sql.parser.SqlParser;
-import io.crate.test.integration.CrateUnitTest;
+import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import org.elasticsearch.Version;
 import org.elasticsearch.cluster.ClusterName;
@@ -40,8 +40,8 @@ import org.elasticsearch.cluster.metadata.MetaData;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.node.DiscoveryNodes;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.transport.DummyTransportAddress;
-import org.elasticsearch.test.cluster.NoopClusterService;
+import org.elasticsearch.common.transport.LocalTransportAddress;
+import org.elasticsearch.test.ClusterServiceUtils;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -54,30 +54,30 @@ import static com.carrotsearch.randomizedtesting.RandomizedTest.$;
 import static io.crate.testing.TestingHelpers.mapToSortedString;
 import static org.hamcrest.Matchers.*;
 
-public class CreateAlterTableStatementAnalyzerTest extends CrateUnitTest {
+public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     private SQLExecutor e;
 
     @Before
-    public void init() throws Exception {
+    public void prepare() {
+        super.prepare();
         String analyzerSettings = FulltextAnalyzerResolver.encodeSettings(
-            Settings.builder().put("search", "foobar").build()).toUtf8();
+            Settings.builder().put("search", "foobar").build()).utf8ToString();
         MetaData metaData = MetaData.builder()
             .persistentSettings(
                 Settings.builder().put("crate.analysis.custom.analyzer.ft_search", analyzerSettings).build())
             .build();
         ClusterState state = ClusterState.builder(ClusterName.DEFAULT)
             .nodes(DiscoveryNodes.builder()
-                .put(new DiscoveryNode("n1", DummyTransportAddress.INSTANCE, Version.CURRENT))
-                .put(new DiscoveryNode("n2", DummyTransportAddress.INSTANCE, Version.CURRENT))
-                .put(new DiscoveryNode("n3", DummyTransportAddress.INSTANCE, Version.CURRENT))
+                .add(new DiscoveryNode("n1", LocalTransportAddress.buildUnique(), Version.CURRENT))
+                .add(new DiscoveryNode("n2", LocalTransportAddress.buildUnique(), Version.CURRENT))
+                .add(new DiscoveryNode("n3",LocalTransportAddress.buildUnique(), Version.CURRENT))
                 .localNodeId("n1")
             )
             .metaData(metaData)
             .build();
-        e = SQLExecutor.builder(new NoopClusterService(state))
-            .enableDefaultTables()
-            .build();
+        ClusterServiceUtils.setState(dummyClusterService, state);
+        e = SQLExecutor.builder(dummyClusterService).enableDefaultTables().build();
     }
 
     @Test
@@ -747,13 +747,6 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateUnitTest {
     }
 
     @Test
-    public void testChangeFlushThresholdOpsNumber() throws Exception {
-        AlterTableAnalyzedStatement analysis =
-            e.analyze("alter table users set (\"translog.flush_threshold_ops\"=10)");
-        assertThat(analysis.tableParameter().settings().get(TableParameterInfo.FLUSH_THRESHOLD_OPS), is("10"));
-    }
-
-    @Test
     public void testChangeFlushThresholdSize() throws Exception {
         AlterTableAnalyzedStatement analysis =
             e.analyze("alter table users set (\"translog.flush_threshold_size\"=300)");
@@ -761,24 +754,10 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateUnitTest {
     }
 
     @Test
-    public void testChangeFlushThresholdPeriod() throws Exception {
-        AlterTableAnalyzedStatement analysis =
-            e.analyze("alter table users set (\"translog.flush_threshold_period\"=35)");
-        assertThat(analysis.tableParameter().settings().get(TableParameterInfo.FLUSH_THRESHOLD_PERIOD), is("35ms"));
-    }
-
-    @Test
-    public void testChangeFlushDisable() throws Exception {
-        AlterTableAnalyzedStatement analysis =
-            e.analyze("alter table users set (\"translog.disable_flush\"=true)");
-        assertThat(analysis.tableParameter().settings().get(TableParameterInfo.FLUSH_DISABLE), is("true"));
-    }
-
-    @Test
     public void testChangeTranslogInterval() throws Exception {
         AlterTableAnalyzedStatement analysis =
             e.analyze("alter table users set (\"translog.interval\"=50)");
-        assertThat(analysis.tableParameter().settings().get(TableParameterInfo.TRANSLOG_INTERVAL), is("50ms"));
+        assertThat(analysis.tableParameter().settings().get(TableParameterInfo.TRANSLOG_SYNC_INTERVAL), is("50ms"));
     }
 
     @Test
