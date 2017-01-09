@@ -43,6 +43,7 @@ import io.crate.monitor.MonitorModule;
 import io.crate.operation.aggregation.impl.AggregationImplModule;
 import io.crate.operation.collect.CollectOperationModule;
 import io.crate.operation.collect.files.FileCollectModule;
+import io.crate.operation.collect.sources.IndexEventListenerDelegate;
 import io.crate.operation.merge.MergeOperationModule;
 import io.crate.operation.operator.OperatorModule;
 import io.crate.operation.predicate.PredicateModule;
@@ -61,6 +62,7 @@ import org.elasticsearch.action.bulk.BulkRetryCoordinatorPool;
 import org.elasticsearch.common.component.LifecycleComponent;
 import org.elasticsearch.common.inject.Module;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.index.IndexModule;
 import org.elasticsearch.index.mapper.ArrayMapper;
 import org.elasticsearch.index.mapper.Mapper;
 import org.elasticsearch.plugins.ActionPlugin;
@@ -75,9 +77,11 @@ import static com.google.common.collect.Lists.newArrayList;
 public class SQLPlugin extends Plugin implements ActionPlugin, MapperPlugin {
 
     private final Settings settings;
+    private final IndexEventListenerDelegate indexEventListenerDelegate;
 
     SQLPlugin(Settings settings) {
         this.settings = settings;
+        this.indexEventListenerDelegate = new IndexEventListenerDelegate();
     }
 
     @Override
@@ -137,7 +141,7 @@ public class SQLPlugin extends Plugin implements ActionPlugin, MapperPlugin {
         modules.add(new CircuitBreakerModule());
         modules.add(new TransportExecutorModule());
         modules.add(new JobModule());
-        modules.add(new CollectOperationModule());
+        modules.add(new CollectOperationModule(indexEventListenerDelegate));
         modules.add(new FileCollectModule());
         modules.add(new MergeOperationModule());
         modules.add(new MetaDataModule());
@@ -173,6 +177,11 @@ public class SQLPlugin extends Plugin implements ActionPlugin, MapperPlugin {
         return modules;
     }
     */
+
+    @Override
+    public void onIndexModule(IndexModule indexModule) {
+        indexModule.addIndexEventListener(indexEventListenerDelegate);
+    }
 
     @Override
     public List<Class<? extends RestHandler>> getRestHandlers() {
