@@ -33,6 +33,8 @@ import io.crate.operation.reference.sys.operation.OperationContextLog;
 import org.elasticsearch.common.collect.Tuple;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
+import org.elasticsearch.common.logging.ESLogger;
+import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.node.settings.NodeSettingsService;
@@ -82,6 +84,8 @@ public class StatsTables {
     volatile int lastJobsLogSize;
     volatile TimeValue lastJobsLogExpiration;
     private volatile boolean lastIsEnabled;
+
+    private static final ESLogger LOGGER = Loggers.getLogger(StatsTables.class);
 
     @Inject
     public StatsTables(Settings settings, NodeSettingsService nodeSettingsService) {
@@ -270,6 +274,7 @@ public class StatsTables {
         } else {
             if (expiration.getMillis() > 0) {
                 newQ = new ConcurrentLinkedQueue<JobContextLog>();
+                LOGGER.info("Both stats.jobs_log_size and stats.jobs_log_expiration settings are set. Using the latter.");
             } else {
                 newQ = new BlockingEvictingQueue<JobContextLog>(size);
             }
