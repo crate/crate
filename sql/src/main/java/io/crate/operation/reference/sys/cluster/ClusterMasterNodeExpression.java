@@ -38,7 +38,7 @@ public class ClusterMasterNodeExpression extends SimpleObjectExpression<BytesRef
 
     @Override
     public BytesRef value() {
-        String masterNodeId = clusterService.state().nodes().masterNodeId();
+        String masterNodeId = clusterService.state().nodes().getMasterNodeId();
         if (masterNodeId == null) {
             return null;
         }
