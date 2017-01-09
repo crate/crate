@@ -29,7 +29,7 @@ import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.symbol.Field;
 import io.crate.exceptions.Exceptions;
 import io.crate.executor.Executor;
-import io.crate.operation.collect.StatsTables;
+import io.crate.operation.collect.stats.StatsTables;
 import io.crate.planner.Planner;
 import io.crate.protocols.postgres.FormatCodes;
 import io.crate.protocols.postgres.Portal;

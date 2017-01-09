@@ -26,7 +26,7 @@ import com.google.common.annotations.VisibleForTesting;
 import javax.annotation.Nullable;
 import java.util.UUID;
 
-public class JobContextLog {
+public class JobContextLog implements ContextLog {
 
     private final JobContext jobContext;
 
@@ -56,10 +56,12 @@ public class JobContextLog {
         return jobContext.stmt;
     }
 
+    @Override
     public long started() {
         return jobContext.started;
     }
 
+    @Override
     public long ended() {
         return ended;
     }
@@ -68,4 +70,5 @@ public class JobContextLog {
     public String errorMessage() {
         return errorMessage;
     }
+
 }

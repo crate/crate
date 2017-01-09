@@ -39,7 +39,7 @@ import io.crate.core.collections.RowN;
 import io.crate.exceptions.Exceptions;
 import io.crate.exceptions.ReadOnlyException;
 import io.crate.executor.Executor;
-import io.crate.operation.collect.StatsTables;
+import io.crate.operation.collect.stats.StatsTables;
 import io.crate.operation.projectors.ResumeHandle;
 import io.crate.planner.Plan;
 import io.crate.planner.Planner;

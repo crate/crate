@@ -22,7 +22,7 @@
 package io.crate.jobs;
 
 import com.google.common.collect.ImmutableList;
-import io.crate.operation.collect.StatsTables;
+import io.crate.operation.collect.stats.StatsTables;
 import io.crate.test.integration.CrateUnitTest;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.test.cluster.NoopClusterService;
@@ -41,7 +41,6 @@ import java.util.stream.Collectors;
 
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.is;
-import static org.mockito.Mockito.mock;
 
 public class JobContextServiceTest extends CrateUnitTest {
 
@@ -49,7 +48,8 @@ public class JobContextServiceTest extends CrateUnitTest {
 
     @Before
     public void prepare() throws Exception {
-        jobContextService = new JobContextService(Settings.EMPTY, new NoopClusterService(), mock(StatsTables.class));
+        StatsTables statsTables = new StatsTables(() -> true);
+        jobContextService = new JobContextService(Settings.EMPTY, new NoopClusterService(), statsTables);
     }
 
     @After

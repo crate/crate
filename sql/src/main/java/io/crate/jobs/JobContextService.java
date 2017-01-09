@@ -25,7 +25,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.util.concurrent.*;
 import io.crate.concurrent.CountdownFutureCallback;
 import io.crate.exceptions.ContextMissingException;
-import io.crate.operation.collect.StatsTables;
+import io.crate.operation.collect.stats.StatsTables;
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.component.AbstractLifecycleComponent;

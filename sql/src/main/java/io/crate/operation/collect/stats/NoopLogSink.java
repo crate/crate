@@ -20,33 +20,39 @@
  * agreement.
  */
 
-package io.crate.protocols.postgres;
+package io.crate.operation.collect.stats;
 
-import com.google.common.util.concurrent.FutureCallback;
-import io.crate.exceptions.Exceptions;
-import io.crate.operation.collect.stats.StatsTables;
+import io.crate.operation.reference.sys.job.ContextLog;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-import java.util.UUID;
+import java.util.Collections;
+import java.util.Iterator;
 
-public class StatsTablesUpdateListener implements FutureCallback<Object> {
+public class NoopLogSink<T extends ContextLog> implements LogSink<T> {
 
-    private final UUID jobId;
-    private final StatsTables statsTables;
+    private static final NoopLogSink INSTANCE = new NoopLogSink();
 
-    public StatsTablesUpdateListener(UUID jobId, StatsTables statsTables) {
-        this.jobId = jobId;
-        this.statsTables = statsTables;
+    private NoopLogSink() {
+    }
+
+    @SuppressWarnings("unchecked")
+    public static <T extends ContextLog> NoopLogSink<T> instance() {
+        return (NoopLogSink<T>) INSTANCE;
     }
 
     @Override
-    public void onSuccess(@Nullable Object result) {
-        statsTables.logExecutionEnd(jobId, null);
+    public void add(T item) {
     }
 
     @Override
-    public void onFailure(@Nonnull Throwable t) {
-        statsTables.logExecutionEnd(jobId, Exceptions.messageOf(t));
+    public void addAll(Iterable<T> iterable) {
+    }
+
+    @Override
+    public void close() {
+    }
+
+    @Override
+    public Iterator<T> iterator() {
+        return Collections.emptyIterator();
     }
 }

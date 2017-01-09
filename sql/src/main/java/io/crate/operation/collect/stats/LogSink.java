@@ -20,33 +20,14 @@
  * agreement.
  */
 
-package io.crate.protocols.postgres;
+package io.crate.operation.collect.stats;
 
-import com.google.common.util.concurrent.FutureCallback;
-import io.crate.exceptions.Exceptions;
-import io.crate.operation.collect.stats.StatsTables;
+public interface LogSink<T> extends Iterable<T> {
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
-import java.util.UUID;
+    void add(T item);
 
-public class StatsTablesUpdateListener implements FutureCallback<Object> {
+    void addAll(Iterable<T> iterable);
 
-    private final UUID jobId;
-    private final StatsTables statsTables;
+    void close();
 
-    public StatsTablesUpdateListener(UUID jobId, StatsTables statsTables) {
-        this.jobId = jobId;
-        this.statsTables = statsTables;
-    }
-
-    @Override
-    public void onSuccess(@Nullable Object result) {
-        statsTables.logExecutionEnd(jobId, null);
-    }
-
-    @Override
-    public void onFailure(@Nonnull Throwable t) {
-        statsTables.logExecutionEnd(jobId, Exceptions.messageOf(t));
-    }
 }

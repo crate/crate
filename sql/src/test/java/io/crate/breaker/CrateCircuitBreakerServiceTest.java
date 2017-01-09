@@ -90,7 +90,7 @@ public class CrateCircuitBreakerServiceTest extends CrateUnitTest {
             Settings.EMPTY, settingsService, esBreakerService);
 
         CircuitBreakerStats[] stats = breakerService.stats().getAllStats();
-        assertThat(stats.length, is(5));
+        assertThat(stats.length, is(6));
 
         CircuitBreakerStats queryBreakerStats = breakerService.stats(CrateCircuitBreakerService.QUERY);
         assertThat(queryBreakerStats.getEstimated(), is(0L));

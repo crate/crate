@@ -30,7 +30,7 @@ import io.crate.metadata.RowGranularity;
 import io.crate.operation.PageDownstream;
 import io.crate.operation.collect.JobCollectContext;
 import io.crate.operation.collect.MapSideDataCollectOperation;
-import io.crate.operation.collect.StatsTables;
+import io.crate.operation.collect.stats.StatsTables;
 import io.crate.operation.projectors.RowReceiver;
 import io.crate.planner.node.dql.RoutedCollectPhase;
 import io.crate.test.integration.CrateUnitTest;

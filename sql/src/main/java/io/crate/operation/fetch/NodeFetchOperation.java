@@ -37,10 +37,9 @@ import io.crate.jobs.JobContextService;
 import io.crate.jobs.JobExecutionContext;
 import io.crate.metadata.Reference;
 import io.crate.metadata.TableIdent;
-import io.crate.operation.collect.StatsTables;
+import io.crate.operation.collect.stats.StatsTables;
 import io.crate.operation.reference.doc.lucene.LuceneCollectorExpression;
 import io.crate.operation.reference.doc.lucene.LuceneReferenceResolver;
-import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.util.concurrent.EsRejectedExecutionException;
 import org.elasticsearch.index.IndexService;
@@ -55,7 +54,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
-@Singleton
 public class NodeFetchOperation {
 
     private final Executor executor;
@@ -92,7 +90,6 @@ public class NodeFetchOperation {
         }
     }
 
-    @Inject
     public NodeFetchOperation(ThreadPool threadPool, StatsTables statsTables, JobContextService jobContextService) {
         executor = threadPool.executor(ThreadPool.Names.SEARCH);
         this.statsTables = statsTables;

@@ -20,33 +20,25 @@
  * agreement.
  */
 
-package io.crate.protocols.postgres;
+package io.crate.breaker;
 
-import com.google.common.util.concurrent.FutureCallback;
-import io.crate.exceptions.Exceptions;
-import io.crate.operation.collect.stats.StatsTables;
+import io.crate.operation.reference.sys.job.JobContextLog;
 
-import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-import java.util.UUID;
 
-public class StatsTablesUpdateListener implements FutureCallback<Object> {
-
-    private final UUID jobId;
-    private final StatsTables statsTables;
-
-    public StatsTablesUpdateListener(UUID jobId, StatsTables statsTables) {
-        this.jobId = jobId;
-        this.statsTables = statsTables;
-    }
-
+public class JobContextLogSizeEstimator extends SizeEstimator<JobContextLog> {
     @Override
-    public void onSuccess(@Nullable Object result) {
-        statsTables.logExecutionEnd(jobId, null);
-    }
+    public long estimateSize(@Nullable JobContextLog value) {
+        long size = 0L;
 
-    @Override
-    public void onFailure(@Nonnull Throwable t) {
-        statsTables.logExecutionEnd(jobId, Exceptions.messageOf(t));
+        // JobContextLog
+        size += 32L; // 24 bytes (ref+headers) + 8 bytes (ended)
+        size += value.errorMessage() == null ? 0 : value.errorMessage().length();
+
+        // JobContext
+        size += 52L; // 24 bytes (ref+headers) + 4 bytes (id) + 8 bytes (started) + 16 bytes (uuid)
+        size += value.statement().length();
+
+        return RamAccountingContext.roundUp(size);
     }
 }

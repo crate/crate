@@ -25,14 +25,11 @@ package io.crate.protocols.postgres;
 import io.crate.action.sql.Option;
 import io.crate.action.sql.SQLOperations;
 import io.crate.executor.Executor;
-import io.crate.operation.collect.StatsTables;
+import io.crate.operation.collect.stats.StatsTables;
 import io.crate.testing.SQLExecutor;
 import org.elasticsearch.cluster.ClusterService;
-import org.elasticsearch.common.inject.Provider;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.node.settings.NodeSettingsService;
 import org.elasticsearch.test.cluster.NoopClusterService;
-import org.elasticsearch.threadpool.ThreadPool;
 import org.jboss.netty.buffer.ChannelBuffer;
 import org.jboss.netty.buffer.ChannelBuffers;
 import org.jboss.netty.channel.Channel;
@@ -61,17 +58,12 @@ public class ConnectionContextTest {
 
     @Before
     public void setUp() throws Exception {
-        ThreadPool threadPool = mock(ThreadPool.class);
+        StatsTables statsTables = new StatsTables(() -> true);
         sqlOperations = new SQLOperations(
             e.analyzer,
             e.planner,
-            new Provider<Executor>() {
-                @Override
-                public Executor get() {
-                    return mock(Executor.class);
-                }
-            },
-            new StatsTables(Settings.EMPTY, new NodeSettingsService(Settings.EMPTY), threadPool),
+            () -> mock(Executor.class),
+            statsTables,
             Settings.EMPTY,
             clusterService
         ) {

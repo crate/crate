@@ -186,7 +186,7 @@ public class CrateSettings {
     };
 
     public static final StringSetting STATS_BREAKER_LOGS_LIMIT =
-        new StringSetting("limit", null, true, "5%", STATS_BREAKER_LOGS);
+        new StringSetting("limit", null, true, CrateCircuitBreakerService.DEFAULT_LOGS_CIRCUIT_BREAKER_LIMIT, STATS_BREAKER_LOGS);
 
     public static final NestedSetting CLUSTER = new NestedSetting() {
         @Override

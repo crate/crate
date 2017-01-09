@@ -37,7 +37,7 @@ import io.crate.core.collections.Rows;
 import io.crate.exceptions.Exceptions;
 import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.executor.Executor;
-import io.crate.operation.collect.StatsTables;
+import io.crate.operation.collect.stats.StatsTables;
 import io.crate.planner.Plan;
 import io.crate.planner.Planner;
 import io.crate.sql.tree.Statement;

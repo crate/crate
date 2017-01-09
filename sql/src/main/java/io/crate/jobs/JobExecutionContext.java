@@ -29,7 +29,7 @@ import com.google.common.util.concurrent.SettableFuture;
 import io.crate.concurrent.CompletionListenable;
 import io.crate.exceptions.ContextMissingException;
 import io.crate.exceptions.Exceptions;
-import io.crate.operation.collect.StatsTables;
+import io.crate.operation.collect.stats.StatsTables;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 

@@ -37,6 +37,7 @@ import io.crate.metadata.sys.*;
 import io.crate.operation.InputFactory;
 import io.crate.operation.collect.*;
 import io.crate.operation.collect.files.SummitsIterable;
+import io.crate.operation.collect.stats.StatsTables;
 import io.crate.operation.projectors.Requirement;
 import io.crate.operation.projectors.RowReceiver;
 import io.crate.operation.reference.sys.RowContextReferenceResolver;
@@ -51,7 +52,6 @@ import io.crate.planner.node.dql.CollectPhase;
 import io.crate.planner.node.dql.RoutedCollectPhase;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.discovery.DiscoveryService;
 
 import java.util.Collection;
 import java.util.List;
@@ -97,9 +97,9 @@ public class SystemCollectSource implements CollectSource {
             .put(InformationRoutinesTableInfo.IDENT.fqn(), informationSchemaIterables.routines())
             .put(InformationSqlFeaturesTableInfo.IDENT.fqn(), informationSchemaIterables.features())
             .put(SysJobsTableInfo.IDENT.fqn(), statsTables.jobsGetter())
-            .put(SysJobsLogTableInfo.IDENT.fqn(), statsTables.jobsLogGetter())
+            .put(SysJobsLogTableInfo.IDENT.fqn(), statsTables::jobsLog)
             .put(SysOperationsTableInfo.IDENT.fqn(), statsTables.operationsGetter())
-            .put(SysOperationsLogTableInfo.IDENT.fqn(), statsTables.operationsLogGetter())
+            .put(SysOperationsLogTableInfo.IDENT.fqn(), statsTables::operationsLog)
             .put(SysChecksTableInfo.IDENT.fqn(), new SysChecker(sysChecks))
             .put(SysNodeChecksTableInfo.IDENT.fqn(), new SysChecker(sysNodeChecks))
             .put(SysRepositoriesTableInfo.IDENT.fqn(), sysRepositoriesService)
