@@ -45,6 +45,7 @@ import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.Index;
+import org.elasticsearch.snapshots.Snapshot;
 import org.elasticsearch.snapshots.SnapshotId;
 
 import java.util.*;
@@ -80,7 +81,7 @@ class CreateSnapshotAnalyzer {
 
         // snapshot existence in repo is validated upon execution
         String snapshotName = node.name().getSuffix();
-        SnapshotId snapshotId = new SnapshotId(repositoryName.get().toString(), snapshotName);
+        Snapshot snapshot = new Snapshot(repositoryName.get().toString(), new SnapshotId(snapshotName, UUID.randomUUID().toString()));
 
         // validate and extract settings
         Settings settings = GenericPropertiesConverter.settingsFromProperties(
@@ -136,7 +137,8 @@ class CreateSnapshotAnalyzer {
              * However, to make restoring of shapshots of single partitions work
              * we also need to include the global metadata (index templates).
              */
-            return CreateSnapshotAnalyzedStatement.forTables(snapshotId,
+            return CreateSnapshotAnalyzedStatement.forTables(
+                snapshot,
                 settings,
                 ImmutableList.copyOf(snapshotIndices),
                 !snapshotIndices.isEmpty());
@@ -149,7 +151,7 @@ class CreateSnapshotAnalyzer {
                     }
                 }
             }
-            return CreateSnapshotAnalyzedStatement.all(snapshotId, settings);
+            return CreateSnapshotAnalyzedStatement.all(snapshot, settings);
         }
     }
 }
