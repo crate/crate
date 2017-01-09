@@ -27,6 +27,8 @@ import io.crate.metadata.sys.SysNodesTableInfo;
 import io.crate.monitor.ExtendedNodeInfo;
 import io.crate.operation.reference.NestedObjectExpression;
 import io.crate.operation.reference.sys.node.local.fs.NodeFsExpression;
+import org.elasticsearch.action.admin.cluster.node.stats.NodeStats;
+import org.elasticsearch.action.admin.indices.stats.CommonStatsFlags;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.discovery.Discovery;
@@ -34,8 +36,6 @@ import org.elasticsearch.monitor.jvm.JvmService;
 import org.elasticsearch.monitor.os.OsService;
 import org.elasticsearch.node.service.NodeService;
 import org.elasticsearch.threadpool.ThreadPool;
-
-import java.io.IOException;
 
 public class NodeSysExpression extends NestedObjectExpression {
 
@@ -87,12 +87,9 @@ public class NodeSysExpression extends NestedObjectExpression {
                 return new NodeOsExpression(extendedNodeInfo.osStats());
 
             case SysNodesTableInfo.SYS_COL_PROCESS:
-                try {
-                    return new NodeProcessExpression(nodeService.stats().getProcess(), extendedNodeInfo.processCpuStats());
-                } catch (IOException e) {
-                    // This is a bug in ES method signature, IOException is never thrown
-                }
-                break;
+                NodeStats nodeStats = nodeService.stats(CommonStatsFlags.NONE, false, true, false, false,
+                    false, false, false, false, false, false, false);
+                return new NodeProcessExpression(nodeStats.getProcess(), extendedNodeInfo.processCpuStats());
 
             case SysNodesTableInfo.SYS_COL_HEAP:
                 return new NodeHeapExpression(jvmService.stats());
