@@ -34,8 +34,13 @@ import org.elasticsearch.node.settings.NodeSettingsService;
 import org.hamcrest.Matchers;
 import org.junit.Test;
 
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.doReturn;
+
+import java.util.Queue;
 import java.util.UUID;
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.ConcurrentLinkedQueue;
 
 import static org.hamcrest.core.Is.is;
 
@@ -69,7 +74,7 @@ public class StatsTablesTest extends CrateUnitTest {
         // switch jobs_log queue
         stats.listener.onRefreshSettings(Settings.builder()
             .put(CrateSettings.STATS_JOBS_LOG_EXPIRATION.settingName(), "10s").build());
-        assertThat(stats.jobsLog.get(), Matchers.instanceOf(TimeEvictingConcurrentLogQueue.class));
+        assertThat(stats.jobsLog.get(), Matchers.instanceOf(ConcurrentLinkedQueue.class));
 
         stats.listener.onRefreshSettings(Settings.builder()
             .put(CrateSettings.STATS_JOBS_LOG_SIZE.settingName(), 0)
@@ -78,7 +83,7 @@ public class StatsTablesTest extends CrateUnitTest {
 
         stats.listener.onRefreshSettings(Settings.builder()
             .put(CrateSettings.STATS_JOBS_LOG_EXPIRATION.settingName(), "10s").build());
-        assertThat(stats.jobsLog.get(), Matchers.instanceOf(TimeEvictingConcurrentLogQueue.class));
+        assertThat(stats.jobsLog.get(), Matchers.instanceOf(ConcurrentLinkedQueue.class));
 
         // logs got wiped:
         stats.listener.onRefreshSettings(Settings.builder()
@@ -138,4 +143,23 @@ public class StatsTablesTest extends CrateUnitTest {
         assertTrue(queue.contains(new OperationContextLog(ctxA, null)));
 
     }
+
+    @Test
+    public void testRemoveExpiredLogs() throws Exception {
+        NodeSettingsService nodeSettingsService = new NodeSettingsService(Settings.EMPTY);
+        Settings settings = Settings.builder()
+            .put(CrateSettings.STATS_ENABLED.settingName(), true).build();
+        StatsTables stats = new StatsTables(settings, nodeSettingsService);
+
+        ConcurrentLinkedQueue<JobContextLog> queue = new ConcurrentLinkedQueue();
+
+        queue.offer(new JobContextLog(new JobContext(UUID.fromString("067e6162-3b6f-4ae2-a171-2470b63dff01"), "select 1", 1L), null, 2000L));
+        queue.offer(new JobContextLog(new JobContext(UUID.fromString("067e6162-3b6f-4ae2-a171-2470b63dff02"), "select 1", 1L), null, 4000L));
+        queue.offer(new JobContextLog(new JobContext(UUID.fromString("067e6162-3b6f-4ae2-a171-2470b63dff03"), "select 1", 1L), null, 7000L));
+
+        stats.removeExpiredLogs(queue, 10000L, 5000L);
+        assertThat(queue.size(), is(1));
+        assertThat(queue.element().id(), is(UUID.fromString("067e6162-3b6f-4ae2-a171-2470b63dff03")));
+    }
+
 }

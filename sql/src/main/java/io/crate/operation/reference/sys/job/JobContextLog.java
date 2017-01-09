@@ -21,6 +21,8 @@
 
 package io.crate.operation.reference.sys.job;
 
+import com.google.common.annotations.VisibleForTesting;
+
 import javax.annotation.Nullable;
 import java.util.UUID;
 
@@ -37,6 +39,13 @@ public class JobContextLog {
         this.jobContext = jobContext;
         this.errorMessage = errorMessage;
         this.ended = System.currentTimeMillis();
+    }
+
+    @VisibleForTesting
+    public JobContextLog(JobContext jobContext, @Nullable String errorMessage, long ended) {
+        this.jobContext = jobContext;
+        this.errorMessage = errorMessage;
+        this.ended = ended;
     }
 
     public UUID id() {

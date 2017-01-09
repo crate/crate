@@ -341,4 +341,16 @@ public class StatsTables {
     private Integer extractOperationsLogSize(Settings settings) {
         return CrateSettings.STATS_OPERATIONS_LOG_SIZE.extract(settings, initialOperationsLogSize);
     }
+
+    static void removeExpiredLogs(ConcurrentLinkedQueue<JobContextLog> queue, long currentTimeMillis, long expirationTime) {
+        long expired = currentTimeMillis - expirationTime;
+        Iterator<JobContextLog> iter = queue.iterator();
+        while (iter.hasNext()) {
+            if (iter.next().ended() < expired) {
+                iter.remove();
+            } else {
+                return;
+            }
+        }
+    }
 }
