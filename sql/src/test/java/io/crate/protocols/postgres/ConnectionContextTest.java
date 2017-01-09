@@ -28,14 +28,15 @@ import io.crate.executor.Executor;
 import io.crate.operation.collect.StatsTables;
 import io.crate.testing.SQLExecutor;
 import org.elasticsearch.cluster.service.ClusterService;
-import org.elasticsearch.common.inject.Provider;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.node.settings.NodeSettingsService;
-import org.elasticsearch.test.cluster.NoopClusterService;
+import org.elasticsearch.test.ClusterServiceUtils;
+import org.elasticsearch.threadpool.TestThreadPool;
+import org.elasticsearch.threadpool.ThreadPool;
 import org.jboss.netty.buffer.ChannelBuffer;
 import org.jboss.netty.buffer.ChannelBuffers;
 import org.jboss.netty.channel.Channel;
 import org.jboss.netty.handler.codec.embedder.DecoderEmbedder;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
@@ -46,6 +47,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
@@ -53,7 +55,8 @@ import static org.mockito.Mockito.*;
 
 public class ConnectionContextTest {
 
-    private ClusterService clusterService = new NoopClusterService();
+    private ThreadPool threadPool = new TestThreadPool("dummy");
+    private ClusterService clusterService = ClusterServiceUtils.createClusterService(threadPool);
     private SQLExecutor e = SQLExecutor.builder(clusterService).build();
     private SQLOperations sqlOperations;
     private List<SQLOperations.Session> sessions = new ArrayList<>();
@@ -63,13 +66,8 @@ public class ConnectionContextTest {
         sqlOperations = new SQLOperations(
             e.analyzer,
             e.planner,
-            new Provider<Executor>() {
-                @Override
-                public Executor get() {
-                    return mock(Executor.class);
-                }
-            },
-            new StatsTables(Settings.EMPTY, new NodeSettingsService(Settings.EMPTY)),
+            () -> mock(Executor.class),
+            new StatsTables(Settings.EMPTY, clusterService),
             Settings.EMPTY,
             clusterService
         ) {
@@ -81,6 +79,11 @@ public class ConnectionContextTest {
                 return session;
             }
         };
+    }
+
+    @After
+    public void tearDown() throws Exception {
+        ThreadPool.terminate(threadPool, 30, TimeUnit.SECONDS);
     }
 
     @Test
