@@ -55,7 +55,8 @@ import org.elasticsearch.action.admin.cluster.repositories.put.TransportPutRepos
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.ModulesBuilder;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.indices.analysis.IndicesAnalysisService;
+import org.elasticsearch.env.Environment;
+import org.elasticsearch.index.analysis.AnalysisRegistry;
 
 import java.util.Collections;
 import java.util.HashMap;
@@ -137,7 +138,13 @@ public class SQLExecutor {
                     ),
                     functions,
                     clusterService,
-                    new IndicesAnalysisService(Settings.EMPTY),
+                    new AnalysisRegistry(
+                        new Environment(Settings.EMPTY),
+                        Collections.emptyMap(),
+                        Collections.emptyMap(),
+                        Collections.emptyMap(),
+                        Collections.emptyMap()
+                    ),
                     new RepositoryService(
                         clusterService,
                         mock(TransportDeleteRepositoryAction.class),
