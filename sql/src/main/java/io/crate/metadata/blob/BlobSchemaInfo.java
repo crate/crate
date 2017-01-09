@@ -21,11 +21,9 @@
 
 package io.crate.metadata.blob;
 
-import com.google.common.base.Function;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
-import com.google.common.collect.FluentIterable;
 import com.google.common.util.concurrent.UncheckedExecutionException;
 import io.crate.blob.v2.BlobIndex;
 import io.crate.exceptions.ResourceUnknownException;
@@ -39,9 +37,10 @@ import org.elasticsearch.common.inject.Inject;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-import java.util.Arrays;
 import java.util.Iterator;
 import java.util.concurrent.ExecutionException;
+import java.util.function.Function;
+import java.util.stream.Stream;
 
 public class BlobSchemaInfo implements SchemaInfo {
 
@@ -114,16 +113,11 @@ public class BlobSchemaInfo implements SchemaInfo {
 
     @Override
     public Iterator<TableInfo> iterator() {
-        return tableNamesIterable().transform(tableInfoFunction).iterator();
-    }
-
-    private FluentIterable<String> tableNamesIterable() {
-        // TODO: once we support closing/opening tables change this to concreteIndices()
-        // and add  state info to the TableInfo.
-        return FluentIterable
-            .from(Arrays.asList(clusterService.state().metaData().concreteAllOpenIndices()))
+        return Stream.of(clusterService.state().metaData().getConcreteAllOpenIndices())
             .filter(BlobIndex::isBlobIndex)
-            .transform(BlobIndex::stripPrefix);
+            .map(BlobIndex::stripPrefix)
+            .map(tableInfoFunction)
+            .iterator();
     }
 
     @Override
