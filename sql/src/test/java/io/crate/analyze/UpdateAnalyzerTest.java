@@ -79,9 +79,10 @@ public class UpdateAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     private SQLExecutor e;
 
+    @Override
     @Before
-    public void prepare() {
-        super.prepare();
+    public void setUp() {
+        super.setUp();
         SQLExecutor.Builder builder = SQLExecutor.builder(dummyClusterService)
             .enableDefaultTables()
             .addDocTable(nestedClusteredByTableInfo)

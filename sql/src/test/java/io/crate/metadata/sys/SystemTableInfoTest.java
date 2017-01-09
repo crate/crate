@@ -35,9 +35,10 @@ public class SystemTableInfoTest extends CrateDummyClusterServiceUnitTest {
 
     private SysSchemaInfo sysSchemaInfo;
 
+    @Override
     @Before
-    public void prepare() {
-        super.prepare();
+    public void setUp() {
+        super.setUp();
         sysSchemaInfo = new SysSchemaInfo(dummyClusterService);
     }
 
