@@ -27,30 +27,47 @@ import io.crate.test.integration.CrateUnitTest;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.Version;
 import org.elasticsearch.cluster.ClusterName;
-import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.cluster.metadata.MetaData;
+import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.collect.ImmutableOpenMap;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.test.cluster.NoopClusterService;
+import org.elasticsearch.test.ClusterServiceUtils;
+import org.elasticsearch.threadpool.TestThreadPool;
+import org.elasticsearch.threadpool.ThreadPool;
+import org.junit.After;
+import org.junit.Before;
 import org.junit.Test;
 
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 import static org.hamcrest.Matchers.hasEntry;
 import static org.hamcrest.Matchers.is;
 
 public class PartitionInfosTest extends CrateUnitTest {
 
+    private TestThreadPool threadPool;
+
+    @Before
+    public void setUp() throws Exception {
+        threadPool = new TestThreadPool("dummy");
+    }
+
+    @After
+    public void tearDown() throws Exception {
+        ThreadPool.terminate(threadPool, 30, TimeUnit.SECONDS);
+    }
+
     private ClusterService mockService(Map<String, IndexMetaData> indices) {
         ImmutableOpenMap<String, IndexMetaData> indicesMap =
             ImmutableOpenMap.<String, IndexMetaData>builder().putAll(indices).build();
-        return new NoopClusterService(
+        return ClusterServiceUtils.createClusterService(
             ClusterState.builder(ClusterName.DEFAULT).metaData(
-                MetaData.builder().indices(indicesMap).build()).build());
+                MetaData.builder().indices(indicesMap).build()).build(), threadPool);
     }
 
     private static Settings defaultSettings() {

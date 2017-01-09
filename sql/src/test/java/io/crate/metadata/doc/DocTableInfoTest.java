@@ -11,29 +11,12 @@ import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.common.settings.Settings;
-import org.junit.After;
-import org.junit.Before;
+import org.elasticsearch.index.Index;
 import org.junit.Test;
 
 import java.util.Arrays;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
 
 public class DocTableInfoTest extends CrateUnitTest {
-
-    ExecutorService executorService;
-
-    @Before
-    public void before() throws Exception {
-        executorService = Executors.newSingleThreadExecutor();
-    }
-
-    @After
-    public void after() throws Exception {
-        executorService.shutdown();
-        executorService.awaitTermination(1, TimeUnit.SECONDS);
-    }
 
     @Test
     public void testGetColumnInfo() throws Exception {
@@ -53,7 +36,7 @@ public class DocTableInfoTest extends CrateUnitTest {
             null,
             false,
             true,
-            new String[0],
+            Index.EMPTY_ARRAY,
             null,
             new IndexNameExpressionResolver(Settings.EMPTY),
             5,
@@ -62,8 +45,7 @@ public class DocTableInfoTest extends CrateUnitTest {
             ImmutableList.<ColumnIdent>of(),
             ImmutableList.<PartitionName>of(),
             ColumnPolicy.DYNAMIC,
-            Operation.ALL,
-            executorService
+            Operation.ALL
         );
 
         Reference foobar = info.getReference(new ColumnIdent("o", ImmutableList.of("foobar")));
@@ -105,7 +87,7 @@ public class DocTableInfoTest extends CrateUnitTest {
             null,
             false,
             true,
-            new String[0],
+            Index.EMPTY_ARRAY,
             null,
             new IndexNameExpressionResolver(Settings.EMPTY),
             5,
@@ -114,8 +96,7 @@ public class DocTableInfoTest extends CrateUnitTest {
             ImmutableList.<ColumnIdent>of(),
             ImmutableList.<PartitionName>of(),
             ColumnPolicy.DYNAMIC,
-            Operation.ALL,
-            executorService
+            Operation.ALL
         );
 
 

@@ -28,6 +28,7 @@ import org.elasticsearch.ElasticsearchParseException;
 import org.elasticsearch.action.get.GetResponse;
 import org.elasticsearch.action.index.IndexResponse;
 import org.elasticsearch.action.search.SearchResponse;
+import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.Priority;
 import org.elasticsearch.common.compress.CompressedXContent;
 import org.elasticsearch.common.settings.Settings;
@@ -36,9 +37,11 @@ import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentFactory;
 import org.elasticsearch.common.xcontent.XContentType;
 import org.elasticsearch.common.xcontent.json.JsonXContent;
+import org.elasticsearch.index.Index;
 import org.elasticsearch.index.IndexService;
 import org.elasticsearch.index.mapper.*;
-import org.elasticsearch.index.mapper.core.StringFieldMapper;
+import org.elasticsearch.index.query.QueryBuilders;
+import org.elasticsearch.index.query.TermsQueryBuilder;
 import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.test.ESIntegTestCase;
 import org.hamcrest.Matchers;
@@ -64,10 +67,12 @@ public class ArrayMapperTest extends SQLTransportIntegrationTest {
             .setSettings(Settings.builder().put("number_of_replicas", 0).build()).execute().actionGet();
         client().admin().cluster().prepareHealth(indexName)
             .setWaitForGreenStatus()
-            .setWaitForRelocatingShards(0)
+            .setWaitForNoRelocatingShards(false)
             .setWaitForEvents(Priority.LANGUID).execute().actionGet();
+        ClusterService clusterService = internalCluster().getInstance(ClusterService.class);
+        Index index = clusterService.state().getMetaData().index(indexName).getIndex();
         IndicesService instanceFromNode = internalCluster().getInstance(IndicesService.class);
-        IndexService indexService = instanceFromNode.indexServiceSafe(indexName);
+        IndexService indexService = instanceFromNode.indexServiceSafe(index);
 
         DocumentMapperParser parser = indexService.mapperService().documentMapperParser();
 
@@ -86,7 +91,7 @@ public class ArrayMapperTest extends SQLTransportIntegrationTest {
             .startObject().startObject(TYPE).startObject("properties")
             .startObject("array_field")
             .field("type", ArrayMapper.CONTENT_TYPE)
-            .startObject(ArrayMapper.INNER)
+            .startObject(ArrayMapper.INNER_TYPE)
             .field("type", "string")
             .field("index", "not_analyzed")
             .endObject()
@@ -125,7 +130,7 @@ public class ArrayMapperTest extends SQLTransportIntegrationTest {
             .startObject().startObject("type").startObject("properties")
             .startObject("array_field")
             .field("type", ArrayMapper.CONTENT_TYPE)
-            .startObject(ArrayMapper.INNER)
+            .startObject(ArrayMapper.INNER_TYPE)
             .field("type", "string")
             .field("index", "not_analyzed")
             .endObject()
@@ -153,7 +158,7 @@ public class ArrayMapperTest extends SQLTransportIntegrationTest {
             .startObject().startObject("type").startObject("properties")
             .startObject("array_field")
             .field("type", ArrayMapper.CONTENT_TYPE)
-            .startObject(ArrayMapper.INNER)
+            .startObject(ArrayMapper.INNER_TYPE)
             .field("type", "double")
             .field("index", "not_analyzed")
             .endObject()
@@ -178,7 +183,7 @@ public class ArrayMapperTest extends SQLTransportIntegrationTest {
             .startObject().startObject("type").startObject("properties")
             .startObject("array_field")
             .field("type", ArrayMapper.CONTENT_TYPE)
-            .startObject(ArrayMapper.INNER)
+            .startObject(ArrayMapper.INNER_TYPE)
             .field("type", "object")
             .field("dynamic", true)
             .startObject("properties")
@@ -238,7 +243,7 @@ public class ArrayMapperTest extends SQLTransportIntegrationTest {
             .startObject().startObject("type").startObject("properties")
             .startObject("array_field")
             .field("type", ArrayMapper.CONTENT_TYPE)
-            .startObject(ArrayMapper.INNER)
+            .startObject(ArrayMapper.INNER_TYPE)
             .field("type", "object")
             .field("dynamic", true)
             .startObject("properties")
@@ -295,7 +300,7 @@ public class ArrayMapperTest extends SQLTransportIntegrationTest {
             .startObject().startObject("type").startObject("properties")
             .startObject("array_field")
             .field("type", ArrayMapper.CONTENT_TYPE)
-            .startObject(ArrayMapper.INNER)
+            .startObject(ArrayMapper.INNER_TYPE)
             .field("type", "double")
             .field("index", "not_analyzed")
             .endObject()
@@ -310,14 +315,14 @@ public class ArrayMapperTest extends SQLTransportIntegrationTest {
 
         // realtime
         GetResponse rtGetResponse = client().prepareGet(INDEX, "type", "123")
-            .setFetchSource(true).setFields("array_field").setRealtime(true).execute().actionGet();
+            .setFetchSource(true).setStoredFields("array_field").setRealtime(true).execute().actionGet();
         assertThat(rtGetResponse.getId(), is("123"));
         assertThat(Joiner.on(',').withKeyValueSeparator(":").join(rtGetResponse.getSource()), is("array_field:[0.0, 99.9, -100.5678]"));
         assertThat(rtGetResponse.getField("array_field").getValues(), Matchers.<Object>hasItems(0.0D, 99.9D, -100.5678D));
 
         // non-realtime
         GetResponse getResponse = client().prepareGet(INDEX, "type", "123")
-            .setFetchSource(true).setFields("array_field").setRealtime(false).execute().actionGet();
+            .setFetchSource(true).setStoredFields("array_field").setRealtime(false).execute().actionGet();
         assertThat(getResponse.getId(), is("123"));
         assertThat(Joiner.on(',').withKeyValueSeparator(":").join(getResponse.getSource()), is("array_field:[0.0, 99.9, -100.5678]"));
         assertThat(getResponse.getField("array_field").getValues(), Matchers.<Object>hasItems(0.0D, 99.9D, -100.5678D));
@@ -329,7 +334,7 @@ public class ArrayMapperTest extends SQLTransportIntegrationTest {
             .startObject().startObject("type").startObject("properties")
             .startObject("array_field")
             .field("type", ArrayMapper.CONTENT_TYPE)
-            .startObject(ArrayMapper.INNER)
+            .startObject(ArrayMapper.INNER_TYPE)
             .field("type", "double")
             .field("index", "not_analyzed")
             .endObject()
@@ -343,8 +348,8 @@ public class ArrayMapperTest extends SQLTransportIntegrationTest {
         client().admin().indices().prepareRefresh(INDEX).execute().actionGet();
 
         SearchResponse searchResponse = client().prepareSearch(INDEX).setTypes("type")
-            .setFetchSource(true).addField("array_field")
-            .setQuery("{\"term\": {\"array_field\": 0.0}}").execute().actionGet();
+            .setFetchSource(true).addStoredField("array_field")
+            .setQuery(QueryBuilders.termQuery("array_field", 0.0d)).execute().actionGet();
         assertThat(searchResponse.getHits().getTotalHits(), is(1L));
         assertThat(Joiner.on(',').withKeyValueSeparator(":").join(
             searchResponse.getHits().getAt(0).getSource()),
@@ -358,7 +363,7 @@ public class ArrayMapperTest extends SQLTransportIntegrationTest {
             .startObject().startObject("type").startObject("properties")
             .startObject("array_field")
             .field("type", ArrayMapper.CONTENT_TYPE)
-            .startObject(ArrayMapper.INNER)
+            .startObject(ArrayMapper.INNER_TYPE)
             .field("type", "double")
             .field("index", "not_analyzed")
             .endObject()
@@ -384,8 +389,8 @@ public class ArrayMapperTest extends SQLTransportIntegrationTest {
         client().admin().indices().prepareRefresh(INDEX).execute().actionGet();
 
         SearchResponse searchResponse = client().prepareSearch(INDEX).setTypes("type")
-            .setFetchSource(true).addField("array_field")
-            .setQuery("{\"term\": {\"_id\": \"123\"}}").execute().actionGet();
+            .setFetchSource(true).addStoredField("array_field")
+            .setQuery(new TermsQueryBuilder("_id", 123)).execute().actionGet();
         assertThat(searchResponse.getHits().getTotalHits(), is(1L));
         assertThat(Joiner.on(',').withKeyValueSeparator(":").join(
             searchResponse.getHits().getAt(0).getSource()),
@@ -402,9 +407,9 @@ public class ArrayMapperTest extends SQLTransportIntegrationTest {
             .startObject().startObject("type").startObject("properties")
             .startObject("array_field")
             .field("type", ArrayMapper.CONTENT_TYPE)
-            .startObject(ArrayMapper.INNER)
+            .startObject(ArrayMapper.INNER_TYPE)
             .field("type", ArrayMapper.CONTENT_TYPE)
-            .startObject(ArrayMapper.INNER)
+            .startObject(ArrayMapper.INNER_TYPE)
             .field("type", "double")
             .field("index", "not_analyzed")
             .endObject()
@@ -421,7 +426,7 @@ public class ArrayMapperTest extends SQLTransportIntegrationTest {
             .startObject().startObject("type").startObject("properties")
             .startObject("array_field")
             .field("type", ArrayMapper.CONTENT_TYPE)
-            .startObject(ArrayMapper.INNER)
+            .startObject(ArrayMapper.INNER_TYPE)
             .field("type", "double")
             .field("index", "not_analyzed")
             .endObject()
@@ -450,7 +455,7 @@ public class ArrayMapperTest extends SQLTransportIntegrationTest {
             .startObject().startObject("type").startObject("properties")
             .startObject("array_field")
             .field("type", ArrayMapper.CONTENT_TYPE)
-            .startObject(ArrayMapper.INNER)
+            .startObject(ArrayMapper.INNER_TYPE)
             .field("type", "double")
             .field("index", "not_analyzed")
             .endObject()
@@ -473,7 +478,7 @@ public class ArrayMapperTest extends SQLTransportIntegrationTest {
             .startObject().startObject("type").startObject("properties")
             .startObject("array_field")
             .field("type", ArrayMapper.CONTENT_TYPE)
-            .startObject(ArrayMapper.INNER)
+            .startObject(ArrayMapper.INNER_TYPE)
             .field("type", "object")
             .startObject("properties")
             .endObject()
