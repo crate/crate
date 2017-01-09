@@ -30,6 +30,7 @@ import io.crate.analyze.CreateSnapshotAnalyzedStatement;
 import io.crate.analyze.DropSnapshotAnalyzedStatement;
 import io.crate.analyze.RestoreSnapshotAnalyzedStatement;
 import io.crate.exceptions.CreateSnapshotException;
+import org.apache.logging.log4j.Logger;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.admin.cluster.snapshots.create.CreateSnapshotRequest;
 import org.elasticsearch.action.admin.cluster.snapshots.create.CreateSnapshotResponse;
@@ -40,7 +41,6 @@ import org.elasticsearch.action.admin.cluster.snapshots.restore.RestoreSnapshotR
 import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
-import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.snapshots.SnapshotInfo;
 import org.elasticsearch.snapshots.SnapshotState;
@@ -95,7 +95,7 @@ public class SnapshotRestoreDDLDispatcher {
         // ignore_unavailable as set by statement
         IndicesOptions indicesOptions = IndicesOptions.fromOptions(ignoreUnavailable, true, true, false, IndicesOptions.lenientExpandOpen());
 
-        CreateSnapshotRequest request = new CreateSnapshotRequest(statement.snapshotId().getRepository(), statement.snapshotId().getSnapshot())
+        CreateSnapshotRequest request = new CreateSnapshotRequest(statement.snapshot().getRepository(), statement.snapshot().getSnapshotId().getName())
             .includeGlobalState(statement.includeMetadata())
             .waitForCompletion(waitForCompletion)
             .indices(statement.indices())
@@ -117,7 +117,7 @@ public class SnapshotRestoreDDLDispatcher {
                         .replaceAll("Index", "Table")
                         .replaceAll("Indices", "Tables");
                     resultFuture.setException(
-                        new CreateSnapshotException(statement.snapshotId(), reason)
+                        new CreateSnapshotException(statement.snapshot(), reason)
                     );
                 } else {
                     resultFuture.set(1L);

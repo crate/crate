@@ -23,15 +23,15 @@
 package io.crate.exceptions;
 
 
-import org.elasticsearch.snapshots.SnapshotId;
+import org.elasticsearch.snapshots.Snapshot;
 
 import java.util.Locale;
 
 public class CreateSnapshotException extends UnhandledServerException {
 
-    public CreateSnapshotException(SnapshotId snapshotId, String message) {
+    public CreateSnapshotException(Snapshot snapshot, String message) {
         super(String.format(Locale.ENGLISH, "Error creating snapshot '%s.%s': %s",
-            snapshotId.getRepository(), snapshotId.getSnapshot(), message));
+            snapshot.getRepository(), snapshot.getSnapshotId().getName(), message));
     }
 
     @Override
