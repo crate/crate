@@ -25,7 +25,6 @@ import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
-import io.crate.Constants;
 import io.crate.core.collections.Row;
 import io.crate.core.collections.Row1;
 import io.crate.executor.Executor;
@@ -47,8 +46,8 @@ import org.elasticsearch.action.bulk.BulkRequestExecutor;
 import org.elasticsearch.action.bulk.BulkRetryCoordinatorPool;
 import org.elasticsearch.action.bulk.BulkShardProcessor;
 import org.elasticsearch.action.support.AutoCreateIndex;
-import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
+import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.IndexNotFoundException;
 import org.elasticsearch.index.shard.ShardId;
@@ -96,7 +95,7 @@ public class UpsertByIdTask extends JobTask {
         this.clusterService = clusterService;
         this.bulkRetryCoordinatorPool = bulkRetryCoordinatorPool;
         this.jobContextService = jobContextService;
-        autoCreateIndex = new AutoCreateIndex(settings, indexNameExpressionResolver);
+        autoCreateIndex = new AutoCreateIndex(settings, clusterService.getClusterSettings(), indexNameExpressionResolver);
     }
 
     @Override
@@ -185,7 +184,6 @@ public class UpsertByIdTask extends JobTask {
             shardId = clusterService.operationRouting().indexShards(
                 clusterService.state(),
                 item.index(),
-                Constants.DEFAULT_MAPPING_TYPE,
                 item.id(),
                 item.routing()
             ).shardId();
@@ -285,7 +283,7 @@ public class UpsertByIdTask extends JobTask {
             final Integer[] resultsRowCount = new Integer[numResults];
             final List<SettableFuture<Long>> resultList = new ArrayList<>(numResults);
             for (int i = 0; i < numResults; i++) {
-                resultList.add(SettableFuture.<Long>create());
+                resultList.add(SettableFuture.create());
             }
 
             Futures.addCallback(bulkShardProcessor.result(), new FutureCallback<BitSet>() {
@@ -355,11 +353,11 @@ public class UpsertByIdTask extends JobTask {
 
                 @Override
                 public void onFailure(Exception e) {
-                    e = ExceptionsHelper.unwrapCause(e);
-                    if (e instanceof IndexAlreadyExistsException) {
+                    Throwable t = ExceptionsHelper.unwrapCause(e);
+                    if (t instanceof IndexAlreadyExistsException) {
                         executeUpsertRequest(item, future);
                     } else {
-                        future.setException(e);
+                        future.setException(t);
                     }
 
                 }

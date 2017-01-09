@@ -83,20 +83,20 @@ public class UpsertByIdContext extends AbstractExecutionSubContext {
                 if (future.closed()) {
                     return;
                 }
-                e = ExceptionsHelper.unwrapCause(e);
+                Throwable t = ExceptionsHelper.unwrapCause(e);
                 if (item.insertValues() == null
-                    && (e instanceof DocumentMissingException
-                        || e instanceof VersionConflictEngineException)) {
+                    && (t instanceof DocumentMissingException
+                        || t instanceof VersionConflictEngineException)) {
                     // on updates, set affected row to 0 if document is not found or version conflicted
                     resultFuture.set(0L);
                     close(null);
                 } else if (PartitionName.isPartition(request.index())
-                           && e instanceof IndexNotFoundException) {
+                           && t instanceof IndexNotFoundException) {
                     // index missing exception on a partition should never bubble, set affected row to 0
                     resultFuture.set(0L);
                     close(null);
                 } else {
-                    resultFuture.setException(e);
+                    resultFuture.setException(t);
                     close(e);
                 }
             }

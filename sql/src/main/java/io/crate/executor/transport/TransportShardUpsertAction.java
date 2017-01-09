@@ -149,26 +149,26 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                     notUsedNonGeneratedColumns,
                     0);
                 shardResponse.add(location);
-            } catch (Throwable t) {
-                if (retryPrimaryException(t)) {
-                    Throwables.propagate(t);
+            } catch (Exception e) {
+                if (retryPrimaryException(e)) {
+                    Throwables.propagate(e);
                 }
                 logger.debug("{} failed to execute upsert for [{}]/[{}]",
-                    t, request.shardId(), request.type(), item.id());
+                    e, request.shardId(), request.type(), item.id());
 
                 // *mark* the item as failed by setting the source to null
                 // to prevent the replica operation from processing this concrete item
                 item.source(null);
 
                 if (!request.continueOnError()) {
-                    shardResponse.failure(t);
+                    shardResponse.failure(e);
                     break;
                 }
                 shardResponse.add(location,
                     new ShardResponse.Failure(
                         item.id(),
-                        ExceptionsHelper.detailedMessage(t),
-                        (t instanceof VersionConflictEngineException)));
+                        ExceptionsHelper.detailedMessage(e),
+                        (e instanceof VersionConflictEngineException)));
             }
         }
         if (indexShard.getTranslogDurability() == Translog.Durability.REQUEST && translogLocation != null) {
@@ -199,7 +199,7 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                                           IndexShard indexShard,
                                           boolean tryInsertFirst,
                                           Collection<ColumnIdent> notUsedNonGeneratedColumns,
-                                          int retryCount) throws Throwable {
+                                          int retryCount) throws Exception {
         try {
             long version = item.version();
             if (tryInsertFirst) {
@@ -399,7 +399,7 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
     private Translog.Location shardIndexOperation(ShardUpsertRequest request,
                                                   ShardUpsertRequest.Item item,
                                                   long version,
-                                                  IndexShard indexShard) throws Throwable {
+                                                  IndexShard indexShard) throws Exception {
         Engine.Index operation = prepareIndexOnPrimary(indexShard, version, request, item);
         operation = updateMappingIfRequired(request, item, version, indexShard, operation);
         indexShard.index(operation);
@@ -417,7 +417,7 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                                                              ShardUpsertRequest.Item item,
                                                              long version,
                                                              IndexShard indexShard,
-                                                             Engine.Index operation) throws Throwable {
+                                                             Engine.Index operation) throws Exception {
         Mapping update = operation.parsedDoc().dynamicMappingsUpdate();
         if (update != null) {
             validateMapping(update.root().iterator());

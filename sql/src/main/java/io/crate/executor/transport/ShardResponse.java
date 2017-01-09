@@ -99,7 +99,7 @@ public class ShardResponse extends ReplicationResponse implements WriteResponse 
     private IntArrayList locations = new IntArrayList();
     private List<Failure> failures = new ArrayList<>();
     @Nullable
-    private Throwable failure;
+    private Exception failure;
     private boolean forcedRefresh;
 
     public ShardResponse() {
@@ -123,11 +123,11 @@ public class ShardResponse extends ReplicationResponse implements WriteResponse 
         return failures;
     }
 
-    public void failure(@Nullable Throwable throwable) {
-        this.failure = throwable;
+    public void failure(@Nullable Exception failure) {
+        this.failure = failure;
     }
 
-    public Throwable failure() {
+    public Exception failure() {
         return failure;
     }
 

@@ -84,12 +84,12 @@ public class DropTableTask extends JobTask {
 
                 @Override
                 public void onFailure(Exception e) {
-                    e = ExceptionsHelper.unwrapCause(e);
-                    if (e instanceof IndexTemplateMissingException && !tableInfo.partitions().isEmpty()) {
-                        logger.warn(e.getMessage());
+                    Throwable t = ExceptionsHelper.unwrapCause(e);
+                    if (t instanceof IndexTemplateMissingException && !tableInfo.partitions().isEmpty()) {
+                        logger.warn(t.getMessage());
                         deleteESIndex(tableInfo.ident().indexName(), rowReceiver);
                     } else {
-                        rowReceiver.fail(e);
+                        rowReceiver.fail(t);
                     }
                 }
             });
