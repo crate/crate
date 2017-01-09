@@ -30,12 +30,13 @@ import io.crate.metadata.TableIdent;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.TableInfo;
 import io.crate.sql.tree.Table;
+import org.elasticsearch.index.Index;
 
 import javax.annotation.Nullable;
-import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Stream;
 
 final class TableAnalyzer {
 
@@ -49,16 +50,19 @@ final class TableAnalyzer {
             Preconditions.checkArgument(tableInfo instanceof DocTableInfo,
                 "operation cannot be performed on system and blob tables: table '%s'",
                 tableInfo.ident().fqn());
+
+            DocTableInfo table = (DocTableInfo) tableInfo;
             if (nodeTable.partitionProperties().isEmpty()) {
-                indexNames.addAll(Arrays.asList(((DocTableInfo) tableInfo).concreteIndices()));
+                Stream.of(table.concreteIndices())
+                    .map(Index::getName)
+                    .forEach(indexNames::add);
             } else {
-                DocTableInfo docTableInfo = (DocTableInfo) tableInfo;
                 PartitionName partitionName = PartitionPropertiesAnalyzer.toPartitionName(
-                    docTableInfo,
+                    table,
                     nodeTable.partitionProperties(),
                     parameterContext.parameters()
                 );
-                if (!docTableInfo.partitions().contains(partitionName)) {
+                if (!table.partitions().contains(partitionName)) {
                     throw new PartitionUnknownException(tableInfo.ident().fqn(), partitionName.ident());
                 }
                 indexNames.add(partitionName.asIndexName());
