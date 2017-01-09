@@ -31,8 +31,9 @@ import io.crate.monitor.ExtendedNodeInfo;
 import io.crate.monitor.ThreadPools;
 import io.crate.protocols.postgres.PostgresNetty;
 import org.apache.logging.log4j.Logger;
-import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.action.admin.cluster.node.info.NodeInfo;
+import org.elasticsearch.action.admin.cluster.node.stats.NodeStats;
+import org.elasticsearch.action.admin.indices.stats.CommonStatsFlags;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
@@ -46,7 +47,6 @@ import org.elasticsearch.monitor.os.OsService;
 import org.elasticsearch.node.service.NodeService;
 import org.elasticsearch.threadpool.ThreadPool;
 
-import java.io.IOException;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.Collection;
@@ -147,15 +147,15 @@ public class NodeStatsContextFieldResolver {
                     Integer http = null;
                     Integer pgsql = null;
                     Integer transport;
-                    NodeInfo info = nodeService.info();
+                    NodeInfo info = nodeService.info(false, false, false, false, false,
+                        false, true, false, false, false);
                     if (info.getHttp() != null) {
                         http = portFromAddress(info.getHttp().address().publishAddress());
                     }
-                    try {
-                        transport = portFromAddress(nodeService.stats().getNode().address());
-                    } catch (IOException e) {
-                        throw new ElasticsearchException("unable to get node transport statistics", e);
-                    }
+
+                    NodeStats nodeStats = nodeService.stats(CommonStatsFlags.NONE, false, false, false, false,
+                        false,false, false, false, false, false, false);
+                    transport = portFromAddress(nodeStats.getNode().getAddress());
                     if (postgresNetty.boundAddress() != null) {
                         pgsql = portFromAddress(postgresNetty.boundAddress().publishAddress());
                     }
@@ -212,18 +212,18 @@ public class NodeStatsContextFieldResolver {
             .put(SysNodesTableInfo.Columns.OS_INFO, new Consumer<NodeStatsContext>() {
                 @Override
                 public void accept(NodeStatsContext context) {
-                    context.osInfo(nodeService.info().getOs());
+                    NodeInfo nodeInfo = nodeService.info(false, true, false, false, false, false,
+                        false, false, false, false);
+                    context.osInfo(nodeInfo.getOs());
                 }
             })
             .put(SysNodesTableInfo.Columns.PROCESS, new Consumer<NodeStatsContext>() {
                 @Override
                 public void accept(NodeStatsContext context) {
                     context.extendedProcessCpuStats(extendedNodeInfo.processCpuStats());
-                    try {
-                        context.processStats(nodeService.stats().getProcess());
-                    } catch (IOException e) {
-                        throw new ElasticsearchException("unable to get node statistics", e);
-                    }
+                    NodeStats nodeStats = nodeService.stats(CommonStatsFlags.NONE, false, true, false, false,
+                        false,false, false, false, false, false, false);
+                    context.processStats(nodeStats.getProcess());
                 }
             })
             .put(SysNodesTableInfo.Columns.FS, new Consumer<NodeStatsContext>() {
