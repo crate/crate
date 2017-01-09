@@ -29,15 +29,14 @@ import io.crate.jobs.DummySubContext;
 import io.crate.jobs.JobContextService;
 import io.crate.jobs.JobExecutionContext;
 import io.crate.operation.collect.StatsTables;
-import io.crate.test.integration.CrateUnitTest;
+import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import org.elasticsearch.Version;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.node.DiscoveryNodes;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.transport.DummyTransportAddress;
+import org.elasticsearch.common.transport.LocalTransportAddress;
 import org.elasticsearch.common.unit.TimeValue;
-import org.elasticsearch.test.cluster.NoopClusterService;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 import org.junit.Test;
@@ -50,12 +49,12 @@ import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.*;
 
-public class NodeDisconnectJobMonitorServiceTest extends CrateUnitTest {
+public class NodeDisconnectJobMonitorServiceTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testOnNodeDisconnectedKillsJobOriginatingFromThatNode() throws Exception {
         JobContextService jobContextService = new JobContextService(
-            Settings.EMPTY, new NoopClusterService(), mock(StatsTables.class));
+            Settings.EMPTY, dummyClusterService, mock(StatsTables.class));
 
         JobExecutionContext.Builder builder = jobContextService.newBuilder(UUID.randomUUID());
         builder.addSubContext(new DummySubContext());
@@ -74,7 +73,10 @@ public class NodeDisconnectJobMonitorServiceTest extends CrateUnitTest {
             mock(TransportService.class),
             mock(TransportKillJobsNodeAction.class));
 
-        monitorService.onNodeDisconnected(new DiscoveryNode("noop_id", DummyTransportAddress.INSTANCE, Version.CURRENT));
+        monitorService.onNodeDisconnected(new DiscoveryNode(
+            "noop_id",
+            LocalTransportAddress.buildUnique(),
+            Version.CURRENT));
 
         expectedException.expect(ContextMissingException.class);
         jobContextService.getContext(context.jobId());
@@ -83,15 +85,22 @@ public class NodeDisconnectJobMonitorServiceTest extends CrateUnitTest {
     @Test
     public void testOnParticipatingNodeDisconnectedKillsJob() throws Exception {
         JobContextService jobContextService = new JobContextService(
-            Settings.EMPTY, new NoopClusterService(), mock(StatsTables.class));
+            Settings.EMPTY, dummyClusterService, mock(StatsTables.class));
 
-        DiscoveryNode coordinator_node = new DiscoveryNode("coordinator_node_id", DummyTransportAddress.INSTANCE, Version.CURRENT);
-        DiscoveryNode data_node = new DiscoveryNode("data_node_id", DummyTransportAddress.INSTANCE, Version.CURRENT);
+        DiscoveryNode coordinator_node = new DiscoveryNode(
+            "coordinator_node_id",
+            LocalTransportAddress.buildUnique(),
+            Version.CURRENT);
+        DiscoveryNode data_node = new DiscoveryNode(
+            "data_node_id",
+            LocalTransportAddress.buildUnique(),
+            Version.CURRENT);
 
         DiscoveryNodes discoveryNodes = DiscoveryNodes.builder()
             .localNodeId("coordinator_node_id")
-            .put(coordinator_node)
-            .put(data_node).build();
+            .add(coordinator_node)
+            .add(data_node)
+            .build();
 
         JobExecutionContext.Builder builder = jobContextService.newBuilder(UUID.randomUUID(), coordinator_node.getId(), Arrays.asList(coordinator_node.getId(), data_node.getId()));
         builder.addSubContext(new DummySubContext());
