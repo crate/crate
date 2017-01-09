@@ -25,6 +25,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Sets;
 import io.crate.breaker.CrateCircuitBreakerService;
+import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.ByteSizeUnit;
 import org.elasticsearch.common.unit.ByteSizeValue;
 import org.elasticsearch.common.unit.TimeValue;
@@ -1068,9 +1069,16 @@ public class CrateSettings {
     };
 
     public static final StringSetting INDICES_BREAKER_QUERY_LIMIT = new StringSetting(
-        "limit", null, true, CrateCircuitBreakerService.DEFAULT_QUERY_CIRCUIT_BREAKER_LIMIT, INDICES_BREAKER_QUERY);
+        "limit",
+        null,
+        true,
+        CrateCircuitBreakerService.QUERY_CIRCUIT_BREAKER_LIMIT_SETTING.getDefaultRaw(Settings.EMPTY),
+        INDICES_BREAKER_QUERY);
 
     public static final DoubleSetting INDICES_BREAKER_QUERY_OVERHEAD = new DoubleSetting() {
+        private final Double defaultValue =
+            CrateCircuitBreakerService.QUERY_CIRCUIT_BREAKER_OVERHEAD_SETTING.getDefault(Settings.EMPTY);
+
         @Override
         public String name() {
             return "overhead";
@@ -1078,7 +1086,7 @@ public class CrateSettings {
 
         @Override
         public Double defaultValue() {
-            return CrateCircuitBreakerService.DEFAULT_QUERY_CIRCUIT_BREAKER_OVERHEAD_CONSTANT;
+            return defaultValue;
         }
 
         @Override
