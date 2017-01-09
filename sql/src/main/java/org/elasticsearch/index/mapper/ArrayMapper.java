@@ -73,8 +73,7 @@ import java.util.Map;
 public class ArrayMapper extends FieldMapper implements ArrayValueMapperParser {
 
     public static final String CONTENT_TYPE = "array";
-
-    private static final String INNER_TYPE = "inner";
+    public static final String INNER_TYPE = "inner";
     private Mapper innerMapper;
 
     ArrayMapper(String simpleName, MappedFieldType fieldType, MappedFieldType defaultFieldType,
