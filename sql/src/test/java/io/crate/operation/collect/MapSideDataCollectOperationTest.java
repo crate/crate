@@ -22,20 +22,15 @@
 package io.crate.operation.collect;
 
 import io.crate.analyze.symbol.Literal;
-import io.crate.analyze.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Functions;
-import io.crate.operation.collect.files.FileInputFactory;
 import io.crate.operation.collect.sources.CollectSourceResolver;
 import io.crate.operation.collect.sources.FileCollectSource;
 import io.crate.planner.node.dql.FileUriCollectPhase;
 import io.crate.planner.node.dql.RoutedCollectPhase;
-import io.crate.test.integration.CrateUnitTest;
+import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.CollectingRowReceiver;
 import io.crate.types.DataTypes;
-import org.elasticsearch.cluster.service.ClusterService;
-import org.elasticsearch.test.cluster.NoopClusterService;
-import org.elasticsearch.threadpool.ThreadPool;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -57,24 +52,23 @@ import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-public class MapSideDataCollectOperationTest extends CrateUnitTest {
+public class MapSideDataCollectOperationTest extends CrateDummyClusterServiceUnitTest {
 
     @Rule
     public TemporaryFolder temporaryFolder = new TemporaryFolder();
-    private ThreadPool threadPool;
 
+    @Override
     @Before
-    public void initThreadPool() throws Exception {
-        threadPool = newMockedThreadPool();
+    public void setUp() {
+        super.setUp();
     }
 
     @Test
     public void testFileUriCollect() throws Exception {
-        ClusterService clusterService = new NoopClusterService();
         Functions functions = getFunctions();
         CollectSourceResolver collectSourceResolver = mock(CollectSourceResolver.class);
         when(collectSourceResolver.getService(any(RoutedCollectPhase.class)))
-            .thenReturn(new FileCollectSource(functions, clusterService, Collections.<String, FileInputFactory>emptyMap()));
+            .thenReturn(new FileCollectSource(functions, dummyClusterService, Collections.emptyMap()));
         MapSideDataCollectOperation collectOperation = new MapSideDataCollectOperation(
             collectSourceResolver,
             threadPool
@@ -91,7 +85,7 @@ public class MapSideDataCollectOperationTest extends CrateUnitTest {
             "test",
             Collections.singletonList("noop_id"),
             Literal.of(Paths.get(tmpFile.toURI()).toUri().toString()),
-            Arrays.<Symbol>asList(
+            Arrays.asList(
                 createReference("name", DataTypes.STRING),
                 createReference(new ColumnIdent("details", "age"), DataTypes.INTEGER)
             ),

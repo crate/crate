@@ -33,7 +33,7 @@ import java.util.concurrent.TimeUnit;
 
 public class CrateDummyClusterServiceUnitTest extends CrateUnitTest {
 
-    private ThreadPool threadPool;
+    protected ThreadPool threadPool;
     protected ClusterService dummyClusterService;
 
     @Override
