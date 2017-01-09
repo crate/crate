@@ -18,6 +18,9 @@ from crate.client import connect
 from crate.client import exceptions
 from tqdm import tqdm
 
+# disable monitor thread
+tqdm.monitor_interval = 0
+
 
 QUERY_WHITELIST = [re.compile(o, re.IGNORECASE) for o in [
     'CREATE INDEX.*',                        # CREATE INDEX is not supported, but raises SQLParseException
