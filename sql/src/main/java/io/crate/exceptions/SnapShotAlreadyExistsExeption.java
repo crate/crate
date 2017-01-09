@@ -23,14 +23,12 @@
 package io.crate.exceptions;
 
 
-import org.elasticsearch.snapshots.SnapshotId;
-
 import java.util.Locale;
 
 public class SnapShotAlreadyExistsExeption extends ConflictException {
 
-    public SnapShotAlreadyExistsExeption(SnapshotId snapshotId) {
-        super(String.format(Locale.ENGLISH, "Snapshot \"%s\" already exists", snapshotId.getName()));
+    public SnapShotAlreadyExistsExeption(String snapshotName) {
+        super(String.format(Locale.ENGLISH, "Snapshot \"%s\" already exists", snapshotName));
     }
 
     @Override

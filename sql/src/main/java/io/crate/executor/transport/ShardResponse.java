@@ -23,6 +23,7 @@ package io.crate.executor.transport;
 
 import com.carrotsearch.hppc.IntArrayList;
 import com.google.common.base.MoreObjects;
+import org.elasticsearch.action.support.WriteResponse;
 import org.elasticsearch.action.support.replication.ReplicationResponse;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
@@ -33,7 +34,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
-public class ShardResponse extends ReplicationResponse {
+public class ShardResponse extends ReplicationResponse implements WriteResponse {
 
     /**
      * Represents a failure.
@@ -47,7 +48,7 @@ public class ShardResponse extends ReplicationResponse {
         Failure() {
         }
 
-        public Failure(String id, String message, boolean versionConflict) {
+        Failure(String id, String message, boolean versionConflict) {
             this.id = id;
             this.message = message;
             this.versionConflict = versionConflict;
@@ -65,7 +66,7 @@ public class ShardResponse extends ReplicationResponse {
             return versionConflict;
         }
 
-        public static Failure readFailure(StreamInput in) throws IOException {
+        static Failure readFailure(StreamInput in) throws IOException {
             Failure failure = new Failure();
             failure.readFrom(in);
             return failure;
@@ -99,6 +100,7 @@ public class ShardResponse extends ReplicationResponse {
     private List<Failure> failures = new ArrayList<>();
     @Nullable
     private Throwable failure;
+    private boolean forcedRefresh;
 
     public ShardResponse() {
     }
@@ -130,6 +132,11 @@ public class ShardResponse extends ReplicationResponse {
     }
 
     @Override
+    public void setForcedRefresh(boolean forcedRefresh) {
+        this.forcedRefresh = forcedRefresh;
+    }
+
+    @Override
     public void readFrom(StreamInput in) throws IOException {
         super.readFrom(in);
         int size = in.readVInt();
@@ -146,6 +153,7 @@ public class ShardResponse extends ReplicationResponse {
         if (in.readBoolean()) {
             failure = in.readException();
         }
+        forcedRefresh = in.readBoolean();
     }
 
     @Override
@@ -167,6 +175,7 @@ public class ShardResponse extends ReplicationResponse {
         } else {
             out.writeBoolean(false);
         }
+        out.writeBoolean(forcedRefresh);
     }
 
 }
