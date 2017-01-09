@@ -33,10 +33,10 @@ import io.crate.planner.node.dql.MergePhase;
 import io.crate.planner.node.dql.RoutedCollectPhase;
 import io.crate.planner.projection.MergeCountProjection;
 import io.crate.planner.projection.UpdateProjection;
-import io.crate.test.integration.CrateUnitTest;
+import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.crate.types.DataTypes;
-import org.elasticsearch.test.cluster.NoopClusterService;
+import org.junit.Before;
 import org.junit.Test;
 
 import java.util.ArrayList;
@@ -47,13 +47,18 @@ import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.core.Is.is;
 
-public class UpdatePlannerTest extends CrateUnitTest {
+public class UpdatePlannerTest extends CrateDummyClusterServiceUnitTest {
 
-    private SQLExecutor e = SQLExecutor.builder(new NoopClusterService())
-        .enableDefaultTables()
-        .addDocTable(TableDefinitions.PARTED_PKS_TI)
-        .build();
+    private SQLExecutor e;
 
+    @Override
+    @Before
+    public void setUp() {
+        e = SQLExecutor.builder(dummyClusterService)
+            .enableDefaultTables()
+            .addDocTable(TableDefinitions.PARTED_PKS_TI)
+            .build();
+    }
 
     @Test
     public void testUpdateByQueryPlan() throws Exception {

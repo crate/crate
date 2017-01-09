@@ -55,9 +55,10 @@ public class GroupByPlannerTest extends CrateDummyClusterServiceUnitTest {
 
     private SQLExecutor e;
 
+    @Override
     @Before
-    public void prepare() {
-        super.prepare();
+    public void setUp() {
+        super.setUp();
         e  = SQLExecutor.builder(
             dummyClusterService)
             .enableDefaultTables()

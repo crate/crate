@@ -28,21 +28,27 @@ import io.crate.planner.node.dml.Delete;
 import io.crate.planner.node.dml.ESDelete;
 import io.crate.planner.node.dql.Collect;
 import io.crate.planner.projection.DeleteProjection;
-import io.crate.test.integration.CrateUnitTest;
+import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
-import org.elasticsearch.test.cluster.NoopClusterService;
+import org.junit.Before;
 import org.junit.Test;
 
 import static io.crate.testing.TestingHelpers.isDocKey;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 
-public class DeletePlannerTest extends CrateUnitTest {
+public class DeletePlannerTest extends CrateDummyClusterServiceUnitTest {
 
-    private SQLExecutor e = SQLExecutor.builder(new NoopClusterService())
-        .enableDefaultTables()
-        .addDocTable(TableDefinitions.PARTED_PKS_TI)
-        .build();
+    private SQLExecutor e;
+
+    @Override
+    @Before
+    public void setUp() {
+        e = SQLExecutor.builder(dummyClusterService)
+            .enableDefaultTables()
+            .addDocTable(TableDefinitions.PARTED_PKS_TI)
+            .build();
+    }
 
     @Test
     public void testDeletePlan() throws Exception {

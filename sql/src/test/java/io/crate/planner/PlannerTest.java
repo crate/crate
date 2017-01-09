@@ -15,14 +15,13 @@ import io.crate.planner.node.ddl.ESClusterUpdateSettingsPlan;
 import io.crate.planner.node.management.KillPlan;
 import io.crate.sql.tree.Expression;
 import io.crate.sql.tree.LongLiteral;
-import io.crate.test.integration.CrateUnitTest;
+import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
-import org.elasticsearch.cluster.service.ClusterService;
-import org.elasticsearch.test.cluster.NoopClusterService;
 import org.hamcrest.core.Is;
+import org.junit.Before;
 import org.junit.Test;
 
 import java.util.Arrays;
@@ -37,11 +36,17 @@ import static org.hamcrest.core.Is.is;
 import static org.hamcrest.core.IsNull.notNullValue;
 
 @SuppressWarnings("ConstantConditions")
-public class PlannerTest extends CrateUnitTest {
+public class PlannerTest extends CrateDummyClusterServiceUnitTest {
 
-    private ClusterService clusterService = new NoopClusterService();
-    private SQLExecutor e = SQLExecutor.builder(clusterService).build();
+    private SQLExecutor e;
     private EvaluatingNormalizer normalizer = EvaluatingNormalizer.functionOnlyNormalizer(e.functions(), ReplaceMode.COPY);
+
+    @Override
+    @Before
+    public void setUp() {
+        super.setUp();
+        e = SQLExecutor.builder(dummyClusterService).build();
+    }
 
     @Test
     public void testSetPlan() throws Exception {
@@ -80,8 +85,15 @@ public class PlannerTest extends CrateUnitTest {
         TableIdent custom = new TableIdent("custom", "t1");
         TableInfo tableInfo = TestingTableInfo.builder(
             custom, shardRouting("t1")).add("id", DataTypes.INTEGER, null).build();
-        Planner.Context plannerContext = new Planner.Context(e.planner,
-            clusterService, UUID.randomUUID(), null, normalizer, new TransactionContext(SessionContext.SYSTEM_SESSION), 0, 0);
+        Planner.Context plannerContext = new Planner.Context(
+            e.planner,
+            dummyClusterService,
+            UUID.randomUUID(),
+            null,
+            normalizer,
+            new TransactionContext(SessionContext.SYSTEM_SESSION),
+            0,
+            0);
         plannerContext.allocateRouting(tableInfo, WhereClause.MATCH_ALL, null);
 
         Planner.Context.ReaderAllocations readerAllocations = plannerContext.buildReaderAllocations();
@@ -114,8 +126,15 @@ public class PlannerTest extends CrateUnitTest {
             TestingTableInfo.builder(custom, shardRouting("t1")).add("id", DataTypes.INTEGER, null).build();
         TableInfo tableInfo2 =
             TestingTableInfo.builder(custom, shardRoutingForReplicas("t1")).add("id", DataTypes.INTEGER, null).build();
-        Planner.Context plannerContext =
-            new Planner.Context(e.planner, clusterService, UUID.randomUUID(), null, normalizer, new TransactionContext(SessionContext.SYSTEM_SESSION), 0, 0);
+        Planner.Context plannerContext = new Planner.Context(
+            e.planner,
+            dummyClusterService,
+            UUID.randomUUID(),
+            null,
+            normalizer,
+            new TransactionContext(SessionContext.SYSTEM_SESSION),
+            0,
+            0);
 
         WhereClause whereClause = new WhereClause(
             new Function(new FunctionInfo(
@@ -144,8 +163,15 @@ public class PlannerTest extends CrateUnitTest {
 
     @Test
     public void testExecutionPhaseIdSequence() throws Exception {
-        Planner.Context plannerContext = new Planner.Context(e.planner,
-            clusterService, UUID.randomUUID(), null, normalizer, new TransactionContext(SessionContext.SYSTEM_SESSION.SYSTEM_SESSION), 0, 0);
+        Planner.Context plannerContext = new Planner.Context(
+            e.planner,
+            dummyClusterService,
+            UUID.randomUUID(),
+            null,
+            normalizer,
+            new TransactionContext(SessionContext.SYSTEM_SESSION.SYSTEM_SESSION),
+            0,
+            0);
 
         assertThat(plannerContext.nextExecutionPhaseId(), is(0));
         assertThat(plannerContext.nextExecutionPhaseId(), is(1));
