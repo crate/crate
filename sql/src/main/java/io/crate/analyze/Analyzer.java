@@ -33,7 +33,7 @@ import io.crate.sql.tree.*;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
-import org.elasticsearch.index.analysis.AnalysisService;
+import org.elasticsearch.index.analysis.AnalysisRegistry;
 
 import java.util.Locale;
 
@@ -72,7 +72,7 @@ public class Analyzer {
     public Analyzer(Schemas schemas,
                     Functions functions,
                     ClusterService clusterService,
-                    AnalysisService analysisService,
+                    AnalysisRegistry analysisRegistry,
                     RepositoryService repositoryService,
                     RepositoryParamValidator repositoryParamValidator) {
         NumberOfShards numberOfShards = new NumberOfShards(clusterService);
@@ -80,7 +80,7 @@ public class Analyzer {
         this.dropTableAnalyzer = new DropTableAnalyzer(schemas);
         this.dropBlobTableAnalyzer = new DropBlobTableAnalyzer(schemas);
         FulltextAnalyzerResolver fulltextAnalyzerResolver =
-            new FulltextAnalyzerResolver(clusterService, indicesAnalysisService);
+            new FulltextAnalyzerResolver(clusterService, analysisRegistry);
         this.createTableStatementAnalyzer = new CreateTableStatementAnalyzer(
             schemas,
             fulltextAnalyzerResolver,
