@@ -50,6 +50,7 @@ import org.elasticsearch.common.util.concurrent.EsRejectedExecutionException;
 import org.elasticsearch.index.IndexNotFoundException;
 import org.elasticsearch.index.shard.ShardId;
 
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.*;
 import java.util.concurrent.Semaphore;
@@ -331,7 +332,7 @@ public class BulkShardProcessor<Request extends ShardRequest> {
                 }
 
                 @Override
-                public void onFailure(Exception t) {
+                public void onFailure(@Nonnull Throwable t) {
                     setFailure(t);
                 }
             };
