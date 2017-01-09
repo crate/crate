@@ -274,10 +274,11 @@ def get_logger(level, filename=None):
     return logger
 
 
-def run_file(fh, hosts, log_level, log_file, failfast):
+def run_file(filename, hosts, log_level, log_file, failfast):
     logger = get_logger(log_level, log_file)
     conn = connect(hosts)
     cursor = conn.cursor()
+    fh = open(filename, 'r', encoding='utf-8')
     commands = get_commands(fh)
     commands = (cmd for cmd in commands if _exec_on_crate(cmd))
     if os.environ.get('TQDM_ENABLED', 'True').lower() == 'true':
@@ -302,6 +303,7 @@ def run_file(fh, hosts, log_level, log_file, failfast):
                 else:
                     logger.debug('%s; %s', cmd[1], 'Query is whitelisted', extra=attr)
     finally:
+        fh.close()
         _drop_tables(cursor)
         cursor.close()
         conn.close()
@@ -310,7 +312,7 @@ def run_file(fh, hosts, log_level, log_file, failfast):
 def main():
     parser = argparse.ArgumentParser(prog='sqllogictest.py', description=__doc__)
     parser.add_argument('-f', '--file',
-                        type=argparse.FileType('r'), required=True)
+                        type=str, required=True)
     parser.add_argument('--hosts',
                         type=str, default='http://localhost:4200')
     parser.add_argument('-l', '--log-level',

@@ -36,7 +36,7 @@ class TestMaker(type):
                 continue
             attrs['test_' + relpath] = partial(
                 run_file,
-                fh=filepath.open('r', encoding='utf-8'),
+                filename=str(filepath),
                 hosts='localhost:' + str(CRATE_HTTP_PORT),
                 log_level=logging.WARNING,
                 log_file='sqllogic.log',
