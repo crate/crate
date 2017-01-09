@@ -21,10 +21,7 @@
 
 package io.crate.lucene.match;
 
-import com.google.common.base.Function;
-import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Iterables;
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.queries.ExtendedCommonTermsQuery;
@@ -43,9 +40,9 @@ import org.elasticsearch.index.search.MatchQuery;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
-import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 public class MatchQueryBuilder {
 
@@ -91,16 +88,10 @@ public class MatchQueryBuilder {
     }
 
     IllegalArgumentException illegalMatchType(String matchType) {
-        String matchTypes = Joiner.on(", ").join(Iterables.transform(SUPPORTED_TYPES.keySet(),
-            new Function<BytesRef, String>() {
-                @Nullable
-                @Override
-                public String apply(@Nullable BytesRef input) {
-                    return BytesRefs.toString(input);
-                }
-            }
-
-        ));
+        String matchTypes = SUPPORTED_TYPES.keySet()
+            .stream()
+            .map(BytesRefs::toString)
+            .collect(Collectors.joining(", "));
         throw new IllegalArgumentException(String.format(
             Locale.ENGLISH,
             "Unknown matchType \"%s\". Possible matchTypes are: %s",
@@ -118,14 +109,14 @@ public class MatchQueryBuilder {
 
     private Query singleQuery(MatchQuery.Type type, String fieldName, BytesRef queryString) {
         String field;
-        MappedFieldType fieldType = mapperService.smartNameFieldType(fieldName);
+        MappedFieldType fieldType = mapperService.fullName(fieldName);
         if (fieldType == null) {
             field = fieldName;
         } else {
-            field = fieldType.names().indexName();
+            field = fieldType.name();
         }
 
-        if (fieldType != null && fieldType.useTermQueryWithQueryString() && !forceAnalyzeQueryString()) {
+        if (fieldType != null && !fieldType.tokenized() && !forceAnalyzeQueryString()) {
             try {
                 return fieldType.termQuery(queryString, null);
             } catch (RuntimeException e) {
@@ -185,14 +176,14 @@ public class MatchQueryBuilder {
             ((ExtendedCommonTermsQuery)query).setLowFreqMinimumNumberShouldMatch(options.minimumShouldMatch());
         }
         if (boost != null && query != null) {
-            query.setBoost(boost);
+            return new BoostQuery(query, boost);
         }
         return query;
     }
 
     private Query zeroTermsQuery() {
         return options.zeroTermsQuery() == MatchQuery.ZeroTermsQuery.NONE ?
-            Queries.newMatchNoDocsQuery() :
+            Queries.newMatchNoDocsQuery("ZeroTermsQuery") :
             Queries.newMatchAllQuery();
     }
 
@@ -269,10 +260,10 @@ public class MatchQueryBuilder {
                 return prefixQuery;
             } else if (query instanceof MultiPhraseQuery) {
                 MultiPhraseQuery pq = (MultiPhraseQuery) query;
-                List<Term[]> terms = pq.getTermArrays();
+                Term[][] terms = pq.getTermArrays();
                 int[] positions = pq.getPositions();
-                for (int i = 0; i < terms.size(); i++) {
-                    prefixQuery.add(terms.get(i), positions[i]);
+                for (int i = 0; i < terms.length; i++) {
+                    prefixQuery.add(terms[i], positions[i]);
                 }
                 return prefixQuery;
             } else if (query instanceof TermQuery) {
