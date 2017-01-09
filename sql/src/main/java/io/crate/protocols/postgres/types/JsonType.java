@@ -68,8 +68,7 @@ class JsonType extends PGType {
                 builder.map((Map) value);
             }
             builder.close();
-            BytesReference bytes = builder.bytes();
-            return bytes.toBytes();
+            return BytesReference.toBytes(builder.bytes());
         } catch (IOException e) {
             throw Throwables.propagate(e);
         }
