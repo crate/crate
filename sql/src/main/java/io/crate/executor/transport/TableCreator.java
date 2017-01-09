@@ -28,6 +28,7 @@ import io.crate.analyze.CreateTableAnalyzedStatement;
 import io.crate.exceptions.Exceptions;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.TableIdent;
+import org.apache.logging.log4j.Logger;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.admin.indices.alias.Alias;
 import org.elasticsearch.action.admin.indices.create.CreateIndexRequest;
@@ -37,17 +38,19 @@ import org.elasticsearch.action.admin.indices.delete.DeleteIndexResponse;
 import org.elasticsearch.action.admin.indices.template.put.PutIndexTemplateRequest;
 import org.elasticsearch.action.admin.indices.template.put.PutIndexTemplateResponse;
 import org.elasticsearch.action.support.IndicesOptions;
-import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
+import org.elasticsearch.cluster.metadata.MetaData;
+import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
-import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.index.Index;
 import org.elasticsearch.indices.IndexAlreadyExistsException;
 import org.elasticsearch.indices.IndexTemplateAlreadyExistsException;
 
 import java.util.Locale;
+import java.util.stream.Stream;
 
 @Singleton
 public class TableCreator {
@@ -74,7 +77,7 @@ public class TableCreator {
         final SettableFuture<Long> result = SettableFuture.create();
 
         // real work done in createTable()
-        deleteOrphans(new CreateTableResponseListener(result, statement), statement);
+        deleteOrphans(new CreateTableResponseListener(result, statement), statement.tableIdent());
         return result;
     }
 
@@ -148,18 +151,19 @@ public class TableCreator {
         }
     }
 
-    private void deleteOrphans(final CreateTableResponseListener listener, final CreateTableAnalyzedStatement statement) {
-        if (clusterService.state().metaData().hasAlias(statement.tableIdent().fqn())
-            && PartitionName.isPartition(
-            clusterService.state().metaData().getAliasAndIndexLookup().get(statement.tableIdent().fqn()).getIndices().iterator().next().getIndex())) {
-            logger.debug("Deleting orphaned partitions with alias: {}", statement.tableIdent().fqn());
-            transportActionProvider.transportDeleteIndexAction().execute(new DeleteIndexRequest(statement.tableIdent().fqn()), new ActionListener<DeleteIndexResponse>() {
+    private void deleteOrphans(final CreateTableResponseListener listener, TableIdent tableIdent) {
+        MetaData metaData = clusterService.state().getMetaData();
+        String index = metaData.getAliasAndIndexLookup().get(tableIdent.fqn()).getIndices().iterator().next().getIndex().getName();
+        if (metaData.hasAlias(tableIdent.fqn())
+            && PartitionName.isPartition(index)) {
+            logger.debug("Deleting orphaned partitions with alias: {}", tableIdent.fqn());
+            transportActionProvider.transportDeleteIndexAction().execute(new DeleteIndexRequest(tableIdent.fqn()), new ActionListener<DeleteIndexResponse>() {
                 @Override
                 public void onResponse(DeleteIndexResponse response) {
                     if (!response.isAcknowledged()) {
                         warnNotAcknowledged("deleting orphaned alias");
                     }
-                    deleteOrphanedPartitions(listener, statement.tableIdent());
+                    deleteOrphanedPartitions(listener, tableIdent);
                 }
 
                 @Override
@@ -168,7 +172,7 @@ public class TableCreator {
                 }
             });
         } else {
-            deleteOrphanedPartitions(listener, statement.tableIdent());
+            deleteOrphanedPartitions(listener, tableIdent);
         }
     }
 
@@ -181,7 +185,10 @@ public class TableCreator {
      */
     private void deleteOrphanedPartitions(final CreateTableResponseListener listener, TableIdent tableIdent) {
         String partitionWildCard = PartitionName.templateName(tableIdent.schema(), tableIdent.name()) + "*";
-        String[] orphans = indexNameExpressionResolver.concreteIndices(clusterService.state(), IndicesOptions.strictExpand(), partitionWildCard);
+        String[] orphans = Stream.of(indexNameExpressionResolver.concreteIndices(
+            clusterService.state(), IndicesOptions.strictExpand(), partitionWildCard))
+            .map(Index::getName)
+            .toArray(String[]::new);
         if (orphans.length > 0) {
             if (logger.isDebugEnabled()) {
                 logger.debug("Deleting orphaned partitions: {}", Joiner.on(", ").join(orphans));
