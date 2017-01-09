@@ -32,6 +32,7 @@ import org.elasticsearch.common.inject.Provider;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.node.settings.NodeSettingsService;
 import org.elasticsearch.test.cluster.NoopClusterService;
+import org.elasticsearch.threadpool.ThreadPool;
 import org.jboss.netty.buffer.ChannelBuffer;
 import org.jboss.netty.buffer.ChannelBuffers;
 import org.jboss.netty.channel.Channel;
@@ -60,6 +61,7 @@ public class ConnectionContextTest {
 
     @Before
     public void setUp() throws Exception {
+        ThreadPool threadPool = mock(ThreadPool.class);
         sqlOperations = new SQLOperations(
             e.analyzer,
             e.planner,
@@ -69,7 +71,7 @@ public class ConnectionContextTest {
                     return mock(Executor.class);
                 }
             },
-            new StatsTables(Settings.EMPTY, new NodeSettingsService(Settings.EMPTY)),
+            new StatsTables(Settings.EMPTY, new NodeSettingsService(Settings.EMPTY), threadPool),
             Settings.EMPTY,
             clusterService
         ) {

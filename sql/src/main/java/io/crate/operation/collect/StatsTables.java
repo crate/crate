@@ -21,6 +21,7 @@
 
 package io.crate.operation.collect;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Supplier;
 import com.twitter.jsr166e.LongAdder;
 import io.crate.core.collections.BlockingEvictingQueue;
@@ -38,6 +39,7 @@ import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.node.settings.NodeSettingsService;
+import org.elasticsearch.threadpool.ThreadPool;
 
 import javax.annotation.Nullable;
 import javax.annotation.concurrent.ThreadSafe;
@@ -45,9 +47,7 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.Queue;
 import java.util.UUID;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicReference;
 
 /**
@@ -63,6 +63,7 @@ public class StatsTables {
 
     private final static BlockingQueue<OperationContextLog> NOOP_OPERATIONS_LOG = NoopQueue.instance();
     private final static BlockingQueue<JobContextLog> NOOP_JOBS_LOG = NoopQueue.instance();
+    private final static long QUEUE_CLEAN_INTERVAL = 5L;    // seconds
 
     private final Map<UUID, JobContext> jobsTable = new ConcurrentHashMap<>();
     private final Map<Tuple<Integer, UUID>, OperationContext> operationsTable = new ConcurrentHashMap<>();
@@ -87,12 +88,22 @@ public class StatsTables {
 
     private static final ESLogger LOGGER = Loggers.getLogger(StatsTables.class);
 
+    private final ScheduledExecutorService scheduler;
+    private ScheduledFuture scheduledFuture;
+
+
     @Inject
-    public StatsTables(Settings settings, NodeSettingsService nodeSettingsService) {
+    public StatsTables(Settings settings, NodeSettingsService nodeSettingsService, ThreadPool threadPool) {
+        this(settings, nodeSettingsService, threadPool.scheduler());
+    }
+
+    @VisibleForTesting
+    StatsTables(Settings settings, NodeSettingsService nodeSettingsService, ScheduledExecutorService scheduledExecutorService) {
         int operationsLogSize = CrateSettings.STATS_OPERATIONS_LOG_SIZE.extract(settings);
         int jobsLogSize = CrateSettings.STATS_JOBS_LOG_SIZE.extract(settings);
         TimeValue jobsLogExpiration = CrateSettings.STATS_JOBS_LOG_EXPIRATION.extractTimeValue(settings);
         boolean isEnabled = CrateSettings.STATS_ENABLED.extract(settings);
+        scheduler = scheduledExecutorService;
 
         if (isEnabled) {
             setJobsLog(jobsLogSize, jobsLogExpiration);
@@ -110,6 +121,7 @@ public class StatsTables {
         lastJobsLogSize = jobsLogSize;
         lastJobsLogExpiration = jobsLogExpiration;
         lastIsEnabled = isEnabled;
+
 
         nodeSettingsService.addListener(listener);
         jobsLogIterableGetter = new JobsLogIterableGetter();
@@ -263,18 +275,27 @@ public class StatsTables {
 
     private void setJobsLog(int size, TimeValue expiration) {
         Queue newQ;
+        boolean isScheduledQueue = false;
+
+        // Cancel the current jobs log queue scheduler if there is one
+        if (scheduledFuture != null) {
+            scheduledFuture.cancel(true);
+            scheduledFuture = null;
+        }
 
         if (size == 0) {
             if (expiration.getMillis() > 0) {
                 newQ = new ConcurrentLinkedQueue<JobContextLog>();
+                isScheduledQueue = true;
             } else {
                 jobsLog.set(NOOP_JOBS_LOG);
                 return;
             }
         } else {
             if (expiration.getMillis() > 0) {
-                newQ = new ConcurrentLinkedQueue<JobContextLog>();
                 LOGGER.info("Both stats.jobs_log_size and stats.jobs_log_expiration settings are set. Using the latter.");
+                newQ = new ConcurrentLinkedQueue<JobContextLog>();
+                isScheduledQueue = true;
             } else {
                 newQ = new BlockingEvictingQueue<JobContextLog>(size);
             }
@@ -283,6 +304,18 @@ public class StatsTables {
         Queue<JobContextLog> oldQ = jobsLog.get();
         newQ.addAll(oldQ);
         jobsLog.set(newQ);
+
+        if (isScheduledQueue) {
+            scheduledFuture = scheduler.scheduleWithFixedDelay(new ScheduledQueueCleaner(), 0L, QUEUE_CLEAN_INTERVAL, TimeUnit.SECONDS);
+        }
+    }
+
+    private class ScheduledQueueCleaner implements Runnable {
+
+        @Override
+        public void run() {
+            removeExpiredLogs((ConcurrentLinkedQueue<JobContextLog>) jobsLog.get(), System.currentTimeMillis(), lastJobsLogExpiration.getMillis());
+        }
     }
 
     private class NodeSettingListener implements NodeSettingsService.Listener {
