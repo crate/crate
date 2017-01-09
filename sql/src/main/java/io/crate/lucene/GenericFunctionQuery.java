@@ -66,7 +66,6 @@ class GenericFunctionQuery extends Query {
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
-        if (!super.equals(o)) return false;
 
         GenericFunctionQuery that = (GenericFunctionQuery) o;
 
@@ -75,9 +74,7 @@ class GenericFunctionQuery extends Query {
 
     @Override
     public int hashCode() {
-        int result = super.hashCode();
-        result = 31 * result + function.hashCode();
-        return result;
+        return function.hashCode();
     }
 
     @Override

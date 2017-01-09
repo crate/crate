@@ -7,10 +7,10 @@ import org.apache.lucene.index.Term;
 import org.apache.lucene.search.*;
 import org.apache.lucene.util.BytesRef;
 import org.apache.lucene.util.BytesRefBuilder;
-import org.apache.lucene.util.NumericUtils;
+import org.apache.lucene.util.LegacyNumericUtils;
 import org.elasticsearch.common.lucene.BytesRefs;
 import org.elasticsearch.common.lucene.search.Queries;
-import org.elasticsearch.index.mapper.IpFieldMapper;
+import org.elasticsearch.index.mapper.LegacyIpFieldMapper;
 
 import javax.annotation.Nullable;
 import java.util.Locale;
@@ -102,7 +102,7 @@ public abstract class QueryBuilderHelper {
 
         @Override
         public Query rangeQuery(String columnName, Object from, Object to, boolean includeLower, boolean includeUpper) {
-            return NumericRangeQuery.newFloatRange(columnName, toFloat(from), toFloat(to), includeLower, includeUpper);
+            return LegacyNumericRangeQuery.newFloatRange(columnName, toFloat(from), toFloat(to), includeLower, includeUpper);
         }
     }
 
@@ -120,7 +120,7 @@ public abstract class QueryBuilderHelper {
 
         @Override
         public Query rangeQuery(String columnName, Object from, Object to, boolean includeLower, boolean includeUpper) {
-            return NumericRangeQuery.newDoubleRange(columnName, toDouble(from), toDouble(to), includeLower, includeUpper);
+            return LegacyNumericRangeQuery.newDoubleRange(columnName, toDouble(from), toDouble(to), includeLower, includeUpper);
         }
     }
 
@@ -128,7 +128,7 @@ public abstract class QueryBuilderHelper {
 
         @Override
         public Query rangeQuery(String columnName, Object from, Object to, boolean includeLower, boolean includeUpper) {
-            return NumericRangeQuery.newLongRange(columnName, (Long) from, (Long) to, includeLower, includeUpper);
+            return LegacyNumericRangeQuery.newLongRange(columnName, (Long) from, (Long) to, includeLower, includeUpper);
         }
     }
 
@@ -146,7 +146,7 @@ public abstract class QueryBuilderHelper {
 
         @Override
         public Query rangeQuery(String columnName, Object from, Object to, boolean includeLower, boolean includeUpper) {
-            return NumericRangeQuery.newIntRange(columnName, toInt(from), toInt(to), includeLower, includeUpper);
+            return LegacyNumericRangeQuery.newIntRange(columnName, toInt(from), toInt(to), includeLower, includeUpper);
         }
     }
 
@@ -155,7 +155,7 @@ public abstract class QueryBuilderHelper {
         private BytesRef valueForSearch(Object value) {
             if (value == null) return null;
             BytesRefBuilder bytesRef = new BytesRefBuilder();
-            NumericUtils.longToPrefixCoded(parseValue(value), 0, bytesRef); // 0 because of exact match
+            LegacyNumericUtils.longToPrefixCoded(parseValue(value), 0, bytesRef); // 0 because of exact match
             return bytesRef.get();
         }
 
@@ -168,20 +168,20 @@ public abstract class QueryBuilderHelper {
                 return ((Number) value).longValue();
             }
             if (value instanceof BytesRef) {
-                return IpFieldMapper.ipToLong(((BytesRef) value).utf8ToString());
+                return LegacyIpFieldMapper.ipToLong(((BytesRef) value).utf8ToString());
             }
-            return IpFieldMapper.ipToLong(value.toString());
+            return LegacyIpFieldMapper.ipToLong(value.toString());
         }
 
         @Override
         public Query rangeQuery(String columnName, Object from, Object to, boolean includeLower, boolean includeUpper) {
-            return NumericRangeQuery.newLongRange(columnName, parseValueOrNull(from), parseValueOrNull(to), includeLower, includeUpper);
+            return LegacyNumericRangeQuery.newLongRange(columnName, parseValueOrNull(from), parseValueOrNull(to), includeLower, includeUpper);
         }
 
         @Override
         public Query eq(String columnName, Object value) {
             if (value == null) {
-                return Queries.newMatchNoDocsQuery();
+                return Queries.newMatchNoDocsQuery("null value doesn't match");
             }
             return new TermQuery(new Term(columnName, valueForSearch(value)));
         }
@@ -197,7 +197,7 @@ public abstract class QueryBuilderHelper {
         @Override
         public Query eq(String columnName, Object value) {
             if (value == null) {
-                return Queries.newMatchNoDocsQuery();
+                return Queries.newMatchNoDocsQuery("null value doesn't match");
             }
             return new TermQuery(new Term(columnName, (BytesRef) value));
         }
