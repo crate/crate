@@ -35,9 +35,9 @@ public class ShardPartitionOrphanedExpression extends SimpleObjectExpression<Boo
 
     public ShardPartitionOrphanedExpression(ShardId shardId, ClusterService clusterService) {
         this.clusterService = clusterService;
-        isPartition = PartitionName.isPartition(shardId.getIndex());
+        isPartition = PartitionName.isPartition(shardId.getIndex().getName());
         if (isPartition) {
-            PartitionName partitionName = PartitionName.fromIndexOrTemplate(shardId.getIndex());
+            PartitionName partitionName = PartitionName.fromIndexOrTemplate(shardId.getIndex().getName());
             aliasName = partitionName.tableIdent().indexName();
             templateName = PartitionName.templateName(
                 partitionName.tableIdent().schema(),

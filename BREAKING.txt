@@ -1,0 +1,9 @@
+========================================
+ BREAKING CHANGES due to ES 5.x upgrade
+========================================
+
+- some translog settings are gone, see:
+  https://www.elastic.co/guide/en/elasticsearch/reference/5.0/breaking_50_settings_changes.html#_translog_settings
+  additionally `disable_flush` is also gone
+
+

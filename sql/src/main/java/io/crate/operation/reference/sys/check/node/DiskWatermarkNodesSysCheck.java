@@ -45,6 +45,7 @@ abstract class DiskWatermarkNodesSysCheck extends AbstractSysNodeCheck {
     private final StringSetting watermarkSetting;
     private final Settings settings;
     private final FsProbe fsProbe;
+    private final FsInfo fsInfo;
 
     DiskWatermarkNodesSysCheck(int id,
                                String description,
@@ -52,10 +53,12 @@ abstract class DiskWatermarkNodesSysCheck extends AbstractSysNodeCheck {
                                Severity severity,
                                ClusterService clusterService,
                                Settings settings,
-                               FsProbe fsProbe) {
+                               FsProbe fsProbe,
+                               FsInfo fsInfo) {
         super(id, description, severity, clusterService);
         this.settings = settings;
         this.fsProbe = fsProbe;
+        this.fsInfo = fsInfo;
         this.watermarkSetting = watermarkSetting;
     }
 
@@ -63,7 +66,7 @@ abstract class DiskWatermarkNodesSysCheck extends AbstractSysNodeCheck {
     public boolean validate() {
         try {
             return !thresholdEnabled() ||
-                   validate(fsProbe.stats(), thresholdPercentageFromWatermark(), thresholdBytesFromWatermark());
+                   validate(fsProbe.stats(fsInfo), thresholdPercentageFromWatermark(), thresholdBytesFromWatermark());
         } catch (IOException e) {
             LOGGER.error("Unable to determine the node disk usage while validating high/low disk watermark check: ", e);
             return false;
