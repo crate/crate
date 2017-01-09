@@ -141,6 +141,7 @@ public class ShardCollectSource extends AbstractComponent implements CollectSour
                               RemoteCollectorFactory remoteCollectorFactory,
                               SystemCollectSource systemCollectSource,
                               NodeSysExpression nodeSysExpression,
+                              IndexEventListenerDelegate indexEventListenerDelegate,
                               BlobIndicesService blobIndicesService) {
         super(settings);
         this.luceneQueryBuilder = luceneQueryBuilder;
@@ -176,7 +177,7 @@ public class ShardCollectSource extends AbstractComponent implements CollectSour
             nodeNormalizer
         );
 
-        //indicesLifecycle.addListener(new LifecycleListener());
+        indexEventListenerDelegate.setDelegate(new LifecycleListener());
     }
 
     private class LifecycleListener implements IndexEventListener {
