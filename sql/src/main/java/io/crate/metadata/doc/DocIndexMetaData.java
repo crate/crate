@@ -599,7 +599,7 @@ public class DocIndexMetaData {
      * @return the name of the underlying index even if this table is referenced by alias
      */
     public String concreteIndexName() {
-        return metaData.getIndex();
+        return metaData.getIndex().getName();
     }
 
     public boolean isAlias() {
