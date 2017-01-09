@@ -57,4 +57,9 @@ public class OneRowActionListener<Response> implements ActionListener<Response>,
     public void onFailure(@Nonnull Throwable e) {
         rowReceiver.fail(e);
     }
+
+    @Override
+    public void onFailure(Exception e) {
+        rowReceiver.fail(e);
+    }
 }
