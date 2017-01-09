@@ -21,7 +21,6 @@
 package io.crate.operation.scalar;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import io.crate.analyze.symbol.Function;
 import io.crate.analyze.symbol.Literal;
 import io.crate.analyze.symbol.Symbol;
@@ -171,10 +170,7 @@ public class DateTruncFunction extends Scalar<Long, Object> {
         DateTimeUnit intervalAsUnit = intervalAsUnit(interval);
         DateTimeZone timeZone = TimeZoneParser.parseTimeZone(timeZoneString);
 
-        TimeZoneRounding.Builder tzRoundingBuilder = TimeZoneRounding.builder(intervalAsUnit);
-        return tzRoundingBuilder
-            .timeZone(timeZone)
-            .build();
+        return Rounding.builder(intervalAsUnit).timeZone(timeZone).build();
     }
 
     /**
