@@ -293,10 +293,9 @@ def run_file(fh, hosts, log_level, log_file, failfast):
                 logger.info('%s; %s', s_or_q.query, e, extra=attr)
             except IncorrectResult as e:
                 if not any(p.match(s_or_q.query) for p in QUERY_WHITELIST):
+                    logger.error('%s; %s', s_or_q.query, e, extra=attr)
                     if failfast:
                         raise e
-                    else:
-                        logger.error('%s; %s', s_or_q.query, e, extra=attr)
                 else:
                     logger.debug('%s; %s', cmd[1], 'Query is whitelisted', extra=attr)
     finally:
