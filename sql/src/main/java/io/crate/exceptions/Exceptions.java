@@ -30,6 +30,7 @@ import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.util.concurrent.UncategorizedExecutionException;
 import org.elasticsearch.index.IndexNotFoundException;
+import org.elasticsearch.index.engine.VersionConflictEngineException;
 import org.elasticsearch.index.mapper.MapperParsingException;
 import org.elasticsearch.index.shard.IllegalIndexShardStateException;
 import org.elasticsearch.index.shard.ShardNotFoundException;
@@ -155,23 +156,24 @@ public class Exceptions {
             return new SQLParseException(e.getMessage(), (Exception) e);
         } else if (e instanceof UnsupportedOperationException) {
             return new UnsupportedFeatureException(e.getMessage(), (Exception) e);
-        } else if (e instanceof DocumentAlreadyExistsException) {
+        } else if (e instanceof VersionConflictEngineException
+                   && e.getMessage().contains("document already exists")) {
             return new DuplicateKeyException(
                 "A document with the same primary key exists already", e);
         } else if (e instanceof IndexAlreadyExistsException) {
-            return new TableAlreadyExistsException(((IndexAlreadyExistsException) e).getIndex(), e);
+            return new TableAlreadyExistsException(((IndexAlreadyExistsException) e).getIndex().getName(), e);
         } else if ((e instanceof InvalidIndexNameException)) {
             if (e.getMessage().contains("already exists as alias")) {
                 // treat an alias like a table as aliases are not officially supported
-                return new TableAlreadyExistsException(((InvalidIndexNameException) e).getIndex(),
+                return new TableAlreadyExistsException(((InvalidIndexNameException) e).getIndex().getName(),
                     e);
             }
-            return new InvalidTableNameException(((InvalidIndexNameException) e).getIndex(), e);
+            return new InvalidTableNameException(((InvalidIndexNameException) e).getIndex().getName(), e);
         } else if (e instanceof InvalidIndexTemplateException) {
             PartitionName partitionName = PartitionName.fromIndexOrTemplate(((InvalidIndexTemplateException) e).name());
             return new InvalidTableNameException(partitionName.tableIdent().fqn(), e);
         } else if (e instanceof IndexNotFoundException) {
-            return new TableUnknownException(((IndexNotFoundException) e).getIndex(), e);
+            return new TableUnknownException(((IndexNotFoundException) e).getIndex().getName(), e);
         } else if (e instanceof org.elasticsearch.common.breaker.CircuitBreakingException) {
             return new CircuitBreakingException(e.getMessage());
         } else if (e instanceof InterruptedException) {
@@ -179,10 +181,10 @@ public class Exceptions {
         } else if (e instanceof RepositoryMissingException) {
             return new RepositoryUnknownException(((RepositoryMissingException) e).repository());
         } else if (e instanceof SnapshotMissingException) {
-            return new SnapshotUnknownException(((SnapshotMissingException) e).snapshot(), e);
+            return new SnapshotUnknownException(((SnapshotMissingException) e).getSnapshotName(), e);
         } else if (e instanceof InvalidSnapshotNameException) {
             if (((InvalidSnapshotNameException) e).getDetailedMessage().contains("snapshot with such name already exists")) {
-                return new SnapShotAlreadyExistsExeption(((InvalidSnapshotNameException) e).snapshot());
+                return new SnapShotAlreadyExistsExeption(((InvalidSnapshotNameException) e).getSnapshotName());
             }
         }
         return e;
