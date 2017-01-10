@@ -354,6 +354,7 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                     }
                 }
             }
+            builder.endObject();
             source = builder.bytes();
         }
 
