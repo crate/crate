@@ -80,7 +80,6 @@ public class DecommissioningService extends AbstractLifecycleComponent implement
                                   final ClusterService clusterService,
                                   StatsTables statsTables,
                                   ThreadPool threadPool,
-                                  ClusterSettings clusterSettings,
                                   SQLOperations sqlOperations,
                                   final TransportClusterHealthAction healthAction,
                                   final TransportClusterUpdateSettingsAction updateSettingsAction) {
@@ -95,6 +94,8 @@ public class DecommissioningService extends AbstractLifecycleComponent implement
         gracefulStopTimeout = CrateSettings.GRACEFUL_STOP_TIMEOUT.extractTimeValue(settings);
         forceStop = CrateSettings.GRACEFUL_STOP_FORCE.extract(settings);
         dataAvailability = DataAvailability.of(CrateSettings.GRACEFUL_STOP_MIN_AVAILABILITY.extract(settings));
+
+        ClusterSettings clusterSettings = clusterService.getClusterSettings();
 
         CrateSettings.GRACEFUL_STOP_TIMEOUT.registerUpdateConsumer(clusterSettings, this::setGracefulStopTimeout);
         CrateSettings.GRACEFUL_STOP_FORCE.registerUpdateConsumer(clusterSettings, this::setGracefulStopForce);

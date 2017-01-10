@@ -21,28 +21,27 @@
 
 package io.crate.breaker;
 
-import io.crate.test.integration.CrateUnitTest;
+import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import org.elasticsearch.common.breaker.CircuitBreaker;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.ByteSizeValue;
 import org.elasticsearch.indices.breaker.CircuitBreakerService;
 import org.elasticsearch.indices.breaker.CircuitBreakerStats;
 import org.elasticsearch.indices.breaker.HierarchyCircuitBreakerService;
-import org.elasticsearch.node.settings.NodeSettingsService;
 import org.junit.Test;
 
 import java.util.Locale;
 
 import static org.hamcrest.Matchers.*;
 
-public class CrateCircuitBreakerServiceTest extends CrateUnitTest {
+public class CrateCircuitBreakerServiceTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testQueryCircuitBreakerRegistration() throws Exception {
-        NodeSettingsService settingsService = new NodeSettingsService(Settings.EMPTY);
-        CircuitBreakerService esBreakerService = new HierarchyCircuitBreakerService(Settings.EMPTY, settingsService);
+        CircuitBreakerService esBreakerService = new HierarchyCircuitBreakerService(
+            Settings.EMPTY, dummyClusterService.getClusterSettings());
         CrateCircuitBreakerService breakerService = new CrateCircuitBreakerService(
-            Settings.EMPTY, settingsService, esBreakerService);
+            Settings.EMPTY, dummyClusterService.getClusterSettings(), esBreakerService);
 
         CircuitBreaker breaker = breakerService.getBreaker(CrateCircuitBreakerService.QUERY);
         assertThat(breaker, notNullValue());
@@ -52,23 +51,17 @@ public class CrateCircuitBreakerServiceTest extends CrateUnitTest {
 
     @Test
     public void testQueryCircuitBreakerDynamicSettings() throws Exception {
-        final NodeSettingsService.Listener[] listeners = new NodeSettingsService.Listener[1];
-        NodeSettingsService settingsService = new NodeSettingsService(Settings.EMPTY) {
-            @Override
-            public void addListener(Listener listener) {
-                listeners[0] = listener;
-            }
-
-        };
-        CircuitBreakerService esBreakerService = new HierarchyCircuitBreakerService(Settings.EMPTY, settingsService);
+        CircuitBreakerService esBreakerService = new HierarchyCircuitBreakerService(
+            Settings.EMPTY, dummyClusterService.getClusterSettings());
         CrateCircuitBreakerService breakerService = new CrateCircuitBreakerService(
-            Settings.EMPTY, settingsService, esBreakerService);
+            Settings.EMPTY, dummyClusterService.getClusterSettings(), esBreakerService);
 
-        Settings newSettings = Settings.settingsBuilder()
+        fail("TODO: update test");
+        Settings newSettings = Settings.builder()
             .put(CrateCircuitBreakerService.QUERY_CIRCUIT_BREAKER_OVERHEAD_SETTING, 2.0)
             .build();
 
-        listeners[0].onRefreshSettings(newSettings);
+        //listeners[0].onRefreshSettings(newSettings);
 
         CircuitBreaker breaker = breakerService.getBreaker(CrateCircuitBreakerService.QUERY);
         assertThat(breaker, notNullValue());
@@ -84,10 +77,10 @@ public class CrateCircuitBreakerServiceTest extends CrateUnitTest {
 
     @Test
     public void testStats() throws Exception {
-        NodeSettingsService settingsService = new NodeSettingsService(Settings.EMPTY);
-        CircuitBreakerService esBreakerService = new HierarchyCircuitBreakerService(Settings.EMPTY, settingsService);
+        CircuitBreakerService esBreakerService = new HierarchyCircuitBreakerService(
+            Settings.EMPTY, dummyClusterService.getClusterSettings());
         CrateCircuitBreakerService breakerService = new CrateCircuitBreakerService(
-            Settings.EMPTY, settingsService, esBreakerService);
+            Settings.EMPTY, dummyClusterService.getClusterSettings(), esBreakerService);
 
         CircuitBreakerStats[] stats = breakerService.stats().getAllStats();
         assertThat(stats.length, is(5));
