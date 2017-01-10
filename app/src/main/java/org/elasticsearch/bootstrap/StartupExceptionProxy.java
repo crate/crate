@@ -26,8 +26,8 @@ package org.elasticsearch.bootstrap;
  * A wrapper around org.elasticsearch.bootstrap.StartupError, to us it
  * as well.
  */
-public class StartupErrorProxy extends RuntimeException {
-    public StartupErrorProxy(Throwable cause) {
-        throw new StartupError(cause);
+public class StartupExceptionProxy extends RuntimeException {
+    public StartupExceptionProxy(Throwable cause) {
+        throw new StartupException(cause);
     }
 }
