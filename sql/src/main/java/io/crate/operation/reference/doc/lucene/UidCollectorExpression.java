@@ -32,6 +32,10 @@ public class UidCollectorExpression extends LuceneCollectorExpression<BytesRef> 
 
     private CollectorFieldsVisitor visitor;
 
+    public UidCollectorExpression() {
+        super(COLUMN_NAME);
+    }
+
     @Override
     public void startCollect(CollectorContext context) {
         context.visitor().required(true);

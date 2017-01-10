@@ -52,7 +52,7 @@ public class IntegerColumnReference extends FieldCacheExpression<IndexNumericFie
                 value = (int) values.valueAt(0);
                 break;
             default:
-                throw new GroupByOnArrayUnsupportedException(columnName());
+                throw new GroupByOnArrayUnsupportedException(columnName);
         }
     }
 

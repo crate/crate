@@ -54,7 +54,7 @@ public class GeoPointColumnReference extends FieldCacheExpression<IndexGeoPointF
                 value = new Double[]{gp.lon(), gp.lat()};
                 break;
             default:
-                throw new GroupByOnArrayUnsupportedException(columnName());
+                throw new GroupByOnArrayUnsupportedException(columnName);
         }
     }
 

@@ -54,7 +54,7 @@ public class IpColumnReference extends FieldCacheExpression<IndexNumericFieldDat
                 value = new BytesRef(IpFieldMapper.longToIp(values.valueAt(0)));
                 break;
             default:
-                throw new GroupByOnArrayUnsupportedException(columnName());
+                throw new GroupByOnArrayUnsupportedException(columnName);
         }
     }
 

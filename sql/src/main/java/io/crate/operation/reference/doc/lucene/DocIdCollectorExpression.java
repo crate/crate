@@ -32,6 +32,10 @@ public class DocIdCollectorExpression extends LuceneCollectorExpression<Long> {
     private long docId;
     private int docBase;
 
+    public DocIdCollectorExpression() {
+        super(COLUMN_NAME);
+    }
+
     @Override
     public void startCollect(CollectorContext context) {
         super.startCollect(context);

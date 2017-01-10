@@ -52,7 +52,7 @@ public class ByteColumnReference extends FieldCacheExpression<IndexNumericFieldD
                 value = (byte) values.valueAt(0);
                 break;
             default:
-                throw new GroupByOnArrayUnsupportedException(columnName());
+                throw new GroupByOnArrayUnsupportedException(columnName);
         }
     }
 

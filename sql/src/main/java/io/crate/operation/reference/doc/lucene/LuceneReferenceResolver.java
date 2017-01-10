@@ -40,8 +40,6 @@ public class LuceneReferenceResolver implements ReferenceResolver<LuceneCollecto
     @Nullable
     MapperService mapperService;
 
-    private final static NullValueCollectorExpression NULL_COLLECTOR_EXPRESSION = new NullValueCollectorExpression();
-
     public LuceneReferenceResolver(@Nullable MapperService mapperService) {
         this.mapperService = mapperService;
     }
@@ -75,7 +73,7 @@ public class LuceneReferenceResolver implements ReferenceResolver<LuceneCollecto
 
         String colName = columnIdent.fqn();
         if (this.mapperService != null && mapperService.smartNameFieldType(colName) == null) {
-            return NULL_COLLECTOR_EXPRESSION;
+            return new NullValueCollectorExpression(colName);
         }
 
         switch (refInfo.valueType().id()) {
@@ -113,6 +111,10 @@ public class LuceneReferenceResolver implements ReferenceResolver<LuceneCollecto
     }
 
     private static class NullValueCollectorExpression extends LuceneCollectorExpression<Void> {
+
+        public NullValueCollectorExpression(String columnName) {
+            super(columnName);
+        }
 
         @Override
         public Void value() {

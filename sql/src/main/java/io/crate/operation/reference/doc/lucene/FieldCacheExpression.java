@@ -27,7 +27,7 @@ import org.elasticsearch.index.mapper.MappedFieldType;
 
 
 public abstract class FieldCacheExpression<IFD extends IndexFieldData, ReturnType> extends
-    ColumnReferenceCollectorExpression<ReturnType> {
+    LuceneCollectorExpression<ReturnType> {
 
     private final static String[] DEFAULT_MAPPING_TYPES = new String[]{
         Constants.DEFAULT_MAPPING_TYPE};
