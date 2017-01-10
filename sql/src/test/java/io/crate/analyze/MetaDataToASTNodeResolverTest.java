@@ -34,17 +34,17 @@ import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
-import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
+import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.index.Index;
 import org.junit.Test;
 
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
-import java.util.concurrent.ExecutorService;
 
 import static org.mockito.Mockito.mock;
 
@@ -76,7 +76,7 @@ public class MetaDataToASTNodeResolverTest extends CrateUnitTest {
                 primaryKeys,
                 clusteredBy,
                 false, false,
-                new String[]{},
+                Index.EMPTY_ARRAY,
                 mock(ClusterService.class),
                 new IndexNameExpressionResolver(Settings.EMPTY),
                 numberOfShards,
@@ -85,8 +85,7 @@ public class MetaDataToASTNodeResolverTest extends CrateUnitTest {
                 partitionedBy,
                 Collections.EMPTY_LIST,
                 policy,
-                Operation.ALL,
-                mock(ExecutorService.class));
+                Operation.ALL);
         }
     }
 
