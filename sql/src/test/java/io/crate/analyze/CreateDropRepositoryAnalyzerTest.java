@@ -46,10 +46,8 @@ public class CreateDropRepositoryAnalyzerTest extends CrateDummyClusterServiceUn
 
     private SQLExecutor e;
 
-    @Override
     @Before
-    public void setUp() {
-        super.setUp();
+    public void prepare() {
         RepositoriesMetaData repositoriesMetaData = new RepositoriesMetaData(
             new RepositoryMetaData(
                 "my_repo",

@@ -58,10 +58,8 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
 
     private SQLExecutor e;
 
-    @Override
     @Before
-    public void setUp() {
-        super.setUp();
+    public void prepare() {
         e = SQLExecutor.builder(dummyClusterService)
             .addDocTable(TableDefinitions.USER_TABLE_INFO)
             .addDocTable(TableDefinitions.TEST_CLUSTER_BY_STRING_TABLE_INFO)

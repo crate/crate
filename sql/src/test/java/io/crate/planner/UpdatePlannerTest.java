@@ -51,9 +51,8 @@ public class UpdatePlannerTest extends CrateDummyClusterServiceUnitTest {
 
     private SQLExecutor e;
 
-    @Override
     @Before
-    public void setUp() {
+    public void prepare() {
         e = SQLExecutor.builder(dummyClusterService)
             .enableDefaultTables()
             .addDocTable(TableDefinitions.PARTED_PKS_TI)

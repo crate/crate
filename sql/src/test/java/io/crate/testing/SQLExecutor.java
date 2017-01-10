@@ -65,6 +65,7 @@ import java.util.UUID;
 
 import static io.crate.analyze.TableDefinitions.*;
 import static io.crate.testing.TestingHelpers.getFunctions;
+import static org.apache.lucene.util.LuceneTestCase.createTempDir;
 import static org.mockito.Mockito.mock;
 
 /**
@@ -139,7 +140,9 @@ public class SQLExecutor {
                     functions,
                     clusterService,
                     new AnalysisRegistry(
-                        new Environment(Settings.EMPTY),
+                        new Environment(Settings.builder()
+                                                .put(Environment.PATH_HOME_SETTING.getKey(), createTempDir().toString())
+                                                .build()),
                         Collections.emptyMap(),
                         Collections.emptyMap(),
                         Collections.emptyMap(),

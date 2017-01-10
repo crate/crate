@@ -38,10 +38,8 @@ class CopyFromPlannerTest extends CrateDummyClusterServiceUnitTest {
 
     private SQLExecutor e
 
-    @Override
     @Before
-    void setUp() {
-        super.setUp()
+    void prepare() {
         e = SQLExecutor.builder(dummyClusterService).enableDefaultTables().build()
     }
 

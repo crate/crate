@@ -53,10 +53,8 @@ public class ConnectionContextTest extends CrateDummyClusterServiceUnitTest {
     private SQLOperations sqlOperations;
     private List<SQLOperations.Session> sessions = new ArrayList<>();
 
-    @Override
     @Before
-    public void setUp() {
-        super.setUp();
+    public void prepare() {
         e = SQLExecutor.builder(dummyClusterService).build();
         sqlOperations = new SQLOperations(
             e.analyzer,

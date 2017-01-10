@@ -35,10 +35,8 @@ public class InformationTableInfoTest extends CrateDummyClusterServiceUnitTest {
 
     private InformationSchemaInfo informationSchemaInfo;
 
-    @Override
     @Before
-    public void setUp() {
-        super.setUp();
+    public void prepare() {
         informationSchemaInfo = new InformationSchemaInfo(dummyClusterService);
     }
 

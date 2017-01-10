@@ -40,10 +40,8 @@ public class RelationNormalizerTest extends CrateDummyClusterServiceUnitTest {
 
     private SQLExecutor executor;
 
-    @Override
     @Before
-    public void setUp() {
-        super.setUp();
+    public void prepare() {
         executor = SQLExecutor.builder(dummyClusterService).enableDefaultTables().build();
     }
     private QueriedRelation normalize(String stmt) {
