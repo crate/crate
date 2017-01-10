@@ -9,6 +9,7 @@
       <option name="INSERT_INNER_CLASS_IMPORTS" value="false" />
       <option name="RIGHT_MARGIN" value="120"/>
       <option name="CONTINUATION_INDENT_SIZE" value="4"/>
+      <option name="FORMATTER_TAGS_ENABLED" value="true" />
       <codeStyleSettings language="JAVA">
         <option name="KEEP_LINE_BREAKS" value="true"/>
         <option name="ALIGN_MULTILINE_BINARY_OPERATION" value="true"/>
