@@ -39,7 +39,7 @@ public class ClientNodeIntegrationTest extends SQLTransportIntegrationTest {
                 @Override
                 public Client client() {
                     // make sure we use a client node (started with client=true)
-                    return internalCluster().clientNodeClient();
+                    return internalCluster().coordOnlyNodeClient();
                 }
 
                 @Override

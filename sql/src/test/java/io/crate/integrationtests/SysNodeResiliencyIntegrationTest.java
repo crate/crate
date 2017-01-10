@@ -22,12 +22,10 @@
 
 package io.crate.integrationtests;
 
-import com.google.common.collect.Sets;
 import org.elasticsearch.common.Strings;
 import org.elasticsearch.plugins.Plugin;
 import org.elasticsearch.test.ESIntegTestCase;
-import org.elasticsearch.test.disruption.NetworkPartition;
-import org.elasticsearch.test.disruption.NetworkUnresponsivePartition;
+import org.elasticsearch.test.disruption.NetworkDisruption;
 import org.elasticsearch.test.transport.MockTransportService;
 import org.junit.Test;
 
@@ -57,8 +55,9 @@ public class SysNodeResiliencyIntegrationTest extends SQLTransportIntegrationTes
         final Set<String> luckyNodes = new HashSet<>(nodes);
         luckyNodes.remove(unluckyNode);
 
-        NetworkPartition partition
-            = new NetworkUnresponsivePartition(luckyNodes, Sets.newHashSet(unluckyNode), getRandom());
+        // TODO: figure out how new networkDisruption works
+        NetworkDisruption partition = null;
+            // = new NetworkUnresponsivePartition(luckyNodes, Sets.newHashSet(unluckyNode), getRandom());
         setDisruptionScheme(partition);
         partition.startDisrupting();
 
