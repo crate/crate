@@ -52,7 +52,7 @@ public class FloatColumnReference extends FieldCacheExpression<IndexNumericField
                 value = (float) values.valueAt(0);
                 break;
             default:
-                throw new GroupByOnArrayUnsupportedException(columnName());
+                throw new GroupByOnArrayUnsupportedException(columnName);
         }
     }
 

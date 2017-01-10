@@ -54,7 +54,7 @@ public class BooleanColumnReference extends FieldCacheExpression<IndexFieldData,
                 value = values.valueAt(0).compareTo(TRUE_BYTESREF) == 0;
                 break;
             default:
-                throw new GroupByOnArrayUnsupportedException(columnName());
+                throw new GroupByOnArrayUnsupportedException(columnName);
         }
     }
 

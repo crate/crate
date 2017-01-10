@@ -37,6 +37,10 @@ public class DocCollectorExpression extends LuceneCollectorExpression<Map<String
 
     private CollectorFieldsVisitor visitor;
 
+    public DocCollectorExpression() {
+        super(COLUMN_NAME);
+    }
+
     @Override
     public void startCollect(CollectorContext context) {
         context.visitor().required(true);
@@ -57,7 +61,7 @@ public class DocCollectorExpression extends LuceneCollectorExpression<Map<String
 
         assert reference.ident().columnIdent().path().size() > 0 : "column's path size must be > 0";
         final String fqn = Joiner.on(".").join(reference.ident().columnIdent().path());
-        return new ChildDocCollectorExpression() {
+        return new ChildDocCollectorExpression(fqn) {
 
             @Override
             public void startCollect(CollectorContext context) {
@@ -80,6 +84,10 @@ public class DocCollectorExpression extends LuceneCollectorExpression<Map<String
 
         protected SourceLookup sourceLookup;
         private LeafReaderContext context;
+
+        ChildDocCollectorExpression(String columnName) {
+            super(columnName);
+        }
 
         @Override
         public void setNextDocId(int doc) {

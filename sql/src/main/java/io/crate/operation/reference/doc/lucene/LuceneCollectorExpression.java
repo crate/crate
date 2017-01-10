@@ -30,6 +30,12 @@ import org.apache.lucene.search.Scorer;
  */
 public abstract class LuceneCollectorExpression<ReturnType> implements Input<ReturnType> {
 
+    final String columnName;
+
+    public LuceneCollectorExpression(String columnName) {
+        this.columnName = columnName;
+    }
+
     public void startCollect(CollectorContext context) {
 
     }
@@ -42,5 +48,20 @@ public abstract class LuceneCollectorExpression<ReturnType> implements Input<Ret
 
     public void setScorer(Scorer scorer) {
 
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+
+        LuceneCollectorExpression<?> that = (LuceneCollectorExpression<?>) o;
+
+        return columnName.equals(that.columnName);
+    }
+
+    @Override
+    public int hashCode() {
+        return columnName.hashCode();
     }
 }

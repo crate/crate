@@ -23,14 +23,13 @@ package io.crate.operation.reference.doc.lucene;
 
 
 import org.apache.lucene.index.LeafReaderContext;
-import org.elasticsearch.common.collect.HppcMaps;
 import org.elasticsearch.search.lookup.SourceLookup;
 
 import java.util.Map;
 
-public class ObjectColumnReference extends ColumnReferenceCollectorExpression<Map<String, Object>> {
+public class ObjectColumnReference extends LuceneCollectorExpression<Map<String, Object>> {
 
-    protected SourceLookup sourceLookup;
+    private SourceLookup sourceLookup;
     private LeafReaderContext context;
     private Map<String, Object> value;
 

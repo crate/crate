@@ -2,7 +2,7 @@ package io.crate.operation.reference.doc.lucene;
 
 import io.crate.action.sql.query.SortSymbolVisitor;
 import io.crate.analyze.OrderBy;
-import io.crate.analyze.symbol.Symbol;
+import io.crate.metadata.Reference;
 import io.crate.types.DataType;
 import org.apache.lucene.search.FieldDoc;
 
@@ -17,10 +17,11 @@ public class OrderByCollectorExpression extends LuceneCollectorExpression<Object
     private Object value;
     private Object missingValue;
 
-    public OrderByCollectorExpression(Symbol symbol, OrderBy orderBy) {
-        assert orderBy.orderBySymbols().contains(symbol) : "symbol must be part of orderBy symbols";
-        orderIndex = orderBy.orderBySymbols().indexOf(symbol);
-        valueType = symbol.valueType();
+    public OrderByCollectorExpression(Reference ref, OrderBy orderBy) {
+        super(ref.ident().columnIdent().fqn());
+        assert orderBy.orderBySymbols().contains(ref) : "symbol must be part of orderBy symbols";
+        orderIndex = orderBy.orderBySymbols().indexOf(ref);
+        valueType = ref.valueType();
         this.missingValue = LuceneMissingValue.missingValue(
             orderBy.reverseFlags()[orderIndex],
             orderBy.nullsFirst()[orderIndex],

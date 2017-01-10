@@ -34,6 +34,10 @@ public class RawCollectorExpression extends LuceneCollectorExpression<BytesRef> 
 
     private CollectorFieldsVisitor visitor;
 
+    public RawCollectorExpression() {
+        super(COLUMN_NAME);
+    }
+
     @Override
     public void startCollect(CollectorContext context) {
         context.visitor().required(true);

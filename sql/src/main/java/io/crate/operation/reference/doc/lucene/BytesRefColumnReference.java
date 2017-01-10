@@ -54,7 +54,7 @@ public class BytesRefColumnReference extends FieldCacheExpression<IndexOrdinalsF
                 value = BytesRef.deepCopyOf(values.lookupOrd(values.ordAt(0)));
                 break;
             default:
-                throw new GroupByOnArrayUnsupportedException(columnName());
+                throw new GroupByOnArrayUnsupportedException(columnName);
         }
     }
 

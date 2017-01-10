@@ -31,6 +31,10 @@ public class IdCollectorExpression extends LuceneCollectorExpression<BytesRef> {
 
     private CollectorFieldsVisitor visitor;
 
+    public IdCollectorExpression() {
+        super(COLUMN_NAME);
+    }
+
     @Override
     public void startCollect(CollectorContext context) {
         context.visitor().required(true);
