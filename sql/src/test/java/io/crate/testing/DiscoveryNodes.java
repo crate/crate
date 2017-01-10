@@ -20,25 +20,27 @@
  * agreement.
  */
 
-package io.crate.operation.reference.sys.cluster;
+package io.crate.testing;
 
-import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
-import org.apache.lucene.util.BytesRef;
-import org.elasticsearch.common.settings.Settings;
-import org.junit.Test;
+import org.elasticsearch.Version;
+import org.elasticsearch.cluster.node.DiscoveryNode;
+import org.elasticsearch.common.transport.LocalTransportAddress;
 
-import static org.hamcrest.core.Is.is;
+import java.util.Collections;
 
-public class ClusterSettingsExpressionTest extends CrateDummyClusterServiceUnitTest {
+public class DiscoveryNodes {
 
-    @Test
-    public void testSettingsAreAppliedImmediately() throws Exception {
-        ClusterSettingsExpression clusterSettingsExpression = new ClusterSettingsExpression(
-            Settings.builder().put("bulk.request_timeout", "20s").build(), dummyClusterService);
+    public static DiscoveryNode newNode(String nodeId) {
+        return new DiscoveryNode(nodeId, LocalTransportAddress.buildUnique(), Version.CURRENT);
+    }
 
-        assertThat(((BytesRef) clusterSettingsExpression
-                .getChildImplementation("bulk")
-                .getChildImplementation("request_timeout").value()).utf8ToString(),
-            is("20s"));
+    public static DiscoveryNode newNode(String name, String id) {
+        return new DiscoveryNode(
+            name,
+            id,
+            LocalTransportAddress.buildUnique(),
+            Collections.emptyMap(),
+            Collections.emptySet(),
+            Version.CURRENT);
     }
 }

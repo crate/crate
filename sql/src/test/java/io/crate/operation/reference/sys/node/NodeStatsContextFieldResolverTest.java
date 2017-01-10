@@ -29,8 +29,9 @@ import io.crate.monitor.ExtendedNodeInfo;
 import io.crate.protocols.postgres.PostgresNetty;
 import org.elasticsearch.action.admin.cluster.node.info.NodeInfo;
 import org.elasticsearch.action.admin.cluster.node.stats.NodeStats;
-import org.elasticsearch.cluster.service.ClusterService;
+import org.elasticsearch.action.admin.indices.stats.CommonStatsFlags;
 import org.elasticsearch.cluster.node.DiscoveryNode;
+import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.transport.BoundTransportAddress;
 import org.elasticsearch.common.transport.InetSocketTransportAddress;
 import org.elasticsearch.common.transport.TransportAddress;
@@ -48,6 +49,8 @@ import java.net.Inet4Address;
 
 import static org.hamcrest.CoreMatchers.*;
 import static org.junit.Assert.assertThat;
+import static org.mockito.Matchers.anyBoolean;
+import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -70,7 +73,7 @@ public class NodeStatsContextFieldResolverTest {
     public void setup() {
         DiscoveryNode discoveryNode = mock(DiscoveryNode.class);
         when(discoveryNode.getId()).thenReturn("node_id");
-        when(discoveryNode.name()).thenReturn("node_name");
+        when(discoveryNode.getName()).thenReturn("node_name");
         when(clusterService.localNode()).thenReturn(discoveryNode);
 
         resolver = new NodeStatsContextFieldResolver(
@@ -104,9 +107,33 @@ public class NodeStatsContextFieldResolverTest {
     @Test
     public void testPSQLPortResolution() throws IOException {
         NodeInfo nodeInfo = mock(NodeInfo.class);
-        when(nodeService.info()).thenReturn(nodeInfo);
+        when(nodeService.info(
+            anyBoolean(),
+            anyBoolean(),
+            anyBoolean(),
+            anyBoolean(),
+            anyBoolean(),
+            anyBoolean(),
+            anyBoolean(),
+            anyBoolean(),
+            anyBoolean(),
+            anyBoolean()
+        )).thenReturn(nodeInfo);
         NodeStats stats = mock(NodeStats.class);
-        when(nodeService.stats()).thenReturn(stats);
+        when(nodeService.stats(
+            eq(CommonStatsFlags.NONE),
+            anyBoolean(),
+            anyBoolean(),
+            anyBoolean(),
+            anyBoolean(),
+            anyBoolean(),
+            anyBoolean(),
+            anyBoolean(),
+            anyBoolean(),
+            anyBoolean(),
+            anyBoolean(),
+            anyBoolean()
+        )).thenReturn(stats);
         when(stats.getNode()).thenReturn(mock(DiscoveryNode.class));
 
         InetSocketTransportAddress inetAddress = new InetSocketTransportAddress(Inet4Address.getLocalHost(), 5432);

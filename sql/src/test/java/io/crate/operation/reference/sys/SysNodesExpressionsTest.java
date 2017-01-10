@@ -39,8 +39,9 @@ import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.action.admin.cluster.node.info.NodeInfo;
 import org.elasticsearch.action.admin.cluster.node.stats.NodeStats;
-import org.elasticsearch.cluster.service.ClusterService;
+import org.elasticsearch.action.admin.indices.stats.CommonStatsFlags;
 import org.elasticsearch.cluster.node.DiscoveryNode;
+import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.AbstractModule;
 import org.elasticsearch.common.inject.Injector;
 import org.elasticsearch.common.inject.ModulesBuilder;
@@ -60,6 +61,7 @@ import org.elasticsearch.monitor.os.OsService;
 import org.elasticsearch.monitor.os.OsStats;
 import org.elasticsearch.monitor.process.ProcessStats;
 import org.elasticsearch.node.service.NodeService;
+import org.elasticsearch.threadpool.TestThreadPool;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.junit.After;
 import org.junit.Before;
@@ -68,7 +70,6 @@ import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
 import java.io.File;
-import java.io.IOException;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.nio.file.Path;
@@ -78,6 +79,8 @@ import java.util.Map;
 import static io.crate.testing.TestingHelpers.mapToSortedString;
 import static io.crate.testing.TestingHelpers.refInfo;
 import static org.hamcrest.Matchers.*;
+import static org.mockito.Matchers.anyBoolean;
+import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -126,11 +129,19 @@ public class SysNodesExpressionsTest extends CrateUnitTest {
 
             NodeService nodeService = mock(NodeService.class);
             NodeStats nodeStats = mock(NodeStats.class);
-            try {
-                when(nodeService.stats()).thenReturn(nodeStats);
-            } catch (IOException e) {
-                // wrong signature, IOException will never be thrown
-            }
+            when(nodeService.stats(
+                eq(CommonStatsFlags.NONE),
+                anyBoolean(),
+                anyBoolean(),
+                anyBoolean(),
+                anyBoolean(),
+                anyBoolean(),
+                anyBoolean(),
+                anyBoolean(),
+                anyBoolean(),
+                anyBoolean(),
+                anyBoolean(),
+                anyBoolean())).thenReturn(nodeStats);
 
             DiscoveryNode node = mock(DiscoveryNode.class);
             when(node.getHostAddress()).thenReturn("127.0.0.1");
@@ -145,7 +156,18 @@ public class SysNodesExpressionsTest extends CrateUnitTest {
             when(processStats.getMaxFileDescriptors()).thenReturn(1000L);
 
             NodeInfo nodeInfo = mock(NodeInfo.class);
-            when(nodeService.info()).thenReturn(nodeInfo);
+            when(nodeService.info(
+                anyBoolean(),
+                anyBoolean(),
+                anyBoolean(),
+                anyBoolean(),
+                anyBoolean(),
+                anyBoolean(),
+                anyBoolean(),
+                anyBoolean(),
+                anyBoolean(),
+                anyBoolean()
+            )).thenReturn(nodeInfo);
 
             Discovery discovery = mock(Discovery.class);
             bind(Discovery.class).toInstance(discovery);
@@ -161,8 +183,8 @@ public class SysNodesExpressionsTest extends CrateUnitTest {
             }
 
             TransportAddress transportAddress = new InetSocketTransportAddress(localhost, 44300);
-            when(node.address()).thenReturn(transportAddress);
-            when(node.attributes()).thenReturn(
+            when(node.getAddress()).thenReturn(transportAddress);
+            when(node.getAttributes()).thenReturn(
                 ImmutableMap.<String, String>builder().put("http_address", "http://localhost:44200").build()
             );
 
@@ -197,7 +219,7 @@ public class SysNodesExpressionsTest extends CrateUnitTest {
             when(jvmService.stats()).thenReturn(jvmStats);
             bind(JvmService.class).toInstance(jvmService);
 
-            ThreadPool threadPool = new ThreadPool(getClass().getName());
+            ThreadPool threadPool = new TestThreadPool(getClass().getName());
             bind(ThreadPool.class).toInstance(threadPool);
         }
     }

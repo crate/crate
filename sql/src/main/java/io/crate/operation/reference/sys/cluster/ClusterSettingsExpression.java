@@ -131,8 +131,8 @@ public class ClusterSettingsExpression extends NestedObjectExpression {
     private final ClusterService clusterService;
 
     @Inject
-    public ClusterSettingsExpression(Settings settings, ClusterSettings clusterSettings, ClusterService clusterService) {
-        this.clusterSettings = clusterSettings;
+    public ClusterSettingsExpression(Settings settings, ClusterService clusterService) {
+        this.clusterSettings = clusterService.getClusterSettings();
         this.clusterService = clusterService;
         setDefaultValues(CrateSettings.SETTINGS);
 
