@@ -217,6 +217,18 @@ public class RelationNormalizerTest extends CrateUnitTest {
     }
 
     @Test
+    public void testOrderByGroupedField() throws Exception {
+        QueriedRelation relation = normalize(
+            "select x from (" +
+                  "    select * from t1 order by i) as tt " +
+                  "group by x " +
+                  "order by x");
+        assertThat(relation, instanceOf(QueriedDocTable.class));
+        assertThat(relation.querySpec(),
+            isSQL("SELECT doc.t1.x GROUP BY doc.t1.x ORDER BY doc.t1.x"));
+    }
+
+    @Test
     public void testOrderByNonGroupedField() throws Exception {
         QueriedRelation relation = normalize(
             "select count(*), avg(x) as avgX from ( select * from (" +
