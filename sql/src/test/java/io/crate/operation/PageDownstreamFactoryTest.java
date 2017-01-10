@@ -55,6 +55,7 @@ import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.common.breaker.CircuitBreaker;
 import org.elasticsearch.common.breaker.NoopCircuitBreaker;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.threadpool.TestThreadPool;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.hamcrest.collection.IsIterableContainingInOrder;
 import org.junit.After;
@@ -82,7 +83,7 @@ public class PageDownstreamFactoryTest extends CrateUnitTest {
     @Before
     @SuppressWarnings("unchecked")
     public void prepare() {
-        threadPool = new ThreadPool("testing");
+        threadPool = new TestThreadPool("testing");
         functions = getFunctions();
 
         FunctionIdent minAggIdent = new FunctionIdent(MinimumAggregation.NAME, Arrays.asList(DataTypes.DOUBLE));

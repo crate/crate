@@ -31,7 +31,7 @@ import io.crate.metadata.Routing;
 import io.crate.metadata.TableIdent;
 import io.crate.planner.fetch.IndexBaseVisitor;
 import io.crate.planner.node.fetch.FetchPhase;
-import io.crate.test.integration.CrateUnitTest;
+import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.types.DataTypes;
 import org.elasticsearch.indices.IndicesService;
 import org.hamcrest.Matchers;
@@ -46,12 +46,10 @@ import static io.crate.testing.TestingHelpers.createReference;
 import static org.mockito.Mockito.RETURNS_MOCKS;
 import static org.mockito.Mockito.mock;
 
-public class FetchContextTest extends CrateUnitTest {
+public class FetchContextTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testGetIndexServiceForInvalidReaderId() throws Exception {
-
-
         final FetchContext context = new FetchContext(
             new FetchPhase(
                 1,
@@ -61,6 +59,7 @@ public class FetchContextTest extends CrateUnitTest {
                 ImmutableList.<Reference>of()),
             "dummy",
             new SharedShardContexts(mock(IndicesService.class)),
+            dummyClusterService.state().getMetaData(),
             Collections.<Routing>emptyList());
 
         expectedException.expect(IllegalArgumentException.class);
@@ -90,6 +89,7 @@ public class FetchContextTest extends CrateUnitTest {
                 ImmutableList.of(createReference("i1", new ColumnIdent("x"), DataTypes.STRING))),
             "dummy",
             new SharedShardContexts(mock(IndicesService.class, RETURNS_MOCKS)),
+            dummyClusterService.state().getMetaData(),
             ImmutableList.of(routing));
 
         context.prepare();

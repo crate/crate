@@ -26,6 +26,7 @@ import com.google.common.collect.ImmutableMap;
 import io.crate.operation.reference.sys.repositories.SysRepositoriesService;
 import io.crate.operation.reference.sys.repositories.SysRepository;
 import io.crate.test.integration.CrateUnitTest;
+import org.elasticsearch.repositories.RepositoriesService;
 import org.elasticsearch.snapshots.SnapshotsService;
 import org.junit.Test;
 import org.mockito.invocation.InvocationOnMock;
@@ -34,8 +35,7 @@ import org.mockito.stubbing.Answer;
 import java.util.Collections;
 
 import static org.hamcrest.core.Is.is;
-import static org.mockito.Matchers.anyBoolean;
-import static org.mockito.Matchers.anyString;
+import static org.mockito.Matchers.*;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -55,8 +55,8 @@ public class SysSnapshotsTest extends CrateUnitTest {
         });
 
         SnapshotsService snapshotService = mock(SnapshotsService.class);
-        when(snapshotService.snapshots(anyString(), anyBoolean())).thenThrow(new IllegalStateException("dummy"));
-        SysSnapshots sysSnapshots = new SysSnapshots(sysRepos, snapshotService);
+        when(snapshotService.snapshots(anyString(), anyList(), anyBoolean())).thenThrow(new IllegalStateException("dummy"));
+        SysSnapshots sysSnapshots = new SysSnapshots(sysRepos, snapshotService, mock(RepositoriesService.class));
         assertThat(sysSnapshots.get().iterator().hasNext(), is(false));
     }
 }

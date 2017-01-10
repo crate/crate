@@ -25,40 +25,30 @@ package io.crate.operation.reference.sys.node;
 import io.crate.Build;
 import io.crate.Version;
 import io.crate.monitor.ExtendedNodeInfo;
-import io.crate.monitor.MonitorModule;
 import io.crate.monitor.ThreadPools;
+import io.crate.monitor.ZeroExtendedNodeInfo;
 import io.crate.test.integration.CrateUnitTest;
-import org.elasticsearch.common.inject.Injector;
-import org.elasticsearch.common.inject.ModulesBuilder;
 import org.elasticsearch.common.io.stream.InputStreamStreamInput;
 import org.elasticsearch.common.io.stream.OutputStreamStreamOutput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.lucene.BytesRefs;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.settings.SettingsModule;
-import org.elasticsearch.env.Environment;
-import org.elasticsearch.env.NodeEnvironment;
-import org.elasticsearch.env.NodeEnvironmentModule;
 import org.elasticsearch.monitor.jvm.JvmStats;
 import org.elasticsearch.monitor.os.DummyOsInfo;
 import org.elasticsearch.monitor.os.OsProbe;
 import org.elasticsearch.monitor.process.ProcessProbe;
+import org.elasticsearch.threadpool.TestThreadPool;
 import org.elasticsearch.threadpool.ThreadPool;
-import org.elasticsearch.threadpool.ThreadPoolModule;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
-import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.concurrent.TimeUnit;
 
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 public class NodeStatsContextTest extends CrateUnitTest {
 
@@ -73,26 +63,8 @@ public class NodeStatsContextTest extends CrateUnitTest {
 
     @Before
     public void prepare() throws Exception {
-        Settings settings = Settings.builder()
-            .put("name", getClass().getName())
-            .build();
-
-        NodeEnvironment nodeEnvironment = mock(NodeEnvironment.class);
-        when(nodeEnvironment.hasNodeFile()).thenReturn(true);
-        Path tempDir = createTempDir();
-        NodeEnvironment.NodePath[] dataLocations = new NodeEnvironment.NodePath[]{new NodeEnvironment.NodePath(tempDir, mock(Environment.class))};
-        when(nodeEnvironment.nodePaths()).thenReturn(dataLocations);
-
-        NodeEnvironmentModule nodeEnvironmentModule = new NodeEnvironmentModule(nodeEnvironment);
-        MonitorModule monitorModule = new MonitorModule(settings);
-        Injector injector = new ModulesBuilder().add(
-            new ThreadPoolModule(new ThreadPool(settings)),
-            new SettingsModule(settings),
-            monitorModule,
-            nodeEnvironmentModule
-        ).createInjector();
-        extendedNodeInfo = injector.getInstance(ExtendedNodeInfo.class);
-        threadPool = injector.getInstance(ThreadPool.class);
+        extendedNodeInfo = new ZeroExtendedNodeInfo();
+        threadPool = new TestThreadPool("dummy");
     }
 
     @Test

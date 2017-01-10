@@ -45,8 +45,8 @@ import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.FSDirectory;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.lucene.search.Queries;
+import org.elasticsearch.index.mapper.LegacyLongFieldMapper;
 import org.elasticsearch.index.mapper.MappedFieldType;
-import org.elasticsearch.index.mapper.core.LongFieldMapper;
 import org.junit.Test;
 
 import javax.annotation.Nullable;
@@ -82,9 +82,9 @@ public class LuceneOrderedDocCollectorTest extends RandomizedTest {
     private static void addDocToLucene(IndexWriter w, Long value) throws IOException {
         Document doc = new Document();
         if (value != null) {
-            MappedFieldType fieldType = new LongFieldMapper.LongFieldType();
-            fieldType.setNames(new MappedFieldType.Names("value"));
-            doc.add(new LongFieldMapper.CustomLongNumericField(value, fieldType));
+            MappedFieldType fieldType = new LegacyLongFieldMapper.LongFieldType();
+            fieldType.setName("value");
+            doc.add(new LegacyLongFieldMapper.CustomLongNumericField(value, fieldType));
             doc.add(new SortedNumericDocValuesField("value", value));
         } else {
             // Create a placeholder field
