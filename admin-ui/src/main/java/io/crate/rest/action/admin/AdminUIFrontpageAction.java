@@ -24,14 +24,10 @@
 
 package io.crate.rest.action.admin;
 
-import io.crate.rest.CrateRestMainAction;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.rest.*;
-
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 import static org.elasticsearch.rest.RestRequest.Method.GET;
 
@@ -40,50 +36,26 @@ import static org.elasticsearch.rest.RestRequest.Method.GET;
  */
 public class AdminUIFrontpageAction extends BaseRestHandler {
 
-    static final String ADMIN_ENDPOINT = "/admin/";
-    private static final Pattern USER_AGENT_BROWSER_PATTERN = Pattern.compile("(Mozilla|Chrome|Safari|Opera|Android|AppleWebKit)+?[/\\s][\\d.]+");
-    private final CrateRestMainAction crateRestMainAction;
     private final RestController controller;
     private final AdminUIStaticFileRequestFilter requestFilter;
 
     @Inject
-    public AdminUIFrontpageAction(CrateRestMainAction crateRestMainAction, Settings settings, Client client, RestController controller, AdminUIStaticFileRequestFilter staticFileRequestFilter) {
+    public AdminUIFrontpageAction(Settings settings, Client client, RestController controller, AdminUIStaticFileRequestFilter staticFileRequestFilter) {
         super(settings, controller, client);
-        this.crateRestMainAction = crateRestMainAction;
         this.controller = controller;
         this.requestFilter = staticFileRequestFilter;
     }
 
     public void registerHandler() {
-        controller.registerHandler(GET, "/", this);
         controller.registerHandler(GET, "/admin", this);
         controller.registerFilter(requestFilter);
     }
 
     @Override
     protected void handleRequest(RestRequest request, RestChannel channel, Client client) throws Exception {
-        if (!isBrowser(request.header("user-agent"))){
-            crateRestMainAction.handleRequest(request, channel, client);
-            return;
-        }
-
-        if (request.header("accept") != null && request.header("accept").contains("application/json")){
-            crateRestMainAction.handleRequest(request, channel, client);
-            return;
-        }
-
         BytesRestResponse resp = new BytesRestResponse(RestStatus.TEMPORARY_REDIRECT);
-        resp.addHeader("Location", ADMIN_ENDPOINT);
+        resp.addHeader("Location", "/");
         channel.sendResponse(resp);
     }
 
-    private boolean isBrowser(String headerValue) {
-        if (headerValue == null){
-            return false;
-        }
-        String engine = headerValue.split("\\s+")[0];
-        Matcher matcher = USER_AGENT_BROWSER_PATTERN.matcher(engine);
-
-        return matcher.matches();
-    }
 }

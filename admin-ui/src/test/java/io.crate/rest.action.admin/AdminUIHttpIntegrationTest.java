@@ -10,6 +10,7 @@ import org.apache.http.client.methods.HttpUriRequest;
 import org.apache.http.client.protocol.HttpClientContext;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
+import org.apache.http.message.BasicHeader;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.transport.InetSocketTransportAddress;
 import org.elasticsearch.env.Environment;
@@ -63,17 +64,17 @@ public abstract class AdminUIHttpIntegrationTest extends ESIntegTestCase {
         Files.write(indexFile, Arrays.asList("<h1>Crate Admin</h1>"), Charset.forName("UTF-8"));
     }
 
-    protected CloseableHttpResponse executeAndDefaultAssertions(HttpUriRequest request) throws IOException {
+    CloseableHttpResponse executeAndDefaultAssertions(HttpUriRequest request) throws IOException {
         CloseableHttpResponse resp = httpClient.execute(request);
         assertThat(resp.containsHeader("Connection"), is(false));
         return resp;
     }
 
-    protected CloseableHttpResponse get(String uri) throws IOException {
+    CloseableHttpResponse get(String uri) throws IOException {
         return get(uri, null);
     }
 
-    protected CloseableHttpResponse get(String uri, Header[] headers) throws IOException {
+    CloseableHttpResponse get(String uri, Header[] headers) throws IOException {
         HttpGet httpGet = new HttpGet(String.format(Locale.ENGLISH, "http://%s:%s/%s", address.getHostName(), address.getPort(), uri));
         if (headers != null) {
             httpGet.setHeaders(headers);
@@ -81,17 +82,24 @@ public abstract class AdminUIHttpIntegrationTest extends ESIntegTestCase {
         return executeAndDefaultAssertions(httpGet);
     }
 
-    protected CloseableHttpResponse post(String uri) throws IOException {
+    CloseableHttpResponse browserGet(String uri) throws IOException {
+        Header[] headers = {
+            browserHeader()
+        };
+        return get(uri, headers);
+    }
+
+    CloseableHttpResponse post(String uri) throws IOException {
         HttpPost httpPost = new HttpPost(String.format(Locale.ENGLISH, "http://%s:%s/%s", address.getHostName(), address.getPort(), uri));
         return executeAndDefaultAssertions(httpPost);
     }
 
-    protected List<URI> getAllRedirectLocations(String link, Header[] headers) throws IOException {
+    List<URI> getAllRedirectLocations(String uri, Header[] headers) throws IOException {
         List<URI> redirectLocations = null;
         CloseableHttpResponse response = null;
         try {
             HttpClientContext context = HttpClientContext.create();
-            HttpGet httpGet = new HttpGet(String.format(Locale.ENGLISH, "http://%s:%s/%s", address.getHostName(), address.getPort(), link));
+            HttpGet httpGet = new HttpGet(String.format(Locale.ENGLISH, "http://%s:%s/%s", address.getHostName(), address.getPort(), uri));
             if (headers != null) {
                 httpGet.setHeaders(headers);
             }
@@ -106,5 +114,9 @@ public abstract class AdminUIHttpIntegrationTest extends ESIntegTestCase {
         }
 
         return redirectLocations;
+    }
+
+    static BasicHeader browserHeader() {
+        return new BasicHeader("User-Agent", "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/51.0.2704.106 Safari/537.36");
     }
 }

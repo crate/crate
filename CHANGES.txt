@@ -5,6 +5,8 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Serve admin ui from `/`
+
  - Fix an issue in the ``LIKE`` predicate which prevents using escaped
    backslash before the wildcard.
 
@@ -14,7 +16,8 @@ Unreleased
        human-readable timestamps, Google Maps link on geo-point
        results & lazy loading on result sets larger than 100 rows.
 
-- Updated crate-admin to ``1.0.4`` which includes the following change:
+ - Updated crate-admin to ``1.0.4`` which includes the following change:
+
      - Fixed getting started display issue on very wide screens.
 
  - Fixed an issue that caused ``ORDER BY`` clause to be ignored if used

@@ -35,18 +35,25 @@ import java.nio.file.Path;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.Locale;
 import java.util.Map;
+import java.util.regex.Pattern;
 
-import static io.crate.rest.action.admin.AdminUIFrontpageAction.ADMIN_ENDPOINT;
 import static java.nio.file.Files.readAttributes;
 import static org.elasticsearch.rest.RestStatus.*;
 
 /**
  * RestFilter for admin ui requests
- * Serves files
+ * Serves admin ui files
+ *
+ * /index.html                                  => serve index.html
+ * / && isBrowser                               => serve index.html
+ * / && isBrowser && Accept: application/json   => don't serve index.html, continue processing
+ * / && !isBrowser                              => don't serve any file, continue processing
+ * /static/                                     => serve static file
  */
 public class AdminUIStaticFileRequestFilter extends RestFilter {
 
     private final Environment environment;
+    private static final Pattern USER_AGENT_BROWSER_PATTERN = Pattern.compile("(Mozilla|Chrome|Safari|Opera|Android|AppleWebKit)+?[/\\s][\\d.]+");
 
     @Inject
     public AdminUIStaticFileRequestFilter(Environment environment) {
@@ -55,11 +62,30 @@ public class AdminUIStaticFileRequestFilter extends RestFilter {
 
     @Override
     public void process(RestRequest request, RestChannel channel, RestFilterChain filterChain) throws IOException {
-        if (request.rawPath().startsWith(ADMIN_ENDPOINT)) {
+        if (request.rawPath().equals("/index.html") || request.rawPath().startsWith("/static/") || shouldServeFromRoot(request)) {
             serveSite(request, channel);
         } else {
             filterChain.continueProcessing(request, channel);
         }
+    }
+
+    static boolean isBrowser(String headerValue) {
+        if (headerValue == null){
+            return false;
+        }
+        String engine = headerValue.split("\\s+")[0];
+        return USER_AGENT_BROWSER_PATTERN.matcher(engine).matches();
+    }
+
+    private static boolean shouldServeFromRoot(RestRequest request) {
+        return request.rawPath().equals("/") && isBrowser(request.header("user-agent")) && !isAcceptJson(request.header("accept"));
+    }
+
+    static boolean isAcceptJson(String headerValue) {
+        if (headerValue == null) {
+            return false;
+        }
+        return headerValue.contains("application/json");
     }
 
     private void serveSite(RestRequest request, RestChannel channel) throws IOException {
@@ -67,14 +93,12 @@ public class AdminUIStaticFileRequestFilter extends RestFilter {
             channel.sendResponse(new BytesRestResponse(FORBIDDEN));
             return;
         }
-        String sitePath = request.rawPath().substring(ADMIN_ENDPOINT.length());
+        String sitePath = StringUtils.stripFront(request.rawPath(), '/');
 
         // we default to index.html, or what the plugin provides (as a unix-style path)
         // this is a relative path under _site configured by the plugin.
         if (sitePath.length() == 0) {
             sitePath = "index.html";
-        } else {
-            sitePath = StringUtils.stripFront(sitePath, '/');
         }
         final Path siteFile = environment.pluginsFile().resolve("crate-admin").resolve("_site");
 
