@@ -32,18 +32,22 @@ import io.crate.test.integration.CrateUnitTest;
 import io.crate.types.DataTypes;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.admin.indices.create.TransportBulkCreateIndicesAction;
-import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.routing.OperationRouting;
 import org.elasticsearch.cluster.routing.ShardIterator;
+import org.elasticsearch.cluster.service.ClusterService;
+import org.elasticsearch.common.UUIDs;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.common.util.concurrent.EsRejectedExecutionException;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.junit.Test;
-import org.mockito.*;
+import org.mockito.Answers;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Captor;
+import org.mockito.Mock;
 
 import java.util.UUID;
 import java.util.concurrent.*;
@@ -274,8 +278,7 @@ public class BulkShardProcessorTest extends CrateUnitTest {
             any(ClusterState.class),
             anyString(),
             anyString(),
-            Matchers.eq(shardId.toString()),
             anyString())).thenReturn(shardIterator);
-        when(shardIterator.shardId()).thenReturn(new ShardId("foo", shardId));
+        when(shardIterator.shardId()).thenReturn(new ShardId("foo", UUIDs.randomBase64UUID(), shardId));
     }
 }
