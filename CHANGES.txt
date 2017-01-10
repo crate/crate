@@ -5,6 +5,11 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fixed an issue that caused ``ORDER BY`` clause to be ignored if used
+   in combination with ``GROUP BY`` in subselects.
+   e.g.: `SELECT x from (SELECT * from t1) as tt
+          GROUP BY x ORDER BY x`
+
  - Allow semi-colon (;) in the end of simple SQL statements.
 
  - Enhanced performance optimisation of full joins by rewriting them to left,

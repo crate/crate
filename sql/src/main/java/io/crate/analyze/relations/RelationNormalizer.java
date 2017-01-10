@@ -72,8 +72,9 @@ final class RelationNormalizer {
         OrderBy newOrderBy;
         if (parentQSpec.hasAggregates() || parentQSpec.groupBy().isPresent()) {
             // select avg(x) from (select x from t order by x)
-            // -> can't keep order, but it doesn't matter for aggregations anyway so remove
-            newOrderBy = null;
+            // -> can't keep order, but it doesn't matter for aggregations anyway so
+            //    only keep the one from the parent Qspec
+            newOrderBy = parentQSpec.orderBy().orElse(null);
         } else {
             newOrderBy = tryReplace(childQSpec.orderBy(), parentQSpec.orderBy());
         }
