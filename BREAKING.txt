@@ -6,4 +6,9 @@
   https://www.elastic.co/guide/en/elasticsearch/reference/5.0/breaking_50_settings_changes.html#_translog_settings
   additionally `disable_flush` is also gone
 
+- `es.insecure.allow.root` setting is gone, it's no longer possible to run crate as root
+  (but we could re-allow this easily if we really want to)
+
+- Plugin interface changed (mostly related to gone index/shard injection),
+  AbstractPlugin is removed (not needed anymore due to java8), documentation needs to be updated
 

@@ -24,16 +24,16 @@ package io.crate.module;
 
 import io.crate.Version;
 import io.crate.plugin.PluginLoader;
+import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.inject.AbstractModule;
 import org.elasticsearch.common.inject.Module;
 import org.elasticsearch.common.inject.PreProcessModule;
-import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.Settings;
 
 public class PluginLoaderModule extends AbstractModule implements PreProcessModule {
 
-    private final ESLogger logger;
+    private final Logger logger;
     private final PluginLoader pluginLoader;
 
 

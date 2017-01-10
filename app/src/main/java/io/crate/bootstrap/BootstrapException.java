@@ -20,32 +20,29 @@
  * agreement.
  */
 
-package io.crate.node;
+package io.crate.bootstrap;
 
-import com.google.common.collect.ImmutableList;
-import io.crate.plugin.*;
-import io.crate.udc.plugin.UDCPlugin;
-import org.elasticsearch.env.Environment;
-import org.elasticsearch.node.Node;
-import org.elasticsearch.plugins.Plugin;
 
-import java.util.Collection;
+import java.nio.file.Path;
+import java.util.Map;
 
-public class CrateNode extends Node {
+/**
+ * Copy of ES's {@link org.elasticsearch.bootstrap.BootstrapException}, it's not accessible from Crate's namespace.
+ *
+ * Wrapper exception for checked exceptions thrown during the bootstrap process. Methods invoked
+ * during bootstrap should explicitly declare the checked exceptions that they can throw, rather
+ * than declaring the top-level checked exception {@link Exception}. This exception exists to wrap
+ * these checked exceptions so that {@link org.elasticsearch.bootstrap.BootstrapProxy#init(boolean, Path, boolean, Map)} does not have to
+ * declare all of these checked exceptions.
+ */
+public class BootstrapException extends Exception {
 
-    private static final Collection<Class<? extends Plugin>> CLASSPATH_PLUGINS = ImmutableList.of(
-        PluginLoaderPlugin.class,
-        CrateCorePlugin.class,
-        BlobPlugin.class,
-        // FIXME: MulticastDiscoveryPlugin is gone at ES
-        //MulticastDiscoveryPlugin.class,
-        SrvPlugin.class,
-        UDCPlugin.class,
-        // FIXME: cloud-aws plugin is split into discovery-ec2 and repository-s3
-        //CloudAwsPlugin.class,
-        AdminUIPlugin.class);
-
-    public CrateNode(Environment environment) {
-        super(environment, CLASSPATH_PLUGINS);
+    /**
+     * Wraps an existing exception.
+     *
+     * @param cause the underlying cause of bootstrap failing
+     */
+    public BootstrapException(final Exception cause) {
+        super(cause);
     }
 }
