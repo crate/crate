@@ -42,6 +42,13 @@ import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
+import org.elasticsearch.Version;
+import org.elasticsearch.cluster.ClusterName;
+import org.elasticsearch.cluster.ClusterState;
+import org.elasticsearch.cluster.node.DiscoveryNode;
+import org.elasticsearch.cluster.node.DiscoveryNodes;
+import org.elasticsearch.common.transport.LocalTransportAddress;
+import org.elasticsearch.test.ClusterServiceUtils;
 import org.hamcrest.core.Is;
 import org.junit.Before;
 import org.junit.Test;
@@ -57,6 +64,16 @@ public class GroupByPlannerTest extends CrateDummyClusterServiceUnitTest {
 
     @Before
     public void prepare() {
+        ClusterState state =
+            ClusterState.builder(ClusterName.DEFAULT)
+                        .nodes(DiscoveryNodes.builder()
+                                             .add(new DiscoveryNode("noop_id", LocalTransportAddress.buildUnique(),
+                                                                    Version.CURRENT))
+                                             .localNodeId("noop_id")
+                              )
+                        .build();
+        ClusterServiceUtils.setState(dummyClusterService, state);
+
         e  = SQLExecutor.builder(
             dummyClusterService)
             .enableDefaultTables()

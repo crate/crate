@@ -90,7 +90,7 @@ public class RepositoryServiceTest extends CrateDummyClusterServiceUnitTest {
             mock(TransportService.class, Answers.RETURNS_MOCKS.get()),
             dummyClusterService,
             mock(RepositoriesService.class),
-            threadPool,
+            THREAD_POOL,
             actionFilters,
             indexNameExpressionResolver) {
             @Override
@@ -105,7 +105,7 @@ public class RepositoryServiceTest extends CrateDummyClusterServiceUnitTest {
             mock(TransportService.class, Answers.RETURNS_MOCKS.get()),
             dummyClusterService,
             mock(RepositoriesService.class),
-            threadPool,
+            THREAD_POOL,
             actionFilters,
             indexNameExpressionResolver) {
             @Override

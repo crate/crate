@@ -27,24 +27,34 @@ import org.elasticsearch.test.ClusterServiceUtils;
 import org.elasticsearch.threadpool.TestThreadPool;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.junit.After;
+import org.junit.AfterClass;
 import org.junit.Before;
+import org.junit.BeforeClass;
 
 import java.util.concurrent.TimeUnit;
 
 public class CrateDummyClusterServiceUnitTest extends CrateUnitTest {
 
-    protected ThreadPool threadPool;
+    protected static ThreadPool THREAD_POOL;
     protected ClusterService dummyClusterService;
+
+    @BeforeClass
+    public static void setupThreadPool() {
+        THREAD_POOL = new TestThreadPool(Thread.currentThread().getName());
+    }
+
+    @AfterClass
+    public static void shutdownThreadPool() {
+        ThreadPool.terminate(THREAD_POOL, 30, TimeUnit.SECONDS);
+    }
 
     @Before
     public void setupDummyClusterService() {
-        threadPool = new TestThreadPool("dummy");
-        dummyClusterService = ClusterServiceUtils.createClusterService(threadPool);
+        dummyClusterService = ClusterServiceUtils.createClusterService(THREAD_POOL);
     }
 
     @After
     public void cleanup() {
-        ThreadPool.terminate(threadPool, 30, TimeUnit.SECONDS);
         dummyClusterService.close();
     }
 }
