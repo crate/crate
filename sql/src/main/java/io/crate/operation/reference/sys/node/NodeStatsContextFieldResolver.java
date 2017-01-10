@@ -42,6 +42,7 @@ import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.lucene.BytesRefs;
 import org.elasticsearch.common.transport.InetSocketTransportAddress;
 import org.elasticsearch.common.transport.TransportAddress;
+import org.elasticsearch.monitor.MonitorService;
 import org.elasticsearch.monitor.jvm.JvmService;
 import org.elasticsearch.monitor.os.OsService;
 import org.elasticsearch.node.service.NodeService;
@@ -70,14 +71,13 @@ public class NodeStatsContextFieldResolver {
 
     @Inject
     public NodeStatsContextFieldResolver(ClusterService clusterService,
-                                         OsService osService,
+                                         MonitorService monitorService,
                                          NodeService nodeService,
-                                         JvmService jvmService,
                                          ThreadPool threadPool,
                                          ExtendedNodeInfo extendedNodeInfo,
                                          PostgresNetty postgresNetty) {
-        this.osService = osService;
-        this.jvmService = jvmService;
+        this.osService = monitorService.osService();
+        this.jvmService = monitorService.jvmService();
         this.clusterService = clusterService;
         this.nodeService = nodeService;
         this.threadPool = threadPool;

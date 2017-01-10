@@ -79,7 +79,8 @@ public class SQLPlugin extends Plugin implements ActionPlugin, MapperPlugin {
     private final Settings settings;
     private final IndexEventListenerDelegate indexEventListenerDelegate;
 
-    SQLPlugin(Settings settings) {
+    @SuppressWarnings("WeakerAccess") // must be public for pluginLoader
+    public SQLPlugin(Settings settings) {
         this.settings = settings;
         this.indexEventListenerDelegate = new IndexEventListenerDelegate();
     }
@@ -89,7 +90,8 @@ public class SQLPlugin extends Plugin implements ActionPlugin, MapperPlugin {
         Settings.Builder settingsBuilder = Settings.builder();
 
         // Set default analyzer
-        settingsBuilder.put("index.analysis.analyzer.default.type", "keyword");
+        // TODO: indexSetting can't be a node setting anymore
+        //settingsBuilder.put("index.analysis.analyzer.default.type", "keyword");
 
         // Never allow implicit creation of an index, even on partitioned tables we are creating
         // partitions explicitly
@@ -101,14 +103,17 @@ public class SQLPlugin extends Plugin implements ActionPlugin, MapperPlugin {
     @Override
     public List<org.elasticsearch.common.settings.Setting<?>> getSettings() {
         // add our dynamic cluster settings
-        List<org.elasticsearch.common.settings.Setting<?>> settings = Arrays.asList(
-            AnalyzerSettings.CUSTOM_ANALYSIS_SETTING_GROUP,
-            CrateCircuitBreakerService.QUERY_CIRCUIT_BREAKER_LIMIT_SETTING,
-            CrateCircuitBreakerService.QUERY_CIRCUIT_BREAKER_OVERHEAD_SETTING,
-            DecommissioningService.DECOMMISSION_INTERNAL_SETTING_GROUP
-        );
+        List<org.elasticsearch.common.settings.Setting<?>> settings = new ArrayList<>(CrateSettings.SETTINGS.size() + 4);
+        settings.add(AnalyzerSettings.CUSTOM_ANALYSIS_SETTING_GROUP);
+        settings.add(CrateCircuitBreakerService.QUERY_CIRCUIT_BREAKER_LIMIT_SETTING);
+        settings.add(CrateCircuitBreakerService.QUERY_CIRCUIT_BREAKER_OVERHEAD_SETTING);
+        settings.add(DecommissioningService.DECOMMISSION_INTERNAL_SETTING_GROUP);
         for (Setting setting : CrateSettings.SETTINGS) {
-            settings.add(setting.esSetting());
+            org.elasticsearch.common.settings.Setting esSetting = setting.esSetting();
+            if (esSetting == null) {
+                continue; // skipping NestedSettings (=containers for actual settings)
+            }
+            settings.add(esSetting);
         }
         return settings;
     }

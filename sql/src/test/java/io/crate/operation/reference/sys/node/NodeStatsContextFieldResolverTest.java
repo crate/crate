@@ -35,8 +35,7 @@ import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.transport.BoundTransportAddress;
 import org.elasticsearch.common.transport.InetSocketTransportAddress;
 import org.elasticsearch.common.transport.TransportAddress;
-import org.elasticsearch.monitor.jvm.JvmService;
-import org.elasticsearch.monitor.os.OsService;
+import org.elasticsearch.monitor.MonitorService;
 import org.elasticsearch.node.service.NodeService;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.junit.Before;
@@ -57,9 +56,7 @@ import static org.mockito.Mockito.when;
 public class NodeStatsContextFieldResolverTest {
 
     private final ClusterService clusterService = mock(ClusterService.class);
-    private final OsService osService = mock(OsService.class);
     private final NodeService nodeService = mock(NodeService.class);
-    private final JvmService jvmService = mock(JvmService.class);
     private final ThreadPool threadPool = mock(ThreadPool.class);
     private final ExtendedNodeInfo extendedNodeInfo = mock(ExtendedNodeInfo.class);
     private final PostgresNetty postgresNetty = mock(PostgresNetty.class);
@@ -78,9 +75,8 @@ public class NodeStatsContextFieldResolverTest {
 
         resolver = new NodeStatsContextFieldResolver(
             clusterService,
-            osService,
+            mock(MonitorService.class),
             nodeService,
-            jvmService,
             threadPool,
             extendedNodeInfo,
             postgresNetty);
