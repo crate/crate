@@ -32,19 +32,21 @@ import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.action.support.ActionFilters;
-import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.cluster.action.index.MappingUpdatedAction;
 import org.elasticsearch.cluster.action.shard.ShardStateAction;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
+import org.elasticsearch.cluster.service.ClusterService;
+import org.elasticsearch.common.UUIDs;
 import org.elasticsearch.common.collect.MapBuilder;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.XContentFactory;
+import org.elasticsearch.index.Index;
 import org.elasticsearch.index.IndexService;
-import org.elasticsearch.index.engine.DocumentAlreadyExistsException;
 import org.elasticsearch.index.engine.Engine;
+import org.elasticsearch.index.engine.VersionConflictEngineException;
 import org.elasticsearch.index.mapper.ContentPath;
 import org.elasticsearch.index.mapper.Mapper;
-import org.elasticsearch.index.mapper.object.ObjectMapper;
+import org.elasticsearch.index.mapper.ObjectMapper;
 import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.index.translog.Translog;
@@ -71,24 +73,27 @@ public class TransportShardUpsertActionTest extends CrateUnitTest {
     private final static Reference ID_REF = new Reference(
         new ReferenceIdent(TABLE_IDENT, "id"), RowGranularity.DOC, DataTypes.SHORT);
 
+    private String charactersIndexUUID;
+    private String partitionIndexUUID;
+
 
     static class TestingTransportShardUpsertAction extends TransportShardUpsertAction {
+
 
         public TestingTransportShardUpsertAction(Settings settings,
                                                  ThreadPool threadPool,
                                                  ClusterService clusterService,
                                                  TransportService transportService,
+                                                 MappingUpdatedAction mappingUpdatedAction,
                                                  ActionFilters actionFilters,
-                                                 IndicesService indicesService,
                                                  JobContextService jobContextService,
+                                                 IndicesService indicesService,
                                                  ShardStateAction shardStateAction,
                                                  Functions functions,
                                                  Schemas schemas,
-                                                 MappingUpdatedAction mappingUpdatedAction,
                                                  IndexNameExpressionResolver indexNameExpressionResolver) {
-            super(settings, threadPool, clusterService, transportService, actionFilters,
-                jobContextService, indicesService, shardStateAction, functions, schemas,
-                mappingUpdatedAction, indexNameExpressionResolver);
+            super(settings, threadPool, clusterService, transportService, mappingUpdatedAction, actionFilters,
+                jobContextService, indicesService, shardStateAction, functions, schemas, indexNameExpressionResolver);
         }
 
         @Override
@@ -99,7 +104,8 @@ public class TransportShardUpsertActionTest extends CrateUnitTest {
                                               boolean tryInsertFirst,
                                               Collection<ColumnIdent> notUsedNonGeneratedColumns,
                                               int retryCount) throws ElasticsearchException {
-            throw new DocumentAlreadyExistsException(new ShardId(request.index(), request.shardId().id()), request.type(), item.id());
+            // TODO: throw correct exception
+            throw new VersionConflictEngineException(indexShard.shardId(), request.type(), item.id(), "dummy explanation");
         }
     }
 
@@ -111,12 +117,18 @@ public class TransportShardUpsertActionTest extends CrateUnitTest {
         Functions functions = getFunctions();
         bindGeneratedColumnTable(functions);
 
+        charactersIndexUUID = UUIDs.randomBase64UUID();
+        partitionIndexUUID = UUIDs.randomBase64UUID();
+
         IndicesService indicesService = mock(IndicesService.class);
         IndexService indexService = mock(IndexService.class);
-        when(indicesService.indexServiceSafe(TABLE_IDENT.indexName())).thenReturn(indexService);
-        when(indicesService.indexServiceSafe(PARTITION_INDEX)).thenReturn(indexService);
+        Index charactersIndex = new Index(TABLE_IDENT.indexName(), charactersIndexUUID);
+        Index partitionIndex = new Index(PARTITION_INDEX, partitionIndexUUID);
+
+        when(indicesService.indexServiceSafe(charactersIndex)).thenReturn(indexService);
+        when(indicesService.indexServiceSafe(partitionIndex)).thenReturn(indexService);
         indexShard = mock(IndexShard.class);
-        when(indexService.shardSafe(0)).thenReturn(indexShard);
+        when(indexService.getShard(0)).thenReturn(indexShard);
 
         // Avoid null pointer exceptions
         DocTableInfo tableInfo = mock(DocTableInfo.class);
@@ -129,13 +141,13 @@ public class TransportShardUpsertActionTest extends CrateUnitTest {
             mock(ThreadPool.class),
             mock(ClusterService.class),
             mock(TransportService.class),
+            mock(MappingUpdatedAction.class),
             mock(ActionFilters.class),
-            indicesService,
             mock(JobContextService.class),
+            indicesService,
             mock(ShardStateAction.class),
             functions,
             schemas,
-            mock(MappingUpdatedAction.class),
             mock(IndexNameExpressionResolver.class)
         );
     }
@@ -155,7 +167,7 @@ public class TransportShardUpsertActionTest extends CrateUnitTest {
 
     @Test
     public void testExceptionWhileProcessingItemsNotContinueOnError() throws Exception {
-        ShardId shardId = new ShardId(TABLE_IDENT.indexName(), 0);
+        ShardId shardId = new ShardId(TABLE_IDENT.indexName(), charactersIndexUUID, 0);
         ShardUpsertRequest request = new ShardUpsertRequest.Builder(
             false,
             false,
@@ -169,12 +181,12 @@ public class TransportShardUpsertActionTest extends CrateUnitTest {
         ShardResponse shardResponse = transportShardUpsertAction.processRequestItems(
             shardId, request, new AtomicBoolean(false));
 
-        assertThat(shardResponse.failure(), instanceOf(DocumentAlreadyExistsException.class));
+        assertThat(shardResponse.failure(), instanceOf(VersionConflictEngineException.class));
     }
 
     @Test
     public void testExceptionWhileProcessingItemsContinueOnError() throws Exception {
-        ShardId shardId = new ShardId(TABLE_IDENT.indexName(), 0);
+        ShardId shardId = new ShardId(TABLE_IDENT.indexName(), charactersIndexUUID, 0);
         ShardUpsertRequest request = new ShardUpsertRequest.Builder(
             false,
             true,
@@ -401,7 +413,7 @@ public class TransportShardUpsertActionTest extends CrateUnitTest {
 
     @Test
     public void testKilledSetWhileProcessingItemsDoesNotThrowException() throws Exception {
-        ShardId shardId = new ShardId(TABLE_IDENT.indexName(), 0);
+        ShardId shardId = new ShardId(TABLE_IDENT.indexName(), charactersIndexUUID, 0);
         ShardUpsertRequest request = new ShardUpsertRequest.Builder(
             false,
             false,
@@ -420,7 +432,7 @@ public class TransportShardUpsertActionTest extends CrateUnitTest {
 
     @Test
     public void testItemsWithoutSourceAreSkippedOnReplicaOperation() throws Exception {
-        ShardId shardId = new ShardId(TABLE_IDENT.indexName(), 0);
+        ShardId shardId = new ShardId(TABLE_IDENT.indexName(), charactersIndexUUID, 0);
         ShardUpsertRequest request = new ShardUpsertRequest.Builder(
             false,
             false,
