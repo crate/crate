@@ -44,7 +44,6 @@ import io.crate.sql.tree.Table;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.index.Index;
 import org.elasticsearch.snapshots.Snapshot;
 import org.elasticsearch.snapshots.SnapshotId;
 
@@ -112,7 +111,7 @@ class CreateSnapshotAnalyzer {
                 Operation.blockedRaiseException(tableInfo, Operation.READ);
                 DocTableInfo docTableInfo = (DocTableInfo) tableInfo;
                 if (table.partitionProperties().isEmpty()) {
-                    Stream.of(docTableInfo.concreteIndices()).map(Index::getName).forEach(snapshotIndices::add);
+                    Stream.of(docTableInfo.concreteIndices()).forEach(snapshotIndices::add);
                 } else {
                     PartitionName partitionName = PartitionPropertiesAnalyzer.toPartitionName(
                         docTableInfo,
@@ -130,7 +129,7 @@ class CreateSnapshotAnalyzer {
                     }
                 }
             }
-            /**
+            /*
              * For now, we always (in case there are indices to restore) include the globalMetaData,
              * not only if one of the tables in the table list is partitioned.
              * Previously we only included it in snapshots of full partitioned tables.

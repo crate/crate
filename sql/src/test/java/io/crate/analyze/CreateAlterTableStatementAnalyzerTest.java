@@ -755,7 +755,7 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
     @Test
     public void testChangeTranslogInterval() throws Exception {
         AlterTableAnalyzedStatement analysis =
-            e.analyze("alter table users set (\"translog.interval\"=50)");
+            e.analyze("alter table users set (\"translog.sync_interval\"=50)");
         assertThat(analysis.tableParameter().settings().get(TableParameterInfo.TRANSLOG_SYNC_INTERVAL), is("50ms"));
     }
 

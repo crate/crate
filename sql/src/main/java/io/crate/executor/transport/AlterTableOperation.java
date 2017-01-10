@@ -67,7 +67,6 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.XContentFactory;
 import org.elasticsearch.common.xcontent.XContentHelper;
 import org.elasticsearch.common.xcontent.XContentParser;
-import org.elasticsearch.index.Index;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -183,7 +182,7 @@ public class AlterTableOperation {
                 results.add(updateTemplate(analysis.tableParameter(), table.ident()));
 
                 if (!analysis.excludePartitions()) {
-                    String[] indices = Stream.of(table.concreteIndices()).map(Index::getName).toArray(String[]::new);
+                    String[] indices = Stream.of(table.concreteIndices()).toArray(String[]::new);
                     results.add(updateMapping(analysis.tableParameter().mappings(), indices));
                     results.add(updateSettings(parameterWithFilteredSettings, indices));
                 }
@@ -343,7 +342,7 @@ public class AlterTableOperation {
         if (tableInfo.isPartitioned()) {
             if (partitionName == null) {
                 // all partitions
-                indexNames = Stream.of(tableInfo.concreteIndices()).map(Index::getName).toArray(String[]::new);
+                indexNames = Stream.of(tableInfo.concreteIndices()).toArray(String[]::new);
             } else {
                 // single partition
                 indexNames = new String[]{partitionName.asIndexName()};

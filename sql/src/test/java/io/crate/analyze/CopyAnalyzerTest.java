@@ -54,7 +54,7 @@ public class CopyAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     @Before
     public void prepare() {
-        e = SQLExecutor.builder(dummyClusterService).build();
+        e = SQLExecutor.builder(dummyClusterService).enableDefaultTables().build();
     }
 
     @Test

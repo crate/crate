@@ -46,6 +46,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.stream.Stream;
 
 import static org.elasticsearch.cluster.metadata.IndexMetaData.SETTING_NUMBER_OF_REPLICAS;
 import static org.elasticsearch.cluster.metadata.IndexMetaData.SETTING_NUMBER_OF_SHARDS;
@@ -60,7 +61,7 @@ class DocTableInfoBuilder {
     private final IndexNameExpressionResolver indexNameExpressionResolver;
     private final TransportPutIndexTemplateAction transportPutIndexTemplateAction;
     private final MetaData metaData;
-    private Index[] concreteIndices;
+    private String[] concreteIndices;
     private static final Logger logger = Loggers.getLogger(DocTableInfoBuilder.class);
 
     DocTableInfoBuilder(Functions functions,
@@ -86,12 +87,16 @@ class DocTableInfoBuilder {
         if (metaData.getTemplates().containsKey(templateName)) {
             docIndexMetaData = buildDocIndexMetaDataFromTemplate(ident.indexName(), templateName);
             createdFromTemplate = true;
-            concreteIndices = indexNameExpressionResolver.concreteIndices(
-                state, IndicesOptions.lenientExpandOpen(), ident.indexName());
+            concreteIndices = Stream.of(indexNameExpressionResolver.concreteIndices(
+                state,
+                IndicesOptions.lenientExpandOpen(),
+                ident.indexName())).map(Index::getName).toArray(String[]::new);
         } else {
             try {
-                concreteIndices = indexNameExpressionResolver.concreteIndices(
-                    state, IndicesOptions.strictExpandOpen(), ident.indexName());
+                concreteIndices = Stream.of(indexNameExpressionResolver.concreteIndices(
+                    state,
+                    IndicesOptions.strictExpandOpen(),
+                    ident.indexName())).map(Index::getName).toArray(String[]::new);
                 if (concreteIndices.length == 0) {
                     // no matching index found
                     throw new TableUnknownException(ident);
@@ -105,14 +110,14 @@ class DocTableInfoBuilder {
         if ((!createdFromTemplate && concreteIndices.length == 1) || !checkAliasSchema) {
             return docIndexMetaData;
         }
-        for (Index concreteIndice : concreteIndices) {
-            if (IndexMetaData.State.CLOSE.equals(metaData.indices().get(concreteIndice.getName()).getState())) {
+        for (String concreteIndex : concreteIndices) {
+            if (IndexMetaData.State.CLOSE.equals(metaData.indices().get(concreteIndex).getState())) {
                 throw new UnhandledServerException(
-                    String.format(Locale.ENGLISH, "Unable to access the partition %s, it is closed", concreteIndice));
+                    String.format(Locale.ENGLISH, "Unable to access the partition %s, it is closed", concreteIndex));
             }
             try {
                 docIndexMetaData = docIndexMetaData.merge(
-                    buildDocIndexMetaData(concreteIndice),
+                    buildDocIndexMetaData(concreteIndex),
                     transportPutIndexTemplateAction,
                     createdFromTemplate);
             } catch (IOException e) {
@@ -122,10 +127,10 @@ class DocTableInfoBuilder {
         return docIndexMetaData;
     }
 
-    private DocIndexMetaData buildDocIndexMetaData(Index index) {
+    private DocIndexMetaData buildDocIndexMetaData(String indexName) {
         DocIndexMetaData docIndexMetaData;
         try {
-            docIndexMetaData = new DocIndexMetaData(functions, metaData.index(index), ident);
+            docIndexMetaData = new DocIndexMetaData(functions, metaData.index(indexName), ident);
         } catch (IOException e) {
             throw new UnhandledServerException("Unable to build DocIndexMetaData", e);
         }
@@ -158,8 +163,7 @@ class DocTableInfoBuilder {
     private List<PartitionName> buildPartitions(DocIndexMetaData md) {
         List<PartitionName> partitions = new ArrayList<>();
         if (md.partitionedBy().size() > 0) {
-            for (Index index : concreteIndices) {
-                String indexName = index.getName();
+            for (String indexName : concreteIndices) {
                 if (PartitionName.isPartition(indexName)) {
                     try {
                         PartitionName partitionName = PartitionName.fromIndexOrTemplate(indexName);
@@ -167,7 +171,7 @@ class DocTableInfoBuilder {
                         partitions.add(partitionName);
                     } catch (IllegalArgumentException e) {
                         // ignore
-                        logger.warn(String.format(Locale.ENGLISH, "Cannot build partition %s of index %s", index, ident.indexName()));
+                        logger.warn(String.format(Locale.ENGLISH, "Cannot build partition %s of index %s", indexName, ident.indexName()));
                     }
                 }
             }
