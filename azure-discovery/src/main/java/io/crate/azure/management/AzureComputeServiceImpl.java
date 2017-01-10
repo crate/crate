@@ -40,8 +40,7 @@ import java.net.URI;
 
 import static io.crate.azure.management.AzureComputeService.Management.*;
 
-public class AzureComputeServiceImpl extends AbstractLifecycleComponent<AzureComputeService>
-    implements AzureComputeService {
+public class AzureComputeServiceImpl extends AbstractLifecycleComponent implements AzureComputeService {
 
     private final String resourceGroupName;
     private final String subscriptionId;
@@ -61,11 +60,11 @@ public class AzureComputeServiceImpl extends AbstractLifecycleComponent<AzureCom
     @Inject
     public AzureComputeServiceImpl(Settings settings) {
         super(settings);
-        subscriptionId = settings.get(SUBSCRIPTION_ID);
-        tenantId = settings.get(TENANT_ID);
-        appId = settings.get(APP_ID);
-        appSecret = settings.get(APP_SECRET);
-        resourceGroupName = settings.get(Management.RESOURCE_GROUP_NAME);
+        subscriptionId = SUBSCRIPTION_ID.get(settings);
+        tenantId = TENANT_ID.get(settings);
+        appId = APP_ID.get(settings);
+        appSecret = APP_SECRET.get(settings);
+        resourceGroupName = Management.RESOURCE_GROUP_NAME.get(settings);
     }
 
     @Nullable

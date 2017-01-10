@@ -33,23 +33,22 @@ public abstract class AbstractAzureComputeServiceTestCase extends ESIntegTestCas
 
     @Override
     protected Settings nodeSettings(int nodeOrdinal) {
-        Settings.Builder builder = Settings.settingsBuilder()
+        Settings.Builder builder = Settings.builder()
             .put(super.nodeSettings(nodeOrdinal))
-            .put("node.mode", "network")
             .put("discovery.type", "azure")
-            .put(Management.SUBSCRIPTION_ID, "fake")
-            .put(Discovery.REFRESH, "5s")
-            .put(Management.APP_ID, "dummy")
-            .put(Management.TENANT_ID, "dummy")
-            .put(Management.APP_SECRET, "dummy")
-            .put(Management.RESOURCE_GROUP_NAME, "dummy");
+            .put(Management.SUBSCRIPTION_ID.getKey(), "fake")
+            .put(Discovery.REFRESH.getKey(), "5s")
+            .put(Management.APP_ID.getKey(), "dummy")
+            .put(Management.TENANT_ID.getKey(), "dummy")
+            .put(Management.APP_SECRET.getKey(), "dummy")
+            .put(Management.RESOURCE_GROUP_NAME.getKey(), "dummy");
         return builder.build();
     }
 
-    protected void checkNumberOfNodes(int expected) {
+    void checkNumberOfNodes(int expected) {
         NodesInfoResponse nodeInfos = client().admin().cluster().prepareNodesInfo().execute().actionGet();
         assertNotNull(nodeInfos);
         assertNotNull(nodeInfos.getNodes());
-        assertEquals(expected, nodeInfos.getNodes().length);
+        assertEquals(expected, nodeInfos.getNodes().size());
     }
 }
