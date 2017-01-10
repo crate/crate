@@ -32,6 +32,7 @@ import org.elasticsearch.action.admin.indices.stats.CommonStatsFlags;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.discovery.Discovery;
+import org.elasticsearch.monitor.MonitorService;
 import org.elasticsearch.monitor.jvm.JvmService;
 import org.elasticsearch.monitor.os.OsService;
 import org.elasticsearch.node.service.NodeService;
@@ -46,15 +47,14 @@ public class NodeSysExpression extends NestedObjectExpression {
 
     @Inject
     public NodeSysExpression(ClusterService clusterService,
-                             OsService osService,
                              NodeService nodeService,
-                             JvmService jvmService,
+                             MonitorService monitorService,
                              Discovery discovery,
                              ThreadPool threadPool,
                              ExtendedNodeInfo extendedNodeInfo) {
         this.nodeService = nodeService;
-        this.osService = osService;
-        this.jvmService = jvmService;
+        this.osService = monitorService.osService();
+        this.jvmService = monitorService.jvmService();
         this.extendedNodeInfo = extendedNodeInfo;
         childImplementations.put(SysNodesTableInfo.SYS_COL_HOSTNAME,
             new NodeHostnameExpression());

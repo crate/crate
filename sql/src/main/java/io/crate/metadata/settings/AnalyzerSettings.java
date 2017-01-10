@@ -27,7 +27,7 @@ import org.elasticsearch.common.settings.Settings;
 
 public class AnalyzerSettings {
 
-    public static final String CUSTOM_ANALYSIS_SETTINGS_PREFIX = "crate.analysis.custom";
+    public static final String CUSTOM_ANALYSIS_SETTINGS_PREFIX = "crate.analysis.custom.";
     public static final Setting<Settings> CUSTOM_ANALYSIS_SETTING_GROUP = Setting.groupSetting(
         CUSTOM_ANALYSIS_SETTINGS_PREFIX, Setting.Property.NodeScope, Setting.Property.Dynamic);
 
