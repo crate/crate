@@ -72,10 +72,8 @@ public class NestedLoopConsumerTest extends CrateDummyClusterServiceUnitTest {
     private Planner.Context plannerContext;
     private SQLExecutor e;
 
-    @Override
     @Before
-    public void setUp() {
-        super.setUp();
+    public void prepare() {
         TableStatsService statsService = getTableStatsService();
         e = SQLExecutor.builder(dummyClusterService)
             .enableDefaultTables()

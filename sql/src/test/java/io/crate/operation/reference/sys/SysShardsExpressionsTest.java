@@ -71,7 +71,7 @@ public class SysShardsExpressionsTest extends CrateDummyClusterServiceUnitTest {
     private Schemas schemas;
 
     @Before
-    public void prepare() throws Exception {
+    public void prepare()  {
         indexShard = mockIndexShard();
         schemas = new Schemas(
             Settings.EMPTY,

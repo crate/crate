@@ -31,7 +31,6 @@ import io.crate.planner.node.dql.RoutedCollectPhase;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.CollectingRowReceiver;
 import io.crate.types.DataTypes;
-import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -56,12 +55,6 @@ public class MapSideDataCollectOperationTest extends CrateDummyClusterServiceUni
 
     @Rule
     public TemporaryFolder temporaryFolder = new TemporaryFolder();
-
-    @Override
-    @Before
-    public void setUp() {
-        super.setUp();
-    }
 
     @Test
     public void testFileUriCollect() throws Exception {

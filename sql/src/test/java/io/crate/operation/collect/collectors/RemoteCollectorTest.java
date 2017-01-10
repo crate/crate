@@ -66,10 +66,8 @@ public class RemoteCollectorTest extends CrateDummyClusterServiceUnitTest {
     @Captor
     public ArgumentCaptor<ActionListener<JobResponse>> listenerCaptor;
 
-    @Override
     @Before
-    public void setUp() {
-        super.setUp();
+    public void prepare() {
         MockitoAnnotations.initMocks(this);
         UUID jobId = UUID.randomUUID();
         RoutedCollectPhase collectPhase = new RoutedCollectPhase(

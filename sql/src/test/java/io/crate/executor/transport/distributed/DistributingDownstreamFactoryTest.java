@@ -50,10 +50,8 @@ public class DistributingDownstreamFactoryTest extends CrateDummyClusterServiceU
 
     private DistributingDownstreamFactory rowDownstreamFactory;
 
-    @Override
     @Before
-    public void setUp() {
-        super.setUp();
+    public void prepare() {
         rowDownstreamFactory = new DistributingDownstreamFactory(
             Settings.EMPTY,
             dummyClusterService,

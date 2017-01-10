@@ -47,7 +47,6 @@ import org.elasticsearch.repositories.RepositoryException;
 import org.elasticsearch.tasks.Task;
 import org.elasticsearch.test.ClusterServiceUtils;
 import org.elasticsearch.transport.TransportService;
-import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Answers;
 
@@ -60,12 +59,6 @@ import static org.hamcrest.core.Is.is;
 import static org.mockito.Mockito.mock;
 
 public class RepositoryServiceTest extends CrateDummyClusterServiceUnitTest {
-
-    @Override
-    @Before
-    public void setUp() {
-        super.setUp();
-    }
 
     @Test
     public void testConvertException() throws Throwable {

@@ -36,15 +36,15 @@ public class CrateDummyClusterServiceUnitTest extends CrateUnitTest {
     protected ThreadPool threadPool;
     protected ClusterService dummyClusterService;
 
-    @Override
     @Before
-    public void setUp() {
+    public void setupDummyClusterService() {
         threadPool = new TestThreadPool("dummy");
         dummyClusterService = ClusterServiceUtils.createClusterService(threadPool);
     }
 
     @After
-    public void tearDown() {
+    public void cleanup() {
         ThreadPool.terminate(threadPool, 30, TimeUnit.SECONDS);
+        dummyClusterService.close();
     }
 }

@@ -38,10 +38,8 @@ public class SubSelectSymbolReplacerTest extends CrateDummyClusterServiceUnitTes
 
     private SQLExecutor e;
 
-    @Override
     @Before
-    public void setUp() {
-        super.setUp();
+    public void prepare() {
         e = SQLExecutor.builder(dummyClusterService).enableDefaultTables().build();
     }
 

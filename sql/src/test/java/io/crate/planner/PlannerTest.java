@@ -41,10 +41,8 @@ public class PlannerTest extends CrateDummyClusterServiceUnitTest {
     private SQLExecutor e;
     private EvaluatingNormalizer normalizer = EvaluatingNormalizer.functionOnlyNormalizer(e.functions(), ReplaceMode.COPY);
 
-    @Override
     @Before
-    public void setUp() {
-        super.setUp();
+    public void prepare() {
         e = SQLExecutor.builder(dummyClusterService).build();
     }
 

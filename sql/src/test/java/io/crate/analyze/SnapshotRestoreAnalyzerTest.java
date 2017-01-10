@@ -44,10 +44,8 @@ public class SnapshotRestoreAnalyzerTest extends CrateDummyClusterServiceUnitTes
 
     private SQLExecutor executor;
 
-    @Override
     @Before
-    public void setUp() {
-        super.setUp();
+    public void prepare() {
         RepositoriesMetaData repositoriesMetaData = new RepositoriesMetaData(
             new RepositoryMetaData(
                 "my_repo",

@@ -43,10 +43,8 @@ public class SetAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     private SQLExecutor executor;
 
-    @Override
     @Before
-    public void setUp() {
-        super.setUp();
+    public void prepare() {
         executor = SQLExecutor.builder(dummyClusterService).build();
     }
 

@@ -46,10 +46,8 @@ public class JobContextServiceTest extends CrateDummyClusterServiceUnitTest {
 
     private JobContextService jobContextService;
 
-    @Override
     @Before
-    public void setUp() {
-        super.setUp();
+    public void prepare() {
         jobContextService = new JobContextService(Settings.EMPTY, dummyClusterService, mock(StatsTables.class));
     }
 
