@@ -71,6 +71,7 @@ import org.elasticsearch.plugins.Plugin;
 import org.elasticsearch.rest.RestHandler;
 
 import java.util.*;
+import java.util.function.Consumer;
 
 import static com.google.common.collect.Lists.newArrayList;
 
@@ -108,14 +109,21 @@ public class SQLPlugin extends Plugin implements ActionPlugin, MapperPlugin {
         settings.add(CrateCircuitBreakerService.QUERY_CIRCUIT_BREAKER_LIMIT_SETTING);
         settings.add(CrateCircuitBreakerService.QUERY_CIRCUIT_BREAKER_OVERHEAD_SETTING);
         settings.add(DecommissioningService.DECOMMISSION_INTERNAL_SETTING_GROUP);
-        for (Setting setting : CrateSettings.SETTINGS) {
-            org.elasticsearch.common.settings.Setting esSetting = setting.esSetting();
-            if (esSetting == null) {
-                continue; // skipping NestedSettings (=containers for actual settings)
-            }
-            settings.add(esSetting);
-        }
+
+        addESSettings(settings::add, CrateSettings.CRATE_SETTINGS);
         return settings;
+    }
+
+    private static void addESSettings(Consumer<org.elasticsearch.common.settings.Setting<?>> consumer,
+                                      Iterable<Setting<?, ?>> crateSettings) {
+        for (Setting crateSetting : crateSettings) {
+            org.elasticsearch.common.settings.Setting esSetting = crateSetting.esSetting();
+            if (esSetting == null) {
+                addESSettings(consumer, crateSetting.children());
+                continue;
+            }
+            consumer.accept(esSetting);
+        }
     }
 
     public String name() {

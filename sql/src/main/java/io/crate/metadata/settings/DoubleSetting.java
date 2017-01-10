@@ -46,7 +46,7 @@ public abstract class DoubleSetting extends Setting<Double, Double> {
     }
 
     @Override
-    public org.elasticsearch.common.settings.Setting<Double> esSetting() {
+    org.elasticsearch.common.settings.Setting<Double> createESSetting() {
         return org.elasticsearch.common.settings.Setting.doubleSetting(
             settingName(),
             defaultValue(),

@@ -28,8 +28,7 @@ import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.monitor.fs.FsInfo;
-import org.elasticsearch.monitor.fs.FsProbe;
+import org.elasticsearch.monitor.MonitorService;
 
 @Singleton
 public class HighDiskWatermarkNodesSysCheck extends DiskWatermarkNodesSysCheck {
@@ -41,8 +40,8 @@ public class HighDiskWatermarkNodesSysCheck extends DiskWatermarkNodesSysCheck {
                                               " The cluster will attempt to relocate shards to another node. Please check the node disk usage.";
 
     @Inject
-    public HighDiskWatermarkNodesSysCheck(ClusterService clusterService, Settings settings, FsProbe fsProbe, FsInfo fsInfo) {
-        super(ID, DESCRIPTION, HIGH_DISK_WATERMARK_SETTING, Severity.HIGH, clusterService, settings, fsProbe, fsInfo);
+    public HighDiskWatermarkNodesSysCheck(ClusterService clusterService, Settings settings, MonitorService monitorService) {
+        super(ID, DESCRIPTION, HIGH_DISK_WATERMARK_SETTING, Severity.HIGH, clusterService, monitorService.fsService(), settings);
     }
 
 }

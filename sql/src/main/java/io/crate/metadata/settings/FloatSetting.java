@@ -46,7 +46,7 @@ public abstract class FloatSetting extends Setting<Float, Float> {
     }
 
     @Override
-    public org.elasticsearch.common.settings.Setting<Float> esSetting() {
+    org.elasticsearch.common.settings.Setting<Float> createESSetting() {
         return org.elasticsearch.common.settings.Setting.floatSetting(
             settingName(),
             defaultValue(),

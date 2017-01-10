@@ -35,6 +35,7 @@ import java.util.function.Consumer;
 public abstract class Setting<T, E> {
 
     private final static Joiner dotJoiner = Joiner.on(".");
+    private org.elasticsearch.common.settings.Setting<T> esSetting;
 
     public String settingName() {
         return dotJoiner.join(chain());
@@ -81,7 +82,19 @@ public abstract class Setting<T, E> {
     /**
      * Return the corresponding {@link org.elasticsearch.common.settings.Setting}
      */
-    public abstract org.elasticsearch.common.settings.Setting<T> esSetting();
+    public final org.elasticsearch.common.settings.Setting<T> esSetting() {
+        /**
+         * Need to re-use esSettings because
+         * {@link org.elasticsearch.common.settings.AbstractScopedSettings#addSettingsUpdateConsumer(org.elasticsearch.common.settings.Setting, Consumer)}
+         * Does Identity comparison to verify that settings have been registered
+         */
+        if (esSetting == null) {
+            esSetting = createESSetting();
+        }
+        return esSetting;
+    }
+
+    abstract org.elasticsearch.common.settings.Setting<T> createESSetting();
 
     /**
      * Register a settings consumer for this setting to {@link ClusterSettings}.

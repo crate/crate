@@ -29,8 +29,8 @@ import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.TimeValue;
+import org.elasticsearch.monitor.MonitorService;
 import org.elasticsearch.monitor.fs.FsInfo;
-import org.elasticsearch.monitor.fs.FsProbe;
 import org.junit.Test;
 import org.mockito.Answers;
 
@@ -177,8 +177,7 @@ public class SysNodeChecksTest extends CrateDummyClusterServiceUnitTest {
         DiskWatermarkNodesSysCheck highDiskWatermarkNodesSysCheck = new HighDiskWatermarkNodesSysCheck(
             dummyClusterService,
             Settings.EMPTY,
-            mock(FsProbe.class),
-            mock(FsInfo.class));
+            mock(MonitorService.class));
 
         assertThat(highDiskWatermarkNodesSysCheck.id(), is(5));
         assertThat(highDiskWatermarkNodesSysCheck.nodeId().utf8ToString(), is("noop_id"));
@@ -206,8 +205,7 @@ public class SysNodeChecksTest extends CrateDummyClusterServiceUnitTest {
         DiskWatermarkNodesSysCheck lowDiskWatermarkNodesSysCheck = new LowDiskWatermarkNodesSysCheck(
             dummyClusterService,
             Settings.EMPTY,
-            mock(FsProbe.class),
-            mock(FsInfo.class));
+            mock(MonitorService.class));
 
         assertThat(lowDiskWatermarkNodesSysCheck.id(), is(6));
         assertThat(lowDiskWatermarkNodesSysCheck.nodeId().utf8ToString(), is("noop_id"));
