@@ -64,7 +64,7 @@ public class MapSideDataCollectOperationTest extends CrateDummyClusterServiceUni
             .thenReturn(new FileCollectSource(functions, dummyClusterService, Collections.emptyMap()));
         MapSideDataCollectOperation collectOperation = new MapSideDataCollectOperation(
             collectSourceResolver,
-            threadPool
+            THREAD_POOL
         );
         File tmpFile = temporaryFolder.newFile("fileUriCollectOperation.json");
         try (OutputStreamWriter writer = new OutputStreamWriter(new FileOutputStream(tmpFile), StandardCharsets.UTF_8)) {

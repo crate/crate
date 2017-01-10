@@ -30,10 +30,8 @@ import io.crate.metadata.TableIdent;
 import io.crate.metadata.settings.CrateSettings;
 import io.crate.protocols.postgres.FormatCodes;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
-import io.crate.types.DataType;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.service.ClusterService;
-import org.elasticsearch.common.inject.Provider;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.TimeValue;
 import org.junit.Test;
@@ -55,7 +53,7 @@ public class TableStatsServiceTest extends CrateDummyClusterServiceUnitTest {
         // Initially disabled
         TableStatsService statsService = new TableStatsService(
             Settings.builder().put(CrateSettings.STATS_SERVICE_REFRESH_INTERVAL.settingName(), 0).build(),
-            threadPool,
+            THREAD_POOL,
             dummyClusterService,
             () -> mock(SQLOperations.class));
 
@@ -66,7 +64,7 @@ public class TableStatsServiceTest extends CrateDummyClusterServiceUnitTest {
         // Default setting
         statsService = new TableStatsService(
             Settings.EMPTY,
-            threadPool,
+            THREAD_POOL,
             dummyClusterService,
             () -> mock(SQLOperations.class));
 
@@ -109,14 +107,9 @@ public class TableStatsServiceTest extends CrateDummyClusterServiceUnitTest {
 
         final TableStatsService statsService = new TableStatsService(
             Settings.EMPTY,
-            threadPool,
+            THREAD_POOL,
             dummyClusterService,
-            new Provider<SQLOperations>() {
-                @Override
-                public SQLOperations get() {
-                    return mock(SQLOperations.class);
-                }
-            });
+            () -> mock(SQLOperations.class));
         ObjectLongMap<TableIdent> stats = statsService.statsFromRows(ImmutableList.of(
             new Object[]{1L, "custom", "foo"},
             new Object[]{2L, "doc", "foo"},
@@ -134,20 +127,15 @@ public class TableStatsServiceTest extends CrateDummyClusterServiceUnitTest {
 
         TableStatsService statsService = new TableStatsService(
             Settings.EMPTY,
-            threadPool,
+            THREAD_POOL,
             dummyClusterService,
-            new Provider<SQLOperations>() {
-                @Override
-                public SQLOperations get() {
-                    return sqlOperations;
-                }
-            });
+            () -> sqlOperations);
         statsService.run();
 
         verify(session, times(1)).parse(
             eq(TableStatsService.UNNAMED),
             eq(TableStatsService.STMT),
-            eq(Collections.<DataType>emptyList()));
+            eq(Collections.emptyList()));
         verify(session, times(1)).bind(
             eq(TableStatsService.UNNAMED),
             eq(TableStatsService.UNNAMED),
@@ -168,14 +156,9 @@ public class TableStatsServiceTest extends CrateDummyClusterServiceUnitTest {
 
         TableStatsService statsService = new TableStatsService(
             Settings.EMPTY,
-            threadPool,
+            THREAD_POOL,
             clusterService,
-            new Provider<SQLOperations>() {
-                @Override
-                public SQLOperations get() {
-                    return sqlOperations;
-                }
-            });
+            () -> sqlOperations);
 
         statsService.run();
         Mockito.verify(sqlOperations, times(0)).createSession(anyString(), anySetOf(Option.class), anyByte());

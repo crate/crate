@@ -13,11 +13,9 @@ import io.crate.metadata.table.TestingTableInfo;
 import io.crate.operation.operator.EqOperator;
 import io.crate.planner.node.ddl.ESClusterUpdateSettingsPlan;
 import io.crate.planner.node.management.KillPlan;
-import io.crate.sql.tree.Expression;
 import io.crate.sql.tree.LongLiteral;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
-import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
 import org.hamcrest.core.Is;
@@ -25,6 +23,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.UUID;
 
@@ -39,11 +38,12 @@ import static org.hamcrest.core.IsNull.notNullValue;
 public class PlannerTest extends CrateDummyClusterServiceUnitTest {
 
     private SQLExecutor e;
-    private EvaluatingNormalizer normalizer = EvaluatingNormalizer.functionOnlyNormalizer(e.functions(), ReplaceMode.COPY);
+    private EvaluatingNormalizer normalizer;
 
     @Before
     public void prepare() {
         e = SQLExecutor.builder(dummyClusterService).build();
+        normalizer = EvaluatingNormalizer.functionOnlyNormalizer(e.functions(), ReplaceMode.COPY);
     }
 
     @Test
@@ -51,8 +51,8 @@ public class PlannerTest extends CrateDummyClusterServiceUnitTest {
         ESClusterUpdateSettingsPlan plan = e.plan("set GLOBAL PERSISTENT stats.jobs_log_size=1024");
 
         // set transient settings too when setting persistent ones
-        assertThat(plan.transientSettings().get("stats.jobs_log_size").get(0), Is.<Expression>is(new LongLiteral("1024")));
-        assertThat(plan.persistentSettings().get("stats.jobs_log_size").get(0), Is.<Expression>is(new LongLiteral("1024")));
+        assertThat(plan.transientSettings().get("stats.jobs_log_size").get(0), Is.is(new LongLiteral("1024")));
+        assertThat(plan.persistentSettings().get("stats.jobs_log_size").get(0), Is.is(new LongLiteral("1024")));
 
         plan = e.plan("set GLOBAL TRANSIENT stats.enabled=false,stats.jobs_log_size=0");
 
@@ -72,8 +72,8 @@ public class PlannerTest extends CrateDummyClusterServiceUnitTest {
         indices = Planner.indices(TestingTableInfo.builder(custom, shardRouting("t1"))
             .add("id", DataTypes.INTEGER, null)
             .add("date", DataTypes.TIMESTAMP, null, true)
-            .addPartitions(new PartitionName(custom, Arrays.asList(new BytesRef("0"))).asIndexName())
-            .addPartitions(new PartitionName(custom, Arrays.asList(new BytesRef("12345"))).asIndexName())
+            .addPartitions(new PartitionName(custom, Collections.singletonList(new BytesRef("0"))).asIndexName())
+            .addPartitions(new PartitionName(custom, Collections.singletonList(new BytesRef("12345"))).asIndexName())
             .build(), WhereClause.MATCH_ALL);
         assertThat(indices, arrayContainingInAnyOrder("custom..partitioned.table.04130", "custom..partitioned.table.04332chj6gqg"));
     }
@@ -137,7 +137,7 @@ public class PlannerTest extends CrateDummyClusterServiceUnitTest {
         WhereClause whereClause = new WhereClause(
             new Function(new FunctionInfo(
                 new FunctionIdent(EqOperator.NAME,
-                                  Arrays.<DataType>asList(DataTypes.INTEGER, DataTypes.INTEGER)),
+                                  Arrays.asList(DataTypes.INTEGER, DataTypes.INTEGER)),
                 DataTypes.BOOLEAN),
                          Arrays.asList(tableInfo1.getReference(new ColumnIdent("id")), Literal.of(2))
             ));
