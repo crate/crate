@@ -104,7 +104,7 @@ public class DocIndexMetaData {
         this.functions = functions;
         this.ident = ident;
         this.metaData = metaData;
-        this.isAlias = !metaData.getIndex().equals(ident.indexName());
+        this.isAlias = !metaData.getIndex().getName().equals(ident.indexName());
         this.numberOfShards = metaData.getNumberOfShards();
         Settings settings = metaData.getSettings();
         this.numberOfReplicas = NumberOfReplicas.fromSettings(settings);
