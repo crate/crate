@@ -23,28 +23,29 @@
 package io.crate.cluster.gracefulstop;
 
 import io.crate.metadata.settings.CrateSettings;
+import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import org.elasticsearch.cluster.node.DiscoveryNode;
-import org.elasticsearch.cluster.routing.RestoreSource;
+import org.elasticsearch.cluster.routing.RecoverySource;
 import org.elasticsearch.cluster.routing.RoutingNode;
 import org.elasticsearch.cluster.routing.ShardRouting;
 import org.elasticsearch.cluster.routing.UnassignedInfo;
 import org.elasticsearch.cluster.routing.allocation.RoutingAllocation;
 import org.elasticsearch.cluster.routing.allocation.decider.Decision;
+import org.elasticsearch.common.UUIDs;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.node.settings.NodeSettingsService;
+import org.elasticsearch.index.shard.ShardId;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
 import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-public class DecommissionAllocationDeciderTest {
+public class DecommissionAllocationDeciderTest extends CrateDummyClusterServiceUnitTest {
 
     private RoutingAllocation routingAllocation;
     private ShardRouting primaryShard;
@@ -53,7 +54,7 @@ public class DecommissionAllocationDeciderTest {
     private RoutingNode n2;
 
     @Before
-    public void setUp() throws Exception {
+    public void init() throws Exception {
         routingAllocation = mock(RoutingAllocation.class);
         when(routingAllocation.decision(any(Decision.class), anyString(), anyString())).then(new Answer<Object>() {
             @Override
@@ -63,9 +64,9 @@ public class DecommissionAllocationDeciderTest {
         });
 
         primaryShard = ShardRouting.newUnassigned(
-            "t", 0, mock(RestoreSource.class), true, mock(UnassignedInfo.class));
+            new ShardId("t", UUIDs.randomBase64UUID(), 0), true, mock(RecoverySource.class), mock(UnassignedInfo.class));
         replicaShard = ShardRouting.newUnassigned(
-            "t", 0, mock(RestoreSource.class), false, mock(UnassignedInfo.class));
+            new ShardId("t", UUIDs.randomBase64UUID(), 0), true, mock(RecoverySource.class), mock(UnassignedInfo.class));
         n1 = new RoutingNode("n1", mock(DiscoveryNode.class));
         n2 = new RoutingNode("n2", mock(DiscoveryNode.class));
     }
@@ -76,7 +77,7 @@ public class DecommissionAllocationDeciderTest {
             .put(DecommissioningService.DECOMMISSION_PREFIX + "n1", true).build();
 
         DecommissionAllocationDecider allocationDecider =
-            new DecommissionAllocationDecider(settings, mock(NodeSettingsService.class));
+            new DecommissionAllocationDecider(settings, dummyClusterService);
 
         Decision decision = allocationDecider.canAllocate(primaryShard, n1, routingAllocation);
         assertThat(decision.type(), is(Decision.Type.NO));
@@ -91,7 +92,7 @@ public class DecommissionAllocationDeciderTest {
             .put(CrateSettings.GRACEFUL_STOP_MIN_AVAILABILITY.settingName(), "none")
             .put(DecommissioningService.DECOMMISSION_PREFIX + "n1", true).build();
         DecommissionAllocationDecider allocationDecider =
-            new DecommissionAllocationDecider(settings, mock(NodeSettingsService.class));
+            new DecommissionAllocationDecider(settings, dummyClusterService);
 
         Decision decision = allocationDecider.canAllocate(primaryShard, n1, routingAllocation);
         assertThat(decision.type(), is(Decision.Type.YES));
@@ -107,7 +108,7 @@ public class DecommissionAllocationDeciderTest {
             .put(DecommissioningService.DECOMMISSION_PREFIX + "n1", true).build();
 
         DecommissionAllocationDecider allocationDecider =
-            new DecommissionAllocationDecider(settings, mock(NodeSettingsService.class));
+            new DecommissionAllocationDecider(settings, dummyClusterService);
 
         Decision decision = allocationDecider.canAllocate(replicaShard, n1, routingAllocation);
         assertThat(decision.type(), is(Decision.Type.NO));
@@ -123,7 +124,7 @@ public class DecommissionAllocationDeciderTest {
             .put(DecommissioningService.DECOMMISSION_PREFIX + "n1", true).build();
 
         DecommissionAllocationDecider allocationDecider =
-            new DecommissionAllocationDecider(settings, mock(NodeSettingsService.class));
+            new DecommissionAllocationDecider(settings, dummyClusterService);
 
         Decision decision = allocationDecider.canAllocate(replicaShard, n1, routingAllocation);
         assertThat(decision.type(), is(Decision.Type.NO));
