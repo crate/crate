@@ -27,11 +27,10 @@ import io.crate.azure.discovery.AzureDiscovery;
 import io.crate.azure.management.AzureComputeService;
 import io.crate.azure.management.AzureComputeService.Management;
 import io.crate.azure.management.AzureComputeServiceImpl;
-import io.crate.azure.management.AzureComputeSettingsFilter;
+import org.apache.logging.log4j.Logger;
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.inject.AbstractModule;
-import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.settings.Settings;
 
 /**
@@ -54,7 +53,6 @@ public class AzureModule extends AbstractModule {
 
     @Override
     protected void configure() {
-        bind(AzureComputeSettingsFilter.class).asEagerSingleton();
         bind(AzureComputeService.class).to(computeServiceImpl).asEagerSingleton();
     }
 
@@ -86,7 +84,7 @@ public class AzureModule extends AbstractModule {
      * @param settings settings to extract cloud enabled parameter from
      * @return true if we can start discovery features
      */
-    public static boolean isDiscoveryReady(Settings settings, ESLogger logger) {
+    public static boolean isDiscoveryReady(Settings settings, Logger logger) {
         // Cloud services are disabled
         if (!isCloudReady(settings)) {
             logger.trace("cloud settings are disabled");
@@ -99,11 +97,11 @@ public class AzureModule extends AbstractModule {
             return false;
         }
 
-        if (isPropertyMissing(settings, Management.SUBSCRIPTION_ID) ||
-            isPropertyMissing(settings, Management.RESOURCE_GROUP_NAME) ||
-            isPropertyMissing(settings, Management.TENANT_ID) ||
-            isPropertyMissing(settings, Management.APP_ID) ||
-            isPropertyMissing(settings, Management.APP_SECRET)
+        if (isPropertyMissing(settings, Management.SUBSCRIPTION_ID.getKey()) ||
+            isPropertyMissing(settings, Management.RESOURCE_GROUP_NAME.getKey()) ||
+            isPropertyMissing(settings, Management.TENANT_ID.getKey()) ||
+            isPropertyMissing(settings, Management.APP_ID.getKey()) ||
+            isPropertyMissing(settings, Management.APP_SECRET.getKey())
             ) {
             logger.warn("one or more azure discovery settings are missing. " +
                         "Check elasticsearch.yml file. Should have [{}], [{}], [{}] and [{}].",
@@ -115,7 +113,7 @@ public class AzureModule extends AbstractModule {
             return false;
         }
 
-        String discoveryType = settings.get(AzureComputeService.Discovery.DISCOVERY_METHOD);
+        String discoveryType = AzureComputeService.Discovery.DISCOVERY_METHOD.get(settings);
         if (!(AzureDiscovery.SUBNET.equalsIgnoreCase(discoveryType) ||
               AzureDiscovery.VNET.equalsIgnoreCase(discoveryType) ||
               discoveryType == null)) {

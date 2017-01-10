@@ -22,33 +22,46 @@ package io.crate.azure.management;
 import com.microsoft.azure.management.compute.ComputeManagementClient;
 import com.microsoft.azure.management.network.NetworkResourceProviderClient;
 import com.microsoft.windowsazure.Configuration;
+import io.crate.azure.discovery.AzureDiscovery;
+import io.crate.azure.discovery.AzureUnicastHostsProvider;
 import org.elasticsearch.common.component.LifecycleComponent;
+import org.elasticsearch.common.settings.Setting;
+import org.elasticsearch.common.unit.TimeValue;
+
+import java.util.function.Function;
 
 /**
  *
  */
-public interface AzureComputeService extends LifecycleComponent<AzureComputeService> {
+public interface AzureComputeService extends LifecycleComponent {
 
-    static public final class Management {
-        public static final String API_IMPLEMENTATION = "cloud.azure.management.api.impl";
+    final class Management {
+        public static final Setting<String> SUBSCRIPTION_ID = Setting.simpleString(
+            "cloud.azure.management.subscription.id", Setting.Property.NodeScope, Setting.Property.Filtered);
+        public static final Setting<String> RESOURCE_GROUP_NAME = Setting.simpleString(
+            "cloud.azure.management.resourcegroup.name", Setting.Property.NodeScope);
 
-        public static final String SUBSCRIPTION_ID = "cloud.azure.management.subscription.id";
-        public static final String RESOURCE_GROUP_NAME = "cloud.azure.management.resourcegroup.name";
-
-        public static final String TENANT_ID = "cloud.azure.management.tenant.id";
-        public static final String APP_ID = "cloud.azure.management.app.id";
-        public static final String APP_SECRET = "cloud.azure.management.app.secret";
+        public static final Setting<String> TENANT_ID = Setting.simpleString(
+            "cloud.azure.management.tenant.id", Setting.Property.NodeScope, Setting.Property.Filtered);
+        public static final Setting<String> APP_ID = Setting.simpleString(
+            "cloud.azure.management.app.id", Setting.Property.NodeScope, Setting.Property.Filtered);
+        public static final Setting<String> APP_SECRET = Setting.simpleString(
+            "cloud.azure.management.app.secret", Setting.Property.NodeScope, Setting.Property.Filtered);
     }
 
-    static public final class Discovery {
-        public static final String REFRESH = "discovery.azure.refresh_interval";
-        public static final String HOST_TYPE = "discovery.azure.host.type";
-        public static final String DISCOVERY_METHOD = "discovery.azure.method";
+    final class Discovery {
+        public static final Setting<TimeValue> REFRESH = Setting.timeSetting(
+            "discovery.azure.refresh_interval", TimeValue.timeValueSeconds(5L), Setting.Property.NodeScope);
+        public static final Setting<String> HOST_TYPE = new Setting<>(
+            "discovery.azure.host.type", s -> AzureUnicastHostsProvider.HostType.PRIVATE_IP.name(),
+            Function.identity(), Setting.Property.NodeScope);
+        public static final Setting<String> DISCOVERY_METHOD = new Setting<>(
+            "discovery.azure.method", s -> AzureDiscovery.VNET, Function.identity(), Setting.Property.NodeScope);
     }
 
-    public Configuration configuration();
+    Configuration configuration();
 
-    public ComputeManagementClient computeManagementClient();
+    ComputeManagementClient computeManagementClient();
 
-    public NetworkResourceProviderClient networkResourceClient();
+    NetworkResourceProviderClient networkResourceClient();
 }
