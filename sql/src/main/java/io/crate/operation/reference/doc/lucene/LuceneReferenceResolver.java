@@ -27,6 +27,7 @@ import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.DocReferenceConverter;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RowGranularity;
+import io.crate.metadata.doc.DocSysColumns;
 import io.crate.operation.reference.ReferenceResolver;
 import io.crate.types.*;
 import org.elasticsearch.common.Nullable;
@@ -69,6 +70,8 @@ public class LuceneReferenceResolver implements ReferenceResolver<LuceneCollecto
             return new DocIdCollectorExpression();
         } else if (ScoreCollectorExpression.COLUMN_NAME.equals(name)) {
             return new ScoreCollectorExpression();
+        } else if (DocSysColumns.VERSION.name().equals(name)) {
+            return new VersionCollectorExpression();
         }
 
         String colName = columnIdent.fqn();
