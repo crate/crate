@@ -66,7 +66,7 @@ public abstract class TimeSetting extends Setting<TimeValue, String> {
     }
 
     @Override
-    public org.elasticsearch.common.settings.Setting<TimeValue> esSetting() {
+    org.elasticsearch.common.settings.Setting<TimeValue> createESSetting() {
         return org.elasticsearch.common.settings.Setting.timeSetting(
             settingName(),
             defaultValue(),

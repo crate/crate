@@ -47,7 +47,7 @@ public abstract class NestedSetting extends Setting<Object, Object> {
     }
 
     @Override
-    public org.elasticsearch.common.settings.Setting<Object> esSetting() {
+    org.elasticsearch.common.settings.Setting<Object> createESSetting() {
         return null;
     }
 

@@ -26,8 +26,10 @@ import io.crate.metadata.settings.CrateSettings;
 import io.crate.metadata.settings.Setting;
 import io.crate.operation.reference.NestedObjectExpression;
 import io.crate.types.DataType;
+import org.apache.logging.log4j.Logger;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
+import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.ClusterSettings;
 import org.elasticsearch.common.settings.Settings;
 
@@ -39,6 +41,7 @@ import java.util.concurrent.ConcurrentHashMap;
 public class ClusterSettingsExpression extends NestedObjectExpression {
 
     public static final String NAME = "settings";
+    private final static Logger LOGGER = Loggers.getLogger(ClusterSettingsExpression.class);
 
     static class SettingExpression extends SimpleObjectExpression<Object> {
         private final Map<String, Object> values;
@@ -158,9 +161,17 @@ public class ClusterSettingsExpression extends NestedObjectExpression {
             if (initialSetting != null) {
                 values.put(name, initialSetting);
             }
-            setting.registerUpdateConsumer(clusterSettings, v -> values.put(name, v));
-
-            applyInitialSettingsAndRegisterUpdateConsumer(setting.children(), settings);
+            org.elasticsearch.common.settings.Setting<?> esSetting = setting.esSetting();
+            if (esSetting == null) { // = NestedSetting (= container for other settings)
+                applyInitialSettingsAndRegisterUpdateConsumer(setting.children(), settings);
+            } else {
+                try {
+                    clusterSettings.addSettingsUpdateConsumer(esSetting, v -> values.put(name, v));
+                } catch (IllegalArgumentException e) {
+                    // TODO: esSetting instance doesn't match the registered instance - need to fix this
+                    LOGGER.error(e);
+                }
+            }
         }
     }
 

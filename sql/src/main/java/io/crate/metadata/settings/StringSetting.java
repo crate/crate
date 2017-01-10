@@ -108,7 +108,7 @@ public class StringSetting extends Setting<String, String> {
     }
 
     @Override
-    public org.elasticsearch.common.settings.Setting<String> esSetting() {
+    org.elasticsearch.common.settings.Setting<String> createESSetting() {
         return new org.elasticsearch.common.settings.Setting<>(
             settingName(),
             defaultValue(),

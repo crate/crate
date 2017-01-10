@@ -93,7 +93,7 @@ public class ByteSizeSetting extends Setting<ByteSizeValue, String> {
     }
 
     @Override
-    public org.elasticsearch.common.settings.Setting<ByteSizeValue> esSetting() {
+    org.elasticsearch.common.settings.Setting<ByteSizeValue> createESSetting() {
         return org.elasticsearch.common.settings.Setting.byteSizeSetting(
             settingName(),
             defaultValue(),

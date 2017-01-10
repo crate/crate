@@ -89,7 +89,7 @@ public class IntSetting extends Setting<Integer, Integer> {
     }
 
     @Override
-    public org.elasticsearch.common.settings.Setting<Integer> esSetting() {
+    org.elasticsearch.common.settings.Setting<Integer> createESSetting() {
         return org.elasticsearch.common.settings.Setting.intSetting(
             settingName(),
             defaultValue(),

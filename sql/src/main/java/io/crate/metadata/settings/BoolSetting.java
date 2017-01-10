@@ -69,7 +69,7 @@ public class BoolSetting extends Setting<Boolean, Boolean> {
     }
 
     @Override
-    public org.elasticsearch.common.settings.Setting<Boolean> esSetting() {
+    org.elasticsearch.common.settings.Setting<Boolean> createESSetting() {
         return org.elasticsearch.common.settings.Setting.boolSetting(
             settingName(),
             defaultValue(),

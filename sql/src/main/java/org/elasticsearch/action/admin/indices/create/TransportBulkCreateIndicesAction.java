@@ -32,7 +32,6 @@ import org.elasticsearch.Version;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.support.ActionFilters;
 import org.elasticsearch.action.support.ActiveShardCount;
-import org.elasticsearch.action.support.ActiveShardsObserver;
 import org.elasticsearch.action.support.master.TransportMasterNodeAction;
 import org.elasticsearch.cluster.AckedClusterStateUpdateTask;
 import org.elasticsearch.cluster.ClusterState;
@@ -96,9 +95,7 @@ public class TransportBulkCreateIndicesAction
     public static final String NAME = "indices:admin/bulk_create";
 
     private final AliasValidator aliasValidator;
-    private final Version version;
     private final IndicesService indicesService;
-    private final ActiveShardsObserver activeShardsObserver;
     private final NodeServicesProvider nodeServicesProvider;
     private final AllocationService allocationService;
     private final Environment environment;
@@ -125,9 +122,7 @@ public class TransportBulkCreateIndicesAction
                                             ClusterService clusterService,
                                             ThreadPool threadPool,
                                             AliasValidator aliasValidator,
-                                            Version version,
                                             IndicesService indicesService,
-                                            ActiveShardsObserver activeShardsObserver,
                                             NodeServicesProvider nodeServicesProvider,
                                             AllocationService allocationService,
                                             IndexNameExpressionResolver indexNameExpressionResolver,
@@ -135,9 +130,7 @@ public class TransportBulkCreateIndicesAction
         super(settings, NAME, transportService, clusterService, threadPool, actionFilters, indexNameExpressionResolver, BulkCreateIndicesRequest::new);
         this.environment = environment;
         this.aliasValidator = aliasValidator;
-        this.version = version;
         this.indicesService = indicesService;
-        this.activeShardsObserver = activeShardsObserver;
         this.nodeServicesProvider = nodeServicesProvider;
         this.allocationService = allocationService;
     }
@@ -368,7 +361,7 @@ public class TransportBulkCreateIndicesAction
 
         if (indexSettingsBuilder.get(IndexMetaData.SETTING_VERSION_CREATED) == null) {
             DiscoveryNodes nodes = currentState.nodes();
-            final Version createdVersion = Version.smallest(version, nodes.getSmallestNonClientNodeVersion());
+            final Version createdVersion = Version.smallest(Version.CURRENT, nodes.getSmallestNonClientNodeVersion());
             indexSettingsBuilder.put(IndexMetaData.SETTING_VERSION_CREATED, createdVersion);
         }
 
