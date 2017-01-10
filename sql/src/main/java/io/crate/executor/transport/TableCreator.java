@@ -38,6 +38,7 @@ import org.elasticsearch.action.admin.indices.delete.DeleteIndexResponse;
 import org.elasticsearch.action.admin.indices.template.put.PutIndexTemplateRequest;
 import org.elasticsearch.action.admin.indices.template.put.PutIndexTemplateResponse;
 import org.elasticsearch.action.support.IndicesOptions;
+import org.elasticsearch.cluster.metadata.AliasOrIndex;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.metadata.MetaData;
 import org.elasticsearch.cluster.service.ClusterService;
@@ -50,6 +51,7 @@ import org.elasticsearch.indices.IndexAlreadyExistsException;
 import org.elasticsearch.indices.IndexTemplateAlreadyExistsException;
 
 import java.util.Locale;
+import java.util.SortedMap;
 import java.util.stream.Stream;
 
 @Singleton
@@ -153,11 +155,11 @@ public class TableCreator {
 
     private void deleteOrphans(final CreateTableResponseListener listener, TableIdent tableIdent) {
         MetaData metaData = clusterService.state().getMetaData();
-        String index = metaData.getAliasAndIndexLookup().get(tableIdent.fqn()).getIndices().iterator().next().getIndex().getName();
-        if (metaData.hasAlias(tableIdent.fqn())
-            && PartitionName.isPartition(index)) {
-            logger.debug("Deleting orphaned partitions with alias: {}", tableIdent.fqn());
-            transportActionProvider.transportDeleteIndexAction().execute(new DeleteIndexRequest(tableIdent.fqn()), new ActionListener<DeleteIndexResponse>() {
+        String fqn = tableIdent.fqn();
+
+        if (metaData.hasAlias(fqn) && isPartition(metaData, fqn)) {
+            logger.debug("Deleting orphaned partitions with alias: {}", fqn);
+            transportActionProvider.transportDeleteIndexAction().execute(new DeleteIndexRequest(fqn), new ActionListener<DeleteIndexResponse>() {
                 @Override
                 public void onResponse(DeleteIndexResponse response) {
                     if (!response.isAcknowledged()) {
@@ -174,6 +176,13 @@ public class TableCreator {
         } else {
             deleteOrphanedPartitions(listener, tableIdent);
         }
+    }
+
+    private static boolean isPartition(MetaData metaData, String fqn) {
+        SortedMap<String, AliasOrIndex> aliasAndIndexLookup = metaData.getAliasAndIndexLookup();
+        AliasOrIndex aliasOrIndex = aliasAndIndexLookup.get(fqn);
+        return PartitionName.isPartition(
+            aliasOrIndex.getIndices().iterator().next().getIndex().getName());
     }
 
     /**
