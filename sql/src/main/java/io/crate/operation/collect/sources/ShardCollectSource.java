@@ -55,6 +55,7 @@ import io.crate.planner.node.dql.CollectPhase;
 import io.crate.planner.node.dql.RoutedCollectPhase;
 import io.crate.planner.projection.Projections;
 import org.elasticsearch.action.bulk.BulkRetryCoordinatorPool;
+import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.metadata.MetaData;
 import org.elasticsearch.cluster.routing.ShardRoutingState;
@@ -357,7 +358,11 @@ public class ShardCollectSource extends AbstractComponent implements CollectSour
         List<CrateCollector.Builder> crateCollectors = new ArrayList<>();
         for (Map.Entry<String, List<Integer>> entry : indexShards.entrySet()) {
             String indexName = entry.getKey();
-            Index index = metaData.index(indexName).getIndex();
+            IndexMetaData indexMD = metaData.index(indexName);
+            if (indexMD == null) {
+                throw new IndexNotFoundException(indexName);
+            }
+            Index index = indexMD.getIndex();
             try {
                 indicesService.indexServiceSafe(index);
             } catch (IndexNotFoundException e) {
