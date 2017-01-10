@@ -28,10 +28,14 @@ import io.crate.sql.parser.ParsingException;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import org.apache.lucene.util.BytesRef;
+import org.elasticsearch.Version;
 import org.elasticsearch.cluster.ClusterName;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.MetaData;
+import org.elasticsearch.cluster.node.DiscoveryNode;
+import org.elasticsearch.cluster.node.DiscoveryNodes;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.common.transport.LocalTransportAddress;
 import org.elasticsearch.test.ClusterServiceUtils;
 import org.junit.Before;
 import org.junit.Test;
@@ -52,10 +56,24 @@ public class CreateAlterPartitionedTableAnalyzerTest extends CrateDummyClusterSe
         String analyzerSettings = FulltextAnalyzerResolver.encodeSettings(
             Settings.builder().put("search", "foobar").build()).utf8ToString();
         MetaData metaData = MetaData.builder()
-            .persistentSettings(
-                Settings.builder().put("crate.analysis.custom.analyzer.ft_search", analyzerSettings).build())
-            .build();
-        ClusterState state = ClusterState.builder(ClusterName.DEFAULT).metaData(metaData).build();
+                                    .persistentSettings(
+                                        Settings.builder()
+                                                .put("crate.analysis.custom.analyzer.ft_search", analyzerSettings)
+                                                .build())
+                                    .build();
+        ClusterState state =
+            ClusterState.builder(ClusterName.DEFAULT)
+                        .nodes(DiscoveryNodes.builder()
+                                             .add(new DiscoveryNode("n1", LocalTransportAddress.buildUnique(),
+                                                                    Version.CURRENT))
+                                             .add(new DiscoveryNode("n2", LocalTransportAddress.buildUnique(),
+                                                                    Version.CURRENT))
+                                             .add(new DiscoveryNode("n3", LocalTransportAddress.buildUnique(),
+                                                                    Version.CURRENT))
+                                             .localNodeId("n1")
+                              )
+                        .metaData(metaData)
+                        .build();
         ClusterServiceUtils.setState(dummyClusterService, state);
         e = SQLExecutor.builder(dummyClusterService).enableDefaultTables().build();
     }

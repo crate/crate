@@ -30,7 +30,6 @@ import io.crate.metadata.TableIdent;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.TableInfo;
 import io.crate.sql.tree.Table;
-import org.elasticsearch.index.Index;
 
 import javax.annotation.Nullable;
 import java.util.HashSet;
@@ -53,9 +52,7 @@ final class TableAnalyzer {
 
             DocTableInfo table = (DocTableInfo) tableInfo;
             if (nodeTable.partitionProperties().isEmpty()) {
-                Stream.of(table.concreteIndices())
-                    .map(Index::getName)
-                    .forEach(indexNames::add);
+                Stream.of(table.concreteIndices()).forEach(indexNames::add);
             } else {
                 PartitionName partitionName = PartitionPropertiesAnalyzer.toPartitionName(
                     table,

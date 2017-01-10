@@ -11,10 +11,10 @@ import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.index.Index;
 import org.junit.Test;
 
 import java.util.Arrays;
+import java.util.Collections;
 
 public class DocTableInfoTest extends CrateUnitTest {
 
@@ -25,25 +25,25 @@ public class DocTableInfoTest extends CrateUnitTest {
         DocTableInfo info = new DocTableInfo(
             tableIdent,
             ImmutableList.of(
-                new Reference(new ReferenceIdent(tableIdent, new ColumnIdent("o", ImmutableList.<String>of())), RowGranularity.DOC, DataTypes.OBJECT)
+                new Reference(new ReferenceIdent(tableIdent, new ColumnIdent("o", ImmutableList.of())), RowGranularity.DOC, DataTypes.OBJECT)
             ),
-            ImmutableList.<Reference>of(),
-            ImmutableList.<GeneratedReference>of(),
-            ImmutableMap.<ColumnIdent, IndexReference>of(),
-            ImmutableMap.<ColumnIdent, Reference>of(),
-            ImmutableMap.<ColumnIdent, String>of(),
-            ImmutableList.<ColumnIdent>of(),
+            ImmutableList.of(),
+            ImmutableList.of(),
+            ImmutableMap.of(),
+            ImmutableMap.of(),
+            ImmutableMap.of(),
+            ImmutableList.of(),
             null,
             false,
             true,
-            Index.EMPTY_ARRAY,
+            new String[0],
             null,
             new IndexNameExpressionResolver(Settings.EMPTY),
             5,
             new BytesRef("0"),
-            ImmutableMap.<String, Object>of(),
-            ImmutableList.<ColumnIdent>of(),
-            ImmutableList.<PartitionName>of(),
+            ImmutableMap.of(),
+            ImmutableList.of(),
+            ImmutableList.of(),
             ColumnPolicy.DYNAMIC,
             Operation.ALL
         );
@@ -77,24 +77,24 @@ public class DocTableInfoTest extends CrateUnitTest {
 
         DocTableInfo info = new DocTableInfo(
             dummy,
-            ImmutableList.<Reference>of(strictParent),
-            ImmutableList.<Reference>of(),
-            ImmutableList.<GeneratedReference>of(),
-            ImmutableMap.<ColumnIdent, IndexReference>of(),
+            ImmutableList.of(strictParent),
+            ImmutableList.of(),
+            ImmutableList.of(),
+            ImmutableMap.of(),
             references,
-            ImmutableMap.<ColumnIdent, String>of(),
-            ImmutableList.<ColumnIdent>of(),
+            ImmutableMap.of(),
+            ImmutableList.of(),
             null,
             false,
             true,
-            Index.EMPTY_ARRAY,
+            new String[0],
             null,
             new IndexNameExpressionResolver(Settings.EMPTY),
             5,
             new BytesRef("0"),
-            ImmutableMap.<String, Object>of(),
-            ImmutableList.<ColumnIdent>of(),
-            ImmutableList.<PartitionName>of(),
+            ImmutableMap.of(),
+            ImmutableList.of(),
+            ImmutableList.of(),
             ColumnPolicy.DYNAMIC,
             Operation.ALL
         );
@@ -104,7 +104,7 @@ public class DocTableInfoTest extends CrateUnitTest {
         assertNull(info.getReference(columnIdent));
         assertNull(info.getDynamic(columnIdent, false));
 
-        columnIdent = new ColumnIdent("foobar", Arrays.asList("foo"));
+        columnIdent = new ColumnIdent("foobar", Collections.singletonList("foo"));
         assertNull(info.getReference(columnIdent));
         assertNull(info.getDynamic(columnIdent, false));
 
