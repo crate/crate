@@ -46,6 +46,7 @@ import org.elasticsearch.action.admin.indices.template.put.PutIndexTemplateReque
 import org.elasticsearch.action.admin.indices.template.put.TransportPutIndexTemplateAction;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.cluster.metadata.MappingMetaData;
+import org.elasticsearch.common.Booleans;
 import org.elasticsearch.common.collect.Tuple;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.XContentHelper;
@@ -255,7 +256,7 @@ public class DocIndexMetaData {
     }
 
     private Reference.IndexType getColumnIndexType(Map<String, Object> columnProperties) {
-        String indexType = (String) columnProperties.get("index");
+        String indexType = toStringOrNull(columnProperties.get("index"));
         String analyzerName = (String) columnProperties.get("analyzer");
         if (indexType != null) {
             if (indexType.equals(Reference.IndexType.NOT_ANALYZED.toString())) {
@@ -271,6 +272,29 @@ public class DocIndexMetaData {
             return Reference.IndexType.ANALYZED;
         }
         return Reference.IndexType.NOT_ANALYZED;
+    }
+
+    /**
+     * Convert value into a string or null if it's a boolean or one of  ("no", "off", "false", "0")
+     */
+    @Nullable
+    private static String toStringOrNull(Object value) {
+        if (value == null) {
+            return null;
+        }
+        if (value instanceof String) {
+            boolean hasIndex = Booleans.parseBoolean((String) value, false);
+            if (hasIndex) {
+                return (String) value;
+            }
+            return null;
+        }
+        if (value instanceof Boolean) {
+            boolean hasIndex = (Boolean) value;
+            assert hasIndex == false : "hasIndex should be false";
+            return null;
+        }
+        throw new IllegalArgumentException("Cannot convert argument to string: " + value);
     }
 
     private static ColumnIdent childIdent(@Nullable ColumnIdent ident, String name) {
