@@ -347,6 +347,10 @@ public class LuceneQueryBuilderTest extends CrateUnitTest {
 
     @Test
     public void testSqlLikeToLuceneWildcard() throws Exception {
+        assertThat(LuceneQueryBuilder.convertSqlLikeToLuceneWildcard("%\\\\%"), is("*\\\\*"));
+        assertThat(LuceneQueryBuilder.convertSqlLikeToLuceneWildcard("%\\\\_"), is("*\\\\?"));
+        assertThat(LuceneQueryBuilder.convertSqlLikeToLuceneWildcard("%\\%"), is("*%"));
+
         assertThat(LuceneQueryBuilder.convertSqlLikeToLuceneWildcard("%me"), is("*me"));
         assertThat(LuceneQueryBuilder.convertSqlLikeToLuceneWildcard("\\%me"), is("%me"));
         assertThat(LuceneQueryBuilder.convertSqlLikeToLuceneWildcard("*me"), is("\\*me"));

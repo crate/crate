@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fix an issue in the ``LIKE`` predicate which prevents using escaped
+   backslash before the wildcard.
+
 - Updated crate-admin to ``1.1.0`` which includes the following change:
      - Improved console results table, including data type based colorization,
        alternating row colorization, structured object/array formatting,
