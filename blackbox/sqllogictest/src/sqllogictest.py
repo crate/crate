@@ -172,6 +172,15 @@ class Query:
                 rows[i] = int(row)
 
     def execute(self, cursor):
+        # If expected number of values (rows*colsPerRow) > 10000
+        # then add limit clause since implicit limit of 10k is applied
+        if len(self.result) == 1 and isinstance(self.result[0], str) and 'values hashing to' in self.result[0]:
+            m = Query.HASHING_RE.match(self.result[0])
+            if m:
+                values = m.groups()[0]
+                if int(values) > 10000:
+                    self.query += " LIMIT " + values
+
         cursor.execute(self.query)
         rows = cursor.fetchall()
         if self.sort == 'rowsort':
