@@ -42,8 +42,8 @@ public class BlobTableAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     @Before
     public void prepare() {
         TableIdent myBlobsIdent = new TableIdent(BlobSchemaInfo.NAME, "blobs");
-        TestingBlobTableInfo myBlobsTableInfo = TableDefinitions.createBlobTable(myBlobsIdent, dummyClusterService);
-        e = SQLExecutor.builder(dummyClusterService).addBlobTable(myBlobsTableInfo).build();
+        TestingBlobTableInfo myBlobsTableInfo = TableDefinitions.createBlobTable(myBlobsIdent, clusterService);
+        e = SQLExecutor.builder(clusterService).addBlobTable(myBlobsTableInfo).build();
     }
 
     @Test(expected = IllegalArgumentException.class)

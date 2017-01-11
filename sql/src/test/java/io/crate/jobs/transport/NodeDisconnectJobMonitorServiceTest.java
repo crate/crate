@@ -54,7 +54,7 @@ public class NodeDisconnectJobMonitorServiceTest extends CrateDummyClusterServic
     @Test
     public void testOnNodeDisconnectedKillsJobOriginatingFromThatNode() throws Exception {
         JobContextService jobContextService = new JobContextService(
-            Settings.EMPTY, dummyClusterService, mock(StatsTables.class));
+            Settings.EMPTY, clusterService, mock(StatsTables.class));
 
         JobExecutionContext.Builder builder = jobContextService.newBuilder(UUID.randomUUID());
         builder.addSubContext(new DummySubContext());
@@ -85,7 +85,7 @@ public class NodeDisconnectJobMonitorServiceTest extends CrateDummyClusterServic
     @Test
     public void testOnParticipatingNodeDisconnectedKillsJob() throws Exception {
         JobContextService jobContextService = new JobContextService(
-            Settings.EMPTY, dummyClusterService, mock(StatsTables.class));
+            Settings.EMPTY, clusterService, mock(StatsTables.class));
 
         DiscoveryNode coordinator_node = new DiscoveryNode(
             "coordinator_node_id",

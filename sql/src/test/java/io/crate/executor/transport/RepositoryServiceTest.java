@@ -79,7 +79,7 @@ public class RepositoryServiceTest extends CrateDummyClusterServiceUnitTest {
         RepositoriesMetaData repos = new RepositoriesMetaData(new RepositoryMetaData("repo1", "fs", Settings.EMPTY));
         ClusterState state = ClusterState.builder(new ClusterName("dummy")).metaData(
             MetaData.builder().putCustom(RepositoriesMetaData.TYPE, repos)).build();
-        ClusterServiceUtils.setState(dummyClusterService, state);
+        ClusterServiceUtils.setState(clusterService, state);
         final ActionFilters actionFilters = mock(ActionFilters.class, Answers.RETURNS_MOCKS.get());
         IndexNameExpressionResolver indexNameExpressionResolver = new IndexNameExpressionResolver(Settings.EMPTY);
 
@@ -88,7 +88,7 @@ public class RepositoryServiceTest extends CrateDummyClusterServiceUnitTest {
         TransportDeleteRepositoryAction deleteRepositoryAction = new TransportDeleteRepositoryAction(
             Settings.EMPTY,
             mock(TransportService.class, Answers.RETURNS_MOCKS.get()),
-            dummyClusterService,
+            clusterService,
             mock(RepositoriesService.class),
             THREAD_POOL,
             actionFilters,
@@ -103,7 +103,7 @@ public class RepositoryServiceTest extends CrateDummyClusterServiceUnitTest {
         TransportPutRepositoryAction putRepo = new TransportPutRepositoryAction(
             Settings.EMPTY,
             mock(TransportService.class, Answers.RETURNS_MOCKS.get()),
-            dummyClusterService,
+            clusterService,
             mock(RepositoriesService.class),
             THREAD_POOL,
             actionFilters,
@@ -115,7 +115,7 @@ public class RepositoryServiceTest extends CrateDummyClusterServiceUnitTest {
         };
 
         RepositoryService repositoryService = new RepositoryService(
-            dummyClusterService,
+            clusterService,
             deleteRepositoryAction,
             putRepo);
         try {

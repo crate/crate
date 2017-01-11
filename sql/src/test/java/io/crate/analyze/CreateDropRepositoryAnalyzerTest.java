@@ -58,8 +58,8 @@ public class CreateDropRepositoryAnalyzerTest extends CrateDummyClusterServiceUn
             .metaData(MetaData.builder()
                 .putCustom(RepositoriesMetaData.TYPE, repositoriesMetaData))
             .build();
-        ClusterServiceUtils.setState(dummyClusterService, clusterState);
-        e = SQLExecutor.builder(dummyClusterService).build();
+        ClusterServiceUtils.setState(clusterService, clusterState);
+        e = SQLExecutor.builder(clusterService).build();
     }
 
     @Test

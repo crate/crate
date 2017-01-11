@@ -60,7 +60,7 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
 
     @Before
     public void prepare() {
-        e = SQLExecutor.builder(dummyClusterService)
+        e = SQLExecutor.builder(clusterService)
             .addDocTable(TableDefinitions.USER_TABLE_INFO)
             .addDocTable(TableDefinitions.TEST_CLUSTER_BY_STRING_TABLE_INFO)
             .addDocTable(TableDefinitions.PARTED_PKS_TI)
@@ -549,7 +549,7 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
         EvaluatingNormalizer normalizer = EvaluatingNormalizer.functionOnlyNormalizer(e.functions(), ReplaceMode.COPY);
         Planner.Context plannerContext = new Planner.Context(
             e.planner,
-            dummyClusterService,
+            clusterService,
             UUID.randomUUID(),
             null,
             normalizer,

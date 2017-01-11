@@ -42,7 +42,7 @@ public class StatsTablesTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testSettingsChanges() {
-        StatsTables stats = new StatsTables(Settings.EMPTY, dummyClusterService);
+        StatsTables stats = new StatsTables(Settings.EMPTY, clusterService);
 
         assertThat(stats.isEnabled(), is(false));
         assertThat(stats.lastJobsLogSize, is(CrateSettings.STATS_JOBS_LOG_SIZE.defaultValue()));
@@ -54,7 +54,7 @@ public class StatsTablesTest extends CrateDummyClusterServiceUnitTest {
         stats = new StatsTables(Settings.builder()
             .put(CrateSettings.STATS_ENABLED.settingName(), true)
             .put(CrateSettings.STATS_JOBS_LOG_SIZE.settingName(), 100)
-            .put(CrateSettings.STATS_OPERATIONS_LOG_SIZE.settingName(), 100).build(), dummyClusterService);
+            .put(CrateSettings.STATS_OPERATIONS_LOG_SIZE.settingName(), 100).build(), clusterService);
 
         fail("test update required - change to test setterMethods directly?");
         /*
@@ -83,7 +83,7 @@ public class StatsTablesTest extends CrateDummyClusterServiceUnitTest {
     public void testLogsArentWipedOnSizeChange() {
         Settings settings = Settings.builder()
             .put(CrateSettings.STATS_ENABLED.settingName(), true).build();
-        StatsTables stats = new StatsTables(settings, dummyClusterService);
+        StatsTables stats = new StatsTables(settings, clusterService);
 
         stats.jobsLog.get().add(new JobContextLog(new JobContext(UUID.randomUUID(), "select 1", 1L), null));
 
@@ -115,7 +115,7 @@ public class StatsTablesTest extends CrateDummyClusterServiceUnitTest {
     public void testUniqueOperationIdsInOperationsTable() throws Exception {
         Settings settings = Settings.builder()
             .put(CrateSettings.STATS_ENABLED.settingName(), true).build();
-        StatsTables stats = new StatsTables(settings, dummyClusterService);
+        StatsTables stats = new StatsTables(settings, clusterService);
 
         OperationContext ctxA = new OperationContext(0, UUID.randomUUID(), "dummyOperation", 1L);
         stats.operationStarted(ctxA.id, ctxA.jobId, ctxA.name);

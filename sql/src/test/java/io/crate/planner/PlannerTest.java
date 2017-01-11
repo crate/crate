@@ -42,7 +42,7 @@ public class PlannerTest extends CrateDummyClusterServiceUnitTest {
 
     @Before
     public void prepare() {
-        e = SQLExecutor.builder(dummyClusterService).build();
+        e = SQLExecutor.builder(clusterService).build();
         normalizer = EvaluatingNormalizer.functionOnlyNormalizer(e.functions(), ReplaceMode.COPY);
     }
 
@@ -85,7 +85,7 @@ public class PlannerTest extends CrateDummyClusterServiceUnitTest {
             custom, shardRouting("t1")).add("id", DataTypes.INTEGER, null).build();
         Planner.Context plannerContext = new Planner.Context(
             e.planner,
-            dummyClusterService,
+            clusterService,
             UUID.randomUUID(),
             null,
             normalizer,
@@ -126,7 +126,7 @@ public class PlannerTest extends CrateDummyClusterServiceUnitTest {
             TestingTableInfo.builder(custom, shardRoutingForReplicas("t1")).add("id", DataTypes.INTEGER, null).build();
         Planner.Context plannerContext = new Planner.Context(
             e.planner,
-            dummyClusterService,
+            clusterService,
             UUID.randomUUID(),
             null,
             normalizer,
@@ -163,7 +163,7 @@ public class PlannerTest extends CrateDummyClusterServiceUnitTest {
     public void testExecutionPhaseIdSequence() throws Exception {
         Planner.Context plannerContext = new Planner.Context(
             e.planner,
-            dummyClusterService,
+            clusterService,
             UUID.randomUUID(),
             null,
             normalizer,

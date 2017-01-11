@@ -77,7 +77,7 @@ public class DecommissionAllocationDeciderTest extends CrateDummyClusterServiceU
             .put(DecommissioningService.DECOMMISSION_PREFIX + "n1", true).build();
 
         DecommissionAllocationDecider allocationDecider =
-            new DecommissionAllocationDecider(settings, dummyClusterService);
+            new DecommissionAllocationDecider(settings, clusterService);
 
         Decision decision = allocationDecider.canAllocate(primaryShard, n1, routingAllocation);
         assertThat(decision.type(), is(Decision.Type.NO));
@@ -92,7 +92,7 @@ public class DecommissionAllocationDeciderTest extends CrateDummyClusterServiceU
             .put(CrateSettings.GRACEFUL_STOP_MIN_AVAILABILITY.settingName(), "none")
             .put(DecommissioningService.DECOMMISSION_PREFIX + "n1", true).build();
         DecommissionAllocationDecider allocationDecider =
-            new DecommissionAllocationDecider(settings, dummyClusterService);
+            new DecommissionAllocationDecider(settings, clusterService);
 
         Decision decision = allocationDecider.canAllocate(primaryShard, n1, routingAllocation);
         assertThat(decision.type(), is(Decision.Type.YES));
@@ -108,7 +108,7 @@ public class DecommissionAllocationDeciderTest extends CrateDummyClusterServiceU
             .put(DecommissioningService.DECOMMISSION_PREFIX + "n1", true).build();
 
         DecommissionAllocationDecider allocationDecider =
-            new DecommissionAllocationDecider(settings, dummyClusterService);
+            new DecommissionAllocationDecider(settings, clusterService);
 
         Decision decision = allocationDecider.canAllocate(replicaShard, n1, routingAllocation);
         assertThat(decision.type(), is(Decision.Type.NO));
@@ -124,7 +124,7 @@ public class DecommissionAllocationDeciderTest extends CrateDummyClusterServiceU
             .put(DecommissioningService.DECOMMISSION_PREFIX + "n1", true).build();
 
         DecommissionAllocationDecider allocationDecider =
-            new DecommissionAllocationDecider(settings, dummyClusterService);
+            new DecommissionAllocationDecider(settings, clusterService);
 
         Decision decision = allocationDecider.canAllocate(replicaShard, n1, routingAllocation);
         assertThat(decision.type(), is(Decision.Type.NO));

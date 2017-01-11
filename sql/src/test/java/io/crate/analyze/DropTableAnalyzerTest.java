@@ -52,7 +52,7 @@ public class DropTableAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     @Before
     public void prepare() {
-        e = SQLExecutor.builder(dummyClusterService).enableDefaultTables().addDocTable(aliasInfo).build();
+        e = SQLExecutor.builder(clusterService).enableDefaultTables().addDocTable(aliasInfo).build();
     }
 
     @Test

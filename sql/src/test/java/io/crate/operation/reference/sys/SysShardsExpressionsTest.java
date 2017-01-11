@@ -75,12 +75,12 @@ public class SysShardsExpressionsTest extends CrateDummyClusterServiceUnitTest {
         indexShard = mockIndexShard();
         schemas = new Schemas(
             Settings.EMPTY,
-            ImmutableMap.of("sys", new SysSchemaInfo(dummyClusterService)),
-            dummyClusterService,
+            ImmutableMap.of("sys", new SysSchemaInfo(clusterService)),
+            clusterService,
             new DocSchemaInfoFactory(new TestingDocTableInfoFactory(Collections.emptyMap()))
         );
         ShardReferenceResolver shardRefResolver = new ShardReferenceResolver(
-            dummyClusterService,
+            clusterService,
             schemas,
             indexShard
         );

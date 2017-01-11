@@ -35,7 +35,7 @@ public class CreateAnalyzerAnalyzerTest extends CrateDummyClusterServiceUnitTest
 
     @Before
     public void prepare() {
-        e = SQLExecutor.builder(dummyClusterService).enableDefaultTables().build();
+        e = SQLExecutor.builder(clusterService).enableDefaultTables().build();
     }
 
     @Test

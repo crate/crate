@@ -54,7 +54,7 @@ public class TableStatsServiceTest extends CrateDummyClusterServiceUnitTest {
         TableStatsService statsService = new TableStatsService(
             Settings.builder().put(CrateSettings.STATS_SERVICE_REFRESH_INTERVAL.settingName(), 0).build(),
             THREAD_POOL,
-            dummyClusterService,
+            clusterService,
             () -> mock(SQLOperations.class));
 
         assertThat(statsService.lastRefreshInterval,
@@ -65,7 +65,7 @@ public class TableStatsServiceTest extends CrateDummyClusterServiceUnitTest {
         statsService = new TableStatsService(
             Settings.EMPTY,
             THREAD_POOL,
-            dummyClusterService,
+            clusterService,
             () -> mock(SQLOperations.class));
 
         assertThat(statsService.lastRefreshInterval,
@@ -108,7 +108,7 @@ public class TableStatsServiceTest extends CrateDummyClusterServiceUnitTest {
         final TableStatsService statsService = new TableStatsService(
             Settings.EMPTY,
             THREAD_POOL,
-            dummyClusterService,
+            this.clusterService,
             () -> mock(SQLOperations.class));
         ObjectLongMap<TableIdent> stats = statsService.statsFromRows(ImmutableList.of(
             new Object[]{1L, "custom", "foo"},
@@ -128,7 +128,7 @@ public class TableStatsServiceTest extends CrateDummyClusterServiceUnitTest {
         TableStatsService statsService = new TableStatsService(
             Settings.EMPTY,
             THREAD_POOL,
-            dummyClusterService,
+            clusterService,
             () -> sqlOperations);
         statsService.run();
 

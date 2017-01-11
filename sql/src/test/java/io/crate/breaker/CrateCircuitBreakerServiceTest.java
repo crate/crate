@@ -39,9 +39,9 @@ public class CrateCircuitBreakerServiceTest extends CrateDummyClusterServiceUnit
     @Test
     public void testQueryCircuitBreakerRegistration() throws Exception {
         CircuitBreakerService esBreakerService = new HierarchyCircuitBreakerService(
-            Settings.EMPTY, dummyClusterService.getClusterSettings());
+            Settings.EMPTY, clusterService.getClusterSettings());
         CrateCircuitBreakerService breakerService = new CrateCircuitBreakerService(
-            Settings.EMPTY, dummyClusterService.getClusterSettings(), esBreakerService);
+            Settings.EMPTY, clusterService.getClusterSettings(), esBreakerService);
 
         CircuitBreaker breaker = breakerService.getBreaker(CrateCircuitBreakerService.QUERY);
         assertThat(breaker, notNullValue());
@@ -52,9 +52,9 @@ public class CrateCircuitBreakerServiceTest extends CrateDummyClusterServiceUnit
     @Test
     public void testQueryCircuitBreakerDynamicSettings() throws Exception {
         CircuitBreakerService esBreakerService = new HierarchyCircuitBreakerService(
-            Settings.EMPTY, dummyClusterService.getClusterSettings());
+            Settings.EMPTY, clusterService.getClusterSettings());
         CrateCircuitBreakerService breakerService = new CrateCircuitBreakerService(
-            Settings.EMPTY, dummyClusterService.getClusterSettings(), esBreakerService);
+            Settings.EMPTY, clusterService.getClusterSettings(), esBreakerService);
 
         fail("TODO: update test");
         Settings newSettings = Settings.builder()
@@ -78,9 +78,9 @@ public class CrateCircuitBreakerServiceTest extends CrateDummyClusterServiceUnit
     @Test
     public void testStats() throws Exception {
         CircuitBreakerService esBreakerService = new HierarchyCircuitBreakerService(
-            Settings.EMPTY, dummyClusterService.getClusterSettings());
+            Settings.EMPTY, clusterService.getClusterSettings());
         CrateCircuitBreakerService breakerService = new CrateCircuitBreakerService(
-            Settings.EMPTY, dummyClusterService.getClusterSettings(), esBreakerService);
+            Settings.EMPTY, clusterService.getClusterSettings(), esBreakerService);
 
         CircuitBreakerStats[] stats = breakerService.stats().getAllStats();
         assertThat(stats.length, is(5));

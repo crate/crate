@@ -48,7 +48,7 @@ public class JobContextServiceTest extends CrateDummyClusterServiceUnitTest {
 
     @Before
     public void prepare() {
-        jobContextService = new JobContextService(Settings.EMPTY, dummyClusterService, mock(StatsTables.class));
+        jobContextService = new JobContextService(Settings.EMPTY, clusterService, mock(StatsTables.class));
     }
 
     @After

@@ -36,7 +36,7 @@ import java.util.concurrent.TimeUnit;
 public class CrateDummyClusterServiceUnitTest extends CrateUnitTest {
 
     protected static ThreadPool THREAD_POOL;
-    protected ClusterService dummyClusterService;
+    protected ClusterService clusterService;
 
     @BeforeClass
     public static void setupThreadPool() {
@@ -50,11 +50,11 @@ public class CrateDummyClusterServiceUnitTest extends CrateUnitTest {
 
     @Before
     public void setupDummyClusterService() {
-        dummyClusterService = ClusterServiceUtils.createClusterService(THREAD_POOL);
+        clusterService = ClusterServiceUtils.createClusterService(THREAD_POOL);
     }
 
     @After
     public void cleanup() {
-        dummyClusterService.close();
+        clusterService.close();
     }
 }

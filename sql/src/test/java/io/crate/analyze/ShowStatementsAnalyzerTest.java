@@ -35,7 +35,7 @@ public class ShowStatementsAnalyzerTest extends CrateDummyClusterServiceUnitTest
 
     @Before
     public void prepare() {
-        executor = SQLExecutor.builder(dummyClusterService).build();
+        executor = SQLExecutor.builder(clusterService).build();
     }
 
     private SelectAnalyzedStatement analyze(String stmt) {

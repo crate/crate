@@ -74,8 +74,8 @@ public class CreateAlterPartitionedTableAnalyzerTest extends CrateDummyClusterSe
                               )
                         .metaData(metaData)
                         .build();
-        ClusterServiceUtils.setState(dummyClusterService, state);
-        e = SQLExecutor.builder(dummyClusterService).enableDefaultTables().build();
+        ClusterServiceUtils.setState(clusterService, state);
+        e = SQLExecutor.builder(clusterService).enableDefaultTables().build();
     }
 
     @Test

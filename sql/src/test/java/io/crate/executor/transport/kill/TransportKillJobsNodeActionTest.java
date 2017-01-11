@@ -46,7 +46,7 @@ public class TransportKillJobsNodeActionTest extends CrateDummyClusterServiceUni
         TransportKillJobsNodeAction transportKillJobsNodeAction = new TransportKillJobsNodeAction(
             Settings.EMPTY,
             jobContextService,
-            dummyClusterService,
+            clusterService,
             transportService
         );
 

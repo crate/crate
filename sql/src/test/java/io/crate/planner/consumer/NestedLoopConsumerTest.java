@@ -75,7 +75,7 @@ public class NestedLoopConsumerTest extends CrateDummyClusterServiceUnitTest {
     @Before
     public void prepare() {
         TableStatsService statsService = getTableStatsService();
-        e = SQLExecutor.builder(dummyClusterService)
+        e = SQLExecutor.builder(clusterService)
             .enableDefaultTables()
             .setTableStatsService(statsService)
             .addDocTable(emptyRoutingTable)
@@ -84,14 +84,14 @@ public class NestedLoopConsumerTest extends CrateDummyClusterServiceUnitTest {
         EvaluatingNormalizer normalizer = EvaluatingNormalizer.functionOnlyNormalizer(functions, ReplaceMode.COPY);
         plannerContext = new Planner.Context(
             e.planner,
-            dummyClusterService,
+            clusterService,
             UUID.randomUUID(),
-            new ConsumingPlanner(dummyClusterService, functions, statsService),
+            new ConsumingPlanner(clusterService, functions, statsService),
             normalizer,
             new TransactionContext(SessionContext.SYSTEM_SESSION),
             0,
             0);
-        consumer = new NestedLoopConsumer(dummyClusterService, functions, statsService);
+        consumer = new NestedLoopConsumer(clusterService, functions, statsService);
     }
 
     private TableStatsService getTableStatsService() {
