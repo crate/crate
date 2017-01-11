@@ -47,11 +47,11 @@ import org.elasticsearch.common.compress.CompressedXContent;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentFactory;
+import org.elasticsearch.index.IndexSettings;
 import org.elasticsearch.index.cache.IndexCache;
 import org.elasticsearch.index.fielddata.IndexFieldData;
 import org.elasticsearch.index.fielddata.IndexFieldDataService;
 import org.elasticsearch.index.fielddata.IndexGeoPointFieldData;
-import org.elasticsearch.index.mapper.MappedFieldType;
 import org.elasticsearch.index.mapper.MapperService;
 import org.elasticsearch.search.internal.SearchContext;
 import org.junit.Before;
@@ -63,7 +63,7 @@ import org.mockito.Answers;
 import java.util.Arrays;
 import java.util.Map;
 
-import static org.elasticsearch.index.mapper.core.MapperTestUtils.newMapperService;
+import static org.elasticsearch.index.MapperTestUtils.newMapperService;
 import static org.hamcrest.Matchers.*;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -92,7 +92,7 @@ public class LuceneQueryBuilderTest extends CrateUnitTest {
             .add("point", DataTypes.GEO_POINT)
             .build();
         TableRelation usersTr = new TableRelation(users);
-        sources = ImmutableMap.<QualifiedName, AnalyzedRelation>of(new QualifiedName("users"), usersTr);
+        sources = ImmutableMap.of(new QualifiedName("users"), usersTr);
 
         expressions = new SqlExpressions(sources, usersTr);
         builder = new LuceneQueryBuilder(expressions.getInstance(Functions.class));
@@ -103,7 +103,11 @@ public class LuceneQueryBuilderTest extends CrateUnitTest {
         Settings indexSettings = Settings.builder()
             .put(IndexMetaData.SETTING_VERSION_CREATED, Version.CURRENT)
             .build();
-        when(indexCache.indexSettings()).thenReturn(indexSettings);
+        IndexMetaData indexMetaData = IndexMetaData.builder("users")
+            .settings(indexSettings)
+            .build();
+        IndexSettings idxSettings = new IndexSettings(indexMetaData, Settings.EMPTY);
+        when(indexCache.getIndexSettings()).thenReturn(idxSettings);
         MapperService mapperService = newMapperService(temporaryFolder.newFolder().toPath(), indexSettings);
 
         XContentBuilder xContentBuilder = XContentFactory.jsonBuilder().startObject().startObject("default")
@@ -119,8 +123,9 @@ public class LuceneQueryBuilderTest extends CrateUnitTest {
         IndexFieldDataService indexFieldDataService = mock(IndexFieldDataService.class);
         when(searchContext.fieldData()).thenReturn(indexFieldDataService);
         IndexFieldData geoFieldData = mock(IndexGeoPointFieldData.class);
-        when(geoFieldData.getFieldNames()).thenReturn(new MappedFieldType.Names("point"));
-        when(indexFieldDataService.getForField(mapperService.smartNameFieldType("point"))).thenReturn(geoFieldData);
+
+        when(geoFieldData.getFieldName()).thenReturn("point");
+        when(indexFieldDataService.getForField(mapperService.fullName("point"))).thenReturn(geoFieldData);
     }
 
     private WhereClause asWhereClause(String expression) {
@@ -173,7 +178,7 @@ public class LuceneQueryBuilderTest extends CrateUnitTest {
     @Test
     public void testLteQuery() throws Exception {
         Query query = convert("x <= 10");
-        assertThat(query, instanceOf(NumericRangeQuery.class));
+        assertThat(query, instanceOf(LegacyNumericRangeQuery.class));
         assertThat(query.toString(), is("x:{* TO 10]"));
     }
 
@@ -208,7 +213,7 @@ public class LuceneQueryBuilderTest extends CrateUnitTest {
     @Test
     public void testGteQuery() throws Exception {
         Query query = convert("x >= 10");
-        assertThat(query, instanceOf(NumericRangeQuery.class));
+        assertThat(query, instanceOf(LegacyNumericRangeQuery.class));
         assertThat(query.toString(), is("x:[10 TO *}"));
     }
 

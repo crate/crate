@@ -27,69 +27,74 @@ import io.crate.metadata.doc.DocSysColumns
 import io.crate.planner.node.dql.Collect
 import io.crate.planner.node.dql.FileUriCollectPhase
 import io.crate.planner.projection.SourceIndexWriterProjection
-import io.crate.test.integration.CrateUnitTest
+import io.crate.test.integration.CrateDummyClusterServiceUnitTest
 import io.crate.testing.SQLExecutor
 import io.crate.testing.T3
 import org.apache.lucene.util.BytesRef
-import org.elasticsearch.test.cluster.NoopClusterService
+import org.junit.Before
 import org.junit.Test
 
-class CopyFromPlannerTest extends CrateUnitTest {
+class CopyFromPlannerTest extends CrateDummyClusterServiceUnitTest {
 
-    SQLExecutor e = SQLExecutor.builder(new NoopClusterService()).enableDefaultTables().build();
+    private SQLExecutor e
 
-    @Test
-    public void testCopyFromPlan() throws Exception {
-        Collect plan =  e.plan("copy users from '/path/to/file.extension'");
-        assert plan.collectPhase() instanceof FileUriCollectPhase;
-
-        FileUriCollectPhase collectPhase = (FileUriCollectPhase)plan.collectPhase();
-        assert ((Literal) collectPhase.targetUri()).value() == new BytesRef("/path/to/file.extension");
+    @Before
+    void prepare() {
+        e = SQLExecutor.builder(clusterService).enableDefaultTables().build()
     }
 
     @Test
-    public void testCopyFromNumReadersSetting() throws Exception {
-        Collect plan = e.plan("copy users from '/path/to/file.extension' with (num_readers=1)");
+    void testCopyFromPlan() throws Exception {
+        Collect plan =  e.plan("copy users from '/path/to/file.extension'")
         assert plan.collectPhase() instanceof FileUriCollectPhase
-        FileUriCollectPhase collectPhase = (FileUriCollectPhase) plan.collectPhase();
+
+        FileUriCollectPhase collectPhase = (FileUriCollectPhase)plan.collectPhase()
+        assert ((Literal) collectPhase.targetUri()).value() == new BytesRef("/path/to/file.extension")
+    }
+
+    @Test
+    void testCopyFromNumReadersSetting() throws Exception {
+        Collect plan = e.plan("copy users from '/path/to/file.extension' with (num_readers=1)")
+        assert plan.collectPhase() instanceof FileUriCollectPhase
+        FileUriCollectPhase collectPhase = (FileUriCollectPhase) plan.collectPhase()
         assert collectPhase.nodeIds().size() == 1
     }
 
     @Test
-    public void testCopyFromPlanWithParameters() throws Exception {
+    void testCopyFromPlanWithParameters() throws Exception {
         Collect collect = e.plan("copy users " +
-                "from '/path/to/file.ext' with (bulk_size=30, compression='gzip', shared=true)");
+                "from '/path/to/file.ext' with (bulk_size=30, compression='gzip', shared=true)")
         assert collect.collectPhase() instanceof FileUriCollectPhase
-        FileUriCollectPhase collectPhase = (FileUriCollectPhase)collect.collectPhase();
-        SourceIndexWriterProjection indexWriterProjection = (SourceIndexWriterProjection) collectPhase.projections().get(0);
+        FileUriCollectPhase collectPhase = (FileUriCollectPhase)collect.collectPhase()
+        SourceIndexWriterProjection indexWriterProjection = (SourceIndexWriterProjection) collectPhase.projections().get(0)
         assert indexWriterProjection.bulkActions() == 30
         assert collectPhase.compression() == "gzip"
         assert collectPhase.sharedStorage()
 
         // verify defaults:
-        collect = e.plan("copy users from '/path/to/file.ext'");
-        collectPhase = (FileUriCollectPhase)collect.collectPhase();
-        assert collectPhase.compression() == null;
-        assert collectPhase.sharedStorage() == null;
+        collect = e.plan("copy users from '/path/to/file.ext'")
+        collectPhase = (FileUriCollectPhase)collect.collectPhase()
+        assert collectPhase.compression() == null
+        assert collectPhase.sharedStorage() == null
     }
 
     @Test
-    public void test_IdIsNotCollectedOrUsedAsClusteredBy() throws Exception {
-        Collect collect = (Collect) e.plan("copy t1 from '/path/file.ext'");
+    void test_IdIsNotCollectedOrUsedAsClusteredBy() throws Exception {
+        Collect collect = (Collect) e.plan("copy t1 from '/path/file.ext'")
         SourceIndexWriterProjection projection =
-                (SourceIndexWriterProjection) collect.collectPhase().projections().get(0);
-        assert projection.clusteredBy() == null;
+                (SourceIndexWriterProjection) collect.collectPhase().projections().get(0)
+        assert projection.clusteredBy() == null
         assert collect.collectPhase().toCollect() == [T3.T1_INFO.getReference(DocSysColumns.RAW)]
     }
 
     @Test (expected = IllegalArgumentException.class)
-    public void testCopyFromPlanWithInvalidParameters() throws Exception {
-        e.plan("copy users from '/path/to/file.ext' with (bulk_size=-28)");
+    void testCopyFromPlanWithInvalidParameters() throws Exception {
+        e.plan("copy users from '/path/to/file.ext' with (bulk_size=-28)")
     }
 
     @Test
-    public void testNodeFiltersNoMatch() throws Exception {
-        Collect cm = (Collect) e.plan("copy users from '/path' with (node_filters={name='foobar'})");
+    void testNodeFiltersNoMatch() throws Exception {
+        Collect cm = (Collect) e.plan("copy users from '/path' with (node_filters={name='foobar'})")
         assert cm.collectPhase().nodeIds() == []
     }
 }

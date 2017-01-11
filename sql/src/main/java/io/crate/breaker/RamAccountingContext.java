@@ -22,9 +22,9 @@
 package io.crate.breaker;
 
 import io.crate.planner.node.ExecutionPhase;
+import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.breaker.CircuitBreaker;
 import org.elasticsearch.common.breaker.CircuitBreakingException;
-import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 
 import java.util.Locale;
@@ -43,7 +43,7 @@ public class RamAccountingContext {
     private volatile boolean closed = false;
     private volatile boolean tripped = false;
 
-    private static final ESLogger logger = Loggers.getLogger(RamAccountingContext.class);
+    private static final Logger logger = Loggers.getLogger(RamAccountingContext.class);
 
     public static RamAccountingContext forExecutionPhase(CircuitBreaker breaker, ExecutionPhase executionPhase) {
         String ramAccountingContextId = String.format(Locale.ENGLISH, "%s: %d",

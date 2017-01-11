@@ -155,12 +155,12 @@ public class MultiMatchQueryBuilder extends MatchQueryBuilder {
             List<Tuple<String, Float>> missing = new ArrayList<>();
             for (Map.Entry<String, Object> entry : fieldNames.entrySet()) {
                 String name = entry.getKey();
-                MappedFieldType fieldType = mapperService.smartNameFieldType(name);
+                MappedFieldType fieldType = mapperService.fullName(name);
                 if (fieldType != null) {
                     Analyzer actualAnalyzer = getAnalyzer(fieldType);
-                    name = fieldType.names().indexName();
+                    name = fieldType.name();
                     if (!groups.containsKey(actualAnalyzer)) {
-                        groups.put(actualAnalyzer, new ArrayList<FieldAndFieldType>());
+                        groups.put(actualAnalyzer, new ArrayList<>());
                     }
                     Float boost = floatOrNull(entry.getValue());
                     boost = boost == null ? Float.valueOf(1.0f) : boost;
@@ -237,7 +237,7 @@ public class MultiMatchQueryBuilder extends MatchQueryBuilder {
 
         private Term newTerm(String value) {
             try {
-                final BytesRef bytesRef = fieldType.indexedValueForSearch(value);
+                final BytesRef bytesRef = (BytesRef) fieldType.valueForSearch(value);
                 return new Term(field, bytesRef);
             } catch (Exception ex) {
                 // we can't parse it just use the incoming value -- it will

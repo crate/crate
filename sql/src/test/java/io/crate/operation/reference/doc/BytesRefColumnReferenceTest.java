@@ -30,8 +30,6 @@ import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.MatchAllDocsQuery;
 import org.apache.lucene.search.ScoreDoc;
 import org.apache.lucene.search.TopDocs;
-import org.elasticsearch.index.fielddata.FieldDataType;
-import org.elasticsearch.index.mapper.MappedFieldType;
 import org.junit.Test;
 
 import static org.hamcrest.core.Is.is;
@@ -45,24 +43,19 @@ public class BytesRefColumnReferenceTest extends DocLevelExpressionsTest {
             builder.append(i);
             Document doc = new Document();
             doc.add(new StringField("_id", Integer.toString(i), Field.Store.NO));
-            doc.add(new StringField(fieldName().indexName(), builder.toString(), Field.Store.NO));
+            doc.add(new StringField(fieldName(), builder.toString(), Field.Store.NO));
             writer.addDocument(doc);
         }
     }
 
     @Override
-    protected MappedFieldType.Names fieldName() {
-        return new MappedFieldType.Names("br");
-    }
-
-    @Override
-    protected FieldDataType fieldType() {
-        return new FieldDataType("string");
+    protected String fieldName() {
+        return "br";
     }
 
     @Test
     public void testFieldCacheExpression() throws Exception {
-        BytesRefColumnReference bytesRefColumn = new BytesRefColumnReference(fieldName().indexName());
+        BytesRefColumnReference bytesRefColumn = new BytesRefColumnReference(fieldName());
         bytesRefColumn.startCollect(ctx);
         bytesRefColumn.setNextReader(readerContext);
         IndexSearcher searcher = new IndexSearcher(readerContext.reader());

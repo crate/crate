@@ -21,9 +21,8 @@
 
 package io.crate.executor.transport;
 
-import io.crate.test.integration.CrateUnitTest;
+import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.test.cluster.NoopClusterService;
 import org.elasticsearch.transport.TransportRequest;
 import org.elasticsearch.transport.TransportResponseHandler;
 import org.elasticsearch.transport.TransportService;
@@ -32,15 +31,15 @@ import org.junit.Test;
 import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.*;
 
-public class TransportsTest extends CrateUnitTest {
+public class TransportsTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testOnFailureOnListenerIsCalledIfNodeIsNotInClusterState() throws Exception {
-        Transports transports = new Transports(new NoopClusterService(), mock(TransportService.class));
+        Transports transports = new Transports(clusterService, mock(TransportService.class));
         ActionListener actionListener = mock(ActionListener.class);
         transports.sendRequest("actionName",
             "invalid", mock(TransportRequest.class), actionListener, mock(TransportResponseHandler.class));
 
-        verify(actionListener, times(1)).onFailure(any(Throwable.class));
+        verify(actionListener, times(1)).onFailure(any(Exception.class));
     }
 }

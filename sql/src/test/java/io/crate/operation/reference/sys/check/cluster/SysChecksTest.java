@@ -31,7 +31,7 @@ import io.crate.metadata.table.SchemaInfo;
 import io.crate.operation.reference.sys.check.SysCheck.Severity;
 import io.crate.test.integration.CrateUnitTest;
 import org.apache.lucene.util.BytesRef;
-import org.elasticsearch.cluster.ClusterService;
+import org.elasticsearch.cluster.service.ClusterService;
 import org.junit.Test;
 
 import java.util.ArrayList;

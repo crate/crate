@@ -22,7 +22,7 @@ package io.crate.metadata;
 
 import com.google.common.base.Function;
 import com.google.common.collect.Iterators;
-import org.elasticsearch.common.logging.ESLogger;
+import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.Settings;
 
@@ -36,7 +36,7 @@ import static io.crate.metadata.FulltextAnalyzerResolver.CustomType;
 
 public class RoutineInfos implements Iterable<RoutineInfo> {
 
-    private static final ESLogger logger = Loggers.getLogger(RoutineInfos.class);
+    private static final Logger logger = Loggers.getLogger(RoutineInfos.class);
     private FulltextAnalyzerResolver ftResolver;
 
     private enum RoutineType {

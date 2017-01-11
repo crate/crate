@@ -24,43 +24,37 @@ package io.crate.operation.reference.doc;
 import io.crate.operation.reference.doc.lucene.LongColumnReference;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field;
-import org.apache.lucene.document.LongField;
+import org.apache.lucene.document.LegacyLongField;
 import org.apache.lucene.document.StringField;
 import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.MatchAllDocsQuery;
 import org.apache.lucene.search.ScoreDoc;
 import org.apache.lucene.search.TopDocs;
-import org.elasticsearch.index.fielddata.FieldDataType;
-import org.elasticsearch.index.mapper.MappedFieldType;
 import org.junit.Test;
 
 import static org.hamcrest.core.Is.is;
 
 public class LongColumnReferenceTest extends DocLevelExpressionsTest {
+
     @Override
     protected void insertValues(IndexWriter writer) throws Exception {
         for (long l = Long.MIN_VALUE; l < Long.MIN_VALUE + 10; l++) {
             Document doc = new Document();
             doc.add(new StringField("_id", Long.toString(l), Field.Store.NO));
-            doc.add(new LongField(fieldName().indexName(), l, Field.Store.NO));
+            doc.add(new LegacyLongField(fieldName(), l, Field.Store.NO));
             writer.addDocument(doc);
         }
     }
 
     @Override
-    protected MappedFieldType.Names fieldName() {
-        return new MappedFieldType.Names("l");
-    }
-
-    @Override
-    protected FieldDataType fieldType() {
-        return new FieldDataType("long");
+    protected String fieldName() {
+        return "l";
     }
 
     @Test
     public void testFieldCacheExpression() throws Exception {
-        LongColumnReference longColumn = new LongColumnReference(fieldName().indexName());
+        LongColumnReference longColumn = new LongColumnReference(fieldName());
         longColumn.startCollect(ctx);
         longColumn.setNextReader(readerContext);
         IndexSearcher searcher = new IndexSearcher(readerContext.reader());

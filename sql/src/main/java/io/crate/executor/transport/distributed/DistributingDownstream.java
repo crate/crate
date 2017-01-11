@@ -26,8 +26,8 @@ import io.crate.Streamer;
 import io.crate.core.collections.Bucket;
 import io.crate.core.collections.Row;
 import io.crate.operation.projectors.*;
+import org.apache.logging.log4j.Logger;
 import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 
 import java.util.Collection;
@@ -81,7 +81,7 @@ import java.util.concurrent.atomic.AtomicReference;
  */
 public class DistributingDownstream implements RowReceiver {
 
-    private final ESLogger logger;
+    private final Logger logger;
     final MultiBucketBuilder multiBucketBuilder;
     private final UUID jobId;
     private final int targetPhaseId;
@@ -102,7 +102,7 @@ public class DistributingDownstream implements RowReceiver {
     private final AtomicReference<Throwable> failure = new AtomicReference<>(null);
 
 
-    public DistributingDownstream(ESLogger logger,
+    public DistributingDownstream(Logger logger,
                                   UUID jobId,
                                   MultiBucketBuilder multiBucketBuilder,
                                   int targetPhaseId,
@@ -297,7 +297,7 @@ public class DistributingDownstream implements RowReceiver {
         }
 
         @Override
-        public void onFailure(Throwable e) {
+        public void onFailure(Exception e) {
             stop = true;
             isFinished = true;
             inFlightRequests.decrementAndGet();
@@ -307,14 +307,14 @@ public class DistributingDownstream implements RowReceiver {
 
     private static final ActionListener<DistributedResultResponse> NO_OP_ACTION_LISTENER = new ActionListener<DistributedResultResponse>() {
 
-        private final ESLogger LOGGER = Loggers.getLogger(DistributingDownstream.class);
+        private final Logger LOGGER = Loggers.getLogger(DistributingDownstream.class);
 
         @Override
         public void onResponse(DistributedResultResponse distributedResultResponse) {
         }
 
         @Override
-        public void onFailure(Throwable e) {
+        public void onFailure(Exception e) {
             LOGGER.trace("Received failure from downstream", e);
         }
     };

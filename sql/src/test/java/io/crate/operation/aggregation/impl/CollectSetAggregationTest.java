@@ -30,7 +30,6 @@ import io.crate.types.DataTypes;
 import io.crate.types.SetType;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
-import org.elasticsearch.common.io.stream.StreamInput;
 import org.junit.Test;
 
 import java.util.Set;
@@ -68,7 +67,7 @@ public class CollectSetAggregationTest extends AggregationTest {
         BytesStreamOutput streamOutput = new BytesStreamOutput();
         impl.partialType().streamer().writeValueTo(streamOutput, state);
 
-        Object newState = impl.partialType().streamer().readValueFrom(StreamInput.wrap(streamOutput.bytes()));
+        Object newState = impl.partialType().streamer().readValueFrom(streamOutput.bytes().streamInput());
         assertEquals(state, newState);
     }
 

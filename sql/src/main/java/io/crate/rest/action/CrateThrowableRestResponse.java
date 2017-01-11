@@ -51,7 +51,7 @@ class CrateThrowableRestResponse extends RestResponse {
         } else {
             XContentBuilder builder = convert(channel, t);
             this.content = builder.bytes();
-            this.contentType = builder.contentType().restContentType();
+            this.contentType = builder.contentType().mediaType();
         }
     }
 

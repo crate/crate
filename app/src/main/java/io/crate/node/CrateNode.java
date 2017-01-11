@@ -25,11 +25,8 @@ package io.crate.node;
 import com.google.common.collect.ImmutableList;
 import io.crate.plugin.*;
 import io.crate.udc.plugin.UDCPlugin;
-import org.elasticsearch.Version;
 import org.elasticsearch.env.Environment;
 import org.elasticsearch.node.Node;
-import org.elasticsearch.plugin.cloud.aws.CloudAwsPlugin;
-import org.elasticsearch.plugin.discovery.multicast.MulticastDiscoveryPlugin;
 import org.elasticsearch.plugins.Plugin;
 
 import java.util.Collection;
@@ -40,13 +37,15 @@ public class CrateNode extends Node {
         PluginLoaderPlugin.class,
         CrateCorePlugin.class,
         BlobPlugin.class,
-        MulticastDiscoveryPlugin.class,
+        // FIXME: MulticastDiscoveryPlugin is gone at ES
+        //MulticastDiscoveryPlugin.class,
         SrvPlugin.class,
         UDCPlugin.class,
-        CloudAwsPlugin.class,
+        // FIXME: cloud-aws plugin is split into discovery-ec2 and repository-s3
+        //CloudAwsPlugin.class,
         AdminUIPlugin.class);
 
     public CrateNode(Environment environment) {
-        super(environment, Version.CURRENT, CLASSPATH_PLUGINS);
+        super(environment, CLASSPATH_PLUGINS);
     }
 }
