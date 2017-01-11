@@ -35,7 +35,7 @@ public class TransportsTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testOnFailureOnListenerIsCalledIfNodeIsNotInClusterState() throws Exception {
-        Transports transports = new Transports(dummyClusterService, mock(TransportService.class));
+        Transports transports = new Transports(clusterService, mock(TransportService.class));
         ActionListener actionListener = mock(ActionListener.class);
         transports.sendRequest("actionName",
             "invalid", mock(TransportRequest.class), actionListener, mock(TransportResponseHandler.class));

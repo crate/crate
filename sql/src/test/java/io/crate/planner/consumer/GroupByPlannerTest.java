@@ -72,10 +72,10 @@ public class GroupByPlannerTest extends CrateDummyClusterServiceUnitTest {
                                              .localNodeId("noop_id")
                               )
                         .build();
-        ClusterServiceUtils.setState(dummyClusterService, state);
+        ClusterServiceUtils.setState(clusterService, state);
 
         e  = SQLExecutor.builder(
-            dummyClusterService)
+            clusterService)
             .enableDefaultTables()
             .addDocTable(TableDefinitions.CLUSTERED_PARTED)
             .addDocTable(TestingTableInfo.builder(

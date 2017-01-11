@@ -50,12 +50,12 @@ public class DecommissioningServiceTest extends CrateDummyClusterServiceUnitTest
 
     @Before
     public void init() throws Exception {
-        statsTables = new StatsTables(Settings.EMPTY, dummyClusterService);
+        statsTables = new StatsTables(Settings.EMPTY, clusterService);
         threadPool = mock(ThreadPool.class, Answers.RETURNS_MOCKS.get());
         sqlOperations = mock(SQLOperations.class, Answers.RETURNS_MOCKS.get());
         decommissioningService = new TestableDecommissioningService(
             Settings.EMPTY,
-            dummyClusterService,
+            clusterService,
             statsTables,
             threadPool,
             sqlOperations,

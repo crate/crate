@@ -55,14 +55,14 @@ public class ConnectionContextTest extends CrateDummyClusterServiceUnitTest {
 
     @Before
     public void prepare() {
-        e = SQLExecutor.builder(dummyClusterService).build();
+        e = SQLExecutor.builder(clusterService).build();
         sqlOperations = new SQLOperations(
             e.analyzer,
             e.planner,
             () -> mock(Executor.class),
-            new StatsTables(Settings.EMPTY, dummyClusterService),
+            new StatsTables(Settings.EMPTY, clusterService),
             Settings.EMPTY,
-            dummyClusterService
+            clusterService
         ) {
             @Override
             public Session createSession(@Nullable String defaultSchema, Set<Option> options, int defaultLimit) {

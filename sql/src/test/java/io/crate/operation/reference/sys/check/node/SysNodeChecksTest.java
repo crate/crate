@@ -45,7 +45,7 @@ public class SysNodeChecksTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testRecoveryExpectedNodesCheckWithDefaultSetting() {
         RecoveryExpectedNodesSysCheck recoveryExpectedNodesCheck =
-            new RecoveryExpectedNodesSysCheck(dummyClusterService, Settings.EMPTY);
+            new RecoveryExpectedNodesSysCheck(clusterService, Settings.EMPTY);
 
         assertThat(recoveryExpectedNodesCheck.id(), is(1));
         assertThat(recoveryExpectedNodesCheck.nodeId().utf8ToString(), is("noop_id"));
@@ -57,7 +57,7 @@ public class SysNodeChecksTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testRecoveryExpectedNodesCheckWithLessThanQuorum() {
         RecoveryExpectedNodesSysCheck recoveryExpectedNodesCheck =
-            new RecoveryExpectedNodesSysCheck(dummyClusterService, Settings.EMPTY);
+            new RecoveryExpectedNodesSysCheck(clusterService, Settings.EMPTY);
 
         assertThat(recoveryExpectedNodesCheck.id(), is(1));
         assertThat(recoveryExpectedNodesCheck.nodeId().utf8ToString(), is("noop_id"));
@@ -68,7 +68,7 @@ public class SysNodeChecksTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testRecoveryExpectedNodesCheckWithCorrectSetting() {
         RecoveryExpectedNodesSysCheck recoveryExpectedNodesCheck =
-            new RecoveryExpectedNodesSysCheck(dummyClusterService, Settings.EMPTY);
+            new RecoveryExpectedNodesSysCheck(clusterService, Settings.EMPTY);
 
         assertThat(recoveryExpectedNodesCheck.id(), is(1));
         assertThat(recoveryExpectedNodesCheck.nodeId().utf8ToString(), is("noop_id"));
@@ -79,7 +79,7 @@ public class SysNodeChecksTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testRecoveryExpectedNodesCheckWithBiggerThanNumberOfNodes() {
         RecoveryExpectedNodesSysCheck recoveryExpectedNodesCheck =
-            new RecoveryExpectedNodesSysCheck(dummyClusterService, Settings.EMPTY);
+            new RecoveryExpectedNodesSysCheck(clusterService, Settings.EMPTY);
 
         assertThat(recoveryExpectedNodesCheck.id(), is(1));
         assertThat(recoveryExpectedNodesCheck.nodeId().utf8ToString(), is("noop_id"));
@@ -90,7 +90,7 @@ public class SysNodeChecksTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testRecoveryAfterNodesCheckWithDefaultSetting() {
         RecoveryAfterNodesSysCheck recoveryAfterNodesCheck =
-            new RecoveryAfterNodesSysCheck(dummyClusterService, Settings.EMPTY);
+            new RecoveryAfterNodesSysCheck(clusterService, Settings.EMPTY);
 
         assertThat(recoveryAfterNodesCheck.id(), is(2));
         assertThat(recoveryAfterNodesCheck.nodeId().utf8ToString(), is("noop_id"));
@@ -136,7 +136,7 @@ public class SysNodeChecksTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testRecoveryAfterTimeCheckWithCorrectSetting() {
         RecoveryAfterTimeSysCheck recoveryAfterNodesCheck =
-            new RecoveryAfterTimeSysCheck(dummyClusterService, Settings.EMPTY);
+            new RecoveryAfterTimeSysCheck(clusterService, Settings.EMPTY);
 
         assertThat(recoveryAfterNodesCheck.id(), is(3));
         assertThat(recoveryAfterNodesCheck.nodeId().utf8ToString(), is("noop_id"));
@@ -147,7 +147,7 @@ public class SysNodeChecksTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testRecoveryAfterTimeCheckWithDefaultSetting() {
         RecoveryAfterTimeSysCheck recoveryAfterNodesCheck =
-            new RecoveryAfterTimeSysCheck(dummyClusterService, Settings.EMPTY);
+            new RecoveryAfterTimeSysCheck(clusterService, Settings.EMPTY);
 
         assertThat(recoveryAfterNodesCheck.id(), is(3));
         assertThat(recoveryAfterNodesCheck.nodeId().utf8ToString(), is("noop_id"));
@@ -162,7 +162,7 @@ public class SysNodeChecksTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testRecoveryAfterTimeCheckWithWrongSetting() {
         RecoveryAfterTimeSysCheck recoveryAfterNodesCheck =
-            new RecoveryAfterTimeSysCheck(dummyClusterService, Settings.EMPTY);
+            new RecoveryAfterTimeSysCheck(clusterService, Settings.EMPTY);
 
         assertThat(recoveryAfterNodesCheck.id(), is(3));
         assertThat(recoveryAfterNodesCheck.nodeId().utf8ToString(), is("noop_id"));
@@ -175,7 +175,7 @@ public class SysNodeChecksTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testValidationDiskWatermarkCheckInBytes() {
         DiskWatermarkNodesSysCheck highDiskWatermarkNodesSysCheck = new HighDiskWatermarkNodesSysCheck(
-            dummyClusterService,
+            clusterService,
             Settings.EMPTY,
             mock(MonitorService.class));
 
@@ -203,7 +203,7 @@ public class SysNodeChecksTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testValidationDiskWatermarkCheckInPercents() {
         DiskWatermarkNodesSysCheck lowDiskWatermarkNodesSysCheck = new LowDiskWatermarkNodesSysCheck(
-            dummyClusterService,
+            clusterService,
             Settings.EMPTY,
             mock(MonitorService.class));
 

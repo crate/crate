@@ -90,9 +90,9 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
             .build();
         DocTableInfoFactory fooTableFactory = new TestingDocTableInfoFactory(
             ImmutableMap.of(fooUserTableInfo.ident(), fooUserTableInfo));
-        sqlExecutor = SQLExecutor.builder(dummyClusterService)
+        sqlExecutor = SQLExecutor.builder(clusterService)
             .enableDefaultTables()
-            .addSchema(new DocSchemaInfo("foo", dummyClusterService, fooTableFactory))
+            .addSchema(new DocSchemaInfo("foo", clusterService, fooTableFactory))
             .build();
     }
 

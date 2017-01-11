@@ -37,7 +37,7 @@ public class KillAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     @Before
     public void prepare() {
-        e = SQLExecutor.builder(dummyClusterService).build();
+        e = SQLExecutor.builder(clusterService).build();
     }
 
     @Test

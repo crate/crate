@@ -50,7 +50,7 @@ public class ManyTableConsumerTest extends CrateDummyClusterServiceUnitTest {
 
     @Before
     public void prepare() {
-        e = SQLExecutor.builder(dummyClusterService).enableDefaultTables().build();
+        e = SQLExecutor.builder(clusterService).enableDefaultTables().build();
     }
 
     private MultiSourceSelect analyze(String statement) {

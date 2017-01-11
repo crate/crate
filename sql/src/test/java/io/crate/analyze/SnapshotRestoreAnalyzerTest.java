@@ -56,8 +56,8 @@ public class SnapshotRestoreAnalyzerTest extends CrateDummyClusterServiceUnitTes
             .metaData(MetaData.builder()
                 .putCustom(RepositoriesMetaData.TYPE, repositoriesMetaData))
             .build();
-        ClusterServiceUtils.setState(dummyClusterService, clusterState);
-        executor = SQLExecutor.builder(dummyClusterService)
+        ClusterServiceUtils.setState(clusterService, clusterState);
+        executor = SQLExecutor.builder(clusterService)
             .addDocTable(USER_TABLE_INFO)
             .addDocTable(TEST_DOC_LOCATIONS_TABLE_INFO)
             .addDocTable(TEST_PARTITIONED_TABLE_INFO)

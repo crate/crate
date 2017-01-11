@@ -49,7 +49,7 @@ public class CopyToPlannerTest extends CrateDummyClusterServiceUnitTest {
 
     @Before
     public void prepare() {
-        e = SQLExecutor.builder(dummyClusterService)
+        e = SQLExecutor.builder(clusterService)
             .addDocTable(TableDefinitions.USER_TABLE_INFO)
             .addDocTable(
                 new TestingTableInfo.Builder(new TableIdent("doc", "parted_generated"), shardRouting("parted_generated"))

@@ -880,14 +880,14 @@ public class DocIndexMetaDataTest extends CrateDummyClusterServiceUnitTest {
             new IndexNameExpressionResolver(Settings.EMPTY),
             indexTemplateActionProvider
         );
-        DocSchemaInfo docSchemaInfo = new DocSchemaInfo(Schemas.DEFAULT_SCHEMA_NAME, dummyClusterService, docTableInfoFactory);
+        DocSchemaInfo docSchemaInfo = new DocSchemaInfo(Schemas.DEFAULT_SCHEMA_NAME, clusterService, docTableInfoFactory);
         CreateTableStatementAnalyzer analyzer = new CreateTableStatementAnalyzer(
             new Schemas(
                 Settings.EMPTY,
                 ImmutableMap.of("doc", docSchemaInfo),
-                dummyClusterService,
+                clusterService,
                 new DocSchemaInfoFactory(docTableInfoFactory)),
-            new FulltextAnalyzerResolver(dummyClusterService,
+            new FulltextAnalyzerResolver(clusterService,
                 new AnalysisRegistry(
                     new Environment(Settings.builder()
                         .put(Environment.PATH_HOME_SETTING.getKey(), createTempDir().toString())
@@ -899,7 +899,7 @@ public class DocIndexMetaDataTest extends CrateDummyClusterServiceUnitTest {
                 )
             ),
             functions,
-            new NumberOfShards(dummyClusterService)
+            new NumberOfShards(clusterService)
         );
 
         Analysis analysis = new Analysis(SessionContext.SYSTEM_SESSION, ParameterContext.EMPTY, ParamTypeHints.EMPTY);

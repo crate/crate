@@ -34,7 +34,7 @@ public class ClusterSettingsExpressionTest extends CrateDummyClusterServiceUnitT
     @Test
     public void testSettingsAreAppliedImmediately() throws Exception {
         ClusterSettingsExpression clusterSettingsExpression = new ClusterSettingsExpression(
-            Settings.builder().put("bulk.request_timeout", "20s").build(), dummyClusterService);
+            Settings.builder().put("bulk.request_timeout", "20s").build(), clusterService);
 
         assertThat(((BytesRef) clusterSettingsExpression
                 .getChildImplementation("bulk")

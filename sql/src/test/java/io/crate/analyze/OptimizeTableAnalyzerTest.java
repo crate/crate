@@ -42,8 +42,8 @@ public class OptimizeTableAnalyzerTest extends CrateDummyClusterServiceUnitTest 
     @Before
     public void prepare() {
         TableIdent myBlobsIdent = new TableIdent(BlobSchemaInfo.NAME, "blobs");
-        TestingBlobTableInfo myBlobsTableInfo = TableDefinitions.createBlobTable(myBlobsIdent, dummyClusterService);
-        e = SQLExecutor.builder(dummyClusterService).enableDefaultTables().addBlobTable(myBlobsTableInfo).build();
+        TestingBlobTableInfo myBlobsTableInfo = TableDefinitions.createBlobTable(myBlobsIdent, clusterService);
+        e = SQLExecutor.builder(clusterService).enableDefaultTables().addBlobTable(myBlobsTableInfo).build();
     }
 
     @Test

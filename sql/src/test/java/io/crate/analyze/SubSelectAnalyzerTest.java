@@ -39,7 +39,7 @@ public class SubSelectAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     @Before
     public void prepare() {
-        executor = SQLExecutor.builder(dummyClusterService).enableDefaultTables().build();
+        executor = SQLExecutor.builder(clusterService).enableDefaultTables().build();
     }
 
     private SelectAnalyzedStatement analyze(String stmt) {

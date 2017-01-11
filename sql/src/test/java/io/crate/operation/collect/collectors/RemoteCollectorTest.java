@@ -87,7 +87,7 @@ public class RemoteCollectorTest extends CrateDummyClusterServiceUnitTest {
 
         JobContextService jobContextService = new JobContextService(
             Settings.EMPTY,
-            dummyClusterService,
+            clusterService,
             mock(StatsTables.class));
         remoteCollector = new RemoteCollector(
             jobId,

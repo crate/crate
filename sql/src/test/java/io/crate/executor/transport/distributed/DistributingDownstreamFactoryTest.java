@@ -54,7 +54,7 @@ public class DistributingDownstreamFactoryTest extends CrateDummyClusterServiceU
     public void prepare() {
         rowDownstreamFactory = new DistributingDownstreamFactory(
             Settings.EMPTY,
-            dummyClusterService,
+            clusterService,
             mock(TransportDistributedResultAction.class)
         );
     }

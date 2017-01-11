@@ -74,7 +74,7 @@ public class InsertFromValuesAnalyzerTest extends CrateDummyClusterServiceUnitTe
 
     @Before
     public void prepare() {
-        SQLExecutor.Builder executorBuilder = SQLExecutor.builder(dummyClusterService)
+        SQLExecutor.Builder executorBuilder = SQLExecutor.builder(clusterService)
             .enableDefaultTables()
             .addDocTable(testAliasTableInfo)
             .addDocTable(nestedClusteredTableInfo);

@@ -44,8 +44,8 @@ public class RefreshAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     @Before
     public void prepare() {
-        TestingBlobTableInfo myBlobsTableInfo = TableDefinitions.createBlobTable(myBlobsIdent, dummyClusterService);
-        e = SQLExecutor.builder(dummyClusterService).enableDefaultTables().addBlobTable(myBlobsTableInfo).build();
+        TestingBlobTableInfo myBlobsTableInfo = TableDefinitions.createBlobTable(myBlobsIdent, clusterService);
+        e = SQLExecutor.builder(clusterService).enableDefaultTables().addBlobTable(myBlobsTableInfo).build();
     }
 
     @Test

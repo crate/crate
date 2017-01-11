@@ -52,7 +52,7 @@ public class InsertFromSubQueryAnalyzerTest extends CrateDummyClusterServiceUnit
 
     @Before
     public void prepare() {
-        SQLExecutor.Builder builder = SQLExecutor.builder(dummyClusterService).enableDefaultTables();
+        SQLExecutor.Builder builder = SQLExecutor.builder(clusterService).enableDefaultTables();
 
         TableIdent usersGeneratedIdent = new TableIdent(null, "users_generated");
         TestingTableInfo.Builder usersGenerated = new TestingTableInfo.Builder(usersGeneratedIdent, SHARD_ROUTING)

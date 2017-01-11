@@ -59,7 +59,7 @@ public class FetchContextTest extends CrateDummyClusterServiceUnitTest {
                 ImmutableList.<Reference>of()),
             "dummy",
             new SharedShardContexts(mock(IndicesService.class)),
-            dummyClusterService.state().getMetaData(),
+            clusterService.state().getMetaData(),
             Collections.<Routing>emptyList());
 
         expectedException.expect(IllegalArgumentException.class);
@@ -89,7 +89,7 @@ public class FetchContextTest extends CrateDummyClusterServiceUnitTest {
                 ImmutableList.of(createReference("i1", new ColumnIdent("x"), DataTypes.STRING))),
             "dummy",
             new SharedShardContexts(mock(IndicesService.class, RETURNS_MOCKS)),
-            dummyClusterService.state().getMetaData(),
+            clusterService.state().getMetaData(),
             ImmutableList.of(routing));
 
         context.prepare();

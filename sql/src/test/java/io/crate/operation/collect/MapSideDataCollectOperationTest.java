@@ -61,7 +61,7 @@ public class MapSideDataCollectOperationTest extends CrateDummyClusterServiceUni
         Functions functions = getFunctions();
         CollectSourceResolver collectSourceResolver = mock(CollectSourceResolver.class);
         when(collectSourceResolver.getService(any(RoutedCollectPhase.class)))
-            .thenReturn(new FileCollectSource(functions, dummyClusterService, Collections.emptyMap()));
+            .thenReturn(new FileCollectSource(functions, clusterService, Collections.emptyMap()));
         MapSideDataCollectOperation collectOperation = new MapSideDataCollectOperation(
             collectSourceResolver,
             THREAD_POOL
