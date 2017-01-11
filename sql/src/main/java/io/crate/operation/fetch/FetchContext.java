@@ -32,6 +32,7 @@ import io.crate.metadata.Routing;
 import io.crate.metadata.TableIdent;
 import io.crate.planner.node.fetch.FetchPhase;
 import org.apache.logging.log4j.Logger;
+import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.cluster.metadata.MetaData;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.index.Index;
@@ -99,7 +100,14 @@ public class FetchContext extends AbstractExecutionSubContext {
             Map<String, List<Integer>> indexShards = locations.get(localNodeId);
             for (Map.Entry<String, List<Integer>> indexShardsEntry : indexShards.entrySet()) {
                 String indexName = indexShardsEntry.getKey();
-                Index index = metaData.index(indexName).getIndex();
+                IndexMetaData indexMetaData = metaData.index(indexName);
+                if (indexMetaData == null) {
+                    if (PartitionName.isPartition(indexName)) {
+                        continue;
+                    }
+                    throw new IndexNotFoundException(indexName);
+                }
+                Index index = indexMetaData.getIndex();
                 Integer base = phase.bases().get(indexName);
                 if (base == null) {
                     continue;
@@ -107,7 +115,7 @@ public class FetchContext extends AbstractExecutionSubContext {
                 TableIdent ident = index2TableIdent.get(indexName);
                 assert ident != null : "no tableIdent found for index " + indexName;
                 tableIdents.put(base, ident);
-                toFetch.put(ident, new ArrayList<Reference>());
+                toFetch.put(ident, new ArrayList<>());
                 for (Integer shard : indexShardsEntry.getValue()) {
                     ShardId shardId = new ShardId(index, shard);
                     int readerId = base + shardId.id();
