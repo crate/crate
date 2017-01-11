@@ -34,10 +34,14 @@ public class VersionCollectorExpression extends LuceneCollectorExpression<Long> 
     private NumericDocValues versions = null;
     private long value;
 
+    public VersionCollectorExpression() {
+        super(DocSysColumns.VERSION.name());
+    }
+
     @Override
     public void setNextReader(LeafReaderContext reader) {
         try {
-            versions = reader.reader().getNumericDocValues(DocSysColumns.VERSION.name());
+            versions = reader.reader().getNumericDocValues(columnName);
         } catch (IOException e) {
             throw Throwables.propagate(e);
         }
