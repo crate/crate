@@ -5,7 +5,10 @@ Changes for Crate
 Unreleased
 ==========
 
- - Serve admin ui from `/`
+ 
+ - BREAKING: Serve admin ui from ``/``
+   Admin UI is not accessible via ``_plugin/crate-admin`` anymore. Only via
+   ``/admin`` or ``/``.
 
  - Fix an issue in the ``LIKE`` predicate which prevents using escaped
    backslash before the wildcard.
