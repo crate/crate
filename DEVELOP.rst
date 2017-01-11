@@ -276,7 +276,7 @@ Before creating a new distribution, a new version and tag should be created:
 
  - Update the CURRENT version in ``io.crate.Version``.
 
- - Add a note for the new version at the ``CHANGES.txt`` file.
+ - Add a note for the new version at the ``CHANGES.rst`` file.
 
  - Commit e.g. using message 'prepare release x.x.x'.
 

@@ -283,7 +283,7 @@ distributions {
                 include 'LICENSE.txt'
                 include 'NOTICE'
                 include 'README.rst'
-                include 'CHANGES.txt'
+                include 'CHANGES.rst'
             }
             into("lib") {
                 from libs

@@ -67,11 +67,11 @@ then
    exit -1
 fi
 
-# check if VERSION is in head of CHANGES.txt
-REV_NOTE=`grep "[0-9/]\{10\} $VERSION" CHANGES.txt`
+# check if VERSION is in head of CHANGES.rst
+REV_NOTE=`grep "[0-9/]\{10\} $VERSION" CHANGES.rst`
 if [ -z "$REV_NOTE" ]
 then
-    echo "No notes for revision $VERSION found in CHANGES.txt"
+    echo "No notes for revision $VERSION found in CHANGES.rst"
     echo "Aborting."
     exit -1
 fi
