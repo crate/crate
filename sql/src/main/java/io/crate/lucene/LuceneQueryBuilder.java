@@ -236,13 +236,35 @@ public class LuceneQueryBuilder {
         // lucene uses * and ? as wildcard characters
         // but via SQL they are used as % and _
         // here they are converted back.
-        wildcardString = wildcardString.replaceAll("(?<!\\\\)\\*", "\\\\*");
-        wildcardString = wildcardString.replaceAll("(?<!\\\\)%", "*");
-        wildcardString = wildcardString.replaceAll("\\\\%", "%");
+        StringBuilder regex = new StringBuilder();
 
-        wildcardString = wildcardString.replaceAll("(?<!\\\\)\\?", "\\\\?");
-        wildcardString = wildcardString.replaceAll("(?<!\\\\)_", "?");
-        return wildcardString.replaceAll("\\\\_", "_");
+        boolean escaped = false;
+        for (char currentChar : wildcardString.toCharArray()) {
+            if (!escaped && currentChar == LikeOperator.DEFAULT_ESCAPE) {
+                escaped = true;
+            } else {
+                switch (currentChar) {
+                    case '%':
+                        regex.append(escaped ? '%' : '*');
+                        escaped = false;
+                        break;
+                    case '_':
+                        regex.append(escaped ? '_' : '?');
+                        escaped = false;
+                        break;
+                    default:
+                        switch (currentChar) {
+                            case '\\':
+                            case '*':
+                            case '?':
+                                regex.append('\\');
+                        }
+                        regex.append(currentChar);
+                        escaped = false;
+                }
+            }
+        }
+        return regex.toString();
     }
 
     public static String negateWildcard(String wildCard) {

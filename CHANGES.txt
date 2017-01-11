@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fix an issue in the ``LIKE`` predicate which prevents using escaped
+   backslash before the wildcard.
+
  - Fixed an issue that caused ``ORDER BY`` clause to be ignored if used
    in combination with ``GROUP BY`` in subselects.
    e.g.: `SELECT x from (SELECT * from t1) as tt
