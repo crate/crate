@@ -12,7 +12,7 @@ import io.crate.metadata.table.ColumnPolicy;
 import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.CreateTable;
 import io.crate.sql.tree.Statement;
-import io.crate.test.integration.CrateUnitTest;
+import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
@@ -23,7 +23,6 @@ import org.elasticsearch.cluster.metadata.AliasMetaData;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.metadata.MappingMetaData;
-import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Provider;
 import org.elasticsearch.common.lucene.BytesRefs;
 import org.elasticsearch.common.settings.Settings;
@@ -32,18 +31,13 @@ import org.elasticsearch.common.xcontent.XContentFactory;
 import org.elasticsearch.common.xcontent.XContentHelper;
 import org.elasticsearch.env.Environment;
 import org.elasticsearch.index.analysis.AnalysisRegistry;
-import org.elasticsearch.test.ClusterServiceUtils;
-import org.elasticsearch.threadpool.TestThreadPool;
-import org.elasticsearch.threadpool.ThreadPool;
 import org.hamcrest.Matchers;
-import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.*;
-import java.util.concurrent.TimeUnit;
 
 import static io.crate.testing.SymbolMatchers.*;
 import static io.crate.testing.TestingHelpers.getFunctions;
@@ -52,10 +46,9 @@ import static org.hamcrest.collection.IsCollectionWithSize.hasSize;
 import static org.mockito.Mockito.mock;
 
 // @formatter:off
-public class DocIndexMetaDataTest extends CrateUnitTest {
+public class DocIndexMetaDataTest extends CrateDummyClusterServiceUnitTest {
 
     private Functions functions;
-    private ThreadPool threadPool;
 
     private IndexMetaData getIndexMetaData(String indexName, XContentBuilder builder) throws IOException {
         return getIndexMetaData(indexName, builder, Settings.Builder.EMPTY_SETTINGS, null);
@@ -89,13 +82,7 @@ public class DocIndexMetaDataTest extends CrateUnitTest {
 
     @Before
     public void before() throws Exception {
-        threadPool = new TestThreadPool(getClass().getName());
         functions = getFunctions();
-    }
-
-    @After
-    public void cleanup() throws Exception {
-        ThreadPool.terminate(threadPool, 10, TimeUnit.SECONDS);
     }
 
     @Test
@@ -886,7 +873,6 @@ public class DocIndexMetaDataTest extends CrateUnitTest {
     private DocIndexMetaData getDocIndexMetaDataFromStatement(String stmt) throws IOException {
         Statement statement = SqlParser.createStatement(stmt);
 
-        ClusterService clusterService = ClusterServiceUtils.createClusterService(threadPool);
         final TransportPutIndexTemplateAction transportPutIndexTemplateAction = mock(TransportPutIndexTemplateAction.class);
         Provider<TransportPutIndexTemplateAction> indexTemplateActionProvider = () -> transportPutIndexTemplateAction;
         DocTableInfoFactory docTableInfoFactory = new InternalDocTableInfoFactory(
@@ -894,14 +880,14 @@ public class DocIndexMetaDataTest extends CrateUnitTest {
             new IndexNameExpressionResolver(Settings.EMPTY),
             indexTemplateActionProvider
         );
-        DocSchemaInfo docSchemaInfo = new DocSchemaInfo(Schemas.DEFAULT_SCHEMA_NAME, clusterService, docTableInfoFactory);
+        DocSchemaInfo docSchemaInfo = new DocSchemaInfo(Schemas.DEFAULT_SCHEMA_NAME, dummyClusterService, docTableInfoFactory);
         CreateTableStatementAnalyzer analyzer = new CreateTableStatementAnalyzer(
             new Schemas(
                 Settings.EMPTY,
                 ImmutableMap.of("doc", docSchemaInfo),
-                clusterService,
+                dummyClusterService,
                 new DocSchemaInfoFactory(docTableInfoFactory)),
-            new FulltextAnalyzerResolver(clusterService,
+            new FulltextAnalyzerResolver(dummyClusterService,
                 new AnalysisRegistry(
                     new Environment(Settings.builder()
                         .put(Environment.PATH_HOME_SETTING.getKey(), createTempDir().toString())
@@ -913,7 +899,7 @@ public class DocIndexMetaDataTest extends CrateUnitTest {
                 )
             ),
             functions,
-            new NumberOfShards(clusterService)
+            new NumberOfShards(dummyClusterService)
         );
 
         Analysis analysis = new Analysis(SessionContext.SYSTEM_SESSION, ParameterContext.EMPTY, ParamTypeHints.EMPTY);
