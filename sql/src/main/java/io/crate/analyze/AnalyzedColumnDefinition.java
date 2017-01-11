@@ -26,13 +26,12 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
+import io.crate.analyze.ddl.GeoSettingsApplier;
 import io.crate.exceptions.InvalidColumnNameException;
 import io.crate.metadata.ColumnIdent;
 import io.crate.sql.tree.Expression;
 import io.crate.types.DataTypes;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.settings.SettingsException;
-import org.elasticsearch.common.unit.DistanceUnit;
 
 import javax.annotation.Nullable;
 import java.util.*;
@@ -227,69 +226,17 @@ public class AnalyzedColumnDefinition {
     Map<String, Object> toMapping() {
         Map<String, Object> mapping = new HashMap<>();
 
-        mapping.put("type", dataType());
+        mapping.put("type", dataType);
+        addTypeOptions(mapping);
 
-        if ("date".equals(dataType())) {
-            /*
-             * We want 1000 not be be interpreted as year 1000AD but as 1970-01-01T00:00:01.000
-             * so prefer date mapping format epoch_millis over strict_date_optional_time
-             */
-            mapping.put("format", "epoch_millis||strict_date_optional_time");
-        }
         if (!NO_DOC_VALUES_SUPPORT.contains(dataType)) {
             mapping.put("doc_values", docValues());
             mapping.put("index", indexConstraint());
             mapping.put("store", false);
         }
 
-        if (geoTree != null) {
-            mapping.put("tree", geoTree);
-        }
-
-        if (dataType().equals("geo_shape")) {
-            String precision = geoSettings.get("precision");
-            if (precision != null) {
-                try {
-                    DistanceUnit.parse(precision, DistanceUnit.DEFAULT, DistanceUnit.DEFAULT);
-                } catch (IllegalArgumentException e) {
-                    throw new IllegalArgumentException(
-                        String.format(Locale.ENGLISH, "Value '%s' of setting precision is not a valid distance unit", precision)
-                    );
-                }
-                mapping.put("precision", precision);
-            } else {
-                Integer treeLevels = geoSettings.getAsInt("tree_levels", null);
-                if (treeLevels != null) {
-                    mapping.put("tree_levels", treeLevels);
-                }
-
-            }
-            try {
-                Float errorPct = geoSettings.getAsFloat("distance_error_pct", null);
-                if (errorPct != null) {
-                    mapping.put("distance_error_pct", errorPct);
-                }
-            } catch (SettingsException e) {
-                throw new IllegalArgumentException(
-                    String.format(Locale.ENGLISH, "Value '%s' of setting distance_error_pct is not a float value", geoSettings.get("distance_error_pct"))
-                );
-            }
-
-        }
-
-        for (String setting : geoSettings.names()) {
-            if (!setting.equals("precision") && !setting.equals("distance_error_pct") &&
-                !setting.equals("tree_levels")) {
-                throw new IllegalArgumentException(
-                    String.format(Locale.ENGLISH, "Setting \"%s\" ist not supported on geo_shape index", setting));
-            }
-        }
-
         if (copyToTargets != null) {
             mapping.put("copy_to", copyToTargets);
-        }
-        if (dataType().equals("string") && analyzer != null) {
-            mapping.put("analyzer", analyzer());
         }
         if ("array".equals(collectionType)) {
             Map<String, Object> outerMapping = new HashMap<String, Object>() {{
@@ -304,6 +251,26 @@ public class AnalyzedColumnDefinition {
             objectMapping(mapping);
         }
         return mapping;
+    }
+
+    private void addTypeOptions(Map<String, Object> mapping) {
+        switch (dataType) {
+            case "date":
+                /*
+                 * We want 1000 not be be interpreted as year 1000AD but as 1970-01-01T00:00:01.000
+                 * so prefer date mapping format epoch_millis over strict_date_optional_time
+                 */
+                mapping.put("format", "epoch_millis||strict_date_optional_time");
+                break;
+            case "geo_shape":
+                GeoSettingsApplier.applySettings(mapping, geoSettings, geoTree);
+                break;
+            case "string":
+                if (analyzer != null) {
+                    mapping.put("analyzer", analyzer);
+                }
+                break;
+        }
     }
 
     private void objectMapping(Map<String, Object> mapping) {
