@@ -47,6 +47,7 @@ import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.lucene.search.Queries;
 import org.elasticsearch.index.mapper.MappedFieldType;
 import org.elasticsearch.index.mapper.core.LongFieldMapper;
+import org.junit.Before;
 import org.junit.Test;
 
 import javax.annotation.Nullable;
@@ -60,6 +61,7 @@ import static org.hamcrest.core.Is.is;
 public class LuceneOrderedDocCollectorTest extends RandomizedTest {
 
     private static final Reference REFERENCE = new Reference(new ReferenceIdent(new TableIdent(null, "table"), "value"), RowGranularity.DOC, DataTypes.LONG);
+    private LongFieldMapper.LongFieldType valueFieldType;
 
     private Directory createLuceneIndex() throws IOException {
         Path tmpDir = newTempDir();
@@ -79,12 +81,10 @@ public class LuceneOrderedDocCollectorTest extends RandomizedTest {
         return index;
     }
 
-    private static void addDocToLucene(IndexWriter w, Long value) throws IOException {
+    private void addDocToLucene(IndexWriter w, Long value) throws IOException {
         Document doc = new Document();
         if (value != null) {
-            MappedFieldType fieldType = new LongFieldMapper.LongFieldType();
-            fieldType.setNames(new MappedFieldType.Names("value"));
-            doc.add(new LongFieldMapper.CustomLongNumericField(value, fieldType));
+            doc.add(new LongFieldMapper.CustomLongNumericField(value, valueFieldType));
             doc.add(new SortedNumericDocValuesField("value", value));
         } else {
             // Create a placeholder field
@@ -117,7 +117,8 @@ public class LuceneOrderedDocCollectorTest extends RandomizedTest {
         sortField.setMissingValue(missingValue);
         Sort sort = new Sort(sortField);
 
-        Query nextPageQuery = LuceneOrderedDocCollector.nextPageQuery(lastCollected, orderBy, new Object[]{missingValue});
+        Query nextPageQuery = LuceneOrderedDocCollector.nextPageQuery(
+            lastCollected, orderBy, new Object[]{missingValue}, name -> valueFieldType);
         TopFieldDocs result = search(reader, nextPageQuery, sort);
         Long results[] = new Long[result.scoreDocs.length];
         for (int i = 0; i < result.scoreDocs.length; i++) {
@@ -127,12 +128,18 @@ public class LuceneOrderedDocCollectorTest extends RandomizedTest {
         return results;
     }
 
+    @Before
+    public void setUp() throws Exception {
+        valueFieldType = new LongFieldMapper.LongFieldType();
+        valueFieldType.setNames(new MappedFieldType.Names("value"));
+    }
+
     @Test
     public void testNextPageQueryWithLastCollectedNullValue() throws Exception {
         FieldDoc fieldDoc = new FieldDoc(1, 0, new Object[]{null});
         OrderBy orderBy = new OrderBy(Collections.<Symbol>singletonList(REFERENCE), new boolean[]{false}, new Boolean[]{null});
         Object missingValue = LuceneMissingValue.missingValue(orderBy, 0);
-        LuceneOrderedDocCollector.nextPageQuery(fieldDoc, orderBy, new Object[]{missingValue});
+        LuceneOrderedDocCollector.nextPageQuery(fieldDoc, orderBy, new Object[]{missingValue}, name -> valueFieldType);
     }
 
     // search after queries

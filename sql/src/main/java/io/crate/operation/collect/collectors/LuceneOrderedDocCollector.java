@@ -27,7 +27,7 @@ import com.google.common.collect.Iterables;
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.core.collections.Row;
-import io.crate.lucene.QueryBuilderHelper;
+import io.crate.lucene.FieldTypeLookup;
 import io.crate.metadata.Reference;
 import io.crate.operation.Input;
 import io.crate.operation.merge.KeyIterable;
@@ -38,6 +38,7 @@ import org.apache.lucene.search.*;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.lucene.MinimumScoreCollector;
+import org.elasticsearch.index.mapper.MappedFieldType;
 import org.elasticsearch.index.shard.ShardId;
 
 import javax.annotation.Nullable;
@@ -45,6 +46,8 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
+
+import static java.util.Objects.requireNonNull;
 
 public class LuceneOrderedDocCollector extends OrderedDocCollector {
 
@@ -155,7 +158,7 @@ public class LuceneOrderedDocCollector extends OrderedDocCollector {
     }
 
     private Query query(FieldDoc lastDoc) {
-        Query query = nextPageQuery(lastDoc, orderBy, missingValues);
+        Query query = nextPageQuery(lastDoc, orderBy, missingValues, collectorContext.mapperService()::fullName);
         if (query == null) {
             return this.query;
         }
@@ -167,7 +170,7 @@ public class LuceneOrderedDocCollector extends OrderedDocCollector {
 
     @Nullable
     @VisibleForTesting
-    static Query nextPageQuery(FieldDoc lastCollected, OrderBy orderBy, Object[] missingValues) {
+    static Query nextPageQuery(FieldDoc lastCollected, OrderBy orderBy, Object[] missingValues, FieldTypeLookup fieldTypeLookup) {
         BooleanQuery.Builder queryBuilder = new BooleanQuery.Builder();
         for (int i = 0; i < orderBy.orderBySymbols().size(); i++) {
             Symbol order = orderBy.orderBySymbols().get(i);
@@ -179,8 +182,9 @@ public class LuceneOrderedDocCollector extends OrderedDocCollector {
                     // no filter needed
                     continue;
                 }
-                QueryBuilderHelper helper = QueryBuilderHelper.forType(order.valueType());
                 String columnName = ((Reference) order).ident().columnIdent().fqn();
+                MappedFieldType fieldType = requireNonNull(
+                    fieldTypeLookup.get(columnName), "Column must exist: " + columnName);
 
                 Query orderQuery;
                 // nulls already gone, so they should be excluded
@@ -188,16 +192,16 @@ public class LuceneOrderedDocCollector extends OrderedDocCollector {
                     BooleanQuery.Builder booleanQuery = new BooleanQuery.Builder();
                     booleanQuery.add(new MatchAllDocsQuery(), BooleanClause.Occur.MUST);
                     if (orderBy.reverseFlags()[i]) {
-                        booleanQuery.add(helper.rangeQuery(columnName, null, value, false, true), BooleanClause.Occur.MUST_NOT);
+                        booleanQuery.add(fieldType.rangeQuery(null, value, false, true), BooleanClause.Occur.MUST_NOT);
                     } else {
-                        booleanQuery.add(helper.rangeQuery(columnName, value, null, true, false), BooleanClause.Occur.MUST_NOT);
+                        booleanQuery.add(fieldType.rangeQuery(value, null, true, false), BooleanClause.Occur.MUST_NOT);
                     }
                     orderQuery = booleanQuery.build();
                 } else {
                     if (orderBy.reverseFlags()[i]) {
-                        orderQuery = helper.rangeQuery(columnName, value, null, false, false);
+                        orderQuery = fieldType.rangeQuery(value, null, false, false);
                     } else {
-                        orderQuery = helper.rangeQuery(columnName, null, value, false, false);
+                        orderQuery = fieldType.rangeQuery(null, value, false, false);
                     }
                 }
                 queryBuilder.add(orderQuery, BooleanClause.Occur.MUST);
