@@ -12,6 +12,7 @@ from sqllogictest import run_file
 
 CRATE_HTTP_PORT = GLOBAL_PORT_POOL.get()
 CRATE_TRANSPORT_PORT = GLOBAL_PORT_POOL.get()
+CRATE_PSQL_PORT = GLOBAL_PORT_POOL.get()
 
 tests_path = pathlib.Path(os.path.abspath(os.path.join(
     project_root, 'blackbox', 'sqllogictest', 'testfiles', 'test')))
@@ -37,7 +38,8 @@ class TestMaker(type):
             attrs['test_' + relpath] = partial(
                 run_file,
                 filename=str(filepath),
-                hosts='localhost:' + str(CRATE_HTTP_PORT),
+                host='localhost',
+                port=str(CRATE_PSQL_PORT),
                 log_level=logging.WARNING,
                 log_file='sqllogic.log',
                 failfast=True
@@ -57,7 +59,8 @@ def test_suite():
         port=CRATE_HTTP_PORT,
         transport_port=CRATE_TRANSPORT_PORT,
         settings={
-            'stats.enabled': True
+            'stats.enabled': True,
+            'psql.port': CRATE_PSQL_PORT
         }
     )
     suite.layer = crate_layer
