@@ -21,13 +21,13 @@
 
 package io.crate.integrationtests;
 
-import io.crate.testing.TestingHelpers;
 import io.crate.testing.UseJdbc;
 import org.elasticsearch.test.ESIntegTestCase;
 import org.junit.Test;
 
 import static com.carrotsearch.randomizedtesting.RandomizedTest.$;
 import static com.carrotsearch.randomizedtesting.RandomizedTest.$$;
+import static io.crate.testing.TestingHelpers.printedTable;
 import static org.hamcrest.core.Is.is;
 
 @ESIntegTestCase.ClusterScope(randomDynamicTemplates = false, transportClientRatio = 0)
@@ -191,12 +191,53 @@ public class LuceneQueryBuilderIntegrationTest extends SQLTransportIntegrationTe
         execute("refresh table t");
 
         execute("select * from t where x in (1, null)");
-        assertThat(TestingHelpers.printedTable(response.rows()), is("1\n"));
+        assertThat(printedTable(response.rows()), is("1\n"));
 
         execute("select * from t where x in (3, null)");
         assertThat(response.rowCount(), is(0L));
 
         execute("select * from t where coalesce(x in (3, null), true)");
         assertThat(response.rowCount(), is(2L));
+    }
+
+    @Test
+    public void testQueriesOnColumnThatDoesNotExistInAllPartitions() throws Exception {
+        // LuceneQueryBuilder uses a MappedFieldType to generate queries
+        // this MappedFieldType is not available on partitions that are missing fields
+        // this test verifies that this case works correctly
+
+        execute("create table t (p int) " +
+                "clustered into 1 shards " +
+                "partitioned by (p) " +
+                "with (number_of_replicas = 0)");
+        execute("insert into t (p) values (1)");
+        execute("insert into t (p, x, numbers, obj, objects, s, b) " +
+                "values (2, 10, [10, 20, 30], {x=10}, [{x=10}, {x=20}], 'foo', true)");
+        ensureYellow();
+        execute("refresh table t");
+
+        // match on partition with the columns
+
+        assertThat(printedTable(execute("select p from t where x = 10").rows()), is("2\n"));
+        // range queries all hit the same code path, so only > is tested
+        assertThat(printedTable(execute("select p from t where x > 9").rows()), is("2\n"));
+        assertThat(printedTable(execute("select p from t where x is not null").rows()), is("2\n"));
+        assertThat(printedTable(execute("select p from t where x like 10").rows()), is("2\n"));
+        assertThat(printedTable(execute("select p from t where s like 'f%'").rows()), is("2\n"));
+        assertThat(printedTable(execute("select p from t where obj = {x=10}").rows()), is("2\n"));
+        assertThat(printedTable(execute("select p from t where b").rows()), is("2\n"));
+
+        assertThat(printedTable(execute("select p from t where 10 = any(numbers)").rows()), is("2\n"));
+        assertThat(printedTable(execute("select p from t where 10 != any(numbers)").rows()), is("2\n"));
+        assertThat(printedTable(execute("select p from t where 15 > any(numbers)").rows()), is("2\n"));
+
+        assertThat(printedTable(execute("select p from t where x = any([10, 20])").rows()), is("2\n"));
+        assertThat(printedTable(execute("select p from t where x != any([20, 30])").rows()), is("2\n"));
+        assertThat(printedTable(execute("select p from t where x > any([1, 2])").rows()), is("2\n"));
+
+
+        // match on partitions where the column does not exist
+        assertThat(printedTable(execute("select p from t where x is null").rows()), is("1\n"));
+        assertThat(printedTable(execute("select p from t where obj is null").rows()), is("1\n"));
     }
 }

@@ -77,7 +77,6 @@ import org.apache.lucene.util.BytesRef;
 import org.apache.lucene.util.automaton.RegExp;
 import org.elasticsearch.ExceptionsHelper;
 import org.elasticsearch.Version;
-import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.collect.Tuple;
 import org.elasticsearch.common.geo.GeoDistance;
 import org.elasticsearch.common.geo.GeoPoint;
@@ -102,6 +101,7 @@ import org.elasticsearch.index.search.geo.GeoDistanceRangeQuery;
 import org.elasticsearch.index.search.geo.GeoPolygonQuery;
 import org.elasticsearch.index.search.geo.InMemoryGeoBoundingBoxQuery;
 
+import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.*;
 
@@ -231,6 +231,10 @@ public class LuceneQueryBuilder {
             .put("_version", "\"_version\" column is not valid in the WHERE clause")
             .build();
 
+        @Nullable
+        MappedFieldType getFieldTypeOrNull(String fqColumnName) {
+            return mapperService.smartNameFieldType(fqColumnName);
+        }
     }
 
     public static String convertSqlLikeToLuceneWildcard(String wildcardString) {
@@ -328,9 +332,9 @@ public class LuceneQueryBuilder {
              */
             public static Iterable<?> toIterable(Object value) {
                 return Iterables.transform(AnyOperator.collectionValueToIterable(value), new com.google.common.base.Function<Object, Object>() {
-                    @javax.annotation.Nullable
+                    @Nullable
                     @Override
-                    public Object apply(@javax.annotation.Nullable Object input) {
+                    public Object apply(@Nullable Object input) {
                         if (input != null && input instanceof String) {
                             input = new BytesRef((String) input);
                         }
@@ -348,8 +352,14 @@ public class LuceneQueryBuilder {
 
             @Override
             protected Query applyArrayReference(Reference arrayReference, Literal literal, Context context) throws IOException {
-                QueryBuilderHelper builder = QueryBuilderHelper.forType(((CollectionType) arrayReference.valueType()).innerType());
-                return builder.eq(arrayReference.ident().columnIdent().fqn(), literal.value());
+                MappedFieldType fieldType = context.getFieldTypeOrNull(arrayReference.ident().columnIdent().fqn());
+                if (fieldType == null) {
+                    if (CollectionType.unnest(arrayReference.valueType()).equals(DataTypes.OBJECT)) {
+                        return null; // fallback to generic query to enable {x=10} = any(objects)
+                    }
+                    return Queries.newMatchNoDocsQuery();
+                }
+                return fieldType.termQuery(literal.value(), null);
             }
 
             @Override
@@ -367,15 +377,18 @@ public class LuceneQueryBuilder {
                 String columnName = arrayReference.ident().columnIdent().fqn();
                 Object value = literal.value();
 
-                QueryBuilderHelper builder = QueryBuilderHelper.forType(arrayReference.valueType());
+                MappedFieldType fieldType = context.getFieldTypeOrNull(columnName);
+                if (fieldType == null) {
+                    return Queries.newMatchNoDocsQuery();
+                }
                 BooleanQuery.Builder query = new BooleanQuery.Builder();
                 query.setMinimumNumberShouldMatch(1);
                 query.add(
-                    builder.rangeQuery(columnName, value, null, false, false),
+                    fieldType.rangeQuery(value, null, false, false),
                     BooleanClause.Occur.SHOULD
                 );
                 query.add(
-                    builder.rangeQuery(columnName, null, value, false, false),
+                    fieldType.rangeQuery(null, value, false, false),
                     BooleanClause.Occur.SHOULD
                 );
                 return query.build();
@@ -385,11 +398,14 @@ public class LuceneQueryBuilder {
             protected Query applyArrayLiteral(Reference reference, Literal arrayLiteral, Context context) throws IOException {
                 //  col != ANY ([1,2,3]) --> not(col=1 and col=2 and col=3)
                 String columnName = reference.ident().columnIdent().fqn();
-                QueryBuilderHelper helper = QueryBuilderHelper.forType(reference.valueType());
+                MappedFieldType fieldType = context.getFieldTypeOrNull(columnName);
+                if (fieldType == null) {
+                    return Queries.newMatchNoDocsQuery();
+                }
 
                 BooleanQuery.Builder andBuilder = new BooleanQuery.Builder();
                 for (Object value : toIterable(arrayLiteral.value())) {
-                    andBuilder.add(helper.eq(columnName, value), BooleanClause.Occur.MUST);
+                    andBuilder.add(fieldType.termQuery(value, null), BooleanClause.Occur.MUST);
                 }
                 return Queries.not(andBuilder.build());
             }
@@ -414,11 +430,13 @@ public class LuceneQueryBuilder {
             protected Query applyArrayLiteral(Reference reference, Literal arrayLiteral, Context context) throws IOException {
                 // col not like ANY (['a', 'b']) --> not(and(like(col, 'a'), like(col, 'b')))
                 String columnName = reference.ident().columnIdent().fqn();
-                QueryBuilderHelper builder = QueryBuilderHelper.forType(reference.valueType());
+                MappedFieldType fieldType = context.getFieldTypeOrNull(columnName);
 
                 BooleanQuery.Builder andLikeQueries = new BooleanQuery.Builder();
                 for (Object value : toIterable(arrayLiteral.value())) {
-                    andLikeQueries.add(builder.like(columnName, value, context.indexCache.query()), BooleanClause.Occur.MUST);
+                    andLikeQueries.add(
+                        LikeQueryBuilder.like(reference.valueType(), fieldType, value, context.indexCache.query()),
+                        BooleanClause.Occur.MUST);
                 }
                 return Queries.not(andLikeQueries.build());
             }
@@ -426,11 +444,9 @@ public class LuceneQueryBuilder {
 
         static class AnyLikeQuery extends AbstractAnyQuery {
 
-            private static final LikeQuery LIKE_QUERY = new LikeQuery();
-
             @Override
             protected Query applyArrayReference(Reference arrayReference, Literal literal, Context context) throws IOException {
-                return LIKE_QUERY.toQuery(arrayReference, literal.value(), context);
+                return LikeQuery.toQuery(arrayReference, literal.value(), context);
             }
 
             @Override
@@ -439,7 +455,7 @@ public class LuceneQueryBuilder {
                 BooleanQuery.Builder booleanQuery = new BooleanQuery.Builder();
                 booleanQuery.setMinimumNumberShouldMatch(1);
                 for (Object value : toIterable(arrayLiteral.value())) {
-                    booleanQuery.add(LIKE_QUERY.toQuery(reference, value, context), BooleanClause.Occur.SHOULD);
+                    booleanQuery.add(LikeQuery.toQuery(reference, value, context), BooleanClause.Occur.SHOULD);
                 }
                 return booleanQuery.build();
             }
@@ -456,11 +472,14 @@ public class LuceneQueryBuilder {
                 return toQuery(tuple.v1(), tuple.v2().value(), context);
             }
 
-            public Query toQuery(Reference reference, Object value, Context context) {
-
-                String columnName = reference.ident().columnIdent().fqn();
-                QueryBuilderHelper builder = QueryBuilderHelper.forType(reference.valueType());
-                return builder.like(columnName, value, context.indexCache.query());
+            static Query toQuery(Reference reference, Object value, Context context) {
+                DataType dataType = CollectionType.unnest(reference.valueType());
+                return LikeQueryBuilder.like(
+                    dataType,
+                    context.getFieldTypeOrNull(reference.ident().columnIdent().fqn()),
+                    value,
+                    context.indexCache.query()
+                );
             }
         }
 
@@ -531,8 +550,12 @@ public class LuceneQueryBuilder {
                 INNER_VISITOR.process(arg, ctx);
                 for (Reference reference : ctx.references()) {
                     String columnName = reference.ident().columnIdent().fqn();
-                    QueryBuilderHelper builderHelper = QueryBuilderHelper.forType(reference.valueType());
-                    builder.add(builderHelper.rangeQuery(columnName, null, null, true, true), BooleanClause.Occur.MUST);
+                    MappedFieldType fieldType = context.getFieldTypeOrNull(columnName);
+                    if (fieldType == null) {
+                        // probably an object column, fallback to genericFunctionFilter
+                        return null;
+                    }
+                    builder.add(fieldType.rangeQuery(null, null, true, true), BooleanClause.Occur.MUST);
                 }
                 if (ctx.containsNullCanMatchFunction) {
                     FunctionInfo isNullInfo = IsNullPredicate.generateInfo(Collections.singletonList(arg.valueType()));
@@ -559,8 +582,16 @@ public class LuceneQueryBuilder {
                 Reference reference = (Reference) arg;
 
                 String columnName = reference.ident().columnIdent().fqn();
-                QueryBuilderHelper builderHelper = QueryBuilderHelper.forType(reference.valueType());
-                return Queries.not(builderHelper.rangeQuery(columnName, null, null, true, true));
+                MappedFieldType fieldType = context.getFieldTypeOrNull(columnName);
+                if (fieldType == null) {
+                    if (reference.valueType().equals(DataTypes.OBJECT)) {
+                        // object column has no mappedFieldType, but may exist. Need to use generic fallback
+                        return null;
+                    }
+                    // is null on an unknown column is always true
+                    return Queries.newMatchAllQuery();
+                }
+                return Queries.not(fieldType.rangeQuery(null, null, true, true));
             }
         }
 
@@ -591,8 +622,15 @@ public class LuceneQueryBuilder {
                     filterClauses.add(genericFunctionFilter(input, context), BooleanClause.Occur.MUST);
                     return filterClauses.build();
                 }
-                QueryBuilderHelper builder = QueryBuilderHelper.forType(tuple.v1().valueType());
-                return builder.eq(columnName, tuple.v2().value());
+                MappedFieldType fieldType = context.getFieldTypeOrNull(columnName);
+                if (fieldType == null) {
+                    if (reference.valueType().equals(DataTypes.OBJECT)) {
+                        return null; // fallback to generic filter for  "o = {x=10, y=20}"
+                    }
+                    // field doesn't exist, can't match
+                    return Queries.newMatchNoDocsQuery();
+                }
+                return fieldType.termQuery(literal.value(), null);
             }
         }
 
@@ -637,7 +675,8 @@ public class LuceneQueryBuilder {
                 return rangeQuery.toQuery(
                     arrayReference,
                     ((CollectionType) arrayReference.valueType()).innerType(),
-                    literal.value()
+                    literal.value(),
+                    context::getFieldTypeOrNull
                 );
             }
 
@@ -647,7 +686,9 @@ public class LuceneQueryBuilder {
                 BooleanQuery.Builder booleanQuery = new BooleanQuery.Builder();
                 booleanQuery.setMinimumNumberShouldMatch(1);
                 for (Object value : toIterable(arrayLiteral.value())) {
-                    booleanQuery.add(inverseRangeQuery.toQuery(reference, reference.valueType(), value), BooleanClause.Occur.SHOULD);
+                    booleanQuery.add(
+                        inverseRangeQuery.toQuery(reference, reference.valueType(), value, context::getFieldTypeOrNull),
+                        BooleanClause.Occur.SHOULD);
                 }
                 return booleanQuery.build();
             }
@@ -660,7 +701,7 @@ public class LuceneQueryBuilder {
             private final com.google.common.base.Function<Object, Tuple<?, ?>> boundsFunction;
 
             private static final com.google.common.base.Function<Object, Tuple<?, ?>> LOWER_BOUND = new com.google.common.base.Function<Object, Tuple<?, ?>>() {
-                @javax.annotation.Nullable
+                @Nullable
                 @Override
                 public Tuple<?, ?> apply(@Nullable Object input) {
                     return new Tuple<>(input, null);
@@ -707,15 +748,19 @@ public class LuceneQueryBuilder {
                 if (tuple == null) {
                     return null;
                 }
-                return toQuery(tuple.v1(), tuple.v1().valueType(), tuple.v2().value());
+                return toQuery(tuple.v1(), tuple.v1().valueType(), tuple.v2().value(), context::getFieldTypeOrNull);
             }
 
-            public Query toQuery(Reference reference, DataType type, Object value) {
+            public Query toQuery(Reference reference, DataType type, Object value, FieldTypeLookup fieldTypeLookup) {
                 String columnName = reference.ident().columnIdent().fqn();
-                QueryBuilderHelper builder = QueryBuilderHelper.forType(type);
+                MappedFieldType fieldType = fieldTypeLookup.get(columnName);
+                if (fieldType == null) {
+                    // can't match column that doesn't exist or is an object ( "o >= {x=10}" is not supported)
+                    return Queries.newMatchNoDocsQuery();
+                }
                 Tuple<?, ?> bounds = boundsFunction.apply(value);
                 assert bounds != null : "bounds must not be null";
-                return builder.rangeQuery(columnName, bounds.v1(), bounds.v2(), includeLower, includeUpper);
+                return fieldType.rangeQuery(bounds.v1(), bounds.v2(), includeLower, includeUpper);
             }
         }
 
@@ -1283,7 +1328,11 @@ public class LuceneQueryBuilder {
         public Query visitReference(Reference symbol, Context context) {
             // called for queries like: where boolColumn
             if (symbol.valueType() == DataTypes.BOOLEAN) {
-                return QueryBuilderHelper.forType(DataTypes.BOOLEAN).eq(symbol.ident().columnIdent().fqn(), true);
+                MappedFieldType fieldType = context.getFieldTypeOrNull(symbol.ident().columnIdent().fqn());
+                if (fieldType == null) {
+                    return Queries.newMatchNoDocsQuery();
+                }
+                return fieldType.termQuery(true, null);
             }
             return super.visitReference(symbol, context);
         }

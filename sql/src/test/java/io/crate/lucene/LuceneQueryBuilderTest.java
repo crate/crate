@@ -44,29 +44,43 @@ import org.apache.lucene.spatial.prefix.WithinPrefixTreeQuery;
 import org.elasticsearch.Version;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.common.compress.CompressedXContent;
+import org.elasticsearch.common.inject.Injector;
+import org.elasticsearch.common.inject.ModulesBuilder;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.common.settings.SettingsModule;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentFactory;
+import org.elasticsearch.env.Environment;
+import org.elasticsearch.env.EnvironmentModule;
+import org.elasticsearch.index.Index;
+import org.elasticsearch.index.IndexNameModule;
+import org.elasticsearch.index.analysis.AnalysisModule;
+import org.elasticsearch.index.analysis.AnalysisService;
 import org.elasticsearch.index.cache.IndexCache;
 import org.elasticsearch.index.fielddata.IndexFieldData;
 import org.elasticsearch.index.fielddata.IndexFieldDataService;
 import org.elasticsearch.index.fielddata.IndexGeoPointFieldData;
+import org.elasticsearch.index.mapper.ArrayMapper;
 import org.elasticsearch.index.mapper.MappedFieldType;
 import org.elasticsearch.index.mapper.MapperService;
+import org.elasticsearch.index.mapper.array.DynamicArrayFieldMapperBuilderFactoryProvider;
+import org.elasticsearch.index.settings.IndexSettingsModule;
+import org.elasticsearch.index.similarity.SimilarityLookupService;
+import org.elasticsearch.indices.IndicesModule;
+import org.elasticsearch.indices.analysis.IndicesAnalysisService;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 import org.mockito.Answers;
 
+import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.Map;
 
-import static org.elasticsearch.index.mapper.core.MapperTestUtils.newMapperService;
 import static org.hamcrest.Matchers.*;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
-
 
 public class LuceneQueryBuilderTest extends CrateUnitTest {
 
@@ -96,28 +110,76 @@ public class LuceneQueryBuilderTest extends CrateUnitTest {
 
         expressions = new SqlExpressions(sources, usersTr);
         builder = new LuceneQueryBuilder(expressions.getInstance(Functions.class));
-
         indexCache = mock(IndexCache.class, Answers.RETURNS_MOCKS.get());
 
+        Path tempDir = createTempDir();
         Settings indexSettings = Settings.builder()
             .put(IndexMetaData.SETTING_VERSION_CREATED, Version.CURRENT)
+            .put("path.home", tempDir)
             .build();
+        Index index = new Index(users.ident().indexName());
         when(indexCache.indexSettings()).thenReturn(indexSettings);
-        mapperService = newMapperService(temporaryFolder.newFolder().toPath(), indexSettings);
+        AnalysisService analysisService = createAnalysisService(indexSettings, index);
+        mapperService = createMapperService(index, indexSettings, analysisService);
 
-        XContentBuilder xContentBuilder = XContentFactory.jsonBuilder().startObject().startObject("default")
-            .startObject("properties")
-            .startObject("point").field("type", "geo_point").endObject()
-            .startObject("shape").field("type", "geo_shape").endObject()
+        // @formatter:off
+        XContentBuilder xContentBuilder = XContentFactory.jsonBuilder()
+            .startObject()
+            .startObject("default")
+                .startObject("properties")
+                    .startObject("name").field("type", "string").endObject()
+                    .startObject("x").field("type", "integer").endObject()
+                    .startObject("d").field("type", "double").endObject()
+                    .startObject("point").field("type", "geo_point").endObject()
+                    .startObject("shape").field("type", "geo_shape").endObject()
+                    .startObject("d_array")
+                        .field("type", "array")
+                        .startObject("inner")
+                            .field("type", "double")
+                        .endObject()
+                    .endObject()
+                .endObject()
             .endObject()
-            .endObject().endObject();
-        mapperService.merge("default", new CompressedXContent(xContentBuilder.bytes()), MapperService.MergeReason.MAPPING_UPDATE, true);
+            .endObject();
+        // @formatter:on
+        mapperService.merge("default",
+            new CompressedXContent(xContentBuilder.bytes()), MapperService.MergeReason.MAPPING_UPDATE, true);
 
 
         indexFieldDataService = mock(IndexFieldDataService.class);
         IndexFieldData geoFieldData = mock(IndexGeoPointFieldData.class);
         when(geoFieldData.getFieldNames()).thenReturn(new MappedFieldType.Names("point"));
         when(indexFieldDataService.getForField(mapperService.smartNameFieldType("point"))).thenReturn(geoFieldData);
+    }
+
+    private MapperService createMapperService(Index index, Settings indexSettings, AnalysisService analysisService) {
+        DynamicArrayFieldMapperBuilderFactoryProvider arrayMapperProvider =
+            new DynamicArrayFieldMapperBuilderFactoryProvider();
+        arrayMapperProvider.dynamicArrayFieldMapperBuilderFactory = new ArrayMapper.BuilderFactory();
+        IndicesModule indicesModule = new IndicesModule();
+        indicesModule.registerMapper(ArrayMapper.CONTENT_TYPE, new ArrayMapper.TypeParser());
+        return new MapperService(
+            index,
+            indexSettings,
+            analysisService,
+            new SimilarityLookupService(index, indexSettings),
+            null,
+            indicesModule.getMapperRegistry(),
+            arrayMapperProvider
+        );
+    }
+
+    private AnalysisService createAnalysisService(Settings indexSettings, Index index) {
+        Injector parentInjector = new ModulesBuilder()
+            .add(new SettingsModule(indexSettings), new EnvironmentModule(new Environment(indexSettings)))
+            .createInjector();
+        Injector injector = new ModulesBuilder().add(
+            new IndexSettingsModule(index, indexSettings),
+            new IndexNameModule(index),
+            new AnalysisModule(
+                indexSettings,
+                parentInjector.getInstance(IndicesAnalysisService.class))).createChildInjector(parentInjector);
+        return injector.getInstance(AnalysisService.class);
     }
 
     private WhereClause asWhereClause(String expression) {
@@ -259,7 +321,8 @@ public class LuceneQueryBuilderTest extends CrateUnitTest {
     @Test
     public void testAnyEqArrayReference() throws Exception {
         Query query = convert("1.5 = any(d_array)");
-        assertThat(query.toString(), is("d_array:[1.5 TO 1.5]"));
+        assertThat(query, instanceOf(TermQuery.class));
+        assertThat(query.toString(), startsWith("d_array"));
     }
 
     @Test
