@@ -53,7 +53,6 @@ import org.elasticsearch.index.fielddata.IndexFieldDataService;
 import org.elasticsearch.index.fielddata.IndexGeoPointFieldData;
 import org.elasticsearch.index.mapper.MappedFieldType;
 import org.elasticsearch.index.mapper.MapperService;
-import org.elasticsearch.search.internal.SearchContext;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -72,10 +71,11 @@ import static org.mockito.Mockito.when;
 public class LuceneQueryBuilderTest extends CrateUnitTest {
 
     private LuceneQueryBuilder builder;
-    private SearchContext searchContext;
     private IndexCache indexCache;
     private SqlExpressions expressions;
     private Map<QualifiedName, AnalyzedRelation> sources;
+    private IndexFieldDataService indexFieldDataService;
+    private MapperService mapperService;
 
     @Rule
     public TemporaryFolder temporaryFolder = new TemporaryFolder();
@@ -92,19 +92,18 @@ public class LuceneQueryBuilderTest extends CrateUnitTest {
             .add("point", DataTypes.GEO_POINT)
             .build();
         TableRelation usersTr = new TableRelation(users);
-        sources = ImmutableMap.<QualifiedName, AnalyzedRelation>of(new QualifiedName("users"), usersTr);
+        sources = ImmutableMap.of(new QualifiedName("users"), usersTr);
 
         expressions = new SqlExpressions(sources, usersTr);
         builder = new LuceneQueryBuilder(expressions.getInstance(Functions.class));
 
-        searchContext = mock(SearchContext.class, Answers.RETURNS_MOCKS.get());
         indexCache = mock(IndexCache.class, Answers.RETURNS_MOCKS.get());
 
         Settings indexSettings = Settings.builder()
             .put(IndexMetaData.SETTING_VERSION_CREATED, Version.CURRENT)
             .build();
         when(indexCache.indexSettings()).thenReturn(indexSettings);
-        MapperService mapperService = newMapperService(temporaryFolder.newFolder().toPath(), indexSettings);
+        mapperService = newMapperService(temporaryFolder.newFolder().toPath(), indexSettings);
 
         XContentBuilder xContentBuilder = XContentFactory.jsonBuilder().startObject().startObject("default")
             .startObject("properties")
@@ -114,10 +113,8 @@ public class LuceneQueryBuilderTest extends CrateUnitTest {
             .endObject().endObject();
         mapperService.merge("default", new CompressedXContent(xContentBuilder.bytes()), MapperService.MergeReason.MAPPING_UPDATE, true);
 
-        when(searchContext.mapperService()).thenReturn(mapperService);
 
-        IndexFieldDataService indexFieldDataService = mock(IndexFieldDataService.class);
-        when(searchContext.fieldData()).thenReturn(indexFieldDataService);
+        indexFieldDataService = mock(IndexFieldDataService.class);
         IndexFieldData geoFieldData = mock(IndexGeoPointFieldData.class);
         when(geoFieldData.getFieldNames()).thenReturn(new MappedFieldType.Names("point"));
         when(indexFieldDataService.getForField(mapperService.smartNameFieldType("point"))).thenReturn(geoFieldData);
@@ -128,7 +125,7 @@ public class LuceneQueryBuilderTest extends CrateUnitTest {
     }
 
     private Query convert(WhereClause clause) {
-        return builder.convert(clause, searchContext.mapperService(), searchContext.fieldData(), indexCache).query;
+        return builder.convert(clause, mapperService, indexFieldDataService, indexCache).query;
     }
 
     private Query convert(String expression) {
@@ -149,7 +146,7 @@ public class LuceneQueryBuilderTest extends CrateUnitTest {
                 .add("x", type)
                 .build();
             TableRelation tableRelation = new TableRelation(tableInfo);
-            Map<QualifiedName, AnalyzedRelation> tableSources = ImmutableMap.<QualifiedName, AnalyzedRelation>of(new QualifiedName(tableInfo.ident().name()), tableRelation);
+            Map<QualifiedName, AnalyzedRelation> tableSources = ImmutableMap.of(new QualifiedName(tableInfo.ident().name()), tableRelation);
             SqlExpressions sqlExpressions = new SqlExpressions(
                 tableSources, tableRelation, new Object[]{null}, SessionContext.SYSTEM_SESSION);
 
