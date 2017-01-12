@@ -11,10 +11,9 @@ import re
 import sys
 import logging
 import argparse
+import psycopg2
 from functools import partial
 from hashlib import md5
-from crate.client import connect
-from crate.client import exceptions
 from tqdm import tqdm
 
 
@@ -50,7 +49,7 @@ class Statement:
         stmt = real_to_double(stmt)
         try:
             cursor.execute(stmt)
-        except exceptions.ProgrammingError as e:
+        except psycopg2.Error as e:
             if self.expect_ok:
                 raise IncorrectResult(e)
 
@@ -270,9 +269,9 @@ def get_logger(level, filename=None):
     return logger
 
 
-def run_file(fh, hosts, log_level, log_file, failfast):
+def run_file(fh, host, port, log_level, log_file, failfast):
     logger = get_logger(log_level, log_file)
-    conn = connect(hosts)
+    conn = psycopg2.connect("host=" + host + " port=" + port + " dbname='doc'")
     cursor = conn.cursor()
     commands = get_commands(fh)
     commands = (cmd for cmd in commands if _exec_on_crate(cmd))
@@ -286,7 +285,7 @@ def run_file(fh, hosts, log_level, log_file, failfast):
                 _refresh_tables(cursor)
             try:
                 s_or_q.execute(cursor)
-            except exceptions.ProgrammingError as e:
+            except psycopg2.Error as e:
                 logger.info('%s; %s', s_or_q.query, e, extra=attr)
             except IncorrectResult as e:
                 if not any(p.match(s_or_q.query) for p in QUERY_WHITELIST):
@@ -305,17 +304,19 @@ def run_file(fh, hosts, log_level, log_file, failfast):
 def main():
     parser = argparse.ArgumentParser(prog='sqllogictest.py', description=__doc__)
     parser.add_argument('-f', '--file',
-                        type=argparse.FileType('r'), required=True)
-    parser.add_argument('--hosts',
-                        type=str, default='http://localhost:4200')
+                        type=str, required=True)
+    parser.add_argument('--host',
+                        type=str, default='localhost')
+    parser.add_argument('--port',
+                        type=str, default='5432')
     parser.add_argument('-l', '--log-level',
                         type=int, default=logging.WARNING,
-                        help='Python log levels: DEBUG=10, INFO=20, WARNING=30, ERROR=40, CRITIICAL=50')
+                        help='Python log levels: DEBUG=10, INFO=20, WARNING=30, ERROR=40, CRITICAL=50')
     parser.add_argument('--failfast',
                         action='store_true', default=False,
                         help='Fail on first error.')
     args = parser.parse_args()
-    run_file(args.file, args.hosts, args.log_level, None, args.failfast)
+    run_file(args.file, args.host, args.port, args.log_level, None, args.failfast)
 
 
 if __name__ == "__main__":
