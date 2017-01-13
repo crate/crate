@@ -34,6 +34,7 @@ import org.elasticsearch.common.settings.ClusterSettings;
 import org.elasticsearch.common.settings.Settings;
 
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -141,7 +142,7 @@ public class ClusterSettingsExpression extends NestedObjectExpression {
 
         //ApplySettings applySettings = new ApplySettings(settings, values);
         //nodeSettingsService.addListener(applySettings);
-        applyInitialSettingsAndRegisterUpdateConsumer(CrateSettings.SETTINGS, settings);
+        applyInitialSettingsAndRegisterUpdateConsumer(CrateSettings.CRATE_SETTINGS, settings);
 
         addChildImplementations();
     }
@@ -164,12 +165,18 @@ public class ClusterSettingsExpression extends NestedObjectExpression {
             org.elasticsearch.common.settings.Setting<?> esSetting = setting.esSetting();
             if (esSetting == null) { // = NestedSetting (= container for other settings)
                 applyInitialSettingsAndRegisterUpdateConsumer(setting.children(), settings);
-            } else {
+            } else if (setting.isRuntime()) {
                 try {
                     clusterSettings.addSettingsUpdateConsumer(esSetting, v -> values.put(name, v));
                 } catch (IllegalArgumentException e) {
-                    // TODO: esSetting instance doesn't match the registered instance - need to fix this
-                    LOGGER.error(e);
+                    if (clusterSettings.get(esSetting.getKey()) != null) {
+                        // Setting exists, but identity comparison differs, probably an already registered ES setting
+                        LOGGER.debug(String.format(Locale.ENGLISH,
+                            "An update consumer for setting key [%s] is already registered, ignoring..",
+                            esSetting.getKey()));
+                    } else {
+                        LOGGER.error(e);
+                    }
                 }
             }
         }

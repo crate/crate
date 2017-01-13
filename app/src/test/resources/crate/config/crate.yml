@@ -3,6 +3,5 @@
 # this file correctly!
 
 path:
-  work: /tmp
   data: /tmp/crate/data
   logs: /tmp/crate/logs
