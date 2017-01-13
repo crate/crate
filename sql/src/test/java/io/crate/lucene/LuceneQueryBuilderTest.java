@@ -41,13 +41,12 @@ import org.apache.lucene.queries.TermsQuery;
 import org.apache.lucene.search.*;
 import org.apache.lucene.spatial.prefix.IntersectsPrefixTreeQuery;
 import org.apache.lucene.spatial.prefix.WithinPrefixTreeQuery;
-import org.elasticsearch.Version;
-import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.common.UUIDs;
 import org.elasticsearch.common.compress.CompressedXContent;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentFactory;
+import org.elasticsearch.env.Environment;
 import org.elasticsearch.index.Index;
 import org.elasticsearch.index.IndexSettings;
 import org.elasticsearch.index.analysis.AnalysisService;
@@ -59,12 +58,16 @@ import org.elasticsearch.index.mapper.ArrayMapper;
 import org.elasticsearch.index.mapper.MapperService;
 import org.elasticsearch.index.mapper.array.DynamicArrayFieldMapperBuilderFactoryProvider;
 import org.elasticsearch.index.similarity.SimilarityService;
+import org.elasticsearch.indices.IndicesModule;
+import org.elasticsearch.indices.analysis.AnalysisModule;
+import org.elasticsearch.test.IndexSettingsModule;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 import org.mockito.Answers;
 
+import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.Collections;
@@ -105,16 +108,12 @@ public class LuceneQueryBuilderTest extends CrateUnitTest {
         indexCache = mock(IndexCache.class, Answers.RETURNS_MOCKS.get());
 
         Path tempDir = createTempDir();
-        Settings indexSettings = Settings.builder()
-            .put(IndexMetaData.SETTING_VERSION_CREATED, Version.CURRENT)
-            .put("path.home", tempDir)
-            .build();
         Index index = new Index(users.ident().indexName(), UUIDs.randomBase64UUID());
-        // TODO: Fix
-        //when(indexCache.getIndexSettings()).thenReturn(new IndexSettings()indexSettings);
-        IndexSettings idxSettings = null;
-        AnalysisService analysisService = createAnalysisService(indexSettings, index);
-        mapperService = createMapperService(index, idxSettings, analysisService);
+        Settings nodeSettings = Settings.builder().put("path.home", tempDir).build();
+        IndexSettings idxSettings = IndexSettingsModule.newIndexSettings(index, nodeSettings);
+        when(indexCache.getIndexSettings()).thenReturn(idxSettings);
+        AnalysisService analysisService = createAnalysisService(idxSettings, nodeSettings);
+        mapperService = createMapperService(idxSettings, analysisService);
 
         // @formatter:off
         XContentBuilder xContentBuilder = XContentFactory.jsonBuilder()
@@ -147,38 +146,26 @@ public class LuceneQueryBuilderTest extends CrateUnitTest {
         when(indexFieldDataService.getForField(mapperService.fullName("point"))).thenReturn(geoFieldData);
     }
 
-    private MapperService createMapperService(Index index, IndexSettings indexSettings, AnalysisService analysisService) {
+    private MapperService createMapperService(IndexSettings indexSettings, AnalysisService analysisService) {
         DynamicArrayFieldMapperBuilderFactoryProvider arrayMapperProvider =
             new DynamicArrayFieldMapperBuilderFactoryProvider();
         arrayMapperProvider.dynamicArrayFieldMapperBuilderFactory = new ArrayMapper.BuilderFactory();
-        /*
-        IndicesModule indicesModule = new IndicesModule();
-        indicesModule.registerMapper(ArrayMapper.CONTENT_TYPE, new ArrayMapper.TypeParser());
-        */
+        IndicesModule indicesModule = new IndicesModule(Collections.emptyList());
+        //indicesModule.registerMapper(ArrayMapper.CONTENT_TYPE, new ArrayMapper.TypeParser());
         return new MapperService(
             indexSettings,
             analysisService,
             new SimilarityService(indexSettings, Collections.emptyMap()),
-            null,
-            null, // indicesModule.getMapperRegistry(),
+            indicesModule.getMapperRegistry(),
+            () -> null,
             arrayMapperProvider
         );
     }
 
-    private AnalysisService createAnalysisService(Settings indexSettings, Index index) {
-        return null;
-        /*
-        Injector parentInjector = new ModulesBuilder()
-            .add(new SettingsModule(indexSettings), new EnvironmentModule(new Environment(indexSettings)))
-            .createInjector();
-        Injector injector = new ModulesBuilder().add(
-            new IndexSettingsModule(index, indexSettings),
-            new IndexNameModule(index),
-            new AnalysisModule(
-                indexSettings,
-                parentInjector.getInstance(IndicesAnalysisService.class))).createChildInjector(parentInjector);
-        return injector.getInstance(AnalysisService.class);
-        */
+    private AnalysisService createAnalysisService(IndexSettings indexSettings, Settings nodeSettings) throws IOException {
+        Environment env = new Environment(nodeSettings);
+        AnalysisModule analysisModule = new AnalysisModule(env, Collections.emptyList());
+        return analysisModule.getAnalysisRegistry().build(indexSettings);
     }
 
     private WhereClause asWhereClause(String expression) {
