@@ -172,6 +172,9 @@ currently applied cluster settings.
     | settings['logger']['level']                                                       | string       |
     | settings['logger']['name']                                                        | string       |
     | settings['stats']                                                                 | object       |
+    | settings['stats']['breaker']                                                      | object       |
+    | settings['stats']['breaker']['logs']                                              | object       |
+    | settings['stats']['breaker']['logs']['limit']                                     | string       |
     | settings['stats']['enabled']                                                      | boolean      |
     | settings['stats']['jobs_log_size']                                                | integer      |
     | settings['stats']['operations_log_size']                                          | integer      |
@@ -181,7 +184,7 @@ currently applied cluster settings.
     | settings['udc']['interval']                                                       | string       |
     | settings['udc']['url']                                                            | string       |
     +-----------------------------------------------------------------------------------+--------------+
-    SELECT 93 rows in set (... sec)
+    SELECT 96 rows in set (... sec)
 
 For further details, see the :ref:`Cluster Settings <conf-cluster-settings>` configuration section.
 

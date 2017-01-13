@@ -51,7 +51,8 @@ public class CrateSettings {
                 STATS_JOBS_LOG_SIZE,
                 STATS_JOBS_LOG_EXPIRATION,
                 STATS_OPERATIONS_LOG_SIZE,
-                STATS_SERVICE_REFRESH_INTERVAL);
+                STATS_SERVICE_REFRESH_INTERVAL,
+                STATS_BREAKER);
         }
 
         @Override
@@ -137,6 +138,55 @@ public class CrateSettings {
             return STATS;
         }
     };
+
+    public static final NestedSetting STATS_BREAKER = new NestedSetting() {
+
+        @Override
+        public String name() {
+            return "breaker";
+        }
+
+        @Override
+        public List<Setting> children() {
+            return ImmutableList.of(STATS_BREAKER_LOGS);
+        }
+
+        @Override
+        public Setting parent() {
+            return STATS;
+        }
+
+        @Override
+        public boolean isRuntime() {
+            return true;
+        }
+    };
+
+    public static final NestedSetting STATS_BREAKER_LOGS = new NestedSetting() {
+
+        @Override
+        public String name() {
+            return "logs";
+        }
+
+        @Override
+        public List<Setting> children() {
+            return ImmutableList.of(STATS_BREAKER_LOGS_LIMIT);
+        }
+
+        @Override
+        public Setting parent() {
+            return STATS_BREAKER;
+        }
+
+        @Override
+        public boolean isRuntime() {
+            return true;
+        }
+    };
+
+    public static final StringSetting STATS_BREAKER_LOGS_LIMIT =
+        new StringSetting("limit", null, true, "5%", STATS_BREAKER_LOGS);
 
     public static final NestedSetting CLUSTER = new NestedSetting() {
         @Override
@@ -1435,7 +1485,7 @@ public class CrateSettings {
     public static final List<Setting> SETTINGS = ImmutableList.<Setting>of(
         STATS, CLUSTER, DISCOVERY, INDICES, BULK, GATEWAY, UDC, PSQL);
 
-    static final Map<String, SettingsApplier> SUPPORTED_SETTINGS = ImmutableMap.<String, SettingsApplier>builder()
+    private static final Map<String, SettingsApplier> SUPPORTED_SETTINGS = ImmutableMap.<String, SettingsApplier>builder()
         .put(CrateSettings.STATS.settingName(),
             new SettingsAppliers.ObjectSettingsApplier(CrateSettings.STATS))
         .put(CrateSettings.STATS_JOBS_LOG_SIZE.settingName(),
@@ -1448,6 +1498,12 @@ public class CrateSettings {
             new SettingsAppliers.BooleanSettingsApplier(CrateSettings.STATS_ENABLED))
         .put(CrateSettings.STATS_SERVICE_REFRESH_INTERVAL.settingName(),
             new SettingsAppliers.TimeSettingsApplier(CrateSettings.STATS_SERVICE_REFRESH_INTERVAL))
+        .put(CrateSettings.STATS_BREAKER.settingName(),
+            new SettingsAppliers.ObjectSettingsApplier(CrateSettings.STATS_BREAKER))
+        .put(CrateSettings.STATS_BREAKER_LOGS.settingName(),
+            new SettingsAppliers.ObjectSettingsApplier(CrateSettings.STATS_BREAKER_LOGS))
+        .put(CrateSettings.STATS_BREAKER_LOGS_LIMIT.settingName(),
+            new SettingsAppliers.MemoryValueSettingsApplier(CrateSettings.STATS_BREAKER_LOGS_LIMIT))
         .put(CrateSettings.CLUSTER.settingName(),
             new SettingsAppliers.ObjectSettingsApplier(CrateSettings.CLUSTER))
         .put(CrateSettings.GRACEFUL_STOP.settingName(),
