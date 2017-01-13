@@ -207,17 +207,17 @@ public class CrateSettingsTest extends CrateUnitTest {
 
     @Test
     public void testApplyByteCrateSetting() throws Exception {
-        ByteSizeSetting byteSizeSetting = CrateSettings.INDICES_RECOVERY_FILE_CHUNK_SIZE;
+        ByteSizeSetting byteSizeSetting = CrateSettings.INDICES_RECOVERY_MAX_BYTES_PER_SEC;
         SettingsAppliers.ByteSizeSettingsApplier intSettingsApplier =
             new SettingsAppliers.ByteSizeSettingsApplier(byteSizeSetting);
 
         Settings.Builder settings = Settings.builder();
         intSettingsApplier.apply(settings, Row.EMPTY, Literal.fromObject("1024kb"));
-        assertThat(settings.get("indices.recovery.file_chunk_size"), is("1048576b"));
+        assertThat(settings.get(byteSizeSetting.settingName()), is("1048576b"));
 
         settings = Settings.builder();
         intSettingsApplier.apply(settings, Row.EMPTY, Literal.fromObject("1mb"));
-        assertThat(settings.get("indices.recovery.file_chunk_size"), is("1048576b"));
+        assertThat(settings.get(byteSizeSetting.settingName()), is("1048576b"));
     }
 
     @Test
