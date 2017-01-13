@@ -46,7 +46,6 @@ sure that there is a python executable called ``python3`` in the global system
 Before you can build the documentation, you need to setup a development
 environment by running `bootstrap.sh` inside the ``blackbox`` directory::
 
-
     $ cd blackbox
     $ ./bootstrap.sh
 
@@ -58,7 +57,8 @@ If you're editing the docs and want live rebuilds, run::
 
     $ ./bin/sphinx dev
 
-This command watches the file system for changes and rebuilds the docs, refreshing your open browser tab, as needed.
+This command watches the file system for changes and rebuilds the docs, refreshing your
+open browser tab, as needed.
 
 To test that all examples in the documentation execute correctly run::
 
@@ -115,9 +115,7 @@ And start Crate::
 
     ./app/build/install/crate/bin/crate
 
-
 Other common tasks are::
-
 
     ./gradlew --parallel -PtestForks=2 :sql:test
 
@@ -152,7 +150,6 @@ to all tests that are run with the command::
 To get a full list of all available tasks run::
 
     ./gradlew tasks
-
 
 Finding your way around in the Crate source code
 ------------------------------------------------
@@ -197,7 +194,6 @@ The ``home`` directory will be set to ``<project_root>/sandbox/crate`` and the
 configuration files for it can be found in
 ``<project_root>/sandbox/crate/config``.
 
-
 Test Coverage
 --------------
 
@@ -223,7 +219,6 @@ Forbidden APIs
 Run `Forbidden APIs`_::
 
     ./gradlew forbiddenApisMain
-
 
 Benchmark
 =========
@@ -265,9 +260,9 @@ Jmh
     $ ./gradlew :core:jmh
     $ ./gradlew :sql:jmh
 
-
 By default this will look for benchmarks inside ``<module>/src/jmh/java`` and
 execute them.
+
 Currently, the `JMH`_ plugin is only enabled at the `core` module.
 
 Results will be generated into ``$buildDir/reports/jmh``.
@@ -312,7 +307,6 @@ the SQL parser code it is probably necessary to re-generate the parser code as
 the grammar changed::
 
     ./gradlew :sql-parser:compileJava
-
 
 .. _Jenkins: http://jenkins-ci.org/
 

@@ -25,4 +25,3 @@ Code Contributors
 - Rene Treffer (`@rtreffer <https://github.com/rtreffer>`_) <treffer@measite.de>
 - Senad Biser (`@senchi <https://github.com/senchi>`_) <sbiser@gmail.com>
 - Tom Kapanka (`@spanktar <https://github.com/spanktar>`_) <spanky@crate.io>
-
