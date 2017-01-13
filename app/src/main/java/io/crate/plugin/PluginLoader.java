@@ -36,6 +36,7 @@ import org.elasticsearch.common.component.LifecycleComponent;
 import org.elasticsearch.common.inject.Module;
 import org.elasticsearch.common.io.PathUtils;
 import org.elasticsearch.common.logging.Loggers;
+import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.plugins.PluginInfo;
 
@@ -290,6 +291,15 @@ public class PluginLoader {
         }
         return builder.build();
     }
+
+    List<Setting<?>> getSettings() {
+        List<Setting<?>> settings = new ArrayList<>();
+        for (Plugin plugin : plugins) {
+            settings.addAll(plugin.getSettings());
+        }
+        return settings;
+    }
+
 
     public void processModule(Module module) {
         for (Plugin plugin : plugins) {

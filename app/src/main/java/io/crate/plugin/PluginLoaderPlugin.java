@@ -28,9 +28,14 @@ import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.component.LifecycleComponent;
 import org.elasticsearch.common.inject.Module;
 import org.elasticsearch.common.logging.Loggers;
+import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.IndexModule;
+import org.elasticsearch.index.mapper.Mapper;
+import org.elasticsearch.plugins.ActionPlugin;
+import org.elasticsearch.plugins.MapperPlugin;
 import org.elasticsearch.plugins.Plugin;
+import org.elasticsearch.rest.RestHandler;
 
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.TrustManager;
@@ -38,10 +43,9 @@ import javax.net.ssl.TrustManagerFactory;
 import java.io.FileNotFoundException;
 import java.io.InputStream;
 import java.security.KeyStore;
-import java.util.ArrayList;
-import java.util.Collection;
+import java.util.*;
 
-public class PluginLoaderPlugin extends Plugin {
+public class PluginLoaderPlugin extends Plugin implements ActionPlugin, MapperPlugin {
 
     private static final Logger LOGGER = Loggers.getLogger(PluginLoaderPlugin.class);
 
@@ -53,6 +57,7 @@ public class PluginLoaderPlugin extends Plugin {
 
     private final SQLPlugin sqlPlugin;
     private final Settings additionalSettings;
+    private final List<Setting<?>> settingList = new ArrayList<>();
 
     public PluginLoaderPlugin(Settings settings) {
         pluginLoader = new PluginLoader(settings);
@@ -66,6 +71,8 @@ public class PluginLoaderPlugin extends Plugin {
         additionalSettings = Settings.builder()
             .put(pluginLoader.additionalSettings())
             .put(sqlPlugin.additionalSettings()).build();
+        settingList.addAll(pluginLoader.getSettings());
+        settingList.addAll(sqlPlugin.getSettings());
 
         try {
             initializeTrustStore();
@@ -77,6 +84,11 @@ public class PluginLoaderPlugin extends Plugin {
     @Override
     public Settings additionalSettings() {
         return additionalSettings;
+    }
+
+    @Override
+    public List<Setting<?>> getSettings() {
+        return settingList;
     }
 
     @Override
@@ -94,6 +106,22 @@ public class PluginLoaderPlugin extends Plugin {
         modules.addAll(pluginLoader.createGuiceModules());
         modules.addAll(sqlPlugin.createGuiceModules());
         return modules;
+    }
+
+    @Override
+    public List<Class<? extends RestHandler>> getRestHandlers() {
+        List<Class<? extends RestHandler>> restHandlers = new ArrayList<>();
+        // FIXME: add resthandlers from the pluginLoader
+        restHandlers.addAll(sqlPlugin.getRestHandlers());
+        return restHandlers;
+    }
+
+    @Override
+    public Map<String, Mapper.TypeParser> getMappers() {
+        Map<String, Mapper.TypeParser> mappers = new HashMap<>();
+        // FIXME: add mappers from the pluginLoader
+        mappers.putAll(sqlPlugin.getMappers());
+        return mappers;
     }
 
     @Override
