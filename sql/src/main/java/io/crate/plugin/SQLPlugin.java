@@ -30,6 +30,7 @@ import io.crate.executor.transport.TransportExecutorModule;
 import io.crate.jobs.JobContextService;
 import io.crate.jobs.JobModule;
 import io.crate.jobs.transport.NodeDisconnectJobMonitorService;
+import io.crate.lucene.ArrayMapperModule;
 import io.crate.metadata.MetaDataModule;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.blob.MetaDataBlobModule;
@@ -65,6 +66,7 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.IndexModule;
 import org.elasticsearch.index.mapper.ArrayMapper;
 import org.elasticsearch.index.mapper.Mapper;
+import org.elasticsearch.index.mapper.ArrayTypeParser;
 import org.elasticsearch.plugins.ActionPlugin;
 import org.elasticsearch.plugins.MapperPlugin;
 import org.elasticsearch.plugins.Plugin;
@@ -175,21 +177,9 @@ public class SQLPlugin extends Plugin implements ActionPlugin, MapperPlugin {
         modules.add(new SysNodeChecksModule());
         modules.add(new RepositorySettingsModule());
         modules.add(new SysRepositoriesModule());
+        modules.add(new ArrayMapperModule());
         return modules;
     }
-
-    /*
-    FIXME: fix dynamic array mapper registration
-
-    @Override
-    public Collection<Module> indexModules(Settings indexSettings) {
-        Collection<Module> modules = newArrayList();
-        if (!settings.getAsBoolean("node.client", false)) {
-            modules.add(new CrateIndexModule());
-        }
-        return modules;
-    }
-    */
 
     @Override
     public void onIndexModule(IndexModule indexModule) {
@@ -203,6 +193,6 @@ public class SQLPlugin extends Plugin implements ActionPlugin, MapperPlugin {
 
     @Override
     public Map<String, Mapper.TypeParser> getMappers() {
-        return Collections.singletonMap(ArrayMapper.CONTENT_TYPE, new ArrayMapper.TypeParser());
+        return Collections.singletonMap(ArrayMapper.CONTENT_TYPE, new ArrayTypeParser());
     }
 }

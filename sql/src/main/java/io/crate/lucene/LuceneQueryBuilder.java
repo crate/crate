@@ -769,7 +769,7 @@ public class LuceneQueryBuilder {
 
                 Map fields = (Map) ((Literal) arguments.get(0)).value();
                 String fieldName = ((String) Iterables.getOnlyElement(fields.keySet()));
-                MappedFieldType fieldType = context.mapperService.unmappedFieldType(fieldName);
+                MappedFieldType fieldType = context.mapperService.fullName(fieldName);
                 GeoShapeFieldMapper.GeoShapeFieldType geoShapeFieldType = (GeoShapeFieldMapper.GeoShapeFieldType) fieldType;
                 String matchType = ((BytesRef) ((Input) arguments.get(2)).value()).utf8ToString();
                 @SuppressWarnings("unchecked")
