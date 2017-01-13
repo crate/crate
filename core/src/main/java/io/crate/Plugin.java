@@ -23,10 +23,12 @@ package io.crate;
 
 import org.elasticsearch.common.component.LifecycleComponent;
 import org.elasticsearch.common.inject.Module;
+import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
 
 import java.util.Collection;
 import java.util.Collections;
+import java.util.List;
 
 /**
  * An extension point allowing to plug in custom functionality.
@@ -67,5 +69,12 @@ public interface Plugin {
      */
     default Settings additionalSettings() {
         return Settings.Builder.EMPTY_SETTINGS;
+    }
+
+    /**
+     * Returns a list of additional {@link Setting} definitions for this plugin.
+     */
+    default List<Setting<?>> getSettings() {
+        return Collections.emptyList();
     }
 }
