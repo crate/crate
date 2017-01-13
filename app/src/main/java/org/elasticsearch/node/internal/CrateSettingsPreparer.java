@@ -27,6 +27,7 @@ import org.elasticsearch.cluster.ClusterName;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.settings.SettingsException;
 import org.elasticsearch.env.Environment;
+import org.elasticsearch.transport.Netty3Plugin;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -34,6 +35,9 @@ import java.nio.file.Path;
 import java.util.Map;
 
 import static org.elasticsearch.common.Strings.cleanPath;
+import static org.elasticsearch.common.network.NetworkModule.TRANSPORT_TYPE_DEFAULT_KEY;
+import static org.elasticsearch.http.HttpTransportSettings.SETTING_HTTP_PORT;
+import static org.elasticsearch.transport.TransportSettings.PORT;
 
 public class CrateSettingsPreparer {
 
@@ -78,15 +82,16 @@ public class CrateSettingsPreparer {
         // read also from crate.yml by default if no other config path has been set
         // if there is also a elasticsearch.yml file this file will be read first and the settings in crate.yml
         // will overwrite them.
-        putIfAbsent(settingsBuilder, "http.port", Constants.HTTP_PORT_RANGE);
-        putIfAbsent(settingsBuilder, "transport.tcp.port", Constants.TRANSPORT_PORT_RANGE);
-        putIfAbsent(settingsBuilder, "thrift.port", Constants.THRIFT_PORT_RANGE);
-        putIfAbsent(settingsBuilder, "discovery.zen.ping.multicast.enabled", true);
+        putIfAbsent(settingsBuilder, TRANSPORT_TYPE_DEFAULT_KEY, Netty3Plugin.NETTY_TRANSPORT_NAME);
+        putIfAbsent(settingsBuilder, SETTING_HTTP_PORT.getKey(), Constants.HTTP_PORT_RANGE);
+        putIfAbsent(settingsBuilder, PORT.getKey(), Constants.TRANSPORT_PORT_RANGE);
+        // FIXME: re-enable if multicast is working
+        //putIfAbsent(settingsBuilder, "discovery.zen.ping.multicast.enabled", true);
         putIfAbsent(settingsBuilder, "network.host", "0.0.0.0");
 
         // Set the default cluster name if not explicitly defined
         if (settingsBuilder.get(ClusterName.CLUSTER_NAME_SETTING.getKey()).equals(ClusterName.DEFAULT.value())) {
-            settingsBuilder.put("cluster.name", "crate");
+            settingsBuilder.put(ClusterName.CLUSTER_NAME_SETTING.getKey(), "crate");
         }
     }
 

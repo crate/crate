@@ -161,10 +161,7 @@ crate_layer = ConnectingCrateLayer(
     'crate',
     crate_home=crate_path(),
     port=CRATE_HTTP_PORT,
-    transport_port=CRATE_TRANSPORT_PORT,
-    settings={
-        'cluster.routing.schedule': '30ms',
-    }
+    transport_port=CRATE_TRANSPORT_PORT
 )
 
 crate_and_javarepl_layer = ConnectingAndJavaReplLayer(crate_layer, java_repl)

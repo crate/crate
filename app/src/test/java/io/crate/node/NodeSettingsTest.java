@@ -22,6 +22,7 @@
 package io.crate.node;
 
 import io.crate.Constants;
+import io.crate.test.integration.CrateUnitTest;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.elasticsearch.cli.Terminal;
@@ -35,18 +36,18 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
-import java.io.File;
 import java.io.IOException;
 import java.net.URISyntaxException;
 import java.nio.file.Paths;
 import java.util.Collections;
 
+import static org.elasticsearch.cluster.metadata.IndexMetaData.SETTING_NUMBER_OF_REPLICAS;
+import static org.elasticsearch.cluster.metadata.IndexMetaData.SETTING_NUMBER_OF_SHARDS;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.*;
 
 
-public class NodeSettingsTest {
+public class NodeSettingsTest extends CrateUnitTest {
 
     @Rule
     public TemporaryFolder tmp = new TemporaryFolder();
@@ -61,6 +62,10 @@ public class NodeSettingsTest {
     }
 
     private void doSetup() throws Exception {
+        doSetup(Settings.EMPTY);
+    }
+
+    private void doSetup(Settings settings) throws Exception {
         // mute log4j warning by configuring a dummy logger
         if (!loggingConfigured) {
             Logger root = Logger.getRootLogger();
@@ -72,25 +77,21 @@ public class NodeSettingsTest {
         Settings.Builder builder = Settings.builder()
             .put("node.name", "node-test")
             .put("node.data", true)
-            .put("index.store.type", "default")
-            .put("index.store.fs.memory.enabled", "true")
-            .put("gateway.type", "default")
             .put("path.home", CRATE_CONFIG_PATH)
-            .put("index.number_of_shards", "1")
-            .put("index.number_of_replicas", "0")
-            .put("cluster.routing.schedule", "50ms")
-            .put("node.local", true);
+            .put();
 
         Terminal terminal = Terminal.DEFAULT;
         Environment environment = CrateSettingsPreparer.prepareEnvironment(builder.build(), terminal, Collections.emptyMap());
         node = new CrateNode(environment);
         node.start();
         client = node.client();
-        client.admin().indices().prepareCreate("test").execute().actionGet();
+        client.admin().indices().prepareCreate("test")
+            .setSettings(SETTING_NUMBER_OF_REPLICAS, 0, SETTING_NUMBER_OF_SHARDS, 1)
+            .execute().actionGet();
     }
 
     @After
-    public void tearDown() throws IOException {
+    public void shutDownNodeAndClient() throws IOException {
         if (client != null) {
             client.admin().indices().prepareDelete("test").execute().actionGet();
             client = null;
@@ -112,37 +113,11 @@ public class NodeSettingsTest {
                 setWaitForGreenStatus().execute().actionGet().getClusterName());
     }
 
-    /**
-     * The default cluster name is "crate" if not set differently in crate settings
-     */
-    @Test
-    public void testClusterNameSystemProp() throws Exception {
-        System.setProperty("es.cluster.name", "system");
-        doSetup();
-        assertEquals("system",
-            client.admin().cluster().prepareHealth().
-                setWaitForGreenStatus().execute().actionGet().getClusterName());
-        System.clearProperty("es.cluster.name");
-
-    }
-
     @Test
     public void testDefaultPaths() throws Exception {
         doSetup();
-        assertTrue(node.settings().get("path.data").endsWith("data"));
+        assertTrue(node.settings().getAsArray("path.data")[0].endsWith("data"));
         assertTrue(node.settings().get("path.logs").endsWith("logs"));
-    }
-
-    @Test
-    public void testCustomPaths() throws Exception {
-        File data1 = new File(tmp.getRoot(), "data1");
-        File data2 = new File(tmp.getRoot(), "data2");
-        System.setProperty("es.path.data", data1.getAbsolutePath() + "," + data2.getAbsolutePath());
-        doSetup();
-        String[] paths = node.settings().getAsArray("path.data");
-        assertTrue(paths[0].endsWith("data1"));
-        assertTrue(paths[1].endsWith("data2"));
-        System.clearProperty("es.path.data");
     }
 
     @Test
@@ -162,7 +137,8 @@ public class NodeSettingsTest {
     @Test
     public void testInvalidUnicastHost() throws Exception {
         Settings.Builder builder = Settings.builder()
-            .put("discovery.zen.ping.multicast.enabled", false)
+            // FIXME: revise after multicast plugin works or is removed
+            //.put("discovery.zen.ping.multicast.enabled", false)
             .put("discovery.zen.ping.unicast.hosts", "nonexistinghost:4300")
             .put("path.home", CRATE_CONFIG_PATH);
         Terminal terminal = Terminal.DEFAULT;
