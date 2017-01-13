@@ -752,6 +752,15 @@ Collecting Stats
 
     Using a very small value can cause a high load on the cluster.
 
+.. _stats.breaker.logs.limit:
+
+**stats.breaker.logs.limit**
+  | *Default:*    ``5%``
+  | *Runtime:*   ``yes``
+
+  The logs circuit breaker allows CrateDB to prevent job logs data structures
+  from exceeding a certain amount of memory by removing old job logs entries.
+
 
 .. _conf_usage_data_collector:
 
