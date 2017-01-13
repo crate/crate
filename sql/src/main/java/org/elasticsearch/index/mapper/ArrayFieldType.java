@@ -23,19 +23,13 @@
 package org.elasticsearch.index.mapper;
 
 import org.apache.lucene.index.Term;
-import org.apache.lucene.index.Terms;
-import org.apache.lucene.search.MultiTermQuery;
 import org.apache.lucene.search.Query;
-import org.apache.lucene.util.BytesRef;
-import org.elasticsearch.action.fieldstats.FieldStats;
 import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.unit.Fuzziness;
 import org.elasticsearch.index.analysis.NamedAnalyzer;
-import org.elasticsearch.index.query.QueryParseContext;
 import org.elasticsearch.index.query.QueryShardContext;
 import org.elasticsearch.index.similarity.SimilarityProvider;
 
-import java.io.IOException;
 import java.util.List;
 
 class ArrayFieldType extends MappedFieldType implements Cloneable {
@@ -49,6 +43,11 @@ class ArrayFieldType extends MappedFieldType implements Cloneable {
 
     ArrayFieldType(MappedFieldType innerFieldType) {
         this.innerFieldType = innerFieldType;
+    }
+
+    @Override
+    public String name() {
+        return innerFieldType.name();
     }
 
     @SuppressWarnings("CloneDoesntCallSuperClone")
