@@ -37,7 +37,6 @@ Reporting an issue
 
   - Steps to reproduce.
 
-
 Pull requests
 -------------
 
@@ -59,7 +58,6 @@ CLA_. Once that is done, we suggest to continue as follows:
 
 .. _CLA: https://crate.io/community/contribute/agreements/
 
-
 Rebase
 ------
 
@@ -73,7 +71,6 @@ This will apply all commits on your feature branch on top of the master branch.
 Any conflicts can be resolved just the same as if ``git merge`` was used. After
 the conflict has been resolved use ``git rebase --continue`` to continue the
 rebase process.
-
 
 Squash
 ------

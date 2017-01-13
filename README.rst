@@ -7,7 +7,6 @@
 CRATEDB: Put data to work. Simply.
 ==================================
 
-
     CrateDB allows to query and compute data with SQL in real time by providing a
     distributed aggregation engine, native search and super simple scalability.
 
@@ -72,7 +71,6 @@ Powerful Lucene based full-text search::
 
     select title from wikipedia where match((title 1.5, text 1.0), 'Hitchhiker')
 
-
 Getting Started
 ===============
 
@@ -89,7 +87,6 @@ Or with docker::
 
 Visit our `getting started`_ page to see all available download and install options.
 
-
 Use CrateDB
 -----------
 
@@ -105,7 +102,6 @@ Start some more server to form a cluster and take a look at the documentation_
 to learn more.
 
 Especially the `crate introduction`_ is a great place to start learning more.
-
 
 Are you a Developer?
 ====================
