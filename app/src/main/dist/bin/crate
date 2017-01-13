@@ -178,7 +178,7 @@ while true; do
             shift 2
         ;;
         -C)
-            properties="$properties -Des.$2"
+            properties="$properties -D$2"
             shift 2
         ;;
         -X)

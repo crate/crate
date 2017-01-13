@@ -657,7 +657,6 @@ public class CrateSettings {
             return ImmutableList.of(
                 ROUTING_ALLOCATION_BALANCE_SHARD,
                 ROUTING_ALLOCATION_BALANCE_INDEX,
-                ROUTING_ALLOCATION_BALANCE_PRIMARY,
                 ROUTING_ALLOCATION_BALANCE_THRESHOLD
             );
         }
@@ -699,28 +698,6 @@ public class CrateSettings {
         @Override
         public Float defaultValue() {
             return 0.5f;
-        }
-
-        @Override
-        public Setting parent() {
-            return ROUTING_ALLOCATION_BALANCE;
-        }
-
-        @Override
-        public boolean isRuntime() {
-            return true;
-        }
-    };
-
-    public static final FloatSetting ROUTING_ALLOCATION_BALANCE_PRIMARY = new FloatSetting() {
-        @Override
-        public String name() {
-            return "primary";
-        }
-
-        @Override
-        public Float defaultValue() {
-            return 0.05f;
         }
 
         @Override
@@ -821,6 +798,7 @@ public class CrateSettings {
     public static final StringSetting ROUTING_ALLOCATION_DISK_WATERMARK_HIGH =
         new StringSetting("high", null, true, "90%", ROUTING_ALLOCATION_DISK_WATERMARK);
 
+
     public static final NestedSetting INDICES = new NestedSetting() {
         @Override
         public String name() {
@@ -829,7 +807,7 @@ public class CrateSettings {
 
         @Override
         public List<Setting> children() {
-            return ImmutableList.of(INDICES_RECOVERY, INDICES_STORE, INDICES_FIELDDATA, INDICES_BREAKER);
+            return ImmutableList.of(INDICES_RECOVERY, INDICES_STORE, INDICES_BREAKER_FIELDDATA, INDICES_BREAKER);
         }
 
         @Override
@@ -847,11 +825,6 @@ public class CrateSettings {
         @Override
         public List<Setting> children() {
             return ImmutableList.of(
-                INDICES_RECOVERY_CONCURRENT_STREAMS,
-                INDICES_RECOVERY_FILE_CHUNK_SIZE,
-                INDICES_RECOVERY_TRANSLOG_OPS,
-                INDICES_RECOVERY_TRANSLOG_SIZE,
-                INDICES_RECOVERY_COMPRESS,
                 INDICES_RECOVERY_MAX_BYTES_PER_SEC,
                 INDICES_RECOVERY_RETRY_DELAY_STATE_SYNC,
                 INDICES_RECOVERY_RETRY_DELAY_NETWORK,
@@ -869,36 +842,6 @@ public class CrateSettings {
         @Override
         public boolean isRuntime() {
             return true;
-        }
-    };
-
-    public static final IntSetting INDICES_RECOVERY_CONCURRENT_STREAMS = new IntSetting("concurrent_streams", 3, true) {
-        @Override
-        public Setting parent() {
-            return INDICES_RECOVERY;
-        }
-    };
-
-    public static final ByteSizeSetting INDICES_RECOVERY_FILE_CHUNK_SIZE = new ByteSizeSetting(
-        "file_chunk_size", new ByteSizeValue(512, ByteSizeUnit.KB), true, INDICES_RECOVERY);
-
-
-    public static final IntSetting INDICES_RECOVERY_TRANSLOG_OPS = new IntSetting("translog_ops", 1000, true) {
-        @Override
-        public Setting parent() {
-            return INDICES_RECOVERY;
-        }
-    };
-
-    public static final ByteSizeSetting INDICES_RECOVERY_TRANSLOG_SIZE = new ByteSizeSetting(
-        "translog_size", new ByteSizeValue(512, ByteSizeUnit.KB), true, INDICES_RECOVERY);
-
-
-    public static final BoolSetting INDICES_RECOVERY_COMPRESS = new BoolSetting("compress", true, true) {
-
-        @Override
-        public Setting parent() {
-            return INDICES_RECOVERY;
         }
     };
 
@@ -974,7 +917,7 @@ public class CrateSettings {
     public static final TimeSetting INDICES_RECOVERY_ACTIVITY_TIMEOUT = new TimeSetting() {
         @Override
         public String name() {
-            return "activity_timeout";
+            return "recovery_activity_timeout";
         }
 
         @Override
@@ -1068,15 +1011,19 @@ public class CrateSettings {
     public static final ByteSizeSetting INDICES_STORE_THROTTLE_MAX_BYTES_PER_SEC = new ByteSizeSetting(
         "max_bytes_per_sec", new ByteSizeValue(20, ByteSizeUnit.MB), true, INDICES_STORE_THROTTLE);
 
-    public static final NestedSetting INDICES_FIELDDATA = new NestedSetting() {
+    public static final NestedSetting INDICES_BREAKER = new NestedSetting() {
         @Override
         public String name() {
-            return "fielddata";
+            return "breaker";
         }
 
         @Override
         public List<Setting> children() {
-            return ImmutableList.of(INDICES_FIELDDATA_BREAKER);
+            return ImmutableList.of(
+                INDICES_BREAKER_FIELDDATA,
+                INDICES_BREAKER_QUERY,
+                INDICES_BREAKER_REQUEST
+            );
         }
 
         @Override
@@ -1090,23 +1037,23 @@ public class CrateSettings {
         }
     };
 
-    public static final NestedSetting INDICES_FIELDDATA_BREAKER = new NestedSetting() {
+    public static final NestedSetting INDICES_BREAKER_FIELDDATA = new NestedSetting() {
         @Override
         public String name() {
-            return "breaker";
+            return "fielddata";
         }
 
         @Override
         public List<Setting> children() {
             return ImmutableList.of(
-                INDICES_FIELDDATA_BREAKER_LIMIT,
-                INDICES_FIELDDATA_BREAKER_OVERHEAD
+                INDICES_BREAKER_FIELDDATA_LIMIT,
+                INDICES_BREAKER_FIELDDATA_OVERHEAD
             );
         }
 
         @Override
         public Setting parent() {
-            return INDICES_FIELDDATA;
+            return INDICES_BREAKER;
         }
 
         @Override
@@ -1115,10 +1062,10 @@ public class CrateSettings {
         }
     };
 
-    public static final StringSetting INDICES_FIELDDATA_BREAKER_LIMIT = new StringSetting(
-        "limit", null, true, "60%", INDICES_FIELDDATA_BREAKER);
+    public static final StringSetting INDICES_BREAKER_FIELDDATA_LIMIT = new StringSetting(
+        "limit", null, true, "60%", INDICES_BREAKER_FIELDDATA);
 
-    public static final DoubleSetting INDICES_FIELDDATA_BREAKER_OVERHEAD = new DoubleSetting() {
+    public static final DoubleSetting INDICES_BREAKER_FIELDDATA_OVERHEAD = new DoubleSetting() {
         @Override
         public String name() {
             return "overhead";
@@ -1131,32 +1078,7 @@ public class CrateSettings {
 
         @Override
         public Setting parent() {
-            return INDICES_FIELDDATA_BREAKER;
-        }
-
-        @Override
-        public boolean isRuntime() {
-            return true;
-        }
-    };
-
-    public static final NestedSetting INDICES_BREAKER = new NestedSetting() {
-        @Override
-        public String name() {
-            return "breaker";
-        }
-
-        @Override
-        public List<Setting> children() {
-            return ImmutableList.of(
-                INDICES_BREAKER_QUERY,
-                INDICES_BREAKER_REQUEST
-            );
-        }
-
-        @Override
-        public Setting parent() {
-            return INDICES;
+            return INDICES_BREAKER_FIELDDATA;
         }
 
         @Override
@@ -1533,14 +1455,18 @@ public class CrateSettings {
         }
     };
 
-    public static final List<Setting<?, ?>> CRATE_SETTINGS = ImmutableList.of(
+    public static final List<Setting> CRATE_SETTINGS = ImmutableList.of(
         STATS,
         BULK,
-        GRACEFUL_STOP
+        GRACEFUL_STOP,
+        UDC,
+        PSQL
     );
 
-    public static final List<Setting> SETTINGS = ImmutableList.of(
-        STATS, CLUSTER, DISCOVERY, INDICES, BULK, GATEWAY, UDC, PSQL);
+    public static final List<Setting> SETTINGS = ImmutableList.<Setting>builder()
+        .addAll(CRATE_SETTINGS)
+        .add(CLUSTER, DISCOVERY, INDICES, GATEWAY)
+        .build();
 
     private static final Map<String, SettingsApplier> SUPPORTED_SETTINGS = ImmutableMap.<String, SettingsApplier>builder()
         .put(CrateSettings.STATS.settingName(),
@@ -1639,8 +1565,6 @@ public class CrateSettings {
             new SettingsAppliers.FloatSettingsApplier(CrateSettings.ROUTING_ALLOCATION_BALANCE_SHARD))
         .put(CrateSettings.ROUTING_ALLOCATION_BALANCE_INDEX.settingName(),
             new SettingsAppliers.FloatSettingsApplier(CrateSettings.ROUTING_ALLOCATION_BALANCE_INDEX))
-        .put(CrateSettings.ROUTING_ALLOCATION_BALANCE_PRIMARY.settingName(),
-            new SettingsAppliers.FloatSettingsApplier(CrateSettings.ROUTING_ALLOCATION_BALANCE_PRIMARY))
         .put(CrateSettings.ROUTING_ALLOCATION_BALANCE_THRESHOLD.settingName(),
             new SettingsAppliers.FloatSettingsApplier(CrateSettings.ROUTING_ALLOCATION_BALANCE_THRESHOLD))
         .put(CrateSettings.ROUTING_ALLOCATION_DISK.settingName(),
@@ -1657,16 +1581,6 @@ public class CrateSettings {
             new SettingsAppliers.ObjectSettingsApplier(CrateSettings.INDICES))
         .put(CrateSettings.INDICES_RECOVERY.settingName(),
             new SettingsAppliers.ObjectSettingsApplier(CrateSettings.INDICES_RECOVERY))
-        .put(CrateSettings.INDICES_RECOVERY_CONCURRENT_STREAMS.settingName(),
-            new SettingsAppliers.IntSettingsApplier(CrateSettings.INDICES_RECOVERY_CONCURRENT_STREAMS))
-        .put(CrateSettings.INDICES_RECOVERY_FILE_CHUNK_SIZE.settingName(),
-            new SettingsAppliers.ByteSizeSettingsApplier(CrateSettings.INDICES_RECOVERY_FILE_CHUNK_SIZE))
-        .put(CrateSettings.INDICES_RECOVERY_TRANSLOG_OPS.settingName(),
-            new SettingsAppliers.IntSettingsApplier(CrateSettings.INDICES_RECOVERY_TRANSLOG_OPS))
-        .put(CrateSettings.INDICES_RECOVERY_TRANSLOG_SIZE.settingName(),
-            new SettingsAppliers.ByteSizeSettingsApplier(CrateSettings.INDICES_RECOVERY_TRANSLOG_SIZE))
-        .put(CrateSettings.INDICES_RECOVERY_COMPRESS.settingName(),
-            new SettingsAppliers.BooleanSettingsApplier(CrateSettings.INDICES_RECOVERY_COMPRESS))
         .put(CrateSettings.INDICES_RECOVERY_MAX_BYTES_PER_SEC.settingName(),
             new SettingsAppliers.ByteSizeSettingsApplier(CrateSettings.INDICES_RECOVERY_MAX_BYTES_PER_SEC))
         .put(CrateSettings.INDICES_STORE.settingName(),
@@ -1677,16 +1591,14 @@ public class CrateSettings {
             new SettingsAppliers.StringSettingsApplier(CrateSettings.INDICES_STORE_THROTTLE_TYPE))
         .put(CrateSettings.INDICES_STORE_THROTTLE_MAX_BYTES_PER_SEC.settingName(),
             new SettingsAppliers.ByteSizeSettingsApplier(CrateSettings.INDICES_STORE_THROTTLE_MAX_BYTES_PER_SEC))
-        .put(CrateSettings.INDICES_FIELDDATA.settingName(),
-            new SettingsAppliers.ObjectSettingsApplier(CrateSettings.INDICES_FIELDDATA))
-        .put(CrateSettings.INDICES_FIELDDATA_BREAKER.settingName(),
-            new SettingsAppliers.ObjectSettingsApplier(CrateSettings.INDICES_FIELDDATA_BREAKER))
-        .put(CrateSettings.INDICES_FIELDDATA_BREAKER_LIMIT.settingName(),
-            new SettingsAppliers.MemoryValueSettingsApplier(CrateSettings.INDICES_FIELDDATA_BREAKER_LIMIT))
-        .put(CrateSettings.INDICES_FIELDDATA_BREAKER_OVERHEAD.settingName(),
-            new SettingsAppliers.DoubleSettingsApplier(CrateSettings.INDICES_FIELDDATA_BREAKER_OVERHEAD))
         .put(CrateSettings.INDICES_BREAKER.settingName(),
             new SettingsAppliers.ObjectSettingsApplier(CrateSettings.INDICES_BREAKER))
+        .put(CrateSettings.INDICES_BREAKER_FIELDDATA.settingName(),
+            new SettingsAppliers.ObjectSettingsApplier(CrateSettings.INDICES_BREAKER_FIELDDATA))
+        .put(CrateSettings.INDICES_BREAKER_FIELDDATA_LIMIT.settingName(),
+            new SettingsAppliers.MemoryValueSettingsApplier(CrateSettings.INDICES_BREAKER_FIELDDATA_LIMIT))
+        .put(CrateSettings.INDICES_BREAKER_FIELDDATA_OVERHEAD.settingName(),
+            new SettingsAppliers.DoubleSettingsApplier(CrateSettings.INDICES_BREAKER_FIELDDATA_OVERHEAD))
         .put(CrateSettings.INDICES_BREAKER_REQUEST.settingName(),
             new SettingsAppliers.ObjectSettingsApplier(CrateSettings.INDICES_BREAKER_REQUEST))
         .put(CrateSettings.INDICES_BREAKER_REQUEST_LIMIT.settingName(),

@@ -28,6 +28,7 @@ import io.crate.udc.plugin.UDCPlugin;
 import org.elasticsearch.env.Environment;
 import org.elasticsearch.node.Node;
 import org.elasticsearch.plugins.Plugin;
+import org.elasticsearch.transport.Netty3Plugin;
 
 import java.util.Collection;
 
@@ -43,7 +44,8 @@ public class CrateNode extends Node {
         UDCPlugin.class,
         // FIXME: cloud-aws plugin is split into discovery-ec2 and repository-s3
         //CloudAwsPlugin.class,
-        AdminUIPlugin.class);
+        AdminUIPlugin.class,
+        Netty3Plugin.class);
 
     public CrateNode(Environment environment) {
         super(environment, CLASSPATH_PLUGINS);

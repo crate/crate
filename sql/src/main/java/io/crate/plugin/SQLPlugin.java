@@ -104,7 +104,7 @@ public class SQLPlugin extends Plugin implements ActionPlugin, MapperPlugin {
     @Override
     public List<org.elasticsearch.common.settings.Setting<?>> getSettings() {
         // add our dynamic cluster settings
-        List<org.elasticsearch.common.settings.Setting<?>> settings = new ArrayList<>(CrateSettings.SETTINGS.size() + 4);
+        List<org.elasticsearch.common.settings.Setting<?>> settings = new ArrayList<>();
         settings.add(AnalyzerSettings.CUSTOM_ANALYSIS_SETTING_GROUP);
         settings.add(CrateCircuitBreakerService.QUERY_CIRCUIT_BREAKER_LIMIT_SETTING);
         settings.add(CrateCircuitBreakerService.QUERY_CIRCUIT_BREAKER_OVERHEAD_SETTING);
@@ -115,7 +115,7 @@ public class SQLPlugin extends Plugin implements ActionPlugin, MapperPlugin {
     }
 
     private static void addESSettings(Consumer<org.elasticsearch.common.settings.Setting<?>> consumer,
-                                      Iterable<Setting<?, ?>> crateSettings) {
+                                      Iterable<Setting> crateSettings) {
         for (Setting crateSetting : crateSettings) {
             org.elasticsearch.common.settings.Setting esSetting = crateSetting.esSetting();
             if (esSetting == null) {
