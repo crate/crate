@@ -43,6 +43,7 @@ import org.apache.lucene.spatial.prefix.IntersectsPrefixTreeQuery;
 import org.apache.lucene.spatial.prefix.WithinPrefixTreeQuery;
 import org.elasticsearch.common.UUIDs;
 import org.elasticsearch.common.compress.CompressedXContent;
+import org.elasticsearch.common.lucene.search.MatchNoDocsQuery;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentFactory;
@@ -54,12 +55,12 @@ import org.elasticsearch.index.cache.IndexCache;
 import org.elasticsearch.index.fielddata.IndexFieldData;
 import org.elasticsearch.index.fielddata.IndexFieldDataService;
 import org.elasticsearch.index.fielddata.IndexGeoPointFieldData;
-import org.elasticsearch.index.mapper.ArrayMapper;
-import org.elasticsearch.index.mapper.MapperService;
+import org.elasticsearch.index.mapper.*;
 import org.elasticsearch.index.mapper.array.DynamicArrayFieldMapperBuilderFactoryProvider;
 import org.elasticsearch.index.similarity.SimilarityService;
 import org.elasticsearch.indices.IndicesModule;
 import org.elasticsearch.indices.analysis.AnalysisModule;
+import org.elasticsearch.plugins.MapperPlugin;
 import org.elasticsearch.test.IndexSettingsModule;
 import org.junit.Before;
 import org.junit.Rule;
@@ -120,7 +121,7 @@ public class LuceneQueryBuilderTest extends CrateUnitTest {
             .startObject()
             .startObject("default")
                 .startObject("properties")
-                    .startObject("name").field("type", "string").endObject()
+                    .startObject("name").field("type", "keyword").endObject()
                     .startObject("x").field("type", "integer").endObject()
                     .startObject("d").field("type", "double").endObject()
                     .startObject("point").field("type", "geo_point").endObject()
@@ -144,7 +145,6 @@ public class LuceneQueryBuilderTest extends CrateUnitTest {
         mapperService.merge("default",
             new CompressedXContent(xContentBuilder.bytes()), MapperService.MergeReason.MAPPING_UPDATE, true);
 
-
         indexFieldDataService = mock(IndexFieldDataService.class);
         IndexFieldData geoFieldData = mock(IndexGeoPointFieldData.class);
 
@@ -155,9 +155,14 @@ public class LuceneQueryBuilderTest extends CrateUnitTest {
     private MapperService createMapperService(IndexSettings indexSettings, AnalysisService analysisService) {
         DynamicArrayFieldMapperBuilderFactoryProvider arrayMapperProvider =
             new DynamicArrayFieldMapperBuilderFactoryProvider();
-        arrayMapperProvider.dynamicArrayFieldMapperBuilderFactory = new ArrayMapper.BuilderFactory();
-        IndicesModule indicesModule = new IndicesModule(Collections.emptyList());
-        //indicesModule.registerMapper(ArrayMapper.CONTENT_TYPE, new ArrayMapper.TypeParser());
+        arrayMapperProvider.dynamicArrayFieldMapperBuilderFactory = new BuilderFactory();
+        IndicesModule indicesModule = new IndicesModule(Collections.singletonList(
+            new MapperPlugin() {
+                @Override
+                public Map<String, Mapper.TypeParser> getMappers() {
+                    return Collections.singletonMap(ArrayMapper.CONTENT_TYPE, new ArrayTypeParser());
+                }
+            }));
         return new MapperService(
             indexSettings,
             analysisService,
@@ -189,8 +194,7 @@ public class LuceneQueryBuilderTest extends CrateUnitTest {
     @Test
     public void testNoMatchWhereClause() throws Exception {
         Query query = convert(WhereClause.NO_MATCH);
-        assertThat(query, instanceOf(BooleanQuery.class));
-        assertThat(((BooleanQuery) query).clauses().size(), is(0));
+        assertThat(query, instanceOf(MatchNoDocsQuery.class));
     }
 
     @Test
@@ -206,12 +210,11 @@ public class LuceneQueryBuilderTest extends CrateUnitTest {
 
             Query query = convert(new WhereClause(sqlExpressions.normalize(sqlExpressions.asSymbol("x = ?"))));
 
-            // must always become a MatchNoDocsQuery (empty BooleanQuery)
+            // must always become a MatchNoDocsQuery
             // string: term query with null would cause NPE
             // int/numeric: rangeQuery from null to null would match all
             // bool:  term would match false too because of the condition in the eq query builder
-            assertThat(query, instanceOf(BooleanQuery.class));
-            assertThat(((BooleanQuery) query).clauses().size(), is(0));
+            assertThat(query, instanceOf(MatchNoDocsQuery.class));
         }
     }
 
@@ -224,8 +227,7 @@ public class LuceneQueryBuilderTest extends CrateUnitTest {
     @Test
     public void testLteQuery() throws Exception {
         Query query = convert("x <= 10");
-        assertThat(query, instanceOf(LegacyNumericRangeQuery.class));
-        assertThat(query.toString(), is("x:{* TO 10]"));
+        assertThat(query.toString(), is("x:[-2147483648 TO 10]"));
     }
 
     @Test
@@ -259,8 +261,7 @@ public class LuceneQueryBuilderTest extends CrateUnitTest {
     @Test
     public void testGteQuery() throws Exception {
         Query query = convert("x >= 10");
-        assertThat(query, instanceOf(LegacyNumericRangeQuery.class));
-        assertThat(query.toString(), is("x:[10 TO *}"));
+        assertThat(query.toString(), is("x:[10 TO 2147483647]"));
     }
 
     @Test
@@ -320,35 +321,35 @@ public class LuceneQueryBuilderTest extends CrateUnitTest {
     @Test
     public void testAnyGreaterAndSmaller() throws Exception {
         Query ltQuery = convert("1.5 < any(d_array)");
-        assertThat(ltQuery.toString(), is("d_array:{1.5 TO *}"));
+        assertThat(ltQuery.toString(), is("d_array:[1.5000000000000002 TO Infinity]"));
 
         // d < ANY ([1.2, 3.5])
         Query ltQuery2 = convert("d < any ([1.2, 3.5])");
-        assertThat(ltQuery2.toString(), is("(d:{* TO 1.2} d:{* TO 3.5})~1"));
+        assertThat(ltQuery2.toString(), is("(d:[-Infinity TO 1.1999999999999997] d:[-Infinity TO 3.4999999999999996])~1"));
 
         // 1.5d <= ANY (d_array)
         Query lteQuery = convert("1.5 <= any(d_array)");
-        assertThat(lteQuery.toString(), is("d_array:[1.5 TO *}"));
+        assertThat(lteQuery.toString(), is("d_array:[1.5 TO Infinity]"));
 
         // d <= ANY ([1.2, 3.5])
         Query lteQuery2 = convert("d <= any([1.2, 3.5])");
-        assertThat(lteQuery2.toString(), is("(d:{* TO 1.2] d:{* TO 3.5])~1"));
+        assertThat(lteQuery2.toString(), is("(d:[-Infinity TO 1.2] d:[-Infinity TO 3.5])~1"));
 
         // 1.5d > ANY (d_array)
         Query gtQuery = convert("1.5 > any(d_array)");
-        assertThat(gtQuery.toString(), is("d_array:{* TO 1.5}"));
+        assertThat(gtQuery.toString(), is("d_array:[-Infinity TO 1.4999999999999998]"));
 
         // d > ANY ([1.2, 3.5])
         Query gtQuery2 = convert("d > any ([1.2, 3.5])");
-        assertThat(gtQuery2.toString(), is("(d:{1.2 TO *} d:{3.5 TO *})~1"));
+        assertThat(gtQuery2.toString(), is("(d:[1.2000000000000002 TO Infinity] d:[3.5000000000000004 TO Infinity])~1"));
 
         // 1.5d >= ANY (d_array)
         Query gteQuery = convert("1.5 >= any(d_array)");
-        assertThat(gteQuery.toString(), is("d_array:{* TO 1.5]"));
+        assertThat(gteQuery.toString(), is("d_array:[-Infinity TO 1.5]"));
 
         // d >= ANY ([1.2, 3.5])
         Query gteQuery2 = convert("d >= any ([1.2, 3.5])");
-        assertThat(gteQuery2.toString(), is("(d:[1.2 TO *} d:[3.5 TO *})~1"));
+        assertThat(gteQuery2.toString(), is("(d:[1.2 TO Infinity] d:[3.5 TO Infinity])~1"));
     }
 
     @Test
