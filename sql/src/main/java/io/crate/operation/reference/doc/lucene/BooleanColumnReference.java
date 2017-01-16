@@ -27,6 +27,8 @@ import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.index.fielddata.IndexFieldData;
 import org.elasticsearch.index.fielddata.SortedBinaryDocValues;
 
+import java.io.IOException;
+
 public class BooleanColumnReference extends FieldCacheExpression<IndexFieldData, Boolean> {
 
     private static final BytesRef TRUE_BYTESREF = new BytesRef("1");
@@ -59,7 +61,7 @@ public class BooleanColumnReference extends FieldCacheExpression<IndexFieldData,
     }
 
     @Override
-    public void setNextReader(LeafReaderContext context) {
+    public void setNextReader(LeafReaderContext context) throws IOException {
         super.setNextReader(context);
         values = indexFieldData.load(context).getBytesValues();
     }

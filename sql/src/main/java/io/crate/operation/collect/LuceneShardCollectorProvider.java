@@ -40,10 +40,10 @@ import io.crate.operation.reference.doc.lucene.CollectorContext;
 import io.crate.operation.reference.doc.lucene.LuceneCollectorExpression;
 import io.crate.operation.reference.doc.lucene.LuceneReferenceResolver;
 import io.crate.planner.node.dql.RoutedCollectPhase;
-import org.elasticsearch.action.bulk.BulkRetryCoordinatorPool;
-import org.elasticsearch.cluster.service.ClusterService;
-import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.apache.logging.log4j.Logger;
+import org.elasticsearch.action.bulk.BulkRetryCoordinatorPool;
+import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
+import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.IndexService;
@@ -81,7 +81,8 @@ public class LuceneShardCollectorProvider extends ShardCollectorProvider {
         this.threadPool = threadPool;
         this.indexShard = indexShard;
         this.localNodeId = clusterService.localNode().getId();
-        this.docInputFactory = new DocInputFactory(functions, new LuceneReferenceResolver(indexShard.mapperService()));
+        this.docInputFactory = new DocInputFactory(functions,
+            new LuceneReferenceResolver(indexShard.mapperService()::fullName, indexShard.indexSettings()));
     }
 
     @Override

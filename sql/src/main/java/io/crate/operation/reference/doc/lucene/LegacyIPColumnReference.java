@@ -6,7 +6,7 @@
  * you may not use this file except in compliance with the License.  You may
  * obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
@@ -24,21 +24,23 @@ package io.crate.operation.reference.doc.lucene;
 import io.crate.exceptions.GroupByOnArrayUnsupportedException;
 import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.SortedNumericDocValues;
+import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.index.fielddata.IndexNumericFieldData;
+import org.elasticsearch.index.mapper.LegacyIpFieldMapper;
 
 import java.io.IOException;
 
-public class LongColumnReference extends FieldCacheExpression<IndexNumericFieldData, Long> {
+public class LegacyIPColumnReference extends FieldCacheExpression<IndexNumericFieldData, BytesRef> {
 
     private SortedNumericDocValues values;
-    private Long value;
+    private BytesRef value;
 
-    public LongColumnReference(String columnName) {
+    public LegacyIPColumnReference(String columnName) {
         super(columnName);
     }
 
     @Override
-    public Long value() {
+    public BytesRef value() {
         return value;
     }
 
@@ -51,7 +53,7 @@ public class LongColumnReference extends FieldCacheExpression<IndexNumericFieldD
                 value = null;
                 break;
             case 1:
-                value = values.valueAt(0);
+                value = new BytesRef(LegacyIpFieldMapper.longToIp(values.valueAt(0)));
                 break;
             default:
                 throw new GroupByOnArrayUnsupportedException(columnName);
@@ -63,21 +65,4 @@ public class LongColumnReference extends FieldCacheExpression<IndexNumericFieldD
         super.setNextReader(context);
         values = indexFieldData.load(context).getLongValues();
     }
-
-    @Override
-    public boolean equals(Object obj) {
-        if (obj == null)
-            return false;
-        if (obj == this)
-            return true;
-        if (!(obj instanceof LongColumnReference))
-            return false;
-        return columnName.equals(((LongColumnReference) obj).columnName);
-    }
-
-    @Override
-    public int hashCode() {
-        return columnName.hashCode();
-    }
 }
-

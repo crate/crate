@@ -27,6 +27,8 @@ import org.elasticsearch.common.geo.GeoPoint;
 import org.elasticsearch.index.fielddata.IndexGeoPointFieldData;
 import org.elasticsearch.index.fielddata.MultiGeoPointValues;
 
+import java.io.IOException;
+
 public class GeoPointColumnReference extends FieldCacheExpression<IndexGeoPointFieldData, Double[]> {
 
     private MultiGeoPointValues values;
@@ -59,7 +61,7 @@ public class GeoPointColumnReference extends FieldCacheExpression<IndexGeoPointF
     }
 
     @Override
-    public void setNextReader(LeafReaderContext context) {
+    public void setNextReader(LeafReaderContext context) throws IOException {
         super.setNextReader(context);
         values = indexFieldData.load(context).getGeoPointValues();
     }

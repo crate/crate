@@ -26,6 +26,8 @@ import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.SortedNumericDocValues;
 import org.elasticsearch.index.fielddata.IndexNumericFieldData;
 
+import java.io.IOException;
+
 public class IntegerColumnReference extends FieldCacheExpression<IndexNumericFieldData, Integer> {
 
     private SortedNumericDocValues values;
@@ -57,7 +59,7 @@ public class IntegerColumnReference extends FieldCacheExpression<IndexNumericFie
     }
 
     @Override
-    public void setNextReader(LeafReaderContext context) {
+    public void setNextReader(LeafReaderContext context) throws IOException {
         super.setNextReader(context);
         values = indexFieldData.load(context).getLongValues();
     }

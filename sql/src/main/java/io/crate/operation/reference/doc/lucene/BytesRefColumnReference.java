@@ -28,6 +28,8 @@ import org.apache.lucene.index.RandomAccessOrds;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.index.fielddata.IndexOrdinalsFieldData;
 
+import java.io.IOException;
+
 public class BytesRefColumnReference extends FieldCacheExpression<IndexOrdinalsFieldData, BytesRef> {
 
     private RandomAccessOrds values;
@@ -59,7 +61,7 @@ public class BytesRefColumnReference extends FieldCacheExpression<IndexOrdinalsF
     }
 
     @Override
-    public void setNextReader(LeafReaderContext context) {
+    public void setNextReader(LeafReaderContext context) throws IOException {
         super.setNextReader(context);
         values = indexFieldData.load(context).getOrdinalsValues();
     }

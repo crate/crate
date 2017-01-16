@@ -21,7 +21,6 @@
 
 package io.crate.operation.reference.doc.lucene;
 
-import io.crate.Constants;
 import org.elasticsearch.index.fielddata.IndexFieldData;
 import org.elasticsearch.index.mapper.MappedFieldType;
 
