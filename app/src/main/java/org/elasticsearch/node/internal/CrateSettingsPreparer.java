@@ -45,7 +45,7 @@ public class CrateSettingsPreparer {
      * ES_COPY_OF: core/src/main/java/org/elasticsearch/node/internal/InternalSettingsPreparer.java
      * This is a copy of {@link InternalSettingsPreparer#prepareEnvironment(Settings, Terminal, Map)}
      * <p>
-     * with the addition of the "applyCrateDefaults" call.
+     * with the addition of the "applyCrateDefaults" call and resolving `crate.yml` instead of `elasticsearch.yml`.
      */
     public static Environment prepareEnvironment(Settings input, Terminal terminal, Map<String, String> properties) {
         // just create enough settings to build the environment, to get the config dir

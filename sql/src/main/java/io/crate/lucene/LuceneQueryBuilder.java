@@ -138,7 +138,7 @@ public class LuceneQueryBuilder {
 
     private static Query termsQuery(@Nullable MappedFieldType fieldType, List values) {
         if (fieldType == null) {
-            return Queries.newMatchNoDocsQuery();
+            return Queries.newMatchNoDocsQuery("column does not exist in this index");
         }
         return fieldType.termsQuery(values, null);
     }
@@ -591,7 +591,7 @@ public class LuceneQueryBuilder {
                         return null; // fallback to generic filter for  "o = {x=10, y=20}"
                     }
                     // field doesn't exist, can't match
-                    return Queries.newMatchNoDocsQuery();
+                    return Queries.newMatchNoDocsQuery("column does not exist in this index");
                 }
                 if (DataTypes.isCollectionType(reference.valueType()) &&
                     DataTypes.isCollectionType(literal.valueType())) {
