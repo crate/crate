@@ -27,15 +27,14 @@ import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
 import io.crate.Constants;
 import io.crate.core.collections.Row;
-import io.crate.core.collections.Row1;
 import io.crate.executor.Executor;
 import io.crate.executor.JobTask;
 import io.crate.executor.transport.ShardUpsertRequest;
 import io.crate.jobs.*;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.settings.CrateSettings;
-import io.crate.operation.projectors.RepeatHandle;
-import io.crate.operation.projectors.RowReceiver;
+import io.crate.operation.data.BatchConsumer;
+import io.crate.operation.data.SingleRowCursor;
 import io.crate.planner.node.dml.UpsertById;
 import org.elasticsearch.ExceptionsHelper;
 import org.elasticsearch.action.ActionListener;
@@ -100,7 +99,7 @@ public class UpsertByIdTask extends JobTask {
     }
 
     @Override
-    public void execute(final RowReceiver rowReceiver, Row parameters) {
+    public void execute(final BatchConsumer rowReceiver, Row parameters) {
         ListenableFuture<Long> result;
         if (upsertById.items().size() > 1) {
             try {
@@ -127,8 +126,7 @@ public class UpsertByIdTask extends JobTask {
         Futures.addCallback(result, new FutureCallback<Long>() {
             @Override
             public void onSuccess(@Nullable Long result) {
-                rowReceiver.setNextRow(new Row1(result));
-                rowReceiver.finish(RepeatHandle.UNSUPPORTED);
+                rowReceiver.accept(SingleRowCursor.of(result));
             }
 
             @Override

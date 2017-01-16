@@ -44,6 +44,7 @@ import io.crate.metadata.ReplaceMode;
 import io.crate.operation.InputFactory;
 import io.crate.operation.NodeOperation;
 import io.crate.operation.NodeOperationTree;
+import io.crate.operation.data.BatchConsumer;
 import io.crate.operation.projectors.ProjectionToProjectorVisitor;
 import io.crate.operation.projectors.RowReceiver;
 import io.crate.planner.*;
@@ -138,7 +139,7 @@ public class TransportExecutor implements Executor {
     }
 
     @Override
-    public void execute(Plan plan, RowReceiver rowReceiver, Row parameters) {
+    public void execute(Plan plan, BatchConsumer rowReceiver, Row parameters) {
         CompletableFuture<Plan> planFuture = multiPhaseExecutor.process(plan, null);
         planFuture
             .thenAccept(p -> plan2TaskVisitor.process(p, null).execute(rowReceiver, parameters))

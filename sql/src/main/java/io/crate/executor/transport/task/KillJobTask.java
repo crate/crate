@@ -27,7 +27,7 @@ import io.crate.executor.JobTask;
 import io.crate.executor.transport.OneRowActionListener;
 import io.crate.executor.transport.kill.KillJobsRequest;
 import io.crate.executor.transport.kill.TransportKillJobsNodeAction;
-import io.crate.operation.projectors.RowReceiver;
+import io.crate.operation.data.BatchConsumer;
 
 import java.util.UUID;
 
@@ -45,7 +45,7 @@ public class KillJobTask extends JobTask {
     }
 
     @Override
-    public void execute(RowReceiver rowReceiver, Row parameters) {
+    public void execute(BatchConsumer rowReceiver, Row parameters) {
         KillJobsRequest request = new KillJobsRequest(ImmutableList.of(jobToKill));
         nodeAction.broadcast(request,
             new OneRowActionListener<>(rowReceiver, KillTask.KILL_RESPONSE_TO_ROW_FUNCTION));

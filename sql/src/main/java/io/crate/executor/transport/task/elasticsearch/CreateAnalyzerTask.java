@@ -28,7 +28,7 @@ import io.crate.core.collections.Row;
 import io.crate.core.collections.Row1;
 import io.crate.executor.JobTask;
 import io.crate.executor.transport.OneRowActionListener;
-import io.crate.operation.projectors.RowReceiver;
+import io.crate.operation.data.BatchConsumer;
 import io.crate.planner.node.ddl.CreateAnalyzerPlan;
 import org.elasticsearch.action.admin.cluster.settings.ClusterUpdateSettingsRequest;
 import org.elasticsearch.action.admin.cluster.settings.ClusterUpdateSettingsResponse;
@@ -49,7 +49,7 @@ public class CreateAnalyzerTask extends JobTask {
     }
 
     @Override
-    public void execute(RowReceiver rowReceiver, Row parameters) {
+    public void execute(BatchConsumer rowReceiver, Row parameters) {
         ClusterUpdateSettingsRequest request = new ClusterUpdateSettingsRequest();
         request.persistentSettings(plan.createAnalyzerSettings());
 

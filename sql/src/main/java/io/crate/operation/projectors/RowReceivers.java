@@ -24,7 +24,6 @@ package io.crate.operation.projectors;
 
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
-import io.crate.core.collections.Row;
 
 import javax.annotation.ParametersAreNonnullByDefault;
 
@@ -62,10 +61,5 @@ public class RowReceivers {
         public ListenableFuture<Void> finishFuture() {
             return finishedFuture;
         }
-    }
-
-    public static void sendOneRow(RowReceiver receiver, Row row) {
-        receiver.setNextRow(row);
-        receiver.finish(RepeatHandle.UNSUPPORTED);
     }
 }

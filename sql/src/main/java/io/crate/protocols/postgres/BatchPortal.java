@@ -38,7 +38,7 @@ import io.crate.core.collections.RowN;
 import io.crate.exceptions.Exceptions;
 import io.crate.exceptions.ReadOnlyException;
 import io.crate.operation.collect.StatsTables;
-import io.crate.operation.projectors.RowReceiver;
+import io.crate.operation.data.BatchConsumer;
 import io.crate.planner.Plan;
 import io.crate.planner.Planner;
 import io.crate.sql.tree.Statement;
@@ -140,7 +140,7 @@ class BatchPortal extends AbstractPortal {
             statsTables.logExecutionStart(jobId, stmt);
             Futures.addCallback(resultReceiver.completionFuture(), new StatsTablesUpdateListener(jobId, statsTables));
             Futures.addCallback(resultReceiver.completionFuture(), completionCallback);
-            RowReceiver rowReceiver = new RowReceiverToResultReceiver(resultReceiver, 0);
+            BatchConsumer rowReceiver = new RowReceiverToResultReceiver(resultReceiver, 0);
             portalContext.getExecutor().execute(plan, rowReceiver, new RowN(batchParams.toArray()));
         }
         return completionCallback;

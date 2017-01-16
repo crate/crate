@@ -27,8 +27,8 @@ import io.crate.core.collections.Row;
 import io.crate.executor.JobTask;
 import io.crate.metadata.settings.session.SessionSettingApplier;
 import io.crate.metadata.settings.session.SessionSettingRegistry;
-import io.crate.operation.projectors.RepeatHandle;
-import io.crate.operation.projectors.RowReceiver;
+import io.crate.operation.data.BatchConsumer;
+import io.crate.operation.data.EmptyBatchCursor;
 import io.crate.sql.tree.Expression;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
@@ -51,7 +51,7 @@ public class SetSessionTask extends JobTask {
     }
 
     @Override
-    public void execute(RowReceiver rowReceiver, Row parameters) {
+    public void execute(BatchConsumer rowReceiver, Row parameters) {
         for (Map.Entry<String, List<Expression>> setting : settings.entrySet()) {
             SessionSettingApplier applier = SessionSettingRegistry.getApplier(setting.getKey());
             if (applier != null) {
@@ -63,7 +63,7 @@ public class SetSessionTask extends JobTask {
             } else {
                 LOGGER.warn("SET SESSION STATEMENT WILL BE IGNORED: {}", setting);
             }
-            rowReceiver.finish(RepeatHandle.UNSUPPORTED);
+            rowReceiver.accept(new EmptyBatchCursor());
         }
     }
 }

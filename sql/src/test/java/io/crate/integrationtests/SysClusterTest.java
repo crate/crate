@@ -21,8 +21,10 @@
 
 package io.crate.integrationtests;
 
+import com.carrotsearch.randomizedtesting.annotations.Seed;
 import io.crate.action.sql.SQLActionException;
 import io.crate.testing.UseJdbc;
+import org.elasticsearch.test.ESIntegTestCase;
 import org.junit.Test;
 
 import java.util.ArrayList;
@@ -31,6 +33,8 @@ import java.util.Map;
 
 import static org.hamcrest.Matchers.is;
 
+@ESIntegTestCase.ClusterScope(numClientNodes = 0, numDataNodes = 1)
+@Seed("4B150E111DA225A")
 @UseJdbc
 public class SysClusterTest extends SQLTransportIntegrationTest {
 

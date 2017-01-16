@@ -28,6 +28,8 @@ import com.google.common.util.concurrent.UncheckedExecutionException;
 import io.crate.core.collections.Bucket;
 import io.crate.core.collections.CollectionBucket;
 import io.crate.core.collections.Row;
+import io.crate.operation.data.BatchConsumer;
+import io.crate.operation.data.BatchCursor;
 import io.crate.operation.projectors.*;
 import org.elasticsearch.common.unit.TimeValue;
 
@@ -40,7 +42,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
 
-public class CollectingRowReceiver implements RowReceiver {
+// XDOBE implement as batch consumer
+public class CollectingRowReceiver implements RowReceiver, BatchConsumer {
 
     public final List<Object[]> rows = new ArrayList<>();
     final SettableFuture<Bucket> resultFuture = SettableFuture.create();
@@ -150,6 +153,11 @@ public class CollectingRowReceiver implements RowReceiver {
 
     public int numPauseProcessed() {
         return numPauseProcessed.get();
+    }
+
+    @Override
+    public void accept(BatchCursor batchCursor) {
+        // XDOBE;
     }
 
     private static class LimitingReceiver extends CollectingRowReceiver {

@@ -21,7 +21,6 @@
 
 package io.crate.operation.collect.sources;
 
-import com.google.common.collect.ImmutableList;
 import io.crate.analyze.CopyFromAnalyzedStatement;
 import io.crate.analyze.symbol.Symbol;
 import io.crate.analyze.symbol.ValueSymbolVisitor;
@@ -30,9 +29,8 @@ import io.crate.operation.InputFactory;
 import io.crate.operation.collect.CrateCollector;
 import io.crate.operation.collect.JobCollectContext;
 import io.crate.operation.collect.files.FileInputFactory;
-import io.crate.operation.collect.files.FileReadingCollector;
 import io.crate.operation.collect.files.LineCollectorExpression;
-import io.crate.operation.projectors.RowReceiver;
+import io.crate.operation.data.BatchConsumer;
 import io.crate.operation.reference.file.FileLineReferenceResolver;
 import io.crate.planner.node.dql.CollectPhase;
 import io.crate.planner.node.dql.FileUriCollectPhase;
@@ -59,7 +57,7 @@ public class FileCollectSource implements CollectSource {
     }
 
     @Override
-    public Collection<CrateCollector> getCollectors(CollectPhase collectPhase, RowReceiver downstream, JobCollectContext jobCollectContext) {
+    public Collection<CrateCollector> getCollectors(CollectPhase collectPhase, BatchConsumer downstream, JobCollectContext jobCollectContext) {
         FileUriCollectPhase fileUriCollectPhase = (FileUriCollectPhase) collectPhase;
         InputFactory.Context<LineCollectorExpression<?>> ctx =
             inputFactory.ctxForRefs(FileLineReferenceResolver.INSTANCE);
@@ -71,17 +69,19 @@ public class FileCollectSource implements CollectSource {
 
         List<String> fileUris;
         fileUris = targetUriToStringList(fileUriCollectPhase.targetUri());
-        return ImmutableList.of(new FileReadingCollector(
-            fileUris,
-            ctx.topLevelInputs(),
-            ctx.expressions(),
-            downstream,
-            fileUriCollectPhase.compression(),
-            fileInputFactoryMap,
-            fileUriCollectPhase.sharedStorage(),
-            readers.length,
-            Arrays.binarySearch(readers, clusterService.state().nodes().getLocalNodeId())
-        ));
+        // XDOBE
+//        return ImmutableList.of(new FileReadingCollector(
+//            fileUris,
+//            ctx.topLevelInputs(),
+//            ctx.expressions(),
+//            downstream,
+//            fileUriCollectPhase.compression(),
+//            fileInputFactoryMap,
+//            fileUriCollectPhase.sharedStorage(),
+//            readers.length,
+//            Arrays.binarySearch(readers, clusterService.state().nodes().getLocalNodeId())
+//        ));
+        return null;
     }
 
     private static List<String> targetUriToStringList(Symbol targetUri) {

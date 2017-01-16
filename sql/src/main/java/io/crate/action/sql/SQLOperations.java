@@ -279,9 +279,14 @@ public class SQLOperations {
                     pendingExecutions.clear();
                     clearState();
                     ListenableFuture<?> result = portal.sync(planner, statsTables);
-                    if (UNNAMED.equals(portal.name())) {
-                        portal.close();
-                    }
+                    // XDOBE: we need to close when required only
+                    // from: https://www.postgresql.org/docs/9.6/static/protocol-flow.html
+                    // An unnamed portal is destroyed at the end of the transaction, or as soon as the next Bind
+                    // statement specifying the unnamed portal as destination is issued. (Note that a simple Query
+                    // message also destroys the unnamed portal.)
+//                    if (UNNAMED.equals(portal.name())) {
+//                        result.addListener(portal::close, MoreExecutors.directExecutor());
+//                    }
                     return result;
             }
             throw new IllegalStateException(

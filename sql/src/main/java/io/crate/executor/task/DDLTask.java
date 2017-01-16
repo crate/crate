@@ -30,6 +30,7 @@ import io.crate.core.collections.Row;
 import io.crate.core.collections.Row1;
 import io.crate.executor.JobTask;
 import io.crate.executor.transport.OneRowActionListener;
+import io.crate.operation.data.BatchConsumer;
 import io.crate.operation.projectors.RowReceiver;
 
 import javax.annotation.Nullable;
@@ -47,7 +48,7 @@ public class DDLTask extends JobTask {
     }
 
     @Override
-    public void execute(final RowReceiver rowReceiver, Row parameters) {
+    public void execute(final BatchConsumer rowReceiver, Row parameters) {
         ListenableFuture<Long> future = ddlStatementDispatcher.dispatch(analyzedStatement, jobId());
         Futures.addCallback(future, new OneRowActionListener<>(rowReceiver, new Function<Long, Row>() {
             @Nullable

@@ -27,7 +27,7 @@ import io.crate.core.collections.Row;
 import io.crate.core.collections.Row1;
 import io.crate.executor.JobTask;
 import io.crate.executor.transport.OneRowActionListener;
-import io.crate.operation.projectors.RowReceiver;
+import io.crate.operation.data.BatchConsumer;
 import io.crate.planner.node.ddl.ESDeletePartition;
 import org.elasticsearch.action.admin.indices.delete.DeleteIndexRequest;
 import org.elasticsearch.action.admin.indices.delete.DeleteIndexResponse;
@@ -43,7 +43,7 @@ public class ESDeletePartitionTask extends JobTask {
     private final DeleteIndexRequest request;
 
     @Override
-    public void execute(RowReceiver rowReceiver, Row parameters) {
+    public void execute(BatchConsumer rowReceiver, Row parameters) {
         OneRowActionListener<DeleteIndexResponse> actionListener = new OneRowActionListener<>(rowReceiver, TO_UNKNOWN_COUNT_ROW);
         transport.execute(request, actionListener);
     }

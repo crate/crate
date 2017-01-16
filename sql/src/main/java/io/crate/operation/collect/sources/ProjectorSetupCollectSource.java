@@ -23,9 +23,9 @@ package io.crate.operation.collect.sources;
 
 import io.crate.operation.collect.CrateCollector;
 import io.crate.operation.collect.JobCollectContext;
+import io.crate.operation.data.BatchConsumer;
 import io.crate.operation.projectors.FlatProjectorChain;
 import io.crate.operation.projectors.ProjectorFactory;
-import io.crate.operation.projectors.RowReceiver;
 import io.crate.planner.node.dql.CollectPhase;
 
 import java.util.Collection;
@@ -41,17 +41,17 @@ public class ProjectorSetupCollectSource implements CollectSource {
     }
 
     @Override
-    public Collection<CrateCollector> getCollectors(CollectPhase collectPhase, RowReceiver downstream, JobCollectContext jobCollectContext) {
+    public Collection<CrateCollector> getCollectors(CollectPhase collectPhase, BatchConsumer downstream, JobCollectContext jobCollectContext) {
         if (collectPhase.projections().isEmpty()) {
             return sourceDelegate.getCollectors(collectPhase, downstream, jobCollectContext);
         }
-        FlatProjectorChain projectorChain = FlatProjectorChain.withAttachedDownstream(
+        BatchConsumer projectorChain = FlatProjectorChain.withAttachedDownstream(
             projectorFactory,
             jobCollectContext.queryPhaseRamAccountingContext(),
             collectPhase.projections(),
             downstream,
             collectPhase.jobId()
         );
-        return sourceDelegate.getCollectors(collectPhase, projectorChain.firstProjector(), jobCollectContext);
+        return sourceDelegate.getCollectors(collectPhase, projectorChain, jobCollectContext);
     }
 }

@@ -25,6 +25,7 @@ import com.google.common.collect.Lists;
 import io.crate.Streamer;
 import io.crate.executor.transport.distributed.*;
 import io.crate.operation.NodeOperation;
+import io.crate.operation.data.BatchConsumer;
 import io.crate.planner.distribution.DistributionInfo;
 import io.crate.planner.node.ExecutionPhases;
 import io.crate.planner.node.StreamerVisitor;
@@ -57,10 +58,10 @@ public class DistributingDownstreamFactory extends AbstractComponent {
         distributingDownstreamLogger = Loggers.getLogger(DistributingDownstream.class, settings);
     }
 
-    public RowReceiver create(NodeOperation nodeOperation,
-                              DistributionInfo distributionInfo,
-                              UUID jobId,
-                              int pageSize) {
+    public BatchConsumer create(NodeOperation nodeOperation,
+                                DistributionInfo distributionInfo,
+                                UUID jobId,
+                                int pageSize) {
         Streamer<?>[] streamers = StreamerVisitor.streamersFromOutputs(nodeOperation.executionPhase());
         assert !ExecutionPhases.hasDirectResponseDownstream(nodeOperation.downstreamNodes())
             : "trying to build a DistributingDownstream but nodeOperation has a directResponse downstream";

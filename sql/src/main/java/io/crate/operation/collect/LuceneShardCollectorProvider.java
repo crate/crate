@@ -35,7 +35,6 @@ import io.crate.operation.collect.collectors.CollectorFieldsVisitor;
 import io.crate.operation.collect.collectors.CrateDocCollector;
 import io.crate.operation.collect.collectors.LuceneOrderedDocCollector;
 import io.crate.operation.collect.collectors.OrderedDocCollector;
-import io.crate.operation.projectors.Requirement;
 import io.crate.operation.reference.doc.lucene.CollectorContext;
 import io.crate.operation.reference.doc.lucene.LuceneCollectorExpression;
 import io.crate.operation.reference.doc.lucene.LuceneReferenceResolver;
@@ -51,7 +50,6 @@ import org.elasticsearch.index.engine.Engine;
 import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.threadpool.ThreadPool;
 
-import java.util.Set;
 import java.util.concurrent.Executor;
 
 public class LuceneShardCollectorProvider extends ShardCollectorProvider {
@@ -86,7 +84,7 @@ public class LuceneShardCollectorProvider extends ShardCollectorProvider {
 
     @Override
     protected CrateCollector.Builder getBuilder(RoutedCollectPhase collectPhase,
-                                                Set<Requirement> downstreamRequirements,
+                                                boolean requiresScroll,
                                                 JobCollectContext jobCollectContext) {
         SharedShardContext sharedShardContext = jobCollectContext.sharedShardContexts().getOrCreateContext(indexShard.shardId());
         Engine.Searcher searcher = sharedShardContext.acquireSearcher();

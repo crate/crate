@@ -25,8 +25,7 @@ package io.crate.executor.transport;
 import com.google.common.base.Function;
 import com.google.common.util.concurrent.FutureCallback;
 import io.crate.core.collections.Row;
-import io.crate.operation.projectors.RepeatHandle;
-import io.crate.operation.projectors.RowReceiver;
+import io.crate.operation.data.BatchConsumer;
 import org.elasticsearch.action.ActionListener;
 
 import javax.annotation.Nonnull;
@@ -34,18 +33,19 @@ import javax.annotation.Nullable;
 
 public class OneRowActionListener<Response> implements ActionListener<Response>, FutureCallback<Response> {
 
-    private final RowReceiver rowReceiver;
+    private final BatchConsumer rowReceiver;
     private final Function<? super Response, ? extends Row> toRowFunction;
 
-    public OneRowActionListener(RowReceiver rowReceiver, Function<? super Response, ? extends Row> toRowFunction) {
+    public OneRowActionListener(BatchConsumer rowReceiver, Function<? super Response, ? extends Row> toRowFunction) {
         this.rowReceiver = rowReceiver;
         this.toRowFunction = toRowFunction;
     }
 
     @Override
     public void onResponse(Response response) {
-        rowReceiver.setNextRow(toRowFunction.apply(response));
-        rowReceiver.finish(RepeatHandle.UNSUPPORTED);
+        // XDOBE: create a cursor from rows or implement directly
+//        rowReceiver.setNextRow(toRowFunction.apply(response));
+//        rowReceiver.finish(RepeatHandle.UNSUPPORTED);
     }
 
     @Override

@@ -28,6 +28,7 @@ import io.crate.executor.transport.TransportActionProvider;
 import io.crate.jobs.JobContextService;
 import io.crate.metadata.Routing;
 import io.crate.operation.collect.collectors.RemoteCollector;
+import io.crate.operation.data.BatchConsumer;
 import io.crate.operation.projectors.RowReceiver;
 import io.crate.planner.distribution.DistributionInfo;
 import io.crate.planner.node.dql.RoutedCollectPhase;
@@ -85,7 +86,7 @@ public class RemoteCollectorFactory {
 
         return new CrateCollector.Builder() {
             @Override
-            public CrateCollector build(RowReceiver rowReceiver) {
+            public CrateCollector build(BatchConsumer rowReceiver) {
                 return new RemoteCollector(
                     childJobId,
                     localNodeId,

@@ -46,6 +46,7 @@ import io.crate.operation.collect.*;
 import io.crate.operation.collect.collectors.CompositeCollector;
 import io.crate.operation.collect.collectors.MultiShardScoreDocCollector;
 import io.crate.operation.collect.collectors.OrderedDocCollector;
+import io.crate.operation.data.BatchConsumer;
 import io.crate.operation.projectors.*;
 import io.crate.operation.projectors.sorting.OrderingByPosition;
 import io.crate.operation.reference.sys.node.local.NodeSysExpression;
@@ -222,7 +223,7 @@ public class ShardCollectSource extends AbstractComponent implements CollectSour
 
     @Override
     public Collection<CrateCollector> getCollectors(CollectPhase phase,
-                                                    RowReceiver lastRR,
+                                                    BatchConsumer lastRR,
                                                     JobCollectContext jobCollectContext) {
         RoutedCollectPhase collectPhase = (RoutedCollectPhase) phase;
         RoutedCollectPhase normalizedPhase = collectPhase.normalize(nodeNormalizer, null);
@@ -230,7 +231,7 @@ public class ShardCollectSource extends AbstractComponent implements CollectSour
         String localNodeId = clusterService.localNode().getId();
 
 
-        FlatProjectorChain chain = FlatProjectorChain.withAttachedDownstream(
+        BatchConsumer chain = FlatProjectorChain.withAttachedDownstream(
             sharedProjectorFactory,
             jobCollectContext.queryPhaseRamAccountingContext(),
             Projections.nodeProjections(normalizedPhase.projections()),
@@ -263,10 +264,10 @@ public class ShardCollectSource extends AbstractComponent implements CollectSour
         Map<String, List<Integer>> indexShards = locations.get(localNodeId);
         if (indexShards != null) {
             builders.addAll(
-                getDocCollectors(jobCollectContext, normalizedPhase, lastRR.requirements(), indexShards));
+                getDocCollectors(jobCollectContext, normalizedPhase, chain.requiresScroll(), indexShards));
         }
 
-        RowReceiver firstNodeRR = chain.firstProjector();
+        BatchConsumer firstNodeRR = chain;
         switch (builders.size()) {
             case 0:
                 return Collections.singletonList(RowsCollector.empty(firstNodeRR));
@@ -274,15 +275,17 @@ public class ShardCollectSource extends AbstractComponent implements CollectSour
                 return Collections.singletonList(builders.iterator().next().build(firstNodeRR));
             default:
                 if (hasShardProjections) {
-                    // 1 Collector per shard to benefit from concurrency (each collector is run in a thread)
-                    // MultiUpstreamRowReceiver does synchronization (any projector after that doesn't really benefit from concurrency)
-                    // It also doesn't support repeat.
-                    MultiUpstreamRowReceiver multiUpstreamRowReceiver = new MultiUpstreamRowReceiver(firstNodeRR);
-                    List<CrateCollector> collectors = new ArrayList<>(builders.size());
-                    for (CrateCollector.Builder builder : builders) {
-                        collectors.add(builder.build(multiUpstreamRowReceiver.newRowReceiver()));
-                    }
-                    return collectors;
+//                    // XDOBE
+//                    // 1 Collector per shard to benefit from concurrency (each collector is run in a thread)
+//                    // MultiUpstreamRowReceiver does synchronization (any projector after that doesn't really benefit from concurrency)
+//                    // It also doesn't support repeat.
+//                    MultiUpstreamRowReceiver multiUpstreamRowReceiver = new MultiUpstreamRowReceiver(firstNodeRR);
+//                    List<CrateCollector> collectors = new ArrayList<>(builders.size());
+//                    for (CrateCollector.Builder builder : builders) {
+//                        // XDOBE collectors.add(builder.build(multiUpstreamRowReceiver.newRowReceiver()));
+//                    }
+//                    return collectors;
+                    return null;
                 } else {
                     // If there are no shard-projections there is no real benefit from concurrency gained by using multiple collectors.
                     // CompositeCollector to collects single-threaded sequentially.
@@ -292,7 +295,7 @@ public class ShardCollectSource extends AbstractComponent implements CollectSour
     }
 
     private CrateCollector createMultiShardScoreDocCollector(RoutedCollectPhase collectPhase,
-                                                             FlatProjectorChain flatProjectorChain,
+                                                             BatchConsumer downstream,
                                                              JobCollectContext jobCollectContext,
                                                              String localNodeId) {
 
@@ -312,7 +315,7 @@ public class ShardCollectSource extends AbstractComponent implements CollectSour
                     orderedDocCollectors.add(shardCollectorProvider.getOrderedCollector(collectPhase,
                         context,
                         jobCollectContext,
-                        flatProjectorChain.firstProjector().requirements().contains(Requirement.REPEAT)));
+                        downstream.requiresScroll()));
                 } catch (ShardNotFoundException | IllegalIndexShardStateException e) {
                     throw e;
                 } catch (IndexNotFoundException e) {
@@ -335,7 +338,7 @@ public class ShardCollectSource extends AbstractComponent implements CollectSour
                 orderBy.reverseFlags(),
                 orderBy.nullsFirst()
             ),
-            flatProjectorChain,
+            downstream,
             executor
         );
     }
@@ -350,7 +353,7 @@ public class ShardCollectSource extends AbstractComponent implements CollectSour
 
     private Collection<CrateCollector.Builder> getDocCollectors(JobCollectContext jobCollectContext,
                                                                 RoutedCollectPhase collectPhase,
-                                                                Set<Requirement> downstreamRequirements,
+                                                                boolean requiresScroll,
                                                                 Map<String, List<Integer>> indexShards) {
 
         List<CrateCollector.Builder> crateCollectors = new ArrayList<>();
@@ -370,7 +373,7 @@ public class ShardCollectSource extends AbstractComponent implements CollectSour
                     ShardCollectorProvider shardCollectorProvider = getCollectorProviderSafe(shardId);
                     CrateCollector.Builder collector = shardCollectorProvider.getCollectorBuilder(
                         collectPhase,
-                        downstreamRequirements,
+                        requiresScroll,
                         jobCollectContext
                     );
                     crateCollectors.add(collector);
@@ -396,7 +399,7 @@ public class ShardCollectSource extends AbstractComponent implements CollectSour
     private CrateCollector getShardsCollector(RoutedCollectPhase collectPhase,
                                               RoutedCollectPhase normalizedPhase,
                                               String localNodeId,
-                                              FlatProjectorChain flatProjectorChain) {
+                                              BatchConsumer downstream) {
         Map<String, Map<String, List<Integer>>> locations = collectPhase.routing().locations();
         List<UnassignedShard> unassignedShards = new ArrayList<>();
         List<Object[]> rows = new ArrayList<>();
@@ -444,7 +447,7 @@ public class ShardCollectSource extends AbstractComponent implements CollectSour
         }
 
         return new RowsCollector(
-            flatProjectorChain.firstProjector(),
+            downstream,
             Iterables.transform(rows, Buckets.arrayToRowFunction()));
     }
 

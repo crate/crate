@@ -34,6 +34,7 @@ import io.crate.metadata.shard.RecoveryShardReferenceResolver;
 import io.crate.operation.InputFactory;
 import io.crate.operation.Input;
 import io.crate.operation.collect.collectors.OrderedDocCollector;
+import io.crate.operation.data.BatchConsumer;
 import io.crate.operation.projectors.*;
 import io.crate.planner.node.dql.RoutedCollectPhase;
 import io.crate.planner.projection.Projection;
@@ -117,7 +118,7 @@ public abstract class ShardCollectorProvider {
      * should be the first node-level projector.
      */
     public CrateCollector.Builder getCollectorBuilder(RoutedCollectPhase collectPhase,
-                                                      Set<Requirement> downstreamRequirements,
+                                                      boolean requiresScroll,
                                                       JobCollectContext jobCollectContext) throws Exception {
         assert collectPhase.orderBy() ==
                null : "getDocCollector shouldn't be called if there is an orderBy on the collectPhase";
@@ -128,7 +129,7 @@ public abstract class ShardCollectorProvider {
             builder = RowsCollector.emptyBuilder();
         } else {
             assert normalizedCollectNode.maxRowGranularity() == RowGranularity.DOC : "granularity must be DOC";
-            builder = getBuilder(normalizedCollectNode, downstreamRequirements, jobCollectContext);
+            builder = getBuilder(normalizedCollectNode, requiresScroll, jobCollectContext);
         }
 
         Collection<? extends Projection> shardProjections = Projections.shardProjections(collectPhase.projections());
@@ -142,14 +143,14 @@ public abstract class ShardCollectorProvider {
                 shardProjections
             );
             return rowReceiver -> {
-                FlatProjectorChain chain = chainBuilder.build(rowReceiver);
-                return builder.build(chain.firstProjector());
+                BatchConsumer chain = chainBuilder.build(rowReceiver);
+                return builder.build(chain);
             };
         }
     }
 
     protected abstract CrateCollector.Builder getBuilder(RoutedCollectPhase collectPhase,
-                                                         Set<Requirement> downstreamRequirements,
+                                                         boolean requiresScroll,
                                                          JobCollectContext jobCollectContext);
 
 

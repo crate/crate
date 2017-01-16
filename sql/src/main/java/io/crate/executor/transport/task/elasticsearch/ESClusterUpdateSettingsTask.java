@@ -30,7 +30,7 @@ import io.crate.executor.JobTask;
 import io.crate.executor.transport.OneRowActionListener;
 import io.crate.metadata.settings.CrateSettings;
 import io.crate.metadata.settings.SettingsApplier;
-import io.crate.operation.projectors.RowReceiver;
+import io.crate.operation.data.BatchConsumer;
 import io.crate.planner.node.ddl.ESClusterUpdateSettingsPlan;
 import io.crate.sql.tree.Expression;
 import org.elasticsearch.action.admin.cluster.settings.ClusterUpdateSettingsRequest;
@@ -56,7 +56,7 @@ public class ESClusterUpdateSettingsTask extends JobTask {
     }
 
     @Override
-    public void execute(RowReceiver rowReceiver, Row parameters) {
+    public void execute(BatchConsumer rowReceiver, Row parameters) {
         ClusterUpdateSettingsRequest request = buildESUpdateClusterSettingRequest(
             buildSettingsFrom(plan.persistentSettings(), parameters),
             buildSettingsFrom(plan.transientSettings(), parameters)

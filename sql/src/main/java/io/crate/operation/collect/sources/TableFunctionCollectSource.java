@@ -32,11 +32,11 @@ import io.crate.metadata.Functions;
 import io.crate.metadata.Reference;
 import io.crate.metadata.table.TableInfo;
 import io.crate.metadata.tablefunctions.TableFunctionImplementation;
-import io.crate.operation.InputFactory;
 import io.crate.operation.Input;
+import io.crate.operation.InputFactory;
 import io.crate.operation.collect.*;
+import io.crate.operation.data.BatchConsumer;
 import io.crate.operation.projectors.InputCondition;
-import io.crate.operation.projectors.RowReceiver;
 import io.crate.planner.node.dql.CollectPhase;
 import io.crate.planner.node.dql.TableFunctionCollectPhase;
 import org.elasticsearch.cluster.ClusterService;
@@ -64,7 +64,7 @@ public class TableFunctionCollectSource implements CollectSource {
 
     @Override
     public Collection<CrateCollector> getCollectors(CollectPhase collectPhase,
-                                                    RowReceiver downstream,
+                                                    BatchConsumer downstream,
                                                     JobCollectContext jobCollectContext) {
         TableFunctionCollectPhase phase = (TableFunctionCollectPhase) collectPhase;
         WhereClause whereClause = phase.whereClause();

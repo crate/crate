@@ -40,7 +40,6 @@ import io.crate.exceptions.Exceptions;
 import io.crate.exceptions.ReadOnlyException;
 import io.crate.executor.Executor;
 import io.crate.operation.collect.StatsTables;
-import io.crate.operation.projectors.ResumeHandle;
 import io.crate.planner.Plan;
 import io.crate.planner.Planner;
 import io.crate.sql.tree.Statement;
@@ -189,10 +188,10 @@ public class SimplePortal extends AbstractPortal {
     @Override
     public void close() {
         if (rowReceiver != null) {
-            ResumeHandle resumeHandle = rowReceiver.resumeHandle();
-            if (resumeHandle != null) {
-                rowReceiver.kill(new InterruptedException("Client closed portal"));
-                resumeHandle.resume(false);
+            RowReceiverToResultReceiver rr = rowReceiver;
+            rowReceiver = null;
+            if (rr.close()){
+                resultReceiver.fail(new InterruptedException("Client closed portal"));
             }
         }
     }
@@ -202,13 +201,9 @@ public class SimplePortal extends AbstractPortal {
         if (rowReceiver == null) {
             return false;
         }
-        ResumeHandle resumeHandle = rowReceiver.resumeHandle();
-        if (resumeHandle == null) {
-            return false;
-        }
         rowReceiver.replaceResultReceiver(resultReceiver, maxRows);
-        LOGGER.trace("Resuming {}", resumeHandle);
-        resumeHandle.resume(true);
+        LOGGER.trace("Resuming {}", rowReceiver);
+        rowReceiver.resume();
         return true;
     }
 

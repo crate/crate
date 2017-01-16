@@ -31,7 +31,7 @@ import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.sys.SysNodesTableInfo;
 import io.crate.operation.InputFactory;
-import io.crate.operation.projectors.RowReceiver;
+import io.crate.operation.data.BatchConsumer;
 import io.crate.planner.node.dql.RoutedCollectPhase;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.types.DataTypes;
@@ -56,7 +56,7 @@ public class NodeStatsCollectorTest extends CrateUnitTest {
     private RoutedCollectPhase collectPhase;
     private Collection<DiscoveryNode> nodes = new HashSet<>();
     private TransportNodeStatsAction transportNodeStatsAction = mock(TransportNodeStatsAction.class);
-    private RowReceiver rowReceiver = mock(RowReceiver.class);
+    private BatchConsumer rowReceiver = mock(BatchConsumer.class);
 
     private Reference idRef;
     private Reference nameRef;

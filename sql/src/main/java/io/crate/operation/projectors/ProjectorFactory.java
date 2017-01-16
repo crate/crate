@@ -22,11 +22,12 @@
 package io.crate.operation.projectors;
 
 import io.crate.breaker.RamAccountingContext;
+import io.crate.operation.data.BatchProjector;
 import io.crate.planner.projection.Projection;
 
 import java.util.UUID;
 
 public interface ProjectorFactory {
 
-    Projector create(Projection projection, RamAccountingContext ramAccountingContext, UUID jobId);
+    BatchProjector create(Projection projection, RamAccountingContext ramAccountingContext, UUID jobId);
 }

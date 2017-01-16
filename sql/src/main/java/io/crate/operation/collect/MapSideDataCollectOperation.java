@@ -26,7 +26,7 @@ import com.google.common.collect.Collections2;
 import io.crate.operation.ThreadPools;
 import io.crate.operation.collect.sources.CollectSource;
 import io.crate.operation.collect.sources.CollectSourceResolver;
-import io.crate.operation.projectors.RowReceiver;
+import io.crate.operation.data.BatchConsumer;
 import io.crate.planner.node.dql.CollectPhase;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
@@ -70,7 +70,7 @@ public class MapSideDataCollectOperation {
      * </p>
      */
     public Collection<CrateCollector> createCollectors(CollectPhase collectPhase,
-                                                       RowReceiver downstream,
+                                                       BatchConsumer downstream,
                                                        final JobCollectContext jobCollectContext) {
         CollectSource service = collectSourceResolver.getService(collectPhase);
         return service.getCollectors(collectPhase, downstream, jobCollectContext);

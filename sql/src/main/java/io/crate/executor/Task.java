@@ -23,7 +23,7 @@ package io.crate.executor;
 
 import com.google.common.util.concurrent.ListenableFuture;
 import io.crate.core.collections.Row;
-import io.crate.operation.projectors.RowReceiver;
+import io.crate.operation.data.BatchConsumer;
 
 import java.util.List;
 
@@ -34,7 +34,7 @@ public interface Task {
      * <p>
      * The result will be fed into the RowReceiver.
      */
-    void execute(RowReceiver rowReceiver, Row parameters);
+    void execute(BatchConsumer rowReceiver, Row parameters);
 
     /**
      * execute the task if it represents a bulk operation.

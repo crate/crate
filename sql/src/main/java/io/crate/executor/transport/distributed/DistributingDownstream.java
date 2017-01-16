@@ -25,6 +25,8 @@ package io.crate.executor.transport.distributed;
 import io.crate.Streamer;
 import io.crate.core.collections.Bucket;
 import io.crate.core.collections.Row;
+import io.crate.operation.data.BatchConsumer;
+import io.crate.operation.data.BatchCursor;
 import io.crate.operation.projectors.*;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.common.logging.ESLogger;
@@ -79,7 +81,7 @@ import java.util.concurrent.atomic.AtomicReference;
  * never two pages send concurrently.
  *
  */
-public class DistributingDownstream implements RowReceiver {
+public class DistributingDownstream implements RowReceiver, BatchConsumer {
 
     private final ESLogger logger;
     final MultiBucketBuilder multiBucketBuilder;
@@ -262,6 +264,11 @@ public class DistributingDownstream implements RowReceiver {
     @Override
     public Set<Requirement> requirements() {
         return Requirements.NO_REQUIREMENTS;
+    }
+
+    @Override
+    public void accept(BatchCursor batchCursor) {
+        // XDOBE: implement
     }
 
     private class Downstream implements ActionListener<DistributedResultResponse> {

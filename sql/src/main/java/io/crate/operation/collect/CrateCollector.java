@@ -21,14 +21,14 @@
 
 package io.crate.operation.collect;
 
-import io.crate.operation.projectors.RowReceiver;
+import io.crate.operation.data.BatchConsumer;
 
 import javax.annotation.Nullable;
 
 public interface CrateCollector {
 
     interface Builder {
-        CrateCollector build(RowReceiver rowReceiver);
+        CrateCollector build(BatchConsumer rowReceiver);
     }
 
     void doCollect();

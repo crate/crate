@@ -22,44 +22,66 @@
 
 package io.crate.action.sql;
 
-import io.crate.core.collections.Row;
-import io.crate.operation.projectors.*;
+import com.google.common.util.concurrent.MoreExecutors;
+import io.crate.operation.data.BatchConsumer;
+import io.crate.operation.data.BatchCursor;
 
-import java.util.Set;
-
-public class RowReceiverToResultReceiver implements RowReceiver {
+public class RowReceiverToResultReceiver implements BatchConsumer {
 
     private ResultReceiver resultReceiver;
     private int maxRows;
     private long rowCount = 0;
-
-    private ResumeHandle resumeHandle = null;
+    private BatchCursor cursor;
 
     public RowReceiverToResultReceiver(ResultReceiver resultReceiver, int maxRows) {
         this.resultReceiver = resultReceiver;
         this.maxRows = maxRows;
     }
 
-    @Override
-    public Result setNextRow(Row row) {
-        rowCount++;
-        resultReceiver.setNextRow(row);
-
-        if (maxRows > 0 && rowCount % maxRows == 0) {
-            return Result.PAUSE;
+    private void consume() {
+        System.err.println("RR2RR consume");
+        if (cursor.status() == BatchCursor.Status.ON_ROW) {
+            do {
+                rowCount++;
+                System.err.println("RR2RR consume in row=" + rowCount);
+                try {
+                    resultReceiver.setNextRow(this.cursor);
+                } catch (Throwable t){
+                    // since the ResultReceiver is still row based, we need to watch if the row fails and propagate
+                    // the failure to the downstream and close the cursor. such a failure might occur if a scalar
+                    // throws an exception, e.g: division by zero
+                    resultReceiver.fail(t);
+                    System.err.println("RR2RR setNextRow failed " + t);
+                    cursor.close();
+                    return;
+                }
+                if (maxRows > 0 && rowCount == maxRows) {
+                    resultReceiver.batchFinished();
+                    return;
+                }
+            } while (cursor.moveNext());
         }
-        return Result.CONTINUE;
+        if (!cursor.allLoaded()) {
+            cursor.loadNextBatch().addListener(this::consume, MoreExecutors.directExecutor());
+        } else {
+            System.err.println("RR2RR consume finished");
+            resultReceiver.allFinished();
+            cursor.close();
+        }
+    }
+
+    /*
+    resumes after the batch has finished
+     */
+    public void resume() {
+        cursor.moveNext();
+        consume();
     }
 
     @Override
-    public void pauseProcessed(ResumeHandle resumeHandle) {
-        this.resumeHandle = resumeHandle;
-        resultReceiver.batchFinished();
-    }
-
-    @Override
-    public void finish(RepeatHandle repeatable) {
-        resultReceiver.allFinished();
+    public void accept(BatchCursor batchCursor) {
+        this.cursor = batchCursor;
+        consume();
     }
 
     @Override
@@ -67,23 +89,21 @@ public class RowReceiverToResultReceiver implements RowReceiver {
         resultReceiver.fail(throwable);
     }
 
-    @Override
-    public void kill(Throwable throwable) {
-        fail(throwable);
-    }
-
-    @Override
-    public Set<Requirement> requirements() {
-        return Requirements.NO_REQUIREMENTS;
-    }
-
-    public ResumeHandle resumeHandle() {
-        return resumeHandle;
-    }
-
     public void replaceResultReceiver(ResultReceiver resultReceiver, int maxRows) {
-        this.resumeHandle = null;
+        // XDOBE: check if setting rowcount to 0 is ok
+        this.rowCount = 0;
         this.resultReceiver = resultReceiver;
         this.maxRows = maxRows;
+    }
+
+    /*
+    closes the underlying upstream cursor if not already closed. returns true if the cursor was closed
+     */
+    public boolean close() {
+        if (cursor != null && cursor.status() != BatchCursor.Status.CLOSED) {
+            cursor.close();
+            return true;
+        }
+        return false;
     }
 }

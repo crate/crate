@@ -35,6 +35,7 @@ import io.crate.operation.collect.CrateCollector;
 import io.crate.operation.collect.JobCollectContext;
 import io.crate.operation.collect.RowsCollector;
 import io.crate.operation.collect.collectors.NodeStatsCollector;
+import io.crate.operation.data.BatchConsumer;
 import io.crate.operation.projectors.RowReceiver;
 import io.crate.operation.reference.sys.node.NodeStatsContext;
 import io.crate.operation.reference.sys.node.local.NodeSysExpression;
@@ -73,7 +74,7 @@ public class NodeStatsCollectSource implements CollectSource {
     }
 
     @Override
-    public Collection<CrateCollector> getCollectors(CollectPhase phase, RowReceiver downstream, JobCollectContext jobCollectContext) {
+    public Collection<CrateCollector> getCollectors(CollectPhase phase, BatchConsumer downstream, JobCollectContext jobCollectContext) {
         RoutedCollectPhase collectPhase = (RoutedCollectPhase) phase;
         EvaluatingNormalizer normalizer = new EvaluatingNormalizer(
             functions, RowGranularity.DOC, ReplaceMode.COPY, new NodeSysReferenceResolver(nodeSysExpression), null);

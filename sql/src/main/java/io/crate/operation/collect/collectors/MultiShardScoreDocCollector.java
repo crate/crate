@@ -28,6 +28,7 @@ import com.google.common.collect.Ordering;
 import com.google.common.util.concurrent.*;
 import io.crate.core.collections.Row;
 import io.crate.operation.collect.CrateCollector;
+import io.crate.operation.data.BatchConsumer;
 import io.crate.operation.merge.KeyIterable;
 import io.crate.operation.merge.PagingIterator;
 import io.crate.operation.merge.PassThroughPagingIterator;
@@ -50,7 +51,7 @@ public class MultiShardScoreDocCollector implements CrateCollector, ResumeHandle
 
     private final List<OrderedDocCollector> orderedDocCollectors;
     private final ObjectObjectHashMap<ShardId, OrderedDocCollector> orderedCollectorsMap;
-    private final RowReceiver rowReceiver;
+    private final BatchConsumer rowReceiver;
     private final PagingIterator<ShardId, Row> pagingIterator;
     private final ListeningExecutorService executor;
     private final ListeningExecutorService directExecutor;
@@ -61,24 +62,23 @@ public class MultiShardScoreDocCollector implements CrateCollector, ResumeHandle
 
     public MultiShardScoreDocCollector(final List<OrderedDocCollector> orderedDocCollectors,
                                        Ordering<Row> rowOrdering,
-                                       FlatProjectorChain flatProjectorChain,
+                                       BatchConsumer downstream,
                                        ListeningExecutorService executor) {
         assert orderedDocCollectors.size() > 0 : "must have at least one shardContext";
         this.directExecutor = MoreExecutors.newDirectExecutorService();
         this.executor = executor;
-        rowReceiver = flatProjectorChain.firstProjector();
+        rowReceiver = downstream;
         this.orderedDocCollectors = orderedDocCollectors;
         singleShard = orderedDocCollectors.size() == 1;
 
-        boolean needsRepeat = rowReceiver.requirements().contains(Requirement.REPEAT);
         if (singleShard) {
-            pagingIterator = needsRepeat ?
+            pagingIterator = downstream.requiresScroll() ?
                 PassThroughPagingIterator.<ShardId, Row>repeatable() :
                 PassThroughPagingIterator.<ShardId, Row>oneShot();
             orderedCollectorsMap = null;
             futureCallback = null;
         } else {
-            pagingIterator = new SortedPagingIterator<>(rowOrdering, needsRepeat);
+            pagingIterator = new SortedPagingIterator<>(rowOrdering, downstream.requiresScroll());
             futureCallback = new FutureCallback<List<KeyIterable<ShardId, Row>>>() {
                 @Override
                 public void onSuccess(@Nullable List<KeyIterable<ShardId, Row>> result) {
@@ -169,20 +169,21 @@ public class MultiShardScoreDocCollector implements CrateCollector, ResumeHandle
     }
 
     private RowReceiver.Result emitRows() {
-        while (pagingIterator.hasNext()) {
-            Row row = pagingIterator.next();
-            RowReceiver.Result result = rowReceiver.setNextRow(row);
-            switch (result) {
-                case CONTINUE:
-                    continue;
-                case PAUSE:
-                    rowReceiver.pauseProcessed(this);
-                    return result;
-                case STOP:
-                    return result;
-            }
-            throw new AssertionError("Unrecognized setNextRow result: " + result);
-        }
+        // XDOBE: implement new collector
+//        while (pagingIterator.hasNext()) {
+//            Row row = pagingIterator.next();
+//            RowReceiver.Result result = rowReceiver.setNextRow(row);
+//            switch (result) {
+//                case CONTINUE:
+//                    continue;
+//                case PAUSE:
+//                    rowReceiver.pauseProcessed(this);
+//                    return result;
+//                case STOP:
+//                    return result;
+//            }
+//            throw new AssertionError("Unrecognized setNextRow result: " + result);
+//        }
         return RowReceiver.Result.CONTINUE;
     }
 
@@ -197,7 +198,7 @@ public class MultiShardScoreDocCollector implements CrateCollector, ResumeHandle
 
     private void finish() {
         closeShardContexts();
-        rowReceiver.finish(this);
+// XDOBE:        rowReceiver.finish(this);
     }
 
     private void fail(@Nonnull Throwable t) {
@@ -214,7 +215,7 @@ public class MultiShardScoreDocCollector implements CrateCollector, ResumeHandle
     @Override
     public void kill(@Nullable Throwable throwable) {
         if (rowEmitter == null) {
-            rowReceiver.kill(throwable);
+            // XDOBE: rowReceiver.kill(throwable);
         } else {
             rowEmitter.kill(throwable);
         }
@@ -222,8 +223,9 @@ public class MultiShardScoreDocCollector implements CrateCollector, ResumeHandle
 
     @Override
     public void repeat() {
-        rowEmitter = new IterableRowEmitter(rowReceiver, pagingIterator.repeat());
-        rowEmitter.run();
+        // XDOBE:
+//        rowEmitter = new IterableRowEmitter(rowReceiver, pagingIterator.repeat());
+//        rowEmitter.run();
     }
 
     @Override
