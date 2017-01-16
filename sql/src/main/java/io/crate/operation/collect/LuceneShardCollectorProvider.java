@@ -84,7 +84,8 @@ public class LuceneShardCollectorProvider extends ShardCollectorProvider {
         this.indexShard = indexShard;
         this.localNodeId = clusterService.localNode().getId();
         fieldTypeLookup = indexShard.mapperService()::fullName;
-        this.docInputFactory = new DocInputFactory(functions, new LuceneReferenceResolver(fieldTypeLookup));
+        this.docInputFactory = new DocInputFactory(functions,
+            new LuceneReferenceResolver(fieldTypeLookup, indexShard.indexSettings()));
     }
 
     @Override
