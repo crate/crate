@@ -233,7 +233,7 @@
 
 #################################### Paths ####################################
 
-# Path to directory containing configuration (this file and logging.yml):
+# Path to directory containing configuration (this file and log4j2.properties):
 #
 #path.conf: /path/to/conf
 
@@ -492,7 +492,7 @@
 #    to perform discovery when new nodes (master or data) are started:
 #
 # If you want to debug the discovery process, you can set a logger in
-# 'config/logging.yml' to help you doing so.
+# 'config/log4j2.properties' to help you doing so.
 #
 #discovery.zen.ping.unicast.hosts:
 #  - host1:port

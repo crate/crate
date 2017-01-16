@@ -102,7 +102,7 @@ public class PluginLoaderPlugin extends Plugin implements ActionPlugin, MapperPl
     @Override
     public Collection<Module> createGuiceModules() {
         Collection<Module> modules = new ArrayList<>();
-        modules.add(new PluginLoaderModule(settings, pluginLoader));
+        modules.add(new PluginLoaderModule(pluginLoader));
         modules.addAll(pluginLoader.createGuiceModules());
         modules.addAll(sqlPlugin.createGuiceModules());
         return modules;
