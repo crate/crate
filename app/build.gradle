@@ -38,6 +38,7 @@ dependencies {
     compile project(':es:es-discovery-multicast')
     compile project(':es:es-discovery-ec2')
     compile project(':es:es-repository-s3')
+    compile project(':es:es-transport')
     compile('org.apache.xbean:xbean-finder:4.5') {
         exclude group: 'org.apache.xbean', module: 'xbean-asm-util'
     }
@@ -339,9 +340,9 @@ jar {
 }
 
 task downloadPlugins(
-        dependsOn: [':admin-ui:downloadPlugin', ':sigar:jar', ':azure-discovery:jar']) << {
+        dependsOn: [':sigar:jar', ':azure-discovery:jar']) << {
 
-    // FIXME: re-enable HDFS plugin
+    // FIXME: re-enable HDFS plugin + AdminUI plugin
     //    dependsOn: [':admin-ui:downloadPlugin', ':sigar:jar', ':es-repository-hdfs:distZip', ':azure-discovery:jar']) << {
     //
     //copy {
@@ -357,10 +358,10 @@ task downloadPlugins(
         into 'plugins/crate-azure-discovery'
     }
 
-    copy {
-        from(project(':admin-ui').buildDir.path + '/crate-admin')
-        into 'plugins/crate-admin'
-    }
+    //copy {
+    //    from(project(':admin-ui').buildDir.path + '/crate-admin')
+    //    into 'plugins/crate-admin'
+    //}
 
     // copy sigar jar
     copy {

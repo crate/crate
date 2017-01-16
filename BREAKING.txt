@@ -12,7 +12,7 @@
 - Plugin interface changed (mostly related to gone index/shard injection),
   AbstractPlugin is removed (not needed anymore due to java8), documentation needs to be updated
 
-- Logging is no configured by `log4j2.properties` instead of `logging.yml`
+- Logging is now configured by `log4j2.properties` instead of `logging.yml`
 
 - `thrift` transport is no longer supported and so the `thrift.*` settings
 
