@@ -23,6 +23,7 @@ package io.crate.operation.reference.doc.lucene;
 
 import io.crate.exceptions.UnhandledServerException;
 import io.crate.exceptions.UnsupportedFeatureException;
+import io.crate.lucene.FieldTypeLookup;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.DocReferenceConverter;
 import io.crate.metadata.Reference;
@@ -30,19 +31,20 @@ import io.crate.metadata.RowGranularity;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.operation.reference.ReferenceResolver;
 import io.crate.types.*;
-import org.elasticsearch.common.Nullable;
-import org.elasticsearch.index.mapper.MapperService;
+import org.elasticsearch.Version;
+import org.elasticsearch.index.IndexSettings;
+import org.elasticsearch.index.mapper.MappedFieldType;
 
 import java.util.Locale;
 
 public class LuceneReferenceResolver implements ReferenceResolver<LuceneCollectorExpression<?>> {
 
-    private final
-    @Nullable
-    MapperService mapperService;
+    private final FieldTypeLookup fieldTypeLookup;
+    private final IndexSettings indexSettings;
 
-    public LuceneReferenceResolver(@Nullable MapperService mapperService) {
-        this.mapperService = mapperService;
+    public LuceneReferenceResolver(FieldTypeLookup fieldTypeLookup, IndexSettings indexSettings) {
+        this.fieldTypeLookup = fieldTypeLookup;
+        this.indexSettings = indexSettings;
     }
 
     @Override
@@ -75,16 +77,20 @@ public class LuceneReferenceResolver implements ReferenceResolver<LuceneCollecto
         }
 
         String colName = columnIdent.fqn();
-        if (this.mapperService != null && mapperService.fullName(colName) == null) {
+        MappedFieldType mappedFieldType = fieldTypeLookup.get(colName);
+        if (mappedFieldType == null) {
             return new NullValueCollectorExpression(colName);
         }
-
         switch (refInfo.valueType().id()) {
             case ByteType.ID:
                 return new ByteColumnReference(colName);
             case ShortType.ID:
                 return new ShortColumnReference(colName);
             case IpType.ID:
+                Version indexVersionCreated = indexSettings.getIndexVersionCreated();
+                if (indexVersionCreated.before(Version.V_5_0_0)) {
+                    return new LegacyIPColumnReference(colName);
+                }
                 return new IpColumnReference(colName);
             case StringType.ID:
                 return new BytesRefColumnReference(colName);
@@ -115,7 +121,7 @@ public class LuceneReferenceResolver implements ReferenceResolver<LuceneCollecto
 
     private static class NullValueCollectorExpression extends LuceneCollectorExpression<Void> {
 
-        public NullValueCollectorExpression(String columnName) {
+        NullValueCollectorExpression(String columnName) {
             super(columnName);
         }
 
