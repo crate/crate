@@ -23,7 +23,11 @@
 package io.crate.operation.collect.stats;
 
 import com.google.common.annotations.VisibleForTesting;
-import io.crate.breaker.*;
+import io.crate.breaker.CrateCircuitBreakerService;
+import io.crate.breaker.JobContextLogSizeEstimator;
+import io.crate.breaker.OperationContextLogSizeEstimator;
+import io.crate.breaker.RamAccountingContext;
+import io.crate.core.collections.BlockingEvictingQueue;
 import io.crate.metadata.settings.CrateSettings;
 import io.crate.operation.reference.sys.job.JobContextLog;
 import io.crate.operation.reference.sys.operation.OperationContextLog;
@@ -39,7 +43,10 @@ import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.node.settings.NodeSettingsService;
 import org.elasticsearch.threadpool.ThreadPool;
 
+import java.util.Queue;
+import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
 
 /**
  * The StatsTablesService is available on each node and holds the meta data of the cluster, such as active jobs and operations.
@@ -121,22 +128,28 @@ public class StatsTablesService extends AbstractLifecycleComponent<StatsTablesSe
     }
 
     private LogSink<JobContextLog> createSink(int size, TimeValue expiration) {
-        LogSink<JobContextLog> newQ;
+        Queue<JobContextLog> q;
+        long expirationMillis = expiration.getMillis();
         if (size == 0) {
-            if (expiration.getMillis() > 0) {
-                newQ = new TimeExpiringRamAccountingLogSink<>(ramAccountingContext, scheduler, expiration, JOB_CONTEXT_LOG_ESTIMATOR::estimateSize);
-            } else {
-                newQ = NoopLogSink.instance();
+            if (expirationMillis == 0) {
+                return NoopLogSink.instance();
             }
+            q = new ConcurrentLinkedDeque<>();
         } else {
-            if (expiration.getMillis() > 0) {
-                LOGGER.info("Both stats.jobs_log_size and stats.jobs_log_expiration settings are set. Using the latter.");
-                newQ = new TimeExpiringRamAccountingLogSink<>(ramAccountingContext, scheduler, expiration, JOB_CONTEXT_LOG_ESTIMATOR::estimateSize);
-            } else {
-                newQ = new FixedSizeRamAccountingLogSink<>(ramAccountingContext, size, JOB_CONTEXT_LOG_ESTIMATOR::estimateSize);
-            }
+            q = new BlockingEvictingQueue<>(size);
         }
-        return newQ;
+
+        final Runnable onClose;
+        if (expirationMillis > 0) {
+            ScheduledFuture<?> scheduledFuture = TimeExpiring.instance().registerTruncateTask(q, scheduler, expiration);
+            onClose = () -> scheduledFuture.cancel(false);
+        } else {
+            onClose = () -> {};
+        }
+        RamAccountingQueue<JobContextLog> accountingQueue =
+            new RamAccountingQueue<>(q, ramAccountingContext, JOB_CONTEXT_LOG_ESTIMATOR);
+
+        return new QueueSink<>(accountingQueue, () -> { accountingQueue.close(); onClose.run(); });
     }
 
     private void setOperationsLogSink(int size) {
@@ -151,7 +164,9 @@ public class StatsTablesService extends AbstractLifecycleComponent<StatsTablesSe
         if (size == 0) {
             return NoopLogSink.instance();
         }
-        return new FixedSizeRamAccountingLogSink<>(ramAccountingContext, size, OPERATION_CONTEXT_LOG_SIZE_ESTIMATOR::estimateSize);
+        RamAccountingQueue<OperationContextLog> accountingQueue =
+            new RamAccountingQueue<>(new BlockingEvictingQueue<>(size), ramAccountingContext, OPERATION_CONTEXT_LOG_SIZE_ESTIMATOR);
+        return new QueueSink<>(accountingQueue, accountingQueue::close);
     }
 
     /**

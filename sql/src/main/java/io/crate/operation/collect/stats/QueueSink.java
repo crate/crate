@@ -22,30 +22,22 @@
 
 package io.crate.operation.collect.stats;
 
-import com.google.common.annotations.VisibleForTesting;
-import io.crate.breaker.RamAccountingContext;
-
 import java.util.Iterator;
 import java.util.Queue;
-import java.util.function.Function;
 
-/**
- * A LogSink that accounts memory to circuit breaker when adding items.
- * The sink accepts a queue implementation and a ram accounting context.
- * The queue maintains that list of items.
- * The ram accounting context takes care of the used bytes for the circuit breaker.
- * @param <T> Type of the items in the sink.
- */
-public abstract class RamAccountingLogSink<T> implements LogSink<T> {
+public class QueueSink<T> implements LogSink<T> {
 
-    final Queue<T> queue;
-    final RamAccountingContext context;
-    final Function<T, Long> estimatorFunction;
+    private final Queue<T> queue;
+    private final Runnable onClose;
 
-    RamAccountingLogSink(Queue<T> queue, RamAccountingContext context, Function<T, Long> estimatorFunction) {
+    public QueueSink(Queue<T> queue, Runnable onClose) {
         this.queue = queue;
-        this.context = context;
-        this.estimatorFunction = estimatorFunction;
+        this.onClose = onClose;
+    }
+
+    @Override
+    public void add(T item) {
+        queue.offer(item);
     }
 
     @Override
@@ -62,14 +54,6 @@ public abstract class RamAccountingLogSink<T> implements LogSink<T> {
 
     @Override
     public void close() {
-        for (T t : queue) {
-            context.addBytesWithoutBreaking(-estimatorFunction.apply(t));
-        }
-        queue.clear();
-    }
-
-    @VisibleForTesting
-    int size() {
-        return queue.size();
+        onClose.run();
     }
 }

@@ -23,7 +23,9 @@
 package io.crate.operation.collect.stats;
 
 import com.google.common.collect.ImmutableList;
-import io.crate.breaker.*;
+import io.crate.breaker.CrateCircuitBreakerService;
+import io.crate.breaker.RamAccountingContext;
+import io.crate.core.collections.BlockingEvictingQueue;
 import io.crate.metadata.settings.CrateSettings;
 import io.crate.operation.reference.sys.job.JobContext;
 import io.crate.operation.reference.sys.job.JobContextLog;
@@ -41,6 +43,7 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 
 import java.util.List;
+import java.util.Queue;
 import java.util.UUID;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -96,12 +99,12 @@ public class StatsTablesTest extends CrateUnitTest {
         assertThat(stats.isEnabled(), is(true));
         assertThat(stats.lastJobsLogSize, is(100));
         assertThat(stats.lastOperationsLogSize, is(200));
-        assertThat(stats.jobsLogSink, Matchers.instanceOf(RamAccountingLogSink.class));
+        assertThat(stats.jobsLogSink, Matchers.instanceOf(QueueSink.class));
 
         // switch jobs_log queue
         stats.listener.onRefreshSettings(Settings.builder()
             .put(CrateSettings.STATS_JOBS_LOG_EXPIRATION.settingName(), "10s").build());
-        assertThat(stats.jobsLogSink, Matchers.instanceOf(TimeExpiringRamAccountingLogSink.class));
+        assertThat(stats.jobsLogSink, Matchers.instanceOf(QueueSink.class));
 
         stats.listener.onRefreshSettings(Settings.builder()
             .put(CrateSettings.STATS_JOBS_LOG_SIZE.settingName(), 0)
@@ -110,7 +113,7 @@ public class StatsTablesTest extends CrateUnitTest {
 
         stats.listener.onRefreshSettings(Settings.builder()
             .put(CrateSettings.STATS_JOBS_LOG_EXPIRATION.settingName(), "10s").build());
-        assertThat(stats.jobsLogSink, Matchers.instanceOf(TimeExpiringRamAccountingLogSink.class));
+        assertThat(stats.jobsLogSink, Matchers.instanceOf(QueueSink.class));
 
         // logs got wiped:
         stats.listener.onRefreshSettings(Settings.builder()
@@ -132,7 +135,7 @@ public class StatsTablesTest extends CrateUnitTest {
             .put(CrateSettings.STATS_ENABLED.settingName(), true)
             .put(CrateSettings.STATS_JOBS_LOG_SIZE.settingName(), 200).build());
 
-        assertThat(((RamAccountingLogSink) stats.jobsLogSink).size(), is(1));
+        assertThat(ImmutableList.copyOf(stats.jobsLogSink.iterator()).size(), is(1));
 
         stats.operationsLogSink.add(new OperationContextLog(
             new OperationContext(1, UUID.randomUUID(), "foo", 2L), null));
@@ -143,13 +146,15 @@ public class StatsTablesTest extends CrateUnitTest {
             .put(CrateSettings.STATS_ENABLED.settingName(), true)
             .put(CrateSettings.STATS_OPERATIONS_LOG_SIZE.settingName(), 1).build());
 
-        assertThat(((RamAccountingLogSink) stats.operationsLogSink).size(), is(1));
+        assertThat(ImmutableList.copyOf(stats.jobsLogSink.iterator()).size(), is(1));
     }
 
     @Test
     public void testUniqueOperationIdsInOperationsTable() {
         StatsTables statsTables = new StatsTables(() -> true);
-        statsTables.updateOperationsLog(new FixedSizeRamAccountingLogSink<>(ramAccountingContext, 10, StatsTablesService.OPERATION_CONTEXT_LOG_SIZE_ESTIMATOR::estimateSize));
+        Queue<OperationContextLog> q = new BlockingEvictingQueue(10);
+        new RamAccountingQueue<>(q, ramAccountingContext, StatsTablesService.OPERATION_CONTEXT_LOG_SIZE_ESTIMATOR);
+        statsTables.updateOperationsLog(new QueueSink<>(q, ramAccountingContext::close));
 
         OperationContext ctxA = new OperationContext(0, UUID.randomUUID(), "dummyOperation", 1L);
         statsTables.operationStarted(ctxA.id, ctxA.jobId, ctxA.name);
@@ -158,7 +163,7 @@ public class StatsTablesTest extends CrateUnitTest {
         statsTables.operationStarted(ctxB.id, ctxB.jobId, ctxB.name);
 
         statsTables.operationFinished(ctxB.id, ctxB.jobId, null, -1);
-        List<OperationContextLog> entries = ImmutableList.copyOf(statsTables.operationsLog.get());
+        List<OperationContextLog> entries = ImmutableList.copyOf(statsTables.operationsLog.get().iterator());
 
         assertTrue(entries.contains(new OperationContextLog(ctxB, null)));
         assertFalse(entries.contains(new OperationContextLog(ctxA, null)));
