@@ -138,6 +138,12 @@ public class LuceneQueryBuilderTest extends CrateUnitTest {
                             .field("type", "double")
                         .endObject()
                     .endObject()
+                    .startObject("y_array")
+                        .field("type", "array")
+                        .startObject("inner")
+                            .field("type", "integer")
+                        .endObject()
+                    .endObject()
                 .endObject()
             .endObject()
             .endObject();
