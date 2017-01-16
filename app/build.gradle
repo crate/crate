@@ -36,7 +36,8 @@ dependencies {
     compile project(':azure-discovery')
     compile project(':dns-discovery')
     compile project(':es:es-discovery-multicast')
-    compile project(':es:es-cloud-aws')
+    compile project(':es:es-discovery-ec2')
+    compile project(':es:es-repository-s3')
     compile('org.apache.xbean:xbean-finder:4.5') {
         exclude group: 'org.apache.xbean', module: 'xbean-asm-util'
     }
@@ -52,7 +53,9 @@ dependencies {
     compileNotTransitive project(':udc')
     compileNotTransitive project(':dns-discovery')
     compileNotTransitive project(':es:es-discovery-multicast')
-    compileNotTransitive project(':es:es-cloud-aws')
+    compileNotTransitive project(':es:es-discovery-ec2')
+    compileNotTransitive project(':es:es-repository-s3')
+    compileNotTransitive project(':es:es-transport')
 }
 
 task release(dependsOn: 'distTar') << {
