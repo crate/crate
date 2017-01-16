@@ -65,7 +65,6 @@ import io.crate.types.CollectionType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.apache.lucene.index.Term;
-import org.apache.lucene.queries.TermsQuery;
 import org.apache.lucene.search.*;
 import org.apache.lucene.spatial.geopoint.document.GeoPointField;
 import org.apache.lucene.spatial.geopoint.search.GeoPointDistanceRangeQuery;
@@ -104,6 +103,8 @@ import org.elasticsearch.index.search.geo.InMemoryGeoBoundingBoxQuery;
 import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.*;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import static io.crate.operation.scalar.regex.RegexMatcher.isPcrePattern;
 import static org.apache.lucene.spatial.util.GeoEncodingUtils.TOLERANCE;
@@ -140,38 +141,21 @@ public class LuceneQueryBuilder {
         return ctx;
     }
 
-    private static Query termsQuery(String columnName, Literal arrayLiteral) {
-        List<Term> terms = getTerms(columnName, arrayLiteral);
-        if (terms.isEmpty()) {
-            return new MatchNoDocsQuery();
+    private static Query termsQuery(@Nullable MappedFieldType fieldType, List values) {
+        if (fieldType == null) {
+            return Queries.newMatchNoDocsQuery();
         }
-        return new TermsQuery(terms);
+        return fieldType.termsQuery(values, null);
     }
 
-    private static List<Term> getTerms(String columnName, Literal arrayLiteral) {
-        Object values = arrayLiteral.value();
-        Collection valueCollection;
-        if (values instanceof Collection) {
-            valueCollection = (Collection) values;
-        } else {
-            valueCollection = Arrays.asList((Object[]) values);
-        }
-        return asTerms(columnName, valueCollection, TermBuilder.forType(arrayLiteral.valueType()));
-    }
 
-    private static List<Term> asTerms(String columnName, Collection values, TermBuilder termBuilder) {
-        List<Term> terms = new ArrayList<>(values.size());
-        for (Object value : values) {
-            if (value == null) {
-                // skipping null values is okay because TermsFilter is only used for ANY
-                // and  x = ANY ([null]) shouldn't match even if X is null
-                continue;
-            }
-            terms.add(new Term(columnName, termBuilder.term(value)));
+    private static List asList(Literal literal) {
+        Object val = literal.value();
+        if (val instanceof Object[]) {
+            return Stream.of((Object[])val).filter(Objects::nonNull).collect(Collectors.toList());
         }
-        return terms;
+        return (List) val;
     }
-
 
     public static class Context {
         Query query;
@@ -365,7 +349,7 @@ public class LuceneQueryBuilder {
             @Override
             protected Query applyArrayLiteral(Reference reference, Literal arrayLiteral, Context context) throws IOException {
                 String columnName = reference.ident().columnIdent().fqn();
-                return termsQuery(columnName, arrayLiteral);
+                return termsQuery(context.getFieldTypeOrNull(columnName), asList(arrayLiteral));
             }
         }
 
@@ -606,13 +590,22 @@ public class LuceneQueryBuilder {
                 Reference reference = tuple.v1();
                 Literal literal = tuple.v2();
                 String columnName = reference.ident().columnIdent().fqn();
+                MappedFieldType fieldType = context.getFieldTypeOrNull(columnName);
+                if (fieldType == null) {
+                    if (reference.valueType().equals(DataTypes.OBJECT)) {
+                        return null; // fallback to generic filter for  "o = {x=10, y=20}"
+                    }
+                    // field doesn't exist, can't match
+                    return Queries.newMatchNoDocsQuery();
+                }
                 if (DataTypes.isCollectionType(reference.valueType()) &&
                     DataTypes.isCollectionType(literal.valueType())) {
-                    List<Term> terms = getTerms(columnName, literal);
-                    if (terms.isEmpty()) {
+
+                    List values = asList(literal);
+                    if (values.isEmpty()) {
                         return genericFunctionFilter(input, context);
                     }
-                    Query termsQuery = new TermsQuery(terms);
+                    Query termsQuery = termsQuery(fieldType, values);
 
                     // wrap boolTermsFilter and genericFunction filter in an additional BooleanFilter to control the ordering of the filters
                     // termsFilter is applied first
@@ -621,14 +614,6 @@ public class LuceneQueryBuilder {
                     filterClauses.add(termsQuery, BooleanClause.Occur.MUST);
                     filterClauses.add(genericFunctionFilter(input, context), BooleanClause.Occur.MUST);
                     return filterClauses.build();
-                }
-                MappedFieldType fieldType = context.getFieldTypeOrNull(columnName);
-                if (fieldType == null) {
-                    if (reference.valueType().equals(DataTypes.OBJECT)) {
-                        return null; // fallback to generic filter for  "o = {x=10, y=20}"
-                    }
-                    // field doesn't exist, can't match
-                    return Queries.newMatchNoDocsQuery();
                 }
                 return fieldType.termQuery(literal.value(), null);
             }
