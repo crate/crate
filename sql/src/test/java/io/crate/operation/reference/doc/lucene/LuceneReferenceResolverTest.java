@@ -35,7 +35,9 @@ import static org.hamcrest.Matchers.instanceOf;
 
 public class LuceneReferenceResolverTest extends CrateUnitTest {
 
-    private LuceneReferenceResolver luceneReferenceResolver = new LuceneReferenceResolver(i -> KeywordFieldMapper.Defaults.FIELD_TYPE);
+    // just return any fieldType to get passt the null check
+    private LuceneReferenceResolver luceneReferenceResolver = new LuceneReferenceResolver(
+        i -> KeywordFieldMapper.Defaults.FIELD_TYPE, null);
 
     @Test
     public void testGetImplementationWithColumnsOfTypeCollection() {
