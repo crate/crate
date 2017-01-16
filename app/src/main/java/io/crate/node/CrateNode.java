@@ -27,6 +27,8 @@ import io.crate.plugin.*;
 import io.crate.udc.plugin.UDCPlugin;
 import org.elasticsearch.env.Environment;
 import org.elasticsearch.node.Node;
+import org.elasticsearch.plugin.discovery.ec2.Ec2DiscoveryPlugin;
+import org.elasticsearch.plugin.repository.s3.S3RepositoryPlugin;
 import org.elasticsearch.plugins.Plugin;
 import org.elasticsearch.transport.Netty3Plugin;
 
@@ -42,8 +44,8 @@ public class CrateNode extends Node {
         //MulticastDiscoveryPlugin.class,
         SrvPlugin.class,
         UDCPlugin.class,
-        // FIXME: cloud-aws plugin is split into discovery-ec2 and repository-s3
-        //CloudAwsPlugin.class,
+        S3RepositoryPlugin.class,
+        Ec2DiscoveryPlugin.class,
         AdminUIPlugin.class,
         Netty3Plugin.class);
 
