@@ -21,11 +21,12 @@
 
 package io.crate.bootstrap;
 
+import io.crate.Build;
+import io.crate.Version;
 import joptsimple.OptionSet;
 import joptsimple.OptionSpec;
 import joptsimple.OptionSpecBuilder;
 import joptsimple.util.PathConverter;
-import org.elasticsearch.Build;
 import org.elasticsearch.bootstrap.BootstrapProxy;
 import org.elasticsearch.bootstrap.StartupExceptionProxy;
 import org.elasticsearch.cli.ExitCodes;
@@ -69,7 +70,7 @@ public class CrateDB extends SettingCommand {
     }
 
     /**
-     * Main entry point for starting elasticsearch
+     * Main entry point for starting crate
      */
     public static void main(final String[] args) throws Exception {
         final CrateDB crate = new CrateDB();
@@ -90,10 +91,10 @@ public class CrateDB extends SettingCommand {
         }
         if (options.has(versionOption)) {
             if (options.has(daemonizeOption) || options.has(pidfileOption)) {
-                throw new UserException(ExitCodes.USAGE, "Elasticsearch version option is mutually exclusive with any other option");
+                throw new UserException(ExitCodes.USAGE, "CrateDB version option is mutually exclusive with any other option");
             }
-            terminal.println("Version: " + org.elasticsearch.Version.CURRENT
-                             + ", Build: " + Build.CURRENT.shortHash() + "/" + Build.CURRENT.date()
+            terminal.println("Version: " + Version.CURRENT
+                             + ", Build: " + Build.CURRENT.hashShort() + "/" + Build.CURRENT.timestamp()
                              + ", JVM: " + JvmInfo.jvmInfo().version());
             return;
         }
