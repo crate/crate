@@ -106,18 +106,18 @@ public class LuceneQueryBuilder {
 
     private static final Logger LOGGER = Loggers.getLogger(LuceneQueryBuilder.class);
     private final static Visitor VISITOR = new Visitor();
-    private final DocInputFactory docInputFactory;
+    private final Functions functions;
 
     @Inject
     public LuceneQueryBuilder(Functions functions) {
-        docInputFactory = new DocInputFactory(functions, new LuceneReferenceResolver(null));
+        this.functions = functions;
     }
 
     public Context convert(WhereClause whereClause,
                            MapperService mapperService,
                            IndexFieldDataService indexFieldDataService,
                            IndexCache indexCache) throws UnsupportedFeatureException {
-        Context ctx = new Context(docInputFactory, mapperService, indexFieldDataService, indexCache);
+        Context ctx = new Context(functions, mapperService, indexFieldDataService, indexCache);
         if (whereClause.noMatch()) {
             ctx.query = Queries.newMatchNoDocsQuery("whereClause no-match");
         } else if (!whereClause.hasQuery()) {
@@ -160,11 +160,12 @@ public class LuceneQueryBuilder {
         final IndexFieldDataService fieldDataService;
         final IndexCache indexCache;
 
-        Context(DocInputFactory docInputFactory,
+        Context(Functions functions,
                 MapperService mapperService,
                 IndexFieldDataService fieldDataService,
                 IndexCache indexCache) {
-            this.docInputFactory = docInputFactory;
+            this.docInputFactory = new DocInputFactory(
+                functions, new LuceneReferenceResolver(mapperService::fullName, mapperService.getIndexSettings()));
             this.mapperService = mapperService;
             this.fieldDataService = fieldDataService;
             this.indexCache = indexCache;
