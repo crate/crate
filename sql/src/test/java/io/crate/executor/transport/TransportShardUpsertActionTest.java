@@ -26,11 +26,12 @@ import io.crate.metadata.*;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.TestingTableInfo;
-import io.crate.test.integration.CrateUnitTest;
+import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.types.ArrayType;
 import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.ElasticsearchException;
+import org.elasticsearch.Version;
 import org.elasticsearch.action.support.ActionFilters;
 import org.elasticsearch.cluster.action.index.MappingUpdatedAction;
 import org.elasticsearch.cluster.action.shard.ShardStateAction;
@@ -51,6 +52,7 @@ import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.index.translog.Translog;
 import org.elasticsearch.indices.IndicesService;
+import org.elasticsearch.test.transport.MockTransportService;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 import org.junit.Before;
@@ -64,7 +66,7 @@ import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.Mockito.*;
 
-public class TransportShardUpsertActionTest extends CrateUnitTest {
+public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnitTest {
 
     private DocTableInfo generatedColumnTableInfo;
 
@@ -104,8 +106,11 @@ public class TransportShardUpsertActionTest extends CrateUnitTest {
                                               boolean tryInsertFirst,
                                               Collection<ColumnIdent> notUsedNonGeneratedColumns,
                                               int retryCount) throws ElasticsearchException {
-            // TODO: throw correct exception
-            throw new VersionConflictEngineException(indexShard.shardId(), request.type(), item.id(), "dummy explanation");
+            throw new VersionConflictEngineException(
+                indexShard.shardId(),
+                request.type(),
+                item.id(),
+                "document with id: " + item.id() + " already exists in '" + request.shardId().getIndexName() + '\'');
         }
     }
 
@@ -139,8 +144,8 @@ public class TransportShardUpsertActionTest extends CrateUnitTest {
         transportShardUpsertAction = new TestingTransportShardUpsertAction(
             Settings.EMPTY,
             mock(ThreadPool.class),
-            mock(ClusterService.class),
-            mock(TransportService.class),
+            clusterService,
+            MockTransportService.local(Settings.EMPTY, Version.V_5_0_1, THREAD_POOL),
             mock(MappingUpdatedAction.class),
             mock(ActionFilters.class),
             mock(JobContextService.class),
@@ -201,7 +206,9 @@ public class TransportShardUpsertActionTest extends CrateUnitTest {
             shardId, request, new AtomicBoolean(false));
 
         assertThat(response.failures().size(), is(1));
-        assertThat(response.failures().get(0).message(), is("DocumentAlreadyExistsException[[default][1]: document already exists]"));
+        assertThat(response.failures().get(0).message(),
+                   is("VersionConflictEngineException[[default][1]: version conflict, " +
+                      "document with id: 1 already exists in 'characters']"));
     }
 
     @Test
