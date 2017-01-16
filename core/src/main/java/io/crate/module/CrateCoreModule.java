@@ -26,7 +26,6 @@ import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.SettableFuture;
 import io.crate.ClusterIdService;
-import io.crate.Version;
 import io.crate.rest.CrateRestMainAction;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.inject.AbstractModule;
@@ -49,10 +48,6 @@ public class CrateCoreModule extends AbstractModule {
 
     @Override
     protected void configure() {
-        Version version = Version.CURRENT;
-        logger.info("configuring crate. version: {}", version);
-
-
         /*
          * This is a rather hacky method to overwrite the handler for "/"
          * The ES plugins are loaded before the core ES components. That means that the registration for
