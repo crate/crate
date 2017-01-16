@@ -21,22 +21,21 @@
 
 package io.crate.operation.reference.doc.lucene;
 
-
-import org.apache.lucene.index.DocValues;
+import io.crate.exceptions.GroupByOnArrayUnsupportedException;
 import org.apache.lucene.index.LeafReaderContext;
-import org.apache.lucene.index.SortedDocValues;
+import org.apache.lucene.index.SortedNumericDocValues;
 import org.apache.lucene.util.BytesRef;
-import org.elasticsearch.common.lucene.BytesRefs;
-import org.elasticsearch.search.DocValueFormat;
+import org.elasticsearch.index.fielddata.IndexNumericFieldData;
+import org.elasticsearch.index.mapper.LegacyIpFieldMapper;
 
 import java.io.IOException;
 
-public class IpColumnReference extends LuceneCollectorExpression<BytesRef> {
+public class LegacyIPColumnReference extends FieldCacheExpression<IndexNumericFieldData, BytesRef> {
 
+    private SortedNumericDocValues values;
     private BytesRef value;
-    private SortedDocValues values;
 
-    public IpColumnReference(String columnName) {
+    public LegacyIPColumnReference(String columnName) {
         super(columnName);
     }
 
@@ -47,18 +46,23 @@ public class IpColumnReference extends LuceneCollectorExpression<BytesRef> {
 
     @Override
     public void setNextDocId(int docId) {
-        if (values == null) {
-            value = null;
-        } else {
-            BytesRef bytesRef = values.get(docId);
-            String format = DocValueFormat.IP.format(bytesRef);
-            value = BytesRefs.toBytesRef(format);
+        super.setNextDocId(docId);
+        values.setDocument(docId);
+        switch (values.count()) {
+            case 0:
+                value = null;
+                break;
+            case 1:
+                value = new BytesRef(LegacyIpFieldMapper.longToIp(values.valueAt(0)));
+                break;
+            default:
+                throw new GroupByOnArrayUnsupportedException(columnName);
         }
     }
 
     @Override
     public void setNextReader(LeafReaderContext context) throws IOException {
-        // TODO: is it safe to unwrap in case it's an array of ips?
-        values = DocValues.unwrapSingleton(context.reader().getSortedSetDocValues(columnName));
+        super.setNextReader(context);
+        values = indexFieldData.load(context).getLongValues();
     }
 }

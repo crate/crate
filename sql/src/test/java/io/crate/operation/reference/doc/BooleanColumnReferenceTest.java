@@ -42,7 +42,7 @@ public class BooleanColumnReferenceTest extends DocLevelExpressionsTest {
         for (int i = 0; i < 10; i++) {
             Document doc = new Document();
             doc.add(new StringField("_id", Integer.toString(i), Field.Store.NO));
-            doc.add(new NumericDocValuesField(fieldName().indexName(), i % 2 == 0 ? 1 : 0));
+            doc.add(new NumericDocValuesField(fieldName(), i % 2 == 0 ? 1 : 0));
             writer.addDocument(doc);
         }
     }

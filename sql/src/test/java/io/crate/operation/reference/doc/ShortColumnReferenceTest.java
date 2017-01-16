@@ -24,6 +24,7 @@ package io.crate.operation.reference.doc;
 import io.crate.operation.reference.doc.lucene.ShortColumnReference;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field;
+import org.apache.lucene.document.SortedNumericDocValuesField;
 import org.apache.lucene.document.StringField;
 import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.search.IndexSearcher;

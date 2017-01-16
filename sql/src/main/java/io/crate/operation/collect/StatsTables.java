@@ -94,10 +94,14 @@ public class StatsTables {
         lastJobsLogSize = jobsLogSize;
         this.isEnabled = isEnabled;
 
-        CrateSettings.STATS_ENABLED.registerUpdateConsumer(clusterSettings, this::setEnabled);
+        CrateSettings.STATS_ENABLED.registerUpdateConsumer(clusterSettings, this::setIsEnabled);
         CrateSettings.STATS_OPERATIONS_LOG_SIZE.registerUpdateConsumer(clusterSettings, this::setOperationsLog);
         CrateSettings.STATS_JOBS_LOG_SIZE.registerUpdateConsumer(clusterSettings, this::setJobsLog);
 
+    }
+
+    private void setIsEnabled(Boolean isEnabled) {
+        this.isEnabled = isEnabled;
     }
 
     /**
