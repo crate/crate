@@ -5,7 +5,10 @@ Changes for Crate
 Unreleased
 ==========
 
- - Fix an issue in the ``LIKE`` predicate which prevents using escaped
+2017/01/16 0.57.7
+=================
+
+ - Fix an issue in the `LIKE` predicate which prevents using escaped
    backslash before the wildcard.
 
  - Fixed an issue that causes hanging queries if a data node disconnects from
