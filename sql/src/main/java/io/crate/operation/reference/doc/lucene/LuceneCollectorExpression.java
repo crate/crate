@@ -33,6 +33,7 @@ import java.io.IOException;
 public abstract class LuceneCollectorExpression<ReturnType> implements Input<ReturnType> {
 
     final String columnName;
+    LeafReaderContext context;
 
     public LuceneCollectorExpression(String columnName) {
         this.columnName = columnName;
@@ -46,6 +47,7 @@ public abstract class LuceneCollectorExpression<ReturnType> implements Input<Ret
     }
 
     public void setNextReader(LeafReaderContext context) throws IOException {
+        this.context = context;
     }
 
     public void setScorer(Scorer scorer) {
