@@ -1051,7 +1051,8 @@ public class LuceneQueryBuilder {
                 Double distance = DataTypes.DOUBLE.value(functionLiteralPair.input().value());
 
                 String fieldName = distanceRefLiteral.reference().ident().columnIdent().fqn();
-                BaseGeoPointFieldMapper.LegacyGeoPointFieldType geoPointFieldType = getGeoPointFieldType(fieldName, context.mapperService);
+                BaseGeoPointFieldMapper.GeoPointFieldType geoPointFieldType = getGeoPointFieldType(
+                    fieldName, context.mapperService);
                 IndexGeoPointFieldData fieldData = context.fieldDataService.getForField(geoPointFieldType);
 
                 Input geoPointInput = distanceRefLiteral.input();
@@ -1107,7 +1108,7 @@ public class LuceneQueryBuilder {
                         includeLower,
                         includeUpper,
                         GEO_DISTANCE,
-                        geoPointFieldType,
+                        (LegacyGeoPointFieldMapper.LegacyGeoPointFieldType) geoPointFieldType,
                         fieldData,
                         OPTIMIZE_BOX);
                 } else {
@@ -1129,7 +1130,7 @@ public class LuceneQueryBuilder {
             }
         }
 
-        private static BaseGeoPointFieldMapper.LegacyGeoPointFieldType getGeoPointFieldType(String fieldName, MapperService mapperService) {
+        private static BaseGeoPointFieldMapper.GeoPointFieldType getGeoPointFieldType(String fieldName, MapperService mapperService) {
             MappedFieldType fieldType = mapperService.fullName(fieldName);
             if (fieldType == null) {
                 throw new IllegalArgumentException(String.format(Locale.ENGLISH, "column \"%s\" doesn't exist", fieldName));
@@ -1137,7 +1138,7 @@ public class LuceneQueryBuilder {
             if (!(fieldType instanceof GeoPointFieldMapper.GeoPointFieldType)) {
                 throw new IllegalArgumentException(String.format(Locale.ENGLISH, "column \"%s\" isn't of type geo_point", fieldName));
             }
-            return (BaseGeoPointFieldMapper.LegacyGeoPointFieldType) fieldType;
+            return (GeoPointFieldMapper.GeoPointFieldType) fieldType;
         }
 
         private static final EqQuery eqQuery = new EqQuery();
