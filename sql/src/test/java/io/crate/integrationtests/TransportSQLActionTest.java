@@ -29,8 +29,6 @@ import io.crate.TimestampFormat;
 import io.crate.action.sql.SQLActionException;
 import io.crate.core.collections.Bucket;
 import io.crate.exceptions.Exceptions;
-import io.crate.exceptions.UnsupportedFeatureException;
-import io.crate.test.CauseMatcher;
 import io.crate.testing.SQLBulkResponse;
 import io.crate.testing.TestingHelpers;
 import io.crate.testing.UseJdbc;
@@ -1768,6 +1766,11 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
 
         execute("select name, _score from locations where match((kind, name_description_ft), 'galaxy') " +
                 "using best_fields with (fuzziness=0.5) order by _score desc");
+        assertThat(TestingHelpers.printedTable(response.rows()),
+            is("End of the Galaxy| 1.1972358\nAltair| 0.4790727\nNorth West Ripple| 0.37037593\nOuter Eastern Rim| 0.37037593\n"));
+
+        execute("select name, _score from locations where match((kind, name_description_ft), 'galay') " +
+                "using best_fields with (fuzziness='AUTO') order by _score desc");
         assertThat(TestingHelpers.printedTable(response.rows()),
             is("End of the Galaxy| 1.1972358\nAltair| 0.4790727\nNorth West Ripple| 0.37037593\nOuter Eastern Rim| 0.37037593\n"));
 

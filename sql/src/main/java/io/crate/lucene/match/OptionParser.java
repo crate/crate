@@ -161,7 +161,7 @@ public class OptionParser {
         if (fuzziness == null) {
             return null;
         }
-        return Fuzziness.build(fuzziness);
+        return Fuzziness.build(BytesRefs.toString(fuzziness));
     }
 
     private static MatchQuery.ZeroTermsQuery zeroTermsQuery(@Nullable Object zeroTermsQuery) {
