@@ -34,12 +34,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.function.Function;
-import java.util.stream.Collectors;
+import java.util.*;
 
 import static org.hamcrest.Matchers.*;
 import static org.hamcrest.collection.IsMapContaining.hasEntry;
@@ -65,9 +60,10 @@ public class FulltextAnalyzerResolverTest extends SQLTransportIntegrationTest {
     @Override
     @After
     public void tearDown() throws Exception {
-        Map<String, Object> settingsToRemove = getPersistentClusterSettings().getAsMap().keySet().stream()
+        Map<String, Object> settingsToRemove = new HashMap<>();
+        getPersistentClusterSettings().getAsMap().keySet().stream()
             .filter(s -> s.startsWith("crate"))
-            .collect(Collectors.toMap(Function.identity(), null));
+            .forEach(s -> settingsToRemove.put(s, null));
         if (!settingsToRemove.isEmpty()) {
             client().admin().cluster().prepareUpdateSettings()
                 .setPersistentSettings(settingsToRemove)
