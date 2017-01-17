@@ -299,7 +299,7 @@ public class DocIndexMetaData {
             }
             return Reference.IndexType.NOT_ANALYZED;
         }
-        if ("no".equals(index)) {
+        if (Boolean.FALSE.equals(index) || "no".equals(index)) {
             return Reference.IndexType.NO;
         }
         if ("not_analyzed".equals(index)) {
