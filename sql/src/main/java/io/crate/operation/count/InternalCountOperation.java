@@ -110,7 +110,11 @@ public class InternalCountOperation implements CountOperation {
         IndexShard indexShard = indexService.getShard(shardId);
         try (Engine.Searcher searcher = indexShard.acquireSearcher("count-operation")) {
             LuceneQueryBuilder.Context queryCtx = queryBuilder.convert(
-                whereClause, indexService.mapperService(), indexService.fieldData(), indexService.cache());
+                whereClause,
+                indexService.mapperService(),
+                indexService.newQueryShardContext(searcher.reader(), System::currentTimeMillis),
+                indexService.fieldData(),
+                indexService.cache());
             if (Thread.interrupted()) {
                 throw new InterruptedException("thread interrupted during count-operation");
             }

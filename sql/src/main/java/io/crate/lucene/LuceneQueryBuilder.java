@@ -37,8 +37,7 @@ import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.geo.GeoJSONUtils;
 import io.crate.lucene.match.CrateRegexCapabilities;
 import io.crate.lucene.match.CrateRegexQuery;
-import io.crate.lucene.match.MatchQueryBuilder;
-import io.crate.lucene.match.MultiMatchQueryBuilder;
+import io.crate.lucene.match.MatchQueries;
 import io.crate.metadata.DocReferenceConverter;
 import io.crate.metadata.FunctionInfo;
 import io.crate.metadata.Functions;
@@ -87,6 +86,7 @@ import org.elasticsearch.index.cache.IndexCache;
 import org.elasticsearch.index.fielddata.IndexFieldDataService;
 import org.elasticsearch.index.fielddata.IndexGeoPointFieldData;
 import org.elasticsearch.index.mapper.*;
+import org.elasticsearch.index.query.QueryShardContext;
 import org.elasticsearch.index.query.RegexpFlag;
 import org.elasticsearch.index.search.geo.GeoDistanceRangeQuery;
 import org.elasticsearch.index.search.geo.GeoPolygonQuery;
@@ -118,9 +118,10 @@ public class LuceneQueryBuilder {
 
     public Context convert(WhereClause whereClause,
                            MapperService mapperService,
+                           QueryShardContext queryShardContext,
                            IndexFieldDataService indexFieldDataService,
                            IndexCache indexCache) throws UnsupportedFeatureException {
-        Context ctx = new Context(functions, mapperService, indexFieldDataService, indexCache);
+        Context ctx = new Context(functions, mapperService, indexFieldDataService, indexCache, queryShardContext);
         if (whereClause.noMatch()) {
             ctx.query = Queries.newMatchNoDocsQuery("whereClause no-match");
         } else if (!whereClause.hasQuery()) {
@@ -161,11 +162,14 @@ public class LuceneQueryBuilder {
         final MapperService mapperService;
         final IndexFieldDataService fieldDataService;
         final IndexCache indexCache;
+        final QueryShardContext queryShardContext;
 
         Context(Functions functions,
                 MapperService mapperService,
                 IndexFieldDataService fieldDataService,
-                IndexCache indexCache) {
+                IndexCache indexCache,
+                QueryShardContext queryShardContext) {
+            this.queryShardContext = queryShardContext;
             this.docInputFactory = new DocInputFactory(
                 functions, new LuceneReferenceResolver(mapperService::fullName, mapperService.getIndexSettings()));
             this.mapperService = mapperService;
@@ -820,8 +824,7 @@ public class LuceneQueryBuilder {
                     "Invalid match type: %s. Analyzer should have made sure that it is valid", matchType));
             }
 
-            private Query stringMatch(Context context, List<Symbol> arguments, Object queryTerm) throws IOException {
-
+            private static Query stringMatch(Context context, List<Symbol> arguments, Object queryTerm) throws IOException {
                 @SuppressWarnings("unchecked")
                 Map<String, Object> fields = (Map) ((Literal) arguments.get(0)).value();
                 BytesRef queryString = (BytesRef) queryTerm;
@@ -831,13 +834,49 @@ public class LuceneQueryBuilder {
 
                 MatchOptionsAnalysis.validate(options);
 
-                MatchQueryBuilder queryBuilder;
                 if (fields.size() == 1) {
-                    queryBuilder = new MatchQueryBuilder(context.mapperService, matchType, options);
+                    return singleMatchQuery(
+                        context.queryShardContext,
+                        fields.entrySet().iterator().next(),
+                        queryString,
+                        matchType,
+                        options
+                    );
                 } else {
-                    queryBuilder = new MultiMatchQueryBuilder(context.mapperService, matchType, options);
+                    fields.replaceAll((s, o) -> {
+                        if (o instanceof Number) {
+                            return ((Number) o).floatValue();
+                        }
+                        return null;
+                    });
+                    //noinspection unchecked
+                    return MatchQueries.multiMatch(
+                        context.queryShardContext,
+                        matchType,
+                        (Map<String, Float>) (Map) fields,
+                        queryString.utf8ToString(),
+                        options
+                    );
                 }
-                return queryBuilder.query(fields, queryString);
+            }
+
+            private static Query singleMatchQuery(QueryShardContext queryShardContext,
+                                                  Map.Entry<String, Object> entry,
+                                                  BytesRef queryString,
+                                                  BytesRef matchType,
+                                                  Map<String, Object> options) throws IOException {
+                Query query = MatchQueries.singleMatch(
+                    queryShardContext,
+                    entry.getKey(),
+                    queryString,
+                    matchType,
+                    options
+                );
+                Object boost = entry.getValue();
+                if (boost instanceof Number) {
+                    return new BoostQuery(query, ((Number) boost).floatValue());
+                }
+                return query;
             }
         }
 
