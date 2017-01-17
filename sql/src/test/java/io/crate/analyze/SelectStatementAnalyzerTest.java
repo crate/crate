@@ -54,7 +54,6 @@ import io.crate.sql.parser.ParsingException;
 import io.crate.sql.tree.QualifiedName;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.testing.SQLExecutor;
-import io.crate.testing.UseJdbc;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
@@ -1947,6 +1946,4 @@ public class SelectStatementAnalyzerTest extends CrateUnitTest {
         expectedException.expectMessage("Cannot negate 'foo'. You may need to add explicit type casts");
         analyze("select - 'foo'");
     }
-
-
 }

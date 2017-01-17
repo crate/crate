@@ -29,6 +29,8 @@ import io.crate.TimestampFormat;
 import io.crate.action.sql.SQLActionException;
 import io.crate.core.collections.Bucket;
 import io.crate.exceptions.Exceptions;
+import io.crate.exceptions.UnsupportedFeatureException;
+import io.crate.test.CauseMatcher;
 import io.crate.testing.SQLBulkResponse;
 import io.crate.testing.TestingHelpers;
 import io.crate.testing.UseJdbc;
@@ -846,7 +848,6 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         execute("select quote from quotes where match(quote, ?)", new Object[]{"don't panic"});
         assertEquals(1L, response.rowCount());
         assertEquals("don't panic", response.rows()[0][0]);
-
     }
 
     @Test
@@ -863,6 +864,15 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
             new Object[]{"don't panic"});
         assertEquals(1L, response.rowCount());
         assertEquals("hello", response.rows()[0][0]);
+    }
+
+    @Test
+    public void testMatchUnsupportedInSelect() {
+        execute("create table quotes (quote string)");
+        ensureYellow();
+        expectedException.expect(SQLActionException.class);
+        expectedException.expectMessage("UnsupportedFeatureException: match predicate cannot be selected");
+        execute("select match(quote, 'the quote') from quotes");
     }
 
     @Test

@@ -219,9 +219,8 @@ Predicates
 
 Predicates are expressions that evaluate to boolean.
 
-While scalar functions that evaluate to boolean can be used in place of a predicate,
-a predicate cannot be used everywhere, e.g. in the result columns of a select statement.
-The semantics of a predicate usually differ from function semantics.
+While scalar functions that evaluate to boolean can be used in place of a predicate, the 
+semantics of a predicate usually differ from function semantics.
 
 e.g. A function is resolved by its name and the type of its arguments.
 A reference can be interchanged with the value it evaluates to (given as a literal)
