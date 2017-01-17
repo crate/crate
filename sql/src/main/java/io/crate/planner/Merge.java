@@ -71,43 +71,10 @@ public class Merge implements Plan, ResultDescription {
             resultDescription.numOutputs(),
             resultDescription.streamOutputs());
         if (ExecutionPhases.executesOnHandler(plannerContext.handlerNode(), resultDescription.nodeIds())) {
-            for (Projection projection : projections) {
-                assert projection.outputs().size() == resultDescription.numOutputs()
-                    : "projection must not affect numOutputs";
-                subPlan.addProjection(projection, null, null, null, null);
-            }
-            if (topN != null) {
-                subPlan.addProjection(topN, TopN.NO_LIMIT, 0, resultDescription.numOutputs(), null);
-            }
-            // resultDescription.orderBy can be ignored here because it is only relevant to do a sorted merge
-            // (of a pre-sorted result)
-            // In this case there is only one node/bucket which is already correctly sorted
-            return subPlan;
+            return addProjections(subPlan, projections, resultDescription, topN);
         }
-        Collection<String> handlerNodeIds;
-        /*
-         * ideally we would use something different as an indicator for direct-result or push/paging
-         *
-         *
-         * The instanceof Collect check is done because direct-result currently only works between two phases.
-         * E.g.
-         *      # supports direct result
-         *      CollectPhase -> MergePhase
-         *
-         *
-         *      # no direct result support
-         *      CollectPhase -> MergePhase -> MergePhase
-         *
-         * This is a limitation of the ExecutionPhasesTask/ContextPreparer
-         */
-        if (subPlan instanceof Collect && !Paging.shouldPage(resultDescription.maxRowsPerNode())) {
-            // use direct result
-            handlerNodeIds = Collections.emptyList();
-        } else {
-            // use push based result
-            handlerNodeIds = Collections.singletonList(plannerContext.handlerNode());
-            Paging.updateNodePageSizeHint(subPlan, resultDescription.maxRowsPerNode());
-        }
+        Collection<String> handlerNodeIds = getHandlerNodeIds(subPlan, plannerContext, resultDescription);
+
         MergePhase mergePhase = new MergePhase(
             plannerContext.jobId(),
             plannerContext.nextExecutionPhaseId(),
@@ -128,6 +95,47 @@ public class Merge implements Plan, ResultDescription {
             resultDescription.limit(),
             null
         );
+    }
+
+    private static Collection<String> getHandlerNodeIds(Plan subPlan, Planner.Context plannerContext, ResultDescription resultDescription) {
+        /*
+         * ideally we would use something different as an indicator for direct-result or push/paging
+         *
+         *
+         * The instanceof Collect check is done because direct-result currently only works between two phases.
+         * E.g.
+         *      # supports direct result
+         *      CollectPhase -> MergePhase
+         *
+         *
+         *      # no direct result support
+         *      CollectPhase -> MergePhase -> MergePhase
+         *
+         * This is a limitation of the ExecutionPhasesTask/ContextPreparer
+         */
+        if (subPlan instanceof Collect && !Paging.shouldPage(resultDescription.maxRowsPerNode())) {
+            // use direct result
+            return Collections.emptyList();
+        }
+
+        // use push based result
+        Paging.updateNodePageSizeHint(subPlan, resultDescription.maxRowsPerNode());
+        return Collections.singletonList(plannerContext.handlerNode());
+    }
+
+    private static Plan addProjections(Plan subPlan, List<Projection> projections, ResultDescription resultDescription, Projection topN) {
+        for (Projection projection : projections) {
+            assert projection.outputs().size() == resultDescription.numOutputs()
+                : "projection must not affect numOutputs";
+            subPlan.addProjection(projection, null, null, null, null);
+        }
+        if (topN != null) {
+            subPlan.addProjection(topN, TopN.NO_LIMIT, 0, resultDescription.numOutputs(), null);
+        }
+        // resultDescription.orderBy can be ignored here because it is only relevant to do a sorted merge
+        // (of a pre-sorted result)
+        // In this case there is only one node/bucket which is already correctly sorted
+        return subPlan;
     }
 
     private static List<Projection> addProjection(List<Projection> projections, @Nullable Projection projection) {
