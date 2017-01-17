@@ -184,7 +184,7 @@ public class LuceneQueryBuilderTest extends CrateUnitTest {
     }
 
     private Query convert(WhereClause clause) {
-        return builder.convert(clause, mapperService, indexFieldDataService, indexCache).query;
+        return builder.convert(clause, mapperService, null, indexFieldDataService, indexCache).query;
     }
 
     private Query convert(String expression) {
