@@ -22,6 +22,7 @@
 package io.crate.blob.v2;
 
 import com.google.common.annotations.VisibleForTesting;
+import io.crate.plugin.IndexEventListenerProxy;
 import org.elasticsearch.cluster.routing.ShardIterator;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.Nullable;
@@ -68,10 +69,11 @@ public class BlobIndicesService extends AbstractComponent implements IndexEventL
     private final Path globalBlobPath;
 
     @Inject
-    public BlobIndicesService(Settings settings, ClusterService clusterService) {
+    public BlobIndicesService(Settings settings, ClusterService clusterService, IndexEventListenerProxy indexEventListenerProxy) {
         super(settings);
         this.clusterService = clusterService;
         globalBlobPath = getGlobalBlobPath(settings);
+        indexEventListenerProxy.addFirst(this);
     }
 
     @Nullable
