@@ -29,20 +29,13 @@ import io.crate.blob.v2.BlobIndicesService;
 import io.crate.http.netty.CrateNettyHttpServerTransport;
 import org.elasticsearch.action.ActionRequest;
 import org.elasticsearch.action.ActionResponse;
-import org.elasticsearch.client.Client;
-import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.component.LifecycleComponent;
 import org.elasticsearch.common.inject.Module;
 import org.elasticsearch.common.network.NetworkModule;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.index.IndexModule;
 import org.elasticsearch.plugins.ActionPlugin;
 import org.elasticsearch.plugins.Plugin;
-import org.elasticsearch.script.ScriptService;
-import org.elasticsearch.search.SearchRequestParsers;
-import org.elasticsearch.threadpool.ThreadPool;
-import org.elasticsearch.watcher.ResourceWatcherService;
 
 import java.util.*;
 
@@ -53,7 +46,6 @@ public class BlobPlugin extends Plugin implements ActionPlugin {
     public static final String CRATE_HTTP_TRANSPORT_NAME = "crate";
 
     private final Settings settings;
-    private BlobIndicesService blobIndicesService;
 
     public BlobPlugin(Settings settings) {
         this.settings = settings;
@@ -102,25 +94,6 @@ public class BlobPlugin extends Plugin implements ActionPlugin {
             return Collections.emptyList();
         }
         return ImmutableList.of(BlobService.class);
-    }
-
-    @Override
-    public Collection<Object> createComponents(Client client,
-                                               ClusterService clusterService,
-                                               ThreadPool threadPool,
-                                               ResourceWatcherService resourceWatcherService,
-                                               ScriptService scriptService,
-                                               SearchRequestParsers searchRequestParsers) {
-        assert blobIndicesService == null: "blobIndicesService is already created";
-        blobIndicesService = new BlobIndicesService(settings, clusterService);
-        return Collections.singletonList(blobIndicesService);
-    }
-
-    @Override
-    public void onIndexModule(IndexModule indexModule) {
-        if (BlobIndicesService.SETTING_INDEX_BLOBS_ENABLED.get(indexModule.getSettings())) {
-            indexModule.addIndexEventListener(blobIndicesService);
-        }
     }
 
     public void onModule(NetworkModule networkModule) {
