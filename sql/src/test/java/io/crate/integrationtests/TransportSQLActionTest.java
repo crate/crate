@@ -32,13 +32,14 @@ import io.crate.testing.SQLBulkResponse;
 import io.crate.testing.TestingHelpers;
 import io.crate.testing.UseJdbc;
 import org.elasticsearch.action.admin.indices.exists.indices.IndicesExistsRequest;
-import org.elasticsearch.action.search.SearchRequest;
 import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.action.support.WriteRequest;
 import org.elasticsearch.common.collect.MapBuilder;
+import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentFactory;
 import org.elasticsearch.index.IndexNotFoundException;
+import org.elasticsearch.index.query.QueryBuilders;
 import org.elasticsearch.search.SearchHit;
 import org.elasticsearch.test.ESIntegTestCase;
 import org.junit.Rule;
@@ -912,7 +913,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
     @Test
     public void testSelectWhereScore() throws Exception {
         execute("create table quotes (quote string, " +
-                "index quote_ft using fulltext(quote)) with (number_of_replicas = 0)");
+                "index quote_ft using fulltext(quote)) clustered into 1 shards with (number_of_replicas = 0)");
         ensureYellow();
 
         execute("insert into quotes values (?), (?)",
@@ -922,15 +923,15 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         refresh();
 
         execute("select quote, \"_score\" from quotes where match(quote_ft, 'time') " +
-                "and \"_score\" >= 0.98");
+                "and \"_score\" >= 1.15");
         assertEquals(1L, response.rowCount());
-        assertThat((Float) response.rows()[0][1], greaterThanOrEqualTo(0.98f));
+        assertThat((Float) response.rows()[0][1], greaterThanOrEqualTo(1.15f));
 
         execute("select quote, \"_score\" from quotes where match(quote_ft, 'time') " +
-                "and \"_score\" >= 0.98 order by quote");
+                "and \"_score\" >= 1.15 order by quote");
         assertEquals(1L, response.rowCount());
         assertEquals(false, Float.isNaN((Float) response.rows()[0][1]));
-        assertThat((Float) response.rows()[0][1], greaterThanOrEqualTo(0.98f));
+        assertThat((Float) response.rows()[0][1], greaterThanOrEqualTo(1.15f));
     }
 
     @Test
@@ -1670,20 +1671,21 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
                 "where match((kind, name_description_ft 0.5), 'Planet earth') using most_fields with (analyzer='english') order by _score desc");
         assertThat(response.rowCount(), is(5L));
         assertThat(TestingHelpers.printedTable(response.rows()),
-            is("Alpha Centauri| 4.1 light-years northwest of earth| Star System| 0.05715186\n" +
-               "Bartledan| An Earthlike planet on which Arthur Dent lived for a short time, Bartledan is inhabited by Bartledanians, a race that appears human but only physically.| Planet| 0.033338584\n| This Planet doesn't really exist| Planet| 0.023602562\n" +
-               "Allosimanius Syneca| Allosimanius Syneca is a planet noted for ice, snow, mind-hurtling beauty and stunning cold.| Planet| 0.011801281\n" +
-               "Galactic Sector QQ7 Active J Gamma| Galactic Sector QQ7 Active J Gamma contains the Sun Zarss, the planet Preliumtarn of the famed Sevorbeupstry and Quentulus Quazgar Mountains.| Galaxy| 0.008850961\n"));
+            is("Alpha Centauri| 4.1 light-years northwest of earth| Star System| 1.1342815\n" +
+               "Bartledan| An Earthlike planet on which Arthur Dent lived for a short time, Bartledan is inhabited by Bartledanians, a race that appears human but only physically.| Planet| 0.76214767\n" +
+               "| This Planet doesn't really exist| Planet| 0.38878435\n" +
+               "Allosimanius Syneca| Allosimanius Syneca is a planet noted for ice, snow, mind-hurtling beauty and stunning cold.| Planet| 0.26949826\n" +
+               "Galactic Sector QQ7 Active J Gamma| Galactic Sector QQ7 Active J Gamma contains the Sun Zarss, the planet Preliumtarn of the famed Sevorbeupstry and Quentulus Quazgar Mountains.| Galaxy| 0.20444694\n"));
 
         execute("select name, description, kind, _score from locations " +
                 "where match((kind, name_description_ft 0.5), 'Planet earth') using cross_fields order by _score desc");
         assertThat(response.rowCount(), is(5L));
         assertThat(TestingHelpers.printedTable(response.rows()),
-            is("Alpha Centauri| 4.1 light-years northwest of earth| Star System| 0.07601598\n" +
-               "Bartledan| An Earthlike planet on which Arthur Dent lived for a short time, Bartledan is inhabited by Bartledanians, a race that appears human but only physically.| Planet| 0.044342656\n" +
-               "| This Planet doesn't really exist| Planet| 0.031368554\n" +
-               "Allosimanius Syneca| Allosimanius Syneca is a planet noted for ice, snow, mind-hurtling beauty and stunning cold.| Planet| 0.015684277\n" +
-               "Galactic Sector QQ7 Active J Gamma| Galactic Sector QQ7 Active J Gamma contains the Sun Zarss, the planet Preliumtarn of the famed Sevorbeupstry and Quentulus Quazgar Mountains.| Galaxy| 0.011763208\n"));
+            is("Alpha Centauri| 4.1 light-years northwest of earth| Star System| 2.268563\n" +
+               "Bartledan| An Earthlike planet on which Arthur Dent lived for a short time, Bartledan is inhabited by Bartledanians, a race that appears human but only physically.| Planet| 1.5242953\n" +
+               "| This Planet doesn't really exist| Planet| 0.7775687\n" +
+               "Allosimanius Syneca| Allosimanius Syneca is a planet noted for ice, snow, mind-hurtling beauty and stunning cold.| Planet| 0.5389965\n" +
+               "Galactic Sector QQ7 Active J Gamma| Galactic Sector QQ7 Active J Gamma contains the Sun Zarss, the planet Preliumtarn of the famed Sevorbeupstry and Quentulus Quazgar Mountains.| Galaxy| 0.40889388\n"));
     }
 
     @Test
@@ -1707,9 +1709,9 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
                 "where match(characters.quote_ft 1.0, 'country') order by _score desc");
         assertThat(response.rows().length, is(2));
         assertThat((String) response.rows()[0][0], is("Trillian"));
-        assertThat((float) response.rows()[0][1], is(0.15342641f));
+        assertThat((float) response.rows()[0][1], is(0.2876821F));
         assertThat((String) response.rows()[1][0], is("Arthur"));
-        assertThat((float) response.rows()[1][1], is(0.13424811f));
+        assertThat((float) response.rows()[1][1], is(0.2824934F));
     }
 
     @Test
@@ -1717,12 +1719,13 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         this.setup.setUpLocations();
         refresh();
 
-        SearchRequest searchRequest = new SearchRequest("locations");
-            // TODO:
-            //.source("{\"query\": {\"multi_match\": {\"fields\": [\"kind^0.8\", \"name_description_ft^0.6\"], \"query\": \"planet earth\"}}}");
-        SearchResponse searchResponse = client().search(searchRequest).actionGet();
+        SearchResponse searchResponse = client().prepareSearch("locations")
+            .setTypes("default")
+            .setQuery(QueryBuilders.multiMatchQuery("planet earth", "kind^0.8", "name_description_ft^0.6"))
+            .get(TimeValue.timeValueSeconds(1));
 
-        execute("select name, _score from locations where match((kind 0.8, name_description_ft 0.6), 'planet earth') using best_fields order by _score desc");
+        execute("select name, _score from locations where match((kind 0.8, name_description_ft 0.6), 'planet earth') " +
+                "using best_fields order by _score desc");
 
         SearchHit[] hits = searchResponse.getHits().getHits();
         for (int i = 0; i < hits.length; i++) {
@@ -1730,24 +1733,23 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         }
 
         assertThat(TestingHelpers.printedTable(response.rows()),
-            is("Alpha Centauri| 0.2600391\nBartledan| 0.15168947\n| 0.10750017\nAllosimanius Syneca| 0.053750087\nGalactic Sector QQ7 Active J Gamma| 0.040312566\n"));
-
+            is("Alpha Centauri| 1.3611379\nBartledan| 0.9145772\n| 0.4665413\nAllosimanius Syneca| 0.32339793\nGalactic Sector QQ7 Active J Gamma| 0.24533637\n"));
 
         execute("select name, _score from locations where match((kind 0.6, name_description_ft 0.8), 'planet earth') using most_fields order by _score desc");
         assertThat(TestingHelpers.printedTable(response.rows()),
-            is("Alpha Centauri| 0.13054572\nBartledan| 0.07615167\n| 0.053683124\nAllosimanius Syneca| 0.026841562\nGalactic Sector QQ7 Active J Gamma| 0.02013117\n"));
+            is("Alpha Centauri| 1.8148507\nBartledan| 1.2194364\n| 0.622055\nAllosimanius Syneca| 0.43119723\nGalactic Sector QQ7 Active J Gamma| 0.32711512\n"));
 
         execute("select name, _score from locations where match((kind 0.4, name_description_ft 1.0), 'planet earth') using cross_fields order by _score desc");
         assertThat(TestingHelpers.printedTable(response.rows()),
-            is("Alpha Centauri| 0.14860114\nBartledan| 0.086684\n| 0.061013106\nAllosimanius Syneca| 0.030506553\nGalactic Sector QQ7 Active J Gamma| 0.022879915\n"));
+            is("Alpha Centauri| 2.268563\nBartledan| 1.5242953\n| 0.7775687\nAllosimanius Syneca| 0.5389965\nGalactic Sector QQ7 Active J Gamma| 0.40889388\n"));
 
         execute("select name, _score from locations where match((kind 1.0, name_description_ft 0.4), 'Alpha Centauri') using phrase");
         assertThat(TestingHelpers.printedTable(response.rows()),
-            is("Alpha Centauri| 1.1095\n"));
+            is("Alpha Centauri| 1.8148507\n"));
 
         execute("select name, _score from locations where match(name_description_ft, 'Alpha Centauri') using phrase_prefix");
         assertThat(TestingHelpers.printedTable(response.rows()),
-            is("Alpha Centauri| 1.7897208\n"));
+            is("Alpha Centauri| 4.537126\n"));
     }
 
     @Test
@@ -1758,12 +1760,12 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         execute("select name, _score from locations where match((kind, name_description_ft), 'galaxy') " +
                 "using best_fields with (analyzer='english') order by _score desc");
         assertThat(TestingHelpers.printedTable(response.rows()),
-            is("End of the Galaxy| 0.65826756\nAltair| 0.3518162\nNorth West Ripple| 0.20364113\nOuter Eastern Rim| 0.20364113\n"));
+            is("End of the Galaxy| 1.632121\nAltair| 1.3862944\nNorth West Ripple| 0.80347747\nOuter Eastern Rim| 0.80347747\n"));
 
         execute("select name, _score from locations where match((kind, name_description_ft), 'galaxy') " +
                 "using best_fields with (fuzziness=0.5) order by _score desc");
         assertThat(TestingHelpers.printedTable(response.rows()),
-            is("End of the Galaxy| 1.1972358\nAltair| 0.4790727\nNorth West Ripple| 0.37037593\nOuter Eastern Rim| 0.37037593\n"));
+            is("End of the Galaxy| 1.632121\nAltair| 1.3862944\nNorth West Ripple| 0.80347747\nOuter Eastern Rim| 0.80347747\n"));
 
         execute("select name, _score from locations where match((kind, name_description_ft), 'galay') " +
                 "using best_fields with (fuzziness='AUTO') order by _score desc");
@@ -1778,17 +1780,17 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         execute("select name, _score from locations where match((kind, name_description_ft), 'gala') " +
                 "using phrase_prefix with (slop=1) order by _score desc");
         assertThat(TestingHelpers.printedTable(response.rows()),
-            is("End of the Galaxy| 0.53688645\nOuter Eastern Rim| 0.49600732\nAlgol| 0.3770475\nGalactic Sector QQ7 Active J Gamma| 0.35930455\nAltair| 0.33875558\nNorth West Ripple| 0.16609077\n"));
+            is("Outer Eastern Rim| 2.3277729\nAlgol| 1.725398\nEnd of the Galaxy| 1.632121\nGalactic Sector QQ7 Active J Gamma| 1.5640243\nAltair| 1.3862944\nNorth West Ripple| 0.80347747\n"));
 
         execute("select name, _score from locations where match((kind, name_description_ft), 'galaxy') " +
                 "using phrase with (tie_breaker=2.0) order by _score desc");
         assertThat(TestingHelpers.printedTable(response.rows()),
-            is("End of the Galaxy| 0.4428768\nAltair| 0.19800007\nNorth West Ripple| 0.13700803\nOuter Eastern Rim| 0.13700803\n"));
+            is("End of the Galaxy| 1.632121\nAltair| 1.3862944\nNorth West Ripple| 0.80347747\nOuter Eastern Rim| 0.80347747\n"));
 
         execute("select name, _score from locations where match((kind, name_description_ft), 'galaxy') " +
                 "using best_fields with (zero_terms_query='all') order by _score desc");
         assertThat(TestingHelpers.printedTable(response.rows()),
-            is("End of the Galaxy| 0.65826756\nAltair| 0.3518162\nNorth West Ripple| 0.20364113\nOuter Eastern Rim| 0.20364113\n"));
+            is("End of the Galaxy| 1.632121\nAltair| 1.3862944\nNorth West Ripple| 0.80347747\nOuter Eastern Rim| 0.80347747\n"));
     }
 
     @Test
