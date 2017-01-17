@@ -126,16 +126,19 @@ public class RamAccountingContext {
             return;
         }
         breaker.addWithoutBreaking(bytes);
-        tripped = true;
+        if (exceededBreaker()) {
+            tripped = true;
+        }
         totalBytes.addAndGet(bytes);
         flushBuffer.addAndGet(-bytes);
     }
 
     /**
+     * Returns bytes from the buffer + bytes that have already been flushed to the breaker.
      * @return the total number of bytes that have been aggregated
      */
     public long totalBytes() {
-        return totalBytes.get();
+        return flushBuffer.get() + totalBytes.get();
     }
 
     /**
