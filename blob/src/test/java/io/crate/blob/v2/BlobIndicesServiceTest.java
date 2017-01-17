@@ -22,6 +22,7 @@
 
 package io.crate.blob.v2;
 
+import io.crate.plugin.IndexEventListenerProxy;
 import io.crate.test.integration.CrateUnitTest;
 import org.apache.lucene.util.IOUtils;
 import org.elasticsearch.cluster.service.ClusterService;
@@ -56,7 +57,8 @@ public class BlobIndicesServiceTest extends CrateUnitTest {
         clusterService = ClusterServiceUtils.createClusterService(threadPool);
         blobIndicesService = new BlobIndicesService(
             Settings.EMPTY,
-            clusterService
+            clusterService,
+            new IndexEventListenerProxy()
         );
     }
 
