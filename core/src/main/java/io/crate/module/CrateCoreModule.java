@@ -26,6 +26,7 @@ import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.SettableFuture;
 import io.crate.ClusterIdService;
+import io.crate.plugin.IndexEventListenerProxy;
 import io.crate.rest.CrateRestMainAction;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.inject.AbstractModule;
@@ -41,9 +42,11 @@ import org.elasticsearch.rest.action.RestMainAction;
 public class CrateCoreModule extends AbstractModule {
 
     private final Logger logger;
+    private final IndexEventListenerProxy indexEventListenerProxy;
 
-    public CrateCoreModule(Settings settings) {
+    public CrateCoreModule(Settings settings, IndexEventListenerProxy indexEventListenerProxy) {
         logger = Loggers.getLogger(getClass().getPackage().getName(), settings);
+        this.indexEventListenerProxy = indexEventListenerProxy;
     }
 
     @Override
@@ -71,6 +74,7 @@ public class CrateCoreModule extends AbstractModule {
             new RestMainActionListener(crateListener.instanceFuture));
 
         bind(ClusterIdService.class).asEagerSingleton();
+        bind(IndexEventListenerProxy.class).toInstance(indexEventListenerProxy);
     }
 
     private class RestMainActionListener implements TypeListener {

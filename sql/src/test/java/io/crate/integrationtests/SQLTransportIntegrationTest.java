@@ -88,6 +88,7 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
 import static io.crate.testing.SQLTransportExecutor.DEFAULT_SOFT_LIMIT;
+import static org.elasticsearch.http.HttpTransportSettings.SETTING_HTTP_COMPRESSION;
 import static org.hamcrest.Matchers.is;
 
 @Listeners({SystemPropsTestLoggingListener.class})
@@ -111,12 +112,13 @@ public abstract class SQLTransportIntegrationTest extends ESIntegTestCase {
     protected Settings nodeSettings(int nodeOrdinal) {
         return Settings.builder()
             .put(super.nodeSettings(nodeOrdinal))
+            .put(SETTING_HTTP_COMPRESSION.getKey(), false)
             .build();
     }
 
     @Override
     protected Collection<Class<? extends Plugin>> nodePlugins() {
-        return Arrays.asList(BlobPlugin.class, SQLPlugin.class, CrateCorePlugin.class);
+        return Arrays.asList(SQLPlugin.class, BlobPlugin.class, CrateCorePlugin.class);
     }
 
     protected SQLResponse response;
