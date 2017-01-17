@@ -54,6 +54,7 @@ import io.crate.planner.consumer.OrderByPositionVisitor;
 import io.crate.planner.node.dql.CollectPhase;
 import io.crate.planner.node.dql.RoutedCollectPhase;
 import io.crate.planner.projection.Projections;
+import io.crate.plugin.IndexEventListenerProxy;
 import org.elasticsearch.action.bulk.BulkRetryCoordinatorPool;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
@@ -142,7 +143,7 @@ public class ShardCollectSource extends AbstractComponent implements CollectSour
                               RemoteCollectorFactory remoteCollectorFactory,
                               SystemCollectSource systemCollectSource,
                               NodeSysExpression nodeSysExpression,
-                              IndexEventListenerDelegate indexEventListenerDelegate,
+                              IndexEventListenerProxy indexEventListenerProxy,
                               BlobIndicesService blobIndicesService) {
         super(settings);
         this.luceneQueryBuilder = luceneQueryBuilder;
@@ -178,7 +179,7 @@ public class ShardCollectSource extends AbstractComponent implements CollectSour
             nodeNormalizer
         );
 
-        indexEventListenerDelegate.setDelegate(new LifecycleListener());
+        indexEventListenerProxy.addLast(new LifecycleListener());
     }
 
     private class LifecycleListener implements IndexEventListener {
