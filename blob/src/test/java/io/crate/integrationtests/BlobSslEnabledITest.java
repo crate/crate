@@ -22,6 +22,8 @@
 
 package io.crate.integrationtests;
 
+import io.crate.plugin.CrateCorePlugin;
+import io.crate.rest.CrateRestFilter;
 import io.crate.testing.SslDummyPlugin;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.http.client.methods.CloseableHttpResponse;
@@ -35,7 +37,7 @@ import org.junit.Test;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
-import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.Locale;
@@ -51,15 +53,14 @@ public class BlobSslEnabledITest extends BlobHttpIntegrationTest {
     protected Settings nodeSettings(int nodeOrdinal) {
         return Settings.builder()
             .put(super.nodeSettings(nodeOrdinal))
+            .put(CrateRestFilter.ES_API_ENABLED_SETTING.getKey(), true)
             .put(HTTP_TYPE_KEY, "crate_ssl")
             .build();
     }
 
     @Override
     protected Collection<Class<? extends Plugin>> nodePlugins() {
-        List<Class<? extends Plugin>> plugins = new ArrayList<>();
-        plugins.add(SslDummyPlugin.class);
-        return plugins;
+        return Arrays.asList(CrateCorePlugin.class, SslDummyPlugin.class);
     }
 
     private String uploadSmallBlob() throws IOException {
