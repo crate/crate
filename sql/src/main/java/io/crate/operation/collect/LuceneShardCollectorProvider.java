@@ -99,6 +99,7 @@ public class LuceneShardCollectorProvider extends ShardCollectorProvider {
             LuceneQueryBuilder.Context queryContext = luceneQueryBuilder.convert(
                 collectPhase.whereClause(),
                 indexShard.mapperService(),
+                sharedShardContext.indexService().newQueryShardContext(searcher.reader(), System::currentTimeMillis),
                 indexShard.indexFieldDataService(),
                 sharedShardContext.indexService().cache()
             );
@@ -142,6 +143,7 @@ public class LuceneShardCollectorProvider extends ShardCollectorProvider {
             queryContext = luceneQueryBuilder.convert(
                 collectPhase.whereClause(),
                 indexService.mapperService(),
+                indexService.newQueryShardContext(searcher.reader(), System::currentTimeMillis),
                 indexService.fieldData(),
                 indexService.cache()
             );
