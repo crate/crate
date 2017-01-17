@@ -281,6 +281,12 @@ public class AnalyzedColumnDefinition {
                 }
                 mapping.put("analyzer", analyzer);
                 return "text";
+            case "text":
+                // explicit index definition
+                if (analyzer != null) {
+                    mapping.put("analyzer", analyzer);
+                }
+                break;
         }
         return dataType;
     }
