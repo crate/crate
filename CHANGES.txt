@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fix issue where fulltext search with fuzziness='AUTO' throws
+   NumberFormatException.
+
  - Fix an issue in the ``LIKE`` predicate which prevents using escaped
    backslash before the wildcard.
 
