@@ -340,9 +340,9 @@ jar {
 }
 
 task downloadPlugins(
-        dependsOn: [':sigar:jar', ':azure-discovery:jar']) << {
+        dependsOn: [':admin-ui:downloadPlugin', ':sigar:jar', ':azure-discovery:jar']) << {
 
-    // FIXME: re-enable HDFS plugin + AdminUI plugin
+    // FIXME: re-enable HDFS plugin
     //    dependsOn: [':admin-ui:downloadPlugin', ':sigar:jar', ':es-repository-hdfs:distZip', ':azure-discovery:jar']) << {
     //
     //copy {
@@ -358,10 +358,10 @@ task downloadPlugins(
         into 'plugins/crate-azure-discovery'
     }
 
-    //copy {
-    //    from(project(':admin-ui').buildDir.path + '/crate-admin')
-    //    into 'plugins/crate-admin'
-    //}
+    copy {
+        from(project(':admin-ui').buildDir.path + '/crate-admin')
+        into 'plugins/crate-admin'
+    }
 
     // copy sigar jar
     copy {
