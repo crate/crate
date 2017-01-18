@@ -49,8 +49,8 @@ public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
     public void testInsertWithColumnNames() throws Exception {
         prepareCreate("test")
             .addMapping("default",
-                "firstName", "type=string,store=true,index=not_analyzed",
-                "lastName", "type=string,store=true,index=not_analyzed")
+                "firstName", "type=keyword",
+                "lastName", "type=keyword")
             .execute().actionGet();
         ensureGreen();
         execute("insert into test (\"firstName\", \"lastName\") values('Youri', 'Zoon')");
@@ -90,7 +90,7 @@ public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
                 "integer", "type=integer",
                 "long", "type=long",
                 "short", "type=short",
-                "string", "type=string,index=not_analyzed")
+                "string", "type=keyword")
             .execute().actionGet();
         ensureGreen();
 
@@ -194,7 +194,7 @@ public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
         prepareCreate("test")
             .addMapping("default",
                 "age", "type=integer",
-                "name", "type=string,store=true,index=not_analyzed")
+                "name", "type=keyword")
             .execute().actionGet();
         ensureGreen();
 
@@ -214,7 +214,7 @@ public class InsertIntoIntegrationTest extends SQLTransportIntegrationTest {
         prepareCreate("test")
             .addMapping("default",
                 "age", "type=integer",
-                "name", "type=string,store=true,index=not_analyzed")
+                "name", "type=keyword")
             .execute().actionGet();
         ensureGreen();
 
