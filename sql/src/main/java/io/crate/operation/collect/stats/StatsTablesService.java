@@ -226,7 +226,7 @@ public class StatsTablesService extends AbstractLifecycleComponent<StatsTablesSe
             if (wasEnabled && becomesEnabled) {
                 int opSize = extractOperationsLogSize(settings);
                 TimeValue opExpiration = extractOperationsLogExpiration(settings);
-                if (opSize != lastOperationsLogSize || opExpiration != lastOperationsLogExpiration) {
+                if (opSize != lastOperationsLogSize || !opExpiration.equals(lastOperationsLogExpiration)) {
                     lastOperationsLogSize = opSize;
                     lastOperationsLogExpiration = opExpiration;
                     setOperationsLogSink(opSize, opExpiration);
@@ -234,7 +234,7 @@ public class StatsTablesService extends AbstractLifecycleComponent<StatsTablesSe
 
                 int jobSize = extractJobsLogSize(settings);
                 TimeValue jobExpiration = extractJobsLogExpiration(settings);
-                if (jobSize != lastJobsLogSize || jobExpiration != lastJobsLogExpiration) {
+                if (jobSize != lastJobsLogSize || !jobExpiration.equals(lastJobsLogExpiration)) {
                     lastJobsLogSize = jobSize;
                     lastJobsLogExpiration = jobExpiration;
                     setJobsLogSink(jobSize, jobExpiration);
