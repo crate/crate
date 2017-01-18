@@ -5,9 +5,13 @@ Changes for Crate
 Unreleased
 ==========
 
+ - The array comparison no longer requires extra parentheses for subselects.
+   Now it's possible to use `` = ANY (SELECT ...)`` instead of
+   `` = ANY ((SELECT ...))``
+
  - Fix issue where fulltext search with fuzziness='AUTO' throws
    NumberFormatException.
- 
+
  - BREAKING: Serve admin ui from ``/``
    Admin UI is not accessible via ``_plugin/crate-admin`` anymore. Only via
    ``/admin`` or ``/``.

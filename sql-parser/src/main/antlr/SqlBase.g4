@@ -190,10 +190,10 @@ predicated
 
 predicate[ParserRuleContext value]
     : cmpOp right=valueExpression                                                    #comparison
-    | cmpOp setCmpQuantifier '(' primaryExpression ')'                               #quantifiedComparison
+    | cmpOp setCmpQuantifier parenthesizedPrimaryExpressionOrSubquery                #quantifiedComparison
     | NOT? BETWEEN lower=valueExpression AND upper=valueExpression                   #between
     | NOT? IN '(' expr (',' expr)* ')'                                               #inList
-    | NOT? IN '(' query ')'                                                          #inSubquery
+    | NOT? IN subqueryExpression                                                     #inSubquery
     | NOT? LIKE pattern=valueExpression (ESCAPE escape=valueExpression)?             #like
     | NOT? LIKE quant=setCmpQuantifier '(' v=valueExpression')'
         (ESCAPE escape=valueExpression)?                                             #arrayLike
@@ -216,7 +216,7 @@ primaryExpression
     | qname '(' ASTERISK ')' over?                                                   #functionCall
     | ident                                                                          #columnReference
     | qname '(' (setQuant? expr (',' expr)*)? ')' over?                              #functionCall
-    | '(' query ')'                                                                  #subqueryExpression
+    | subqueryExpression                                                             #subqueryExpressionDefault
     // This case handles a simple parenthesized expression.
     | '(' expr ')'                                                                   #nestedExpression
     // This is an extension to ANSI SQL, which considers EXISTS to be a <boolean expression>
@@ -234,6 +234,19 @@ primaryExpression
     | CASE valueExpression whenClause+ (ELSE elseExpr=expr)? END                     #simpleCase
     | CASE whenClause+ (ELSE elseExpr=expr)? END                                     #searchedCase
     | IF '('condition=expr ',' trueValue=expr (',' falseValue=expr)? ')'             #ifCase
+    ;
+
+parenthesizedPrimaryExpressionOrSubquery
+    : parenthesizedPrimaryExpression
+    | subqueryExpression
+    ;
+
+subqueryExpression
+    : '(' query ')'
+    ;
+
+parenthesizedPrimaryExpression
+    : '(' primaryExpression ')'
     ;
 
 identExpr

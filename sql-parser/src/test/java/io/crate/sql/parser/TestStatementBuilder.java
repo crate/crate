@@ -757,6 +757,24 @@ public class TestStatementBuilder {
     }
 
     @Test
+    public void testArrayComparisonSubselect() throws Exception {
+        Expression anyExpression = SqlParser.createExpression("1 = ANY ((SELECT 5))");
+        assertThat(anyExpression, instanceOf(ArrayComparisonExpression.class));
+        ArrayComparisonExpression arrayComparisonExpression = (ArrayComparisonExpression) anyExpression;
+        assertThat(arrayComparisonExpression.quantifier(), is(ArrayComparisonExpression.Quantifier.ANY));
+        assertThat(arrayComparisonExpression.getLeft(), instanceOf(LongLiteral.class));
+        assertThat(arrayComparisonExpression.getRight(), instanceOf(SubqueryExpression.class));
+
+        // It's possible to ommit the parenthesis
+        anyExpression = SqlParser.createExpression("1 = ANY (SELECT 5)");
+        assertThat(anyExpression, instanceOf(ArrayComparisonExpression.class));
+        arrayComparisonExpression = (ArrayComparisonExpression) anyExpression;
+        assertThat(arrayComparisonExpression.quantifier(), is(ArrayComparisonExpression.Quantifier.ANY));
+        assertThat(arrayComparisonExpression.getLeft(), instanceOf(LongLiteral.class));
+        assertThat(arrayComparisonExpression.getRight(), instanceOf(SubqueryExpression.class));
+    }
+
+    @Test
     public void testArrayLikeExpression() {
         Expression expression = SqlParser.createExpression("'books%' LIKE ANY(race['interests'])");
         assertThat(expression, instanceOf(ArrayLikePredicate.class));
