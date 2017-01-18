@@ -164,6 +164,7 @@ public class SetAnalyzerTest extends CrateUnitTest {
                 "stats.jobs_log_size",
                 "stats.jobs_log_expiration",
                 "stats.operations_log_size",
+                "stats.operations_log_expiration",
                 "stats.service.interval")
         );
     }

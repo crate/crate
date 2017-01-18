@@ -25,6 +25,9 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Sets;
 import io.crate.breaker.CrateCircuitBreakerService;
+import io.crate.core.collections.Row;
+import io.crate.sql.tree.Expression;
+import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.ByteSizeUnit;
 import org.elasticsearch.common.unit.ByteSizeValue;
 import org.elasticsearch.common.unit.TimeValue;
@@ -1517,6 +1520,8 @@ public class CrateSettings {
             new SettingsAppliers.TimeSettingsApplier(CrateSettings.STATS_JOBS_LOG_EXPIRATION))
         .put(CrateSettings.STATS_OPERATIONS_LOG_SIZE.settingName(),
             new SettingsAppliers.IntSettingsApplier(CrateSettings.STATS_OPERATIONS_LOG_SIZE))
+        .put(CrateSettings.STATS_OPERATIONS_LOG_EXPIRATION.settingName(),
+            new SettingsAppliers.TimeSettingsApplier(CrateSettings.STATS_OPERATIONS_LOG_EXPIRATION))
         .put(CrateSettings.STATS_ENABLED.settingName(),
             new SettingsAppliers.BooleanSettingsApplier(CrateSettings.STATS_ENABLED))
         .put(CrateSettings.STATS_SERVICE_REFRESH_INTERVAL.settingName(),

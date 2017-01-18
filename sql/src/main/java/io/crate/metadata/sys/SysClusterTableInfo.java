@@ -59,8 +59,12 @@ public class SysClusterTableInfo extends StaticTableInfo {
 
                 .register(ClusterSettingsExpression.NAME, DataTypes.INTEGER, ImmutableList.of(CrateSettings.STATS.name(),
                     CrateSettings.STATS_JOBS_LOG_SIZE.name()))
+                .register(ClusterSettingsExpression.NAME, DataTypes.STRING, ImmutableList.of(CrateSettings.STATS.name(),
+                    CrateSettings.STATS_JOBS_LOG_EXPIRATION.name()))
                 .register(ClusterSettingsExpression.NAME, DataTypes.INTEGER, ImmutableList.of(CrateSettings.STATS.name(),
                     CrateSettings.STATS_OPERATIONS_LOG_SIZE.name()))
+                .register(ClusterSettingsExpression.NAME, DataTypes.STRING, ImmutableList.of(CrateSettings.STATS.name(),
+                    CrateSettings.STATS_OPERATIONS_LOG_EXPIRATION.name()))
                 .register(ClusterSettingsExpression.NAME, DataTypes.BOOLEAN, ImmutableList.of(CrateSettings.STATS.name(),
                     CrateSettings.STATS_ENABLED.name()))
                 .register(ClusterSettingsExpression.NAME, DataTypes.OBJECT, ImmutableList.of(CrateSettings.STATS.name(),
