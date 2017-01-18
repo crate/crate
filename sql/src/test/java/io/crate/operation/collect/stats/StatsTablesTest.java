@@ -211,7 +211,6 @@ public class StatsTablesTest extends CrateUnitTest {
     public void testUniqueOperationIdsInOperationsTable() {
         StatsTables statsTables = new StatsTables(() -> true);
         Queue<OperationContextLog> q = new BlockingEvictingQueue(10);
-        new RamAccountingQueue<>(q, ramAccountingContext, StatsTablesService.OPERATION_CONTEXT_LOG_SIZE_ESTIMATOR);
         statsTables.updateOperationsLog(new QueueSink<>(q, ramAccountingContext::close));
 
         OperationContext ctxA = new OperationContext(0, UUID.randomUUID(), "dummyOperation", 1L);

@@ -25,31 +25,51 @@ package io.crate.operation.collect.stats;
 import com.google.common.collect.ForwardingQueue;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.breaker.SizeEstimator;
+import org.elasticsearch.common.breaker.CircuitBreaker;
+import org.elasticsearch.common.logging.ESLogger;
+import org.elasticsearch.common.logging.Loggers;
 
-import java.util.NoSuchElementException;
 import java.util.Queue;
+import java.util.UUID;
+import java.util.concurrent.locks.ReentrantLock;
 
 public class RamAccountingQueue<T> extends ForwardingQueue<T> {
 
-    private final Queue<T> delegate;
-    private final RamAccountingContext context;
-    private final SizeEstimator<T> sizeEstimator;
+    private static final ESLogger LOGGER = Loggers.getLogger(StatsTablesService.class);
 
-    public RamAccountingQueue(Queue<T> delegate, RamAccountingContext context, SizeEstimator<T> sizeEstimator) {
+    private final Queue<T> delegate;
+    private final ReentrantLock lock;
+    private RamAccountingContext context;
+    private final SizeEstimator<T> sizeEstimator;
+    private final CircuitBreaker breaker;
+
+    public RamAccountingQueue(Queue<T> delegate, CircuitBreaker breaker, SizeEstimator<T> sizeEstimator) {
         this.delegate = delegate;
-        this.context = context;
+        this.breaker = breaker;
         this.sizeEstimator = sizeEstimator;
+        this.context = new RamAccountingContext(contextId(), breaker);
+        this.lock = new ReentrantLock();
+    }
+
+    private static String contextId() {
+        return String.format("RamAccountingQueue[%s]", UUID.randomUUID().toString());
     }
 
     @Override
     public boolean offer(T o) {
-        context.addBytesWithoutBreaking(sizeEstimator.estimateSize(o));
-        if (context.exceededBreaker()) {
-            try {
-                delegate.remove();
-            } catch (NoSuchElementException ignored) {
-                // queue empty
+        lock.lock();
+        try {
+            context.addBytesWithoutBreaking(sizeEstimator.estimateSize(o));
+            if (context.exceededBreaker()) {
+                LOGGER.error("Memory limit for breaker [{}] was exceeded. Queue [{}] is cleared.", breaker.getName(), context.contextId());
+                // clear queue, close context and create new one
+                close();
+                context = new RamAccountingContext(contextId(), breaker);
+                // add bytes to new context
+                context.addBytesWithoutBreaking(sizeEstimator.estimateSize(o));
             }
+        } finally {
+            lock.unlock();
         }
         return delegate.offer(o);
     }
@@ -60,9 +80,7 @@ public class RamAccountingQueue<T> extends ForwardingQueue<T> {
     }
 
     public void close() {
-        for (T t : delegate) {
-            context.addBytesWithoutBreaking(-sizeEstimator.estimateSize(t));
-        }
         delegate.clear();
+        context.close();
     }
 }

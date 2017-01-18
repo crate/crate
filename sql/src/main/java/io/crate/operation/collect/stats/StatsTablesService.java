@@ -54,9 +54,9 @@ import java.util.concurrent.ScheduledFuture;
 @Singleton
 public class StatsTablesService extends AbstractLifecycleComponent<StatsTablesService> implements Provider<StatsTables> {
 
-    private final RamAccountingContext ramAccountingContext;
     protected final NodeSettingsService.Listener listener = new NodeSettingListener();
     private final ScheduledExecutorService scheduler;
+    private final CircuitBreaker circuitBreaker;
 
     private StatsTables statsTables;
     LogSink<JobContextLog> jobsLogSink = NoopLogSink.instance();
@@ -86,8 +86,7 @@ public class StatsTablesService extends AbstractLifecycleComponent<StatsTablesSe
     StatsTablesService(Settings settings, NodeSettingsService nodeSettingsService, ScheduledExecutorService scheduledExecutorService, CrateCircuitBreakerService breakerService) {
         super(settings);
         scheduler = scheduledExecutorService;
-        CircuitBreaker circuitBreaker = breakerService.getBreaker(CrateCircuitBreakerService.LOGS);
-        ramAccountingContext = new RamAccountingContext("statsTablesContext", circuitBreaker);
+        circuitBreaker = breakerService.getBreaker(CrateCircuitBreakerService.LOGS);
         nodeSettingsService.addListener(listener);
 
         int jobsLogSize = CrateSettings.STATS_JOBS_LOG_SIZE.extract(settings);
@@ -142,7 +141,7 @@ public class StatsTablesService extends AbstractLifecycleComponent<StatsTablesSe
             onClose = () -> {};
         }
 
-        RamAccountingQueue<E> accountingQueue = new RamAccountingQueue<>(q, ramAccountingContext, sizeEstimator);
+        RamAccountingQueue<E> accountingQueue = new RamAccountingQueue<>(q, circuitBreaker, sizeEstimator);
         return new QueueSink<>(accountingQueue, () -> {
             accountingQueue.close();
             onClose.run();

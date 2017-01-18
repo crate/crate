@@ -22,7 +22,6 @@
 
 package io.crate.operation.collect.stats;
 
-import io.crate.breaker.RamAccountingContext;
 import io.crate.breaker.SizeEstimator;
 import io.crate.core.collections.BlockingEvictingQueue;
 import io.crate.operation.reference.sys.job.ContextLog;
@@ -84,17 +83,17 @@ public class RamAccountingQueueSinkTest extends CrateUnitTest {
         terminate(scheduler);
     }
 
-    public static RamAccountingContext context() {
+    public static CircuitBreaker breaker() {
         CircuitBreaker circuitBreaker = mock(CircuitBreaker.class);
         // mocked CircuitBreaker has unlimited memory (⌐■_■)
         when(circuitBreaker.getLimit()).thenReturn(Long.MAX_VALUE);
-        return new RamAccountingContext("testRamAccountingContext", circuitBreaker);
+        return circuitBreaker;
     }
 
     @Test
     public void testFixedSizeRamAccountingQueueSink() throws Exception {
         BlockingEvictingQueue<NoopLog> q = new BlockingEvictingQueue<>(15_000);
-        RamAccountingQueue<NoopLog> ramAccountingQueue = new RamAccountingQueue<>(q, context(), NOOP_ESTIMATOR);
+        RamAccountingQueue<NoopLog> ramAccountingQueue = new RamAccountingQueue<>(q, breaker(), NOOP_ESTIMATOR);
         logSink = new QueueSink<>(ramAccountingQueue, ramAccountingQueue::close);
 
         int THREADS = 50;
@@ -141,7 +140,7 @@ public class RamAccountingQueueSinkTest extends CrateUnitTest {
     @Test
     public void testTimedRamAccountingQueueSink() throws Exception {
         ConcurrentLinkedQueue<NoopLog> q = new ConcurrentLinkedQueue<>();
-        RamAccountingQueue<NoopLog> ramAccountingQueue = new RamAccountingQueue<>(q, context(), NOOP_ESTIMATOR);
+        RamAccountingQueue<NoopLog> ramAccountingQueue = new RamAccountingQueue<>(q, breaker(), NOOP_ESTIMATOR);
         TimeValue timeValue = TimeValue.timeValueSeconds(1L);
         TimeExpiring timeExiring = new TimeExpiring(1L, 1L);
         ScheduledFuture<?> task = timeExiring.registerTruncateTask(q, scheduler, timeValue);
