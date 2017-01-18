@@ -23,7 +23,6 @@ package io.crate.executor.transport.task;
 
 import com.google.common.base.Function;
 import io.crate.core.collections.Row;
-import io.crate.core.collections.Row1;
 import io.crate.executor.JobTask;
 import io.crate.executor.transport.OneRowActionListener;
 import io.crate.executor.transport.kill.KillAllRequest;
@@ -36,11 +35,11 @@ import java.util.UUID;
 
 public class KillTask extends JobTask {
 
-    static final Function<KillResponse, Row> KILL_RESPONSE_TO_ROW_FUNCTION = new Function<KillResponse, Row>() {
+    static final Function<KillResponse, Object> KILL_RESPONSE_TO_ROW_FUNCTION = new Function<KillResponse, Object>() {
         @Nullable
         @Override
-        public Row apply(@Nullable KillResponse input) {
-            return new Row1(input == null ? -1 : input.numKilled());
+        public Object apply(@Nullable KillResponse input) {
+            return input == null ? -1 : input.numKilled();
         }
     };
     private final TransportKillAllNodeAction nodeAction;
