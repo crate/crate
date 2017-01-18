@@ -41,12 +41,17 @@ public class CrateCircuitBreakerService extends CircuitBreakerService {
     public static final String QUERY_CIRCUIT_BREAKER_OVERHEAD_SETTING = "indices.breaker.query.overhead";
     public static final double DEFAULT_QUERY_CIRCUIT_BREAKER_OVERHEAD_CONSTANT = 1.09;
 
-    public static final String LOGS = "logs";
-    public static final String LOGS_CIRCUIT_BREAKER_LIMIT_SETTING = "stats.breaker.logs.limit";
-    public static final String DEFAULT_LOGS_CIRCUIT_BREAKER_LIMIT= "5%";
-    public static final String LOGS_CIRCUIT_BREAKER_OVERHEAD_SETTING = "stats.breaker.logs.overhead";
-    public static final double DEFAULT_LOGS_CIRCUIT_BREAKER_OVERHEAD_CONSTANT = 1.0;
+    public static final String JOBS_LOG = "jobs_log";
+    public static final String JOBS_LOG_CIRCUIT_BREAKER_LIMIT_SETTING = "stats.breaker.jobs_log.limit";
+    public static final String DEFAULT_JOBS_LOG_CIRCUIT_BREAKER_LIMIT = "5%";
+    public static final String JOBS_LOG_CIRCUIT_BREAKER_OVERHEAD_SETTING = "stats.breaker.jobs_log.overhead";
 
+    public static final String OPERATIONS_LOG = "operations_log";
+    public static final String OPERATIONS_LOG_CIRCUIT_BREAKER_LIMIT_SETTING = "stats.breaker.operations_log.limit";
+    public static final String DEFAULT_OPERATIONS_LOG_CIRCUIT_BREAKER_LIMIT= "5%";
+    public static final String OPERATIONS_LOG_CIRCUIT_BREAKER_OVERHEAD_SETTING = "stats.breaker.operations_log.overhead";
+
+    public static final double DEFAULT_LOG_CIRCUIT_BREAKER_OVERHEAD_CONSTANT = 1.0;
     private static final String DEFAULT_CIRCUIT_BREAKER_TYPE = "memory";
 
     static final String BREAKING_EXCEPTION_MESSAGE =
@@ -54,7 +59,8 @@ public class CrateCircuitBreakerService extends CircuitBreakerService {
 
     private final CircuitBreakerService esCircuitBreakerService;
     private BreakerSettings queryBreakerSettings;
-    private BreakerSettings logsBreakerSettings;
+    private BreakerSettings jobsLogBreakerSettings;
+    private BreakerSettings operationsLogBreakerSettings;
 
     @Inject
     public CrateCircuitBreakerService(Settings settings,
@@ -73,15 +79,26 @@ public class CrateCircuitBreakerService extends CircuitBreakerService {
             CircuitBreaker.Type.parseValue(DEFAULT_CIRCUIT_BREAKER_TYPE));
         registerBreaker(queryBreakerSettings);
 
-        logsBreakerSettings = new BreakerSettings(LOGS,
+        jobsLogBreakerSettings = new BreakerSettings(JOBS_LOG,
             settings.getAsMemory(
-                LOGS_CIRCUIT_BREAKER_LIMIT_SETTING,
-                DEFAULT_LOGS_CIRCUIT_BREAKER_LIMIT).getBytes(),
+                JOBS_LOG_CIRCUIT_BREAKER_LIMIT_SETTING,
+                DEFAULT_JOBS_LOG_CIRCUIT_BREAKER_LIMIT).getBytes(),
             settings.getAsDouble(
-                LOGS_CIRCUIT_BREAKER_OVERHEAD_SETTING,
-                DEFAULT_LOGS_CIRCUIT_BREAKER_OVERHEAD_CONSTANT),
+                JOBS_LOG_CIRCUIT_BREAKER_OVERHEAD_SETTING,
+                DEFAULT_LOG_CIRCUIT_BREAKER_OVERHEAD_CONSTANT),
             CircuitBreaker.Type.parseValue(DEFAULT_CIRCUIT_BREAKER_TYPE));
-        registerBreaker(logsBreakerSettings);
+        registerBreaker(jobsLogBreakerSettings);
+
+        operationsLogBreakerSettings = new BreakerSettings(OPERATIONS_LOG,
+            settings.getAsMemory(
+                OPERATIONS_LOG_CIRCUIT_BREAKER_LIMIT_SETTING,
+                DEFAULT_OPERATIONS_LOG_CIRCUIT_BREAKER_LIMIT).getBytes(),
+            settings.getAsDouble(
+                OPERATIONS_LOG_CIRCUIT_BREAKER_OVERHEAD_SETTING,
+                DEFAULT_LOG_CIRCUIT_BREAKER_OVERHEAD_CONSTANT),
+            CircuitBreaker.Type.parseValue(DEFAULT_CIRCUIT_BREAKER_TYPE));
+        registerBreaker(operationsLogBreakerSettings);
+
         nodeSettingsService.addListener(new ApplySettings());
     }
 
@@ -123,14 +140,23 @@ public class CrateCircuitBreakerService extends CircuitBreakerService {
                 DEFAULT_QUERY_CIRCUIT_BREAKER_OVERHEAD_CONSTANT,
                 CrateCircuitBreakerService.this.queryBreakerSettings);
 
-            // Logs breaker settings
-            registerBreakerSettings(LOGS,
+            // Jobs log breaker settings
+            registerBreakerSettings(JOBS_LOG,
                 settings,
-                LOGS_CIRCUIT_BREAKER_LIMIT_SETTING,
-                DEFAULT_LOGS_CIRCUIT_BREAKER_LIMIT,
-                LOGS_CIRCUIT_BREAKER_OVERHEAD_SETTING,
-                DEFAULT_LOGS_CIRCUIT_BREAKER_OVERHEAD_CONSTANT,
-                CrateCircuitBreakerService.this.logsBreakerSettings);
+                JOBS_LOG_CIRCUIT_BREAKER_LIMIT_SETTING,
+                DEFAULT_JOBS_LOG_CIRCUIT_BREAKER_LIMIT,
+                JOBS_LOG_CIRCUIT_BREAKER_OVERHEAD_SETTING,
+                DEFAULT_LOG_CIRCUIT_BREAKER_OVERHEAD_CONSTANT,
+                CrateCircuitBreakerService.this.jobsLogBreakerSettings);
+
+            // Operations log breaker settings
+            registerBreakerSettings(OPERATIONS_LOG,
+                settings,
+                OPERATIONS_LOG_CIRCUIT_BREAKER_LIMIT_SETTING,
+                DEFAULT_OPERATIONS_LOG_CIRCUIT_BREAKER_LIMIT,
+                OPERATIONS_LOG_CIRCUIT_BREAKER_OVERHEAD_SETTING,
+                DEFAULT_LOG_CIRCUIT_BREAKER_OVERHEAD_CONSTANT,
+                CrateCircuitBreakerService.this.operationsLogBreakerSettings);
         }
 
         private void registerBreakerSettings(String name,

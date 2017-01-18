@@ -36,6 +36,7 @@ import org.elasticsearch.common.inject.Provider;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.TimeValue;
+import org.elasticsearch.indices.breaker.CircuitBreakerService;
 import org.elasticsearch.node.settings.NodeSettingsService;
 import org.elasticsearch.threadpool.ThreadPool;
 
@@ -56,7 +57,7 @@ public class StatsTablesService extends AbstractLifecycleComponent<StatsTablesSe
 
     protected final NodeSettingsService.Listener listener = new NodeSettingListener();
     private final ScheduledExecutorService scheduler;
-    private final CircuitBreaker circuitBreaker;
+    private final CircuitBreakerService breakerService;
 
     private StatsTables statsTables;
     LogSink<JobContextLog> jobsLogSink = NoopLogSink.instance();
@@ -78,15 +79,21 @@ public class StatsTablesService extends AbstractLifecycleComponent<StatsTablesSe
     static final OperationContextLogSizeEstimator OPERATION_CONTEXT_LOG_SIZE_ESTIMATOR = new OperationContextLogSizeEstimator();
 
     @Inject
-    public StatsTablesService(Settings settings, NodeSettingsService nodeSettingsService, ThreadPool threadPool, CrateCircuitBreakerService breakerService) {
+    public StatsTablesService(Settings settings,
+                              NodeSettingsService nodeSettingsService,
+                              ThreadPool threadPool,
+                              CrateCircuitBreakerService breakerService) {
         this(settings, nodeSettingsService, threadPool.scheduler(), breakerService);
     }
 
     @VisibleForTesting
-    StatsTablesService(Settings settings, NodeSettingsService nodeSettingsService, ScheduledExecutorService scheduledExecutorService, CrateCircuitBreakerService breakerService) {
+    StatsTablesService(Settings settings,
+                       NodeSettingsService nodeSettingsService,
+                       ScheduledExecutorService scheduledExecutorService,
+                       CrateCircuitBreakerService breakerService) {
         super(settings);
         scheduler = scheduledExecutorService;
-        circuitBreaker = breakerService.getBreaker(CrateCircuitBreakerService.LOGS);
+        this.breakerService = breakerService;
         nodeSettingsService.addListener(listener);
 
         int jobsLogSize = CrateSettings.STATS_JOBS_LOG_SIZE.extract(settings);
@@ -119,14 +126,15 @@ public class StatsTablesService extends AbstractLifecycleComponent<StatsTablesSe
     }
 
     private void setJobsLogSink(int size, TimeValue expiration) {
-        LogSink<JobContextLog> newSink = createSink(size, expiration, JOB_CONTEXT_LOG_ESTIMATOR);
+        LogSink<JobContextLog> newSink = createSink(size, expiration, JOB_CONTEXT_LOG_ESTIMATOR,
+            CrateCircuitBreakerService.JOBS_LOG);
         newSink.addAll(jobsLogSink);
         jobsLogSink.close();
         jobsLogSink = newSink;
         statsTables.updateJobsLog(jobsLogSink);
     }
 
-    private <E extends ContextLog> LogSink<E> createSink(int size, TimeValue expiration, SizeEstimator<E> sizeEstimator) {
+    private <E extends ContextLog> LogSink<E> createSink(int size, TimeValue expiration, SizeEstimator<E> sizeEstimator, String breaker) {
         Queue<E> q;
         long expirationMillis = expiration.getMillis();
         final Runnable onClose;
@@ -141,7 +149,7 @@ public class StatsTablesService extends AbstractLifecycleComponent<StatsTablesSe
             onClose = () -> {};
         }
 
-        RamAccountingQueue<E> accountingQueue = new RamAccountingQueue<>(q, circuitBreaker, sizeEstimator);
+        RamAccountingQueue<E> accountingQueue = new RamAccountingQueue<>(q, breakerService.getBreaker(breaker), sizeEstimator);
         return new QueueSink<>(accountingQueue, () -> {
             accountingQueue.close();
             onClose.run();
@@ -149,7 +157,8 @@ public class StatsTablesService extends AbstractLifecycleComponent<StatsTablesSe
     }
 
     private void setOperationsLogSink(int size, TimeValue expiration) {
-        LogSink<OperationContextLog> newSink = createSink(size, expiration, OPERATION_CONTEXT_LOG_SIZE_ESTIMATOR);
+        LogSink<OperationContextLog> newSink = createSink(size, expiration, OPERATION_CONTEXT_LOG_SIZE_ESTIMATOR,
+            CrateCircuitBreakerService.OPERATIONS_LOG);
         newSink.addAll(operationsLogSink);
         operationsLogSink.close();
         operationsLogSink = newSink;

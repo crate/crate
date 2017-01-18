@@ -63,7 +63,7 @@ public class StatsTablesTest extends CrateUnitTest {
     public void createScheduler() {
         scheduler = Executors.newSingleThreadScheduledExecutor();
         ramAccountingContext = new RamAccountingContext("testRamAccountingContext",
-            breakerService.getBreaker(CrateCircuitBreakerService.LOGS));
+            breakerService.getBreaker(CrateCircuitBreakerService.JOBS_LOG));
     }
 
     @After

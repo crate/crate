@@ -174,9 +174,9 @@ public class TestGlobalSysExpressions extends CrateUnitTest {
         assertThat(CrateSettings.STATS_OPERATIONS_LOG_SIZE.defaultValue(),
             is(stats.get(CrateSettings.STATS_OPERATIONS_LOG_SIZE.name())));
         Map statsBreakerLogs = (Map) ((Map) stats.get(CrateSettings.STATS_BREAKER.name()))
-            .get(CrateSettings.STATS_BREAKER_LOGS.name());
-        assertThat(CrateSettings.STATS_BREAKER_LOGS_LIMIT.defaultValue(),
-            is(statsBreakerLogs.get(CrateSettings.STATS_BREAKER_LOGS_LIMIT.name())));
+            .get(CrateSettings.STATS_BREAKER_JOBS_LOG.name());
+        assertThat(CrateSettings.STATS_BREAKER_JOBS_LOG_LIMIT.defaultValue(),
+            is(statsBreakerLogs.get(CrateSettings.STATS_BREAKER_JOBS_LOG_LIMIT.name())));
 
         Map cluster = (Map) settings.get(CrateSettings.CLUSTER.name());
         Map gracefulStop = (Map) cluster.get(CrateSettings.GRACEFUL_STOP.name());
