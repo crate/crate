@@ -51,6 +51,7 @@ public class CrateSettings {
                 STATS_JOBS_LOG_SIZE,
                 STATS_JOBS_LOG_EXPIRATION,
                 STATS_OPERATIONS_LOG_SIZE,
+                STATS_OPERATIONS_LOG_EXPIRATION,
                 STATS_SERVICE_REFRESH_INTERVAL,
                 STATS_BREAKER);
         }
@@ -108,6 +109,28 @@ public class CrateSettings {
         @Override
         public Integer minValue() {
             return 0;
+        }
+
+        @Override
+        public Setting parent() {
+            return STATS;
+        }
+    };
+
+    public static final TimeSetting STATS_OPERATIONS_LOG_EXPIRATION = new TimeSetting() {
+        @Override
+        public String name() {
+            return "operations_log_expiration";
+        }
+
+        @Override
+        public TimeValue defaultValue() {
+            return TimeValue.timeValueSeconds(0L);
+        }
+
+        @Override
+        public boolean isRuntime() {
+            return true;
         }
 
         @Override

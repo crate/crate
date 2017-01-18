@@ -42,9 +42,11 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
+import java.lang.reflect.Field;
 import java.util.List;
 import java.util.Queue;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 
@@ -55,6 +57,7 @@ public class StatsTablesTest extends CrateUnitTest {
     private ScheduledExecutorService scheduler;
     private static CrateCircuitBreakerService breakerService;
     private RamAccountingContext ramAccountingContext;
+    private static NodeSettingsService nodeSettingsService = new NodeSettingsService(Settings.EMPTY);
 
     @Before
     public void createScheduler() {
@@ -70,61 +73,116 @@ public class StatsTablesTest extends CrateUnitTest {
 
     @BeforeClass
     public static void beforeClass() {
-        NodeSettingsService settingsService = new NodeSettingsService(Settings.EMPTY);
-        CircuitBreakerService esBreakerService = new HierarchyCircuitBreakerService(Settings.EMPTY, settingsService);
-        breakerService = new CrateCircuitBreakerService(
-            Settings.EMPTY, settingsService, esBreakerService);
+        CircuitBreakerService esBreakerService = new HierarchyCircuitBreakerService(Settings.EMPTY, nodeSettingsService);
+        breakerService = new CrateCircuitBreakerService(Settings.EMPTY, nodeSettingsService, esBreakerService);
     }
 
     @Test
-    public void testSettingsChanges() {
-        NodeSettingsService nodeSettingsService = new NodeSettingsService(Settings.EMPTY);
+    public void testDefaultSettings() {
         StatsTablesService stats = new StatsTablesService(Settings.EMPTY, nodeSettingsService, scheduler, breakerService);
 
         assertThat(stats.isEnabled(), is(false));
         assertThat(stats.lastJobsLogSize, is(CrateSettings.STATS_JOBS_LOG_SIZE.defaultValue()));
         assertThat(stats.lastOperationsLogSize, is(CrateSettings.STATS_OPERATIONS_LOG_SIZE.defaultValue()));
+        assertThat(stats.lastJobsLogExpiration, is(CrateSettings.STATS_JOBS_LOG_EXPIRATION.defaultValue()));
+        assertThat(stats.lastOperationsLogExpiration, is(CrateSettings.STATS_OPERATIONS_LOG_EXPIRATION.defaultValue()));
 
-        // even though logSizes are > 0 it must be a NoopQueue because the stats are disabled
+        // even though jobsLog size and opertionsLog size are > 0 it must be a NoopQueue because the stats are disabled
         assertThat(stats.jobsLogSink, Matchers.instanceOf(NoopLogSink.class));
-        Settings settings = Settings.builder()
-            .put(CrateSettings.STATS_ENABLED.settingName(), true)
-            .put(CrateSettings.STATS_JOBS_LOG_SIZE.settingName(), 100)
-            .put(CrateSettings.STATS_OPERATIONS_LOG_SIZE.settingName(), 100).build();
-        stats = new StatsTablesService(settings, nodeSettingsService, scheduler, breakerService);
+        assertThat(stats.operationsLogSink, Matchers.instanceOf(NoopLogSink.class));
+    }
 
+    @Test
+    public void testEnableStats() throws Exception {
+        Settings settings = Settings.builder()
+            .put(CrateSettings.STATS_ENABLED.settingName(), false)
+            .put(CrateSettings.STATS_JOBS_LOG_SIZE.settingName(), 100)
+            .put(CrateSettings.STATS_OPERATIONS_LOG_SIZE.settingName(), 100)
+            .build();
+
+        StatsTablesService stats = new StatsTablesService(settings, nodeSettingsService, scheduler, breakerService);
         stats.listener.onRefreshSettings(Settings.builder()
-            .put(CrateSettings.STATS_OPERATIONS_LOG_SIZE.settingName(), 200).build());
+            .put(CrateSettings.STATS_ENABLED.settingName(), true)
+            .build());
 
         assertThat(stats.isEnabled(), is(true));
         assertThat(stats.lastJobsLogSize, is(100));
-        assertThat(stats.lastOperationsLogSize, is(200));
         assertThat(stats.jobsLogSink, Matchers.instanceOf(QueueSink.class));
+        assertThat(stats.lastOperationsLogSize, is(100));
+        assertThat(stats.operationsLogSink, Matchers.instanceOf(QueueSink.class));
+    }
 
-        // switch jobs_log queue
+    @Test
+    public void testSettingsChanges() throws Exception {
+        Settings settings = Settings.builder()
+            .put(CrateSettings.STATS_ENABLED.settingName(), true)
+            .put(CrateSettings.STATS_JOBS_LOG_SIZE.settingName(), 100)
+            .put(CrateSettings.STATS_OPERATIONS_LOG_SIZE.settingName(), 100)
+            .build();
+
+        StatsTablesService stats = new StatsTablesService(settings, nodeSettingsService, scheduler, breakerService);
+
+        // sinks are still of type QueueSink
+        assertThat(stats.jobsLogSink, Matchers.instanceOf(QueueSink.class));
+        assertThat(stats.operationsLogSink, Matchers.instanceOf(QueueSink.class));
+
+        assertThat(inspectRamAccountingQueue((QueueSink) stats.jobsLogSink),
+            Matchers.instanceOf(BlockingEvictingQueue.class));
+        assertThat(inspectRamAccountingQueue((QueueSink) stats.operationsLogSink),
+            Matchers.instanceOf(BlockingEvictingQueue.class));
+
         stats.listener.onRefreshSettings(Settings.builder()
-            .put(CrateSettings.STATS_JOBS_LOG_EXPIRATION.settingName(), "10s").build());
-        assertThat(stats.jobsLogSink, Matchers.instanceOf(QueueSink.class));
+            .put(CrateSettings.STATS_JOBS_LOG_EXPIRATION.settingName(), "10s")
+            .put(CrateSettings.STATS_OPERATIONS_LOG_EXPIRATION.settingName(), "10s")
+            .build());
 
+        assertThat(inspectRamAccountingQueue((QueueSink) stats.jobsLogSink),
+            Matchers.instanceOf(ConcurrentLinkedDeque.class));
+        assertThat(inspectRamAccountingQueue((QueueSink) stats.operationsLogSink),
+            Matchers.instanceOf(ConcurrentLinkedDeque.class));
+
+        // set all to 0 but don't disable stats
         stats.listener.onRefreshSettings(Settings.builder()
             .put(CrateSettings.STATS_JOBS_LOG_SIZE.settingName(), 0)
-            .put(CrateSettings.STATS_JOBS_LOG_EXPIRATION.settingName(), "0s").build());
+            .put(CrateSettings.STATS_JOBS_LOG_EXPIRATION.settingName(), "0s")
+            .put(CrateSettings.STATS_OPERATIONS_LOG_SIZE.settingName(), 0)
+            .put(CrateSettings.STATS_OPERATIONS_LOG_EXPIRATION.settingName(), "0s")
+            .build());
         assertThat(stats.jobsLogSink, Matchers.instanceOf(NoopLogSink.class));
+        assertThat(stats.operationsLogSink, Matchers.instanceOf(NoopLogSink.class));
+        assertThat(stats.isEnabled(), is(true));
 
         stats.listener.onRefreshSettings(Settings.builder()
-            .put(CrateSettings.STATS_JOBS_LOG_EXPIRATION.settingName(), "10s").build());
+            .put(CrateSettings.STATS_JOBS_LOG_SIZE.settingName(), 200)
+            .put(CrateSettings.STATS_OPERATIONS_LOG_SIZE.settingName(), 200)
+            .build());
         assertThat(stats.jobsLogSink, Matchers.instanceOf(QueueSink.class));
+        assertThat(inspectRamAccountingQueue((QueueSink) stats.jobsLogSink),
+            Matchers.instanceOf(BlockingEvictingQueue.class));
+        assertThat(stats.operationsLogSink, Matchers.instanceOf(QueueSink.class));
+        assertThat(inspectRamAccountingQueue((QueueSink) stats.operationsLogSink),
+            Matchers.instanceOf(BlockingEvictingQueue.class));
 
-        // logs got wiped:
+        // disable stats
         stats.listener.onRefreshSettings(Settings.builder()
-            .put(CrateSettings.STATS_ENABLED.settingName(), false).build());
+            .put(CrateSettings.STATS_ENABLED.settingName(), false)
+            .build());
         assertThat(stats.jobsLogSink, Matchers.instanceOf(NoopLogSink.class));
+        assertThat(stats.operationsLogSink, Matchers.instanceOf(NoopLogSink.class));
         assertThat(stats.isEnabled(), is(false));
+    }
+
+    private static Queue inspectRamAccountingQueue(QueueSink sink) throws Exception {
+        Field field = sink.getClass().getDeclaredField("queue");
+        field.setAccessible(true);
+        RamAccountingQueue q = (RamAccountingQueue) field.get(sink);
+        field = field.get(sink).getClass().getDeclaredField("delegate");
+        field.setAccessible(true);
+        return (Queue) field.get(q);
     }
 
     @Test
     public void testLogsArentWipedOnSizeChange() {
-        NodeSettingsService nodeSettingsService = new NodeSettingsService(Settings.EMPTY);
         Settings settings = Settings.builder()
             .put(CrateSettings.STATS_ENABLED.settingName(), true).build();
         StatsTablesService stats = new StatsTablesService(settings, nodeSettingsService, scheduler, breakerService);

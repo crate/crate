@@ -23,12 +23,10 @@
 package io.crate.operation.collect.stats;
 
 import com.google.common.annotations.VisibleForTesting;
-import io.crate.breaker.CrateCircuitBreakerService;
-import io.crate.breaker.JobContextLogSizeEstimator;
-import io.crate.breaker.OperationContextLogSizeEstimator;
-import io.crate.breaker.RamAccountingContext;
+import io.crate.breaker.*;
 import io.crate.core.collections.BlockingEvictingQueue;
 import io.crate.metadata.settings.CrateSettings;
+import io.crate.operation.reference.sys.job.ContextLog;
 import io.crate.operation.reference.sys.job.JobContextLog;
 import io.crate.operation.reference.sys.operation.OperationContextLog;
 import org.elasticsearch.common.breaker.CircuitBreaker;
@@ -36,8 +34,6 @@ import org.elasticsearch.common.component.AbstractLifecycleComponent;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Provider;
 import org.elasticsearch.common.inject.Singleton;
-import org.elasticsearch.common.logging.ESLogger;
-import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.node.settings.NodeSettingsService;
@@ -58,8 +54,6 @@ import java.util.concurrent.ScheduledFuture;
 @Singleton
 public class StatsTablesService extends AbstractLifecycleComponent<StatsTablesService> implements Provider<StatsTables> {
 
-    private static final ESLogger LOGGER = Loggers.getLogger(StatsTablesService.class);
-
     private final RamAccountingContext ramAccountingContext;
     protected final NodeSettingsService.Listener listener = new NodeSettingListener();
     private final ScheduledExecutorService scheduler;
@@ -68,15 +62,17 @@ public class StatsTablesService extends AbstractLifecycleComponent<StatsTablesSe
     LogSink<JobContextLog> jobsLogSink = NoopLogSink.instance();
     LogSink<OperationContextLog> operationsLogSink = NoopLogSink.instance();
 
-    private final int initialOperationsLogSize;
+    private final boolean initialIsEnabled;
     private final int initialJobsLogSize;
     private final TimeValue initialJobsLogExpiration;
-    private final boolean initialIsEnabled;
+    private final int initialOperationsLogSize;
+    private final TimeValue initialOperationsLogExpiration;
 
-    volatile int lastOperationsLogSize;
+    volatile boolean lastIsEnabled;
     volatile int lastJobsLogSize;
     volatile TimeValue lastJobsLogExpiration;
-    private volatile boolean lastIsEnabled;
+    volatile int lastOperationsLogSize;
+    volatile TimeValue lastOperationsLogExpiration;
 
     static final JobContextLogSizeEstimator JOB_CONTEXT_LOG_ESTIMATOR = new JobContextLogSizeEstimator();
     static final OperationContextLogSizeEstimator OPERATION_CONTEXT_LOG_SIZE_ESTIMATOR = new OperationContextLogSizeEstimator();
@@ -94,9 +90,10 @@ public class StatsTablesService extends AbstractLifecycleComponent<StatsTablesSe
         ramAccountingContext = new RamAccountingContext("statsTablesContext", circuitBreaker);
         nodeSettingsService.addListener(listener);
 
-        int operationsLogSize = CrateSettings.STATS_OPERATIONS_LOG_SIZE.extract(settings);
         int jobsLogSize = CrateSettings.STATS_JOBS_LOG_SIZE.extract(settings);
         TimeValue jobsLogExpiration = CrateSettings.STATS_JOBS_LOG_EXPIRATION.extractTimeValue(settings);
+        int operationsLogSize = CrateSettings.STATS_OPERATIONS_LOG_SIZE.extract(settings);
+        TimeValue operationsLogExpiration = CrateSettings.STATS_OPERATIONS_LOG_EXPIRATION.extractTimeValue(settings);
 
         boolean isEnabled = CrateSettings.STATS_ENABLED.extract(settings);
 
@@ -104,70 +101,62 @@ public class StatsTablesService extends AbstractLifecycleComponent<StatsTablesSe
         initialJobsLogSize = jobsLogSize;
         initialJobsLogExpiration = jobsLogExpiration;
         initialOperationsLogSize = operationsLogSize;
-        lastOperationsLogSize = operationsLogSize;
+        initialOperationsLogExpiration = operationsLogExpiration;
+
+        lastIsEnabled = isEnabled;
         lastJobsLogSize = jobsLogSize;
         lastJobsLogExpiration = jobsLogExpiration;
-        lastIsEnabled = isEnabled;
+        lastOperationsLogSize = operationsLogSize;
+        lastOperationsLogExpiration = operationsLogExpiration;
 
         statsTables = new StatsTables(this::isEnabled);
         if (isEnabled()) {
             setJobsLogSink(lastJobsLogSize, lastJobsLogExpiration);
-            setOperationsLogSink(lastOperationsLogSize);
+            setOperationsLogSink(lastOperationsLogSize, lastOperationsLogExpiration);
         } else {
             setJobsLogSink(0, TimeValue.timeValueSeconds(0L));
-            setOperationsLogSink(0);
+            setOperationsLogSink(0, TimeValue.timeValueSeconds(0L));
         }
     }
 
     private void setJobsLogSink(int size, TimeValue expiration) {
-        LogSink<JobContextLog> newSink = createSink(size, expiration);
+        LogSink<JobContextLog> newSink = createSink(size, expiration, JOB_CONTEXT_LOG_ESTIMATOR);
         newSink.addAll(jobsLogSink);
         jobsLogSink.close();
         jobsLogSink = newSink;
         statsTables.updateJobsLog(jobsLogSink);
     }
 
-    private LogSink<JobContextLog> createSink(int size, TimeValue expiration) {
-        Queue<JobContextLog> q;
+    private <E extends ContextLog> LogSink<E> createSink(int size, TimeValue expiration, SizeEstimator<E> sizeEstimator) {
+        Queue<E> q;
         long expirationMillis = expiration.getMillis();
-        if (size == 0) {
-            if (expirationMillis == 0) {
-                return NoopLogSink.instance();
-            }
-            q = new ConcurrentLinkedDeque<>();
-        } else {
-            q = new BlockingEvictingQueue<>(size);
-        }
-
         final Runnable onClose;
-        if (expirationMillis > 0) {
+        if (size == 0 && expirationMillis == 0) {
+            return NoopLogSink.instance();
+        } else if (expirationMillis > 0) {
+            q = new ConcurrentLinkedDeque<>();
             ScheduledFuture<?> scheduledFuture = TimeExpiring.instance().registerTruncateTask(q, scheduler, expiration);
             onClose = () -> scheduledFuture.cancel(false);
         } else {
+            q = new BlockingEvictingQueue<>(size);
             onClose = () -> {};
         }
-        RamAccountingQueue<JobContextLog> accountingQueue =
-            new RamAccountingQueue<>(q, ramAccountingContext, JOB_CONTEXT_LOG_ESTIMATOR);
 
-        return new QueueSink<>(accountingQueue, () -> { accountingQueue.close(); onClose.run(); });
+        RamAccountingQueue<E> accountingQueue = new RamAccountingQueue<>(q, ramAccountingContext, sizeEstimator);
+        return new QueueSink<>(accountingQueue, () -> {
+            accountingQueue.close();
+            onClose.run();
+        });
     }
 
-    private void setOperationsLogSink(int size) {
-        LogSink<OperationContextLog> newSink = createSink(size);
+    private void setOperationsLogSink(int size, TimeValue expiration) {
+        LogSink<OperationContextLog> newSink = createSink(size, expiration, OPERATION_CONTEXT_LOG_SIZE_ESTIMATOR);
         newSink.addAll(operationsLogSink);
         operationsLogSink.close();
         operationsLogSink = newSink;
         statsTables.updateOperationsLog(operationsLogSink);
     }
 
-    private LogSink<OperationContextLog> createSink(int size) {
-        if (size == 0) {
-            return NoopLogSink.instance();
-        }
-        RamAccountingQueue<OperationContextLog> accountingQueue =
-            new RamAccountingQueue<>(new BlockingEvictingQueue<>(size), ramAccountingContext, OPERATION_CONTEXT_LOG_SIZE_ESTIMATOR);
-        return new QueueSink<>(accountingQueue, accountingQueue::close);
-    }
 
     /**
      * Indicates if statistics are gathered.
@@ -207,6 +196,10 @@ public class StatsTablesService extends AbstractLifecycleComponent<StatsTablesSe
         return CrateSettings.STATS_OPERATIONS_LOG_SIZE.extract(settings, initialOperationsLogSize);
     }
 
+    private TimeValue extractOperationsLogExpiration(Settings settings) {
+        return CrateSettings.STATS_OPERATIONS_LOG_EXPIRATION.extractTimeValue(settings, initialOperationsLogExpiration);
+    }
+
     public StatsTables statsTables() {
         return statsTables;
     }
@@ -225,9 +218,11 @@ public class StatsTablesService extends AbstractLifecycleComponent<StatsTablesSe
 
             if (wasEnabled && becomesEnabled) {
                 int opSize = extractOperationsLogSize(settings);
-                if (opSize != lastOperationsLogSize) {
+                TimeValue opExpiration = extractOperationsLogExpiration(settings);
+                if (opSize != lastOperationsLogSize || opExpiration != lastOperationsLogExpiration) {
                     lastOperationsLogSize = opSize;
-                    setOperationsLogSink(opSize);
+                    lastOperationsLogExpiration = opExpiration;
+                    setOperationsLogSink(opSize, opExpiration);
                 }
 
                 int jobSize = extractJobsLogSize(settings);
@@ -239,8 +234,8 @@ public class StatsTablesService extends AbstractLifecycleComponent<StatsTablesSe
                 }
 
             } else if (wasEnabled) { // !becomesEnabled
-                setOperationsLogSink(0);
-                setJobsLogSink(0, TimeValue.timeValueSeconds(0));
+                setOperationsLogSink(0, TimeValue.timeValueSeconds(0L));
+                setJobsLogSink(0, TimeValue.timeValueSeconds(0L));
                 lastIsEnabled = false;
 
                 lastOperationsLogSize = extractOperationsLogSize(settings);
@@ -250,8 +245,10 @@ public class StatsTablesService extends AbstractLifecycleComponent<StatsTablesSe
 
                 // queue sizes was zero before so we have to change it
                 int opSize = extractOperationsLogSize(settings);
+                TimeValue opExpiration = extractOperationsLogExpiration(settings);
                 lastOperationsLogSize = opSize;
-                setOperationsLogSink(opSize);
+                lastOperationsLogExpiration = opExpiration;
+                setOperationsLogSink(opSize, opExpiration);
 
                 int jobSize = extractJobsLogSize(settings);
                 TimeValue jobExpiration = extractJobsLogExpiration(settings);
