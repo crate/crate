@@ -201,9 +201,11 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                                           Collection<ColumnIdent> notUsedNonGeneratedColumns,
                                           int retryCount) throws Exception {
         try {
-            long version = item.version();
+            long version;
+            // try insert first without fetching the document
             if (tryInsertFirst) {
-                // try insert first without fetching the document
+                // set version so it will fail if already exists (will be overwritten for updates, see below)
+                version = Versions.MATCH_DELETED;
                 try {
                     item.source(prepareInsert(tableInfo, notUsedNonGeneratedColumns, request, item));
                 } catch (IOException e) {
@@ -222,17 +224,18 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
             }
             return shardIndexOperation(request, item, version, indexShard);
         } catch (VersionConflictEngineException e) {
-            if (tryInsertFirst && item.updateAssignments() != null) {
-                // insert failed, document already exists, try update
-                return indexItem(tableInfo, request, item, indexShard, false, notUsedNonGeneratedColumns, 0);
-            }
-            if (item.retryOnConflict()) {
-                if (logger.isTraceEnabled()) {
-                    logger.trace("[{}] VersionConflict, retrying operation for document id {}, retry count: {}",
-                        indexShard.shardId(), item.id(), retryCount);
+            if (item.updateAssignments() != null) {
+                if (tryInsertFirst) {
+                    // insert failed, document already exists, try update
+                    return indexItem(tableInfo, request, item, indexShard, false, notUsedNonGeneratedColumns, 0);
+                } else if (item.retryOnConflict()) {
+                    if (logger.isTraceEnabled()) {
+                        logger.trace("[{}] VersionConflict, retrying operation for document id {}, retry count: {}",
+                            indexShard.shardId(), item.id(), retryCount);
+                    }
+                    return indexItem(tableInfo, request, item, indexShard, false, notUsedNonGeneratedColumns,
+                        retryCount + 1);
                 }
-                return indexItem(tableInfo, request, item, indexShard, false, notUsedNonGeneratedColumns,
-                    retryCount + 1);
             }
             throw e;
         }
@@ -378,9 +381,9 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
     }
 
     private Engine.Index prepareIndexOnPrimary(IndexShard indexShard,
-                                                           long version,
-                                                           ShardUpsertRequest request,
-                                                           ShardUpsertRequest.Item item) {
+                                               long version,
+                                               ShardUpsertRequest request,
+                                               ShardUpsertRequest.Item item) {
         SourceToParse sourceToParse = SourceToParse.source(
             SourceToParse.Origin.PRIMARY,
             indexShard.shardId().getIndexName(),
@@ -457,7 +460,7 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                 logger.trace("[{} (R)] Creating document with id {}, source: {}", indexShard.shardId(), item.id(), item.source().utf8ToString());
             }
         }
-        Engine.Index index = indexShard.prepareIndexOnPrimary(
+        Engine.Index index = indexShard.prepareIndexOnReplica(
             sourceToParse, item.version(), item.versionType(), -1, request.isRetry());
         indexShard.index(index);
     }
