@@ -99,20 +99,18 @@ public class TransportBulkCreateIndicesAction
     private final NodeServicesProvider nodeServicesProvider;
     private final AllocationService allocationService;
     private final Environment environment;
-    private final ClusterStateTaskExecutor<BulkCreateIndicesRequest> executor = new ClusterStateTaskExecutor<BulkCreateIndicesRequest>() {
-        @Override
-        public BatchResult<BulkCreateIndicesRequest> execute(ClusterState currentState, List<BulkCreateIndicesRequest> tasks) throws Exception {
-            BatchResult.Builder<BulkCreateIndicesRequest> builder = BatchResult.builder();
-            for (BulkCreateIndicesRequest request : tasks) {
-                try {
-                    currentState = executeCreateIndices(currentState, request);
-                    builder.success(request);
-                } catch (Exception e) {
-                    builder.failure(request, e);
-                }
+    private final BulkActiveShardsObserver activeShardsObserver;
+    private final ClusterStateTaskExecutor<BulkCreateIndicesRequest> executor = (currentState, tasks) -> {
+        ClusterStateTaskExecutor.BatchResult.Builder<BulkCreateIndicesRequest> builder = ClusterStateTaskExecutor.BatchResult.builder();
+        for (BulkCreateIndicesRequest request : tasks) {
+            try {
+                currentState = executeCreateIndices(currentState, request);
+                builder.success(request);
+            } catch (Exception e) {
+                builder.failure(request, e);
             }
-            return builder.build(currentState);
         }
+        return builder.build(currentState);
     };
 
     @Inject
@@ -133,6 +131,7 @@ public class TransportBulkCreateIndicesAction
         this.indicesService = indicesService;
         this.nodeServicesProvider = nodeServicesProvider;
         this.allocationService = allocationService;
+        this.activeShardsObserver = new BulkActiveShardsObserver(settings, clusterService, threadPool);
     }
 
     @Override
@@ -155,29 +154,30 @@ public class TransportBulkCreateIndicesAction
             return;
         }
 
-        final ActionListener<ClusterStateUpdateResponse> stateUpdateListener = new ActionListener<ClusterStateUpdateResponse>() {
-            @Override
-            public void onResponse(ClusterStateUpdateResponse clusterStateUpdateResponse) {
-                listener.onResponse(new BulkCreateIndicesResponse(true));
+        createIndices(request, ActionListener.wrap(response -> {
+            if (response.isAcknowledged()) {
+                activeShardsObserver.waitForActiveShards(request.indices(), ActiveShardCount.DEFAULT, request.ackTimeout(),
+                    shardsAcked -> {
+                        if (!shardsAcked) {
+                            logger.debug("[{}] indices created, but the operation timed out while waiting for " +
+                                         "enough shards to be started.", request.indices());
+                        }
+                        listener.onResponse(new BulkCreateIndicesResponse(response.isAcknowledged()));
+                    }, listener::onFailure);
+            } else {
+                listener.onResponse(new BulkCreateIndicesResponse(false));
             }
-
-            @Override
-            public void onFailure(Exception e) {
-                listener.onFailure(e);
-            }
-        };
-        createIndices(request, stateUpdateListener);
+        }, listener::onFailure));
     }
 
+    /**
+     * This code is more or less the same as the stuff in {@link MetaDataCreateIndexService}
+     * but optimized for bulk operation without separate mapping/alias/index settings.
+     */
     ClusterState executeCreateIndices(ClusterState currentState, BulkCreateIndicesRequest request) throws Exception {
-        /**
-         * This code is more or less the same as the stuff in {@link MetaDataCreateIndexService}
-         * but optimized for bulk operation without separate mapping/alias/index settings.
-         */
-
         List<String> indicesToCreate = new ArrayList<>(request.indices().size());
-        String removalReason = null;
-        Index createdIndex = null;
+        List<String> removalReasons = new ArrayList<>(request.indices().size());
+        List<Index> createdIndices = new ArrayList<>(request.indices().size());
         try {
             validateAndFilterExistingIndices(currentState, indicesToCreate, request);
             if (indicesToCreate.isEmpty()) {
@@ -196,50 +196,50 @@ public class TransportBulkCreateIndicesAction
                 addMappingFromMappingsFile(mappings, mappingsDir, request);
             }
 
-            Settings indexSettings = createIndexSettings(currentState, templates);
-            int routingNumShards = IndexMetaData.INDEX_NUMBER_OF_SHARDS_SETTING.get(indexSettings);
-
-            String testIndex = indicesToCreate.get(0);
-            IndexMetaData.Builder tmpImdBuilder = IndexMetaData.builder(testIndex)
-                .setRoutingNumShards(routingNumShards);
-
-            // Set up everything, now locally create the index to see that things are ok, and apply
-            final IndexMetaData tmpImd = tmpImdBuilder.settings(indexSettings).build();
-            ActiveShardCount waitForActiveShards = tmpImd.getWaitForActiveShards();
-            if (!waitForActiveShards.validate(tmpImd.getNumberOfReplicas())) {
-                throw new IllegalArgumentException("invalid wait_for_active_shards[" + waitForActiveShards+
-                                                   "]: cannot be greater than number of shard copies [" +
-                                                   (tmpImd.getNumberOfReplicas() + 1) + "]");
-            }
-                            // create the index here (on the master) to validate it can be created, as well as adding the mapping
-            IndexService indexService = indicesService.createIndex(nodeServicesProvider, tmpImd, Collections.emptyList());
-            createdIndex = indexService.index();
-
-            // now add the mappings
-            MapperService mapperService = indexService.mapperService();
-            try {
-                mapperService.merge(mappings, true);
-            } catch (MapperParsingException mpe) {
-                removalReason = "failed on parsing mappings on index creation";
-                throw mpe;
-            }
-
-            QueryShardContext queryShardContext = indexService.newQueryShardContext();
-            for (AliasMetaData aliasMetaData : templatesAliases.values()) {
-                if (aliasMetaData.filter() != null) {
-                    aliasValidator.validateAliasFilter(aliasMetaData.alias(), aliasMetaData.filter().uncompressed(), queryShardContext);
-                }
-            }
-
-            // now, update the mappings with the actual source
-            Map<String, MappingMetaData> mappingsMetaData = Maps.newHashMap();
-            for (DocumentMapper mapper : mapperService.docMappers(true)) {
-                MappingMetaData mappingMd = new MappingMetaData(mapper);
-                mappingsMetaData.put(mapper.type(), mappingMd);
-            }
-
             MetaData.Builder newMetaDataBuilder = MetaData.builder(currentState.metaData());
             for (String index : indicesToCreate) {
+                Settings indexSettings = createIndexSettings(currentState, templates);
+                int routingNumShards = IndexMetaData.INDEX_NUMBER_OF_SHARDS_SETTING.get(indexSettings);
+
+                String testIndex = indicesToCreate.get(0);
+                IndexMetaData.Builder tmpImdBuilder = IndexMetaData.builder(testIndex)
+                    .setRoutingNumShards(routingNumShards);
+
+                // Set up everything, now locally create the index to see that things are ok, and apply
+                final IndexMetaData tmpImd = tmpImdBuilder.settings(indexSettings).build();
+                ActiveShardCount waitForActiveShards = tmpImd.getWaitForActiveShards();
+                if (!waitForActiveShards.validate(tmpImd.getNumberOfReplicas())) {
+                    throw new IllegalArgumentException("invalid wait_for_active_shards[" + waitForActiveShards +
+                                                       "]: cannot be greater than number of shard copies [" +
+                                                       (tmpImd.getNumberOfReplicas() + 1) + "]");
+                }
+                // create the index here (on the master) to validate it can be created, as well as adding the mapping
+                IndexService indexService = indicesService.createIndex(nodeServicesProvider, tmpImd, Collections.emptyList());
+                createdIndices.add(indexService.index());
+
+                // now add the mappings
+                MapperService mapperService = indexService.mapperService();
+                try {
+                    mapperService.merge(mappings, true);
+                } catch (MapperParsingException mpe) {
+                    removalReasons.add("failed on parsing mappings on index creation");
+                    throw mpe;
+                }
+
+                QueryShardContext queryShardContext = indexService.newQueryShardContext();
+                for (AliasMetaData aliasMetaData : templatesAliases.values()) {
+                    if (aliasMetaData.filter() != null) {
+                        aliasValidator.validateAliasFilter(aliasMetaData.alias(), aliasMetaData.filter().uncompressed(), queryShardContext);
+                    }
+                }
+
+                // now, update the mappings with the actual source
+                Map<String, MappingMetaData> mappingsMetaData = Maps.newHashMap();
+                for (DocumentMapper mapper : mapperService.docMappers(true)) {
+                    MappingMetaData mappingMd = new MappingMetaData(mapper);
+                    mappingsMetaData.put(mapper.type(), mappingMd);
+                }
+
                 final IndexMetaData.Builder indexMetaDataBuilder =
                     IndexMetaData.builder(index).settings(indexSettings);
 
@@ -258,7 +258,7 @@ public class TransportBulkCreateIndicesAction
                 try {
                     indexMetaData = indexMetaDataBuilder.build();
                 } catch (Exception e) {
-                    removalReason = "failed to build index metadata";
+                    removalReasons.add("failed to build index metadata");
                     throw e;
                 }
                 logger.info("[{}] creating index, cause [bulk], templates {}, shards [{}]/[{}], mappings {}",
@@ -267,7 +267,9 @@ public class TransportBulkCreateIndicesAction
                 indexService.getIndexEventListener().beforeIndexAddedToCluster(
                     indexMetaData.getIndex(), indexMetaData.getSettings());
                 newMetaDataBuilder.put(indexMetaData, false);
+                removalReasons.add("cleaning up after validating index on master");
             }
+
             MetaData newMetaData = newMetaDataBuilder.build();
 
             ClusterState updatedState = ClusterState.builder(currentState).metaData(newMetaData).build();
@@ -277,12 +279,12 @@ public class TransportBulkCreateIndicesAction
             }
             updatedState = allocationService.reroute(
                 ClusterState.builder(updatedState).routingTable(routingTableBuilder.build()).build(), "bulk-index-creation");
-            removalReason = "cleaning up after validating index on master";
             return updatedState;
         } finally {
-            if (createdIndex != null) {
-                // index was partially created - need to clean up
-                indicesService.deleteIndex(createdIndex, removalReason != null ? removalReason : "failed to create index");
+            for (int i = 0; i < createdIndices.size(); i++) {
+                // Index was already partially created - need to clean up
+                String removalReason = removalReasons.size() > i ? removalReasons.get(i) : "failed to create index";
+                indicesService.removeIndex(createdIndices.get(i), removalReason);
             }
         }
     }
@@ -377,6 +379,7 @@ public class TransportBulkCreateIndicesAction
 
     private void addMappings(Map<String, Map<String, Object>> mappings, File mappingsDir) {
         File[] mappingsFiles = mappingsDir.listFiles();
+        assert mappingsFiles != null : "file list of the mapping directory should not be null";
         for (File mappingFile : mappingsFiles) {
             if (mappingFile.isHidden()) {
                 continue;
