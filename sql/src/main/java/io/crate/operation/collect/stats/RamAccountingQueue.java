@@ -31,24 +31,24 @@ import org.elasticsearch.common.logging.Loggers;
 
 import java.util.Queue;
 import java.util.UUID;
-import java.util.concurrent.locks.ReentrantLock;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public class RamAccountingQueue<T> extends ForwardingQueue<T> {
 
     private static final ESLogger LOGGER = Loggers.getLogger(StatsTablesService.class);
 
     private final Queue<T> delegate;
-    private final ReentrantLock lock;
     private RamAccountingContext context;
     private final SizeEstimator<T> sizeEstimator;
     private final CircuitBreaker breaker;
+    private final AtomicBoolean exceeded;
 
     public RamAccountingQueue(Queue<T> delegate, CircuitBreaker breaker, SizeEstimator<T> sizeEstimator) {
         this.delegate = delegate;
         this.breaker = breaker;
         this.sizeEstimator = sizeEstimator;
         this.context = new RamAccountingContext(contextId(), breaker);
-        this.lock = new ReentrantLock();
+        this.exceeded = new AtomicBoolean(false);
     }
 
     private static String contextId() {
@@ -57,19 +57,15 @@ public class RamAccountingQueue<T> extends ForwardingQueue<T> {
 
     @Override
     public boolean offer(T o) {
-        lock.lock();
-        try {
+        context.addBytesWithoutBreaking(sizeEstimator.estimateSize(o));
+        if (context.exceededBreaker() && exceeded.compareAndSet(false, true)) {
+            LOGGER.error("Memory limit for breaker [{}] was exceeded. Queue [{}] is cleared.", breaker.getName(), context.contextId());
+            // clear queue, close context and create new one
+            close();
+            context = new RamAccountingContext(contextId(), breaker);
+            // add bytes to new context
             context.addBytesWithoutBreaking(sizeEstimator.estimateSize(o));
-            if (context.exceededBreaker()) {
-                LOGGER.error("Memory limit for breaker [{}] was exceeded. Queue [{}] is cleared.", breaker.getName(), context.contextId());
-                // clear queue, close context and create new one
-                close();
-                context = new RamAccountingContext(contextId(), breaker);
-                // add bytes to new context
-                context.addBytesWithoutBreaking(sizeEstimator.estimateSize(o));
-            }
-        } finally {
-            lock.unlock();
+            exceeded.set(false);
         }
         return delegate.offer(o);
     }

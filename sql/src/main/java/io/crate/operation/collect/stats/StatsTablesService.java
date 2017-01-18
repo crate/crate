@@ -29,7 +29,6 @@ import io.crate.metadata.settings.CrateSettings;
 import io.crate.operation.reference.sys.job.ContextLog;
 import io.crate.operation.reference.sys.job.JobContextLog;
 import io.crate.operation.reference.sys.operation.OperationContextLog;
-import org.elasticsearch.common.breaker.CircuitBreaker;
 import org.elasticsearch.common.component.AbstractLifecycleComponent;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Provider;
