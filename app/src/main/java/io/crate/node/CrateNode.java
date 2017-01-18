@@ -53,7 +53,6 @@ public class CrateNode extends Node {
         UDCPlugin.class,
         S3RepositoryPlugin.class,
         Ec2DiscoveryPlugin.class,
-        //AdminUIPlugin.class,
         Netty3Plugin.class);
 
     protected CrateNode(Environment environment) {

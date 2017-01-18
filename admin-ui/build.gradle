@@ -42,6 +42,9 @@ task writePropertiesFile << {
         ant.entry(key: 'description', value: project.description)
         ant.entry(key: 'version', value: plugin_crateadmin_version)
         ant.entry(key: 'site', value: true)
+        ant.entry(key: 'elasticsearch.version', value: "${versions.elasticsearch}")
+        ant.entry(key: 'java.version', value: project.targetCompatibility)
+        ant.entry(key: 'classname', value: 'io.crate.plugin.AdminUIPlugin')
     }
 }
 
