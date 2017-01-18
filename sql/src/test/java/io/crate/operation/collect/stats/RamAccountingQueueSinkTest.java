@@ -154,7 +154,7 @@ public class RamAccountingQueueSinkTest extends CrateUnitTest {
             logSink.add(new NoopLog());
         }
         assertThat(ramAccountingQueue.size(), is(100));
-        Thread.sleep(1000L);
+        Thread.sleep(2000L);
         assertThat(ramAccountingQueue.size(), is(0));
     }
 }
