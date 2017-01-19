@@ -47,8 +47,6 @@ public class CrateNode extends Node {
         PluginLoaderPlugin.class,
         CrateCorePlugin.class,
         BlobPlugin.class,
-        // FIXME: MulticastDiscoveryPlugin is gone at ES
-        //MulticastDiscoveryPlugin.class,
         SrvPlugin.class,
         UDCPlugin.class,
         S3RepositoryPlugin.class,

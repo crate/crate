@@ -170,8 +170,6 @@ Node discovery happens in multiple steps:
   of other Crate instances when it is starting up. That list can either be
   provided by a static configuration or can be dynamically generated, for
   example by fetching DNS SRV records, querying EC2 API, etc.
-* In the case of multicast this list is not required, because step 2 will send
-  a multicast ping request.
 * This - not necessarily complete - list is then used to send ping requests to.
   Nodes which receive the request respond to it with information about the
   cluster it belongs to, the current Primary of the cluster and its own node
