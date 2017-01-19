@@ -239,7 +239,7 @@ public class FulltextAnalyzerResolver {
             return null;
         }
         String encodedSettings = clusterService.state().metaData().persistentSettings().get(
-            String.format(Locale.ENGLISH, "%s.%s.%s", AnalyzerSettings.CUSTOM_ANALYSIS_SETTINGS_PREFIX, type.getName(), name)
+            String.format(Locale.ENGLISH, "%s%s.%s", AnalyzerSettings.CUSTOM_ANALYSIS_SETTINGS_PREFIX, type.getName(), name)
         );
         Settings decoded = null;
         if (encodedSettings != null) {
@@ -268,7 +268,7 @@ public class FulltextAnalyzerResolver {
      */
     private boolean hasCustomThingy(String name, CustomType type) {
         return clusterService.state().metaData().persistentSettings().getAsMap().containsKey(
-            String.format(Locale.ROOT, "%s.%s.%s", AnalyzerSettings.CUSTOM_ANALYSIS_SETTINGS_PREFIX, type.getName(), name));
+            String.format(Locale.ROOT, "%s%s.%s", AnalyzerSettings.CUSTOM_ANALYSIS_SETTINGS_PREFIX, type.getName(), name));
     }
 
     /**
