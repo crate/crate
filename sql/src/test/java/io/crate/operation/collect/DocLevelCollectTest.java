@@ -125,7 +125,7 @@ public class DocLevelCollectTest extends SQLTransportIntegrationTest {
                 locations.put(shardRouting.currentNodeId(), shardIds);
             }
 
-            List<Integer> shardIdSet = shardIds.get(shardRouting.index());
+            List<Integer> shardIdSet = shardIds.get(shardRouting.getIndexName());
             if (shardIdSet == null) {
                 shardIdSet = new ArrayList<>();
                 shardIds.put(shardRouting.index().getName(), shardIdSet);
