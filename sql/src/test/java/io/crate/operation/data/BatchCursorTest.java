@@ -22,9 +22,7 @@
 
 package io.crate.operation.data;
 
-import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
-import com.google.common.util.concurrent.MoreExecutors;
 import com.google.common.util.concurrent.SettableFuture;
 import io.crate.concurrent.CompletionListenable;
 import io.crate.core.collections.Row;
@@ -36,6 +34,7 @@ import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
@@ -47,14 +46,18 @@ public class BatchCursorTest {
         protected  BatchCursor cursor;
         private SettableFuture<Void> completionFuture = SettableFuture.create();
 
-        private void consume() {
+        private void consume(Object ignored, Throwable failure) {
+            if (failure != null){
+                cursor.close();
+                completionFuture.setException(failure);
+            }
             if (cursor.status() == BatchCursor.Status.ON_ROW) {
                 do {
                     handleRow();
                 } while (cursor.moveNext());
             }
             if (!cursor.allLoaded()) {
-                cursor.loadNextBatch().addListener(this::consume, MoreExecutors.directExecutor());
+                cursor.loadNextBatch().whenComplete(this::consume);
             } else {
                 completionFuture.set(null);
                 cursor.close();
@@ -70,9 +73,8 @@ public class BatchCursorTest {
 
         @Override
         public void accept(BatchCursor batchCursor, Throwable t) {
-            assert t == null: "Failure handling not implemented";
             this.cursor = batchCursor;
-            consume();
+            consume(null, t);
         }
     }
 
@@ -134,7 +136,7 @@ public class BatchCursorTest {
         }
 
         @Override
-        public ListenableFuture<Void> loadNextBatch() {
+        public CompletableFuture<?> loadNextBatch() {
             if (allLoaded()){
                 throw new IllegalStateException("loadNextBatch not allowed on loaded cursor");
             }
@@ -142,7 +144,7 @@ public class BatchCursorTest {
                 throw new IllegalStateException("loadNextBatch not OFF_ROW");
             }
             batchNum++;
-            return Futures.immediateFuture(null);
+            return CompletableFuture.completedFuture(null);
         }
 
         @Override
@@ -210,7 +212,7 @@ public class BatchCursorTest {
             private int pos = 1;
             private boolean limitReached = false;
 
-            public Cursor(BatchCursor delegate) {
+            Cursor(BatchCursor delegate) {
                 super(delegate);
             }
 
@@ -236,7 +238,7 @@ public class BatchCursorTest {
             }
 
             @Override
-            public ListenableFuture<?> loadNextBatch() {
+            public CompletableFuture<?> loadNextBatch() {
                 if (limitReached) {
                     throw new IllegalStateException("all data loaded already");
                 }

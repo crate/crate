@@ -22,7 +22,7 @@
 
 package io.crate.operation.data;
 
-import com.google.common.util.concurrent.ListenableFuture;
+import java.util.concurrent.CompletableFuture;
 
 public class BatchCursorProxy implements BatchCursor {
 
@@ -53,7 +53,7 @@ public class BatchCursorProxy implements BatchCursor {
     }
 
     @Override
-    public ListenableFuture<?> loadNextBatch() {
+    public CompletableFuture<?> loadNextBatch() {
         return delegate.loadNextBatch();
     }
 

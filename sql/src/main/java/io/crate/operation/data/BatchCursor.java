@@ -25,6 +25,8 @@ package io.crate.operation.data;
 import com.google.common.util.concurrent.ListenableFuture;
 import io.crate.core.collections.Row;
 
+import java.util.concurrent.CompletableFuture;
+
 
 /**
  * A batch cursor used to navigate over batched results. Users of this interface must not rely on any thread safety of
@@ -74,7 +76,7 @@ public interface BatchCursor extends Row {
      *
      * @return a future which will be completed once the loading is done.
      */
-    ListenableFuture<?> loadNextBatch();
+    CompletableFuture<?> loadNextBatch();
 
     /**
      * @return true if all underlying data is already loaded

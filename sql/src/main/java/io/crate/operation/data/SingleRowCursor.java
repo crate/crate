@@ -22,7 +22,7 @@
 
 package io.crate.operation.data;
 
-import com.google.common.util.concurrent.ListenableFuture;
+import java.util.concurrent.CompletableFuture;
 
 public class SingleRowCursor implements BatchCursor{
 
@@ -67,7 +67,7 @@ public class SingleRowCursor implements BatchCursor{
     }
 
     @Override
-    public ListenableFuture<?> loadNextBatch() {
+    public CompletableFuture<?> loadNextBatch() {
         throw new IllegalStateException("Single row cursor has no more batches");
     }
 

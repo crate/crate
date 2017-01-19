@@ -22,8 +22,10 @@
 
 package io.crate.operation.data;
 
-import com.google.common.util.concurrent.*;
-import io.crate.concurrent.CompletionListenable;
+import com.google.common.util.concurrent.FutureCallback;
+import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.ListenableFuture;
+import com.google.common.util.concurrent.MoreExecutors;
 import io.crate.core.MultiFutureCallback;
 import io.crate.core.collections.Bucket;
 import io.crate.core.collections.BucketPage;
@@ -35,14 +37,15 @@ import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 
-public class UnorderedPageDownStreamBatchSource implements PageDownstream, CompletionListenable {
+public class UnorderedPageDownStreamBatchSource implements PageDownstream {
 
     private final int bucketsPerPage;
     private final BatchConsumer downstream;
     private PageCursor cursor;
     private final List<List<Bucket>> pages = new ArrayList<>();
-    private final SettableFuture<?> completionFuture = SettableFuture.create();
+    private final CompletableFuture<Void> completionFuture = new CompletableFuture<>();
     private PageConsumeListener pageConsumeListener;
     private boolean upstreamFinished = false;
 
@@ -61,7 +64,7 @@ public class UnorderedPageDownStreamBatchSource implements PageDownstream, Compl
 
         @Override
         public void onFailure(Throwable t) {
-            completionFuture.setException(t);
+            completionFuture.completeExceptionally(t);
         }
     };
 
@@ -83,22 +86,22 @@ public class UnorderedPageDownStreamBatchSource implements PageDownstream, Compl
     public void finish() {
         this.upstreamFinished = true;
         if (cursor.status() == BatchCursor.Status.CLOSED){
-            completionFuture.set(null);
+            completionFuture.complete(null);
         }
     }
 
     @Override
     public void fail(Throwable t) {
-        this.completionFuture.setException(t);
+        this.completionFuture.completeExceptionally(t);
     }
 
     @Override
     public void kill(Throwable t) {
-        this.completionFuture.setException(t);
+        fail(t);
     }
 
-    @Override
-    public ListenableFuture<?> completionFuture() {
+    // @Override XDOBE: if the CompletionListenable is migrated to java 8 futures use the interface
+    public CompletableFuture<?> completionFuture() {
         return completionFuture;
     }
 
@@ -109,7 +112,7 @@ public class UnorderedPageDownStreamBatchSource implements PageDownstream, Compl
         private Iterator<Row> iter;
         private Row row;
         private volatile Status status = Status.OFF_ROW;
-        private SettableFuture<?> nextBatchFuture;
+        private CompletableFuture<?> nextBatchFuture;
 
         @Override
         public boolean moveFirst() {
@@ -171,11 +174,11 @@ public class UnorderedPageDownStreamBatchSource implements PageDownstream, Compl
             iBucket = 0;
             iter = pages.get(iPage).get(iBucket).iterator();
             advance();
-            nextBatchFuture.set(null);
+            nextBatchFuture.complete(null);
         }
 
         @Override
-        public ListenableFuture<?> loadNextBatch() throws IllegalStateException {
+        public CompletableFuture<?> loadNextBatch() throws IllegalStateException {
             this.nextBatchFuture = null;
             if (completionFuture.isDone()){
                 // this is only happens if an exception was happening, so we can use the future to forward
@@ -186,7 +189,7 @@ public class UnorderedPageDownStreamBatchSource implements PageDownstream, Compl
                 throw new IllegalStateException("Expected cursor status OFF_ROW but is " + status);
             }
             status = Status.LOADING;
-            nextBatchFuture = SettableFuture.create();
+            nextBatchFuture = new CompletableFuture<>();
             pageConsumeListener.needMore();
             return nextBatchFuture;
 

@@ -22,11 +22,11 @@
 
 package io.crate.operation.collect;
 
-import com.google.common.util.concurrent.ListenableFuture;
 import io.crate.core.collections.Row;
 import io.crate.operation.data.BatchCursor;
 
 import java.util.Iterator;
+import java.util.concurrent.CompletableFuture;
 
 /**
  * This class provides a cursor over a given row iterable.
@@ -86,7 +86,7 @@ public class RowBasedBatchCursor implements BatchCursor {
     }
 
     @Override
-    public ListenableFuture<?> loadNextBatch() {
+    public CompletableFuture<?> loadNextBatch() {
         throw new IllegalStateException("No more batches");
     }
 

@@ -22,7 +22,7 @@
 
 package io.crate.operation.data;
 
-import com.google.common.util.concurrent.ListenableFuture;
+import java.util.concurrent.CompletableFuture;
 
 public class EmptyBatchCursor implements BatchCursor{
 
@@ -56,7 +56,7 @@ public class EmptyBatchCursor implements BatchCursor{
     }
 
     @Override
-    public ListenableFuture<?> loadNextBatch() {
+    public CompletableFuture<?> loadNextBatch() {
         throw new IllegalStateException("Empty cursor has no more batches");
     }
 

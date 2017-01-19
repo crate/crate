@@ -26,6 +26,7 @@ import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
 import io.crate.concurrent.CompletionListenable;
 
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class BatchedNestedLoopOperation implements CompletionListenable {
@@ -157,7 +158,7 @@ public class BatchedNestedLoopOperation implements CompletionListenable {
         }
 
         @Override
-        public ListenableFuture<?> loadNextBatch() {
+        public CompletableFuture<?> loadNextBatch() {
             assert !allLoaded(): "all data already loaded";
             System.err.println("loadNextBatch inner=" + inner);
             if (inner) {

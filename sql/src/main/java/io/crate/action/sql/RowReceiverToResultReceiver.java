@@ -22,7 +22,6 @@
 
 package io.crate.action.sql;
 
-import com.google.common.util.concurrent.MoreExecutors;
 import io.crate.operation.data.BatchConsumer;
 import io.crate.operation.data.BatchCursor;
 
@@ -38,7 +37,12 @@ public class RowReceiverToResultReceiver implements BatchConsumer {
         this.maxRows = maxRows;
     }
 
-    private void consume() {
+    private void consume(Object ignored, Throwable failure) {
+        if (failure != null) {
+            close();
+            resultReceiver.fail(failure);
+            return;
+        }
         System.err.println("RR2RR consume");
         if (cursor.status() == BatchCursor.Status.ON_ROW) {
             do {
@@ -62,7 +66,7 @@ public class RowReceiverToResultReceiver implements BatchConsumer {
             } while (cursor.moveNext());
         }
         if (!cursor.allLoaded()) {
-            cursor.loadNextBatch().addListener(this::consume, MoreExecutors.directExecutor());
+            cursor.loadNextBatch().whenComplete(this::consume);
         } else {
             System.err.println("RR2RR consume finished");
             resultReceiver.allFinished();
@@ -75,16 +79,17 @@ public class RowReceiverToResultReceiver implements BatchConsumer {
      */
     public void resume() {
         cursor.moveNext();
-        consume();
+        consume(null, null);
     }
 
     @Override
     public void accept(BatchCursor batchCursor,  Throwable t) {
         if (batchCursor != null){
             this.cursor = batchCursor;
-            consume();
+            consume(null, null);
         } else {
             resultReceiver.fail(t);
+            close();
         }
     }
 
