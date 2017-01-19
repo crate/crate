@@ -42,3 +42,13 @@
     - `es.path.data`
     - `es.path.home`
     - `es.path.logs`
+
+- built-in analyzer has changed (documentation requires update):
+    - removed `classic`
+    - added `fingerprint`
+
+- built-in token-filters has changed (documentations requires update):
+    - added `fingerprint`, `keep_types`, `min_hash`, `serbian_normalization`
+    - removed `keyword_repeat`, `type_as_payload`
+
+
