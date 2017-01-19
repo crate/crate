@@ -66,7 +66,7 @@ public class DDLIntegrationTest extends SQLTransportIntegrationTest {
                                  "\"properties\":{" +
                                  // doc_values: true is default and not included
                                  "\"col1\":{\"type\":\"integer\"}," +
-                                 "\"col2\":{\"type\":\"string\",\"index\":\"not_analyzed\"}" +
+                                 "\"col2\":{\"type\":\"keyword\"}" +
                                  "}}}";
 
         String expectedSettings = "{\"test\":{" +
@@ -152,7 +152,7 @@ public class DDLIntegrationTest extends SQLTransportIntegrationTest {
                                  "\"_all\":{\"enabled\":false}," +
                                  "\"properties\":{" +
                                  "\"col1\":{\"type\":\"integer\"}," +
-                                 "\"col2\":{\"type\":\"string\",\"index\":\"not_analyzed\"}" +
+                                 "\"col2\":{\"type\":\"keyword\"}" +
                                  "}}}";
 
         String expectedSettings = "{\"test\":{" +
@@ -183,7 +183,7 @@ public class DDLIntegrationTest extends SQLTransportIntegrationTest {
                                  // doc_values: true is default for integer and (string + not_analyzed)
                                  // defaults are not included so it's missing here
                                  "\"col1\":{\"type\":\"integer\"}," +
-                                 "\"col2\":{\"type\":\"string\",\"index\":\"not_analyzed\"}" +
+                                 "\"col2\":{\"type\":\"keyword\"}" +
                                  "}}}";
 
         String expectedSettings = "{\"test\":{" +
