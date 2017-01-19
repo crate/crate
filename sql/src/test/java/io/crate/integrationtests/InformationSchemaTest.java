@@ -108,7 +108,7 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
         assertEquals(1L, response.rowCount());
 
         execute("select * from information_schema.routines");
-        assertEquals(118L, response.rowCount());
+        assertEquals(119L, response.rowCount());
     }
 
     @Test
@@ -408,13 +408,13 @@ public class InformationSchemaTest extends SQLTransportIntegrationTest {
         execute("SELECT routine_name from INFORMATION_SCHEMA.routines WHERE " +
                 "routine_type='CHAR_FILTER' order by " +
                 "routine_name asc");
-        assertEquals(4L, response.rowCount());
+        assertEquals(3L, response.rowCount());
         String[] charFilterNames = new String[response.rows().length];
         for (int i = 0; i < response.rowCount(); i++) {
             charFilterNames[i] = (String) response.rows()[i][0];
         }
         assertEquals(
-            "htmlStrip, html_strip, mapping, pattern_replace",
+            "html_strip, mapping, pattern_replace",
             Joiner.on(", ").join(charFilterNames)
         );
     }
