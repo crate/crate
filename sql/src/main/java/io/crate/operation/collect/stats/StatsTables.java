@@ -36,6 +36,7 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.BooleanSupplier;
 
 /**
  * StatsTables is responsible for adding jobs and operations of that node.
@@ -54,9 +55,9 @@ public class StatsTables {
     private final JobsIterableGetter jobsIterableGetter;
     private final OperationsIterableGetter operationsIterableGetter;
     private final LongAdder activeRequests = new LongAdder();
-    private final Supplier<Boolean> enabled;
+    private final BooleanSupplier enabled;
 
-    public StatsTables(Supplier<Boolean> enabled) {
+    public StatsTables(BooleanSupplier enabled) {
         jobsIterableGetter = new JobsIterableGetter();
         operationsIterableGetter = new OperationsIterableGetter();
         this.enabled = enabled;
@@ -67,7 +68,7 @@ public class StatsTables {
      * This result will change if the cluster settings is updated.
      */
     private boolean isEnabled() {
-        return enabled.get();
+        return enabled.getAsBoolean();
     }
 
     /**
