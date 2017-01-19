@@ -235,7 +235,7 @@ public class LuceneQueryBuilderTest extends CrateUnitTest {
         Query query = convert("y_array = [10, 20, 30]");
         assertThat(query, instanceOf(BooleanQuery.class));
         BooleanQuery booleanQuery = (BooleanQuery) query;
-        assertThat(booleanQuery.clauses().get(0).getQuery(), instanceOf(TermsQuery.class));
+        assertThat(booleanQuery.clauses().get(0).getQuery(), instanceOf(PointInSetQuery.class));
         assertThat(booleanQuery.clauses().get(1).getQuery(), instanceOf(GenericFunctionQuery.class));
     }
 
@@ -254,7 +254,7 @@ public class LuceneQueryBuilderTest extends CrateUnitTest {
         Query query = convert(new WhereClause(expressions.normalize(sqlExpressions.asSymbol("y_array = ?"))));
         assertThat(query, instanceOf(BooleanQuery.class));
         BooleanQuery booleanQuery = (BooleanQuery) query;
-        assertThat(booleanQuery.clauses().get(0).getQuery(), instanceOf(TermsQuery.class));
+        assertThat(booleanQuery.clauses().get(0).getQuery(), instanceOf(PointInSetQuery.class));
         assertThat(booleanQuery.clauses().get(1).getQuery(), instanceOf(GenericFunctionQuery.class));
     }
 
@@ -267,7 +267,7 @@ public class LuceneQueryBuilderTest extends CrateUnitTest {
     @Test
     public void testWhereRefInSetLiteralIsConvertedToTermsQuery() throws Exception {
         Query query = convert("x in (1, 3)");
-        assertThat(query, instanceOf(TermsQuery.class));
+        assertThat(query, instanceOf(PointInSetQuery.class));
     }
 
     @Test
@@ -308,13 +308,13 @@ public class LuceneQueryBuilderTest extends CrateUnitTest {
     @Test
     public void testAnyEqArrayLiteral() throws Exception {
         Query query = convert("d = any([-1.5, 0.0, 1.5])");
-        assertThat(query, instanceOf(TermsQuery.class));
+        assertThat(query, instanceOf(PointInSetQuery.class));
     }
 
     @Test
     public void testAnyEqArrayReference() throws Exception {
         Query query = convert("1.5 = any(d_array)");
-        assertThat(query, instanceOf(TermQuery.class));
+        assertThat(query, instanceOf(PointRangeQuery.class));
         assertThat(query.toString(), startsWith("d_array"));
     }
 
@@ -445,22 +445,17 @@ public class LuceneQueryBuilderTest extends CrateUnitTest {
         assertThat(query, instanceOf(WithinPrefixTreeQuery.class));
     }
 
-    // FIXME: Enable once https://github.com/elastic/elasticsearch/issues/20333 is resolved
-    /*
     @Test
     public void testWithinFunctionTooFewPoints() throws Exception {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("at least 4 polygon points required");
         convert("within(point, {type='LineString', coordinates=[[0.0, 0.0], [1.0, 1.0]]})");
     }
-    */
 
     @Test
     public void testWithinFunction() throws Exception {
         Query eqWithinQuery = convert("within(point, {type='LineString', coordinates=[[0.0, 0.0], [1.0, 1.0], [2.0, 1.0]]})");
-        assertThat(eqWithinQuery.toString(), is("GeoPolygonQuery(point, [0.0,0.0, 1.0,1.0, 1.0,2.0])"));
-        // FIXME: Change to the following test once https://github.com/elastic/elasticsearch/issues/20333 is resolved
-        //assertThat(eqWithinQuery.toString(), is("GeoPointInPolygonQuery: field=point: Points: [0.0, 0.0] [1.0, 1.0] [2.0, 1.0] [0.0, 0.0] "));
+        assertThat(eqWithinQuery.toString(), is("GeoPointInPolygonQuery: field=point: Polygon: [[0.0, 0.0] [1.0, 1.0] [2.0, 1.0] [0.0, 0.0] ]"));
     }
 
     @Test
