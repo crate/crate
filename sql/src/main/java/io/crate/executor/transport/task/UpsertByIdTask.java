@@ -105,7 +105,7 @@ public class UpsertByIdTask extends JobTask {
             try {
                 result = executeBulkShardProcessor().get(0);
             } catch (Throwable throwable) {
-                rowReceiver.fail(throwable);
+                rowReceiver.accept(null, throwable);
                 return;
             }
         } else {
@@ -119,19 +119,19 @@ public class UpsertByIdTask extends JobTask {
                     result = executeUpsertRequest(item);
                 }
             } catch (Throwable throwable) {
-                rowReceiver.fail(throwable);
+                rowReceiver.accept(null, throwable);
                 return;
             }
         }
         Futures.addCallback(result, new FutureCallback<Long>() {
             @Override
             public void onSuccess(@Nullable Long result) {
-                rowReceiver.accept(SingleRowCursor.of(result));
+                rowReceiver.accept(SingleRowCursor.of(result), null);
             }
 
             @Override
             public void onFailure(@Nonnull Throwable t) {
-                rowReceiver.fail(t);
+                rowReceiver.accept(null, t);
             }
         });
     }

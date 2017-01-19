@@ -70,7 +70,7 @@ public class CountContext extends AbstractExecutionSubContext {
         Futures.addCallback(countFuture, new FutureCallback<Long>() {
             @Override
             public void onSuccess(@Nullable Long result) {
-                rowReceiver.accept(new SingleRowCursor(new Object[]{result}));
+                rowReceiver.accept(new SingleRowCursor(new Object[]{result}), null);
                 close();
             }
 

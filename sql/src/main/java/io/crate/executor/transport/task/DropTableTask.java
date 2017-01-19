@@ -74,7 +74,7 @@ public class DropTableTask extends JobTask {
                     if (!tableInfo.partitions().isEmpty()) {
                         deleteESIndex(tableInfo.ident().indexName(), rowReceiver);
                     } else {
-                        rowReceiver.accept(SingleRowCursor.of(1L));
+                        rowReceiver.accept(SingleRowCursor.of(1L), null);
                     }
                 }
 
@@ -85,7 +85,7 @@ public class DropTableTask extends JobTask {
                         logger.warn(e.getMessage());
                         deleteESIndex(tableInfo.ident().indexName(), rowReceiver);
                     } else {
-                        rowReceiver.fail(e);
+                        rowReceiver.accept(null, e);
                     }
                 }
             });
@@ -105,7 +105,7 @@ public class DropTableTask extends JobTask {
                 if (!response.isAcknowledged()) {
                     warnNotAcknowledged();
                 }
-                rowReceiver.accept(SingleRowCursor.of(1L));
+                rowReceiver.accept(SingleRowCursor.of(1L), null);
             }
 
             @Override
@@ -116,9 +116,9 @@ public class DropTableTask extends JobTask {
                                 "but are not accessible.", e, tableInfo.ident().fqn());
                 }
                 if (ifExists && e instanceof IndexNotFoundException) {
-                    rowReceiver.accept(SingleRowCursor.of(0L));
+                    rowReceiver.accept(SingleRowCursor.of(0L), null);
                 } else {
-                    rowReceiver.fail(e);
+                    rowReceiver.accept(null, e);
                 }
             }
         });

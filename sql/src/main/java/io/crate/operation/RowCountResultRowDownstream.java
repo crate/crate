@@ -25,8 +25,6 @@ import com.google.common.util.concurrent.SettableFuture;
 import io.crate.operation.data.BatchConsumer;
 import io.crate.operation.data.BatchCursor;
 
-import javax.annotation.Nonnull;
-
 /**
  * RowDownstream that will set a TaskResultFuture once the result is ready.
  * It will also close the associated context once it is done
@@ -40,14 +38,13 @@ public class RowCountResultRowDownstream implements BatchConsumer {
     }
 
     @Override
-    public void fail(@Nonnull Throwable t) {
-        result.setException(t);
-    }
-
-    @Override
-    public void accept(BatchCursor batchCursor) {
-        assert batchCursor.status() == BatchCursor.Status.ON_ROW: "row count result must not be empty";
-        result.set((Long) batchCursor.get(0));
-        batchCursor.close();
+    public void accept(BatchCursor batchCursor, Throwable t) {
+        if (batchCursor != null){
+            assert batchCursor.status() == BatchCursor.Status.ON_ROW: "row count result must not be empty";
+            result.set((Long) batchCursor.get(0));
+            batchCursor.close();
+        } else {
+            result.setException(t);
+        }
     }
 }

@@ -79,14 +79,13 @@ public class RowReceiverToResultReceiver implements BatchConsumer {
     }
 
     @Override
-    public void accept(BatchCursor batchCursor) {
-        this.cursor = batchCursor;
-        consume();
-    }
-
-    @Override
-    public void fail(Throwable throwable) {
-        resultReceiver.fail(throwable);
+    public void accept(BatchCursor batchCursor,  Throwable t) {
+        if (batchCursor != null){
+            this.cursor = batchCursor;
+            consume();
+        } else {
+            resultReceiver.fail(t);
+        }
     }
 
     public void replaceResultReceiver(ResultReceiver resultReceiver, int maxRows) {

@@ -43,17 +43,16 @@ class SingleRowSingleValueRowReceiver implements BatchConsumer {
         replacer = new SubSelectSymbolReplacer(rootPlan, selectSymbolToReplace);
     }
 
-    @Override
-    public void fail(Throwable throwable) {
-        completionFuture.completeExceptionally(throwable);
-    }
-
     public CompletableFuture<?> completionFuture() {
         return completionFuture;
     }
 
     @Override
-    public void accept(BatchCursor batchCursor) {
+    public void accept(BatchCursor batchCursor, Throwable t) {
+        if (t != null){
+            completionFuture.completeExceptionally(t);
+            return;
+        }
         assert batchCursor.allLoaded(): "Multibatchcursors are not supported";
         Object value = null;
         try {

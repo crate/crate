@@ -53,7 +53,7 @@ public class UnorderedPageDownStreamBatchSource implements PageDownstream, Compl
             if (cursor == null){
                 // this is the first result, so we need to create the cursor
                 cursor = new PageCursor();
-                downstream.accept(cursor);
+                downstream.accept(cursor, null);
             } else {
                 cursor.onNextPage(result);
             }

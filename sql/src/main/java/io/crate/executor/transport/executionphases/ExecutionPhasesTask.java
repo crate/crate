@@ -140,7 +140,7 @@ public class ExecutionPhasesTask extends JobTask {
         try {
             setupContext(operationByServer, handlerPhases, handlerReceivers);
         } catch (Throwable throwable) {
-            rowReceiver.fail(throwable);
+            rowReceiver.accept(null, throwable);
         }
     }
 
@@ -235,7 +235,7 @@ public class ExecutionPhasesTask extends JobTask {
                                                    List<Tuple<ExecutionPhase, BatchConsumer>> handlerPhaseAndReceiver,
                                                    Throwable t) {
         for (Tuple<ExecutionPhase, BatchConsumer> executionPhaseRowReceiverTuple : handlerPhaseAndReceiver) {
-            executionPhaseRowReceiverTuple.v2().fail(t);
+            executionPhaseRowReceiverTuple.v2().accept(null, t);
         }
         for (int i = 0; i < operationByServer.size() + 1; i++) {
             initializationTracker.jobInitializationFailed(t);

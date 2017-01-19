@@ -47,9 +47,9 @@ public class GenericShowTask implements Task {
     @Override
     public void execute(BatchConsumer rowReceiver, Row parameters) {
         try {
-            rowReceiver.accept(SingleRowCursor.of(showStatementDispatcher.process(statement, jobId)));
+            rowReceiver.accept(SingleRowCursor.of(showStatementDispatcher.process(statement, jobId)), null);
         } catch (Throwable t) {
-            rowReceiver.fail(t);
+            rowReceiver.accept(null, t);
         }
     }
 

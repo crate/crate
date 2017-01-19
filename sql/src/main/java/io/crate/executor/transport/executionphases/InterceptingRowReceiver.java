@@ -64,16 +64,12 @@ class InterceptingRowReceiver implements BatchConsumer, FutureCallback<Void> {
     }
 
     @Override
-    public void accept(BatchCursor batchCursor) {
-        System.err.println("IRR: accept");
-        this.cursor = batchCursor;
-        tryForwardResult(null);
-    }
-
-    @Override
-    public void fail(Throwable throwable) {
-        System.err.println("IRR: fail");
-        tryForwardResult(throwable);
+    public void accept(BatchCursor batchCursor, Throwable t) {
+        System.err.println("IRR: accept c=" + batchCursor + " t=" + t);
+        if (batchCursor != null){
+            this.cursor = batchCursor;
+        }
+        tryForwardResult(t);
     }
 
     @Override
@@ -98,20 +94,20 @@ class InterceptingRowReceiver implements BatchConsumer, FutureCallback<Void> {
 
         if (failure == null) {
             assert cursor != null: "cursor should be set if no failure";
-            rowReceiver.accept(cursor);
+            rowReceiver.accept(cursor, null);
         } else {
             transportKillJobsNodeAction.broadcast(
                 new KillJobsRequest(Collections.singletonList(jobId)), new ActionListener<KillResponse>() {
                     @Override
                     public void onResponse(KillResponse killResponse) {
                         LOGGER.trace("Killed {} jobs before forwarding the failure={}", killResponse.numKilled(), failure);
-                        rowReceiver.fail(failure);
+                        rowReceiver.accept(null, failure);
                     }
 
                     @Override
                     public void onFailure(Throwable e) {
                         LOGGER.trace("Failed to kill job, forwarding failure anyway...", e);
-                        rowReceiver.fail(failure);
+                        rowReceiver.accept(null, failure);
                     }
                 });
         }

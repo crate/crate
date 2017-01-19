@@ -69,7 +69,8 @@ public class BatchCursorTest {
         protected abstract void handleRow();
 
         @Override
-        public void accept(BatchCursor batchCursor) {
+        public void accept(BatchCursor batchCursor, Throwable t) {
+            assert t == null: "Failure handling not implemented";
             this.cursor = batchCursor;
             consume();
         }
@@ -182,7 +183,7 @@ public class BatchCursorTest {
 
         @Override
         public void doCollect() {
-            downstream.accept(data);
+            downstream.accept(data, null);
         }
 
         @Override
@@ -277,14 +278,14 @@ public class BatchCursorTest {
         DataCursor d = new DataCursor(new Object[][]{{1}, {3}, {5}, {7}}, 1, 1);
         BatchCollector c = new BatchCollector();
         assertThat(d.allLoaded(), is(true));
-        c.accept(d);
+        c.accept(d, null);
         c.completionFuture().get();
         assertThat(c.rows.size(), is(4));
 
         d = new DataCursor(new Object[][]{{1}, {3}, {5}, {7}}, 1, 2);
         c = new BatchCollector();
         assertThat(d.allLoaded(), is(false));
-        c.accept(d);
+        c.accept(d, null);
         c.completionFuture().get();
         assertThat(d.allLoaded(), is(true));
         assertThat(c.rows.size(), is(8));
@@ -313,8 +314,8 @@ public class BatchCursorTest {
 
         BatchedNestedLoopOperation nl = new BatchedNestedLoopOperation(c);
 
-        nl.left().accept(d1);
-        nl.right().accept(d2);
+        nl.left().accept(d1, null);
+        nl.right().accept(d2, null);
 
         nl.completionFuture().get();
         assertThat(c.rows.size(), is(64));

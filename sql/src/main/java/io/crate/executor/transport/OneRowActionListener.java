@@ -44,7 +44,7 @@ public class OneRowActionListener<Response> implements ActionListener<Response>,
     @Override
     public void onResponse(Response response) {
         Object row = toRowFunction.apply(response);
-        rowReceiver.accept(SingleRowCursor.of(row));
+        rowReceiver.accept(SingleRowCursor.of(row), null);
     }
 
     @Override
@@ -54,6 +54,6 @@ public class OneRowActionListener<Response> implements ActionListener<Response>,
 
     @Override
     public void onFailure(@Nonnull Throwable e) {
-        rowReceiver.fail(e);
+        rowReceiver.accept(null, e);
     }
 }

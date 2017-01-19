@@ -23,18 +23,60 @@
 package io.crate.operation.data;
 
 import java.util.List;
-import java.util.function.Consumer;
+import java.util.function.BiConsumer;
 
 /**
- * This interface represents a downstream for data. Upstream components can emit data by calling
- * {@link #accept} with an implementation of {@link BatchCursor}, which then in turn is used by the downstream component
- * to consume the data when needed.
+ * This interface represents a consumer for data, where upstreams use the {@link #accept} method to emit data.
+ * Upstreams are responsible to always call {@link #accept}, both on success or on failure to ensure that the
+ * consumer can react on upstream failures.
  *
- * If the upstream fails to create the cursor for some reason, it is required to call {@link #fail} in order to notify
- * the downstream. The upstream must only call either {@link #accept} or {@link #fail} and never both.
+ * A consumer can only be called once, which also means that only one upstream must have the responsibility for emitting
+ * to a downstream.
+ *
+ *
+ *
+ *
+ *
  */
-public interface BatchConsumer extends Consumer<BatchCursor> {
 
+/*
+@startuml
+
+title Basic successful consume sequence
+
+participant Upstream as u
+participant Cursor as cu
+participant Consumer as c
+
+u -> c:requiresScroll ?
+create cu
+u -> cu: new
+u -> c:accept(cursor, null)
+
+note over c: consume cursor
+
+c -> cu:status() == ON_ROW?
+
+loop as long as moveNext()==true
+c -> cu: use Row interface for data access
+c -> cu:moveNext()
+end
+
+c -> cu:allLoaded ?
+
+alt not allLoaded?
+c -> cu: future = loadNextBatch()
+...when future is done...
+note over c: goto consume cursor
+end
+
+c -> cu: close()
+cu -> u: cleanup();
+
+@enduml
+ */
+
+public interface BatchConsumer extends BiConsumer<BatchCursor, Throwable> {
 
     /**
      * Prepends projectors to the consumer.
@@ -46,28 +88,22 @@ public interface BatchConsumer extends Consumer<BatchCursor> {
         return new ProjectedBatchConsumer(projectors, this);
     }
 
-
     /**
-     * Must be called in case of a failure which prevents the upstream from creating a cursor in order
-     * to call {@link #accept}
-     * @param throwable the cause of the failure
-     */
-    default void fail(Throwable throwable){
-
-    }
-
-    /**
-     * Accepts the given cursor and does some operation on it. When this method is called, the given cursor is
+     * Accepts the given cursor and performs some operation on it. When this method is called, the given cursor is
      * required to be ready for use. It might also be the case that the consumer consumes the whole cursors synchronously.
-     *
      * The given cursor must be kept valid until {@link BatchCursor#close()} is called by the consumer, therefore
      * implementations of this interface are required to ensure that {@link BatchCursor#close()} is called on
      * the cursor eventually.
      *
-     * @param batchCursor the cursor to be consumed
+     * In case of success the cursor must not be null and the failure must be defined. In case of a failure to create
+     * a cursor the cursor argument must be set to null and the failure not null.
+     *
+     * @param cursor the cursor to be consumed or null if a failure occured
+     * @param failure the cause of the failure or null if successful
+     *
      */
     @Override
-    void accept(BatchCursor batchCursor);
+    void accept(BatchCursor cursor, Throwable failure);
 
     /**
      * @return true if the consumer wants to scroll backwards by using {@link BatchCursor#moveFirst()}
@@ -75,4 +111,5 @@ public interface BatchConsumer extends Consumer<BatchCursor> {
     default boolean requiresScroll(){
         return false;
     }
+
 }

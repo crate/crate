@@ -103,7 +103,7 @@ public class RemoteCollector implements CrateCollector {
         try {
             synchronized (killLock) {
                 if (collectorKilled) {
-                    rowReceiver.fail(new InterruptedException());
+                    rowReceiver.accept(null, new InterruptedException());
                     return false;
                 }
                 context = jobContextService.createContext(builder);
@@ -112,7 +112,7 @@ public class RemoteCollector implements CrateCollector {
             }
         } catch (Throwable t) {
             if (context == null) {
-                rowReceiver.fail(t);
+                rowReceiver.accept(null, t);
             } else {
                 context.kill();
             }

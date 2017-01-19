@@ -203,7 +203,7 @@ public class MultiShardScoreDocCollector implements CrateCollector, ResumeHandle
 
     private void fail(@Nonnull Throwable t) {
         closeShardContexts();
-        rowReceiver.fail(t);
+        rowReceiver.accept(null, t);
     }
 
     private void closeShardContexts() {

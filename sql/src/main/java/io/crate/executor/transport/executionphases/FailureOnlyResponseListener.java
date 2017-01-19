@@ -45,7 +45,7 @@ class FailureOnlyResponseListener implements ActionListener<JobResponse> {
         initializationTracker.jobInitialized();
         if (jobResponse.directResponse().size() > 0) {
             for (Tuple<ExecutionPhase, BatchConsumer> rowReceiver : rowReceivers) {
-                rowReceiver.v2().fail(new IllegalStateException("Got a directResponse but didn't expect one"));
+                rowReceiver.v2().accept(null, new IllegalStateException("Got a directResponse but didn't expect one"));
             }
         }
     }
@@ -56,7 +56,7 @@ class FailureOnlyResponseListener implements ActionListener<JobResponse> {
         // could be a preparation failure - in that case the regular error propagation doesn't work as it hasn't been set up yet
         // so fail rowReceivers directly
         for (Tuple<ExecutionPhase, BatchConsumer> rowReceiver : rowReceivers) {
-            rowReceiver.v2().fail(e);
+            rowReceiver.v2().accept(null, e);
         }
     }
 }

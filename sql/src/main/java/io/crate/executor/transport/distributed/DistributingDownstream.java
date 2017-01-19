@@ -176,7 +176,6 @@ public class DistributingDownstream implements RowReceiver, BatchConsumer {
         trySendRequests();
     }
 
-    @Override
     public void fail(Throwable throwable) {
         traceLog("action=fail");
         stop = true;
@@ -267,7 +266,7 @@ public class DistributingDownstream implements RowReceiver, BatchConsumer {
     }
 
     @Override
-    public void accept(BatchCursor batchCursor) {
+    public void accept(BatchCursor batchCursor, Throwable t) {
         // XDOBE: implement
     }
 

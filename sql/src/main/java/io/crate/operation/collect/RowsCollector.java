@@ -47,7 +47,7 @@ public class RowsCollector implements CrateCollector {
 
     @Override
     public void doCollect() {
-        downstream.accept(new RowBasedBatchCursor(rows));
+        downstream.accept(new RowBasedBatchCursor(rows), null);
     }
 
     @Override

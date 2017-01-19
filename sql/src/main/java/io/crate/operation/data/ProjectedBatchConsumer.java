@@ -57,18 +57,21 @@ class ProjectedBatchConsumer implements BatchConsumer {
     }
 
     @Override
-    public void accept(BatchCursor batchCursor) {
-        for (BatchProjector rowReceiver : rowReceivers) {
-            batchCursor = rowReceiver.apply(batchCursor);
+    public void accept(BatchCursor batchCursor, Throwable t) {
+        if (batchCursor != null) {
+            try {
+                for (BatchProjector rowReceiver : rowReceivers) {
+                    batchCursor = rowReceiver.apply(batchCursor);
+                }
+            } catch (Throwable throwable){
+                t = throwable;
+            }
         }
-        downstream.accept(batchCursor);
+        downstream.accept(batchCursor, t);
     }
 
     @Override
     public boolean requiresScroll() {
         return requiresScroll;
     }
-
-
-
 }

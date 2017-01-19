@@ -161,7 +161,7 @@ public class IteratorPageDownstream implements PageDownstream, ResumeHandle, Rep
     @Override
     public void fail(Throwable t) {
         if (upstreamHasMoreData.compareAndSet(true, false)) {
-            rowReceiver.fail(t);
+            rowReceiver.accept(null, t);
         }
     }
 
@@ -173,7 +173,7 @@ public class IteratorPageDownstream implements PageDownstream, ResumeHandle, Rep
             lastListener = PageConsumeListener.NO_OP_LISTENER;
             processBuckets(iterator, PageConsumeListener.NO_OP_LISTENER);
         } catch (Throwable t) {
-            rowReceiver.fail(t);
+            rowReceiver.accept(null, t);
         }
     }
 

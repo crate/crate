@@ -104,7 +104,7 @@ public class ESGetTask extends JobTask {
         protected void innerStart() {
             if (request == null) {
                 // request can be null if id is null -> since primary keys cannot be null this is a no-match
-                downstream.accept(new EmptyBatchCursor());
+                downstream.accept(new EmptyBatchCursor(), null);
                 close();
             } else {
                 transportAction.execute(request, this);

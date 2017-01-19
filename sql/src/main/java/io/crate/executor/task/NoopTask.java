@@ -41,7 +41,7 @@ public class NoopTask implements Task {
 
     @Override
     public void execute(BatchConsumer rowReceiver, Row parameters) {
-        rowReceiver.accept(new EmptyBatchCursor());
+        rowReceiver.accept(new EmptyBatchCursor(), null);
     }
 
     @Override

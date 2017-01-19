@@ -179,7 +179,7 @@ public class JobCollectContext extends AbstractExecutionSubContext {
     @Override
     protected void innerStart() {
         if (collectors.isEmpty()) {
-            rowReceiver.accept(new EmptyBatchCursor());
+            rowReceiver.accept(new EmptyBatchCursor(), null);
         } else {
             if (logger.isTraceEnabled()) {
                 measureCollectTime();

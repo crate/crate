@@ -45,7 +45,7 @@ public class ExplainTask implements Task {
     public void execute(BatchConsumer rowReceiver, Row parameters) {
         try {
             Map<String, Object> map = PlanPrinter.objectMap(explainPlan.subPlan());
-            rowReceiver.accept(SingleRowCursor.of(map));
+            rowReceiver.accept(SingleRowCursor.of(map), null);
         } catch (Throwable t) {
             // XDOBE: rowReceiver.fail(t);
         }

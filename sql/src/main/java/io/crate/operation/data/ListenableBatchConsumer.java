@@ -36,13 +36,14 @@ public class ListenableBatchConsumer implements BatchConsumer, CompletionListena
     }
 
     @Override
-    public void accept(BatchCursor batchCursor) {
-        downstream.accept(new Cursor(batchCursor));
-    }
-
-    @Override
-    public void fail(Throwable t) {
-        completionFuture.setException(t);
+    public void accept(BatchCursor batchCursor, Throwable t) {
+        if (batchCursor != null) {
+            batchCursor = new Cursor(batchCursor);
+        } else {
+            assert t != null: "Throwable is not set but cursor is null";
+            completionFuture.setException(t);
+        }
+        downstream.accept(batchCursor, t);
     }
 
     @Override
@@ -52,7 +53,7 @@ public class ListenableBatchConsumer implements BatchConsumer, CompletionListena
 
     private class Cursor extends BatchCursorProxy {
 
-        public Cursor(BatchCursor delegate) {
+        Cursor(BatchCursor delegate) {
             super(delegate);
         }
 

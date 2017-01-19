@@ -156,8 +156,8 @@ public class CollectingRowReceiver implements RowReceiver, BatchConsumer {
     }
 
     @Override
-    public void accept(BatchCursor batchCursor) {
-        // XDOBE;
+    public void accept(BatchCursor batchCursor, Throwable t) {
+        // XDOBE; implement batchCursor interface instead of RowRecevier
     }
 
     private static class LimitingReceiver extends CollectingRowReceiver {

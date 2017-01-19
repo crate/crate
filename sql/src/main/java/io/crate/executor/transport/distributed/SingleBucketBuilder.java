@@ -88,7 +88,7 @@ public class SingleBucketBuilder implements RowReceiver, BatchConsumer {
     }
 
     @Override
-    public void accept(BatchCursor batchCursor) {
+    public void accept(BatchCursor batchCursor, Throwable t) {
         // XDOBE: implement
     }
 }

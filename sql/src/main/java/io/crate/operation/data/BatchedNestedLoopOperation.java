@@ -39,7 +39,8 @@ public class BatchedNestedLoopOperation implements CompletionListenable {
 
     private final BatchConsumer left = new BatchConsumer() {
         @Override
-        public void accept(BatchCursor batchCursor) {
+        public void accept(BatchCursor batchCursor, Throwable t) {
+            assert t == null: "Failure handling not implemented";
             leftCursor = batchCursor;
             onCursorReceived();
         }
@@ -52,7 +53,8 @@ public class BatchedNestedLoopOperation implements CompletionListenable {
 
     private final BatchConsumer right = new BatchConsumer() {
         @Override
-        public void accept(BatchCursor batchCursor) {
+        public void accept(BatchCursor batchCursor, Throwable t) {
+            assert t == null: "Failure handling not implemented";
             rightCursor = batchCursor;
             onCursorReceived();
         }
@@ -79,7 +81,7 @@ public class BatchedNestedLoopOperation implements CompletionListenable {
     }
 
     private void emit() {
-        downstream.accept(new OutputCursor());
+        downstream.accept(new OutputCursor(), null);
     }
 
     public BatchedNestedLoopOperation(BatchConsumer downstream) {
