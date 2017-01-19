@@ -29,7 +29,10 @@ import io.crate.analyze.expressions.ExpressionAnalysisContext;
 import io.crate.analyze.expressions.ExpressionAnalyzer;
 import io.crate.analyze.expressions.ValueNormalizer;
 import io.crate.analyze.relations.*;
-import io.crate.analyze.symbol.*;
+import io.crate.analyze.symbol.DynamicReference;
+import io.crate.analyze.symbol.Field;
+import io.crate.analyze.symbol.InputColumn;
+import io.crate.analyze.symbol.Symbol;
 import io.crate.analyze.symbol.format.SymbolFormatter;
 import io.crate.analyze.symbol.format.SymbolPrinter;
 import io.crate.exceptions.ColumnUnknownException;
@@ -166,7 +169,7 @@ class InsertFromSubQueryAnalyzer {
                 commaJoiner.join(Iterables.transform(querySpec.outputs(), SymbolPrinter.FUNCTION))));
         }
 
-        int failedCastPosition = querySpec.castOutputs(Iterators.transform(targetColumns.iterator(), Symbols.TYPES_FUNCTION));
+        int failedCastPosition = querySpec.castOutputs(Iterators.transform(targetColumns.iterator(), Symbol::valueType));
         if (failedCastPosition >= 0) {
             Symbol failedSource = querySpec.outputs().get(failedCastPosition);
             Reference failedTarget = targetColumns.get(failedCastPosition);
