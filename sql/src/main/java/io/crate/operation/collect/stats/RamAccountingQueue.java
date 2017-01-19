@@ -35,7 +35,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 public class RamAccountingQueue<T> extends ForwardingQueue<T> {
 
-    private static final ESLogger LOGGER = Loggers.getLogger(StatsTablesService.class);
+    private static final ESLogger LOGGER = Loggers.getLogger(RamAccountingQueue.class);
 
     private final Queue<T> delegate;
     private RamAccountingContext context;
