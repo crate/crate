@@ -23,6 +23,8 @@
 package io.crate.executor.transport;
 
 import io.crate.metadata.TableIdent;
+import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
+import org.elasticsearch.Version;
 import org.elasticsearch.action.support.ActionFilters;
 import org.elasticsearch.cluster.action.shard.ShardStateAction;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
@@ -35,20 +37,19 @@ import org.elasticsearch.index.engine.Engine;
 import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.indices.IndicesService;
+import org.elasticsearch.test.transport.MockTransportService;
 import org.elasticsearch.threadpool.ThreadPool;
-import org.elasticsearch.transport.TransportService;
 import org.junit.Before;
 import org.junit.Test;
 
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.Mockito.*;
 
-public class TransportShardDeleteActionTest {
+public class TransportShardDeleteActionTest extends CrateDummyClusterServiceUnitTest {
 
     private final static TableIdent TABLE_IDENT = new TableIdent(null, "characters");
 
@@ -68,7 +69,7 @@ public class TransportShardDeleteActionTest {
 
         transportShardDeleteAction = new TransportShardDeleteAction(
             Settings.EMPTY,
-            mock(TransportService.class),
+            MockTransportService.local(Settings.EMPTY, Version.V_5_0_1, THREAD_POOL),
             mock(IndexNameExpressionResolver.class),
             mock(ClusterService.class),
             indicesService,

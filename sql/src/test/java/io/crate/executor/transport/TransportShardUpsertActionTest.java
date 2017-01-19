@@ -35,6 +35,7 @@ import org.elasticsearch.Version;
 import org.elasticsearch.action.support.ActionFilters;
 import org.elasticsearch.cluster.action.index.MappingUpdatedAction;
 import org.elasticsearch.cluster.action.shard.ShardStateAction;
+import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.UUIDs;
@@ -383,12 +384,15 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
          *      "_invalid": {}
          * }
          */
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Column name must not start with '_'");
-        Mapper.BuilderContext builderContext = new Mapper.BuilderContext(null, new ContentPath());
+        Settings settings = Settings.builder().put(IndexMetaData.SETTING_VERSION_CREATED, Version.CURRENT).build();
+        Mapper.BuilderContext builderContext = new Mapper.BuilderContext(settings, new ContentPath());
         Mapper.Builder validInnerMapper = new ObjectMapper.Builder("valid");
         Mapper.Builder invalidInnerMapper = new ObjectMapper.Builder("_invalid");
         Mapper outerMapper = new ObjectMapper.Builder("outer").add(validInnerMapper).add(invalidInnerMapper).build(builderContext);
+
+        // validate the invalid mapping
+        expectedException.expect(IllegalArgumentException.class);
+        expectedException.expectMessage("Column name must not start with '_'");
         TransportShardUpsertAction.validateMapping(Arrays.asList(outerMapper).iterator());
     }
 
