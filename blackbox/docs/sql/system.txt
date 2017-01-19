@@ -1059,7 +1059,8 @@ limit old entries are discarded as new entries are added::
     +-...+------------------------------------...-+-...-----+-...---+-------+
     SELECT 2 rows in set (... sec)
 
-See :ref:`ref-set` on how to change the size of the tables.
+See :ref:`conf_collecting_stats` on how to enable logging and change the size of
+the corresponding tables.
 
 As described above the stats tracking is deactivated by default and has to be
 enabled using the ``SET`` statement. The same statement can be used to

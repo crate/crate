@@ -694,12 +694,11 @@ Collecting Stats
   | *Default:*   ``10000``
   | *Runtime:*  ``yes``
 
-  The number of jobs kept in the ``sys.jobs_log`` table on each node
-  for performance analytics. Older entries will be deleted when the
-  ``jobs_log_size`` is reached. A single SQL statement results in a
-  job to be executed on the cluster. A higher number results in more
-  expressive results but also in more occupied RAM. Setting it to
-  ``0`` disables collecting job information.
+  The number of jobs kept in the :ref:`sys.jobs_log <sys-logs>` table on each
+  node for performance analytics. Older entries will be deleted when this is
+  reached. A single SQL statement results in a job to be executed on the
+  cluster. A higher number results also in more expressive results but also more
+  occupied RAM. Setting it to ``0`` disables collecting job information.
 
 .. _stats.jobs_log_expiration:
 
@@ -707,16 +706,16 @@ Collecting Stats
   | *Default:*  ``0s`` (disabled)
   | *Runtime:*  ``yes``
 
-  This setting specifies the period when jobs are stored in the ``sys.jobs_log``
-  table. It periodically clears entries that are completed and older than the
-  specified time interval. This setting overrides ``jobs_log_size`` and logs a
-  warning message if both settings are set explicitly. If the value is set to
-  ``0`` the setting gets disabled.
+  Entries of :ref:`sys.jobs_log <sys-logs>` are cleared by a periodically job
+  when they are older than the specified expire time. This setting overrides
+  :ref:`stats.jobs_log_size <stats.jobs_log_size>`. If the value is set to ``0``
+  the time based log entry eviction is disabled.
 
-.. note::
+  .. note::
 
-  If both setttings ``stats.jobs_log_size`` and ``stats.jobs_log_expiration``
-  are disabled, no job information will be collected.
+    If both setttings :ref:`stats.operations_log_size <stats.operations_log_size>`
+    and :ref:`stats.operations_log_expiration <stats.operations_log_expiration>`
+    are disabled, no job information will be collected.
 
 .. _stats.operations_log_size:
 
@@ -724,12 +723,28 @@ Collecting Stats
   | *Default:*   ``10000``
   | *Runtime:*  ``yes``
 
-  The number of operations to keep in the ``sys.operations_log`` table
-  on each node for performance analytics. Older entries will be
-  deleted when the ``operations_log_size`` is reached. A job consists
-  of one or many operations. A higher number results in more
-  expressive results but also in more occupied RAM. Setting it to
-  ``0`` disables collecting operation information.
+  The number of operations to keep in the :ref:`sys.operations_log <sys-logs>`
+  table on each node for performance analytics. Older entries will be deleted
+  when this is reached. A job consists of one or many operations. A higher
+  number results also in more expressive results but also more occupied RAM.
+  Setting it to ``0`` disables collecting operation information.
+
+.. _stats.operations_log_expiration:
+
+**stats.operations_log_expiration**
+  | *Default:*  ``0s`` (disabled)
+  | *Runtime:*  ``yes``
+
+  Entries of :ref:`sys.operations_log <sys-logs>` are cleared by a periodically
+  job when they are older than the specified expire time. This setting overrides
+  :ref:`stats.operations_log_size <stats.operations_log_size>`. If the value is
+  set to ``0`` the time based log entry eviction is disabled.
+
+  .. note::
+
+    If both setttings :ref:`stats.operations_log_size <stats.operations_log_size>`
+    and :ref:`stats.operations_log_expiration <stats.operations_log_expiration>`
+    are disabled, no job information will be collected.
 
 .. _stats.service.interval:
 
@@ -752,15 +767,29 @@ Collecting Stats
 
     Using a very small value can cause a high load on the cluster.
 
-.. _stats.breaker.logs.limit:
+.. _stats.breaker.jobs_logs.limit:
 
-**stats.breaker.logs.limit**
+**stats.breaker.jobs_log.limit**
   | *Default:*    ``5%``
   | *Runtime:*   ``yes``
 
-  The logs circuit breaker allows CrateDB to prevent job logs data structures
-  from exceeding a certain amount of memory by removing old job logs entries.
+  The jobs log circuit breaker prevents :ref:`sys.jobs_log <sys-logs>`
+  from exceeding the specified maximum memory by removing old log entries. The value
+  specifies the maximum of memory that can be used from :ref:`crate-heap-size`.
+  Reaching the limit logs an error message and causes :ref:`sys.jobs_log <sys-logs>` to be
+  cleared completely.
 
+.. _stats.breaker.operations_logs.limit:
+
+**stats.breaker.operations_log.limit**
+  | *Default:*    ``5%``
+  | *Runtime:*   ``yes``
+
+  The operations log circuit breaker prevents :ref:`sys.operations_log <sys-logs>`
+  from exceeding the specified maximum memory by removing old log entries. The value
+  specifies the maximum of memory that can be used from :ref:`crate-heap-size`.
+  Reaching the limit logs an error message and causes :ref:`sys.operations_log <sys-logs>` to be
+  cleared completely.
 
 .. _conf_usage_data_collector:
 
@@ -1809,6 +1838,8 @@ exceptions::
 
     CRATE_JAVA_OPTS=-Xss500k
 
+
+.. _crate-heap-size:
 
 CRATE_HEAP_SIZE
 ---------------
