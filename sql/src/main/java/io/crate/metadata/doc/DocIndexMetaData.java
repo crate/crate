@@ -21,6 +21,7 @@
 
 package io.crate.metadata.doc;
 
+import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
 import com.google.common.base.MoreObjects;
 import com.google.common.collect.*;
 import io.crate.Constants;
@@ -44,6 +45,7 @@ import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.action.admin.indices.alias.Alias;
 import org.elasticsearch.action.admin.indices.template.put.PutIndexTemplateRequest;
 import org.elasticsearch.action.admin.indices.template.put.TransportPutIndexTemplateAction;
+import org.elasticsearch.cluster.metadata.AliasMetaData;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.cluster.metadata.MappingMetaData;
 import org.elasticsearch.common.collect.Tuple;
@@ -599,7 +601,7 @@ public class DocIndexMetaData {
                 // merge the new mapping with the template settings
                 return new DocIndexMetaData(
                     functions,
-                    IndexMetaData.builder(other.metaData).settings(this.metaData.getSettings()).build(),
+                    mergeIndexMetaData(other.metaData),
                     other.ident).build();
             } else if (references().size() == other.references().size() &&
                        !references().keySet().equals(other.references().keySet())) {
@@ -702,5 +704,28 @@ public class DocIndexMetaData {
 
     public Set<Operation> supportedOperations() {
         return supportedOperations;
+    }
+
+    /**
+     * Merges this {@link IndexMetaData} with the given one,
+     * but comparing to {@link IndexMetaData#builder(IndexMetaData)}, it won't set {@link IndexMetaData#primaryTerms}
+     * as the number of shards can differ (its applied via the settings).
+     */
+    private IndexMetaData mergeIndexMetaData(IndexMetaData other) {
+        IndexMetaData.Builder builder = IndexMetaData.builder(other.getIndex().getName())
+            .settings(this.metaData.getSettings())
+            .state(other.getState())
+            .version(other.getVersion());
+
+        for (ObjectObjectCursor<String, MappingMetaData> cursor : other.getMappings()) {
+            builder.putMapping(cursor.value);
+        }
+        for (ObjectObjectCursor<String, AliasMetaData> cursor : other.getAliases()) {
+            builder.putAlias(cursor.value);
+        }
+        for (ObjectObjectCursor<String, IndexMetaData.Custom> cursor : other.getCustoms()) {
+            builder.putCustom(cursor.key, cursor.value);
+        }
+        return builder.build();
     }
 }
