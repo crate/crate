@@ -37,16 +37,6 @@ public class Symbols {
 
     private static final HasColumnVisitor HAS_COLUMN_VISITOR = new HasColumnVisitor();
 
-    public static final com.google.common.base.Function<Symbol, DataType> TYPES_FUNCTION =
-        new com.google.common.base.Function<Symbol, DataType>() {
-            @Nullable
-            @Override
-            public DataType apply(@Nullable Symbol input) {
-                assert input != null : "can't convert null symbol to dataType";
-                return input.valueType();
-            }
-        };
-
     public static final Predicate<Symbol> IS_GENERATED_COLUMN = new Predicate<Symbol>() {
         @Override
         public boolean apply(@Nullable Symbol input) {
@@ -55,7 +45,7 @@ public class Symbols {
     };
 
     public static List<DataType> extractTypes(List<? extends Symbol> symbols) {
-        return Lists.transform(symbols, TYPES_FUNCTION);
+        return Lists.transform(symbols, Symbol::valueType);
     }
 
     public static Streamer<?>[] streamerArray(Collection<? extends Symbol> symbols) {
