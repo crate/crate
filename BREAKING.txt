@@ -2,6 +2,9 @@
  BREAKING CHANGES due to ES 5.x upgrade
 ========================================
 
+- Queries on columns with ``INDEX OFF`` will now fail instead of always
+  resulting in an empty result.
+
  - Discovery using `Multicast` is removed. `Unicast` is the default discovery mechanism.
 
 - `COPY FROM` now requires column names to be quoted in the JSON file being imported.

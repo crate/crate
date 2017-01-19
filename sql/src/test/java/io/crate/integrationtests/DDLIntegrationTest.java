@@ -294,12 +294,8 @@ public class DDLIntegrationTest extends SQLTransportIntegrationTest {
         execute("insert into quotes (id, quote) values (?, ?)", new Object[]{1, quote});
         refresh();
 
+        expectedException.expectMessage("Cannot search on field [quote] since it is not indexed.");
         execute("select quote from quotes where quote = ?", new Object[]{quote});
-        assertEquals(0, response.rowCount());
-
-        execute("select quote from quotes where id = 1");
-        assertEquals(1L, response.rowCount());
-        assertEquals(quote, response.rows()[0][0]);
     }
 
     @Test
