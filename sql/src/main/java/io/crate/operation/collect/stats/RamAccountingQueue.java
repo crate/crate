@@ -29,6 +29,7 @@ import org.elasticsearch.common.breaker.CircuitBreaker;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 
+import java.util.Locale;
 import java.util.Queue;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -52,7 +53,7 @@ public class RamAccountingQueue<T> extends ForwardingQueue<T> {
     }
 
     private static String contextId() {
-        return String.format("RamAccountingQueue[%s]", UUID.randomUUID().toString());
+        return String.format(Locale.ENGLISH, "RamAccountingQueue[%s]", UUID.randomUUID().toString());
     }
 
     @Override
