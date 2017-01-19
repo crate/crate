@@ -28,6 +28,7 @@ import io.crate.analyze.WhereClause;
 import io.crate.lucene.LuceneQueryBuilder;
 import io.crate.metadata.PartitionName;
 import io.crate.operation.ThreadPools;
+import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.cluster.metadata.MetaData;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
@@ -79,14 +80,17 @@ public class InternalCountOperation implements CountOperation {
         List<Callable<Long>> callableList = new ArrayList<>();
         MetaData metaData = clusterService.state().getMetaData();
         for (Map.Entry<String, ? extends Collection<Integer>> entry : indexShardMap.entrySet()) {
-            final Index index = metaData.index(entry.getKey()).getIndex();
+            String indexName = entry.getKey();
+            IndexMetaData indexMetaData = metaData.index(indexName);
+            if (indexMetaData == null) {
+                if (PartitionName.isPartition(indexName)) {
+                    continue;
+                }
+                throw new IndexNotFoundException(indexName);
+            }
+            final Index index = indexMetaData.getIndex();
             for (final Integer shardId : entry.getValue()) {
-                callableList.add(new Callable<Long>() {
-                    @Override
-                    public Long call() throws Exception {
-                        return count(index, shardId, whereClause);
-                    }
-                });
+                callableList.add(() -> count(index, shardId, whereClause));
             }
         }
         MergePartialCountFunction mergeFunction = new MergePartialCountFunction();
