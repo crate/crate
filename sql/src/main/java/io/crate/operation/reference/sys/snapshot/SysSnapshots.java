@@ -22,7 +22,6 @@
 package io.crate.operation.reference.sys.snapshot;
 
 import com.google.common.base.Function;
-import com.google.common.base.Supplier;
 import com.google.common.collect.Lists;
 import io.crate.operation.reference.sys.repositories.SysRepositoriesService;
 import io.crate.operation.reference.sys.repositories.SysRepository;
@@ -38,7 +37,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Singleton
-public class SysSnapshots implements Supplier<Iterable<?>> {
+public class SysSnapshots {
 
     private final SysRepositoriesService sysRepositoriesService;
     private final SnapshotsService snapshotsService;
@@ -50,10 +49,9 @@ public class SysSnapshots implements Supplier<Iterable<?>> {
         this.snapshotsService = snapshotsService;
     }
 
-    @Override
-    public Iterable<?> get() {
+    public Iterable<SysSnapshot> snapshotsGetter() {
         List<SysSnapshot> sysSnapshots = new ArrayList<>();
-        for (Object entry : sysRepositoriesService.get()) {
+        for (Object entry : sysRepositoriesService.repositoriesGetter()) {
             final String repositoryName = ((SysRepository) entry).name();
 
             List<Snapshot> snapshots;

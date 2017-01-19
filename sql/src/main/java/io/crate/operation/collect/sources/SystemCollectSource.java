@@ -21,7 +21,6 @@
 
 package io.crate.operation.collect.sources;
 
-import com.google.common.base.Supplier;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
@@ -56,6 +55,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Supplier;
 
 /**
  * this collect service can be used to retrieve a collector for system tables (which don't contain shards)
@@ -95,16 +95,16 @@ public class SystemCollectSource implements CollectSource {
             .put(InformationTableConstraintsTableInfo.IDENT.fqn(), informationSchemaIterables::constraints)
             .put(InformationRoutinesTableInfo.IDENT.fqn(), informationSchemaIterables::routines)
             .put(InformationSqlFeaturesTableInfo.IDENT.fqn(), informationSchemaIterables::features)
-            .put(SysJobsTableInfo.IDENT.fqn(), statsTables.jobsGetter())
-            .put(SysJobsLogTableInfo.IDENT.fqn(), statsTables.jobsLogGetter())
-            .put(SysOperationsTableInfo.IDENT.fqn(), statsTables.operationsGetter())
-            .put(SysOperationsLogTableInfo.IDENT.fqn(), statsTables.operationsLogGetter())
-            .put(SysChecksTableInfo.IDENT.fqn(), new SysChecker(sysChecks))
-            .put(SysNodeChecksTableInfo.IDENT.fqn(), new SysChecker(sysNodeChecks))
-            .put(SysRepositoriesTableInfo.IDENT.fqn(), sysRepositoriesService)
-            .put(SysSnapshotsTableInfo.IDENT.fqn(), sysSnapshots)
-            .put(SysSummitsTableInfo.IDENT.fqn(), new SummitsIterable())
-            .put(PgTypeTable.IDENT.fqn(), pgCatalogTables.pgTypes())
+            .put(SysJobsTableInfo.IDENT.fqn(), statsTables::jobsGetter)
+            .put(SysJobsLogTableInfo.IDENT.fqn(), statsTables::jobsLogGetter)
+            .put(SysOperationsTableInfo.IDENT.fqn(), statsTables::operationsGetter)
+            .put(SysOperationsLogTableInfo.IDENT.fqn(), statsTables::operationsLogGetter)
+            .put(SysChecksTableInfo.IDENT.fqn(), new SysChecker<>(sysChecks)::checksGetter)
+            .put(SysNodeChecksTableInfo.IDENT.fqn(), new SysChecker<>(sysNodeChecks)::checksGetter)
+            .put(SysRepositoriesTableInfo.IDENT.fqn(), sysRepositoriesService::repositoriesGetter)
+            .put(SysSnapshotsTableInfo.IDENT.fqn(), sysSnapshots::snapshotsGetter)
+            .put(SysSummitsTableInfo.IDENT.fqn(), new SummitsIterable()::summitsGetter)
+            .put(PgTypeTable.IDENT.fqn(), pgCatalogTables::typesGetter)
             .build();
     }
 

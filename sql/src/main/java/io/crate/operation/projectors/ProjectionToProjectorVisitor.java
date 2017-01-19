@@ -22,7 +22,6 @@
 package io.crate.operation.projectors;
 
 import com.google.common.base.Predicate;
-import com.google.common.base.Supplier;
 import com.google.common.collect.Iterables;
 import io.crate.action.sql.SessionContext;
 import io.crate.analyze.EvaluatingNormalizer;
@@ -66,6 +65,7 @@ import javax.annotation.Nullable;
 import java.util.*;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.function.Function;
+import java.util.function.Supplier;
 
 public class ProjectionToProjectorVisitor
     extends ProjectionVisitor<ProjectionToProjectorVisitor.Context, Projector> implements ProjectorFactory {

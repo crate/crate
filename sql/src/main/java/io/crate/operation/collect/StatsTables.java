@@ -21,7 +21,6 @@
 
 package io.crate.operation.collect;
 
-import com.google.common.base.Supplier;
 import com.twitter.jsr166e.LongAdder;
 import io.crate.core.collections.BlockingEvictingQueue;
 import io.crate.core.collections.NoopQueue;
@@ -64,10 +63,6 @@ public class StatsTables {
     final AtomicReference<BlockingQueue<JobContextLog>> jobsLog = new AtomicReference<>(NOOP_JOBS_LOG);
     final AtomicReference<BlockingQueue<OperationContextLog>> operationsLog = new AtomicReference<>(NOOP_OPERATIONS_LOG);
 
-    private final JobsLogIterableGetter jobsLogIterableGetter;
-    private final JobsIterableGetter jobsIterableGetter;
-    private final OperationsIterableGetter operationsIterableGetter;
-    private final OperationsLogIterableGetter operationsLogIterableGetter;
     private final LongAdder activeRequests = new LongAdder();
 
     protected final NodeSettingsService.Listener listener = new NodeSettingListener();
@@ -100,10 +95,6 @@ public class StatsTables {
         lastIsEnabled = isEnabled;
 
         nodeSettingsService.addListener(listener);
-        jobsLogIterableGetter = new JobsLogIterableGetter();
-        jobsIterableGetter = new JobsIterableGetter();
-        operationsIterableGetter = new OperationsIterableGetter();
-        operationsLogIterableGetter = new OperationsLogIterableGetter();
     }
 
     /**
@@ -186,56 +177,24 @@ public class StatsTables {
     }
 
 
-    public Supplier<Iterable<?>> jobsGetter() {
-        return jobsIterableGetter;
+    public Iterable<JobContext> jobsGetter() {
+        return jobsTable.values();
     }
 
-    public Supplier<Iterable<?>> jobsLogGetter() {
-        return jobsLogIterableGetter;
+    public Iterable<JobContextLog> jobsLogGetter() {
+        return jobsLog.get();
     }
 
-    public Supplier<Iterable<?>> operationsGetter() {
-        return operationsIterableGetter;
+    public Iterable<OperationContext> operationsGetter() {
+        return operationsTable.values();
     }
 
-    public Supplier<Iterable<?>> operationsLogGetter() {
-        return operationsLogIterableGetter;
+    public Iterable<OperationContextLog> operationsLogGetter() {
+        return operationsLog.get();
     }
 
     public long activeRequests() {
         return activeRequests.longValue();
-    }
-
-    private class JobsLogIterableGetter implements Supplier<Iterable<?>> {
-
-        @Override
-        public Iterable<?> get() {
-            return jobsLog.get();
-        }
-    }
-
-    private class JobsIterableGetter implements Supplier<Iterable<?>> {
-
-        @Override
-        public Iterable<?> get() {
-            return jobsTable.values();
-        }
-    }
-
-    private class OperationsIterableGetter implements Supplier<Iterable<?>> {
-
-        @Override
-        public Iterable<?> get() {
-            return operationsTable.values();
-        }
-    }
-
-    private class OperationsLogIterableGetter implements Supplier<Iterable<?>> {
-
-        @Override
-        public Iterable<?> get() {
-            return operationsLog.get();
-        }
     }
 
     private void setOperationsLog(int size) {

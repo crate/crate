@@ -47,7 +47,7 @@ public class SysSnapshotsTest extends CrateUnitTest {
 
         final Iterable<?> objects =
             Collections.singletonList((Object) new SysRepository("foo", "url", ImmutableMap.<String, Object>of()));
-        when(sysRepos.get()).then(new Answer<Object>() {
+        when(sysRepos.repositoriesGetter()).then(new Answer<Object>() {
             @Override
             public Object answer(InvocationOnMock invocation) throws Throwable {
                 return objects;
@@ -57,6 +57,6 @@ public class SysSnapshotsTest extends CrateUnitTest {
         SnapshotsService snapshotService = mock(SnapshotsService.class);
         when(snapshotService.snapshots(anyString(), anyBoolean())).thenThrow(new IllegalStateException("dummy"));
         SysSnapshots sysSnapshots = new SysSnapshots(sysRepos, snapshotService);
-        assertThat(sysSnapshots.get().iterator().hasNext(), is(false));
+        assertThat(sysSnapshots.snapshotsGetter().iterator().hasNext(), is(false));
     }
 }

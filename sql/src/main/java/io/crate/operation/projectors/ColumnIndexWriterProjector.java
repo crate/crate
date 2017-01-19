@@ -22,7 +22,6 @@
 package io.crate.operation.projectors;
 
 import com.google.common.base.MoreObjects;
-import com.google.common.base.Supplier;
 import com.google.common.util.concurrent.Futures;
 import io.crate.analyze.symbol.Assignments;
 import io.crate.analyze.symbol.Symbol;
@@ -49,6 +48,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Supplier;
 
 public class ColumnIndexWriterProjector extends AbstractProjector {
 

@@ -23,13 +23,13 @@
 package io.crate.operation.collect;
 
 import com.google.common.base.Function;
-import com.google.common.base.Supplier;
 import io.crate.core.collections.Row;
 import io.crate.operation.Input;
 import io.crate.operation.InputRow;
 
 import javax.annotation.Nullable;
 import java.util.List;
+import java.util.function.Supplier;
 
 /**
  * A Row implementation that is backed by some TValue

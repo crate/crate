@@ -22,8 +22,6 @@
 
 package io.crate.metadata.pg_catalog;
 
-import com.google.common.base.Supplier;
-import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableMap;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.RowCollectExpression;
@@ -37,8 +35,8 @@ import java.util.Map;
 
 public class PgCatalogTables {
 
-    public Supplier<Iterable<?>> pgTypes() {
-        return Suppliers.<Iterable<?>>ofInstance(PGTypes.pgTypes());
+    public Iterable<PGType> typesGetter() {
+        return PGTypes.pgTypes();
     }
 
     public static Map<ColumnIdent, RowCollectExpressionFactory> pgTypeExpressions() {

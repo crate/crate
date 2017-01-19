@@ -35,24 +35,20 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
-public class SummitsIterable implements Supplier<Iterable<?>> {
+public class SummitsIterable implements Iterable<SummitsContext> {
 
     private static final Splitter TAB_SPLITTER = Splitter.on("\t");
 
-    @Override
-    public Iterable<?> get() {
+    public Iterable<SummitsContext> summitsGetter() {
         return summitsSupplierCache.get();
     }
 
     private final Supplier<List<SummitsContext>> summitsSupplierCache = Suppliers.memoizeWithExpiration(
-        new Supplier<List<SummitsContext>>() {
-            public List<SummitsContext> get() {
-                return fetchSummits();
-            }
-        }, 4, TimeUnit.MINUTES
+        this::fetchSummits, 4, TimeUnit.MINUTES
     );
 
     private List<SummitsContext> fetchSummits() {
@@ -83,5 +79,10 @@ public class SummitsIterable implements Supplier<Iterable<?>> {
 
     private Double[] safeParseCoordinates(String value) {
         return value.isEmpty() ? null : DataTypes.GEO_POINT.value(value);
+    }
+
+    @Override
+    public Iterator<SummitsContext> iterator() {
+        return summitsGetter().iterator();
     }
 }

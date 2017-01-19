@@ -52,7 +52,7 @@ public class FilesIterablesTest {
     @Test
     public void testSummitsIterable() throws Exception {
         SummitsIterable summitsIterable = new SummitsIterable();
-        Iterator iterator = summitsIterable.get().iterator();
+        Iterator iterator = summitsIterable.iterator();
         assertTrue(iterator.hasNext());
         assertThat(Iterators.size(iterator), is(1605));
         assertFalse(iterator.hasNext());

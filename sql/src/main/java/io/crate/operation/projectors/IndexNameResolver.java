@@ -22,8 +22,6 @@
 
 package io.crate.operation.projectors;
 
-import com.google.common.base.Supplier;
-import com.google.common.base.Suppliers;
 import com.google.common.base.Throwables;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
@@ -40,13 +38,12 @@ import javax.annotation.Nullable;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
+import java.util.function.Supplier;
 
 public class IndexNameResolver {
 
     private IndexNameResolver() {
     }
-
-    ;
 
     public static Supplier<String> create(TableIdent tableIdent,
                                           @Nullable String partitionIdent,
@@ -61,11 +58,11 @@ public class IndexNameResolver {
     }
 
     public static Supplier<String> forTable(final TableIdent tableIdent) {
-        return Suppliers.ofInstance(tableIdent.indexName());
+        return tableIdent::indexName;
     }
 
     public static Supplier<String> forPartition(TableIdent tableIdent, String partitionIdent) {
-        return Suppliers.ofInstance(PartitionName.indexName(tableIdent, partitionIdent));
+        return (Supplier) () -> PartitionName.indexName(tableIdent, partitionIdent);
     }
 
     public static Supplier<String> forPartition(final TableIdent tableIdent, final List<Input<?>> partitionedByInputs) {
@@ -79,20 +76,16 @@ public class IndexNameResolver {
                     return PartitionName.indexName(tableIdent, PartitionName.encodeIdent(key));
                 }
             });
-        return new Supplier<String>() {
-
-            @Override
-            public String get() {
-                // copy because transform returns a view and the values of the inputs are mutable
-                List<BytesRef> partitions = Collections.unmodifiableList(
-                    Lists.newArrayList(Lists.transform(
-                        partitionedByInputs,
-                        Inputs.TO_BYTES_REF)));
-                try {
-                    return cache.get(partitions);
-                } catch (ExecutionException e) {
-                    throw Throwables.propagate(e);
-                }
+        return () -> {
+            // copy because transform returns a view and the values of the inputs are mutable
+            List<BytesRef> partitions = Collections.unmodifiableList(
+                Lists.newArrayList(Lists.transform(
+                    partitionedByInputs,
+                    Inputs.TO_BYTES_REF)));
+            try {
+                return cache.get(partitions);
+            } catch (ExecutionException e) {
+                throw Throwables.propagate(e);
             }
         };
     }
