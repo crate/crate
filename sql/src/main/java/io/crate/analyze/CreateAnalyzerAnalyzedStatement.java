@@ -22,7 +22,6 @@
 package io.crate.analyze;
 
 import io.crate.metadata.FulltextAnalyzerResolver;
-import io.crate.metadata.settings.AnalyzerSettings;
 import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.collect.Tuple;
 import org.elasticsearch.common.settings.Settings;
@@ -31,6 +30,8 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
+
+import static io.crate.metadata.settings.AnalyzerSettings.CUSTOM_ANALYSIS_SETTINGS_PREFIX;
 
 public class CreateAnalyzerAnalyzedStatement extends AbstractDDLAnalyzedStatement {
 
@@ -255,7 +256,7 @@ public class CreateAnalyzerAnalyzedStatement extends AbstractDDLAnalyzedStatemen
 
         String encodedAnalyzerSettings = FulltextAnalyzerResolver.encodeSettings(analyzerSettings()).utf8ToString();
         builder.put(
-            String.format(Locale.ENGLISH, "%s.analyzer.%s", AnalyzerSettings.CUSTOM_ANALYSIS_SETTINGS_PREFIX, ident),
+            CUSTOM_ANALYSIS_SETTINGS_PREFIX + "analyzer." + ident,
             encodedAnalyzerSettings
         );
 
@@ -272,14 +273,14 @@ public class CreateAnalyzerAnalyzedStatement extends AbstractDDLAnalyzedStatemen
 
         if (tokenizerDefinition != null && !tokenizerDefinition.v2().getAsMap().isEmpty()) {
             builder.put(
-                String.format(Locale.ENGLISH, "%s.tokenizer.%s", AnalyzerSettings.CUSTOM_ANALYSIS_SETTINGS_PREFIX, tokenizerDefinition.v1()),
+                CUSTOM_ANALYSIS_SETTINGS_PREFIX + "tokenizer." + tokenizerDefinition.v1(),
                 FulltextAnalyzerResolver.encodeSettings(tokenizerDefinition.v2()).utf8ToString()
             );
         }
         for (Map.Entry<String, Settings> tokenFilterDefinition : tokenFilters.entrySet()) {
             if (!tokenFilterDefinition.getValue().getAsMap().isEmpty()) {
                 builder.put(
-                    String.format(Locale.ENGLISH, "%s.filter.%s", AnalyzerSettings.CUSTOM_ANALYSIS_SETTINGS_PREFIX, tokenFilterDefinition.getKey()),
+                    CUSTOM_ANALYSIS_SETTINGS_PREFIX + "filter." + tokenFilterDefinition.getKey(),
                     FulltextAnalyzerResolver.encodeSettings(tokenFilterDefinition.getValue()).utf8ToString()
                 );
             }
@@ -287,7 +288,7 @@ public class CreateAnalyzerAnalyzedStatement extends AbstractDDLAnalyzedStatemen
         for (Map.Entry<String, Settings> charFilterDefinition : charFilters.entrySet()) {
             if (!charFilterDefinition.getValue().getAsMap().isEmpty()) {
                 builder.put(
-                    String.format(Locale.ENGLISH, "%s.char_filter.%s", AnalyzerSettings.CUSTOM_ANALYSIS_SETTINGS_PREFIX, charFilterDefinition.getKey()),
+                    CUSTOM_ANALYSIS_SETTINGS_PREFIX + "char_filter." + charFilterDefinition.getKey(),
                     FulltextAnalyzerResolver.encodeSettings(charFilterDefinition.getValue()).utf8ToString()
                 );
             }
