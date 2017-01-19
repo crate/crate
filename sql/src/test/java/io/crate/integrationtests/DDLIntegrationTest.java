@@ -64,7 +64,10 @@ public class DDLIntegrationTest extends SQLTransportIntegrationTest {
                                  "\"_all\":{\"enabled\":false}," +
                                  "\"dynamic_templates\":[{\"strings\":{\"mapping\":{\"index\":\"not_analyzed\",\"store\":false,\"type\":\"string\",\"doc_values\":true},\"match_mapping_type\":\"string\"}}]," +
                                  "\"properties\":{" +
-                                 "\"col1\":{\"type\":\"integer\"},\"col2\":{\"type\":\"string\",\"index\":\"not_analyzed\"}}}}";
+                                 // doc_values: true is default and not included
+                                 "\"col1\":{\"type\":\"integer\"}," +
+                                 "\"col2\":{\"type\":\"keyword\"}" +
+                                 "}}}";
 
         String expectedSettings = "{\"test\":{" +
                                   "\"settings\":{" +
@@ -149,7 +152,7 @@ public class DDLIntegrationTest extends SQLTransportIntegrationTest {
                                  "\"_all\":{\"enabled\":false}," +
                                  "\"properties\":{" +
                                  "\"col1\":{\"type\":\"integer\"}," +
-                                 "\"col2\":{\"type\":\"string\",\"index\":\"not_analyzed\"}" +
+                                 "\"col2\":{\"type\":\"keyword\"}" +
                                  "}}}";
 
         String expectedSettings = "{\"test\":{" +
@@ -176,7 +179,8 @@ public class DDLIntegrationTest extends SQLTransportIntegrationTest {
                                  "\"dynamic_templates\":[{\"strings\":{\"mapping\":{\"index\":\"not_analyzed\",\"store\":false,\"type\":\"string\",\"doc_values\":true},\"match_mapping_type\":\"string\"}}]," +
                                  "\"properties\":{" +
                                  "\"col1\":{\"type\":\"integer\"}," +
-                                 "\"col2\":{\"type\":\"string\",\"index\":\"not_analyzed\"}}}}";
+                                 "\"col2\":{\"type\":\"keyword\"}" +
+                                 "}}}";
 
         String expectedSettings = "{\"test\":{" +
                                   "\"settings\":{" +
