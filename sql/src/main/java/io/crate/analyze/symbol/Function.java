@@ -80,16 +80,14 @@ public class Function extends Symbol implements Cloneable {
 
         Function function = (Function) o;
 
-        if (info != null ? !info.equals(function.info) : function.info != null)
-            return false;
-        return !(arguments != null ? !arguments.equals(function.arguments) : function.arguments != null);
-
+        if (!arguments.equals(function.arguments)) return false;
+        return info.equals(function.info);
     }
 
     @Override
     public int hashCode() {
-        int result = arguments != null ? arguments.hashCode() : 0;
-        result = 31 * result + (info != null ? info.hashCode() : 0);
+        int result = arguments.hashCode();
+        result = 31 * result + info.hashCode();
         return result;
     }
 
