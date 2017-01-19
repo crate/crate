@@ -140,7 +140,12 @@ class ArrayFieldType extends MappedFieldType implements Cloneable {
 
     @Override
     public Query termQuery(Object value, @Nullable QueryShardContext context) {
-        return null;
+        return innerFieldType.termQuery(value, context);
+    }
+
+    @Override
+    public Query termsQuery(List<?> values, @Nullable QueryShardContext context) {
+        return innerFieldType.termsQuery(values, context);
     }
 
     @Override
