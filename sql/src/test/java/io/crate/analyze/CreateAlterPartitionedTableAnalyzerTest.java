@@ -92,7 +92,7 @@ public class CreateAlterPartitionedTableAnalyzerTest extends CrateDummyClusterSe
         // partitioned columns must be not indexed in mapping
         Map<String, Object> nameMapping = (Map<String, Object>) analysis.mappingProperties().get("name");
         assertThat(mapToSortedString(nameMapping), is(
-            "doc_values=false, index=no, store=false, type=string"));
+            "doc_values=false, index=no, store=false, type=keyword"));
 
         Map<String, Object> metaMapping = (Map) analysis.mapping().get("_meta");
         assertThat((Map<String, Object>) metaMapping.get("columns"), not(hasKey("name")));
@@ -113,7 +113,7 @@ public class CreateAlterPartitionedTableAnalyzerTest extends CrateDummyClusterSe
         Map<String, Object> properties = analysis.mappingProperties();
         assertThat(mapToSortedString(properties),
             is("date={doc_values=false, format=epoch_millis||strict_date_optional_time, index=no, store=false, type=date}, " +
-               "name={doc_values=false, index=no, store=false, type=string}"));
+               "name={doc_values=false, index=no, store=false, type=keyword}"));
         assertThat((Map<String, Object>) ((Map) analysis.mapping().get("_meta")).get("columns"),
             allOf(
                 not(hasKey("name")),
@@ -136,7 +136,7 @@ public class CreateAlterPartitionedTableAnalyzerTest extends CrateDummyClusterSe
         assertThat(analysis.partitionedBy().size(), is(2));
         Map<String, Object> oMapping = (Map<String, Object>) analysis.mappingProperties().get("o");
         assertThat(mapToSortedString(oMapping), is(
-            "dynamic=true, properties={name={doc_values=false, index=no, store=false, type=string}}, type=object"));
+            "dynamic=true, properties={name={doc_values=false, index=no, store=false, type=keyword}}, type=object"));
         assertThat((Map<String, Object>) ((Map) analysis.mapping().get("_meta")).get("columns"), not(hasKey("date")));
 
         Map metaColumns = (Map) ((Map) analysis.mapping().get("_meta")).get("columns");
