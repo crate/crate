@@ -3,13 +3,9 @@ Installation
 ============
 
 This section describes how to install CrateDB on a single node. In order to
-get a CrateDB cluster up and running it is enough to repeat the process on
-another machine if the network supports multicast. The Nodes will discover and
-form a cluster automatically. Just like magic.
-
-In case the network doesn't support multicast, a unicast configuration is
-required. Please refer to our article on `Multi Node Setup`_ in order to learn
-how to setup the unicast configuration.
+get a CrateDB cluster up and running a unicast configuration is required.
+Please refer to our article on `Multi Node Setup`_ in order to learn
+how to setup the discovery configuration.
 
 Java (JVM) version
 ==================
