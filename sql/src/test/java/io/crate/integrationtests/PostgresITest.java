@@ -56,7 +56,7 @@ public class PostgresITest extends SQLTransportIntegrationTest {
         if ((nodeOrdinal + 1) % 2 == 0) {
             builder.put("psql.port", "4242");
         } else {
-            builder.put(SQLOperations.NODE_READ_ONLY_SETTING, true);
+            builder.put(SQLOperations.NODE_READ_ONLY_SETTING.getKey(), true);
             builder.put("psql.port", "4243");
         }
         return builder.build();
