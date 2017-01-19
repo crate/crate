@@ -41,6 +41,7 @@ import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Provider;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.logging.Loggers;
+import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.transport.NodeDisconnectedException;
 
@@ -52,7 +53,8 @@ import java.util.concurrent.CompletableFuture;
 @Singleton
 public class SQLOperations {
 
-    public final static String NODE_READ_ONLY_SETTING = "node.sql.read_only";
+    public final static Setting<Boolean> NODE_READ_ONLY_SETTING = Setting.boolSetting("node.sql.read_only", false,
+        Setting.Property.NodeScope);
     private final static Logger LOGGER = Loggers.getLogger(SQLOperations.class);
 
     // Parser can't handle empty statement but postgres requires support for it.
@@ -79,7 +81,7 @@ public class SQLOperations {
         this.executorProvider = executorProvider;
         this.statsTables = statsTables;
         this.clusterService = clusterService;
-        this.isReadOnly = settings.getAsBoolean(NODE_READ_ONLY_SETTING, false);
+        this.isReadOnly = NODE_READ_ONLY_SETTING.get(settings);
     }
 
     public Session createSession(@Nullable String defaultSchema, Set<Option> options, int defaultLimit) {
