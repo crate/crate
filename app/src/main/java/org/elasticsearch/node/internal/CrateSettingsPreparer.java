@@ -85,8 +85,6 @@ public class CrateSettingsPreparer {
         putIfAbsent(settingsBuilder, TRANSPORT_TYPE_DEFAULT_KEY, Netty3Plugin.NETTY_TRANSPORT_NAME);
         putIfAbsent(settingsBuilder, SETTING_HTTP_PORT.getKey(), Constants.HTTP_PORT_RANGE);
         putIfAbsent(settingsBuilder, PORT.getKey(), Constants.TRANSPORT_PORT_RANGE);
-        // FIXME: re-enable if multicast is working
-        //putIfAbsent(settingsBuilder, "discovery.zen.ping.multicast.enabled", true);
         putIfAbsent(settingsBuilder, "network.host", "0.0.0.0");
 
         // Set the default cluster name if not explicitly defined

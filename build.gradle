@@ -167,7 +167,6 @@ def jacocoProjects() {
           'es-client',
           'es-transport',
           'es-testing',
-          'es-discovery-multicast',
           'es-discovery-ec2',
           'es-repository-s3',
           'testing'].contains(it.name)
