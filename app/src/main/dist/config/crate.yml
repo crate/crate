@@ -491,12 +491,13 @@
 # 2. Configure an initial list of master nodes in the cluster
 #    to perform discovery when new nodes (master or data) are started:
 #
-# If you want to debug the discovery process, you can set a logger in
-# 'config/logging.yml' to help you doing so.
-#
 #discovery.zen.ping.unicast.hosts:
 #  - host1:port
 #  - host2:port
+#
+# If you want to debug the discovery process, you can set a logger in
+# 'config/logging.yml' to help you doing so.
+
 
 # Ping configuration
 #
