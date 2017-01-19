@@ -26,6 +26,8 @@ import org.apache.lucene.index.LeafReaderContext;
 import org.elasticsearch.index.fielddata.IndexNumericFieldData;
 import org.elasticsearch.index.fielddata.SortedNumericDoubleValues;
 
+import java.io.IOException;
+
 public class DoubleColumnReference extends FieldCacheExpression<IndexNumericFieldData, Double> {
 
     private SortedNumericDoubleValues values;
@@ -57,7 +59,7 @@ public class DoubleColumnReference extends FieldCacheExpression<IndexNumericFiel
     }
 
     @Override
-    public void setNextReader(LeafReaderContext context) {
+    public void setNextReader(LeafReaderContext context) throws IOException {
         super.setNextReader(context);
         values = indexFieldData.load(context).getDoubleValues();
     }

@@ -24,7 +24,7 @@ package io.crate.operation.reference.doc;
 import io.crate.operation.reference.doc.lucene.ByteColumnReference;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field;
-import org.apache.lucene.document.IntField;
+import org.apache.lucene.document.NumericDocValuesField;
 import org.apache.lucene.document.StringField;
 import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.search.IndexSearcher;
@@ -43,7 +43,7 @@ public class ByteColumnReferenceTest extends DocLevelExpressionsTest {
         for (byte b = -10; b < 10; b++) {
             Document doc = new Document();
             doc.add(new StringField("_id", Byte.toString(b), Field.Store.NO));
-            doc.add(new IntField(fieldName().indexName(), b, Field.Store.NO));
+            doc.add(new NumericDocValuesField(fieldName().indexName(), b));
             writer.addDocument(doc);
         }
     }
@@ -59,7 +59,7 @@ public class ByteColumnReferenceTest extends DocLevelExpressionsTest {
     }
 
     @Test
-    public void testFieldCacheExpression() throws Exception {
+    public void testByteExpression() throws Exception {
         ByteColumnReference byteColumn = new ByteColumnReference(fieldName().indexName());
         byteColumn.startCollect(ctx);
         byteColumn.setNextReader(readerContext);

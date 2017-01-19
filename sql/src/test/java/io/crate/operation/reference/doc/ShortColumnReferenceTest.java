@@ -24,7 +24,7 @@ package io.crate.operation.reference.doc;
 import io.crate.operation.reference.doc.lucene.ShortColumnReference;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field;
-import org.apache.lucene.document.IntField;
+import org.apache.lucene.document.SortedNumericDocValuesField;
 import org.apache.lucene.document.StringField;
 import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.search.IndexSearcher;
@@ -43,7 +43,7 @@ public class ShortColumnReferenceTest extends DocLevelExpressionsTest {
         for (short i = -10; i < 10; i++) {
             Document doc = new Document();
             doc.add(new StringField("_id", Short.toString(i), Field.Store.NO));
-            doc.add(new IntField(fieldName().indexName(), i, Field.Store.NO));
+            doc.add(new SortedNumericDocValuesField(fieldName().indexName(), i));
             writer.addDocument(doc);
         }
     }
@@ -59,7 +59,7 @@ public class ShortColumnReferenceTest extends DocLevelExpressionsTest {
     }
 
     @Test
-    public void testFieldCacheExpression() throws Exception {
+    public void testShortExpression() throws Exception {
         ShortColumnReference shortColumn = new ShortColumnReference(fieldName().indexName());
         shortColumn.startCollect(ctx);
         shortColumn.setNextReader(readerContext);

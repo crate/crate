@@ -25,6 +25,8 @@ import io.crate.operation.Input;
 import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.search.Scorer;
 
+import java.io.IOException;
+
 /**
  * An expression which gets evaluated in the collect phase
  */
@@ -43,7 +45,7 @@ public abstract class LuceneCollectorExpression<ReturnType> implements Input<Ret
     public void setNextDocId(int doc) {
     }
 
-    public void setNextReader(LeafReaderContext context) {
+    public void setNextReader(LeafReaderContext context) throws IOException {
     }
 
     public void setScorer(Scorer scorer) {

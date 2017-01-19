@@ -24,7 +24,7 @@ package io.crate.operation.reference.doc;
 import io.crate.operation.reference.doc.lucene.LongColumnReference;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field;
-import org.apache.lucene.document.LongField;
+import org.apache.lucene.document.NumericDocValuesField;
 import org.apache.lucene.document.StringField;
 import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.search.IndexSearcher;
@@ -43,7 +43,7 @@ public class LongColumnReferenceTest extends DocLevelExpressionsTest {
         for (long l = Long.MIN_VALUE; l < Long.MIN_VALUE + 10; l++) {
             Document doc = new Document();
             doc.add(new StringField("_id", Long.toString(l), Field.Store.NO));
-            doc.add(new LongField(fieldName().indexName(), l, Field.Store.NO));
+            doc.add(new NumericDocValuesField(fieldName().indexName(), l));
             writer.addDocument(doc);
         }
     }
@@ -59,7 +59,7 @@ public class LongColumnReferenceTest extends DocLevelExpressionsTest {
     }
 
     @Test
-    public void testFieldCacheExpression() throws Exception {
+    public void testLongExpression() throws Exception {
         LongColumnReference longColumn = new LongColumnReference(fieldName().indexName());
         longColumn.startCollect(ctx);
         longColumn.setNextReader(readerContext);
