@@ -133,6 +133,20 @@ public class StatsTablesService extends AbstractLifecycleComponent<StatsTablesSe
         statsTables.updateJobsLog(jobsLogSink);
     }
 
+    /**
+     * specifies scheduler interval that depends on the provided expiration
+     *
+     * min = 1s (1_000ms)
+     * max = 1d (86_400_000ms)
+     * min <= expiration/10 <= max
+     *
+     * @param expiration the specified expiration time
+     * @return the scheduler interval in ms
+     */
+    static long clearInterval(TimeValue expiration) {
+        return Long.min(Long.max(1_000L, expiration.getMillis() / 10), 86_400_000L);
+    }
+
     private <E extends ContextLog> LogSink<E> createSink(int size, TimeValue expiration, SizeEstimator<E> sizeEstimator, String breaker) {
         Queue<E> q;
         long expirationMillis = expiration.getMillis();
@@ -141,7 +155,8 @@ public class StatsTablesService extends AbstractLifecycleComponent<StatsTablesSe
             return NoopLogSink.instance();
         } else if (expirationMillis > 0) {
             q = new ConcurrentLinkedDeque<>();
-            ScheduledFuture<?> scheduledFuture = TimeExpiring.instance().registerTruncateTask(q, scheduler, expiration);
+            TimeExpiring lbTimeExpiring = new TimeExpiring(clearInterval(expiration));
+            ScheduledFuture<?> scheduledFuture = lbTimeExpiring.registerTruncateTask(q, scheduler, expiration);
             onClose = () -> scheduledFuture.cancel(false);
         } else {
             q = new BlockingEvictingQueue<>(size);

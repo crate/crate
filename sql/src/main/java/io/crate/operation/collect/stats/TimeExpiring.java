@@ -34,18 +34,21 @@ import java.util.concurrent.TimeUnit;
 class TimeExpiring {
 
     /**
-     * clean interval in seconds
+     * clean interval in milliseconds
      */
-    private static final long QUEUE_CLEAN_INTERVAL = 5L;
+    private static final long DEFAULT_QUEUE_CLEAN_INTERVAL = 5000L;
 
-    private static TimeExpiring INSTANCE = new TimeExpiring(QUEUE_CLEAN_INTERVAL, 0L);
+    private static TimeExpiring INSTANCE = new TimeExpiring(DEFAULT_QUEUE_CLEAN_INTERVAL, 0L);
     private final long interval;
     private final long delay;
 
-    @VisibleForTesting
     TimeExpiring(long interval, long delay) {
         this.interval = interval;
         this.delay = delay;
+    }
+
+    public TimeExpiring(long interval) {
+        this(interval, 0L);
     }
 
     public static TimeExpiring instance() {
@@ -57,7 +60,7 @@ class TimeExpiring {
                                                    TimeValue expiration) {
         return scheduler.scheduleWithFixedDelay(
             () -> removeExpiredLogs(q, System.currentTimeMillis(), expiration.getMillis()),
-            delay, interval, TimeUnit.SECONDS);
+            delay, interval, TimeUnit.MILLISECONDS);
     }
 
     @VisibleForTesting

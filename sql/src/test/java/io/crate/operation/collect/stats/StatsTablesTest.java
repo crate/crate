@@ -33,6 +33,7 @@ import io.crate.operation.reference.sys.operation.OperationContext;
 import io.crate.operation.reference.sys.operation.OperationContextLog;
 import io.crate.test.integration.CrateUnitTest;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.indices.breaker.CircuitBreakerService;
 import org.elasticsearch.indices.breaker.HierarchyCircuitBreakerService;
 import org.elasticsearch.node.settings.NodeSettingsService;
@@ -230,4 +231,13 @@ public class StatsTablesTest extends CrateUnitTest {
         assertTrue(entries.contains(new OperationContextLog(ctxA, null)));
     }
 
+    @Test
+    public void testLowerBoundScheduler() throws NoSuchMethodException {
+        StatsTablesService stats = new StatsTablesService(Settings.EMPTY, nodeSettingsService, scheduler, breakerService);
+        assertThat(stats.clearInterval(TimeValue.timeValueMillis(1L)), is(1000L));
+        assertThat(stats.clearInterval(TimeValue.timeValueSeconds(8L)), is(1000L));
+        assertThat(stats.clearInterval(TimeValue.timeValueSeconds(10L)), is(1000L));
+        assertThat(stats.clearInterval(TimeValue.timeValueSeconds(20L)), is(2000L));
+        assertThat(stats.clearInterval(TimeValue.timeValueHours(720L)), is(86_400_000L));  // 30 days
+    }
 }

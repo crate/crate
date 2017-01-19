@@ -142,7 +142,7 @@ public class RamAccountingQueueSinkTest extends CrateUnitTest {
         ConcurrentLinkedQueue<NoopLog> q = new ConcurrentLinkedQueue<>();
         RamAccountingQueue<NoopLog> ramAccountingQueue = new RamAccountingQueue<>(q, breaker(), NOOP_ESTIMATOR);
         TimeValue timeValue = TimeValue.timeValueSeconds(1L);
-        TimeExpiring timeExiring = new TimeExpiring(1L, 1L);
+        TimeExpiring timeExiring = new TimeExpiring(1000L, 1000L);
         ScheduledFuture<?> task = timeExiring.registerTruncateTask(q, scheduler, timeValue);
         logSink = new QueueSink<>(ramAccountingQueue, () -> {
             task.cancel(false);
