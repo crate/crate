@@ -24,6 +24,8 @@ package io.crate.operation.reference.doc.lucene;
 import io.crate.metadata.doc.DocSysColumns;
 import org.apache.lucene.index.LeafReaderContext;
 
+import java.io.IOException;
+
 public class DocIdCollectorExpression extends LuceneCollectorExpression<Long> {
 
     public static final String COLUMN_NAME = DocSysColumns.DOCID.name();
@@ -54,7 +56,7 @@ public class DocIdCollectorExpression extends LuceneCollectorExpression<Long> {
     }
 
     @Override
-    public void setNextReader(LeafReaderContext context) {
+    public void setNextReader(LeafReaderContext context) throws IOException {
         super.setNextReader(context);
         docBase = context.docBase;
     }

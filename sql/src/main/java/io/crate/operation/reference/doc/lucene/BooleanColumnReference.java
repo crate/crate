@@ -22,12 +22,15 @@
 package io.crate.operation.reference.doc.lucene;
 
 import io.crate.exceptions.GroupByOnArrayUnsupportedException;
+import org.apache.lucene.index.DocValues;
 import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.util.BytesRef;
-import org.elasticsearch.index.fielddata.IndexFieldData;
+import org.elasticsearch.index.fielddata.FieldData;
 import org.elasticsearch.index.fielddata.SortedBinaryDocValues;
 
-public class BooleanColumnReference extends FieldCacheExpression<IndexFieldData, Boolean> {
+import java.io.IOException;
+
+public class BooleanColumnReference extends LuceneCollectorExpression<Boolean> {
 
     private static final BytesRef TRUE_BYTESREF = new BytesRef("1");
     private SortedBinaryDocValues values;
@@ -59,9 +62,9 @@ public class BooleanColumnReference extends FieldCacheExpression<IndexFieldData,
     }
 
     @Override
-    public void setNextReader(LeafReaderContext context) {
+    public void setNextReader(LeafReaderContext context) throws IOException {
         super.setNextReader(context);
-        values = indexFieldData.load(context).getBytesValues();
+        values = FieldData.toString(DocValues.getSortedNumeric(context.reader(), columnName));
     }
 
     @Override

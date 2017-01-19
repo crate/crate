@@ -24,7 +24,7 @@ package io.crate.operation.reference.doc;
 import io.crate.operation.reference.doc.lucene.IntegerColumnReference;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field;
-import org.apache.lucene.document.IntField;
+import org.apache.lucene.document.NumericDocValuesField;
 import org.apache.lucene.document.StringField;
 import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.search.IndexSearcher;
@@ -44,7 +44,7 @@ public class IntegerColumnReferenceTest extends DocLevelExpressionsTest {
         for (int i = -10; i < 10; i++) {
             Document doc = new Document();
             doc.add(new StringField("_id", Integer.toString(i), Field.Store.NO));
-            doc.add(new IntField(fieldName().indexName(), i, Field.Store.NO));
+            doc.add(new NumericDocValuesField(fieldName().indexName(), i));
             writer.addDocument(doc);
         }
     }
@@ -60,7 +60,7 @@ public class IntegerColumnReferenceTest extends DocLevelExpressionsTest {
     }
 
     @Test
-    public void testFieldCacheExpression() throws Exception {
+    public void testIntegerExpression() throws Exception {
         IntegerColumnReference integerColumn = new IntegerColumnReference(fieldName().indexName());
         integerColumn.startCollect(ctx);
         integerColumn.setNextReader(readerContext);

@@ -23,6 +23,7 @@
 package io.crate.operation.collect.collectors;
 
 import com.google.common.base.Function;
+import com.google.common.base.Throwables;
 import io.crate.core.collections.Row;
 import io.crate.operation.Input;
 import io.crate.operation.InputRow;
@@ -35,6 +36,7 @@ import org.apache.lucene.search.FieldDoc;
 import org.apache.lucene.search.ScoreDoc;
 
 import javax.annotation.Nullable;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -83,7 +85,11 @@ class ScoreDocRowFunction implements Function<ScoreDoc, Row> {
         LeafReaderContext subReaderContext = leaves.get(readerIndex);
         int subDoc = fieldDoc.doc - subReaderContext.docBase;
         for (LuceneCollectorExpression<?> expression : expressions) {
-            expression.setNextReader(subReaderContext);
+            try {
+                expression.setNextReader(subReaderContext);
+            } catch (IOException e) {
+                throw Throwables.propagate(e);
+            }
             expression.setNextDocId(subDoc);
         }
         return inputRow;

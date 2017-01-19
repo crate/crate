@@ -22,11 +22,13 @@
 package io.crate.operation.reference.doc.lucene;
 
 import io.crate.exceptions.GroupByOnArrayUnsupportedException;
+import org.apache.lucene.index.DocValues;
 import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.SortedNumericDocValues;
-import org.elasticsearch.index.fielddata.IndexNumericFieldData;
 
-public class ShortColumnReference extends FieldCacheExpression<IndexNumericFieldData, Short> {
+import java.io.IOException;
+
+public class ShortColumnReference extends LuceneCollectorExpression<Short> {
 
     private SortedNumericDocValues values;
     private Short value;
@@ -57,9 +59,9 @@ public class ShortColumnReference extends FieldCacheExpression<IndexNumericField
     }
 
     @Override
-    public void setNextReader(LeafReaderContext context) {
+    public void setNextReader(LeafReaderContext context) throws IOException {
         super.setNextReader(context);
-        values = indexFieldData.load(context).getLongValues();
+        values = DocValues.getSortedNumeric(context.reader(), columnName);
     }
 
     @Override

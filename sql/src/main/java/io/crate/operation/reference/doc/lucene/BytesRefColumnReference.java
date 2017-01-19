@@ -28,6 +28,8 @@ import org.apache.lucene.index.RandomAccessOrds;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.index.fielddata.IndexOrdinalsFieldData;
 
+import java.io.IOException;
+
 public class BytesRefColumnReference extends FieldCacheExpression<IndexOrdinalsFieldData, BytesRef> {
 
     private RandomAccessOrds values;
@@ -59,8 +61,11 @@ public class BytesRefColumnReference extends FieldCacheExpression<IndexOrdinalsF
     }
 
     @Override
-    public void setNextReader(LeafReaderContext context) {
+    public void setNextReader(LeafReaderContext context) throws IOException {
         super.setNextReader(context);
+        // String columns created via CREATE TABLE use docValues so we could use
+        //  `FieldData.maybeSlowRandomAccessOrds(DocValues.getSortedSet(reader, field));` for those.
+        // But dynamic columns don't use docValues so we need to use the fieldData abstraction layer.
         values = indexFieldData.load(context).getOrdinalsValues();
     }
 
