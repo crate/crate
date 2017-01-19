@@ -361,6 +361,9 @@ public class ShardCollectSource extends AbstractComponent implements CollectSour
             String indexName = entry.getKey();
             IndexMetaData indexMD = metaData.index(indexName);
             if (indexMD == null) {
+                if (PartitionName.isPartition(indexName)) {
+                    continue;
+                }
                 throw new IndexNotFoundException(indexName);
             }
             Index index = indexMD.getIndex();
