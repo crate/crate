@@ -2,6 +2,8 @@
  BREAKING CHANGES due to ES 5.x upgrade
 ========================================
 
+ - Discovery using `Multicast` is removed. `Unicast` is the default discovery mechanism.
+
 - `COPY FROM` now requires column names to be quoted in the JSON file being imported.
 
 - some translog settings are gone, see:

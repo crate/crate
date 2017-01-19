@@ -137,8 +137,6 @@ public class NodeSettingsTest extends CrateUnitTest {
     @Test
     public void testInvalidUnicastHost() throws Exception {
         Settings.Builder builder = Settings.builder()
-            // FIXME: revise after multicast plugin works or is removed
-            //.put("discovery.zen.ping.multicast.enabled", false)
             .put("discovery.zen.ping.unicast.hosts", "nonexistinghost:4300")
             .put("path.home", CRATE_CONFIG_PATH);
         Terminal terminal = Terminal.DEFAULT;

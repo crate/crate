@@ -988,12 +988,6 @@ Discovery
 Unicast Host Discovery
 ~~~~~~~~~~~~~~~~~~~~~~
 
-**discovery.zen.ping.multicast.enabled**
-  | *Default:*  ``true``
-  | *Runtime:*  ``no``
-
-  Boolean value whether discovery via multicast is enabled or not.
-
 CrateDB has built-in support for several different mechanisms how unicast hosts
 for node discovery are obtained. The simplest mechanism is to specify the list
 of hosts in the configuration file.
