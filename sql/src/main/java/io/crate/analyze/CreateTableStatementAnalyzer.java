@@ -97,7 +97,7 @@ public class CreateTableStatementAnalyzer extends DefaultTraversalVisitor<Create
             true
         );
         AnalyzedTableElements tableElements = TableElementsAnalyzer.analyze(
-            createTable.tableElements(), parameterContext, fulltextAnalyzerResolver, null);
+            createTable.tableElements(), parameters, fulltextAnalyzerResolver, null);
 
         // validate table elements
         tableElements.finalizeAndValidate(

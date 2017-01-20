@@ -22,6 +22,7 @@
 package io.crate.analyze;
 
 import io.crate.analyze.expressions.ExpressionToStringVisitor;
+import io.crate.core.collections.Row;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.FulltextAnalyzerResolver;
 import io.crate.metadata.Reference;
@@ -40,13 +41,13 @@ public class TableElementsAnalyzer {
     private final static InnerTableElementsAnalyzer ANALYZER = new InnerTableElementsAnalyzer();
 
     public static AnalyzedTableElements analyze(List<TableElement> tableElements,
-                                                ParameterContext parameterContext,
+                                                Row parameters,
                                                 FulltextAnalyzerResolver fulltextAnalyzerResolver,
                                                 @Nullable TableInfo tableInfo) {
         AnalyzedTableElements analyzedTableElements = new AnalyzedTableElements();
         for (TableElement tableElement : tableElements) {
             ColumnDefinitionContext ctx = new ColumnDefinitionContext(
-                null, parameterContext, fulltextAnalyzerResolver, analyzedTableElements, tableInfo);
+                null, parameters, fulltextAnalyzerResolver, analyzedTableElements, tableInfo);
             ANALYZER.process(tableElement, ctx);
             if (ctx.analyzedColumnDefinition.ident() != null) {
                 analyzedTableElements.add(ctx.analyzedColumnDefinition);
@@ -56,26 +57,26 @@ public class TableElementsAnalyzer {
     }
 
     public static AnalyzedTableElements analyze(TableElement tableElement,
-                                                ParameterContext parameterContext,
+                                                Row parameters,
                                                 FulltextAnalyzerResolver fulltextAnalyzerResolver,
                                                 TableInfo tableInfo) {
-        return analyze(Arrays.asList(tableElement), parameterContext, fulltextAnalyzerResolver, tableInfo);
+        return analyze(Arrays.asList(tableElement), parameters, fulltextAnalyzerResolver, tableInfo);
     }
 
     private static class ColumnDefinitionContext {
-        final ParameterContext parameterContext;
+        private final Row parameters;
         final FulltextAnalyzerResolver fulltextAnalyzerResolver;
         AnalyzedColumnDefinition analyzedColumnDefinition;
         final AnalyzedTableElements analyzedTableElements;
         final TableInfo tableInfo;
 
         ColumnDefinitionContext(@Nullable AnalyzedColumnDefinition parent,
-                                ParameterContext parameterContext,
+                                Row parameters,
                                 FulltextAnalyzerResolver fulltextAnalyzerResolver,
                                 AnalyzedTableElements analyzedTableElements,
                                 @Nullable  TableInfo tableInfo) {
             this.analyzedColumnDefinition = new AnalyzedColumnDefinition(parent);
-            this.parameterContext = parameterContext;
+            this.parameters = parameters;
             this.fulltextAnalyzerResolver = fulltextAnalyzerResolver;
             this.analyzedTableElements = analyzedTableElements;
             this.tableInfo = tableInfo;
@@ -102,7 +103,7 @@ public class TableElementsAnalyzer {
 
         @Override
         public Void visitAddColumnDefinition(AddColumnDefinition node, ColumnDefinitionContext context) {
-            String columnName = ExpressionToStringVisitor.convert(node.name(), context.parameterContext.parameters());
+            String columnName = ExpressionToStringVisitor.convert(node.name(), context.parameters);
             ColumnIdent ident = ColumnIdent.fromPath(columnName);
             context.analyzedColumnDefinition.name(ident.name());
 
@@ -171,7 +172,7 @@ public class TableElementsAnalyzer {
             for (ColumnDefinition columnDefinition : node.nestedColumns()) {
                 ColumnDefinitionContext childContext = new ColumnDefinitionContext(
                     context.analyzedColumnDefinition,
-                    context.parameterContext,
+                    context.parameters,
                     context.fulltextAnalyzerResolver,
                     context.analyzedTableElements,
                     context.tableInfo
@@ -211,7 +212,7 @@ public class TableElementsAnalyzer {
         public Void visitPrimaryKeyConstraint(PrimaryKeyConstraint node, ColumnDefinitionContext context) {
             for (Expression expression : node.columns()) {
                 context.analyzedTableElements.addPrimaryKey(
-                    ExpressionToStringVisitor.convert(expression, context.parameterContext.parameters()));
+                    ExpressionToStringVisitor.convert(expression, context.parameters));
             }
             return null;
         }
@@ -248,7 +249,7 @@ public class TableElementsAnalyzer {
             setAnalyzer(node.properties(), context, node.method());
 
             for (Expression expression : node.columns()) {
-                String expressionName = ExpressionToStringVisitor.convert(expression, context.parameterContext.parameters());
+                String expressionName = ExpressionToStringVisitor.convert(expression, context.parameters);
                 context.analyzedTableElements.addCopyTo(expressionName, node.ident());
             }
             return null;
@@ -256,7 +257,7 @@ public class TableElementsAnalyzer {
 
         private void setGeoType(GenericProperties properties, ColumnDefinitionContext context, String indexMethod) {
             context.analyzedColumnDefinition.geoTree(indexMethod);
-            Settings geoSettings = GenericPropertiesConverter.genericPropertiesToSettings(properties, context.parameterContext);
+            Settings geoSettings = GenericPropertiesConverter.genericPropertiesToSettings(properties, context.parameters);
             context.analyzedColumnDefinition.geoSettings(geoSettings);
         }
 
@@ -277,7 +278,7 @@ public class TableElementsAnalyzer {
                 throw new IllegalArgumentException("array literal not allowed for the analyzer property");
             }
 
-            String analyzerName = ExpressionToStringVisitor.convert(analyzerExpression, context.parameterContext.parameters());
+            String analyzerName = ExpressionToStringVisitor.convert(analyzerExpression, context.parameters);
             if (context.fulltextAnalyzerResolver.hasCustomAnalyzer(analyzerName)) {
                 Settings settings = context.fulltextAnalyzerResolver.resolveFullCustomAnalyzerSettings(analyzerName);
                 context.analyzedColumnDefinition.analyzerSettings(settings);
