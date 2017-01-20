@@ -23,19 +23,21 @@
 package io.crate.cluster.gracefulstop;
 
 import io.crate.action.sql.SQLOperations;
-import io.crate.operation.collect.stats.StatsTables;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import org.elasticsearch.action.admin.cluster.health.TransportClusterHealthAction;
 import org.elasticsearch.action.admin.cluster.settings.TransportClusterUpdateSettingsAction;
 import org.elasticsearch.cluster.service.ClusterService;
+import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.TimeValue;
+import org.elasticsearch.common.util.set.Sets;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Answers;
 
 import javax.annotation.Nullable;
+import java.util.Set;
 import java.util.UUID;
 
 import static org.hamcrest.core.Is.is;
@@ -47,6 +49,12 @@ public class DecommissioningServiceTest extends CrateDummyClusterServiceUnitTest
     private TestableDecommissioningService decommissioningService;
     private ThreadPool threadPool;
     private SQLOperations sqlOperations;
+
+    @Override
+    protected Set<Setting<?>> additionalClusterSettings() {
+        SQLPlugin sqlPlugin = new SQLPlugin(Settings.EMPTY);
+        return Sets.newHashSet(sqlPlugin.getSettings());
+    }
 
     @Before
     public void init() throws Exception {
