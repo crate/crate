@@ -18,6 +18,9 @@ Unreleased
  - Fixed an issue that caused fulltext search with fuzziness='AUTO'
    to throw NumberFormatException.
 
+ - DEPRECATED: multicast discovery has been depreciated in this release, and will be
+   removed in the 1.1 release.
+
  - BREAKING: Serve admin ui from ``/``
    Admin UI is not accessible via ``_plugin/crate-admin`` anymore. Only via
    ``/admin`` or ``/``.

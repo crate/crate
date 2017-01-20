@@ -8,9 +8,11 @@ EC2 Discovery
 =============
 
 CrateDB has native discovery support when running a cluster on Amazon
-infrastructure. Since EC2 does not support multicast, the discovery mechanism
-uses the `EC2 API`_ to look up other EC2 hosts that are then used as unicast
-hosts for node discovery (see :ref:`conf_discovery`).
+infrastructure. Since EC2 does not support multicast (which, in any case, was
+deprecated in CrateDB 1.0.3 and will be removed in CrateDB 1.1) the discovery
+mechanism uses the `EC2 API`_ to look up other EC2 hosts that are then used as
+unicast hosts for node discovery (see
+:ref:`conf_discovery`).
 
 There is a :ref:`best practice <ec2_setup>` how to configure and run a CrateDB
 cluster on Amazon EC2.
@@ -23,10 +25,11 @@ cluster on Amazon EC2.
 Azure Discovery
 ===============
 
-CrateDB has native discovery support when running a cluster on `Microsoft Azure`_
-infrastructure. Since Azure does not support multicast, the discovery mechanism
-uses the ARM (Azure Resource Management) mode APIs to generate the list of hosts
-for the unicast host discovery.
+CrateDB has native discovery support when running a cluster on `Microsoft
+Azure`_ infrastructure. Since Azure does not support multicast (which, in any
+case, was deprecated in CrateDB 1.0.3 and will be removed in CrateDB 1.1) the
+discovery mechanism uses the ARM (Azure Resource Management) mode APIs to
+generate the list of hosts for the unicast host discovery.
 
 The discovery mechanism is implemented as a plugin and resides within the plugin
 folder of the CrateDB installation. However, since the Azure Java SDKs does have
