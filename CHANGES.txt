@@ -12,17 +12,18 @@ Unreleased
    Now it's possible to use `` = ANY (SELECT ...)`` instead of
    `` = ANY ((SELECT ...))``
 
- - Fix issue where fulltext search with fuzziness='AUTO' throws
-   NumberFormatException.
+ - Fixed an issue that caused fulltext search with fuzziness='AUTO'
+   to throw NumberFormatException.
 
  - BREAKING: Serve admin ui from ``/``
    Admin UI is not accessible via ``_plugin/crate-admin`` anymore. Only via
    ``/admin`` or ``/``.
 
- - Fix an issue in the ``LIKE`` predicate which prevents using escaped
+ - Fixed an issue in the ``LIKE`` predicate which prevented from using escaped
    backslash before the wildcard.
 
-- Updated crate-admin to ``1.1.0`` which includes the following change:
+ - Updated crate-admin to ``1.1.0`` which includes the following change:
+
      - Improved console results table, including data type based colorization,
        alternating row colorization, structured object/array formatting,
        human-readable timestamps, Google Maps link on geo-point
