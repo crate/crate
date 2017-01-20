@@ -32,7 +32,6 @@ import io.crate.analyze.symbol.Symbol;
 import io.crate.analyze.symbol.format.SymbolPrinter;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.metadata.*;
-import io.crate.metadata.table.TableInfo;
 import io.crate.operation.scalar.cast.CastFunctionResolver;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
@@ -204,12 +203,12 @@ public class AnalyzedTableElements {
     }
 
     void finalizeAndValidate(TableIdent tableIdent,
-                             @Nullable TableInfo tableInfo,
+                             Collection<? extends Reference> existingColumns,
                              Functions functions,
                              ParameterContext parameterContext,
                              SessionContext sessionContext) {
         expandColumnIdents();
-        validateGeneratedColumns(tableIdent, tableInfo, functions, parameterContext, sessionContext);
+        validateGeneratedColumns(tableIdent, existingColumns, functions, parameterContext, sessionContext);
         for (AnalyzedColumnDefinition column : columns) {
             column.validate();
             addCopyToInfo(column);
@@ -219,7 +218,7 @@ public class AnalyzedTableElements {
     }
 
     private void validateGeneratedColumns(TableIdent tableIdent,
-                                          @Nullable TableInfo tableInfo,
+                                          Collection<? extends Reference> existingColumns,
                                           Functions functions,
                                           ParameterContext parameterContext,
                                           SessionContext sessionContext) {
@@ -227,10 +226,7 @@ public class AnalyzedTableElements {
         for (AnalyzedColumnDefinition columnDefinition : columns) {
             buildReference(tableIdent, columnDefinition, tableReferences);
         }
-        if (tableInfo != null) {
-            // add existing references
-            tableReferences.addAll(tableInfo.columns());
-        }
+        tableReferences.addAll(existingColumns);
 
         TableReferenceResolver tableReferenceResolver = new TableReferenceResolver(tableReferences);
         ExpressionAnalyzer expressionAnalyzer = new ExpressionAnalyzer(

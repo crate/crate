@@ -79,7 +79,7 @@ class AlterTableAddColumnAnalyzer extends DefaultTraversalVisitor<AddColumnAnaly
         ensureNoIndexDefinitions(statement.analyzedTableElements().columns());
         statement.analyzedTableElements().finalizeAndValidate(
             statement.table().ident(),
-            statement.table(),
+            statement.table().columns(),
             functions,
             analysis.parameterContext(),
             analysis.sessionContext());

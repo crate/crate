@@ -32,6 +32,7 @@ import io.crate.sql.tree.*;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
 
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Locale;
 
 public class CreateTableStatementAnalyzer extends DefaultTraversalVisitor<CreateTableAnalyzedStatement,
@@ -102,7 +103,7 @@ public class CreateTableStatementAnalyzer extends DefaultTraversalVisitor<Create
         // validate table elements
         tableElements.finalizeAndValidate(
             tableIdent,
-            null,
+            Collections.emptyList(),
             functions,
             parameterContext,
             sessionContext);
