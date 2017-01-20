@@ -159,6 +159,7 @@ public class SimplePortal extends AbstractPortal {
     public ListenableFuture<?> sync(Planner planner, StatsTables statsTables) {
         UUID jobId = UUID.randomUUID();
         Plan plan;
+
         try {
             plan = planner.plan(analysis, jobId, defaultLimit, maxRows);
         } catch (Throwable t) {
@@ -180,7 +181,12 @@ public class SimplePortal extends AbstractPortal {
                 sessionContext);
         }
         if (!resumeIfSuspended()) {
-            this.rowReceiver = new RowReceiverToResultReceiver(resultReceiver, maxRows);
+            if (analysis.rootRelation() == null) {
+                this.rowReceiver = RowReceiverToResultReceiver.singleRow(resultReceiver);
+            } else {
+                this.rowReceiver = RowReceiverToResultReceiver.multiRow(resultReceiver, maxRows);
+
+            }
             portalContext.getExecutor().execute(plan, rowReceiver, this.rowParams);
         }
         return resultReceiver.completionFuture();

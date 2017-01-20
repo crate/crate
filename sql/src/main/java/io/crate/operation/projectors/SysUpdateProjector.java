@@ -77,9 +77,7 @@ class SysUpdateProjector extends AbstractProjector {
 
     @Override
     public void finish(RepeatHandle repeatHandle) {
-        downstream.setNextRow(new Row1(rowCount));
-        downstream.finish(RepeatHandle.UNSUPPORTED);
-        ;
+        RowReceivers.sendOneRow(downstream, new Row1(rowCount));
     }
 
     @Override

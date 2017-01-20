@@ -559,7 +559,7 @@ class ConnectionContext {
             List<Field> fields = session.describe('P', "");
             if (fields == null) {
                 RowCountReceiver rowCountReceiver = new RowCountReceiver(query, channel);
-                session.execute("", 1, rowCountReceiver);
+                session.execute("", 0, rowCountReceiver);
             } else {
                 Messages.sendRowDescription(channel, fields, null);
                 ResultSetReceiver resultSetReceiver = new ResultSetReceiver(query, channel, Symbols.extractTypes(fields), null);

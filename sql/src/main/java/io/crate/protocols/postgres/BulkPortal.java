@@ -110,7 +110,7 @@ class BulkPortal extends AbstractPortal {
 
     @Override
     public void execute(ResultReceiver resultReceiver, int maxRows) {
-        if (maxRows != 1) {
+        if (maxRows > 1) {
             throw new UnsupportedFeatureException("bulk operations don't support fetch size");
         }
         this.resultReceivers.add(resultReceiver);

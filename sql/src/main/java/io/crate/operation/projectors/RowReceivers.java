@@ -64,8 +64,20 @@ public class RowReceivers {
         }
     }
 
+    /**
+     * Sends exactly one row to the given receiver and calls {@link RowReceiver#finish}. The repeatHandle passed to
+     * the receiver does not support repeat.
+     *
+     * Pause is not supported, so if the receiver tries to pause it {@link RowReceiver#fail} will be called immediately.
+     *
+     * @param receiver the downstream receiver to send the row to
+     * @param row the row to be sent to the receiver
+     */
     public static void sendOneRow(RowReceiver receiver, Row row) {
-        receiver.setNextRow(row);
+        RowReceiver.Result result = receiver.setNextRow(row);
+        if (result == RowReceiver.Result.PAUSE){
+            receiver.fail(new UnsupportedOperationException("Pause not supported receiver=" + receiver));
+        }
         receiver.finish(RepeatHandle.UNSUPPORTED);
     }
 }

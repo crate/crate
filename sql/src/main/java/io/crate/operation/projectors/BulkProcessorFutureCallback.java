@@ -43,8 +43,7 @@ class BulkProcessorFutureCallback implements FutureCallback<BitSet> {
     public void onSuccess(@Nullable BitSet result) {
         if (!failed.get()) {
             long rowCount = result == null ? 0 : result.cardinality();
-            rowReceiver.setNextRow(new Row1(rowCount));
-            rowReceiver.finish(RepeatHandle.UNSUPPORTED);
+            RowReceivers.sendOneRow(rowReceiver, new Row1(rowCount));
         }
     }
 

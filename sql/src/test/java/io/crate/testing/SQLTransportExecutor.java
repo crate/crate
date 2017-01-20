@@ -176,7 +176,7 @@ public class SQLTransportExecutor {
             List<Field> outputFields = session.describe('P', UNNAMED);
             if (outputFields == null) {
                 ResultReceiver resultReceiver = new RowCountReceiver(listener);
-                session.execute(UNNAMED, 1, resultReceiver);
+                session.execute(UNNAMED, 0, resultReceiver);
             } else {
                 ResultReceiver resultReceiver = new ResultSetReceiver(listener, outputFields);
                 session.execute(UNNAMED, 0, resultReceiver);
@@ -201,12 +201,12 @@ public class SQLTransportExecutor {
             final SQLBulkResponse.Result[] results = new SQLBulkResponse.Result[bulkArgs.length];
             if (results.length == 0) {
                 session.bind(UNNAMED, UNNAMED, Collections.emptyList(), null);
-                session.execute(UNNAMED, 1, new BaseResultReceiver());
+                session.execute(UNNAMED, 0, new BaseResultReceiver());
             } else {
                 for (int i = 0; i < bulkArgs.length; i++) {
                     session.bind(UNNAMED, UNNAMED, Arrays.asList(bulkArgs[i]), null);
                     ResultReceiver resultReceiver = new BulkRowCountReceiver(results, i);
-                    session.execute(UNNAMED, 1, resultReceiver);
+                    session.execute(UNNAMED, 0, resultReceiver);
                 }
             }
             List<Field> outputColumns = session.describe('P', UNNAMED);

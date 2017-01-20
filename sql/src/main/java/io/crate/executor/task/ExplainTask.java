@@ -26,8 +26,8 @@ import com.google.common.util.concurrent.ListenableFuture;
 import io.crate.core.collections.Row;
 import io.crate.core.collections.Row1;
 import io.crate.executor.Task;
-import io.crate.operation.projectors.RepeatHandle;
 import io.crate.operation.projectors.RowReceiver;
+import io.crate.operation.projectors.RowReceivers;
 import io.crate.planner.PlanPrinter;
 import io.crate.planner.node.management.ExplainPlan;
 
@@ -46,8 +46,7 @@ public class ExplainTask implements Task {
     public void execute(RowReceiver rowReceiver, Row parameters) {
         try {
             Map<String, Object> map = PlanPrinter.objectMap(explainPlan.subPlan());
-            rowReceiver.setNextRow(new Row1(map));
-            rowReceiver.finish(RepeatHandle.UNSUPPORTED);
+            RowReceivers.sendOneRow(rowReceiver, new Row1(map));
         } catch (Throwable t) {
             rowReceiver.fail(t);
         }

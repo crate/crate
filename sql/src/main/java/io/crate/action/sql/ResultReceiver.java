@@ -37,11 +37,35 @@ import javax.annotation.Nonnull;
  */
 public interface ResultReceiver extends CompletionListenable {
 
+    /**
+     * Feed the downstream with the next input row. Note thate the row might be a mutable shared object
+     * it is only guaranteed to stay valid as long this method does not return.
+     *
+     * @param row the row handle to be processed
+     *
+     */
     void setNextRow(Row row);
 
+    /**
+     * Called from the upstream in order to notify the receiver that a batch of data has finished. It is the responsibility
+     * of the upstream to eventually call {@link #allFinished()} once it is getting resumed. How this resume is working
+     * is up to the implementation and not part of this interface.
+     */
     void batchFinished();
 
+    /**
+     * Called by an upstream to notify that there will be no more data to process. After calling this method it is no
+     * longer valid to call any method on this interface.
+     */
     void allFinished();
 
-    void fail(@Nonnull Throwable t);
+    /**
+     * Is called from the upstream in case of an upstream failure to indicate that it aborts emitting data due to
+     * a failure. After calling this method it is no longer valid to call any method on this interface.
+     *
+     * @param throwable the cause of the failure
+     *                  <p>
+     *                  NOTE: This method must not throw any exceptions!
+     */
+    void fail(@Nonnull Throwable throwable);
 }

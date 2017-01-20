@@ -27,8 +27,8 @@ import io.crate.analyze.AbstractShowAnalyzedStatement;
 import io.crate.core.collections.Row;
 import io.crate.core.collections.Row1;
 import io.crate.executor.Task;
-import io.crate.operation.projectors.RepeatHandle;
 import io.crate.operation.projectors.RowReceiver;
+import io.crate.operation.projectors.RowReceivers;
 
 import java.util.List;
 import java.util.UUID;
@@ -48,8 +48,7 @@ public class GenericShowTask implements Task {
     @Override
     public void execute(RowReceiver rowReceiver, Row parameters) {
         try {
-            rowReceiver.setNextRow(new Row1(showStatementDispatcher.process(statement, jobId)));
-            rowReceiver.finish(RepeatHandle.UNSUPPORTED);
+            RowReceivers.sendOneRow(rowReceiver, new Row1(showStatementDispatcher.process(statement, jobId)));
         } catch (Throwable t) {
             rowReceiver.fail(t);
         }

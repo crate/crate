@@ -20,29 +20,24 @@
  * agreement.
  */
 
-package io.crate.operation.projectors;
+package io.crate.executor.transport;
 
-import io.crate.core.collections.Row;
+import com.google.common.base.Functions;
 import io.crate.core.collections.Row1;
+import io.crate.test.integration.CrateUnitTest;
+import io.crate.testing.CollectingRowReceiver;
+import org.junit.Test;
 
-public class MergeCountProjector extends AbstractProjector {
+import static org.hamcrest.Matchers.containsString;
 
-    private long sum;
+public class OneRowActionListenerTest extends CrateUnitTest{
 
-    @Override
-    public Result setNextRow(Row row) {
-        Long count = (Long) row.get(0);
-        sum += count;
-        return Result.CONTINUE;
-    }
-
-    @Override
-    public void finish(RepeatHandle repeatHandle) {
-        RowReceivers.sendOneRow(downstream, new Row1(sum));
-    }
-
-    @Override
-    public void fail(Throwable throwable) {
-        downstream.fail(throwable);
+    @Test
+    public void testPauseIsNotSupported() throws Exception {
+        CollectingRowReceiver rr = CollectingRowReceiver.withPauseAfter(1);
+        OneRowActionListener<Integer> l = new OneRowActionListener<>(rr, Functions.constant(new Row1(1)));
+        l.onSuccess(1);
+        expectedException.expectMessage(containsString("Pause not supported"));
+        rr.resultFuture().get();
     }
 }

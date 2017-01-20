@@ -34,8 +34,8 @@ import io.crate.executor.transport.ShardUpsertRequest;
 import io.crate.jobs.*;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.settings.CrateSettings;
-import io.crate.operation.projectors.RepeatHandle;
 import io.crate.operation.projectors.RowReceiver;
+import io.crate.operation.projectors.RowReceivers;
 import io.crate.planner.node.dml.UpsertById;
 import org.elasticsearch.ExceptionsHelper;
 import org.elasticsearch.action.ActionListener;
@@ -127,8 +127,7 @@ public class UpsertByIdTask extends JobTask {
         Futures.addCallback(result, new FutureCallback<Long>() {
             @Override
             public void onSuccess(@Nullable Long result) {
-                rowReceiver.setNextRow(new Row1(result));
-                rowReceiver.finish(RepeatHandle.UNSUPPORTED);
+                RowReceivers.sendOneRow(rowReceiver, new Row1(result));
             }
 
             @Override
