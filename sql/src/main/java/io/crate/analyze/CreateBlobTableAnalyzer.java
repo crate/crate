@@ -31,7 +31,6 @@ import java.util.Optional;
 
 class CreateBlobTableAnalyzer {
 
-    private static final TablePropertiesAnalyzer TABLE_PROPERTIES_ANALYZER = new TablePropertiesAnalyzer();
     private final Schemas schemas;
     private final NumberOfShards numberOfShards;
 
@@ -56,7 +55,7 @@ class CreateBlobTableAnalyzer {
 
         // apply default in case it is not specified in the genericProperties,
         // if it is it will get overwritten afterwards.
-        TABLE_PROPERTIES_ANALYZER.analyze(
+        TablePropertiesAnalyzer.analyze(
             statement.tableParameter(), new BlobTableParameterInfo(),
             node.genericProperties(), parameterContext.parameters(), true);
 

@@ -31,7 +31,6 @@ import org.elasticsearch.common.settings.Settings;
 
 class AlterTableAnalyzer extends DefaultTraversalVisitor<AlterTableAnalyzedStatement, Analysis> {
 
-    private static final TablePropertiesAnalyzer TABLE_PROPERTIES_ANALYZER = new TablePropertiesAnalyzer();
     private final Schemas schemas;
 
     AlterTableAnalyzer(Schemas schemas) {
@@ -62,11 +61,11 @@ class AlterTableAnalyzer extends DefaultTraversalVisitor<AlterTableAnalyzedState
         statement.excludePartitions(node.table().excludePartitions());
 
         if (node.genericProperties().isPresent()) {
-            TABLE_PROPERTIES_ANALYZER.analyze(
+            TablePropertiesAnalyzer.analyze(
                 statement.tableParameter(), tableParameterInfo, node.genericProperties(),
                 analysis.parameterContext().parameters());
         } else if (!node.resetProperties().isEmpty()) {
-            TABLE_PROPERTIES_ANALYZER.analyze(
+            TablePropertiesAnalyzer.analyze(
                 statement.tableParameter(), tableParameterInfo, node.resetProperties());
         }
 

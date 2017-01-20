@@ -38,7 +38,6 @@ import java.util.Locale;
 public class CreateTableStatementAnalyzer extends DefaultTraversalVisitor<CreateTableAnalyzedStatement,
     CreateTableStatementAnalyzer.Context> {
 
-    private static final TablePropertiesAnalyzer TABLE_PROPERTIES_ANALYZER = new TablePropertiesAnalyzer();
     private static final String CLUSTERED_BY_IN_PARTITIONED_ERROR = "Cannot use CLUSTERED BY column in PARTITIONED BY clause";
     private final Schemas schemas;
     private final FulltextAnalyzerResolver fulltextAnalyzerResolver;
@@ -90,7 +89,7 @@ public class CreateTableStatementAnalyzer extends DefaultTraversalVisitor<Create
 
         // apply default in case it is not specified in the genericProperties,
         // if it is it will get overwritten afterwards.
-        TABLE_PROPERTIES_ANALYZER.analyze(
+        TablePropertiesAnalyzer.analyze(
             statement.tableParameter(),
             new TableParameterInfo(),
             createTable.properties(),
