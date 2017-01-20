@@ -21,7 +21,11 @@
 
 package io.crate.analyze;
 
+import io.crate.core.collections.Row;
 import io.crate.metadata.Schemas;
+import io.crate.metadata.TableIdent;
+import io.crate.metadata.blob.BlobSchemaInfo;
+import io.crate.metadata.blob.BlobTableInfo;
 import io.crate.sql.tree.AlterBlobTable;
 
 import static io.crate.analyze.BlobTableAnalyzer.tableToIdent;
@@ -34,20 +38,22 @@ class AlterBlobTableAnalyzer {
         this.schemas = schemas;
     }
 
-    public AlterBlobTableAnalyzedStatement analyze(AlterBlobTable node, ParameterContext parameterContext) {
-        AlterBlobTableAnalyzedStatement statement = new AlterBlobTableAnalyzedStatement(schemas);
+    public AlterBlobTableAnalyzedStatement analyze(AlterBlobTable node, Row parameters) {
+        TableIdent tableIdent = tableToIdent(node.table());
+        assert BlobSchemaInfo.NAME.equals(tableIdent.schema()) : "schema name must be 'blob'";
+        BlobTableInfo tableInfo = (BlobTableInfo) schemas.getTableInfo(tableIdent);
 
-        statement.table(tableToIdent(node.table()));
-
+        TableParameter tableParameter = new TableParameter();
         if (node.genericProperties().isPresent()) {
             TablePropertiesAnalyzer.analyze(
-                statement.tableParameter(), statement.table().tableParameterInfo(),
-                node.genericProperties(), parameterContext.parameters());
+                tableParameter,
+                tableInfo.tableParameterInfo(),
+                node.genericProperties(),
+                parameters
+            );
         } else if (!node.resetProperties().isEmpty()) {
-            TablePropertiesAnalyzer.analyze(
-                statement.tableParameter(), statement.table().tableParameterInfo(),
-                node.resetProperties());
+            TablePropertiesAnalyzer.analyze(tableParameter, tableInfo.tableParameterInfo(), node.resetProperties());
         }
-        return statement;
+        return new AlterBlobTableAnalyzedStatement(tableInfo, tableParameter);
     }
 }

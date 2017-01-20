@@ -21,27 +21,24 @@
 
 package io.crate.analyze;
 
-import io.crate.metadata.Schemas;
-import io.crate.metadata.TableIdent;
-import io.crate.metadata.blob.BlobSchemaInfo;
 import io.crate.metadata.blob.BlobTableInfo;
 
-public class AlterBlobTableAnalyzedStatement extends AbstractDDLAnalyzedStatement {
+public class AlterBlobTableAnalyzedStatement implements DDLStatement {
 
-    private final Schemas schemas;
-    private BlobTableInfo tableInfo;
+    private final BlobTableInfo tableInfo;
+    private final TableParameter tableParameter;
 
-    public AlterBlobTableAnalyzedStatement(Schemas schemas) {
-        this.schemas = schemas;
-    }
-
-    public void table(TableIdent tableIdent) {
-        assert BlobSchemaInfo.NAME.equals(tableIdent.schema()) : "schema name must be 'blob'";
-        tableInfo = (BlobTableInfo) schemas.getTableInfo(tableIdent);
+    public AlterBlobTableAnalyzedStatement(BlobTableInfo tableInfo, TableParameter tableParameter) {
+        this.tableInfo = tableInfo;
+        this.tableParameter = tableParameter;
     }
 
     public BlobTableInfo table() {
         return tableInfo;
+    }
+
+    public TableParameter tableParameter() {
+        return tableParameter;
     }
 
     @Override
