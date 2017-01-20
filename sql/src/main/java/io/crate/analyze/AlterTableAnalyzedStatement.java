@@ -21,47 +21,43 @@
 
 package io.crate.analyze;
 
-import com.google.common.base.Optional;
 import io.crate.metadata.PartitionName;
-import io.crate.metadata.Schemas;
-import io.crate.metadata.TableIdent;
 import io.crate.metadata.doc.DocTableInfo;
 
-import javax.annotation.Nullable;
+import java.util.Optional;
 
-public class AlterTableAnalyzedStatement extends AbstractDDLAnalyzedStatement {
+public class AlterTableAnalyzedStatement implements DDLStatement {
 
-    private final Schemas schemas;
-    private DocTableInfo tableInfo;
-    private Optional<PartitionName> partitionName = Optional.absent();
-    private boolean excludePartitions = false;
 
-    public AlterTableAnalyzedStatement(Schemas schemas) {
-        this.schemas = schemas;
-    }
+    private final DocTableInfo tableInfo;
+    private final PartitionName partitionName;
+    private final TableParameter tableParameter;
+    private final boolean excludePartitions;
 
-    public void table(TableIdent tableIdent) {
-        tableInfo = schemas.getWritableTable(tableIdent);
+    public AlterTableAnalyzedStatement(DocTableInfo tableInfo,
+                                       PartitionName partitionName,
+                                       TableParameter tableParameter,
+                                       boolean excludePartitions) {
+        this.tableInfo = tableInfo;
+        this.partitionName = partitionName;
+        this.tableParameter = tableParameter;
+        this.excludePartitions = excludePartitions;
     }
 
     public DocTableInfo table() {
         return tableInfo;
     }
 
-    public void partitionName(@Nullable PartitionName partitionName) {
-        this.partitionName = Optional.fromNullable(partitionName);
-    }
-
     public Optional<PartitionName> partitionName() {
-        return partitionName;
-    }
-
-    public void excludePartitions(boolean excludePartitions) {
-        this.excludePartitions = excludePartitions;
+        return Optional.ofNullable(partitionName);
     }
 
     public boolean excludePartitions() {
         return excludePartitions;
+    }
+
+    public TableParameter tableParameter() {
+        return tableParameter;
     }
 
     @Override
