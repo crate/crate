@@ -1,0 +1,37 @@
+Crate data migration in order to support the upgrade to ES5
+===========================================================
+ES5 cannot work with indices created before 2.3. In order to use pre 2.3 
+indices they need to be reindexed using ES 2.3 or 2.4, or migrated directly 
+to ES5. 
+
+ES index migration
+==================
+ES recommends updating from pre 2.3 to 2.3/2.4 and running the ES migration 
+plugin ( https://github.com/elastic/elasticsearch-migration/tree/2.x ) which 
+runs these steps:
+    1. Create a new index using the old index name + ES version 
+            eg. users -> users-2.4.1
+       The new index has refresh disabled and replication set to 0.
+    2. Old index is set to be read only
+    3. Reindex old documents to the new index 
+    4. Copies aliases from the old index to the new index
+    5. Sets the old index name as an alias to the new index
+            eg. `users` -> users-2.4.1
+
+Crate migration
+===============
+Crate 0.55 shipped with ES 2.3, so tables created in Crate ``pre`` 0.55 
+will need migration.
+The equivalent ES migration process translated into Crate would be:
+    1. Create a new table 
+       - follow the best practices for importing large amounts of data for 
+       the new table in terms of replication, refresh, store level etc 
+       (https://crate.io/docs/reference/best_practice/data_import.html)
+    2. Set old table to be read only - blocks.read_only=true
+    3. Insert using query (or export/import) data from old table to the 
+       new table 
+    4. Delete old table 
+    5. Rename the new table to the old table name  
+
+In order to support this process we need to implement table renaming:  
+eg ALTER new_temporary_table RENAME TO old_table_name;
