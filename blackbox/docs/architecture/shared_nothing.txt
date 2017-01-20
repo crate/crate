@@ -182,6 +182,10 @@ Node discovery happens in multiple steps:
 * The cluster state is then published across the cluster. This guarantees the
   common knowledge of the node addition.
 
+.. caution::
+
+   Multicast discovery was deprecated in CrateDB 1.0.3 and will be removed in CrateDB 1.1.
+
 Networking
 ----------
 

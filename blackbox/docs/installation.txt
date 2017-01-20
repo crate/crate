@@ -11,6 +11,10 @@ In case the network doesn't support multicast, a unicast configuration is
 required. Please refer to our article on `Multi Node Setup`_ in order to learn
 how to setup the unicast configuration.
 
+.. caution::
+
+   Multicast discovery was deprecated in CrateDB 1.0.3 and will be removed in CrateDB 1.1.
+
 Java (JVM) version
 ==================
 

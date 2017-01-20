@@ -1000,6 +1000,10 @@ Unicast Host Discovery
 
   Boolean value whether discovery via multicast is enabled or not.
 
+.. caution::
+
+   Multicast discovery was deprecated in CrateDB 1.0.3 and will be removed in CrateDB 1.1.
+
 CrateDB has built-in support for several different mechanisms how unicast hosts
 for node discovery are obtained. The simplest mechanism is to specify the list
 of hosts in the configuration file.
