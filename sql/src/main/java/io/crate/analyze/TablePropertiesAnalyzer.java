@@ -40,7 +40,10 @@ import org.elasticsearch.common.settings.Settings;
 
 import java.util.*;
 
-public class TablePropertiesAnalyzer {
+public final class TablePropertiesAnalyzer {
+
+    private TablePropertiesAnalyzer() {
+    }
 
     private static final ImmutableBiMap<String, String> CRATE_TO_ES_SETTINGS_MAP =
         ImmutableBiMap.<String, String>builder()
@@ -117,18 +120,18 @@ public class TablePropertiesAnalyzer {
         return (val == null) ? esSettingName : val;
     }
 
-    public void analyze(TableParameter tableParameter,
-                        TableParameterInfo tableParameterInfo,
-                        Optional<GenericProperties> properties,
-                        Row parameters) {
+    public static void analyze(TableParameter tableParameter,
+                               TableParameterInfo tableParameterInfo,
+                               Optional<GenericProperties> properties,
+                               Row parameters) {
         analyze(tableParameter, tableParameterInfo, properties, parameters, false);
     }
 
-    public void analyze(TableParameter tableParameter,
-                        TableParameterInfo tableParameterInfo,
-                        Optional<GenericProperties> properties,
-                        Row parameters,
-                        boolean withDefaults) {
+    public static void analyze(TableParameter tableParameter,
+                               TableParameterInfo tableParameterInfo,
+                               Optional<GenericProperties> properties,
+                               Row parameters,
+                               boolean withDefaults) {
         if (withDefaults) {
             SettingsApplier settingsApplier = SETTINGS_APPLIER.get(TableParameterInfo.NUMBER_OF_REPLICAS);
             tableParameter.settingsBuilder().put(settingsApplier.getDefault());
@@ -159,9 +162,9 @@ public class TablePropertiesAnalyzer {
 
     }
 
-    public void analyze(TableParameter tableParameter,
-                        TableParameterInfo tableParameterInfo,
-                        List<String> properties) {
+    public static void analyze(TableParameter tableParameter,
+                               TableParameterInfo tableParameterInfo,
+                               List<String> properties) {
         validateTableProperties(tableParameterInfo, properties);
 
         for (String setting : tableParameterInfo.supportedSettings()) {
@@ -180,7 +183,7 @@ public class TablePropertiesAnalyzer {
         }
     }
 
-    private void validateTableProperties(TableParameterInfo tableParameterInfo, Collection<String> propertyNames) {
+    private static void validateTableProperties(TableParameterInfo tableParameterInfo, Collection<String> propertyNames) {
         List<String> supportedParameters = new ArrayList<>(tableParameterInfo.supportedSettings());
         supportedParameters.addAll(tableParameterInfo.supportedMappings());
         for (String propertyName : propertyNames) {

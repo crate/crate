@@ -28,7 +28,6 @@ import static io.crate.analyze.BlobTableAnalyzer.tableToIdent;
 
 class AlterBlobTableAnalyzer {
 
-    private static final TablePropertiesAnalyzer TABLE_PROPERTIES_ANALYZER = new TablePropertiesAnalyzer();
     private final Schemas schemas;
 
     AlterBlobTableAnalyzer(Schemas schemas) {
@@ -41,11 +40,11 @@ class AlterBlobTableAnalyzer {
         statement.table(tableToIdent(node.table()));
 
         if (node.genericProperties().isPresent()) {
-            TABLE_PROPERTIES_ANALYZER.analyze(
+            TablePropertiesAnalyzer.analyze(
                 statement.tableParameter(), statement.table().tableParameterInfo(),
                 node.genericProperties(), parameterContext.parameters());
         } else if (!node.resetProperties().isEmpty()) {
-            TABLE_PROPERTIES_ANALYZER.analyze(
+            TablePropertiesAnalyzer.analyze(
                 statement.tableParameter(), statement.table().tableParameterInfo(),
                 node.resetProperties());
         }
