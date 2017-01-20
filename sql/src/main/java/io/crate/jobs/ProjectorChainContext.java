@@ -21,16 +21,15 @@
 
 package io.crate.jobs;
 
-import com.google.common.util.concurrent.FutureCallback;
-import com.google.common.util.concurrent.Futures;
 import io.crate.breaker.RamAccountingContext;
-import io.crate.operation.projectors.*;
+import io.crate.operation.data.BatchConsumer;
+import io.crate.operation.projectors.FlatProjectorChain;
+import io.crate.operation.projectors.ProjectorFactory;
 import io.crate.planner.projection.Projection;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 
 import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import java.util.List;
 import java.util.UUID;
 
@@ -39,42 +38,44 @@ public class ProjectorChainContext extends AbstractExecutionSubContext {
     private final static ESLogger LOGGER = Loggers.getLogger(ProjectorChainContext.class);
 
     private final String name;
-    private final RowReceiver rowReceiver;
+    private final BatchConsumer rowReceiver;
 
     public ProjectorChainContext(int id,
                                  String name,
                                  UUID jobId,
                                  ProjectorFactory projectorFactory,
                                  List<Projection> projections,
-                                 RowReceiver rowReceiver,
+                                 BatchConsumer rowReceiver,
                                  RamAccountingContext ramAccountingContext) {
         super(id, LOGGER);
         this.name = name;
-        ListenableRowReceiver listenableRowReceiver = RowReceivers.listenableRowReceiver(rowReceiver);
-        Futures.addCallback(listenableRowReceiver.finishFuture(), new FutureCallback<Void>() {
-            @Override
-            public void onSuccess(@Nullable Void result) {
-                ProjectorChainContext.this.close(null);
-            }
-
-            @Override
-            public void onFailure(@Nonnull Throwable t) {
-                ProjectorChainContext.this.close(t);
-            }
-        });
-        FlatProjectorChain projectorChain = FlatProjectorChain.withAttachedDownstream(
+        // XDOBE: implement
+//        ListenableRowReceiver listenableRowReceiver = RowReceivers.listenableRowReceiver(rowReceiver);
+//        Futures.addCallback(listenableRowReceiver.finishFuture(), new FutureCallback<Void>() {
+//            @Override
+//            public void onSuccess(@Nullable Void result) {
+//                ProjectorChainContext.this.close(null);
+//            }
+//
+//            @Override
+//            public void onFailure(@Nonnull Throwable t) {
+//                ProjectorChainContext.this.close(t);
+//            }
+//        });
+        BatchConsumer projectorChain = FlatProjectorChain.withAttachedDownstream(
             projectorFactory,
             ramAccountingContext,
             projections,
-            listenableRowReceiver,
+            //listenableRowReceiver,
+            rowReceiver,
             jobId
         );
-        this.rowReceiver = projectorChain.firstProjector();
+        this.rowReceiver = projectorChain;
     }
 
     @Override
     protected void innerKill(@Nonnull Throwable t) {
-        rowReceiver.kill(t);
+        // XDOBE: rowReceiver.kill(t);
     }
 
     @Override
@@ -82,7 +83,7 @@ public class ProjectorChainContext extends AbstractExecutionSubContext {
         return name;
     }
 
-    public RowReceiver rowReceiver() {
+    public BatchConsumer rowReceiver() {
         return rowReceiver;
     }
 

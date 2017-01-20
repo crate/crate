@@ -23,24 +23,23 @@ package io.crate.executor.transport.task;
 
 import com.google.common.base.Function;
 import io.crate.core.collections.Row;
-import io.crate.core.collections.Row1;
 import io.crate.executor.JobTask;
 import io.crate.executor.transport.OneRowActionListener;
 import io.crate.executor.transport.kill.KillAllRequest;
 import io.crate.executor.transport.kill.KillResponse;
 import io.crate.executor.transport.kill.TransportKillAllNodeAction;
-import io.crate.operation.projectors.RowReceiver;
+import io.crate.operation.data.BatchConsumer;
 
 import javax.annotation.Nullable;
 import java.util.UUID;
 
 public class KillTask extends JobTask {
 
-    static final Function<KillResponse, Row> KILL_RESPONSE_TO_ROW_FUNCTION = new Function<KillResponse, Row>() {
+    static final Function<KillResponse, Object> KILL_RESPONSE_TO_ROW_FUNCTION = new Function<KillResponse, Object>() {
         @Nullable
         @Override
-        public Row apply(@Nullable KillResponse input) {
-            return new Row1(input == null ? -1 : input.numKilled());
+        public Object apply(@Nullable KillResponse input) {
+            return input == null ? -1 : input.numKilled();
         }
     };
     private final TransportKillAllNodeAction nodeAction;
@@ -51,7 +50,7 @@ public class KillTask extends JobTask {
     }
 
     @Override
-    public void execute(RowReceiver rowReceiver, Row parameters) {
+    public void execute(BatchConsumer rowReceiver, Row parameters) {
         nodeAction.broadcast(new KillAllRequest(),
             new OneRowActionListener<>(rowReceiver, KILL_RESPONSE_TO_ROW_FUNCTION));
     }

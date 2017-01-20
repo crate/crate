@@ -28,13 +28,15 @@ import io.crate.Streamer;
 import io.crate.core.collections.Bucket;
 import io.crate.core.collections.Row;
 import io.crate.executor.transport.StreamBucket;
+import io.crate.operation.data.BatchConsumer;
+import io.crate.operation.data.BatchCursor;
 import io.crate.operation.projectors.*;
 
 import java.io.IOException;
 import java.util.Set;
 
 
-public class SingleBucketBuilder implements RowReceiver {
+public class SingleBucketBuilder implements RowReceiver, BatchConsumer {
 
     private final StreamBucket.Builder bucketBuilder;
     private final SettableFuture<Bucket> bucketFuture = SettableFuture.create();
@@ -83,5 +85,10 @@ public class SingleBucketBuilder implements RowReceiver {
     @Override
     public Set<Requirement> requirements() {
         return Requirements.NO_REQUIREMENTS;
+    }
+
+    @Override
+    public void accept(BatchCursor batchCursor, Throwable t) {
+        // XDOBE: implement
     }
 }

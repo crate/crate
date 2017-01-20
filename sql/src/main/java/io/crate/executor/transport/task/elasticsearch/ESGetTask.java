@@ -40,6 +40,8 @@ import io.crate.jobs.JobExecutionContext;
 import io.crate.metadata.*;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.doc.DocTableInfo;
+import io.crate.operation.data.BatchConsumer;
+import io.crate.operation.data.EmptyBatchCursor;
 import io.crate.operation.projectors.*;
 import io.crate.planner.node.dql.ESGet;
 import io.crate.planner.projection.OrderedTopNProjection;
@@ -82,12 +84,12 @@ public class ESGetTask extends JobTask {
 
 
         private final Request request;
-        protected RowReceiver downstream;
+        protected BatchConsumer downstream;
 
         private final Action transportAction;
         protected final ESGetTask task;
 
-        JobContext(ESGetTask task, Action transportAction, RowReceiver downstream) {
+        JobContext(ESGetTask task, Action transportAction, BatchConsumer downstream) {
             super(task.esGet.executionPhaseId(), LOGGER);
             this.task = task;
             this.transportAction = transportAction;
@@ -102,7 +104,7 @@ public class ESGetTask extends JobTask {
         protected void innerStart() {
             if (request == null) {
                 // request can be null if id is null -> since primary keys cannot be null this is a no-match
-                downstream.finish(RepeatHandle.UNSUPPORTED);
+                downstream.accept(new EmptyBatchCursor(), null);
                 close();
             } else {
                 transportAction.execute(request, this);
@@ -114,7 +116,7 @@ public class ESGetTask extends JobTask {
 
         MultiGetJobContext(ESGetTask task,
                            TransportMultiGetAction transportAction,
-                           RowReceiver downstream) {
+                           BatchConsumer downstream) {
             super(task, transportAction, downstream);
             assert task.esGet.docKeys().size() > 1 : "number of docKeys must be > 1";
             assert task.projectorFactory != null : "task.projectorFactory must not be null";
@@ -122,11 +124,10 @@ public class ESGetTask extends JobTask {
 
         @Override
         protected void innerPrepare() throws Exception {
-            FlatProjectorChain projectorChain = getFlatProjectorChain(downstream);
-            downstream = projectorChain.firstProjector();
+            downstream = getFlatProjectorChain(downstream);
         }
 
-        private FlatProjectorChain getFlatProjectorChain(RowReceiver downstream) {
+        private BatchConsumer getFlatProjectorChain(BatchConsumer downstream) {
             if (task.esGet.limit() > TopN.NO_LIMIT || task.esGet.offset() > 0 || !task.esGet.sortSymbols().isEmpty()) {
                 List<Symbol> orderBySymbols = new ArrayList<>(task.esGet.sortSymbols().size());
                 for (Symbol symbol : task.esGet.sortSymbols()) {
@@ -159,7 +160,7 @@ public class ESGetTask extends JobTask {
                     task.jobId()
                 );
             } else {
-                return FlatProjectorChain.withReceivers(ImmutableList.of(downstream));
+                return downstream;
             }
         }
 
@@ -178,7 +179,9 @@ public class ESGetTask extends JobTask {
                         continue;
                     }
                     row.setCurrent(response.getResponse());
-                    RowReceiver.Result result = downstream.setNextRow(row);
+                    // XDOBE impl:
+                    // RowReceiver.Result result = downstream.setNextRow(row);
+                    RowReceiver.Result result = null;
                     switch (result) {
                         case CONTINUE:
                             continue;
@@ -189,17 +192,17 @@ public class ESGetTask extends JobTask {
                     }
                     throw new AssertionError("Unrecognized setNextRow result: " + result);
                 }
-                downstream.finish(RepeatHandle.UNSUPPORTED);
+                // downstream.finish(RepeatHandle.UNSUPPORTED);
                 close();
             } catch (Exception e) {
-                downstream.fail(e);
+                //downstream.fail(e);
                 close(e);
             }
         }
 
         @Override
         public void onFailure(Throwable e) {
-            downstream.fail(e);
+            //downstream.fail(e);
             close(e);
         }
 
@@ -226,7 +229,7 @@ public class ESGetTask extends JobTask {
 
         SingleGetJobContext(ESGetTask task,
                             TransportGetAction transportAction,
-                            RowReceiver downstream) {
+                            BatchConsumer downstream) {
             super(task, transportAction, downstream);
             assert task.esGet.docKeys().size() == 1 : "numer of docKeys must be 1";
             this.row = new FieldExtractorRow<>(task.extractors);
@@ -256,9 +259,9 @@ public class ESGetTask extends JobTask {
         public void onResponse(GetResponse response) {
             if (response.isExists()) {
                 row.setCurrent(response);
-                downstream.setNextRow(row);
+                // XDOBE: downstream.setNextRow(row);
             }
-            downstream.finish(RepeatHandle.UNSUPPORTED);
+            // XDOBE: downstream.finish(RepeatHandle.UNSUPPORTED);
             close();
         }
 
@@ -266,10 +269,10 @@ public class ESGetTask extends JobTask {
         public void onFailure(Throwable e) {
             if (task.esGet.tableInfo().isPartitioned() && e instanceof IndexNotFoundException) {
                 // this means we have no matching document
-                downstream.finish(RepeatHandle.UNSUPPORTED);
+                // XDOBE: downstream.finish(RepeatHandle.UNSUPPORTED);
                 close();
             } else {
-                downstream.fail(e);
+                // XCDOBE downstream.fail(e);
                 close(e);
             }
         }
@@ -299,7 +302,7 @@ public class ESGetTask extends JobTask {
     }
 
     @Override
-    public void execute(RowReceiver rowReceiver, Row parameters) {
+    public void execute(BatchConsumer rowReceiver, Row parameters) {
         JobContext jobContext;
         if (esGet.docKeys().size() == 1) {
             jobContext = new SingleGetJobContext(this, transportActionProvider.transportGetAction(), rowReceiver);
@@ -313,7 +316,7 @@ public class ESGetTask extends JobTask {
             JobExecutionContext ctx = jobContextService.createContext(builder);
             ctx.start();
         } catch (Throwable throwable) {
-            rowReceiver.fail(throwable);
+            // XDOBE: rowReceiver.fail(throwable);
         }
     }
 

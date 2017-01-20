@@ -24,20 +24,13 @@ package io.crate.operation;
 import com.google.common.base.Optional;
 import io.crate.analyze.EvaluatingNormalizer;
 import io.crate.breaker.RamAccountingContext;
-import io.crate.core.collections.Row;
 import io.crate.executor.transport.TransportActionProvider;
 import io.crate.metadata.Functions;
 import io.crate.metadata.ReplaceMode;
-import io.crate.operation.merge.IteratorPageDownstream;
-import io.crate.operation.merge.PagingIterator;
-import io.crate.operation.merge.PassThroughPagingIterator;
-import io.crate.operation.merge.SortedPagingIterator;
+import io.crate.operation.data.BatchConsumer;
 import io.crate.operation.projectors.FlatProjectorChain;
 import io.crate.operation.projectors.ProjectionToProjectorVisitor;
 import io.crate.operation.projectors.ProjectorFactory;
-import io.crate.operation.projectors.RowReceiver;
-import io.crate.operation.projectors.sorting.OrderingByPosition;
-import io.crate.planner.PositionalOrderBy;
 import io.crate.planner.node.dql.MergePhase;
 import org.elasticsearch.action.bulk.BulkRetryCoordinatorPool;
 import org.elasticsearch.cluster.ClusterService;
@@ -82,32 +75,34 @@ public class PageDownstreamFactory {
     }
 
     public PageDownstream createMergeNodePageDownstream(MergePhase mergePhase,
-                                                        RowReceiver downstream,
+                                                        BatchConsumer downstream,
                                                         boolean requiresRepeatSupport,
                                                         RamAccountingContext ramAccountingContext,
                                                         Optional<Executor> executorOptional) {
         if (!mergePhase.projections().isEmpty()) {
-            FlatProjectorChain projectorChain = FlatProjectorChain.withAttachedDownstream(
+            downstream = FlatProjectorChain.withAttachedDownstream(
                 projectionToProjectorVisitor,
                 ramAccountingContext,
                 mergePhase.projections(),
                 downstream,
                 mergePhase.jobId()
             );
-            downstream = projectorChain.firstProjector();
         }
 
-        PagingIterator<Void, Row> pagingIterator;
-        PositionalOrderBy positionalOrderBy = mergePhase.orderByPositions();
-        if (positionalOrderBy != null && mergePhase.numUpstreams() > 1) {
-            pagingIterator = new SortedPagingIterator<>(
-                OrderingByPosition.rowOrdering(positionalOrderBy),
-                requiresRepeatSupport
-            );
-        } else {
-            pagingIterator = requiresRepeatSupport ?
-                PassThroughPagingIterator.<Void, Row>repeatable() : PassThroughPagingIterator.<Void, Row>oneShot();
-        }
-        return new IteratorPageDownstream(downstream, pagingIterator, executorOptional);
+        return null;
+        // XDOBE: implement a page downstream
+//
+//        PagingIterator<Void, Row> pagingIterator;
+//        PositionalOrderBy positionalOrderBy = mergePhase.orderByPositions();
+//        if (positionalOrderBy != null && mergePhase.numUpstreams() > 1) {
+//            pagingIterator = new SortedPagingIterator<>(
+//                OrderingByPosition.rowOrdering(positionalOrderBy),
+//                requiresRepeatSupport
+//            );
+//        } else {
+//            pagingIterator = requiresRepeatSupport ?
+//                PassThroughPagingIterator.<Void, Row>repeatable() : PassThroughPagingIterator.<Void, Row>oneShot();
+//        }
+//        return new IteratorPageDownstream(downstream, pagingIterator, executorOptional);
     }
 }

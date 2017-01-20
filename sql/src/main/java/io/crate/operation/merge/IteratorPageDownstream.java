@@ -35,9 +35,9 @@ import io.crate.core.collections.Row;
 import io.crate.operation.PageConsumeListener;
 import io.crate.operation.PageDownstream;
 import io.crate.operation.RejectionAwareExecutor;
+import io.crate.operation.data.BatchConsumer;
 import io.crate.operation.projectors.RepeatHandle;
 import io.crate.operation.projectors.ResumeHandle;
-import io.crate.operation.projectors.RowReceiver;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -48,7 +48,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 public class IteratorPageDownstream implements PageDownstream, ResumeHandle, RepeatHandle {
 
-    private final RowReceiver rowReceiver;
+    private final BatchConsumer rowReceiver;
     private final Executor executor;
     private final AtomicBoolean upstreamHasMoreData = new AtomicBoolean(true);
     private final PagingIterator<Void, Row> pagingIterator;
@@ -57,7 +57,7 @@ public class IteratorPageDownstream implements PageDownstream, ResumeHandle, Rep
     private volatile Iterator<Row> lastIterator;
     private boolean downstreamWantsMore = true;
 
-    public IteratorPageDownstream(final RowReceiver rowReceiver,
+    public IteratorPageDownstream(final BatchConsumer rowReceiver,
                                   final PagingIterator<Void, Row> pagingIterator,
                                   Optional<Executor> executor) {
         this.pagingIterator = pagingIterator;
@@ -67,31 +67,32 @@ public class IteratorPageDownstream implements PageDownstream, ResumeHandle, Rep
     }
 
     private void processBuckets(Iterator<Row> iterator, PageConsumeListener listener) {
-        while (iterator.hasNext()) {
-            Row row = iterator.next();
-            RowReceiver.Result result = rowReceiver.setNextRow(row);
-            switch (result) {
-                case CONTINUE:
-                    continue;
-                case PAUSE:
-                    rowReceiver.pauseProcessed(this);
-                    return;
-                case STOP:
-                    downstreamWantsMore = false;
-                    if (upstreamHasMoreData.get()) {
-                        listener.finish();
-                    } else {
-                        rowReceiver.finish(this);
-                    }
-                    return;
-            }
-            throw new AssertionError("Unrecognized setNextRow result: " + result);
-        }
-        if (upstreamHasMoreData.get()) {
-            listener.needMore();
-        } else {
-            rowReceiver.finish(this);
-        }
+        // XDOBE:
+//        while (iterator.hasNext()) {
+//            Row row = iterator.next();
+//            RowReceiver.Result result = rowReceiver.setNextRow(row);
+//            switch (result) {
+//                case CONTINUE:
+//                    continue;
+//                case PAUSE:
+//                    rowReceiver.pauseProcessed(this);
+//                    return;
+//                case STOP:
+//                    downstreamWantsMore = false;
+//                    if (upstreamHasMoreData.get()) {
+//                        listener.finish();
+//                    } else {
+//                        rowReceiver.finish(this);
+//                    }
+//                    return;
+//            }
+//            throw new AssertionError("Unrecognized setNextRow result: " + result);
+//        }
+//        if (upstreamHasMoreData.get()) {
+//            listener.needMore();
+//        } else {
+//            rowReceiver.finish(this);
+//        }
     }
 
     @Override
@@ -146,20 +147,21 @@ public class IteratorPageDownstream implements PageDownstream, ResumeHandle, Rep
 
     @Override
     public void finish() {
-        if (upstreamHasMoreData.compareAndSet(true, false)) {
-            if (downstreamWantsMore) {
-                pagingIterator.finish();
-                processBuckets(lastIterator, lastListener);
-            } else {
-                rowReceiver.finish(this);
-            }
-        }
+        // XDOBE:
+//        if (upstreamHasMoreData.compareAndSet(true, false)) {
+//            if (downstreamWantsMore) {
+//                pagingIterator.finish();
+//                processBuckets(lastIterator, lastListener);
+//            } else {
+//                rowReceiver.finish(this);
+//            }
+//        }
     }
 
     @Override
     public void fail(Throwable t) {
         if (upstreamHasMoreData.compareAndSet(true, false)) {
-            rowReceiver.fail(t);
+            rowReceiver.accept(null, t);
         }
     }
 
@@ -171,7 +173,7 @@ public class IteratorPageDownstream implements PageDownstream, ResumeHandle, Rep
             lastListener = PageConsumeListener.NO_OP_LISTENER;
             processBuckets(iterator, PageConsumeListener.NO_OP_LISTENER);
         } catch (Throwable t) {
-            rowReceiver.fail(t);
+            rowReceiver.accept(null, t);
         }
     }
 
@@ -187,6 +189,6 @@ public class IteratorPageDownstream implements PageDownstream, ResumeHandle, Rep
 
     @Override
     public void kill(Throwable t) {
-        rowReceiver.kill(t);
+        // XDOBE: rowReceiver.kill(t);
     }
 }

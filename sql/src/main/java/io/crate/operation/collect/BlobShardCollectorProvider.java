@@ -32,7 +32,6 @@ import io.crate.metadata.shard.blob.BlobShardReferenceResolver;
 import io.crate.operation.InputFactory;
 import io.crate.operation.collect.collectors.BlobOrderedDocCollector;
 import io.crate.operation.collect.collectors.OrderedDocCollector;
-import io.crate.operation.projectors.Requirement;
 import io.crate.operation.reference.doc.blob.BlobReferenceResolver;
 import io.crate.planner.node.dql.RoutedCollectPhase;
 import org.elasticsearch.action.bulk.BulkRetryCoordinatorPool;
@@ -42,7 +41,6 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.threadpool.ThreadPool;
 
 import java.io.File;
-import java.util.Set;
 
 public class BlobShardCollectorProvider extends ShardCollectorProvider {
 
@@ -64,10 +62,10 @@ public class BlobShardCollectorProvider extends ShardCollectorProvider {
     }
 
     protected CrateCollector.Builder getBuilder(RoutedCollectPhase collectPhase,
-                                                Set<Requirement> downstreamRequirements,
+                                                boolean requiresScroll,
                                                 JobCollectContext jobCollectContext) {
         return RowsCollector.builder(
-            getBlobRows(collectPhase, downstreamRequirements.contains(Requirement.REPEAT)));
+            getBlobRows(collectPhase, requiresScroll));
     }
 
     private Iterable<Row> getBlobRows(RoutedCollectPhase collectPhase, boolean requiresRepeat) {

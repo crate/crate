@@ -25,8 +25,8 @@ import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import io.crate.core.collections.Row;
 import io.crate.executor.Task;
-import io.crate.operation.projectors.RepeatHandle;
-import io.crate.operation.projectors.RowReceiver;
+import io.crate.operation.data.BatchConsumer;
+import io.crate.operation.data.EmptyBatchCursor;
 
 import java.util.Collections;
 import java.util.List;
@@ -40,8 +40,8 @@ public class NoopTask implements Task {
     }
 
     @Override
-    public void execute(RowReceiver rowReceiver, Row parameters) {
-        rowReceiver.finish(RepeatHandle.UNSUPPORTED);
+    public void execute(BatchConsumer rowReceiver, Row parameters) {
+        rowReceiver.accept(new EmptyBatchCursor(), null);
     }
 
     @Override

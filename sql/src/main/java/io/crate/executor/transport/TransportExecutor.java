@@ -44,8 +44,8 @@ import io.crate.metadata.ReplaceMode;
 import io.crate.operation.InputFactory;
 import io.crate.operation.NodeOperation;
 import io.crate.operation.NodeOperationTree;
+import io.crate.operation.data.BatchConsumer;
 import io.crate.operation.projectors.ProjectionToProjectorVisitor;
-import io.crate.operation.projectors.RowReceiver;
 import io.crate.planner.*;
 import io.crate.planner.distribution.DistributionType;
 import io.crate.planner.distribution.UpstreamPhase;
@@ -138,11 +138,13 @@ public class TransportExecutor implements Executor {
     }
 
     @Override
-    public void execute(Plan plan, RowReceiver rowReceiver, Row parameters) {
+    public void execute(Plan plan, BatchConsumer rowReceiver, Row parameters) {
         CompletableFuture<Plan> planFuture = multiPhaseExecutor.process(plan, null);
         planFuture
             .thenAccept(p -> plan2TaskVisitor.process(p, null).execute(rowReceiver, parameters))
-            .exceptionally(t -> { rowReceiver.fail(t); return null; });
+            .exceptionally(t -> {
+                rowReceiver.accept(null, t);
+                return null; });
     }
 
     @Override
@@ -323,7 +325,7 @@ public class TransportExecutor implements Executor {
                         // since plan's are not mutated to remove them they're still part of the plan tree
                         plan2TaskVisitor.process(p, null).execute(singleRowSingleValueRowReceiver, Row.EMPTY);
                     } else {
-                        singleRowSingleValueRowReceiver.fail(e);
+                        singleRowSingleValueRowReceiver.accept(null, e);
                     }
                 });
                 dependencyFutures.add(singleRowSingleValueRowReceiver.completionFuture());

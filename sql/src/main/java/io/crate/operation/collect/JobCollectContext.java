@@ -26,15 +26,16 @@ import com.carrotsearch.hppc.cursors.ObjectCursor;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.MoreExecutors;
 import io.crate.action.job.SharedShardContexts;
 import io.crate.breaker.RamAccountingContext;
+import io.crate.concurrent.CompletionListenable;
 import io.crate.jobs.AbstractExecutionSubContext;
 import io.crate.metadata.RowGranularity;
-import io.crate.operation.projectors.ListenableRowReceiver;
-import io.crate.operation.projectors.RepeatHandle;
-import io.crate.operation.projectors.RowReceiver;
-import io.crate.operation.projectors.RowReceivers;
+import io.crate.operation.data.BatchConsumer;
+import io.crate.operation.data.EmptyBatchCursor;
+import io.crate.operation.data.ListenableBatchConsumer;
 import io.crate.planner.node.dql.CollectPhase;
 import io.crate.planner.node.dql.RoutedCollectPhase;
 import org.elasticsearch.common.StopWatch;
@@ -56,21 +57,21 @@ public class JobCollectContext extends AbstractExecutionSubContext {
     private final CollectPhase collectPhase;
     private final MapSideDataCollectOperation collectOperation;
     private final RamAccountingContext queryPhaseRamAccountingContext;
-    private final RowReceiver rowReceiver;
+    private final BatchConsumer rowReceiver;
     private final SharedShardContexts sharedShardContexts;
 
     private final IntObjectHashMap<Engine.Searcher> searchers = new IntObjectHashMap<>();
     private final Object subContextLock = new Object();
-    private final ListenableRowReceiver listenableRowReceiver;
     private final String threadPoolName;
 
     private Collection<CrateCollector> collectors;
+    private ListenableFuture<?> completionFuture;
 
     public JobCollectContext(final CollectPhase collectPhase,
                              MapSideDataCollectOperation collectOperation,
                              String localNodeId,
                              RamAccountingContext queryPhaseRamAccountingContext,
-                             final RowReceiver rowReceiver,
+                             final BatchConsumer rowReceiver,
                              SharedShardContexts sharedShardContexts) {
         super(collectPhase.phaseId(), LOGGER);
         this.collectPhase = collectPhase;
@@ -78,19 +79,26 @@ public class JobCollectContext extends AbstractExecutionSubContext {
         this.queryPhaseRamAccountingContext = queryPhaseRamAccountingContext;
         this.sharedShardContexts = sharedShardContexts;
 
-        listenableRowReceiver = RowReceivers.listenableRowReceiver(rowReceiver);
-        Futures.addCallback(listenableRowReceiver.finishFuture(), new FutureCallback<Void>() {
+        // XDOBE: we should make the collectors CompletionListenable instead of wrapping the cursor
+        if (rowReceiver instanceof CompletionListenable){
+            this.rowReceiver = rowReceiver;
+            completionFuture = ((CompletionListenable) rowReceiver).completionFuture();
+        } else {
+            ListenableBatchConsumer lbc = new ListenableBatchConsumer(rowReceiver);
+            this.rowReceiver = lbc;
+            completionFuture = lbc.completionFuture();
+        }
+        Futures.addCallback(completionFuture, new FutureCallback<Object>() {
             @Override
-            public void onSuccess(@Nullable Void result) {
+            public void onSuccess(@Nullable Object result) {
                 close();
             }
 
             @Override
-            public void onFailure(@Nonnull Throwable t) {
+            public void onFailure(Throwable t) {
                 closeDueToFailure(t);
             }
         });
-        this.rowReceiver = listenableRowReceiver;
         this.threadPoolName = threadPoolName(collectPhase, localNodeId);
     }
 
@@ -171,7 +179,7 @@ public class JobCollectContext extends AbstractExecutionSubContext {
     @Override
     protected void innerStart() {
         if (collectors.isEmpty()) {
-            rowReceiver.finish(RepeatHandle.UNSUPPORTED);
+            rowReceiver.accept(new EmptyBatchCursor(), null);
         } else {
             if (logger.isTraceEnabled()) {
                 measureCollectTime();
@@ -183,12 +191,9 @@ public class JobCollectContext extends AbstractExecutionSubContext {
     private void measureCollectTime() {
         final StopWatch stopWatch = new StopWatch(collectPhase.phaseId() + ": " + collectPhase.name());
         stopWatch.start("starting collectors");
-        listenableRowReceiver.finishFuture().addListener(new Runnable() {
-            @Override
-            public void run() {
-                stopWatch.stop();
-                logger.trace("Collectors finished: {}", stopWatch.shortSummary());
-            }
+        completionFuture.addListener(() -> {
+            stopWatch.stop();
+            logger.trace("Collectors finished: {}", stopWatch.shortSummary());
         }, MoreExecutors.directExecutor());
     }
 

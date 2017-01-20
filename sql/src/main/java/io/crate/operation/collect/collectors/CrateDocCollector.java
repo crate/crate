@@ -26,10 +26,10 @@ import io.crate.breaker.CrateCircuitBreakerService;
 import io.crate.breaker.RamAccountingContext;
 import io.crate.core.collections.Row;
 import io.crate.operation.Input;
-import io.crate.operation.InputRow;
 import io.crate.operation.collect.CollectionFinishedEarlyException;
 import io.crate.operation.collect.CollectionPauseException;
 import io.crate.operation.collect.CrateCollector;
+import io.crate.operation.data.BatchConsumer;
 import io.crate.operation.projectors.ExecutorResumeHandle;
 import io.crate.operation.projectors.RepeatHandle;
 import io.crate.operation.projectors.RowReceiver;
@@ -41,7 +41,6 @@ import org.apache.lucene.util.Bits;
 import org.elasticsearch.common.breaker.CircuitBreakingException;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
-import org.elasticsearch.common.lucene.MinimumScoreCollector;
 import org.elasticsearch.index.shard.ShardId;
 
 import javax.annotation.Nullable;
@@ -102,7 +101,7 @@ public class CrateDocCollector implements CrateCollector, RepeatHandle {
         }
 
         @Override
-        public CrateCollector build(RowReceiver rowReceiver) {
+        public CrateCollector build(BatchConsumer rowReceiver) {
             return new CrateDocCollector(
                 shardId,
                 indexSearcher,
@@ -127,34 +126,37 @@ public class CrateDocCollector implements CrateCollector, RepeatHandle {
                              boolean doScores,
                              CollectorContext collectorContext,
                              RamAccountingContext ramAccountingContext,
-                             RowReceiver rowReceiver,
+                             BatchConsumer rowReceiver,
                              List<Input<?>> inputs,
                              Collection<? extends LuceneCollectorExpression<?>> expressions) {
         this.shardId = shardId;
         this.indexSearcher = indexSearcher;
         this.query = query;
         this.collectorContext = collectorContext;
-        this.rowReceiver = rowReceiver;
+        // XDOBE this.rowReceiver = rowReceiver;
+        this.rowReceiver = null;
         this.expressions = expressions;
         this.doScores = doScores || minScore != null;
-        SimpleCollector collector = new LuceneDocCollector(
-            ramAccountingContext,
-            rowReceiver,
-            this.doScores,
-            new InputRow(inputs),
-            expressions
-        );
-        if (minScore != null) {
-            collector = new MinimumScoreCollector(collector, minScore);
-        }
-        luceneCollector = collector;
-        this.resumeable = new ExecutorResumeHandle(executor, new Runnable() {
-            @Override
-            public void run() {
-                traceLog("resume collect");
-                innerCollect(state.collector, state.weight, state.leaveIt, state.bulkScorer, state.leaf);
-            }
-        });
+        luceneCollector = null;
+        resumeable = null;
+//        SimpleCollector collector = new LuceneDocCollector(
+//            ramAccountingContext,
+//            rowReceiver,
+//            this.doScores,
+//            new InputRow(inputs),
+//            expressions
+//        );
+//        if (minScore != null) {
+//            collector = new MinimumScoreCollector(collector, minScore);
+//        }
+//        luceneCollector = collector;
+//        this.resumeable = new ExecutorResumeHandle(executor, new Runnable() {
+//            @Override
+//            public void run() {
+//                traceLog("resume collect");
+//                innerCollect(state.collector, state.weight, state.leaveIt, state.bulkScorer, state.leaf);
+//            }
+//        });
     }
 
     private void debugLog(String message) {

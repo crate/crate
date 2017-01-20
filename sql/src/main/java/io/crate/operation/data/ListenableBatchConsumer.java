@@ -20,46 +20,48 @@
  * agreement.
  */
 
-package io.crate.operation.projectors;
+package io.crate.operation.data;
 
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
+import io.crate.concurrent.CompletionListenable;
 
-import javax.annotation.ParametersAreNonnullByDefault;
+public class ListenableBatchConsumer implements BatchConsumer, CompletionListenable {
 
-public class RowReceivers {
+    SettableFuture<Void> completionFuture = SettableFuture.create();
+    private final BatchConsumer downstream;
 
-    public static ListenableRowReceiver listenableRowReceiver(RowReceiver rowReceiver) {
-        if (rowReceiver instanceof ListenableRowReceiver) {
-            return (ListenableRowReceiver) rowReceiver;
-        }
-        return new SettableFutureRowReceiver(rowReceiver);
+    public ListenableBatchConsumer(BatchConsumer downstream) {
+        this.downstream = downstream;
     }
 
-    @ParametersAreNonnullByDefault
-    private static class SettableFutureRowReceiver extends ForwardingRowReceiver implements ListenableRowReceiver {
+    @Override
+    public void accept(BatchCursor batchCursor, Throwable t) {
+        if (batchCursor != null) {
+            batchCursor = new Cursor(batchCursor);
+        } else {
+            assert t != null: "Throwable is not set but cursor is null";
+            completionFuture.setException(t);
+        }
+        downstream.accept(batchCursor, t);
+    }
 
-        private final SettableFuture<Void> finishedFuture = SettableFuture.create();
+    @Override
+    public ListenableFuture<?> completionFuture() {
+        return completionFuture;
+    }
 
-        SettableFutureRowReceiver(RowReceiver rowReceiver) {
-            super(rowReceiver);
+    private class Cursor extends BatchCursorProxy {
+
+        Cursor(BatchCursor delegate) {
+            super(delegate);
         }
 
         @Override
-        public void finish(RepeatHandle repeatHandle) {
-            super.finish(repeatHandle);
-            finishedFuture.set(null);
-        }
-
-        @Override
-        public void fail(Throwable throwable) {
-            super.fail(throwable);
-            finishedFuture.setException(throwable);
-        }
-
-        @Override
-        public ListenableFuture<Void> finishFuture() {
-            return finishedFuture;
+        public void close() {
+            super.close();
+            completionFuture.set(null);
         }
     }
+
 }

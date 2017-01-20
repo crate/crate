@@ -28,14 +28,13 @@ import com.google.common.util.concurrent.SettableFuture;
 import io.crate.Constants;
 import io.crate.analyze.where.DocKeys;
 import io.crate.core.collections.Row;
-import io.crate.core.collections.Row1;
 import io.crate.exceptions.Exceptions;
 import io.crate.executor.JobTask;
 import io.crate.jobs.ESJobContext;
 import io.crate.jobs.JobContextService;
 import io.crate.jobs.JobExecutionContext;
-import io.crate.operation.projectors.RowReceiver;
-import io.crate.operation.projectors.RowReceivers;
+import io.crate.operation.data.BatchConsumer;
+import io.crate.operation.data.SingleRowCursor;
 import io.crate.planner.node.dml.ESDelete;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.ActionRequest;
@@ -113,23 +112,23 @@ public class ESDeleteTask extends JobTask {
     }
 
     @Override
-    public void execute(final RowReceiver rowReceiver, Row parameters) {
+    public void execute(final BatchConsumer rowReceiver, Row parameters) {
         SettableFuture<Long> result = results.get(0);
         try {
             startContext();
         } catch (Throwable throwable) {
-            rowReceiver.fail(throwable);
+            rowReceiver.accept(null, throwable);
             return;
         }
         Futures.addCallback(result, new FutureCallback<Long>() {
             @Override
             public void onSuccess(@Nullable Long result) {
-                RowReceivers.sendOneRow(rowReceiver, new Row1(result));
+                rowReceiver.accept(SingleRowCursor.of(result), null);
             }
 
             @Override
             public void onFailure(@Nonnull Throwable t) {
-                rowReceiver.fail(t);
+                rowReceiver.accept(null, t);
             }
         });
     }

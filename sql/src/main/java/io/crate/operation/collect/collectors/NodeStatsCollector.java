@@ -24,6 +24,7 @@ package io.crate.operation.collect.collectors;
 
 import io.crate.analyze.symbol.DefaultTraversalSymbolVisitor;
 import io.crate.analyze.symbol.Symbol;
+import io.crate.core.collections.Row;
 import io.crate.executor.transport.NodeStatsRequest;
 import io.crate.executor.transport.NodeStatsResponse;
 import io.crate.executor.transport.TransportNodeStatsAction;
@@ -32,9 +33,10 @@ import io.crate.metadata.Reference;
 import io.crate.metadata.sys.SysNodesTableInfo;
 import io.crate.operation.InputFactory;
 import io.crate.operation.collect.CrateCollector;
+import io.crate.operation.collect.RowBasedBatchCursor;
 import io.crate.operation.collect.RowsTransformer;
-import io.crate.operation.projectors.IterableRowEmitter;
-import io.crate.operation.projectors.RowReceiver;
+import io.crate.operation.data.BatchConsumer;
+import io.crate.operation.data.BatchCursor;
 import io.crate.operation.reference.sys.RowContextReferenceResolver;
 import io.crate.operation.reference.sys.node.NodeStatsContext;
 import io.crate.planner.node.dql.RoutedCollectPhase;
@@ -46,19 +48,21 @@ import org.elasticsearch.transport.ReceiveTimeoutTransportException;
 import javax.annotation.Nullable;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 
 public class NodeStatsCollector implements CrateCollector {
 
     private final TransportNodeStatsAction transportStatTablesAction;
-    private final RowReceiver rowReceiver;
+    private final BatchConsumer rowReceiver;
     private final RoutedCollectPhase collectPhase;
     private final Collection<DiscoveryNode> nodes;
     private final InputFactory inputFactory;
     private final TopLevelColumnIdentVisitor topLevelColumnIdentVisitor = TopLevelColumnIdentVisitor.INSTANCE;
     private final AtomicInteger remainingRequests = new AtomicInteger();
+    private final AtomicReference<Throwable> failure = new AtomicReference<>();
 
     public NodeStatsCollector(TransportNodeStatsAction transportStatTablesAction,
-                              RowReceiver rowReceiver,
+                              BatchConsumer rowReceiver,
                               RoutedCollectPhase collectPhase,
                               Collection<DiscoveryNode> nodes,
                               InputFactory inputFactory) {
@@ -109,11 +113,11 @@ public class NodeStatsCollector implements CrateCollector {
                 public void onFailure(Throwable t) {
                     if (t instanceof ReceiveTimeoutTransportException) {
                         rows.add(new NodeStatsContext(nodeId, node.name()));
-                        if (remainingRequests.decrementAndGet() == 0) {
-                            emmitRows(rows);
-                        }
                     } else {
-                        rowReceiver.fail(t);
+                        failure.compareAndSet(null, t);
+                    }
+                    if (remainingRequests.decrementAndGet() == 0) {
+                        emmitRows(rows);
                     }
                 }
             }, TimeValue.timeValueMillis(3000L));
@@ -121,10 +125,13 @@ public class NodeStatsCollector implements CrateCollector {
     }
 
     private void emmitRows(List<NodeStatsContext> rows) {
-        new IterableRowEmitter(
-            rowReceiver,
-            RowsTransformer.toRowsIterable(inputFactory, RowContextReferenceResolver.INSTANCE, collectPhase, rows)
-        ).run();
+        Throwable f = failure.get();
+        BatchCursor c = null;
+        if (f== null){
+            Iterable<Row> ri = RowsTransformer.toRowsIterable(inputFactory, RowContextReferenceResolver.INSTANCE, collectPhase, rows);
+            c = new RowBasedBatchCursor(ri);
+        }
+        rowReceiver.accept(c, f);
     }
 
     @Override

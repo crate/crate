@@ -29,6 +29,7 @@ import io.crate.concurrent.CompletionListenable;
 import io.crate.core.collections.Row;
 import io.crate.core.collections.RowN;
 import io.crate.core.collections.RowNull;
+import io.crate.operation.data.BatchConsumer;
 import io.crate.operation.projectors.*;
 import io.crate.planner.node.dql.join.JoinType;
 import org.elasticsearch.common.logging.ESLogger;
@@ -167,13 +168,14 @@ public class NestedLoopOperation implements CompletionListenable {
     private final AtomicBoolean leadAcquired = new AtomicBoolean(false);
 
     public NestedLoopOperation(int phaseId,
-                               RowReceiver rowReceiver,
+                               BatchConsumer rowReceiver,
                                Predicate<Row> joinPredicate,
                                JoinType joinType,
                                int leftNumOutputs,
                                int rightNumOutputs) {
         this.phaseId = phaseId;
-        this.downstream = rowReceiver;
+        // XDOBE: this.downstream = rowReceiver;
+        this.downstream = null;
         this.joinPredicate = joinPredicate;
         this.joinType = joinType;
         left = new LeftRowReceiver();

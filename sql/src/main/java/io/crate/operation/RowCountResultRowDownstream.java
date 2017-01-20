@@ -22,56 +22,29 @@
 package io.crate.operation;
 
 import com.google.common.util.concurrent.SettableFuture;
-import io.crate.core.collections.Row;
-import io.crate.operation.projectors.*;
-
-import javax.annotation.Nonnull;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Set;
+import io.crate.operation.data.BatchConsumer;
+import io.crate.operation.data.BatchCursor;
 
 /**
  * RowDownstream that will set a TaskResultFuture once the result is ready.
  * It will also close the associated context once it is done
  */
-public class RowCountResultRowDownstream implements RowReceiver {
+public class RowCountResultRowDownstream implements BatchConsumer {
 
     private final SettableFuture<Long> result;
-    private final List<Object[]> rows = new ArrayList<>();
-    private RowReceiver.Result nextRowResult = Result.CONTINUE;
 
     public RowCountResultRowDownstream(SettableFuture<Long> result) {
         this.result = result;
     }
 
     @Override
-    public RowReceiver.Result setNextRow(Row row) {
-        rows.add(row.materialize());
-        return nextRowResult;
-    }
-
-    @Override
-    public void pauseProcessed(ResumeHandle resumeable) {
-    }
-
-    @Override
-    public void finish(RepeatHandle repeatHandle) {
-        result.set((Long) rows.iterator().next()[0]);
-    }
-
-    @Override
-    public void fail(@Nonnull Throwable t) {
-        nextRowResult = Result.STOP;
-        result.setException(t);
-    }
-
-    @Override
-    public void kill(Throwable throwable) {
-        fail(throwable);
-    }
-
-    @Override
-    public Set<Requirement> requirements() {
-        return Requirements.NO_REQUIREMENTS;
+    public void accept(BatchCursor batchCursor, Throwable t) {
+        if (batchCursor != null){
+            assert batchCursor.status() == BatchCursor.Status.ON_ROW: "row count result must not be empty";
+            result.set((Long) batchCursor.get(0));
+            batchCursor.close();
+        } else {
+            result.setException(t);
+        }
     }
 }

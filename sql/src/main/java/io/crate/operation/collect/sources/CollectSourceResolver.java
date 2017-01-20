@@ -39,9 +39,9 @@ import io.crate.operation.InputFactory;
 import io.crate.operation.collect.CrateCollector;
 import io.crate.operation.collect.JobCollectContext;
 import io.crate.operation.collect.RowsCollector;
+import io.crate.operation.data.BatchConsumer;
 import io.crate.operation.projectors.ProjectionToProjectorVisitor;
 import io.crate.operation.projectors.ProjectorFactory;
-import io.crate.operation.projectors.RowReceiver;
 import io.crate.planner.node.ExecutionPhaseVisitor;
 import io.crate.planner.node.dql.CollectPhase;
 import io.crate.planner.node.dql.FileUriCollectPhase;
@@ -181,7 +181,7 @@ public class CollectSourceResolver {
     private static class VoidCollectSource implements CollectSource {
 
         @Override
-        public Collection<CrateCollector> getCollectors(CollectPhase collectPhase, RowReceiver downstream, JobCollectContext jobCollectContext) {
+        public Collection<CrateCollector> getCollectors(CollectPhase collectPhase, BatchConsumer downstream, JobCollectContext jobCollectContext) {
             return Collections.singletonList(RowsCollector.empty(downstream));
         }
     }

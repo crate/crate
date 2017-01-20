@@ -23,41 +23,42 @@ package io.crate.operation.collect;
 
 import com.google.common.collect.ImmutableList;
 import io.crate.core.collections.Row;
-import io.crate.operation.projectors.IterableRowEmitter;
-import io.crate.operation.projectors.RowReceiver;
+import io.crate.operation.data.BatchConsumer;
 
 import javax.annotation.Nullable;
 
 public class RowsCollector implements CrateCollector {
 
-    private final IterableRowEmitter emitter;
+    private final BatchConsumer downstream;
+    private final Iterable<Row> rows;
 
-    public static RowsCollector empty(RowReceiver rowDownstream) {
-        return new RowsCollector(rowDownstream, ImmutableList.<Row>of());
+    public static RowsCollector empty(BatchConsumer rowDownstream) {
+        return new RowsCollector(rowDownstream, ImmutableList.of());
     }
 
-    public static RowsCollector single(Row row, RowReceiver rowDownstream) {
+    public static RowsCollector single(Row row, BatchConsumer rowDownstream) {
         return new RowsCollector(rowDownstream, ImmutableList.of(row));
     }
 
-    public RowsCollector(RowReceiver rowDownstream, Iterable<Row> rows) {
-        this.emitter = new IterableRowEmitter(rowDownstream, rows);
+    public RowsCollector(BatchConsumer downstream, Iterable<Row> rows) {
+        this.downstream = downstream;
+        this.rows = rows;
     }
 
     @Override
     public void doCollect() {
-        emitter.run();
+        downstream.accept(new RowBasedBatchCursor(rows), null);
     }
 
     @Override
     public void kill(@Nullable Throwable throwable) {
-        emitter.kill(throwable);
+        // XDOBE: impl kill
     }
 
     public static Builder emptyBuilder() {
         return new CrateCollector.Builder() {
             @Override
-            public CrateCollector build(RowReceiver rowReceiver) {
+            public CrateCollector build(BatchConsumer rowReceiver) {
                 return RowsCollector.empty(rowReceiver);
             }
         };
@@ -66,9 +67,10 @@ public class RowsCollector implements CrateCollector {
     public static Builder builder(final Iterable<Row> rows) {
         return new CrateCollector.Builder() {
             @Override
-            public CrateCollector build(RowReceiver rowReceiver) {
+            public CrateCollector build(BatchConsumer rowReceiver) {
                 return new RowsCollector(rowReceiver, rows);
             }
         };
     }
+
 }

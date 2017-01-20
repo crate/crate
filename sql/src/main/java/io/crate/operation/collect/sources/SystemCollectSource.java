@@ -36,8 +36,7 @@ import io.crate.metadata.sys.*;
 import io.crate.operation.InputFactory;
 import io.crate.operation.collect.*;
 import io.crate.operation.collect.files.SummitsIterable;
-import io.crate.operation.projectors.Requirement;
-import io.crate.operation.projectors.RowReceiver;
+import io.crate.operation.data.BatchConsumer;
 import io.crate.operation.reference.sys.RowContextReferenceResolver;
 import io.crate.operation.reference.sys.check.SysCheck;
 import io.crate.operation.reference.sys.check.SysChecker;
@@ -116,7 +115,7 @@ public class SystemCollectSource implements CollectSource {
     }
 
     @Override
-    public Collection<CrateCollector> getCollectors(CollectPhase phase, RowReceiver downstream, JobCollectContext jobCollectContext) {
+    public Collection<CrateCollector> getCollectors(CollectPhase phase, BatchConsumer downstream, JobCollectContext jobCollectContext) {
         RoutedCollectPhase collectPhase = (RoutedCollectPhase) phase;
         // sys.operations can contain a _node column - these refs need to be normalized into literals
         EvaluatingNormalizer normalizer = new EvaluatingNormalizer(
@@ -129,6 +128,6 @@ public class SystemCollectSource implements CollectSource {
         assert iterableGetter != null : "iterableGetter for " + table + " must exist";
         return ImmutableList.<CrateCollector>of(
             new RowsCollector(downstream, toRowsIterable(collectPhase, iterableGetter.get(),
-                downstream.requirements().contains(Requirement.REPEAT))));
+                downstream.requiresScroll())));
     }
 }

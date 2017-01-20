@@ -37,10 +37,9 @@ import io.crate.jobs.JobExecutionContext;
 import io.crate.jobs.PageDownstreamContext;
 import io.crate.operation.NodeOperation;
 import io.crate.operation.collect.CrateCollector;
+import io.crate.operation.data.BatchConsumer;
 import io.crate.operation.merge.IteratorPageDownstream;
 import io.crate.operation.merge.PassThroughPagingIterator;
-import io.crate.operation.projectors.Requirement;
-import io.crate.operation.projectors.RowReceiver;
 import io.crate.planner.node.dql.RoutedCollectPhase;
 import io.crate.types.DataTypes;
 import org.elasticsearch.action.ActionListener;
@@ -64,7 +63,7 @@ public class RemoteCollector implements CrateCollector {
     private final TransportKillJobsNodeAction transportKillJobsNodeAction;
     private final JobContextService jobContextService;
     private final RamAccountingContext ramAccountingContext;
-    private final RowReceiver rowReceiver;
+    private final BatchConsumer rowReceiver;
     private final RoutedCollectPhase collectPhase;
 
     private final Object killLock = new Object();
@@ -78,7 +77,7 @@ public class RemoteCollector implements CrateCollector {
                            TransportKillJobsNodeAction transportKillJobsNodeAction,
                            JobContextService jobContextService,
                            RamAccountingContext ramAccountingContext,
-                           RowReceiver rowReceiver,
+                           BatchConsumer rowReceiver,
                            RoutedCollectPhase collectPhase) {
         this.jobId = jobId;
         this.localNode = localNode;
@@ -104,7 +103,7 @@ public class RemoteCollector implements CrateCollector {
         try {
             synchronized (killLock) {
                 if (collectorKilled) {
-                    rowReceiver.fail(new InterruptedException());
+                    rowReceiver.accept(null, new InterruptedException());
                     return false;
                 }
                 context = jobContextService.createContext(builder);
@@ -113,7 +112,7 @@ public class RemoteCollector implements CrateCollector {
             }
         } catch (Throwable t) {
             if (context == null) {
-                rowReceiver.fail(t);
+                rowReceiver.accept(null, t);
             } else {
                 context.kill();
             }
@@ -157,7 +156,7 @@ public class RemoteCollector implements CrateCollector {
         JobExecutionContext.Builder builder = jobContextService.newBuilder(jobId, localNode);
 
         PassThroughPagingIterator<Void, Row> pagingIterator;
-        if (rowReceiver.requirements().contains(Requirement.REPEAT)) {
+        if (rowReceiver.requiresScroll()) {
             pagingIterator = PassThroughPagingIterator.repeatable();
         } else {
             pagingIterator = PassThroughPagingIterator.oneShot();

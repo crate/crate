@@ -22,11 +22,16 @@
 package io.crate.operation.projectors;
 
 import com.google.common.base.Preconditions;
-import com.google.common.collect.Lists;
 import io.crate.breaker.RamAccountingContext;
+import io.crate.operation.data.BatchConsumer;
+import io.crate.operation.data.BatchCursor;
+import io.crate.operation.data.BatchProjector;
 import io.crate.planner.projection.Projection;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+import java.util.UUID;
 
 /**
  * A chain of connected projectors rows will flow through.
@@ -44,17 +49,6 @@ import java.util.*;
  */
 public class FlatProjectorChain {
 
-    private final List<? extends RowReceiver> rowReceivers;
-
-    private FlatProjectorChain(List<? extends RowReceiver> rowReceivers) {
-        Preconditions.checkArgument(!rowReceivers.isEmpty(), "no projectors given");
-        this.rowReceivers = rowReceivers;
-    }
-
-    public RowReceiver firstProjector() {
-        return rowReceivers.get(0);
-    }
-
     public static class Builder {
         private final UUID jobId;
         private final RamAccountingContext ramAccountingContext;
@@ -71,7 +65,7 @@ public class FlatProjectorChain {
             this.projections = projections;
         }
 
-        public FlatProjectorChain build(RowReceiver rowReceiver) {
+        public BatchConsumer build(BatchConsumer rowReceiver) {
             return FlatProjectorChain.withAttachedDownstream(
                 projectorFactory,
                 ramAccountingContext,
@@ -82,36 +76,26 @@ public class FlatProjectorChain {
         }
     }
 
-    public static FlatProjectorChain withAttachedDownstream(final ProjectorFactory projectorFactory,
-                                                            final RamAccountingContext ramAccountingContext,
-                                                            Collection<? extends Projection> projections,
-                                                            RowReceiver downstream,
-                                                            UUID jobId) {
+    public static BatchConsumer withAttachedDownstream(final ProjectorFactory projectorFactory,
+                                                       final RamAccountingContext ramAccountingContext,
+                                                       Collection<? extends Projection> projections,
+                                                       BatchConsumer downstream,
+                                                       UUID jobId) {
         if (projections.isEmpty()) {
-            return new FlatProjectorChain(Collections.singletonList(downstream));
+            return downstream;
         }
-        List<RowReceiver> rowReceivers = new ArrayList<>(projections.size() + 1);
-        Projector previousProjector = null;
+        List<BatchProjector> projectors = new ArrayList<>(projections.size());
         for (Projection projection : projections) {
-            Projector projector = projectorFactory.create(projection, ramAccountingContext, jobId);
-            rowReceivers.add(projector);
-            if (previousProjector != null) {
-                previousProjector.downstream(projector);
-            }
-            previousProjector = projector;
+            projectors.add(projectorFactory.create(projection, ramAccountingContext, jobId));
         }
-        if (previousProjector != null) {
-            rowReceivers.add(downstream);
-            previousProjector.downstream(downstream);
-        }
-        return new FlatProjectorChain(rowReceivers);
+        return downstream.projected(projectors);
     }
 
 
-    /**
-     * Create a task from a list of rowReceivers (which are already chained).
-     */
-    public static FlatProjectorChain withReceivers(List<? extends RowReceiver> rowReceivers) {
-        return new FlatProjectorChain(rowReceivers);
-    }
+//    /**
+//     * Create a task from a list of rowReceivers (which are already chained).
+//     */
+//    public static FlatProjectorChain withReceivers(List<? extends RowReceiver> rowReceivers) {
+//        return new FlatProjectorChain(rowReceivers);
+//    }
 }

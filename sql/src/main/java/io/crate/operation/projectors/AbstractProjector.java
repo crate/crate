@@ -23,10 +23,12 @@
 package io.crate.operation.projectors;
 
 import io.crate.core.collections.Row;
+import io.crate.operation.data.BatchCursor;
+import io.crate.operation.data.BatchProjector;
 
 import java.util.Set;
 
-public abstract class AbstractProjector implements Projector {
+public abstract class AbstractProjector implements Projector, BatchProjector {
 
     // these stateCheck classes are used to avoid having to do null-state checks in concrete implementations
     // -> upstream/downstreams are never null (unless a concrete implementions nulls them)
@@ -88,6 +90,12 @@ public abstract class AbstractProjector implements Projector {
         public Set<Requirement> requirements() {
             throw new IllegalStateException(STATE_ERROR);
         }
+    }
+
+    @Override
+    public BatchCursor apply(BatchCursor batchCursor) {
+        // XDOBE: implement apply in subclasses of AbstractProjector
+        return batchCursor;
     }
 }
 

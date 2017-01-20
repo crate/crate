@@ -26,10 +26,9 @@ import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import io.crate.analyze.WhereClause;
-import io.crate.core.collections.Row1;
 import io.crate.operation.count.CountOperation;
-import io.crate.operation.projectors.RepeatHandle;
-import io.crate.operation.projectors.RowReceiver;
+import io.crate.operation.data.BatchConsumer;
+import io.crate.operation.data.SingleRowCursor;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 
@@ -44,14 +43,14 @@ public class CountContext extends AbstractExecutionSubContext {
     private static final ESLogger LOGGER = Loggers.getLogger(CountContext.class);
 
     private final CountOperation countOperation;
-    private final RowReceiver rowReceiver;
+    private final BatchConsumer rowReceiver;
     private final Map<String, List<Integer>> indexShardMap;
     private final WhereClause whereClause;
     private ListenableFuture<Long> countFuture;
 
     public CountContext(int id,
                         CountOperation countOperation,
-                        RowReceiver rowReceiver,
+                        BatchConsumer rowReceiver,
                         Map<String, List<Integer>> indexShardMap,
                         WhereClause whereClause) {
         super(id, LOGGER);
@@ -71,7 +70,7 @@ public class CountContext extends AbstractExecutionSubContext {
         Futures.addCallback(countFuture, new FutureCallback<Long>() {
             @Override
             public void onSuccess(@Nullable Long result) {
-                rowReceiver.setNextRow(new Row1(result));
+                rowReceiver.accept(new SingleRowCursor(new Object[]{result}), null);
                 close();
             }
 
@@ -87,16 +86,17 @@ public class CountContext extends AbstractExecutionSubContext {
         if (countFuture != null) {
             countFuture.cancel(true);
         }
-        rowReceiver.kill(throwable);
+        // XDOBE: rowReceiver.kill(throwable);
     }
 
     @Override
     protected void innerClose(@Nullable Throwable t) {
-        if (t == null) {
-            rowReceiver.finish(RepeatHandle.UNSUPPORTED);
-        } else {
-            rowReceiver.fail(t);
-        }
+        // XDOBE: close handling should be done outside?
+//        if (t == null) {
+//            rowReceiver.finish(RepeatHandle.UNSUPPORTED);
+//        } else {
+//            rowReceiver.fail(t);
+//        }
     }
 
     @Override

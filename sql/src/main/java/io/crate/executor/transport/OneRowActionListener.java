@@ -24,9 +24,8 @@ package io.crate.executor.transport;
 
 import com.google.common.base.Function;
 import com.google.common.util.concurrent.FutureCallback;
-import io.crate.core.collections.Row;
-import io.crate.operation.projectors.RepeatHandle;
-import io.crate.operation.projectors.RowReceiver;
+import io.crate.operation.data.BatchConsumer;
+import io.crate.operation.data.SingleRowCursor;
 import org.elasticsearch.action.ActionListener;
 
 import javax.annotation.Nonnull;
@@ -34,18 +33,18 @@ import javax.annotation.Nullable;
 
 public class OneRowActionListener<Response> implements ActionListener<Response>, FutureCallback<Response> {
 
-    private final RowReceiver rowReceiver;
-    private final Function<? super Response, ? extends Row> toRowFunction;
+    private final BatchConsumer rowReceiver;
+    private final Function<? super Response, Object> toRowFunction;
 
-    public OneRowActionListener(RowReceiver rowReceiver, Function<? super Response, ? extends Row> toRowFunction) {
+    public OneRowActionListener(BatchConsumer rowReceiver, Function<? super Response, Object> toRowFunction) {
         this.rowReceiver = rowReceiver;
         this.toRowFunction = toRowFunction;
     }
 
     @Override
     public void onResponse(Response response) {
-        rowReceiver.setNextRow(toRowFunction.apply(response));
-        rowReceiver.finish(RepeatHandle.UNSUPPORTED);
+        Object row = toRowFunction.apply(response);
+        rowReceiver.accept(SingleRowCursor.of(row), null);
     }
 
     @Override
@@ -55,6 +54,6 @@ public class OneRowActionListener<Response> implements ActionListener<Response>,
 
     @Override
     public void onFailure(@Nonnull Throwable e) {
-        rowReceiver.fail(e);
+        rowReceiver.accept(null, e);
     }
 }

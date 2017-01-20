@@ -25,12 +25,11 @@ import com.google.common.base.Function;
 import com.google.common.base.Functions;
 import com.google.common.collect.Iterables;
 import io.crate.core.collections.Row;
-import io.crate.core.collections.Row1;
 import io.crate.executor.JobTask;
 import io.crate.executor.transport.OneRowActionListener;
 import io.crate.metadata.settings.CrateSettings;
 import io.crate.metadata.settings.SettingsApplier;
-import io.crate.operation.projectors.RowReceiver;
+import io.crate.operation.data.BatchConsumer;
 import io.crate.planner.node.ddl.ESClusterUpdateSettingsPlan;
 import io.crate.sql.tree.Expression;
 import org.elasticsearch.action.admin.cluster.settings.ClusterUpdateSettingsRequest;
@@ -43,7 +42,7 @@ import java.util.Map;
 
 public class ESClusterUpdateSettingsTask extends JobTask {
 
-    private static final Function<Object, Row> TO_ONE_ROW = Functions.<Row>constant(new Row1(1L));
+    private static final Function<Object, Object> TO_ONE_ROW = Functions.constant(1L);
 
     private final ESClusterUpdateSettingsPlan plan;
     private final TransportClusterUpdateSettingsAction transport;
@@ -56,7 +55,7 @@ public class ESClusterUpdateSettingsTask extends JobTask {
     }
 
     @Override
-    public void execute(RowReceiver rowReceiver, Row parameters) {
+    public void execute(BatchConsumer rowReceiver, Row parameters) {
         ClusterUpdateSettingsRequest request = buildESUpdateClusterSettingRequest(
             buildSettingsFrom(plan.persistentSettings(), parameters),
             buildSettingsFrom(plan.transientSettings(), parameters)

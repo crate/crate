@@ -20,39 +20,60 @@
  * agreement.
  */
 
-package io.crate.executor.task;
+package io.crate.operation.data;
 
-import com.google.common.util.concurrent.ListenableFuture;
-import io.crate.core.collections.Row;
-import io.crate.executor.Task;
-import io.crate.operation.data.BatchConsumer;
-import io.crate.operation.data.SingleRowCursor;
-import io.crate.planner.PlanPrinter;
-import io.crate.planner.node.management.ExplainPlan;
+import java.util.concurrent.CompletableFuture;
 
-import java.util.List;
-import java.util.Map;
+public class BatchCursorProxy implements BatchCursor {
 
-public class ExplainTask implements Task {
+    private final BatchCursor delegate;
 
-    private final ExplainPlan explainPlan;
-
-    public ExplainTask(ExplainPlan explainPlan) {
-        this.explainPlan = explainPlan;
+    public BatchCursorProxy(BatchCursor delegate) {
+        this.delegate = delegate;
     }
 
     @Override
-    public void execute(BatchConsumer rowReceiver, Row parameters) {
-        try {
-            Map<String, Object> map = PlanPrinter.objectMap(explainPlan.subPlan());
-            rowReceiver.accept(SingleRowCursor.of(map), null);
-        } catch (Throwable t) {
-            // XDOBE: rowReceiver.fail(t);
-        }
+    public boolean moveFirst() {
+        return delegate.moveFirst();
     }
 
     @Override
-    public ListenableFuture<List<Long>> executeBulk() {
-        throw new UnsupportedOperationException("ExplainTask cannot be executed as bulk operation");
+    public boolean moveNext() {
+        return delegate.moveNext();
+    }
+
+    @Override
+    public void close() {
+        delegate.close();
+    }
+
+    @Override
+    public Status status() {
+        return delegate.status();
+    }
+
+    @Override
+    public CompletableFuture<?> loadNextBatch() {
+        return delegate.loadNextBatch();
+    }
+
+    @Override
+    public boolean allLoaded() {
+        return delegate.allLoaded();
+    }
+
+    @Override
+    public int size() {
+        return delegate.size();
+    }
+
+    @Override
+    public Object get(int index) {
+        return delegate.get(index);
+    }
+
+    @Override
+    public Object[] materialize() {
+        return delegate.materialize();
     }
 }
