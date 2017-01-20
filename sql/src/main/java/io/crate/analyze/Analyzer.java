@@ -218,7 +218,7 @@ public class Analyzer {
 
         @Override
         public AnalyzedStatement visitAlterBlobTable(AlterBlobTable node, Analysis context) {
-            return alterBlobTableAnalyzer.analyze(node, context.parameterContext());
+            return alterBlobTableAnalyzer.analyze(node, context.parameterContext().parameters());
         }
 
         @Override

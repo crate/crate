@@ -28,7 +28,10 @@ import io.crate.sql.tree.Table;
 
 import java.util.List;
 
-abstract class BlobTableAnalyzer {
+final class BlobTableAnalyzer {
+
+    private BlobTableAnalyzer() {
+    }
 
     static TableIdent tableToIdent(Table table) {
         List<String> tableNameParts = table.getName().getParts();
