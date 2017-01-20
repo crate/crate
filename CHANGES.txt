@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fixed and issue that caused ``UPDATE`` statement on an empty partitioned
+   table to throw UnsupportedOperationException.
+
  - Fix issue where fulltext search with fuzziness='AUTO' throws
    NumberFormatException.
 

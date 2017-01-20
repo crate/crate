@@ -1328,4 +1328,10 @@ public class PlannerTest extends AbstractPlannerTest {
         Limits limits = plannerContext.getLimits(new QuerySpec());
         assertThat(limits.finalLimit(), is(TopN.NO_LIMIT));
     }
+
+    @Test
+    public void testUpdateOnEmptyPartitionedTable() throws Exception {
+        Plan plan = plan("update empty_parted set name='Vogon lyric fan'");
+        assertThat(plan, instanceOf(NoopPlan.class));
+    }
 }

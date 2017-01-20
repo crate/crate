@@ -91,6 +91,9 @@ public class UpdateConsumer implements Consumer {
 
             DocTableRelation tableRelation = (DocTableRelation) statement.sourceRelation();
             DocTableInfo tableInfo = tableRelation.tableInfo();
+            if (tableInfo.isPartitioned() && tableInfo.partitions().isEmpty()) {
+                return new NoopPlan(plannerContext.jobId());
+            }
 
             List<Plan> childNodes = new ArrayList<>(statement.nestedStatements().size());
             UpsertById upsertById = null;
