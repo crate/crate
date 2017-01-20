@@ -152,7 +152,7 @@ public class CrateCircuitBreakerService extends CircuitBreakerService {
         /*
         long newQueryLimitBytes = newQueryMax == null ? CrateCircuitBreakerService.this.queryBreakerSettings.getLimit() : newQueryMax.getBytes();
         newQueryOverhead = newQueryOverhead == null ? CrateCircuitBreakerService.this.queryBreakerSettings.getOverhead() : newQueryOverhead;
-        BreakerSettings newQuerySettings = new BreakerSettings(CircuitBreaker.FIELDDATA, newQueryLimitBytes, newQueryOverhead,
+        BreakerSettings newQuerySettings = new BreakerSettings(QUERY, newQueryLimitBytes, newQueryOverhead,
             CrateCircuitBreakerService.this.queryBreakerSettings.getType());
         registerBreaker(newQuerySettings);
         CrateCircuitBreakerService.this.queryBreakerSettings = newQuerySettings;
