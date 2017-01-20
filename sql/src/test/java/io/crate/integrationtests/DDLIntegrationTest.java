@@ -60,14 +60,11 @@ public class DDLIntegrationTest extends SQLTransportIntegrationTest {
             .actionGet().isExists());
 
         String expectedMapping = "{\"default\":{" +
-                                 "\"dynamic\":\"true\"," +
-                                 "\"_meta\":{\"primary_keys\":[\"col1\"]}," +
+                                 "\"dynamic\":\"true\",\"_meta\":{\"primary_keys\":[\"col1\"]}," +
                                  "\"_all\":{\"enabled\":false}," +
+                                 "\"dynamic_templates\":[{\"strings\":{\"mapping\":{\"index\":\"not_analyzed\",\"store\":false,\"type\":\"string\",\"doc_values\":true},\"match_mapping_type\":\"string\"}}]," +
                                  "\"properties\":{" +
-                                 // doc_values: true is default and not included
-                                 "\"col1\":{\"type\":\"integer\"}," +
-                                 "\"col2\":{\"type\":\"string\",\"index\":\"not_analyzed\"}" +
-                                 "}}}";
+                                 "\"col1\":{\"type\":\"integer\"},\"col2\":{\"type\":\"string\",\"index\":\"not_analyzed\"}}}}";
 
         String expectedSettings = "{\"test\":{" +
                                   "\"settings\":{" +
@@ -175,16 +172,11 @@ public class DDLIntegrationTest extends SQLTransportIntegrationTest {
             .actionGet().isExists());
 
         String expectedMapping = "{\"default\":{" +
-                                 "\"dynamic\":\"strict\"," +
-                                 "\"_meta\":{" +
-                                 "\"primary_keys\":[\"col1\"]}," +
-                                 "\"_all\":{\"enabled\":false}," +
+                                 "\"dynamic\":\"strict\",\"_meta\":{\"primary_keys\":[\"col1\"]},\"_all\":{\"enabled\":false}," +
+                                 "\"dynamic_templates\":[{\"strings\":{\"mapping\":{\"index\":\"not_analyzed\",\"store\":false,\"type\":\"string\",\"doc_values\":true},\"match_mapping_type\":\"string\"}}]," +
                                  "\"properties\":{" +
-                                 // doc_values: true is default for integer and (string + not_analyzed)
-                                 // defaults are not included so it's missing here
                                  "\"col1\":{\"type\":\"integer\"}," +
-                                 "\"col2\":{\"type\":\"string\",\"index\":\"not_analyzed\"}" +
-                                 "}}}";
+                                 "\"col2\":{\"type\":\"string\",\"index\":\"not_analyzed\"}}}}";
 
         String expectedSettings = "{\"test\":{" +
                                   "\"settings\":{" +
@@ -205,9 +197,9 @@ public class DDLIntegrationTest extends SQLTransportIntegrationTest {
         String expectedMapping = "{\"default\":{" +
                                  "\"dynamic\":\"true\"," +
                                  "\"_all\":{\"enabled\":false}," +
+                                 "\"dynamic_templates\":[{\"strings\":{\"mapping\":{\"index\":\"not_analyzed\",\"store\":false,\"type\":\"string\",\"doc_values\":true},\"match_mapping_type\":\"string\"}}]," +
                                  "\"properties\":{" +
-                                 "\"col1\":{\"type\":\"geo_shape\",\"tree\":\"quadtree\",\"precision\":\"1.0m\",\"distance_error_pct\":0.25}" +
-                                 "}}}";
+                                 "\"col1\":{\"type\":\"geo_shape\",\"tree\":\"quadtree\",\"precision\":\"1.0m\",\"distance_error_pct\":0.25}}}}";
         assertEquals(expectedMapping, getIndexMapping("test"));
     }
 
@@ -218,9 +210,8 @@ public class DDLIntegrationTest extends SQLTransportIntegrationTest {
         String expectedMapping = "{\"default\":{" +
                                  "\"dynamic\":\"true\"," +
                                  "\"_all\":{\"enabled\":false}," +
-                                 "\"properties\":{" +
-                                 "\"col1\":{\"type\":\"geo_shape\"}" +
-                                 "}}}";
+                                 "\"dynamic_templates\":[{\"strings\":{\"mapping\":{\"index\":\"not_analyzed\",\"store\":false,\"type\":\"string\",\"doc_values\":true},\"match_mapping_type\":\"string\"}}]," +
+                                 "\"properties\":{\"col1\":{\"type\":\"geo_shape\"}}}}";
         assertEquals(expectedMapping, getIndexMapping("test"));
 
     }
@@ -692,14 +683,12 @@ public class DDLIntegrationTest extends SQLTransportIntegrationTest {
     public void testCreateTableWithGeneratedColumn() throws Exception {
         execute("create table test (ts timestamp, day as date_trunc('day', ts)) with (number_of_replicas=0)");
         ensureYellow();
-        String expectedMapping = "{\"default\":{" +
-                                 "\"dynamic\":\"true\"," +
+        String expectedMapping = "{\"default\":" +
+                                 "{\"dynamic\":\"true\"," +
                                  "\"_meta\":{\"generated_columns\":{\"day\":\"date_trunc('day', ts)\"}}," +
                                  "\"_all\":{\"enabled\":false}," +
-                                 "\"properties\":{" +
-                                 "\"day\":{\"type\":\"date\",\"format\":\"epoch_millis||strict_date_optional_time\"}," +
-                                 "\"ts\":{\"type\":\"date\",\"format\":\"epoch_millis||strict_date_optional_time\"}" +
-                                 "}}}";
+                                 "\"dynamic_templates\":[{\"strings\":{\"mapping\":{\"index\":\"not_analyzed\",\"store\":false,\"type\":\"string\",\"doc_values\":true},\"match_mapping_type\":\"string\"}}]," +
+                                 "\"properties\":{\"day\":{\"type\":\"date\",\"format\":\"epoch_millis||strict_date_optional_time\"},\"ts\":{\"type\":\"date\",\"format\":\"epoch_millis||strict_date_optional_time\"}}}}";
 
         assertEquals(expectedMapping, getIndexMapping("test"));
     }

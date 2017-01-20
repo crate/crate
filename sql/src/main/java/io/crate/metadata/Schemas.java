@@ -62,6 +62,8 @@ public class Schemas extends AbstractLifecycleComponent<Schemas> implements Iter
     private final Map<String, SchemaInfo> schemas = new ConcurrentHashMap<>();
     private final Map<String, SchemaInfo> builtInSchemas;
 
+    private final DefaultTemplateService defaultTemplateService;
+
     @Inject
     public Schemas(Settings settings,
                    Map<String, SchemaInfo> builtInSchemas,
@@ -72,6 +74,7 @@ public class Schemas extends AbstractLifecycleComponent<Schemas> implements Iter
         this.docSchemaInfoFactory = docSchemaInfoFactory;
         schemas.putAll(builtInSchemas);
         this.builtInSchemas = builtInSchemas;
+        this.defaultTemplateService = new DefaultTemplateService(settings, clusterService);
     }
 
     public DocTableInfo getDroppableTable(TableIdent tableIdent) {
@@ -139,6 +142,7 @@ public class Schemas extends AbstractLifecycleComponent<Schemas> implements Iter
         if (!event.metaDataChanged()) {
             return;
         }
+        defaultTemplateService.createIfNotExists(event.state());
 
         Set<String> newCurrentSchemas = getNewCurrentSchemas(event.state().metaData());
         synchronized (schemas) {
