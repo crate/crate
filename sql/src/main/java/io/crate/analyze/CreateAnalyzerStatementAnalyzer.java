@@ -109,7 +109,7 @@ class CreateAnalyzerStatementAnalyzer
                 GenericPropertiesConverter.genericPropertyToSetting(builder,
                     getSettingsKey("index.analysis.tokenizer.%s.%s", name, tokenizerProperty.getKey()),
                     tokenizerProperty.getValue(),
-                    context.analysis.parameterContext());
+                    context.analysis.parameterContext().parameters());
             }
             context.statement.tokenDefinition(name, builder.build());
         }
@@ -122,7 +122,7 @@ class CreateAnalyzerStatementAnalyzer
         GenericPropertiesConverter.genericPropertyToSetting(context.statement.genericAnalyzerSettingsBuilder(),
             getSettingsKey("index.analysis.analyzer.%s.%s", context.statement.ident(), property.key()),
             property.value(),
-            context.analysis.parameterContext()
+            context.analysis.parameterContext().parameters()
         );
         return null;
     }
@@ -169,7 +169,7 @@ class CreateAnalyzerStatementAnalyzer
                     GenericPropertiesConverter.genericPropertyToSetting(builder,
                         getSettingsKey("index.analysis.filter.%s.%s", name, tokenFilterProperty.getKey()),
                         tokenFilterProperty.getValue(),
-                        context.analysis.parameterContext());
+                        context.analysis.parameterContext().parameters());
                 }
                 context.statement.addTokenFilter(name, builder.build());
             }
@@ -212,7 +212,7 @@ class CreateAnalyzerStatementAnalyzer
                     GenericPropertiesConverter.genericPropertyToSetting(builder,
                         getSettingsKey("index.analysis.char_filter.%s.%s", name, charFilterProperty.getKey()),
                         charFilterProperty.getValue(),
-                        context.analysis.parameterContext());
+                        context.analysis.parameterContext().parameters());
                 }
                 context.statement.addCharFilter(name, builder.build());
             }

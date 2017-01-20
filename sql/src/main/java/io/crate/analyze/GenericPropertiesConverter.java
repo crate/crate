@@ -22,6 +22,7 @@
 package io.crate.analyze;
 
 import io.crate.analyze.expressions.ExpressionToStringVisitor;
+import io.crate.core.collections.Row;
 import io.crate.metadata.settings.SettingsApplier;
 import io.crate.sql.tree.ArrayLiteral;
 import io.crate.sql.tree.Expression;
@@ -39,30 +40,30 @@ public class GenericPropertiesConverter {
     static void genericPropertyToSetting(Settings.Builder builder,
                                          String name,
                                          Expression value,
-                                         ParameterContext parameterContext) {
+                                         Row parameters) {
         if (value instanceof ArrayLiteral) {
             ArrayLiteral array = (ArrayLiteral) value;
             List<String> values = new ArrayList<>(array.values().size());
             for (Expression expression : array.values()) {
-                values.add(ExpressionToStringVisitor.convert(expression, parameterContext.parameters()));
+                values.add(ExpressionToStringVisitor.convert(expression, parameters));
             }
             builder.putArray(name, values.toArray(new String[values.size()]));
         } else {
-            builder.put(name, ExpressionToStringVisitor.convert(value, parameterContext.parameters()));
+            builder.put(name, ExpressionToStringVisitor.convert(value, parameters));
         }
     }
 
-    public static void genericPropertiesToSettings(Settings.Builder builder,
-                                                   GenericProperties genericProperties,
-                                                   ParameterContext parameterContext) {
+    private static void genericPropertiesToSettings(Settings.Builder builder,
+                                                    GenericProperties genericProperties,
+                                                    Row parameters) {
         for (Map.Entry<String, Expression> entry : genericProperties.properties().entrySet()) {
-            genericPropertyToSetting(builder, entry.getKey(), entry.getValue(), parameterContext);
+            genericPropertyToSetting(builder, entry.getKey(), entry.getValue(), parameters);
         }
     }
 
-    static Settings genericPropertiesToSettings(GenericProperties genericProperties, ParameterContext parameterContext) {
+    static Settings genericPropertiesToSettings(GenericProperties genericProperties, Row parameters) {
         Settings.Builder builder = Settings.builder();
-        genericPropertiesToSettings(builder, genericProperties, parameterContext);
+        genericPropertiesToSettings(builder, genericProperties, parameters);
         return builder.build();
     }
 
