@@ -59,6 +59,7 @@ import io.crate.types.CollectionType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.apache.logging.log4j.Logger;
+import org.apache.lucene.geo.Polygon;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.search.*;
 import org.apache.lucene.spatial.geopoint.document.GeoPointField;
@@ -70,9 +71,7 @@ import org.apache.lucene.spatial.query.SpatialOperation;
 import org.apache.lucene.util.BytesRef;
 import org.apache.lucene.util.automaton.RegExp;
 import org.elasticsearch.ExceptionsHelper;
-import org.elasticsearch.Version;
 import org.elasticsearch.common.collect.Tuple;
-import org.elasticsearch.common.geo.GeoDistance;
 import org.elasticsearch.common.geo.GeoPoint;
 import org.elasticsearch.common.geo.GeoUtils;
 import org.elasticsearch.common.geo.ShapeRelation;
@@ -87,8 +86,6 @@ import org.elasticsearch.index.fielddata.IndexGeoPointFieldData;
 import org.elasticsearch.index.mapper.*;
 import org.elasticsearch.index.query.QueryShardContext;
 import org.elasticsearch.index.query.RegexpFlag;
-import org.elasticsearch.index.search.geo.GeoDistanceRangeQuery;
-import org.elasticsearch.index.search.geo.GeoPolygonQuery;
 import org.elasticsearch.index.search.geo.LegacyInMemoryGeoBoundingBoxQuery;
 import org.locationtech.spatial4j.context.jts.JtsSpatialContext;
 import org.locationtech.spatial4j.shape.Rectangle;
@@ -993,40 +990,28 @@ public class LuceneQueryBuilder {
                 if (geometry.isRectangle()) {
                     return getBoundingBoxQuery(shape, fieldData);
                 } else {
-                    return getPolygonQuery(context, geometry, fieldData);
+                    return getPolygonQuery(geometry, fieldData);
                 }
             }
 
-            private Query getPolygonQuery(Context context, Geometry geometry, IndexGeoPointFieldData fieldData) {
-                final Version indexCreated = context.indexCache.getIndexSettings().getIndexVersionCreated();
+            private static Query getPolygonQuery(Geometry geometry, IndexGeoPointFieldData fieldData) {
                 Coordinate[] coordinates = geometry.getCoordinates();
-                final Query query;
-                // We can check for version 2.3 here because there is no Crate release with version 2.2
-                // although the optimized distance query is available since 2.2
-                if (indexCreated.before(Version.V_2_3_0)) {
-                    GeoPoint[] points = new GeoPoint[coordinates.length];
-                    for (int i = 0; i < coordinates.length; i++) {
-                        Coordinate coordinate = coordinates[i];
-                        points[i] = new GeoPoint(coordinate.y, coordinate.x);
-                    }
-                    query = new GeoPolygonQuery(fieldData, points);
-                } else {
-                    // close the polygon shape if startpoint != endpoint
-                    if (!CoordinateArrays.isRing(coordinates)) {
-                        coordinates = Arrays.copyOf(coordinates, coordinates.length + 1);
-                        coordinates[coordinates.length - 1] = coordinates[0];
-                    }
-                    final double[] lats = new double[coordinates.length];
-                    final double[] lons = new double[coordinates.length];
-                    for (int i = 0; i < coordinates.length; i++) {
-                        lats[i] = coordinates[i].y;
-                        lons[i] = coordinates[i].x;
-                    }
-                    query = new GeoPointInPolygonQuery(fieldData.getFieldName(),
-                        GeoPointField.TermEncoding.PREFIX,
-                        lons, lats);
+                // close the polygon shape if startpoint != endpoint
+                if (!CoordinateArrays.isRing(coordinates)) {
+                    coordinates = Arrays.copyOf(coordinates, coordinates.length + 1);
+                    coordinates[coordinates.length - 1] = coordinates[0];
                 }
-                return query;
+                final double[] lats = new double[coordinates.length];
+                final double[] lons = new double[coordinates.length];
+                for (int i = 0; i < coordinates.length; i++) {
+                    lats[i] = coordinates[i].y;
+                    lons[i] = coordinates[i].x;
+                }
+                return new GeoPointInPolygonQuery(
+                    fieldData.getFieldName(),
+                    GeoPointField.TermEncoding.PREFIX,
+                    new Polygon(lons, lats)
+                );
             }
 
             private Query getBoundingBoxQuery(Shape shape, IndexGeoPointFieldData fieldData) {
@@ -1045,10 +1030,6 @@ public class LuceneQueryBuilder {
         }
 
         static class DistanceQuery implements InnerFunctionToQuery {
-
-            final static GeoDistance GEO_DISTANCE = GeoDistance.DEFAULT;
-            final static String OPTIMIZE_BOX = "memory";
-
 
             /**
              * @param parent the outer function. E.g. in the case of
@@ -1121,36 +1102,19 @@ public class LuceneQueryBuilder {
                         // invalid operator? give up
                         return null;
                 }
-
-                final Version indexCreated = Version.indexCreated(context.indexCache.getIndexSettings().getSettings());
-                final Query query;
-                if (indexCreated.before(Version.V_2_3_0)) {
-                    query = new GeoDistanceRangeQuery(
-                        geoPoint,
-                        from,
-                        to,
-                        includeLower,
-                        includeUpper,
-                        GEO_DISTANCE,
-                        (LegacyGeoPointFieldMapper.LegacyGeoPointFieldType) geoPointFieldType,
-                        fieldData,
-                        OPTIMIZE_BOX);
-                } else {
-                    GeoUtils.normalizePoint(geoPoint);
-                    if (from == null) {
-                        from = 0d;
-                    }
-                    if (to == null) {
-                        to = GeoUtils.maxRadialDistanceMeters(geoPoint.lon(), geoPoint.lat());
-                    }
-                    query = new XGeoPointDistanceRangeQuery(
-                        fieldData.index().getName(),
-                        GeoPointField.TermEncoding.PREFIX,
-                        geoPoint.lon(), geoPoint.lat(),
-                        (includeLower) ? from : from + TOLERANCE,
-                        (includeUpper) ? to : to - TOLERANCE);
+                GeoUtils.normalizePoint(geoPoint);
+                if (from == null) {
+                    from = 0d;
                 }
-                return query;
+                if (to == null) {
+                    to = GeoUtils.maxRadialDistanceMeters(geoPoint.lon(), geoPoint.lat());
+                }
+                return new XGeoPointDistanceRangeQuery(
+                    fieldData.index().getName(),
+                    GeoPointField.TermEncoding.PREFIX,
+                    geoPoint.lon(), geoPoint.lat(),
+                    (includeLower) ? from : from + TOLERANCE,
+                    (includeUpper) ? to : to - TOLERANCE);
             }
         }
 
