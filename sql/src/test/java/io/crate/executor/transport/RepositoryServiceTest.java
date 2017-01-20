@@ -25,6 +25,7 @@ package io.crate.executor.transport;
 import com.google.common.collect.ImmutableList;
 import io.crate.analyze.CreateRepositoryAnalyzedStatement;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
+import org.elasticsearch.Version;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.admin.cluster.repositories.delete.DeleteRepositoryRequest;
 import org.elasticsearch.action.admin.cluster.repositories.delete.DeleteRepositoryResponse;
@@ -46,7 +47,7 @@ import org.elasticsearch.repositories.RepositoriesService;
 import org.elasticsearch.repositories.RepositoryException;
 import org.elasticsearch.tasks.Task;
 import org.elasticsearch.test.ClusterServiceUtils;
-import org.elasticsearch.transport.TransportService;
+import org.elasticsearch.test.transport.MockTransportService;
 import org.junit.Test;
 import org.mockito.Answers;
 
@@ -87,7 +88,7 @@ public class RepositoryServiceTest extends CrateDummyClusterServiceUnitTest {
         final AtomicBoolean deleteRepoCalled = new AtomicBoolean(false);
         TransportDeleteRepositoryAction deleteRepositoryAction = new TransportDeleteRepositoryAction(
             Settings.EMPTY,
-            mock(TransportService.class, Answers.RETURNS_MOCKS.get()),
+            MockTransportService.local(Settings.EMPTY, Version.V_5_0_1, THREAD_POOL),
             clusterService,
             mock(RepositoriesService.class),
             THREAD_POOL,
@@ -102,7 +103,7 @@ public class RepositoryServiceTest extends CrateDummyClusterServiceUnitTest {
 
         TransportPutRepositoryAction putRepo = new TransportPutRepositoryAction(
             Settings.EMPTY,
-            mock(TransportService.class, Answers.RETURNS_MOCKS.get()),
+            MockTransportService.local(Settings.EMPTY, Version.V_5_0_1, THREAD_POOL),
             clusterService,
             mock(RepositoriesService.class),
             THREAD_POOL,
