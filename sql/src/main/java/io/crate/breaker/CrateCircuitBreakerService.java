@@ -21,6 +21,7 @@
 
 package io.crate.breaker;
 
+import com.google.common.annotations.VisibleForTesting;
 import org.elasticsearch.common.breaker.CircuitBreaker;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.settings.Settings;
@@ -98,18 +99,23 @@ public class CrateCircuitBreakerService extends CircuitBreakerService {
             limit, new ByteSizeValue(limit));
     }
 
-    public class ApplySettings implements NodeSettingsService.Listener {
+    @VisibleForTesting
+    BreakerSettings queryBreakerSettings() {
+        return queryBreakerSettings;
+    }
+
+    private class ApplySettings implements NodeSettingsService.Listener {
 
         @Override
         public void onRefreshSettings(Settings settings) {
-
             // Query breaker settings
+            long maxBytes = CrateCircuitBreakerService.this.settings.getAsMemory(
+                QUERY_CIRCUIT_BREAKER_LIMIT_SETTING,
+                DEFAULT_QUERY_CIRCUIT_BREAKER_LIMIT
+            ).getBytes();
             long newQueryMax = settings.getAsMemory(
                 QUERY_CIRCUIT_BREAKER_LIMIT_SETTING,
-                CrateCircuitBreakerService.this.settings.getAsMemory(
-                    QUERY_CIRCUIT_BREAKER_LIMIT_SETTING,
-                    DEFAULT_QUERY_CIRCUIT_BREAKER_LIMIT
-                ).toString()).getBytes();
+                String.format(Locale.ENGLISH, "%db", maxBytes)).getBytes();
             Double newQueryOverhead = settings.getAsDouble(
                 QUERY_CIRCUIT_BREAKER_OVERHEAD_SETTING,
                 CrateCircuitBreakerService.this.settings.getAsDouble(
@@ -123,6 +129,8 @@ public class CrateCircuitBreakerService extends CircuitBreakerService {
                     QUERY, newQueryMax, newQueryOverhead,
                     CrateCircuitBreakerService.this.queryBreakerSettings.getType());
                 registerBreaker(newQuerySettings);
+                CrateCircuitBreakerService.this.queryBreakerSettings = newQuerySettings;
+                logger.info("Updated breaker settings query: {}", newQuerySettings);
             }
         }
     }
