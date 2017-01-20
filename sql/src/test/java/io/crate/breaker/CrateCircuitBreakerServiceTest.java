@@ -21,27 +21,43 @@
 
 package io.crate.breaker;
 
-import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
+import io.crate.test.integration.CrateUnitTest;
 import org.elasticsearch.common.breaker.CircuitBreaker;
+import org.elasticsearch.common.settings.ClusterSettings;
+import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.ByteSizeValue;
+import org.elasticsearch.common.util.set.Sets;
 import org.elasticsearch.indices.breaker.CircuitBreakerService;
 import org.elasticsearch.indices.breaker.CircuitBreakerStats;
 import org.elasticsearch.indices.breaker.HierarchyCircuitBreakerService;
+import org.junit.Before;
 import org.junit.Test;
 
 import java.util.Locale;
+import java.util.Set;
 
 import static org.hamcrest.Matchers.*;
 
-public class CrateCircuitBreakerServiceTest extends CrateDummyClusterServiceUnitTest {
+public class CrateCircuitBreakerServiceTest extends CrateUnitTest {
+
+    private ClusterSettings clusterSettings;
+
+    @Before
+    public void registerSettings() {
+        Set<Setting<?>> settings = Sets.newHashSet(ClusterSettings.BUILT_IN_CLUSTER_SETTINGS);
+        settings.add(CrateCircuitBreakerService.QUERY_CIRCUIT_BREAKER_LIMIT_SETTING);
+        settings.add(CrateCircuitBreakerService.QUERY_CIRCUIT_BREAKER_OVERHEAD_SETTING);
+        settings.add(CrateCircuitBreakerService.QUERY_CIRCUIT_BREAKER_TYPE_SETTING);
+        clusterSettings = new ClusterSettings(Settings.EMPTY, settings);
+    }
 
     @Test
     public void testQueryCircuitBreakerRegistration() throws Exception {
         CircuitBreakerService esBreakerService = new HierarchyCircuitBreakerService(
-            Settings.EMPTY, clusterService.getClusterSettings());
+            Settings.EMPTY, clusterSettings);
         CrateCircuitBreakerService breakerService = new CrateCircuitBreakerService(
-            Settings.EMPTY, clusterService.getClusterSettings(), esBreakerService);
+            Settings.EMPTY, clusterSettings, esBreakerService);
 
         CircuitBreaker breaker = breakerService.getBreaker(CrateCircuitBreakerService.QUERY);
         assertThat(breaker, notNullValue());
@@ -52,16 +68,15 @@ public class CrateCircuitBreakerServiceTest extends CrateDummyClusterServiceUnit
     @Test
     public void testQueryCircuitBreakerDynamicSettings() throws Exception {
         CircuitBreakerService esBreakerService = new HierarchyCircuitBreakerService(
-            Settings.EMPTY, clusterService.getClusterSettings());
+            Settings.EMPTY, clusterSettings);
         CrateCircuitBreakerService breakerService = new CrateCircuitBreakerService(
-            Settings.EMPTY, clusterService.getClusterSettings(), esBreakerService);
+            Settings.EMPTY, clusterSettings, esBreakerService);
 
-        fail("TODO: update test");
         Settings newSettings = Settings.builder()
-            .put(CrateCircuitBreakerService.QUERY_CIRCUIT_BREAKER_OVERHEAD_SETTING, 2.0)
+            .put(CrateCircuitBreakerService.QUERY_CIRCUIT_BREAKER_OVERHEAD_SETTING.getKey(), 2.0)
             .build();
 
-        //listeners[0].onRefreshSettings(newSettings);
+        clusterSettings.applySettings(newSettings);
 
         CircuitBreaker breaker = breakerService.getBreaker(CrateCircuitBreakerService.QUERY);
         assertThat(breaker, notNullValue());
@@ -78,9 +93,9 @@ public class CrateCircuitBreakerServiceTest extends CrateDummyClusterServiceUnit
     @Test
     public void testStats() throws Exception {
         CircuitBreakerService esBreakerService = new HierarchyCircuitBreakerService(
-            Settings.EMPTY, clusterService.getClusterSettings());
+            Settings.EMPTY, clusterSettings);
         CrateCircuitBreakerService breakerService = new CrateCircuitBreakerService(
-            Settings.EMPTY, clusterService.getClusterSettings(), esBreakerService);
+            Settings.EMPTY, clusterSettings, esBreakerService);
 
         CircuitBreakerStats[] stats = breakerService.stats().getAllStats();
         assertThat(stats.length, is(5));
