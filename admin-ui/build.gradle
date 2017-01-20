@@ -49,7 +49,7 @@ task writePropertiesFile << {
 }
 
 
-task downloadPlugin(dependsOn: [writePropertiesFile]) << {
+task downloadPlugin(dependsOn: [writePropertiesFile, jar]) << {
     def dest = download(
             downloadDir,
             "https://cdn.crate.io/downloads/releases/crate-admin-${plugin_crateadmin_version}.tar.gz",
