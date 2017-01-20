@@ -233,7 +233,8 @@ public class Analyzer {
 
         @Override
         public AnalyzedStatement visitAlterTable(AlterTable node, Analysis context) {
-            return alterTableAnalyzer.analyze(node, context);
+            return alterTableAnalyzer.analyze(
+                node, context.parameterContext().parameters(), context.sessionContext().defaultSchema());
         }
 
         @Override

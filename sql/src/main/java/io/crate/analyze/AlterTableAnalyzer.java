@@ -21,15 +21,17 @@
 
 package io.crate.analyze;
 
+import io.crate.core.collections.Row;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.table.Operation;
-import io.crate.sql.tree.*;
+import io.crate.sql.tree.AlterTable;
+import io.crate.sql.tree.Table;
 import org.elasticsearch.cluster.metadata.IndexMetaData;
 import org.elasticsearch.common.settings.Settings;
 
-class AlterTableAnalyzer extends DefaultTraversalVisitor<AlterTableAnalyzedStatement, Analysis> {
+class AlterTableAnalyzer {
 
     private final Schemas schemas;
 
@@ -37,19 +39,9 @@ class AlterTableAnalyzer extends DefaultTraversalVisitor<AlterTableAnalyzedState
         this.schemas = schemas;
     }
 
-    @Override
-    public AlterTableAnalyzedStatement visitColumnDefinition(ColumnDefinition node, Analysis analysis) {
-        if (node.ident().startsWith("_")) {
-            throw new IllegalArgumentException("Column ident must not start with '_'");
-        }
-
-        return null;
-    }
-
-    @Override
-    public AlterTableAnalyzedStatement visitAlterTable(AlterTable node, Analysis analysis) {
+    public AlterTableAnalyzedStatement analyze(AlterTable node, Row parameters, String defaultSchema) {
         AlterTableAnalyzedStatement statement = new AlterTableAnalyzedStatement(schemas);
-        setTableAndPartitionName(node.table(), statement, analysis);
+        setTableAndPartitionName(node.table(), statement, parameters, defaultSchema);
 
         TableParameterInfo tableParameterInfo = statement.table().tableParameterInfo();
         if (statement.partitionName().isPresent()) {
@@ -63,7 +55,7 @@ class AlterTableAnalyzer extends DefaultTraversalVisitor<AlterTableAnalyzedState
         if (node.genericProperties().isPresent()) {
             TablePropertiesAnalyzer.analyze(
                 statement.tableParameter(), tableParameterInfo, node.genericProperties(),
-                analysis.parameterContext().parameters());
+                parameters);
         } else if (!node.resetProperties().isEmpty()) {
             TablePropertiesAnalyzer.analyze(
                 statement.tableParameter(), tableParameterInfo, node.resetProperties());
@@ -81,21 +73,20 @@ class AlterTableAnalyzer extends DefaultTraversalVisitor<AlterTableAnalyzedState
         return statement;
     }
 
-    private void setTableAndPartitionName(Table node, AlterTableAnalyzedStatement context, Analysis analysis) {
-        context.table(TableIdent.of(node, analysis.sessionContext().defaultSchema()));
+    private void setTableAndPartitionName(Table node,
+                                          AlterTableAnalyzedStatement context,
+                                          Row parameters,
+                                          String defaultSchema) {
+        context.table(TableIdent.of(node, defaultSchema));
         if (!node.partitionProperties().isEmpty()) {
             PartitionName partitionName = PartitionPropertiesAnalyzer.toPartitionName(
                 context.table(),
                 node.partitionProperties(),
-                analysis.parameterContext().parameters());
+                parameters);
             if (!context.table().partitions().contains(partitionName)) {
                 throw new IllegalArgumentException("Referenced partition does not exist.");
             }
             context.partitionName(partitionName);
         }
-    }
-
-    public AnalyzedStatement analyze(Node node, Analysis analysis) {
-        return process(node, analysis);
     }
 }
