@@ -22,7 +22,18 @@
 
 package io.crate.test.integration;
 
+import com.google.common.collect.ImmutableSet;
+import org.elasticsearch.Version;
+import org.elasticsearch.cluster.ClusterState;
+import org.elasticsearch.cluster.NodeConnectionsService;
+import org.elasticsearch.cluster.node.DiscoveryNode;
+import org.elasticsearch.cluster.node.DiscoveryNodes;
 import org.elasticsearch.cluster.service.ClusterService;
+import org.elasticsearch.common.settings.ClusterSettings;
+import org.elasticsearch.common.settings.Setting;
+import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.common.transport.LocalTransportAddress;
+import org.elasticsearch.common.util.set.Sets;
 import org.elasticsearch.test.ClusterServiceUtils;
 import org.elasticsearch.threadpool.TestThreadPool;
 import org.elasticsearch.threadpool.ThreadPool;
@@ -31,9 +42,12 @@ import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
 
+import java.util.*;
 import java.util.concurrent.TimeUnit;
 
 public class CrateDummyClusterServiceUnitTest extends CrateUnitTest {
+
+    private static final Set<Setting<?>> EMPTY_CLUSTER_SETTINGS = ImmutableSet.of();
 
     protected static ThreadPool THREAD_POOL;
     protected ClusterService clusterService;
@@ -50,11 +64,47 @@ public class CrateDummyClusterServiceUnitTest extends CrateUnitTest {
 
     @Before
     public void setupDummyClusterService() {
-        clusterService = ClusterServiceUtils.createClusterService(THREAD_POOL);
+        clusterService = createClusterService(additionalClusterSettings());
     }
 
     @After
     public void cleanup() {
         clusterService.close();
+    }
+
+    /**
+     * Override this method to provide additional cluster settings.
+     */
+    protected Set<Setting<?>> additionalClusterSettings() {
+        return EMPTY_CLUSTER_SETTINGS;
+    }
+
+    private ClusterService createClusterService(Set<Setting<?>> additionalClusterSettings) {
+        Set<Setting<?>> clusterSettings = Sets.newHashSet(ClusterSettings.BUILT_IN_CLUSTER_SETTINGS);
+        clusterSettings.addAll(additionalClusterSettings);
+        DiscoveryNode discoveryNode = new DiscoveryNode("node", LocalTransportAddress.buildUnique(), Collections.emptyMap(),
+            new HashSet<>(Arrays.asList(DiscoveryNode.Role.values())), Version.CURRENT);
+        ClusterService clusterService = new ClusterService(Settings.builder().put("cluster.name", "ClusterServiceTests").build(),
+            new ClusterSettings(Settings.EMPTY, clusterSettings),
+            THREAD_POOL);
+        clusterService.setLocalNode(discoveryNode);
+        clusterService.setNodeConnectionsService(new NodeConnectionsService(Settings.EMPTY, null, null) {
+            @Override
+            public void connectToNodes(List<DiscoveryNode> addedNodes) {
+                // skip
+            }
+
+            @Override
+            public void disconnectFromNodes(List<DiscoveryNode> removedNodes) {
+                // skip
+            }
+        });
+        clusterService.setClusterStatePublisher((event, ackListener) -> {
+        });
+        clusterService.start();
+        final DiscoveryNodes.Builder nodes = DiscoveryNodes.builder(clusterService.state().nodes());
+        nodes.masterNodeId(clusterService.localNode().getId());
+        ClusterServiceUtils.setState(clusterService, ClusterState.builder(clusterService.state()).nodes(nodes));
+        return clusterService;
     }
 }
