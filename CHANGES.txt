@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Dynamically added string columns now have exactly the same characteristics
+   as string columns created via ``CREATE TABLE`` or ``ALTER TABLE ADD COLUMN``
+
  - Fixed and issue that caused ``UPDATE`` statement on an empty partitioned
    table to throw UnsupportedOperationException.
 
