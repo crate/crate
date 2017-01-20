@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fixed and issue that caused ``UPDATE`` statement on an empty partitioned
+   table to throw UnsupportedOperationException.
+
  - The array comparison no longer requires extra parentheses for subselects.
    Now it's possible to use `` = ANY (SELECT ...)`` instead of
    `` = ANY ((SELECT ...))``

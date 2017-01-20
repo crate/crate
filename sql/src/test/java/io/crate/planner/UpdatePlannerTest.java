@@ -52,6 +52,7 @@ public class UpdatePlannerTest extends CrateUnitTest {
     private SQLExecutor e = SQLExecutor.builder(new NoopClusterService())
         .enableDefaultTables()
         .addDocTable(TableDefinitions.PARTED_PKS_TI)
+        .addDocTable(TableDefinitions.TEST_EMPTY_PARTITIONED_TABLE_INFO)
         .build();
 
 
@@ -132,5 +133,11 @@ public class UpdatePlannerTest extends CrateUnitTest {
         }
         assertThat(ids, containsInAnyOrder("AgEyATA=", "AgEzAzEyMw==")); // multi primary key - values concatenated and base64'ed
         assertThat(partitions, containsInAnyOrder(".partitioned.parted_pks.04130", ".partitioned.parted_pks.04232chj"));
+    }
+
+    @Test
+    public void testUpdateOnEmptyPartitionedTable() throws Exception {
+        Plan plan = e.plan("update empty_parted set name='Vogon lyric fan'");
+        assertThat(plan, instanceOf(NoopPlan.class));
     }
 }
