@@ -26,6 +26,7 @@ import org.apache.lucene.index.LeafReaderContext;
 import org.elasticsearch.common.geo.GeoPoint;
 import org.elasticsearch.index.fielddata.IndexGeoPointFieldData;
 import org.elasticsearch.index.fielddata.MultiGeoPointValues;
+import org.elasticsearch.index.mapper.MappedFieldType;
 
 import java.io.IOException;
 
@@ -34,8 +35,8 @@ public class GeoPointColumnReference extends FieldCacheExpression<IndexGeoPointF
     private MultiGeoPointValues values;
     private Double[] value;
 
-    public GeoPointColumnReference(String columnName) {
-        super(columnName);
+    public GeoPointColumnReference(String columnName, MappedFieldType mappedFieldType) {
+        super(columnName, mappedFieldType);
     }
 
     @Override

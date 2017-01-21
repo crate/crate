@@ -1293,7 +1293,6 @@ public class LuceneQueryBuilder {
             @SuppressWarnings("unchecked")
             final Collection<? extends LuceneCollectorExpression<?>> expressions = ctx.expressions();
             final CollectorContext collectorContext = new CollectorContext(
-                context.mapperService,
                 context.fieldDataService,
                 new CollectorFieldsVisitor(expressions.size())
             );

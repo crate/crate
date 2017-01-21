@@ -57,6 +57,7 @@ public class LuceneOrderedDocCollector extends OrderedDocCollector {
     private final Float minScore;
     private final boolean doDocsScores;
     private final int batchSize;
+    private final FieldTypeLookup fieldTypeLookup;
     private final CollectorContext collectorContext;
     private final OrderBy orderBy;
     private final Sort sort;
@@ -76,6 +77,7 @@ public class LuceneOrderedDocCollector extends OrderedDocCollector {
                                      Float minScore,
                                      boolean doDocsScores,
                                      int batchSize,
+                                     FieldTypeLookup fieldTypeLookup,
                                      CollectorContext collectorContext,
                                      OrderBy orderBy,
                                      Sort sort,
@@ -87,6 +89,7 @@ public class LuceneOrderedDocCollector extends OrderedDocCollector {
         this.minScore = minScore;
         this.doDocsScores = doDocsScores;
         this.batchSize = batchSize;
+        this.fieldTypeLookup = fieldTypeLookup;
         this.collectorContext = collectorContext;
         this.orderBy = orderBy;
         this.sort = sort;
@@ -158,7 +161,7 @@ public class LuceneOrderedDocCollector extends OrderedDocCollector {
     }
 
     private Query query(FieldDoc lastDoc) {
-        Query query = nextPageQuery(lastDoc, orderBy, missingValues, collectorContext.mapperService()::fullName);
+        Query query = nextPageQuery(lastDoc, orderBy, missingValues, fieldTypeLookup);
         if (query == null) {
             return this.query;
         }

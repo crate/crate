@@ -31,36 +31,27 @@ import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.MatchAllDocsQuery;
 import org.apache.lucene.search.ScoreDoc;
 import org.apache.lucene.search.TopDocs;
-import org.elasticsearch.index.fielddata.FieldDataType;
-import org.elasticsearch.index.mapper.MappedFieldType;
 import org.junit.Test;
 
 import static org.hamcrest.core.Is.is;
 
 public class LongColumnReferenceTest extends DocLevelExpressionsTest {
+
+    private String column = "l";
+
     @Override
     protected void insertValues(IndexWriter writer) throws Exception {
         for (long l = Long.MIN_VALUE; l < Long.MIN_VALUE + 10; l++) {
             Document doc = new Document();
             doc.add(new StringField("_id", Long.toString(l), Field.Store.NO));
-            doc.add(new NumericDocValuesField(fieldName().indexName(), l));
+            doc.add(new NumericDocValuesField(column, l));
             writer.addDocument(doc);
         }
     }
 
-    @Override
-    protected MappedFieldType.Names fieldName() {
-        return new MappedFieldType.Names("l");
-    }
-
-    @Override
-    protected FieldDataType fieldType() {
-        return new FieldDataType("long");
-    }
-
     @Test
     public void testLongExpression() throws Exception {
-        LongColumnReference longColumn = new LongColumnReference(fieldName().indexName());
+        LongColumnReference longColumn = new LongColumnReference(column);
         longColumn.startCollect(ctx);
         longColumn.setNextReader(readerContext);
         IndexSearcher searcher = new IndexSearcher(readerContext.reader());

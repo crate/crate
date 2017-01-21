@@ -31,36 +31,27 @@ import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.MatchAllDocsQuery;
 import org.apache.lucene.search.ScoreDoc;
 import org.apache.lucene.search.TopDocs;
-import org.elasticsearch.index.fielddata.FieldDataType;
-import org.elasticsearch.index.mapper.MappedFieldType;
 import org.junit.Test;
 
 import static org.hamcrest.core.Is.is;
 
 public class ShortColumnReferenceTest extends DocLevelExpressionsTest {
+
+    private String column = "s";
+
     @Override
     protected void insertValues(IndexWriter writer) throws Exception {
         for (short i = -10; i < 10; i++) {
             Document doc = new Document();
             doc.add(new StringField("_id", Short.toString(i), Field.Store.NO));
-            doc.add(new SortedNumericDocValuesField(fieldName().indexName(), i));
+            doc.add(new SortedNumericDocValuesField(column, i));
             writer.addDocument(doc);
         }
     }
 
-    @Override
-    protected MappedFieldType.Names fieldName() {
-        return new MappedFieldType.Names("s");
-    }
-
-    @Override
-    protected FieldDataType fieldType() {
-        return new FieldDataType("short");
-    }
-
     @Test
     public void testShortExpression() throws Exception {
-        ShortColumnReference shortColumn = new ShortColumnReference(fieldName().indexName());
+        ShortColumnReference shortColumn = new ShortColumnReference(column);
         shortColumn.startCollect(ctx);
         shortColumn.setNextReader(readerContext);
         IndexSearcher searcher = new IndexSearcher(readerContext.reader());

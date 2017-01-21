@@ -28,13 +28,14 @@ import io.crate.metadata.RowGranularity;
 import io.crate.metadata.TableIdent;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.types.DataTypes;
+import org.elasticsearch.index.mapper.core.StringFieldMapper;
 import org.junit.Test;
 
 import static org.hamcrest.Matchers.instanceOf;
 
 public class LuceneReferenceResolverTest extends CrateUnitTest {
 
-    private LuceneReferenceResolver luceneReferenceResolver = new LuceneReferenceResolver(null);
+    private LuceneReferenceResolver luceneReferenceResolver = new LuceneReferenceResolver(i -> StringFieldMapper.Defaults.FIELD_TYPE);
 
     @Test
     public void testGetImplementationWithColumnsOfTypeCollection() {

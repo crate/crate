@@ -25,6 +25,7 @@ import io.crate.action.job.SharedShardContext;
 import io.crate.action.sql.query.LuceneSortGenerator;
 import io.crate.analyze.symbol.Symbols;
 import io.crate.executor.transport.TransportActionProvider;
+import io.crate.lucene.FieldTypeLookup;
 import io.crate.lucene.LuceneQueryBuilder;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Schemas;
@@ -63,6 +64,7 @@ public class LuceneShardCollectorProvider extends ShardCollectorProvider {
     private final LuceneQueryBuilder luceneQueryBuilder;
     private final IndexShard indexShard;
     private final DocInputFactory docInputFactory;
+    private final FieldTypeLookup fieldTypeLookup;
 
     public LuceneShardCollectorProvider(Schemas schemas,
                                         LuceneQueryBuilder luceneQueryBuilder,
@@ -81,7 +83,8 @@ public class LuceneShardCollectorProvider extends ShardCollectorProvider {
         this.threadPool = threadPool;
         this.indexShard = indexShard;
         this.localNodeId = clusterService.localNode().getId();
-        this.docInputFactory = new DocInputFactory(functions, new LuceneReferenceResolver(indexShard.mapperService()));
+        fieldTypeLookup = indexShard.mapperService()::smartNameFieldType;
+        this.docInputFactory = new DocInputFactory(functions, new LuceneReferenceResolver(fieldTypeLookup));
     }
 
     @Override
@@ -164,9 +167,10 @@ public class LuceneShardCollectorProvider extends ShardCollectorProvider {
             queryContext.minScore(),
             Symbols.containsColumn(collectPhase.toCollect(), DocSysColumns.SCORE),
             batchSize,
+            fieldTypeLookup,
             collectorContext,
             collectPhase.orderBy(),
-            LuceneSortGenerator.generateLuceneSort(collectorContext, collectPhase.orderBy(), docInputFactory),
+            LuceneSortGenerator.generateLuceneSort(collectorContext, collectPhase.orderBy(), docInputFactory, fieldTypeLookup),
             ctx.topLevelInputs(),
             ctx.expressions()
         );
@@ -174,7 +178,6 @@ public class LuceneShardCollectorProvider extends ShardCollectorProvider {
 
     private CollectorContext getCollectorContext(int readerId, InputFactory.Context ctx) {
         return new CollectorContext(
-            indexShard.mapperService(),
             indexShard.indexFieldDataService(),
             new CollectorFieldsVisitor(ctx.expressions().size()),
             readerId

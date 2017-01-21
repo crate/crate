@@ -31,40 +31,27 @@ import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.MatchAllDocsQuery;
 import org.apache.lucene.search.ScoreDoc;
 import org.apache.lucene.search.TopDocs;
-import org.elasticsearch.index.fielddata.FieldDataType;
-import org.elasticsearch.index.mapper.MappedFieldType;
 import org.junit.Test;
 
 import static org.hamcrest.core.Is.is;
 
 public class BooleanColumnReferenceTest extends DocLevelExpressionsTest {
 
+    private String column = "b";
+
     @Override
     protected void insertValues(IndexWriter writer) throws Exception {
         for (int i = 0; i < 10; i++) {
             Document doc = new Document();
             doc.add(new StringField("_id", Integer.toString(i), Field.Store.NO));
-            doc.add(new NumericDocValuesField(fieldName().indexName(), i % 2 == 0 ? 1 : 0));
+            doc.add(new NumericDocValuesField(column, i % 2 == 0 ? 1 : 0));
             writer.addDocument(doc);
         }
     }
 
-    @Override
-    protected MappedFieldType.Names fieldName() {
-        return new MappedFieldType.Names("bool");
-    }
-
-    /**
-     * @see {@link org.elasticsearch.index.mapper.core.BooleanFieldMapper}
-     */
-    @Override
-    protected FieldDataType fieldType() {
-        return new FieldDataType("string");
-    }
-
     @Test
     public void testBooleanExpression() throws Exception {
-        BooleanColumnReference booleanColumn = new BooleanColumnReference(fieldName().indexName());
+        BooleanColumnReference booleanColumn = new BooleanColumnReference(column);
         booleanColumn.startCollect(ctx);
         booleanColumn.setNextReader(readerContext);
         IndexSearcher searcher = new IndexSearcher(readerContext.reader());

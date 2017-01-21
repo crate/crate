@@ -28,18 +28,9 @@ import org.apache.lucene.index.*;
 import org.apache.lucene.store.RAMDirectory;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.IndexService;
-import org.elasticsearch.index.fielddata.FieldDataType;
-import org.elasticsearch.index.fielddata.IndexFieldData;
 import org.elasticsearch.index.fielddata.IndexFieldDataService;
-import org.elasticsearch.index.mapper.MappedFieldType;
-import org.elasticsearch.index.mapper.MapperService;
 import org.junit.After;
 import org.junit.Before;
-import org.mockito.Matchers;
-
-import static org.mockito.Matchers.anyString;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 public abstract class DocLevelExpressionsTest extends CrateSingleNodeTest {
 
@@ -53,26 +44,15 @@ public abstract class DocLevelExpressionsTest extends CrateSingleNodeTest {
         Settings settings = Settings.builder().put("index.fielddata.cache", "none").build();
         IndexService indexService = createIndex("test", settings);
         ifd = indexService.fieldData();
-
-        MapperService mapperService = mock(MapperService.class);
-        MappedFieldType fieldMapper = mock(MappedFieldType.class);
-        when(fieldMapper.names()).thenReturn(fieldName());
-        when(fieldMapper.fieldDataType()).thenReturn(fieldType());
-        when(mapperService.smartNameFieldType(anyString(), Matchers.<String[]>any())).thenReturn(fieldMapper);
-
-
-        IndexFieldData<?> fieldData = ifd.getForField(fieldMapper);
         writer = new IndexWriter(new RAMDirectory(),
-            new IndexWriterConfig(new StandardAnalyzer())
-                .setMergePolicy(new LogByteSizeMergePolicy()));
+            new IndexWriterConfig(new StandardAnalyzer()).setMergePolicy(new LogByteSizeMergePolicy()));
 
         insertValues(writer);
 
         DirectoryReader directoryReader = DirectoryReader.open(writer, true);
         readerContext = directoryReader.leaves().get(0);
-        fieldData.load(readerContext);
 
-        ctx = new CollectorContext(mapperService, ifd, null);
+        ctx = new CollectorContext(ifd, null);
     }
 
     @After
@@ -83,8 +63,4 @@ public abstract class DocLevelExpressionsTest extends CrateSingleNodeTest {
     }
 
     protected abstract void insertValues(IndexWriter writer) throws Exception;
-
-    protected abstract MappedFieldType.Names fieldName();
-
-    protected abstract FieldDataType fieldType();
 }

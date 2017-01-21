@@ -23,29 +23,24 @@ package io.crate.operation.reference.doc.lucene;
 
 import io.crate.operation.collect.collectors.CollectorFieldsVisitor;
 import org.elasticsearch.index.fielddata.IndexFieldDataService;
-import org.elasticsearch.index.mapper.MapperService;
 import org.elasticsearch.search.lookup.SourceLookup;
 
 public class CollectorContext {
 
-    private final MapperService mapperService;
     private final IndexFieldDataService fieldData;
     private final CollectorFieldsVisitor fieldsVisitor;
     private final int jobSearchContextId;
 
     private SourceLookup sourceLookup;
 
-    public CollectorContext(MapperService mapperService,
-                            IndexFieldDataService fieldData,
+    public CollectorContext(IndexFieldDataService fieldData,
                             CollectorFieldsVisitor visitor) {
-        this(mapperService, fieldData, visitor, -1);
+        this(fieldData, visitor, -1);
     }
 
-    public CollectorContext(MapperService mapperService,
-                            IndexFieldDataService fieldData,
+    public CollectorContext(IndexFieldDataService fieldData,
                             CollectorFieldsVisitor visitor,
                             int jobSearchContextId) {
-        this.mapperService = mapperService;
         this.fieldData = fieldData;
         fieldsVisitor = visitor;
         this.jobSearchContextId = jobSearchContextId;
@@ -57,10 +52,6 @@ public class CollectorContext {
 
     public int jobSearchContextId() {
         return jobSearchContextId;
-    }
-
-    public MapperService mapperService() {
-        return mapperService;
     }
 
     public IndexFieldDataService fieldData() {

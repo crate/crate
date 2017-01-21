@@ -28,6 +28,7 @@ import io.crate.analyze.symbol.Symbol;
 import io.crate.analyze.symbol.SymbolVisitor;
 import io.crate.analyze.symbol.format.SymbolFormatter;
 import io.crate.executor.transport.task.elasticsearch.SortOrder;
+import io.crate.lucene.FieldTypeLookup;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
 import io.crate.metadata.doc.DocSysColumns;
@@ -80,10 +81,12 @@ public class SortSymbolVisitor extends SymbolVisitor<SortSymbolVisitor.SortSymbo
     }
 
     private final DocInputFactory docInputFactory;
+    private final FieldTypeLookup fieldTypeLookup;
 
-    SortSymbolVisitor(DocInputFactory docInputFactory) {
+    SortSymbolVisitor(DocInputFactory docInputFactory, FieldTypeLookup fieldTypeLookup) {
         super();
         this.docInputFactory = docInputFactory;
+        this.fieldTypeLookup = fieldTypeLookup;
     }
 
     SortField[] generateSortFields(List<Symbol> sortSymbols,
@@ -99,7 +102,7 @@ public class SortSymbolVisitor extends SymbolVisitor<SortSymbolVisitor.SortSymbo
     }
 
 
-    SortField generateSortField(Symbol symbol, SortSymbolContext sortSymbolContext) {
+    private SortField generateSortField(Symbol symbol, SortSymbolContext sortSymbolContext) {
         return process(symbol, sortSymbolContext);
     }
 
@@ -132,7 +135,7 @@ public class SortSymbolVisitor extends SymbolVisitor<SortSymbolVisitor.SortSymbo
 
         String indexName;
         IndexFieldData.XFieldComparatorSource fieldComparatorSource;
-        MappedFieldType fieldType = context.context.mapperService().smartNameFieldType(columnIdent.fqn());
+        MappedFieldType fieldType = fieldTypeLookup.get(columnIdent.fqn());
         if (fieldType == null) {
             indexName = columnIdent.fqn();
             fieldComparatorSource = new NullFieldComparatorSource(LUCENE_TYPE_MAP.get(symbol.valueType()), context.reverseFlag, context.nullFirst);
