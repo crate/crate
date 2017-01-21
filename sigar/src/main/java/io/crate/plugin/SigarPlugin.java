@@ -37,7 +37,7 @@ import java.util.Collection;
 
 public class SigarPlugin implements Plugin {
 
-    public static final String NODE_INFO_EXTENDED_TYPE = "sigar";
+    private static final String NODE_INFO_EXTENDED_TYPE = "sigar";
     private static final Logger LOGGER = Loggers.getLogger(SigarPlugin.class);
 
     private final SigarService sigarService;
@@ -60,24 +60,19 @@ public class SigarPlugin implements Plugin {
     public Settings additionalSettings() {
         if (!sigarService.sigarAvailable()) {
             LOGGER.warn("Sigar library is not available");
-            return Settings.EMPTY;
         }
-
-        Settings.Builder settingsBuilder = Settings.builder();
-        settingsBuilder.put(MonitorModule.NODE_INFO_EXTENDED_TYPE, NODE_INFO_EXTENDED_TYPE);
-        return settingsBuilder.build();
+        return Settings.EMPTY;
     }
 
 
     @Override
     public Collection<Module> createGuiceModules() {
-        return Lists.<Module>newArrayList(new SigarModule(sigarService));
+        return Lists.newArrayList(new SigarModule(sigarService));
     }
 
     public void onModule(MonitorModule monitorModule) {
         if (sigarService.sigarAvailable()) {
             monitorModule.addExtendedNodeInfoType(NODE_INFO_EXTENDED_TYPE, SigarExtendedNodeInfo.class);
         }
-
     }
 }
