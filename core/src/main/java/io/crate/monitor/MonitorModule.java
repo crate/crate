@@ -33,7 +33,7 @@ import java.util.Map;
 public class MonitorModule extends AbstractModule {
 
     public final static String NODE_INFO_EXTENDED_TYPE = "node.info.extended.type";
-    public final static String NODE_INFO_EXTENDED_DEFAULT_TYPE = "none";
+    private final static String NODE_INFO_EXTENDED_DEFAULT_TYPE = "none";
     private final static Logger LOGGER = Loggers.getLogger(MonitorModule.class);
 
     private final Settings settings;
