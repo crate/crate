@@ -21,7 +21,8 @@
 
 package io.crate.jobs;
 
-import com.google.common.collect.Lists;
+import com.carrotsearch.hppc.IntArrayList;
+import com.carrotsearch.hppc.cursors.IntCursor;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
@@ -35,7 +36,10 @@ import org.elasticsearch.common.logging.Loggers;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -48,7 +52,7 @@ public class JobExecutionContext implements CompletionListenable {
     private final UUID jobId;
     private final ConcurrentMap<Integer, ExecutionSubContext> subContexts;
     private final AtomicInteger numSubContexts;
-    private final List<Integer> orderedContextIds;
+    private final IntArrayList orderedContextIds;
     private final AtomicBoolean closed = new AtomicBoolean(false);
     private final String coordinatorNodeId;
     private final StatsTables statsTables;
@@ -63,7 +67,7 @@ public class JobExecutionContext implements CompletionListenable {
         private final UUID jobId;
         private final String coordinatorNode;
         private final StatsTables statsTables;
-        private final LinkedHashMap<Integer, ExecutionSubContext> subContexts = new LinkedHashMap<>();
+        private final List<ExecutionSubContext> subContexts = new ArrayList<>();
         private final Collection<String> participatingNodes;
 
         Builder(UUID jobId, String coordinatorNode, Collection<String> participatingNodes, StatsTables statsTables) {
@@ -74,11 +78,7 @@ public class JobExecutionContext implements CompletionListenable {
         }
 
         public void addSubContext(ExecutionSubContext subContext) {
-            ExecutionSubContext existingSubContext = subContexts.put(subContext.id(), subContext);
-            if (existingSubContext != null) {
-                throw new IllegalArgumentException(String.format(Locale.ENGLISH,
-                    "ExecutionSubContext for %d already added", subContext.id()));
-            }
+            subContexts.add(subContext);
         }
 
         boolean isEmpty() {
@@ -99,24 +99,30 @@ public class JobExecutionContext implements CompletionListenable {
                                 String coordinatorNodeId,
                                 Collection<String> participatingNodes,
                                 StatsTables statsTables,
-                                LinkedHashMap<Integer, ExecutionSubContext> contextMap) throws Exception {
+                                List<ExecutionSubContext> orderedContexts) throws Exception {
         this.coordinatorNodeId = coordinatorNodeId;
         this.participatedNodes = participatingNodes;
-        orderedContextIds = Lists.newArrayList(contextMap.keySet());
+        orderedContextIds = new IntArrayList(orderedContexts.size());
         this.jobId = jobId;
         this.statsTables = statsTables;
-        prepare(contextMap);
 
-        subContexts = new ConcurrentHashMap<>(contextMap.size());
-        numSubContexts = new AtomicInteger(contextMap.size());
+        subContexts = new ConcurrentHashMap<>(orderedContexts.size());
+        numSubContexts = new AtomicInteger(orderedContexts.size());
 
-        for (Map.Entry<Integer, ExecutionSubContext> entry : contextMap.entrySet()) {
-            int subContextId = entry.getKey();
-            Futures.addCallback(entry.getValue().completionFuture(), new RemoveSubContextListener(subContextId));
-            subContexts.put(entry.getKey(), entry.getValue());
-            LOGGER.trace("adding subContext {}, now there are {} subContexts", subContextId, subContexts.size());
+        boolean traceEnabled = LOGGER.isTraceEnabled();
+        for (ExecutionSubContext context : orderedContexts) {
+            int subContextId = context.id();
+            orderedContextIds.add(subContextId);
+            Futures.addCallback(context.completionFuture(), new RemoveSubContextListener(subContextId));
+            ExecutionSubContext existingContext = subContexts.put(subContextId, context);
+            if (existingContext != null) {
+                throw new IllegalArgumentException("ExecutionSubContext for " + subContextId + " already added");
+            }
+            if (traceEnabled) {
+                LOGGER.trace("adding subContext {}, now there are {} subContexts", subContextId, subContexts.size());
+            }
         }
-
+        prepare(orderedContexts);
     }
 
     public UUID jobId() {
@@ -131,18 +137,17 @@ public class JobExecutionContext implements CompletionListenable {
         return participatedNodes;
     }
 
-    private void prepare(Map<Integer, ExecutionSubContext> contextMap) throws Exception {
-
+    private void prepare(List<ExecutionSubContext> orderedContexts) throws Exception {
         for (int i = 0; i < orderedContextIds.size(); i++) {
-            Integer id = orderedContextIds.get(i);
-            ExecutionSubContext subContext = contextMap.get(id);
+            int id = orderedContextIds.get(i);
+            ExecutionSubContext subContext = orderedContexts.get(i);
             statsTables.operationStarted(id, jobId, subContext.name());
             try {
                 subContext.prepare();
             } catch (Exception e) {
                 for (; i >= 0; i--) {
                     id = orderedContextIds.get(i);
-                    subContext = contextMap.get(id);
+                    subContext = orderedContexts.get(i);
                     subContext.cleanup();
                     statsTables.operationFinished(id, jobId, "Prepare: " + Exceptions.messageOf(e), -1);
                 }
@@ -152,8 +157,8 @@ public class JobExecutionContext implements CompletionListenable {
     }
 
     public void start() throws Throwable {
-        for (Integer id : orderedContextIds) {
-            ExecutionSubContext subContext = subContexts.get(id);
+        for (IntCursor id : orderedContextIds) {
+            ExecutionSubContext subContext = subContexts.get(id.value);
             if (subContext == null || closed.get()) {
                 break; // got killed before start was called
             }
