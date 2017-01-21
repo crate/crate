@@ -221,10 +221,6 @@ public final class DataTypes {
     }
 
     private static DataType valueFromList(List<Object> value) {
-        List<DataType> innerTypes = new ArrayList<>(value.size());
-        if (value.isEmpty()) {
-            return new ArrayType(UNDEFINED);
-        }
         DataType previous = null;
         DataType current = null;
         for (Object o : value) {
@@ -235,15 +231,12 @@ public final class DataTypes {
             if (previous != null && !current.equals(previous)) {
                 throw new IllegalArgumentException("Mixed dataTypes inside a list are not supported");
             }
-            innerTypes.add(current);
             previous = current;
         }
-
-        if (innerTypes.isEmpty() || (innerTypes.size() > 0 && current == null)) {
+        if (current == null) {
             return new ArrayType(UNDEFINED);
-        } else {
-            return new ArrayType(current);
         }
+        return new ArrayType(current);
     }
 
     private static final ImmutableMap<String, DataType> staticTypesNameMap = ImmutableMap.<String, DataType>builder()
