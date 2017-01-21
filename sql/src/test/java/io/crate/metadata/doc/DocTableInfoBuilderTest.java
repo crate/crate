@@ -55,6 +55,7 @@ import static org.mockito.Mockito.mock;
 public class DocTableInfoBuilderTest extends CrateUnitTest {
 
     private ThreadPool threadPool;
+    private ClusterService clusterService;
 
     @Mock
     Functions functions;
@@ -64,10 +65,10 @@ public class DocTableInfoBuilderTest extends CrateUnitTest {
         threadPool = new TestThreadPool("dummy");
     }
 
-    @Override
     @After
-    public void tearDown() throws Exception {
+    public void cleanUp() throws Exception {
         ThreadPool.terminate(threadPool, 30, TimeUnit.SECONDS);
+        clusterService.close();
     }
 
     private String randomSchema() {
@@ -101,7 +102,7 @@ public class DocTableInfoBuilderTest extends CrateUnitTest {
             .put(indexMetaDataBuilder)
             .build();
 
-        ClusterService clusterService = ClusterServiceUtils.createClusterService(
+        clusterService = ClusterServiceUtils.createClusterService(
             ClusterState.builder(ClusterName.DEFAULT).metaData(metaData).build(),
             threadPool
         );
