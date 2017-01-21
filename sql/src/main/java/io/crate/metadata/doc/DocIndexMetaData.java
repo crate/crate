@@ -489,10 +489,7 @@ public class DocIndexMetaData {
         indices = createIndexDefinitions();
         columns = ImmutableList.copyOf(columnsBuilder.build());
         partitionedByColumns = partitionedByColumnsBuilder.build();
-
-        for (Tuple<ColumnIdent, Reference> sysColumn : DocSysColumns.forTable(ident)) {
-            referencesBuilder.put(sysColumn.v1(), sysColumn.v2());
-        }
+        DocSysColumns.forTable(ident, referencesBuilder::put);
         references = referencesBuilder.build();
         generatedColumnReferences = generatedColumnReferencesBuilder.build();
         primaryKey = getPrimaryKey();
