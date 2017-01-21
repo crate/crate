@@ -31,37 +31,31 @@ import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.MatchAllDocsQuery;
 import org.apache.lucene.search.ScoreDoc;
 import org.apache.lucene.search.TopDocs;
-import org.elasticsearch.index.fielddata.FieldDataType;
 import org.elasticsearch.index.mapper.MappedFieldType;
+import org.elasticsearch.index.mapper.core.DoubleFieldMapper;
 import org.junit.Test;
 
 import static org.hamcrest.core.Is.is;
 
 public class DoubleColumnReferenceTest extends DocLevelExpressionsTest {
 
+    private String column = "d";
+
     @Override
     protected void insertValues(IndexWriter writer) throws Exception {
         for (double d = 0.5; d < 10.0d; d++) {
             Document doc = new Document();
             doc.add(new StringField("_id", Double.toString(d), Field.Store.NO));
-            doc.add(new DoubleField(fieldName().indexName(), d, Field.Store.NO));
+            doc.add(new DoubleField(column, d, Field.Store.NO));
             writer.addDocument(doc);
         }
     }
 
-    @Override
-    protected MappedFieldType.Names fieldName() {
-        return new MappedFieldType.Names("d");
-    }
-
-    @Override
-    protected FieldDataType fieldType() {
-        return new FieldDataType("double");
-    }
-
     @Test
     public void testFieldCacheExpression() throws Exception {
-        DoubleColumnReference doubleColumn = new DoubleColumnReference(fieldName().indexName());
+        MappedFieldType fieldType = DoubleFieldMapper.Defaults.FIELD_TYPE.clone();
+        fieldType.setNames(new MappedFieldType.Names("d"));
+        DoubleColumnReference doubleColumn = new DoubleColumnReference(column, fieldType);
         doubleColumn.startCollect(ctx);
         doubleColumn.setNextReader(readerContext);
         IndexSearcher searcher = new IndexSearcher(readerContext.reader());

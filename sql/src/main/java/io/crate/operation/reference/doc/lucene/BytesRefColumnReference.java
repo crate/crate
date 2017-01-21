@@ -27,6 +27,7 @@ import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.RandomAccessOrds;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.index.fielddata.IndexOrdinalsFieldData;
+import org.elasticsearch.index.mapper.MappedFieldType;
 
 import java.io.IOException;
 
@@ -35,8 +36,8 @@ public class BytesRefColumnReference extends FieldCacheExpression<IndexOrdinalsF
     private RandomAccessOrds values;
     private BytesRef value;
 
-    public BytesRefColumnReference(String columnName) {
-        super(columnName);
+    public BytesRefColumnReference(String columnName, MappedFieldType mappedFieldType) {
+        super(columnName, mappedFieldType);
     }
 
     @Override

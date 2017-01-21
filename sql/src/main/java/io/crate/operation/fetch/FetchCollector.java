@@ -34,7 +34,6 @@ import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.ReaderUtil;
 import org.elasticsearch.index.engine.Engine;
 import org.elasticsearch.index.fielddata.IndexFieldDataService;
-import org.elasticsearch.index.mapper.MapperService;
 
 import java.io.IOException;
 import java.util.List;
@@ -50,7 +49,6 @@ class FetchCollector {
 
     FetchCollector(List<LuceneCollectorExpression<?>> collectorExpressions,
                    Streamer<?>[] streamers,
-                   MapperService mapperService,
                    Engine.Searcher searcher,
                    IndexFieldDataService indexFieldDataService,
                    int readerId) {
@@ -59,7 +57,7 @@ class FetchCollector {
         this.streamers = streamers;
         this.readerContexts = searcher.searcher().getIndexReader().leaves();
         this.fieldsVisitor = new CollectorFieldsVisitor(this.collectorExpressions.length);
-        CollectorContext collectorContext = new CollectorContext(mapperService, indexFieldDataService, fieldsVisitor, readerId);
+        CollectorContext collectorContext = new CollectorContext(indexFieldDataService, fieldsVisitor, readerId);
         for (LuceneCollectorExpression<?> collectorExpression : this.collectorExpressions) {
             collectorExpression.startCollect(collectorContext);
         }

@@ -25,6 +25,7 @@ import io.crate.exceptions.GroupByOnArrayUnsupportedException;
 import org.apache.lucene.index.LeafReaderContext;
 import org.elasticsearch.index.fielddata.IndexNumericFieldData;
 import org.elasticsearch.index.fielddata.SortedNumericDoubleValues;
+import org.elasticsearch.index.mapper.MappedFieldType;
 
 import java.io.IOException;
 
@@ -33,8 +34,8 @@ public class DoubleColumnReference extends FieldCacheExpression<IndexNumericFiel
     private SortedNumericDoubleValues values;
     private Double value;
 
-    public DoubleColumnReference(String columnName) {
-        super(columnName);
+    public DoubleColumnReference(String columnName, MappedFieldType mappedFieldType) {
+        super(columnName, mappedFieldType);
     }
 
     @Override

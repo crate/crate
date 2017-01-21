@@ -31,36 +31,31 @@ import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.MatchAllDocsQuery;
 import org.apache.lucene.search.ScoreDoc;
 import org.apache.lucene.search.TopDocs;
-import org.elasticsearch.index.fielddata.FieldDataType;
 import org.elasticsearch.index.mapper.MappedFieldType;
+import org.elasticsearch.index.mapper.core.FloatFieldMapper;
 import org.junit.Test;
 
 import static org.hamcrest.core.Is.is;
 
 public class FloatColumnReferenceTest extends DocLevelExpressionsTest {
+
+    private String column = "f";
+
     @Override
     protected void insertValues(IndexWriter writer) throws Exception {
         for (float f = -0.5f; f < 10.0f; f++) {
             Document doc = new Document();
             doc.add(new StringField("_id", Float.toString(f), Field.Store.NO));
-            doc.add(new FloatField(fieldName().indexName(), f, Field.Store.NO));
+            doc.add(new FloatField(column, f, Field.Store.NO));
             writer.addDocument(doc);
         }
     }
 
-    @Override
-    protected MappedFieldType.Names fieldName() {
-        return new MappedFieldType.Names("f");
-    }
-
-    @Override
-    protected FieldDataType fieldType() {
-        return new FieldDataType("float");
-    }
-
     @Test
     public void testFieldCacheExpression() throws Exception {
-        FloatColumnReference floatColumn = new FloatColumnReference(fieldName().indexName());
+        MappedFieldType fieldType = FloatFieldMapper.Defaults.FIELD_TYPE.clone();
+        fieldType.setNames(new MappedFieldType.Names(column));
+        FloatColumnReference floatColumn = new FloatColumnReference(column, fieldType);
         floatColumn.startCollect(ctx);
         floatColumn.setNextReader(readerContext);
         IndexSearcher searcher = new IndexSearcher(readerContext.reader());

@@ -23,25 +23,23 @@ package io.crate.operation.reference.doc.lucene;
 
 import io.crate.exceptions.UnhandledServerException;
 import io.crate.exceptions.UnsupportedFeatureException;
+import io.crate.lucene.FieldTypeLookup;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.DocReferenceConverter;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RowGranularity;
 import io.crate.operation.reference.ReferenceResolver;
 import io.crate.types.*;
-import org.elasticsearch.common.Nullable;
-import org.elasticsearch.index.mapper.MapperService;
+import org.elasticsearch.index.mapper.MappedFieldType;
 
 import java.util.Locale;
 
 public class LuceneReferenceResolver implements ReferenceResolver<LuceneCollectorExpression<?>> {
 
-    private final
-    @Nullable
-    MapperService mapperService;
+    private final FieldTypeLookup fieldTypeLookup;
 
-    public LuceneReferenceResolver(@Nullable MapperService mapperService) {
-        this.mapperService = mapperService;
+    public LuceneReferenceResolver(FieldTypeLookup fieldTypeLookup) {
+        this.fieldTypeLookup = fieldTypeLookup;
     }
 
     @Override
@@ -72,7 +70,8 @@ public class LuceneReferenceResolver implements ReferenceResolver<LuceneCollecto
         }
 
         String colName = columnIdent.fqn();
-        if (this.mapperService != null && mapperService.smartNameFieldType(colName) == null) {
+        MappedFieldType fieldType = fieldTypeLookup.get(colName);
+        if (fieldType == null) {
             return new NullValueCollectorExpression(colName);
         }
 
@@ -84,22 +83,22 @@ public class LuceneReferenceResolver implements ReferenceResolver<LuceneCollecto
             case IpType.ID:
                 return new IpColumnReference(colName);
             case StringType.ID:
-                return new BytesRefColumnReference(colName);
+                return new BytesRefColumnReference(colName, fieldType);
             case DoubleType.ID:
-                return new DoubleColumnReference(colName);
+                return new DoubleColumnReference(colName, fieldType);
             case BooleanType.ID:
                 return new BooleanColumnReference(colName);
             case ObjectType.ID:
                 return new ObjectColumnReference(colName);
             case FloatType.ID:
-                return new FloatColumnReference(colName);
+                return new FloatColumnReference(colName, fieldType);
             case LongType.ID:
             case TimestampType.ID:
                 return new LongColumnReference(colName);
             case IntegerType.ID:
                 return new IntegerColumnReference(colName);
             case GeoPointType.ID:
-                return new GeoPointColumnReference(colName);
+                return new GeoPointColumnReference(colName, fieldType);
             case GeoShapeType.ID:
                 return new GeoShapeColumnReference(colName);
             case ArrayType.ID:
@@ -112,7 +111,7 @@ public class LuceneReferenceResolver implements ReferenceResolver<LuceneCollecto
 
     private static class NullValueCollectorExpression extends LuceneCollectorExpression<Void> {
 
-        public NullValueCollectorExpression(String columnName) {
+        NullValueCollectorExpression(String columnName) {
             super(columnName);
         }
 
