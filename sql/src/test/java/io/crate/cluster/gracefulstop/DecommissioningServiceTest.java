@@ -23,6 +23,8 @@
 package io.crate.cluster.gracefulstop;
 
 import io.crate.action.sql.SQLOperations;
+import io.crate.operation.collect.stats.StatsTables;
+import io.crate.plugin.SQLPlugin;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import org.elasticsearch.action.admin.cluster.health.TransportClusterHealthAction;
 import org.elasticsearch.action.admin.cluster.settings.TransportClusterUpdateSettingsAction;
