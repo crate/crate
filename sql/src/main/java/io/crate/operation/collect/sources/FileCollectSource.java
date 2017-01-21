@@ -62,7 +62,7 @@ public class FileCollectSource implements CollectSource {
     public Collection<CrateCollector> getCollectors(CollectPhase collectPhase, RowReceiver downstream, JobCollectContext jobCollectContext) {
         FileUriCollectPhase fileUriCollectPhase = (FileUriCollectPhase) collectPhase;
         InputFactory.Context<LineCollectorExpression<?>> ctx =
-            inputFactory.ctxForRefs(FileLineReferenceResolver.INSTANCE);
+            inputFactory.ctxForRefs(FileLineReferenceResolver::getImplementation);
         ctx.add(collectPhase.toCollect());
 
         String[] readers = fileUriCollectPhase.nodeIds().toArray(

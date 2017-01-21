@@ -22,8 +22,8 @@
 package io.crate.operation.reference.file;
 
 import io.crate.metadata.doc.DocSysColumns;
-import io.crate.operation.collect.files.CollectorContext;
 import io.crate.operation.collect.files.LineCollectorExpression;
+import io.crate.operation.reference.doc.lucene.CollectorContext;
 
 import java.util.Map;
 
@@ -38,7 +38,7 @@ public class SourceAsMapLineExpression extends LineCollectorExpression<Map<Strin
     }
 
     @Override
-    public void startCollect(CollectorContext context) {
-        this.context = context.lineContext();
+    public void startCollect(LineContext context) {
+        this.context = context;
     }
 }

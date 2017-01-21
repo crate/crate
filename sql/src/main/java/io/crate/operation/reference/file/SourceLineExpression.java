@@ -22,7 +22,6 @@
 package io.crate.operation.reference.file;
 
 import io.crate.metadata.doc.DocSysColumns;
-import io.crate.operation.collect.files.CollectorContext;
 import io.crate.operation.collect.files.LineCollectorExpression;
 import org.apache.lucene.util.BytesRef;
 
@@ -37,7 +36,7 @@ public class SourceLineExpression extends LineCollectorExpression<BytesRef> {
     }
 
     @Override
-    public void startCollect(CollectorContext context) {
-        this.context = context.lineContext();
+    public void startCollect(LineContext context) {
+        this.context = context;
     }
 }

@@ -31,6 +31,7 @@ import io.crate.operation.InputRow;
 import io.crate.operation.collect.CrateCollector;
 import io.crate.operation.projectors.RepeatHandle;
 import io.crate.operation.projectors.RowReceiver;
+import io.crate.operation.reference.file.LineContext;
 import org.elasticsearch.ElasticsearchParseException;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
@@ -177,9 +178,9 @@ public class FileReadingCollector implements CrateCollector {
 
     @Override
     public void doCollect() {
-        CollectorContext collectorContext = new CollectorContext();
+        LineContext context = new LineContext();
         for (LineCollectorExpression<?> collectorExpression : collectorExpressions) {
-            collectorExpression.startCollect(collectorContext);
+            collectorExpression.startCollect(context);
         }
 
         fileUriLoop:
@@ -197,7 +198,7 @@ public class FileReadingCollector implements CrateCollector {
             try {
                 uris = getUris(fileInput, fileUri.uri, fileUri.preGlobUri, uriPredicate);
                 for (URI uri : uris) {
-                    if (!readLines(fileInput, collectorContext, uri, 0, 0)) {
+                    if (!readLines(fileInput, context, uri, 0, 0)) {
                         // break out nested loop and finish normally
                         break fileUriLoop;
                     }
@@ -216,7 +217,7 @@ public class FileReadingCollector implements CrateCollector {
     }
 
     private boolean readLines(FileInput fileInput,
-                              CollectorContext collectorContext,
+                              LineContext lineContext,
                               URI uri,
                               long startLine,
                               int retry) throws IOException {
@@ -236,7 +237,7 @@ public class FileReadingCollector implements CrateCollector {
                 if (line.length() == 0) { // skip empty lines
                     continue;
                 }
-                collectorContext.lineContext().rawSource(line.getBytes(StandardCharsets.UTF_8));
+                lineContext.rawSource(line.getBytes(StandardCharsets.UTF_8));
                 RowReceiver.Result result = downstream.setNextRow(row);
                 switch (result) {
                     case CONTINUE:
@@ -253,7 +254,7 @@ public class FileReadingCollector implements CrateCollector {
                 LOGGER.info("Timeout during COPY FROM '{}' after {} retries", e, uri.toString(), retry);
                 throw e;
             } else {
-                return readLines(fileInput, collectorContext, uri, linesRead + 1, retry + 1);
+                return readLines(fileInput, lineContext, uri, linesRead + 1, retry + 1);
             }
         } catch (ElasticsearchParseException e) {
             throw new ElasticsearchParseException(String.format(Locale.ENGLISH,

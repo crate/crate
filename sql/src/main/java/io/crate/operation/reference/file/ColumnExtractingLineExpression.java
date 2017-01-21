@@ -22,7 +22,6 @@
 package io.crate.operation.reference.file;
 
 import io.crate.metadata.ColumnIdent;
-import io.crate.operation.collect.files.CollectorContext;
 import io.crate.operation.collect.files.LineCollectorExpression;
 
 public class ColumnExtractingLineExpression extends LineCollectorExpression<Object> {
@@ -40,7 +39,7 @@ public class ColumnExtractingLineExpression extends LineCollectorExpression<Obje
     }
 
     @Override
-    public void startCollect(CollectorContext context) {
-        this.context = context.lineContext();
+    public void startCollect(LineContext context) {
+        this.context = context;
     }
 }

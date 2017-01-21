@@ -33,8 +33,8 @@ import io.crate.core.collections.Row;
 import io.crate.external.S3ClientHelper;
 import io.crate.metadata.*;
 import io.crate.metadata.tablefunctions.TableFunctionImplementation;
-import io.crate.operation.InputFactory;
 import io.crate.operation.Input;
+import io.crate.operation.InputFactory;
 import io.crate.operation.projectors.RowReceiver;
 import io.crate.operation.reference.file.FileLineReferenceResolver;
 import io.crate.test.integration.CrateUnitTest;
@@ -249,7 +249,7 @@ public class FileReadingCollectorTest extends CrateUnitTest {
     private void getObjects(Collection<String> fileUris, String compression, final S3ObjectInputStream s3InputStream, RowReceiver rowReceiver) throws Throwable {
         Reference raw = createReference("_raw", DataTypes.STRING);
         InputFactory.Context<LineCollectorExpression<?>> ctx =
-            inputFactory.ctxForRefs(FileLineReferenceResolver.INSTANCE::getImplementation);
+            inputFactory.ctxForRefs(FileLineReferenceResolver::getImplementation);
         List<Input<?>> inputs = Collections.singletonList(ctx.add(raw));
         FileReadingCollector collector = new FileReadingCollector(
             fileUris,
