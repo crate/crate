@@ -4,11 +4,9 @@ import com.google.common.collect.ImmutableMap;
 import io.crate.metadata.*;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
-import org.elasticsearch.common.collect.Tuple;
 
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Map;
+import java.util.function.BiConsumer;
 
 public class DocSysColumns {
 
@@ -40,12 +38,14 @@ public class DocSysColumns {
         return new Reference(new ReferenceIdent(table, column), RowGranularity.DOC, dataType);
     }
 
-    public static List<Tuple<ColumnIdent, Reference>> forTable(TableIdent tableIdent) {
-        List<Tuple<ColumnIdent, Reference>> columns = new ArrayList<>(COLUMN_IDENTS.size());
+    /**
+     * Calls {@code consumer} for each sys column with a reference containing {@code tableIdent}
+     */
+    public static void forTable(TableIdent tableIdent, BiConsumer<ColumnIdent, Reference> consumer) {
         for (Map.Entry<ColumnIdent, DataType> entry : COLUMN_IDENTS.entrySet()) {
-            columns.add(new Tuple<>(entry.getKey(), newInfo(tableIdent, entry.getKey(), entry.getValue())));
+            ColumnIdent columnIdent = entry.getKey();
+            consumer.accept(columnIdent, newInfo(tableIdent, columnIdent, entry.getValue()));
         }
-        return columns;
     }
 
     public static Reference forTable(TableIdent table, ColumnIdent column) {
