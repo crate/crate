@@ -61,6 +61,7 @@ public class JobExecutionContextTest extends CrateUnitTest {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("ExecutionSubContext for 0 already added");
         builder.addSubContext(new AbstractExecutionSubContextTest.TestingExecutionSubContext());
+        builder.build();
     }
 
     @Test
