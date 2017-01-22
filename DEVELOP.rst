@@ -263,7 +263,11 @@ Jmh
 By default this will look for benchmarks inside ``<module>/src/jmh/java`` and
 execute them.
 
-Currently, the `JMH`_ plugin is only enabled at the `core` module.
+If you want to execute specific benchmarks you can use the jar::
+
+    $ ./gradlew :sql:jmhJar
+    $ java -jar sql/build/libs/crate-sql-jmh.jar <benchmarkMethodName>
+
 
 Results will be generated into ``$buildDir/reports/jmh``.
 
