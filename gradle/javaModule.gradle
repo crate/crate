@@ -94,6 +94,7 @@ tasks.withType(Pmd) {
 jmh {
     resultFormat = 'JSON'
     zip64 = true
+    jmhVersion = '1.17.4'
 }
 
 test {

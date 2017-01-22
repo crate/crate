@@ -24,9 +24,6 @@ dependencies {
     }
     benchmarksCompile 'com.carrotsearch:junit-benchmarks:0.7.2'
     benchmarksCompile 'com.h2database:h2:1.3.173'
-
-    // this is required to run the benchmarks from within intellij using the intellij jmh plugin
-    jmh group: 'org.openjdk.jmh', name: 'jmh-generator-annprocess', version: '1.11.3'
 }
 
 test {
