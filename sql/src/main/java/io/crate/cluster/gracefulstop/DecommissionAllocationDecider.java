@@ -52,6 +52,8 @@ public class DecommissionAllocationDecider extends AllocationDecider {
     public DecommissionAllocationDecider(Settings settings, ClusterService clusterService) {
         super(settings);
         ClusterSettings clusterSettings = clusterService.getClusterSettings();
+        updateDecommissioningNodes(settings);
+        updateMinAvailability(CrateSettings.GRACEFUL_STOP_MIN_AVAILABILITY.extract(settings));
         clusterSettings.addSettingsUpdateConsumer(
             DecommissioningService.DECOMMISSION_INTERNAL_SETTING_GROUP, this::updateDecommissioningNodes);
         clusterSettings.addSettingsUpdateConsumer(

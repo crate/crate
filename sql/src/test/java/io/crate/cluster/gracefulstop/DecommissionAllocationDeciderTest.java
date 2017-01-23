@@ -32,12 +32,16 @@ import org.elasticsearch.cluster.routing.UnassignedInfo;
 import org.elasticsearch.cluster.routing.allocation.RoutingAllocation;
 import org.elasticsearch.cluster.routing.allocation.decider.Decision;
 import org.elasticsearch.common.UUIDs;
+import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.shard.ShardId;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
+
+import java.util.HashSet;
+import java.util.Set;
 
 import static org.hamcrest.Matchers.is;
 import static org.mockito.Matchers.any;
@@ -53,6 +57,14 @@ public class DecommissionAllocationDeciderTest extends CrateDummyClusterServiceU
     private RoutingNode n1;
     private RoutingNode n2;
 
+    @Override
+    protected Set<Setting<?>> additionalClusterSettings() {
+        Set<Setting<?>> settings = new HashSet<>();
+        settings.add(DecommissioningService.DECOMMISSION_INTERNAL_SETTING_GROUP);
+        settings.add(CrateSettings.GRACEFUL_STOP_MIN_AVAILABILITY.esSetting());
+        return settings;
+    }
+
     @Before
     public void init() throws Exception {
         routingAllocation = mock(RoutingAllocation.class);
@@ -64,9 +76,16 @@ public class DecommissionAllocationDeciderTest extends CrateDummyClusterServiceU
         });
 
         primaryShard = ShardRouting.newUnassigned(
-            new ShardId("t", UUIDs.randomBase64UUID(), 0), true, mock(RecoverySource.class), mock(UnassignedInfo.class));
+            new ShardId("t", UUIDs.randomBase64UUID(), 0),
+            true,
+            RecoverySource.PeerRecoverySource.INSTANCE,
+            new UnassignedInfo(UnassignedInfo.Reason.INDEX_CREATED, "dummy"));
         replicaShard = ShardRouting.newUnassigned(
-            new ShardId("t", UUIDs.randomBase64UUID(), 0), true, mock(RecoverySource.class), mock(UnassignedInfo.class));
+            new ShardId("t", UUIDs.randomBase64UUID(), 0),
+            false,
+            RecoverySource.PeerRecoverySource.INSTANCE,
+            new UnassignedInfo(UnassignedInfo.Reason.INDEX_CREATED, "dummy")
+        );
         n1 = new RoutingNode("n1", mock(DiscoveryNode.class));
         n2 = new RoutingNode("n2", mock(DiscoveryNode.class));
     }
