@@ -75,6 +75,7 @@ import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.plugins.Plugin;
 import org.elasticsearch.test.ESIntegTestCase;
 import org.elasticsearch.threadpool.ThreadPool;
+import org.elasticsearch.transport.Netty3Plugin;
 import org.hamcrest.Matchers;
 import org.junit.After;
 import org.junit.Rule;
@@ -118,7 +119,7 @@ public abstract class SQLTransportIntegrationTest extends ESIntegTestCase {
 
     @Override
     protected Collection<Class<? extends Plugin>> nodePlugins() {
-        return Arrays.asList(SQLPlugin.class, BlobPlugin.class, CrateCorePlugin.class);
+        return Arrays.asList(SQLPlugin.class, BlobPlugin.class, CrateCorePlugin.class, Netty3Plugin.class);
     }
 
     protected SQLResponse response;
