@@ -232,52 +232,13 @@ Requirements for using repositories of type 'hdfs'
 Crate supports repositories of type
 :ref:`ref-create-repository-types-hdfs` type by default, but required
 `Hadoop`_ java client libraries are not included in any Crate
-distribution and need to be added to Crate's hdfs plugin hadoop libs
-folder.  By default this is
-``$CRATE_HOME/plugins/elasticsearch-repository-hdfs/hadoop-libs``
+distribution and need to be added to Crate's hdfs plugin folder.
+By default this is ``$CRATE_HOME/plugins/es-repository-hdfs``
 
 Because some libraries `Hadoop`_ depends on are also required (and so
-deployed) by Crate, only the `Hadoop`_ libraries listed below for the
-concrete `Hadoop`_ version must be copied, other libraries will be
-ignored.
-
-.. note::
-
-   After installing all needed libraries, every node must be restarted.
-
-Hadoop 1.x required libraries
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-When using `Hadoop (1.x)`_ version 1.x, please install the following libraries
-into the ``$CRATE_HOME/plugins/hdfs/libs`` folder::
-
- - commons-collections-3.2.1.jar
- - commons-configuration-1.6.jar
- - commons-digester-1.8.jar
- - commons-el-1.0.jar
- - commons-httpclient-3.1.jar
- - commons-io-2.1.jar
- - commons-lang-2.4.jar
- - commons-net-1.4.1.jar
- - hadoop-core-1.2.1.jar
- - jackson-core-asl-1.8.8.jar
- - jackson-mapper-asl-1.8.8.jar
- - jets3t-0.6.1.jar
- - oro-2.0.8.jar
- - xmlenc-0.52.jar
-
-.. note::
-
-   As of writing this documentation, the latest stable `Hadoop 1.x`
-   version is **1.2.1**. Required libraries may differ for other
-   versions.
-
-Hadoop 2.x required libraries
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-When using `Hadoop (YARN)`_ version 2.x, please install the following libraries
-into the ``$CRATE_HOME/plugins/hdfs/libs`` folder::
-
+deployed) by Crate, only the `Hadoop`_ libraries listed below must be
+copied into the ``$CRATE_HOME/plugins/es-repository-hdfs`` folder,
+other libraries will be ignored::
 
  - apacheds-i18n-2.0.0-M15.jar
  - apacheds-kerberos-codec-2.0.0-M15.jar
@@ -287,7 +248,6 @@ into the ``$CRATE_HOME/plugins/hdfs/libs`` folder::
  - commons-collections-3.2.1.jar
  - commons-compress-1.4.1.jar
  - commons-configuration-1.6.jar
- - commons-beanutils-core-1.8.0.jar
  - commons-digester-1.8.jar
  - commons-httpclient-3.1.jar
  - commons-io-2.4.jar
@@ -320,11 +280,10 @@ into the ``$CRATE_HOME/plugins/hdfs/libs`` folder::
 
 .. note::
 
-   As of writing this documentation, the latest stable `Hadoop
-   (YARN)` version is **2.7.1**. Required libraries may differ for other
-   versions.
+   Only `Hadoop` version **2.x** is supported and as of writing
+   this documentation, the latest stable `Hadoop (YARN)` version
+   is **2.7.1**. Required libraries may differ for other versions.
 
 
 .. _Hadoop: https://hadoop.apache.org/
-.. _Hadoop (1.x): https://hadoop.apache.org/
-.. _Hadoop (YARN): https://hadoop.apache.org/
+.. _Hadoop (YARN): https://hadoop.apache.org/docs/r2.7.1/hadoop-yarn/hadoop-yarn-site/YARN.html

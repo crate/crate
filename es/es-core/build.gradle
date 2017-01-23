@@ -39,15 +39,12 @@ dependencies {
     compile "commons-cli:commons-cli:${versions.commonscli}"
     compile "io.netty:netty:${versions.netty}"
     compile "joda-time:joda-time:${versions.jodatime}"
-    //compile "log4j:apache-log4j-extras:${versions.log4j}"
-    //compile "log4j:log4j:${versions.log4j}"
 
 
-
-    compile "org.apache.logging.log4j:log4j-api:${versions.log4j}"
-    compile "org.apache.logging.log4j:log4j-core:${versions.log4j}"
+    compile "org.apache.logging.log4j:log4j-api:${versions.log4j2}"
+    compile "org.apache.logging.log4j:log4j-core:${versions.log4j2}"
     // to bridge dependencies that are still on Log4j 1 to Log4j 2
-    compile "org.apache.logging.log4j:log4j-1.2-api:${versions.log4j}"
+    compile "org.apache.logging.log4j:log4j-1.2-api:${versions.log4j2}"
 
 
     compile "net.java.dev.jna:jna:${versions.jna}"
@@ -55,7 +52,6 @@ dependencies {
     compile "org.hdrhistogram:HdrHistogram:2.1.6"
     compile "org.joda:joda-convert:1.2"
     compile "org.slf4j:slf4j-api:${versions.slf4j}"
-    //compile "org.slf4j:slf4j-log4j12:${versions.slf4j}"
 
     // snakeyaml is a duplicate dependency and left out by intent
     // compile "org.yaml:snakeyaml:1.15"

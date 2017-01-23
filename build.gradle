@@ -169,6 +169,7 @@ def jacocoProjects() {
           'es-testing',
           'es-discovery-ec2',
           'es-repository-s3',
+          'es-repository-hdfs',
           'testing'].contains(it.name)
     }
 }
