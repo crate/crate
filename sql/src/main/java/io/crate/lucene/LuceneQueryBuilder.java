@@ -1107,12 +1107,13 @@ public class LuceneQueryBuilder {
                     from = 0d;
                 }
                 if (to == null) {
-                    to = GeoUtils.maxRadialDistanceMeters(geoPoint.lon(), geoPoint.lat());
+                    to = GeoUtils.maxRadialDistanceMeters(geoPoint.lat(), geoPoint.lon());
                 }
                 return new XGeoPointDistanceRangeQuery(
                     fieldData.index().getName(),
                     GeoPointField.TermEncoding.PREFIX,
-                    geoPoint.lon(), geoPoint.lat(),
+                    geoPoint.lat(),
+                    geoPoint.lon(),
                     (includeLower) ? from : from + TOLERANCE,
                     (includeUpper) ? to : to - TOLERANCE);
             }
