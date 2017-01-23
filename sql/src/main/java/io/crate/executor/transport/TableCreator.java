@@ -46,14 +46,12 @@ import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.index.Index;
 import org.elasticsearch.indices.IndexAlreadyExistsException;
 import org.elasticsearch.indices.IndexTemplateAlreadyExistsException;
 
 import java.util.Locale;
 import java.util.concurrent.CompletableFuture;
 import java.util.SortedMap;
-import java.util.stream.Stream;
 
 @Singleton
 public class TableCreator {
@@ -195,10 +193,8 @@ public class TableCreator {
      */
     private void deleteOrphanedPartitions(final CreateTableResponseListener listener, TableIdent tableIdent) {
         String partitionWildCard = PartitionName.templateName(tableIdent.schema(), tableIdent.name()) + "*";
-        String[] orphans = Stream.of(indexNameExpressionResolver.concreteIndices(
-            clusterService.state(), IndicesOptions.strictExpand(), partitionWildCard))
-            .map(Index::getName)
-            .toArray(String[]::new);
+        String[] orphans = indexNameExpressionResolver.concreteIndexNames(
+            clusterService.state(), IndicesOptions.strictExpand(), partitionWildCard);
         if (orphans.length > 0) {
             if (logger.isDebugEnabled()) {
                 logger.debug("Deleting orphaned partitions: {}", Joiner.on(", ").join(orphans));
