@@ -35,7 +35,7 @@ import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Injector;
 import org.elasticsearch.common.inject.Module;
 import org.elasticsearch.common.inject.ModulesBuilder;
-import org.elasticsearch.common.unit.MemorySizeValue;
+import org.elasticsearch.common.settings.Settings;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -54,6 +54,7 @@ public class TestGlobalSysExpressions extends CrateDummyClusterServiceUnitTest {
             .add(new SysClusterExpressionModule())
             .add((Module) binder -> {
                 binder.bind(ClusterService.class).toInstance(clusterService);
+                binder.bind(Settings.class).toInstance(Settings.EMPTY);
                 binder.bind(NestedReferenceResolver.class).to(GlobalReferenceResolver.class).asEagerSingleton();
             }).createInjector();
         resolver = injector.getInstance(NestedReferenceResolver.class);
@@ -77,9 +78,7 @@ public class TestGlobalSysExpressions extends CrateDummyClusterServiceUnitTest {
             .get(CrateSettings.STATS_BREAKER_LOG.name());
         Map statsBreakerLogJobs = (Map) statsBreakerLog.get(CrateSettings.STATS_BREAKER_LOG_JOBS.name());
         assertThat(statsBreakerLogJobs.get(CrateSettings.STATS_BREAKER_LOG_JOBS_LIMIT.name()),
-            is(MemorySizeValue.parseBytesSizeValueOrHeapRatio(  // convert default string value (percentage) to byte size string
-                CrateSettings.STATS_BREAKER_LOG_JOBS_LIMIT.defaultValue(),
-                CrateSettings.STATS_BREAKER_LOG_JOBS_LIMIT.settingName()).toString()));
+            is(CrateSettings.STATS_BREAKER_LOG_JOBS_LIMIT.defaultValue().toString()));
 
         Map cluster = (Map) settings.get(CrateSettings.CLUSTER.name());
         Map gracefulStop = (Map) cluster.get(CrateSettings.GRACEFUL_STOP.name());

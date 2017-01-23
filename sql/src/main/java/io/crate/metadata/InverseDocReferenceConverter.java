@@ -28,7 +28,6 @@ import java.util.function.Predicate;
 
 import static org.elasticsearch.search.sort.FieldSortBuilder.DOC_FIELD_NAME;
 
-
 /**
  * Visitor to change a _doc reference into a regular column reference.
  * <p/>

@@ -26,10 +26,11 @@ import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.ByteSizeValue;
+import org.elasticsearch.common.unit.MemorySizeValue;
 
 import javax.annotation.Nullable;
 
-public class MemorySetting extends Setting<String, ByteSizeValue> {
+public class MemorySetting extends Setting<ByteSizeValue, ByteSizeValue> {
 
     private final String name;
     private final String defaultValue;
@@ -49,8 +50,8 @@ public class MemorySetting extends Setting<String, ByteSizeValue> {
     }
 
     @Override
-    public String defaultValue() {
-        return defaultValue;
+    public ByteSizeValue defaultValue() {
+        return MemorySizeValue.parseBytesSizeValueOrHeapRatio(defaultValue, settingName());
     }
 
     @Override
@@ -71,5 +72,14 @@ public class MemorySetting extends Setting<String, ByteSizeValue> {
     @Override
     public Setting parent() {
         return parent;
+    }
+
+    @Override
+    org.elasticsearch.common.settings.Setting<ByteSizeValue> createESSetting() {
+        return org.elasticsearch.common.settings.Setting.memorySizeSetting(
+            settingName(),
+            defaultValue(),
+            propertiesForUpdateConsumer()
+        );
     }
 }
