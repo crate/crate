@@ -69,6 +69,7 @@ public class SysShardsExpressionsTest extends CrateDummyClusterServiceUnitTest {
     private String indexName = "wikipedia_de";
     private IndexShard indexShard;
     private Schemas schemas;
+    private String indexUUID;
 
     @Before
     public void prepare()  {
@@ -89,7 +90,7 @@ public class SysShardsExpressionsTest extends CrateDummyClusterServiceUnitTest {
 
     private IndexShard mockIndexShard() {
         IndexService indexService = mock(IndexService.class);
-        String indexUUID = UUIDs.randomBase64UUID();
+        indexUUID = UUIDs.randomBase64UUID();
         Index index = new Index(indexName, indexUUID);
         ShardId shardId = new ShardId(indexName, indexUUID, 1);
 
@@ -102,7 +103,7 @@ public class SysShardsExpressionsTest extends CrateDummyClusterServiceUnitTest {
         when(storeStats.getSizeInBytes()).thenReturn(123456L);
         when(indexShard.storeStats()).thenReturn(storeStats);
 
-        Path dataPath = Paths.get("/dummy/" + indexName + "/1");
+        Path dataPath = Paths.get("/dummy/" + indexUUID + "/" + shardId.id());
         when(indexShard.shardPath()).thenReturn(new ShardPath(false, dataPath, dataPath, shardId));
 
         DocsStats docsStats = new DocsStats(654321L, 0L);
@@ -110,15 +111,16 @@ public class SysShardsExpressionsTest extends CrateDummyClusterServiceUnitTest {
 
         ShardRouting shardRouting = ShardRouting.newUnassigned(
             shardId, true, RecoverySource.PeerRecoverySource.INSTANCE, new UnassignedInfo(UnassignedInfo.Reason.INDEX_CREATED, "foo"));
-        ShardRoutingHelper.initialize(shardRouting, "node1");
-        ShardRoutingHelper.moveToStarted(shardRouting);
-        ShardRoutingHelper.relocate(shardRouting, "node_X");
+        shardRouting = ShardRoutingHelper.initialize(shardRouting, "node1");
+        shardRouting = ShardRoutingHelper.moveToStarted(shardRouting);
+        shardRouting = ShardRoutingHelper.relocate(shardRouting, "node_X");
         when(indexShard.routingEntry()).thenReturn(shardRouting);
 
         RecoveryState recoveryState = mock(RecoveryState.class);
         when(indexShard.recoveryState()).thenReturn(recoveryState);
         RecoveryState.Index recoveryStateIndex = mock(RecoveryState.Index.class);
         RecoveryState.Timer recoveryStateTimer = mock(RecoveryState.Timer.class);
+        when(recoveryState.getRecoverySource()).thenReturn(RecoverySource.PeerRecoverySource.INSTANCE);
         when(recoveryState.getIndex()).thenReturn(recoveryStateIndex);
         when(recoveryState.getStage()).thenReturn(RecoveryState.Stage.DONE);
         when(recoveryState.getTimer()).thenReturn(recoveryStateTimer);
@@ -143,7 +145,7 @@ public class SysShardsExpressionsTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testPathExpression() throws Exception {
         ShardPathExpression shardPathExpression = new ShardPathExpression(indexShard);
-        assertThat(shardPathExpression.value().utf8ToString(), is(resolveCanonicalString("/dummy/wikipedia_de/1")));
+        assertThat(shardPathExpression.value().utf8ToString(), is(resolveCanonicalString("/dummy/" + indexUUID + "/1")));
     }
 
     @Test
