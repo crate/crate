@@ -22,16 +22,10 @@
 package io.crate.exceptions;
 
 
-import java.util.Locale;
-
 public class SnapshotUnknownException extends ResourceUnknownException {
 
-    public SnapshotUnknownException(String snapshotName, Throwable cause) {
-        super(errorMsg(snapshotName), cause);
-    }
-
-    private static String errorMsg(String snapshotName) {
-        return String.format(Locale.ENGLISH, "Snapshot '%s' unknown", snapshotName);
+    SnapshotUnknownException(String repositoryName, String snapshotName, Throwable cause) {
+        super("Snapshot '" + repositoryName + "." + snapshotName + "' unknown", cause);
     }
 
     @Override
