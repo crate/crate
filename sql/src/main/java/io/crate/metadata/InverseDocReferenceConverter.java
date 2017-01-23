@@ -24,11 +24,9 @@ package io.crate.metadata;
 
 import io.crate.analyze.symbol.Symbol;
 
-import java.util.ArrayList;
-import java.util.List;
 import java.util.function.Predicate;
 
-import static org.elasticsearch.search.sort.SortParseElement.DOC_FIELD_NAME;
+import static org.elasticsearch.search.sort.FieldSortBuilder.DOC_FIELD_NAME;
 
 /**
  * Visitor to change a _doc reference into a regular column reference.
