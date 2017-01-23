@@ -119,6 +119,13 @@ public final class TableDefinitions {
                 add(null);
             }}).asIndexName())
         .build();
+    public static final TableIdent TEST_EMPTY_PARTITIONED_TABLE_IDENT =
+        new TableIdent(Schemas.DEFAULT_SCHEMA_NAME, "empty_parted");
+    public static final DocTableInfo TEST_EMPTY_PARTITIONED_TABLE_INFO = new TestingTableInfo.Builder(
+        TEST_EMPTY_PARTITIONED_TABLE_IDENT, new Routing(ImmutableMap.of()))
+        .add("name", DataTypes.STRING, null)
+        .add("date", DataTypes.TIMESTAMP, null, true)
+        .build();
     public static final TableIdent TEST_MULTIPLE_PARTITIONED_TABLE_IDENT = new TableIdent(Schemas.DEFAULT_SCHEMA_NAME, "multi_parted");
     public static final DocTableInfo TEST_MULTIPLE_PARTITIONED_TABLE_INFO = new TestingTableInfo.Builder(
         TEST_MULTIPLE_PARTITIONED_TABLE_IDENT, new Routing(ImmutableMap.<String, Map<String, List<Integer>>>of()))
