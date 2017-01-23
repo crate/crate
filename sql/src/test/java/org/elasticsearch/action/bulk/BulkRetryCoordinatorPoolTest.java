@@ -63,6 +63,7 @@ public class BulkRetryCoordinatorPoolTest extends CrateUnitTest {
     ClusterState state;
     private TestThreadPool threadPool;
     private String indexUUID;
+    private ClusterService clusterService;
 
     @Before
     public void prepare() {
@@ -87,7 +88,7 @@ public class BulkRetryCoordinatorPoolTest extends CrateUnitTest {
         routingTable = allocationService.reroute(state, "test").routingTable();
         state = ClusterState.builder(state).routingTable(routingTable).build();
 
-        ClusterService clusterService = ClusterServiceUtils.createClusterService(state, threadPool);
+        clusterService = ClusterServiceUtils.createClusterService(state, threadPool);
 
         this.state = state;
 
@@ -100,6 +101,7 @@ public class BulkRetryCoordinatorPoolTest extends CrateUnitTest {
         pool.stop();
         pool.close();
         pool = null;
+        clusterService.close();
         ThreadPool.terminate(threadPool, 30, TimeUnit.SECONDS);
     }
 
@@ -141,6 +143,7 @@ public class BulkRetryCoordinatorPoolTest extends CrateUnitTest {
             DiscoveryNodes.builder().add(newNode(NODE_IDS[1]))).build();
 
         AllocationService allocationService = createAllocationService();
+        newState = allocationService.deassociateDeadNodes(newState, true, "dummy");
         RoutingTable routingTable = allocationService.reroute(newState, "test").routingTable();
         newState = ClusterState.builder(newState).routingTable(routingTable).build();
 
