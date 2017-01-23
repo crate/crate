@@ -39,14 +39,12 @@ import org.elasticsearch.cluster.metadata.MetaData;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.index.Index;
 import org.elasticsearch.index.IndexNotFoundException;
 
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
-import java.util.stream.Stream;
 
 import static org.elasticsearch.cluster.metadata.IndexMetaData.SETTING_NUMBER_OF_REPLICAS;
 import static org.elasticsearch.cluster.metadata.IndexMetaData.SETTING_NUMBER_OF_SHARDS;
@@ -87,16 +85,12 @@ class DocTableInfoBuilder {
         if (metaData.getTemplates().containsKey(templateName)) {
             docIndexMetaData = buildDocIndexMetaDataFromTemplate(ident.indexName(), templateName);
             createdFromTemplate = true;
-            concreteIndices = Stream.of(indexNameExpressionResolver.concreteIndices(
-                state,
-                IndicesOptions.lenientExpandOpen(),
-                ident.indexName())).map(Index::getName).toArray(String[]::new);
+            concreteIndices = indexNameExpressionResolver.concreteIndexNames(
+                state, IndicesOptions.lenientExpandOpen(), ident.indexName());
         } else {
             try {
-                concreteIndices = Stream.of(indexNameExpressionResolver.concreteIndices(
-                    state,
-                    IndicesOptions.strictExpandOpen(),
-                    ident.indexName())).map(Index::getName).toArray(String[]::new);
+                concreteIndices = indexNameExpressionResolver.concreteIndexNames(
+                    state, IndicesOptions.strictExpandOpen(), ident.indexName());
                 if (concreteIndices.length == 0) {
                     // no matching index found
                     throw new TableUnknownException(ident);
