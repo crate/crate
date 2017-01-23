@@ -23,6 +23,7 @@
 package io.crate.core.collections;
 
 import io.crate.test.integration.CrateUnitTest;
+import org.elasticsearch.common.lucene.BytesRefs;
 import org.junit.Test;
 
 import java.util.HashMap;
@@ -95,5 +96,24 @@ public class MapComparatorTest extends CrateUnitTest {
         map1.put("str2", 5.0);
         assertThat(MapComparator.compareMaps(map1, map2), is(1));
         assertThat(MapComparator.compareMaps(map2, map1), is(-1));
+    }
+
+    public void testCompareMapsWithStringAndBytesRef() {
+        /**
+         * this can happen when you compare an object with an object literal
+         * ... WHERE o = {"x" = 'foo'}
+         */
+        Map<String, Object> map1 = new HashMap<String, Object>() {{
+            put("str1", "a");
+            put("str2", "b");
+            put("str3", "3");
+        }};
+        Map<String, Object> map2 = new HashMap<String, Object>() {{
+            put("str1", "a");
+            put("str2", BytesRefs.toBytesRef("b"));
+            put("str3", 3);
+        }};
+        assertThat(MapComparator.compareMaps(map1, map2), is(0));
+        assertThat(MapComparator.compareMaps(map2, map1), is(0));
     }
 }
