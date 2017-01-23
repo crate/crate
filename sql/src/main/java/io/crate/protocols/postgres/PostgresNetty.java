@@ -45,7 +45,6 @@ import org.elasticsearch.transport.BindTransportException;
 import org.jboss.netty.bootstrap.ServerBootstrap;
 import org.jboss.netty.channel.Channel;
 import org.jboss.netty.channel.ChannelPipeline;
-import org.jboss.netty.channel.ChannelPipelineFactory;
 import org.jboss.netty.channel.Channels;
 import org.jboss.netty.channel.socket.nio.NioServerSocketChannelFactory;
 
@@ -57,9 +56,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
-import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static org.elasticsearch.common.util.concurrent.EsExecutors.daemonThreadFactory;
@@ -75,8 +72,6 @@ public class PostgresNetty extends AbstractLifecycleComponent {
     private final ESLogger namedLogger;
 
     private ServerBootstrap bootstrap;
-    private ExecutorService bossExecutor;
-    private ExecutorService workerExecutor;
 
     private volatile List<Channel> serverChannels = new ArrayList<>();
     private final List<InetSocketTransportAddress> boundAddresses = new ArrayList<>();
@@ -104,27 +99,30 @@ public class PostgresNetty extends AbstractLifecycleComponent {
         if (!enabled) {
             return;
         }
-
-        bossExecutor = Executors.newCachedThreadPool(daemonThreadFactory(settings, "postgres-netty-boss"));
-        workerExecutor = Executors.newCachedThreadPool(daemonThreadFactory(settings, "postgres-netty-worker"));
-        bootstrap = new ServerBootstrap(new NioServerSocketChannelFactory(bossExecutor, workerExecutor));
+        bootstrap = new ServerBootstrap(new NioServerSocketChannelFactory(
+            Executors.newCachedThreadPool(daemonThreadFactory(settings, "postgres-netty-boss")),
+            Executors.newCachedThreadPool(daemonThreadFactory(settings, "postgres-netty-worker"))
+        ));
         bootstrap.setOption("child.tcpNoDelay", settings.getAsBoolean("tcp_no_delay", true));
         bootstrap.setOption("child.keepAlive", settings.getAsBoolean("tcp_keep_alive", true));
-
-        bootstrap.setPipelineFactory(new ChannelPipelineFactory() {
-            @Override
-            public ChannelPipeline getPipeline() throws Exception {
-                ChannelPipeline pipeline = Channels.pipeline();
-
-                ConnectionContext connectionContext = new ConnectionContext(sqlOperations);
-                pipeline.addLast("frame-decoder", connectionContext.decoder);
-                pipeline.addLast("handler", connectionContext.handler);
-                return pipeline;
-            }
+        bootstrap.setPipelineFactory(() -> {
+            ChannelPipeline pipeline = Channels.pipeline();
+            ConnectionContext connectionContext = new ConnectionContext(sqlOperations);
+            pipeline.addLast("frame-decoder", connectionContext.decoder);
+            pipeline.addLast("handler", connectionContext.handler);
+            return pipeline;
         });
 
-        boundAddress = resolveBindAddress();
-        namedLogger.info("{}", boundAddress);
+        boolean success = false;
+        try {
+            boundAddress = resolveBindAddress();
+            namedLogger.info("{}", boundAddress);
+            success = true;
+        } finally {
+            if (!success) {
+                doStop(); // stop boss/worker threads to avoid leaks
+            }
+        }
     }
 
 
@@ -212,18 +210,9 @@ public class PostgresNetty extends AbstractLifecycleComponent {
                 serverChannels = null;
             }
         }
-
         if (bootstrap != null) {
-            bootstrap.shutdown();
-            workerExecutor.shutdown();
-            bossExecutor.shutdown();
-
-            try {
-                workerExecutor.awaitTermination(2, TimeUnit.SECONDS);
-                bossExecutor.awaitTermination(2, TimeUnit.SECONDS);
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-            }
+            bootstrap.releaseExternalResources();
+            bootstrap = null;
         }
     }
 
