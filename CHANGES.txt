@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fixed issue that led to casting exception when comparing an object column
+   with an object literal that contains a string value.
+
  - Dynamically added string columns now have exactly the same characteristics
    as string columns created via ``CREATE TABLE`` or ``ALTER TABLE ADD COLUMN``
 
