@@ -39,7 +39,7 @@ import org.elasticsearch.indices.InvalidIndexNameException;
 import org.elasticsearch.indices.InvalidIndexTemplateException;
 import org.elasticsearch.repositories.RepositoryMissingException;
 import org.elasticsearch.rest.RestStatus;
-import org.elasticsearch.snapshots.InvalidSnapshotNameException;
+import org.elasticsearch.snapshots.SnapshotCreationException;
 import org.elasticsearch.snapshots.SnapshotMissingException;
 import org.elasticsearch.transport.RemoteTransportException;
 
@@ -181,11 +181,11 @@ public class Exceptions {
         } else if (e instanceof RepositoryMissingException) {
             return new RepositoryUnknownException(((RepositoryMissingException) e).repository());
         } else if (e instanceof SnapshotMissingException) {
-            return new SnapshotUnknownException(((SnapshotMissingException) e).getSnapshotName(), e);
-        } else if (e instanceof InvalidSnapshotNameException) {
-            if (((InvalidSnapshotNameException) e).getDetailedMessage().contains("snapshot with such name already exists")) {
-                return new SnapShotAlreadyExistsExeption(((InvalidSnapshotNameException) e).getSnapshotName());
-            }
+            SnapshotMissingException snapshotException = (SnapshotMissingException) e;
+            return new SnapshotUnknownException(snapshotException.getRepositoryName(), snapshotException.getSnapshotName(), e);
+        } else if (e instanceof SnapshotCreationException) {
+            SnapshotCreationException creationException = (SnapshotCreationException) e;
+            return new SnapshotAlreadyExistsExeption(creationException.getRepositoryName(), creationException.getSnapshotName());
         }
         return e;
     }
