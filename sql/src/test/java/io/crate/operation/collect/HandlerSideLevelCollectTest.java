@@ -51,7 +51,7 @@ import java.util.*;
 import static org.hamcrest.core.Is.is;
 import static org.mockito.Mockito.mock;
 
-@ESIntegTestCase.ClusterScope(numDataNodes = 1, numClientNodes = 0)
+@ESIntegTestCase.ClusterScope(numDataNodes = 1, numClientNodes = 0, supportsDedicatedMasters = false)
 public class HandlerSideLevelCollectTest extends SQLTransportIntegrationTest {
 
     private MapSideDataCollectOperation operation;
