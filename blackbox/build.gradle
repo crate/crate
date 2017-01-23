@@ -3,7 +3,7 @@ def crateDist = file("$projectDir/tmp/crate/")
 apply plugin: 'base'
 
 evaluationDependsOn(':app')
-evaluationDependsOn(':es-repository-hdfs')
+evaluationDependsOn(':es:es-repository-hdfs')
 
 task bootstrap(type: Exec) {
     inputs.file "$projectDir/bootstrap.sh"
@@ -63,7 +63,7 @@ task buildDocs(type: Exec, dependsOn: bootstrap) {
 }
 
 
-hdfsTest.dependsOn(unpackDistTar, bootstrap, lessLogging, ignoreDiskThreshold, project(':es-repository-hdfs').distZipHadoop2)
+hdfsTest.dependsOn(unpackDistTar, bootstrap, lessLogging, ignoreDiskThreshold)
 sigarTest.dependsOn(unpackDistTar, bootstrap, lessLogging, ignoreDiskThreshold)
 itest.dependsOn(unpackDistTar, bootstrap, lessLogging, ignoreDiskThreshold)
 gtest.dependsOn(unpackDistTar, bootstrap, lessLogging, ignoreDiskThreshold)

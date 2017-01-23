@@ -336,15 +336,31 @@ jar {
 }
 
 task downloadPlugins(
-        dependsOn: [':admin-ui:downloadPlugin', ':sigar:jar', ':azure-discovery:jar']) << {
+        dependsOn: [':admin-ui:downloadPlugin', ':sigar:jar', ':es:es-repository-hdfs:jar', ':azure-discovery:jar']) << {
 
-    // FIXME: re-enable HDFS plugin
-    //    dependsOn: [':admin-ui:downloadPlugin', ':sigar:jar', ':es-repository-hdfs:distZip', ':azure-discovery:jar']) << {
-    //
-    //copy {
-    //    from(zipTree(project(':es-repository-hdfs').tasks.distZip.archivePath))
-    //    into 'plugins/elasticsearch-repository-hdfs'
-    //}
+    // copy crate-admin plugin
+    copy {
+        from(project(':admin-ui').buildDir.path + '/crate-admin')
+        into 'plugins/crate-admin'
+    }
+    copy {
+        from(project(':admin-ui').buildDir.path + '/libs')
+        into 'plugins/crate-admin'
+    }
+
+    // copy es-repository-hdfs plugin
+    copy {
+        from(project(':es:es-repository-hdfs').tasks.jar.archivePath)
+        into 'plugins/es-repository-hdfs'
+    }
+    copy {
+        from(project(':es:es-repository-hdfs').projectDir.path + '/build/lib')
+        into 'plugins/es-repository-hdfs'
+    }
+    copy {
+        from(project(':es:es-repository-hdfs').projectDir.path + '/build/plugin-descriptor.properties')
+        into 'plugins/es-repository-hdfs'
+    }
 
     copy {
         // jar file

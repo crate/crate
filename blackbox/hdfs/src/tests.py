@@ -47,15 +47,16 @@ NN_PORT = '49000'
 
 hdfs_repo_zip = os.path.join(
     project_root,
+    'es',
     'es-repository-hdfs',
     'build',
-    'distributions',
-    'es-repository-hdfs-hadoop2.zip')
+    'libs',
+    'es-repository-hdfs.jar')
 
 
 def add_hadoop_libs(hdfs_zip_path, path_to_dist):
     hdfs_plugin_location = os.path.join(
-        path_to_dist, 'plugins', 'elasticsearch-repository-hdfs')
+        path_to_dist, 'plugins', 'es-repository-hdfs')
     with zipfile.ZipFile(hdfs_zip_path) as hdfs_zip:
         hadoop_libs = [i for i in hdfs_zip.namelist()
                        if i.startswith('hadoop-libs')]
