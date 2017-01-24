@@ -28,6 +28,7 @@ import io.crate.breaker.CrateCircuitBreakerService;
 import org.elasticsearch.common.unit.ByteSizeUnit;
 import org.elasticsearch.common.unit.ByteSizeValue;
 import org.elasticsearch.common.unit.TimeValue;
+import org.elasticsearch.indices.breaker.HierarchyCircuitBreakerService;
 
 import javax.annotation.Nonnull;
 import java.util.List;
@@ -231,8 +232,8 @@ public class CrateSettings {
         }
     };
 
-    public static final StringSetting STATS_BREAKER_LOG_JOBS_LIMIT =
-        new StringSetting("limit", null, true, CrateCircuitBreakerService.DEFAULT_JOBS_LOG_CIRCUIT_BREAKER_LIMIT, STATS_BREAKER_LOG_JOBS);
+    public static final MemorySetting STATS_BREAKER_LOG_JOBS_LIMIT =
+        new MemorySetting("limit", CrateCircuitBreakerService.DEFAULT_JOBS_LOG_CIRCUIT_BREAKER_LIMIT, true, STATS_BREAKER_LOG_JOBS);
 
     public static final NestedSetting STATS_BREAKER_LOG_OPERATIONS = new NestedSetting() {
 
@@ -257,8 +258,8 @@ public class CrateSettings {
         }
     };
 
-    public static final StringSetting STATS_BREAKER_LOG_OPERATIONS_LIMIT =
-        new StringSetting("limit", null, true, CrateCircuitBreakerService.DEFAULT_OPERATIONS_LOG_CIRCUIT_BREAKER_LIMIT, STATS_BREAKER_LOG_OPERATIONS);
+    public static final MemorySetting STATS_BREAKER_LOG_OPERATIONS_LIMIT =
+        new MemorySetting("limit", CrateCircuitBreakerService.DEFAULT_OPERATIONS_LOG_CIRCUIT_BREAKER_LIMIT, true, STATS_BREAKER_LOG_OPERATIONS);
 
     public static final NestedSetting CLUSTER = new NestedSetting() {
         @Override
@@ -1137,8 +1138,8 @@ public class CrateSettings {
         }
     };
 
-    public static final StringSetting INDICES_FIELDDATA_BREAKER_LIMIT = new StringSetting(
-        "limit", null, true, "60%", INDICES_FIELDDATA_BREAKER);
+    public static final MemorySetting INDICES_FIELDDATA_BREAKER_LIMIT = new MemorySetting(
+        "limit", HierarchyCircuitBreakerService.DEFAULT_FIELDDATA_BREAKER_LIMIT, true, INDICES_FIELDDATA_BREAKER);
 
     public static final DoubleSetting INDICES_FIELDDATA_BREAKER_OVERHEAD = new DoubleSetting() {
         @Override
@@ -1212,8 +1213,8 @@ public class CrateSettings {
         }
     };
 
-    public static final StringSetting INDICES_BREAKER_QUERY_LIMIT = new StringSetting(
-        "limit", null, true, CrateCircuitBreakerService.DEFAULT_QUERY_CIRCUIT_BREAKER_LIMIT, INDICES_BREAKER_QUERY);
+    public static final MemorySetting INDICES_BREAKER_QUERY_LIMIT = new MemorySetting(
+        "limit", CrateCircuitBreakerService.DEFAULT_QUERY_CIRCUIT_BREAKER_LIMIT, true, INDICES_BREAKER_QUERY);
 
     public static final DoubleSetting INDICES_BREAKER_QUERY_OVERHEAD = new DoubleSetting() {
         @Override
@@ -1262,8 +1263,8 @@ public class CrateSettings {
         }
     };
 
-    public static final StringSetting INDICES_BREAKER_REQUEST_LIMIT = new StringSetting(
-        "limit", null, true, "40%", INDICES_BREAKER_REQUEST);
+    public static final MemorySetting INDICES_BREAKER_REQUEST_LIMIT = new MemorySetting(
+        "limit", HierarchyCircuitBreakerService.DEFAULT_REQUEST_BREAKER_LIMIT, true, INDICES_BREAKER_REQUEST);
 
     public static final DoubleSetting INDICES_BREAKER_REQUEST_OVERHEAD = new DoubleSetting() {
         @Override

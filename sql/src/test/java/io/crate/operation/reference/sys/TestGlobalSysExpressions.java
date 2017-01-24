@@ -47,6 +47,7 @@ import org.elasticsearch.common.inject.Injector;
 import org.elasticsearch.common.inject.ModulesBuilder;
 import org.elasticsearch.common.inject.multibindings.MapBinder;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.common.unit.MemorySizeValue;
 import org.elasticsearch.env.NodeEnvironment;
 import org.elasticsearch.monitor.os.OsService;
 import org.elasticsearch.monitor.os.OsStats;
@@ -167,17 +168,19 @@ public class TestGlobalSysExpressions extends CrateUnitTest {
         Map settings = settingsExpression.value();
 
         Map stats = (Map) settings.get(CrateSettings.STATS.name());
-        assertThat(CrateSettings.STATS_ENABLED.defaultValue(),
-            is(stats.get(CrateSettings.STATS_ENABLED.name())));
-        assertThat(CrateSettings.STATS_JOBS_LOG_SIZE.defaultValue(),
-            is(stats.get(CrateSettings.STATS_JOBS_LOG_SIZE.name())));
-        assertThat(CrateSettings.STATS_OPERATIONS_LOG_SIZE.defaultValue(),
-            is(stats.get(CrateSettings.STATS_OPERATIONS_LOG_SIZE.name())));
+        assertThat(stats.get(CrateSettings.STATS_ENABLED.name()),
+            is(CrateSettings.STATS_ENABLED.defaultValue()));
+        assertThat(stats.get(CrateSettings.STATS_JOBS_LOG_SIZE.name()),
+            is(CrateSettings.STATS_JOBS_LOG_SIZE.defaultValue()));
+        assertThat(stats.get(CrateSettings.STATS_OPERATIONS_LOG_SIZE.name()),
+            is(CrateSettings.STATS_OPERATIONS_LOG_SIZE.defaultValue()));
         Map statsBreakerLog = (Map) ((Map) stats.get(CrateSettings.STATS_BREAKER.name()))
             .get(CrateSettings.STATS_BREAKER_LOG.name());
         Map statsBreakerLogJobs = (Map) statsBreakerLog.get(CrateSettings.STATS_BREAKER_LOG_JOBS.name());
-        assertThat(CrateSettings.STATS_BREAKER_LOG_JOBS_LIMIT.defaultValue(),
-            is(statsBreakerLogJobs.get(CrateSettings.STATS_BREAKER_LOG_JOBS_LIMIT.name())));
+        assertThat(statsBreakerLogJobs.get(CrateSettings.STATS_BREAKER_LOG_JOBS_LIMIT.name()),
+            is(MemorySizeValue.parseBytesSizeValueOrHeapRatio(  // convert default string value (percentage) to byte size string
+                CrateSettings.STATS_BREAKER_LOG_JOBS_LIMIT.defaultValue(),
+                CrateSettings.STATS_BREAKER_LOG_JOBS_LIMIT.settingName()).toString()));
 
         Map cluster = (Map) settings.get(CrateSettings.CLUSTER.name());
         Map gracefulStop = (Map) cluster.get(CrateSettings.GRACEFUL_STOP.name());

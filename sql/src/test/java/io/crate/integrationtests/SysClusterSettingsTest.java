@@ -24,6 +24,7 @@ package io.crate.integrationtests;
 import io.crate.metadata.settings.CrateSettings;
 import io.crate.testing.UseJdbc;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.common.unit.MemorySizeValue;
 import org.elasticsearch.test.ESIntegTestCase;
 import org.junit.After;
 import org.junit.Test;
@@ -183,6 +184,9 @@ public class SysClusterSettingsTest extends SQLTransportIntegrationTest {
         Map<String, Map> breaker = stats.get(CrateSettings.STATS_BREAKER.name());
         Map<String, Map> log = breaker.get(CrateSettings.STATS_BREAKER_LOG.name());
         Map<String, Map> jobs = log.get(CrateSettings.STATS_BREAKER_LOG_JOBS.name());
-        assertThat(jobs.get(CrateSettings.STATS_BREAKER_LOG_JOBS_LIMIT.name()), is("5%"));
+        assertThat(jobs.get(CrateSettings.STATS_BREAKER_LOG_JOBS_LIMIT.name()),
+            is(MemorySizeValue.parseBytesSizeValueOrHeapRatio(  // convert default string value (percentage) to byte size string
+                CrateSettings.STATS_BREAKER_LOG_JOBS_LIMIT.defaultValue(),
+                CrateSettings.STATS_BREAKER_LOG_JOBS_LIMIT.settingName()).toString()));
     }
 }

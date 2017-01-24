@@ -248,9 +248,8 @@ public class CrateSettingsTest extends CrateUnitTest {
 
     @Test
     public void testApplyMemoryCrateSetting() throws Exception {
-        StringSetting stringSetting = CrateSettings.INDICES_BREAKER_QUERY_LIMIT;
         SettingsAppliers.MemoryValueSettingsApplier intSettingsApplier =
-            new SettingsAppliers.MemoryValueSettingsApplier(stringSetting);
+            new SettingsAppliers.MemoryValueSettingsApplier(CrateSettings.INDICES_BREAKER_QUERY_LIMIT);
 
         Settings.Builder settings = Settings.builder();
         intSettingsApplier.apply(settings, Row.EMPTY, Literal.fromObject("70%"));
