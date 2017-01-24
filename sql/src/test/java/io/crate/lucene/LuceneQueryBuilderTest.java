@@ -497,6 +497,15 @@ public class LuceneQueryBuilderTest extends CrateUnitTest {
     }
 
     @Test
+    public void testRewriteDocReferenceInWhereClause() throws Exception {
+        Query query = convert("_doc['name'] = 'foo'");
+        assertThat(query, instanceOf(TermQuery.class));
+        assertThat(query.toString(), is("name:foo"));
+        query = convert("_doc = {\"name\"='foo'}");
+        assertThat(query, instanceOf(GenericFunctionQuery.class));
+    }
+
+    @Test
     public void testMatchQueryTermMustNotBeNull() throws Exception {
         expectedException.expect(IllegalArgumentException.class);
         expectedException.expectMessage("cannot use NULL as query term in match predicate");

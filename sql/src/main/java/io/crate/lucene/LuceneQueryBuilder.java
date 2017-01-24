@@ -42,10 +42,7 @@ import io.crate.lucene.match.CrateRegexCapabilities;
 import io.crate.lucene.match.CrateRegexQuery;
 import io.crate.lucene.match.MatchQueryBuilder;
 import io.crate.lucene.match.MultiMatchQueryBuilder;
-import io.crate.metadata.DocReferenceConverter;
-import io.crate.metadata.FunctionInfo;
-import io.crate.metadata.Functions;
-import io.crate.metadata.Reference;
+import io.crate.metadata.*;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.operation.Input;
 import io.crate.operation.InputFactory;
@@ -131,7 +128,8 @@ public class LuceneQueryBuilder {
         } else if (!whereClause.hasQuery()) {
             ctx.query = Queries.newMatchAllQuery();
         } else {
-            ctx.query = VISITOR.process(whereClause.query(), ctx);
+            Symbol query = InverseDocReferenceConverter.convertIf(whereClause.query());
+            ctx.query = VISITOR.process(query, ctx);
         }
         if (LOGGER.isTraceEnabled()) {
             if (whereClause.hasQuery()) {
