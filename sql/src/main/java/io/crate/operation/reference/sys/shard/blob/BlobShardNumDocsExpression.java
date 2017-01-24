@@ -23,14 +23,11 @@ package io.crate.operation.reference.sys.shard.blob;
 
 import io.crate.blob.v2.BlobShard;
 import io.crate.metadata.ReferenceImplementation;
-import io.crate.metadata.shard.blob.BlobShardReferenceImplementation;
-import org.elasticsearch.common.inject.Inject;
 
-public class BlobShardNumDocsExpression implements ReferenceImplementation<Long>, BlobShardReferenceImplementation<Long> {
+public class BlobShardNumDocsExpression implements ReferenceImplementation<Long> {
 
     private final BlobShard blobShard;
 
-    @Inject
     public BlobShardNumDocsExpression(BlobShard blobShard) {
         this.blobShard = blobShard;
     }

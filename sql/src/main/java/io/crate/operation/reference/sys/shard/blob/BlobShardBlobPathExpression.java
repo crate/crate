@@ -24,15 +24,12 @@ package io.crate.operation.reference.sys.shard.blob;
 
 import io.crate.blob.v2.BlobShard;
 import io.crate.metadata.ReferenceImplementation;
-import io.crate.metadata.shard.blob.BlobShardReferenceImplementation;
 import org.apache.lucene.util.BytesRef;
-import org.elasticsearch.common.inject.Inject;
 
-public class BlobShardBlobPathExpression implements BlobShardReferenceImplementation<BytesRef> {
+public class BlobShardBlobPathExpression implements ReferenceImplementation<BytesRef> {
 
     private final BytesRef path;
 
-    @Inject
     public BlobShardBlobPathExpression(BlobShard blobShard) {
         path = new BytesRef(blobShard.blobContainer().getBaseDirectory().toString());
     }
@@ -40,10 +37,5 @@ public class BlobShardBlobPathExpression implements BlobShardReferenceImplementa
     @Override
     public BytesRef value() {
         return path;
-    }
-
-    @Override
-    public ReferenceImplementation getChildImplementation(String name) {
-        return null;
     }
 }
