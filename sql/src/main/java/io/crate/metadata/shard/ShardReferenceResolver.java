@@ -52,7 +52,7 @@ public class ShardReferenceResolver extends AbstractReferenceResolver {
         if (PartitionName.isPartition(index.name())) {
             addPartitions(index, schemas, builder);
         }
-        implementations.put(SysShardsTableInfo.ReferenceIdents.ID, new ShardIdExpression(shardId));
+        implementations.put(SysShardsTableInfo.ReferenceIdents.ID, new LiteralReferenceImplementation<>(shardId.getId()));
         implementations.put(SysShardsTableInfo.ReferenceIdents.SIZE, new ShardSizeExpression(indexShard));
         implementations.put(SysShardsTableInfo.ReferenceIdents.NUM_DOCS, new ShardNumDocsExpression(indexShard));
         implementations.put(SysShardsTableInfo.ReferenceIdents.PRIMARY, new ShardPrimaryExpression(indexShard));

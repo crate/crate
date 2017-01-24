@@ -22,13 +22,13 @@
 
 package io.crate.operation.reference.sys.node.local;
 
-import io.crate.metadata.SimpleObjectExpression;
+import io.crate.metadata.ReferenceImplementation;
 import org.apache.lucene.util.BytesRef;
 
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 
-class NodeHostnameExpression extends SimpleObjectExpression<BytesRef> {
+class NodeHostnameExpression implements ReferenceImplementation<BytesRef> {
 
     @Override
     public BytesRef value() {

@@ -24,13 +24,13 @@ package io.crate.operation.reference.sys.shard.blob;
 import com.google.common.base.Supplier;
 import com.google.common.base.Suppliers;
 import io.crate.blob.v2.BlobShard;
-import io.crate.metadata.SimpleObjectExpression;
+import io.crate.metadata.ReferenceImplementation;
 import io.crate.metadata.shard.blob.BlobShardReferenceImplementation;
 import org.elasticsearch.common.inject.Inject;
 
 import java.util.concurrent.TimeUnit;
 
-public class BlobShardSizeExpression extends SimpleObjectExpression<Long> implements BlobShardReferenceImplementation<Long> {
+public class BlobShardSizeExpression implements ReferenceImplementation<Long>, BlobShardReferenceImplementation<Long> {
 
     private final Supplier<Long> totalUsageSupplier;
 

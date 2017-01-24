@@ -22,12 +22,12 @@
 package io.crate.operation.reference.sys.cluster;
 
 
-import io.crate.metadata.SimpleObjectExpression;
+import io.crate.metadata.ReferenceImplementation;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.cluster.ClusterName;
 import org.elasticsearch.common.inject.Inject;
 
-public class ClusterNameExpression extends SimpleObjectExpression<BytesRef> {
+public class ClusterNameExpression implements ReferenceImplementation<BytesRef> {
 
     public static final String NAME = "name";
     private final BytesRef value;

@@ -21,14 +21,14 @@
 package io.crate.operation.reference.sys.shard;
 
 import io.crate.metadata.PartitionName;
+import io.crate.metadata.ReferenceImplementation;
 import io.crate.metadata.Schemas;
-import io.crate.metadata.SimpleObjectExpression;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.index.shard.ShardId;
 
 import java.util.regex.Matcher;
 
-public class ShardTableNameExpression extends SimpleObjectExpression<BytesRef> {
+public class ShardTableNameExpression implements ReferenceImplementation<BytesRef> {
 
     private final BytesRef value;
 

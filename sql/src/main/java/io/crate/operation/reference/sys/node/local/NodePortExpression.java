@@ -22,7 +22,7 @@
 
 package io.crate.operation.reference.sys.node.local;
 
-import io.crate.metadata.SimpleObjectExpression;
+import io.crate.metadata.ReferenceImplementation;
 import io.crate.operation.reference.NestedObjectExpression;
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.action.admin.cluster.node.info.NodeInfo;
@@ -45,7 +45,7 @@ class NodePortExpression extends NestedObjectExpression {
     }
 
     private void addChildImplementations() {
-        childImplementations.put(HTTP, new SimpleObjectExpression<Integer>() {
+        childImplementations.put(HTTP, new ReferenceImplementation<Integer>() {
             @Override
             public Integer value() {
                 NodeInfo nodeInfo = nodeService.info();
@@ -55,7 +55,7 @@ class NodePortExpression extends NestedObjectExpression {
                 return portFromAddress(nodeInfo.getHttp().address().publishAddress());
             }
         });
-        childImplementations.put(TRANSPORT, new SimpleObjectExpression<Integer>() {
+        childImplementations.put(TRANSPORT, new ReferenceImplementation<Integer>() {
             @Override
             public Integer value() {
                 try {

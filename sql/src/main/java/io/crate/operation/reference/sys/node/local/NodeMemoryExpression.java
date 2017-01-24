@@ -22,7 +22,7 @@
 
 package io.crate.operation.reference.sys.node.local;
 
-import io.crate.metadata.SimpleObjectExpression;
+import io.crate.metadata.ReferenceImplementation;
 import io.crate.operation.reference.NestedObjectExpression;
 import org.elasticsearch.monitor.os.OsStats;
 
@@ -36,7 +36,7 @@ class NodeMemoryExpression extends NestedObjectExpression {
 
     NodeMemoryExpression(final OsStats stats) {
         addChildImplementations(stats.getMem());
-        childImplementations.put(PROBE_TIMESTAMP, new SimpleObjectExpression<Long>() {
+        childImplementations.put(PROBE_TIMESTAMP, new ReferenceImplementation<Long>() {
             @Override
             public Long value() {
                 return stats.getTimestamp();
@@ -45,7 +45,7 @@ class NodeMemoryExpression extends NestedObjectExpression {
     }
 
     private void addChildImplementations(final OsStats.Mem mem) {
-        childImplementations.put(FREE, new SimpleObjectExpression<Long>() {
+        childImplementations.put(FREE, new ReferenceImplementation<Long>() {
             @Override
             public Long value() {
                 if (mem != null) {
@@ -54,7 +54,7 @@ class NodeMemoryExpression extends NestedObjectExpression {
                 return -1L;
             }
         });
-        childImplementations.put(USED, new SimpleObjectExpression<Long>() {
+        childImplementations.put(USED, new ReferenceImplementation<Long>() {
             @Override
             public Long value() {
                 if (mem != null) {
@@ -63,7 +63,7 @@ class NodeMemoryExpression extends NestedObjectExpression {
                 return -1L;
             }
         });
-        childImplementations.put(FREE_PERCENT, new SimpleObjectExpression<Short>() {
+        childImplementations.put(FREE_PERCENT, new ReferenceImplementation<Short>() {
             @Override
             public Short value() {
                 if (mem != null) {
@@ -72,7 +72,7 @@ class NodeMemoryExpression extends NestedObjectExpression {
                 return -1;
             }
         });
-        childImplementations.put(USED_PERCENT, new SimpleObjectExpression<Short>() {
+        childImplementations.put(USED_PERCENT, new ReferenceImplementation<Short>() {
             @Override
             public Short value() {
                 if (mem != null) {

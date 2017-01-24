@@ -22,13 +22,13 @@
 package io.crate.operation.reference.sys.cluster;
 
 import io.crate.ClusterIdService;
-import io.crate.metadata.SimpleObjectExpression;
+import io.crate.metadata.ReferenceImplementation;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.inject.Inject;
 
 import java.util.concurrent.ExecutionException;
 
-public class ClusterIdExpression extends SimpleObjectExpression<BytesRef> {
+public class ClusterIdExpression implements ReferenceImplementation<BytesRef> {
 
     public static final String NAME = "id";
     private final ClusterIdService clusterIdService;

@@ -21,11 +21,11 @@
 package io.crate.operation.reference.sys.shard;
 
 import io.crate.metadata.PartitionName;
-import io.crate.metadata.SimpleObjectExpression;
+import io.crate.metadata.ReferenceImplementation;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.index.shard.ShardId;
 
-public class ShardPartitionIdentExpression extends SimpleObjectExpression<BytesRef> {
+public class ShardPartitionIdentExpression implements ReferenceImplementation<BytesRef> {
 
     private static final BytesRef EMPTY = new BytesRef("");
     private final BytesRef value;

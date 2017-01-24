@@ -22,7 +22,6 @@
 
 package io.crate.operation.reference.sys.node.local;
 
-import io.crate.metadata.SimpleObjectExpression;
 import io.crate.operation.reference.NestedObjectExpression;
 import org.elasticsearch.monitor.jvm.JvmStats;
 
@@ -38,29 +37,11 @@ class NodeHeapExpression extends NestedObjectExpression {
     }
 
     private void addChildImplementations(final JvmStats stats) {
-        childImplementations.put(FREE, new SimpleObjectExpression<Long>() {
-            @Override
-            public Long value() {
-                return stats.getMem().getHeapMax().getBytes() - stats.getMem().getHeapUsed().getBytes();
-            }
+        childImplementations.put(FREE, () -> {
+            return stats.getMem().getHeapMax().getBytes() - stats.getMem().getHeapUsed().getBytes();
         });
-        childImplementations.put(USED, new SimpleObjectExpression<Long>() {
-            @Override
-            public Long value() {
-                return stats.getMem().getHeapUsed().getBytes();
-            }
-        });
-        childImplementations.put(MAX, new SimpleObjectExpression<Long>() {
-            @Override
-            public Long value() {
-                return stats.getMem().getHeapMax().getBytes();
-            }
-        });
-        childImplementations.put(PROBE_TIMESTAMP, new SimpleObjectExpression<Long>() {
-            @Override
-            public Long value() {
-                return stats.getTimestamp();
-            }
-        });
+        childImplementations.put(USED, () -> stats.getMem().getHeapUsed().getBytes());
+        childImplementations.put(MAX, () -> stats.getMem().getHeapMax().getBytes());
+        childImplementations.put(PROBE_TIMESTAMP, stats::getTimestamp);
     }
 }

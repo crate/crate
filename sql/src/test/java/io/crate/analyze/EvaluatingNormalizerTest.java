@@ -10,6 +10,7 @@ import io.crate.operation.operator.AndOperator;
 import io.crate.operation.operator.EqOperator;
 import io.crate.operation.operator.OrOperator;
 import io.crate.operation.predicate.NotPredicate;
+import io.crate.operation.reference.sys.shard.LiteralReferenceImplementation;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
@@ -39,14 +40,7 @@ public class EvaluatingNormalizerTest extends CrateUnitTest {
         ReferenceIdent dummyLoadIdent = new ReferenceIdent(new TableIdent("test", "dummy"), "load");
         dummyLoadInfo = new Reference(dummyLoadIdent, RowGranularity.NODE, DataTypes.DOUBLE);
 
-        referenceImplementationMap.put(dummyLoadIdent, new SimpleObjectExpression<Double>() {
-            @Override
-            public Double value() {
-                return 0.08;
-            }
-
-        });
-
+        referenceImplementationMap.put(dummyLoadIdent, new LiteralReferenceImplementation<>(0.08d));
         functions = getFunctions();
         referenceResolver = new GlobalReferenceResolver(referenceImplementationMap);
     }

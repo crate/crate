@@ -22,7 +22,7 @@
 
 package io.crate.operation.reference.sys.node.local;
 
-import io.crate.metadata.SimpleObjectExpression;
+import io.crate.metadata.ReferenceImplementation;
 import io.crate.monitor.ExtendedOsStats;
 import io.crate.operation.reference.NestedObjectExpression;
 
@@ -39,7 +39,7 @@ class NodeOsCpuExpression extends NestedObjectExpression {
     }
 
     private void addChildImplementations(final ExtendedOsStats.Cpu cpu) {
-        childImplementations.put(SYS, new SimpleObjectExpression<Short>() {
+        childImplementations.put(SYS, new ReferenceImplementation<Short>() {
             @Override
             public Short value() {
                 if (cpu != null) {
@@ -49,7 +49,7 @@ class NodeOsCpuExpression extends NestedObjectExpression {
                 }
             }
         });
-        childImplementations.put(USER, new SimpleObjectExpression<Short>() {
+        childImplementations.put(USER, new ReferenceImplementation<Short>() {
             @Override
             public Short value() {
                 if (cpu != null) {
@@ -59,7 +59,7 @@ class NodeOsCpuExpression extends NestedObjectExpression {
                 }
             }
         });
-        childImplementations.put(IDLE, new SimpleObjectExpression<Short>() {
+        childImplementations.put(IDLE, new ReferenceImplementation<Short>() {
             @Override
             public Short value() {
                 if (cpu != null) {
@@ -69,7 +69,7 @@ class NodeOsCpuExpression extends NestedObjectExpression {
                 }
             }
         });
-        childImplementations.put(USAGE, new SimpleObjectExpression<Short>() {
+        childImplementations.put(USAGE, new ReferenceImplementation<Short>() {
             @Override
             public Short value() {
                 if (cpu != null && cpu.sys() != -1) {
@@ -79,7 +79,7 @@ class NodeOsCpuExpression extends NestedObjectExpression {
                 }
             }
         });
-        childImplementations.put(STOLEN, new SimpleObjectExpression<Short>() {
+        childImplementations.put(STOLEN, new ReferenceImplementation<Short>() {
             @Override
             public Short value() {
                 if (cpu != null) {

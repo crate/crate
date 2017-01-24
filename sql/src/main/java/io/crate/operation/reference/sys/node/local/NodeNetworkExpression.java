@@ -22,7 +22,6 @@
 
 package io.crate.operation.reference.sys.node.local;
 
-import io.crate.metadata.SimpleObjectExpression;
 import io.crate.monitor.ExtendedNetworkStats;
 import io.crate.operation.reference.NestedObjectExpression;
 import org.elasticsearch.common.inject.Inject;
@@ -36,12 +35,7 @@ class NodeNetworkExpression extends NestedObjectExpression {
 
     @Inject
     NodeNetworkExpression(final ExtendedNetworkStats stats) {
-        childImplementations.put(PROBE_TIMESTAMP, new SimpleObjectExpression<Long>() {
-            @Override
-            public Long value() {
-                return stats.timestamp();
-            }
-        });
+        childImplementations.put(PROBE_TIMESTAMP, stats::timestamp);
         childImplementations.put(NETWORK_TCP, new NodeNetworkTCPExpression(stats));
     }
 }

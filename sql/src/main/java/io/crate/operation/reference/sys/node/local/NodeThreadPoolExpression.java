@@ -22,8 +22,8 @@
 
 package io.crate.operation.reference.sys.node.local;
 
-import io.crate.metadata.SimpleObjectExpression;
 import io.crate.operation.reference.NestedObjectExpression;
+import io.crate.operation.reference.sys.shard.LiteralReferenceImplementation;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.util.concurrent.XRejectedExecutionHandler;
 import org.elasticsearch.threadpool.ThreadPool;
@@ -51,52 +51,19 @@ class NodeThreadPoolExpression extends NestedObjectExpression {
     }
 
     private void addChildImplementations() {
-        childImplementations.put(POOL_NAME, new SimpleObjectExpression<BytesRef>() {
-            @Override
-            public BytesRef value() {
-                return name;
+        childImplementations.put(POOL_NAME, new LiteralReferenceImplementation<>(name));
+        childImplementations.put(ACTIVE, threadPoolExecutor::getActiveCount);
+        childImplementations.put(REJECTED, () -> {
+            long rejected = -1;
+            RejectedExecutionHandler rejectedExecutionHandler = threadPoolExecutor.getRejectedExecutionHandler();
+            if (rejectedExecutionHandler instanceof XRejectedExecutionHandler) {
+                rejected = ((XRejectedExecutionHandler) rejectedExecutionHandler).rejected();
             }
+            return rejected;
         });
-        childImplementations.put(ACTIVE, new SimpleObjectExpression<Integer>() {
-            @Override
-            public Integer value() {
-                return threadPoolExecutor.getActiveCount();
-            }
-        });
-        childImplementations.put(REJECTED, new SimpleObjectExpression<Long>() {
-            @Override
-            public Long value() {
-                long rejected = -1;
-                RejectedExecutionHandler rejectedExecutionHandler = threadPoolExecutor.getRejectedExecutionHandler();
-                if (rejectedExecutionHandler instanceof XRejectedExecutionHandler) {
-                    rejected = ((XRejectedExecutionHandler) rejectedExecutionHandler).rejected();
-                }
-                return rejected;
-            }
-        });
-        childImplementations.put(LARGEST, new SimpleObjectExpression<Integer>() {
-            @Override
-            public Integer value() {
-                return threadPoolExecutor.getLargestPoolSize();
-            }
-        });
-        childImplementations.put(COMPLETED, new SimpleObjectExpression<Long>() {
-            @Override
-            public Long value() {
-                return threadPoolExecutor.getCompletedTaskCount();
-            }
-        });
-        childImplementations.put(THREADS, new SimpleObjectExpression<Integer>() {
-            @Override
-            public Integer value() {
-                return threadPoolExecutor.getPoolSize();
-            }
-        });
-        childImplementations.put(QUEUE, new SimpleObjectExpression<Integer>() {
-            @Override
-            public Integer value() {
-                return threadPoolExecutor.getQueue().size();
-            }
-        });
+        childImplementations.put(LARGEST, threadPoolExecutor::getLargestPoolSize);
+        childImplementations.put(COMPLETED, threadPoolExecutor::getCompletedTaskCount);
+        childImplementations.put(THREADS, threadPoolExecutor::getPoolSize);
+        childImplementations.put(QUEUE, () -> threadPoolExecutor.getQueue().size());
     }
 }

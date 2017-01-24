@@ -24,7 +24,6 @@ package io.crate.operation.reference.sys;
 import com.google.common.base.Function;
 import com.google.common.collect.Maps;
 import io.crate.metadata.ReferenceImplementation;
-import io.crate.metadata.SimpleObjectExpression;
 import io.crate.operation.reference.NestedObjectExpression;
 import org.apache.lucene.util.BytesRef;
 
@@ -32,7 +31,7 @@ import javax.annotation.Nullable;
 import java.util.List;
 import java.util.Map;
 
-public abstract class SysObjectArrayReference extends SimpleObjectExpression<Object[]> {
+public abstract class SysObjectArrayReference implements ReferenceImplementation<Object[]> {
 
     protected abstract List<NestedObjectExpression> getChildImplementations();
 
@@ -50,15 +49,7 @@ public abstract class SysObjectArrayReference extends SimpleObjectExpression<Obj
                 values[i++] = null;
             }
         }
-        return new SimpleObjectExpression<Object[]>() {
-            @Override
-            public Object[] value() {
-                return values;
-            }
-
-        };
-
-
+        return () -> values;
     }
 
     @Override

@@ -21,11 +21,11 @@
 
 package io.crate.operation.reference.sys.shard;
 
-import io.crate.metadata.SimpleObjectExpression;
+import io.crate.metadata.ReferenceImplementation;
 import org.elasticsearch.index.shard.IllegalIndexShardStateException;
 import org.elasticsearch.index.shard.IndexShard;
 
-public class ShardNumDocsExpression extends SimpleObjectExpression<Long> {
+public class ShardNumDocsExpression implements ReferenceImplementation<Long> {
 
     private final IndexShard indexShard;
 

@@ -22,11 +22,9 @@
 
 package io.crate.operation.reference.sys.node.local.fs;
 
-import io.crate.metadata.SimpleObjectExpression;
 import io.crate.monitor.ExtendedFsStats;
 import io.crate.operation.reference.NestedObjectExpression;
 import io.crate.operation.reference.sys.SysObjectArrayReference;
-import org.apache.lucene.util.BytesRef;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -67,54 +65,14 @@ class NodeFsDisksExpression extends SysObjectArrayReference {
         }
 
         private void addChildImplementations() {
-            childImplementations.put(DEV, new SimpleObjectExpression<BytesRef>() {
-                @Override
-                public BytesRef value() {
-                    return fsInfo.dev();
-                }
-            });
-            childImplementations.put(SIZE, new SimpleObjectExpression<Long>() {
-                @Override
-                public Long value() {
-                    return fsInfo.total();
-                }
-            });
-            childImplementations.put(USED, new SimpleObjectExpression<Long>() {
-                @Override
-                public Long value() {
-                    return fsInfo.used();
-                }
-            });
-            childImplementations.put(AVAILABLE, new SimpleObjectExpression<Long>() {
-                @Override
-                public Long value() {
-                    return fsInfo.available();
-                }
-            });
-            childImplementations.put(READS, new SimpleObjectExpression<Long>() {
-                @Override
-                public Long value() {
-                    return fsInfo.diskReads();
-                }
-            });
-            childImplementations.put(BYTES_READ, new SimpleObjectExpression<Long>() {
-                @Override
-                public Long value() {
-                    return fsInfo.diskReadSizeInBytes();
-                }
-            });
-            childImplementations.put(WRITES, new SimpleObjectExpression<Long>() {
-                @Override
-                public Long value() {
-                    return fsInfo.diskWrites();
-                }
-            });
-            childImplementations.put(BYTES_WRITTEN, new SimpleObjectExpression<Long>() {
-                @Override
-                public Long value() {
-                    return fsInfo.diskWriteSizeInBytes();
-                }
-            });
+            childImplementations.put(DEV, fsInfo::dev);
+            childImplementations.put(SIZE, fsInfo::total);
+            childImplementations.put(USED, fsInfo::used);
+            childImplementations.put(AVAILABLE, fsInfo::available);
+            childImplementations.put(READS, fsInfo::diskReads);
+            childImplementations.put(BYTES_READ, fsInfo::diskReadSizeInBytes);
+            childImplementations.put(WRITES, fsInfo::diskWrites);
+            childImplementations.put(BYTES_WRITTEN, fsInfo::diskWriteSizeInBytes);
 
         }
     }

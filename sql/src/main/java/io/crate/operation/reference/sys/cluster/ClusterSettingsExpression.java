@@ -21,7 +21,7 @@
 
 package io.crate.operation.reference.sys.cluster;
 
-import io.crate.metadata.SimpleObjectExpression;
+import io.crate.metadata.ReferenceImplementation;
 import io.crate.metadata.settings.CrateSettings;
 import io.crate.metadata.settings.Setting;
 import io.crate.operation.reference.NestedObjectExpression;
@@ -43,7 +43,7 @@ public class ClusterSettingsExpression extends NestedObjectExpression {
 
     public static final String NAME = "settings";
 
-    static class SettingExpression extends SimpleObjectExpression<Object> {
+    static class SettingExpression implements ReferenceImplementation<Object> {
         private final Map<String, Object> values;
         private final String name;
         private final DataType dataType;

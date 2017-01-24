@@ -23,11 +23,9 @@
 package io.crate.operation.reference.sys.node.local.fs;
 
 
-import io.crate.metadata.SimpleObjectExpression;
 import io.crate.monitor.ExtendedFsStats;
 import io.crate.operation.reference.NestedObjectExpression;
 import io.crate.operation.reference.sys.SysStaticObjectArrayReference;
-import org.apache.lucene.util.BytesRef;
 
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -61,18 +59,8 @@ class NodeFsDataExpression extends SysStaticObjectArrayReference {
         private static final String PATH = "path";
 
         NodeFsDataChildExpression(final ExtendedFsStats.Info fsInfo) {
-            childImplementations.put(DEV, new SimpleObjectExpression<BytesRef>() {
-                @Override
-                public BytesRef value() {
-                    return fsInfo.dev();
-                }
-            });
-            childImplementations.put(PATH, new SimpleObjectExpression<BytesRef>() {
-                @Override
-                public BytesRef value() {
-                    return fsInfo.path();
-                }
-            });
+            childImplementations.put(DEV, fsInfo::dev);
+            childImplementations.put(PATH, fsInfo::path);
         }
     }
 }

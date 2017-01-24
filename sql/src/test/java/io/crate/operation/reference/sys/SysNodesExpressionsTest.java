@@ -26,8 +26,8 @@ import io.crate.Build;
 import io.crate.Version;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
+import io.crate.metadata.ReferenceImplementation;
 import io.crate.metadata.RowGranularity;
-import io.crate.metadata.SimpleObjectExpression;
 import io.crate.monitor.DummyExtendedNodeInfo;
 import io.crate.monitor.MonitorModule;
 import io.crate.operation.Input;
@@ -243,24 +243,24 @@ public class SysNodesExpressionsTest extends CrateUnitTest {
     @Test
     public void testName() throws Exception {
         Reference refInfo = refInfo("sys.nodes.name", DataTypes.STRING, RowGranularity.NODE);
-        @SuppressWarnings("unchecked") SimpleObjectExpression<BytesRef> name =
-            (SimpleObjectExpression<BytesRef>) resolver.getChildImplementation(refInfo.ident().columnIdent().name());
+        @SuppressWarnings("unchecked") ReferenceImplementation<BytesRef> name =
+            (ReferenceImplementation<BytesRef>) resolver.getChildImplementation(refInfo.ident().columnIdent().name());
         assertEquals(new BytesRef("node 1"), name.value());
     }
 
     @Test
     public void testId() throws Exception {
         Reference refInfo = refInfo("sys.nodes.id", DataTypes.STRING, RowGranularity.NODE);
-        @SuppressWarnings("unchecked") SimpleObjectExpression<BytesRef> id =
-            (SimpleObjectExpression<BytesRef>) resolver.getChildImplementation(refInfo.ident().columnIdent().name());
+        @SuppressWarnings("unchecked") ReferenceImplementation<BytesRef> id =
+            (ReferenceImplementation<BytesRef>) resolver.getChildImplementation(refInfo.ident().columnIdent().name());
         assertEquals(new BytesRef("node-id-1"), id.value());
     }
 
     @Test
     public void testHostname() throws Exception {
         Reference refInfo = refInfo("sys.nodes.hostname", DataTypes.STRING, RowGranularity.NODE);
-        @SuppressWarnings("unchecked") SimpleObjectExpression<BytesRef> expression =
-            (SimpleObjectExpression) resolver.getChildImplementation(refInfo.ident().columnIdent().name());
+        @SuppressWarnings("unchecked") ReferenceImplementation<BytesRef> expression =
+            (ReferenceImplementation) resolver.getChildImplementation(refInfo.ident().columnIdent().name());
         BytesRef hostname = expression.value();
         assertThat(hostname, notNullValue());
         assertThat(InetAddresses.isInetAddress(BytesRefs.toString(hostname)), is(false));
@@ -269,8 +269,8 @@ public class SysNodesExpressionsTest extends CrateUnitTest {
     @Test
     public void testRestUrl() throws Exception {
         Reference refInfo = refInfo("sys.nodes.rest_url", DataTypes.STRING, RowGranularity.NODE);
-        @SuppressWarnings("unchecked") SimpleObjectExpression<BytesRef> httpAddr =
-            (SimpleObjectExpression<BytesRef>) resolver.getChildImplementation(refInfo.ident().columnIdent().name());
+        @SuppressWarnings("unchecked") ReferenceImplementation<BytesRef> httpAddr =
+            (ReferenceImplementation<BytesRef>) resolver.getChildImplementation(refInfo.ident().columnIdent().name());
         assertEquals(new BytesRef("http://localhost:44200"), httpAddr.value());
     }
 

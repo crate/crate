@@ -21,12 +21,12 @@
 package io.crate.operation.reference.sys.shard;
 
 import io.crate.metadata.PartitionName;
-import io.crate.metadata.SimpleObjectExpression;
+import io.crate.metadata.ReferenceImplementation;
 import org.elasticsearch.cluster.ClusterService;
 import org.elasticsearch.cluster.metadata.MetaData;
 import org.elasticsearch.index.shard.ShardId;
 
-public class ShardPartitionOrphanedExpression extends SimpleObjectExpression<Boolean> {
+public class ShardPartitionOrphanedExpression implements ReferenceImplementation<Boolean> {
 
     private final ClusterService clusterService;
     private final String aliasName;

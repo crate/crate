@@ -22,7 +22,7 @@
 
 package io.crate.operation.reference.sys.node.local;
 
-import io.crate.metadata.SimpleObjectExpression;
+import io.crate.metadata.ReferenceImplementation;
 import io.crate.monitor.ExtendedProcessCpuStats;
 import io.crate.operation.reference.NestedObjectExpression;
 import org.elasticsearch.monitor.process.ProcessStats;
@@ -39,7 +39,7 @@ class NodeProcessExpression extends NestedObjectExpression {
     }
 
     private void addChildImplementations(final ProcessStats processStats, ExtendedProcessCpuStats cpuStats) {
-        childImplementations.put(OPEN_FILE_DESCRIPTORS, new SimpleObjectExpression<Long>() {
+        childImplementations.put(OPEN_FILE_DESCRIPTORS, new ReferenceImplementation<Long>() {
             @Override
             public Long value() {
                 if (processStats != null) {
@@ -49,7 +49,7 @@ class NodeProcessExpression extends NestedObjectExpression {
                 }
             }
         });
-        childImplementations.put(MAX_OPEN_FILE_DESCRIPTORS, new SimpleObjectExpression<Long>() {
+        childImplementations.put(MAX_OPEN_FILE_DESCRIPTORS, new ReferenceImplementation<Long>() {
             @Override
             public Long value() {
                 if (processStats != null) {
@@ -59,7 +59,7 @@ class NodeProcessExpression extends NestedObjectExpression {
                 }
             }
         });
-        childImplementations.put(PROBE_TIMESTAMP, new SimpleObjectExpression<Long>() {
+        childImplementations.put(PROBE_TIMESTAMP, new ReferenceImplementation<Long>() {
             @Override
             public Long value() {
                 if (processStats != null) {

@@ -22,14 +22,14 @@
 package io.crate.operation.reference.sys.shard.blob;
 
 import io.crate.blob.v2.BlobIndex;
-import io.crate.metadata.SimpleObjectExpression;
+import io.crate.metadata.ReferenceImplementation;
 import io.crate.metadata.shard.blob.BlobShardReferenceImplementation;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.lucene.BytesRefs;
 import org.elasticsearch.index.shard.ShardId;
 
-public class BlobShardTableNameExpression extends SimpleObjectExpression<BytesRef> implements BlobShardReferenceImplementation<BytesRef> {
+public class BlobShardTableNameExpression implements ReferenceImplementation<BytesRef>, BlobShardReferenceImplementation<BytesRef> {
 
     private final BytesRef tableName;
 

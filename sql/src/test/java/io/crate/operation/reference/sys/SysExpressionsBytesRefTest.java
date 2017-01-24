@@ -22,7 +22,6 @@
 package io.crate.operation.reference.sys;
 
 import io.crate.metadata.ReferenceImplementation;
-import io.crate.metadata.SimpleObjectExpression;
 import io.crate.operation.reference.NestedObjectExpression;
 import io.crate.test.integration.CrateUnitTest;
 import org.apache.lucene.util.BytesRef;
@@ -34,7 +33,7 @@ import static org.hamcrest.Matchers.*;
 
 public class SysExpressionsBytesRefTest extends CrateUnitTest {
 
-    static class BytesRefNullSysExpression extends SimpleObjectExpression<BytesRef> {
+    static class BytesRefNullSysExpression implements ReferenceImplementation<BytesRef> {
 
         @Override
         public BytesRef value() {

@@ -26,7 +26,7 @@ import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
 import com.google.common.collect.ImmutableList;
-import io.crate.metadata.SimpleObjectExpression;
+import io.crate.metadata.ReferenceImplementation;
 import io.crate.monitor.ExtendedFsStats;
 import io.crate.operation.reference.NestedObjectExpression;
 import org.elasticsearch.common.logging.ESLogger;
@@ -101,7 +101,7 @@ class NodeFsTotalExpression extends NestedObjectExpression {
         return totals;
     }
 
-    private class NodeFSTotalChildExpression extends SimpleObjectExpression<Long> {
+    private class NodeFSTotalChildExpression implements ReferenceImplementation<Long> {
 
         private final String name;
 

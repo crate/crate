@@ -22,12 +22,12 @@
 
 package io.crate.operation.reference.sys.node.local;
 
-import io.crate.metadata.SimpleObjectExpression;
+import io.crate.metadata.ReferenceImplementation;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.discovery.Discovery;
 
-class NodeNameExpression extends SimpleObjectExpression<BytesRef> {
+class NodeNameExpression implements ReferenceImplementation<BytesRef> {
 
     private final Discovery discovery;
     private BytesRef value = null;

@@ -156,7 +156,7 @@ public class TestGlobalSysExpressions extends CrateUnitTest {
         Input ci = load.getChildImplementation("1");
         assertEquals(1D, ci.value());
 
-        SimpleObjectExpression<Double> l1 = (SimpleObjectExpression<Double>) resolver.getImplementation(load1Info);
+        ReferenceImplementation<Double> l1 = (ReferenceImplementation<Double>) resolver.getImplementation(load1Info);
         assertTrue(ci == l1);
     }
 

@@ -22,11 +22,11 @@
 
 package io.crate.operation.reference.sys.shard;
 
-import io.crate.metadata.SimpleObjectExpression;
+import io.crate.metadata.ReferenceImplementation;
 import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.indices.recovery.RecoveryState;
 
-public abstract class ShardRecoveryStateExpression<T> extends SimpleObjectExpression<T> {
+public abstract class ShardRecoveryStateExpression<T> implements ReferenceImplementation<T> {
 
     private final IndexShard indexShard;
 
