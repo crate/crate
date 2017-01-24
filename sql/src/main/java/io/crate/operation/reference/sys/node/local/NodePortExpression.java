@@ -24,22 +24,24 @@ package io.crate.operation.reference.sys.node.local;
 
 import io.crate.metadata.ReferenceImplementation;
 import io.crate.operation.reference.NestedObjectExpression;
-import org.elasticsearch.action.admin.cluster.node.info.NodeInfo;
-import org.elasticsearch.action.admin.cluster.node.stats.NodeStats;
-import org.elasticsearch.action.admin.indices.stats.CommonStatsFlags;
-import org.elasticsearch.common.transport.InetSocketTransportAddress;
 import org.elasticsearch.common.transport.TransportAddress;
-import org.elasticsearch.node.service.NodeService;
+
+import java.util.function.Supplier;
+
+import static io.crate.operation.reference.sys.node.Ports.portFromAddress;
 
 class NodePortExpression extends NestedObjectExpression {
 
     private static final String HTTP = "http";
     private static final String TRANSPORT = "transport";
+    private final Supplier<TransportAddress> httpAddress;
+    private final Supplier<TransportAddress> transportAddress;
 
-    private final NodeService nodeService;
 
-    NodePortExpression(NodeService nodeService) {
-        this.nodeService = nodeService;
+    NodePortExpression(Supplier<TransportAddress> httpAddress,
+                       Supplier<TransportAddress> transportAddress) {
+        this.httpAddress = httpAddress;
+        this.transportAddress = transportAddress;
         addChildImplementations();
     }
 
@@ -47,29 +49,14 @@ class NodePortExpression extends NestedObjectExpression {
         childImplementations.put(HTTP, new ReferenceImplementation<Integer>() {
             @Override
             public Integer value() {
-                NodeInfo nodeInfo = nodeService.info(false, false, false, false, false,
-                    false, true, false, false, false);
-                if (nodeInfo.getHttp() == null) {
-                    return null;
-                }
-                return portFromAddress(nodeInfo.getHttp().address().publishAddress());
+                return portFromAddress(httpAddress.get());
             }
         });
         childImplementations.put(TRANSPORT, new ReferenceImplementation<Integer>() {
             @Override
             public Integer value() {
-                NodeStats nodeStats = nodeService.stats(CommonStatsFlags.NONE, false, false, false, false,
-                    false,false, false, false, false, false, false);
-                return portFromAddress(nodeStats.getNode().getAddress());
+                return portFromAddress(transportAddress.get());
             }
         });
-    }
-
-    private Integer portFromAddress(TransportAddress address) {
-        Integer port = null;
-        if (address instanceof InetSocketTransportAddress) {
-            port = ((InetSocketTransportAddress) address).address().getPort();
-        }
-        return port;
     }
 }
