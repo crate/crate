@@ -28,10 +28,7 @@ import io.crate.operation.scalar.arithmetic.*;
 import io.crate.operation.scalar.cast.CastFunction;
 import io.crate.operation.scalar.cast.TryCastScalarFunction;
 import io.crate.operation.scalar.conditional.*;
-import io.crate.operation.scalar.geo.CoordinateFunction;
-import io.crate.operation.scalar.geo.DistanceFunction;
-import io.crate.operation.scalar.geo.IntersectsFunction;
-import io.crate.operation.scalar.geo.WithinFunction;
+import io.crate.operation.scalar.geo.*;
 import io.crate.operation.scalar.regex.MatchesFunction;
 import io.crate.operation.scalar.regex.ReplaceFunction;
 import io.crate.operation.scalar.string.LengthFunction;
@@ -80,6 +77,7 @@ public class ScalarFunctionModule extends AbstractModule {
         WithinFunction.register(this);
         IntersectsFunction.register(this);
         CoordinateFunction.register(this);
+        GeoHashFunction.register(this);
 
         SubscriptFunction.register(this);
         SubscriptObjectFunction.register(this);
