@@ -37,11 +37,16 @@ public class MemorySetting extends Setting<ByteSizeValue, ByteSizeValue> {
     private final boolean isRuntime;
     private final Setting<?, ?> parent;
 
-    public MemorySetting(String name, String defaultValue, boolean isRuntime, @Nullable Setting<?, ?> parent) {
+    public MemorySetting(String name,
+                         String defaultValue,
+                         boolean isRuntime,
+                         @Nullable Setting<?, ?> parent,
+                         @Nullable org.elasticsearch.common.settings.Setting<ByteSizeValue> esSetting) {
         this.name = name;
         this.defaultValue = defaultValue;
         this.isRuntime = isRuntime;
         this.parent = parent;
+        this.esSetting = esSetting;
     }
 
     @Override
