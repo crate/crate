@@ -45,14 +45,14 @@ public class CrateCircuitBreakerService extends CircuitBreakerService {
     public static final double DEFAULT_QUERY_CIRCUIT_BREAKER_OVERHEAD_CONSTANT = 1.09;
 
     public static final String JOBS_LOG = "jobs_log";
-    public static final String JOBS_LOG_CIRCUIT_BREAKER_LIMIT_SETTING = "stats.breaker.jobs_log.limit";
+    public static final String JOBS_LOG_CIRCUIT_BREAKER_LIMIT_SETTING = "stats.breaker.log.jobs.limit";
     public static final String DEFAULT_JOBS_LOG_CIRCUIT_BREAKER_LIMIT = "5%";
-    public static final String JOBS_LOG_CIRCUIT_BREAKER_OVERHEAD_SETTING = "stats.breaker.jobs_log.overhead";
+    public static final String JOBS_LOG_CIRCUIT_BREAKER_OVERHEAD_SETTING = "stats.breaker.log.jobs.overhead";
 
     public static final String OPERATIONS_LOG = "operations_log";
-    public static final String OPERATIONS_LOG_CIRCUIT_BREAKER_LIMIT_SETTING = "stats.breaker.operations_log.limit";
+    public static final String OPERATIONS_LOG_CIRCUIT_BREAKER_LIMIT_SETTING = "stats.breaker.log.operations.limit";
     public static final String DEFAULT_OPERATIONS_LOG_CIRCUIT_BREAKER_LIMIT= "5%";
-    public static final String OPERATIONS_LOG_CIRCUIT_BREAKER_OVERHEAD_SETTING = "stats.breaker.operations_log.overhead";
+    public static final String OPERATIONS_LOG_CIRCUIT_BREAKER_OVERHEAD_SETTING = "stats.breaker.log.operations.overhead";
 
     public static final double DEFAULT_LOG_CIRCUIT_BREAKER_OVERHEAD_CONSTANT = 1.0;
 

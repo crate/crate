@@ -181,7 +181,8 @@ public class SysClusterSettingsTest extends SQLTransportIntegrationTest {
         assertEquals(1L, response.rowCount());
         Map<String, Map> stats = (Map<String, Map>) response.rows()[0][0];
         Map<String, Map> breaker = stats.get(CrateSettings.STATS_BREAKER.name());
-        Map<String, Map> logs = breaker.get(CrateSettings.STATS_BREAKER_JOBS_LOG.name());
-        assertThat(logs.get(CrateSettings.STATS_BREAKER_JOBS_LOG_LIMIT.name()), is("5%"));
+        Map<String, Map> log = breaker.get(CrateSettings.STATS_BREAKER_LOG.name());
+        Map<String, Map> jobs = log.get(CrateSettings.STATS_BREAKER_LOG_JOBS.name());
+        assertThat(jobs.get(CrateSettings.STATS_BREAKER_LOG_JOBS_LIMIT.name()), is("5%"));
     }
 }

@@ -781,9 +781,15 @@ Collecting Stats
 
     Using a very small value can cause a high load on the cluster.
 
-.. _stats.breaker.jobs_logs.limit:
+.. _stats.breaker.log:
 
-**stats.breaker.jobs_log.limit**
+Settings that control the behaviour of the the stats circuit breaker.
+There are two breakers in place, one for the jobs log and one for the operations
+log. For each of them the breaker limit can be set.
+
+.. _stats.breaker.log.jobs.limit:
+
+**stats.breaker.log.jobs.limit**
   | *Default:*    ``5%``
   | *Runtime:*   ``yes``
 
@@ -793,9 +799,9 @@ Collecting Stats
   When this memory limit is reached the job log circuit breaker raises an error and clears
   the :ref:`sys.jobs_log <sys-logs>` table completely.
 
-.. _stats.breaker.operations_logs.limit:
+.. _stats.breaker.log.operations.limit:
 
-**stats.breaker.operations_log.limit**
+**stats.breaker.log.operations.limit**
   | *Default:*    ``5%``
   | *Runtime:*   ``yes``
 

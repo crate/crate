@@ -171,7 +171,7 @@ public class CrateSettings {
 
         @Override
         public List<Setting> children() {
-            return ImmutableList.of(STATS_BREAKER_JOBS_LOG, STATS_BREAKER_OPERATIONS_LOG);
+            return ImmutableList.of(STATS_BREAKER_LOG);
         }
 
         @Override
@@ -185,16 +185,16 @@ public class CrateSettings {
         }
     };
 
-    public static final NestedSetting STATS_BREAKER_JOBS_LOG = new NestedSetting() {
+    public static final NestedSetting STATS_BREAKER_LOG = new NestedSetting() {
 
         @Override
         public String name() {
-            return "jobs_log";
+            return "log";
         }
 
         @Override
         public List<Setting> children() {
-            return ImmutableList.of(STATS_BREAKER_JOBS_LOG_LIMIT);
+            return ImmutableList.of(STATS_BREAKER_LOG_JOBS, STATS_BREAKER_LOG_OPERATIONS);
         }
 
         @Override
@@ -208,24 +208,21 @@ public class CrateSettings {
         }
     };
 
-    public static final StringSetting STATS_BREAKER_JOBS_LOG_LIMIT =
-        new StringSetting("limit", null, true, CrateCircuitBreakerService.DEFAULT_JOBS_LOG_CIRCUIT_BREAKER_LIMIT, STATS_BREAKER_JOBS_LOG);
-
-    public static final NestedSetting STATS_BREAKER_OPERATIONS_LOG = new NestedSetting() {
+    public static final NestedSetting STATS_BREAKER_LOG_JOBS = new NestedSetting() {
 
         @Override
         public String name() {
-            return "operations_log";
+            return "jobs";
         }
 
         @Override
         public List<Setting> children() {
-            return ImmutableList.of(STATS_BREAKER_OPERATIONS_LOG_LIMIT);
+            return ImmutableList.of(STATS_BREAKER_LOG_JOBS_LIMIT);
         }
 
         @Override
         public Setting parent() {
-            return STATS_BREAKER;
+            return STATS_BREAKER_LOG;
         }
 
         @Override
@@ -234,8 +231,34 @@ public class CrateSettings {
         }
     };
 
-    public static final StringSetting STATS_BREAKER_OPERATIONS_LOG_LIMIT =
-        new StringSetting("limit", null, true, CrateCircuitBreakerService.DEFAULT_OPERATIONS_LOG_CIRCUIT_BREAKER_LIMIT, STATS_BREAKER_OPERATIONS_LOG);
+    public static final StringSetting STATS_BREAKER_LOG_JOBS_LIMIT =
+        new StringSetting("limit", null, true, CrateCircuitBreakerService.DEFAULT_JOBS_LOG_CIRCUIT_BREAKER_LIMIT, STATS_BREAKER_LOG_JOBS);
+
+    public static final NestedSetting STATS_BREAKER_LOG_OPERATIONS = new NestedSetting() {
+
+        @Override
+        public String name() {
+            return "operations";
+        }
+
+        @Override
+        public List<Setting> children() {
+            return ImmutableList.of(STATS_BREAKER_LOG_OPERATIONS_LIMIT);
+        }
+
+        @Override
+        public Setting parent() {
+            return STATS_BREAKER_LOG;
+        }
+
+        @Override
+        public boolean isRuntime() {
+            return true;
+        }
+    };
+
+    public static final StringSetting STATS_BREAKER_LOG_OPERATIONS_LIMIT =
+        new StringSetting("limit", null, true, CrateCircuitBreakerService.DEFAULT_OPERATIONS_LOG_CIRCUIT_BREAKER_LIMIT, STATS_BREAKER_LOG_OPERATIONS);
 
     public static final NestedSetting CLUSTER = new NestedSetting() {
         @Override
@@ -1551,14 +1574,16 @@ public class CrateSettings {
             new SettingsAppliers.TimeSettingsApplier(CrateSettings.STATS_SERVICE_REFRESH_INTERVAL))
         .put(CrateSettings.STATS_BREAKER.settingName(),
             new SettingsAppliers.ObjectSettingsApplier(CrateSettings.STATS_BREAKER))
-        .put(CrateSettings.STATS_BREAKER_JOBS_LOG.settingName(),
-            new SettingsAppliers.ObjectSettingsApplier(CrateSettings.STATS_BREAKER_JOBS_LOG))
-        .put(CrateSettings.STATS_BREAKER_JOBS_LOG_LIMIT.settingName(),
-            new SettingsAppliers.MemoryValueSettingsApplier(CrateSettings.STATS_BREAKER_JOBS_LOG_LIMIT))
-        .put(CrateSettings.STATS_BREAKER_OPERATIONS_LOG.settingName(),
-            new SettingsAppliers.ObjectSettingsApplier(CrateSettings.STATS_BREAKER_OPERATIONS_LOG))
-        .put(CrateSettings.STATS_BREAKER_OPERATIONS_LOG_LIMIT.settingName(),
-            new SettingsAppliers.MemoryValueSettingsApplier(CrateSettings.STATS_BREAKER_OPERATIONS_LOG_LIMIT))
+        .put(CrateSettings.STATS_BREAKER_LOG.settingName(),
+            new SettingsAppliers.ObjectSettingsApplier(CrateSettings.STATS_BREAKER_LOG))
+        .put(CrateSettings.STATS_BREAKER_LOG_JOBS.settingName(),
+            new SettingsAppliers.ObjectSettingsApplier(CrateSettings.STATS_BREAKER_LOG_JOBS))
+        .put(CrateSettings.STATS_BREAKER_LOG_JOBS_LIMIT.settingName(),
+            new SettingsAppliers.MemoryValueSettingsApplier(CrateSettings.STATS_BREAKER_LOG_JOBS_LIMIT))
+        .put(CrateSettings.STATS_BREAKER_LOG_OPERATIONS.settingName(),
+            new SettingsAppliers.ObjectSettingsApplier(CrateSettings.STATS_BREAKER_LOG_OPERATIONS))
+        .put(CrateSettings.STATS_BREAKER_LOG_OPERATIONS_LIMIT.settingName(),
+            new SettingsAppliers.MemoryValueSettingsApplier(CrateSettings.STATS_BREAKER_LOG_OPERATIONS_LIMIT))
         .put(CrateSettings.CLUSTER.settingName(),
             new SettingsAppliers.ObjectSettingsApplier(CrateSettings.CLUSTER))
         .put(CrateSettings.GRACEFUL_STOP.settingName(),
