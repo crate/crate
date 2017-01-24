@@ -82,8 +82,14 @@ public class CrateDummyClusterServiceUnitTest extends CrateUnitTest {
     private ClusterService createClusterService(Set<Setting<?>> additionalClusterSettings) {
         Set<Setting<?>> clusterSettings = Sets.newHashSet(ClusterSettings.BUILT_IN_CLUSTER_SETTINGS);
         clusterSettings.addAll(additionalClusterSettings);
-        DiscoveryNode discoveryNode = new DiscoveryNode("node", LocalTransportAddress.buildUnique(), Collections.emptyMap(),
-            new HashSet<>(Arrays.asList(DiscoveryNode.Role.values())), Version.CURRENT);
+        DiscoveryNode discoveryNode = new DiscoveryNode(
+            "node-name",
+            "node",
+            LocalTransportAddress.buildUnique(),
+            Collections.emptyMap(),
+            new HashSet<>(Arrays.asList(DiscoveryNode.Role.values())),
+            Version.CURRENT
+        );
         ClusterService clusterService = new ClusterService(Settings.builder().put("cluster.name", "ClusterServiceTests").build(),
             new ClusterSettings(Settings.EMPTY, clusterSettings),
             THREAD_POOL);
