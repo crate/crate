@@ -649,6 +649,27 @@ implicit type casting from strings to geo point::
     SELECT 1 row in set (... sec)
 
 
+geohash(geo_point) returns string
+---------------------------------
+
+Returns a `GeoHash <http://en.wikipedia.org/wiki/Geohash>`_ representation based
+on full precision (12 characters) of the input point, or ``NULL`` if not
+available. The input has to be a column of type ``geo_point``, a valid WKT
+string or a double-array.See :ref:`geo_point_data_type` for more information of
+the implicit type casting of geo points.
+
+Example::
+
+    cr> select mountain, height, geohash(coordinates) as "geohash" from sys.summits
+    ... order by height desc limit 1;
+    +------------+--------+--------------+
+    | mountain   | height | geohash      |
+    +------------+--------+--------------+
+    | Mont Blanc |   4808 | u0huspw99j1r |
+    +------------+--------+--------------+
+    SELECT 1 row in set (... sec)
+
+
 .. _mathematical_functions:
 
 Mathematical Functions

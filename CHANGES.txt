@@ -4,6 +4,9 @@ Changes for Crate
 
 Unreleased
 ==========
+ 
+ - Added scalar function ``geohash`` that returns a GeoHash representation of
+   a ``geo_point``
 
  - Queries with ``_doc`` reference comparison (e.g. ``_doc['name'] = 'foo'``)
    in the ``WHERE`` clause return the correct results instead of empty result.
