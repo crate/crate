@@ -22,6 +22,7 @@
 
 package io.crate.operation.reference.sys.node;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableMap;
 import io.crate.Build;
 import io.crate.Version;
@@ -31,9 +32,6 @@ import io.crate.monitor.ExtendedNodeInfo;
 import io.crate.monitor.ThreadPools;
 import io.crate.protocols.postgres.PostgresNetty;
 import org.apache.logging.log4j.Logger;
-import org.elasticsearch.action.admin.cluster.node.info.NodeInfo;
-import org.elasticsearch.action.admin.cluster.node.stats.NodeStats;
-import org.elasticsearch.action.admin.indices.stats.CommonStatsFlags;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
@@ -42,12 +40,14 @@ import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.lucene.BytesRefs;
 import org.elasticsearch.common.transport.InetSocketTransportAddress;
 import org.elasticsearch.common.transport.TransportAddress;
+import org.elasticsearch.http.HttpServer;
 import org.elasticsearch.monitor.MonitorService;
 import org.elasticsearch.monitor.jvm.JvmService;
 import org.elasticsearch.monitor.os.OsService;
-import org.elasticsearch.node.service.NodeService;
+import org.elasticsearch.monitor.process.ProcessService;
 import org.elasticsearch.threadpool.ThreadPool;
 
+import javax.annotation.Nullable;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.Collection;
@@ -55,34 +55,53 @@ import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
 import java.util.function.Consumer;
+import java.util.function.Supplier;
 
 @Singleton
 public class NodeStatsContextFieldResolver {
 
     private final static Logger LOGGER = Loggers.getLogger(NodeStatsContextFieldResolver.class);
-
-    private final OsService osService;
-    private final JvmService jvmService;
-    private final ClusterService clusterService;
-    private final NodeService nodeService;
+    private final Supplier<DiscoveryNode> localNode;
+    private final Supplier<TransportAddress> boundHttpAddress;
     private final ThreadPool threadPool;
     private final ExtendedNodeInfo extendedNodeInfo;
-    private final PostgresNetty postgresNetty;
+    private final Supplier<TransportAddress> boundPostgresAddress;
+    private final ProcessService processService;
+    private final OsService osService;
+    private final JvmService jvmService;
 
     @Inject
     public NodeStatsContextFieldResolver(ClusterService clusterService,
                                          MonitorService monitorService,
-                                         NodeService nodeService,
+                                         @Nullable HttpServer httpServer,
                                          ThreadPool threadPool,
                                          ExtendedNodeInfo extendedNodeInfo,
                                          PostgresNetty postgresNetty) {
-        this.osService = monitorService.osService();
-        this.jvmService = monitorService.jvmService();
-        this.clusterService = clusterService;
-        this.nodeService = nodeService;
+        this(
+            clusterService::localNode,
+            monitorService,
+            () -> httpServer == null ? null : httpServer.info().getAddress().publishAddress(),
+            threadPool,
+            extendedNodeInfo,
+            () -> postgresNetty.boundAddress().publishAddress()
+        );
+    }
+
+    @VisibleForTesting
+    NodeStatsContextFieldResolver(Supplier<DiscoveryNode> localNode,
+                                  MonitorService monitorService,
+                                  Supplier<TransportAddress> boundHttpAddress,
+                                  ThreadPool threadPool,
+                                  ExtendedNodeInfo extendedNodeInfo,
+                                  Supplier<TransportAddress> boundPostgresAddress) {
+        this.localNode = localNode;
+        processService = monitorService.processService();
+        osService = monitorService.osService();
+        jvmService = monitorService.jvmService();
+        this.boundHttpAddress = boundHttpAddress;
         this.threadPool = threadPool;
         this.extendedNodeInfo = extendedNodeInfo;
-        this.postgresNetty = postgresNetty;
+        this.boundPostgresAddress = boundPostgresAddress;
     }
 
     public NodeStatsContext forColumns(Collection<ColumnIdent> columns) {
@@ -112,13 +131,13 @@ public class NodeStatsContextFieldResolver {
             .put(SysNodesTableInfo.Columns.ID, new Consumer<NodeStatsContext>() {
                 @Override
                 public void accept(NodeStatsContext context) {
-                    context.id(BytesRefs.toBytesRef(clusterService.localNode().getId()));
+                    context.id(BytesRefs.toBytesRef(localNode.get().getId()));
                 }
             })
             .put(SysNodesTableInfo.Columns.NAME, new Consumer<NodeStatsContext>() {
                 @Override
                 public void accept(NodeStatsContext context) {
-                    context.name(BytesRefs.toBytesRef(clusterService.localNode().getName()));
+                    context.name(BytesRefs.toBytesRef(localNode.get().getName()));
                 }
             })
             .put(SysNodesTableInfo.Columns.HOSTNAME, new Consumer<NodeStatsContext>() {
@@ -134,7 +153,7 @@ public class NodeStatsContextFieldResolver {
             .put(SysNodesTableInfo.Columns.REST_URL, new Consumer<NodeStatsContext>() {
                 @Override
                 public void accept(NodeStatsContext context) {
-                    DiscoveryNode node = clusterService.localNode();
+                    DiscoveryNode node = localNode.get();
                     if (node != null) {
                         String url = node.getAttributes().get("http_address");
                         context.restUrl(BytesRefs.toBytesRef(url));
@@ -144,22 +163,10 @@ public class NodeStatsContextFieldResolver {
             .put(SysNodesTableInfo.Columns.PORT, new Consumer<NodeStatsContext>() {
                 @Override
                 public void accept(NodeStatsContext context) {
-                    Integer http = null;
-                    Integer pgsql = null;
-                    Integer transport;
-                    NodeInfo info = nodeService.info(false, false, false, false, false,
-                        false, true, false, false, false);
-                    if (info.getHttp() != null) {
-                        http = portFromAddress(info.getHttp().address().publishAddress());
-                    }
-
-                    NodeStats nodeStats = nodeService.stats(CommonStatsFlags.NONE, false, false, false, false,
-                        false,false, false, false, false, false, false);
-                    transport = portFromAddress(nodeStats.getNode().getAddress());
-                    if (postgresNetty.boundAddress() != null) {
-                        pgsql = portFromAddress(postgresNetty.boundAddress().publishAddress());
-                    }
-                    Map<String, Integer> port = new HashMap<>(2);
+                    Integer http = portFromAddress(boundHttpAddress.get());
+                    Integer transport = portFromAddress(localNode.get().getAddress());
+                    Integer pgsql = portFromAddress(boundPostgresAddress.get());
+                    Map<String, Integer> port = new HashMap<>(3);
                     port.put("http", http);
                     port.put("transport", transport);
                     port.put("psql", pgsql);
@@ -212,18 +219,14 @@ public class NodeStatsContextFieldResolver {
             .put(SysNodesTableInfo.Columns.OS_INFO, new Consumer<NodeStatsContext>() {
                 @Override
                 public void accept(NodeStatsContext context) {
-                    NodeInfo nodeInfo = nodeService.info(false, true, false, false, false, false,
-                        false, false, false, false);
-                    context.osInfo(nodeInfo.getOs());
+                    context.osInfo(osService.info());
                 }
             })
             .put(SysNodesTableInfo.Columns.PROCESS, new Consumer<NodeStatsContext>() {
                 @Override
                 public void accept(NodeStatsContext context) {
                     context.extendedProcessCpuStats(extendedNodeInfo.processCpuStats());
-                    NodeStats nodeStats = nodeService.stats(CommonStatsFlags.NONE, false, true, false, false,
-                        false,false, false, false, false, false, false);
-                    context.processStats(nodeStats.getProcess());
+                    context.processStats(processService.stats());
                 }
             })
             .put(SysNodesTableInfo.Columns.FS, new Consumer<NodeStatsContext>() {

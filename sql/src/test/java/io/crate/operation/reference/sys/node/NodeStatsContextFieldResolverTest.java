@@ -25,18 +25,10 @@ package io.crate.operation.reference.sys.node;
 import com.google.common.collect.ImmutableSet;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.sys.SysNodesTableInfo;
-import io.crate.monitor.ExtendedNodeInfo;
-import io.crate.protocols.postgres.PostgresNetty;
-import org.elasticsearch.action.admin.cluster.node.info.NodeInfo;
-import org.elasticsearch.action.admin.cluster.node.stats.NodeStats;
-import org.elasticsearch.action.admin.indices.stats.CommonStatsFlags;
+import io.crate.monitor.ZeroExtendedNodeInfo;
 import org.elasticsearch.cluster.node.DiscoveryNode;
-import org.elasticsearch.cluster.service.ClusterService;
-import org.elasticsearch.common.transport.BoundTransportAddress;
 import org.elasticsearch.common.transport.InetSocketTransportAddress;
-import org.elasticsearch.common.transport.TransportAddress;
 import org.elasticsearch.monitor.MonitorService;
-import org.elasticsearch.node.service.NodeService;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.junit.Before;
 import org.junit.Rule;
@@ -45,41 +37,34 @@ import org.junit.rules.ExpectedException;
 
 import java.io.IOException;
 import java.net.Inet4Address;
+import java.net.UnknownHostException;
 
+import static io.crate.testing.DiscoveryNodes.newNode;
 import static org.hamcrest.CoreMatchers.*;
 import static org.junit.Assert.assertThat;
-import static org.mockito.Matchers.anyBoolean;
-import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 public class NodeStatsContextFieldResolverTest {
-
-    private final ClusterService clusterService = mock(ClusterService.class);
-    private final NodeService nodeService = mock(NodeService.class);
-    private final ThreadPool threadPool = mock(ThreadPool.class);
-    private final ExtendedNodeInfo extendedNodeInfo = mock(ExtendedNodeInfo.class);
-    private final PostgresNetty postgresNetty = mock(PostgresNetty.class);
 
     private NodeStatsContextFieldResolver resolver;
 
     @Rule
     public ExpectedException thrown = ExpectedException.none();
+    private InetSocketTransportAddress postgresAddress;
 
     @Before
-    public void setup() {
-        DiscoveryNode discoveryNode = mock(DiscoveryNode.class);
-        when(discoveryNode.getId()).thenReturn("node_id");
-        when(discoveryNode.getName()).thenReturn("node_name");
-        when(clusterService.localNode()).thenReturn(discoveryNode);
+    public void setup() throws UnknownHostException {
+        DiscoveryNode discoveryNode = newNode("node_name", "node_id");
 
+        postgresAddress = new InetSocketTransportAddress(Inet4Address.getLocalHost(), 5432);
         resolver = new NodeStatsContextFieldResolver(
-            clusterService,
+            () -> discoveryNode,
             mock(MonitorService.class),
-            nodeService,
-            threadPool,
-            extendedNodeInfo,
-            postgresNetty);
+            () -> null,
+            mock(ThreadPool.class),
+            new ZeroExtendedNodeInfo(),
+            () -> postgresAddress
+        );
     }
 
     @Test
@@ -102,40 +87,6 @@ public class NodeStatsContextFieldResolverTest {
 
     @Test
     public void testPSQLPortResolution() throws IOException {
-        NodeInfo nodeInfo = mock(NodeInfo.class);
-        when(nodeService.info(
-            anyBoolean(),
-            anyBoolean(),
-            anyBoolean(),
-            anyBoolean(),
-            anyBoolean(),
-            anyBoolean(),
-            anyBoolean(),
-            anyBoolean(),
-            anyBoolean(),
-            anyBoolean()
-        )).thenReturn(nodeInfo);
-        NodeStats stats = mock(NodeStats.class);
-        when(nodeService.stats(
-            eq(CommonStatsFlags.NONE),
-            anyBoolean(),
-            anyBoolean(),
-            anyBoolean(),
-            anyBoolean(),
-            anyBoolean(),
-            anyBoolean(),
-            anyBoolean(),
-            anyBoolean(),
-            anyBoolean(),
-            anyBoolean(),
-            anyBoolean()
-        )).thenReturn(stats);
-        when(stats.getNode()).thenReturn(mock(DiscoveryNode.class));
-
-        InetSocketTransportAddress inetAddress = new InetSocketTransportAddress(Inet4Address.getLocalHost(), 5432);
-        BoundTransportAddress boundAddress = new BoundTransportAddress(new TransportAddress[]{inetAddress}, inetAddress);
-        when(postgresNetty.boundAddress()).thenReturn(boundAddress);
-
         NodeStatsContext context = resolver.forColumns(ImmutableSet.of(
             new ColumnIdent(SysNodesTableInfo.Columns.PORT.name())
         ));
