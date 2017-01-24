@@ -60,8 +60,12 @@ public class SigarPlugin implements Plugin {
     public Settings additionalSettings() {
         if (!sigarService.sigarAvailable()) {
             LOGGER.warn("Sigar library is not available");
+            return Settings.EMPTY;
         }
-        return Settings.EMPTY;
+
+        Settings.Builder settingsBuilder = Settings.builder();
+        settingsBuilder.put(MonitorModule.NODE_INFO_EXTENDED_TYPE_SETTING.getKey(), NODE_INFO_EXTENDED_TYPE);
+        return settingsBuilder.build();
     }
 
 
