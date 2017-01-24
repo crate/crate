@@ -233,8 +233,9 @@ public class CrateSettings {
         }
     };
 
-    public static final MemorySetting STATS_BREAKER_LOG_JOBS_LIMIT =
-        new MemorySetting("limit", CrateCircuitBreakerService.DEFAULT_JOBS_LOG_CIRCUIT_BREAKER_LIMIT, true, STATS_BREAKER_LOG_JOBS);
+    public static final MemorySetting STATS_BREAKER_LOG_JOBS_LIMIT = new MemorySetting(
+        "limit", CrateCircuitBreakerService.JOBS_LOG_CIRCUIT_BREAKER_LIMIT_SETTING.getDefaultRaw(Settings.EMPTY),
+        true, STATS_BREAKER_LOG_JOBS, CrateCircuitBreakerService.JOBS_LOG_CIRCUIT_BREAKER_LIMIT_SETTING);
 
     public static final NestedSetting STATS_BREAKER_LOG_OPERATIONS = new NestedSetting() {
 
@@ -259,8 +260,9 @@ public class CrateSettings {
         }
     };
 
-    public static final MemorySetting STATS_BREAKER_LOG_OPERATIONS_LIMIT =
-        new MemorySetting("limit", CrateCircuitBreakerService.DEFAULT_OPERATIONS_LOG_CIRCUIT_BREAKER_LIMIT, true, STATS_BREAKER_LOG_OPERATIONS);
+    public static final MemorySetting STATS_BREAKER_LOG_OPERATIONS_LIMIT = new MemorySetting(
+        "limit", CrateCircuitBreakerService.OPERATIONS_LOG_CIRCUIT_BREAKER_LIMIT_SETTING.getDefaultRaw(Settings.EMPTY),
+        true, STATS_BREAKER_LOG_OPERATIONS, CrateCircuitBreakerService.OPERATIONS_LOG_CIRCUIT_BREAKER_LIMIT_SETTING);
 
     public static final NestedSetting CLUSTER = new NestedSetting() {
         @Override
@@ -1088,7 +1090,7 @@ public class CrateSettings {
 
     public static final MemorySetting INDICES_BREAKER_FIELDDATA_LIMIT = new MemorySetting(
         "limit", HierarchyCircuitBreakerService.FIELDDATA_CIRCUIT_BREAKER_LIMIT_SETTING.getDefaultRaw(Settings.EMPTY),
-        true, INDICES_BREAKER_FIELDDATA);
+        true, INDICES_BREAKER_FIELDDATA, HierarchyCircuitBreakerService.FIELDDATA_CIRCUIT_BREAKER_LIMIT_SETTING);
 
     public static final DoubleSetting INDICES_BREAKER_FIELDDATA_OVERHEAD = new DoubleSetting() {
         @Override
@@ -1139,7 +1141,7 @@ public class CrateSettings {
 
     public static final MemorySetting INDICES_BREAKER_QUERY_LIMIT = new MemorySetting(
         "limit", CrateCircuitBreakerService.QUERY_CIRCUIT_BREAKER_LIMIT_SETTING.getDefaultRaw(Settings.EMPTY),
-        true, INDICES_BREAKER_QUERY);
+        true, INDICES_BREAKER_QUERY, CrateCircuitBreakerService.QUERY_CIRCUIT_BREAKER_LIMIT_SETTING);
 
     public static final DoubleSetting INDICES_BREAKER_QUERY_OVERHEAD = new DoubleSetting() {
         private final Double defaultValue =
@@ -1193,7 +1195,7 @@ public class CrateSettings {
 
     public static final MemorySetting INDICES_BREAKER_REQUEST_LIMIT = new MemorySetting(
         "limit", HierarchyCircuitBreakerService.REQUEST_CIRCUIT_BREAKER_LIMIT_SETTING.getDefaultRaw(Settings.EMPTY),
-        true, INDICES_BREAKER_REQUEST);
+        true, INDICES_BREAKER_REQUEST, HierarchyCircuitBreakerService.REQUEST_CIRCUIT_BREAKER_LIMIT_SETTING);
 
     public static final DoubleSetting INDICES_BREAKER_REQUEST_OVERHEAD = new DoubleSetting() {
         @Override

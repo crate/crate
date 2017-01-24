@@ -35,7 +35,7 @@ import java.util.function.Consumer;
 public abstract class Setting<T, E> {
 
     private final static Joiner dotJoiner = Joiner.on(".");
-    private org.elasticsearch.common.settings.Setting<T> esSetting;
+    protected org.elasticsearch.common.settings.Setting<T> esSetting;
 
     public String settingName() {
         return dotJoiner.join(chain());

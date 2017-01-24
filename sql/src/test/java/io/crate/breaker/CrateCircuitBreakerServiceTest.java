@@ -33,11 +33,15 @@ import org.elasticsearch.indices.breaker.CircuitBreakerStats;
 import org.elasticsearch.indices.breaker.HierarchyCircuitBreakerService;
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.Matchers;
 
 import java.util.Locale;
 import java.util.Set;
 
+import static org.elasticsearch.mock.orig.Mockito.verify;
 import static org.hamcrest.Matchers.*;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.times;
 
 public class CrateCircuitBreakerServiceTest extends CrateUnitTest {
 
@@ -49,6 +53,11 @@ public class CrateCircuitBreakerServiceTest extends CrateUnitTest {
         settings.add(CrateCircuitBreakerService.QUERY_CIRCUIT_BREAKER_LIMIT_SETTING);
         settings.add(CrateCircuitBreakerService.QUERY_CIRCUIT_BREAKER_OVERHEAD_SETTING);
         settings.add(CrateCircuitBreakerService.QUERY_CIRCUIT_BREAKER_TYPE_SETTING);
+        settings.add(CrateCircuitBreakerService.QUERY_CIRCUIT_BREAKER_TYPE_SETTING);
+        settings.add(CrateCircuitBreakerService.JOBS_LOG_CIRCUIT_BREAKER_LIMIT_SETTING);
+        settings.add(CrateCircuitBreakerService.JOBS_LOG_CIRCUIT_BREAKER_OVERHEAD_SETTING);
+        settings.add(CrateCircuitBreakerService.OPERATIONS_LOG_CIRCUIT_BREAKER_LIMIT_SETTING);
+        settings.add(CrateCircuitBreakerService.OPERATIONS_LOG_CIRCUIT_BREAKER_OVERHEAD_SETTING);
         clusterSettings = new ClusterSettings(Settings.EMPTY, settings);
     }
 
@@ -87,31 +96,22 @@ public class CrateCircuitBreakerServiceTest extends CrateUnitTest {
     @Test
     public void testBreakerSettingsAssignment() throws Exception {
         Settings settings = Settings.builder()
-            .put(CrateCircuitBreakerService.QUERY_CIRCUIT_BREAKER_LIMIT_SETTING, "10m")
-            .put(CrateCircuitBreakerService.QUERY_CIRCUIT_BREAKER_OVERHEAD_SETTING, 1.0)
+            .put(CrateCircuitBreakerService.QUERY_CIRCUIT_BREAKER_LIMIT_SETTING.getKey(), "10m")
+            .put(CrateCircuitBreakerService.QUERY_CIRCUIT_BREAKER_OVERHEAD_SETTING.getKey(), 1.0)
             .build();
-        fail("TODO: update test");
-        /*
-        final NodeSettingsService.Listener[] listeners = new NodeSettingsService.Listener[1];
-        NodeSettingsService settingsService = new NodeSettingsService(settings) {
-            @Override
-            public void addListener(Listener listener) {
-                listeners[0] = listener;
-            }
-        };
-        CircuitBreakerService esBreakerService = spy(new HierarchyCircuitBreakerService(Settings.EMPTY, settingsService));
-        CrateCircuitBreakerService breakerService = new CrateCircuitBreakerService(settings, settingsService, esBreakerService);
+        CircuitBreakerService esBreakerService = spy(new HierarchyCircuitBreakerService(Settings.EMPTY, clusterSettings));
+        CrateCircuitBreakerService breakerService = new CrateCircuitBreakerService(settings, clusterSettings, esBreakerService);
 
         CircuitBreaker breaker = breakerService.getBreaker(CrateCircuitBreakerService.QUERY);
         assertThat(breaker.getLimit(), is(10_485_760L));
         assertThat(breaker.getOverhead(), is(1.0));
 
-        Settings newSettings = Settings.settingsBuilder()
-            .put(CrateCircuitBreakerService.QUERY_CIRCUIT_BREAKER_LIMIT_SETTING, "100m")
-            .put(CrateCircuitBreakerService.QUERY_CIRCUIT_BREAKER_OVERHEAD_SETTING, 2.0)
+        Settings newSettings = Settings.builder()
+            .put(CrateCircuitBreakerService.QUERY_CIRCUIT_BREAKER_LIMIT_SETTING.getKey(), "100m")
+            .put(CrateCircuitBreakerService.QUERY_CIRCUIT_BREAKER_OVERHEAD_SETTING.getKey(), 2.0)
             .build();
+        clusterSettings.applySettings(newSettings);
 
-        listeners[0].onRefreshSettings(newSettings);
         // expecting 4 times because registerBreaker() is also called from constructor of CrateCircuitBreakerService 3 times
         verify(esBreakerService, times(4)).registerBreaker(Matchers.any());
 
@@ -120,9 +120,9 @@ public class CrateCircuitBreakerServiceTest extends CrateUnitTest {
         assertThat(breaker.getOverhead(), is(2.0));
 
         // updating with same settings should not register a new breaker
-        listeners[0].onRefreshSettings(newSettings);
+        clusterSettings.applySettings(newSettings);
+
         verify(esBreakerService, times(4)).registerBreaker(Matchers.any());
-        */
     }
 
     @Test
