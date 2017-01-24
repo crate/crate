@@ -51,7 +51,6 @@ public class SysNodesExpressionsWithDefaultExtendedStatsTest extends CrateUnitTe
 
     private void prepare(boolean isDataNode) throws Exception {
         injector = new ModulesBuilder().add(
-            new SysNodesExpressionsTest.TestModule(isDataNode),
             new MonitorModule(Settings.EMPTY),
             new SysNodeExpressionModule()
         ).createInjector();

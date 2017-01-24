@@ -38,7 +38,6 @@ import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.lucene.BytesRefs;
-import org.elasticsearch.common.transport.InetSocketTransportAddress;
 import org.elasticsearch.common.transport.TransportAddress;
 import org.elasticsearch.http.HttpServer;
 import org.elasticsearch.monitor.MonitorService;
@@ -56,6 +55,8 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
+
+import static io.crate.operation.reference.sys.node.Ports.portFromAddress;
 
 @Singleton
 public class NodeStatsContextFieldResolver {
@@ -235,13 +236,4 @@ public class NodeStatsContextFieldResolver {
                     context.extendedFsStats(extendedNodeInfo.fsStats());
                 }
             }).build();
-
-
-    private static Integer portFromAddress(TransportAddress address) {
-        Integer port = null;
-        if (address instanceof InetSocketTransportAddress) {
-            port = ((InetSocketTransportAddress) address).address().getPort();
-        }
-        return port;
-    }
 }
