@@ -214,6 +214,7 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                 if (!request.overwriteDuplicates()) {
                     item.opType(IndexRequest.OpType.CREATE);
                 } else {
+                    version = Versions.MATCH_ANY;
                     item.opType(IndexRequest.OpType.INDEX);
                 }
             } else {
