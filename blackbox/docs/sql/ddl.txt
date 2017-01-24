@@ -512,14 +512,37 @@ definition:
 Disable indexing
 ................
 
-Indexing can be turned off by using the ``INDEX OFF`` column
-definition. Without an index the column can never be hit by a query,
-and is only available as a result column::
+Indexing can be turned off by using the ``INDEX OFF`` column definition.
+Consider that a column without an index can only be used as a result column
+and will never produce a hit when queried.
+
+::
 
     cr> create table my_table1b (
     ...   first_column string INDEX OFF
     ... );
     CREATE OK, 1 row affected (... sec)
+
+::
+
+    cr> insert into my_table1b (first_column) values ('hello');
+    INSERT OK, 1 row affected (... sec)
+
+.. Hidden: Refresh::
+
+    cr> refresh table my_table1b;
+    REFRESH OK, ...
+
+When a not indexed column is queried the query won't return any results.
+
+::
+
+    cr> select * from my_table1b where first_column = 'hello';
+    +--------------+
+    | first_column |
+    +--------------+
+    +--------------+
+    SELECT 0 rows in set (... sec)
 
 .. note::
 
