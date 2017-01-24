@@ -25,15 +25,17 @@ package io.crate.monitor;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.inject.AbstractModule;
 import org.elasticsearch.common.logging.Loggers;
+import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.function.Function;
 
 public class MonitorModule extends AbstractModule {
 
-    public final static String NODE_INFO_EXTENDED_TYPE = "node.info.extended.type";
-    private final static String NODE_INFO_EXTENDED_DEFAULT_TYPE = "none";
+    public final static Setting<String> NODE_INFO_EXTENDED_TYPE_SETTING =
+        new Setting<>("node.info.extended.type", "none", Function.identity(), Setting.Property.NodeScope);
     private final static Logger LOGGER = Loggers.getLogger(MonitorModule.class);
 
     private final Settings settings;
@@ -53,7 +55,7 @@ public class MonitorModule extends AbstractModule {
 
     @Override
     protected void configure() {
-        String extendedInfoType = settings.get(NODE_INFO_EXTENDED_TYPE, NODE_INFO_EXTENDED_DEFAULT_TYPE);
+        String extendedInfoType = NODE_INFO_EXTENDED_TYPE_SETTING.get(settings);
         LOGGER.trace("Using extended node information type: {}", extendedInfoType);
 
         Class<? extends ExtendedNodeInfo> extendedInfoClass = extendedNodeInfoTypes.get(extendedInfoType);

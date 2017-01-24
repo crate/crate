@@ -109,6 +109,7 @@ public class SQLPlugin extends Plugin implements ActionPlugin, MapperPlugin {
         settings.add(CrateCircuitBreakerService.QUERY_CIRCUIT_BREAKER_OVERHEAD_SETTING);
         settings.add(DecommissioningService.DECOMMISSION_INTERNAL_SETTING_GROUP);
         settings.add(SQLOperations.NODE_READ_ONLY_SETTING);
+        settings.add(MonitorModule.NODE_INFO_EXTENDED_TYPE_SETTING);
 
         addESSettings(settings::add, CrateSettings.CRATE_SETTINGS);
         return settings;
