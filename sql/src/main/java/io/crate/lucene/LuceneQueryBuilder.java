@@ -167,8 +167,11 @@ public class LuceneQueryBuilder {
                 IndexCache indexCache,
                 QueryShardContext queryShardContext) {
             this.queryShardContext = queryShardContext;
+            FieldTypeLookup typeLookup = mapperService::fullName;
             this.docInputFactory = new DocInputFactory(
-                functions, new LuceneReferenceResolver(mapperService::fullName, mapperService.getIndexSettings()));
+                functions,
+                typeLookup,
+                new LuceneReferenceResolver(typeLookup, mapperService.getIndexSettings()));
             this.mapperService = mapperService;
             this.fieldDataService = fieldDataService;
             this.indexCache = indexCache;
