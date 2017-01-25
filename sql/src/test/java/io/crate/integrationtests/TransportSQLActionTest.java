@@ -1505,6 +1505,16 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         row = Arrays.copyOf((Object[]) response.rows()[0][0], 2, Double[].class);
         assertThat(row[0], is(10.0d));
         assertThat(row[1], is(20.0d));
+
+        execute("select p from t where distance(p, 'POINT (10 20)') = 0.0");
+        assertThat(response.rowCount(), is(1L));
+        row = Arrays.copyOf((Object[]) response.rows()[0][0], 2, Double[].class);
+        assertThat(row[0], is(10.0d));
+        assertThat(row[1], is(20.0d));
+
+        execute("select p from t where distance(p, 'POINT (10 20)') = 152354.3209044634");
+        assertThat(TestingHelpers.printedTable(response.rows()),
+            is("[11.0, 21.0]\n"));
     }
 
     @Test

@@ -32,8 +32,7 @@ import io.crate.operation.scalar.ScalarFunctionModule;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
-import org.elasticsearch.common.geo.GeoDistance;
-import org.elasticsearch.common.unit.DistanceUnit;
+import org.elasticsearch.common.geo.GeoUtils;
 
 import java.util.Arrays;
 import java.util.List;
@@ -98,8 +97,7 @@ public class DistanceFunction extends Scalar<Double, Object> {
             targetLongitude = ((Double[]) value2)[0];
             targetLatitude = ((Double[]) value2)[1];
         }
-        return GeoDistance.SLOPPY_ARC.calculate(
-            sourceLatitude, sourceLongitude, targetLatitude, targetLongitude, DistanceUnit.METERS);
+        return GeoUtils.arcDistance(sourceLatitude, sourceLongitude, targetLatitude, targetLongitude);
     }
 
     @Override
