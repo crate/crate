@@ -100,6 +100,10 @@ public class FetchContext extends AbstractExecutionSubContext {
             Map<String, List<Integer>> indexShards = locations.get(localNodeId);
             for (Map.Entry<String, List<Integer>> indexShardsEntry : indexShards.entrySet()) {
                 String indexName = indexShardsEntry.getKey();
+                Integer base = phase.bases().get(indexName);
+                if (base == null) {
+                    continue;
+                }
                 IndexMetaData indexMetaData = metaData.index(indexName);
                 if (indexMetaData == null) {
                     if (PartitionName.isPartition(indexName)) {
@@ -108,10 +112,6 @@ public class FetchContext extends AbstractExecutionSubContext {
                     throw new IndexNotFoundException(indexName);
                 }
                 Index index = indexMetaData.getIndex();
-                Integer base = phase.bases().get(indexName);
-                if (base == null) {
-                    continue;
-                }
                 TableIdent ident = index2TableIdent.get(indexName);
                 assert ident != null : "no tableIdent found for index " + indexName;
                 tableIdents.put(base, ident);
