@@ -1770,7 +1770,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         execute("select name, _score from locations where match((kind, name_description_ft), 'galay') " +
                 "using best_fields with (fuzziness='AUTO') order by _score desc");
         assertThat(TestingHelpers.printedTable(response.rows()),
-            is("End of the Galaxy| 1.1972358\nAltair| 0.4790727\nNorth West Ripple| 0.37037593\nOuter Eastern Rim| 0.37037593\n"));
+            is("End of the Galaxy| 1.3056968\nAltair| 1.1090355\nNorth West Ripple| 0.642782\nOuter Eastern Rim| 0.642782\n"));
 
         execute("select name, _score from locations where match((kind, name_description_ft), 'gala') " +
                 "using best_fields with (operator='or', minimum_should_match=2) order by _score desc");
