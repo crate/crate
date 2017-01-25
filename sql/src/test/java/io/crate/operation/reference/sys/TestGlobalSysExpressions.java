@@ -22,110 +22,46 @@
 package io.crate.operation.reference.sys;
 
 
-import io.crate.metadata.*;
+import io.crate.metadata.GlobalReferenceResolver;
+import io.crate.metadata.NestedReferenceResolver;
+import io.crate.metadata.Reference;
+import io.crate.metadata.RowGranularity;
 import io.crate.metadata.settings.CrateSettings;
-import io.crate.metadata.sys.MetaDataSysModule;
-import io.crate.metadata.sys.SysClusterTableInfo;
-import io.crate.metadata.sys.SysNodesTableInfo;
-import io.crate.monitor.DummyExtendedNodeInfo;
-import io.crate.monitor.ExtendedNodeInfo;
 import io.crate.operation.reference.NestedObjectExpression;
-import io.crate.operation.reference.sys.cluster.ClusterSettingsExpression;
-import io.crate.operation.reference.sys.node.local.NodeLoadExpression;
+import io.crate.operation.reference.sys.cluster.SysClusterExpressionModule;
 import io.crate.test.integration.CrateUnitTest;
 import io.crate.types.DataTypes;
-import org.elasticsearch.action.admin.indices.template.put.TransportPutIndexTemplateAction;
+import org.elasticsearch.cluster.ClusterName;
 import org.elasticsearch.cluster.ClusterService;
-import org.elasticsearch.cluster.ClusterState;
-import org.elasticsearch.cluster.metadata.IndexTemplateMetaData;
-import org.elasticsearch.cluster.metadata.MetaData;
-import org.elasticsearch.common.collect.ImmutableOpenMap;
-import org.elasticsearch.common.inject.AbstractModule;
 import org.elasticsearch.common.inject.Injector;
+import org.elasticsearch.common.inject.Module;
 import org.elasticsearch.common.inject.ModulesBuilder;
-import org.elasticsearch.common.inject.multibindings.MapBinder;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.MemorySizeValue;
-import org.elasticsearch.env.NodeEnvironment;
-import org.elasticsearch.monitor.os.OsService;
-import org.elasticsearch.monitor.os.OsStats;
-import org.elasticsearch.node.service.NodeService;
-import org.elasticsearch.threadpool.ThreadPool;
-import org.junit.After;
+import org.elasticsearch.test.cluster.NoopClusterService;
 import org.junit.Before;
 import org.junit.Test;
 
 import java.util.Map;
-import java.util.concurrent.TimeUnit;
 
 import static io.crate.testing.TestingHelpers.refInfo;
 import static org.hamcrest.Matchers.is;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 public class TestGlobalSysExpressions extends CrateUnitTest {
 
-    private Injector injector;
     private NestedReferenceResolver resolver;
-    private ThreadPool threadPool;
-
 
     @Before
     public void prepare() throws Exception {
-        threadPool = new ThreadPool("testing");
-        injector = new ModulesBuilder().add(
-            new TestModule(),
-            new MetaDataModule(),
-            new MetaDataSysModule()
-        ).createInjector();
+        Injector injector = new ModulesBuilder()
+            .add(new SysClusterExpressionModule())
+            .add((Module) binder -> {
+                binder.bind(ClusterService.class).toInstance(new NoopClusterService());
+                binder.bind(Settings.class).toInstance(Settings.EMPTY);
+                binder.bind(ClusterName.class).toInstance(new ClusterName("cluster"));
+                binder.bind(NestedReferenceResolver.class).to(GlobalReferenceResolver.class).asEagerSingleton();
+            }).createInjector();
         resolver = injector.getInstance(NestedReferenceResolver.class);
-    }
-
-    @After
-    public void after() throws Exception {
-        threadPool.shutdown();
-        threadPool.awaitTermination(1, TimeUnit.SECONDS);
-    }
-
-
-    class TestModule extends AbstractModule {
-
-        @Override
-        protected void configure() {
-            bind(Settings.class).toInstance(Settings.EMPTY);
-            bind(ThreadPool.class).toInstance(threadPool);
-
-            OsService osService = mock(OsService.class);
-            OsStats osStats = mock(OsStats.class);
-            when(osService.stats()).thenReturn(osStats);
-            bind(OsService.class).toInstance(osService);
-
-            NodeService nodeService = mock(NodeService.class);
-            bind(NodeService.class).toInstance(nodeService);
-
-            ClusterService clusterService = mock(ClusterService.class);
-            ClusterState state = mock(ClusterState.class);
-            MetaData metaData = mock(MetaData.class);
-            when(metaData.concreteAllOpenIndices()).thenReturn(new String[0]);
-            when(metaData.templates()).thenReturn(ImmutableOpenMap.<String, IndexTemplateMetaData>of());
-            when(metaData.settings()).thenReturn(Settings.EMPTY);
-            when(state.metaData()).thenReturn(metaData);
-            when(clusterService.state()).thenReturn(state);
-            bind(ClusterService.class).toInstance(clusterService);
-            bind(TransportPutIndexTemplateAction.class).toInstance(mock(TransportPutIndexTemplateAction.class));
-
-            NodeEnvironment nodeEnvironment = mock(NodeEnvironment.class);
-            when(nodeEnvironment.hasNodeFile()).thenReturn(true);
-            ExtendedNodeInfo extendedNodeInfo = new DummyExtendedNodeInfo(nodeEnvironment);
-            NodeLoadExpression loadExpr = new NodeLoadExpression(extendedNodeInfo.osStats());
-
-            MapBinder<ReferenceIdent, ReferenceImplementation> b = MapBinder
-                .newMapBinder(binder(), ReferenceIdent.class, ReferenceImplementation.class);
-            b.addBinding(new ReferenceIdent(SysNodesTableInfo.IDENT, "load")).toInstance(loadExpr);
-
-            b.addBinding(new ReferenceIdent(SysClusterTableInfo.IDENT, new ColumnIdent(ClusterSettingsExpression.NAME))).to(
-                ClusterSettingsExpression.class).asEagerSingleton();
-        }
     }
 
     @Test
