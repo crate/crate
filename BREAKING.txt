@@ -2,10 +2,14 @@
  BREAKING CHANGES due to ES 5.x upgrade
 ========================================
 
+- -Des cannot be used anymore, ES 5.0 needs -Eparam=value which is passed as command line argument
+  after the main class.
+  https://www.elastic.co/guide/en/elasticsearch/reference/5.0/breaking_50_settings_changes.html#_using_system_properties_to_configure_elasticsearch
+
 - Queries on columns with ``INDEX OFF`` will now fail instead of always
   resulting in an empty result.
 
- - Discovery using `Multicast` is removed. `Unicast` is the default discovery mechanism.
+- Discovery using `Multicast` is removed. `Unicast` is the default discovery mechanism.
 
 - `COPY FROM` now requires column names to be quoted in the JSON file being imported.
 
