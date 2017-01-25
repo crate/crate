@@ -71,6 +71,7 @@ import org.apache.lucene.spatial.query.SpatialOperation;
 import org.apache.lucene.util.BytesRef;
 import org.apache.lucene.util.automaton.RegExp;
 import org.elasticsearch.ExceptionsHelper;
+import org.elasticsearch.Version;
 import org.elasticsearch.common.collect.Tuple;
 import org.elasticsearch.common.geo.GeoPoint;
 import org.elasticsearch.common.geo.GeoUtils;
@@ -97,6 +98,7 @@ import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import static io.crate.lucene.DistanceQueries.esV5DistanceQuery;
 import static io.crate.operation.scalar.regex.RegexMatcher.isPcrePattern;
 import static org.elasticsearch.common.geo.GeoUtils.TOLERANCE;
 
@@ -1064,12 +1066,17 @@ public class LuceneQueryBuilder {
                     fieldName, context.mapperService);
                 IndexGeoPointFieldData fieldData = context.fieldDataService.getForField(geoPointFieldType);
 
-                Input geoPointInput = distanceRefLiteral.input();
-                Double[] pointValue = (Double[]) geoPointInput.value();
-                double lat = pointValue[1];
-                double lon = pointValue[0];
+                Version indexVersionCreated = context.indexCache.getIndexSettings().getIndexVersionCreated();
 
                 String parentName = functionLiteralPair.functionName();
+                Input geoPointInput = distanceRefLiteral.input();
+                Double[] pointValue = (Double[]) geoPointInput.value();
+                if (indexVersionCreated.onOrAfter(LatLonPointFieldMapper.LAT_LON_FIELD_VERSION)) {
+                    return esV5DistanceQuery(parent, context, parentName, fieldName, distance, pointValue);
+                }
+
+                double lat = pointValue[1];
+                double lon = pointValue[0];
 
                 GeoPoint geoPoint = new GeoPoint(lat, lon);
                 Double from = null;
@@ -1265,7 +1272,7 @@ public class LuceneQueryBuilder {
             return function;
         }
 
-        private static Query genericFunctionFilter(Function function, Context context) {
+        static Query genericFunctionFilter(Function function, Context context) {
             if (function.valueType() != DataTypes.BOOLEAN) {
                 raiseUnsupported(function);
             }
