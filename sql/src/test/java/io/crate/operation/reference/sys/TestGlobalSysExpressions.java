@@ -27,10 +27,8 @@ import io.crate.metadata.settings.CrateSettings;
 import io.crate.metadata.sys.MetaDataSysModule;
 import io.crate.metadata.sys.SysClusterTableInfo;
 import io.crate.metadata.sys.SysNodesTableInfo;
-import io.crate.metadata.table.TableInfo;
 import io.crate.monitor.DummyExtendedNodeInfo;
 import io.crate.monitor.ExtendedNodeInfo;
-import io.crate.operation.Input;
 import io.crate.operation.reference.NestedObjectExpression;
 import io.crate.operation.reference.sys.cluster.ClusterSettingsExpression;
 import io.crate.operation.reference.sys.node.local.NodeLoadExpression;
@@ -69,10 +67,6 @@ public class TestGlobalSysExpressions extends CrateUnitTest {
 
     private Injector injector;
     private NestedReferenceResolver resolver;
-    private Schemas schemas;
-
-    private Reference loadInfo;
-    private Reference load1Info;
     private ThreadPool threadPool;
 
 
@@ -85,9 +79,6 @@ public class TestGlobalSysExpressions extends CrateUnitTest {
             new MetaDataSysModule()
         ).createInjector();
         resolver = injector.getInstance(NestedReferenceResolver.class);
-        schemas = injector.getInstance(Schemas.class);
-        loadInfo = schemas.getTableInfo(SysNodesTableInfo.IDENT).getReference(new ColumnIdent("load"));
-        load1Info = schemas.getTableInfo(SysNodesTableInfo.IDENT).getReference(new ColumnIdent("load", "1"));
     }
 
     @After
@@ -135,29 +126,6 @@ public class TestGlobalSysExpressions extends CrateUnitTest {
             b.addBinding(new ReferenceIdent(SysClusterTableInfo.IDENT, new ColumnIdent(ClusterSettingsExpression.NAME))).to(
                 ClusterSettingsExpression.class).asEagerSingleton();
         }
-    }
-
-    @Test
-    public void testInfoLookup() throws Exception {
-        ReferenceIdent ident = loadInfo.ident();
-        TableInfo sysNodesTableInfo = schemas.getTableInfo(SysNodesTableInfo.IDENT);
-        assertEquals(loadInfo, sysNodesTableInfo.getReference(ident.columnIdent()));
-
-        ident = load1Info.ident();
-        assertEquals(sysNodesTableInfo.getReference(ident.columnIdent()), load1Info);
-    }
-
-
-    @Test
-    public void testChildImplementationLookup() throws Exception {
-        Reference refInfo = refInfo("sys.nodes.load", DataTypes.OBJECT, RowGranularity.NODE);
-        NestedObjectExpression load = (NestedObjectExpression) resolver.getImplementation(refInfo);
-
-        Input ci = load.getChildImplementation("1");
-        assertEquals(1D, ci.value());
-
-        ReferenceImplementation<Double> l1 = (ReferenceImplementation<Double>) resolver.getImplementation(load1Info);
-        assertTrue(ci == l1);
     }
 
     @Test
