@@ -770,12 +770,10 @@ Collecting Stats
   produce optimal query execution plans.
 
   This field expects a time value either as a long or double or
-  alternatively as a string literal with a time suffix.
-  (``ms``, ``s``, ``m``, ``h``, ``d``, ``w``)
+  alternatively as a string literal with a time suffix
+  (``ms``, ``s``, ``m``, ``h``, ``d``, ``w``).
 
-  .. note::
-
-    If the value provided is 0 then the refresh is disabled.
+  If the value provided is ``0`` then the refresh is disabled.
 
   .. note::
 
@@ -796,8 +794,8 @@ log. For each of them the breaker limit can be set.
   The maximum memory that can be used from :ref:`crate-heap-size` for the
   :ref:`sys.jobs_log <sys-logs>` table on each node.
 
-  When this memory limit is reached the job log circuit breaker raises an error and clears
-  the :ref:`sys.jobs_log <sys-logs>` table completely.
+  When this memory limit is reached the job log circuit breaker logs an error
+  message and clears the :ref:`sys.jobs_log <sys-logs>` table completely.
 
 .. _stats.breaker.log.operations.limit:
 
@@ -808,8 +806,8 @@ log. For each of them the breaker limit can be set.
   The maximum memory that can be used from :ref:`crate-heap-size` for the
   :ref:`sys.operations_log <sys-logs>` table on each node.
 
-  When this memory limit is reached the operations log circuit breaker raises an error
-  and clears the :ref:`sys.operations_log <sys-logs>` table completely.
+  When this memory limit is reached the operations log circuit breaker logs an
+  error message and clears the :ref:`sys.operations_log <sys-logs>` table completely.
 
 .. _conf_usage_data_collector:
 
@@ -839,8 +837,8 @@ information about its usage.
   The delay for first ping after start-up.
 
   This field expects a time value either as a long or double or
-  alternatively as a string literal with a time suffix.
-  (``ms``, ``s``, ``m``, ``h``, ``d``, ``w``)
+  alternatively as a string literal with a time suffix
+  (``ms``, ``s``, ``m``, ``h``, ``d``, ``w``).
 
 .. _cluster.udc.interval:
 
@@ -851,8 +849,8 @@ information about its usage.
   The interval a UDC ping is sent.
 
   This field expects a time value either as a long or double or
-  alternatively as a string literal with a time suffix.
-  (``ms``, ``s``, ``m``, ``h``, ``d``, ``w``)
+  alternatively as a string literal with a time suffix
+  (``ms``, ``s``, ``m``, ``h``, ``d``, ``w``).
 
 .. _cluster.udc.url:
 
@@ -925,7 +923,7 @@ nodes of the cluster:
 
   The timeout expects a time value either as a long or double or
   alternatively as a string literal with a time suffix
-  (``ms``, ``s``, ``m``, ``h``, ``d``, ``w``)
+  (``ms``, ``s``, ``m``, ``h``, ``d``, ``w``).
 
 .. _cluster.graceful_stop.force:
 

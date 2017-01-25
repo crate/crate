@@ -1047,8 +1047,9 @@ Logs
 Both ``sys.jobs`` and ``sys.operations`` have a corresponding ``_log`` table.
 
 After a job or operation finishes the entries will be moved into the ``_log``
-table. The ``_log`` tables are bound in size and once a table has reached its
-limit old entries are discarded as new entries are added::
+table. The size of ``_log`` tables is determined by a fixed size
+(:ref:`stats.jobs_log_size <stats.jobs_log_size>`) or by an expiration time
+(:ref:`stats.jobs_log_expiration <stats.jobs_log_expiration>`)::
 
     cr> select id, stmt, started, ended, error
     ... from sys.jobs_log order by ended desc limit 2;
