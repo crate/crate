@@ -455,7 +455,7 @@ public class LuceneQueryBuilderTest extends CrateUnitTest {
     @Test
     public void testWithinFunction() throws Exception {
         Query eqWithinQuery = convert("within(point, {type='LineString', coordinates=[[0.0, 0.0], [1.0, 1.0], [2.0, 1.0]]})");
-        assertThat(eqWithinQuery.toString(), is("GeoPointInPolygonQuery: field=point: Polygon: [[0.0, 0.0] [1.0, 1.0] [2.0, 1.0] [0.0, 0.0] ]"));
+        assertThat(eqWithinQuery.toString(), is("GeoPointInPolygonQuery: field=point: Polygon: [[0.0, 0.0] [1.0, 1.0] [1.0, 2.0] [0.0, 0.0] ]"));
     }
 
     @Test

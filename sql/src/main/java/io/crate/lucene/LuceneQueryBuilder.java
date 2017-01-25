@@ -988,7 +988,8 @@ public class LuceneQueryBuilder {
 
                 Map<String, Object> geoJSON = (Map<String, Object>) innerPair.input().value();
                 Shape shape = GeoJSONUtils.map2Shape(geoJSON);
-                Geometry geometry = JtsSpatialContext.GEO.getGeometryFrom(shape);
+                Geometry geometry = JtsSpatialContext.GEO.getShapeFactory().getGeometryFrom(shape);
+
                 IndexGeoPointFieldData fieldData = context.fieldDataService.getForField(geoPointFieldType);
                 if (geometry.isRectangle()) {
                     return getBoundingBoxQuery(shape, fieldData);
@@ -1013,7 +1014,7 @@ public class LuceneQueryBuilder {
                 return new GeoPointInPolygonQuery(
                     fieldData.getFieldName(),
                     GeoPointField.TermEncoding.PREFIX,
-                    new Polygon(lons, lats)
+                    new Polygon(lats, lons)
                 );
             }
 

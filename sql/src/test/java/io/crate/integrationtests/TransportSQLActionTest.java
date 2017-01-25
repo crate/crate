@@ -1462,7 +1462,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         Double result2 = (Double) response.rows()[1][0];
 
         assertThat(result1, is(0.0d));
-        assertThat(result2, is(152462.70754934277));
+        assertThat(result2, is(152354.3209044634));
 
         String stmtOrderBy = "SELECT id " +
                              "FROM t " +
@@ -1480,7 +1480,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
                                "GROUP BY i";
         execute(stmtAggregate);
         assertThat(response.rowCount(), is(1L));
-        String expectedAggregate = "1| 2297790.348010545\n";
+        String expectedAggregate = "1| 2296582.8899438097\n";
         assertEquals(expectedAggregate, TestingHelpers.printedTable(response.rows()));
 
         Double[] row;
@@ -1535,7 +1535,7 @@ public class TransportSQLActionTest extends SQLTransportIntegrationTest {
         )));
         assertThat(response.rowCount(), is(1L));
 
-        execute("select * from t where within(p, 'POLYGON (( 5 5, 30 5, 30 30, 5 35, 5 5 ))') = false");
+        execute("select * from t where within(p, 'POLYGON (( 5 5, 30 5, 30 30, 5 30, 5 5 ))') = false");
         assertThat(response.rowCount(), is(0L));
     }
 
