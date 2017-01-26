@@ -22,18 +22,54 @@
 
 package io.crate.operation.collect.stats;
 
-import io.crate.test.integration.CrateUnitTest;
+import com.google.common.collect.ImmutableList;
+import io.crate.breaker.CrateCircuitBreakerService;
+import io.crate.breaker.RamAccountingContext;
+import io.crate.core.collections.BlockingEvictingQueue;
+import io.crate.metadata.settings.CrateSettings;
+import io.crate.operation.reference.sys.job.JobContext;
+import io.crate.operation.reference.sys.job.JobContextLog;
+import io.crate.operation.reference.sys.operation.OperationContext;
+import io.crate.operation.reference.sys.operation.OperationContextLog;
+import io.crate.plugin.SQLPlugin;
+import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
+import org.elasticsearch.common.settings.ClusterSettings;
+import org.elasticsearch.common.settings.Setting;
+import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.common.unit.TimeValue;
+import org.elasticsearch.common.util.set.Sets;
+import org.elasticsearch.indices.breaker.CircuitBreakerService;
+import org.elasticsearch.indices.breaker.HierarchyCircuitBreakerService;
+import org.hamcrest.Matchers;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
 
-public class StatsTablesTest extends CrateUnitTest {
+import java.lang.reflect.Field;
+import java.util.List;
+import java.util.Queue;
+import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentLinkedDeque;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 
-    /*
+import static io.crate.operation.collect.stats.StatsTablesService.clearInterval;
+import static org.hamcrest.Matchers.is;
+
+public class StatsTablesTest extends CrateDummyClusterServiceUnitTest {
+
 
     private ScheduledExecutorService scheduler;
-    private static CrateCircuitBreakerService breakerService;
+    private CrateCircuitBreakerService breakerService;
     private RamAccountingContext ramAccountingContext;
+    private ClusterSettings clusterSettings;
 
     @Before
     public void createScheduler() {
+        clusterSettings = clusterService.getClusterSettings();
+        CircuitBreakerService esBreakerService = new HierarchyCircuitBreakerService(Settings.EMPTY, clusterSettings);
+        breakerService = new CrateCircuitBreakerService(Settings.EMPTY, clusterSettings, esBreakerService);
         scheduler = Executors.newSingleThreadScheduledExecutor();
         ramAccountingContext = new RamAccountingContext("testRamAccountingContext",
             breakerService.getBreaker(CrateCircuitBreakerService.JOBS_LOG));
@@ -44,21 +80,20 @@ public class StatsTablesTest extends CrateUnitTest {
         terminate(scheduler);
     }
 
-    @BeforeClass
-    public static void beforeClass() {
-        CircuitBreakerService esBreakerService = new HierarchyCircuitBreakerService(Settings.EMPTY, nodeSettingsService);
-        breakerService = new CrateCircuitBreakerService(Settings.EMPTY, nodeSettingsService, esBreakerService);
+    @Override
+    protected Set<Setting<?>> additionalClusterSettings() {
+        SQLPlugin sqlPlugin = new SQLPlugin(Settings.EMPTY);
+        return Sets.newHashSet(sqlPlugin.getSettings());
     }
 
     @Test
     public void testDefaultSettings() {
-        StatsTablesService stats = new StatsTablesService(Settings.EMPTY, nodeSettingsService, scheduler, breakerService);
-
+        StatsTablesService stats = new StatsTablesService(Settings.EMPTY, clusterSettings, scheduler, breakerService);
         assertThat(stats.isEnabled(), is(false));
-        assertThat(stats.lastJobsLogSize, is(CrateSettings.STATS_JOBS_LOG_SIZE.defaultValue()));
-        assertThat(stats.lastOperationsLogSize, is(CrateSettings.STATS_OPERATIONS_LOG_SIZE.defaultValue()));
-        assertThat(stats.lastJobsLogExpiration, is(CrateSettings.STATS_JOBS_LOG_EXPIRATION.defaultValue()));
-        assertThat(stats.lastOperationsLogExpiration, is(CrateSettings.STATS_OPERATIONS_LOG_EXPIRATION.defaultValue()));
+        assertThat(stats.jobsLogSize, is(CrateSettings.STATS_JOBS_LOG_SIZE.defaultValue()));
+        assertThat(stats.operationsLogSize, is(CrateSettings.STATS_OPERATIONS_LOG_SIZE.defaultValue()));
+        assertThat(stats.jobsLogExpiration, is(CrateSettings.STATS_JOBS_LOG_EXPIRATION.defaultValue()));
+        assertThat(stats.operationsLogExpiration, is(CrateSettings.STATS_OPERATIONS_LOG_EXPIRATION.defaultValue()));
 
         // even though jobsLog size and opertionsLog size are > 0 it must be a NoopQueue because the stats are disabled
         assertThat(stats.jobsLogSink, Matchers.instanceOf(NoopLogSink.class));
@@ -72,16 +107,16 @@ public class StatsTablesTest extends CrateUnitTest {
             .put(CrateSettings.STATS_JOBS_LOG_SIZE.settingName(), 100)
             .put(CrateSettings.STATS_OPERATIONS_LOG_SIZE.settingName(), 100)
             .build();
+        StatsTablesService stats = new StatsTablesService(settings, clusterSettings, scheduler, breakerService);
 
-        StatsTablesService stats = new StatsTablesService(settings, nodeSettingsService, scheduler, breakerService);
-        stats.listener.onRefreshSettings(Settings.builder()
+        clusterService.getClusterSettings().applySettings(Settings.builder()
             .put(CrateSettings.STATS_ENABLED.settingName(), true)
             .build());
 
         assertThat(stats.isEnabled(), is(true));
-        assertThat(stats.lastJobsLogSize, is(100));
+        assertThat(stats.jobsLogSize, is(100));
         assertThat(stats.jobsLogSink, Matchers.instanceOf(QueueSink.class));
-        assertThat(stats.lastOperationsLogSize, is(100));
+        assertThat(stats.operationsLogSize, is(100));
         assertThat(stats.operationsLogSink, Matchers.instanceOf(QueueSink.class));
     }
 
@@ -92,8 +127,7 @@ public class StatsTablesTest extends CrateUnitTest {
             .put(CrateSettings.STATS_JOBS_LOG_SIZE.settingName(), 100)
             .put(CrateSettings.STATS_OPERATIONS_LOG_SIZE.settingName(), 100)
             .build();
-
-        StatsTablesService stats = new StatsTablesService(settings, nodeSettingsService, scheduler, breakerService);
+        StatsTablesService stats = new StatsTablesService(settings, clusterSettings, scheduler, breakerService);
 
         // sinks are still of type QueueSink
         assertThat(stats.jobsLogSink, Matchers.instanceOf(QueueSink.class));
@@ -104,7 +138,7 @@ public class StatsTablesTest extends CrateUnitTest {
         assertThat(inspectRamAccountingQueue((QueueSink) stats.operationsLogSink),
             Matchers.instanceOf(BlockingEvictingQueue.class));
 
-        stats.listener.onRefreshSettings(Settings.builder()
+        clusterSettings.applySettings(Settings.builder()
             .put(CrateSettings.STATS_JOBS_LOG_EXPIRATION.settingName(), "10s")
             .put(CrateSettings.STATS_OPERATIONS_LOG_EXPIRATION.settingName(), "10s")
             .build());
@@ -115,7 +149,7 @@ public class StatsTablesTest extends CrateUnitTest {
             Matchers.instanceOf(ConcurrentLinkedDeque.class));
 
         // set all to 0 but don't disable stats
-        stats.listener.onRefreshSettings(Settings.builder()
+        clusterSettings.applySettings(Settings.builder()
             .put(CrateSettings.STATS_JOBS_LOG_SIZE.settingName(), 0)
             .put(CrateSettings.STATS_JOBS_LOG_EXPIRATION.settingName(), "0s")
             .put(CrateSettings.STATS_OPERATIONS_LOG_SIZE.settingName(), 0)
@@ -125,9 +159,10 @@ public class StatsTablesTest extends CrateUnitTest {
         assertThat(stats.operationsLogSink, Matchers.instanceOf(NoopLogSink.class));
         assertThat(stats.isEnabled(), is(true));
 
-        stats.listener.onRefreshSettings(Settings.builder()
+        clusterSettings.applySettings(Settings.builder()
             .put(CrateSettings.STATS_JOBS_LOG_SIZE.settingName(), 200)
             .put(CrateSettings.STATS_OPERATIONS_LOG_SIZE.settingName(), 200)
+            .put(CrateSettings.STATS_ENABLED.settingName(), true)
             .build());
         assertThat(stats.jobsLogSink, Matchers.instanceOf(QueueSink.class));
         assertThat(inspectRamAccountingQueue((QueueSink) stats.jobsLogSink),
@@ -137,12 +172,12 @@ public class StatsTablesTest extends CrateUnitTest {
             Matchers.instanceOf(BlockingEvictingQueue.class));
 
         // disable stats
-        stats.listener.onRefreshSettings(Settings.builder()
+        clusterSettings.applySettings(Settings.builder()
             .put(CrateSettings.STATS_ENABLED.settingName(), false)
             .build());
+        assertThat(stats.isEnabled(), is(false));
         assertThat(stats.jobsLogSink, Matchers.instanceOf(NoopLogSink.class));
         assertThat(stats.operationsLogSink, Matchers.instanceOf(NoopLogSink.class));
-        assertThat(stats.isEnabled(), is(false));
     }
 
     private static Queue inspectRamAccountingQueue(QueueSink sink) throws Exception {
@@ -158,11 +193,11 @@ public class StatsTablesTest extends CrateUnitTest {
     public void testLogsArentWipedOnSizeChange() {
         Settings settings = Settings.builder()
             .put(CrateSettings.STATS_ENABLED.settingName(), true).build();
-        StatsTablesService stats = new StatsTablesService(settings, nodeSettingsService, scheduler, breakerService);
+        StatsTablesService stats = new StatsTablesService(settings, clusterSettings, scheduler, breakerService);
 
         stats.jobsLogSink.add(new JobContextLog(new JobContext(UUID.randomUUID(), "select 1", 1L), null));
 
-        stats.listener.onRefreshSettings(Settings.builder()
+        clusterSettings.applySettings(Settings.builder()
             .put(CrateSettings.STATS_ENABLED.settingName(), true)
             .put(CrateSettings.STATS_JOBS_LOG_SIZE.settingName(), 200).build());
 
@@ -173,7 +208,7 @@ public class StatsTablesTest extends CrateUnitTest {
         stats.operationsLogSink.add(new OperationContextLog(
             new OperationContext(1, UUID.randomUUID(), "foo", 3L), null));
 
-        stats.listener.onRefreshSettings(Settings.builder()
+        clusterSettings.applySettings(Settings.builder()
             .put(CrateSettings.STATS_ENABLED.settingName(), true)
             .put(CrateSettings.STATS_OPERATIONS_LOG_SIZE.settingName(), 1).build());
 
@@ -183,7 +218,7 @@ public class StatsTablesTest extends CrateUnitTest {
     @Test
     public void testUniqueOperationIdsInOperationsTable() {
         StatsTables statsTables = new StatsTables(() -> true);
-        Queue<OperationContextLog> q = new BlockingEvictingQueue(10);
+        Queue<OperationContextLog> q = new BlockingEvictingQueue<>(10);
         statsTables.updateOperationsLog(new QueueSink<>(q, ramAccountingContext::close));
 
         OperationContext ctxA = new OperationContext(0, UUID.randomUUID(), "dummyOperation", 1L);
@@ -205,12 +240,10 @@ public class StatsTablesTest extends CrateUnitTest {
 
     @Test
     public void testLowerBoundScheduler() throws NoSuchMethodException {
-        StatsTablesService stats = new StatsTablesService(Settings.EMPTY, nodeSettingsService, scheduler, breakerService);
-        assertThat(stats.clearInterval(TimeValue.timeValueMillis(1L)), is(1000L));
-        assertThat(stats.clearInterval(TimeValue.timeValueSeconds(8L)), is(1000L));
-        assertThat(stats.clearInterval(TimeValue.timeValueSeconds(10L)), is(1000L));
-        assertThat(stats.clearInterval(TimeValue.timeValueSeconds(20L)), is(2000L));
-        assertThat(stats.clearInterval(TimeValue.timeValueHours(720L)), is(86_400_000L));  // 30 days
+        assertThat(clearInterval(TimeValue.timeValueMillis(1L)), is(1000L));
+        assertThat(clearInterval(TimeValue.timeValueSeconds(8L)), is(1000L));
+        assertThat(clearInterval(TimeValue.timeValueSeconds(10L)), is(1000L));
+        assertThat(clearInterval(TimeValue.timeValueSeconds(20L)), is(2000L));
+        assertThat(clearInterval(TimeValue.timeValueHours(720L)), is(86_400_000L));  // 30 days
     }
-    */
 }
