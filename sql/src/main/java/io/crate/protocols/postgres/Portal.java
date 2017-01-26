@@ -43,6 +43,10 @@ public interface Portal {
 
     String getLastQuery();
 
+    /**
+     * If bind() is called on a synced portal, all pending result receiving operations must be stopped.
+     * This is primarily relevant for the UNNAMED simple portal.
+     */
     Portal bind(String statementName, String query, Statement statement,
                 List<Object> params, @Nullable FormatCodes.FormatCode[] resultFormatCodes);
 
@@ -53,4 +57,9 @@ public interface Portal {
     ListenableFuture<?> sync(Planner planner, StatsTables statsTables);
 
     void close();
+
+    /**
+     * @return boolean whether the portal has already been synced.
+     */
+    boolean synced();
 }

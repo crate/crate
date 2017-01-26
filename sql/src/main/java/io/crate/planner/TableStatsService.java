@@ -135,10 +135,10 @@ public class TableStatsService extends AbstractComponent implements NodeSettings
         }
 
         @Override
-        public void allFinished() {
+        public void allFinished(boolean interrupted) {
             tableStatsConsumer.accept(newStats);
             newStats = new ObjectLongHashMap<>();
-            super.allFinished();
+            super.allFinished(interrupted);
         }
 
         @Override

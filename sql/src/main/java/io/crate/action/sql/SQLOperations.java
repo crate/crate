@@ -197,6 +197,9 @@ public class SQLOperations {
                 if (portal != newPortal) {
                     portals.put(portalName, newPortal);
                     pendingExecutions.remove(portal);
+                } else if (portal.synced()) {
+                    // Make sure existing portal stops receiving results!
+                    portal.close();
                 }
             } catch (Throwable t) {
                 statsTables.logPreExecutionFailure(UUID.randomUUID(), portal.getLastQuery(), Exceptions.messageOf(t));
@@ -270,19 +273,16 @@ public class SQLOperations {
         }
 
         public ListenableFuture<?> sync() {
-            LOGGER.debug("method=sync");
             switch (pendingExecutions.size()) {
                 case 0:
+                    LOGGER.debug("method=sync pendingExecutions=0");
                     return Futures.immediateFuture(null);
                 case 1:
                     Portal portal = pendingExecutions.iterator().next();
+                    LOGGER.debug("method=sync portal={}", portal);
                     pendingExecutions.clear();
                     clearState();
-                    ListenableFuture<?> result = portal.sync(planner, statsTables);
-                    if (UNNAMED.equals(portal.name())) {
-                        portal.close();
-                    }
-                    return result;
+                    return portal.sync(planner, statsTables);
             }
             throw new IllegalStateException(
                 "Shouldn't have more than 1 pending execution. Got: " + pendingExecutions);

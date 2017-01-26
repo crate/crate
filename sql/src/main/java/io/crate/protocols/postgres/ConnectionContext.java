@@ -215,7 +215,10 @@ class ConnectionContext {
 
         @Override
         public void onSuccess(@Nullable Object result) {
-            Messages.sendReadyForQuery(channel);
+            if (result == null || result.equals(Boolean.FALSE)) {
+                // only send ReadyForQuery if query was not interrupted
+                Messages.sendReadyForQuery(channel);
+            }
         }
 
         @Override
@@ -298,7 +301,8 @@ class ConnectionContext {
                         case 'C':
                             handleClose(buffer, channel);
                             return;
-                        case 'X': // Terminate
+                        case 'X': // Terminate (called when jdbc connection is closed)
+                            closeSession();
                             channel.close();
                             return;
                         default:

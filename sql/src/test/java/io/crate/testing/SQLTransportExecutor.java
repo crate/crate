@@ -554,9 +554,9 @@ public class SQLTransportExecutor {
         }
 
         @Override
-        public void allFinished() {
+        public void allFinished(boolean interrupted) {
             listener.onResponse(createSqlResponse());
-            super.allFinished();
+            super.allFinished(interrupted);
         }
 
         @Override
@@ -607,7 +607,7 @@ public class SQLTransportExecutor {
         }
 
         @Override
-        public void allFinished() {
+        public void allFinished(boolean interrupted) {
             SQLResponse sqlResponse = new SQLResponse(
                 EMPTY_NAMES,
                 EMPTY_ROWS,
@@ -615,7 +615,7 @@ public class SQLTransportExecutor {
                 rowCount
             );
             listener.onResponse(sqlResponse);
-            super.allFinished();
+            super.allFinished(interrupted);
 
         }
 
@@ -648,9 +648,9 @@ public class SQLTransportExecutor {
         }
 
         @Override
-        public void allFinished() {
+        public void allFinished(boolean interrupted) {
             results[resultIdx] = new SQLBulkResponse.Result(null, rowCount);
-            super.allFinished();
+            super.allFinished(interrupted);
         }
 
         @Override

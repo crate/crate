@@ -132,7 +132,7 @@ public class TableStatsServiceTest extends CrateUnitTest {
         receiver.setNextRow(new RowN(new Object[]{1L, "custom", "foo"}));
         receiver.setNextRow(new RowN(new Object[]{2L, "doc", "foo"}));
         receiver.setNextRow(new RowN(new Object[]{3L, "bar", "foo"}));
-        receiver.allFinished();
+        receiver.allFinished(false);
 
         ObjectLongMap<TableIdent> stats = statsFuture.get(10, TimeUnit.SECONDS);
         assertThat(stats.size(), is(3));

@@ -53,9 +53,9 @@ class RowCountReceiver extends BaseResultReceiver {
     }
 
     @Override
-    public void allFinished() {
+    public void allFinished(boolean interrupted) {
         Messages.sendCommandComplete(channel, query, rowCount);
-        super.allFinished();
+        super.allFinished(interrupted);
     }
 
     @Override

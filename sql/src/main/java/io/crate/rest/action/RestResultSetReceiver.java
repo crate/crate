@@ -82,10 +82,10 @@ class RestResultSetReceiver extends BaseResultReceiver {
     }
 
     @Override
-    public void allFinished() {
+    public void allFinished(boolean interrupted) {
         try {
             channel.sendResponse(new BytesRestResponse(RestStatus.OK, finishBuilder()));
-            super.allFinished();
+            super.allFinished(interrupted);
         } catch (Throwable e) {
             fail(e);
         }

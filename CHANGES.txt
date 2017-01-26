@@ -4,7 +4,10 @@ Changes for Crate
 
 Unreleased
 ==========
- 
+
+ - Fix: Closing a connection via the Postgres Wire Protocol correctly closes the
+   internal resources.
+
  - Added scalar function ``geohash`` that returns a GeoHash representation of
    a ``geo_point``
 

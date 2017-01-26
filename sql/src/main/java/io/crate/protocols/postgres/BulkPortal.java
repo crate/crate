@@ -132,6 +132,7 @@ class BulkPortal extends AbstractPortal {
             throw t;
         }
         statsTables.logExecutionStart(jobId, query);
+        synced = true;
         return executeBulk(portalContext.getExecutor(), plan, jobId, statsTables);
     }
 
@@ -152,7 +153,7 @@ class BulkPortal extends AbstractPortal {
                         cells[0] = result.get(i);
                         ResultReceiver resultReceiver = resultReceivers.get(i);
                         resultReceiver.setNextRow(row);
-                        resultReceiver.allFinished();
+                        resultReceiver.allFinished(false);
                     }
                     future.set(null);
                     statsTables.logExecutionEnd(jobId, null);
