@@ -46,7 +46,7 @@ public class SysClusterSettingsTest extends SQLTransportIntegrationTest {
 
     @After
     public void resetSettings() throws Exception {
-        execute("reset global stats.operations_log_size, bulk.request_timeout");
+        execute("reset global stats.operations_log_size, bulk.request_timeout, \"indices.breaker.query.limit\"");
     }
 
     @Test
@@ -76,6 +76,15 @@ public class SysClusterSettingsTest extends SQLTransportIntegrationTest {
         assertThat((Boolean) response.rows()[0][0], is(false));
         assertThat((Integer) response.rows()[0][1], is(10_000));
         assertThat((Integer) response.rows()[0][2], is(10_000));
+
+        execute("set global transient \"indices.breaker.query.limit\" = '2mb'");
+        execute("select settings['indices'] from sys.cluster");
+        Map<String, Map> indices = (Map<String, Map>) response.rows()[0][0];
+        Map<String, Map> breaker = indices.get(CrateSettings.INDICES_BREAKER.name());
+        Map<String, Map> query = breaker.get(CrateSettings.INDICES_BREAKER_QUERY.name());
+        assertThat(query.get(CrateSettings.INDICES_BREAKER_QUERY_LIMIT.name()),
+            is(MemorySizeValue.parseBytesSizeValueOrHeapRatio("2mb",
+                CrateSettings.INDICES_BREAKER_QUERY_LIMIT.settingName()).toString()));
     }
 
     @Test

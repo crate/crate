@@ -55,7 +55,7 @@ public class MemorySetting extends Setting<String, ByteSizeValue> {
 
     @Override
     public ByteSizeValue extract(Settings settings) {
-        return settings.getAsMemory(name, defaultValue);
+        return settings.getAsMemory(settingName(), defaultValue);
     }
 
     @Override
