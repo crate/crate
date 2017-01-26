@@ -108,6 +108,7 @@ public class SimplePortal extends AbstractPortal {
             if (portalContext.isReadOnly()) { // Cannot have a bulk operation in read only mode
                 throw new ReadOnlyException();
             }
+            assert rowReceiver == null : "Existing portal must not have rowReceiver";
             BulkPortal portal = new BulkPortal(
                 name,
                 this.query,
@@ -117,6 +118,7 @@ public class SimplePortal extends AbstractPortal {
                 resultReceiver, maxRows, this.params, sessionContext, portalContext);
             return portal.bind(statementName, query, statement, params, resultFormatCodes);
         } else if (this.statement != null) {
+            assert rowReceiver == null : "Existing portal must not have rowReceiver";
             if (portalContext.isReadOnly()) { // Cannot have a batch operation in read only mode
                 throw new ReadOnlyException();
             }
@@ -180,20 +182,17 @@ public class SimplePortal extends AbstractPortal {
                 sessionContext);
         }
         if (!resumeIfSuspended()) {
-            this.rowReceiver = new RowReceiverToResultReceiver(resultReceiver, maxRows);
+            rowReceiver = new RowReceiverToResultReceiver(resultReceiver, maxRows);
             portalContext.getExecutor().execute(plan, rowReceiver, this.rowParams);
         }
+        synced = true;
         return resultReceiver.completionFuture();
     }
 
     @Override
     public void close() {
         if (rowReceiver != null) {
-            ResumeHandle resumeHandle = rowReceiver.resumeHandle();
-            if (resumeHandle != null) {
-                rowReceiver.kill(new InterruptedException("Client closed portal"));
-                resumeHandle.resume(false);
-            }
+            rowReceiver.interruptIfResumable();
         }
     }
 
@@ -224,6 +223,7 @@ public class SimplePortal extends AbstractPortal {
         }
         return analysis.rootRelation().fields();
     }
+
     private static class ResultReceiverRetryWrapper implements ResultReceiver {
 
         private final ResultReceiver delegate;
@@ -262,8 +262,8 @@ public class SimplePortal extends AbstractPortal {
         }
 
         @Override
-        public void allFinished() {
-            delegate.allFinished();
+        public void allFinished(boolean interrupted) {
+            delegate.allFinished(interrupted);
         }
 
         @Override

@@ -29,6 +29,7 @@ import io.crate.shade.org.postgresql.util.PSQLException;
 import io.crate.shade.org.postgresql.util.PSQLState;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.test.ESIntegTestCase;
+import org.elasticsearch.test.junit.annotations.TestLogging;
 import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.Test;
@@ -299,6 +300,58 @@ public class PostgresITest extends SQLTransportIntegrationTest {
     }
 
     @Test
+    public void testCloseConnectionWithUnfinishedResultSetDoesNotLeaveAnyPendingOperations() throws Exception {
+        try (Connection conn = DriverManager.getConnection(JDBC_CRATE_URL, properties);
+            Statement statement = conn.createStatement()) {
+            statement.execute("SET GLOBAL stats.enabled = TRUE");
+        }
+        try (Connection conn = DriverManager.getConnection(JDBC_CRATE_URL, properties)) {
+            conn.setAutoCommit(false);
+            try (Statement statement = conn.createStatement()) {
+                statement.setFetchSize(2);
+                try (ResultSet resultSet = statement.executeQuery("select mountain from sys.summits")) {
+                    resultSet.next();
+                    resultSet.next();
+                }
+            }
+        }
+        try (Connection conn = DriverManager.getConnection(JDBC_CRATE_URL, properties);
+            Statement statement = conn.createStatement()) {
+            String q = "SELECT j.stmt, o.name FROM sys.operations AS o, sys.jobs AS j WHERE o.job_id = j.id";
+            ResultSet rs = statement.executeQuery(q);
+            int rowCount = 0;
+            while (rs.next()) {
+                String stmt = rs.getString(1);
+                if (!q.equals(stmt)) {
+                    rowCount++;
+                }
+            }
+            assertThat(rowCount, is(0));
+            statement.execute("RESET GLOBAL stats.enabled");
+        }
+    }
+
+    @Test
+    public void testCreateNewStatementAfterUnfinishedResultSet() throws Exception {
+        try (Connection conn = DriverManager.getConnection(JDBC_CRATE_URL, properties);
+             Statement statement = conn.createStatement()) {
+            conn.setAutoCommit(false);
+            statement.setFetchSize(2);
+            try (ResultSet resultSet = statement.executeQuery("select mountain from sys.summits")) {
+                resultSet.next();
+                resultSet.next();
+            }
+            conn.setAutoCommit(true);
+            statement.setFetchSize(0);
+            try (ResultSet resultSet = statement.executeQuery("select mountain from sys.summits")) {
+                while (resultSet.next()) {
+                    assertFalse(resultSet.getString(1).isEmpty());
+                }
+            }
+        }
+    }
+
+    @Test
     public void testSelectPreparedStatement() throws Exception {
         try (Connection conn = DriverManager.getConnection(JDBC_CRATE_URL, properties)) {
             conn.setAutoCommit(true);
@@ -421,8 +474,17 @@ public class PostgresITest extends SQLTransportIntegrationTest {
             assertThat(resultSet.next(), is(true));
             assertThat(resultSet.getInt(1), is(1));
 
+            // add another batch
+            statement.addBatch("insert into t (x) values (3)");
+
+            // only the batches after last execution will be executed
+            results = statement.executeBatch();
+            assertThat(results, is(new int[]{1}));
+
+            statement.executeUpdate("refresh table t");
+            resultSet = statement.executeQuery("select * from t order by x desc");
             assertThat(resultSet.next(), is(true));
-            assertThat(resultSet.getInt(1), is(2));
+            assertThat(resultSet.getInt(1), is(3));
         }
     }
 

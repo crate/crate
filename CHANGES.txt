@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fix: Closing a connection via the Postgres Wire Protocol correctly closes the
+   internal resources.
+
  - Queries with ``_doc`` reference comparison (e.g. ``_doc['name'] = 'foo'``)
    in the ``WHERE`` clause return the correct results instead of empty result.
 

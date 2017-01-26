@@ -66,9 +66,11 @@ class ResultSetReceiver extends BaseResultReceiver {
     }
 
     @Override
-    public void allFinished() {
-        Messages.sendCommandComplete(channel, query, rowCount);
-        super.allFinished();
+    public void allFinished(boolean interrupted) {
+        if (!interrupted) {
+            Messages.sendCommandComplete(channel, query, rowCount);
+        }
+        super.allFinished(interrupted);
     }
 
     @Override

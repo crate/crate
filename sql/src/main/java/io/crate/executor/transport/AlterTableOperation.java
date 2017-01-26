@@ -134,7 +134,7 @@ public class AlterTableOperation {
         }
 
         @Override
-        public void allFinished() {
+        public void allFinished(boolean interrupted) {
             if (count == 0L) {
                 addColumnToTable(analysis, result);
             } else {

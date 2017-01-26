@@ -120,9 +120,9 @@ public class TableStatsService extends AbstractComponent implements NodeSettings
         }
 
         @Override
-        public void allFinished() {
+        public void allFinished(boolean interrupted) {
             tableStats = statsFromRows(rows);
-            super.allFinished();
+            super.allFinished(interrupted);
         }
 
         @Override

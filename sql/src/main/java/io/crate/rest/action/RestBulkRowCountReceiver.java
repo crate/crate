@@ -45,9 +45,9 @@ class RestBulkRowCountReceiver extends BaseResultReceiver {
     }
 
     @Override
-    public void allFinished() {
+    public void allFinished(boolean interrupted) {
         results[resultIdx] = new Result(null, rowCount);
-        super.allFinished();
+        super.allFinished(interrupted);
     }
 
     @Override

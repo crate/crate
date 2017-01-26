@@ -26,13 +26,12 @@ import io.crate.action.sql.SessionContext;
 import io.crate.analyze.Analyzer;
 import io.crate.executor.Executor;
 
-import java.util.Set;
-
 abstract class AbstractPortal implements Portal {
 
     protected final String name;
     protected final PortalContext portalContext;
     final SessionContext sessionContext;
+    protected boolean synced = false;
 
     AbstractPortal(String name, Analyzer analyzer, Executor executor, boolean isReadOnly, SessionContext sessionContext) {
         this.name = name;
@@ -53,6 +52,11 @@ abstract class AbstractPortal implements Portal {
 
     @Override
     public void close() {
+    }
+
+    @Override
+    public boolean synced() {
+        return synced;
     }
 
     @Override
