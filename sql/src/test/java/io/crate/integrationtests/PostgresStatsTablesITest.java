@@ -36,7 +36,7 @@ import java.util.UUID;
 
 import static org.hamcrest.core.Is.is;
 
-@ESIntegTestCase.ClusterScope(numDataNodes = 1, numClientNodes = 0)
+@ESIntegTestCase.ClusterScope(numDataNodes = 1, numClientNodes = 0, supportsDedicatedMasters = false)
 public class PostgresStatsTablesITest extends SQLTransportIntegrationTest {
 
     private static final String JDBC_POSTGRESQL_URL = "jdbc:postgresql://127.0.0.1:4244/";
