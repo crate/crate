@@ -777,7 +777,7 @@ The return type of the power function is always double, even when both the
 inputs are integral types, in order to be consistent across positive and
 negative exponents (which will yield decimal types)
 
-See below for an example:
+See below for an example::
 
     cr> SELECT power(2,3) FROM sys.cluster;
     +-------------+
