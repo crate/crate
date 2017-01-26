@@ -58,7 +58,8 @@ public class BlobIndicesService extends AbstractComponent implements IndexEventL
         "index.blobs.enabled", false, Setting.Property.IndexScope);
     public static final Setting<String> SETTING_INDEX_BLOBS_PATH = Setting.simpleString(
         "index.blobs.path", Setting.Property.IndexScope);
-    public static final Setting<String> SETTING_BLOBS_PATH = Setting.simpleString("blobs.path", Setting.Property.NodeScope);
+    public static final Setting<String> SETTING_BLOBS_PATH = Setting.simpleString(
+        "blobs.path", Setting.Property.NodeScope);
 
     private final ClusterService clusterService;
 

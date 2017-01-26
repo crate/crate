@@ -40,10 +40,11 @@ import org.elasticsearch.plugins.Plugin;
 import java.util.*;
 
 import static org.elasticsearch.common.network.NetworkModule.HTTP_TYPE_KEY;
+import static org.elasticsearch.http.HttpTransportSettings.SETTING_HTTP_COMPRESSION;
 
 public class BlobPlugin extends Plugin implements ActionPlugin {
 
-    public static final String CRATE_HTTP_TRANSPORT_NAME = "crate";
+    private static final String CRATE_HTTP_TRANSPORT_NAME = "crate";
 
     private final Settings settings;
 
@@ -75,6 +76,7 @@ public class BlobPlugin extends Plugin implements ActionPlugin {
     public Settings additionalSettings() {
         return Settings.builder()
             .put(HTTP_TYPE_KEY, CRATE_HTTP_TRANSPORT_NAME)
+            .put(SETTING_HTTP_COMPRESSION.getKey(), false)
             .build();
     }
 
