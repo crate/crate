@@ -107,7 +107,7 @@ class GracefulStopTest(unittest.TestCase):
             layer = GracefulStopCrateLayer(
                 self.node_name(i),
                 crate_path(),
-                host='_local_',
+                host='localhost',
                 port=GLOBAL_PORT_POOL.get(),
                 transport_port=GLOBAL_PORT_POOL.get(),
                 cluster_name=self.__class__.__name__)
