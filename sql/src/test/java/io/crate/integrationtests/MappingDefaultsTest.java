@@ -25,8 +25,8 @@ import io.crate.testing.SQLResponse;
 import io.crate.testing.UseJdbc;
 import org.elasticsearch.action.search.SearchRequest;
 import org.elasticsearch.action.search.SearchResponse;
-import org.elasticsearch.common.bytes.BytesReference;
-import org.elasticsearch.common.xcontent.XContentFactory;
+import org.elasticsearch.index.query.QueryStringQueryBuilder;
+import org.elasticsearch.search.builder.SearchSourceBuilder;
 import org.junit.Test;
 
 @UseJdbc
@@ -41,19 +41,9 @@ public class MappingDefaultsTest extends SQLTransportIntegrationTest {
         assertEquals(1, sqlResponse.rowCount());
         refresh();
 
-
-        byte[] searchSource = BytesReference.toBytes(XContentFactory.jsonBuilder()
-            .startObject()
-            .startObject("query")
-            .startObject("query_string")
-            .field("query", "foo")
-            .endObject()
-            .endObject()
-            .endObject().bytes());
-
-        SearchRequest searchRequest = new SearchRequest("test");
-        // TODO:
-        //searchRequest.source(searchSource);
+        SearchRequest searchRequest = new SearchRequest("test")
+            .source(SearchSourceBuilder.searchSource()
+                    .query(new QueryStringQueryBuilder("foo").field("query")));
         SearchResponse response = client().search(searchRequest).actionGet();
         assertEquals(0L, response.getHits().totalHits());
     }
