@@ -49,6 +49,7 @@ import org.junit.Test;
 
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -165,8 +166,8 @@ public class ArrayMapperTest extends SQLTransportIntegrationTest {
                 .bytes());
             fail("array_field parsed simple field");
         } catch (MapperParsingException e) {
-            assertThat(e.getCause(), instanceOf(ElasticsearchParseException.class));
-            assertThat(e.getCause().getMessage(), is("invalid array"));
+            assertThat(e.getCause(), instanceOf(IllegalStateException.class));
+            assertThat(e.getCause().getMessage(), is("Can't get text on a END_OBJECT at 1:19"));
         }
     }
 
@@ -298,7 +299,9 @@ public class ArrayMapperTest extends SQLTransportIntegrationTest {
             .endObject()
             .bytes());
 
-        assertThat(doc.dynamicMappingsUpdate() != null, is(true));
+        Mapping mappingUpdate = doc.dynamicMappingsUpdate();
+        assertThat(mappingUpdate, notNullValue());
+        mapper = mapper.merge(mappingUpdate, true);
         assertThat(doc.docs().size(), is(1));
         String[] values = doc.docs().get(0).getValues("array_field.new");
         assertThat(values, arrayContainingInAnyOrder(is("T"), is("1")));
@@ -386,13 +389,15 @@ public class ArrayMapperTest extends SQLTransportIntegrationTest {
         client().admin().indices().prepareRefresh(INDEX).execute().actionGet();
 
         SearchResponse searchResponse = client().prepareSearch(INDEX).setTypes("type")
-            .setFetchSource(true).addStoredField("array_field")
+            .setFetchSource(true)
             .setQuery(QueryBuilders.termQuery("array_field", 0.0d)).execute().actionGet();
         assertThat(searchResponse.getHits().getTotalHits(), is(1L));
         assertThat(Joiner.on(',').withKeyValueSeparator(":").join(
             searchResponse.getHits().getAt(0).getSource()),
             is("array_field:[0.0, 99.9, -100.5678]"));
-        assertThat(searchResponse.getHits().getAt(0).field("array_field").getValues(), Matchers.<Object>hasItems(0.0D, 99.9D, -100.5678D));
+
+        Object values = searchResponse.getHits().getAt(0).getSource().get("array_field");
+        assertThat((List<Double>) values, Matchers.hasItems(0.0D, 99.9D, -100.5678D));
     }
 
     @Test

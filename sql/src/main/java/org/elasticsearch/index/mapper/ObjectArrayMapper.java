@@ -122,7 +122,7 @@ public class ObjectArrayMapper extends ObjectMapper {
 
         if (mergeWith instanceof ObjectArrayMapper) {
             ObjectArrayMapper mergeWithObject = (ObjectArrayMapper) mergeWith;
-            merged.innerMapper = mergeWithObject.innerMapper.merge(((ObjectArrayMapper) mergeWith).innerMapper, updateAllTypes);
+            merged.innerMapper = merged.innerMapper.merge(mergeWithObject.innerMapper, updateAllTypes);
             return merged;
         }
 
@@ -138,7 +138,7 @@ public class ObjectArrayMapper extends ObjectMapper {
 
     @Override
     public void toXContent(XContentBuilder builder, Params params, ToXContent custom) throws IOException {
-        ArrayMapper.toXContent(builder, params, innerMapper, name(), ArrayMapper.CONTENT_TYPE);
+        ArrayMapper.toXContent(builder, params, innerMapper, simpleName(), ArrayMapper.CONTENT_TYPE);
     }
 
     @Override

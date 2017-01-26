@@ -44,8 +44,6 @@ public class BuilderFactory implements DynamicArrayFieldMapperBuilderFactory {
                 return null;
             }
             Mapper innerMapper = innerBuilder.build(builderContext);
-            DocumentParser.parseObjectOrField(context, innerMapper);
-
             if (innerMapper instanceof ObjectMapper) {
                 ObjectMapper objectMapper = (ObjectMapper) innerMapper;
                 return new ObjectArrayMapper(name, objectMapper, context.indexSettings());
