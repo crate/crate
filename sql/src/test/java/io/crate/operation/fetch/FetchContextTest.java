@@ -26,13 +26,16 @@ import com.google.common.collect.ImmutableList;
 import io.crate.action.job.SharedShardContexts;
 import io.crate.core.collections.TreeMapBuilder;
 import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.Reference;
 import io.crate.metadata.Routing;
 import io.crate.metadata.TableIdent;
 import io.crate.planner.fetch.IndexBaseVisitor;
 import io.crate.planner.node.fetch.FetchPhase;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.types.DataTypes;
+import org.elasticsearch.Version;
+import org.elasticsearch.cluster.metadata.IndexMetaData;
+import org.elasticsearch.cluster.metadata.MetaData;
+import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.indices.IndicesService;
 import org.hamcrest.Matchers;
 import org.junit.Test;
@@ -43,6 +46,7 @@ import java.util.Map;
 import java.util.TreeMap;
 
 import static io.crate.testing.TestingHelpers.createReference;
+import static org.elasticsearch.cluster.metadata.IndexMetaData.*;
 import static org.mockito.Mockito.RETURNS_MOCKS;
 import static org.mockito.Mockito.mock;
 
@@ -54,13 +58,13 @@ public class FetchContextTest extends CrateDummyClusterServiceUnitTest {
             new FetchPhase(
                 1,
                 null,
-                new TreeMap<String, Integer>(),
-                HashMultimap.<TableIdent, String>create(),
-                ImmutableList.<Reference>of()),
+                new TreeMap<>(),
+                HashMultimap.create(),
+                ImmutableList.of()),
             "dummy",
             new SharedShardContexts(mock(IndicesService.class)),
             clusterService.state().getMetaData(),
-            Collections.<Routing>emptyList());
+            Collections.emptyList());
 
         expectedException.expect(IllegalArgumentException.class);
         context.indexService(10);
@@ -77,9 +81,16 @@ public class FetchContextTest extends CrateDummyClusterServiceUnitTest {
         routing.walkLocations(ibv);
 
         HashMultimap<TableIdent, String> tableIndices = HashMultimap.create();
-
         tableIndices.put(new TableIdent(null, "i1"), "i1");
 
+        MetaData metaData = MetaData.builder()
+            .put(IndexMetaData.builder("i1")
+                .settings(Settings.builder()
+                    .put(SETTING_NUMBER_OF_SHARDS, 1)
+                    .put(SETTING_NUMBER_OF_REPLICAS, 0)
+                    .put(SETTING_VERSION_CREATED, Version.CURRENT))
+                .build(), true)
+            .build();
         final FetchContext context = new FetchContext(
             new FetchPhase(
                 1,
@@ -89,7 +100,7 @@ public class FetchContextTest extends CrateDummyClusterServiceUnitTest {
                 ImmutableList.of(createReference("i1", new ColumnIdent("x"), DataTypes.STRING))),
             "dummy",
             new SharedShardContexts(mock(IndicesService.class, RETURNS_MOCKS)),
-            clusterService.state().getMetaData(),
+            metaData,
             ImmutableList.of(routing));
 
         context.prepare();
