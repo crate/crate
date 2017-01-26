@@ -1137,7 +1137,7 @@ public class GroupByAggregateTest extends SQLTransportIntegrationTest {
                 " altitude int," +
                 " name string," +
                 " description string index using fulltext" +
-                ")");
+                ") clustered into 1 shards with (number_of_replicas = 0)"); // 1 shard because scoring is relative within a shard
         ensureYellow();
 
         execute("insert into locations (altitude, name, description) values (420, 'Crate Dornbirn', 'A nice place in a nice country')");
@@ -1146,7 +1146,7 @@ public class GroupByAggregateTest extends SQLTransportIntegrationTest {
         execute("refresh table locations");
 
         execute("select min(altitude) as altitude, name from locations where match(description, 'nice') " +
-                "and _score >= 0.99 group by name order by name");
+                "and _score >= 1.14 group by name order by name");
         assertEquals(2L, response.rowCount());
     }
 
