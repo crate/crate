@@ -23,7 +23,6 @@
 package org.elasticsearch.index.mapper;
 
 import org.apache.lucene.document.Field;
-import org.elasticsearch.ElasticsearchParseException;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.XContentBuilder;
@@ -181,8 +180,6 @@ public class ArrayMapper extends FieldMapper implements ArrayValueMapperParser {
         XContentParser.Token token = parser.currentToken();
         if (token == XContentParser.Token.VALUE_NULL) {
             return parseInner(context);
-        } else if (token != XContentParser.Token.START_ARRAY) {
-            throw new ElasticsearchParseException("invalid array");
         }
         token = parser.nextToken();
         Mapper newInnerMapper = innerMapper;
