@@ -852,7 +852,7 @@ public class CrateSettings {
 
         @Override
         public List<Setting> children() {
-            return ImmutableList.<Setting>of(INDICES_RECOVERY, INDICES_STORE, INDICES_FIELDDATA, INDICES_BREAKER);
+            return ImmutableList.<Setting>of(INDICES_RECOVERY, INDICES_STORE, INDICES_BREAKER);
         }
 
         @Override
@@ -1091,78 +1091,6 @@ public class CrateSettings {
     public static final ByteSizeSetting INDICES_STORE_THROTTLE_MAX_BYTES_PER_SEC = new ByteSizeSetting(
         "max_bytes_per_sec", new ByteSizeValue(20, ByteSizeUnit.MB), true, INDICES_STORE_THROTTLE);
 
-    public static final NestedSetting INDICES_FIELDDATA = new NestedSetting() {
-        @Override
-        public String name() {
-            return "fielddata";
-        }
-
-        @Override
-        public List<Setting> children() {
-            return ImmutableList.<Setting>of(INDICES_FIELDDATA_BREAKER);
-        }
-
-        @Override
-        public Setting parent() {
-            return INDICES;
-        }
-
-        @Override
-        public boolean isRuntime() {
-            return true;
-        }
-    };
-
-    public static final NestedSetting INDICES_FIELDDATA_BREAKER = new NestedSetting() {
-        @Override
-        public String name() {
-            return "breaker";
-        }
-
-        @Override
-        public List<Setting> children() {
-            return ImmutableList.<Setting>of(
-                INDICES_FIELDDATA_BREAKER_LIMIT,
-                INDICES_FIELDDATA_BREAKER_OVERHEAD
-            );
-        }
-
-        @Override
-        public Setting parent() {
-            return INDICES_FIELDDATA;
-        }
-
-        @Override
-        public boolean isRuntime() {
-            return true;
-        }
-    };
-
-    public static final MemorySetting INDICES_FIELDDATA_BREAKER_LIMIT = new MemorySetting(
-        "limit", HierarchyCircuitBreakerService.DEFAULT_FIELDDATA_BREAKER_LIMIT, true, INDICES_FIELDDATA_BREAKER);
-
-    public static final DoubleSetting INDICES_FIELDDATA_BREAKER_OVERHEAD = new DoubleSetting() {
-        @Override
-        public String name() {
-            return "overhead";
-        }
-
-        @Override
-        public Double defaultValue() {
-            return 1.03;
-        }
-
-        @Override
-        public Setting parent() {
-            return INDICES_FIELDDATA_BREAKER;
-        }
-
-        @Override
-        public boolean isRuntime() {
-            return true;
-        }
-    };
-
     public static final NestedSetting INDICES_BREAKER = new NestedSetting() {
         @Override
         public String name() {
@@ -1173,7 +1101,8 @@ public class CrateSettings {
         public List<Setting> children() {
             return ImmutableList.<Setting>of(
                 INDICES_BREAKER_QUERY,
-                INDICES_BREAKER_REQUEST
+                INDICES_BREAKER_REQUEST,
+                INDICES_BREAKER_FIELDDATA
             );
         }
 
@@ -1280,6 +1209,56 @@ public class CrateSettings {
         @Override
         public Setting parent() {
             return INDICES_BREAKER_REQUEST;
+        }
+
+        @Override
+        public boolean isRuntime() {
+            return true;
+        }
+    };
+
+    public static final NestedSetting INDICES_BREAKER_FIELDDATA = new NestedSetting() {
+        @Override
+        public String name() {
+            return "fielddata";
+        }
+
+        @Override
+        public List<Setting> children() {
+            return ImmutableList.<Setting>of(
+                INDICES_BREAKER_FIELDDATA_LIMIT,
+                INDICES_BREAKER_FIELDDATA_OVERHEAD
+            );
+        }
+
+        @Override
+        public Setting parent() {
+            return INDICES_BREAKER;
+        }
+
+        @Override
+        public boolean isRuntime() {
+            return true;
+        }
+    };
+
+    public static final StringSetting INDICES_BREAKER_FIELDDATA_LIMIT = new StringSetting(
+        "limit", null, true, HierarchyCircuitBreakerService.DEFAULT_FIELDDATA_BREAKER_LIMIT, INDICES_BREAKER_FIELDDATA);
+
+    public static final DoubleSetting INDICES_BREAKER_FIELDDATA_OVERHEAD = new DoubleSetting() {
+        @Override
+        public String name() {
+            return "overhead";
+        }
+
+        @Override
+        public Double defaultValue() {
+            return 1.03;
+        }
+
+        @Override
+        public Setting parent() {
+            return INDICES_BREAKER_FIELDDATA;
         }
 
         @Override
@@ -1695,14 +1674,6 @@ public class CrateSettings {
             new SettingsAppliers.StringSettingsApplier(CrateSettings.INDICES_STORE_THROTTLE_TYPE))
         .put(CrateSettings.INDICES_STORE_THROTTLE_MAX_BYTES_PER_SEC.settingName(),
             new SettingsAppliers.ByteSizeSettingsApplier(CrateSettings.INDICES_STORE_THROTTLE_MAX_BYTES_PER_SEC))
-        .put(CrateSettings.INDICES_FIELDDATA.settingName(),
-            new SettingsAppliers.ObjectSettingsApplier(CrateSettings.INDICES_FIELDDATA))
-        .put(CrateSettings.INDICES_FIELDDATA_BREAKER.settingName(),
-            new SettingsAppliers.ObjectSettingsApplier(CrateSettings.INDICES_FIELDDATA_BREAKER))
-        .put(CrateSettings.INDICES_FIELDDATA_BREAKER_LIMIT.settingName(),
-            new SettingsAppliers.MemoryValueSettingsApplier(CrateSettings.INDICES_FIELDDATA_BREAKER_LIMIT))
-        .put(CrateSettings.INDICES_FIELDDATA_BREAKER_OVERHEAD.settingName(),
-            new SettingsAppliers.DoubleSettingsApplier(CrateSettings.INDICES_FIELDDATA_BREAKER_OVERHEAD))
         .put(CrateSettings.INDICES_BREAKER.settingName(),
             new SettingsAppliers.ObjectSettingsApplier(CrateSettings.INDICES_BREAKER))
         .put(CrateSettings.INDICES_BREAKER_REQUEST.settingName(),
@@ -1717,6 +1688,12 @@ public class CrateSettings {
             new SettingsAppliers.MemoryValueSettingsApplier(CrateSettings.INDICES_BREAKER_QUERY_LIMIT))
         .put(CrateSettings.INDICES_BREAKER_QUERY_OVERHEAD.settingName(),
             new SettingsAppliers.DoubleSettingsApplier(CrateSettings.INDICES_BREAKER_QUERY_OVERHEAD))
+        .put(CrateSettings.INDICES_BREAKER_FIELDDATA.settingName(),
+            new SettingsAppliers.ObjectSettingsApplier(CrateSettings.INDICES_BREAKER_FIELDDATA))
+        .put(CrateSettings.INDICES_BREAKER_FIELDDATA_LIMIT.settingName(),
+            new SettingsAppliers.MemoryValueSettingsApplier(CrateSettings.INDICES_BREAKER_FIELDDATA_LIMIT))
+        .put(CrateSettings.INDICES_BREAKER_FIELDDATA_OVERHEAD.settingName(),
+            new SettingsAppliers.DoubleSettingsApplier(CrateSettings.INDICES_BREAKER_FIELDDATA_OVERHEAD))
         .put(CrateSettings.CLUSTER_INFO.settingName(),
             new SettingsAppliers.ObjectSettingsApplier(CrateSettings.CLUSTER_INFO))
         .put(CrateSettings.CLUSTER_INFO_UPDATE.settingName(),

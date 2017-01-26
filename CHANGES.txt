@@ -5,6 +5,9 @@ Changes for Crate
 Unreleased
 ==========
 
+ - BREAKING: Removed deprecated setting ``indices.fielddata.breaker`` that have
+   been used as an alias for ``indices.breaker.fielddata``.
+ 
  - Removed ``OVER`` support from SQL parser because the clause was completely
    ignored when executing the query which led to misleading results.
 
@@ -35,7 +38,7 @@ Unreleased
  - Fixed an issue that caused fulltext search with fuzziness='AUTO'
    to throw NumberFormatException.
 
- - DEPRECATED: multicast discovery has been depreciated in this release, and will be
+ - DEPRECATED: multicast discovery has been deprecated in this release, and will be
    removed in the 1.1 release.
    Multicast discovery is disabled by default.
 

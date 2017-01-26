@@ -152,7 +152,7 @@ public class SettingsAppliers {
 
         @Override
         public void apply(Settings.Builder settingsBuilder, Row parameters, Expression expression) {
-            Object value = null;
+            Object value;
             try {
                 value = ExpressionToObjectVisitor.convert(expression, parameters);
             } catch (IllegalArgumentException e) {
