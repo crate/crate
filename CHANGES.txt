@@ -5,6 +5,10 @@ Changes for Crate
 Unreleased
 ==========
 
+ - Fixed an issue where ``indices.fielddata.breaker`` settings are not
+   changeable during runtime. Their usage is deprecated but still supported
+   as an alias to the new setting ``indices.breaker.fielddata``.
+ 
  - Fix: Closing a connection via the Postgres Wire Protocol correctly closes the
    internal resources.
 

@@ -142,16 +142,15 @@ currently applied cluster settings.
     | settings['gateway']['recover_after_time']                                         | string       |
     | settings['indices']                                                               | object       |
     | settings['indices']['breaker']                                                    | object       |
+    | settings['indices']['breaker']['fielddata']                                       | object       |
+    | settings['indices']['breaker']['fielddata']['limit']                              | string       |
+    | settings['indices']['breaker']['fielddata']['overhead']                           | double       |
     | settings['indices']['breaker']['query']                                           | object       |
     | settings['indices']['breaker']['query']['limit']                                  | string       |
     | settings['indices']['breaker']['query']['overhead']                               | double       |
     | settings['indices']['breaker']['request']                                         | object       |
     | settings['indices']['breaker']['request']['limit']                                | string       |
     | settings['indices']['breaker']['request']['overhead']                             | double       |
-    | settings['indices']['fielddata']                                                  | object       |
-    | settings['indices']['fielddata']['breaker']                                       | object       |
-    | settings['indices']['fielddata']['breaker']['limit']                              | string       |
-    | settings['indices']['fielddata']['breaker']['overhead']                           | double       |
     | settings['indices']['recovery']                                                   | object       |
     | settings['indices']['recovery']['activity_timeout']                               | string       |
     | settings['indices']['recovery']['compress']                                       | boolean      |
@@ -181,7 +180,7 @@ currently applied cluster settings.
     | settings['udc']['interval']                                                       | string       |
     | settings['udc']['url']                                                            | string       |
     +-----------------------------------------------------------------------------------+--------------+
-    SELECT 93 rows in set (... sec)
+    SELECT 92 rows in set (... sec)
 
 For further details, see the :ref:`Cluster Settings <conf-cluster-settings>` configuration section.
 

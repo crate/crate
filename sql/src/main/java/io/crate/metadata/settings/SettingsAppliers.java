@@ -145,6 +145,15 @@ public class SettingsAppliers {
                         setting.getValue());
                 }
             } else {
+                 // Rewrites old settings to new settings
+                 // This will be removed in CrateDB v1.1
+                if (key.equals(CrateSettings.INDICES_FIELDDATA_BREAKER_LIMIT.settingName())) {
+                    key = CrateSettings.INDICES_BREAKER_FIELDDATA_LIMIT.settingName();
+                }
+                if (key.equals(CrateSettings.INDICES_FIELDDATA_BREAKER_OVERHEAD.settingName())) {
+                    key = CrateSettings.INDICES_BREAKER_FIELDDATA_OVERHEAD.settingName();
+                }
+
                 SettingsApplier settingsApplier = CrateSettings.getSettingsApplier(key);
                 settingsApplier.applyValue(settingsBuilder, value);
             }
