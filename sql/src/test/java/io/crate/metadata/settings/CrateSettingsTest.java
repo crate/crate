@@ -72,7 +72,7 @@ public class CrateSettingsTest extends CrateUnitTest {
 
     @Test
     public void testIntSettingsValidation() throws Exception {
-        IntSetting intSetting = new IntSetting("integerSetting", 10, false, 0, 100);
+        IntSetting intSetting = new IntSetting("integerSetting", 10, false, 0, 100, null, null);
         SettingsAppliers.IntSettingsApplier intSettingsApplier = new SettingsAppliers.IntSettingsApplier(intSetting);
         Integer toValidate = 10;
         Object validatedObject = intSettingsApplier.validate(toValidate);
@@ -81,7 +81,7 @@ public class CrateSettingsTest extends CrateUnitTest {
 
     @Test
     public void testIntSettingsValidationFailure() throws Exception {
-        IntSetting intSetting = new IntSetting("integerSetting", 10, false, 5, 10);
+        IntSetting intSetting = new IntSetting("integerSetting", 10, false, 5, 10, null, null);
         SettingsAppliers.IntSettingsApplier intSettingsApplier = new SettingsAppliers.IntSettingsApplier(intSetting);
 
         expectedException.expect(IllegalArgumentException.class);

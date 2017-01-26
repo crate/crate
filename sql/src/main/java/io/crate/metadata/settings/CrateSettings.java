@@ -25,6 +25,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Sets;
 import io.crate.breaker.CrateCircuitBreakerService;
+import io.crate.operation.collect.stats.StatsTablesService;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.ByteSizeUnit;
 import org.elasticsearch.common.unit.ByteSizeValue;
@@ -64,28 +65,16 @@ public class CrateSettings {
         }
     };
 
-    public static final BoolSetting STATS_ENABLED = new BoolSetting("enabled", false, true) {
+    public static final BoolSetting STATS_ENABLED = new BoolSetting(
+        "enabled", StatsTablesService.STATS_ENABLED_SETTING.getDefault(Settings.EMPTY),
+        true, STATS, StatsTablesService.STATS_ENABLED_SETTING);
 
-        @Override
-        public Setting parent() {
-            return STATS;
-        }
-    };
-
-    public static final IntSetting STATS_JOBS_LOG_SIZE = new IntSetting("jobs_log_size", 10_000, true) {
-
-        @Override
-        public Integer minValue() {
-            return 0;
-        }
-
-        @Override
-        public Setting parent() {
-            return STATS;
-        }
-    };
+    public static final IntSetting STATS_JOBS_LOG_SIZE = new IntSetting(
+        "jobs_log_size", StatsTablesService.STATS_JOBS_LOG_SIZE_SETTING.getDefault(Settings.EMPTY),
+        true, 0, null, STATS, StatsTablesService.STATS_JOBS_LOG_SIZE_SETTING);
 
     public static final TimeSetting STATS_JOBS_LOG_EXPIRATION = new TimeSetting() {
+
         @Override
         public String name() {
             return "jobs_log_expiration";
@@ -93,7 +82,7 @@ public class CrateSettings {
 
         @Override
         public TimeValue defaultValue() {
-            return TimeValue.timeValueSeconds(0L);
+            return StatsTablesService.STATS_JOBS_LOG_EXPIRATION_SETTING.getDefault(Settings.EMPTY);
         }
 
         @Override
@@ -105,19 +94,16 @@ public class CrateSettings {
         public Setting parent() {
             return STATS;
         }
-    };
-
-    public static final IntSetting STATS_OPERATIONS_LOG_SIZE = new IntSetting("operations_log_size", 10_000, true) {
-        @Override
-        public Integer minValue() {
-            return 0;
-        }
 
         @Override
-        public Setting parent() {
-            return STATS;
+        org.elasticsearch.common.settings.Setting<TimeValue> createESSetting() {
+            return StatsTablesService.STATS_JOBS_LOG_EXPIRATION_SETTING;
         }
     };
+
+    public static final IntSetting STATS_OPERATIONS_LOG_SIZE = new IntSetting(
+        "operations_log_size", StatsTablesService.STATS_OPERATIONS_LOG_SIZE_SETTING.getDefault(Settings.EMPTY),
+        true, 0, null, STATS, StatsTablesService.STATS_OPERATIONS_LOG_SIZE_SETTING);
 
     public static final TimeSetting STATS_OPERATIONS_LOG_EXPIRATION = new TimeSetting() {
         @Override
@@ -127,7 +113,7 @@ public class CrateSettings {
 
         @Override
         public TimeValue defaultValue() {
-            return TimeValue.timeValueSeconds(0L);
+            return StatsTablesService.STATS_OPERATIONS_LOG_EXPIRATION_SETTING.getDefault(Settings.EMPTY);
         }
 
         @Override
@@ -138,6 +124,11 @@ public class CrateSettings {
         @Override
         public Setting parent() {
             return STATS;
+        }
+
+        @Override
+        org.elasticsearch.common.settings.Setting<TimeValue> createESSetting() {
+            return StatsTablesService.STATS_OPERATIONS_LOG_EXPIRATION_SETTING;
         }
     };
 
@@ -150,7 +141,7 @@ public class CrateSettings {
 
         @Override
         public TimeValue defaultValue() {
-            return TimeValue.timeValueHours(1);
+            return StatsTablesService.STATS_SERVICE_REFRESH_INTERVAL_SETTING.getDefault(Settings.EMPTY);
         }
 
         @Override
@@ -161,6 +152,11 @@ public class CrateSettings {
         @Override
         public Setting parent() {
             return STATS;
+        }
+
+        @Override
+        org.elasticsearch.common.settings.Setting<TimeValue> createESSetting() {
+            return StatsTablesService.STATS_SERVICE_REFRESH_INTERVAL_SETTING;
         }
     };
 
