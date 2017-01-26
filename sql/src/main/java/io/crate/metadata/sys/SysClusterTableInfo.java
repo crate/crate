@@ -323,20 +323,6 @@ public class SysClusterTableInfo extends StaticTableInfo {
                     CrateSettings.INDICES_STORE_THROTTLE_MAX_BYTES_PER_SEC.name()))
 
                 .register(ClusterSettingsExpression.NAME, DataTypes.OBJECT, ImmutableList.of(CrateSettings.INDICES.name(),
-                    CrateSettings.INDICES_FIELDDATA.name()))
-                .register(ClusterSettingsExpression.NAME, DataTypes.OBJECT, ImmutableList.of(CrateSettings.INDICES.name(),
-                    CrateSettings.INDICES_FIELDDATA.name(),
-                    CrateSettings.INDICES_FIELDDATA_BREAKER.name()))
-                .register(ClusterSettingsExpression.NAME, DataTypes.STRING, ImmutableList.of(CrateSettings.INDICES.name(),
-                    CrateSettings.INDICES_FIELDDATA.name(),
-                    CrateSettings.INDICES_FIELDDATA_BREAKER.name(),
-                    CrateSettings.INDICES_FIELDDATA_BREAKER_LIMIT.name()))
-                .register(ClusterSettingsExpression.NAME, DataTypes.DOUBLE, ImmutableList.of(CrateSettings.INDICES.name(),
-                    CrateSettings.INDICES_FIELDDATA.name(),
-                    CrateSettings.INDICES_FIELDDATA_BREAKER.name(),
-                    CrateSettings.INDICES_FIELDDATA_BREAKER_OVERHEAD.name()))
-
-                .register(ClusterSettingsExpression.NAME, DataTypes.OBJECT, ImmutableList.of(CrateSettings.INDICES.name(),
                     CrateSettings.INDICES_BREAKER.name()))
                 .register(ClusterSettingsExpression.NAME, DataTypes.OBJECT, ImmutableList.of(CrateSettings.INDICES.name(),
                     CrateSettings.INDICES_BREAKER.name(),
@@ -360,6 +346,17 @@ public class SysClusterTableInfo extends StaticTableInfo {
                     CrateSettings.INDICES_BREAKER.name(),
                     CrateSettings.INDICES_BREAKER_REQUEST.name(),
                     CrateSettings.INDICES_BREAKER_REQUEST_OVERHEAD.name()))
+                .register(ClusterSettingsExpression.NAME, DataTypes.OBJECT, ImmutableList.of(CrateSettings.INDICES.name(),
+                    CrateSettings.INDICES_BREAKER.name(),
+                    CrateSettings.INDICES_BREAKER_FIELDDATA.name()))
+                .register(ClusterSettingsExpression.NAME, DataTypes.STRING, ImmutableList.of(CrateSettings.INDICES.name(),
+                    CrateSettings.INDICES_BREAKER.name(),
+                    CrateSettings.INDICES_BREAKER_FIELDDATA.name(),
+                    CrateSettings.INDICES_BREAKER_FIELDDATA_LIMIT.name()))
+                .register(ClusterSettingsExpression.NAME, DataTypes.DOUBLE, ImmutableList.of(CrateSettings.INDICES.name(),
+                    CrateSettings.INDICES_BREAKER.name(),
+                    CrateSettings.INDICES_BREAKER_FIELDDATA.name(),
+                    CrateSettings.INDICES_BREAKER_FIELDDATA_OVERHEAD.name()))
 
                 .register(ClusterSettingsExpression.NAME, DataTypes.OBJECT, ImmutableList.of(CrateSettings.CLUSTER.name(),
                     CrateSettings.CLUSTER_INFO.name()))

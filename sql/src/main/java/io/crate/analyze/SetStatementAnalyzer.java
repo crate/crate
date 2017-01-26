@@ -54,6 +54,7 @@ class SetStatementAnalyzer {
             return new SetAnalyzedStatement(node.scope(), settings, isPersistent);
         } else {
             for (Assignment assignment : node.assignments()) {
+                assignment = rewriteOldSetting(assignment);
                 for (String setting : ExpressionToSettingNameListVisitor.convert(assignment)) {
                     CrateSettings.checkIfRuntimeSetting(setting);
                 }
@@ -62,6 +63,21 @@ class SetStatementAnalyzer {
             }
             return new SetAnalyzedStatement(node.scope(), settings, isPersistent);
         }
+    }
+
+    /**
+     * Rewrites old settings to new settings
+     */
+    @Deprecated
+    private static Assignment rewriteOldSetting(Assignment assignment) {
+        String settingName = ExpressionToStringVisitor.convert(assignment.columnName(), Row.EMPTY);
+        if (settingName.equals(CrateSettings.INDICES_FIELDDATA_BREAKER_LIMIT.settingName())) {
+            assignment = new Assignment(new QualifiedNameReference(new QualifiedName(CrateSettings.INDICES_BREAKER_FIELDDATA_LIMIT.settingName())), assignment.expression());
+        }
+        if (settingName.equals(CrateSettings.INDICES_FIELDDATA_BREAKER_OVERHEAD.settingName())) {
+            assignment = new Assignment(new QualifiedNameReference(new QualifiedName(CrateSettings.INDICES_BREAKER_FIELDDATA_OVERHEAD.settingName())), assignment.expression());
+        }
+        return assignment;
     }
 
     public static ResetAnalyzedStatement analyze(ResetStatement node) {

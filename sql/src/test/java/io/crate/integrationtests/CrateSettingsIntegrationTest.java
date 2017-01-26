@@ -7,6 +7,8 @@ import org.junit.Test;
 
 import java.util.Locale;
 
+import static org.hamcrest.Matchers.is;
+
 @UseJdbc
 public class CrateSettingsIntegrationTest extends SQLTransportIntegrationTest {
 
@@ -16,5 +18,30 @@ public class CrateSettingsIntegrationTest extends SQLTransportIntegrationTest {
         for (Object[] row : res.rows()) {
             execute(String.format(Locale.ENGLISH, "select %s from %s.%s ", row[2], row[0], row[1]));
         }
+    }
+
+    @Test
+    @Deprecated
+    public void testSetDeprecatedSettingAsObjectLiteral() throws Exception {
+        execute("set global indices = {\"fielddata\"={\"breaker\"={\"limit\"=\"2mb\", \"overhead\"=2.0}}}");
+        execute("select settings['indices']['breaker']['fielddata']['limit'] from sys.cluster");
+        assertThat(response.rows()[0][0], is("2mb"));
+        execute("select settings['indices']['breaker']['fielddata']['overhead'] from sys.cluster");
+        assertThat(response.rows()[0][0], is(2.0));
+        execute("reset global indices['breaker']['fielddata']");
+    }
+
+    @Test
+    @Deprecated
+    public void testApplyNewSettingIfDeprecated() {
+        execute("set global indices['fielddata']['breaker']['limit'] = '10mb'");
+        execute("set global indices['fielddata']['breaker']['overhead'] = 2.0");
+
+        execute("select settings['indices']['breaker']['fielddata']['limit'] from sys.cluster");
+        assertThat(response.rows()[0][0], is("10mb"));
+        execute("select settings['indices']['breaker']['fielddata']['overhead'] from sys.cluster");
+        assertThat(response.rows()[0][0], is(2.0));
+
+        execute("reset global indices['breaker']['fielddata']");
     }
 }
