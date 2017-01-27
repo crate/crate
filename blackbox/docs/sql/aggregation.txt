@@ -13,11 +13,6 @@ as one group. One row will always be returned.
 
 For a short summary of aggregation functions see :ref:`sql_dql_aggregation`.
 
-.. note::
-
-    Unless documented, global aggregation functions are unsupported in combination
-    with ``DISINCT``.
-
 count
 =====
 
@@ -461,6 +456,16 @@ user. This works as rows with same ``user_id`` have the same
 strings.  The advantage is that the ``arbitrary`` function does very little
 to no computation as for example ``max`` aggregation function would
 do.
+
+Limitations
+===========
+
+ - Unless documented, global aggregation functions are unsupported in
+   combination with ``DISTINCT``.
+ - ``GROUP BY`` and ``DISTINCT`` are not supported with aggregations on :ref:`sql_joins`.
+ - Aggregation functions can only be applied to columns with a plain index, which is the
+   default for all :ref:`primitive type <sql_ddl_datatypes_primitives>` columns.
+   For more information, please refer to :ref:`sql_ddl_index_plain`.
 
 .. _Geometric Mean: https://en.wikipedia.org/wiki/Mean#Geometric_mean_.28GM.29
 .. _Variance: https://en.wikipedia.org/wiki/Variance
