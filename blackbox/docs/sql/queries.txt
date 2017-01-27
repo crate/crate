@@ -219,7 +219,7 @@ Predicates
 
 Predicates are expressions that evaluate to boolean.
 
-While scalar functions that evaluate to boolean can be used in place of a predicate, the 
+While scalar functions that evaluate to boolean can be used in place of a predicate, the
 semantics of a predicate usually differ from function semantics.
 
 e.g. A function is resolved by its name and the type of its arguments.
