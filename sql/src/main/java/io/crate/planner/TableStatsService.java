@@ -38,6 +38,8 @@ import org.elasticsearch.common.component.AbstractComponent;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Provider;
 import org.elasticsearch.common.inject.Singleton;
+import org.elasticsearch.common.logging.ESLogger;
+import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.lucene.BytesRefs;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.TimeValue;
@@ -45,9 +47,8 @@ import org.elasticsearch.node.settings.NodeSettingsService;
 import org.elasticsearch.threadpool.ThreadPool;
 
 import javax.annotation.Nonnull;
-import java.util.ArrayList;
 import java.util.Collections;
-import java.util.List;
+import java.util.function.Consumer;
 
 @Singleton
 public class TableStatsService extends AbstractComponent implements NodeSettingsService.Listener, Runnable {
@@ -60,6 +61,7 @@ public class TableStatsService extends AbstractComponent implements NodeSettings
     private final ClusterService clusterService;
     private final Provider<SQLOperations> sqlOperationsProvider;
     private final ThreadPool threadPool;
+    private final TableStatsResultReceiver resultReceiver;
     private volatile ObjectLongMap<TableIdent> tableStats = null;
     private TimeValue initialRefreshInterval;
     @VisibleForTesting
@@ -80,6 +82,7 @@ public class TableStatsService extends AbstractComponent implements NodeSettings
         initialRefreshInterval = extractRefreshInterval(settings);
         lastRefreshInterval = initialRefreshInterval;
         refreshScheduledTask = scheduleRefresh(initialRefreshInterval);
+        resultReceiver = new TableStatsResultReceiver(this::setTableStats);
         nodeSettingsService.addListener(this);
     }
 
@@ -103,41 +106,46 @@ public class TableStatsService extends AbstractComponent implements NodeSettings
         try {
             session.parse(UNNAMED, STMT, Collections.<DataType>emptyList());
             session.bind(UNNAMED, UNNAMED, Collections.emptyList(), null);
-            session.execute(UNNAMED, 0, new TableStatsResultReceiver());
+            session.execute(UNNAMED, 0, resultReceiver);
             session.sync();
         } catch (Throwable t) {
             logger.error("error retrieving table stats", t);
         }
     }
 
-    class TableStatsResultReceiver extends BaseResultReceiver {
+    private void setTableStats(ObjectLongMap<TableIdent> newTableStats) {
+        tableStats = newTableStats;
+    }
 
-        private final List<Object[]> rows = new ArrayList<>();
+    static class TableStatsResultReceiver extends BaseResultReceiver {
+
+        private final static ESLogger LOGGER = Loggers.getLogger(TableStatsResultReceiver.class);
+
+        private final Consumer<ObjectLongMap<TableIdent>> tableStatsConsumer;
+        private ObjectLongMap<TableIdent> newStats = new ObjectLongHashMap<>();
+
+        public TableStatsResultReceiver(Consumer<ObjectLongMap<TableIdent>> tableStatsConsumer) {
+            this.tableStatsConsumer = tableStatsConsumer;
+        }
 
         @Override
         public void setNextRow(Row row) {
-            rows.add(row.materialize());
+            TableIdent tableIdent = new TableIdent(BytesRefs.toString(row.get(1)), BytesRefs.toString(row.get(2)));
+            newStats.put(tableIdent, ((long) row.get(0)));
         }
 
         @Override
         public void allFinished() {
-            tableStats = statsFromRows(rows);
+            tableStatsConsumer.accept(newStats);
+            newStats = new ObjectLongHashMap<>();
             super.allFinished();
         }
 
         @Override
         public void fail(@Nonnull Throwable t) {
-            logger.error("error retrieving table stats", t);
+            LOGGER.error("error retrieving table stats", t);
             super.fail(t);
         }
-    }
-
-    ObjectLongMap<TableIdent> statsFromRows(List<Object[]> rows) {
-        ObjectLongMap<TableIdent> newStats = new ObjectLongHashMap<>(rows.size());
-        for (Object[] row : rows) {
-            newStats.put(new TableIdent(BytesRefs.toString(row[1]), BytesRefs.toString(row[2])), (long) row[0]);
-        }
-        return newStats;
     }
 
     /**
