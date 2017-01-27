@@ -22,21 +22,20 @@
 
 package io.crate.sql;
 
-import com.google.common.base.Function;
-import com.google.common.base.Joiner;
-import com.google.common.base.Splitter;
-import com.google.common.base.Strings;
 import com.google.common.collect.Iterables;
 import io.crate.sql.tree.*;
 
 import java.util.*;
+import java.util.function.Function;
+import java.util.stream.Collector;
+import java.util.stream.Collectors;
 
-import static com.google.common.collect.Iterables.transform;
-import static io.crate.sql.ExpressionFormatter.expressionFormatterFunction;
 import static io.crate.sql.ExpressionFormatter.formatExpression;
 
 public final class SqlFormatter {
+
     private static final String INDENT = "   ";
+    private static final Collector<CharSequence, ?, String> COMMA_JOINER = Collectors.joining(", ");
 
     private SqlFormatter() {
     }
@@ -50,7 +49,7 @@ public final class SqlFormatter {
     private static class Formatter extends AstVisitor<Void, Integer> {
         private final StringBuilder builder;
 
-        public Formatter(StringBuilder builder) {
+        Formatter(StringBuilder builder) {
             this.builder = builder;
         }
 
@@ -122,8 +121,10 @@ public final class SqlFormatter {
 
             if (!node.getOrderBy().isEmpty()) {
                 append(indent,
-                    "ORDER BY " + Joiner.on(", ").join(transform(node.getOrderBy(), orderByFormatterFunction())))
-                    .append('\n');
+                    "ORDER BY " + node.getOrderBy().stream()
+                        .map(orderByFormatterFunction)
+                        .collect(COMMA_JOINER)
+                ).append('\n');
             }
 
             if (node.getLimit().isPresent()) {
@@ -171,7 +172,9 @@ public final class SqlFormatter {
 
             if (!node.getGroupBy().isEmpty()) {
                 append(indent,
-                    "GROUP BY " + Joiner.on(", ").join(transform(node.getGroupBy(), expressionFormatterFunction())))
+                    "GROUP BY " + node.getGroupBy().stream()
+                        .map(ExpressionFormatter::formatExpression)
+                        .collect(COMMA_JOINER))
                     .append('\n');
             }
 
@@ -182,8 +185,10 @@ public final class SqlFormatter {
 
             if (!node.getOrderBy().isEmpty()) {
                 append(indent,
-                    "ORDER BY " + Joiner.on(", ").join(transform(node.getOrderBy(), orderByFormatterFunction())))
-                    .append('\n');
+                    "ORDER BY " + node.getOrderBy().stream()
+                        .map(orderByFormatterFunction)
+                        .collect(COMMA_JOINER)
+                ).append('\n');
             }
 
             if (node.getLimit().isPresent()) {
@@ -477,7 +482,7 @@ public final class SqlFormatter {
             if (criteria instanceof JoinUsing) {
                 JoinUsing using = (JoinUsing) criteria;
                 builder.append(" USING (")
-                    .append(Joiner.on(", ").join(using.getColumns()))
+                    .append(String.join(", ", using.getColumns()))
                     .append(")");
             } else if (criteria instanceof JoinOn) {
                 JoinOn on = (JoinOn) criteria;
@@ -496,12 +501,9 @@ public final class SqlFormatter {
         @Override
         protected Void visitAliasedRelation(AliasedRelation node, Integer indent) {
             process(node.getRelation(), indent);
-
             builder.append(' ')
                 .append(node.getAlias());
-
             appendAliasColumns(builder, node.getColumnNames());
-
             return null;
         }
 
@@ -546,11 +548,9 @@ public final class SqlFormatter {
         }
 
         private String quoteIdentifierIfNeeded(String identifier) {
-            List<String> quoted = new ArrayList<>();
-            for (String part : Splitter.on(".").split(identifier)) {
-                quoted.add(Identifiers.quote(part));
-            }
-            return Joiner.on(".").join(quoted);
+           return Arrays.stream(identifier.split("\\."))
+               .map(Identifiers::quote)
+               .collect(Collectors.joining("."));
         }
 
         private Void appendFlatNodeList(List<? extends Node> nodes, Integer indent) {
@@ -582,54 +582,34 @@ public final class SqlFormatter {
         }
 
         private static String indentString(int indent) {
-            return Strings.repeat(INDENT, indent);
+            return String.join("", Collections.nCopies(indent, INDENT));
         }
     }
 
-    static Function<SortItem, String> orderByFormatterFunction() {
-        return new Function<SortItem, String>() {
-            @Override
-            public String apply(SortItem input) {
-                StringBuilder builder = new StringBuilder();
+    static Function<SortItem, String> orderByFormatterFunction = input -> {
+        StringBuilder builder = new StringBuilder();
 
-                builder.append(formatExpression(input.getSortKey()));
+        builder.append(formatExpression(input.getSortKey()));
 
-                switch (input.getOrdering()) {
-                    case ASCENDING:
-                        builder.append(" ASC");
-                        break;
-                    case DESCENDING:
-                        builder.append(" DESC");
-                        break;
-                    default:
-                        throw new UnsupportedOperationException("unknown ordering: " + input.getOrdering());
-                }
+        switch (input.getOrdering()) {
+            case ASCENDING:
+                builder.append(" ASC");
+                break;
+            case DESCENDING:
+                builder.append(" DESC");
+                break;
+            default:
+                throw new UnsupportedOperationException("unknown ordering: " + input.getOrdering());
+        }
 
-                switch (input.getNullOrdering()) {
-                    case FIRST:
-                        builder.append(" NULLS FIRST");
-                        break;
-                    case LAST:
-                        builder.append(" NULLS LAST");
-                        break;
-                    case UNDEFINED:
-                        // no op
-                        break;
-                    default:
-                        throw new UnsupportedOperationException("unknown null ordering: " + input.getNullOrdering());
-                }
-
-                return builder.toString();
-            }
-        };
-    }
+        return builder.toString();
+    };
 
     private static void appendAliasColumns(StringBuilder builder, List<String> columns) {
         if ((columns != null) && (!columns.isEmpty())) {
-            builder.append(" (");
-            Joiner.on(", ").appendTo(builder, columns);
-            builder.append(')');
+            builder.append(" (")
+                .append(String.join(", ", columns))
+                .append(')');
         }
     }
-
 }

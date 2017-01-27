@@ -21,8 +21,6 @@
 
 package io.crate.sql;
 
-import com.google.common.base.Function;
-import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Ordering;
@@ -30,15 +28,15 @@ import com.google.common.collect.TreeMultimap;
 import io.crate.sql.tree.*;
 
 import java.util.*;
+import java.util.stream.Collector;
+import java.util.stream.Collectors;
 
-import static com.google.common.collect.Iterables.transform;
 import static io.crate.sql.SqlFormatter.formatSql;
 import static io.crate.sql.SqlFormatter.orderByFormatterFunction;
 
 public final class ExpressionFormatter {
 
-    private static final Joiner COMMA_JOINER = Joiner.on(", ");
-    private static final Joiner WHITESPACE_JOINER = Joiner.on(' ');
+    private static final Collector<CharSequence, ?, String> COMMA_JOINER = Collectors.joining(", ");
 
     private static final Set<String> FUNCTION_CALLS_WITHOUT_PARENTHESIS = ImmutableSet.of(
         "current_catalog", "current_schema", "current_user", "session_user", "user");
@@ -50,17 +48,8 @@ public final class ExpressionFormatter {
         return new Formatter().process(expression, null);
     }
 
-    public static Function<Expression, String> expressionFormatterFunction() {
-        return new Function<Expression, String>() {
-            @Override
-            public String apply(Expression input) {
-                return ExpressionFormatter.formatExpression(input);
-            }
-        };
-    }
+    public static class Formatter extends AstVisitor<String, Void> {
 
-    public static class Formatter
-        extends AstVisitor<String, Void> {
         @Override
         protected String visitNode(Node node, Void context) {
             throw new UnsupportedOperationException(String.format(Locale.ENGLISH, "cannot handle node '%s'", node.toString()));
@@ -204,17 +193,9 @@ public final class ExpressionFormatter {
 
         @Override
         protected String visitQualifiedNameReference(QualifiedNameReference node, Void context) {
-            List<String> parts = new ArrayList<>();
-            for (String part : node.getName().getParts()) {
-                parts.add(formatIdentifier(part));
-            }
-            return Joiner.on('.').join(parts);
-        }
-
-        @Override
-        public String visitInputReference(InputReference node, Void context) {
-            // add colon so this won't parse
-            return ":input(" + node.getInput().getChannel() + ")";
+            return node.getName().getParts().stream()
+                .map(Formatter::formatIdentifier)
+                .collect(Collectors.joining("."));
         }
 
         @Override
@@ -369,16 +350,11 @@ public final class ExpressionFormatter {
 
         @Override
         public String visitGenericProperties(GenericProperties node, Void context) {
-            StringBuilder builder = new StringBuilder().append(" WITH (");
-            String properties = COMMA_JOINER.join(transform(node.properties().entrySet(), new Function<Map.Entry<String, Expression>, Object>() {
-                @Override
-                public Object apply(Map.Entry<String, Expression> input) {
-                    return input.getKey() + "=" + process(input.getValue(), null);
-                }
-            }));
-            builder.append(properties);
-            builder.append(")");
-            return builder.toString();
+            return " WITH (" +
+                node.properties().entrySet().stream()
+                    .map(prop -> prop.getKey() + "=" + process(prop.getValue(), null))
+                    .collect(COMMA_JOINER) +
+                ")";
         }
 
         @Override
@@ -398,7 +374,7 @@ public final class ExpressionFormatter {
         @Override
         protected String visitTryCast(TryCast node, Void context) {
             return "TRY_CAST(" + process(node.getExpression(), context) + " AS " + process(node.getType(), context) +
-                   ")";
+                ")";
         }
 
         @Override
@@ -414,16 +390,14 @@ public final class ExpressionFormatter {
             }
             parts.add("END");
 
-            return "(" + WHITESPACE_JOINER.join(parts.build()) + ")";
+            return "(" + String.join(" ", parts.build()) + ")";
         }
 
         @Override
         protected String visitSimpleCaseExpression(SimpleCaseExpression node, Void context) {
             ImmutableList.Builder<String> parts = ImmutableList.builder();
-
             parts.add("CASE")
                 .add(process(node.getOperand(), context));
-
             for (WhenClause whenClause : node.getWhenClauses()) {
                 parts.add(process(whenClause, context));
             }
@@ -433,7 +407,7 @@ public final class ExpressionFormatter {
             }
             parts.add("END");
 
-            return "(" + WHITESPACE_JOINER.join(parts.build()) + ")";
+            return "(" + String.join(" ", parts.build()) + ")";
         }
 
         @Override
@@ -444,7 +418,7 @@ public final class ExpressionFormatter {
         @Override
         protected String visitBetweenPredicate(BetweenPredicate node, Void context) {
             return "(" + process(node.getValue(), context) + " BETWEEN " +
-                   process(node.getMin(), context) + " AND " + process(node.getMax(), context) + ")";
+                process(node.getMin(), context) + " AND " + process(node.getMax(), context) + ")";
         }
 
         @Override
@@ -466,13 +440,15 @@ public final class ExpressionFormatter {
                 parts.add("PARTITION BY " + joinExpressions(node.getPartitionBy()));
             }
             if (!node.getOrderBy().isEmpty()) {
-                parts.add("ORDER BY " + COMMA_JOINER.join(transform(node.getOrderBy(), orderByFormatterFunction())));
+                parts.add("ORDER BY " + node.getOrderBy().stream()
+                    .map(orderByFormatterFunction)
+                    .collect(COMMA_JOINER));
             }
             if (node.getFrame().isPresent()) {
                 parts.add(process(node.getFrame().get(), null));
             }
 
-            return '(' + WHITESPACE_JOINER.join(parts) + ')';
+            return '(' + String.join(" ", parts) + ')';
         }
 
         @Override
@@ -530,12 +506,9 @@ public final class ExpressionFormatter {
         }
 
         private String joinExpressions(List<Expression> expressions) {
-            return COMMA_JOINER.join(transform(expressions, new Function<Expression, Object>() {
-                @Override
-                public Object apply(Expression input) {
-                    return process(input, null);
-                }
-            }));
+            return expressions.stream()
+                .map(expression -> process(expression, null))
+                .collect(COMMA_JOINER);
         }
 
         private static String formatIdentifier(String s) {
