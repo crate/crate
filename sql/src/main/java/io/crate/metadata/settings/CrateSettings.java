@@ -39,6 +39,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
+import static org.elasticsearch.discovery.zen.ElectMasterService.DISCOVERY_ZEN_MINIMUM_MASTER_NODES_SETTING;
+
 public class CrateSettings {
 
     public static final NestedSetting STATS = new NestedSetting() {
@@ -397,12 +399,15 @@ public class CrateSettings {
         }
     };
 
-    public static final IntSetting DISCOVERY_ZEN_MIN_MASTER_NODES = new IntSetting("minimum_master_nodes", 1, true) {
-        @Override
-        public Setting parent() {
-            return DISCOVERY_ZEN;
-        }
-    };
+    public static final IntSetting DISCOVERY_ZEN_MIN_MASTER_NODES = new IntSetting(
+        "minimum_master_nodes",
+        1,
+        true,
+        null,
+        null,
+        DISCOVERY_ZEN,
+        DISCOVERY_ZEN_MINIMUM_MASTER_NODES_SETTING
+    );
 
     public static final TimeSetting DISCOVERY_ZEN_PING_TIMEOUT = new TimeSetting() {
         @Override

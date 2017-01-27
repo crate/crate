@@ -33,7 +33,7 @@ import org.junit.Test;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 
-@ESIntegTestCase.ClusterScope(minNumDataNodes = 2)
+@ESIntegTestCase.ClusterScope(minNumDataNodes = 2, supportsDedicatedMasters = false)
 @UseJdbc
 public class SysCheckerIntegrationTest extends SQLTransportIntegrationTest {
 
