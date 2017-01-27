@@ -26,6 +26,7 @@ Unreleased
 
  - DEPRECATED: multicast discovery has been depreciated in this release, and will be
    removed in the 1.1 release.
+   Multicast discovery is disabled by default.
 
  - BREAKING: Serve admin ui from ``/``
    Admin UI is not accessible via ``_plugin/crate-admin`` anymore. Only via

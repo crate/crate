@@ -18,6 +18,9 @@ logger:
 #  If you want to log the discovery process, set the following:
 # discovery: TRACE
 
+# Log deprecations in the discovery module
+  deprecation.discovery: DEBUG
+
 # mute amazon s3 client logging a bit
   com.amazonaws: WARN
 

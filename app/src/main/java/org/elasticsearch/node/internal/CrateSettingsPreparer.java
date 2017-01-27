@@ -76,7 +76,7 @@ public class CrateSettingsPreparer {
         putIfAbsent(settingsBuilder, "http.port", Constants.HTTP_PORT_RANGE);
         putIfAbsent(settingsBuilder, "transport.tcp.port", Constants.TRANSPORT_PORT_RANGE);
         putIfAbsent(settingsBuilder, "thrift.port", Constants.THRIFT_PORT_RANGE);
-        putIfAbsent(settingsBuilder, "discovery.zen.ping.multicast.enabled", true);
+        putIfAbsent(settingsBuilder, "discovery.zen.ping.multicast.enabled", false);
         putIfAbsent(settingsBuilder, "network.host", "0.0.0.0");
 
         // Set the default cluster name if not explicitly defined

@@ -484,7 +484,7 @@
 # Therefore, you need to specify the instances you want to connect to a
 # cluster as described in the following steps:
 #
-# 1. Disable multicast discovery (enabled by default):
+# 1. Ensure that multicast discovery is disabled (disabled by default):
 #
 #discovery.zen.ping.multicast.enabled: false
 #
