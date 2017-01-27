@@ -826,17 +826,11 @@ results in a NULL value.
 Data Aggregation
 ----------------
 
-Crate supports aggregations by using the aggregation functions listed
-below on ``SELECT`` statements.
+Crate supports :ref:`aggregation` via the following aggregation functions.
 
-Aggregation works on all the rows that match a query or on
-all matching rows in every distinct *group* of a ``GROUP BY`` statement.
-Aggregating ``SELECT`` statements without ``GROUP BY`` will
-always return one row, as they do an aggregation operation on the matching rows as one group.
-
-.. seealso::
-
-    :ref:`aggregation`
+Aggregation works across all the rows that match a query or on all matching
+rows in every distinct group of a ``GROUP BY`` statement. Aggregating
+``SELECT`` statements without ``GROUP BY`` will always return one row.
 
 +---------------------+---------------+----------------------------------+-----------------------+
 | Name                | Arguments     | Description                      | Return Type           |

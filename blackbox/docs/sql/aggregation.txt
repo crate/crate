@@ -5,13 +5,15 @@
 Aggregation
 ===========
 
-There are two ways of doing aggregation, one on the result of a whole query and one
-on the separate groups of a :ref:`sql_dql_group_by` query.
-Aggregation Function will always return one result value for a single group.
-You can imagine the matching rows of a ``SELECT`` statement without ``GROUP BY``
-as one group. One row will always be returned.
+An *aggregation function* operates on multiple values of the specified column of your `SELECT`. For example, ``SELECT avg(temperature)`` will return the average value of the ``temperature`` column across all rows being considered.
 
-For a short summary of aggregation functions see :ref:`sql_dql_aggregation`.
+You can apply aggregation functions to the results of a whole query, or to each of the rows produced by a :ref:`sql_dql_group_by` query.
+
+So for example, ``GROUP BY type, location`` will produce one result row for every distinct combination of type and location. In this instance, ``avg(temperature)`` would return the average temperature for every grouped row.
+
+If you're not using `GROUP BY`, an aggregation function will collapse your query result into one row, with one returned aggregation value.
+
+For a tabulated summary of aggregation functions, see :ref:`sql_dql_aggregation`.
 
 .. note::
 
