@@ -75,11 +75,11 @@ public class CrateDummyClusterServiceUnitTest extends CrateUnitTest {
     /**
      * Override this method to provide additional cluster settings.
      */
-    protected Set<Setting<?>> additionalClusterSettings() {
+    protected Collection<Setting<?>> additionalClusterSettings() {
         return EMPTY_CLUSTER_SETTINGS;
     }
 
-    private ClusterService createClusterService(Set<Setting<?>> additionalClusterSettings) {
+    private ClusterService createClusterService(Collection<Setting<?>> additionalClusterSettings) {
         Set<Setting<?>> clusterSettings = Sets.newHashSet(ClusterSettings.BUILT_IN_CLUSTER_SETTINGS);
         clusterSettings.addAll(additionalClusterSettings);
         DiscoveryNode discoveryNode = new DiscoveryNode(
