@@ -22,14 +22,26 @@
 
 package io.crate.operation.reference.sys.cluster;
 
+import io.crate.core.collections.StringObjectMaps;
+import io.crate.metadata.settings.CrateSettings;
+import io.crate.plugin.SQLPlugin;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import org.apache.lucene.util.BytesRef;
+import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
 import org.junit.Test;
+
+import java.util.Collection;
+import java.util.Map;
 
 import static org.hamcrest.core.Is.is;
 
 public class ClusterSettingsExpressionTest extends CrateDummyClusterServiceUnitTest {
+
+    @Override
+    protected Collection<Setting<?>> additionalClusterSettings() {
+        return new SQLPlugin(Settings.EMPTY).getSettings();
+    }
 
     @Test
     public void testSettingsAreAppliedImmediately() throws Exception {
@@ -40,5 +52,27 @@ public class ClusterSettingsExpressionTest extends CrateDummyClusterServiceUnitT
                 .getChildImplementation("bulk")
                 .getChildImplementation("request_timeout").value()).utf8ToString(),
             is("20s"));
+    }
+
+
+    @Test
+    public void testSettingsAreUpdated() throws Exception {
+        ClusterSettingsExpression expression = new ClusterSettingsExpression(Settings.EMPTY, clusterService);
+
+        Settings.Builder builder = Settings.builder()
+            .put(CrateSettings.STATS_JOBS_LOG_SIZE.settingName(), 1)
+            .put(CrateSettings.STATS_ENABLED.settingName(), false)
+            .put(CrateSettings.GRACEFUL_STOP_MIN_AVAILABILITY.settingName(), "full");
+        clusterService.getClusterSettings().applySettings(builder.build());
+
+        Map<String, Object> values = expression.value();
+        assertThat(
+            StringObjectMaps.getByPath(values, CrateSettings.STATS_JOBS_LOG_SIZE.settingName()), is(1));
+
+        assertThat(
+            StringObjectMaps.getByPath(values, CrateSettings.STATS_ENABLED.settingName()), is(false));
+
+        assertThat(
+            StringObjectMaps.getByPath(values, CrateSettings.GRACEFUL_STOP_MIN_AVAILABILITY.settingName()), is("full"));
     }
 }

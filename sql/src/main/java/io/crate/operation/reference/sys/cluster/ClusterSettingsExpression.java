@@ -70,65 +70,16 @@ public class ClusterSettingsExpression extends NestedObjectExpression {
             addChildImplementations(setting.children());
         }
 
-        public void addChildImplementations(List<Setting> childSettings) {
+        private void addChildImplementations(List<Setting> childSettings) {
             for (Setting childSetting : childSettings) {
                 if (childSetting.children().isEmpty()) {
-                    childImplementations.put(childSetting.name(),
-                        new SettingExpression(childSetting, values)
-                    );
+                    childImplementations.put(childSetting.name(), new SettingExpression(childSetting, values));
                 } else {
-                    childImplementations.put(childSetting.name(),
-                        new NestedSettingExpression(childSetting, values)
-                    );
+                    childImplementations.put(childSetting.name(), new NestedSettingExpression(childSetting, values));
                 }
             }
         }
     }
-
-//    static class ApplySettings implements NodeSettingsService.Listener {
-//
-//        private final ConcurrentMap<String, Object> values;
-//        private final Settings initialSettings;
-//        protected final Logger logger;
-//
-//        ApplySettings(Settings initialSettings, ConcurrentMap<String, Object> values) {
-//            this.logger = Loggers.getLogger(getClass());
-//            this.values = values;
-//            this.initialSettings = initialSettings;
-//            applySettings(CrateSettings.SETTINGS, initialSettings);
-//        }
-//
-//        @Override
-//        public void onRefreshSettings(Settings settings) {
-//            applySettings(CrateSettings.SETTINGS,
-//                Settings.builder()
-//                    .put(initialSettings)
-//                    .put(settings).build()
-//            );
-//        }
-//
-//        /**
-//         * if setting is not available in new settings
-//         * and not in initialSettings, reset to default
-//         */
-//        private void applySettings(List<Setting> clusterSettings, Settings newSettings) {
-//            for (Setting<?, ?> setting : clusterSettings) {
-//
-//                String name = setting.settingName();
-//                Object newValue = setting.extract(newSettings);
-//                if (newSettings.get(name) == null) {
-//                    applySettings(setting.children(), newSettings);
-//                }
-//                if (!newValue.equals(values.get(name))) {
-//                    if (newSettings.get(name) != null) {
-//                        logger.info("updating [{}] from [{}] to [{}]", name, values.get(name), newValue);
-//                    }
-//                    values.put(name, newValue);
-//                }
-//            }
-//        }
-//    }
-
 
     private final ConcurrentHashMap<String, Object> values = new ConcurrentHashMap<>();
     private final ClusterSettings clusterSettings;
@@ -139,11 +90,7 @@ public class ClusterSettingsExpression extends NestedObjectExpression {
         this.clusterSettings = clusterService.getClusterSettings();
         this.clusterService = clusterService;
         setDefaultValues(CrateSettings.SETTINGS);
-
-        //ApplySettings applySettings = new ApplySettings(settings, values);
-        //nodeSettingsService.addListener(applySettings);
         applyInitialSettingsAndRegisterUpdateConsumer(CrateSettings.CRATE_SETTINGS, settings);
-
         addChildImplementations();
     }
 
