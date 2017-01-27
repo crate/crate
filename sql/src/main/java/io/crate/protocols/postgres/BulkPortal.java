@@ -138,7 +138,9 @@ class BulkPortal extends AbstractPortal {
     private ListenableFuture<Void> executeBulk(Executor executor, Plan plan, final UUID jobId,
                              final StatsTables statsTables) {
         final SettableFuture<Void> future = SettableFuture.create();
-        Futures.addCallback(executor.executeBulk(plan), new FutureCallback<List<Long>>() {
+        List<? extends ListenableFuture<Long>> futures = executor.executeBulk(plan);
+        ListenableFuture<List<Long>> allAsList = Futures.allAsList(futures);
+        Futures.addCallback(allAsList, new FutureCallback<List<Long>>() {
                 @Override
                 public void onSuccess(@Nullable List<Long> result) {
                     assert result != null && result.size() == resultReceivers.size()

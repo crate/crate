@@ -56,7 +56,7 @@ import java.util.*;
 /**
  * Creates and starts local and remote execution jobs using the provided
  * NodeOperationTrees
- *
+ * <p>
  * <pre>
  * Direct Result:
  *
@@ -145,7 +145,7 @@ public class ExecutionPhasesTask extends JobTask {
     }
 
     @Override
-    public ListenableFuture<List<Long>> executeBulk() {
+    public List<? extends ListenableFuture<Long>> executeBulk() {
         FluentIterable<NodeOperation> nodeOperations = FluentIterable.from(nodeOperationTrees)
             .transformAndConcat(new Function<NodeOperationTree, Iterable<? extends NodeOperation>>() {
                 @Nullable
@@ -168,9 +168,9 @@ public class ExecutionPhasesTask extends JobTask {
         try {
             setupContext(operationByServer, handlerPhases, handlerReceivers);
         } catch (Throwable throwable) {
-            return Futures.immediateFailedFuture(throwable);
+            return Collections.singletonList(Futures.immediateFailedFuture(throwable));
         }
-        return Futures.successfulAsList(results);
+        return results;
     }
 
     private void setupContext(Map<String, Collection<NodeOperation>> operationByServer,
