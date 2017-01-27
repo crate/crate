@@ -23,9 +23,9 @@
 package io.crate.planner;
 
 import com.carrotsearch.hppc.ObjectLongMap;
-import com.google.common.collect.ImmutableList;
 import io.crate.action.sql.Option;
 import io.crate.action.sql.SQLOperations;
+import io.crate.core.collections.RowN;
 import io.crate.metadata.TableIdent;
 import io.crate.metadata.settings.CrateSettings;
 import io.crate.protocols.postgres.FormatCodes;
@@ -44,7 +44,10 @@ import org.junit.Test;
 import org.mockito.Mockito;
 
 import java.util.Collections;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
@@ -121,25 +124,17 @@ public class TableStatsServiceTest extends CrateUnitTest {
     }
 
     @Test
-    public void testRowsToTableStatConversion() {
-        final ClusterService clusterService = mock(ClusterService.class);
-        when(clusterService.localNode()).thenReturn(mock(DiscoveryNode.class));
+    public void testRowsToTableStatConversion() throws InterruptedException, ExecutionException, TimeoutException {
+        CompletableFuture<ObjectLongMap<TableIdent>> statsFuture = new CompletableFuture<>();
+        TableStatsService.TableStatsResultReceiver receiver =
+            new TableStatsService.TableStatsResultReceiver(statsFuture::complete);
 
-        final TableStatsService statsService = new TableStatsService(
-            Settings.EMPTY,
-            threadPool,
-            clusterService,
-            new NodeSettingsService(Settings.EMPTY),
-            new Provider<SQLOperations>() {
-                @Override
-                public SQLOperations get() {
-                    return mock(SQLOperations.class);
-                }
-            });
-        ObjectLongMap<TableIdent> stats = statsService.statsFromRows(ImmutableList.of(
-            new Object[]{1L, "custom", "foo"},
-            new Object[]{2L, "doc", "foo"},
-            new Object[]{3L, "bar", "foo"}));
+        receiver.setNextRow(new RowN(new Object[]{1L, "custom", "foo"}));
+        receiver.setNextRow(new RowN(new Object[]{2L, "doc", "foo"}));
+        receiver.setNextRow(new RowN(new Object[]{3L, "bar", "foo"}));
+        receiver.allFinished();
+
+        ObjectLongMap<TableIdent> stats = statsFuture.get(10, TimeUnit.SECONDS);
         assertThat(stats.size(), is(3));
         assertThat(stats.get(new TableIdent("bar", "foo")), is(3L));
     }
