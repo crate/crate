@@ -36,6 +36,7 @@ import io.crate.types.DataTypes;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.lucene.BytesRefs;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.common.util.concurrent.EsExecutors;
 import org.elasticsearch.env.Environment;
 import org.elasticsearch.env.NodeEnvironment;
 import org.elasticsearch.monitor.jvm.JvmService;
@@ -314,7 +315,7 @@ public class SysNodesExpressionsOnHandlerTest extends CrateUnitTest {
         collectExpression.setNextRow(context);
 
         Map<String, Object> v = (Map<String, Object>) collectExpression.value();
-        assertThat(v.get("available_processors"), is(4));
+        assertThat(v.get("available_processors"), is(EsExecutors.boundedNumberOfProcessors(Settings.EMPTY)));
     }
 
     @Test
