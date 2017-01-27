@@ -899,13 +899,6 @@ always return one row, as they do an aggregation operation on the matching rows 
 |                     | column        |                                  | all                   |
 +---------------------+---------------+----------------------------------+-----------------------+
 
-.. note::
-
-    Aggregations can only be applied to columns with a plain index, which is the
-    default for all :ref:`primitive type <sql_ddl_datatypes_primitives>` columns.
-    For more information, please refer to :ref:`sql_ddl_index_plain`.
-
-
 Some Examples::
 
     cr> select count(*) from locations;
