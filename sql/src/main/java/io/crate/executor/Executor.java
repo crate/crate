@@ -35,5 +35,5 @@ public interface Executor {
 
     void execute(Plan plan, RowReceiver rowReceiver, Row parameters);
 
-    ListenableFuture<List<Long>> executeBulk(Plan plan);
+    List<? extends ListenableFuture<Long>> executeBulk(Plan plan);
 }

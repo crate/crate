@@ -58,6 +58,7 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.BitSet;
+import java.util.Collections;
 import java.util.List;
 
 public class UpsertByIdTask extends JobTask {
@@ -154,12 +155,12 @@ public class UpsertByIdTask extends JobTask {
 
 
     @Override
-    public ListenableFuture<List<Long>> executeBulk() {
+    public List<? extends ListenableFuture<Long>> executeBulk() {
         try {
             List<SettableFuture<Long>> resultList = executeBulkShardProcessor();
-            return Futures.allAsList(resultList);
+            return resultList;
         } catch (Throwable throwable) {
-            return Futures.immediateFailedFuture(throwable);
+            return Collections.singletonList(Futures.immediateFailedFuture(throwable));
         }
     }
 

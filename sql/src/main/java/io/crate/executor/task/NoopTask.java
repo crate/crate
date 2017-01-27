@@ -21,7 +21,6 @@
 
 package io.crate.executor.task;
 
-import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import io.crate.core.collections.Row;
 import io.crate.executor.Task;
@@ -34,7 +33,6 @@ import java.util.List;
 public class NoopTask implements Task {
 
     public static final NoopTask INSTANCE = new NoopTask();
-    private static final ListenableFuture<List<Long>> EMPTY_RESULT = Futures.immediateFuture(Collections.<Long>emptyList());
 
     private NoopTask() {
     }
@@ -45,7 +43,7 @@ public class NoopTask implements Task {
     }
 
     @Override
-    public ListenableFuture<List<Long>> executeBulk() {
-        return EMPTY_RESULT;
+    public List<? extends ListenableFuture<Long>> executeBulk() {
+        return Collections.emptyList();
     }
 }

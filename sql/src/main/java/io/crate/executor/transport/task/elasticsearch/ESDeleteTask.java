@@ -48,6 +48,7 @@ import org.elasticsearch.index.engine.VersionConflictEngineException;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 public class ESDeleteTask extends JobTask {
@@ -165,14 +166,12 @@ public class ESDeleteTask extends JobTask {
     }
 
     @Override
-    public final ListenableFuture<List<Long>> executeBulk() {
+    public final List<? extends ListenableFuture<Long>> executeBulk() {
         try {
             startContext();
         } catch (Throwable throwable) {
-            return Futures.immediateFailedFuture(throwable);
+            return Collections.singletonList(Futures.immediateFailedFuture(throwable));
         }
-        return Futures.successfulAsList(results);
+        return results;
     }
-
-
 }

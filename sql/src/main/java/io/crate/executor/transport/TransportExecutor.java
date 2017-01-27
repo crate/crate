@@ -146,7 +146,7 @@ public class TransportExecutor implements Executor {
     }
 
     @Override
-    public ListenableFuture<List<Long>> executeBulk(Plan plan) {
+    public List<? extends ListenableFuture<Long>> executeBulk(Plan plan) {
         Task task = plan2TaskVisitor.process(plan, null);
         return task.executeBulk();
     }
