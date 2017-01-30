@@ -26,8 +26,6 @@ import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.table.Operation;
 import io.crate.metadata.table.TableInfo;
 import io.crate.sql.tree.AlterTableAddColumn;
-import io.crate.sql.tree.DefaultTraversalVisitor;
-import io.crate.sql.tree.Node;
 import io.crate.sql.tree.Table;
 import io.crate.types.CollectionType;
 
@@ -35,7 +33,7 @@ import javax.annotation.Nullable;
 import java.util.List;
 import java.util.Locale;
 
-class AlterTableAddColumnAnalyzer extends DefaultTraversalVisitor<AddColumnAnalyzedStatement, Analysis> {
+class AlterTableAddColumnAnalyzer {
 
     private final Schemas schemas;
     private final FulltextAnalyzerResolver fulltextAnalyzerResolver;
@@ -49,18 +47,7 @@ class AlterTableAddColumnAnalyzer extends DefaultTraversalVisitor<AddColumnAnaly
         this.functions = functions;
     }
 
-    public AddColumnAnalyzedStatement analyze(Node node, Analysis analysis) {
-        return super.process(node, analysis);
-    }
-
-    @Override
-    protected AddColumnAnalyzedStatement visitNode(Node node, Analysis analysis) {
-        throw new RuntimeException(
-            String.format(Locale.ENGLISH, "Encountered node %s but expected a AlterTableAddColumn node", node));
-    }
-
-    @Override
-    public AddColumnAnalyzedStatement visitAlterTableAddColumnStatement(AlterTableAddColumn node, Analysis analysis) {
+    public AddColumnAnalyzedStatement analyze(AlterTableAddColumn node, Analysis analysis) {
         AddColumnAnalyzedStatement statement = new AddColumnAnalyzedStatement(schemas);
         setTableAndPartitionName(node.table(), statement, analysis.sessionContext().defaultSchema());
         Operation.blockedRaiseException(statement.table(), Operation.ALTER);
@@ -144,5 +131,4 @@ class AlterTableAddColumnAnalyzer extends DefaultTraversalVisitor<AddColumnAnaly
         }
         context.table(TableIdent.of(node, defaultSchema));
     }
-
 }
