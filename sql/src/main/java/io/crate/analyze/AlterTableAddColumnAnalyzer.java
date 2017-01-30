@@ -23,13 +23,12 @@ package io.crate.analyze;
 
 import io.crate.metadata.*;
 import io.crate.metadata.doc.DocSysColumns;
+import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.Operation;
 import io.crate.metadata.table.TableInfo;
 import io.crate.sql.tree.AlterTableAddColumn;
-import io.crate.sql.tree.Table;
 import io.crate.types.CollectionType;
 
-import javax.annotation.Nullable;
 import java.util.List;
 import java.util.Locale;
 
@@ -48,39 +47,47 @@ class AlterTableAddColumnAnalyzer {
     }
 
     public AddColumnAnalyzedStatement analyze(AlterTableAddColumn node, Analysis analysis) {
-        AddColumnAnalyzedStatement statement = new AddColumnAnalyzedStatement(schemas);
-        setTableAndPartitionName(node.table(), statement, analysis.sessionContext().defaultSchema());
-        Operation.blockedRaiseException(statement.table(), Operation.ALTER);
+        TableIdent tableIdent = TableIdent.of(node.table(), analysis.sessionContext().defaultSchema());
+        DocTableInfo tableInfo = schemas.getWritableTable(tableIdent);
+        if (!node.table().partitionProperties().isEmpty()) {
+            throw new UnsupportedOperationException("Adding a column to a single partition is not supported");
+        }
+        Operation.blockedRaiseException(tableInfo, Operation.ALTER);
 
-        statement.analyzedTableElements(TableElementsAnalyzer.analyze(
+        AnalyzedTableElements tableElements = TableElementsAnalyzer.analyze(
             node.tableElement(),
             analysis.parameterContext().parameters(),
             fulltextAnalyzerResolver,
-            statement.table()
-        ));
-
-        for (AnalyzedColumnDefinition column : statement.analyzedTableElements().columns()) {
-            ensureColumnLeafsAreNew(column, statement.table());
+            tableInfo
+        );
+        for (AnalyzedColumnDefinition column : tableElements.columns()) {
+            ensureColumnLeafsAreNew(column, tableInfo);
         }
-        addExistingPrimaryKeys(statement);
-        ensureNoIndexDefinitions(statement.analyzedTableElements().columns());
-        statement.analyzedTableElements().finalizeAndValidate(
-            statement.table().ident(),
-            statement.table().columns(),
+        addExistingPrimaryKeys(tableInfo, tableElements);
+        ensureNoIndexDefinitions(tableElements.columns());
+        tableElements.finalizeAndValidate(
+            tableInfo.ident(),
+            tableInfo.columns(),
             functions,
             analysis.parameterContext(),
             analysis.sessionContext());
 
-        int numCurrentPks = statement.table().primaryKey().size();
-        if (statement.table().primaryKey().contains(DocSysColumns.ID)) {
+        int numCurrentPks = tableInfo.primaryKey().size();
+        if (tableInfo.primaryKey().contains(DocSysColumns.ID)) {
             numCurrentPks -= 1;
         }
-        statement.newPrimaryKeys(statement.analyzedTableElements().primaryKeys().size() > numCurrentPks);
-        statement.hasNewGeneratedColumns(statement.analyzedTableElements().hasGeneratedColumns());
-        return statement;
+
+        boolean hasNewPrimaryKeys = tableElements.primaryKeys().size() > numCurrentPks;
+        boolean hasGeneratedColumns = tableElements.hasGeneratedColumns();
+        return new AddColumnAnalyzedStatement(
+            tableInfo,
+            tableElements,
+            hasNewPrimaryKeys,
+            hasGeneratedColumns
+        );
     }
 
-    private void ensureColumnLeafsAreNew(AnalyzedColumnDefinition column, TableInfo tableInfo) {
+    private static void ensureColumnLeafsAreNew(AnalyzedColumnDefinition column, TableInfo tableInfo) {
         if ((!column.isParentColumn() || !column.hasChildren()) && tableInfo.getReference(column.ident()) != null) {
             throw new IllegalArgumentException(String.format(Locale.ENGLISH,
                 "The table %s already has a column named %s",
@@ -92,12 +99,12 @@ class AlterTableAddColumnAnalyzer {
         }
     }
 
-    private void addExistingPrimaryKeys(AddColumnAnalyzedStatement context) {
-        for (ColumnIdent pkIdent : context.table().primaryKey()) {
+    private static void addExistingPrimaryKeys(DocTableInfo tableInfo, AnalyzedTableElements tableElements) {
+        for (ColumnIdent pkIdent : tableInfo.primaryKey()) {
             if (pkIdent.name().equals("_id")) {
                 continue;
             }
-            Reference pkInfo = context.table().getReference(pkIdent);
+            Reference pkInfo = tableInfo.getReference(pkIdent);
             assert pkInfo != null : "pk must not be null";
 
             AnalyzedColumnDefinition pkColumn = new AnalyzedColumnDefinition(null);
@@ -107,15 +114,15 @@ class AlterTableAddColumnAnalyzer {
 
             assert !(pkInfo.valueType() instanceof CollectionType) : "pk can't be an array";
             pkColumn.dataType(pkInfo.valueType().getName());
-            context.analyzedTableElements().add(pkColumn);
+            tableElements.add(pkColumn);
         }
 
-        for (ColumnIdent columnIdent : context.table().partitionedBy()) {
-            context.analyzedTableElements().changeToPartitionedByColumn(columnIdent, true);
+        for (ColumnIdent columnIdent : tableInfo.partitionedBy()) {
+            tableElements.changeToPartitionedByColumn(columnIdent, true);
         }
     }
 
-    private void ensureNoIndexDefinitions(List<AnalyzedColumnDefinition> columns) {
+    private static void ensureNoIndexDefinitions(List<AnalyzedColumnDefinition> columns) {
         for (AnalyzedColumnDefinition column : columns) {
             if (column.isIndexColumn()) {
                 throw new UnsupportedOperationException(
@@ -123,12 +130,5 @@ class AlterTableAddColumnAnalyzer {
             }
             ensureNoIndexDefinitions(column.children());
         }
-    }
-
-    private void setTableAndPartitionName(Table node, AddColumnAnalyzedStatement context, @Nullable String defaultSchema) {
-        if (!node.partitionProperties().isEmpty()) {
-            throw new UnsupportedOperationException("Adding a column to a single partition is not supported");
-        }
-        context.table(TableIdent.of(node, defaultSchema));
     }
 }

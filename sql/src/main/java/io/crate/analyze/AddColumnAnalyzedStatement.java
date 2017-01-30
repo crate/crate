@@ -21,24 +21,23 @@
 
 package io.crate.analyze;
 
-import io.crate.metadata.Schemas;
-import io.crate.metadata.TableIdent;
 import io.crate.metadata.doc.DocTableInfo;
 
 public class AddColumnAnalyzedStatement implements DDLStatement {
 
-    private final Schemas schemas;
-    private DocTableInfo tableInfo;
-    private AnalyzedTableElements analyzedTableElements;
-    private boolean newPrimaryKeys = false;
-    private boolean hasNewGeneratedColumns = false;
+    private final DocTableInfo tableInfo;
+    private final AnalyzedTableElements analyzedTableElements;
+    private final boolean newPrimaryKeys;
+    private final boolean hasNewGeneratedColumns;
 
-    protected AddColumnAnalyzedStatement(Schemas schemas) {
-        this.schemas = schemas;
-    }
-
-    public void table(TableIdent tableIdent) {
-        tableInfo = schemas.getWritableTable(tableIdent);
+    protected AddColumnAnalyzedStatement(DocTableInfo tableInfo,
+                                         AnalyzedTableElements tableElements,
+                                         boolean newPrimaryKeys,
+                                         boolean hasNewGeneratedColumns) {
+        this.tableInfo = tableInfo;
+        analyzedTableElements = tableElements;
+        this.newPrimaryKeys = newPrimaryKeys;
+        this.hasNewGeneratedColumns = hasNewGeneratedColumns;
     }
 
     public DocTableInfo table() {
@@ -50,24 +49,12 @@ public class AddColumnAnalyzedStatement implements DDLStatement {
         return visitor.visitAddColumnStatement(this, context);
     }
 
-    public void analyzedTableElements(AnalyzedTableElements analyzedTableElements) {
-        this.analyzedTableElements = analyzedTableElements;
-    }
-
     public AnalyzedTableElements analyzedTableElements() {
         return this.analyzedTableElements;
     }
 
-    public void newPrimaryKeys(boolean newPrimaryKeys) {
-        this.newPrimaryKeys = newPrimaryKeys;
-    }
-
     public boolean newPrimaryKeys() {
         return this.newPrimaryKeys;
-    }
-
-    public void hasNewGeneratedColumns(boolean hasNewGeneratedColumns) {
-        this.hasNewGeneratedColumns = hasNewGeneratedColumns;
     }
 
     public boolean hasNewGeneratedColumns() {
