@@ -162,6 +162,7 @@ public final class DataTypes {
             .add(GEO_SHAPE)
             .add(GEO_POINT)
             .add(BOOLEAN)
+            .add(OBJECT)
             .build())
         .put(IP.id(), ImmutableSet.<DataType>of(STRING))
         .put(TIMESTAMP.id(), ImmutableSet.<DataType>of(LONG))

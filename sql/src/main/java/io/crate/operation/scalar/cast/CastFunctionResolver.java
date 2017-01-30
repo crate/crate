@@ -53,6 +53,7 @@ public class CastFunctionResolver {
         public static final String TO_BYTE = "to_byte";
         public static final String TO_SHORT = "to_short";
         public static final String TO_IP = "to_ip";
+        public static final String TO_OBJECT = "to_object";
 
         public static final String TO_STRING_ARRAY = "to_string_array";
         public static final String TO_LONG_ARRAY = "to_long_array";
@@ -124,6 +125,7 @@ public class CastFunctionResolver {
         .putAll(GEO_FUNCTION_MAP)
         .putAll(ARRAY_FUNCTION_MAP)
         .putAll(SET_FUNCTION_MAP)
+        .put(DataTypes.OBJECT, FunctionNames.TO_OBJECT)
         .build();
 
     public static Symbol generateCastFunction(Symbol sourceSymbol, DataType targetType, boolean tryCast) {
