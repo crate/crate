@@ -21,53 +21,21 @@
 
 package io.crate.blob.stats;
 
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.common.io.stream.Streamable;
+public class BlobStats {
 
-import java.io.IOException;
+    private final long count;
+    private final long totalUsage;
 
-public class BlobStats implements Streamable {
-
-    private long count;
-    private long totalUsage;
-    private String location;
-
-    public String location() {
-        return location;
-    }
-
-    public void location(String location) {
-        this.location = location;
+    public BlobStats(long count, long totalUsage) {
+        this.count = count;
+        this.totalUsage = totalUsage;
     }
 
     public long count() {
         return count;
     }
 
-    public void count(long count) {
-        this.count = count;
-    }
-
     public long totalUsage() {
         return totalUsage;
-    }
-
-    public void totalUsage(long totalUsage) {
-        this.totalUsage = totalUsage;
-    }
-
-    @Override
-    public void readFrom(StreamInput in) throws IOException {
-        count = in.readVLong();
-        totalUsage = in.readVLong();
-        location = in.readString();
-    }
-
-    @Override
-    public void writeTo(StreamOutput out) throws IOException {
-        out.writeVLong(count);
-        out.writeVLong(totalUsage);
-        out.writeString(location);
     }
 }
