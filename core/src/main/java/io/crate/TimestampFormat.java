@@ -25,25 +25,12 @@ import org.elasticsearch.common.joda.FormatDateTimeFormatter;
 import org.elasticsearch.common.joda.Joda;
 
 import java.util.Locale;
-import java.util.regex.Pattern;
 
 public class TimestampFormat {
-    public static final FormatDateTimeFormatter DATE_TIME_FORMATTER = Joda.forPattern("dateOptionalTime", Locale.ROOT);
-    private static final Pattern NUMBER_PATTERN = Pattern.compile("\\d+");
+
+    private static final FormatDateTimeFormatter DATE_TIME_FORMATTER = Joda.forPattern("dateOptionalTime", Locale.ROOT);
 
     public static long parseTimestampString(String value) throws UnsupportedOperationException, IllegalArgumentException {
         return DATE_TIME_FORMATTER.parser().parseMillis(value);
-    }
-
-    public static boolean isDateFormat(String value) {
-        if (!NUMBER_PATTERN.matcher(value).matches()) {
-            try {
-                DATE_TIME_FORMATTER.parser().parseMillis(value);
-                return true;
-            } catch (RuntimeException e) {
-                //
-            }
-        }
-        return false;
     }
 }
