@@ -80,13 +80,13 @@ public class BlobShard {
     }
 
     public BlobStats blobStats() {
-        final BlobStats stats = new BlobStats();
-        stats.location(blobContainer().getBaseDirectory().toString());
+        long totalUsage = 0;
+        long count = 0;
         for (File file : blobContainer().getFiles()) {
-            stats.totalUsage(stats.totalUsage() + file.length());
-            stats.count(stats.count() + 1);
+            totalUsage += file.length();
+            count++;
         }
-        return stats;
+        return new BlobStats(count, totalUsage);
     }
 
     void deleteShard() {
