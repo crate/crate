@@ -23,7 +23,6 @@ package io.crate;
 
 
 import org.elasticsearch.common.Nullable;
-import org.elasticsearch.common.inject.AbstractModule;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.monitor.jvm.JvmInfo;
@@ -70,14 +69,6 @@ public class Version {
 
     public boolean snapshot() {
         return snapshot != null && snapshot;
-    }
-
-    public boolean after(Version version) {
-        return version.id < id;
-    }
-
-    public boolean before(Version version) {
-        return version.id > id;
     }
 
     /**
@@ -138,19 +129,5 @@ public class Version {
         out.writeVInt(version.id);
         out.writeBoolean(version.snapshot);
         org.elasticsearch.Version.writeVersion(version.esVersion, out);
-    }
-
-    public static class Module extends AbstractModule {
-
-        private final Version version;
-
-        public Module(Version version) {
-            this.version = version;
-        }
-
-        @Override
-        protected void configure() {
-            bind(Version.class).toInstance(version);
-        }
     }
 }
