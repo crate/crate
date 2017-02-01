@@ -89,28 +89,12 @@ public abstract class AstVisitor<R, C> {
         return visitStatement(node, context);
     }
 
-    protected R visitShowCatalogs(ShowCatalogs node, C context) {
-        return visitStatement(node, context);
-    }
-
     protected R visitShowColumns(ShowColumns node, C context) {
-        return visitStatement(node, context);
-    }
-
-    protected R visitShowPartitions(ShowPartitions node, C context) {
-        return visitStatement(node, context);
-    }
-
-    protected R visitShowFunctions(ShowFunctions node, C context) {
         return visitStatement(node, context);
     }
 
     protected R visitTimeLiteral(TimeLiteral node, C context) {
         return visitLiteral(node, context);
-    }
-
-    protected R visitExplainOption(ExplainOption node, C context) {
-        return visitNode(node, context);
     }
 
     protected R visitWith(With node, C context) {
@@ -277,10 +261,6 @@ public abstract class AstVisitor<R, C> {
         return visitExpression(node, context);
     }
 
-    public R visitInputReference(InputReference node, C context) {
-        return visitExpression(node, context);
-    }
-
     public R visitWindow(Window node, C context) {
         return visitNode(node, context);
     }
@@ -290,22 +270,6 @@ public abstract class AstVisitor<R, C> {
     }
 
     public R visitFrameBound(FrameBound node, C context) {
-        return visitNode(node, context);
-    }
-
-    protected R visitCreateMaterializedView(CreateMaterializedView node, C context) {
-        return visitNode(node, context);
-    }
-
-    protected R visitRefreshMaterializedView(RefreshMaterializedView node, C context) {
-        return visitNode(node, context);
-    }
-
-    protected R visitCreateAlias(CreateAlias node, C context) {
-        return visitNode(node, context);
-    }
-
-    protected R visitDropAlias(DropAlias node, C context) {
         return visitNode(node, context);
     }
 
