@@ -227,8 +227,8 @@ public class CrateSettingsTest extends CrateUnitTest {
             new SettingsAppliers.TimeSettingsApplier(timeSetting);
 
         Settings.Builder settings = Settings.builder();
-        timeSettingsApplier.apply(settings, Row.EMPTY, Literal.fromObject("2.5m"));
-        assertThat(settings.get("cluster.graceful_stop.timeout"), is("150000ms"));
+        timeSettingsApplier.apply(settings, Row.EMPTY, Literal.fromObject("2m"));
+        assertThat(settings.get("cluster.graceful_stop.timeout"), is("120000ms"));
 
         settings = Settings.builder();
         timeSettingsApplier.apply(settings, Row.EMPTY, Literal.fromObject(1000));
