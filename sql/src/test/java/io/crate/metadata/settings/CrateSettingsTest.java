@@ -112,8 +112,8 @@ public class CrateSettingsTest extends CrateUnitTest {
     @Test
     public void testApplyInvalidValueOnByteCrateSetting() throws Exception {
         expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Invalid value for argument 'indices.recovery.file_chunk_size'");
-        applySetting("indices.recovery.file_chunk_size", Literal.fromObject("something"));
+        expectedException.expectMessage("Invalid value for argument 'indices.recovery.max_bytes_per_sec'");
+        applySetting(CrateSettings.INDICES_RECOVERY_MAX_BYTES_PER_SEC.settingName(), Literal.fromObject("something"));
     }
 
     @Test
