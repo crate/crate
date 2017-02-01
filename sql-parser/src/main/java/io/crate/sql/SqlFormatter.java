@@ -81,9 +81,6 @@ public final class SqlFormatter {
         @Override
         protected Void visitExplain(Explain node, Integer indent) {
             append(indent, "EXPLAIN ");
-            for (ExplainOption explainOption : node.getOptions()) {
-                process(explainOption, indent);
-            }
             process(node.getStatement(), indent);
             return null;
         }

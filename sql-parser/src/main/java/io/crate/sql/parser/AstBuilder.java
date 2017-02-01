@@ -177,11 +177,6 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
     }
 
     @Override
-    public Node visitDropAlias(SqlBaseParser.DropAliasContext context) {
-        return new DropAlias(getQualifiedName(context.qname()));
-    }
-
-    @Override
     public Node visitDropSnapshot(SqlBaseParser.DropSnapshotContext context) {
         return new DropSnapshot(getQualifiedName(context.qname()));
     }
@@ -289,7 +284,7 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
 
     @Override
     public Node visitExplain(SqlBaseParser.ExplainContext context) {
-        return new Explain((Statement) visit(context.statement()), ImmutableList.of());
+        return new Explain((Statement) visit(context.statement()));
     }
 
     @Override
