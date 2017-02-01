@@ -117,7 +117,7 @@ public class RestSQLAction extends BaseRestHandler {
             if (outputFields == null) {
                 ResultReceiver resultReceiver
                     = new RestRowCountReceiver(channel, startTime, request.paramAsBoolean("types", false));
-                session.execute(UNNAMED, 1, resultReceiver);
+                session.execute(UNNAMED, 0, resultReceiver);
             } else {
                 ResultReceiver resultReceiver =
                     new RestResultSetReceiver(channel, outputFields, startTime, request.paramAsBoolean("types", false));
@@ -141,12 +141,12 @@ public class RestSQLAction extends BaseRestHandler {
             final RestBulkRowCountReceiver.Result[] results = new RestBulkRowCountReceiver.Result[bulkArgs.length];
             if (results.length == 0) {
                 session.bind(UNNAMED, UNNAMED, Collections.emptyList(), null);
-                session.execute(UNNAMED, 1, new BaseResultReceiver());
+                session.execute(UNNAMED, 0, new BaseResultReceiver());
             } else {
                 for (int i = 0; i < bulkArgs.length; i++) {
                     session.bind(UNNAMED, UNNAMED, Arrays.asList(bulkArgs[i]), null);
                     ResultReceiver resultReceiver = new RestBulkRowCountReceiver(results, i);
-                    session.execute(UNNAMED, 1, resultReceiver);
+                    session.execute(UNNAMED, 0, resultReceiver);
                 }
             }
             List<Field> outputColumns = session.describe('P', UNNAMED);

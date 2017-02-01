@@ -28,8 +28,8 @@ import com.google.common.util.concurrent.ListenableFuture;
 import io.crate.analyze.WhereClause;
 import io.crate.core.collections.Row1;
 import io.crate.operation.count.CountOperation;
-import io.crate.operation.projectors.RepeatHandle;
 import io.crate.operation.projectors.RowReceiver;
+import io.crate.operation.projectors.RowReceivers;
 import org.elasticsearch.common.logging.ESLogger;
 import org.elasticsearch.common.logging.Loggers;
 
@@ -47,7 +47,7 @@ public class CountContext extends AbstractExecutionSubContext {
     private final RowReceiver rowReceiver;
     private final Map<String, List<Integer>> indexShardMap;
     private final WhereClause whereClause;
-    private ListenableFuture<Long> countFuture;
+    private volatile ListenableFuture<Long> countFuture;
 
     public CountContext(int id,
                         CountOperation countOperation,
@@ -71,12 +71,13 @@ public class CountContext extends AbstractExecutionSubContext {
         Futures.addCallback(countFuture, new FutureCallback<Long>() {
             @Override
             public void onSuccess(@Nullable Long result) {
-                rowReceiver.setNextRow(new Row1(result));
+                RowReceivers.sendOneRow(rowReceiver, new Row1(result));
                 close();
             }
 
             @Override
             public void onFailure(@Nonnull Throwable t) {
+                rowReceiver.fail(t);
                 close(t);
             }
         });
@@ -88,15 +89,6 @@ public class CountContext extends AbstractExecutionSubContext {
             countFuture.cancel(true);
         }
         rowReceiver.kill(throwable);
-    }
-
-    @Override
-    protected void innerClose(@Nullable Throwable t) {
-        if (t == null) {
-            rowReceiver.finish(RepeatHandle.UNSUPPORTED);
-        } else {
-            rowReceiver.fail(t);
-        }
     }
 
     @Override

@@ -166,9 +166,7 @@ public class WriterProjector extends AbstractProjector {
     @Override
     public void finish(RepeatHandle repeatHandle) {
         if (closeWriterAndOutput()) return;
-
-        downstream.setNextRow(new Row1(counter.get()));
-        downstream.finish(RepeatHandle.UNSUPPORTED);
+        RowReceivers.sendOneRow(downstream, new Row1(counter.get()));
     }
 
     private boolean closeWriterAndOutput() {

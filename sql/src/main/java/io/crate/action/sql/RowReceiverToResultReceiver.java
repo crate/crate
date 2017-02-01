@@ -27,34 +27,20 @@ import io.crate.operation.projectors.*;
 
 import java.util.Set;
 
-public class RowReceiverToResultReceiver implements RowReceiver {
+public abstract class RowReceiverToResultReceiver implements RowReceiver {
 
-    private ResultReceiver resultReceiver;
-    private int maxRows;
-    private long rowCount = 0;
+    protected ResultReceiver resultReceiver;
 
-    private ResumeHandle resumeHandle = null;
+    public static RowReceiverToResultReceiver singleRow(ResultReceiver receiver) {
+        return new SingleRow(receiver);
+    }
 
-    public RowReceiverToResultReceiver(ResultReceiver resultReceiver, int maxRows) {
+    public static RowReceiverToResultReceiver multiRow(ResultReceiver receiver, int batchSize) {
+        return new MultiRow(receiver, batchSize);
+    }
+
+    private RowReceiverToResultReceiver(ResultReceiver resultReceiver) {
         this.resultReceiver = resultReceiver;
-        this.maxRows = maxRows;
-    }
-
-    @Override
-    public Result setNextRow(Row row) {
-        rowCount++;
-        resultReceiver.setNextRow(row);
-
-        if (maxRows > 0 && rowCount % maxRows == 0) {
-            return Result.PAUSE;
-        }
-        return Result.CONTINUE;
-    }
-
-    @Override
-    public void pauseProcessed(ResumeHandle resumeHandle) {
-        this.resumeHandle = resumeHandle;
-        resultReceiver.batchFinished();
     }
 
     @Override
@@ -77,13 +63,76 @@ public class RowReceiverToResultReceiver implements RowReceiver {
         return Requirements.NO_REQUIREMENTS;
     }
 
-    public ResumeHandle resumeHandle() {
-        return resumeHandle;
+    public abstract ResumeHandle resumeHandle();
+
+    public abstract void replaceResultReceiver(ResultReceiver resultReceiver, int batchSize);
+
+    static class SingleRow extends RowReceiverToResultReceiver {
+
+        public SingleRow(ResultReceiver resultReceiver) {
+            super(resultReceiver);
+        }
+
+        @Override
+        public Result setNextRow(Row row) {
+            resultReceiver.setNextRow(row);
+            return Result.STOP;
+        }
+
+        @Override
+        public void pauseProcessed(ResumeHandle resumeable) {
+            throw new UnsupportedOperationException("pause not supported");
+        }
+
+        public ResumeHandle resumeHandle() {
+            return null;
+        }
+
+        @Override
+        public void replaceResultReceiver(ResultReceiver resultReceiver, int batchSize) {
+            throw new UnsupportedOperationException("method replaceResultReceiver not suppported");
+        }
     }
 
-    public void replaceResultReceiver(ResultReceiver resultReceiver, int maxRows) {
-        this.resumeHandle = null;
-        this.resultReceiver = resultReceiver;
-        this.maxRows = maxRows;
+    static class MultiRow extends RowReceiverToResultReceiver {
+
+        private int maxRows;
+        private long rowCount = 0;
+
+        private ResumeHandle resumeHandle = null;
+
+        public MultiRow(ResultReceiver resultReceiver, int maxRows) {
+            super(resultReceiver);
+            this.maxRows = maxRows;
+        }
+
+        @Override
+        public ResumeHandle resumeHandle() {
+            return resumeHandle;
+        }
+
+        @Override
+        public void replaceResultReceiver(ResultReceiver resultReceiver, int batchSize) {
+            this.resumeHandle = null;
+            this.resultReceiver = resultReceiver;
+            this.maxRows = batchSize;
+        }
+
+        @Override
+        public Result setNextRow(Row row) {
+            rowCount++;
+            resultReceiver.setNextRow(row);
+
+            if (maxRows > 0 && rowCount % maxRows == 0) {
+                return Result.PAUSE;
+            }
+            return Result.CONTINUE;
+        }
+
+        @Override
+        public void pauseProcessed(ResumeHandle resumeHandle) {
+            this.resumeHandle = resumeHandle;
+            resultReceiver.batchFinished();
+        }
     }
 }

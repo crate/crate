@@ -100,7 +100,7 @@ public class AlterTableOperation {
             try {
                 session.parse(SQLOperations.Session.UNNAMED, stmt, Collections.<DataType>emptyList());
                 session.bind(SQLOperations.Session.UNNAMED, SQLOperations.Session.UNNAMED, Collections.emptyList(), null);
-                session.execute(SQLOperations.Session.UNNAMED, 1, new ResultSetReceiver(analysis, result));
+                session.execute(SQLOperations.Session.UNNAMED, 0, new ResultSetReceiver(analysis, result));
                 session.sync();
             } catch (Throwable t) {
                 result.setException(t);

@@ -73,7 +73,9 @@ public class LuceneDocCollectorTest extends SQLTransportIntegrationTest {
 
     @After
     public void closeContext() throws Exception {
-        collectorProvider.close();
+        if (collectorProvider != null) {
+            collectorProvider.close();
+        }
     }
 
     public void generateData() throws Exception {
