@@ -160,6 +160,7 @@ public class TableStatsServiceTest extends CrateDummyClusterServiceUnitTest {
     public void testNoUpdateIfLocalNodeNotAvailable() throws Exception {
         final ClusterService clusterService = mock(ClusterService.class);
         when(clusterService.localNode()).thenReturn(null);
+        when(clusterService.getClusterSettings()).thenReturn(this.clusterService.getClusterSettings());
         final SQLOperations sqlOperations = mock(SQLOperations.class);
 
         TableStatsService statsService = new TableStatsService(
