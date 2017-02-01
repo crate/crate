@@ -172,7 +172,11 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
             }
         }
         if (indexShard.getTranslogDurability() == Translog.Durability.REQUEST && translogLocation != null) {
-            indexShard.sync(translogLocation, i -> logger.error("error during sync", i));
+            indexShard.sync(translogLocation, ex -> {
+                if (ex != null) {
+                    logger.error("error during sync", ex);
+                }
+            });
         }
         return shardResponse;
     }
