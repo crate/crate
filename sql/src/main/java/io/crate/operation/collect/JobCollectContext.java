@@ -68,7 +68,6 @@ public class JobCollectContext extends AbstractExecutionSubContext {
 
     public JobCollectContext(final CollectPhase collectPhase,
                              MapSideDataCollectOperation collectOperation,
-                             String localNodeId,
                              RamAccountingContext queryPhaseRamAccountingContext,
                              final RowReceiver rowReceiver,
                              SharedShardContexts sharedShardContexts) {
@@ -91,7 +90,7 @@ public class JobCollectContext extends AbstractExecutionSubContext {
             }
         });
         this.rowReceiver = listenableRowReceiver;
-        this.threadPoolName = threadPoolName(collectPhase, localNodeId);
+        this.threadPoolName = threadPoolName(collectPhase);
     }
 
     public void addSearcher(int searcherId, Engine.Searcher searcher) {
@@ -201,7 +200,7 @@ public class JobCollectContext extends AbstractExecutionSubContext {
     }
 
     @VisibleForTesting
-    static String threadPoolName(CollectPhase phase, String localNodeId) {
+    static String threadPoolName(CollectPhase phase) {
         if (phase instanceof RoutedCollectPhase) {
             RoutedCollectPhase collectPhase = (RoutedCollectPhase) phase;
             if (collectPhase.maxRowGranularity() == RowGranularity.NODE

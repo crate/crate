@@ -118,7 +118,6 @@ public class JobExecutionContextTest extends CrateUnitTest {
         JobCollectContext jobCollectContext = new JobCollectContext(
             collectPhase,
             mock(MapSideDataCollectOperation.class),
-            localNodeId,
             mock(RamAccountingContext.class),
             mock(RowReceiver.class),
             mock(SharedShardContexts.class));
