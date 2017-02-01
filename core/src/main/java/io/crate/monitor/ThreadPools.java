@@ -91,10 +91,6 @@ public class ThreadPools implements Streamable, Iterable<Map.Entry<String, Threa
         return contexts.entrySet().iterator();
     }
 
-    public ThreadPoolExecutorContext get(String name) {
-        return contexts.get(name);
-    }
-
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;

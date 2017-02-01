@@ -87,12 +87,6 @@ public class ExtendedNetworkStats implements Streamable {
         private long inErrs;
         private long outRsts;
 
-        public static Tcp readTcp(StreamInput in) throws IOException {
-            Tcp tcp = new Tcp();
-            tcp.readFrom(in);
-            return tcp;
-        }
-
         public Tcp() {
         }
 

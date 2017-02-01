@@ -24,7 +24,7 @@ package io.crate.monitor;
 
 public class ExtendedNetworkInfo {
 
-    public static final Interface NA_INTERFACE = new Interface("", "", "");
+    public static final Interface NA_INTERFACE = new Interface("", "");
 
     private final Interface primary;
 
@@ -39,21 +39,15 @@ public class ExtendedNetworkInfo {
     public static class Interface {
 
         private final String name;
-        private final String address;
         private final String macAddress;
 
-        public Interface(String name, String address, String macAddress) {
+        public Interface(String name, String macAddress) {
             this.name = name;
-            this.address = address;
             this.macAddress = macAddress;
         }
 
         public String name() {
             return name;
-        }
-
-        public String address() {
-            return address;
         }
 
         public String macAddress() {
