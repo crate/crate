@@ -17,7 +17,6 @@ dependencies {
     compile "org.antlr:antlr4-runtime:${versions.antlr}"
 
     compile "com.google.code.findbugs:jsr305:${versions.jsr305}"
-    compile "joda-time:joda-time:${versions.jodatime}"
     compile "com.google.guava:guava:${versions.guava}"
 
     testCompile "org.hamcrest:hamcrest-all:${versions.hamcrest}"

@@ -60,14 +60,6 @@ public class LogicalBinaryExpression
         return visitor.visitLogicalBinaryExpression(this, context);
     }
 
-    public static LogicalBinaryExpression and(Expression left, Expression right) {
-        return new LogicalBinaryExpression(Type.AND, left, right);
-    }
-
-    public static LogicalBinaryExpression or(Expression left, Expression right) {
-        return new LogicalBinaryExpression(Type.OR, left, right);
-    }
-
     @Override
     public boolean equals(Object o) {
         if (this == o) {

@@ -22,19 +22,12 @@
 
 package io.crate.sql.parser;
 
-import com.google.common.collect.Iterables;
-
 import java.util.EnumSet;
 
 import static java.util.Objects.requireNonNull;
 
 public class SqlParserOptions {
     private final EnumSet<IdentifierSymbol> allowedIdentifierSymbols = EnumSet.noneOf(IdentifierSymbol.class);
-
-    public SqlParserOptions allowIdentifierSymbol(Iterable<IdentifierSymbol> identifierSymbols) {
-        Iterables.addAll(allowedIdentifierSymbols, identifierSymbols);
-        return this;
-    }
 
     public EnumSet<IdentifierSymbol> getAllowedIdentifierSymbols() {
         return EnumSet.copyOf(allowedIdentifierSymbols);
