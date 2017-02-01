@@ -91,7 +91,7 @@ public class SigarExtendedNodeInfo implements ExtendedNodeInfo {
         ExtendedNetworkInfo.Interface iface;
         try {
             NetInterfaceConfig netInterfaceConfig = sigar.getNetInterfaceConfig(null);
-            iface = new ExtendedNetworkInfo.Interface(netInterfaceConfig.getName(), netInterfaceConfig.getAddress(), netInterfaceConfig.getHwaddr());
+            iface = new ExtendedNetworkInfo.Interface(netInterfaceConfig.getName(), netInterfaceConfig.getHwaddr());
         } catch (SigarException e) {
             // ignore
             iface = ExtendedNetworkInfo.NA_INTERFACE;

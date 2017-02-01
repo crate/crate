@@ -106,12 +106,6 @@ public class ExtendedOsStats implements Streamable {
         private short idle;
         private short stolen;
 
-        public static Cpu readCpu(StreamInput in) throws IOException {
-            Cpu cpu = new Cpu();
-            cpu.readFrom(in);
-            return cpu;
-        }
-
         public Cpu() {
             this((short) -1, (short) -1, (short) -1, (short) -1);
         }
