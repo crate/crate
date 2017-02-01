@@ -435,14 +435,6 @@ public class TestStatementBuilder {
     }
 
     @Test
-    public void testSelectAndSampleRelationStmtBuilder() {
-        printStatement("select * from foo tablesample system (10+1)");
-        printStatement("select * from foo tablesample system (10) join bar tablesample bernoulli (30) on a.id = b.id");
-        printStatement("select * from foo tablesample bernoulli (10) stratify on (id)");
-        printStatement("select * from foo tablesample system (50) stratify on (id, name)");
-    }
-
-    @Test
     public void testSystemInformationFunctionsStmtBuilder() {
         printStatement("select current_schema");
         printStatement("select current_schema()");

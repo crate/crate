@@ -261,10 +261,6 @@ public abstract class AstVisitor<R, C> {
         return visitRelation(node, context);
     }
 
-    protected R visitSampledRelation(SampledRelation node, C context) {
-        return visitRelation(node, context);
-    }
-
     protected R visitJoin(Join node, C context) {
         return visitRelation(node, context);
     }

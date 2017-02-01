@@ -1337,20 +1337,6 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
         throw new IllegalArgumentException("Unsupported quantifier: " + symbol.getText());
     }
 
-    @Override
-    public Node visitSampledRelation(SqlBaseParser.SampledRelationContext context) {
-        Relation child = (Relation) visit(context.aliasedRelation());
-
-        if (context.TABLESAMPLE() == null) {
-            return child;
-        }
-        return new SampledRelation(
-            child,
-            getSamplingMethod((Token) context.sampleType().getChild(0).getPayload()),
-            (Expression) visit(context.percentage),
-            Optional.empty());
-    }
-
     private static WindowFrame.Type getFrameType(Token type) {
         switch (type.getType()) {
             case SqlBaseLexer.RANGE:
@@ -1382,16 +1368,5 @@ class AstBuilder extends SqlBaseBaseVisitor<Node> {
         }
 
         throw new IllegalArgumentException("Unsupported bound type: " + token.getText());
-    }
-
-    private static SampledRelation.Type getSamplingMethod(Token token) {
-        switch (token.getType()) {
-            case SqlBaseLexer.BERNOULLI:
-                return SampledRelation.Type.BERNOULLI;
-            case SqlBaseLexer.SYSTEM:
-                return SampledRelation.Type.SYSTEM;
-        }
-
-        throw new IllegalArgumentException("Unsupported sampling method: " + token.getText());
     }
 }

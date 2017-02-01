@@ -506,26 +506,6 @@ public final class SqlFormatter {
         }
 
         @Override
-        protected Void visitSampledRelation(SampledRelation node, Integer indent) {
-            process(node.getRelation(), indent);
-
-            builder.append(" TABLESAMPLE ")
-                .append(node.getType())
-                .append(" (")
-                .append(node.getSamplePercentage())
-                .append(')');
-
-            if (node.getColumnsToStratifyOn().isPresent()) {
-                builder.append(" STRATIFY ON ")
-                    .append(" (")
-                    .append(Joiner.on(",").join(node.getColumnsToStratifyOn().get()));
-                builder.append(')');
-            }
-
-            return null;
-        }
-
-        @Override
         protected Void visitTableSubquery(TableSubquery node, Integer indent) {
             builder.append('(')
                 .append('\n');

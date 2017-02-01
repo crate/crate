@@ -129,11 +129,11 @@ where
 
 relation
     : left=relation
-      ( CROSS JOIN right=sampledRelation
+      ( CROSS JOIN right=aliasedRelation
       | joinType JOIN rightRelation=relation joinCriteria
-      | NATURAL joinType JOIN right=sampledRelation
+      | NATURAL joinType JOIN right=aliasedRelation
       )                                                                              #joinRelation
-    | sampledRelation                                                                #relationDefault
+    | aliasedRelation                                                                #relationDefault
     ;
 
 joinType
@@ -298,19 +298,6 @@ subscriptSafe
     ;
 
 // not used in crate
-
-sampledRelation
-    : aliasedRelation (TABLESAMPLE sampleType '(' percentage=expr ')' stratifyOn?)?
-    ;
-
-stratifyOn
-    : STRATIFY ON '(' expr (',' expr)* ')'
-    ;
-
-sampleType
-    : BERNOULLI
-    | SYSTEM
-    ;
 
 over
     : OVER '('
