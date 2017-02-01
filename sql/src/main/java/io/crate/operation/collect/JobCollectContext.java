@@ -204,19 +204,15 @@ public class JobCollectContext extends AbstractExecutionSubContext {
     static String threadPoolName(CollectPhase phase, String localNodeId) {
         if (phase instanceof RoutedCollectPhase) {
             RoutedCollectPhase collectPhase = (RoutedCollectPhase) phase;
-            if (collectPhase.maxRowGranularity() == RowGranularity.DOC
-                && collectPhase.routing().containsShards(localNodeId)) {
-                // DOC table collectors
-                return ThreadPool.Names.SEARCH;
-            } else if (collectPhase.maxRowGranularity() == RowGranularity.NODE
+            if (collectPhase.maxRowGranularity() == RowGranularity.NODE
                        || collectPhase.maxRowGranularity() == RowGranularity.SHARD) {
                 // Node or Shard system table collector
                 return ThreadPool.Names.MANAGEMENT;
             }
         }
 
-        // Anything else like INFORMATION_SCHEMA tables or sys.cluster table collector
-        return ThreadPool.Names.SEARCH; // TODO: PERCOLATE is gone;
+        // Anything else like doc tables, INFORMATION_SCHEMA tables or sys.cluster table collector, partition collector
+        return ThreadPool.Names.SEARCH;
     }
 
     @VisibleForTesting
