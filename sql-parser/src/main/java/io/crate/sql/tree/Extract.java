@@ -22,7 +22,6 @@
 package io.crate.sql.tree;
 
 import javax.annotation.concurrent.Immutable;
-import java.util.Locale;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
@@ -64,18 +63,6 @@ public class Extract
 
     public Expression getExpression() {
         return expression;
-    }
-
-
-    public Field getField(Object[] parameters) {
-        String fieldName;
-        if (field instanceof ParameterExpression) {
-            fieldName = parameters[((ParameterExpression) field).index()].toString();
-        } else {
-            assert field instanceof StringLiteral : "field must be StringLiteral";
-            fieldName = ((StringLiteral) field).getValue();
-        }
-        return Field.valueOf(fieldName.toUpperCase(Locale.ENGLISH));
     }
 
     public Expression getField() {

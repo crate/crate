@@ -32,19 +32,11 @@ public class CreateAnalyzer extends Statement {
     private final String ident;
     private final Optional<String> extendedAnalyzer;
     private final List<AnalyzerElement> elements;
-    private final GenericProperties properties;
 
     public CreateAnalyzer(String ident, Optional<String> extendedAnalyzer, List<AnalyzerElement> elements) {
         this.ident = ident;
         this.extendedAnalyzer = extendedAnalyzer;
         this.elements = elements;
-
-        this.properties = new GenericProperties();
-        for (AnalyzerElement element : elements) {
-            if (element instanceof GenericProperty) {
-                this.properties.add((GenericProperty) element);
-            }
-        }
     }
 
     public String ident() {
@@ -63,14 +55,6 @@ public class CreateAnalyzer extends Statement {
         return elements;
     }
 
-    /**
-     * if the statement contains any {@link io.crate.sql.tree.GenericProperty}s
-     * they will be gathered and returned as an instance of {@link io.crate.sql.tree.GenericProperties}.
-     */
-    public GenericProperties getProperties() {
-        return this.properties;
-    }
-
     @Override
     public int hashCode() {
         return Objects.hashCode(ident, extendedAnalyzer, elements);
@@ -86,7 +70,6 @@ public class CreateAnalyzer extends Statement {
         if (!elements.equals(that.elements)) return false;
         if (!extendedAnalyzer.equals(that.extendedAnalyzer)) return false;
         if (!ident.equals(that.ident)) return false;
-        if (!properties.equals(that.properties)) return false;
 
         return true;
     }
@@ -97,7 +80,6 @@ public class CreateAnalyzer extends Statement {
             .add("ident", ident)
             .add("extends", extendedAnalyzer)
             .add("elements", elements)
-            .add("properties", properties)
             .toString();
     }
 

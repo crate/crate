@@ -33,19 +33,9 @@ public class CurrentTime
     private final Optional<Integer> precision;
 
     public enum Type {
-        TIME("current_time"),
-        DATE("current_date"),
-        TIMESTAMP("current_timestamp");
-
-        private final String name;
-
-        private Type(String name) {
-            this.name = name;
-        }
-
-        public String getName() {
-            return name;
-        }
+        TIME,
+        DATE,
+        TIMESTAMP;
     }
 
     public CurrentTime(Type type) {
