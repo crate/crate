@@ -86,7 +86,7 @@ public class MapSideDataCollectOperationTest extends CrateDummyClusterServiceUni
             null,
             false
         );
-        String threadPoolName = JobCollectContext.threadPoolName(collectNode, "noop_id");
+        String threadPoolName = JobCollectContext.threadPoolName(collectNode);
 
         CollectingRowReceiver cd = new CollectingRowReceiver();
         JobCollectContext jobCollectContext = mock(JobCollectContext.class);
